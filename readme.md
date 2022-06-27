@@ -1,7 +1,7 @@
 # Inferno Editor
-The Inferno Editor is a modern level editor for Descent 1 and 2 designed for efficiency and ease of use.
+The Inferno Editor is a modern level editor for Descent 1 and 2 designed for efficiency and ease of use. Inspired by Blender and UnrealEd.
 
-[preview][docs/preview.jpg]
+![preview](docs/preview.jpg)
 
 ## Features
 - Interactive extrusion, translation, rotation, and scaling
@@ -26,4 +26,4 @@ There is a user guide in the help menu.
 # Building
 Requires Visual Studio 2022 with VCPKG integration
 
-Restore git submodules. Open the `sln` file and build. If set up correctly dependencies will be fetched automatically using the VCPKG manifest.
+Restore git submodules. Open `Inferno.sln` file and build. If set up correctly dependencies will be fetched automatically using the VCPKG manifest.
