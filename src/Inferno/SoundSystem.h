@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include <windef.h>
 #include "Types.h"
 
 namespace Inferno::Sound {

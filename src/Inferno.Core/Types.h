@@ -7,6 +7,7 @@
 #include <numbers>
 #include <filesystem>
 #include <DirectXTK12/SimpleMath.h>
+#include <span>
 
 namespace Inferno {
     //constexpr void SafeRelease(auto x) {

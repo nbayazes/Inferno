@@ -1,8 +1,10 @@
 #include "pch.h"
+#include "DirectX.h"
 #include "SoundSystem.h"
 #include "FileSystem.h"
 #include "Resources.h"
 #include "Game.h"
+#include "logging.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -102,7 +104,7 @@ namespace Inferno::Sound {
             Sounds[int(id)] = MakePtr<SoundEffect>(std::move(soundEffect));
         }
 
-        SPDLOG_INFO("Playing sound effect {}", id);
+        SPDLOG_INFO("Playing sound effect {}", (int)id);
         auto sound = Sounds[int(id)].get();
         sound->Play(volume, pitch, pan);
         // Instead of play, should call CreateInstance() so start/stop and other options are available.
