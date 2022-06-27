@@ -1,0 +1,48 @@
+Extra life
+Energy boost
+Shield boost
+Laser
+Blue key
+Red key
+Gold key
+(not used)
+(not used)
+(not used)
+1 Concussion Missile
+4 Concussion Missiles
+Quad Laser
+Vulcan Cannon
+Spreadfire
+Plasma Cannon
+Fusion Cannon
+Proximity Bomb
+1 Homing Missile
+4 Homing Missiles
+Smart Missile
+Mega Missile
+Vulcan Ammo
+Cloaking Device
+(not used)
+Invulnerability
+(not used)
+(not used)
+Gauss Cannon
+Helix Cannon
+Phoenix Cannon
+Omega Cannon
+Super Laser
+Full Map
+Shield Converter
+Ammo Rack
+Afterburner
+Headlight
+1 Flash Missile
+4 Flash Missiles
+1 Guided Missile
+4 Guided Missiles
+Smart Mine
+1 Mercury Missile
+4 Mercury Missiles
+Earth Shaker Missile
+Blue Flag
+Red Flag

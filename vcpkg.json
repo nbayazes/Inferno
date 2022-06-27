@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "inferno",
+  "version": "1.0.0",
+  "builtin-baseline": "67e734c04ca963f0fc43a2787d6559c01a27a55a",
+  "dependencies": [
+    "directxtk12",
+    "ryml",
+    "fmt",
+    "spdlog",
+    "lodepng"
+  ],
+  "overrides": [
+    {
+      "name": "fmt",
+      "version": "7.1.3"
+    },
+    {
+      "name": "spdlog",
+      "version": "1.8.5"
+    }
+  ]
+}

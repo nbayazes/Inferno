@@ -1,0 +1,91 @@
+#pragma once
+#include "Polymodel.h"
+#include "Types.h"
+#include "Object.h"
+
+namespace Inferno {
+    constexpr auto MAX_ROBOT_JOINTS = 1600;
+    constexpr auto MAX_GUNS = 8;
+    constexpr auto N_ANIM_STATES = 5;
+
+    // describes a list of joint positions
+    struct JointList {
+        short Count;
+        short Offset;
+    };
+
+    struct RobotDifficultyInfo {
+        float FieldOfView;
+        float FireDelay, FireDelay2;
+        float TurnTime; // time in seconds to rotate 360 degrees in a dimension
+        float MaxSpeed;
+        float CircleDistance;
+        sbyte RapidfireCount;
+        sbyte EvadeSpeed;   // rate at which robot can evade shots, 0=none, 4=very fast
+    };
+    
+    enum class CloakType : sbyte { None, Always, WhenNotFiring };
+    enum class AttackType : sbyte { Ranged, Melee };
+
+    struct RobotInfo {
+        ModelID Model;
+        Vector3 GunPoints[MAX_GUNS]; // where each gun model is
+        ubyte GunSubmodels[MAX_GUNS];   // which submodel is each gun in?
+
+        VClipID ExplosionClip1;
+        SoundID ExplosionSound1;
+
+        VClipID ExplosionClip2;
+        SoundID ExplosionSound2;
+
+        sbyte WeaponType;
+        sbyte WeaponType2;    // Secondary weapon number, -1 means none, otherwise gun #0 fires this weapon.
+        int8 Guns;            // how many different gun positions
+
+        ContainsData Contains;
+        sbyte ContainsChance;   // Probability that this instance will contain something in N/16
+
+        sbyte Kamikaze;        // Strength of suicide explosion and knockback
+
+        short Score;
+        int8 Badass;         // Dies with badass explosion. > 0 specifies strength (damage?)
+        int8 EnergyDrain;    // Energy drained when touched
+
+        float Lighting;
+        float Strength; // Health
+
+        float Mass, Drag;
+
+        Array<RobotDifficultyInfo, 5> Difficulty{};
+        
+        CloakType Cloaking = CloakType::None;
+        AttackType Attack = AttackType::Ranged;
+
+        SoundID SeeSound;
+        SoundID AttackSound;
+        SoundID ClawSound;
+        SoundID TauntSound;
+
+        bool IsBoss;
+        bool IsCompanion;    // Companion robot, leads you to things.
+
+        sbyte smart_blobs;  // Blobs on death, not implemented
+        sbyte energy_blobs; // Blobs when hit by an energy weapon
+
+        bool IsThief;
+        bool Pursues;       // Chases player after going around a corner.  4 = 4/2 pursue up to 4/2 seconds after becoming invisible if up to 4 segments away
+        sbyte LightCast;    // Amount of light cast. 1 is default.  10 is very large.
+        sbyte DeathRoll;   // 0 = dies without death roll. !0 means does death roll, larger = faster and louder
+
+        ubyte Flags;   // misc properties
+
+        SoundID DeathrollSound; // if has deathroll, what sound?
+        ubyte Glow;        // apply this light to robot itself. stored as 4:4 fixed-point
+        ubyte Behavior;    // Default behavior
+        ubyte Aim;         // 255 = perfect, less = more likely to miss.  0 != random, would look stupid.  0=45 degree spread
+
+        //animation info
+        JointList anim_states[MAX_GUNS + 1][N_ANIM_STATES];
+    };
+
+}
