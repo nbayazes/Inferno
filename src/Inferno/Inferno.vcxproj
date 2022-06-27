@@ -48,7 +48,7 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\obj\</IntDir>
-    <CodeAnalysisRuleSet>..\..\InfernoEngine.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\..\Inferno.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableMicrosoftCodeAnalysis>true</EnableMicrosoftCodeAnalysis>
   </PropertyGroup>

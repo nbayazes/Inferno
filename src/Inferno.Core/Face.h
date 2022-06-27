@@ -4,8 +4,6 @@
 #include "Utility.h"
 #include "Level.h"
 
-//#define NOMINMAX
-
 namespace Inferno {
 
     // Helper to perform operations on a segment face. A face is always 4 points.

@@ -45,7 +45,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <CodeAnalysisRuleSet>..\..\InfernoEngine.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>..\..\Inferno.ruleset</CodeAnalysisRuleSet>
     <OutDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\$(ProjectName)\$(Platform)\$(Configuration)\obj\</IntDir>
   </PropertyGroup>

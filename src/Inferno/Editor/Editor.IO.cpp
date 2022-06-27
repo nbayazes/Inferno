@@ -277,7 +277,7 @@ namespace Inferno::Editor {
         return data;
     }
 
-    std::vector<ubyte> WriteLevelMetadataToMemory(Level& level) {
+    std::vector<ubyte> WriteLevelMetadataToMemory(const Level& level) {
         std::stringstream stream;
         stream.unsetf(std::ios::skipws);
         SaveLevelMetadata(level, stream);

@@ -263,7 +263,7 @@ int Shell::Show(Application* app, int width, int height, int nCmdShow) {
 
     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(app));
     GetClientRect(hwnd, &rc);
-    app->Initialize(hwnd, rc.right - rc.left, rc.bottom - rc.top);
+    app->Initialize(rc.right - rc.left, rc.bottom - rc.top);
 
     // Main message loop
     MSG msg{};

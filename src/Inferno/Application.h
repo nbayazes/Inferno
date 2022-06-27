@@ -11,7 +11,6 @@
 namespace Inferno {
 
     class Application final : public IDeviceNotify {
-        HWND _hwnd = nullptr;
         Inferno::Editor::EditorUI _editorUI;
         SystemClock _clock;
         double _fpsLimit = 0;
@@ -21,7 +20,7 @@ namespace Inferno {
         Application() = default;
         void OnShutdown();
         // Initialization and management
-        void Initialize(HWND window, int width, int height);
+        void Initialize(int width, int height);
         void Tick();
         bool OnClose();
         void OnActivated();

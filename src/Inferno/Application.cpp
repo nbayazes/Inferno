@@ -17,10 +17,9 @@ void Application::OnShutdown() {
     Sound::Shutdown();
 }
 
-void Application::Initialize(HWND hwnd, int width, int height) {
-    _hwnd = hwnd;
-    Inferno::Input::Initialize(hwnd);
-    Render::Initialize(hwnd, width, height);
+void Application::Initialize(int width, int height) {
+    Inferno::Input::Initialize(Shell::Hwnd);
+    Render::Initialize(Shell::Hwnd, width, height);
 
     Editor::Initialize();
 

@@ -14,7 +14,7 @@ namespace Inferno::Editor {
 
         //ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
-        if (ImGui::Begin("Debug Overlay", (bool*)0, window_flags)) {
+        if (ImGui::Begin("Debug Overlay", nullptr, window_flags)) {
             static Array<float, 90> values = {};
             static int values_offset = 0;
             static double refresh_time = 0.0;
