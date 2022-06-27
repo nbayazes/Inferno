@@ -292,9 +292,6 @@
     <ClInclude Include="Editor\Editor.Segment.h">
       <Filter>Editor</Filter>
     </ClInclude>
-    <ClInclude Include="Editor\UI\FileBrowser.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
     <ClInclude Include="WindowsDialogs.h">
       <Filter>Editor</Filter>
     </ClInclude>

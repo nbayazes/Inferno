@@ -90,7 +90,7 @@ namespace Inferno::Editor {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
             ImGui::Columns(2);
             if (!_loaded) {
-                ImGui::SetColumnWidth(0, 175);
+                ImGui::SetColumnWidth(0, 10);
                 _loaded = true;
             }
             //ImGui::Separator();

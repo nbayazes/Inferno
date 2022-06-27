@@ -771,7 +771,7 @@ namespace Inferno::Editor {
         if (!dockspaceNode) {
             ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
             ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
-            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->GetWorkSize());
+            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
 
             ImGuiID dock_main_id = dockspace_id;
             ImGuiID leftPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
@@ -797,10 +797,9 @@ namespace Inferno::Editor {
     }
 
     void EditorUI::DrawDockspace(ImGuiViewport* viewport) {
-        auto viewportSize = viewport->GetWorkSize();
         float toolbarWidth = 0; // = ToolbarWidth;
         ImGui::SetNextWindowPos({ toolbarWidth, 0 });
-        ImGui::SetNextWindowSize({ viewportSize.x - toolbarWidth, viewportSize.y + _mainMenuHeight - _statusBar.Height });
+        ImGui::SetNextWindowSize({ viewport->WorkSize.x - toolbarWidth, viewport->WorkSize.y + _mainMenuHeight - _statusBar.Height });
 
         ImGui::SetNextWindowViewport(viewport->ID);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);

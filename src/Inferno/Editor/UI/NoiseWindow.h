@@ -18,7 +18,7 @@ namespace Inferno::Editor {
             ImGui::DragFloat3("Strength", &_strength.x, 1, 0, 100, "%.2f");
             ImGui::HelpMarker("Maximum amount of movement on each axis");
             
-            ImGui::DragFloat("Scale", &_scale, 1.0f, 1, 1000, "%.2f", 2);
+            ImGui::DragFloat("Scale", &_scale, 1.0f, 1, 1000, "%.2f");
             ImGui::HelpMarker("A higher scale creates larger waves\nwith less localized noise");
             
             ImGui::DragInt("Seed", &_seed);

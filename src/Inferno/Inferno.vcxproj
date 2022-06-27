@@ -70,7 +70,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\vendor\imgui;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/Zc:__cplusplus /we4715 %(AdditionalOptions)</AdditionalOptions>
@@ -105,7 +105,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\vendor\imgui;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:__cplusplus /we4715 %(AdditionalOptions)</AdditionalOptions>
       <EnableModules>
@@ -221,7 +221,6 @@
     <ClInclude Include="Graphics\Render.Debug.h" />
     <ClInclude Include="Graphics\LevelMesh.h" />
     <ClInclude Include="Editor\UI\DebugWindow.h" />
-    <ClInclude Include="Editor\UI\FileBrowser.h" />
     <ClInclude Include="Editor\UI\WindowBase.h" />
     <ClInclude Include="Graphics\Mesh.h" />
     <ClInclude Include="Graphics\PostProcess.h" />

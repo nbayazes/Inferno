@@ -26,4 +26,4 @@ There is a user guide in the help menu.
 # Building
 Requires Visual Studio 2022 with VCPKG integration
 
-Restore git submodules. Open `Inferno.sln` file and build. If set up correctly dependencies will be fetched automatically using the VCPKG manifest.
+Open `Inferno.sln` file and build. If set up correctly dependencies will be fetched automatically using the VCPKG manifest.

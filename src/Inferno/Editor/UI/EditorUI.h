@@ -1,5 +1,4 @@
 #pragma once
-#include "FileBrowser.h"
 #include "DebugWindow.h"
 #include "MissionEditor.h"
 #include "BloomWindow.h"
