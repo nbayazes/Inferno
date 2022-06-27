@@ -51,7 +51,7 @@ namespace Inferno::Editor {
     // Sets the status message along with a ding sound
     template<class...TArgs>
     void SetStatusMessageWarn(const string_view format, TArgs&&...args) {
-        SPDLOG_INFO(format, args...);
+        SPDLOG_WARN(format, args...);
         StatusText = fmt::format(format, std::forward<TArgs>(args)...);
         PlaySound(L"SystemAsterisk", nullptr, SND_ASYNC);
     }

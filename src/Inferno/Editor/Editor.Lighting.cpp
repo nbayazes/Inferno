@@ -190,46 +190,6 @@ namespace Inferno::Editor {
         return constant * std::powf(lightDot, 2) / dist;
     }
 
-    // Returns a multiplier of how much light passes through the wall
-    constexpr float WallLightMultiplier(const Level& level, const SegmentSide& side) {
-        if (side.Wall == WallID::None) return 1; // not actually a wall
-
-        auto& wall = level.GetWall(side.Wall);
-
-        switch (wall.Type) {
-            case WallType::Cloaked:
-            case WallType::FlyThroughTrigger:
-                return 1;
-
-            case WallType::Door:
-                if (side.HasOverlay()) {
-                    auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
-                    return tmap2.SuperTransparent ? 0.33f : 0;
-                }
-                return false;
-
-            case WallType::WallTrigger: // triggers are always on a solid wall
-                return 0;
-
-            default:
-            {
-                // Check if the textures are transparent
-                auto& tmap1 = Resources::GetTextureInfo(side.TMap);
-                bool transparent = tmap1.Transparent;
-
-                if (side.HasOverlay()) {
-                    auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
-                    transparent |= tmap2.SuperTransparent;
-                }
-
-                if (wall.Type == WallType::Illusion)
-                    return 1; // always allow light through illusions
-
-                return transparent ? 0.5f : 0;
-            }
-        }
-    }
-
     // Returns true if light can pass through this side. Depends on the connections, texture and wall type if present.
     bool LightPassesThroughSide(const Level& level, const Segment& seg, SideID sideId) {
         auto& side = seg.GetSide(sideId);

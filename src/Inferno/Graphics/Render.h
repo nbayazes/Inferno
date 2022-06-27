@@ -16,12 +16,6 @@ class ContextManager;
 namespace Inferno::Render {
     const DXGI_FORMAT BackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-    inline bool EnableImgui = true;
-
-    //inline bool EnableMsaa = false;
-    //inline int MsaaSamples = 1;
-    //void SetMsaa(int samples);
-
     // Smart pointers in a namespace makes no sense as they will never trigger
     inline Ptr<DeviceResources> Adapter;
     inline Ptr<ShaderResources> Shaders;
@@ -60,10 +54,11 @@ namespace Inferno::Render {
     // Camera needs to be swappable (pointer).
     // Editor could have multiple cameras (switch between first person and edit)
     // Also need to switch camera for drawing sub-views, like guided missiles or rear view.
+    //void SetCamera(Inferno::Camera&);
+
     inline Inferno::Camera Camera;
     inline Matrix ViewProjection;
 
-    //void SetCamera(Inferno::Camera&);
     inline uint GetWidth() { return Adapter->GetOutputSize().right; }
     inline uint GetHeight() { return Adapter->GetOutputSize().bottom; }
 
@@ -90,10 +85,8 @@ namespace Inferno::Render {
         LevelMesh, Object
     };
 
-    // DrawObject(const Object& object)
-    // LevelMesh
     struct RenderCommand {
-        float Depth;
+        float Depth; // Scene depth for sorting
         RenderCommandType Type;
         union Data {
             struct Object* Object;
@@ -124,6 +117,4 @@ namespace Inferno::Render {
     void SubtractLight(Level&, Tag light, Segment&);
     void AddLight(Level&, Tag light, Segment&);
     void ToggleLight(Level& level, Tag light);
-
-    //void DrawModel(const Model& m, Vector3 position);
 }

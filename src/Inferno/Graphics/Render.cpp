@@ -390,11 +390,9 @@ namespace Inferno::Render {
 
         Debug::Initialize();
 
-        if (EnableImgui) {
-            ImGuiBatch::Initialize(_hwnd, (float)Settings::FontSize);
-            static_assert(sizeof(ImTextureID) >= sizeof(D3D12_CPU_DESCRIPTOR_HANDLE), "D3D12_CPU_DESCRIPTOR_HANDLE is too large to fit in an ImTextureID");
-            g_ImGuiBatch = MakePtr<ImGuiBatch>(Adapter->GetBackBufferCount());
-        }
+        ImGuiBatch::Initialize(_hwnd, (float)Settings::FontSize);
+        static_assert(sizeof(ImTextureID) >= sizeof(D3D12_CPU_DESCRIPTOR_HANDLE), "D3D12_CPU_DESCRIPTOR_HANDLE is too large to fit in an ImTextureID");
+        g_ImGuiBatch = MakePtr<ImGuiBatch>(Adapter->GetBackBufferCount());
 
         CreateEditorResources();
         LoadFonts();
