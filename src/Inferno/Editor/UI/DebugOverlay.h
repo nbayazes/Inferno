@@ -22,7 +22,7 @@ namespace Inferno::Editor {
             if (refresh_time == 0.0)
                 refresh_time = Game::ElapsedTime;
 
-            while (refresh_time < Game::ElapsedTime) // Create dummy data at fixed 60 Hz rate for the demo
+            while (refresh_time < Game::ElapsedTime)
             {
                 values[values_offset] = Render::FrameTime;
                 values_offset = (values_offset + 1) % values.size();

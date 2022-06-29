@@ -359,6 +359,29 @@ namespace Inferno::Editor {
         }
     }
 
+    void ResetObjects(Level& level) {
+        for (auto& obj : level.Objects) {
+            if (obj.Type == ObjectType::Player) {
+                // Reload player settings
+                const auto& ship = Resources::GameData.PlayerShip;
+                auto& physics = obj.Movement.Physics;
+                physics.Brakes = physics.TurnRoll = 0;
+                physics.Drag = ship.Drag;
+                physics.Mass = ship.Mass;
+                
+                physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
+
+                obj.Render.Model.ID = ship.Model;
+                obj.Render.Model.subobj_flags = 0;
+                obj.Render.Model.TextureOverride = LevelTexID::None;
+                for (auto& angle : obj.Render.Model.Angles)
+                    angle = Vector3::Zero;
+                
+                obj.Flags = (ObjectFlag)0;
+            }
+        }
+    }
+
     void OnLevelLoad(bool reload) {
         if (!reload)
             Commands::ZoomExtents();
@@ -371,6 +394,7 @@ namespace Inferno::Editor {
         Editor::History = { &Game::Level, Settings::UndoLevels };
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
+        ResetObjects(Game::Level);
 
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());

@@ -5,12 +5,13 @@
 #include "Graphics/Render.Debug.h"
 #include "Input.h"
 #include "../Editor.h"
+#include "Physics.h"
 
 namespace Inferno::Editor {
     class DebugWindow : public WindowBase {
         float _frameTime = 0, _timeCounter = 1;
     public:
-        DebugWindow() : WindowBase("Debug") {}
+        DebugWindow() : WindowBase("Debug") { IsOpen(true); }
     protected:
         void OnUpdate() override {
             _timeCounter += (float)Render::FrameTime;
@@ -20,6 +21,13 @@ namespace Inferno::Editor {
                 _timeCounter = 0;
             }
 
+            ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
+            ImGui::Text("Ship accel: %.2f, %.2f, %.2f", Debug::ShipAcceleration.x, Debug::ShipAcceleration.y, Debug::ShipAcceleration.z);
+            ImGui::Text("Ship thrust: %.2f, %.2f, %.2f", Debug::ShipThrust.x, Debug::ShipThrust.y, Debug::ShipThrust.z);
+            ImGui::Text("steps: %.2f  R: %.4f  K: %.2f", Debug::Steps, Debug::R, Debug::K);
+
+            ImGui::PlotLines("##vel", Debug::ShipVelocities.data(), (int)Debug::ShipVelocities.size(), 0, nullptr, 0, 60, ImVec2(0, 120.0f));
+
             ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::DrawCalls);
 
             ImGui::Text("Present Total: %.2f", Render::Metrics::Present / 1000.0f);
@@ -27,7 +35,7 @@ namespace Inferno::Editor {
             ImGui::Text("Execute Render Cmds: %.2f", Render::Metrics::ExecuteRenderCommands / 1000.0f);
 
             ImGui::Text("Debug: %.2f", Render::Metrics::Debug / 1000.0f);
-            ImGui::Text("Find nearest light: %.2f", Render::Metrics::FindNearestLight / 1000.0f);
+            //ImGui::Text("Find nearest light: %.2f", Render::Metrics::FindNearestLight / 1000.0f);
             ImGui::Text("QueueLevel: %.2f", Render::Metrics::QueueLevel / 1000.0f);
             ImGui::Text("ImGui: %.2f", Render::Metrics::ImGui / 1000.0f);
 

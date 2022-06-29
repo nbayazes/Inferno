@@ -168,8 +168,8 @@ namespace Inferno::Editor {
                 obj.Control.Weapon.ParentType = obj.Type;
 
                 obj.Movement.Type = MovementType::Physics;
-                obj.Movement.Physics.Mass = 65536;
-                obj.Movement.Physics.Drag = 2162;
+                obj.Movement.Physics.Mass = FixToFloat(65536);
+                obj.Movement.Physics.Drag = FixToFloat(2162);
                 obj.Movement.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
                 obj.Movement.Physics.Flags = PhysicsFlag::Mine;
 

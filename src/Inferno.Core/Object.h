@@ -61,6 +61,15 @@ namespace Inferno {
         Mine = Bounce | FreeSpinning // Used for placeable mines
     };
 
+    inline PhysicsFlag operator | (PhysicsFlag lhs, PhysicsFlag rhs) {
+        using T = std::underlying_type_t<PhysicsFlag>;
+        return PhysicsFlag((T)lhs | (T)rhs);
+    }
+
+    inline PhysicsFlag& operator |= (PhysicsFlag& lhs, PhysicsFlag rhs) {
+        return lhs = lhs | rhs;
+    }
+
     enum class PowerupType : uint8 {
         ExtraLife = 0,
         Energy = 1,
@@ -164,7 +173,7 @@ namespace Inferno {
         float Drag;
         float Brakes;
         Vector3 AngularVelocity;
-        Vector3 RotThrust;  // Rotational acceleration
+        Vector3 AngularThrust;  // Rotational acceleration
         float TurnRoll;   // Rotation caused by turn banking
         PhysicsFlag Flags;
     };

@@ -158,6 +158,7 @@
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
+    <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -208,6 +209,7 @@
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
     <ClInclude Include="LevelSettings.h" />
+    <ClInclude Include="Physics.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />
     <ClInclude Include="Editor\Gizmo.h" />

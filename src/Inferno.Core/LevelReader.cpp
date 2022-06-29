@@ -245,7 +245,7 @@ namespace Inferno {
                     phys.Brakes = _reader.ReadFix();
 
                     phys.AngularVelocity = _reader.ReadVector();
-                    phys.RotThrust = _reader.ReadVector();
+                    phys.AngularThrust = _reader.ReadVector();
 
                     phys.TurnRoll = _reader.ReadFixAng();
                     phys.Flags = (PhysicsFlag)_reader.ReadInt16();

@@ -6,6 +6,7 @@
 #include "Editor/Bindings.h"
 #include "Game.h"
 #include "imgui_local.h"
+#include "Physics.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -66,6 +67,8 @@ void Application::Update() {
     g_ImGuiBatch->EndFrame();
 
     PIXEndEvent();
+
+    UpdatePhysics(Game::Level);
 
     Render::Present();
 }

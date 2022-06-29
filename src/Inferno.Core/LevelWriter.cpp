@@ -313,7 +313,7 @@ namespace Inferno {
                     writer.WriteFix(physics.Brakes);
 
                     writer.WriteVector(physics.AngularVelocity);
-                    writer.WriteVector(physics.RotThrust);
+                    writer.WriteVector(physics.AngularThrust);
                     writer.WriteAngle(physics.TurnRoll);
 
                     writer.Write((int16)physics.Flags);
