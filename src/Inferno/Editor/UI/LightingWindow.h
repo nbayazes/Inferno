@@ -57,8 +57,8 @@ namespace Inferno::Editor {
             ImGui::SliderFloat("Clamp", &settings.MaxValue, 1, 2);
             ImGui::HelpMarker("The maximum brightness of any surface");
 
-            ImGui::SliderFloat("Light plane", &settings.LightPlaneTolerance, -0.01f, -1);
-            ImGui::HelpMarker("Tolerance to use when determining if a light should hit a surface.\nReduce if undesired bleeding occurs.");
+            //ImGui::SliderFloat("Light plane", &settings.LightPlaneTolerance, -0.01f, -1);
+            //ImGui::HelpMarker("Tolerance to use when determining if a light should hit a surface.\nReduce if undesired bleeding occurs.");
 
             //ImGui::SliderFloat("Attenuation B", &_settings.B, 0, 2.00);
             //ImGui::SliderFloat("Light Radius Mult", &_settings.Radius, 0, 60.0);

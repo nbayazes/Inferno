@@ -480,6 +480,7 @@ namespace Inferno::Editor {
             if (ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
                 changed = true;
             }
+            ImGui::NextColumn();
 
             ImGui::TreePop();
         }
