@@ -200,7 +200,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned) {
+    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned, const Color& color) {
         auto frame = vclip.NumFrames - (int)std::floor(ElapsedTime / vclip.FrameTime) % vclip.NumFrames - 1;
         auto tid = vclip.Frames[frame];
         auto forward = Camera.GetForward();
@@ -225,11 +225,10 @@ namespace Inferno::Render {
         auto p2 = Vector3::Transform({ w, -h, 0 }, billboard); // tr
         auto p3 = Vector3::Transform({ -w, -h, 0 }, billboard); // tl
 
-        const Color white = { 1, 1, 1 };
-        ObjectVertex v0(p0, { 0, 0 }, white);
-        ObjectVertex v1(p1, { 1, 0 }, white);
-        ObjectVertex v2(p2, { 1, 1 }, white);
-        ObjectVertex v3(p3, { 0, 1 }, white);
+        ObjectVertex v0(p0, { 0, 0 }, color);
+        ObjectVertex v1(p1, { 1, 0 }, color);
+        ObjectVertex v2(p2, { 1, 1 }, color);
+        ObjectVertex v3(p3, { 0, 1 }, color);
 
         auto& effect = Effects->Sprite;
         effect.Apply(cmd);
@@ -245,14 +244,15 @@ namespace Inferno::Render {
         _spriteBatch->End();
     }
 
-    void DrawSprite(const Object& object, ID3D12GraphicsCommandList* cmd, bool aligned = false) {
+    void DrawSprite(const Object& object, ID3D12GraphicsCommandList* cmd, bool aligned = false, bool lit = false) {
         auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
         if (vclip.NumFrames == 0) {
             DrawObjectOutline(object);
             return;
         }
 
-        DrawVClip(cmd, vclip, object.Transform, object.Radius, aligned);
+        Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
+        DrawVClip(cmd, vclip, object.Transform, object.Radius, aligned, color);
     }
 
     void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {
@@ -631,7 +631,7 @@ namespace Inferno::Render {
             }
 
             case ObjectType::Hostage:
-                DrawSprite(object, cmd, true);
+                DrawSprite(object, cmd, true, Settings::RenderMode == RenderMode::Shaded);
                 break;
 
             case ObjectType::Coop:
