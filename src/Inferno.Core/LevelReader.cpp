@@ -197,7 +197,7 @@ namespace Inferno {
                 }
 
                 if (level.Version <= 5) {
-                    auto light = FixToFloat(fix(_reader.ReadUInt16() << 4)) / 12;
+                    auto light = FixToFloat(fix(_reader.ReadUInt16() << 4)) / 2;
                     seg.VolumeLight = Color(light, light, light);
                 }
 

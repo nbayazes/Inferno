@@ -250,7 +250,7 @@ namespace Inferno {
 
                 if (level.Version <= 5) {
                     auto l = Desaturate(segment.VolumeLight);
-                    writer.Write((ushort)(FloatToFix(l * 12) >> 4));
+                    writer.Write((ushort)(FloatToFix(l * 2) >> 4));
                 }
                 WriteWalls(writer, segment);
                 WriteSegmentTextures(writer, segment);

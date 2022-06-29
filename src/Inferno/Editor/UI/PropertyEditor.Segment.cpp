@@ -352,7 +352,7 @@ namespace Inferno::Editor {
         ImGui::NextColumn();
     }
 
-    bool SideLighting(SegmentSide& side) {
+    bool SideLighting(Segment& seg, SegmentSide& side) {
         ImGui::AlignTextToFramePadding();
         auto open = ImGui::TreeNodeEx("Lighting", ImGuiTreeNodeFlags_SpanAvailWidth);
         ImGui::NextColumn();
@@ -474,6 +474,12 @@ namespace Inferno::Editor {
             VertexLightSlider("Point 1", 1);
             VertexLightSlider("Point 2", 2);
             VertexLightSlider("Point 3", 3);
+
+            ImGui::ColumnLabel("Volume");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+                changed = true;
+            }
 
             ImGui::TreePop();
         }
@@ -994,7 +1000,7 @@ namespace Inferno::Editor {
         ImGui::Separator();
         TextureProperties("Base Texture", side.TMap, false);
         TextureProperties("Overlay Texture", side.TMap2, true);
-        changed |= SideLighting(side);
+        changed |= SideLighting(seg, side);
         changed |= SideUVs(side);
 
         if (changed) {
