@@ -131,6 +131,7 @@ namespace Inferno::Editor {
                 if (!Settings::RecentFiles.empty()) {
                     ImGui::Separator();
                     for (auto& file : Settings::RecentFiles) {
+                        if (file.empty()) continue;
                         if (ImGui::MenuItem(file.filename().string().c_str()))
                             if (CanCloseCurrentFile()) Editor::LoadFile(file);
                     }
