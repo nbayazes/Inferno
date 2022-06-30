@@ -368,7 +368,7 @@ namespace Inferno::Editor {
                 physics.Brakes = physics.TurnRoll = 0;
                 physics.Drag = ship.Drag;
                 physics.Mass = ship.Mass;
-                
+
                 physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
 
                 obj.Render.Model.ID = ship.Model;
@@ -376,7 +376,7 @@ namespace Inferno::Editor {
                 obj.Render.Model.TextureOverride = LevelTexID::None;
                 for (auto& angle : obj.Render.Model.Angles)
                     angle = Vector3::Zero;
-                
+
                 obj.Flags = (ObjectFlag)0;
             }
         }

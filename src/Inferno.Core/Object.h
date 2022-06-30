@@ -58,27 +58,26 @@ namespace Inferno {
         BouncedOnce = 0x80,   // Weapon has bounced once.
         FreeSpinning = 0x100, // Drag does not apply to rotation of this object
         BouncesTwice = 0x200, // This weapon bounces twice, then dies
-        Mine = Bounce | FreeSpinning // Used for placeable mines
     };
 
-    inline constexpr PhysicsFlag operator & (PhysicsFlag a, PhysicsFlag b) {
-        using T = std::underlying_type_t<PhysicsFlag>;
-        return PhysicsFlag((T)a & (T)b);
-    }
+    //inline constexpr PhysicsFlag operator & (PhysicsFlag a, PhysicsFlag b) {
+    //    using T = std::underlying_type_t<PhysicsFlag>;
+    //    return PhysicsFlag((T)a & (T)b);
+    //}
 
-    inline PhysicsFlag& operator &= (PhysicsFlag& a, PhysicsFlag b) {
-        using T = std::underlying_type_t<PhysicsFlag>;
-        return (PhysicsFlag&)((T&)a &= (T)b);
-    }
+    //inline PhysicsFlag& operator &= (PhysicsFlag& a, PhysicsFlag b) {
+    //    using T = std::underlying_type_t<PhysicsFlag>;
+    //    return (PhysicsFlag&)((T&)a &= (T)b);
+    //}
 
-    inline PhysicsFlag operator | (PhysicsFlag lhs, PhysicsFlag rhs) {
-        using T = std::underlying_type_t<PhysicsFlag>;
-        return PhysicsFlag((T)lhs | (T)rhs);
-    }
+    //inline PhysicsFlag operator | (PhysicsFlag lhs, PhysicsFlag rhs) {
+    //    using T = std::underlying_type_t<PhysicsFlag>;
+    //    return PhysicsFlag((T)lhs | (T)rhs);
+    //}
 
-    inline PhysicsFlag& operator |= (PhysicsFlag& lhs, PhysicsFlag rhs) {
-        return lhs = lhs | rhs;
-    }
+    //inline PhysicsFlag& operator |= (PhysicsFlag& lhs, PhysicsFlag rhs) {
+    //    return lhs = lhs | rhs;
+    //}
 
     enum class PowerupType : uint8 {
         ExtraLife = 0,
@@ -186,6 +185,10 @@ namespace Inferno {
         Vector3 AngularThrust;  // Rotational acceleration
         float TurnRoll;   // Rotation caused by turn banking
         PhysicsFlag Flags;
+
+        bool HasFlag(PhysicsFlag flag) {
+            return (int16)Flags & (int16)flag;
+        }
     };
 
     struct ModelData {

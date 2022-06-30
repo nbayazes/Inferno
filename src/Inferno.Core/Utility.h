@@ -6,13 +6,25 @@
 #include "Types.h"
 
 namespace Inferno {
+    // Templates to enable bitwise operators on all enums. Might be a bad idea.
+
+    template<class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+    constexpr T operator | (T lhs, T rhs) {
+        return T((std::underlying_type_t<T>)lhs | (std::underlying_type_t<T>)rhs);
+    }
+
+    template<class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+    inline T& operator |= (T& lhs, T rhs) {
+        return lhs = lhs | rhs;
+    }
+
     // Modulus division without negative numbers
     template <class T>
     constexpr T mod(T k, T n) {
         return (k %= n) < 0 ? k + n : k;
     }
 
-    template <typename T> 
+    template <typename T>
     constexpr int Sign(T val) {
         return (T(0) < val) - (val < T(0));
     }

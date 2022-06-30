@@ -8,16 +8,17 @@
 
 using namespace DirectX;
 
+
 namespace Inferno {
     void TurnRoll(Object& obj, float dt) {
-        constexpr auto turnRollScale = FixToFloat(0x4ec4);
-        auto& pi = obj.Movement.Physics;
-        auto desiredBank = pi.AngularVelocity.y * turnRollScale * 2;
+        constexpr auto turnRollScale = FixToFloat(0x4ec4 / 2) * XM_2PI;
+        auto& pd = obj.Movement.Physics;
+        const auto desiredBank = pd.AngularVelocity.y * turnRollScale;
 
-        if (std::abs(pi.TurnRoll - desiredBank) > 0.001f) {
-            constexpr auto rollRate = FixToFloat(0x2000);
-            auto max_roll = rollRate * dt * 2;
-            auto delta_ang = desiredBank - pi.TurnRoll;
+        if (std::abs(pd.TurnRoll - desiredBank) > 0.001f) {
+            constexpr auto rollRate = FixToFloat(0x2000) * XM_2PI;
+            auto max_roll = rollRate * dt;
+            const auto delta_ang = desiredBank - pd.TurnRoll;
 
             if (std::abs(delta_ang) < max_roll) {
                 max_roll = delta_ang;
@@ -27,89 +28,124 @@ namespace Inferno {
                     max_roll = -max_roll;
             }
 
-            pi.TurnRoll += max_roll;
+            pd.TurnRoll += max_roll;
         }
+
+        Debug::R = pd.TurnRoll;
     }
 
     void AngularPhysics(Object& obj, float dt) {
-        auto& pi = obj.Movement.Physics;
+        auto& pd = obj.Movement.Physics;
 
-        if (pi.AngularVelocity == Vector3::Zero && pi.AngularThrust == Vector3::Zero)
+        if (pd.AngularVelocity == Vector3::Zero && pd.AngularThrust == Vector3::Zero)
             return;
 
-        if (pi.Drag > 0) {
-            auto drag = pi.Drag * 5 / 2;
+        if (pd.Drag > 0) {
+            const auto drag = pd.Drag * 5 / 2;
 
-            if ((int16)pi.Flags & (int16)PhysicsFlag::UseThrust && pi.Mass > 0) {
-                auto accel = pi.AngularThrust / pi.Mass;
-                Debug::ShipAcceleration = accel;
-                pi.AngularVelocity += accel;
-                pi.AngularVelocity *= 1 - drag;
-            }
-            else if (!(int16)pi.Flags & (int16)PhysicsFlag::FreeSpinning) {
-                pi.AngularVelocity *= 1 - drag;
-            }
+            if (pd.HasFlag(PhysicsFlag::UseThrust) && pd.Mass > 0)
+                pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
+
+            if (!pd.HasFlag(PhysicsFlag::FreeSpinning))
+                pd.AngularVelocity *= 1 - drag;
         }
 
-        Debug::ShipVelocity = pi.AngularVelocity;
+        if (pd.TurnRoll) // unrotate object for bank caused by turn
+            obj.Transform = Matrix::CreateRotationZ(pd.TurnRoll) * obj.Transform;
 
-        //unrotate object for bank caused by turn
-        if (pi.TurnRoll) {
-            //obj.Transform *= Matrix::CreateFromAxisAngle(obj.Transform.Forward(), -pi.TurnRoll);
-            obj.Transform = Matrix::CreateFromAxisAngle(Vector3::Forward, -pi.TurnRoll) * obj.Transform;
-        }
+        obj.Transform = Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Transform;
 
-        // x: pitch->half of bank 4587
-        // y: bank(yaw)->ramping, 9174
-        // z: roll->no ramping, 9174
-
-
-        //auto rotation = Matrix::CreateFromYawPitchRoll(pi.AngularVelocity.x * dt * XM_2PI,
-        //                                               pi.AngularVelocity.z * dt * XM_2PI,
-        //                                               pi.AngularVelocity.y * dt * XM_2PI);
-
-        //// angular velocities need to be converted from fixed units to radians using 2PI
-        //const auto rotation = 
-        //    Matrix::CreateFromAxisAngle(obj.Transform.Up(), pi.AngularVelocity.x * dt * XM_2PI) *
-        //    Matrix::CreateFromAxisAngle(obj.Transform.Right(), pi.AngularVelocity.y * dt * XM_2PI) *
-        //    Matrix::CreateFromAxisAngle(obj.Transform.Forward(), pi.AngularVelocity.z * dt * XM_2PI);
-
-
-        //obj.Transform *= Matrix::CreateTranslation(-translation) * rotation * Matrix::CreateTranslation(translation);
-
-        //auto rotation = Matrix::CreateFromYawPitchRoll(pi.AngularVelocity.x * dt * XM_2PI,
-        //                                               pi.AngularVelocity.y * dt * XM_2PI,
-        //                                               pi.AngularVelocity.z * dt * XM_2PI);
-        auto rotation = Matrix::CreateFromYawPitchRoll(-pi.AngularVelocity * dt * XM_2PI);
-        obj.Transform = rotation * obj.Transform;
-
-        if ((int16)pi.Flags & (int16)PhysicsFlag::TurnRoll)
+        if (pd.HasFlag(PhysicsFlag::TurnRoll))
             TurnRoll(obj, dt);
 
-        //re-rotate object for bank caused by turn
-        if (pi.TurnRoll) {
-            //obj.Transform *= Matrix::CreateFromAxisAngle(obj.Transform.Forward(), pi.TurnRoll);
-            obj.Transform = Matrix::CreateFromAxisAngle(Vector3::Forward, pi.TurnRoll) * obj.Transform;
-        }
-
-        //check_and_fix_matrix(&obj->orient);
+        if (pd.TurnRoll) // re-rotate object for bank caused by turn
+            obj.Transform = Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Transform;
     }
 
     void LinearPhysics(Object& obj) {
-        auto& pi = obj.Movement.Physics;
+        auto& pd = obj.Movement.Physics;
 
-        if (pi.Drag > 0 && pi.Mass > 0) {
-            if ((int16)pi.Flags & (int16)PhysicsFlag::UseThrust && pi.Mass > 0) {
-                auto accel = pi.Thrust / pi.Mass;
-                //Debug::ShipAcceleration = accel;
+        if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
+            return;
 
-                pi.Velocity += accel;
-                pi.Velocity *= 1 - pi.Drag;
-            }
-            else {
-                pi.Velocity *= 1 - pi.Drag;
+        if (pd.Drag > 0) {
+            if (pd.HasFlag(PhysicsFlag::UseThrust) && pd.Mass > 0)
+                pd.Velocity += pd.Thrust / pd.Mass; // acceleration
+
+            pd.Velocity *= 1 - pd.Drag;
+        }
+    }
+
+    // This should be done elsewhere but is useful for testing
+    // todo: keyboard ramping
+    void HandleInput(Object& obj, float dt) {
+        auto& physics = obj.Movement.Physics;
+        using Keys = DirectX::Keyboard::Keys;
+
+        //auto ht0 = GetHoldTime(true, 0, frameTime);
+        //auto ht1 = GetHoldTime(true, 1, frameTime);
+
+        physics.Thrust = Vector3::Zero;
+        physics.AngularThrust = Vector3::Zero;
+
+        if (Input::IsKeyDown(Keys::Add))
+            physics.Thrust += obj.Transform.Forward() * dt;
+
+        if (Input::IsKeyDown(Keys::Subtract))
+            physics.Thrust += obj.Transform.Backward() * dt;
+
+        // yaw
+        if (Input::IsKeyDown(Keys::NumPad4))
+            physics.AngularThrust.y = -dt;
+        if (Input::IsKeyDown(Keys::NumPad6))
+            physics.AngularThrust.y = dt;
+
+        // pitch
+        if (Input::IsKeyDown(Keys::NumPad5))
+            physics.AngularThrust.x = -dt;
+        if (Input::IsKeyDown(Keys::NumPad8))
+            physics.AngularThrust.x = dt;
+
+
+        // roll
+        if (Input::IsKeyDown(Keys::NumPad7))
+            physics.AngularThrust.z = -dt;
+        if (Input::IsKeyDown(Keys::NumPad9))
+            physics.AngularThrust.z = dt;
+
+
+        if (Input::IsKeyDown(Keys::NumPad1))
+            physics.Thrust += obj.Transform.Left() * dt;
+
+        if (Input::IsKeyDown(Keys::NumPad3))
+            physics.Thrust += obj.Transform.Right() * dt;
+    }
+
+    void PlotPhysics(double t, const PhysicsData& pd) {
+        static int index = 0;
+        static double refresh_time = 0.0;
+
+        if (refresh_time == 0.0)
+            refresh_time = t;
+
+        if (Input::IsKeyDown(DirectX::Keyboard::Keys::NumPad8)) {
+            if (index < Debug::ShipVelocities.size() && t >= refresh_time) {
+                //while (refresh_time < Game::ElapsedTime) {
+                Debug::ShipVelocities[index] = pd.Velocity.Length();
+                //std::cout << t << "," << physics.Velocity.Length() << "\n";
+                refresh_time = t + 1.0f / 60.0f;
+                index++;
             }
         }
+        else {
+            index = 1;
+        }
+    }
+
+    // Returns wiggle as a translation and not a velocity
+    Vector3 WiggleObject(const Object& obj, double t, float dt, float amplitude) {
+        auto angle = std::sinf(t * XM_PI);
+        return obj.Transform.Up() * angle * amplitude * dt;
     }
 
     void FixedPhysics(Object& obj, double t, float dt) {
@@ -118,49 +154,7 @@ namespace Inferno {
         Vector3 wiggle{};
 
         if (obj.Type == ObjectType::Player) {
-            using Keys = DirectX::Keyboard::Keys;
-
-            //auto ht0 = GetHoldTime(true, 0, frameTime);
-            //auto ht1 = GetHoldTime(true, 1, frameTime);
-
-            physics.Thrust = Vector3::Zero;
-            physics.AngularThrust = Vector3::Zero;
-
-            if (Input::IsKeyDown(Keys::NumPad8)) {
-                physics.Thrust += obj.Transform.Forward() * dt;
-            }
-
-            if (Input::IsKeyDown(Keys::NumPad2)) {
-                physics.Thrust += obj.Transform.Backward() * dt;
-            }
-
-            // yaw
-            if (Input::IsKeyDown(Keys::NumPad1))
-                physics.AngularThrust.y = -dt;
-            if (Input::IsKeyDown(Keys::NumPad3))
-                physics.AngularThrust.y = dt;
-
-            // pitch
-            if (Input::IsKeyDown(Keys::Add))
-                physics.AngularThrust.x = -dt;
-            if (Input::IsKeyDown(Keys::Subtract))
-                physics.AngularThrust.x = dt;
-
-
-            // roll
-            if (Input::IsKeyDown(Keys::NumPad7))
-                physics.AngularThrust.z = -dt;
-            if (Input::IsKeyDown(Keys::NumPad9))
-                physics.AngularThrust.z = dt;
-
-
-            if (Input::IsKeyDown(Keys::NumPad4)) {
-                physics.Thrust += obj.Transform.Left() * dt; // this should be scaled by time held down up to a maximum
-            }
-
-            if (Input::IsKeyDown(Keys::NumPad6)) {
-                physics.Thrust += obj.Transform.Right() * dt; // this should be scaled by time held down up to a maximum
-            }
+            HandleInput(obj, dt);
 
             const auto& ship = Resources::GameData.PlayerShip;
 
@@ -173,42 +167,12 @@ namespace Inferno {
             AngularPhysics(obj, dt);
             LinearPhysics(obj);
 
-            if ((int16)physics.Flags & (int16)PhysicsFlag::Wiggle) { // apply wiggle
-                auto wamount = Resources::GameData.PlayerShip.Wiggle; // rather hacky, assumes the ship is the only thing that wiggles
-                auto wangle = (float)std::sin(t * XM_PI);
-                // apply wiggle directly to the position and not as a velocity
-                wiggle = obj.Transform.Up() * wangle * wamount * dt;
-            }
+            if (physics.HasFlag(PhysicsFlag::Wiggle))
+                wiggle = WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
+            auto angle = std::sinf(t * XM_PI);
 
             //Debug::ShipVelocity = physics.Velocity;
-
-            static int index = 0;
-            static double refresh_time = 0.0;
-
-            if (refresh_time == 0.0)
-                refresh_time = t;
-
-            if (Input::IsKeyDown(Keys::NumPad8)) {
-                if (index < Debug::ShipVelocities.size() && t >= refresh_time) {
-                    //while (refresh_time < Game::ElapsedTime) {
-                    Debug::ShipVelocities[index] = physics.Velocity.Length();
-                    //std::cout << t << "," << physics.Velocity.Length() << "\n";
-                    refresh_time = t + 1.0f / 60.0f;
-                    index++;
-                }
-            }
-            else {
-                index = 1;
-            }
-
-            //auto r = 1 - physics.Drag;
-            //obj.Transform.Translation(obj.Position() + physics.Velocity * (std::pow(r, dt) / std::log(r)) + wiggle);
         }
-
-        // r: distance traveled
-        //position += velocity * (std::pow(r, dt) - 1.0f) / std::log(r);
-        //velocity *= std::pow(r, dt);
-        //obj.Transform.Translation(obj.Position() + physics.Velocity * (std::pow(r, dt) / std::log(r) + wiggle);
 
         obj.Transform.Translation(obj.Position() + physics.Velocity * dt + wiggle);
     }
