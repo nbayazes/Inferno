@@ -60,6 +60,19 @@ void Application::Update() {
         Render::ReloadTextures();
     }
 
+    constexpr double dt = 1.0f / 64;
+    static double accumulator = 0;
+    static double t = 0;
+
+    accumulator += Render::FrameTime;
+
+    while (accumulator >= dt) {
+        UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
+        accumulator -= dt;
+        t += dt;
+    }
+    //UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
+
     Editor::Update();
 
     g_ImGuiBatch->BeginFrame();
@@ -68,9 +81,8 @@ void Application::Update() {
 
     PIXEndEvent();
 
-    UpdatePhysics(Game::Level);
-
-    Render::Present();
+    const double alpha = accumulator / dt;
+    Render::Present(alpha);
 }
 
 void Application::UpdateFpsLimit() {

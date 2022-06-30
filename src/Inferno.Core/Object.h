@@ -61,6 +61,16 @@ namespace Inferno {
         Mine = Bounce | FreeSpinning // Used for placeable mines
     };
 
+    inline constexpr PhysicsFlag operator & (PhysicsFlag a, PhysicsFlag b) {
+        using T = std::underlying_type_t<PhysicsFlag>;
+        return PhysicsFlag((T)a & (T)b);
+    }
+
+    inline PhysicsFlag& operator &= (PhysicsFlag& a, PhysicsFlag b) {
+        using T = std::underlying_type_t<PhysicsFlag>;
+        return (PhysicsFlag&)((T&)a &= (T)b);
+    }
+
     inline PhysicsFlag operator | (PhysicsFlag lhs, PhysicsFlag rhs) {
         using T = std::underlying_type_t<PhysicsFlag>;
         return PhysicsFlag((T)lhs | (T)rhs);
@@ -348,7 +358,18 @@ namespace Inferno {
         RenderData Render;
         ControlData Control;
 
-        Matrix Transform;
+        Matrix Transform, PrevTransform;
         Vector3 Position() const { return Transform.Translation(); }
+        Vector3 Position(float alpha) const {
+            auto vec = Transform.Translation() - PrevTransform.Translation();
+            return PrevTransform.Translation() + vec * alpha;
+        }
+
+        Matrix GetTransform(float alpha) const {
+            Matrix m = PrevTransform;
+            m.Translation(Position(alpha));
+            // todo: rotation
+            return m;
+        }
     };
 }

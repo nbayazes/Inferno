@@ -120,7 +120,7 @@ namespace Inferno::Render {
     LevelMeshBuilder _levelMeshBuilder;
     Ptr<PackedBuffer> _levelMeshBuffer;
 
-    void DrawObject(const Object& object, ID3D12GraphicsCommandList* cmd);
+    void DrawObject(double alpha, const Object& object, ID3D12GraphicsCommandList* cmd);
 
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
@@ -133,7 +133,7 @@ namespace Inferno::Render {
         _transparentQueue.push_back(cmd);
     }
 
-    void DrawModel(const Object& object, ID3D12GraphicsCommandList* cmd, ModelID modelId, TexID texOverride = TexID::None) {
+    void DrawModel(double t, const Object& object, ID3D12GraphicsCommandList* cmd, ModelID modelId, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
         effect.Apply(cmd);
         auto& model = Resources::GetModel(modelId);
@@ -150,11 +150,12 @@ namespace Inferno::Render {
         auto& seg = Game::Level.GetSegment(object.Segment);
         constants.LightColor[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
-        Matrix transform = object.Transform;
+        //Matrix transform = object.GetTransform(t);
+        Matrix transform = Matrix::Lerp(object.PrevTransform, object.Transform, t);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         if (object.Control.Type == ControlType::Weapon) {
-            // Not sure why velocities need to multiplied by 2pi to match game
+            // Multiply angular velocities by 2PI to decompress them from fixed point form
             auto r = Matrix::CreateFromYawPitchRoll(object.Movement.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
             auto translation = transform.Translation();
             transform *= Matrix::CreateTranslation(translation);
@@ -620,13 +621,13 @@ namespace Inferno::Render {
         CanvasCommands[payload.Texture].push_back(payload);
     }
 
-    void DrawObject(const Object& object, ID3D12GraphicsCommandList* cmd) {
+    void DrawObject(double alpha, const Object& object, ID3D12GraphicsCommandList* cmd) {
         switch (object.Type) {
             case ObjectType::Robot:
             {
                 auto& info = Resources::GetRobotInfo(object.ID);
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(object, cmd, info.Model, texOverride);
+                DrawModel(alpha, object, cmd, info.Model, texOverride);
                 break;
             }
 
@@ -641,14 +642,14 @@ namespace Inferno::Render {
             case ObjectType::Marker:
             {
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(object, cmd, object.Render.Model.ID, texOverride);
+                DrawModel(alpha, object, cmd, object.Render.Model.ID, texOverride);
                 break;
             }
 
             case ObjectType::Weapon:
                 if (object.Render.Type == RenderType::Polyobj) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                    DrawModel(object, cmd, object.Render.Model.ID, texOverride);
+                    DrawModel(alpha, object, cmd, object.Render.Model.ID, texOverride);
                 }
                 else {
                     DrawSprite(object, cmd, false);
@@ -696,7 +697,7 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void ExecuteRenderCommand(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
+    void ExecuteRenderCommand(double alpha, ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
@@ -729,7 +730,7 @@ namespace Inferno::Render {
                 break;
             }
             case RenderCommandType::Object:
-                DrawObject(*cmd.Data.Object, cmdList);
+                DrawObject(alpha, *cmd.Data.Object, cmdList);
                 break;
         }
     }
@@ -821,8 +822,8 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawObject(Level& level, Object& obj, float distSquared) {
-        auto position = obj.Position();
+    void DrawObject(Level& level, Object& obj, float distSquared, double alpha) {
+        auto position = obj.Position(alpha);
 
         BoundingSphere bounds(position, obj.Radius); // might should use GetBoundingSphere
         if (!CameraFrustum.Contains(bounds))
@@ -844,7 +845,7 @@ namespace Inferno::Render {
             DrawTransparent({ &obj, depth });
     }
 
-    void Present() {
+    void Present(double alpha) {
         //SPDLOG_INFO("Begin Frame");
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
@@ -879,14 +880,13 @@ namespace Inferno::Render {
         if (Settings::ShowObjects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects)
-                DrawObject(Game::Level, obj, distSquared);
-
+                DrawObject(Game::Level, obj, distSquared, alpha);
         }
 
         if (Settings::ShowMatcenEffects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
             for (auto& effect : MatcenEffects)
-                DrawObject(Game::Level, effect, distSquared);
+                DrawObject(Game::Level, effect, distSquared, alpha);
         }
 
         {
@@ -894,14 +894,14 @@ namespace Inferno::Render {
             cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             for (auto& cmd : _opaqueQueue)
-                ExecuteRenderCommand(cmdList, cmd);
+                ExecuteRenderCommand(alpha, cmdList, cmd);
 
             Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
                 return l.Depth > r.Depth;
             });
 
             for (auto& cmd : _transparentQueue)
-                ExecuteRenderCommand(cmdList, cmd);
+                ExecuteRenderCommand(alpha, cmdList, cmd);
 
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);

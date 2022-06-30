@@ -38,7 +38,7 @@ namespace Inferno::Render {
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
     void Shutdown();
-    void Present();
+    void Present(double alpha);
 
     //void ReloadShaders();
     void ReloadTextures();
@@ -64,7 +64,7 @@ namespace Inferno::Render {
 
     inline uint16 DrawCalls = 0;
     inline uint16 PolygonCount = 0;
-    inline float FrameTime = 0; // Time of this frame in milliseconds
+    inline float FrameTime = 0; // Time of this frame in seconds
     inline double ElapsedTime = 0; // Game time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     struct DrawQuadPayload {
