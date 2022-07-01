@@ -5,6 +5,7 @@
 #include "Level.h"
 
 namespace Inferno {
+    struct FaceHit { float Distance; Vector3 Normal; };
 
     // Helper to perform operations on a segment face. A face is always 4 points.
     // Do not store long term as it contains references and not a copy.
@@ -14,7 +15,8 @@ namespace Inferno {
         Array<PointID, 4> Indices;
 
         Face(Vector3& p0, Vector3& p1, Vector3& p2, Vector3& p3, SegmentSide& side, Array<PointID, 4> indices) :
-            P0(p0), P1(p1), P2(p2), P3(p3), Side(side), Indices(indices) {}
+            P0(p0), P1(p1), P2(p2), P3(p3), Side(side), Indices(indices) {
+        }
 
         static Face FromSide(Level& level, SegID segId, SideID side) {
             auto& seg = level.GetSegment(segId);
@@ -129,6 +131,17 @@ namespace Inferno {
             return { GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]) };
         }
 
+
+        Plane GetPlane0() {
+            auto indices = Side.GetRenderIndices();
+            return Plane(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]));
+        }
+
+        Plane GetPlane1() {
+            auto indices = Side.GetRenderIndices();
+            return Plane(GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]));
+        }
+
         Vector3 VectorForEdge(uint edge) {
             auto [p0, p1] = VerticesForEdge(edge);
             auto p = p1 - p0;
@@ -239,6 +252,36 @@ namespace Inferno {
                 points[i] += tangent * distance + bitangent * distance + AverageNormal() * height;
             }
             return points;
+        }
+
+        // Returns the distance and normal that the object would intersect in the next update tick
+        Option<FaceHit> Intersects(const Object& obj) {
+            auto indices = Side.GetRenderIndices();
+
+            auto vec = obj.Transform.Translation() - obj.PrevTransform.Translation();
+            auto dist = vec.Length();
+            if (std::abs(dist) <= 0.001f) return {};
+            vec.Normalize();
+
+            Ray ray(obj.PrevTransform.Translation(), vec);
+            float intersect{};
+            if (ray.Intersects(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]), intersect)) {
+                if (intersect < (dist + obj.Radius))
+                    return { { intersect, Side.Normals[0] } };
+            }
+
+            if (ray.Intersects(GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]), intersect)) {
+                if (intersect < (dist + obj.Radius))
+                    return { { intersect, Side.Normals[1] } };
+            }
+
+            //if (ray.Intersects(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]), intersect) ||
+            //    ray.Intersects(GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]), intersect)) {
+            //    if (intersect < (dist + obj.Radius))
+            //        return intersect;
+            //}
+
+            return {};
         }
     };
 }

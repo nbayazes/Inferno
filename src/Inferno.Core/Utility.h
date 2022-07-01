@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <sstream>
 #include <concepts>
@@ -125,6 +125,11 @@ namespace Inferno {
         // q - dot(q - p, n) * n
         planeNormal.Normalize();
         return point - (point - planeOrigin).Dot(planeNormal) * planeNormal;
+    }
+
+    inline Vector3 ProjectPointOntoPlane(const Vector3& point, const Plane& plane) {
+        // p' = p - (n ⋅ p + d) * n
+        return point - (plane.DotNormal(point) + plane.D()) * plane.Normal();
     }
 
     inline float DistanceFromPlane(const Vector3& point, const Vector3& planeOrigin, Vector3 planeNormal) {
@@ -409,7 +414,7 @@ namespace Inferno {
             return std::find_if(std::begin(xs), std::end(xs), predicate) != std::end(xs);
         }
 
-        // Sorts a range in ascending order by a function
+        // Sorts a range in ascending order by a function (a , b) => a > b
         constexpr void sortBy(auto&& xs, auto&& fn) {
             std::ranges::sort(xs, fn);
         }

@@ -177,6 +177,224 @@ namespace Inferno {
         obj.Transform.Translation(obj.Position() + physics.Velocity * dt + wiggle);
     }
 
+    struct Triangle {
+        Array<Vector3, 3> Points;
+    };
+
+    struct HitResult {
+        Vector3 Intersect, IntersectVec, Normal; // where the hit occurred
+        float Dot; // Dot product of face normal and object velocity
+    };
+
+    Option<HitResult> Intersect(const Triangle& t, Object& obj, float dt) {
+        Plane plane(t.Points[0], t.Points[1], t.Points[2]);
+        auto dest = obj.Transform.Translation();
+        BoundingSphere sphere(dest, obj.Radius);
+        auto& pd = obj.Movement.Physics;
+
+        if (sphere.Intersects(plane)) { // check that dest sphere intersects with triangle plane (or is behind it)
+            auto intersect = ProjectPointOntoPlane(dest, plane); // where was the closest point on plane?
+            auto intersectVec = intersect - dest;
+            auto len = intersectVec.Length();
+            if (len <= 0.01f || len >= obj.Radius) return {}; // was the intersection inside of the object radius?
+            intersectVec.Normalize();
+
+            // Does the intersection point lie inside the polygon?
+            float dist{};
+            if (Ray(dest, intersectVec).Intersects(t.Points[0], t.Points[1], t.Points[2], dist)) {
+                //auto wallPart = intersectVec.Dot(plane.Normal());
+                //auto hitSpeed = wallPart / dt; // these are used for wall scrape damage / lava hits
+
+                if (pd.HasFlag(PhysicsFlag::Stick)) {
+
+                }
+                else {
+                    // We're constrained by wall, so subtract wall part from velocity
+                    auto wallPart = plane.Normal().Dot(pd.Velocity);
+
+                    if(pd.HasFlag(PhysicsFlag::Bounce))
+                       wallPart *= 2; //Subtract out wall part twice to achieve bounce
+
+                    pd.Velocity -= plane.Normal() * wallPart;
+                }
+
+                obj.Transform.Translation(intersect - intersectVec * obj.Radius);
+
+                //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
+
+                //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
+                //if (wall_part != 0 && moved_time > 0 && (hit_speed = -fixdiv(wall_part, moved_time)) > 0)
+                //    collide_object_with_wall(obj, hit_speed, WallHitSeg, WallHitSide, &hit_info.hit_pnt);
+
+                
+                // bouncing
+                // obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, plane.Normal())
+                
+                //obj.Movement.Physics.Velocity += /*obj.Movement.Physics.Velocity.Length() **/ plane.Normal() / obj.Movement.Physics.Mass;
+
+                //vm_vec_scale_add2(&obj->mtype.phys_info.velocity, force_vec, fixdiv(f1_0, obj->mtype.phys_info.mass));
+
+                // cancel velocity in the axis of the plane normal
+                //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, plane.Normal());
+
+                auto velVec = pd.Velocity;
+                velVec.Normalize();
+                //auto dot = plane.DotNormal(velVec);
+                auto dot = AngleBetweenVectors(velVec, plane.Normal());
+                return { { intersect, intersectVec, plane.Normal(), dot } };
+            }
+
+            //auto intersect = ProjectPointOntoPlane(dest, p0);
+            //auto vec = intersect - dest;
+            //auto len = vec.Length();
+            //if (len <= 0.01f || len >= obj.Radius) return;
+            //vec.Normalize();
+            //Ray ray(dest, vec);
+            //float dist{};
+            //if (ray.Intersects(face[indices[0]], face[indices[1]], face[indices[2]], dist)) {
+            //    obj.Transform.Translation(intersect - vec * obj.Radius);
+            //}
+        }
+
+        return {};
+    }
+
+    //List<Triangle> GatherTriangles(Level& level) {
+    //    List<Triangle> triangles;
+
+    //    for (auto& seg : level.Segments) {
+    //        for (auto& side : SideIDs) {
+    //            auto face = Face::FromSide(level, seg, side);
+    //            triangles.push_back(face
+    //        }
+    //    }
+    //}
+
+    void CollideTriangles(Level& level, Object& obj, float dt) {
+        //List<Triangle> triangles; // todo: don't reallocate this every frame
+        List<HitResult> hits; // todo: don't reallocate this every frame
+        // gather all nearby triangles
+
+        for (auto& seg : level.Segments) {
+            for (auto& side : SideIDs) {
+                auto face = Face::FromSide(level, seg, side);
+
+                if (auto result = Intersect({ face.VerticesForPoly0() }, obj, dt)) hits.push_back(*result);
+                if (auto result = Intersect({ face.VerticesForPoly1() }, obj, dt)) hits.push_back(*result);
+
+                //triangles.push_back({ face.VerticesForPoly0() });
+                //triangles.push_back({ face.VerticesForPoly1() });
+            }
+        }
+
+        //for (auto& hit : hits) {
+        //    //obj.Transform.Translation(hit.Intersect + hit.Normal * obj.Radius);
+        //    obj.Transform.Translation(hit.Intersect - hit.IntersectVec * obj.Radius);
+        //    obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
+        //    Debug::ShipVelocity = obj.Movement.Physics.Velocity;
+        //    Debug::K = hit.Dot;
+        //}
+
+        //Seq::sortBy(hits, [](HitResult& a, HitResult& b) { return a.Dot > b.Dot; });
+
+        //if (!hits.empty()) {
+        //    auto& hit = hits[0];
+        //    obj.Transform.Translation(hit.Intersect - hit.IntersectVec * obj.Radius);
+        //    //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
+        //    Debug::ShipVelocity = obj.Movement.Physics.Velocity;
+        //    Debug::K = hit.Dot;
+        //}
+    }
+
+    void Intersect(const Face& face, Object& obj) {
+        auto indices = face.Side.GetRenderIndices();
+        Plane p0(face[indices[0]], face[indices[1]], face[indices[2]]);
+        Plane p1(face[indices[3]], face[indices[4]], face[indices[5]]);
+
+        auto dest = obj.Transform.Translation();
+        BoundingSphere s(dest, obj.Radius);
+
+
+
+
+        // todo: use surface with sharpest angle to reposition
+        //auto velVec = obj.Movement.Physics.Velocity;
+        //velVec.Normalize();
+
+        auto p0i = s.Intersects(p0);
+        auto p1i = s.Intersects(p1);
+
+        int fi = -1;
+
+        //// Use the face that is sharpest
+        //if (p0i && p1i) {
+        //    auto dn0 = p0.DotNormal(velVec);
+        //    auto dn1 = p1.DotNormal(velVec);
+        //    fi = dn1 > dn0 ? 1 : 0;
+        //    //if (dn1 > dn0) fi = 1;
+        //}
+
+        if (s.Intersects(p0)) { // checks for intersect or behind
+            auto intersect = ProjectPointOntoPlane(dest, p0);
+            auto vec = intersect - dest;
+            auto len = vec.Length();
+            if (len <= 0.01f || len >= obj.Radius) return;
+            vec.Normalize();
+            Ray ray(dest, vec);
+            float dist{};
+            if (ray.Intersects(face[indices[0]], face[indices[1]], face[indices[2]], dist)) {
+                obj.Transform.Translation(intersect - vec * obj.Radius);
+            }
+        }
+
+        if (s.Intersects(p1)) { // checks for intersect or behind
+            auto intersect = ProjectPointOntoPlane(dest, p1);
+            auto vec = intersect - dest;
+            auto len = vec.Length();
+            if (len <= 0.01f || len >= obj.Radius) return;
+            vec.Normalize();
+            Ray ray(dest, vec);
+            float dist{};
+            if (ray.Intersects(face[indices[3]], face[indices[4]], face[indices[5]], dist)) {
+                obj.Transform.Translation(intersect - vec * obj.Radius);
+            }
+        }
+
+        //if (s.Intersects(p0) || s.Intersects(p1)) { // checks for intersect or behind
+        //    auto intersect = ProjectPointOntoPlane(dest, p0);
+        //    auto vec = intersect - dest;
+        //    auto len = vec.Length();
+        //    if (len <= 0.01f || len >= obj.Radius) return;
+        //    vec.Normalize();
+        //    Ray ray(dest, vec);
+        //    float dist{};
+        //    if (ray.Intersects(face[indices[0]], face[indices[1]], face[indices[2]], dist) ||
+        //        ray.Intersects(face[indices[3]], face[indices[4]], face[indices[5]], dist)) {
+        //        obj.Transform.Translation(intersect - vec * obj.Radius);
+        //    }
+        //}
+
+        //if (auto hit = face.Intersects(obj)) {
+        //    auto vec = obj.Transform.Translation() - obj.PrevTransform.Translation();
+        //    vec.Normalize();
+
+        //    obj.Transform.Translation(obj.PrevTransform.Translation() + vec * (hit->Distance - obj.Radius));
+        //    //obj.Transform.Translation(obj.Transform.Translation() + hit->Distance)
+        //}
+    }
+
+    void Collide(Level& level, Object& obj) {
+        // compare nearby seg walls with obj pos and adjust it backwards
+
+        for (auto& seg : level.Segments) { // todo: just nearby ones
+            for (auto& side : SideIDs) {
+
+                auto face = Face::FromSide(level, seg, side);
+                Intersect(face, obj);
+            }
+        }
+    }
+
 
     void UpdatePhysics(Level& level, double t, double dt) {
         for (auto& obj : level.Objects) {
@@ -184,6 +402,9 @@ namespace Inferno {
 
             if (obj.Movement.Type == MovementType::Physics) {
                 FixedPhysics(obj, t, dt);
+                //Collide(level, obj);
+                CollideTriangles(level, obj, dt);
+                Debug::ShipVelocity = obj.Movement.Physics.Velocity;
                 //ApplyPhysics(obj, obj.Movement.Physics, Render::FrameTime);
             }
         }
