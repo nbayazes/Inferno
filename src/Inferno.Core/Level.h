@@ -193,6 +193,8 @@ namespace Inferno {
             return Sides[(int)side].Wall != WallID::None;
         }
 
+        bool SideIsSolid(SideID side, Level& level) const;
+
         bool LightIsSubtracted(SideID side) const {
             return LightSubtracted & (1 << (int)side);
         }
@@ -200,7 +202,7 @@ namespace Inferno {
         bool SideContainsPoint(SideID side, PointID point) const {
             for (auto& si : Inferno::SideIndices[(int)side]) {
                 if (point == Indices[si]) return true;
-            } 
+            }
 
             return false;
         }
@@ -367,6 +369,15 @@ namespace Inferno {
             return Tag.Segment != SegID::None;
         }
 
+        // Returns true if wall collides with objects
+        bool IsSolid() {
+            if (Type == WallType::Illusion) return false;
+            if (Type == WallType::Door && HasFlag(WallFlag::DoorOpened)) return false;
+            if (Type == WallType::Destroyable && HasFlag(WallFlag::Blasted)) return false;
+            if (Type == WallType::FlyThroughTrigger) return false;
+            return true;
+        }
+
         bool HasFlag(WallFlag flag) const {
             return (uint8)Flags & (uint8)flag;
         }
@@ -432,7 +443,8 @@ namespace Inferno {
             Segments(version == 1 ? 800 : 900),
             Vertices(version == 1 ? 2808 : 3608),
             Walls(version == 1 ? 175 : 255),
-            FlickeringLights(version >= 1 ? 100 : 0) {}
+            FlickeringLights(version >= 1 ? 100 : 0) {
+        }
 
         int Objects = 350;
         int Segments; // Note that source ports allow thousands of segments
@@ -660,7 +672,7 @@ namespace Inferno {
             return &Segments[(int)id];
         }
 
-        const Segment* TryGetSegment(SegID id) const { 
+        const Segment* TryGetSegment(SegID id) const {
             if (!Seq::inRange(Segments, (int)id)) return nullptr;
             return &Segments[(int)id];
         }

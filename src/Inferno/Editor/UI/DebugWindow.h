@@ -21,9 +21,10 @@ namespace Inferno::Editor {
                 _timeCounter = 0;
             }
 
+            ImGui::Text("Ship pos: %.2f, %.2f, %.2f", Debug::ShipPosition.x, Debug::ShipPosition.y, Debug::ShipPosition.z);
             ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
             ImGui::Text("Ship accel: %.2f, %.2f, %.2f", Debug::ShipAcceleration.x, Debug::ShipAcceleration.y, Debug::ShipAcceleration.z);
-            ImGui::Text("Ship thrust: %.3f, %.3f, %.3f", Debug::ShipThrust.x, Debug::ShipThrust.y, Debug::ShipThrust.z);
+            //ImGui::Text("Ship thrust: %.3f, %.3f, %.3f", Debug::ShipThrust.x, Debug::ShipThrust.y, Debug::ShipThrust.z);
             ImGui::Text("steps: %.2f  R: %.4f  K: %.2f", Debug::Steps, Debug::R, Debug::K);
 
             ImGui::PlotLines("##vel", Debug::ShipVelocities.data(), (int)Debug::ShipVelocities.size(), 0, nullptr, 0, 60, ImVec2(0, 120.0f));

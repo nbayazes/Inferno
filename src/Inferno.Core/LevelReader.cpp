@@ -227,7 +227,7 @@ namespace Inferno {
             obj.Transform.Translation(pos);
             obj.Radius = _reader.ReadFix();
             obj.Shields = _reader.ReadFix();
-            obj.last_pos = _reader.ReadVector();
+            obj.PrevTransform.Translation(_reader.ReadVector());
 
             obj.Contains.Type = (ObjectType)_reader.ReadByte();
             obj.Contains.ID = _reader.ReadByte();

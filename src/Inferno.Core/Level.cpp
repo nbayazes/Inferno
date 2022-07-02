@@ -4,6 +4,17 @@
 #include "Face.h"
 
 namespace Inferno {
+    bool Segment::SideIsSolid(SideID side, Level& level) const {
+        if (SideHasConnection(side)) {
+            if (auto wall = level.TryGetWall(Sides[(int)side].Wall))
+                return wall->IsSolid(); // walls might be solid
+
+            return false; // open side with no wall
+        }
+
+        return true; // no connection or wall
+    }
+
     List<SegID> Level::SegmentsByVertex(uint i) {
         List<SegID> segments;
         auto id = SegID(0);

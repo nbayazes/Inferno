@@ -71,7 +71,6 @@ void Application::Update() {
         accumulator -= dt;
         t += dt;
     }
-    //UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
 
     Editor::Update();
 

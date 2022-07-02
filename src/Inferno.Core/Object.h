@@ -353,7 +353,6 @@ namespace Inferno {
         SegID Segment{};        // segment number containing object
         float Radius = 2; // radius of object for collision detection
         float Shields = 100;    // Starts at maximum, when <0, object dies..
-        Vector3 last_pos{};  // where object was last frame
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
         fix Life = LIFE_IMMORTAL; // how long until despawn
@@ -361,18 +360,11 @@ namespace Inferno {
         RenderData Render;
         ControlData Control;
 
-        Matrix Transform, PrevTransform;
+        Matrix Transform, PrevTransform; // Current and previous transforms
         Vector3 Position() const { return Transform.Translation(); }
-        Vector3 Position(float alpha) const {
-            auto vec = Transform.Translation() - PrevTransform.Translation();
-            return PrevTransform.Translation() + vec * alpha;
-        }
-
-        Matrix GetTransform(float alpha) const {
-            Matrix m = PrevTransform;
-            m.Translation(Position(alpha));
-            // todo: rotation
-            return m;
+        Vector3 PrevPosition() const { return PrevTransform.Translation(); }
+        Vector3 Position(float t) const {
+            return Vector3::Lerp(Transform.Translation(), PrevTransform.Translation(), t);
         }
     };
 }

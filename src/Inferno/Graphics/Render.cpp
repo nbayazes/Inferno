@@ -12,6 +12,7 @@
 #include "Render.Editor.h"
 #include "Settings.h"
 #include "DirectX.h"
+#include "Physics.h"
 
 using namespace DirectX;
 
@@ -133,7 +134,7 @@ namespace Inferno::Render {
         _transparentQueue.push_back(cmd);
     }
 
-    void DrawModel(double t, const Object& object, ID3D12GraphicsCommandList* cmd, ModelID modelId, TexID texOverride = TexID::None) {
+    void DrawModel(float t, const Object& object, ID3D12GraphicsCommandList* cmd, ModelID modelId, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
         effect.Apply(cmd);
         auto& model = Resources::GetModel(modelId);
@@ -845,6 +846,10 @@ namespace Inferno::Render {
             DrawTransparent({ &obj, depth });
     }
 
+    void DrawDebug(Level& level) {
+        Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
+    }
+
     void Present(double alpha) {
         //SPDLOG_INFO("Begin Frame");
         Metrics::BeginFrame();
@@ -907,6 +912,8 @@ namespace Inferno::Render {
             //    _levelResources->Volumes.Draw(cmdList);
 
             DrawEditor(cmdList, Game::Level);
+            DrawDebug(Game::Level);
+
             Debug::EndFrame(cmdList);
         }
 
