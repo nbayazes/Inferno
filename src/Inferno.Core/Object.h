@@ -177,6 +177,7 @@ namespace Inferno {
 
     struct PhysicsData {
         Vector3 Velocity;
+        Vector3 InputVelocity; // Velocity after input but before collision
         Vector3 Thrust;     // Constant force applied
         float Mass;
         float Drag;

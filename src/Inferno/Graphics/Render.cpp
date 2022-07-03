@@ -847,7 +847,10 @@ namespace Inferno::Render {
     }
 
     void DrawDebug(Level& level) {
-        Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
+        //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
+        for (auto& point : Inferno::Debug::ClosestPoints) {
+            Debug::DrawPoint(point, Color(1, 0, 0));
+        }
     }
 
     void Present(double alpha) {

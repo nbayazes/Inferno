@@ -9,5 +9,6 @@ namespace Inferno {
         inline Array<float, 120> ShipVelocities{};
         inline float Steps = 0, R = 0, K = 0;
         inline Vector3 ClosestPoint;
+        inline List<Vector3> ClosestPoints;
     };
 }

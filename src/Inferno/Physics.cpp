@@ -4,36 +4,39 @@
 #include "Game.h"
 #include "Graphics/Render.h"
 #include "Input.h"
+#include "Editor/Editor.Object.h"
 #include <iostream>
 
 using namespace DirectX;
 
-
 namespace Inferno {
-    void TurnRoll(Object& obj, float dt) {
-        constexpr auto turnRollScale = FixToFloat(0x4ec4 / 2) * XM_2PI;
+    constexpr auto PlayerTurnRollScale = FixToFloat(0x4ec4 / 2) * XM_2PI;
+    constexpr auto PlayerTurnRollRate = FixToFloat(0x2000) * XM_2PI;
+
+    // Rolls the object when turning
+    void TurnRoll(Object& obj, float rollScale, float rollRate, float dt) {
         auto& pd = obj.Movement.Physics;
-        const auto desiredBank = pd.AngularVelocity.y * turnRollScale;
+        const auto desiredBank = pd.AngularVelocity.y * rollScale;
 
         if (std::abs(pd.TurnRoll - desiredBank) > 0.001f) {
-            constexpr auto rollRate = FixToFloat(0x2000) * XM_2PI;
-            auto max_roll = rollRate * dt;
-            const auto delta_ang = desiredBank - pd.TurnRoll;
+            auto roll = rollRate * dt;
+            const auto theta = desiredBank - pd.TurnRoll;
 
-            if (std::abs(delta_ang) < max_roll) {
-                max_roll = delta_ang;
+            if (std::abs(theta) < roll) {
+                roll = theta;
             }
             else {
-                if (delta_ang < 0)
-                    max_roll = -max_roll;
+                if (theta < 0)
+                    roll = -roll;
             }
 
-            pd.TurnRoll += max_roll;
+            pd.TurnRoll += roll;
         }
 
-        Debug::R = pd.TurnRoll;
+        //Debug::R = pd.TurnRoll;
     }
 
+    // Applies angular physics to the player
     void AngularPhysics(Object& obj, float dt) {
         auto& pd = obj.Movement.Physics;
 
@@ -56,7 +59,7 @@ namespace Inferno {
         obj.Transform = Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Transform;
 
         if (pd.HasFlag(PhysicsFlag::TurnRoll))
-            TurnRoll(obj, dt);
+            TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate, dt);
 
         if (pd.TurnRoll) // re-rotate object for bank caused by turn
             obj.Transform = Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Transform;
@@ -161,9 +164,10 @@ namespace Inferno {
             Debug::ShipThrust = physics.AngularThrust;
             Debug::ShipAcceleration = Vector3::Zero;
 
-            AngularPhysics(obj, dt);
-            LinearPhysics(obj);
         }
+
+        AngularPhysics(obj, dt);
+        LinearPhysics(obj);
     }
 
     struct Triangle {
@@ -236,71 +240,21 @@ namespace Inferno {
         return c3;
     }
 
-    HitResult2 Intersect2(const Triangle& t, Object& obj, float dt) {
+    void Intersect(const Triangle& t, Object& obj, float dt, int pass) {
         Plane plane(t.Points[0], t.Points[1], t.Points[2]);
-        auto& pi = obj.Movement.Physics;
-
-        Vector3 movement = obj.Position() - obj.PrevPosition();
-        Vector3 direction;
-        movement.Normalize(direction);
-
-        // offset the ray start position by the object radius
-        auto offset = obj.Position() + direction * obj.Radius;
-        Ray ray(offset, direction);
-
-        float hitDist{};
-        if (!ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDist)) {
-            // could be behind or parallel
-        }
-
-        auto intersect = offset + direction * hitDist; // P
-        ProjectPointOntoPlane(intersect, plane);
-
-        // intersect an offsetted ray with the plane of the triangle to find the point P of intersection at which the sphere first touches the plane(when moving towards it).
-        // Then you find the closest point Q on the triangle to this point P.
-        // From Q you fire a ray back at the sphere, which will give you the time of collision, if any.
-
-
-
-        //auto signedDistance = N * p + Cp;
-        auto signedDistance = plane.DotNormal(obj.Position()) + plane.D();
-
-        auto t0 = (1 - signedDistance) / plane.DotNormal(pi.Velocity); // time of intersection for a unit sphere
-
-
-        auto planeIntersect = obj.PrevPosition() - plane.Normal() * obj.Radius + t0 * pi.Velocity;
-
-
-        // special case: object is embedded in wall when velocity = 0 and intersecting
-
-        return {};
-    }
-
-    Option<HitResult> Intersect(const Triangle& t, Object& obj, float dt) {
-        Plane plane(t.Points[0], t.Points[1], t.Points[2]);
-        //auto newPos = obj.PrevTransform.Translation();
-        BoundingSphere sphere(obj.PrevTransform.Translation(), obj.Radius);
+        BoundingSphere sphere(obj.Position(), obj.Radius);
         auto& pd = obj.Movement.Physics;
 
-        //auto direction = obj.Transform.Translation() - obj.PrevTransform.Translation();
-        if (pd.Velocity.Dot(plane.Normal()) > 0) return {}; // ignore faces pointing away from velocity
+        if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
+        auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
 
-        //auto frameVec = pd.Velocity; // velocity change due to intersections in this frame (should be aggregate of all sources)
-        //auto newPos = pd.Velocity * dt;
-        Vector3 direction;
-        pd.Velocity.Normalize(direction);
+        bool tryAgain = false;
 
-        //if (sphere.Intersects(plane)) { // check that dest sphere intersects with triangle plane (or is behind it)
         if (sphere.Intersects(t.Points[0], t.Points[1], t.Points[2])) {
-            //auto direction = obj.Transform.Translation() - obj.PrevTransform.Translation();
-            direction.Normalize();
-            Ray ray(obj.PrevTransform.Translation(), direction);
-            //ray.Intersects(sphere, dist);
-
-            // where does the velocity intersect the triangle?
-            float intersectionDist{};
-            if (!ray.Intersects(plane, intersectionDist)) return {};
-            auto intersection = obj.PrevTransform.Translation() + direction * intersectionDist;
+            auto closestPoint = ClosestPoint(t, obj.Position());
+            Debug::ClosestPoints.push_back(closestPoint);
+            auto closestNormal = obj.Position() - closestPoint;
+            closestNormal.Normalize();
 
             // Adjust velocity
             if (pd.HasFlag(PhysicsFlag::Stick)) {
@@ -308,167 +262,105 @@ namespace Inferno {
             }
             else {
                 // We're constrained by wall, so subtract wall part from velocity
-                auto wallPart = plane.Normal().Dot(pd.Velocity);
+                auto wallPart = closestNormal.Dot(pd.Velocity);
 
                 if (pd.HasFlag(PhysicsFlag::Bounce))
                     wallPart *= 2; //Subtract out wall part twice to achieve bounce
 
-                pd.Velocity -= plane.Normal() * wallPart;
+                pd.Velocity -= closestNormal * wallPart;
+                tryAgain = true;
 
                 //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
             }
 
-            Debug::ClosestPoint = ClosestPoint(t, obj.Position());
+            // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
+            if (pass > 0) {
+                auto depth = obj.Radius - (obj.Position() - closestPoint).Length();
+                if (depth > 0.075f) {
+                    auto strength = depth / 0.15f;
+                    pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
+                    //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
 
-            auto projected = ProjectPointOntoPlane(obj.Transform.Translation(), plane); // where was the closest point on plane?
-            Vector3 framePos = projected + plane.Normal() * obj.Radius;
-            //obj.Transform.Translation(framePos);
+                    // Counter the input velocity
+                    pd.Velocity -= obj.Movement.Physics.InputVelocity * strength * dt;
+                }
+            }
 
-
-            // Snap object position to intersection point
-            // todo: only apply snap using triangle that is most aligned to velocity
-
-
-            //obj.Transform.Translation(obj.PrevTransform.Translation());
-
-
-            // Does the projected point lie inside the polygon?
-            // if it does, reposition using old code, otherwise use corner code...
-            // 
-            //auto projected = ProjectPointOntoPlane(dest, plane); // where was the closest point on plane?
-
-            //float projDist{};
-            //if (Ray(projected, -plane.Normal()).Intersects(t.Points[0], t.Points[1], t.Points[2], projDist)) {
-            //    Debug::Steps = 1;
-
-            ////    obj.Transform.Translation(projected + plane.Normal() * obj.Radius);
-            //}
-            //else {
-            //    Debug::Steps = 2;
-            //}
-
-            //Set velocity from actual movement
-            //pd.Velocity = moved / dt;
-
-            //vms_vector moved_vec;
-            //vm_vec_sub(&moved_vec, &obj->pos, &start_pos);
-            //vm_vec_copy_scale(&obj->mtype.phys_info.velocity, &moved_vec, fixdiv(f1_0, FrameTime));
-
-            //if (dist <= 0.01f || dist >= obj.Radius) return {}; // was the intersection inside of the object radius?
-            //auto intersect = obj.PrevTransform.Translation() + direction * dist;
-
-            //auto intersect = ProjectPointOntoPlane(dest, plane); // where was the closest point on plane?
-            //auto intersectVec = intersect - dest;
-            //auto len = intersectVec.Length();
-            //if (len <= 0.01f || len >= obj.Radius) return {}; // was the intersection inside of the object radius?
-            //intersectVec.Normalize();
-
-
-            // Does the intersection point lie inside the polygon?
-            // if it does, reposition using old code, otherwise use corner code...
-
-            //float dist{};
-            //if (Ray(dest, intersectVec).Intersects(t.Points[0], t.Points[1], t.Points[2], dist)) {
-                //auto wallPart = intersectVec.Dot(plane.Normal());
-                //auto hitSpeed = wallPart / dt; // these are used for wall scrape damage / lava hits
-
-
-                //obj.Transform.Translation(intersect - intersectVec * obj.Radius);
-
-                // shift the object position off of the wall. note that this isn't accurate at sharp angles
-                //obj.Transform.Translation(intersect - direction * obj.Radius);
-
-                //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
-
-                //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
-                //if (wall_part != 0 && moved_time > 0 && (hit_speed = -fixdiv(wall_part, moved_time)) > 0)
-                //    collide_object_with_wall(obj, hit_speed, WallHitSeg, WallHitSide, &hit_info.hit_pnt);
-
-
-                // bouncing
-                // obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, plane.Normal())
-
-                //obj.Movement.Physics.Velocity += /*obj.Movement.Physics.Velocity.Length() **/ plane.Normal() / obj.Movement.Physics.Mass;
-
-                //vm_vec_scale_add2(&obj->mtype.phys_info.velocity, force_vec, fixdiv(f1_0, obj->mtype.phys_info.mass));
-
-                // cancel velocity in the axis of the plane normal
-                //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, plane.Normal());
-
-                //auto velVec = pd.Velocity;
-                //velVec.Normalize();
-                //auto dot = plane.DotNormal(velVec);
-                //auto dot = AngleBetweenVectors(velVec, plane.Normal());
-                //return { { intersect, intersectVec, plane.Normal(), dot } };
-            //}
-
-            //auto intersect = ProjectPointOntoPlane(dest, p0);
-            //auto vec = intersect - dest;
-            //auto len = vec.Length();
-            //if (len <= 0.01f || len >= obj.Radius) return;
-            //vec.Normalize();
-            //Ray ray(dest, vec);
-            //float dist{};
-            //if (ray.Intersects(face[indices[0]], face[indices[1]], face[indices[2]], dist)) {
-            //    obj.Transform.Translation(intersect - vec * obj.Radius);
-            //}
+            // Move the object to the surface of the triangle
+            obj.Transform.Translation(closestPoint + closestNormal * obj.Radius);
         }
-
-        return {};
     }
 
-    //List<Triangle> GatherTriangles(Level& level) {
-    //    List<Triangle> triangles;
+    class SegmentSearch {
+        Set<Segment*> _results;
+        Stack<Segment*> _stack;
+    public:
+        const Set<Segment*>& GetNearby(Level& level, const Object& obj, float range) {
+            auto root = level.TryGetSegment(obj.Segment);
+            _stack.push(root);
+            _results.clear();
 
-    //    for (auto& seg : level.Segments) {
-    //        for (auto& side : SideIDs) {
-    //            auto face = Face::FromSide(level, seg, side);
-    //            triangles.push_back(face
-    //        }
-    //    }
-    //}
+            while (!_stack.empty()) {
+                auto seg = _stack.top();
+                _stack.pop();
+                if (!seg) continue;
 
-    void CollideTriangles(Level& level, Object& obj, float dt) {
-        //List<Triangle> triangles; // todo: don't reallocate this every frame
-        List<HitResult> hits; // todo: don't reallocate this every frame
-        // gather all nearby triangles
-
-        for (auto& seg : level.Segments) {
-            //auto& seg = level.Segments[0];
-            for (auto& side : SideIDs) {
-                auto face = Face::FromSide(level, seg, side);
-                if (seg.SideIsSolid(side, level)) {
-                    if (auto result = Intersect({ face.VerticesForPoly0() }, obj, dt)) hits.push_back(*result);
-                    if (auto result = Intersect({ face.VerticesForPoly1() }, obj, dt)) hits.push_back(*result);
+                _results.insert(seg);
+                for (auto& side : SideIDs) {
+                    if (auto conn = level.TryGetSegment(seg->GetConnection(side))) {
+                        if (_results.contains(conn)) continue;
+                        if (seg != root && !SideVertsInRange(level, *seg, side, obj.Position(), range)) continue;
+                        _stack.push(conn);
+                    }
                 }
-
-                //triangles.push_back({ face.VerticesForPoly0() });
-                //triangles.push_back({ face.VerticesForPoly1() });
             }
+
+            return _results;
         }
 
-        //for (auto& hit : hits) {
-        //    //obj.Transform.Translation(hit.Intersect + hit.Normal * obj.Radius);
-        //    obj.Transform.Translation(hit.Intersect - hit.IntersectVec * obj.Radius);
-        //    obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
-        //    Debug::ShipVelocity = obj.Movement.Physics.Velocity;
-        //    Debug::K = hit.Dot;
-        //}
+    private:
+        bool SideVertsInRange(Level& level, const Segment& seg, SideID side, const Vector3 point, float range) {
+            for (auto& i : seg.GetVertexIndices(side)) {
+                if (Vector3::Distance(level.Vertices[i], point) < range) 
+                    return true;
+            }
 
-        //Seq::sortBy(hits, [](HitResult& a, HitResult& b) { return a.Dot > b.Dot; });
+            return false;
+        }
+    } SegmentSearch;
 
-        //if (!hits.empty()) {
-        //    auto& hit = hits[0];
-        //    obj.Transform.Translation(hit.Intersect - hit.IntersectVec * obj.Radius);
-        //    //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
-        //    Debug::ShipVelocity = obj.Movement.Physics.Velocity;
-        //    Debug::K = hit.Dot;
-        //}
+    void CollideTriangles(Level& level, Object& obj, float dt, int pass) {
+        // gather all nearby triangles
+
+        //int tries = 0;
+        //int totalTries = 0;
+        //do {
+        auto searchRange = obj.Radius * 2 + (obj.Movement.Physics.Velocity * dt).Length();
+        Debug::R = searchRange;
+        auto& nearby = SegmentSearch.GetNearby(level, obj, searchRange);
+        Debug::Steps = nearby.size();
+
+        for (auto& seg : nearby) {
+            for (auto& side : SideIDs) {
+                auto face = Face::FromSide(level, *seg, side);
+                if (seg->SideIsSolid(side, level)) {
+                    Intersect({ face.VerticesForPoly0() }, obj, dt, pass);
+                    Intersect({ face.VerticesForPoly1() }, obj, dt, pass);
+                }
+            }
+        }
+        //    totalTries++;
+        //    if (totalTries > 8) {
+        //        SPDLOG_WARN("max total tries reached");
+        //        break;
+        //    }
+        //} while (tries);
     }
 
 
     void UpdatePhysics(Level& level, double t, float dt) {
         Debug::Steps = 0;
+        Debug::ClosestPoints.clear();
 
         int i = 0;
         for (auto& obj : level.Objects) {
@@ -483,14 +375,16 @@ namespace Inferno {
                 if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
                     WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
-                CollideTriangles(level, obj, dt);
-
+                obj.Movement.Physics.InputVelocity = obj.Movement.Physics.Velocity;
                 obj.Transform.Translation(obj.Position() + obj.Movement.Physics.Velocity * dt);
-                //auto frameVec = framePos - obj.PrevTransform.Translation();
-                auto frameVec = obj.Position() - obj.PrevTransform.Translation();
-                obj.Movement.Physics.Velocity = frameVec / dt;
 
-                //ApplyPhysics(obj, obj.Movement.Physics, Render::FrameTime);
+                CollideTriangles(level, obj, dt, 0);
+                CollideTriangles(level, obj, dt, 1); // Doing two passes makes the result more stable with odd geometry
+                //CollideTriangles(level, obj, dt, 2); // Doing two passes makes the result more stable with odd geometry
+
+                //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
+                //obj.Movement.Physics.Velocity = frameVec / dt;
+                Editor::UpdateObjectSegment(level, obj);
             }
 
             Debug::ShipVelocity = obj.Movement.Physics.Velocity;
