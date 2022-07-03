@@ -110,7 +110,5 @@ namespace Inferno {
         static void CreateFromEntry(filesystem::path path, string_view name, span<ubyte> data);
 
         static void AppendEntry(filesystem::path path, string_view name, span<ubyte> data);
-    private:
-
     };
 }
