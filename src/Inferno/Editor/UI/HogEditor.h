@@ -292,11 +292,11 @@ namespace Inferno::Editor {
                 auto path = BrowseFolderDialog();
                 if (!path) return;
 
-                for (auto& i : _selections) {
-                    auto entry = Seq::tryItem(_entries, i);
-                    if (!entry) continue;
+                for (auto& index : _selections) {
+                    auto selection = Seq::tryItem(_entries, index);
+                    if (!selection) continue;
 
-                    Game::Mission->Export(i, *path / entry->Name);
+                    Game::Mission->Export(*selection->Index, *path / selection->Name);
                 }
             }
             catch (const std::exception& e) {
@@ -315,7 +315,7 @@ namespace Inferno::Editor {
 
                 if (auto path = SaveFileDialog(filter, 1, Convert::ToWideString(selection->Name), L"Export File")) {
                     if (selection->Index)
-                        Game::Mission->Export(selection->Index.value(), *path);
+                        Game::Mission->Export(*selection->Index, *path);
                 }
             }
             catch (const std::exception& e) {
