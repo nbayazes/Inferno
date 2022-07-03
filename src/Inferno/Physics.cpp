@@ -5,6 +5,7 @@
 #include "Graphics/Render.h"
 #include "Input.h"
 #include "Editor/Editor.Object.h"
+#include "Graphics/Render.Debug.h"
 #include <iostream>
 
 using namespace DirectX;
@@ -431,6 +432,8 @@ namespace Inferno {
                 //obj.Movement.Physics.Velocity = frameVec / dt;
                 Editor::UpdateObjectSegment(level, obj);
             }
+
+            Render::Debug::DrawLine(obj.PrevPosition(), obj.Position(), { 0, 1.0f, 0.2f });
 
             Debug::ShipVelocity = obj.Movement.Physics.Velocity;
             Debug::ShipPosition = obj.Position();

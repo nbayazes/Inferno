@@ -96,6 +96,8 @@ void Application::Update() {
 
     accumulator += Render::FrameTime;
 
+    Render::Debug::BeginFrame();
+
     while (accumulator >= dt) {
         UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
         accumulator -= dt;

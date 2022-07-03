@@ -879,7 +879,7 @@ namespace Inferno::Render {
         PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Render");
         Heaps->SetDescriptorHeaps(cmdList);
 
-        Debug::BeginFrame();
+        //Debug::BeginFrame();
 
         ScopedTimer levelTimer(&Metrics::QueueLevel);
         if (Settings::RenderMode != RenderMode::None)
