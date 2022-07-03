@@ -252,7 +252,7 @@ namespace Inferno::Editor::Bindings {
                 (binding.Key == Keys::Down && imguiWantsFocus))
                 continue;
 
-            if (Input::Keyboard.IsKeyPressed(binding.Key) &&
+            if (Input::IsKeyPressed(binding.Key) &&
                 binding.Shift == Input::ShiftDown &&
                 binding.Alt == Input::AltDown &&
                 binding.Control == Input::ControlDown) {

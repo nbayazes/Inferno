@@ -241,54 +241,87 @@ namespace Inferno {
     }
 
     void Intersect(const Triangle& t, Object& obj, float dt, int pass) {
+        if (obj.Type == ObjectType::Player) return;
+
         Plane plane(t.Points[0], t.Points[1], t.Points[2]);
-        BoundingSphere sphere(obj.Position(), obj.Radius);
         auto& pd = obj.Movement.Physics;
 
         if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
-        auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
+        auto expectedDistance = obj.Position() - obj.PrevPosition();
+        if (expectedDistance.Length() < 0.001f) return;
+        Vector3 dir;
+        expectedDistance.Normalize(dir);
+        //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
+
+        float hitDistance{};
+        Ray ray(obj.PrevPosition(), dir);
+        bool hit = false;
+
+        if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
+            hit = hitDistance < expectedDistance.Length() - obj.Radius;
+            //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
+            if (hit)
+                obj.Transform.Translation(obj.PrevPosition() + dir * (hitDistance - obj.Radius));
+        }
+
+        if (!hit) {
+            // ray cast didn't hit anything, try the sphere test
+            // note that this is not a sweep and will miss points between the begin and end.
+            // Fortunately, most fast-moving objects are projectiles and have small radii.
+            BoundingSphere sphere(obj.Position(), obj.Radius);
+            hit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
+
+            float planeDist;
+            ray.Intersects(plane, planeDist);
+            if (!hit && planeDist <= expectedDistance.Length()) {
+                // Last, test if the object sphere collides with the intersection of the triangle's plane
+                sphere = BoundingSphere(obj.PrevPosition() + dir * planeDist, obj.Radius * 1.1f);
+                //BoundingSphere sphere(obj.Position(), obj.Radius);
+                hit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
+            }
+        }
+
+        if (!hit) return;
 
         bool tryAgain = false;
 
-        if (sphere.Intersects(t.Points[0], t.Points[1], t.Points[2])) {
-            auto closestPoint = ClosestPoint(t, obj.Position());
-            Debug::ClosestPoints.push_back(closestPoint);
-            auto closestNormal = obj.Position() - closestPoint;
-            closestNormal.Normalize();
+        auto closestPoint = ClosestPoint(t, obj.Position());
+        Debug::ClosestPoints.push_back(closestPoint);
+        auto closestNormal = obj.Position() - closestPoint;
+        closestNormal.Normalize();
 
-            // Adjust velocity
-            if (pd.HasFlag(PhysicsFlag::Stick)) {
+        // Adjust velocity
+        if (pd.HasFlag(PhysicsFlag::Stick)) {
 
-            }
-            else {
-                // We're constrained by wall, so subtract wall part from velocity
-                auto wallPart = closestNormal.Dot(pd.Velocity);
-
-                if (pd.HasFlag(PhysicsFlag::Bounce))
-                    wallPart *= 2; //Subtract out wall part twice to achieve bounce
-
-                pd.Velocity -= closestNormal * wallPart;
-                tryAgain = true;
-
-                //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
-            }
-
-            // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
-            if (pass > 0) {
-                auto depth = obj.Radius - (obj.Position() - closestPoint).Length();
-                if (depth > 0.075f) {
-                    auto strength = depth / 0.15f;
-                    pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
-                    //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
-
-                    // Counter the input velocity
-                    pd.Velocity -= obj.Movement.Physics.InputVelocity * strength * dt;
-                }
-            }
-
-            // Move the object to the surface of the triangle
-            obj.Transform.Translation(closestPoint + closestNormal * obj.Radius);
         }
+        else {
+            // We're constrained by wall, so subtract wall part from velocity
+            auto wallPart = closestNormal.Dot(pd.Velocity);
+
+            if (pd.HasFlag(PhysicsFlag::Bounce))
+                wallPart *= 2; //Subtract out wall part twice to achieve bounce
+
+            pd.Velocity -= closestNormal * wallPart;
+            tryAgain = true;
+
+            //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
+        }
+
+        // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
+        if (pass > 0 && !pd.HasFlag(PhysicsFlag::Bounce)) {
+            auto depth = obj.Radius - (obj.Position() - closestPoint).Length();
+            if (depth > 0.075f) {
+                auto strength = depth / 0.15f;
+                pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
+                //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
+
+                // Counter the input velocity
+                pd.Velocity -= obj.Movement.Physics.InputVelocity * strength * dt;
+            }
+        }
+
+        // Move the object to the surface of the triangle
+        obj.Transform.Translation(closestPoint + closestNormal * obj.Radius);
     }
 
     class SegmentSearch {
@@ -321,7 +354,7 @@ namespace Inferno {
     private:
         bool SideVertsInRange(Level& level, const Segment& seg, SideID side, const Vector3 point, float range) {
             for (auto& i : seg.GetVertexIndices(side)) {
-                if (Vector3::Distance(level.Vertices[i], point) < range) 
+                if (Vector3::Distance(level.Vertices[i], point) < range)
                     return true;
             }
 
@@ -335,6 +368,7 @@ namespace Inferno {
         //int tries = 0;
         //int totalTries = 0;
         //do {
+
         auto searchRange = obj.Radius * 2 + (obj.Movement.Physics.Velocity * dt).Length();
         Debug::R = searchRange;
         auto& nearby = SegmentSearch.GetNearby(level, obj, searchRange);
@@ -349,6 +383,18 @@ namespace Inferno {
                 }
             }
         }
+
+        //for (auto& seg : level.Segments) {
+        //    for (auto& side : SideIDs) {
+        //        auto face = Face::FromSide(level, seg, side);
+        //        if (seg.SideIsSolid(side, level)) {
+        //            Intersect({ face.VerticesForPoly0() }, obj, dt, pass);
+        //            Intersect({ face.VerticesForPoly1() }, obj, dt, pass);
+        //        }
+        //    }
+        //}
+
+
         //    totalTries++;
         //    if (totalTries > 8) {
         //        SPDLOG_WARN("max total tries reached");
@@ -362,12 +408,11 @@ namespace Inferno {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
 
+        HandleInput(level.Objects[0], dt);
+
         int i = 0;
         for (auto& obj : level.Objects) {
             obj.PrevTransform = obj.Transform;
-
-            if (i++ > 0) continue; // debugging, only do physics on player
-            HandleInput(obj, dt); // player only
 
             if (obj.Movement.Type == MovementType::Physics) {
                 FixedPhysics(obj, t, dt);

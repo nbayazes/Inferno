@@ -39,23 +39,53 @@ void Application::Initialize(int width, int height) {
     };
 }
 
+using Keys = Keyboard::Keys;
+
+void FireTestWeapon(Level& level, const Object& obj, int gun) {
+    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.Transform);
+
+    auto& weapon = Resources::GameData.Weapons[34];
+
+    Object bullet{};
+    bullet.Movement.Type = MovementType::Physics;
+    bullet.Movement.Physics.Velocity = obj.Transform.Forward() * weapon.Speed[0] * 1;
+    bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
+    bullet.Movement.Physics.Drag = weapon.Drag;
+    bullet.Transform.Translation(point);
+    bullet.PrevTransform.Translation(point);
+
+    bullet.Render.Type = RenderType::WeaponVClip;
+    bullet.Render.VClip.ID = weapon.WeaponVClip;
+    bullet.Life = weapon.Lifetime;
+
+    bullet.Type = ObjectType::Weapon;
+
+    Render::LoadTextureDynamic(weapon.WeaponVClip);
+    level.Objects.push_back(bullet);
+}
+
+
 void Application::Update() {
     PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");
 
     Inferno::Input::Update();
 
-    using Keys = Keyboard::Keys;
 
-    if (Input::Keyboard.IsKeyPressed(Keys::F1))
+    if (Input::IsKeyPressed(Keys::Enter)) {
+        FireTestWeapon(Game::Level, Game::Level.Objects[0], 0);
+        FireTestWeapon(Game::Level, Game::Level.Objects[0], 1);
+    }
+
+    if (Input::IsKeyPressed(Keys::F1))
         Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
 
-    if (Input::Keyboard.IsKeyPressed(Keys::F5))
+    if (Input::IsKeyPressed(Keys::F5))
         Render::Adapter->ReloadResources();
 
-    if (Input::Keyboard.IsKeyPressed(Keys::F6))
+    if (Input::IsKeyPressed(Keys::F6))
         Render::ReloadTextures();
 
-    if (Input::Keyboard.IsKeyPressed(Keys::F7)) {
+    if (Input::IsKeyPressed(Keys::F7)) {
         Settings::HighRes = !Settings::HighRes;
         Render::ReloadTextures();
     }

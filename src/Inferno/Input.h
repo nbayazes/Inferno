@@ -18,7 +18,12 @@ namespace Inferno::Input {
 
     void Update();
     void Initialize(HWND hwnd);
+
+    // Returns true while a key is held down
     bool IsKeyDown(DirectX::Keyboard::Keys);
+
+    // Returns true when a key is first pressed
+    bool IsKeyPressed(DirectX::Keyboard::Keys);
 
     void ResetState();
 

@@ -48,6 +48,7 @@ namespace Inferno {
     };
 
     enum class PhysicsFlag : int16 {
+        None,
         TurnRoll = 0x01,       // roll when turning
         AutoLevel = 0x02,      // level object with closest side
         Bounce = 0x04,         // bounce (not slide) when hit will
@@ -144,16 +145,16 @@ namespace Inferno {
         None = 255,     // unused object
         SecretExitReturn = 254, // Editor only secret exit return. Not serialized.
         Wall = 0,       // Not actually an object. Used for collisions
-        Fireball = 1,   // Explosion
+        Fireball = 1,   // Explosion effect. no collision?
         Robot = 2,
         Hostage = 3,
         Player = 4,
-        Weapon = 5,
+        Weapon = 5, // A projectile from a weapon?
         Camera = 6,
         Powerup = 7,
         Debris = 8,     // remains of a destroyed robot
         Reactor = 9,
-        Clutter = 11,   // Unused
+        Clutter = 11,   // Unused, would be for random clutter placed in the level like barrels or boxes
         Ghost = 12,     // Dead player / spectator
         Light = 13,     // Unused
         Coop = 14,      // Co-op player

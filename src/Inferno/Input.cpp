@@ -125,6 +125,10 @@ namespace Inferno::Input {
         return Keyboard.lastState.IsKeyDown(key);
     }
 
+    bool IsKeyPressed(DirectX::Keyboard::Keys key) {
+        return Keyboard.IsKeyPressed(key);
+    }
+
     bool GetMouselook() { return Mouselook; }
 
     void SetMouselook(bool enable) {
