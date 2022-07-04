@@ -122,6 +122,17 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
         float4 src = Diffuse2.Sample(sampler0, input.uv2);
+        
+        //if (src.a < 1) {
+        //    //float4 s1 = float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-2 / 64.0, -2 / 64.0)).a * 0.35;
+        //    //float4 s2 = float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, -1 / 64.0)).a * 0.30;
+        //    //src += s1 + s2;
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, -1 / 64.0)).a * 0.20; // bottom edge
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(1 / 64.0, 1 / 64.0)).a * 0.19;
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(1 / 64.0, -1 / 64.0)).a * 0.18;
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, 1 / 64.0)).a * 0.17;
+        //}
+        
         float4 dst = base;
         float out_a = src.a + dst.a * (1 - src.a);
         float3 out_rgb = src.a * src.rgb + (1 - src.a) * dst.rgb;
