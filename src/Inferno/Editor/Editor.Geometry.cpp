@@ -400,7 +400,7 @@ namespace Inferno::Editor {
             if (Marked.HasSelection(SelectionMode::Segment)) {
                 for (auto& obj : level.Objects) {
                     if (Marked.Segments.contains(obj.Segment)) {
-                        obj.Transform *= gizmo.DeltaTransform;
+                        obj.Transform(gizmo.DeltaTransform);
                         NormalizeObjectVectors(obj);
                     }
                 }
@@ -408,7 +408,7 @@ namespace Inferno::Editor {
             else {
                 for (auto& obj : level.Objects) {
                     if (obj.Segment == Selection.Segment) {
-                        obj.Transform *= gizmo.DeltaTransform;
+                        obj.Transform(gizmo.DeltaTransform);
                         NormalizeObjectVectors(obj);
                     }
                 }
@@ -439,14 +439,14 @@ namespace Inferno::Editor {
     void TransformObjects(Level& level, const TransformGizmo& gizmo) {
         for (auto& oid : GetSelectedObjects()) {
             if (auto obj = level.TryGetObject(oid)) {
-                obj->Transform *= gizmo.DeltaTransform;
+                obj->Transform(gizmo.DeltaTransform);
                 NormalizeObjectVectors(*obj);
 
                 if (obj->Type == ObjectType::SecretExitReturn)
-                    level.SecretReturnOrientation = obj->Transform;
+                    level.SecretReturnOrientation = obj->Rotation;
 
-                if (!PointInSegment(level, obj->Segment, obj->Transform.Translation())) {
-                    auto id = FindContainingSegment(level, obj->Transform.Translation());
+                if (!PointInSegment(level, obj->Segment, obj->Position)) {
+                    auto id = FindContainingSegment(level, obj->Position);
                     // Leave the last good ID if nothing contains the object
                     if (id != SegID::None) obj->Segment = id;
                 }

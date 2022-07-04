@@ -191,7 +191,7 @@ namespace Inferno::Editor {
             v = Vector3::Transform(v, transform);
 
         for (auto& o : copy.Objects)
-            o.Transform *= transform;
+            o.Transform(transform);
     }
 
     void InsertCopiedSegments(Level& level, const SegmentClipboardData& copy) {
@@ -231,8 +231,8 @@ namespace Inferno::Editor {
             v = Vector3::Transform(v, reflection);
 
         for (auto& o : copy.Objects) {
-            o.Transform *= reflection;
-            o.Transform.Right(-o.Transform.Right()); // fix inversion
+            o.Transform(reflection);
+            o.Rotation.Right(-o.Rotation.Right()); // fix inversion
         }
 
         // Reverse face winding and fix the resulting texture mapping
@@ -300,7 +300,7 @@ namespace Inferno::Editor {
         if (!seg) return;
 
         Object obj = *ObjectClipboard;
-        obj.Transform.Translation(seg->Center);
+        obj.Position = seg->Center;
         level.Objects.push_back(obj);
         Editor::Selection.SetSelection(ObjID(level.Objects.size() - 1));
     }

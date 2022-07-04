@@ -294,11 +294,11 @@ namespace Inferno {
             writer.Write(obj.Render.Type);
             writer.Write((sbyte)obj.Flags);
             writer.Write(obj.Segment);
-            writer.WriteVector(obj.Position());
-            writer.WriteMatrix(obj.Transform);
+            writer.WriteVector(obj.Position);
+            writer.WriteRotation(obj.Rotation);
             writer.WriteFix(obj.Radius);
             writer.WriteFix(obj.Shields);
-            writer.WriteVector(obj.Position());
+            writer.WriteVector(obj.LastPosition);
             writer.Write(obj.Contains);
 
             switch (obj.Movement.Type) {

@@ -55,15 +55,15 @@ namespace Inferno {
         }
 
         if (pd.TurnRoll) // unrotate object for bank caused by turn
-            obj.Transform = Matrix::CreateRotationZ(pd.TurnRoll) * obj.Transform;
+            obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(pd.TurnRoll) * obj.Rotation);
 
-        obj.Transform = Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Transform;
+        obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
         if (pd.HasFlag(PhysicsFlag::TurnRoll))
             TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate, dt);
 
         if (pd.TurnRoll) // re-rotate object for bank caused by turn
-            obj.Transform = Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Transform;
+            obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
     }
 
     void LinearPhysics(Object& obj) {
@@ -93,10 +93,10 @@ namespace Inferno {
         physics.AngularThrust = Vector3::Zero;
 
         if (Input::IsKeyDown(Keys::Add))
-            physics.Thrust += obj.Transform.Forward() * dt;
+            physics.Thrust += obj.Rotation.Forward() * dt;
 
         if (Input::IsKeyDown(Keys::Subtract))
-            physics.Thrust += obj.Transform.Backward() * dt;
+            physics.Thrust += obj.Rotation.Backward() * dt;
 
         // yaw
         if (Input::IsKeyDown(Keys::NumPad4))
@@ -119,10 +119,10 @@ namespace Inferno {
 
 
         if (Input::IsKeyDown(Keys::NumPad1))
-            physics.Thrust += obj.Transform.Left() * dt;
+            physics.Thrust += obj.Rotation.Left() * dt;
 
         if (Input::IsKeyDown(Keys::NumPad3))
-            physics.Thrust += obj.Transform.Right() * dt;
+            physics.Thrust += obj.Rotation.Right() * dt;
     }
 
     void PlotPhysics(double t, const PhysicsData& pd) {
@@ -149,11 +149,11 @@ namespace Inferno {
     // Applies wiggle to an object
     void WiggleObject(Object& obj, double t, float dt, float amplitude) {
         auto angle = std::sinf((float)t * XM_2PI) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
-        auto wiggle = obj.Transform.Up() * angle * amplitude * dt;
+        auto wiggle = obj.Rotation.Up() * angle * amplitude * dt;
         obj.Movement.Physics.Velocity += wiggle;
     }
 
-    void FixedPhysics(Object& obj, double t, float dt) {
+    void FixedPhysics(Object& obj, float dt) {
         auto& physics = obj.Movement.Physics;
 
         if (obj.Type == ObjectType::Player) {
@@ -248,35 +248,35 @@ namespace Inferno {
         auto& pd = obj.Movement.Physics;
 
         if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
-        auto expectedDistance = obj.Position() - obj.PrevPosition();
+        auto expectedDistance = obj.Position - obj.LastPosition;
         if (expectedDistance.Length() < 0.001f) return;
         Vector3 dir;
         expectedDistance.Normalize(dir);
         //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
 
         float hitDistance{};
-        Ray ray(obj.PrevPosition(), dir);
+        Ray ray(obj.LastPosition, dir);
         bool hit = false;
 
         if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
             hit = hitDistance < expectedDistance.Length() - obj.Radius;
             //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
             if (hit)
-                obj.Transform.Translation(obj.PrevPosition() + dir * (hitDistance - obj.Radius));
+                obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
         }
 
         if (!hit) {
             // ray cast didn't hit anything, try the sphere test
             // note that this is not a sweep and will miss points between the begin and end.
             // Fortunately, most fast-moving objects are projectiles and have small radii.
-            BoundingSphere sphere(obj.Position(), obj.Radius);
+            BoundingSphere sphere(obj.Position, obj.Radius);
             hit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
 
             float planeDist;
             ray.Intersects(plane, planeDist);
             if (!hit && planeDist <= expectedDistance.Length()) {
                 // Last, test if the object sphere collides with the intersection of the triangle's plane
-                sphere = BoundingSphere(obj.PrevPosition() + dir * planeDist, obj.Radius * 1.1f);
+                sphere = BoundingSphere(obj.LastPosition + dir * planeDist, obj.Radius * 1.1f);
                 //BoundingSphere sphere(obj.Position(), obj.Radius);
                 hit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
             }
@@ -286,9 +286,9 @@ namespace Inferno {
 
         bool tryAgain = false;
 
-        auto closestPoint = ClosestPoint(t, obj.Position());
+        auto closestPoint = ClosestPoint(t, obj.Position);
         Debug::ClosestPoints.push_back(closestPoint);
-        auto closestNormal = obj.Position() - closestPoint;
+        auto closestNormal = obj.Position - closestPoint;
         closestNormal.Normalize();
 
         // Adjust velocity
@@ -310,7 +310,7 @@ namespace Inferno {
 
         // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
         if (pass > 0 && !pd.HasFlag(PhysicsFlag::Bounce)) {
-            auto depth = obj.Radius - (obj.Position() - closestPoint).Length();
+            auto depth = obj.Radius - (obj.Position - closestPoint).Length();
             if (depth > 0.075f) {
                 auto strength = depth / 0.15f;
                 pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
@@ -322,7 +322,7 @@ namespace Inferno {
         }
 
         // Move the object to the surface of the triangle
-        obj.Transform.Translation(closestPoint + closestNormal * obj.Radius);
+        obj.Position = closestPoint + closestNormal * obj.Radius;
     }
 
     class SegmentSearch {
@@ -343,7 +343,7 @@ namespace Inferno {
                 for (auto& side : SideIDs) {
                     if (auto conn = level.TryGetSegment(seg->GetConnection(side))) {
                         if (_results.contains(conn)) continue;
-                        if (seg != root && !SideVertsInRange(level, *seg, side, obj.Position(), range)) continue;
+                        if (seg != root && !SideVertsInRange(level, *seg, side, obj.Position, range)) continue;
                         _stack.push(conn);
                     }
                 }
@@ -373,7 +373,7 @@ namespace Inferno {
         auto searchRange = obj.Radius * 2 + (obj.Movement.Physics.Velocity * dt).Length();
         Debug::R = searchRange;
         auto& nearby = SegmentSearch.GetNearby(level, obj, searchRange);
-        Debug::Steps = nearby.size();
+        Debug::Steps = (float)nearby.size();
 
         for (auto& seg : nearby) {
             for (auto& side : SideIDs) {
@@ -410,19 +410,21 @@ namespace Inferno {
         Debug::ClosestPoints.clear();
 
         HandleInput(level.Objects[0], dt);
+        Matrix m;
+        Quaternion q;
 
-        int i = 0;
         for (auto& obj : level.Objects) {
-            obj.PrevTransform = obj.Transform;
+            obj.LastPosition = obj.Position;
+            obj.LastRotation = obj.Rotation;
 
             if (obj.Movement.Type == MovementType::Physics) {
-                FixedPhysics(obj, t, dt);
+                FixedPhysics(obj, dt);
 
                 if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
                     WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
                 obj.Movement.Physics.InputVelocity = obj.Movement.Physics.Velocity;
-                obj.Transform.Translation(obj.Position() + obj.Movement.Physics.Velocity * dt);
+                obj.Position += obj.Movement.Physics.Velocity * dt;
 
                 CollideTriangles(level, obj, dt, 0);
                 CollideTriangles(level, obj, dt, 1); // Doing two passes makes the result more stable with odd geometry
@@ -433,10 +435,10 @@ namespace Inferno {
                 Editor::UpdateObjectSegment(level, obj);
             }
 
-            Render::Debug::DrawLine(obj.PrevPosition(), obj.Position(), { 0, 1.0f, 0.2f });
+            Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
 
             Debug::ShipVelocity = obj.Movement.Physics.Velocity;
-            Debug::ShipPosition = obj.Position();
+            Debug::ShipPosition = obj.Position;
         }
     }
 }

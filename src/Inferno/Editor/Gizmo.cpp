@@ -185,8 +185,8 @@ namespace Inferno::Editor {
                  Selection.Object != ObjID::None) {
             // use object orientation
             if (auto obj = level.TryGetObject(Selection.Object)) {
-                transform = obj->Transform;
-                transform.Forward(transform.Forward());
+                transform = obj->GetTransform();
+                transform.Forward(obj->Rotation.Forward());
                 transform.Translation(Editor::Selection.GetOrigin(Settings::SelectionMode));
             }
         }

@@ -121,7 +121,7 @@ namespace Inferno::Render {
     LevelMeshBuilder _levelMeshBuilder;
     Ptr<PackedBuffer> _levelMeshBuffer;
 
-    void DrawObject(double alpha, const Object& object, ID3D12GraphicsCommandList* cmd);
+    void DrawObject(float alpha, const Object& object, ID3D12GraphicsCommandList* cmd);
 
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
@@ -152,7 +152,7 @@ namespace Inferno::Render {
         constants.LightColor[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         //Matrix transform = object.GetTransform(t);
-        Matrix transform = Matrix::Lerp(object.PrevTransform, object.Transform, t);
+        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), t);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         if (object.Control.Type == ControlType::Weapon) {
@@ -254,7 +254,7 @@ namespace Inferno::Render {
             return;
         }
 
-        DrawVClip(cmd, vclip, object.Transform, object.Radius, aligned);
+        DrawVClip(cmd, vclip, object.GetTransform(), object.Radius, aligned);
     }
 
     void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {
@@ -588,8 +588,8 @@ namespace Inferno::Render {
                 vfx.Type = ObjectType::Fireball;
                 vfx.Radius = up.Length() / 2;
                 up.Normalize();
-                vfx.Transform.Translation(seg.Center);
-                vfx.Transform.Up(up);
+                vfx.Position = seg.Center;
+                vfx.Rotation.Up(up);
                 vfx.Render.Type = RenderType::Fireball;
                 vfx.Render.VClip.ID = VClips::Matcen;
                 MatcenEffects.push_back(vfx);
@@ -622,13 +622,13 @@ namespace Inferno::Render {
         CanvasCommands[payload.Texture].push_back(payload);
     }
 
-    void DrawObject(double alpha, const Object& object, ID3D12GraphicsCommandList* cmd) {
+    void DrawObject(float t, const Object& object, ID3D12GraphicsCommandList* cmd) {
         switch (object.Type) {
             case ObjectType::Robot:
             {
                 auto& info = Resources::GetRobotInfo(object.ID);
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(alpha, object, cmd, info.Model, texOverride);
+                DrawModel(t, object, cmd, info.Model, texOverride);
                 break;
             }
 
@@ -643,14 +643,14 @@ namespace Inferno::Render {
             case ObjectType::Marker:
             {
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(alpha, object, cmd, object.Render.Model.ID, texOverride);
+                DrawModel(t, object, cmd, object.Render.Model.ID, texOverride);
                 break;
             }
 
             case ObjectType::Weapon:
                 if (object.Render.Type == RenderType::Polyobj) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                    DrawModel(alpha, object, cmd, object.Render.Model.ID, texOverride);
+                    DrawModel(t, object, cmd, object.Render.Model.ID, texOverride);
                 }
                 else {
                     DrawSprite(object, cmd, false);
@@ -698,7 +698,7 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void ExecuteRenderCommand(double alpha, ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
+    void ExecuteRenderCommand(float alpha, ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
@@ -823,8 +823,8 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawObject(Level& level, Object& obj, float distSquared, double alpha) {
-        auto position = obj.Position(alpha);
+    void DrawObject(Level& level, Object& obj, float distSquared, float alpha) {
+        auto position = Vector3::Lerp(obj.Position, obj.LastPosition, alpha);
 
         BoundingSphere bounds(position, obj.Radius); // might should use GetBoundingSphere
         if (!CameraFrustum.Contains(bounds))
@@ -846,14 +846,14 @@ namespace Inferno::Render {
             DrawTransparent({ &obj, depth });
     }
 
-    void DrawDebug(Level& level) {
+    void DrawDebug(Level&) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
         for (auto& point : Inferno::Debug::ClosestPoints) {
             Debug::DrawPoint(point, Color(1, 0, 0));
         }
     }
 
-    void Present(double alpha) {
+    void Present(float alpha) {
         //SPDLOG_INFO("Begin Frame");
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);

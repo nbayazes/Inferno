@@ -469,7 +469,7 @@ namespace Inferno {
     struct Level {
         string Palette = "groupa.256";
         SegID SecretExitReturn = SegID(0);
-        Matrix SecretReturnOrientation;
+        Matrix3x3 SecretReturnOrientation;
 
         List<Vector3> Vertices;
         List<Segment> Segments;

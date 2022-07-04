@@ -42,17 +42,17 @@ void Application::Initialize(int width, int height) {
 using Keys = Keyboard::Keys;
 
 void FireTestWeapon(Level& level, const Object& obj, int gun) {
-    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.Transform);
+    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
 
     auto& weapon = Resources::GameData.Weapons[34];
 
     Object bullet{};
     bullet.Movement.Type = MovementType::Physics;
-    bullet.Movement.Physics.Velocity = obj.Transform.Forward() * weapon.Speed[0] * 1;
+    bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
     bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
     bullet.Movement.Physics.Drag = weapon.Drag;
-    bullet.Transform.Translation(point);
-    bullet.PrevTransform.Translation(point);
+    bullet.Position = bullet.LastPosition = point;
+    bullet.Rotation = bullet.LastRotation = obj.Rotation;
 
     bullet.Render.Type = RenderType::WeaponVClip;
     bullet.Render.VClip.ID = weapon.WeaponVClip;
@@ -112,7 +112,7 @@ void Application::Update() {
 
     PIXEndEvent();
 
-    const double alpha = accumulator / dt;
+    const float alpha = float(accumulator / dt);
     Render::Present(alpha);
 }
 

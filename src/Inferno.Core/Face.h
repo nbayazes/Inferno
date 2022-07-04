@@ -258,12 +258,12 @@ namespace Inferno {
         Option<FaceHit> Intersects(const Object& obj) {
             auto indices = Side.GetRenderIndices();
 
-            auto vec = obj.Transform.Translation() - obj.PrevTransform.Translation();
+            auto vec = obj.Position - obj.LastPosition;
             auto dist = vec.Length();
             if (std::abs(dist) <= 0.001f) return {};
             vec.Normalize();
 
-            Ray ray(obj.PrevTransform.Translation(), vec);
+            Ray ray(obj.LastPosition, vec);
             float intersect{};
             if (ray.Intersects(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]), intersect)) {
                 if (intersect < (dist + obj.Radius))

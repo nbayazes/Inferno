@@ -357,16 +357,39 @@ namespace Inferno {
         float Shields = 100;    // Starts at maximum, when <0, object dies..
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
-        fix Life = LIFE_IMMORTAL; // how long until despawn
+        float Life = FixToFloat(LIFE_IMMORTAL); // how long until despawn
         MovementData Movement;
         RenderData Render;
         ControlData Control;
 
-        Matrix Transform, PrevTransform; // Current and previous transforms
-        Vector3 Position() const { return Transform.Translation(); }
-        Vector3 PrevPosition() const { return PrevTransform.Translation(); }
-        Vector3 Position(float t) const {
-            return Vector3::Lerp(Transform.Translation(), PrevTransform.Translation(), t);
+        Vector3 Position, LastPosition;
+        Matrix3x3 Rotation, LastRotation;
+
+        Matrix GetTransform() const {
+            Matrix m(Rotation);
+            m.Translation(Position);
+            return m;
         }
+
+        Matrix GetLastTransform() const {
+            Matrix m(LastRotation);
+            m.Translation(LastPosition);
+            return m;
+        }
+
+        void SetTransform(const Matrix& m) {
+            DirectX::XMStoreFloat3x3(&Rotation, m);
+            Position = m.Translation();
+        }
+
+        // Transform object position and rotation by a matrix
+        void Transform(const Matrix& m) {
+            Rotation *= m;
+            Position = Vector3::Transform(Position, m);
+        }
+
+        //Vector3 Position(float t) const {
+        //    return Vector3::Lerp(Position, LastPosition, t);
+        //}
     };
 }

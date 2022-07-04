@@ -25,15 +25,16 @@ namespace Inferno::Editor {
 
     // Ensures object direction vectors are normalized
     inline void NormalizeObjectVectors(Object& obj) {
-        auto forward = obj.Transform.Forward();
+        auto forward = obj.Rotation.Forward();
         forward.Normalize();
-        auto up = obj.Transform.Up();
+        auto up = obj.Rotation.Up();
         up.Normalize();
         auto right = -forward.Cross(up);
         right.Normalize();
-        obj.Transform.Forward(forward);
-        obj.Transform.Right(right);
-        obj.Transform.Up(up);
+        
+        obj.Rotation.Forward(forward);
+        obj.Rotation.Right(right);
+        obj.Rotation.Up(up);
     }
 
     namespace Commands {

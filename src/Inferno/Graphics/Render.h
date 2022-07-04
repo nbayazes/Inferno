@@ -38,7 +38,7 @@ namespace Inferno::Render {
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
     void Shutdown();
-    void Present(double alpha);
+    void Present(float alpha);
 
     //void ReloadShaders();
     void ReloadTextures();

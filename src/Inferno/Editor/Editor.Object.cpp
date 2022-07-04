@@ -33,7 +33,7 @@ namespace Inferno::Editor {
             transform.Translation(face.Center() + normal * obj->Radius); // position on face
 
         obj->Segment = tag.Segment;
-        obj->Transform = transform;
+        obj->SetTransform(transform);
         Editor::Gizmo.UpdatePosition();
         return true;
     }
@@ -44,7 +44,7 @@ namespace Inferno::Editor {
         if (!obj || !seg) return false;
 
         obj->Segment = segId;
-        obj->Transform.Translation(seg->Center);
+        obj->Position = seg->Center;
         Editor::Gizmo.UpdatePosition();
         return true;
     }
@@ -247,10 +247,10 @@ namespace Inferno::Editor {
             if (id == Editor::Selection.Object) continue;
             if (auto obj = Game::Level.TryGetObject(id)) {
                 auto seg = obj->Segment;
-                auto xform = obj->Transform;
+                auto xform = obj->GetTransform();
                 *obj = *src;
                 obj->Segment = seg;
-                obj->Transform = xform;
+                obj->SetTransform(xform);
             }
         }
 
@@ -271,9 +271,9 @@ namespace Inferno::Editor {
             level.SecretExitReturn = {};
 
         marker.Segment = level.SecretExitReturn;
-        marker.Transform = level.SecretReturnOrientation;
+        marker.Rotation = level.SecretReturnOrientation;
         if (auto seg = level.TryGetSegment(level.SecretExitReturn))
-            marker.Transform.Translation(seg->Center);
+            marker.Position = seg->Center;
 
         level.Objects.push_back(marker);
         Render::LoadModelDynamic(marker.Render.Model.ID);
@@ -300,8 +300,8 @@ namespace Inferno::Editor {
 
     // Updates the segment of the object based on position
     void UpdateObjectSegment(Level& level, Object& obj) {
-        if (!PointInSegment(level, obj.Segment, obj.Position())) {
-            auto id = FindContainingSegment(level, obj.Position());
+        if (!PointInSegment(level, obj.Segment, obj.Position)) {
+            auto id = FindContainingSegment(level, obj.Position);
             // Leave the last good ID if nothing contains the object
             if (id != SegID::None) obj.Segment = id;
         }

@@ -17,7 +17,7 @@ namespace Inferno::Render {
 
     void DrawObjectOutline(const Object& object, const Color& color) {
         if (object.Radius == 0) return;
-        DrawFacingCircle(object.Position(), object.Radius, color);
+        DrawFacingCircle(object.Position, object.Radius, color);
         // submodel hitboxes
         //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
         //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.1, 0.5, 0.1, 0.50 });
@@ -54,7 +54,7 @@ namespace Inferno::Render {
         }();
 
         color.A(0.5f);
-        DrawFacingCircle(object.Position(), object.Radius, color);
+        DrawFacingCircle(object.Position, object.Radius, color);
     }
 
     void DrawTunnelPathNode(Editor::PathNode& node) {
@@ -242,7 +242,7 @@ namespace Inferno::Render {
                 auto& seg = level.GetSegment(target.Segment);
                 auto targetFace = Face::FromSide(level, seg, target.Side);
                 auto targetCenter = targetFace.Center() + targetFace.AverageNormal() * Debug::WallMarkerOffset;
-                Debug::DrawArrow(reactor->Position(), targetCenter, Colors::ReactorTriggerArrow);
+                Debug::DrawArrow(reactor->Position, targetCenter, Colors::ReactorTriggerArrow);
             }
         }
     }

@@ -26,7 +26,7 @@ namespace Inferno::Editor {
 
     void Commands::FocusObject() {
         if (auto obj = Game::Level.TryGetObject(Selection.Object))
-            Render::Camera.MoveTo(obj->Position());
+            Render::Camera.MoveTo(obj->Position);
     }
 
     void ZoomExtents(const Level& level, Camera& camera) {

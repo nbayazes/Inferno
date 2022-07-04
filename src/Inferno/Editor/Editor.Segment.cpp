@@ -726,15 +726,12 @@ namespace Inferno::Editor {
             Editor::AddTrigger(level, wall, TriggerType::SecretExit);
             // Setup the secret exit return
             level.SecretExitReturn = tag.Segment;
-            auto& seg = level.GetSegment(tag);
             auto face = Face::FromSide(level, tag);
 
-            Matrix m;
-            m.Translation(seg.Center);
+            auto& m = level.SecretReturnOrientation;
             m.Forward(face.AverageNormal());
             m.Right(face.VectorForEdge(Editor::Selection.Point));
             m.Up(m.Forward().Cross(m.Right()));
-            level.SecretReturnOrientation = m;
 
             UpdateSecretLevelReturnMarker();
         }

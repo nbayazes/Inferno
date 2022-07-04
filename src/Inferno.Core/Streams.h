@@ -149,11 +149,11 @@ namespace Inferno {
             return v;
         }
 
-        Matrix ReadMatrix() {
+        Matrix3x3 ReadRotation() {
             auto rvec = ReadVector();
             auto uvec = ReadVector();
             auto fvec = ReadVector();
-            return Matrix(rvec, uvec, -fvec); // flip Z due to LH data
+            return Matrix3x3(rvec, uvec, -fvec); // flip Z due to LH data
         }
 
         // Reads a 2 byte fixed angle
@@ -185,6 +185,7 @@ namespace Inferno {
         }
     };
 
+    // Specialized stream writer for Descent binary files
     class StreamWriter {
         std::ostream& _stream;
         std::streampos _start;
@@ -214,7 +215,7 @@ namespace Inferno {
             WriteFix(v.z);
         };
 
-        void WriteMatrix(const Matrix& m) {
+        void WriteRotation(const Matrix3x3& m) {
             WriteVector(m.Right());
             WriteVector(m.Up());
             WriteVector(m.Forward()); // Strangely do not have to convert from RH back to LH

@@ -63,7 +63,7 @@ namespace Inferno::Editor {
 
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
-            auto sphere = DirectX::BoundingSphere(obj.Position(), obj.Radius);
+            auto sphere = DirectX::BoundingSphere(obj.Position, obj.Radius);
             if (float dist; ray.Intersects(sphere, dist))
                 hits.push_back({ .Distance = dist, .Object = ObjID(id) });
         }
@@ -140,7 +140,7 @@ namespace Inferno::Editor {
             case SelectionMode::Object:
             {
                 if (auto obj = Game::Level.TryGetObject(Object))
-                    return obj->Transform.Translation();
+                    return obj->Position;
                 return {};
             }
         }
@@ -664,7 +664,7 @@ namespace Inferno::Editor {
             {
                 for (int i = 0; i < level.Objects.size(); i++) {
                     auto& obj = level.Objects[i];
-                    auto pos = obj.Transform.Translation();
+                    auto pos = obj.Position;
                     if (!frustum.Contains(pos)) continue;
                     auto vscreen = camera.Project(pos, Matrix::Identity);
                     MarkOrUnmark(vscreen, Objects, (ObjID)i);
