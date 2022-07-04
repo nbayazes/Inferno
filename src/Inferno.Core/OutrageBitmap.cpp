@@ -3,13 +3,8 @@
 
 namespace Inferno {
     enum ImageType {
-        OUTRAGE_4444_COMPRESSED_MIPPED = 121,
-        OUTRAGE_1555_COMPRESSED_MIPPED = 122,
-        OUTRAGE_NEW_COMPRESSED_MIPPED = 123,
-        OUTRAGE_COMPRESSED_MIPPED = 124,
-        OUTRAGE_COMPRESSED_OGF_8BIT = 125,
-        OUTRAGE_TGA_TYPE = 126,
-        OUTRAGE_COMPRESSED_OGF = 127,
+        OUTRAGE_4444_COMPRESSED_MIPPED = 121, // Only used for textures with specular data
+        OUTRAGE_1555_COMPRESSED_MIPPED = 122
     };
 
     enum BitmapFlag {
@@ -68,13 +63,7 @@ namespace Inferno {
         auto colorMapType = r.ReadByte();
         auto imageType = r.ReadByte();
 
-        if (colorMapType != 0 || (imageType != 10 &&
-                                  imageType != 2 &&
-                                  imageType != OUTRAGE_TGA_TYPE &&
-                                  imageType != OUTRAGE_COMPRESSED_OGF &&
-                                  imageType != OUTRAGE_COMPRESSED_MIPPED &&
-                                  imageType != OUTRAGE_NEW_COMPRESSED_MIPPED &&
-                                  imageType != OUTRAGE_1555_COMPRESSED_MIPPED &&
+        if (colorMapType != 0 || (imageType != OUTRAGE_1555_COMPRESSED_MIPPED &&
                                   imageType != OUTRAGE_4444_COMPRESSED_MIPPED))
             throw Exception("Unknown image type");
 
@@ -83,32 +72,8 @@ namespace Inferno {
 
         constexpr int BITMAP_NAME_LEN = 35;
 
-        if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_1555_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_NEW_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_TGA_TYPE ||
-            imageType == OUTRAGE_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_COMPRESSED_OGF ||
-            imageType == OUTRAGE_COMPRESSED_OGF_8BIT) {
-
-            if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
-                imageType == OUTRAGE_NEW_COMPRESSED_MIPPED ||
-                imageType == OUTRAGE_1555_COMPRESSED_MIPPED) {
-                ogf.Name = r.ReadCString(BITMAP_NAME_LEN);
-            }
-            else {
-                List<char> buffer(BITMAP_NAME_LEN);
-                r.ReadBytes(buffer.data(), BITMAP_NAME_LEN);
-                ogf.Name = string(buffer.data()); // probably wrong
-                //name = Encoding.UTF8.GetString(r.ReadBytes(BITMAP_NAME_LEN));
-            }
-
-            if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
-                imageType == OUTRAGE_1555_COMPRESSED_MIPPED ||
-                imageType == OUTRAGE_COMPRESSED_MIPPED ||
-                imageType == OUTRAGE_NEW_COMPRESSED_MIPPED)
-                ogf.MipLevels = r.ReadByte();
-        }
+        ogf.Name = r.ReadCString(BITMAP_NAME_LEN);
+        ogf.MipLevels = r.ReadByte();
 
         for (int i = 0; i < 9; i++)
             r.ReadByte();
@@ -124,39 +89,28 @@ namespace Inferno {
         if ((descriptor & 0x0F) != 8 && (descriptor & 0x0F) != 0)
             throw Exception("Invalid descriptor");
 
-        ogf.UpsideDown = (descriptor & 0x20) == 0;
-
         for (int i = 0; i < imageIdLen; i++)
             r.ReadByte();
 
         List<ushort> data(ogf.Width * ogf.Height);
 
-        if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_1555_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_NEW_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_COMPRESSED_MIPPED ||
-            imageType == OUTRAGE_COMPRESSED_OGF ||
-            imageType == OUTRAGE_COMPRESSED_OGF_8BIT) {
-            int count = 0;
+        int count = 0;
 
-            while (count < data.size()) {
-                int cmd = r.ReadByte();
-                ushort pixel = r.ReadUInt16();
+        while (count < data.size()) {
+            int cmd = r.ReadByte();
+            ushort pixel = r.ReadUInt16();
 
-                if (cmd == 0) {
+            if (cmd == 0) {
+                data[count++] = pixel;
+            }
+            else if (cmd >= 2 && cmd <= 250) {
+                for (int i = 0; i < cmd; i++)
                     data[count++] = pixel;
-                }
-                else if (cmd >= 2 && cmd <= 250) {
-                    for (int i = 0; i < cmd; i++)
-                        data[count++] = pixel;
-                }
-                else {
-                    throw Exception("Invalid compression command");
-                }
+            }
+            else {
+                throw Exception("Invalid compression command");
             }
         }
-        else
-            throw Exception("Invalid image file type");
 
         ogf.Data = Decompress(data, ogf.Width, ogf.Height, (ImageType)ogf.Type);
         return ogf;
