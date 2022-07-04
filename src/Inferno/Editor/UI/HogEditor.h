@@ -307,7 +307,7 @@ namespace Inferno::Editor {
                 auto size = filesystem::file_size(*file);
 
                 List<HogEntry> newEntries;
-                int existing = 0;
+                int existingCount = 0;
 
                 // Scan for new and existing entries
                 for (auto& entry : _entries) {
@@ -315,16 +315,16 @@ namespace Inferno::Editor {
                     auto name = entry.NameWithoutExtension() + file->extension().string();
 
                     if (FindEntry(name)) {
-                        existing++;
+                        existingCount++;
                     }
                     else {
-                        HogEntry entry = { .Name = name, .Size = size, .Path = *file };
-                        newEntries.push_back(entry);
+                        HogEntry newEntry = { .Name = name, .Size = size, .Path = *file };
+                        newEntries.push_back(newEntry);
                     }
                 }
 
-                if (existing) {
-                    auto msg = fmt::format(L"{} existing files will be overwritten.", existing);
+                if (existingCount) {
+                    auto msg = fmt::format(L"{} existing files will be overwritten.", existingCount);
                     if (!ShowOkCancelMessage(msg, L"Confirm Overwrite"))
                         return;
                 }
