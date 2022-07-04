@@ -181,6 +181,9 @@ namespace Inferno::Editor {
     CursorDragMode UpdateGizmoDragState() {
         switch (Editor::Gizmo.State) {
             case GizmoState::BeginDrag:
+                if (Settings::SelectionMode == SelectionMode::Object)
+                    Editor::History.SnapshotSelection();
+
                 if (Input::RightDragState == SelectionState::BeginDrag) {
                     return BeginRightClickDrag(Game::Level);
                 }
