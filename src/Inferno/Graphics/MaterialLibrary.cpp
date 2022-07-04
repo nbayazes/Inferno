@@ -180,8 +180,12 @@ namespace Inferno::Render {
                     loadedST = material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        if (!loadedDiffuse)
-            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
+        if (!loadedDiffuse) {
+            if (!upload.Outrage.Data.empty())
+                material.Textures[Material2D::Diffuse].Load(batch, upload.Outrage.Data.data(), upload.Outrage.Width, upload.Outrage.Height, Convert::ToWideString(upload.Outrage.Name));
+            else
+                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
+        }
 
         // todo: optimize by putting all materials into a dictionary or some other way of not reloading special maps
         if (!loadedST && upload.SuperTransparent)
@@ -401,7 +405,7 @@ namespace Inferno::Render {
             trash.emplace_back(std::move(material));
             material = {}; // mark the material as unused
         });
-        
+
         TrashTextures(std::move(trash));
     }
 

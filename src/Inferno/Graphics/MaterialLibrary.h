@@ -6,6 +6,7 @@
 #include "Resources.h"
 #include "Buffers.h"
 #include "Concurrent.h"
+#include "OutrageBitmap.h"
 
 namespace Inferno::Render {
     struct Material2D {
@@ -25,6 +26,7 @@ namespace Inferno::Render {
         PigBitmap Bitmap;
         bool SuperTransparent = false;
         bool ForceLoad = false;
+        OutrageBitmap Outrage;
     };
 
     // Supports loading and unloading materials

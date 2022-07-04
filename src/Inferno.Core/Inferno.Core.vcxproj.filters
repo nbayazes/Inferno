@@ -65,7 +65,10 @@
     <ClInclude Include="Face.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="OutrageGraphics.h">
+    <ClInclude Include="OutrageBitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hog2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -100,7 +103,7 @@
     <ClCompile Include="HogFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="OutrageGraphics.cpp">
+    <ClCompile Include="OutrageBitmap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

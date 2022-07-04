@@ -450,4 +450,26 @@ namespace Inferno::Resources {
     bool HasCustomTextures() {
         return !CustomTextures.empty();
     }
+
+    void MountD3Hog(std::filesystem::path path) {
+        if (auto found = FileSystem::TryFindFile(path))
+            Descent3Hog = MakePtr<Hog2>(*found);
+        //else
+        //    throw Exception(std::format("{} not found", path.string()));
+    }
+
+    OutrageBitmap ReadOutrageBitmap(const string& name) {
+        // Check file system first, then hog data
+        if (auto path = FileSystem::TryFindFile(name)) {
+            StreamReader sr(*path);
+            return OutrageBitmap::Read(sr);
+        }
+        else if (Descent3Hog) {
+            auto data = Descent3Hog->ReadEntry(name);
+            StreamReader sr(data);
+            return OutrageBitmap::Read(sr);
+        }
+        
+        throw Exception(std::format("{} not found", name));
+    }
 };

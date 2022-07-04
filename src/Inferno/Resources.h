@@ -4,6 +4,8 @@
 #include "HamFile.h"
 #include "Mission.h"
 #include "HogFile.h"
+#include "Hog2.h"
+#include "OutrageBitmap.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -65,4 +67,10 @@ namespace Inferno::Resources {
     bool FoundDescent2();
     bool FoundVertigo();
     bool HasCustomTextures();
+
+    inline Ptr<Hog2> Descent3Hog;
+
+    void MountD3Hog(std::filesystem::path);
+
+    OutrageBitmap ReadOutrageBitmap(const string& name);
 }

@@ -68,6 +68,22 @@ namespace Inferno {
 
         StreamReader(const StreamReader&) = delete;
 
+        StreamReader(StreamReader&& other) noexcept {
+            _stream = std::move(other._stream);
+            _file = other._file;
+            other._file.clear();
+        }
+
+        StreamReader& operator=(StreamReader&& other) noexcept {
+            _stream = std::move(other._stream);
+            _file = other._file;
+            other._file.clear();
+        }
+
+        StreamReader& operator=(const StreamReader&) = delete;
+        ~StreamReader() = default;
+
+
         List<sbyte> ReadSBytes(size_t length) {
             List<sbyte> b(length);
             _stream->read(b.data(), sizeof(sbyte) * length);
@@ -84,8 +100,7 @@ namespace Inferno {
             _stream->read((char*)buffer, length);
         }
 
-        template<class T>
-        void FillBuffer(span<T> buffer) {
+        void ReadBytes(span<ubyte> buffer) {
             _stream->read((char*)buffer.data(), buffer.size());
         }
 

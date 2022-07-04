@@ -4,18 +4,16 @@
 
 namespace Inferno {
     // Descent 3 Outrage Graphics File (OGF)
-    struct OutrageGraphics {
+    struct OutrageBitmap {
         int Width, Height;
         int Type;
-        List<ushort> Data; // ushort??
+        List<uint> Data;
         int MipLevels = 1;
         int BitsPerPixel;
         bool UpsideDown;
         string Name;
-
-        List<int> GetMipData(int mip);
         
-        static OutrageGraphics Read(StreamReader& r);
+        static OutrageBitmap Read(StreamReader& r);
     };
 
 }

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "OutrageGraphics.h"
+#include "OutrageBitmap.h"
 
 namespace Inferno {
     enum ImageType {
@@ -30,9 +30,40 @@ namespace Inferno {
         BITMAP_FORMAT_4444 = 1,
     };
 
-    constexpr int BITMAP_NAME_LEN = 35;
+    constexpr int Conv5to8(int n) { return (n << 3) | (n >> 2); }
 
-    OutrageGraphics OutrageGraphics::Read(StreamReader& r) {
+    List<uint> Decompress(span<ushort> data, int width, int height, ImageType type) {
+        List<uint> img(width * height);
+        const int lastrow = (width - 1) * height;
+
+        for (int ofs = 0; ofs <= lastrow; ofs += width) {
+            if (type == OUTRAGE_4444_COMPRESSED_MIPPED) {
+                for (int x = 0; x < width; x++) {
+                    const ushort n = data[ofs + x];
+                    //const int a = ((n >> 12) & 0x0f) * 0x11;
+                    constexpr int a = 0xff; // ignore alpha for now. it should be extracted as a specular mask
+                    const int r = ((n >> 8) & 0x0f) * 0x11;
+                    const int g = ((n >> 4) & 0x0f) * 0x11;
+                    const int b = (n & 0x0f) * 0x11;
+                    img[ofs + x] = a << 24 | b << 16 | g << 8 | r;
+                }
+            }
+            else {
+                for (int x = 0; x < width; x++) {
+                    const ushort n = data[ofs + x];
+                    img[ofs + x] =
+                        ((n & 0x8000) * 0x1fe00) |
+                        (Conv5to8((n & 0x7c00) >> 10) << 0) |
+                        (Conv5to8((n & 0x03e0) >> 5) << 8) |
+                        (Conv5to8((n & 0x001f) >> 0) << 16);
+                }
+            }
+        }
+
+        return img;
+    }
+
+    OutrageBitmap OutrageBitmap::Read(StreamReader& r) {
         auto imageIdLen = r.ReadByte();
         auto colorMapType = r.ReadByte();
         auto imageType = r.ReadByte();
@@ -47,15 +78,17 @@ namespace Inferno {
                                   imageType != OUTRAGE_4444_COMPRESSED_MIPPED))
             throw Exception("Unknown image type");
 
-        OutrageGraphics ogf{};
+        OutrageBitmap ogf{};
         ogf.Type = imageType;
 
-        if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED || 
-            imageType == OUTRAGE_1555_COMPRESSED_MIPPED || 
-            imageType == OUTRAGE_NEW_COMPRESSED_MIPPED || 
-            imageType == OUTRAGE_TGA_TYPE || 
-            imageType == OUTRAGE_COMPRESSED_MIPPED || 
-            imageType == OUTRAGE_COMPRESSED_OGF || 
+        constexpr int BITMAP_NAME_LEN = 35;
+
+        if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
+            imageType == OUTRAGE_1555_COMPRESSED_MIPPED ||
+            imageType == OUTRAGE_NEW_COMPRESSED_MIPPED ||
+            imageType == OUTRAGE_TGA_TYPE ||
+            imageType == OUTRAGE_COMPRESSED_MIPPED ||
+            imageType == OUTRAGE_COMPRESSED_OGF ||
             imageType == OUTRAGE_COMPRESSED_OGF_8BIT) {
 
             if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
@@ -91,11 +124,12 @@ namespace Inferno {
         if ((descriptor & 0x0F) != 8 && (descriptor & 0x0F) != 0)
             throw Exception("Invalid descriptor");
 
+        ogf.UpsideDown = (descriptor & 0x20) == 0;
+
         for (int i = 0; i < imageIdLen; i++)
             r.ReadByte();
 
-        ogf.UpsideDown = (descriptor & 0x20) == 0;
-        ogf.Data.resize(ogf.Width * ogf.Height);
+        List<ushort> data(ogf.Width * ogf.Height);
 
         if (imageType == OUTRAGE_4444_COMPRESSED_MIPPED ||
             imageType == OUTRAGE_1555_COMPRESSED_MIPPED ||
@@ -105,16 +139,16 @@ namespace Inferno {
             imageType == OUTRAGE_COMPRESSED_OGF_8BIT) {
             int count = 0;
 
-            while (count < ogf.Data.size()) {
+            while (count < data.size()) {
                 int cmd = r.ReadByte();
                 ushort pixel = r.ReadUInt16();
 
                 if (cmd == 0) {
-                    ogf.Data[count++] = pixel;
+                    data[count++] = pixel;
                 }
                 else if (cmd >= 2 && cmd <= 250) {
                     for (int i = 0; i < cmd; i++)
-                        ogf.Data[count++] = pixel;
+                        data[count++] = pixel;
                 }
                 else {
                     throw Exception("Invalid compression command");
@@ -124,41 +158,7 @@ namespace Inferno {
         else
             throw Exception("Invalid image file type");
 
+        ogf.Data = Decompress(data, ogf.Width, ogf.Height, (ImageType)ogf.Type);
         return ogf;
     }
-
-    constexpr int Conv5to8(int n) { return (n << 3) | (n >> 2); }
-
-    List<int> OutrageGraphics::GetMipData(int /*mip*/) {
-        List<int> img(Width * Height);
-        int lastrow = (Width - 1) * Height;
-
-        for (int ofs = 0; ofs <= lastrow; ofs += Width) {
-            if (Type == OUTRAGE_4444_COMPRESSED_MIPPED) {
-                for (int x = 0; x < Width; x++) {
-                    ushort n = Data[ofs + x];
-                    img[ofs + x] =
-                        ((n & 0xf000) * (0x11 << (24 - 12))) |
-                        ((n & 0x0f00) * (0x11 << (16 - 8))) |
-                        ((n & 0x00f0) * (0x11 << (8 - 4))) |
-                        ((n & 0x000f) * (0x11 << 0));
-                }
-            }
-            else {
-                for (int x = 0; x < Width; x++) {
-                    ushort n = Data[ofs + x];
-                    img[ofs + x] =
-                        ((n & 0x8000) * 0x1fe00) |
-                        (Conv5to8((n & 0x7c00) >> 10) << 16) |
-                        (Conv5to8((n & 0x03e0) >> 5) << 8) |
-                        (Conv5to8((n & 0x001f) >> 0) << 0);
-                }
-            }
-        }
-
-        return img;
-    }
-
-
-
 }
