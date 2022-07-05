@@ -143,6 +143,7 @@ namespace Inferno {
         uint32 ReadUInt32() { return Read<uint32>(); }
         int32 ReadInt32() { return Read<int32>(); }
         int64 ReadInt64() { return Read<int64>(); }
+        float ReadFloat() { return Read<float>(); }
 
         // Reads a int32 fixed value into a float
         float ReadFix() { return FixToFloat(Read<int32>()); }
@@ -164,6 +165,15 @@ namespace Inferno {
             return v;
         }
 
+        // Reads a floating point vector
+        Vector3 ReadVector3() {
+            Vector3 v;
+            v.x = ReadFloat();
+            v.y = ReadFloat();
+            v.z = ReadFloat();
+            return v;
+        }
+
         Matrix ReadMatrix() {
             auto rvec = ReadVector();
             auto uvec = ReadVector();
@@ -182,6 +192,14 @@ namespace Inferno {
             auto h = ReadFixAng();
             auto b = ReadFixAng();
             return Vector3(p, h, b);
+        }
+
+        // Reads a 6 byte RGB color
+        Color ReadRGB() {
+            auto r = ReadByte();
+            auto g = ReadByte();
+            auto b = ReadByte();
+            return Color(r / 255.0f, g / 255.0f, b / 255.0f);
         }
 
         bool EndOfFile() { return _stream->eof(); }

@@ -6,6 +6,7 @@
 #include "HogFile.h"
 #include "Hog2.h"
 #include "OutrageBitmap.h"
+#include "OutrageModel.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -73,4 +74,5 @@ namespace Inferno::Resources {
     void MountD3Hog(std::filesystem::path);
 
     OutrageBitmap ReadOutrageBitmap(const string& name);
+    OutrageModel ReadOutrageModel(const string& name);
 }

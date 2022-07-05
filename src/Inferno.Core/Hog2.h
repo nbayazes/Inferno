@@ -74,7 +74,7 @@ namespace Inferno {
             name = String::ToLower(name);
             if (!_lookup.contains(name))
                 throw Exception(fmt::format("Entry `{}` not found", name));
-
+            
             return ReadEntry(_lookup[name]);
         }
 

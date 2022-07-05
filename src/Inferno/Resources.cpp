@@ -472,4 +472,19 @@ namespace Inferno::Resources {
         
         throw Exception(std::format("{} not found", name));
     }
+
+    OutrageModel ReadOutrageModel(const string& name) {
+        // Check file system first, then hog data
+        if (auto path = FileSystem::TryFindFile(name)) {
+            StreamReader sr(*path);
+            return OutrageModel::Read(sr);
+        }
+        else if (Descent3Hog) {
+            auto data = Descent3Hog->ReadEntry(name);
+            StreamReader sr(data);
+            return OutrageModel::Read(sr);
+        }
+
+        throw Exception(std::format("{} not found", name));
+    }
 };
