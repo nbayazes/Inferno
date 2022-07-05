@@ -70,16 +70,12 @@ namespace Inferno {
             return data;
         }
 
-        List<ubyte> ReadEntry(string name) {
+        Option<List<ubyte>> ReadEntry(string name) {
             name = String::ToLower(name);
             if (!_lookup.contains(name))
-                throw Exception(fmt::format("Entry `{}` not found", name));
+                return {};
             
             return ReadEntry(_lookup[name]);
-        }
-
-        bool ContainsEntry(string name) {
-            return _lookup.contains(String::ToLower(name));
         }
     };
 }

@@ -251,10 +251,11 @@ void TestSegID() {
 void DumpOgfHeaders() {
     for (auto& entry : Resources::Descent3Hog->Entries) {
         if (!entry.name.ends_with(".ogf")) continue;
-        auto data = Resources::Descent3Hog->ReadEntry(entry.name);
-        StreamReader r(data);
-        auto ogf = OutrageBitmap::Read(r);
-        string type = ogf.Type == 122 ? "1555" : (ogf.Type == 121 ? "4444" : "Unknown");
+        if (auto data = Resources::Descent3Hog->ReadEntry(entry.name)) {
+            StreamReader r(*data);
+            auto ogf = OutrageBitmap::Read(r);
+            string type = ogf.Type == 122 ? "1555" : (ogf.Type == 121 ? "4444" : "Unknown");
+        }
         //std::cout << fmt::format("{}, {}, {}, {}, {}, {}\n", ogf.Name, ogf.Width, ogf.Height, ogf.BitsPerPixel, ogf.MipLevels, type);
     }
 }
@@ -278,7 +279,9 @@ int main() {
         FileSystem::Init();
         Resources::Init();
 
-        //Resources::MountD3Hog("d3.hog");
+        Resources::MountD3Hog("d3.hog");
+        //auto model = Resources::ReadOutrageModel("gyro.OOF");
+
         //DumpOgfHeaders();
 
         //PrintWeaponInfo();

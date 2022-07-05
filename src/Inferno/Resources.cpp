@@ -458,33 +458,53 @@ namespace Inferno::Resources {
         //    throw Exception(std::format("{} not found", path.string()));
     }
 
-    OutrageBitmap ReadOutrageBitmap(const string& name) {
+    Option<OutrageBitmap> ReadOutrageBitmap(const string& name) {
         // Check file system first, then hog data
         if (auto path = FileSystem::TryFindFile(name)) {
             StreamReader sr(*path);
             return OutrageBitmap::Read(sr);
         }
         else if (Descent3Hog) {
-            auto data = Descent3Hog->ReadEntry(name);
-            StreamReader sr(data);
-            return OutrageBitmap::Read(sr);
+            if (auto data = Descent3Hog->ReadEntry(name)) {
+                StreamReader sr(*data);
+                return OutrageBitmap::Read(sr);
+            }
+            else {
+                SPDLOG_INFO("Bitmap not found in D3 HOG: {}", name);
+            }
         }
-        
-        throw Exception(std::format("{} not found", name));
+
+        return {};
     }
 
-    OutrageModel ReadOutrageModel(const string& name) {
+
+    Option<OutrageModel> ReadOutrageModel(const string& name) {
         // Check file system first, then hog data
         if (auto path = FileSystem::TryFindFile(name)) {
             StreamReader sr(*path);
             return OutrageModel::Read(sr);
         }
         else if (Descent3Hog) {
-            auto data = Descent3Hog->ReadEntry(name);
-            StreamReader sr(data);
-            return OutrageModel::Read(sr);
+            if (auto data = Descent3Hog->ReadEntry(name)) {
+                StreamReader sr(*data);
+                return OutrageModel::Read(sr);
+            }
         }
 
-        throw Exception(std::format("{} not found", name));
+        return {};
+    }
+
+    Dictionary<string, OutrageModel> OutrageModels;
+
+    OutrageModel const* GetOutrageModel(const string& name) {
+        if (OutrageModels.contains(name)) 
+            return &OutrageModels[name];
+
+        if (auto model = ReadOutrageModel(name)) {
+            OutrageModels[name] = std::move(*model);
+            return &OutrageModels[name];
+        }
+
+        return nullptr;
     }
 };

@@ -12,33 +12,31 @@ namespace Inferno::Render {
         uint IndexCount;
         TexID Texture;
         EClipID EffectClip = EClipID::None;
+        int OutrageTextureIndex;
     };
 
     class MeshBuffer {
-        List<Mesh> _meshes; // a single model can have multiple meshes
+        List<Mesh> _meshes; // Buffer stores multiple meshes
         PackedBuffer _buffer{ 1024 * 1024 * 10 };
 
+        // Pointers to individual meshes in a polymodel
         struct MeshIndex {
-            // Each mesh submodel can have multiple meshes due to textures
-            Array<Array<Mesh*, 20>, MAX_SUBMODELS> Meshes;
+            // A lookup of meshes based on submodel and then texture
+            Dictionary<int, Dictionary<int, Mesh*>> Meshes;
+            Dictionary<int, Dictionary<string, Mesh*>> OutrageMeshes;
             bool Loaded = false;
-
-            MeshIndex() {
-                for (auto& item : Meshes)
-                    std::fill(item.begin(), item.end(), nullptr);
-            }
         };
 
         List<MeshIndex> _handles;
-
+        size_t _capacity;
     public:
 
-        MeshBuffer(size_t capacity) {
+        MeshBuffer(size_t capacity) : _capacity(capacity) {
             SPDLOG_INFO("Created mesh buffer with capacity {}", capacity);
             constexpr int AVG_TEXTURES_PER_MESH = 3;
             auto size = MAX_SUBMODELS * capacity * AVG_TEXTURES_PER_MESH;
             _meshes.reserve(size);
-            _handles.resize(capacity);
+            _handles.resize(capacity + 50);
         }
 
         void LoadModel(ModelID id) {
@@ -94,14 +92,75 @@ namespace Inferno::Render {
             handle.Loaded = true;
         }
 
+        void LoadOutrageModel(const OutrageModel& model, int id) {
+            auto& handle = _handles[_capacity + id]; // shift past the end
+            if (handle.Loaded) return;
+
+
+            for (int smIndex = 0; auto & submodel : model.Submodels) {
+                struct SubmodelMesh {
+                    List<ObjectVertex> Vertices;
+                    List<uint16> Indices;
+                    int16 Index = 0;
+                };
+
+                Dictionary<int, SubmodelMesh> smMeshes;
+
+                // combine uvs from faces with the vertices
+                for (auto& face : submodel.Faces) {
+                    Color color = face.Color;
+
+                    const auto& fv0 = face.Vertices[0];
+                    const auto& v0 = submodel.Vertices[fv0.Index];
+
+                    auto fvx = &face.Vertices[1];
+                    auto vx = &submodel.Vertices[fvx->Index];
+
+                    // convert triangle fans to triangle lists
+                    for (int i = 2; i < face.Vertices.size(); i++) {
+                        const auto& fv = face.Vertices[i];
+                        const auto& v = submodel.Vertices[fv.Index];
+
+                        auto AddVert = [&](const OutrageSubmodel::Vertex& vtx, const Vector2& uv) {
+                            color.A(vtx.Alpha);
+                            auto& smm = smMeshes[face.TexNum];
+                            smm.Vertices.push_back(ObjectVertex{
+                                .Position = vtx.Position,
+                                .UV = uv,
+                                .Color = color,
+                                .Normal = vtx.Normal
+                            });
+                            smm.Indices.push_back(smm.Index++);
+                        };
+
+                        AddVert(v0, fv0.UV);
+                        AddVert(*vx, fvx->UV);
+                        AddVert(v, fv.UV);
+
+                        fvx = &fv;
+                        vx = &v;
+                    }
+                }
+
+                for (auto& [i, smm] : smMeshes) {
+                    auto& mesh = _meshes.emplace_back();
+                    handle.Meshes[smIndex][i] = &mesh;
+                    mesh.VertexBuffer = _buffer.PackVertices(smm.Vertices);
+                    mesh.IndexBuffer = _buffer.PackIndices(smm.Indices);
+                    mesh.IndexCount = (uint)smm.Indices.size();
+                    mesh.OutrageTextureIndex = i;
+                }
+
+                smIndex++;
+            }
+        }
+
         MeshIndex& GetHandle(ModelID id) {
             return _handles[(int)id];
         }
 
-        Mesh& GetMesh(uint16 index) {
-            return _meshes[index];
+        MeshIndex& GetOutrageHandle(int id) {
+            return _handles[_capacity + id];
         }
-
-        const auto Meshes() { return _meshes; }
     };
 }

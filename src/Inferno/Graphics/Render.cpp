@@ -20,6 +20,8 @@ namespace Inferno::Render {
     BoundingFrustum CameraFrustum;
     bool LevelChanged = false;
 
+    const string TEST_MODEL = "gyro.OOF";
+
     // Dynamic render batches
     // Usage: Batch vertices / indices then use returned structs to render later
     template<class TVertex, class TIndex = unsigned short>
@@ -154,7 +156,6 @@ namespace Inferno::Render {
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         if (object.Control.Type == ControlType::Weapon) {
-            // Not sure why velocities need to multiplied by 2pi to match game
             auto r = Matrix::CreateFromYawPitchRoll(object.Movement.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
             auto translation = transform.Translation();
             transform *= Matrix::CreateTranslation(translation);
@@ -191,6 +192,70 @@ namespace Inferno::Render {
 
                 const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
                 effect.Shader->SetMaterial(cmd, material);
+
+                cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmd->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                DrawCalls++;
+            }
+        }
+    }
+
+    void DrawOutrageModel(const Object& object, ID3D12GraphicsCommandList* cmd, int index) {
+        auto& effect = Effects->Object;
+        effect.Apply(cmd);
+
+        /*if (model.DataSize == 0) {
+            DrawObjectOutline(object);
+            return;
+        }*/
+        auto& meshHandle = _meshBuffer->GetOutrageHandle(index);
+
+        effect.Shader->SetSampler(cmd, GetTextureSampler());
+        ObjectShader::Constants constants = {};
+        constants.Eye = Camera.Position;
+
+        auto& seg = Game::Level.GetSegment(object.Segment);
+        constants.LightColor[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+
+        Matrix transform = object.Transform;
+        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        auto model = Resources::GetOutrageModel(TEST_MODEL);
+        if (model == nullptr) return;
+
+        int submodelIndex = 0;
+        for (auto& submodel : model->Submodels) {
+            // accumulate the offsets for each submodel
+            auto submodelOffset = Vector3::Zero;
+            auto* smc = &submodel;
+            while (smc->Parent != -1) {
+                submodelOffset += smc->Offset;
+                smc = &model->Submodels[smc->Parent];
+            }
+
+            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+            constants.World = world;
+            constants.Projection = world * ViewProjection;
+            //constants.Time = (float)ElapsedTime;
+            effect.Shader->SetConstants(cmd, constants);
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodelIndex++];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                //tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).GetFrame(ElapsedTime);
+
+                //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+                //auto& material = Materials->GetOutrageMaterial(textureName);
+                //effect.Shader->SetMaterial(cmd, material);
+                auto& texName = model->Textures[i];
+                auto& material = Materials->GetOutrageMaterial(texName);
+                effect.Shader->SetMaterial(cmd, material);
+                //effect.Shader->SetMaterial(cmd, Materials->White);
 
                 cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmd->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -607,6 +672,13 @@ namespace Inferno::Render {
             if (model.Render.Type == RenderType::Polyobj)
                 _meshBuffer->LoadModel(model.Render.Model.ID);
 
+        {
+            if (auto model = Resources::ReadOutrageModel(TEST_MODEL)) {
+                _meshBuffer->LoadOutrageModel(*model, 0);
+                Materials->LoadOutrageModel(*model);
+            }
+        }
+
         _levelMeshBuilder.Update(level, *_levelMeshBuffer);
         CreateMatcenEffects(level);
     }
@@ -641,7 +713,8 @@ namespace Inferno::Render {
             case ObjectType::Marker:
             {
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(object, cmd, object.Render.Model.ID, texOverride);
+                //DrawModel(object, cmd, object.Render.Model.ID, texOverride);
+                DrawOutrageModel(object, cmd, 0);
                 break;
             }
 

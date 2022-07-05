@@ -206,6 +206,39 @@ namespace Inferno::Render {
         return { std::move(material) };
     }
 
+
+    Option<Material2D> UploadOutrageMaterial(ResourceUploadBatch& batch,
+                                             OutrageBitmap& bitmap,
+                                             Texture2D& defaultTex) {
+        Material2D material;
+        material.Index = Render::Heaps->Shader.AllocateIndex();
+        assert(!bitmap.Data.empty());
+
+        // allocate a new heap range for the material
+        for (int i = 0; i < Material2D::Count; i++)
+            material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
+
+        material.Name = bitmap.Name;
+        //material.ID = upload.ID;
+
+
+        // remove the frame number when loading special textures, as they should share.
+        string baseName = material.Name;
+        if (auto i = baseName.find("#"); i > 0)
+            baseName = baseName.substr(0, i);
+
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+
+        // Set default secondary textures
+        for (uint i = 0; i < std::size(material.Textures); i++) {
+            auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
+            auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+            texture->CreateShaderResourceView(handle);
+        }
+
+        return { std::move(material) };
+    }
+
     class MaterialUploadWorker : public WorkerThread {
         MaterialLibrary* _lib;
     public:
@@ -366,6 +399,27 @@ namespace Inferno::Render {
         auto ids = GetLevelTextures(level, PreloadDoors);
         auto tids = Seq::ofSet(ids);
         LoadMaterials(tids, force);
+    }
+
+    void MaterialLibrary::LoadOutrageModel(const OutrageModel& model) {
+        Render::Adapter->WaitForGpu();
+
+        List<Material2D> uploads;
+        auto batch = BeginTextureUpload();
+
+        for (auto& texture : model.Textures) {
+            if (_outrageMaterials.contains(texture)) continue; // skip loaded
+
+            MaterialUpload upload;
+            if (auto bitmap = Resources::ReadOutrageBitmap(texture))
+                if (auto material = UploadOutrageMaterial(batch, *bitmap, _black))
+                    uploads.emplace_back(std::move(material.value()));
+        }
+
+        EndTextureUpload(batch);
+
+        for (auto& upload : uploads)
+            _outrageMaterials[upload.Name] = std::move(upload);
     }
 
     void MaterialLibrary::Reload() {

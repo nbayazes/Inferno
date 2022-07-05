@@ -2,6 +2,8 @@
 #include "OutrageModel.h"
 
 namespace Inferno {
+    constexpr auto MAX_MODEL_TEXTURES = 35;
+
     string ReadModelString(StreamReader& r) {
         int mlen = r.ReadInt32();
         return r.ReadString(mlen);
@@ -55,6 +57,17 @@ namespace Inferno {
                     for (int i = 0; i < detail; i++) {
                         r.ReadInt32();
                     }
+                    break;
+                }
+
+                case MakeFourCC("TXTR"): // Texture filename list
+                {
+                    auto count = r.ReadInt32();
+                    assert(count < MAX_MODEL_TEXTURES);
+
+                    for (int i = 0; i < count; i++)
+                        pm.Textures.push_back(ReadModelString(r) + ".ogf");
+
                     break;
                 }
 
@@ -128,8 +141,8 @@ namespace Inferno {
 
                         for (auto& v : face.Vertices) {
                             v.Index = (short)r.ReadInt32();
-                            v.U = r.ReadFloat();
-                            v.V = r.ReadFloat();
+                            v.UV.x = r.ReadFloat();
+                            v.UV.y = r.ReadFloat();
                         }
 
                         // Lightmap stuff we don't care about

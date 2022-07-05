@@ -19,12 +19,12 @@ namespace Inferno {
     struct PolymodelFace {
         struct Vertex {
             short Index;
-            float U, V;
+            Vector2 UV;
         };
 
         List<Vertex> Vertices;
 
-        Color Color;
+        Color Color = { 1, 1, 1 };
         short TexNum = -1;
 
         Vector3 Normal;
@@ -60,6 +60,7 @@ namespace Inferno {
         float Radius;
         Vector3 Min, Max;
         List<OutrageSubmodel> Submodels;
+        List<string> Textures;
 
         static OutrageModel Read(StreamReader& r);
     };
