@@ -12,7 +12,6 @@ namespace Inferno::Render {
         uint IndexCount;
         TexID Texture;
         EClipID EffectClip = EClipID::None;
-        int OutrageTextureIndex;
     };
 
     class MeshBuffer {
@@ -23,7 +22,6 @@ namespace Inferno::Render {
         struct MeshIndex {
             // A lookup of meshes based on submodel and then texture
             Dictionary<int, Dictionary<int, Mesh*>> Meshes;
-            Dictionary<int, Dictionary<string, Mesh*>> OutrageMeshes;
             bool Loaded = false;
         };
 
@@ -36,7 +34,7 @@ namespace Inferno::Render {
             constexpr int AVG_TEXTURES_PER_MESH = 3;
             auto size = MAX_SUBMODELS * capacity * AVG_TEXTURES_PER_MESH;
             _meshes.reserve(size);
-            _handles.resize(capacity + 50);
+            _handles.resize(capacity + 100);
         }
 
         void LoadModel(ModelID id) {
@@ -148,7 +146,6 @@ namespace Inferno::Render {
                     mesh.VertexBuffer = _buffer.PackVertices(smm.Vertices);
                     mesh.IndexBuffer = _buffer.PackIndices(smm.Indices);
                     mesh.IndexCount = (uint)smm.Indices.size();
-                    mesh.OutrageTextureIndex = i;
                 }
 
                 smIndex++;

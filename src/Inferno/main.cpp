@@ -255,8 +255,8 @@ void DumpOgfHeaders() {
             StreamReader r(*data);
             auto ogf = OutrageBitmap::Read(r);
             string type = ogf.Type == 122 ? "1555" : (ogf.Type == 121 ? "4444" : "Unknown");
+            std::cout << fmt::format("{}, {}, {}, {}, {}, {}\n", ogf.Name, ogf.Width, ogf.Height, ogf.BitsPerPixel, ogf.MipLevels, type);
         }
-        //std::cout << fmt::format("{}, {}, {}, {}, {}, {}\n", ogf.Name, ogf.Width, ogf.Height, ogf.BitsPerPixel, ogf.MipLevels, type);
     }
 }
 

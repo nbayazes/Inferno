@@ -470,7 +470,7 @@ namespace Inferno::Resources {
                 return OutrageBitmap::Read(sr);
             }
             else {
-                SPDLOG_INFO("Bitmap not found in D3 HOG: {}", name);
+                SPDLOG_WARN("Bitmap not found in D3 HOG: {}", name);
             }
         }
 
@@ -488,6 +488,9 @@ namespace Inferno::Resources {
             if (auto data = Descent3Hog->ReadEntry(name)) {
                 StreamReader sr(*data);
                 return OutrageModel::Read(sr);
+            }
+            else {
+                SPDLOG_WARN("Model not found in D3 HOG: {}", name);
             }
         }
 

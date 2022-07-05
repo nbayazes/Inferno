@@ -219,14 +219,6 @@ namespace Inferno::Render {
             material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
 
         material.Name = bitmap.Name;
-        //material.ID = upload.ID;
-
-
-        // remove the frame number when loading special textures, as they should share.
-        string baseName = material.Name;
-        if (auto i = baseName.find("#"); i > 0)
-            baseName = baseName.substr(0, i);
-
         material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
 
         // Set default secondary textures
@@ -412,8 +404,10 @@ namespace Inferno::Render {
 
             MaterialUpload upload;
             if (auto bitmap = Resources::ReadOutrageBitmap(texture))
-                if (auto material = UploadOutrageMaterial(batch, *bitmap, _black))
+                if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
+                    material->Name = texture; // Name in the model can be different than file name
                     uploads.emplace_back(std::move(material.value()));
+                }
         }
 
         EndTextureUpload(batch);

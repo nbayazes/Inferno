@@ -243,17 +243,16 @@ namespace Inferno::Render {
             // get the mesh associated with the submodel
             auto& subMesh = meshHandle.Meshes[submodelIndex++];
 
-            for (int i = 0; i < subMesh.size(); i++) {
-                auto mesh = subMesh[i];
-                if (!mesh) continue;
-
+            for (auto& [i, mesh] : subMesh) {
                 //tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).GetFrame(ElapsedTime);
 
                 //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
                 //auto& material = Materials->GetOutrageMaterial(textureName);
                 //effect.Shader->SetMaterial(cmd, material);
-                auto& texName = model->Textures[i];
-                auto& material = Materials->GetOutrageMaterial(texName);
+                auto& material = i >= 0 ?
+                    Materials->GetOutrageMaterial(model->Textures[i]) : 
+                    Materials->White;
+
                 effect.Shader->SetMaterial(cmd, material);
                 //effect.Shader->SetMaterial(cmd, Materials->White);
 
