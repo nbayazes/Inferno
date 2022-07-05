@@ -8,6 +8,7 @@ namespace Inferno {
     class MemoryBuffer : public std::streambuf {
     public:
         MemoryBuffer(char* p, size_t size) {
+            setp(p, p + size);
             setg(p, p, p + size);
         }
 
@@ -32,12 +33,9 @@ namespace Inferno {
     class MemoryStream : public std::iostream {
         MemoryBuffer _buffer;
     public:
-        MemoryStream(char* p, size_t size) :
-            std::iostream(&_buffer), _buffer(p, size) {
+        MemoryStream(char* p, size_t size) : std::iostream(&_buffer), _buffer(p, size) {
             rdbuf(&_buffer);
         }
-
-        MemoryStream(ubyte* p, size_t l) : MemoryStream((sbyte*)p, l) {}
     };
 
     // Encapsulates reading binary fixed point data from a stream.
@@ -53,7 +51,7 @@ namespace Inferno {
         }
     public:
         StreamReader(span<ubyte> data) {
-            _stream = std::make_unique<MemoryStream>(data.data(), data.size());
+            _stream = std::make_unique<MemoryStream>((char*)data.data(), data.size());
         }
 
         StreamReader(std::unique_ptr<std::ifstream> stream) {
@@ -202,7 +200,10 @@ namespace Inferno {
             return Color(r / 255.0f, g / 255.0f, b / 255.0f);
         }
 
-        bool EndOfFile() { return _stream->eof(); }
+        bool EndOfStream() { 
+            _stream->peek(); // need to peek to ensure EOF is correct
+            return _stream->eof(); 
+        }
 
         // Current stream offset
         size_t Position() { return _stream->tellg(); }

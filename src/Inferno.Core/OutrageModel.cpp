@@ -35,12 +35,9 @@ namespace Inferno {
             pm.Flags = PolymodelFlags(pm.Flags | PMF_TIMED);
         }
 
-        while (!r.EndOfFile()) {
+        while (!r.EndOfStream()) {
             auto id = r.ReadInt32();
             auto len = r.ReadInt32();
-
-            if (id == 0 && len == 0)
-                break; // not sure why, but running out of data before EOF
 
             switch (id) {
                 case MakeFourCC("OHDR"): // POF file header

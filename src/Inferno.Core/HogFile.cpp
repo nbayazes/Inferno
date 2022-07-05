@@ -146,7 +146,7 @@ namespace Inferno {
             throw Exception("Invalid Hog file");
 
         int index = 0;
-        while (!reader.EndOfFile()) {
+        while (!reader.EndOfStream()) {
             HogEntry entry;
             entry.Name = reader.ReadString(13);
             if (entry.Name == "") break;
