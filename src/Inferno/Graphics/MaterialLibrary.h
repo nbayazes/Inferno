@@ -27,7 +27,7 @@ namespace Inferno::Render {
         PigBitmap Bitmap;
         bool SuperTransparent = false;
         bool ForceLoad = false;
-        OutrageBitmap Outrage;
+        Outrage::Bitmap Outrage;
     };
 
     // Supports loading and unloading materials
@@ -71,7 +71,7 @@ namespace Inferno::Render {
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
 
-        void LoadOutrageModel(const OutrageModel& model);
+        void LoadOutrageModel(const Outrage::Model& model);
 
         void Reload();
 

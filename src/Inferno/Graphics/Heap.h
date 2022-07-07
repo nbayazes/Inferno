@@ -196,11 +196,11 @@ namespace Inferno {
     public:
         DescriptorHeaps(uint capacity, uint reserved, uint renderTargets = 10)
             : _shader(capacity, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+            States(Render::Device),
             Reserved(_shader, reserved),
             Shader(_shader, capacity - reserved, reserved),
             RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
-            DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
-            States(Render::Device) {
+            DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
 
             _shader.SetName(L"Shader visible heap");
             RenderTargets.SetName(L"Render target heap");

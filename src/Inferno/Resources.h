@@ -73,8 +73,8 @@ namespace Inferno::Resources {
 
     void MountD3Hog(std::filesystem::path);
 
-    Option<OutrageBitmap> ReadOutrageBitmap(const string& name);
-    Option<OutrageModel> ReadOutrageModel(const string& name);
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name);
+    Option<Outrage::Model> ReadOutrageModel(const string& name);
 
-    OutrageModel const* GetOutrageModel(const string& name);
+    Outrage::Model const* GetOutrageModel(const string& name);
 }

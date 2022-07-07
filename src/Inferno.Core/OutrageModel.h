@@ -2,11 +2,11 @@
 
 #include "Streams.h"
 
-namespace Inferno {
+namespace Inferno::Outrage {
     constexpr auto MIN_OBJFILE_VERSION = 1807;
     constexpr auto OBJFILE_VERSION = 2300;
 
-    enum PolymodelFlags {
+    enum ModelFlags {
         PMF_NONE = 0,
         PMF_LIGHTMAP_RES = 1,
         PMF_TIMED = 2,// Uses new timed animation
@@ -16,7 +16,7 @@ namespace Inferno {
         PMF_SIZE_COMPUTED = 32, // This polymodel's size is computed
     };
 
-    struct PolymodelFace {
+    struct ModelFace {
         struct Vertex {
             short Index;
             Vector2 UV;
@@ -31,7 +31,7 @@ namespace Inferno {
         Vector3 Min, Max;
     };
 
-    struct OutrageSubmodel {
+    struct Submodel {
         struct Vertex {
             Vector3 Position;
             Vector3 Normal;
@@ -50,18 +50,18 @@ namespace Inferno {
         int MovementType, MovementAxis;
 
         List<Vertex> Vertices;
-        List<PolymodelFace> Faces;
+        List<ModelFace> Faces;
     };
 
-    struct OutrageModel {
-        PolymodelFlags Flags;
+    struct Model {
+        ModelFlags Flags;
         int Version; // equals major * 100 + minor
         int MajorVersion;
         float Radius;
         Vector3 Min, Max;
-        List<OutrageSubmodel> Submodels;
+        List<Submodel> Submodels;
         List<string> Textures;
 
-        static OutrageModel Read(StreamReader& r);
+        static Model Read(StreamReader& r);
     };
 };

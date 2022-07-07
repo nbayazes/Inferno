@@ -181,10 +181,8 @@ namespace Inferno::Render {
         }
 
         if (!loadedDiffuse) {
-            if (!upload.Outrage.Data.empty())
-                material.Textures[Material2D::Diffuse].Load(batch, upload.Outrage.Data.data(), upload.Outrage.Width, upload.Outrage.Height, Convert::ToWideString(upload.Outrage.Name));
-            else
-                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
+
+            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
         }
 
         // todo: optimize by putting all materials into a dictionary or some other way of not reloading special maps
@@ -208,18 +206,18 @@ namespace Inferno::Render {
 
 
     Option<Material2D> UploadOutrageMaterial(ResourceUploadBatch& batch,
-                                             OutrageBitmap& bitmap,
+                                             Outrage::Bitmap& bitmap,
                                              Texture2D& defaultTex) {
         Material2D material;
         material.Index = Render::Heaps->Shader.AllocateIndex();
-        assert(!bitmap.Data.empty());
+        assert(!bitmap.Mips.empty());
 
         // allocate a new heap range for the material
         for (int i = 0; i < Material2D::Count; i++)
             material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
 
         material.Name = bitmap.Name;
-        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -393,7 +391,7 @@ namespace Inferno::Render {
         LoadMaterials(tids, force);
     }
 
-    void MaterialLibrary::LoadOutrageModel(const OutrageModel& model) {
+    void MaterialLibrary::LoadOutrageModel(const Outrage::Model& model) {
         Render::Adapter->WaitForGpu();
 
         List<Material2D> uploads;

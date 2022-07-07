@@ -163,6 +163,10 @@ namespace Inferno::Render {
             transform *= Matrix::CreateTranslation(-translation);
         }
 
+        // Draw model radius (debug)
+        //auto facingMatrix = Matrix::CreateBillboard(object.Position(), Camera.Position, Camera.Up);
+        //Debug::DrawCircle(object.Radius, facingMatrix, Color(0, 1, 0));
+
         int submodelIndex = 0;
         for (auto& submodel : model.Submodels) {
             // accumulate the offsets for each submodel
@@ -181,6 +185,10 @@ namespace Inferno::Render {
 
             // get the mesh associated with the submodel
             auto& subMesh = meshHandle.Meshes[submodelIndex++];
+
+            // Draw submodel radii (debug)
+            //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, transform), Camera.Position, Camera.Up);
+            //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.6, 0.6, 1.0, 1.0 });
 
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];

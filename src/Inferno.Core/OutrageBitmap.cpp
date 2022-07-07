@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "OutrageBitmap.h"
 
-namespace Inferno {
+namespace Inferno::Outrage {
     enum ImageType {
         OUTRAGE_4444_COMPRESSED_MIPPED = 121, // Only used for textures with specular data
         OUTRAGE_1555_COMPRESSED_MIPPED = 122
@@ -58,7 +58,7 @@ namespace Inferno {
         return img;
     }
 
-    OutrageBitmap OutrageBitmap::Read(StreamReader& r) {
+    Bitmap Bitmap::Read(StreamReader& r) {
         auto imageIdLen = r.ReadByte();
         auto colorMapType = r.ReadByte();
         auto imageType = r.ReadByte();
@@ -67,13 +67,15 @@ namespace Inferno {
                                   imageType != OUTRAGE_4444_COMPRESSED_MIPPED))
             throw Exception("Unknown image type");
 
-        OutrageBitmap ogf{};
+        Bitmap ogf{};
         ogf.Type = imageType;
 
         constexpr int BITMAP_NAME_LEN = 35;
 
         ogf.Name = r.ReadCString(BITMAP_NAME_LEN);
-        ogf.MipLevels = r.ReadByte();
+        auto mipLevels = r.ReadByte();
+        if (mipLevels > 20) throw ("Invalid mip levels");
+        ogf.Mips.resize(mipLevels);
 
         for (int i = 0; i < 9; i++)
             r.ReadByte();
@@ -92,27 +94,83 @@ namespace Inferno {
         for (int i = 0; i < imageIdLen; i++)
             r.ReadByte();
 
-        List<ushort> data(ogf.Width * ogf.Height);
+        
+        int mipLevel = 0;
+        for (auto& mip : ogf.Mips) {
+            auto sz = 1 << mipLevel++;
+            auto width = ogf.Width / sz;
+            auto height = ogf.Height / sz;
+            List<ushort> data(width * height);
 
-        int count = 0;
+            int count = 0;
 
-        while (count < data.size()) {
-            int cmd = r.ReadByte();
-            ushort pixel = r.ReadUInt16();
+            while (count < data.size()) {
+                int cmd = r.ReadByte();
+                ushort pixel = r.ReadUInt16();
 
-            if (cmd == 0) {
-                data[count++] = pixel;
-            }
-            else if (cmd >= 2 && cmd <= 250) {
-                for (int i = 0; i < cmd; i++)
+                if (cmd == 0) {
                     data[count++] = pixel;
+                }
+                else if (cmd >= 2 && cmd <= 250) {
+                    for (int i = 0; i < cmd; i++)
+                        data[count++] = pixel;
+                }
+                else {
+                    throw Exception("Invalid compression command");
+                }
             }
-            else {
-                throw Exception("Invalid compression command");
-            }
+
+            mip = Decompress(data, width, height, (ImageType)ogf.Type);
         }
 
-        ogf.Data = Decompress(data, ogf.Width, ogf.Height, (ImageType)ogf.Type);
         return ogf;
+    }
+
+    VClip VClip::Read(StreamReader& r, const TextureInfo& ti) {
+        VClip vc{};
+        ubyte start_val = r.ReadByte();
+
+        if (start_val != 127) {
+            if (start_val > 100) throw Exception("Too many frames in OAF");
+            vc.Frames.resize(start_val);
+            r.ReadFloat();
+            vc.FrameTime = r.ReadFloat();
+            r.ReadInt32();
+            r.ReadFloat();
+        }
+        else {
+            vc.Version = r.ReadByte();
+            auto frames = r.ReadByte();
+            if (frames > 100) throw Exception("Too many frames in OAF");
+            vc.Frames.resize(frames);
+            vc.FrameTime = r.ReadFloat();
+        }
+
+        int w = 128, h = 128;
+
+        if (ti.Flags & TF_TEXTURE_32) {
+            w = h = 32;
+        }
+        else if (ti.Flags & TF_TEXTURE_64) {
+            w = h = 64;
+        }
+        else if (ti.Flags & TF_TEXTURE_256) {
+            w = h = 256;
+        }
+
+        for (int i = 0; i < vc.Frames.size(); i++) {
+            vc.Frames[i] = Bitmap::Read(r);
+        }
+
+        // also supports resizing 
+
+        // Need game table for texture sizes...
+        //for (auto& frame : vc.Frames) {
+        //    if (texture_size == NORMAL_TEXTURE) {
+
+        //    }
+        //}
+
+        return vc;
     }
 }

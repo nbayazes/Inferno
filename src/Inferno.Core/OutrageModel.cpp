@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "OutrageModel.h"
 
-namespace Inferno {
+namespace Inferno::Outrage {
     constexpr auto MAX_MODEL_TEXTURES = 35;
 
     string ReadModelString(StreamReader& r) {
@@ -9,13 +9,13 @@ namespace Inferno {
         return r.ReadString(mlen);
     }
 
-    OutrageModel OutrageModel::Read(StreamReader& r) {
+    Model Model::Read(StreamReader& r) {
         // can also load data from oof, but let's assume POFs
         auto fileId = r.ReadInt32();
         if (fileId != 'OPSP')
             throw Exception("Not a model file");
 
-        OutrageModel pm{};
+        Model pm{};
         pm.Version = r.ReadInt32();
 
         if (pm.Version < 18)
@@ -27,12 +27,12 @@ namespace Inferno {
         pm.MajorVersion = pm.Version / 100;
 
         if (pm.MajorVersion >= 21)
-            pm.Flags = PolymodelFlags(pm.Flags | PMF_LIGHTMAP_RES);
+            pm.Flags = ModelFlags(pm.Flags | PMF_LIGHTMAP_RES);
 
         bool timed = false;
         if (pm.MajorVersion >= 22) {
             timed = true;
-            pm.Flags = PolymodelFlags(pm.Flags | PMF_TIMED);
+            pm.Flags = ModelFlags(pm.Flags | PMF_TIMED);
         }
 
         while (!r.EndOfStream()) {
@@ -116,7 +116,7 @@ namespace Inferno {
                         for (auto& vert : sm.Vertices) {
                             vert.Alpha = r.ReadFloat();
                             if (vert.Alpha < 0.99f)
-                                pm.Flags = PolymodelFlags(pm.Flags | PMF_ALPHA);
+                                pm.Flags = ModelFlags(pm.Flags | PMF_ALPHA);
                         }
                     }
 

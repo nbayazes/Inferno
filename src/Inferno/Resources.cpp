@@ -458,16 +458,16 @@ namespace Inferno::Resources {
         //    throw Exception(std::format("{} not found", path.string()));
     }
 
-    Option<OutrageBitmap> ReadOutrageBitmap(const string& name) {
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name) {
         // Check file system first, then hog data
         if (auto path = FileSystem::TryFindFile(name)) {
             StreamReader sr(*path);
-            return OutrageBitmap::Read(sr);
+            return Outrage::Bitmap::Read(sr);
         }
         else if (Descent3Hog) {
             if (auto data = Descent3Hog->ReadEntry(name)) {
                 StreamReader sr(*data);
-                return OutrageBitmap::Read(sr);
+                return Outrage::Bitmap::Read(sr);
             }
             else {
                 SPDLOG_WARN("Bitmap not found in D3 HOG: {}", name);
@@ -478,16 +478,16 @@ namespace Inferno::Resources {
     }
 
 
-    Option<OutrageModel> ReadOutrageModel(const string& name) {
+    Option<Outrage::Model> ReadOutrageModel(const string& name) {
         // Check file system first, then hog data
         if (auto path = FileSystem::TryFindFile(name)) {
             StreamReader sr(*path);
-            return OutrageModel::Read(sr);
+            return Outrage::Model::Read(sr);
         }
         else if (Descent3Hog) {
             if (auto data = Descent3Hog->ReadEntry(name)) {
                 StreamReader sr(*data);
-                return OutrageModel::Read(sr);
+                return Outrage::Model::Read(sr);
             }
             else {
                 SPDLOG_WARN("Model not found in D3 HOG: {}", name);
@@ -497,9 +497,9 @@ namespace Inferno::Resources {
         return {};
     }
 
-    Dictionary<string, OutrageModel> OutrageModels;
+    Dictionary<string, Outrage::Model> OutrageModels;
 
-    OutrageModel const* GetOutrageModel(const string& name) {
+    Outrage::Model const* GetOutrageModel(const string& name) {
         if (OutrageModels.contains(name)) 
             return &OutrageModels[name];
 

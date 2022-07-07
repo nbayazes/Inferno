@@ -18,9 +18,6 @@ namespace Inferno::Render {
     void DrawObjectOutline(const Object& object, const Color& color) {
         if (object.Radius == 0) return;
         DrawFacingCircle(object.Position(), object.Radius, color);
-        // submodel hitboxes
-        //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
-        //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.1, 0.5, 0.1, 0.50 });
     }
 
     void DrawFaceNormals(Level& level) {

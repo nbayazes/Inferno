@@ -90,7 +90,7 @@ namespace Inferno::Render {
             handle.Loaded = true;
         }
 
-        void LoadOutrageModel(const OutrageModel& model, int id) {
+        void LoadOutrageModel(const Outrage::Model& model, int id) {
             auto& handle = _handles[_capacity + id]; // shift past the end
             if (handle.Loaded) return;
 
@@ -119,7 +119,7 @@ namespace Inferno::Render {
                         const auto& fv = face.Vertices[i];
                         const auto& v = submodel.Vertices[fv.Index];
 
-                        auto AddVert = [&](const OutrageSubmodel::Vertex& vtx, const Vector2& uv) {
+                        auto AddVert = [&](const Outrage::Submodel::Vertex& vtx, const Vector2& uv) {
                             color.A(vtx.Alpha);
                             auto& smm = smMeshes[face.TexNum];
                             smm.Vertices.push_back(ObjectVertex{
