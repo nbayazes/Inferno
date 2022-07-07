@@ -74,6 +74,9 @@
     <ClInclude Include="OutrageModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="OutrageTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -110,6 +113,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="OutrageModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutrageTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
