@@ -42,6 +42,7 @@ namespace Inferno {
     class StreamReader {
         std::unique_ptr<std::istream> _stream;
         std::filesystem::path _file;
+        List<ubyte> _data;
 
         template<class T>
         T Read() {
@@ -50,8 +51,16 @@ namespace Inferno {
             return b;
         }
     public:
-        StreamReader(span<ubyte> data) {
+        StreamReader(span<ubyte> data, const string& name = "") {
             _stream = std::make_unique<MemoryStream>((char*)data.data(), data.size());
+            _file = name;
+        }
+
+        // Takes ownership of data
+        StreamReader(List<ubyte>&& data, const string& name = "") {
+            _data = std::move(data);
+            _stream = std::make_unique<MemoryStream>((char*)_data.data(), _data.size());
+            _file = name;
         }
 
         StreamReader(std::unique_ptr<std::ifstream> stream) {
@@ -65,22 +74,21 @@ namespace Inferno {
         }
 
         StreamReader(const StreamReader&) = delete;
+        StreamReader& operator=(const StreamReader&) = delete;
 
         StreamReader(StreamReader&& other) noexcept {
+            _data = std::move(other._data);
             _stream = std::move(other._stream);
-            _file = other._file;
-            other._file.clear();
+            _file.swap(other._file);
         }
 
         StreamReader& operator=(StreamReader&& other) noexcept {
+            _data = std::move(other._data);
             _stream = std::move(other._stream);
-            _file = other._file;
-            other._file.clear();
+            _file.swap(other._file);
         }
 
-        StreamReader& operator=(const StreamReader&) = delete;
         ~StreamReader() = default;
-
 
         List<sbyte> ReadSBytes(size_t length) {
             List<sbyte> b(length);
