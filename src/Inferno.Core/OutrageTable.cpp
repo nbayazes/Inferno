@@ -33,13 +33,15 @@ namespace Inferno::Outrage {
         tex.Slide.y = r.ReadFloat();
         tex.Reflectivity = r.ReadFloat();
 
-        r.ReadByte();
-        r.ReadInt32();
+        tex.Corona = r.ReadByte();
+        tex.Damage = r.ReadInt32();
 
         tex.Flags = (TextureFlag)r.ReadInt32();
-        if ((tex.Flags & TF_PROCEDURAL) != 0) {
+
+        if (tex.Flags & TF_PROCEDURAL) {
             for (int i = 0; i < 255; i++)
-                r.ReadInt16();
+                /*tex.Procedural.Palette[i] = */r.ReadInt16();
+                
             r.ReadByte();
             r.ReadByte();
             r.ReadByte();
@@ -65,7 +67,7 @@ namespace Inferno::Outrage {
             if (version < 7)
                 r.ReadInt16();
             else
-                r.ReadCString(MAX_STRING_LEN);
+                tex.Sound = r.ReadCString(MAX_STRING_LEN);
             r.ReadFloat();
         }
         return tex;

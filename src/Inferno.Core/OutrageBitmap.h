@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Streams.h"
-#include "OutrageTable.h"
 
 namespace Inferno::Outrage {
     // Descent 3 Outrage Graphics File (OGF)
@@ -10,10 +9,10 @@ namespace Inferno::Outrage {
         int Type;
         List<List<uint>> Mips;
         int BitsPerPixel;
-        bool UpsideDown;
         string Name;
         
-        static Bitmap Read(StreamReader& r);
+        static Bitmap Read(StreamReader& r, bool skipData = false); // Read OGF
+        static Bitmap ReadPig(StreamReader& r);
     };
 
     // Descent 3 VClips are bitmaps with an extra header (OAF)
@@ -21,7 +20,9 @@ namespace Inferno::Outrage {
         List<Bitmap> Frames;
         float FrameTime;
         int Version;
-        static VClip Read(StreamReader& r, const TextureInfo& ti);
+        bool PingPong;
+
+        static VClip Read(StreamReader& r, bool skipData = false);
     };
 
 }

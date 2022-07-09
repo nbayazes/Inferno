@@ -314,6 +314,13 @@ namespace Inferno {
         }
     }
 
+    // Comparator for invariant equality of strings
+    struct InvariantEquals {
+        bool operator()(const string& a, const string& b) const {
+            return String::InvariantEquals(a, b);
+        }
+    };
+
     namespace Seq {
         // Converts a std::set to a std::vector
         template<class T>

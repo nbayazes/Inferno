@@ -58,7 +58,7 @@ namespace Inferno::Outrage {
         return img;
     }
 
-    Bitmap Bitmap::Read(StreamReader& r) {
+    Bitmap Bitmap::Read(StreamReader& r, bool skipData) {
         auto imageIdLen = r.ReadByte();
         auto colorMapType = r.ReadByte();
         auto imageType = r.ReadByte();
@@ -94,12 +94,17 @@ namespace Inferno::Outrage {
         for (int i = 0; i < imageIdLen; i++)
             r.ReadByte();
 
-        
         int mipLevel = 0;
         for (auto& mip : ogf.Mips) {
             auto sz = 1 << mipLevel++;
             auto width = ogf.Width / sz;
             auto height = ogf.Height / sz;
+
+            if (skipData) {
+                r.SeekForward(width * height * sizeof(uint16));
+                continue;
+            }
+
             List<ushort> data(width * height);
 
             int count = 0;
@@ -126,7 +131,7 @@ namespace Inferno::Outrage {
         return ogf;
     }
 
-    VClip VClip::Read(StreamReader& r, const TextureInfo& ti) {
+    VClip VClip::Read(StreamReader& r, bool skipData) {
         VClip vc{};
         ubyte start_val = r.ReadByte();
 
@@ -146,20 +151,8 @@ namespace Inferno::Outrage {
             vc.FrameTime = r.ReadFloat();
         }
 
-        int w = 128, h = 128;
-
-        if (ti.Flags & TF_TEXTURE_32) {
-            w = h = 32;
-        }
-        else if (ti.Flags & TF_TEXTURE_64) {
-            w = h = 64;
-        }
-        else if (ti.Flags & TF_TEXTURE_256) {
-            w = h = 256;
-        }
-
         for (int i = 0; i < vc.Frames.size(); i++) {
-            vc.Frames[i] = Bitmap::Read(r);
+            vc.Frames[i] = Bitmap::Read(r, skipData);
         }
 
         // also supports resizing 

@@ -30,7 +30,7 @@ namespace Inferno {
             int64 offset;
         };
 
-        Hog2(std::filesystem::path path) : _reader(path) {
+        explicit Hog2(std::filesystem::path path) : _reader(path) {
             auto id = _reader.ReadString(4);
             if (id != "HOG2")
                 throw Exception("Not a HOG2 file");
@@ -40,9 +40,7 @@ namespace Inferno {
 
             Entries.reserve(nfiles);
 
-            //var names = new Dictionary<string, int>();
             _reader.Seek(4 + HOG_HDR_SIZE);
-            //r.BaseStream.Position = 4 + HOG_HDR_SIZE;
             long offset = file_data_offset;
             for (uint i = 0; i < nfiles; i++) {
                 auto& entry = Entries.emplace_back();
