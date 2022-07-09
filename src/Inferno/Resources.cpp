@@ -445,54 +445,72 @@ namespace Inferno::Resources {
 
     bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }
     bool FoundDescent2() { return FileSystem::TryFindFile("descent2.hog").has_value(); }
+    bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
     bool FoundVertigo() { return FileSystem::TryFindFile("d2x.hog").has_value(); }
+    bool FoundMercenary() { return FileSystem::TryFindFile("merc.hog").has_value(); }
 
     bool HasCustomTextures() {
         return !CustomTextures.empty();
     }
 
-    void MountD3Hog(std::filesystem::path path) {
-        if (auto found = FileSystem::TryFindFile(path))
-            Descent3Hog = MakePtr<Hog2>(*found);
-        //else
-        //    throw Exception(std::format("{} not found", path.string()));
+    // Opens a file stream from the data paths or the loaded hogs
+    Option<StreamReader> OpenFile(const string& name) {
+        // Check file system first, then hog data
+        if (auto path = FileSystem::TryFindFile(name)) {
+            return StreamReader(*path);
+        }
+        else if (Descent3Hog) {
+            if (auto data = Descent3Hog->ReadEntry(name))
+                //return StreamReader(*data, name);
+                return StreamReader(std::move(*data), name);
+        }
+
+        return {};
+    }
+
+    void LoadVClips() {
+        for (auto& tex : GameTable.Textures) {
+            if (!tex.IsAnimated()) continue;
+
+            if (auto r = OpenFile(tex.FileName)) {
+                auto vc = Outrage::VClip::Read(*r, false);
+                vc.FrameTime = tex.Speed;
+                VClips.push_back(std::move(vc));
+            }
+        }
+    }
+
+
+    void MountDescent3() {
+        try {
+            if (auto path = FileSystem::TryFindFile("d3.hog")) {
+                Descent3Hog = MakePtr<Hog2>(*path);
+                if (auto r = OpenFile("Table.gam"))
+                    GameTable = Outrage::GameTable::Read(*r);
+
+                LoadVClips();
+            }
+
+            if (auto path = FileSystem::TryFindFile("merc.hog")) {
+                Mercenary = MakePtr<Hog2>(*path);
+            }
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Error loading Descent 3\n{}", e.what());
+        }
     }
 
     Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name) {
-        // Check file system first, then hog data
-        if (auto path = FileSystem::TryFindFile(name)) {
-            StreamReader sr(*path);
-            return Outrage::Bitmap::Read(sr);
-        }
-        else if (Descent3Hog) {
-            if (auto data = Descent3Hog->ReadEntry(name)) {
-                StreamReader sr(*data);
-                return Outrage::Bitmap::Read(sr);
-            }
-            else {
-                SPDLOG_WARN("Bitmap not found in D3 HOG: {}", name);
-            }
-        }
+        if (auto r = OpenFile(name))
+            return Outrage::Bitmap::Read(*r);
 
         return {};
     }
 
 
     Option<Outrage::Model> ReadOutrageModel(const string& name) {
-        // Check file system first, then hog data
-        if (auto path = FileSystem::TryFindFile(name)) {
-            StreamReader sr(*path);
-            return Outrage::Model::Read(sr);
-        }
-        else if (Descent3Hog) {
-            if (auto data = Descent3Hog->ReadEntry(name)) {
-                StreamReader sr(*data);
-                return Outrage::Model::Read(sr);
-            }
-            else {
-                SPDLOG_WARN("Model not found in D3 HOG: {}", name);
-            }
-        }
+        if (auto r = OpenFile(name))
+            return Outrage::Model::Read(*r);
 
         return {};
     }
@@ -500,7 +518,7 @@ namespace Inferno::Resources {
     Dictionary<string, Outrage::Model> OutrageModels;
 
     Outrage::Model const* GetOutrageModel(const string& name) {
-        if (OutrageModels.contains(name)) 
+        if (OutrageModels.contains(name))
             return &OutrageModels[name];
 
         if (auto model = ReadOutrageModel(name)) {
