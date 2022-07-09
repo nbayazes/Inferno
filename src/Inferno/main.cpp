@@ -8,8 +8,11 @@
 #include "Mission.h"
 #include "HogFile.h"
 #include "Settings.h"
+#include "OutrageModel.h"
 #include "OutrageBitmap.h"
 #include "Hog2.h"
+#include "OutrageTable.h"
+
 
 using namespace Inferno;
 
@@ -249,16 +252,26 @@ void TestSegID() {
 }
 
 void DumpOgfHeaders() {
-    for (auto& entry : Resources::Descent3Hog->Entries) {
+    for (auto& entry : Resources::Descent3Hog.Entries) {
         if (!entry.name.ends_with(".ogf")) continue;
-        if (auto data = Resources::Descent3Hog->ReadEntry(entry.name)) {
+        if (auto data = Resources::Descent3Hog.ReadEntry(entry.name)) {
             StreamReader r(*data);
-            auto ogf = OutrageBitmap::Read(r);
+            auto ogf = Outrage::Bitmap::Read(r);
             string type = ogf.Type == 122 ? "1555" : (ogf.Type == 121 ? "4444" : "Unknown");
-            std::cout << fmt::format("{}, {}, {}, {}, {}, {}\n", ogf.Name, ogf.Width, ogf.Height, ogf.BitsPerPixel, ogf.MipLevels, type);
+            //std::cout << fmt::format("{}, {}, {}, {}, {}, {}\n", ogf.Name, ogf.Width, ogf.Height, ogf.BitsPerPixel, ogf.MipLevels, type);
         }
     }
 }
+
+template<class T, class TIndex = int>
+class Indexer {
+    span<T> _src;
+    TIndex _index;
+public:
+    Indexer(span<T> src, TIndex index) : _src(src) {}
+    operator bool() { return _index < _src.size() && _index >= 0; }
+    T& operator()() { return _src[_index]; }
+};
 
 int main() {
     //TestContext();
@@ -279,11 +292,7 @@ int main() {
         FileSystem::Init();
         Resources::Init();
 
-        Resources::MountD3Hog("d3.hog");
-        //auto model = Resources::ReadOutrageModel("gyro.OOF");
-
         //DumpOgfHeaders();
-
         //PrintWeaponInfo();
         //PrintRobotInfo();
         shell.Show(&app, 1024, 768);

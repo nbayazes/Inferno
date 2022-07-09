@@ -44,7 +44,7 @@ namespace Inferno::Outrage {
         string FileName; // File name in hog or on disk
         Color Color;
         Vector2 Slide;
-        float Speed; // Time per frame of animation?
+        float Speed; // Total time of animation
         float Reflectivity; // For radiosity calcs 
         TextureFlag Flags;
         int8 Corona;

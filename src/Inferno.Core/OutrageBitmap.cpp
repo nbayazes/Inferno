@@ -58,7 +58,7 @@ namespace Inferno::Outrage {
         return img;
     }
 
-    Bitmap Bitmap::Read(StreamReader& r, bool skipData) {
+    Bitmap Bitmap::Read(StreamReader& r) {
         auto imageIdLen = r.ReadByte();
         auto colorMapType = r.ReadByte();
         auto imageType = r.ReadByte();
@@ -100,17 +100,18 @@ namespace Inferno::Outrage {
             auto width = ogf.Width / sz;
             auto height = ogf.Height / sz;
 
-            if (skipData) {
-                r.SeekForward(width * height * sizeof(uint16));
-                continue;
-            }
+            auto len = width * height * (sizeof(ubyte) + sizeof(uint16));
+            //if (skipData) {
+            //    r.SeekForward(width * height * (sizeof(ubyte) + sizeof(uint16)));
+            //    continue;
+            //}
 
             List<ushort> data(width * height);
 
             int count = 0;
 
             while (count < data.size()) {
-                int cmd = r.ReadByte();
+                auto cmd = r.ReadByte();
                 ushort pixel = r.ReadUInt16();
 
                 if (cmd == 0) {
@@ -131,17 +132,17 @@ namespace Inferno::Outrage {
         return ogf;
     }
 
-    VClip VClip::Read(StreamReader& r, bool skipData) {
+    VClip VClip::Read(StreamReader& r) {
         VClip vc{};
         ubyte start_val = r.ReadByte();
 
         if (start_val != 127) {
             if (start_val > 100) throw Exception("Too many frames in OAF");
             vc.Frames.resize(start_val);
-            r.ReadFloat();
+            auto f0 = r.ReadFloat();
             vc.FrameTime = r.ReadFloat();
-            r.ReadInt32();
-            r.ReadFloat();
+            auto i0 = r.ReadInt32();
+            auto f1 = r.ReadFloat();
         }
         else {
             vc.Version = r.ReadByte();
@@ -152,7 +153,7 @@ namespace Inferno::Outrage {
         }
 
         for (int i = 0; i < vc.Frames.size(); i++) {
-            vc.Frames[i] = Bitmap::Read(r, skipData);
+            vc.Frames[i] = Bitmap::Read(r);
         }
 
         // also supports resizing 

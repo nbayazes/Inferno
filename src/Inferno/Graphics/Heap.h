@@ -113,25 +113,6 @@ namespace Inferno {
         std::mutex _indexLock;
         List<bool> _free;
 
-        uint FindFreeIndex() {
-            std::scoped_lock lock(_indexLock);
-            for (uint i = 0; i < _free.size(); i++) {
-                if (_free[i]) {
-                    //SPDLOG_INFO("Allocating index {}", _start + index * TStride);
-                    _free[i] = false;
-                    //if (index < _index)
-                        //SPDLOG_WARN("Wrapped descriptor range index");
-
-                    _index = i;
-                    auto newIndex = _start + i * TStride;
-                    assert(newIndex >= _start && newIndex < _start + _size);
-                    return newIndex;
-                }
-            }
-
-            SPDLOG_ERROR("No free indices in descriptor range!");
-            throw Exception("No free indices in descriptor range!");
-        }
     public:
         DescriptorRange(UserDescriptorHeap& heap, uint size, uint offset = 0)
             : _heap(heap), _start(offset), _size(size), _free((size - offset) / TStride) {
@@ -140,7 +121,7 @@ namespace Inferno {
             std::fill(_free.begin(), _free.end(), true);
         }
 
-        // The index wraps after passing the end
+        // Allocates consecutive indices based on TStride
         uint AllocateIndex() {
             return FindFreeIndex();
         }
@@ -189,6 +170,27 @@ namespace Inferno {
 
         size_t GetSize() const { return _size; };
         auto DescriptorSize() const { return _heap.DescriptorSize(); }
+
+    private:
+        uint FindFreeIndex() {
+            std::scoped_lock lock(_indexLock);
+            for (uint i = 0; i < _free.size(); i++) {
+                if (_free[i]) {
+                    //SPDLOG_INFO("Allocating index {}", _start + index * TStride);
+                    _free[i] = false;
+                    //if (index < _index)
+                        //SPDLOG_WARN("Wrapped descriptor range index");
+
+                    _index = i;
+                    auto newIndex = _start + i * TStride;
+                    assert(newIndex >= _start && newIndex < _start + _size);
+                    return newIndex;
+                }
+            }
+
+            SPDLOG_ERROR("No free indices in descriptor range!");
+            throw Exception("No free indices in descriptor range!");
+        }
     };
 
     class DescriptorHeaps {

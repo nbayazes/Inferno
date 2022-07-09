@@ -196,7 +196,7 @@ namespace Inferno::Render {
 
                 TexID tid = texOverride;
                 if (texOverride == TexID::None)
-                    tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).GetFrame(ElapsedTime);
+                    tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
 
                 const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
                 effect.Shader->SetMaterial(cmd, material);
@@ -257,12 +257,12 @@ namespace Inferno::Render {
                 //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
                 //auto& material = Materials->GetOutrageMaterial(textureName);
                 //effect.Shader->SetMaterial(cmd, material);
-                auto& material = i >= 0 ?
-                    Materials->GetOutrageMaterial(model->Textures[i]) : 
-                    Materials->White;
+                auto handle = i >= 0 ?
+                    Render::NewTextureCache->GetResource(model->TextureHandles[i]) :
+                    //Materials->GetOutrageMaterial(model->Textures[i]) :
+                    Materials->White.Handles[0];
 
-                effect.Shader->SetMaterial(cmd, material);
-                //effect.Shader->SetMaterial(cmd, Materials->White);
+                effect.Shader->SetMaterial(cmd, handle);
 
                 cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmd->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -339,7 +339,7 @@ namespace Inferno::Render {
         {
             auto& map1 = chunk.EffectClip1 == EClipID::None ?
                 Materials->Get(chunk.MapID1) :
-                Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).GetFrame(ElapsedTime));
+                Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
 
             Shaders->Level.SetMaterial1(cmdList, map1);
         }
@@ -349,7 +349,7 @@ namespace Inferno::Render {
 
             auto& map2 = chunk.EffectClip2 == EClipID::None ?
                 Materials->Get(chunk.MapID2) :
-                Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).GetFrame(ElapsedTime));
+                Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
 
             Shaders->Level.SetMaterial2(cmdList, map2);
         }
@@ -454,11 +454,11 @@ namespace Inferno::Render {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
         Materials = MakePtr<MaterialLibrary>(3000);
-
         _spriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         _canvasBatch = MakePtr<PrimitiveBatch<CanvasVertex>>(Device);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
+        NewTextureCache = MakePtr<TextureCache>();
 
         Debug::Initialize();
 
@@ -586,6 +586,7 @@ namespace Inferno::Render {
 
         Materials->Shutdown(); // wait for thread to terminate
         Materials.reset();
+        NewTextureCache.reset();
         Render::Heaps.reset();
         StaticTextures.reset();
         Effects.reset();

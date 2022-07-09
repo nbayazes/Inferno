@@ -11,7 +11,7 @@ namespace Inferno::Outrage {
         int BitsPerPixel;
         string Name;
         
-        static Bitmap Read(StreamReader& r, bool skipData = false); // Read OGF
+        static Bitmap Read(StreamReader& r); // Read OGF
         static Bitmap ReadPig(StreamReader& r);
     };
 
@@ -22,7 +22,7 @@ namespace Inferno::Outrage {
         int Version;
         bool PingPong;
 
-        static VClip Read(StreamReader& r, bool skipData = false);
+        static VClip Read(StreamReader& r);
     };
 
 }

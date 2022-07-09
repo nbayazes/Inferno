@@ -61,6 +61,7 @@ namespace Inferno::Outrage {
         Vector3 Min, Max;
         List<Submodel> Submodels;
         List<string> Textures;
+        List<int> TextureHandles;
 
         static Model Read(StreamReader& r);
     };

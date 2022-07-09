@@ -6,6 +6,7 @@
 #include "Editor/Bindings.h"
 #include "Game.h"
 #include "imgui_local.h"
+#include "BitmapCache.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -21,11 +22,57 @@ void Application::Initialize(int width, int height) {
     Inferno::Input::Initialize(Shell::Hwnd);
     Render::Initialize(Shell::Hwnd, width, height);
 
-    Editor::Initialize();
+    Resources::MountDescent3();
 
     //Sound::Init(hwnd);
     //Sound::Play(SoundID(72), 0.1f, -0.5f, 1.0f);
     //Sound::Play(SoundID(72), 0.1f, -0.3f, -1.0f);
+
+
+
+    //for (auto& entry : Resources::Descent3Hog.Entries) {
+//    if (String::ToLower(entry.name).ends_with("oof")) {
+//        auto r = Resources::OpenFile(entry.name);
+//        auto model = Outrage::Model::Read(*r);
+
+//        for (auto& t : model.Textures) {
+//            auto& h = handles.emplace_back(t);
+//            texCache.Resolve(h);
+//        }
+//    }
+//}
+
+
+
+    //if (auto gyro = Resources::Descent3Hog->ReadEntry("gyro.oof")) {
+    //    StreamReader reader(*gyro);
+    //    auto model = OutrageModel::Read(reader);
+    //}
+
+    auto& vclips = Resources::VClips;
+    auto& textures = Resources::GameTable.Textures;
+
+    //for (auto& vclip : Resources::VClips) {
+    //    fmt::print("v: {} FrameTime: {}s Pingpong: {}\n", vclip.Version, vclip.FrameTime, vclip.PingPong);
+    //    for (auto& frame : vclip.Frames) {
+    //        fmt::print("    {} : {} x {}\n", frame.Name, frame.Width, frame.Height);
+    //    }
+    //}
+
+
+    auto& texCache = Render::NewTextureCache;
+
+    List<int> handles;
+    if (auto r = Resources::OpenFile("gyro.oof")) {
+        auto model = Outrage::Model::Read(*r);
+        for (auto& name : model.Textures) {
+            handles.push_back(texCache->Resolve(name));
+        }
+    }
+
+    texCache->MakeResident();
+
+    Editor::Initialize();
 
     OnActivated();
 

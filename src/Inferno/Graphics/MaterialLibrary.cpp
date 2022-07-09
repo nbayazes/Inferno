@@ -217,7 +217,7 @@ namespace Inferno::Render {
             material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
 
         material.Name = bitmap.Name;
-        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {

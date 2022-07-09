@@ -13,30 +13,26 @@ namespace Inferno {
     //enum class BitmapHandle { Bad = 0, None = -1 };
 
     // Handle to a material, which is a combination of textures and has a GPU handle
-    enum class MaterialHandle { Bad = 0, None = -1 };
+    enum class MaterialHandle { Missing = 0, None = -1 };
 
     // Indirection for D3 named materials or free resources
-    struct ResourceHandle {
-        string Name;
-        int TextureInfoID = -1;
-        int VClipInfoID = -1;
-    };
+    //struct ResourceHandle {
+    //    //string Name;
+    //    int TextureInfoID = -1;
+    //    //int VClipInfoID = -1;
+    //};
 
     struct RuntimeTextureInfo : public Outrage::TextureInfo {
         MaterialHandle BitmapHandle = MaterialHandle::None;
         MaterialHandle DestroyedHandle = MaterialHandle::None;
-        List<MaterialHandle> Frames;
+        List<MaterialHandle> FrameHandles;
         float FrameTime = 1;
         bool Used = false;
         bool PingPong = false;
-    };
-
-    struct RuntimeVClip : public Outrage::VClip {
-        bool Used = false;
-        List<MaterialHandle> Handles;
+        int VClip = -1;
 
         MaterialHandle GetFrame(int offset, float time) {
-            auto frames = (int)Frames.size();
+            auto frames = (int)FrameHandles.size();
             auto frameTime = FrameTime / frames;
             auto frame = int(time / frameTime) + offset;
 
@@ -48,13 +44,38 @@ namespace Inferno {
                 else
                     frame %= frames;
 
-                return Handles[frame];
+                return FrameHandles[frame];
             }
             else {
-                return Handles[frame % frames];
+                return FrameHandles[frame % frames];
             }
         };
     };
+
+    //struct RuntimeVClip : public Outrage::VClip {
+    //    bool Used = false;
+    //    List<MaterialHandle> Handles;
+
+    //    MaterialHandle GetFrame(int offset, float time) {
+    //        auto frames = (int)Frames.size();
+    //        auto frameTime = FrameTime / frames;
+    //        auto frame = int(time / frameTime) + offset;
+
+    //        if (PingPong) {
+    //            frame %= frames * 2;
+
+    //            if (frame >= frames)
+    //                frame = (frames - 1) - (frame % frames);
+    //            else
+    //                frame %= frames;
+
+    //            return Handles[frame];
+    //        }
+    //        else {
+    //            return Handles[frame % frames];
+    //        }
+    //    };
+    //};
 
     inline DirectX::ResourceUploadBatch BeginUpload() {
         DirectX::ResourceUploadBatch batch(Render::Device);
@@ -83,10 +104,10 @@ namespace Inferno {
     struct Material {
         enum { Diffuse, Mask, Emissive, Specular, Count };
 
-        bool Used;
-        int Tablefile = -1;
-        string Name; // Tablefile entry name
-        string FileName; // Bitmap file
+        //bool Used;
+        //int Tablefile = -1;
+        string Name;
+        //string FileName; // Bitmap file
         TexID PigID = TexID::None; // For D1/D2
 
         // Handles to resources
@@ -106,16 +127,26 @@ namespace Inferno {
     };
 
 
+    constexpr void FillTexture(span<ubyte> data, ubyte red, ubyte green, ubyte blue, ubyte alpha) {
+        for (size_t i = 0; i < data.size() / 4; i++) {
+            data[i * 4] = red;
+            data[i * 4 + 1] = green;
+            data[i * 4 + 2] = blue;
+            data[i * 4 + 3] = alpha;
+        }
+    }
 
     // Tracks textures uploaded to the GPU
     class TextureGpuCache {
-        Texture2D _black, _white, _purple;
+        //Texture2D _black, _white, _purple;
         List<Ref<Texture2D>> _textures;
         //ConcurrentList<Ref<Texture2D>> _pendingCopies;
         //ConcurrentList<TextureUpload> _requestedUploads;
         std::mutex _lock;
 
         List<Material> _materials;
+        Material _defaultMaterial;
+        Material _whiteMaterial;
     public:
 
         //void Load(Texture&);
@@ -133,15 +164,83 @@ namespace Inferno {
             }
         }
 
-        // Loads the textures for a material based on the input
-        MaterialHandle Load(Material&& m) {
+        TextureGpuCache() {
+            LoadDefaults();
+        }
+
+        void LoadDefaults() {
             auto batch = BeginUpload();
+            White = MakeRef<Texture2D>();
+            Black = MakeRef<Texture2D>();
+            Missing = MakeRef<Texture2D>();
 
-            m.Textures[Material::Diffuse] = Missing;
-            m.Textures[Material::Mask] = Black;
-            m.Textures[Material::Emissive] = Black;
-            m.Textures[Material::Specular] = Black;
+            List<ubyte> bmp(64 * 64 * 4);
+            FillTexture(bmp, 0, 0, 0, 255);
+            Black->Load(batch, bmp.data(), 64, 64, L"black");
 
+            FillTexture(bmp, 255, 255, 255, 255);
+            White->Load(batch, bmp.data(), 64, 64, L"white");
+
+            FillTexture(bmp, 255, 0, 255, 255);
+            Missing->Load(batch, bmp.data(), 64, 64, L"purple");
+
+            {
+                _defaultMaterial.Name = "default";
+                _whiteMaterial.Name = "white";
+
+                // Alocates consecutive handles and views for the default materials
+                for (uint i = 0; i < Material::Count; i++) {
+                    auto handle = Render::Heaps->Reserved.Allocate();
+                    if (i == 0)
+                        _defaultMaterial.Handle = handle.GetGpuHandle();
+
+                    if (i == 0)
+                        Missing->CreateShaderResourceView(handle.GetCpuHandle());
+                    else
+                        Black->CreateShaderResourceView(handle.GetCpuHandle());
+                }
+
+                for (uint i = 0; i < Material2D::Count; i++) {
+                    auto handle = Render::Heaps->Reserved.Allocate();
+                    if(i == 0)
+                        _whiteMaterial.Handle = handle.GetGpuHandle();
+
+                    if (i == 0)
+                        White->CreateShaderResourceView(handle.GetCpuHandle());
+                    else
+                        Black->CreateShaderResourceView(handle.GetCpuHandle());
+                }
+            }
+
+
+            EndUpload(batch);
+        }
+
+        MaterialHandle SetResourceHandles(Material&& m) {
+            auto heapStartIndex = Render::Heaps->Shader.AllocateIndex();
+            m.Handle = Render::Heaps->Shader.GetGpuHandle(heapStartIndex);
+
+            for (int i = 0; i < Material::Count; i++) {
+                if (!m.Textures[i]) m.Textures[i] = i == 0 ? Missing : Black;
+                auto cpuHandle = Render::Heaps->Shader.GetCpuHandle(heapStartIndex + i);
+                m.Textures[i]->CreateShaderResourceView(cpuHandle);
+            }
+
+            _materials.push_back(std::move(m));
+            return MaterialHandle(_materials.size() - 1);
+        }
+
+        MaterialHandle Load(DirectX::ResourceUploadBatch& batch, const Outrage::Bitmap& bitmap) {
+            Material m{};
+            m.Name = bitmap.Name;
+            m.Textures[Material::Diffuse] = Upload(batch, bitmap);
+            SPDLOG_INFO("Uploading to GPU: {}", m.Name);
+
+            return SetResourceHandles(std::move(m));
+        }
+
+        // Loads the textures for a material based on the input
+        MaterialHandle Load(DirectX::ResourceUploadBatch& batch, Material&& m) {
             string baseName = String::NameWithoutExtension(m.Name);
 
             if (Settings::HighRes) {
@@ -156,8 +255,9 @@ namespace Inferno {
             }
 
             // OGF textures
-            if (!m.Textures[Material::Diffuse] && !m.FileName.empty()) {
-                if (auto bmp = Resources::ReadOutrageBitmap(m.FileName)) {
+            if (!m.Textures[Material::Diffuse] && !m.Name.empty()) {
+                if (auto bmp = Resources::ReadOutrageBitmap(m.Name)) {
+                    SPDLOG_INFO("Uploading to GPU: {}", m.Name);
                     m.Textures[Material::Diffuse] = Upload(batch, *bmp);
                     // todo: also load specular from alpha if present
                 }
@@ -173,20 +273,32 @@ namespace Inferno {
             if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
                 m.Textures[Material::Specular] = Upload(batch, *path);
 
-            EndUpload(batch);
+            return SetResourceHandles(std::move(m));
+        };
 
-            // Set resource handles
-            auto heapStartIndex = Render::Heaps->Shader.AllocateIndex();
-            m.Handle = Render::Heaps->Shader.GetGpuHandle(heapStartIndex);
+        void LoadTextures(span<RuntimeTextureInfo> textures) {
+            auto batch = BeginUpload();
 
-            for (int i = 0; i < Material::Count; i++) {
-                auto cpuHandle = Render::Heaps->Shader.GetCpuHandle(heapStartIndex + i);
-                m.Textures[i]->CreateShaderResourceView(cpuHandle);
+            for (auto& tex : textures) {
+                if (tex.IsAnimated()) {
+                    // Load each frame in the animation
+                    auto& vclip = Resources::VClips[tex.VClip];
+                    for (int i = 0; i < tex.FrameHandles.size(); i++) {
+                        auto& handle = tex.FrameHandles[i];
+                        if (handle == MaterialHandle::None)
+                            handle = Load(batch, vclip.Frames[i]);
+                    }
+                }
+                else if (tex.BitmapHandle == MaterialHandle::None) {
+                    if (auto bmp = Resources::ReadOutrageBitmap(tex.FileName)) {
+                        tex.BitmapHandle = Load(batch, *bmp);
+                    }
+                }
             }
 
-            _materials.emplace_back(m);
-            return MaterialHandle(_materials.size() - 1);
-        };
+            EndUpload(batch);
+
+        }
 
         D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(MaterialHandle h) {
             return _materials[(int)h].Handle;
@@ -200,7 +312,7 @@ namespace Inferno {
             //handle.GpuHandle = Render::Heaps->Shader.GetGpuHandle(handle.HeapIndex);
 
             auto tex = Alloc();
-            tex->Load(batch, bitmap.Mips.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+            tex->Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
             return tex;
         }
 
@@ -223,16 +335,17 @@ namespace Inferno {
                 if (!tex) {
                     //if (tex.use_count() == 0) {
                         //SPDLOG_INFO("Allocating texture");
+                    tex = MakeRef<Texture2D>();
                     return tex;
                 }
             }
 
-            return _textures.emplace_back();
+            return _textures.emplace_back(MakeRef<Texture2D>());
         }
     };
 
     class TextureCache {
-        List<RuntimeVClip> _vclips;
+        //List<RuntimeVClip> _vclips;
         List<RuntimeTextureInfo> _textures;
         TextureGpuCache _gpu;
 
@@ -319,18 +432,16 @@ namespace Inferno {
 
         // Resolves resource handle name into VClip and Texture ids
         // Should be use as a loading step
-        void Resolve(ResourceHandle& h) {
-            if (!h.Name.empty()) {
-                if (auto id = ResolveTexture(h.Name); id != -1) {
-                    h.TextureInfoID = id;
-                    return;
-                }
-
-                if (auto id = ResolveVClip(h.Name); id != -1) {
-                    h.VClipInfoID = id;
-                    return;
-                }
+        int Resolve(string name) {
+            if (auto id = ResolveTexture(name); id != -1) {
+                return id;
             }
+
+            if (auto id = ResolveVClip(name); id != -1) {
+                return id;
+            }
+
+            return -1;
             //else {
             //    auto& lti = Resources::GetLevelTextureInfo(LevelTexID(0));
             //    lti.DestroyedTexture; // needs dynamic resolution. if state destroyed ->
@@ -338,25 +449,26 @@ namespace Inferno {
             //}
         }
 
-        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(const ResourceHandle& handle) {
-            if (Seq::inRange(_vclips, handle.VClipInfoID)) {
-                auto& vc = _vclips[handle.VClipInfoID];
-                return _gpu.GetGpuHandle(vc.GetFrame(0, 0));
+        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(int handle) {
+            if (Seq::inRange(_textures, handle)) {
+                auto& info = _textures[handle];
+                if (info.FrameHandles.empty())
+                    return _gpu.GetGpuHandle(info.BitmapHandle);
+
+                return _gpu.GetGpuHandle(info.GetFrame(0, 0));
             }
-            else if (Seq::inRange(_textures, handle.TextureInfoID)) {
-                // not dynamic
-                return _gpu.GetGpuHandle(_textures[handle.TextureInfoID].BitmapHandle);
-            }
-            //else {
-            //    auto& entry = Resources::GetTextureInfo(handle.PigID);
-            //    //entry.ID;
-            //    return _materials[0].Handle;
-            //}
+
+            return _gpu.GetGpuHandle(MaterialHandle::Missing);
         }
 
 
         //MaterialHandle Find(string);
         //MaterialHandle Find(TexID);
+
+        // Uploads any pending textures to the GPU
+        void MakeResident() {
+            _gpu.LoadTextures(_textures);
+        }
 
 
     private:
@@ -369,110 +481,100 @@ namespace Inferno {
         // - if animated, page in vclip
         // - use frame based on time, the bitmap stores its handle
 
-        // VClips expand into multiple frames
-        void PageInVClip(int handle) {
-            assert(Seq::inRange(_vclips, handle));
-
-            auto& vclip = _vclips[handle];
-            vclip.Handles.resize(vclip.Frames.size());
-
-            // Load and assign the handles for each frame
-            for (int i = 0; i < vclip.Frames.size(); i++) {
-                //auto handle = Alloc(vclip.Frames[i].Name);
-                Material material{ .Name = vclip.Frames[i].Name };
-                vclip.Handles[i] = _gpu.Load(std::move(material));
-                //Load(material);
-                //vclip.Handles[i] = handle;
-                //Load(Get(handle));
-            }
-        }
-
         // Returns the handle to an already loaded texture bitmap.
         // Returns the cycled frame of animated textures
-        MaterialHandle GetTextureBitmap(int handle, int frame) {
-            if (!Seq::inRange(_textures, (int)handle))
-                return MaterialHandle::Bad;
+        //MaterialHandle GetTextureBitmap(int handle, int frame) {
+        //    if (!Seq::inRange(_textures, (int)handle))
+        //        return MaterialHandle::Missing;
 
-            auto& mat = _textures[(int)handle];
-            if (!mat.Used)
-                return MaterialHandle::Bad;
+        //    auto& mat = _textures[(int)handle];
+        //    if (!mat.Used)
+        //        return MaterialHandle::Missing;
 
-            if (mat.IsAnimated()) {
-                if (!Seq::inRange(_vclips, (int)mat.BitmapHandle))
-                    return MaterialHandle::Bad;
+        //    if (mat.IsAnimated()) {
+        //        if (!Seq::inRange(_vclips, (int)mat.BitmapHandle))
+        //            return MaterialHandle::Missing;
 
-                auto& vclip = _vclips[(int)mat.BitmapHandle];
-                return vclip.GetFrame(0, 0 /*Game::Time*/);
-            }
-            else {
-                return mat.BitmapHandle;
-            }
-        }
+        //        auto& vclip = _vclips[(int)mat.BitmapHandle];
+        //        return vclip.GetFrame(0, 0 /*Game::Time*/);
+        //    }
+        //    else {
+        //        return mat.BitmapHandle;
+        //    }
+        //}
 
         // Search loaded textures by name, returns -1 if not found
         int FindTextureInfo(string name) {
             for (int i = 0; i < _textures.size(); i++) {
-                if (String::InvariantEquals(_textures[i].Name, name))
+                if (String::InvariantEquals(_textures[i].FileName, name))
                     return i;
             }
 
             return -1;
         }
 
-        // Search vclips by name, returns -1 if not found
-        int FindVClip(string name) {
-            for (int i = 0; i < _vclips.size(); i++) {
-                for (auto& frame : _vclips[i].Frames) {
-                    if (String::InvariantEquals(frame.Name, name))
-                        return i;
-                }
-            }
+        //// Search vclips by name, returns -1 if not found
+        //int FindVClip(string name) {
+        //    for (int i = 0; i < _textures.size(); i++) {
+        //        for (auto& frame : _textures[i].Frames) {
+        //            if (String::InvariantEquals(frame, name))
+        //                return i;
+        //        }
+        //    }
 
-            return -1;
-        }
+        //    return -1;
+        //}
 
         // Allocs a slot for texture
-        int AllocTextureInfo(Outrage::TextureInfo& ti) {
+        int AllocTextureInfo(RuntimeTextureInfo&& ti) {
             // Find unused slot
             for (int i = 0; i < _textures.size(); i++) {
                 if (!_textures[i].Used) {
-                    _textures[i] = { ti };
+                    _textures[i] = ti;
                     _textures[i].Used = true;
                     return i;
                 }
             }
 
             // Add new slot
-            auto& rti = _textures.emplace_back(ti);
-            rti.Used = true;
+            ti.Used = true;
+            _textures.emplace_back(ti);
             return int(_textures.size() - 1);
         }
 
-        // Allocs a slot for vclip
-        int AllocVClip(Outrage::VClip& vclip) {
-            // Find unused slot
-            for (int i = 0; i < _vclips.size(); i++) {
-                if (!_vclips[i].Used) {
-                    _vclips[i] = { vclip };
-                    _vclips[i].Used = true;
-                    return i;
-                }
-            }
+        //// Allocs a slot for vclip
+        //int AllocVClip(Outrage::VClip& vclip) {
+        //    // Find unused slot
+        //    for (int i = 0; i < _vclips.size(); i++) {
+        //        if (!_vclips[i].Used) {
+        //            _vclips[i] = { vclip };
+        //            _vclips[i].Used = true;
+        //            return i;
+        //        }
+        //    }
 
-            // Add new slot
-            auto& rti = _vclips.emplace_back(vclip);
-            rti.Used = true;
-            return int(_vclips.size() - 1);
-        }
+        //    // Add new slot
+        //    auto& rti = _vclips.emplace_back(vclip);
+        //    rti.Used = true;
+        //    return int(_vclips.size() - 1);
+        //}
 
         int ResolveVClip(string name) {
-            if (auto id = FindVClip(name); id != -1)
+            //if (auto id = FindVClip(name); id != -1)
+            //    return id; // Already loaded
+            if (auto id = FindTextureInfo(name); id != -1)
                 return id; // Already loaded
 
-            for (auto& vclip : Resources::VClips) {
+            for (int id = 0; id < Resources::VClips.size(); id++) {
+                auto& vclip = Resources::VClips[id];
                 for (auto& frame : vclip.Frames) {
-                    if (String::InvariantEquals(frame.Name, name))
-                        return AllocVClip(vclip);
+                    if (String::InvariantEquals(frame.Name, name)) {
+                        RuntimeTextureInfo ti;
+                        ti.FileName = frame.Name;
+                        ti.VClip = id;
+                        ti.FrameHandles.resize(vclip.Frames.size(), MaterialHandle::None);
+                        return AllocTextureInfo(std::move(ti));
+                    }
                 }
             }
 
@@ -485,14 +587,11 @@ namespace Inferno {
 
             for (auto& tex : Resources::GameTable.Textures) {
                 if (String::InvariantEquals(tex.FileName, name)) {
-                    return AllocTextureInfo(tex);
+                    return AllocTextureInfo({ tex });
                 }
             }
 
             return -1;
         }
     };
-
-
-
 };

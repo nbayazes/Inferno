@@ -70,7 +70,7 @@ namespace Inferno::Resources {
     bool FoundVertigo();
     bool HasCustomTextures();
 
-    inline Ptr<Hog2> Descent3Hog, Mercenary;
+    inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
     inline List<Outrage::VClip> VClips; // Expanded from OAF headers
 
