@@ -139,10 +139,10 @@ namespace Inferno::Outrage {
         if (start_val != 127) {
             if (start_val > 100) throw Exception("Too many frames in OAF");
             vc.Frames.resize(start_val);
-            auto f0 = r.ReadFloat();
+            r.ReadFloat();
             vc.FrameTime = r.ReadFloat();
-            auto i0 = r.ReadInt32();
-            auto f1 = r.ReadFloat();
+            r.ReadInt32();
+            r.ReadFloat();
         }
         else {
             vc.Version = r.ReadByte();

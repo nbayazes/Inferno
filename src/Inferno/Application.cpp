@@ -30,17 +30,6 @@ void Application::Initialize(int width, int height) {
 
 
 
-    //for (auto& entry : Resources::Descent3Hog.Entries) {
-//    if (String::ToLower(entry.name).ends_with("oof")) {
-//        auto r = Resources::OpenFile(entry.name);
-//        auto model = Outrage::Model::Read(*r);
-
-//        for (auto& t : model.Textures) {
-//            auto& h = handles.emplace_back(t);
-//            texCache.Resolve(h);
-//        }
-//    }
-//}
 
 
 
@@ -62,16 +51,37 @@ void Application::Initialize(int width, int height) {
 
     auto& texCache = Render::NewTextureCache;
 
-    List<int> handles;
-    if (auto r = Resources::OpenFile("gyro.oof")) {
-        auto model = Outrage::Model::Read(*r);
-        for (auto& name : model.Textures) {
-            handles.push_back(texCache->Resolve(name));
-        }
-    }
+    //List<int> handles;
+    //if (auto r = Resources::OpenFile("gyro.oof")) {
+    //    auto model = Outrage::Model::Read(*r);
+    //    for (auto& name : model.Textures) {
+    //        handles.push_back(texCache->Resolve(name));
+    //    }
+    //}
+
+    //for (auto& texture : Resources::GameTable.Textures) {
+    //    //if (texture.Name == "pillar.ifl1")
+    //        texCache->Resolve(texture.Name);
+    //}
+
+    //for (auto& entry : Resources::Descent3Hog.Entries) {
+    //    if (String::ToLower(entry.name).ends_with("oof")) {
+    //        auto r = Resources::OpenFile(entry.name);
+    //        auto model = Outrage::Model::Read(*r);
+
+    //        for (auto& name : model.Textures) {
+    //            texCache->Resolve(name);
+    //            //handles.push_back(texCache->Resolve(name));
+    //            //auto& h = handles.emplace_back(t);
+    //            //texCache.Resolve(h);
+    //        }
+    //    }
+    //}
+
+    Render::Adapter->PrintMemoryUsage();
+    Render::Heaps->Shader.GetFreeDescriptors();
 
     texCache->MakeResident();
-
     Editor::Initialize();
 
     OnActivated();

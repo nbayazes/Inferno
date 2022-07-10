@@ -263,16 +263,6 @@ void DumpOgfHeaders() {
     }
 }
 
-template<class T, class TIndex = int>
-class Indexer {
-    span<T> _src;
-    TIndex _index;
-public:
-    Indexer(span<T> src, TIndex index) : _src(src) {}
-    operator bool() { return _index < _src.size() && _index >= 0; }
-    T& operator()() { return _src[_index]; }
-};
-
 int main() {
     //TestContext();
     //TestSegID();
@@ -281,7 +271,6 @@ int main() {
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
-
 
     try {
         Shell shell;

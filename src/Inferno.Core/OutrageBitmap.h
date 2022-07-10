@@ -21,6 +21,7 @@ namespace Inferno::Outrage {
         float FrameTime;
         int Version;
         bool PingPong;
+        string FileName;
 
         static VClip Read(StreamReader& r);
     };

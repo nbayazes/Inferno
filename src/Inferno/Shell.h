@@ -1,4 +1,5 @@
 #pragma once
+#include <WinUser.h>
 
 namespace Inferno {
     class Application;

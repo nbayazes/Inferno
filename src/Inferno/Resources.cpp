@@ -473,6 +473,7 @@ namespace Inferno::Resources {
                 auto vc = Outrage::VClip::Read(*r);
                 if (vc.Frames.size() > 0)
                     vc.FrameTime = tex.Speed / vc.Frames.size();
+                vc.FileName = tex.FileName;
                 VClips.push_back(std::move(vc));
             }
         }
@@ -520,7 +521,7 @@ namespace Inferno::Resources {
 
         if (auto model = ReadOutrageModel(name)) {
             for (auto& texture : model->Textures) {
-                model->TextureHandles.push_back(Render::NewTextureCache->Resolve(texture));
+                model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
             }
             OutrageModels[name] = std::move(*model);
             return &OutrageModels[name];

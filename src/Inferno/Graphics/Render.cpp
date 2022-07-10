@@ -681,10 +681,12 @@ namespace Inferno::Render {
                 _meshBuffer->LoadModel(model.Render.Model.ID);
 
         {
-            if (auto model = Resources::ReadOutrageModel(TEST_MODEL)) {
+            if (auto model = Resources::GetOutrageModel(TEST_MODEL)) {
                 _meshBuffer->LoadOutrageModel(*model, 0);
                 Materials->LoadOutrageModel(*model);
             }
+
+            NewTextureCache->MakeResident();
         }
 
         _levelMeshBuilder.Update(level, *_levelMeshBuffer);
@@ -1040,6 +1042,7 @@ namespace Inferno::Render {
     }
 
     void ReloadTextures() {
-        Materials->Reload();
+        //Materials->Reload();
+        NewTextureCache->Reload();
     }
 }
