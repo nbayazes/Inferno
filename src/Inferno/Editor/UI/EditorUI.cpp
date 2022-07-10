@@ -73,6 +73,22 @@ namespace Inferno::Editor {
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Add Object")) {
+            auto AddObjectType = [](const char* name, ObjectType type) {
+                if (ImGui::MenuItem(name)) {
+                    auto id = AddObject(Game::Level, Editor::Selection.PointTag(), type);
+                    if (id != ObjID::None) Editor::History.SnapshotLevel(fmt::format("Add {}", name));
+                }
+            };
+
+            AddObjectType("Player", ObjectType::Player);
+            AddObjectType("Robot", ObjectType::Robot);
+            AddObjectType("Powerup", ObjectType::Powerup);
+            AddObjectType("Co-op", ObjectType::Coop);
+            AddObjectType("Hostage", ObjectType::Hostage);
+            ImGui::EndMenu();
+        }
+
         MenuCommand(Commands::AddTrigger);
     }
 
@@ -410,12 +426,12 @@ namespace Inferno::Editor {
                         Settings::TranslationSnap = value;
                         //isOpen = false;
                         //ImGui::CloseCurrentPopup();
-                    }
-                }
+        }
+    }
                 ImGui::PopAllowKeyboardFocus();
                 ImGui::End();
                 //ImGui::ActivateItem();
-            }
+}
 
             if (ImGui::IsItemDeactivated())
                 isOpen = false;
