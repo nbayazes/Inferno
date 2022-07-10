@@ -770,7 +770,8 @@ namespace Inferno::Editor {
                 ImGui::ColumnLabel("Blocks Light");
                 if (WallLightDropdown(wall->BlocksLight)) {
                     for (auto& wid : GetSelectedWalls())
-                        Game::Level.GetWall(wid).BlocksLight = wall->BlocksLight;
+                        if (auto w = Game::Level.TryGetWall(wid))
+                            w->BlocksLight = wall->BlocksLight;
                 }
             }
             else {

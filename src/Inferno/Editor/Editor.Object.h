@@ -36,8 +36,6 @@ namespace Inferno::Editor {
     }
 
     namespace Commands {
-        void ChangeMarkedObjects();
-
         extern Command MoveObjectToSide, MoveObjectToSegment, AddObject;
     }
 }

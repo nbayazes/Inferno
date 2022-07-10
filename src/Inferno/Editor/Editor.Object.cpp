@@ -236,27 +236,6 @@ namespace Inferno::Editor {
         return id;
     }
 
-    // Copies changes to the selected object to marked objects
-    void Commands::ChangeMarkedObjects() {
-        auto src = Game::Level.TryGetObject(Editor::Selection.Object);
-        if (!src) return;
-
-        src->Radius = GetObjectRadius(Game::Level, *src);
-
-        for (auto& id : Editor::Marked.Objects) {
-            if (id == Editor::Selection.Object) continue;
-            if (auto obj = Game::Level.TryGetObject(id)) {
-                auto seg = obj->Segment;
-                auto xform = obj->Transform;
-                *obj = *src;
-                obj->Segment = seg;
-                obj->Transform = xform;
-            }
-        }
-
-        Editor::History.SnapshotLevel("Edit object");
-    }
-
     // Adds an object to represent the secret exit return so it can be manipulated
     void AddSecretLevelReturnMarker(Level& level) {
         Object marker{};

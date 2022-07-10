@@ -234,6 +234,9 @@ namespace Inferno::Editor {
         return faces;
     }
 
+    // Executes a function on each valid marked object
+    void ForMarkedObjects(std::function<void(Object&)> fn);
+
     namespace Commands {
         void MarkCoplanar(Tag);
         void SelectTexture(bool usePrimary, bool useSecondary);
