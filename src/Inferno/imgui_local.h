@@ -277,6 +277,10 @@ namespace Inferno {
             ImGui::StyleColorsDark();
             //ImGui::StyleColorsClassic();
 
+            auto& style = ImGui::GetStyle();
+            style.Colors[ImGuiCol_TableBorderStrong].w = 0.45f;
+            style.Colors[ImGuiCol_TableBorderLight].w = 0.45f;
+
             //// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
             //ImGuiStyle& style = ImGui::GetStyle();
             //if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {

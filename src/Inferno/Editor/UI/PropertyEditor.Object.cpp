@@ -212,7 +212,7 @@ namespace Inferno::Editor {
     bool RobotProperties(Object& obj) {
         bool changed = false;
 
-        ImGui::ColumnLabel("Robot");
+        ImGui::TableRowLabel("Robot");
         ImGui::SetNextItemWidth(-1);
         if (RobotDropdown("##Robot", obj.ID)) {
             auto& robot = Resources::GameData.Robots[(int)obj.ID];
@@ -225,13 +225,11 @@ namespace Inferno::Editor {
             });
             changed = true;
         }
-        ImGui::NextColumn();
 
-        ImGui::ColumnLabel("Robot ID");
+        ImGui::TableRowLabel("Robot ID");
         ImGui::Text("%i", obj.ID);
-        ImGui::NextColumn();
 
-        ImGui::ColumnLabel("Behavior");
+        ImGui::TableRowLabel("Behavior");
         ImGui::SetNextItemWidth(-1);
         if (AIBehaviorDropdown("##Behavior", obj.Control.AI.Behavior)) {
             ForMarkedObjects([&obj](Object& o) {
@@ -240,11 +238,8 @@ namespace Inferno::Editor {
             });
             changed = true;
         }
-        ImGui::NextColumn();
 
-        ImGui::Separator();
-
-        ImGui::ColumnLabel("Contains");
+        ImGui::TableRowLabel("Contains");
         ImGui::SetNextItemWidth(-1);
         if (ContainsDropdown("##Contains", obj.Contains.Type)) {
             obj.Contains.ID = 0; // Reset to prevent out of range IDs
@@ -254,32 +249,28 @@ namespace Inferno::Editor {
             });
             changed = true;
         }
-        ImGui::NextColumn();
 
         bool containsChanged = false;
 
         if (obj.Contains.Type == ObjectType::Robot) {
-            ImGui::ColumnLabel("Robot");
+            ImGui::TableRowLabel("Robot");
             ImGui::SetNextItemWidth(-1);
             containsChanged |= RobotDropdown("##RobotContains", obj.Contains.ID);
-            ImGui::NextColumn();
         }
         else if (obj.Contains.Type == ObjectType::Powerup) {
-            ImGui::ColumnLabel("Object");
+            ImGui::TableRowLabel("Object");
             ImGui::SetNextItemWidth(-1);
             containsChanged |= PowerupDropdown("##ObjectContains", obj.Contains.ID);
-            ImGui::NextColumn();
         }
 
         if (obj.Contains.Type == ObjectType::Robot || obj.Contains.Type == ObjectType::Powerup) {
             auto count = (int)obj.Contains.Count;
-            ImGui::ColumnLabel("Count");
+            ImGui::TableRowLabel("Count");
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputInt("##Count", &count)) {
                 obj.Contains.Count = (int8)std::clamp(count, 0, 100);
                 containsChanged = true;
             }
-            ImGui::NextColumn();
         }
 
         if (containsChanged) {
@@ -348,20 +339,17 @@ namespace Inferno::Editor {
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
-        ImGui::ColumnLabel("Object ID");
+
+        ImGui::TableRowLabel("Object ID");
         if (ObjectDropdown(Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
-        ImGui::NextColumn();
 
         auto& obj = Game::Level.GetObject(Selection.Object);
 
-        ImGui::ColumnLabel("Segment");
+        ImGui::TableRowLabel("Segment");
         SegmentDropdown(obj.Segment);
-        ImGui::NextColumn();
 
-        ImGui::Separator();
-
-        ImGui::ColumnLabel("Type");
+        ImGui::TableRowLabel("Type");
         ImGui::SetNextItemWidth(-1);
 
         if (obj.Type == ObjectType::SecretExitReturn) {
@@ -395,11 +383,9 @@ namespace Inferno::Editor {
             ImGui::EndCombo();
         }
 
-        ImGui::NextColumn();
-
         switch (obj.Type) {
             case ObjectType::Powerup:
-                ImGui::ColumnLabel("Powerup");
+                ImGui::TableRowLabel("Powerup");
                 ImGui::SetNextItemWidth(-1);
                 if (PowerupDropdown("##Powerup", obj.ID, &obj.Render.VClip.ID)) {
                     ForMarkedObjects([&obj](Object& o) {
@@ -409,7 +395,6 @@ namespace Inferno::Editor {
                     Editor::History.SnapshotLevel("Change object");
                 }
 
-                ImGui::NextColumn();
                 break;
 
             case ObjectType::Robot:
@@ -417,15 +402,14 @@ namespace Inferno::Editor {
                 break;
 
             case ObjectType::Reactor:
-                ImGui::ColumnLabel("Model");
+                ImGui::TableRowLabel("Model");
                 if (ReactorModelDropdown(obj))
                     Editor::History.SnapshotLevel("Change Reactor Model");
 
-                ImGui::NextColumn();
                 break;
 
             case ObjectType::Weapon: // mines
-                ImGui::ColumnLabel("Angular velocity");
+                ImGui::TableRowLabel("Angular velocity");
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::SliderFloat3("##angular", &obj.Movement.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f")) {
                     ForMarkedObjects([&obj](Object& o) {
@@ -435,20 +419,17 @@ namespace Inferno::Editor {
                     //Editor::History.SnapshotLevel("Change object"); // causes too many snapshots
                 }
 
-                ImGui::NextColumn();
                 break;
 
             case ObjectType::Player:
             case ObjectType::Coop:
-                ImGui::ColumnLabelEx("ID", "Saving the level sets the ID");
+                ImGui::TableRowLabel("ID", "Saving the level sets the ID");
                 ImGui::Text("%i", obj.ID);
-                ImGui::NextColumn();
                 break;
         }
 
         if (obj.Render.Type == RenderType::Polyobj && obj.Type != ObjectType::SecretExitReturn) {
-            ImGui::Separator();
-            ImGui::ColumnLabel("Texture override");
+            ImGui::TableRowLabel("Texture override");
             ImGui::SetNextItemWidth(-1);
             if (LevelTextureDropdown("##Texture", obj.Render.Model.TextureOverride)) {
                 Render::LoadTextureDynamic(obj.Render.Model.TextureOverride);
@@ -459,11 +440,9 @@ namespace Inferno::Editor {
                 Editor::History.SnapshotLevel("Change object");
             }
             TexturePreview(obj.Render.Model.TextureOverride);
-            ImGui::NextColumn();
 
-            ImGui::ColumnLabel("Polymodel");
+            ImGui::TableRowLabel("Polymodel");
             ImGui::Text("%i", obj.Render.Model.ID);
-            ImGui::NextColumn();
         }
     }
 }

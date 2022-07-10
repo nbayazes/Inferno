@@ -3,6 +3,14 @@
 #include "../Editor.h"
 
 namespace Inferno::Editor {
+    bool TableBeginTreeNode(const char* label) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        auto open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAvailWidth);
+        ImGui::TableNextColumn();
+        return open;
+    }
 
     inline bool TriggerTypesDropdown(int& value) {
         static const char* TriggerTypeLabels[] = {
@@ -34,7 +42,7 @@ namespace Inferno::Editor {
 
     bool TriggerTargetsPicker(Trigger& trigger, TriggerID tid) {
         bool changed = false;
-        ImGui::ColumnLabel("Targets");
+        ImGui::TableRowLabel("Targets");
         ImGui::BeginChild("trigger-targets", { -1, 130 }, true);
 
         static int selectedIndex = 0;
@@ -68,7 +76,6 @@ namespace Inferno::Editor {
             if (selectedIndex > trigger.Targets.Count()) selectedIndex--;
             changed = true;
         }
-        ImGui::NextColumn();
         return changed;
     }
 
@@ -79,9 +86,7 @@ namespace Inferno::Editor {
 
         auto trigger = wall ? Game::Level.TryGetTrigger(wall->Trigger) : nullptr;
 
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx("Trigger", ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::NextColumn();
+        bool open = TableBeginTreeNode("Trigger");
 
         if (!trigger) {
             if (ImGui::Button("Add", { 100, 0 }) && wall)
@@ -92,44 +97,33 @@ namespace Inferno::Editor {
                 RemoveTrigger(Game::Level, wall->Trigger);
         }
 
-        ImGui::NextColumn();
-
         if (open) {
             if (trigger && wall) {
-                ImGui::ColumnLabel("ID");
+                ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", wall->Trigger);
-                ImGui::NextColumn();
 
                 changed |= TriggerTargetsPicker(*trigger, wall->Trigger);
 
-                ImGui::ColumnLabel("Open door");
+                ImGui::TableRowLabel("Open door");
                 changed |= FlagCheckbox("##No Message", TriggerFlagD1::OpenDoor, trigger->FlagsD1);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Exit");
+                ImGui::TableRowLabel("Exit");
                 changed |= FlagCheckbox("##Exit", TriggerFlagD1::Exit, trigger->FlagsD1);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Secret exit");
+                ImGui::TableRowLabel("Secret exit");
                 changed |= FlagCheckbox("##Secret exit", TriggerFlagD1::SecretExit, trigger->FlagsD1);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Matcen");
+                ImGui::TableRowLabel("Matcen");
                 changed |= FlagCheckbox("##Matcen", TriggerFlagD1::Matcen, trigger->FlagsD1);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Illusion off");
+                ImGui::TableRowLabel("Illusion off");
                 changed |= FlagCheckbox("##IllusionOff", TriggerFlagD1::IllusionOff, trigger->FlagsD1);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Illusion on");
+                ImGui::TableRowLabel("Illusion on");
                 changed |= FlagCheckbox("##IllusionOn", TriggerFlagD1::IllusionOn, trigger->FlagsD1);
-                ImGui::NextColumn();
             }
             else {
                 ImGui::TextDisabled("No trigger");
-                ImGui::NextColumn();
-                ImGui::NextColumn();
             }
 
             ImGui::TreePop();
@@ -144,10 +138,7 @@ namespace Inferno::Editor {
         auto tid = Game::Level.GetTriggerID(wallId);
         auto trigger = Game::Level.TryGetTrigger(wallId);
         DisableControls disable(!wall);
-
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx("Trigger", ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::NextColumn();
+        bool open = TableBeginTreeNode("Trigger");
 
         {
             // Shift values by 1 to use 0 as "None"
@@ -173,28 +164,21 @@ namespace Inferno::Editor {
             trigger = Game::Level.TryGetTrigger(wallId);
         }
 
-        ImGui::NextColumn();
-
         if (open) {
             if (trigger) {
-                ImGui::ColumnLabel("ID");
+                ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", tid);
-                ImGui::NextColumn();
 
                 changed |= TriggerTargetsPicker(*trigger, tid);
 
-                ImGui::ColumnLabel("No message");
+                ImGui::TableRowLabel("No message");
                 changed |= FlagCheckbox("##No Message", TriggerFlag::NoMessage, trigger->Flags);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("One shot");
+                ImGui::TableRowLabel("One shot");
                 changed |= FlagCheckbox("##One shot", TriggerFlag::OneShot, trigger->Flags);
-                ImGui::NextColumn();
             }
             else {
                 ImGui::TextDisabled("No trigger");
-                ImGui::NextColumn();
-                ImGui::NextColumn();
             }
 
             ImGui::TreePop();
@@ -205,10 +189,7 @@ namespace Inferno::Editor {
 
     void FlickeringProperties(Tag tag) {
         auto light = Game::Level.GetFlickeringLight(tag);
-
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx("Flickering light", ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::NextColumn();
+        bool open = TableBeginTreeNode("Flickering light");
 
         if (!light) {
             DisableControls disable(!CanAddFlickeringLight(Game::Level, tag));
@@ -222,24 +203,21 @@ namespace Inferno::Editor {
 
         light = Game::Level.GetFlickeringLight(tag);
 
-        ImGui::NextColumn();
-
         if (open) {
             if (light) {
                 auto delay = light->Delay * 1000;
                 auto orig = *light;
-                ImGui::ColumnLabel("Delay");
+                ImGui::TableRowLabel("Delay");
 
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::DragFloat("##Delay", &delay, 10.0f, 10, 1000, "%.0f ms"))
                     light->Delay = delay / 1000;
-                ImGui::NextColumn();
 
                 char mask[33]{};
                 for (int i = 0; i < 32; i++)
                     mask[31 - i] = (light->Mask >> i) & 0x1 ? '1' : '0';
 
-                ImGui::ColumnLabel("Mask");
+                ImGui::TableRowLabel("Mask");
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::InputTextEx("##Mask", nullptr, mask, 33, { -1, 0 }, 0)) {
                     for (int i = 0; i < 32; i++) {
@@ -269,7 +247,6 @@ namespace Inferno::Editor {
                     if (ImGui::Selectable("Flicker")) light->Mask = FlickeringLight::Defaults::Flicker;
                     ImGui::EndPopup();
                 }
-                ImGui::NextColumn();
 
                 // Update selected faces
                 if (orig.Delay != light->Delay || orig.Mask != light->Mask) {
@@ -283,8 +260,6 @@ namespace Inferno::Editor {
             }
             else {
                 ImGui::TextDisabled("No light");
-                ImGui::NextColumn();
-                ImGui::NextColumn();
             }
             ImGui::TreePop();
         }
@@ -334,12 +309,10 @@ namespace Inferno::Editor {
         auto matcen = Game::Level.TryGetMatcen(id);
         if (!matcen) {
             ImGui::Text("Matcen data is missing!");
-            ImGui::NextColumn();
-            ImGui::NextColumn();
             return;
         }
 
-        ImGui::ColumnLabel("Robots");
+        ImGui::TableRowLabel("Robots");
         auto robotLabel = GetMatcenRobotLabel(*matcen);
         if (!robotLabel.empty())
             ImGui::TextWrapped(robotLabel.c_str());
@@ -348,16 +321,10 @@ namespace Inferno::Editor {
             editor.ID = id;
             editor.Show();
         }
-
-        ImGui::NextColumn();
     }
 
     bool SideLighting(Segment& seg, SegmentSide& side) {
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx("Lighting", ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::NextColumn();
-        ImGui::NextColumn();
-
+        bool open = TableBeginTreeNode("Lighting");
         bool changed = false;
 
         if (open) {
@@ -367,12 +334,14 @@ namespace Inferno::Editor {
                 bool hasOverride = side.LightOverride.has_value();
                 auto light = side.LightOverride.value_or(GetLightColor(side));
 
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Emission", &hasOverride)) {
                     side.LightOverride = hasOverride ? Option<Color>(light) : std::nullopt;
                     overrideChanged = true;
                 }
-                ImGui::NextColumn();
 
+                ImGui::TableNextColumn();
                 DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::ColorEdit3("##customcolor", &light.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
@@ -387,8 +356,6 @@ namespace Inferno::Editor {
                             marked->LightOverride = side.LightOverride;
                     }
                 }
-
-                ImGui::NextColumn();
             }
 
             {
@@ -397,12 +364,14 @@ namespace Inferno::Editor {
                 bool hasOverride = side.LightRadiusOverride.has_value();
                 auto radius = side.LightRadiusOverride.value_or(Settings::Lighting.Radius);
 
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Radius", &hasOverride)) {
                     side.LightRadiusOverride = hasOverride ? Option<float>(radius) : std::nullopt;
                     overrideChanged = true;
                 }
-                ImGui::NextColumn();
 
+                ImGui::TableNextColumn();
                 DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::SliderFloat("##radius", &radius, 0, 30, "%.1f")) {
@@ -417,8 +386,6 @@ namespace Inferno::Editor {
                             marked->LightRadiusOverride = side.LightRadiusOverride;
                     }
                 }
-
-                ImGui::NextColumn();
             }
 
             {
@@ -427,12 +394,14 @@ namespace Inferno::Editor {
                 bool hasOverride = side.LightPlaneOverride.has_value();
                 auto plane = side.LightPlaneOverride.value_or(Settings::Lighting.LightPlaneTolerance);
 
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Light plane", &hasOverride)) {
                     side.LightPlaneOverride = hasOverride ? Option<float>(plane) : std::nullopt;
                     overrideChanged = true;
                 }
-                ImGui::NextColumn();
 
+                ImGui::TableNextColumn();
                 DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::SliderFloat("##lightplane", &plane, -0.01f, -1)) {
@@ -447,27 +416,25 @@ namespace Inferno::Editor {
                             marked->LightPlaneOverride = side.LightPlaneOverride;
                     }
                 }
-
-                ImGui::NextColumn();
             }
 
             auto VertexLightSlider = [&changed, &side](const char* label, int point) {
                 if (point == (int)Editor::Selection.Point)
                     ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
 
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 ImGui::Checkbox(label, &side.LockLight[point]);
 
                 if (point == (int)Editor::Selection.Point)
                     ImGui::PopStyleColor();
 
-                ImGui::NextColumn();
-
+                ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-1);
                 DisableControls disable(!side.LockLight[point]);
                 if (ImGui::ColorEdit3(fmt::format("##{}", label).c_str(), &side.Light[point].x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
                     changed = true;
                 }
-                ImGui::NextColumn();
             };
 
             VertexLightSlider("Point 0", 0);
@@ -475,13 +442,11 @@ namespace Inferno::Editor {
             VertexLightSlider("Point 2", 2);
             VertexLightSlider("Point 3", 3);
 
-            ImGui::ColumnLabel("Volume");
+            ImGui::TableRowLabel("Volume");
             ImGui::SetNextItemWidth(-1);
             if (ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
                 changed = true;
             }
-            ImGui::NextColumn();
-
             ImGui::TreePop();
         }
 
@@ -490,32 +455,24 @@ namespace Inferno::Editor {
 
     bool SideUVs(SegmentSide& side) {
         bool changed = false;
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx("UVs", ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::NextColumn();
-        ImGui::NextColumn();
+        bool open = TableBeginTreeNode("UVs");
 
         if (open) {
-            ImGui::ColumnLabel("UV 0");
+            ImGui::TableRowLabel("UV 0");
             ImGui::SetNextItemWidth(-1);
             changed |= ImGui::DragFloat2("##P0", &side.UVs[0].x, 0.01f);
-            ImGui::NextColumn();
 
-            ImGui::ColumnLabel("UV 1");
+            ImGui::TableRowLabel("UV 1");
             ImGui::SetNextItemWidth(-1);
             changed |= ImGui::DragFloat2("##P1", &side.UVs[1].x, 0.01f);
-            ImGui::NextColumn();
 
-            ImGui::ColumnLabel("UV 2");
+            ImGui::TableRowLabel("UV 2");
             ImGui::SetNextItemWidth(-1);
             changed |= ImGui::DragFloat2("##P2", &side.UVs[2].x, 0.01f);
-            ImGui::NextColumn();
 
-            ImGui::ColumnLabel("UV 3");
+            ImGui::TableRowLabel("UV 3");
             ImGui::SetNextItemWidth(-1);
             changed |= ImGui::DragFloat2("##P3", &side.UVs[3].x, 0.01f);
-            ImGui::NextColumn();
-
             ImGui::TreePop();
         }
 
@@ -656,11 +613,9 @@ namespace Inferno::Editor {
     bool WallProperties(WallID id) {
         auto wall = Game::Level.TryGetWall(id);
         bool wallChanged = false;
+        bool open = TableBeginTreeNode("Wall type");
 
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx("Wall type", ImGuiTreeNodeFlags_SpanAvailWidth);
         auto wallType = wall ? wall->Type : WallType::None;
-        ImGui::NextColumn();
 
         if (WallTypeDropdown("##WallType", wallType)) {
             if (!wall && wallType != WallType::None) {
@@ -680,21 +635,17 @@ namespace Inferno::Editor {
             wall = Game::Level.TryGetWall(Editor::Selection.Tag());
         }
 
-        ImGui::NextColumn();
-
         if (open) {
             if (wall) {
-                ImGui::ColumnLabel("ID");
+                ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", id);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Edit both sides");
+                ImGui::TableRowLabel("Edit both sides");
                 ImGui::Checkbox("##bothsides", &Settings::EditBothWallSides);
-                ImGui::NextColumn();
 
                 switch (wall->Type) {
                     case WallType::Destroyable:
-                        ImGui::ColumnLabel("Clip");
+                        ImGui::TableRowLabel("Clip");
                         if (WallClipDropdown(wall->Clip)) {
                             wallChanged = true;
                             OnChangeWallClip(*wall);
@@ -702,19 +653,17 @@ namespace Inferno::Editor {
 
                         if (auto clip = Resources::TryGetWallClip(wall->Clip))
                             TexturePreview(clip->Frames[0]);
-                        ImGui::NextColumn();
 
-                        ImGui::ColumnLabel("Hit points");
+                        ImGui::TableRowLabel("Hit points");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::InputFloat("##Hit points", &wall->HitPoints, 1, 10, "%.0f"))
                             wallChanged = true;
 
                         //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
-                        ImGui::NextColumn();
                         break;
 
                     case WallType::Door:
-                        ImGui::ColumnLabel("Clip");
+                        ImGui::TableRowLabel("Clip");
                         if (WallClipDropdown(wall->Clip)) {
                             wallChanged = true;
                             OnChangeWallClip(*wall);
@@ -723,51 +672,42 @@ namespace Inferno::Editor {
                         if (auto clip = Resources::TryGetWallClip(wall->Clip))
                             TexturePreview(clip->Frames[0]);
 
-                        ImGui::NextColumn();
-
-                        ImGui::ColumnLabel("Key");
+                        ImGui::TableRowLabel("Key");
                         wallChanged |= KeyDropdown(wall->Keys);
-                        ImGui::NextColumn();
 
-                        ImGui::ColumnLabel("Opened");
+                        ImGui::TableRowLabel("Opened");
                         wallChanged |= FlagCheckbox("##Opened", WallFlag::DoorOpened, wall->Flags);
-                        ImGui::NextColumn();
 
-                        ImGui::ColumnLabel("Locked");
+                        ImGui::TableRowLabel("Locked");
                         wallChanged |= FlagCheckbox("##Locked", WallFlag::DoorLocked, wall->Flags);
-                        ImGui::NextColumn();
 
-                        ImGui::ColumnLabel("Auto Close");
+                        ImGui::TableRowLabel("Auto Close");
                         wallChanged |= FlagCheckbox("##Auto Close", WallFlag::DoorAuto, wall->Flags);
-                        ImGui::NextColumn();
 
-                        ImGui::ColumnLabel("Buddy Proof");
+                        ImGui::TableRowLabel("Buddy Proof");
                         wallChanged |= FlagCheckbox("##Buddy Proof", WallFlag::BuddyProof, wall->Flags);
-                        ImGui::NextColumn();
                         break;
 
                     case WallType::Illusion:
-                        ImGui::ColumnLabelEx("Off", "Set the wall to start invisible.\nTrigger with 'illusion on' to make visible.");
+                        ImGui::TableRowLabelEx("Off", "Set the wall to start invisible.\nTrigger with 'illusion on' to make visible.");
                         wallChanged |= FlagCheckbox("##Off", WallFlag::IllusionOff, wall->Flags);
-                        ImGui::NextColumn();
                         break;
 
                     case WallType::Cloaked:
                     {
-                        ImGui::ColumnLabel("Cloak");
+                        ImGui::TableRowLabel("Cloak");
                         auto cloakValue = wall->CloakValue() * 100;
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::InputFloat("##cloak", &cloakValue, Wall::CloakStep * 110, Wall::CloakStep * 500, "%.0f%%")) {
                             wall->CloakValue(cloakValue / 100);
                             wallChanged = true;
                         }
-                        ImGui::NextColumn();
 
                         break;
                     }
                 }
 
-                ImGui::ColumnLabel("Blocks Light");
+                ImGui::TableRowLabel("Blocks Light");
                 if (WallLightDropdown(wall->BlocksLight)) {
                     for (auto& wid : GetSelectedWalls())
                         if (auto w = Game::Level.TryGetWall(wid))
@@ -776,10 +716,8 @@ namespace Inferno::Editor {
             }
             else {
                 ImGui::TextDisabled("No wall");
-                ImGui::NextColumn();
             }
 
-            ImGui::NextColumn();
             ImGui::TreePop();
         }
 
@@ -807,10 +745,7 @@ namespace Inferno::Editor {
     }
 
     void TextureProperties(const char* label, LevelTexID ltid, bool isOverlay) {
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::NextColumn();
-
+        bool open = TableBeginTreeNode(label);
         const auto ti = Resources::TryGetTextureInfo(ltid);
 
         if (isOverlay && ltid == LevelTexID::Unset) {
@@ -828,61 +763,49 @@ namespace Inferno::Editor {
                 Events::SelectTexture(LevelTexID::None, LevelTexID::Unset);
         }
 
-        ImGui::NextColumn();
-
         if (open) {
             if (ti) {
-                ImGui::ColumnLabel("Level TexID");
+                ImGui::TableRowLabel("Level TexID");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("%i", ltid);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("TexID");
+                ImGui::TableRowLabel("TexID");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("%i", ti->ID);
-                ImGui::NextColumn();
 
-                //ImGui::ColumnLabel("Size");
+                //ImGui::TableRowLabel("Size");
                 //ImGui::AlignTextToFramePadding();
                 //ImGui::Text("%i x %i", ti->Width, ti->Height);
-                //ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Average Color");
+                ImGui::TableRowLabel("Average Color");
                 ImGui::AlignTextToFramePadding();
                 ImGui::ColorButton("##color", { ti->AverageColor.x, ti->AverageColor.y, ti->AverageColor.z, 1 });
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Transparent");
+                ImGui::TableRowLabel("Transparent");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("%s %s", ti->Transparent ? "Yes" : "No", ti->SuperTransparent ? "(super)" : "");
-                ImGui::NextColumn();
             }
 
             if (auto lti = Resources::TryGetLevelTextureInfo(ltid)) {
-                ImGui::ColumnLabel("Lighting");
+                ImGui::TableRowLabel("Lighting");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("%.2f", lti->Lighting);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Effect clip");
+                ImGui::TableRowLabel("Effect clip");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("%i", lti->EffectClip);
-                ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Damage");
+                ImGui::TableRowLabel("Damage");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text("%.1f", lti->Damage);
-                ImGui::NextColumn();
 
-                /*ImGui::ColumnLabel("Volatile");
-                auto isVolatile = (bool)(lti->Flags & TextureFlag::Volatile);
-                ImGui::Checkbox("Volatile", &isVolatile);
-                ImGui::NextColumn();*/
+                // ImGui::TableRowLabel("Volatile");
+                // auto isVolatile = (bool)(lti->Flags & TextureFlag::Volatile);
+                // ImGui::Checkbox("Volatile", &isVolatile);
 
-                ImGui::ColumnLabel("Flags");
+                ImGui::TableRowLabel("Flags");
                 ImGui::AlignTextToFramePadding();
                 ImGui::Text(TextureFlagToString(lti->Flags).c_str());
-                ImGui::NextColumn();
             }
 
             ImGui::TreePop();
@@ -917,32 +840,26 @@ namespace Inferno::Editor {
     }
 
     void PropertyEditor::SegmentProperties() {
-        ImGui::ColumnLabel("Segment");
+        ImGui::TableRowLabel("Segment");
         if (SegmentDropdown(Selection.Segment))
             Editor::Selection.SetSelection(Selection.Segment);
-
-        ImGui::NextColumn();
 
         auto [seg, side] = Game::Level.GetSegmentAndSide(Selection.Tag());
         bool changed = false;
 
-        ImGui::ColumnLabel("Segment type");
+        ImGui::TableRowLabel("Segment type");
         auto segType = seg.Type;
         if (SegmentTypeDropdown(segType))
             Commands::SetSegmentType(segType);
 
-        ImGui::NextColumn();
-
         if (seg.Type == SegmentType::Matcen)
             MatcenProperties(seg.Matcen, _matcenEditor);
 
-        ImGui::Separator();
-        ImGui::ColumnLabel("Side");
+        ImGui::TableRowLabel("Side");
         SideDropdown(Selection.Side);
-        ImGui::NextColumn();
 
         {
-            ImGui::ColumnLabel("Overlay angle");
+            ImGui::TableRowLabel("Overlay angle");
             static const std::array angles = { "0 deg", "90 deg", "180 deg", "270 deg" };
             auto rotation = std::clamp((int)side.OverlayRotation, 0, 3);
             ImGui::SetNextItemWidth(-1);
@@ -955,7 +872,6 @@ namespace Inferno::Editor {
                 Editor::History.SnapshotLevel("Change overlay angle");
                 Events::LevelChanged();
             }
-            ImGui::NextColumn();
         }
 
         if (WallProperties(side.Wall)) {
@@ -979,27 +895,23 @@ namespace Inferno::Editor {
             Editor::History.SnapshotLevel("Change Trigger");
         }
 
-        ImGui::Separator();
 
         if (!Game::Level.IsDescent1()) {
             FlickeringProperties(Selection.Tag());
-            ImGui::Separator();
         }
 
         {
             auto& connection = seg.Connections[(int)Selection.Side];
             DisableControls disableExit(connection > SegID::None);
-            ImGui::ColumnLabel("End of exit tunnel");
+            ImGui::TableRowLabel("End of exit tunnel");
 
             bool isExit = connection == SegID::Exit;
             if (ImGui::Checkbox("##endofexit", &isExit)) {
                 connection = isExit ? SegID::Exit : SegID::None;
                 changed = true;
             }
-            ImGui::NextColumn();
         }
 
-        ImGui::Separator();
         TextureProperties("Base Texture", side.TMap, false);
         TextureProperties("Overlay Texture", side.TMap2, true);
         changed |= SideLighting(seg, side);

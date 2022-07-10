@@ -41,6 +41,24 @@ namespace ImGui {
         ImGui::NextColumn();
     }
 
+    template<class...TArgs>
+    void TableRowLabel(const char* label, TArgs&& ...args) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();   // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
+        ImGui::Text(label, std::forward<TArgs>(args)...);
+        ImGui::TableNextColumn();
+    }
+
+    template<class...TArgs>
+    void TableRowLabelEx(const char* label, const char* desc, TArgs&& ...args) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();   // Text and Tree nodes are less high than framed widgets, here we add vertical spacing to make the tree lines equal high.
+        ImGui::Text(label, std::forward<TArgs>(args)...);
+        ImGui::HelpMarker(desc);
+        ImGui::TableNextColumn();
+    }
 }
 
 namespace Inferno::Editor {

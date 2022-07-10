@@ -5,57 +5,51 @@
 namespace Inferno::Editor {
 
     class ReactorEditor : public WindowBase {
-        Option<Tag> _selectedReactorTrigger;
-        bool _loaded = false;
     public:
         ReactorEditor() : WindowBase("Reactor", &Settings::Windows.Reactor) { }
     protected:
         void OnUpdate() override {
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-            ImGui::Columns(2);
-            if (!_loaded) {
-                ImGui::SetColumnWidth(0, 10);
-                _loaded = true;
-            }
+            constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_Resizable;
 
-            bool defaultStrength = Game::Level.ReactorStrength == -1;
-            auto strengthDesc = "Default strength is 200 + 50 per level.\nSecret levels are 200 + 150.";
-            ImGui::ColumnLabelEx("Default strength", strengthDesc);
-            if (ImGui::Checkbox("##defaultstrength", &defaultStrength)) {
-                Game::Level.ReactorStrength = defaultStrength ? -1 : 200;
-            }
-            ImGui::NextColumn();
+            if (ImGui::BeginTable("reactor", 2, flags)) {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-            {
-                DisableControls disable(defaultStrength);
-                ImGui::ColumnLabel("Strength");
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::InputInt("##Strength", &Game::Level.ReactorStrength, 10)) {
-                    if (Game::Level.ReactorStrength <= 0)
-                        Game::Level.ReactorStrength = 1;
+                bool defaultStrength = Game::Level.ReactorStrength == -1;
+                auto strengthDesc = "Default strength is 200 + 50 per level.\nSecret levels are 200 + 150.";
+                ImGui::TableRowLabelEx("Default strength", strengthDesc);
+                if (ImGui::Checkbox("##defaultstrength", &defaultStrength)) {
+                    Game::Level.ReactorStrength = defaultStrength ? -1 : 200;
                 }
-                ImGui::NextColumn();
+
+                {
+                    DisableControls disable(defaultStrength);
+                    ImGui::TableRowLabel("Strength");
+                    ImGui::SetNextItemWidth(-1);
+                    if (ImGui::InputInt("##Strength", &Game::Level.ReactorStrength, 10)) {
+                        if (Game::Level.ReactorStrength <= 0)
+                            Game::Level.ReactorStrength = 1;
+                    }
+                }
+
+                auto countdownDesc = "Insane: 1x\nAce: 1.5x\nHotshot: 2x\nRookie: 2.5x\nTrainee: 3x";
+                ImGui::TableRowLabelEx("Countdown", countdownDesc);
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::InputInt("##Countdown", &Game::Level.BaseReactorCountdown, 5)) {
+                    if (Game::Level.BaseReactorCountdown <= 0)
+                        Game::Level.BaseReactorCountdown = 1;
+                }
+
+                ReactorTriggers();
+
+                ImGui::EndTable();
             }
-
-            auto countdownDesc = "Insane: 1x\nAce: 1.5x\nHotshot: 2x\nRookie: 2.5x\nTrainee: 3x";
-            ImGui::ColumnLabelEx("Countdown", countdownDesc);
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::InputInt("##Countdown", &Game::Level.BaseReactorCountdown, 5)) {
-                if (Game::Level.BaseReactorCountdown <= 0)
-                    Game::Level.BaseReactorCountdown = 1;
-            }
-            ImGui::NextColumn();
-
-            ReactorTriggers();
-
-            ImGui::Columns(1);
-            ImGui::Separator();
-            ImGui::PopStyleVar();
         }
 
     private:
         void ReactorTriggers() {
-            ImGui::ColumnLabelEx("Targets to open\nwhen destroyed", "Only doors or destroyable walls are valid targets");
+            ImGui::TableRowLabelEx("Targets to open\nwhen destroyed", "Only doors or destroyable walls are valid targets");
+            
             ImGui::BeginChild("##cctriggers", { -1, 200 }, true);
 
             static int selection = 0;
@@ -71,6 +65,7 @@ namespace Inferno::Editor {
             }
 
             ImGui::EndChild();
+
             if (ImGui::Button("Add##ReactorTriggerTarget", { 100, 0 })) {
                 if (Editor::Marked.Faces.empty())
                     ShowWarningMessage(L"Please mark faces to add as targets.");
@@ -87,8 +82,6 @@ namespace Inferno::Editor {
 
                 if (selection > Game::Level.ReactorTriggers.Count()) selection--;
             }
-
-            ImGui::NextColumn();
         }
     };
 }
