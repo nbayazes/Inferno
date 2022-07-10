@@ -167,7 +167,7 @@ namespace Inferno::Editor {
                     if (ImGui::MenuItem("Go To Boss")) Commands::GoToBoss();
                     if (ImGui::MenuItem("Go To Exit")) Commands::GoToExit();
                     if (ImGui::MenuItem("Go To Secret Exit", nullptr, nullptr, Game::Level.HasSecretExit())) Commands::GoToSecretExit();
-                    if (ImGui::MenuItem("Go To Secret Exit Return", nullptr, nullptr, Game::Level.HasSecretExit())) Commands::GoToSecretExitReturn();
+                    if (ImGui::MenuItem("Go To Secret Exit Return", nullptr, nullptr, Game::Level.IsDescent2() && Game::Level.HasSecretExit())) Commands::GoToSecretExitReturn();
                     if (ImGui::MenuItem("Go To Segment...", "Ctrl+G"))
                         Events::ShowDialog(DialogType::GotoSegment);
                     ImGui::EndMenu();

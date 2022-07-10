@@ -4,6 +4,17 @@
 #include "Face.h"
 
 namespace Inferno {
+    bool Level::HasSecretExit() const {
+        for (auto& trigger : Triggers) {
+            if (IsDescent1() && trigger.HasFlag(TriggerFlagD1::SecretExit))
+                return true;
+            else if (trigger.Type == TriggerType::SecretExit)
+                return true;
+        }
+
+        return false;
+    }
+
     List<SegID> Level::SegmentsByVertex(uint i) {
         List<SegID> segments;
         auto id = SegID(0);

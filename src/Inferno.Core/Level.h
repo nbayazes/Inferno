@@ -510,12 +510,7 @@ namespace Inferno {
         // D2 level vertigo enhanced
         bool IsVertigo() const { return Version == 8; }
 
-        bool HasSecretExit() const {
-            for (auto& trigger : Triggers)
-                if (trigger.Type == TriggerType::SecretExit) return true;
-
-            return false;
-        }
+        bool HasSecretExit() const;
 
         Vector3* TryGetVertex(PointID id) {
             if (!Seq::inRange(Vertices, id)) return nullptr;
