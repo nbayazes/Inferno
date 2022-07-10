@@ -129,7 +129,7 @@ namespace Inferno::Editor {
         }
 
         for (auto& wall : level.Walls) {
-            if (wall.Trigger != TriggerID::None && wall.Trigger > id) 
+            if (wall.Trigger != TriggerID::None && wall.Trigger > id)
                 wall.Trigger--;
         }
 
@@ -240,7 +240,9 @@ namespace Inferno::Editor {
         side.TMap = tmap1;
         side.TMap2 = tmap2;
 
-        ResetUVs(level, tag, Editor::Selection.Point);
+        if (type != WallType::WallTrigger)
+            ResetUVs(level, tag, Editor::Selection.Point);
+
         FixWallClip(level, wallId);
 
         Events::LevelChanged();
