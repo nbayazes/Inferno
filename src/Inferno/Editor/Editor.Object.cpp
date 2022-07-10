@@ -49,7 +49,7 @@ namespace Inferno::Editor {
         return true;
     }
 
-    int GetObjectCount(Level& level, ObjectType type) {
+    int GetObjectCount(const Level& level, ObjectType type) {
         int i = 0;
         for (auto& obj : level.Objects)
             if (obj.Type == type) i++;
