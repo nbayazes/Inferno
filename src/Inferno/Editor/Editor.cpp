@@ -414,14 +414,42 @@ namespace Inferno::Editor {
         ResetAutosaveTimer();
     }
 
-    void CheckDegenerateSegments() {
+    void CheckDegenerateSegments(Level& level) {
         SegID id{};
 
-        for (auto& seg : Game::Level.Segments) {
-            if (SegmentIsDegenerate(Game::Level, seg)) {
+        for (auto& seg : level.Segments) {
+            if (SegmentIsDegenerate(level, seg)) {
                 SPDLOG_WARN("Segment {} is degenerate", id);
             }
             id++;
+        }
+    }
+
+    void RelinkWalls(Level& level) {
+        for (int segid = 0; segid < level.Segments.size(); segid++) {
+            for (auto& sid : SideIDs) {
+                Tag tag((SegID)segid, sid);
+                auto& side = level.GetSide(tag);
+                if (side.Wall == WallID::None) continue;
+
+                if (auto wall = level.TryGetWall(side.Wall)) {
+                    if (wall->Tag != tag) {
+                        SPDLOG_WARN("Fixing mismatched wall tag on segment {}:{}", (int)tag.Segment, (int)tag.Side);
+                        wall->Tag = tag;
+
+                        if (wall->Type == WallType::Door || wall->Type == WallType::Destroyable) {
+                            // Try to restore the correct wall clip
+                            wall->Clip = Resources::GetWallClipID(side.TMap2);
+                            if (wall->Clip == WClipID::None)
+                                wall->Clip = Resources::GetWallClipID(side.TMap);
+                        }
+                    }
+                }
+                else {
+                    SPDLOG_WARN("Removing wall {} from {}:{} because it doesn't exist", (int)side.Wall, (int)tag.Segment, (int)tag.Side);
+                    side.Wall = WallID::None;
+                }
+            }
         }
     }
 
@@ -447,7 +475,7 @@ namespace Inferno::Editor {
             }
         }
 
-        CheckDegenerateSegments();
+        RelinkWalls(level);
     }
 
 
