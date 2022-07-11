@@ -786,6 +786,8 @@ namespace Inferno {
             }
         }
 
+        bool CanAddMatcen() { return Matcens.size() < Limits.Matcens; }
+
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);
     };

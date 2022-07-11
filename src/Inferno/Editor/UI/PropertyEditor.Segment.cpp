@@ -857,8 +857,18 @@ namespace Inferno::Editor {
 
         ImGui::TableRowLabel("Segment type");
         auto segType = seg.Type;
-        if (SegmentTypeDropdown(segType))
-            Commands::SetSegmentType(segType);
+        if (SegmentTypeDropdown(segType)) {
+            if (segType == SegmentType::Matcen && !Game::Level.CanAddMatcen()) {
+                ShowWarningMessage(L"Maximum number of matcens reached");
+            }
+            else {
+                SetSegmentType(Game::Level, Selection.Tag(), segType);
+                for (auto& seg : GetSelectedSegments())
+                    SetSegmentType(Game::Level, { seg, Selection.Side }, segType);
+
+                Editor::History.SnapshotLevel("Set segment type");
+            }
+        }
 
         if (seg.Type == SegmentType::Matcen)
             MatcenProperties(seg.Matcen, _matcenEditor);

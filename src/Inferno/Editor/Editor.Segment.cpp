@@ -9,15 +9,6 @@
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {
-    bool CheckLevelForReactor(Level& level) {
-        if (level.GetSegmentCount(SegmentType::Reactor) > 0) {
-            ShowWarningMessage(L"Level already has a reactor");
-            return true;
-        }
-
-        return false;
-    }
-
     void RemoveMatcen(Level& level, MatcenID id) {
         if (id == MatcenID::None) return;
 
@@ -28,11 +19,9 @@ namespace Inferno::Editor {
             Seq::removeAt(level.Matcens, (int)id);
     }
 
-    void AddMatcen(Level& level, Tag tag) {
-        if (level.Matcens.size() + 1 >= level.Limits.Matcens) {
-            ShowWarningMessage(L"Out of room for matcens");
-            return;
-        }
+
+    bool AddMatcen(Level& level, Tag tag) {
+        if (!level.CanAddMatcen()) return false;
 
         if (auto seg = level.TryGetSegment(tag)) {
             seg->Type = SegmentType::Matcen;
@@ -40,32 +29,31 @@ namespace Inferno::Editor {
             auto& m = level.Matcens.emplace_back();
             m.Segment = tag.Segment;
         }
+
+        return true;
     }
 
-    void Commands::SetSegmentType(SegmentType type) {
-        auto& level = Game::Level;
-        auto tag = Editor::Selection.PointTag();
-
-        if (!level.SegmentExists(tag)) return;
+    bool SetSegmentType(Level& level, Tag tag, SegmentType type) {
+        if (!level.SegmentExists(tag)) return false;
         auto& seg = level.GetSegment(tag);
-        if (seg.Type == type) return;
+        if (seg.Type == type) return false; // don't change segs already of this type
 
         if (seg.Type == SegmentType::Matcen)
             RemoveMatcen(level, seg.Matcen);
 
         if (type == SegmentType::Reactor) {
-            if (CheckLevelForReactor(level)) return;
-            Editor::AddObject(level, tag, ObjectType::Reactor);
+            // Add a reactor if one doesn't exist
+            if (!Seq::findIndex(level.Objects, IsReactor))
+                Editor::AddObject(level, { tag, 0 }, ObjectType::Reactor);
         }
         else if (type == SegmentType::Matcen) {
-            Editor::AddMatcen(level, tag);
+            if (!Editor::AddMatcen(level, tag))
+                return false;
         }
 
         seg.Type = type;
-
-        Editor::History.SnapshotLevel("Set segment type");
+        return true;
     }
-
 
     // Shifts any segment references greater or equal to ref by value.
     // For use with delete / undo
@@ -670,10 +658,10 @@ namespace Inferno::Editor {
 
         auto tmap = level.IsDescent1() ? LevelTexID(339) : LevelTexID(361);
         auto id = Editor::AddSpecialSegment(level, tag, SegmentType::Matcen, tmap);
-        Editor::AddMatcen(level, { id, tag.Side });
-
-        Editor::History.SnapshotLevel("Add Matcen");
-        Events::LevelChanged();
+        if (Editor::AddMatcen(level, { id, tag.Side })) {
+            Editor::History.SnapshotLevel("Add Matcen");
+            Events::LevelChanged();
+        }
     }
 
     void Commands::AddReactor() {
@@ -681,7 +669,10 @@ namespace Inferno::Editor {
         auto tag = Editor::Selection.Tag();
         if (level.HasConnection(tag)) return;
 
-        if (CheckLevelForReactor(level)) return;
+        if (Seq::findIndex(Game::Level.Objects, IsReactor)) {
+            SetStatusMessageWarn("Level already contains a reactor");
+            return;
+        }
 
         auto tmap = level.IsDescent1() ? LevelTexID(337) : LevelTexID(359);
         auto id = Editor::AddSpecialSegment(level, tag, SegmentType::Reactor, tmap);
