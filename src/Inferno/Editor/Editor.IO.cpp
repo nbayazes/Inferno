@@ -39,6 +39,27 @@ namespace Inferno::Editor {
     }
 
     void FixWalls(Level& level) {
+        // Relink walls
+        for (int segid = 0; segid < level.Segments.size(); segid++) {
+            for (auto& sid : SideIDs) {
+                Tag tag((SegID)segid, sid);
+                auto& side = level.GetSide(tag);
+                if (side.Wall == WallID::None) continue;
+
+                if (auto wall = level.TryGetWall(side.Wall)) {
+                    if (wall->Tag != tag) {
+                        SPDLOG_WARN("Fixing mismatched wall tag on segment {}:{}", (int)tag.Segment, (int)tag.Side);
+                        wall->Tag = tag;
+                    }
+                }
+                else {
+                    SPDLOG_WARN("Removing wall {} from {}:{} because it doesn't exist", (int)side.Wall, (int)tag.Segment, (int)tag.Side);
+                    side.Wall = WallID::None;
+                }
+            }
+        }
+
+        // Fix VClip 2
         for (int id = 0; id < level.Walls.size(); id++) {
             auto& wall = level.GetWall((WallID)id);
             wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
