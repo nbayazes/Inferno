@@ -5,18 +5,16 @@
 #include "Editor.Texture.h"
 
 namespace Inferno::Editor {
-    bool FixWallClip(Level& level, WallID wid) {
-        auto wall = level.TryGetWall(wid);
-        if (!wall) return false;
-        if (!Game::Level.SegmentExists(wall->Tag)) return false;
-        auto& side = Game::Level.GetSide(wall->Tag);
+    bool FixWallClip(Level& level, Wall& wall) {
+        if (!Game::Level.SegmentExists(wall.Tag)) return false;
+        auto& side = Game::Level.GetSide(wall.Tag);
 
-        if (wall->Type == WallType::Door || wall->Type == WallType::Destroyable) {
+        if (wall.Type == WallType::Door || wall.Type == WallType::Destroyable) {
             // If a clip is selected assign it
             auto id1 = Resources::GetWallClipID(side.TMap);
             if (auto wc = Resources::TryGetWallClip(id1)) {
                 if (wc->UsesTMap1()) {
-                    wall->Clip = id1;
+                    wall.Clip = id1;
                     return true;
                 }
             }
@@ -24,16 +22,16 @@ namespace Inferno::Editor {
             auto id2 = Resources::GetWallClipID(side.TMap2);
             if (auto wc = Resources::TryGetWallClip(id2)) {
                 if (!wc->UsesTMap1()) {
-                    wall->Clip = id2;
+                    wall.Clip = id2;
                     return true;
                 }
             }
 
-            SPDLOG_WARN("Door at {}:{} has no texture applied with a valid wall clip. Defaulting to 0", wall->Tag.Segment, wall->Tag.Side);
-            wall->Clip = WClipID(0);
+            SPDLOG_WARN("Door at {}:{} has no texture applied with a valid wall clip. Defaulting to 0", wall.Tag.Segment, wall.Tag.Side);
+            wall.Clip = WClipID(0);
         }
         else {
-            wall->Clip = WClipID::None;
+            wall.Clip = WClipID::None;
         }
 
         return true;
@@ -243,7 +241,7 @@ namespace Inferno::Editor {
         if (type != WallType::WallTrigger)
             ResetUVs(level, tag, Editor::Selection.Point);
 
-        FixWallClip(level, wallId);
+        FixWallClip(level, wall);
 
         Events::LevelChanged();
         Events::TexturesChanged();

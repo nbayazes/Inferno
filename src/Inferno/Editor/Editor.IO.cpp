@@ -42,7 +42,10 @@ namespace Inferno::Editor {
         for (int id = 0; id < level.Walls.size(); id++) {
             auto& wall = level.GetWall((WallID)id);
             wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
-            //FixWallClip(level, (WallID)id);
+            if (wall.Clip == WClipID(2)) { // ID 2 is bad and has no animation
+                if (FixWallClip(level, wall))
+                    SPDLOG_WARN("Fixed invalid wall clip on {}:{}", wall.Tag.Segment, wall.Tag.Side);
+            }
         }
     }
 
@@ -72,7 +75,7 @@ namespace Inferno::Editor {
 
     void FixMatcens(Level& level) {
         List<Matcen> matcens = level.Matcens;
-        
+
         // Matcens must be sorted ascending order
         Seq::sortBy(matcens, [](Matcen& a, Matcen& b) { return a.Segment < b.Segment; });
 
