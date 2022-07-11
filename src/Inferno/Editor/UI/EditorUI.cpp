@@ -381,7 +381,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextItemWidth(80);
             auto snap = Settings::TranslationSnap;
-            if (ImGui::InputFloat("##translation", &snap, 0, 0, "%.1f"))
+            if (ImGui::InputFloat("##translation", &snap, 0, 0, "%.2f"))
                 Settings::TranslationSnap = std::clamp(snap, 0.0f, 20.0f);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Translation snapping");
 
@@ -390,11 +390,11 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110, 0 });
             if (ImGui::BeginCombo("##drp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static const float snapValues[] = { 0, 1, 2.5f, 5, 10, 20 };
-                for (auto& value : snapValues) {
-                    auto label = fmt::format("{:.1f}", value);
+                static const float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
+                for (int i = 0; i < std::size(snapValues); i++) {
+                    auto label = i == 1 ? "Pixel" : fmt::format("{:.1f}", snapValues[i]);
                     if (ImGui::Selectable(label.c_str()))
-                        Settings::TranslationSnap = value;
+                        Settings::TranslationSnap = snapValues[i];
                 }
                 ImGui::EndCombo();
             }
@@ -426,12 +426,12 @@ namespace Inferno::Editor {
                         Settings::TranslationSnap = value;
                         //isOpen = false;
                         //ImGui::CloseCurrentPopup();
-        }
-    }
+                    }
+                }
                 ImGui::PopAllowKeyboardFocus();
                 ImGui::End();
                 //ImGui::ActivateItem();
-}
+            }
 
             if (ImGui::IsItemDeactivated())
                 isOpen = false;
