@@ -8,6 +8,7 @@
 #include "Editor/TunnelBuilder.h"
 #include "Settings.h"
 #include "Editor/Editor.Object.h"
+#include "Editor/UI/EditorUI.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -380,8 +381,10 @@ namespace Inferno::Render {
         if (Input::GetMouselook())
             Debug::DrawCrosshair(Settings::CrosshairSize);
 
-        auto size = Render::Adapter->GetOutputSize();
-        Render::DrawCenteredString(level.Name, (float)size.right / 2, 110, FontSize::Big);
+        {
+            auto size = Render::Adapter->GetOutputSize();
+            Render::DrawCenteredString(level.Name, (float)size.right / 2, Editor::TopToolbarOffset, FontSize::Big);
+        }
 
         //{
         //    auto tag = Editor::Selection.PointTag();

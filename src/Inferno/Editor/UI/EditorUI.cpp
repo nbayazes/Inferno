@@ -374,6 +374,8 @@ namespace Inferno::Editor {
 
         const ImVec2 buttonSize = { 75, 0 };
 
+        auto startY = ImGui::GetCursorPosY();
+
         {
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Snap");
@@ -629,6 +631,8 @@ namespace Inferno::Editor {
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Align the global csys to the selected side and edge");
         }
 
+        Editor::TopToolbarOffset = TopToolbarHeight + ImGui::GetCursorPosY() - startY;
+
         ImGui::End();
         ImGui::PopStyleVar(2);
     }
@@ -803,9 +807,6 @@ namespace Inferno::Editor {
             ImGui::DockBuilderDockWindow(_textureBrowser.Name(), leftPanel);
             ImGui::DockBuilderDockWindow(_propertyEditor.Name(), rightPanel);
             ImGui::DockBuilderFinish(dockspace_id);
-
-
-
             return ImGui::DockBuilderGetNode(dockspace_id);
         }
         else {
