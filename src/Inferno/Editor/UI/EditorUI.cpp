@@ -322,6 +322,10 @@ namespace Inferno::Editor {
                 ImGui::Separator();
                 if (ImGui::MenuItem("Clean level"))
                     Commands::CleanLevel();
+
+                if (ImGui::MenuItem("Check for errors"))
+                    CheckLevelForErrors(Game::Level);
+
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))

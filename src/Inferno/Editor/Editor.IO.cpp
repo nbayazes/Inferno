@@ -14,36 +14,6 @@
 namespace Inferno::Editor {
     constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
 
-    bool HasExitConnection(const Level& level) {
-        for (auto& seg : level.Segments) {
-            for (auto& c : seg.Connections) {
-                if (c == SegID::Exit) return true;
-            }
-        }
-
-        return false;
-    }
-
-    void DoImportantSaveChecks(const Level& level) {
-        wstring warnings;
-
-        if (GetObjectCount(level, ObjectType::Player) == 0) {
-            warnings += L"Level does not contain a player start!\n\n";
-        }
-
-        auto boss = Seq::findIndex(Game::Level.Objects, IsBossRobot);
-        auto reactor = Seq::findIndex(Game::Level.Objects, IsReactor);
-
-        if ((boss || reactor) && !HasExitConnection(level)) {
-            warnings +=
-                L"Level has a boss or reactor but no end of exit tunnel is marked. "
-                L"This will crash some versions of Descent at end of level.";
-        }
-
-        if (!warnings.empty())
-            ShowWarningMessage(warnings);
-    }
-
     void FixObjects(Level& level) {
         bool hasPlayerStart = GetObjectCount(level, ObjectType::Player) > 0;
 
@@ -114,12 +84,9 @@ namespace Inferno::Editor {
         }
     }
 
-    size_t SaveLevel(Level& level, StreamWriter& writer, bool autosave = false) {
+    size_t SaveLevel(Level& level, StreamWriter& writer) {
         if (level.Walls.size() >= (int)WallID::Max)
             throw Exception("Cannot save a level with more than 254 walls");
-
-        if (!autosave)
-            DoImportantSaveChecks(level);
 
         DisableFlickeringLights(level);
         ResetFlickeringLightTimers(level);
@@ -146,7 +113,7 @@ namespace Inferno::Editor {
             // Write to temp file
             std::ofstream file(temp, std::ios::binary);
             StreamWriter writer(file, false);
-            SaveLevel(Game::Level, writer, autosave);
+            SaveLevel(Game::Level, writer);
         }
 
         if (filesystem::exists(path)) {

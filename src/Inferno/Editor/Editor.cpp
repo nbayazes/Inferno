@@ -64,6 +64,40 @@ namespace Inferno::Editor {
         Editor::Selection.SetSelection(nearby);
     }
 
+    bool HasExitConnection(const Level& level) {
+        for (auto& seg : level.Segments) {
+            for (auto& c : seg.Connections) {
+                if (c == SegID::Exit) return true;
+            }
+        }
+
+        return false;
+    }
+
+    void CheckLevelForErrors(const Level& level) {
+        wstring warnings;
+
+        if (GetObjectCount(level, ObjectType::Player) == 0) {
+            warnings += L"Level does not contain a player start!\n\n";
+        }
+
+        auto boss = Seq::findIndex(Game::Level.Objects, IsBossRobot);
+        auto reactor = Seq::findIndex(Game::Level.Objects, IsReactor);
+
+        if ((boss || reactor) && !HasExitConnection(level)) {
+            warnings +=
+                L"Level has a boss or reactor but no end of exit tunnel is marked. "
+                L"This will crash some versions of Descent at end of level.";
+        }
+
+        constexpr auto title = L"Level Error Check";
+
+        if (warnings.empty())
+            ShowOkMessage(L"No errors found", title);
+        else
+            ShowWarningMessage(warnings, title);
+    }
+
     void OnDelete() {
         if (Editor::Gizmo.State == GizmoState::Dragging) return;
 
