@@ -42,7 +42,7 @@ namespace Inferno::Editor {
         for (int id = 0; id < level.Walls.size(); id++) {
             auto& wall = level.GetWall((WallID)id);
             wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
-            FixWallClip(level, (WallID)id);
+            //FixWallClip(level, (WallID)id);
         }
     }
 
@@ -66,6 +66,25 @@ namespace Inferno::Editor {
                 SPDLOG_WARN("Removing invalid reactor trigger target. {}:{}", tag.Segment, tag.Side);
                 tag = {};
                 level.ReactorTriggers.Remove(t);
+            }
+        }
+    }
+
+    void FixMatcens(Level& level) {
+        List<Matcen> matcens = level.Matcens;
+        
+        // Matcens must be sorted ascending order
+        Seq::sortBy(matcens, [](Matcen& a, Matcen& b) { return a.Segment < b.Segment; });
+
+        level.Matcens.clear();
+
+        for (int i = 0; i < matcens.size(); i++) {
+            if (auto seg = level.TryGetSegment(matcens[i].Segment)) {
+                seg->Matcen = MatcenID(i);
+                level.Matcens.push_back(matcens[i]);
+            }
+            else {
+                SPDLOG_WARN("Removing orphan matcen id {}", i);
             }
         }
     }
@@ -94,6 +113,7 @@ namespace Inferno::Editor {
         FixWalls(level);
         FixTriggers(level);
         SetPlayerStartIDs(level);
+        FixMatcens(level);
         //WeldVertices(level);
 
         if (!level.SegmentExists(level.SecretExitReturn))

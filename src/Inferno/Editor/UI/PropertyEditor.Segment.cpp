@@ -647,6 +647,7 @@ namespace Inferno::Editor {
             if (wall) {
                 ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", id);
+                //ImGui::Text("%i Seg %i:%i", id, wall->Tag.Segment, wall->Tag.Side);
 
                 ImGui::TableRowLabel("Edit both sides");
                 ImGui::Checkbox("##bothsides", &Settings::EditBothWallSides);
