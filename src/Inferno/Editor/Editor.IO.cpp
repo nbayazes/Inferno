@@ -114,11 +114,13 @@ namespace Inferno::Editor {
         }
     }
 
-    size_t SaveLevel(Level& level, StreamWriter& writer) {
+    size_t SaveLevel(Level& level, StreamWriter& writer, bool autosave = false) {
         if (level.Walls.size() >= (int)WallID::Max)
             throw Exception("Cannot save a level with more than 254 walls");
 
-        DoImportantSaveChecks(level);
+        if (!autosave)
+            DoImportantSaveChecks(level);
+
         DisableFlickeringLights(level);
         ResetFlickeringLightTimers(level);
         FixObjects(level);
@@ -134,7 +136,7 @@ namespace Inferno::Editor {
     }
 
     // Saves a level to the file system
-    void SaveLevelToPath(std::filesystem::path path, bool updateLevelPath = true) {
+    void SaveLevelToPath(std::filesystem::path path, bool autosave = false) {
         CleanLevel(Game::Level);
 
         filesystem::path temp = path;
@@ -144,7 +146,7 @@ namespace Inferno::Editor {
             // Write to temp file
             std::ofstream file(temp, std::ios::binary);
             StreamWriter writer(file, false);
-            SaveLevel(Game::Level, writer);
+            SaveLevel(Game::Level, writer, autosave);
         }
 
         if (filesystem::exists(path)) {
@@ -164,7 +166,7 @@ namespace Inferno::Editor {
         SaveLevelMetadata(Game::Level, metadata);
         SetStatusMessage(L"Saved level to {}", path.wstring());
 
-        if (updateLevelPath) {
+        if (!autosave) {
             Editor::History.UpdateCleanSnapshot();
             Game::Level.Path = path;
             Game::Level.FileName = path.filename().string();
@@ -444,7 +446,6 @@ namespace Inferno::Editor {
         Editor::History.Reset(); // Undo / redo could cause models to get loaded without the proper data
     }
 
-
     double _nextAutosave = FLT_MAX;
 
     void ResetAutosaveTimer() {
@@ -463,7 +464,7 @@ namespace Inferno::Editor {
                     Game::Mission->SaveCopy(backupPath);
                 }
                 else {
-                    SaveLevelToPath(backupPath, false);
+                    SaveLevelToPath(backupPath, true);
                 }
 
                 ResetAutosaveTimer();
