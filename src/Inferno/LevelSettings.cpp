@@ -39,6 +39,8 @@ namespace Inferno {
     }
 
     void ReadSideInfo(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
         for (const auto& child : node.children()) {
             Tag tag;
             ReadValue(child["Tag"], tag);
@@ -68,6 +70,35 @@ namespace Inferno {
         }
     }
 
+    void SaveSegmentInfo(ryml::NodeRef node, const Level& level) {
+        node |= ryml::SEQ;
+
+        for (int segid = 0; segid < level.Segments.size(); segid++) {
+            auto& seg = level.Segments[segid];
+
+            if (seg.LockVolumeLight) {
+                auto child = node.append_child();
+                child |= ryml::MAP;
+                child["ID"] << segid;
+                child["LockVolumeLight"] << seg.LockVolumeLight;
+            }
+        }
+    }
+
+    void ReadSegmentInfo(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
+        for (const auto& child : node.children()) {
+            int id;
+            ReadValue(child["ID"], id);
+
+            if (auto seg = level.TryGetSegment(SegID(id))) {
+                if (child.has_child("LockVolumeLight"))
+                    ReadValue(child["LockVolumeLight"], seg->LockVolumeLight);
+            }
+        }
+    }
+
     void SaveWallInfo(ryml::NodeRef node, const Level& level) {
         node |= ryml::SEQ;
 
@@ -83,6 +114,8 @@ namespace Inferno {
     }
 
     void ReadWallInfo(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
         for (const auto& child : node.children()) {
             WallID id = WallID::None;
             ReadValue(child["ID"], (int16&)id);
@@ -102,6 +135,7 @@ namespace Inferno {
 
             if (root.is_map()) {
                 Settings::Lighting = Settings::LoadLightSettings(root["Lighting"]);
+                ReadSegmentInfo(root["Segments"], level);
                 ReadSideInfo(root["Sides"], level);
                 ReadWallInfo(root["Walls"], level);
             }
@@ -111,7 +145,6 @@ namespace Inferno {
         }
     }
 
-
     void SaveLevelMetadata(const Level& level, std::ostream& stream) {
         try {
             ryml::Tree doc(30, 128);
@@ -119,6 +152,7 @@ namespace Inferno {
 
             doc["Version"] << 1;
             Settings::SaveLightSettings(doc["Lighting"]);
+            SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);
             stream << doc;

@@ -324,7 +324,7 @@ namespace Inferno::Editor {
     }
 
     bool SideLighting(Segment& seg, SegmentSide& side) {
-        bool open = TableBeginTreeNode("Lighting");
+        bool open = TableBeginTreeNode("Light override");
         bool changed = false;
 
         if (open) {
@@ -442,11 +442,19 @@ namespace Inferno::Editor {
             VertexLightSlider("Point 2", 2);
             VertexLightSlider("Point 3", 3);
 
-            ImGui::TableRowLabel("Volume");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
-                changed = true;
+            {
+                // Volume light
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Checkbox("Volume", &seg.LockVolumeLight);
+
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-1);
+                DisableControls disable(!seg.LockVolumeLight);
+                if (ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float))
+                    changed = true;
             }
+
             ImGui::TreePop();
         }
 

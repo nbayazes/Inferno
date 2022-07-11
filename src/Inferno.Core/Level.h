@@ -170,6 +170,7 @@ namespace Inferno {
         uint8 LightSubtracted;
         //uint8 SlideTextures;
         Color VolumeLight = { 1, 1, 1 };
+        bool LockVolumeLight; // Locks volume light from being updated
         Vector3 Center;
 
         constexpr SegID GetConnection(SideID side) const { return Connections[(int)side]; }
