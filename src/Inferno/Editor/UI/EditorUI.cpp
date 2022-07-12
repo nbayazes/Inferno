@@ -678,6 +678,7 @@ namespace Inferno::Editor {
                 case SelectionMode::Object:
                     MenuCommand(Commands::MoveObjectToSide);
                     MenuCommand(Commands::MoveObjectToSegment);
+                    MenuCommand(Commands::MoveObjectToUserCSys);
                     ImGui::Separator();
                     break;
             }
