@@ -207,7 +207,8 @@ namespace Inferno::Render {
                         trigger->HasFlag(TriggerFlagD1::Matcen) :
                         trigger->Type == TriggerType::Matcen;
 
-                    if (isMatcenTrigger) {
+                    // Check that the target is actually a matcen (for D1)
+                    if (isMatcenTrigger && targetSeg.Matcen != MatcenID::None) {
                         auto segVerts = targetSeg.GetVertices(level);
                         targetCenter = AverageVectors(segVerts);
                         arrowColor = Colors::Matcen;
