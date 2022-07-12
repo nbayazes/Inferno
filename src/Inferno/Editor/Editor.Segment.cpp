@@ -844,8 +844,9 @@ namespace Inferno::Editor {
             if (c == SegID::None) continue;
 
             newSeg = c;
-            if (auto cside = level.TryGetConnectedSide(id, c))
-                newSide = *cside;
+            auto cside = level.GetConnectedSide(id, c);
+            if (cside != SideID::None)
+                newSide = cside;
 
             if (id < newSeg)
                 newSeg--;

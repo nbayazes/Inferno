@@ -10,139 +10,18 @@
 #include "Editor.Wall.h"
 #include "Editor.h"
 #include "Graphics/Render.h"
+#include "Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
     constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
-
-    void FixObjects(Level& level) {
-        bool hasPlayerStart = GetObjectCount(level, ObjectType::Player) > 0;
-
-        if (hasPlayerStart) {
-            if (level.Objects[0].Type != ObjectType::Player) {
-                SPDLOG_WARN("Level contains a player start but it was not the first object. Swapping objects.");
-                auto index = Seq::findIndex(level.Objects, [](Object& obj) { return obj.Type == ObjectType::Player; });
-                std::swap(level.Objects[0], level.Objects[*index]);
-                Events::SelectObject();
-            }
-        }
-
-        for (int id = 0; id < level.Objects.size(); id++) {
-            auto& obj = level.GetObject((ObjID)id);
-            if (obj.Type == ObjectType::Weapon) {
-                obj.Control.Weapon.Parent = (ObjID)id;
-                obj.Control.Weapon.ParentSig = (ObjSig)id;
-                obj.Control.Weapon.ParentType = obj.Type;
-            }
-
-            NormalizeObjectVectors(obj);
-        }
-    }
-
-    void FixWalls(Level& level) {
-        // Relink walls
-        for (int segid = 0; segid < level.Segments.size(); segid++) {
-            for (auto& sid : SideIDs) {
-                Tag tag((SegID)segid, sid);
-                auto& side = level.GetSide(tag);
-                if (side.Wall == WallID::None) continue;
-
-                if (auto wall = level.TryGetWall(side.Wall)) {
-                    if (wall->Tag != tag) {
-                        SPDLOG_WARN("Fixing mismatched wall tag on segment {}:{}", (int)tag.Segment, (int)tag.Side);
-                        wall->Tag = tag;
-                    }
-                }
-                else {
-                    SPDLOG_WARN("Removing wall {} from {}:{} because it doesn't exist", (int)side.Wall, (int)tag.Segment, (int)tag.Side);
-                    side.Wall = WallID::None;
-                }
-            }
-        }
-
-        // Fix VClip 2
-        for (int id = 0; id < level.Walls.size(); id++) {
-            auto& wall = level.GetWall((WallID)id);
-            wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
-            if (wall.Clip == WClipID(2)) { // ID 2 is bad and has no animation
-                if (FixWallClip(level, wall))
-                    SPDLOG_WARN("Fixed invalid wall clip on {}:{}", wall.Tag.Segment, wall.Tag.Side);
-            }
-        }
-    }
-
-    void FixTriggers(Level& level) {
-        for (int id = 0; id < level.Triggers.size(); id++) {
-            auto& trigger = level.GetTrigger((TriggerID)id);
-
-            for (int t = (int)trigger.Targets.Count() - 1; t > 0; t--) {
-                auto& tag = trigger.Targets[t];
-                if (!level.SegmentExists(tag)) {
-                    SPDLOG_WARN("Removing invalid trigger target. TID: {} - {}:{}", id, tag.Segment, tag.Side);
-                    tag = {};
-                    trigger.Targets.Remove(t);
-                }
-            }
-        }
-
-        for (int t = (int)level.ReactorTriggers.Count() - 1; t > 0; t--) {
-            auto& tag = level.ReactorTriggers[t];
-            if (!level.SegmentExists(tag)) {
-                SPDLOG_WARN("Removing invalid reactor trigger target. {}:{}", tag.Segment, tag.Side);
-                tag = {};
-                level.ReactorTriggers.Remove(t);
-            }
-        }
-    }
-
-    void FixMatcens(Level& level) {
-        List<Matcen> matcens = level.Matcens;
-
-        // Matcens must be sorted ascending order
-        Seq::sortBy(matcens, [](Matcen& a, Matcen& b) { return a.Segment < b.Segment; });
-
-        level.Matcens.clear();
-
-        for (int i = 0; i < matcens.size(); i++) {
-            if (auto seg = level.TryGetSegment(matcens[i].Segment)) {
-                seg->Matcen = MatcenID(i);
-                level.Matcens.push_back(matcens[i]);
-            }
-            else {
-                SPDLOG_WARN("Removing orphan matcen id {}", i);
-            }
-        }
-    }
-
-    void SetPlayerStartIDs(Level& level) {
-        int8 id = 0;
-        for (auto& i : level.Objects) {
-            if (i.Type == ObjectType::Player)
-                i.ID = id++;
-        }
-
-        id = 8; // it's unclear if setting co-op IDs is necessary, but do it anyway.
-        for (auto& i : level.Objects) {
-            if (i.Type == ObjectType::Coop)
-                i.ID = id++;
-        }
-    }
-
+   
     size_t SaveLevel(Level& level, StreamWriter& writer) {
         if (level.Walls.size() >= (int)WallID::Max)
             throw Exception("Cannot save a level with more than 254 walls");
 
         DisableFlickeringLights(level);
         ResetFlickeringLightTimers(level);
-        FixObjects(level);
-        FixWalls(level);
-        FixTriggers(level);
-        SetPlayerStartIDs(level);
-        FixMatcens(level);
-        //WeldVertices(level);
-
-        if (!level.SegmentExists(level.SecretExitReturn))
-            level.SecretExitReturn = SegID(0);
-
+        FixLevel(level);
         return level.Serialize(writer);
     }
 

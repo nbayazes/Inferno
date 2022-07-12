@@ -5,7 +5,7 @@
 #include "Editor.Texture.h"
 
 namespace Inferno::Editor {
-    bool FixWallClip(Level& level, Wall& wall) {
+    bool FixWallClip(Wall& wall) {
         if (!Game::Level.SegmentExists(wall.Tag)) return false;
         auto& side = Game::Level.GetSide(wall.Tag);
 
@@ -241,7 +241,7 @@ namespace Inferno::Editor {
         if (type != WallType::WallTrigger)
             ResetUVs(level, tag, Editor::Selection.Point);
 
-        FixWallClip(level, wall);
+        FixWallClip(wall);
 
         Events::LevelChanged();
         Events::TexturesChanged();

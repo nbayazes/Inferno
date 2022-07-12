@@ -603,16 +603,18 @@ namespace Inferno {
         Wall* TryGetWall(WallID id) { return (Wall*)std::as_const(*this).TryGetWall(id); }
 
         // Tries to get the side connecting the two segments
-        Option<SideID> TryGetConnectedSide(SegID baseId, SegID otherId) const {
-            if (!SegmentExists(otherId)) return {};
-            auto& other = GetSegment(otherId);
+        SideID GetConnectedSide(SegID src, SegID dst) const {
+            if (!SegmentExists(src) || !SegmentExists(dst)) 
+                return SideID::None;
+
+            auto& other = GetSegment(dst);
 
             for (auto& side : SideIDs) {
-                if (other.GetConnection(side) == baseId)
-                    return { side };
+                if (other.GetConnection(side) == src)
+                    return side;
             }
 
-            return {};
+            return SideID::None;
         }
 
         // Gets the connected side of the other segment
