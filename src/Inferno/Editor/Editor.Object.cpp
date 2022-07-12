@@ -233,6 +233,7 @@ namespace Inferno::Editor {
 
         Selection.SetSelection(id);
         AlignObjectToSide(level, id, tag, true);
+        Editor::Gizmo.UpdatePosition();
 
         Events::TexturesChanged();
         return id;
