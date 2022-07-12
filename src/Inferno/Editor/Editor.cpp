@@ -362,7 +362,7 @@ namespace Inferno::Editor {
         }
 
         if (indices.empty()) return;
-        center /= indices.size();
+        center /= (float)indices.size();
         UserCSys.Translation(center);
         Editor::Gizmo.UpdatePosition();
     }

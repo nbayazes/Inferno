@@ -566,7 +566,6 @@ namespace Inferno::Editor {
                 ImGui::Text("Coordinate system");
                 ImGui::Dummy({ 200, 0 });
                 auto csys = Settings::CoordinateSystem;
-                bool useLocal = Settings::CoordinateSystem == CoordinateSystem::Local;
 
                 if (ImGui::RadioButton(csysModes[0], csys == CoordinateSystem::Local))
                     csys = CoordinateSystem::Local;

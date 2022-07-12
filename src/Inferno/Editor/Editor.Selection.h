@@ -78,14 +78,14 @@ namespace Inferno::Editor {
         }
 
         void NextPoint() {
-            Point++;
-            if (Point > 3) Point = 0;
+            if (Point == 3) Point = 0;
+            else Point++;
             SetSelection({ Segment, Side });
         }
 
         void PreviousPoint() {
-            Point--;
-            if (Point < 0) Point = 3;
+            if (Point == 0) Point = 3;
+            else Point--;
             SetSelection({ Segment, Side });
         }
 

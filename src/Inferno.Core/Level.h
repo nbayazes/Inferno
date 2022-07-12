@@ -226,7 +226,7 @@ namespace Inferno {
             };
         }
 
-        PointID GetVertexIndex(SideID side, int16 point) {
+        PointID GetVertexIndex(SideID side, uint16 point) {
             auto& indices = Inferno::SideIndices[(int)side];
             return Indices[indices[point % 4]];
         }
