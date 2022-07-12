@@ -279,7 +279,6 @@ namespace Inferno::Editor {
                 o.Contains = obj.Contains;
             });
             changed = true;
-            Editor::History.SnapshotLevel("Change object contains");
         }
 
         return changed;
@@ -347,7 +346,8 @@ namespace Inferno::Editor {
         auto& obj = Game::Level.GetObject(Selection.Object);
 
         ImGui::TableRowLabel("Segment");
-        SegmentDropdown(obj.Segment);
+        if (SegmentDropdown(obj.Segment))
+            Editor::History.SnapshotLevel("Change object segment");
 
         ImGui::TableRowLabel("Type");
         ImGui::SetNextItemWidth(-1);
@@ -398,13 +398,14 @@ namespace Inferno::Editor {
                 break;
 
             case ObjectType::Robot:
-                RobotProperties(obj);
+                if (RobotProperties(obj))
+                    Editor::History.SnapshotLevel("Change robot properties");
                 break;
 
             case ObjectType::Reactor:
                 ImGui::TableRowLabel("Model");
                 if (ReactorModelDropdown(obj))
-                    Editor::History.SnapshotLevel("Change Reactor Model");
+                    Editor::History.SnapshotLevel("Change reactor model");
 
                 break;
 
