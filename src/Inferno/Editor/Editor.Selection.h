@@ -18,8 +18,9 @@ namespace Inferno::Editor {
 
     // Transform orientations
     enum class CoordinateSystem {
+        Local, // Depends on the selection. Normal for faces, orientation for objects.
         Global, // Axis aligned csys at the origin. World Space
-        Local // Depends on the selection. Normal for faces, orientation for objects.
+        User // User defined and positioned
     };
 
     struct SelectionHit {

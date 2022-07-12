@@ -58,8 +58,8 @@ namespace Inferno {
 #pragma region Editor
         inline Editor::InsertMode InsertMode = {};
         inline Editor::SelectionMode SelectionMode = {};
-        inline float TranslationSnap = 5, RotationSnap;
-        inline Editor::CoordinateSystem CoordinateSystem = (Editor::CoordinateSystem)1;
+        inline float TranslationSnap = 5, RotationSnap = 0;
+        inline Editor::CoordinateSystem CoordinateSystem{};
 
         inline LightSettings Lighting;
         inline float MouselookSensitivity = 0.005f; // Editor mouselook

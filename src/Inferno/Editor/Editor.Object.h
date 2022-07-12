@@ -36,6 +36,7 @@ namespace Inferno::Editor {
     }
 
     namespace Commands {
-        extern Command MoveObjectToSide, MoveObjectToSegment, AddObject;
+        extern Command MoveObjectToSide, MoveObjectToSegment, MoveObjectToUserCSys;
+        extern Command AddObject;
     }
 }

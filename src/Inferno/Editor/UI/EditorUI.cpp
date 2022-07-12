@@ -216,6 +216,7 @@ namespace Inferno::Editor {
                 ImGui::Separator();
                 MenuCommand(Commands::MoveObjectToSide);
                 MenuCommand(Commands::MoveObjectToSegment);
+                MenuCommand(Commands::MoveObjectToUserCSys);
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Settings..."))
@@ -388,7 +389,7 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(80);
             auto snap = Settings::TranslationSnap;
             if (ImGui::InputFloat("##translation", &snap, 0, 0, "%.2f"))
-                Settings::TranslationSnap = std::clamp(snap, 0.0f, 20.0f);
+                Settings::TranslationSnap = std::clamp(snap, 0.0f, 1000.0f);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Translation snapping");
 
             ImGui::SameLine();
@@ -405,43 +406,6 @@ namespace Inferno::Editor {
                 ImGui::EndCombo();
             }
             ImGui::SetNextWindowSize({});
-
-#if 0
-            auto popupID = ImGui::GetID("snap-popup");
-
-            static bool isOpen = false;
-            //isOpen = ImGui::IsItemActive();
-            if (ImGui::IsItemActivated() /*&& !isOpen*/) {
-                isOpen = true;
-            }
-
-            //if (ImGui::IsItemActivated()) {
-            //    ImGui::OpenPopupEx(popupID);
-            //}
-
-            ImGui::SetNextWindowSize({ 80, 0 });
-            ImGui::SetNextWindowPos(startPos);
-
-            if (isOpen) {
-                ImGui::Begin("##translation-popup", nullptr, ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings);
-                ImGui::PushAllowKeyboardFocus(false);
-                static const float snapValues[] = { 0, 1, 2.5f, 5, 10, 20 };
-                for (auto& value : snapValues) {
-                    auto label = fmt::format("{:.1f}", value);
-                    if (ImGui::Selectable(label.c_str(), Settings::TranslationSnap == value)) {
-                        Settings::TranslationSnap = value;
-                        //isOpen = false;
-                        //ImGui::CloseCurrentPopup();
-                    }
-                }
-                ImGui::PopAllowKeyboardFocus();
-                ImGui::End();
-                //ImGui::ActivateItem();
-            }
-
-            if (ImGui::IsItemDeactivated())
-                isOpen = false;
-#endif
         }
 
         {
@@ -503,7 +467,6 @@ namespace Inferno::Editor {
                 ImGui::EndPopup();
             }
         }
-
 
         ImGui::SameLine();
         if (ImGui::GetCursorPosX() + 400 < node.Size.x) {
@@ -593,46 +556,70 @@ namespace Inferno::Editor {
         }
 
         {
-            {
-                bool useGlobal = Settings::CoordinateSystem == CoordinateSystem::Global;
-                //ImGui::SameLine();
-                if (ImGui::Checkbox("Global csys", &useGlobal)) {
-                    Settings::CoordinateSystem = useGlobal ? CoordinateSystem::Global : CoordinateSystem::Local;
+            // Coordinate system settings
+            ImGui::SetNextItemWidth(150);
+
+            static const std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
+            const ImVec2 csysBtnSize = { 150, 0 };
+
+            if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
+                ImGui::Text("Coordinate system");
+                ImGui::Dummy({ 200, 0 });
+                auto csys = Settings::CoordinateSystem;
+                bool useLocal = Settings::CoordinateSystem == CoordinateSystem::Local;
+
+                if (ImGui::RadioButton(csysModes[0], csys == CoordinateSystem::Local))
+                    csys = CoordinateSystem::Local;
+
+                if (ImGui::RadioButton(csysModes[1], csys == CoordinateSystem::Global))
+                    csys = CoordinateSystem::Global;
+
+                if (ImGui::RadioButton(csysModes[2], csys == CoordinateSystem::User))
+                    csys = CoordinateSystem::User;
+
+                // Average csys? uses geometric average of marked
+
+                if (csys != Settings::CoordinateSystem) {
+                    Settings::CoordinateSystem = csys;
                     Editor::Gizmo.UpdatePosition();
                 }
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("The global coordinate system is a user defined point for transforms.\n\nAn example is setting the rotation center of a curved tunnel.");
-            }
 
-            {
-                static SelectionMode previousMode{};
-                bool isEditing = Settings::SelectionMode == SelectionMode::Transform;
-                ImGui::SameLine();
-                if (ImGui::Button(isEditing ? "Finish" : "Edit", buttonSize)) {
-                    if (isEditing) {
-                        SetMode(previousMode);
+                {
+                    constexpr float Indent = 35;
+                    ImGui::SetCursorPosX(Indent);
+                    static SelectionMode previousMode{};
+                    bool isEditing = Settings::SelectionMode == SelectionMode::Transform;
+                    if (ImGui::Button(isEditing ? "Finish edit" : "Edit", csysBtnSize)) {
+                        if (isEditing) {
+                            SetMode(previousMode);
+                        }
+                        else {
+                            previousMode = Settings::SelectionMode;
+                            SetMode(SelectionMode::Transform);
+                        }
                     }
-                    else {
-                        previousMode = Settings::SelectionMode;
-                        SetMode(SelectionMode::Transform);
-                    }
+
+                    ImGui::SetCursorPosX(Indent);
+                    if (ImGui::Button("Align to gizmo", csysBtnSize))
+                        AlignUserCSysToGizmo();
+
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Move the user csys to the gizmo location");
+
+                    ImGui::SetCursorPosX(Indent);
+                    if (ImGui::Button("Align to side", csysBtnSize))
+                        AlignUserCSysToSide();
+
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Align the user csys to the selected side and edge");
+
+                    ImGui::SetCursorPosX(Indent);
+                    if (ImGui::Button("Move to marked", csysBtnSize))
+                        AlignUserCSysToMarked();
+
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Move the user csys to the center of the marked geometry");
                 }
+
+                ImGui::EndPopup();
             }
-
-            ImGui::SameLine(0, 10);
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("Align to");
-
-            ImGui::SameLine();
-            if (ImGui::Button("Gizmo", buttonSize))
-                AlignGlobalOrientation();
-
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Align the global csys to the gizmo");
-
-            ImGui::SameLine();
-            if (ImGui::Button("Side", buttonSize))
-                AlignGlobalOrientationToSide();
-
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Align the global csys to the selected side and edge");
         }
 
         Editor::TopToolbarOffset = TopToolbarHeight + ImGui::GetCursorPosY() - startY;

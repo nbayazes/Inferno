@@ -330,11 +330,11 @@ namespace Inferno::Editor {
         CheckForAutosave();
     }
 
-    void AlignGlobalOrientation() {
-        GlobalOrientation = Editor::Gizmo.Transform;
+    void AlignUserCSysToGizmo() {
+        UserCSys = Editor::Gizmo.Transform;
     }
 
-    void AlignGlobalOrientationToSide() {
+    void AlignUserCSysToSide() {
         if (!Game::Level.SegmentExists(Selection.Segment)) return;
         //auto& seg = Game::Level->GetSegment(Selection.Segment);
         auto face = Face::FromSide(Game::Level, Selection.Segment, Selection.Side);
@@ -345,10 +345,25 @@ namespace Inferno::Editor {
         auto up = face.AverageNormal();
         auto right = average.Cross(up);
         right.Normalize();
-        GlobalOrientation.Forward(average);
-        GlobalOrientation.Right(right);
-        GlobalOrientation.Up(up);
-        GlobalOrientation.Translation(face.Center());
+        UserCSys.Forward(average);
+        UserCSys.Right(right);
+        UserCSys.Up(up);
+        UserCSys.Translation(face.Center());
+        Editor::Gizmo.UpdatePosition();
+    }
+
+    void AlignUserCSysToMarked() {
+        Vector3 center;
+        auto indices = GetSelectedVertices();
+
+        for (auto& index : indices) {
+            if (auto v = Game::Level.TryGetVertex(index))
+                center += *v;
+        }
+
+        if (indices.empty()) return;
+        center /= indices.size();
+        UserCSys.Translation(center);
         Editor::Gizmo.UpdatePosition();
     }
 
@@ -393,6 +408,14 @@ namespace Inferno::Editor {
             // timers are persisted and actually affect the in-game start time.
             // this could be used to precisely offset the flicker pattern
             light.Timer = 0;
+        }
+    }
+
+    // Turns on all flickering lights and updates the view
+    void DisableFlickeringLights(Level& level) {
+        for (auto& light : level.FlickeringLights) {
+            if (auto seg = level.TryGetSegment(light.Tag))
+                Render::AddLight(level, light.Tag, *seg);
         }
     }
 
@@ -445,13 +468,6 @@ namespace Inferno::Editor {
             if (count > 1) {
                 SPDLOG_WARN("Trigger {} belongs to more than one wall", tid);
             }
-        }
-    }
-
-    void DisableFlickeringLights(Level& level) {
-        for (auto& light : level.FlickeringLights) {
-            if (auto seg = Game::Level.TryGetSegment(light.Tag))
-                Render::AddLight(Game::Level, light.Tag, *seg);
         }
     }
 

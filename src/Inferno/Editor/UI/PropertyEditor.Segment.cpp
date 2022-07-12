@@ -865,8 +865,8 @@ namespace Inferno::Editor {
             }
             else {
                 SetSegmentType(Game::Level, Selection.Tag(), segType);
-                for (auto& seg : GetSelectedSegments())
-                    SetSegmentType(Game::Level, { seg, Selection.Side }, segType);
+                for (auto& marked : GetSelectedSegments())
+                    SetSegmentType(Game::Level, { marked, Selection.Side }, segType);
 
                 Editor::History.SnapshotLevel("Set segment type");
             }

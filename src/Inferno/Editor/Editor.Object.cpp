@@ -34,7 +34,6 @@ namespace Inferno::Editor {
 
         obj->Segment = tag.Segment;
         obj->Transform = transform;
-        Editor::Gizmo.UpdatePosition();
         return true;
     }
 
@@ -45,7 +44,18 @@ namespace Inferno::Editor {
 
         obj->Segment = segId;
         obj->Transform.Translation(seg->Center);
-        Editor::Gizmo.UpdatePosition();
+        return true;
+    }
+
+    bool MoveObject(Level& level, ObjID id, Vector3 position) {
+        auto obj = level.TryGetObject(id);
+        if (!obj) return false;
+
+        obj->Transform.Translation(position);
+        
+        // Leave the last good ID if nothing contains the object
+        auto segId = FindContainingSegment(level, position);
+        if (segId != SegID::None) obj->Segment = segId;
         return true;
     }
 
@@ -283,6 +293,7 @@ namespace Inferno::Editor {
                 if (!AlignObjectToSide(Game::Level, Editor::Selection.Object, Editor::Selection.PointTag()))
                     return "";
 
+                Editor::Gizmo.UpdatePosition();
                 return "Move Object to Side";
             },
             .Name = "Move Object to Side"
@@ -294,9 +305,21 @@ namespace Inferno::Editor {
                 if (!Editor::MoveObjectToSegment(Game::Level, Editor::Selection.Object, Editor::Selection.Segment))
                     return "";
 
+                Editor::Gizmo.UpdatePosition();
                 return "Move Object to Segment";
             },
             .Name = "Move Object to Segment"
+        };
+
+        Command MoveObjectToUserCSys{
+            .SnapshotAction = [] {
+                if (!Editor::MoveObject(Game::Level, Editor::Selection.Object, Editor::UserCSys.Translation()))
+                    return "";
+
+                Editor::Gizmo.UpdatePosition();
+                return "Move Object to User Coordinate System";
+            },
+            .Name = "Move Object to UCS"
         };
 
         Command AddObject{
