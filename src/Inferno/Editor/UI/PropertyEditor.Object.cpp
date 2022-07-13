@@ -30,7 +30,7 @@ namespace Inferno::Editor {
         return objectTypeLabels[(int)type];
     }
 
-    string GetObjectName(Object& obj) {
+    string GetObjectName(const Object& obj) {
         switch (obj.Type) {
             case ObjectType::Coop: return fmt::format("Coop player {}", obj.ID);
             case ObjectType::Player: return fmt::format("Player {}", obj.ID);
@@ -80,7 +80,7 @@ namespace Inferno::Editor {
 
     bool PowerupDropdown(const char* label, int8& id, VClipID* vclipID = nullptr) {
         auto name = Resources::GetPowerupName(id);
-        auto preview = name ? *name : "Unknown";
+        auto preview = name.value_or("Unknown");
         auto powerupCount = Game::Level.IsDescent1() ? 26 : Resources::GameData.Powerups.size();
         bool changed = false;
 
@@ -95,8 +95,8 @@ namespace Inferno::Editor {
                     if (vclipID) {
                         *vclipID = Resources::GameData.Powerups[i].VClip;
                         Render::LoadTextureDynamic(*vclipID);
-                        changed = true;
                     }
+                    changed = true;
                 }
 
                 if (isSelected)
@@ -151,8 +151,10 @@ namespace Inferno::Editor {
             {
                 // Prepend the None case
                 const bool isSelected = LevelTexID::None == current;
-                if (ImGui::Selectable("None", isSelected))
+                if (ImGui::Selectable("None", isSelected)) {
                     current = LevelTexID::None;
+                    changed = true;
+                }
 
                 if (isSelected)
                     ImGui::SetItemDefaultFocus();
@@ -210,54 +212,76 @@ namespace Inferno::Editor {
     bool RobotProperties(Object& obj) {
         bool changed = false;
 
-        ImGui::ColumnLabel("Robot");
+        ImGui::TableRowLabel("Robot");
         ImGui::SetNextItemWidth(-1);
         if (RobotDropdown("##Robot", obj.ID)) {
             auto& robot = Resources::GameData.Robots[(int)obj.ID];
             obj.Render.Model.ID = robot.Model;
+            obj.Radius = GetObjectRadius(obj);
+
             Render::LoadModelDynamic(robot.Model);
+            ForMarkedObjects([&obj](Object& o) {
+                if (o.Type != obj.Type) return;
+                o.ID = obj.ID;
+                o.Render.Model.ID = obj.Render.Model.ID;
+                o.Radius = GetObjectRadius(obj);
+            });
             changed = true;
         }
-        ImGui::NextColumn();
 
-        ImGui::ColumnLabel("Robot ID");
+        ImGui::TableRowLabel("Robot ID");
         ImGui::Text("%i", obj.ID);
-        ImGui::NextColumn();
 
-        ImGui::ColumnLabel("Behavior");
+        ImGui::TableRowLabel("Behavior");
         ImGui::SetNextItemWidth(-1);
-        changed |= AIBehaviorDropdown("##Behavior", obj.Control.AI.Behavior);
-        ImGui::NextColumn();
+        if (AIBehaviorDropdown("##Behavior", obj.Control.AI.Behavior)) {
+            ForMarkedObjects([&obj](Object& o) {
+                if (o.Type != obj.Type) return;
+                o.Control.AI.Behavior = obj.Control.AI.Behavior;
+            });
+            changed = true;
+        }
 
-        ImGui::Separator();
-
-        ImGui::ColumnLabel("Contains");
+        ImGui::TableRowLabel("Contains");
         ImGui::SetNextItemWidth(-1);
-        changed |= ContainsDropdown("##Contains", obj.Contains.Type);
-        ImGui::NextColumn();
+        if (ContainsDropdown("##Contains", obj.Contains.Type)) {
+            obj.Contains.ID = 0; // Reset to prevent out of range IDs
+            ForMarkedObjects([&obj](Object& o) {
+                if (o.Type != obj.Type) return;
+                o.Contains.Type = obj.Contains.Type;
+            });
+            changed = true;
+        }
+
+        bool containsChanged = false;
 
         if (obj.Contains.Type == ObjectType::Robot) {
-            ImGui::ColumnLabel("Robot");
+            ImGui::TableRowLabel("Robot");
             ImGui::SetNextItemWidth(-1);
-            changed |= RobotDropdown("##RobotContains", obj.Contains.ID);
-            ImGui::NextColumn();
+            containsChanged |= RobotDropdown("##RobotContains", obj.Contains.ID);
         }
         else if (obj.Contains.Type == ObjectType::Powerup) {
-            ImGui::ColumnLabel("Object");
+            ImGui::TableRowLabel("Object");
             ImGui::SetNextItemWidth(-1);
-            changed |= PowerupDropdown("##ObjectContains", obj.Contains.ID);
-            ImGui::NextColumn();
+            containsChanged |= PowerupDropdown("##ObjectContains", obj.Contains.ID);
         }
 
         if (obj.Contains.Type == ObjectType::Robot || obj.Contains.Type == ObjectType::Powerup) {
             auto count = (int)obj.Contains.Count;
-            ImGui::ColumnLabel("Count");
+            ImGui::TableRowLabel("Count");
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputInt("##Count", &count)) {
                 obj.Contains.Count = (int8)std::clamp(count, 0, 100);
-                changed = true;
+                containsChanged = true;
             }
-            ImGui::NextColumn();
+        }
+
+        if (containsChanged) {
+            ForMarkedObjects([&obj](Object& o) {
+                if (o.Type != obj.Type) return;
+                o.Contains = obj.Contains;
+            });
+            changed = true;
         }
 
         return changed;
@@ -276,6 +300,7 @@ namespace Inferno::Editor {
                     obj.ID = i;
                     auto& reactor = Resources::GameData.Reactors[(int)obj.ID];
                     obj.Render.Model.ID = reactor.Model;
+                    obj.Radius = GetObjectRadius(obj);
                     Render::LoadModelDynamic(reactor.Model);
                     changed = true;
                 }
@@ -290,22 +315,65 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    inline bool ObjectDropdown(ObjID& id) {
-        bool changed = false;
-        auto label = fmt::format("{}: {}", id, GetObjectName(Game::Level.Objects[(int)id]));
+    constexpr int GetObjectTypePriority(ObjectType t) {
+        switch (t) {
+            case ObjectType::Player: return 0;
+            case ObjectType::Coop: return 1;
+            case ObjectType::Powerup: return 2;
+            case ObjectType::Hostage: return 3;
+            case ObjectType::Robot: return 4;
+            case ObjectType::Weapon: return 5;
+            case ObjectType::Clutter: return 8;
+            case ObjectType::Reactor: return 9;
+            default: return 10;
+        }
+    }
 
+    struct ObjectSort {
+        ObjID ID;
+        const Object* Obj;
+        string Name;
+    };
+
+    List<ObjectSort> SortObjects(const List<Object>& objects) {
+        List<ObjectSort> sorted;
+        sorted.reserve(objects.size());
+
+        for (int i = 0; i < objects.size(); i++)
+            sorted.push_back({ (ObjID)i, &objects[i], GetObjectName(objects[i]) });
+
+        Seq::sortBy(sorted, [](auto& a, auto& b) {
+            auto p0 = GetObjectTypePriority(a.Obj->Type);
+            auto p1 = GetObjectTypePriority(b.Obj->Type);
+            if (p0 < p1) return true;
+            if (p1 < p0) return false;
+            if (a.Name < b.Name) return true;
+            if (b.Name < a.Name) return false;
+            return false;
+        });
+
+        return sorted;
+    }
+
+    inline bool ObjectDropdown(Level& level, ObjID& id) {
+        bool changed = false;
+        //auto label = fmt::format("{}: {}", id, GetObjectName(level.Objects[(int)id]));
+        auto label = GetObjectName(level.Objects[(int)id]);
+
+        auto sorted = SortObjects(level.Objects);
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##objs", label.c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int i = 0; i < Game::Level.Objects.size(); i++) {
-                const bool isSelected = (int)id == i;
-                auto itemLabel = fmt::format("{}: {}", i, GetObjectName(Game::Level.Objects[i]));
-                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+            for (int i = 0; i < sorted.size(); i++) {
+                const bool isSelected = id == sorted[i].ID;
+                ImGui::PushID(i);
+                if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
                     changed = true;
-                    id = (ObjID)i;
+                    id = sorted[i].ID;
                 }
 
                 if (isSelected)
                     ImGui::SetItemDefaultFocus();
+                ImGui::PopID();
             }
 
             ImGui::EndCombo();
@@ -317,20 +385,17 @@ namespace Inferno::Editor {
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
-        ImGui::ColumnLabel("Object ID");
-        if (ObjectDropdown(Selection.Object))
+        ImGui::TableRowLabel("Object ID");
+        if (ObjectDropdown(Game::Level, Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
-        ImGui::NextColumn();
 
         auto& obj = Game::Level.GetObject(Selection.Object);
 
-        ImGui::ColumnLabel("Segment");
-        SegmentDropdown(obj.Segment);
-        ImGui::NextColumn();
+        ImGui::TableRowLabel("Segment");
+        if (SegmentDropdown(obj.Segment))
+            Editor::History.SnapshotLevel("Change object segment");
 
-        ImGui::Separator();
-
-        ImGui::ColumnLabel("Type");
+        ImGui::TableRowLabel("Type");
         ImGui::SetNextItemWidth(-1);
 
         if (obj.Type == ObjectType::SecretExitReturn) {
@@ -353,7 +418,8 @@ namespace Inferno::Editor {
                 const bool isSelected = obj.Type == type;
                 if (ImGui::Selectable(GetObjectTypeName(type), isSelected)) {
                     InitObject(Game::Level, obj, type);
-                    Commands::ChangeMarkedObjects();
+                    ForMarkedObjects([type](Object& o) { InitObject(Game::Level, o, type); });
+                    Editor::History.SnapshotLevel("Change object type");
                 }
 
                 if (isSelected)
@@ -363,62 +429,67 @@ namespace Inferno::Editor {
             ImGui::EndCombo();
         }
 
-        ImGui::NextColumn();
-
         switch (obj.Type) {
             case ObjectType::Powerup:
-                ImGui::ColumnLabel("Powerup");
+                ImGui::TableRowLabel("Powerup");
                 ImGui::SetNextItemWidth(-1);
-                if (PowerupDropdown("##Powerup", obj.ID, &obj.Render.VClip.ID))
-                    Commands::ChangeMarkedObjects();
+                if (PowerupDropdown("##Powerup", obj.ID, &obj.Render.VClip.ID)) {
+                    ForMarkedObjects([&obj](Object& o) {
+                        if (o.Type != obj.Type) return;
+                        o.Render.VClip.ID = obj.Render.VClip.ID;
+                    });
+                    Editor::History.SnapshotLevel("Change object");
+                }
 
-                ImGui::NextColumn();
                 break;
 
             case ObjectType::Robot:
                 if (RobotProperties(obj))
-                    Commands::ChangeMarkedObjects();
+                    Editor::History.SnapshotLevel("Change robot properties");
                 break;
 
             case ObjectType::Reactor:
-                ImGui::ColumnLabel("Model");
+                ImGui::TableRowLabel("Model");
                 if (ReactorModelDropdown(obj))
-                    Editor::History.SnapshotLevel("Change Reactor Model");
+                    Editor::History.SnapshotLevel("Change reactor model");
 
-                ImGui::NextColumn();
                 break;
 
             case ObjectType::Weapon: // mines
-                ImGui::ColumnLabel("Angular velocity");
+                ImGui::TableRowLabel("Angular velocity");
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat3("##angular", &obj.Movement.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f"))
-                    Commands::ChangeMarkedObjects();
+                if (ImGui::SliderFloat3("##angular", &obj.Movement.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f")) {
+                    ForMarkedObjects([&obj](Object& o) {
+                        if (o.Type != obj.Type) return;
+                        o.Movement.Physics.AngularVelocity = obj.Movement.Physics.AngularVelocity;
+                    });
+                    //Editor::History.SnapshotLevel("Change object"); // causes too many snapshots
+                }
 
-                ImGui::NextColumn();
                 break;
 
             case ObjectType::Player:
             case ObjectType::Coop:
-                ImGui::ColumnLabelEx("ID", "Saving the level sets the ID");
+                ImGui::TableRowLabel("ID", "Saving the level sets the ID");
                 ImGui::Text("%i", obj.ID);
-                ImGui::NextColumn();
                 break;
         }
 
         if (obj.Render.Type == RenderType::Polyobj && obj.Type != ObjectType::SecretExitReturn) {
-            ImGui::Separator();
-            ImGui::ColumnLabel("Texture override");
+            ImGui::TableRowLabel("Texture override");
             ImGui::SetNextItemWidth(-1);
             if (LevelTextureDropdown("##Texture", obj.Render.Model.TextureOverride)) {
                 Render::LoadTextureDynamic(obj.Render.Model.TextureOverride);
-                Commands::ChangeMarkedObjects();
+                ForMarkedObjects([&obj](Object& o) {
+                    if (o.Render.Type != obj.Render.Type) return;
+                    o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;
+                });
+                Editor::History.SnapshotLevel("Change object");
             }
             TexturePreview(obj.Render.Model.TextureOverride);
-            ImGui::NextColumn();
 
-            ImGui::ColumnLabel("Polymodel");
+            ImGui::TableRowLabel("Polymodel");
             ImGui::Text("%i", obj.Render.Model.ID);
-            ImGui::NextColumn();
         }
     }
 }

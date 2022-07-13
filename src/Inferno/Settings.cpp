@@ -150,6 +150,7 @@ namespace Inferno::Settings {
         node["ResetUVsOnAlign"] << ResetUVsOnAlign;
         node["WeldTolerance"] << WeldTolerance;
         node["AutosaveMinutes"] << AutosaveMinutes;
+        node["CoordinateSystem"] << (int)CoordinateSystem;
 
         SaveSelectionSettings(node["Selection"]);
         SaveOpenWindows(node["Windows"]);
@@ -206,6 +207,7 @@ namespace Inferno::Settings {
         ReadValue(node["ResetUVsOnAlign"], ResetUVsOnAlign);
         ReadValue(node["WeldTolerance"], WeldTolerance);
         ReadValue(node["AutosaveMinutes"], AutosaveMinutes);
+        ReadValue(node["CoordinateSystem"], (int&)CoordinateSystem);
 
         LoadSelectionSettings(node["Selection"]);
         LoadOpenWindows(node["Windows"]);

@@ -27,11 +27,11 @@ namespace Inferno::Editor {
 
     // Tries to return a segment connected to this one
     SegID GetConnectedSegment(Level&, SegID);
+    bool SetSegmentType(Level& level, Tag tag, SegmentType type);
 
     List<SegID> GetConnectedSegments(Level& level, SegID start, int maxDepth = 2);
 
     namespace Commands {
-        void SetSegmentType(SegmentType);
         void AddEnergyCenter();
         void AddMatcen();
         void AddReactor();

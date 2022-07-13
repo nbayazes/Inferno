@@ -171,10 +171,10 @@ namespace Inferno::Editor {
         }
 
         if (Settings::SelectionMode == SelectionMode::Transform) {
-            transform = GlobalOrientation;
+            transform = UserCSys;
         }
-        else if (Settings::CoordinateSystem == CoordinateSystem::Global) {
-            transform = GlobalOrientation;
+        else if (Settings::CoordinateSystem == CoordinateSystem::User) {
+            transform = UserCSys;
 
             // Move translation gizmo to the object even in global mode for clarity
             // Consider always doing this and drawing a line or arc to the reference?
@@ -192,6 +192,13 @@ namespace Inferno::Editor {
         }
         else if (level.SegmentExists(Selection.Segment)) {
             transform = GetTransformFromSelection(level, Selection.Tag(), Settings::SelectionMode);
+        }
+
+        if (Settings::CoordinateSystem == CoordinateSystem::Global) {
+            // global overrides the rotatation to the XYZ axis
+            transform.Right(Vector3::UnitX);
+            transform.Up(Vector3::UnitY);
+            transform.Forward(Vector3::UnitZ);
         }
 
         return transform;

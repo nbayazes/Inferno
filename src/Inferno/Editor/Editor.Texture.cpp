@@ -122,19 +122,24 @@ namespace Inferno::Editor {
 
         {
             // Align to selected edge
-            auto v0 = result[1] - result[0];
-            auto v1 = result[(1 + edge) % 4] - result[(0 + edge) % 4];
+            auto translate = result[edge % 4] - result[0];
+            for (auto& uv : result)
+                uv -= translate; // shift edge to 0, 0
+
+            auto v0 = result[1] - result[0]; // default edge alignment
+            auto v1 = result[(1 + edge) % 4] - result[(0 + edge) % 4]; // selected edge
+
             v0.Normalize();
             v1.Normalize();
             auto angle = atan2(v1.y, v1.x) - atan2(v0.y, v0.x) + extraAngle;
             for (auto& uv : result)
-                RotateUV(uv, result[0], angle - DirectX::XM_PIDIV2);
+                RotateUV(uv, result[edge], angle - DirectX::XM_PIDIV2);
         }
 
-        // Scale, translate, store UV values
+        // Scale UVs from world space to texture space
         for (int i = 0; i < 4; i++) {
-            face.Side.UVs[i].x = (/*x +*/ result[i].x) / 20.0f;
-            face.Side.UVs[i].y = (/*y +*/ result[i].y) / 20.0f;
+            face.Side.UVs[i].x = result[i].x / 20.0f;
+            face.Side.UVs[i].y = result[i].y / 20.0f;
         }
     }
 

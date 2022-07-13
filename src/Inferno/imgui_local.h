@@ -238,9 +238,6 @@ namespace Inferno {
                 platform_io.Renderer_DestroyWindow = DestroyWindow;
             }
 
-            ImGuiStyle& style = ImGui::GetStyle();
-            style.FrameRounding = 3;
-            style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0, 0, 0, 0.65f);
             CreateFontsTexture();
         }
 
@@ -276,6 +273,13 @@ namespace Inferno {
             // Setup Dear ImGui style
             ImGui::StyleColorsDark();
             //ImGui::StyleColorsClassic();
+
+            auto& style = ImGui::GetStyle();
+            style.Colors[ImGuiCol_TableBorderStrong].w = 0.45f;
+            style.Colors[ImGuiCol_TableBorderLight].w = 0.45f;
+            style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0, 0, 0, 0.65f);
+
+            style.FrameRounding = 0;
 
             //// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
             //ImGuiStyle& style = ImGui::GetStyle();

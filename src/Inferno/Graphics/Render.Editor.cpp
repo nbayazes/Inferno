@@ -8,6 +8,7 @@
 #include "Editor/TunnelBuilder.h"
 #include "Settings.h"
 #include "Editor/Editor.Object.h"
+#include "Editor/UI/EditorUI.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -129,9 +130,9 @@ namespace Inferno::Render {
             DrawFacingCircle(pointPos, 1.5, Colors::SelectionPrimary);
     }
 
-    void DrawGlobalOrientationMarker(ID3D12GraphicsCommandList* cmdList) {
+    void DrawUserCSysMarker(ID3D12GraphicsCommandList* cmdList) {
         using namespace Editor;
-        auto pos = Editor::GlobalOrientation.Translation();
+        auto pos = Editor::UserCSys.Translation();
         auto scale = Matrix::CreateScale(Editor::GetGizmoScale(pos, Camera) * 0.5f);
         auto translation = Matrix::CreateTranslation(pos);
 
@@ -141,9 +142,9 @@ namespace Inferno::Render {
             Debug::DrawArrow(cmdList, transform, Colors::GlobalOrientation);
         };
 
-        DrawAxis(Editor::GlobalOrientation.Forward());
-        DrawAxis(Editor::GlobalOrientation.Up());
-        DrawAxis(Editor::GlobalOrientation.Right());
+        DrawAxis(Editor::UserCSys.Forward());
+        DrawAxis(Editor::UserCSys.Up());
+        DrawAxis(Editor::UserCSys.Right());
     }
 
     void DrawSecretLevelReturn(ID3D12GraphicsCommandList* cmdList, const Matrix& matrix, float size = 1) {
@@ -203,7 +204,8 @@ namespace Inferno::Render {
                         trigger->HasFlag(TriggerFlagD1::Matcen) :
                         trigger->Type == TriggerType::Matcen;
 
-                    if (isMatcenTrigger) {
+                    // Check that the target is actually a matcen (for D1)
+                    if (isMatcenTrigger && targetSeg.Matcen != MatcenID::None) {
                         auto segVerts = targetSeg.GetVertices(level);
                         targetCenter = AverageVectors(segVerts);
                         arrowColor = Colors::Matcen;
@@ -361,7 +363,7 @@ namespace Inferno::Render {
         DrawSelection(Editor::Selection, level);
 
         if (Settings::SelectionMode != Editor::SelectionMode::Transform)
-            DrawGlobalOrientationMarker(cmdList);
+            DrawUserCSysMarker(cmdList);
 
         //if (level.HasSecretExit()) {
         //    if (auto seg = level.TryGetSegment(level.SecretExitReturn)) {
@@ -377,8 +379,10 @@ namespace Inferno::Render {
         if (Input::GetMouselook())
             Debug::DrawCrosshair(Settings::CrosshairSize);
 
-        auto size = Render::Adapter->GetOutputSize();
-        Render::DrawCenteredString(level.Name, (float)size.right / 2, 110, FontSize::Big);
+        {
+            auto size = Render::Adapter->GetOutputSize();
+            Render::DrawCenteredString(level.Name, (float)size.right / 2, Editor::TopToolbarOffset, FontSize::Big);
+        }
 
         //{
         //    auto tag = Editor::Selection.PointTag();

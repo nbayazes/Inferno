@@ -1,5 +1,5 @@
 #include "pch.h"
-#include <spdlog/spdlog.h>
+#include "logging.h"
 #include "Editor.IO.h"
 #include "Editor.Segment.h"
 #include "LevelSettings.h"
@@ -10,103 +10,23 @@
 #include "Editor.Wall.h"
 #include "Editor.h"
 #include "Graphics/Render.h"
+#include "Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
     constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
-
-    void FixObjects(Level& level) {
-        bool hasPlayerStart = GetObjectCount(level, ObjectType::Player) > 0;
-
-        if (!hasPlayerStart) {
-            ShowWarningMessage(L"Level does not contain a player start!");
-        }
-        else {
-            if (level.Objects[0].Type != ObjectType::Player) {
-                SPDLOG_WARN("Level contains a player start but it was not the first object. Swapping objects.");
-                auto index = Seq::findIndex(level.Objects, [](Object& obj) { return obj.Type == ObjectType::Player; });
-                std::swap(level.Objects[0], level.Objects[*index]);
-                Events::SelectObject();
-            }
-        }
-
-        for (int id = 0; id < level.Objects.size(); id++) {
-            auto& obj = level.GetObject((ObjID)id);
-            if (obj.Type == ObjectType::Weapon) {
-                obj.Control.Weapon.Parent = (ObjID)id;
-                obj.Control.Weapon.ParentSig = (ObjSig)id;
-                obj.Control.Weapon.ParentType = obj.Type;
-            }
-
-            NormalizeObjectVectors(obj);
-        }
-    }
-
-    void FixWalls(Level& level) {
-        for (int id = 0; id < level.Walls.size(); id++) {
-            auto& wall = level.GetWall((WallID)id);
-            wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
-            FixWallClip(level, (WallID)id);
-        }
-    }
-
-    void FixTriggers(Level& level) {
-        for (int id = 0; id < level.Triggers.size(); id++) {
-            auto& trigger = level.GetTrigger((TriggerID)id);
-
-            for (int t = (int)trigger.Targets.Count() - 1; t > 0; t--) {
-                auto& tag = trigger.Targets[t];
-                if (!level.SegmentExists(tag)) {
-                    SPDLOG_WARN("Removing invalid trigger target. TID: {} - {}:{}", id, tag.Segment, tag.Side);
-                    tag = {};
-                    trigger.Targets.Remove(t);
-                }
-            }
-        }
-
-        for (int t = (int)level.ReactorTriggers.Count() - 1; t > 0; t--) {
-            auto& tag = level.ReactorTriggers[t];
-            if (!level.SegmentExists(tag)) {
-                SPDLOG_WARN("Removing invalid reactor trigger target. {}:{}", tag.Segment, tag.Side);
-                tag = {};
-                level.ReactorTriggers.Remove(t);
-            }
-        }
-    }
-
-    void SetPlayerStartIDs(Level& level) {
-        int8 id = 0;
-        for (auto& i : level.Objects) {
-            if (i.Type == ObjectType::Player)
-                i.ID = id++;
-        }
-
-        id = 8; // it's unclear if setting co-op IDs is necessary, but do it anyway.
-        for (auto& i : level.Objects) {
-            if (i.Type == ObjectType::Coop)
-                i.ID = id++;
-        }
-    }
-
+   
     size_t SaveLevel(Level& level, StreamWriter& writer) {
         if (level.Walls.size() >= (int)WallID::Max)
             throw Exception("Cannot save a level with more than 254 walls");
 
         DisableFlickeringLights(level);
         ResetFlickeringLightTimers(level);
-        FixObjects(level);
-        FixWalls(level);
-        FixTriggers(level);
-        SetPlayerStartIDs(level);
-        //WeldVertices(level);
-
-        if (!level.SegmentExists(level.SecretExitReturn))
-            level.SecretExitReturn = SegID(0);
-
+        FixLevel(level);
         return level.Serialize(writer);
     }
 
     // Saves a level to the file system
-    void SaveLevelToPath(std::filesystem::path path, bool updateLevelPath = true) {
+    void SaveLevelToPath(std::filesystem::path path, bool autosave = false) {
         CleanLevel(Game::Level);
 
         filesystem::path temp = path;
@@ -136,7 +56,7 @@ namespace Inferno::Editor {
         SaveLevelMetadata(Game::Level, metadata);
         SetStatusMessage(L"Saved level to {}", path.wstring());
 
-        if (updateLevelPath) {
+        if (!autosave) {
             Editor::History.UpdateCleanSnapshot();
             Game::Level.Path = path;
             Game::Level.FileName = path.filename().string();
@@ -416,7 +336,6 @@ namespace Inferno::Editor {
         Editor::History.Reset(); // Undo / redo could cause models to get loaded without the proper data
     }
 
-
     double _nextAutosave = FLT_MAX;
 
     void ResetAutosaveTimer() {
@@ -435,7 +354,7 @@ namespace Inferno::Editor {
                     Game::Mission->SaveCopy(backupPath);
                 }
                 else {
-                    SaveLevelToPath(backupPath, false);
+                    SaveLevelToPath(backupPath, true);
                 }
 
                 ResetAutosaveTimer();

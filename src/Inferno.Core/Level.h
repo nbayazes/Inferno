@@ -170,6 +170,7 @@ namespace Inferno {
         uint8 LightSubtracted;
         //uint8 SlideTextures;
         Color VolumeLight = { 1, 1, 1 };
+        bool LockVolumeLight; // Locks volume light from being updated
         Vector3 Center;
 
         constexpr SegID GetConnection(SideID side) const { return Connections[(int)side]; }
@@ -225,7 +226,7 @@ namespace Inferno {
             };
         }
 
-        PointID GetVertexIndex(SideID side, int16 point) {
+        PointID GetVertexIndex(SideID side, uint16 point) {
             auto& indices = Inferno::SideIndices[(int)side];
             return Indices[indices[point % 4]];
         }
@@ -510,12 +511,7 @@ namespace Inferno {
         // D2 level vertigo enhanced
         bool IsVertigo() const { return Version == 8; }
 
-        bool HasSecretExit() const {
-            for (auto& trigger : Triggers)
-                if (trigger.Type == TriggerType::SecretExit) return true;
-
-            return false;
-        }
+        bool HasSecretExit() const;
 
         Vector3* TryGetVertex(PointID id) {
             if (!Seq::inRange(Vertices, id)) return nullptr;
@@ -607,16 +603,18 @@ namespace Inferno {
         Wall* TryGetWall(WallID id) { return (Wall*)std::as_const(*this).TryGetWall(id); }
 
         // Tries to get the side connecting the two segments
-        Option<SideID> TryGetConnectedSide(SegID baseId, SegID otherId) const {
-            if (!SegmentExists(otherId)) return {};
-            auto& other = GetSegment(otherId);
+        SideID GetConnectedSide(SegID src, SegID dst) const {
+            if (!SegmentExists(src) || !SegmentExists(dst)) 
+                return SideID::None;
+
+            auto& other = GetSegment(dst);
 
             for (auto& side : SideIDs) {
-                if (other.GetConnection(side) == baseId)
-                    return { side };
+                if (other.GetConnection(side) == src)
+                    return side;
             }
 
-            return {};
+            return SideID::None;
         }
 
         // Gets the connected side of the other segment
@@ -789,6 +787,8 @@ namespace Inferno {
                 seg.UpdateCenter(*this);
             }
         }
+
+        bool CanAddMatcen() { return Matcens.size() < Limits.Matcens; }
 
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);

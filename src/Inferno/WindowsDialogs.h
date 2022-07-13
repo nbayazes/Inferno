@@ -88,6 +88,12 @@ namespace Inferno {
         return result;
     }
 
+    inline bool ShowOkMessage(const wstring& message, const wstring& caption) {
+        auto result = MessageBox(Shell::Hwnd, message.c_str(), caption.c_str(), MB_OK | MB_ICONASTERISK) == IDOK;
+        Input::ResetState(); // Fix for keys getting stuck after showing a dialog
+        return result;
+    }
+
     inline Option<filesystem::path> OpenFileDialog(span<const COMDLG_FILTERSPEC> filter, wstring title) {
         try {
             ComPtr<IFileOpenDialog> dialog;

@@ -138,6 +138,7 @@
       </DisableSpecificWarnings>
     </ClCompile>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
     <ClCompile Include="Editor\Bindings.cpp" />
@@ -185,6 +186,7 @@
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Editor\Command.h" />
     <ClInclude Include="Concurrent.h" />
+    <ClInclude Include="Editor\Editor.Diagnostics.h" />
     <ClInclude Include="Editor\UI\AboutDialog.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\Compiler.h" />

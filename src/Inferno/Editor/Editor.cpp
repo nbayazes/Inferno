@@ -64,6 +64,40 @@ namespace Inferno::Editor {
         Editor::Selection.SetSelection(nearby);
     }
 
+    bool HasExitConnection(const Level& level) {
+        for (auto& seg : level.Segments) {
+            for (auto& c : seg.Connections) {
+                if (c == SegID::Exit) return true;
+            }
+        }
+
+        return false;
+    }
+
+    void CheckLevelForErrors(const Level& level) {
+        wstring warnings;
+
+        if (GetObjectCount(level, ObjectType::Player) == 0) {
+            warnings += L"Level does not contain a player start!\n\n";
+        }
+
+        auto boss = Seq::findIndex(Game::Level.Objects, IsBossRobot);
+        auto reactor = Seq::findIndex(Game::Level.Objects, IsReactor);
+
+        if ((boss || reactor) && !HasExitConnection(level)) {
+            warnings +=
+                L"Level has a boss or reactor but no end of exit tunnel is marked. "
+                L"This will crash some versions of Descent at end of level.";
+        }
+
+        constexpr auto title = L"Level Error Check";
+
+        if (warnings.empty())
+            ShowOkMessage(L"No errors found", title);
+        else
+            ShowWarningMessage(warnings, title);
+    }
+
     void OnDelete() {
         if (Editor::Gizmo.State == GizmoState::Dragging) return;
 
@@ -296,11 +330,11 @@ namespace Inferno::Editor {
         CheckForAutosave();
     }
 
-    void AlignGlobalOrientation() {
-        GlobalOrientation = Editor::Gizmo.Transform;
+    void AlignUserCSysToGizmo() {
+        UserCSys = Editor::Gizmo.Transform;
     }
 
-    void AlignGlobalOrientationToSide() {
+    void AlignUserCSysToSide() {
         if (!Game::Level.SegmentExists(Selection.Segment)) return;
         //auto& seg = Game::Level->GetSegment(Selection.Segment);
         auto face = Face::FromSide(Game::Level, Selection.Segment, Selection.Side);
@@ -311,10 +345,25 @@ namespace Inferno::Editor {
         auto up = face.AverageNormal();
         auto right = average.Cross(up);
         right.Normalize();
-        GlobalOrientation.Forward(average);
-        GlobalOrientation.Right(right);
-        GlobalOrientation.Up(up);
-        GlobalOrientation.Translation(face.Center());
+        UserCSys.Forward(average);
+        UserCSys.Right(right);
+        UserCSys.Up(up);
+        UserCSys.Translation(face.Center());
+        Editor::Gizmo.UpdatePosition();
+    }
+
+    void AlignUserCSysToMarked() {
+        Vector3 center;
+        auto indices = GetSelectedVertices();
+
+        for (auto& index : indices) {
+            if (auto v = Game::Level.TryGetVertex(index))
+                center += *v;
+        }
+
+        if (indices.empty()) return;
+        center /= (float)indices.size();
+        UserCSys.Translation(center);
         Editor::Gizmo.UpdatePosition();
     }
 
@@ -362,6 +411,14 @@ namespace Inferno::Editor {
         }
     }
 
+    // Turns on all flickering lights and updates the view
+    void DisableFlickeringLights(Level& level) {
+        for (auto& light : level.FlickeringLights) {
+            if (auto seg = level.TryGetSegment(light.Tag))
+                Render::AddLight(level, light.Tag, *seg);
+        }
+    }
+
     void OnLevelLoad(bool reload) {
         if (!reload)
             Commands::ZoomExtents();
@@ -374,17 +431,20 @@ namespace Inferno::Editor {
         Editor::History = { &Game::Level, Settings::UndoLevels };
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
+        
+        for (auto& obj : Game::Level.Objects)
+            obj.Radius = GetObjectRadius(obj);
 
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
         ResetAutosaveTimer();
     }
 
-    void CheckDegenerateSegments() {
+    void CheckDegenerateSegments(Level& level) {
         SegID id{};
 
-        for (auto& seg : Game::Level.Segments) {
-            if (SegmentIsDegenerate(Game::Level, seg)) {
+        for (auto& seg : level.Segments) {
+            if (SegmentIsDegenerate(level, seg)) {
                 SPDLOG_WARN("Segment {} is degenerate", id);
             }
             id++;
@@ -411,16 +471,6 @@ namespace Inferno::Editor {
             if (count > 1) {
                 SPDLOG_WARN("Trigger {} belongs to more than one wall", tid);
             }
-        }
-
-        CheckDegenerateSegments();
-    }
-
-
-    void DisableFlickeringLights(Level& level) {
-        for (auto& light : level.FlickeringLights) {
-            if (auto seg = Game::Level.TryGetSegment(light.Tag))
-                Render::AddLight(Game::Level, light.Tag, *seg);
         }
     }
 

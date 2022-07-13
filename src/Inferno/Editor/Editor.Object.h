@@ -6,7 +6,8 @@
 namespace Inferno::Editor {
     bool AlignObjectToSide(Level&, ObjID, PointTag, bool center = false);
     bool MoveObjectToSegment(Level&, ObjID, SegID);
-    int GetObjectCount(Level& level, ObjectType type);
+    int GetObjectCount(const Level& level, ObjectType type);
+    float GetObjectRadius(const Object& obj);
 
     ObjID AddObject(Level&, PointTag, ObjectType);
     void DeleteObject(Level&, ObjID);
@@ -36,8 +37,7 @@ namespace Inferno::Editor {
     }
 
     namespace Commands {
-        void ChangeMarkedObjects();
-
-        extern Command MoveObjectToSide, MoveObjectToSegment, AddObject;
+        extern Command MoveObjectToSide, MoveObjectToSegment, MoveObjectToUserCSys;
+        extern Command AddObject;
     }
 }

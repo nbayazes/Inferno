@@ -97,4 +97,5 @@ namespace Inferno::Editor {
     };
 
     inline bool ShowDebugOverlay = false;
+    inline float TopToolbarOffset = 0; // Used for offsetting the level title text
 }

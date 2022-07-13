@@ -655,6 +655,7 @@ namespace Inferno::Editor {
     // Calculates the volume light for all segments in the level based on surface lighting
     void SetVolumeLight(Level& level, bool accurateVolumes) {
         for (auto& seg : level.Segments) {
+            if (seg.LockVolumeLight) continue;
             Color volume;
 
             int contributingSides = 0;
@@ -669,6 +670,7 @@ namespace Inferno::Editor {
 
             if (contributingSides == 0) continue;
             seg.VolumeLight += volume * (1.0f / (contributingSides * 4));
+            seg.VolumeLight.A(1);
         }
     }
 
@@ -711,8 +713,12 @@ namespace Inferno::Editor {
                     side.Light[i] = ambient;
                 }
             }
-            seg.VolumeLight = ambient;
+
+            if (!seg.LockVolumeLight)
+                seg.VolumeLight = ambient;
+
             seg.LightSubtracted = 0;
+            seg.VolumeLight.A(1);
         }
     }
 

@@ -404,7 +404,7 @@ namespace Inferno {
             return std::find_if(std::begin(xs), std::end(xs), predicate) != std::end(xs);
         }
 
-        // Sorts a range in ascending order by a function
+        // Sorts a range in ascending order by a function (a, b) -> bool
         constexpr void sortBy(auto&& xs, auto&& fn) {
             std::ranges::sort(xs, fn);
         }

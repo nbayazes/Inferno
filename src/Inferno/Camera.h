@@ -57,7 +57,7 @@ namespace Inferno {
         }
 
         void Roll(float roll) {
-            auto qroll = Quaternion::CreateFromAxisAngle(GetForward(), roll * 5);
+            auto qroll = Quaternion::CreateFromAxisAngle(GetForward(), roll * 2);
             Up = Vector3::Transform(Up, qroll);
             Up.Normalize();
         }

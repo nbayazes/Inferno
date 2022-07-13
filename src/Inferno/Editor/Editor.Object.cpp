@@ -34,7 +34,6 @@ namespace Inferno::Editor {
 
         obj->Segment = tag.Segment;
         obj->Transform = transform;
-        Editor::Gizmo.UpdatePosition();
         return true;
     }
 
@@ -45,11 +44,22 @@ namespace Inferno::Editor {
 
         obj->Segment = segId;
         obj->Transform.Translation(seg->Center);
-        Editor::Gizmo.UpdatePosition();
         return true;
     }
 
-    int GetObjectCount(Level& level, ObjectType type) {
+    bool MoveObject(Level& level, ObjID id, Vector3 position) {
+        auto obj = level.TryGetObject(id);
+        if (!obj) return false;
+
+        obj->Transform.Translation(position);
+        
+        // Leave the last good ID if nothing contains the object
+        auto segId = FindContainingSegment(level, position);
+        if (segId != SegID::None) obj->Segment = segId;
+        return true;
+    }
+
+    int GetObjectCount(const Level& level, ObjectType type) {
         int i = 0;
         for (auto& obj : level.Objects)
             if (obj.Type == type) i++;
@@ -57,7 +67,7 @@ namespace Inferno::Editor {
         return i;
     }
 
-    float GetObjectRadius(const Level& level, const Object& obj) {
+    float GetObjectRadius(const Object& obj) {
         constexpr float playerRadius = FixToFloat(0x46c35L);
 
         switch (obj.Type) {
@@ -86,11 +96,14 @@ namespace Inferno::Editor {
                 return Resources::GetModel(info.Model).Radius;
             }
 
-            case ObjectType::Weapon: // For placeable mines
+            case ObjectType::Weapon:
             {
-                // Only time the editor should create a weapon is if it's a mine
-                if (level.IsDescent1()) return 5; // No mines in D1
-                return Resources::GetModel(Models::PlaceableMine).Radius;
+                if (obj.Render.Type == RenderType::Polyobj) {
+                    return Resources::GetModel(obj.Render.Model.ID).Radius;
+                }
+                else {
+                    return obj.Radius;
+                }
             }
         }
 
@@ -180,7 +193,7 @@ namespace Inferno::Editor {
             }
         }
 
-        obj.Radius = GetObjectRadius(level, obj);
+        obj.Radius = GetObjectRadius(obj);
 
         if (obj.Render.Type == RenderType::Polyobj)
             Render::LoadModelDynamic(obj.Render.Model.ID);
@@ -223,6 +236,7 @@ namespace Inferno::Editor {
 
         Selection.SetSelection(id);
         AlignObjectToSide(level, id, tag, true);
+        Editor::Gizmo.UpdatePosition();
 
         Events::TexturesChanged();
         return id;
@@ -234,27 +248,6 @@ namespace Inferno::Editor {
         auto id = AddObject(level, tag, obj);
         Events::TexturesChanged();
         return id;
-    }
-
-    // Copies changes to the selected object to marked objects
-    void Commands::ChangeMarkedObjects() {
-        auto src = Game::Level.TryGetObject(Editor::Selection.Object);
-        if (!src) return;
-
-        src->Radius = GetObjectRadius(Game::Level, *src);
-
-        for (auto& id : Editor::Marked.Objects) {
-            if (id == Editor::Selection.Object) continue;
-            if (auto obj = Game::Level.TryGetObject(id)) {
-                auto seg = obj->Segment;
-                auto xform = obj->Transform;
-                *obj = *src;
-                obj->Segment = seg;
-                obj->Transform = xform;
-            }
-        }
-
-        Editor::History.SnapshotLevel("Edit object");
     }
 
     // Adds an object to represent the secret exit return so it can be manipulated
@@ -304,6 +297,7 @@ namespace Inferno::Editor {
                 if (!AlignObjectToSide(Game::Level, Editor::Selection.Object, Editor::Selection.PointTag()))
                     return "";
 
+                Editor::Gizmo.UpdatePosition();
                 return "Move Object to Side";
             },
             .Name = "Move Object to Side"
@@ -315,9 +309,21 @@ namespace Inferno::Editor {
                 if (!Editor::MoveObjectToSegment(Game::Level, Editor::Selection.Object, Editor::Selection.Segment))
                     return "";
 
+                Editor::Gizmo.UpdatePosition();
                 return "Move Object to Segment";
             },
             .Name = "Move Object to Segment"
+        };
+
+        Command MoveObjectToUserCSys{
+            .SnapshotAction = [] {
+                if (!Editor::MoveObject(Game::Level, Editor::Selection.Object, Editor::UserCSys.Translation()))
+                    return "";
+
+                Editor::Gizmo.UpdatePosition();
+                return "Move Object to User Coordinate System";
+            },
+            .Name = "Move Object to UCS"
         };
 
         Command AddObject{

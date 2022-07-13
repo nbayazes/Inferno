@@ -225,7 +225,7 @@ namespace Inferno::Editor {
 
         auto selectionTransform = GetTransformFromSelection(level, Selection.Tag(), SelectionMode::Face);
         auto reflectionPlane = DirectX::SimpleMath::Plane(selectionTransform.Translation(), selectionTransform.Forward());
-        Matrix reflection = Matrix::CreateReflection(reflectionPlane);
+        auto reflection = Matrix::CreateReflection(reflectionPlane);
 
         for (auto& v : copy.Vertices)
             v = Vector3::Transform(v, reflection);
@@ -233,6 +233,15 @@ namespace Inferno::Editor {
         for (auto& o : copy.Objects) {
             o.Transform *= reflection;
             o.Transform.Right(-o.Transform.Right()); // fix inversion
+        }
+
+        for (auto& wall : copy.Walls) {
+            auto& side = wall.Tag.Side;
+            // swap sides 2/3 and 0/1
+            if (side == SideID(0)) { side = SideID(1); continue; }
+            if (side == SideID(1)) { side = SideID(0); continue; }
+            if (side == SideID(2)) { side = SideID(3); continue; }
+            if (side == SideID(3)) { side = SideID(2); continue; }
         }
 
         // Reverse face winding and fix the resulting texture mapping
@@ -309,7 +318,7 @@ namespace Inferno::Editor {
         if (auto side = level.TryGetSide(tag)) {
             SideClipboardData data{};
             data.Side = *side;
-            
+
             if (auto wall = level.TryGetWall(tag))
                 data.Wall = *wall;
 
@@ -451,7 +460,7 @@ namespace Inferno::Editor {
                 Editor::Marked.Objects.clear();
                 return "Cut Objects";
 
-            default: 
+            default:
                 return {};
         }
     }

@@ -18,8 +18,9 @@ namespace Inferno::Editor {
 
     // Transform orientations
     enum class CoordinateSystem {
+        Local, // Depends on the selection. Normal for faces, orientation for objects.
         Global, // Axis aligned csys at the origin. World Space
-        Local // Depends on the selection. Normal for faces, orientation for objects.
+        User // User defined and positioned
     };
 
     struct SelectionHit {
@@ -77,14 +78,14 @@ namespace Inferno::Editor {
         }
 
         void NextPoint() {
-            Point++;
-            if (Point > 3) Point = 0;
+            if (Point == 3) Point = 0;
+            else Point++;
             SetSelection({ Segment, Side });
         }
 
         void PreviousPoint() {
-            Point--;
-            if (Point < 0) Point = 3;
+            if (Point == 0) Point = 3;
+            else Point--;
             SetSelection({ Segment, Side });
         }
 
@@ -233,6 +234,9 @@ namespace Inferno::Editor {
 
         return faces;
     }
+
+    // Executes a function on each valid marked object
+    void ForMarkedObjects(std::function<void(Object&)> fn);
 
     namespace Commands {
         void MarkCoplanar(Tag);
