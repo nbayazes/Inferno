@@ -30,7 +30,7 @@ namespace Inferno::Editor {
         return objectTypeLabels[(int)type];
     }
 
-    string GetObjectName(Object& obj) {
+    string GetObjectName(const Object& obj) {
         switch (obj.Type) {
             case ObjectType::Coop: return fmt::format("Coop player {}", obj.ID);
             case ObjectType::Player: return fmt::format("Player {}", obj.ID);
@@ -311,22 +311,65 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    inline bool ObjectDropdown(ObjID& id) {
-        bool changed = false;
-        auto label = fmt::format("{}: {}", id, GetObjectName(Game::Level.Objects[(int)id]));
+    constexpr int GetObjectTypePriority(ObjectType t) {
+        switch (t) {
+            case ObjectType::Player: return 0;
+            case ObjectType::Coop: return 1;
+            case ObjectType::Powerup: return 2;
+            case ObjectType::Hostage: return 3;
+            case ObjectType::Robot: return 4;
+            case ObjectType::Weapon: return 5;
+            case ObjectType::Clutter: return 8;
+            case ObjectType::Reactor: return 9;
+            default: return 10;
+        }
+    }
 
+    struct ObjectSort {
+        ObjID ID;
+        const Object* Obj;
+        string Name;
+    };
+
+    List<ObjectSort> SortObjects(const List<Object>& objects) {
+        List<ObjectSort> sorted;
+        sorted.reserve(objects.size());
+
+        for (int i = 0; i < objects.size(); i++)
+            sorted.push_back({ (ObjID)i, &objects[i], GetObjectName(objects[i]) });
+
+        Seq::sortBy(sorted, [](auto& a, auto& b) {
+            auto p0 = GetObjectTypePriority(a.Obj->Type);
+            auto p1 = GetObjectTypePriority(b.Obj->Type);
+            if (p0 < p1) return true;
+            if (p1 < p0) return false;
+            if (a.Name < b.Name) return true;
+            if (b.Name < a.Name) return false;
+            return false;
+        });
+
+        return sorted;
+    }
+
+    inline bool ObjectDropdown(Level& level, ObjID& id) {
+        bool changed = false;
+        //auto label = fmt::format("{}: {}", id, GetObjectName(level.Objects[(int)id]));
+        auto label = GetObjectName(level.Objects[(int)id]);
+
+        auto sorted = SortObjects(level.Objects);
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##objs", label.c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int i = 0; i < Game::Level.Objects.size(); i++) {
-                const bool isSelected = (int)id == i;
-                auto itemLabel = fmt::format("{}: {}", i, GetObjectName(Game::Level.Objects[i]));
-                if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+            for (int i = 0; i < sorted.size(); i++) {
+                const bool isSelected = id == sorted[i].ID;
+                ImGui::PushID(i);
+                if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
                     changed = true;
-                    id = (ObjID)i;
+                    id = sorted[i].ID;
                 }
 
                 if (isSelected)
                     ImGui::SetItemDefaultFocus();
+                ImGui::PopID();
             }
 
             ImGui::EndCombo();
@@ -338,9 +381,8 @@ namespace Inferno::Editor {
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
-
         ImGui::TableRowLabel("Object ID");
-        if (ObjectDropdown(Selection.Object))
+        if (ObjectDropdown(Game::Level, Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
 
         auto& obj = Game::Level.GetObject(Selection.Object);
