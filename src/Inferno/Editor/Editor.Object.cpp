@@ -67,7 +67,7 @@ namespace Inferno::Editor {
         return i;
     }
 
-    float GetObjectRadius(const Level& level, const Object& obj) {
+    float GetObjectRadius(const Object& obj) {
         constexpr float playerRadius = FixToFloat(0x46c35L);
 
         switch (obj.Type) {
@@ -96,11 +96,14 @@ namespace Inferno::Editor {
                 return Resources::GetModel(info.Model).Radius;
             }
 
-            case ObjectType::Weapon: // For placeable mines
+            case ObjectType::Weapon:
             {
-                // Only time the editor should create a weapon is if it's a mine
-                if (level.IsDescent1()) return 5; // No mines in D1
-                return Resources::GetModel(Models::PlaceableMine).Radius;
+                if (obj.Render.Type == RenderType::Polyobj) {
+                    return Resources::GetModel(obj.Render.Model.ID).Radius;
+                }
+                else {
+                    return obj.Radius;
+                }
             }
         }
 
@@ -190,7 +193,7 @@ namespace Inferno::Editor {
             }
         }
 
-        obj.Radius = GetObjectRadius(level, obj);
+        obj.Radius = GetObjectRadius(obj);
 
         if (obj.Render.Type == RenderType::Polyobj)
             Render::LoadModelDynamic(obj.Render.Model.ID);

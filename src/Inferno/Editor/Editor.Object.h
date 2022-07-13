@@ -7,6 +7,7 @@ namespace Inferno::Editor {
     bool AlignObjectToSide(Level&, ObjID, PointTag, bool center = false);
     bool MoveObjectToSegment(Level&, ObjID, SegID);
     int GetObjectCount(const Level& level, ObjectType type);
+    float GetObjectRadius(const Object& obj);
 
     ObjID AddObject(Level&, PointTag, ObjectType);
     void DeleteObject(Level&, ObjID);

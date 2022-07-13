@@ -217,11 +217,14 @@ namespace Inferno::Editor {
         if (RobotDropdown("##Robot", obj.ID)) {
             auto& robot = Resources::GameData.Robots[(int)obj.ID];
             obj.Render.Model.ID = robot.Model;
+            obj.Radius = GetObjectRadius(obj);
+
             Render::LoadModelDynamic(robot.Model);
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
                 o.ID = obj.ID;
                 o.Render.Model.ID = obj.Render.Model.ID;
+                o.Radius = GetObjectRadius(obj);
             });
             changed = true;
         }
@@ -297,6 +300,7 @@ namespace Inferno::Editor {
                     obj.ID = i;
                     auto& reactor = Resources::GameData.Reactors[(int)obj.ID];
                     obj.Render.Model.ID = reactor.Model;
+                    obj.Radius = GetObjectRadius(obj);
                     Render::LoadModelDynamic(reactor.Model);
                     changed = true;
                 }

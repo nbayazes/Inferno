@@ -431,6 +431,9 @@ namespace Inferno::Editor {
         Editor::History = { &Game::Level, Settings::UndoLevels };
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
+        
+        for (auto& obj : Game::Level.Objects)
+            obj.Radius = GetObjectRadius(obj);
 
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
