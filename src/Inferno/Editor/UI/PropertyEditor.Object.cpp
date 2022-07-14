@@ -116,20 +116,36 @@ namespace Inferno::Editor {
         { AIBehavior::Station, "Station" },
         { AIBehavior::Behind, "Get behind" },
         { AIBehavior::Snipe, "Snipe" },
-        { AIBehavior::Follow, "Follow" }
+        { AIBehavior::Follow, "Follow" },
+        { (AIBehavior)231, "Drop smart bombs" }, // fake behavior id for UI
     };
 
-    bool AIBehaviorDropdown(const char* label, AIBehavior& value) {
+    bool AIBehaviorDropdown(const char* label, RobotAI& ai) {
         bool changed = false;
 
-        if (!BehaviorLabels.contains(value))
-            value = AIBehavior::Normal; // hack to prevent crash on invalid objects. This can occur after changing an object to a robot.
+        auto value = ai.Behavior;
+
+        if (Game::Level.IsDescent2() && value == AIBehavior::RunFrom && ai.SmartMineFlag())
+            value = (AIBehavior)231;
+
+        if (!BehaviorLabels.contains(ai.Behavior))
+            value = AIBehavior::Normal; // hack to prevent crash on invalid objects. This can occur after changing an object to a robot or custom DLE types.
 
         if (ImGui::BeginCombo(label, BehaviorLabels.at(value))) {
             for (auto& [item, text] : BehaviorLabels) {
+                if ((int)item == 231 && Game::Level.IsDescent1()) continue; // No smart mines in D1
+
                 const bool isSelected = item == value;
                 if (ImGui::Selectable(text, isSelected)) {
-                    value = item;
+                    if ((int)item == 231) {
+                        ai.Behavior = AIBehavior::RunFrom;
+                        ai.SmartMineFlag(true);
+                    }
+                    else {
+                        ai.Behavior = item;
+                        ai.SmartMineFlag(false);
+                    }
+
                     changed = true;
                 }
 
@@ -234,10 +250,11 @@ namespace Inferno::Editor {
 
         ImGui::TableRowLabel("Behavior");
         ImGui::SetNextItemWidth(-1);
-        if (AIBehaviorDropdown("##Behavior", obj.Control.AI.Behavior)) {
+        if (AIBehaviorDropdown("##Behavior", obj.Control.AI)) {
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
                 o.Control.AI.Behavior = obj.Control.AI.Behavior;
+                o.Control.AI.Flags = obj.Control.AI.Flags;
             });
             changed = true;
         }
@@ -385,7 +402,7 @@ namespace Inferno::Editor {
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
-        ImGui::TableRowLabel("Object ID");
+        ImGui::TableRowLabel("Object");
         if (ObjectDropdown(Game::Level, Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
 

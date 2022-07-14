@@ -189,6 +189,13 @@ namespace Inferno {
         ObjSig DangerLaserSig{};
         double DyingStartTime{}; // Time at which this robot started dying.
         AIRuntime ail{};
+
+        void SmartMineFlag(bool value) {
+            if (value) Flags[4] |= 0x02;
+            else Flags[4] &= ~0x02;
+        }
+
+        bool SmartMineFlag() { return Flags[4] & 0x02; }
     };
 
     struct WeaponData {
