@@ -171,13 +171,6 @@ namespace Inferno {
     template <class T, class TContainer = std::deque<T>>
     using Queue = std::queue<T, TContainer>;
 
-    // Creates a four character code to identify file formats
-    consteval uint32 MakeFourCC(const char cc[4]) {
-        // this is the same as assigning the characters backwards to an int
-        // int i = dcba;
-        return cc[0] | cc[1] << 8 | cc[2] << 16 | cc[3] << 24;
-    }
-
     using fix64 = int64; //64 bits int, for timers
     using fix = int32; //16 bits int, 16 bits frac
     using fixang = int16; //angles

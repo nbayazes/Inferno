@@ -11,7 +11,7 @@ namespace Inferno::Outrage {
 
     // Gets the real center of a polygon and total area
     Tuple<Vector3, float> GetCentroid(span<Vector3> src) {
-        if (src.size() < 4) return { Vector3::Zero, 1.0f };
+        if (src.size() < 3) return { Vector3::Zero, 1.0f };
         // First figure out the total area of this polygon
         auto normal = (src[1] - src[0]).Cross(src[2] - src[0]);
         auto totalArea = normal.Length() / 2;
@@ -21,8 +21,8 @@ namespace Inferno::Outrage {
             totalArea += n.Length() / 2;
         }
 
-        // Now figure out how much weight each triangle represents to the overall
-        // polygon
+        // Now figure out how much weight each triangle represents 
+        // to the overall polygon
         normal = (src[1] - src[0]).Cross(src[2] - src[0]);
         auto area = normal.Length() / 2; // copy of initial?
 
@@ -144,12 +144,12 @@ namespace Inferno::Outrage {
         // check if parent equals self
 
         if (sm.NumKeyAngles == 0 && sm.HasFlag(SubmodelFlag::Rotate)) {
-            fmt::print("Submodel is rotator without keyframe");
+            fmt::print("Submodel is rotator without keyframe\n");
             sm.ClearFlag(SubmodelFlag::Rotate);
         }
 
         if (sm.NumKeyAngles == 0 && sm.HasFlag(SubmodelFlag::Turret)) {
-            fmt::print("Submodel is turret without keyframe");
+            fmt::print("Submodel is turret without keyframe\n");
             sm.ClearFlag(SubmodelFlag::Turret);
         }
 
@@ -158,6 +158,8 @@ namespace Inferno::Outrage {
             auto [centroid, area] = GetCentroid(verts);
             sm.Radius = sqrt(area) / 2;
         };
+
+        // todo: decode animations
     }
 
     Model Model::Read(StreamReader& r) {
@@ -195,28 +197,26 @@ namespace Inferno::Outrage {
             switch (id) {
                 case MakeFourCC("OHDR"): // POF file header
                 {
-                    auto submodels = r.ReadInt32();
-                    assert(submodels < 100);
+                    auto submodels = r.ReadInt32Checked(1000, "bad submodel count");
                     pm.Submodels.reserve(submodels);
                     pm.Radius = r.ReadFloat();
                     pm.Min = r.ReadVector3();
                     pm.Max = r.ReadVector3();
 
-                    // Skip details
                     int detail = r.ReadInt32();
-                    for (int i = 0; i < detail; i++) {
-                        r.ReadInt32();
-                    }
+                    for (int i = 0; i < detail; i++)
+                        r.ReadInt32(); // Skip details
+
                     break;
                 }
 
                 case MakeFourCC("TXTR"): // Texture filename list
                 {
-                    auto count = r.ReadInt32();
-                    assert(count < MAX_MODEL_TEXTURES);
+                    auto count = r.ReadInt32Checked(MAX_MODEL_TEXTURES, "exceeded max model textures");
+                    pm.Textures.resize(count);
 
-                    for (int i = 0; i < count; i++)
-                        pm.Textures.push_back(ReadModelString(r) + ".ogf");
+                    for (auto& tex : pm.Textures)
+                        tex = ReadModelString(r) + ".ogf";
 
                     break;
                 }
@@ -225,9 +225,7 @@ namespace Inferno::Outrage {
                 {
                     auto& sm = pm.Submodels.emplace_back();
 
-                    auto n = r.ReadInt32();
-                    assert(n < pm.Submodels.size());
-
+                    r.ReadInt32Checked((int)pm.Submodels.size(), "too many submodels");
                     sm.Parent = r.ReadInt32();
                     sm.Normal = r.ReadVector3();
 
@@ -260,11 +258,7 @@ namespace Inferno::Outrage {
                     for (int i = 0; i < chunks; i++)
                         r.ReadInt32();
 
-                    auto verts = r.ReadInt32();
-                    constexpr auto MAX_POLYGON_VECS = 2500;
-                    assert(verts < MAX_POLYGON_VECS);
-
-                    sm.Vertices.resize(verts);
+                    sm.Vertices.resize(r.ReadInt32Checked(2500, "too many verts"));
 
                     for (auto& vert : sm.Vertices)
                         vert.Position = r.ReadVector3();
@@ -280,15 +274,11 @@ namespace Inferno::Outrage {
                         }
                     }
 
-                    auto faces = r.ReadInt32();
-                    assert(faces < 20000); // Sanity check
-                    sm.Faces.resize(faces);
+                    sm.Faces.resize(r.ReadInt32Checked(20000, "too many faces"));
 
                     for (auto& face : sm.Faces) {
                         face.Normal = r.ReadVector3();
-                        auto nverts = r.ReadInt32();
-                        assert(nverts < 100);
-                        face.Vertices.resize(nverts);
+                        face.Vertices.resize(r.ReadInt32Checked(100, "bad nverts"));
 
                         bool textured = r.ReadInt32();
                         if (textured)
@@ -312,28 +302,44 @@ namespace Inferno::Outrage {
                     break;
                 }
 
-                //case MakeFourCC("GPNT"): // gun points
+                case MakeFourCC("GPNT"): // gun points
+                {
+                    pm.Guns.resize(r.ReadInt32Checked(100, "bad number of guns"));
 
-                //    break;
+                    for (auto& gun : pm.Guns) {
+                        // In Version 19.08 and beyond, gunpoints are associated to their parent object.
+                        if (pm.Version >= 19 * 100 + 8)
+                            gun.Parent = r.ReadInt32();
 
-                //case MakeFourCC("IDTA"): // Interpreter data
+                        gun.Point = r.ReadVector3();
+                        gun.Normal = r.ReadVector3();
+                    }
+                    break;
+                }
 
-                //    break;
-                //case MakeFourCC("PINF"): // POF file information, like command line, etc
+                case MakeFourCC("WBAT"): // weapon batteries
+                {
+                    auto num = r.ReadInt32Checked(100, "bad number of weapon batteries");
+                    pm.WeaponBatteries.resize(num);
 
-                //    break;
-                //case MakeFourCC("GRID"): // Grid information
+                    for (auto& battery : pm.WeaponBatteries) {
+                        auto gunpoints = r.ReadInt32Checked(100, "bad number of weapon battery gunpoints");
+                        battery.Gunpoints.resize(gunpoints);
+                        for (auto& gp : battery.Gunpoints)
+                            gp = (int8)r.ReadInt32();
 
-                //    break;
+                        auto turrets = r.ReadInt32Checked(100, "bad turret num");
+                        battery.Turrets.resize(turrets);
+                        for (auto& turret : battery.Turrets)
+                            turret = r.ReadInt32();
+                    }
 
+                    break;
+                }
 
                 case MakeFourCC("PANI"): // positional animation data
                 {
-                    int nframes = 0;
-
-                    if (!timed) {
-                        nframes = r.ReadInt32();
-                    }
+                    int nframes = timed ? 0 : r.ReadInt32();
 
                     for (auto& sm : pm.Submodels) {
                         if (timed) {
@@ -366,7 +372,6 @@ namespace Inferno::Outrage {
                         }
                     }
 
-
                     break;
                 }
 
@@ -379,8 +384,6 @@ namespace Inferno::Outrage {
                         nframes = r.ReadInt32();
                         // pm.num key angles = nframes
                     }
-
-                    // assert that data length matches submodels?
 
                     for (auto& sm : pm.Submodels) {
                         if (timed) {
@@ -427,24 +430,28 @@ namespace Inferno::Outrage {
                     break;
                 }
 
-                //case MakeFourCC("WBAT"): // weapon batteries
-                //    break;
-
-                //case MakeFourCC("GRND"): // ground plane info
-                //    break;
+                case MakeFourCC("GRND"): // ground plane info
+                {
+                    auto slots = r.ReadInt32Checked(100, "bad ground plane count");
+                    pm.GroundPlanes.resize(slots);
+                    for (auto& plane : pm.GroundPlanes) {
+                        plane.Parent = r.ReadInt32();
+                        plane.Point = r.ReadVector3();
+                        plane.Normal = r.ReadVector3();
+                    }
+                    break;
+                }
 
                 case MakeFourCC("ATCH"): // attach points
                 {
-                    auto attach = r.ReadInt32();
-                    if (attach > 100) throw Exception("Bad number of attach points");
-                    if (attach > 0) {
-                        pm.AttachPoints.resize(attach);
+                    auto points = r.ReadInt32Checked(100, "Bad number of attach points");
+                    pm.AttachPoints.resize(points);
+                    pm.AttachPointsUsed.resize(points);
 
-                        for (auto& point : pm.AttachPoints) {
-                            point.Parent = r.ReadInt32();
-                            point.Point = r.ReadVector3();
-                            point.Normal = r.ReadVector3();
-                        }
+                    for (auto& point : pm.AttachPoints) {
+                        point.Parent = r.ReadInt32();
+                        point.Point = r.ReadVector3();
+                        point.Normal = r.ReadVector3();
                     }
 
                     break;
@@ -457,19 +464,35 @@ namespace Inferno::Outrage {
                         throw Exception("Invalid ATTACH normals - total number doesn't match number of attach points");
 
                     for (int i = 0; i < normalCount; i++) {
-                        r.ReadVector3(); // unused?
-                        pm.AttachPoints[i].UpVec = r.ReadVector3();
-                        pm.AttachPoints[i].IsUsed = true;
+                        pm.AttachPoints[i].Point = r.ReadVector3();
+                        pm.AttachPoints[i].Normal = r.ReadVector3();
+                        pm.AttachPointsUsed[i] = true;
                     }
 
                     break;
                 }
+
+                case MakeFourCC("PINF"): // POF file information, like command line, etc
+                {
+                    //List<ubyte> buffer(len);
+                    //r.ReadBytes(buffer);
+                    break;
+                }
+
+                case MakeFourCC("SPCL"): // Only contains dummy data
+                {
+                    //List<ubyte> buffer(len);
+                    //r.ReadBytes(buffer);
+                    break;
+                }
+
+                default:
+                    fmt::print("unknown chunk id {}\n", id);
+                    break;
             }
 
             r.Seek(chunkStart + len); // seek to next chunk (prevents read errors due to individual chunks)
         }
-
-        // todo: animations
 
         for (auto& submodel : pm.Submodels) {
             UpdateMinMax(submodel);

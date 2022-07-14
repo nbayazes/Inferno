@@ -154,12 +154,18 @@ namespace Inferno {
         // Reads a int32 fixed value into a float
         float ReadFix() { return FixToFloat(Read<int32>()); }
 
-        // Reads an int32 and limits the max value. Used to prevent allocating huge vectors due to a programming error.
-        int32 ReadElementCount(int maximum = 10000) {
+
+        // Reads an int32 and limits between positive values and maximum. Used to prevent allocating huge vectors due to a programming error.
+        int32 ReadInt32Checked(int maximum, const char* message) {
             auto len = ReadInt32();
             if (len < 0 || len > maximum)
-                throw Exception("File array length is out of range. This is likely a programming error but could be a corrupted file");
+                throw Exception(message);
             return len;
+        };
+
+        // Reads an int32 and limits between positive values and maximum. Used to prevent allocating huge vectors due to a programming error.
+        int32 ReadElementCount(int maximum = 10000) {
+            return ReadInt32Checked(maximum, "Element count is out of range. This is likely a programming error but could be a corrupted file");
         };
 
         // Reads a 12 byte fixed point vector into a floating point vector

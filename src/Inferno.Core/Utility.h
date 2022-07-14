@@ -6,6 +6,21 @@
 #include "Types.h"
 
 namespace Inferno {
+    // Creates a four character code to identify file formats
+    consteval uint32 MakeFourCC(const char cc[4]) {
+        // this is the same as assigning the characters backwards to an int
+        // int i = dcba;
+        return cc[0] | cc[1] << 8 | cc[2] << 16 | cc[3] << 24;
+    }
+
+    //constexpr std::array<char, 4> DecodeFourCC(uint32 value) {
+    //    std::array<char, 4> cc{};
+    //    cc[0] = char(value & 0x000000ff);
+    //    cc[1] = char((value & 0x0000ff00) >> 8);
+    //    cc[2] = char((value & 0x00ff0000) >> 16);
+    //    cc[3] = char((value & 0xff000000) >> 24);
+    //    return cc;
+    //}
 
     // defined in C++23
     template <class T>

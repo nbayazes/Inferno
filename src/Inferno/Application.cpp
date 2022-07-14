@@ -33,8 +33,8 @@ void Application::Initialize(int width, int height) {
     //    auto model = OutrageModel::Read(reader);
     //}
 
-    auto& vclips = Resources::VClips;
-    auto& textures = Resources::GameTable.Textures;
+    //auto& vclips = Resources::VClips;
+    //auto& textures = Resources::GameTable.Textures;
 
     //for (auto& vclip : Resources::VClips) {
     //    fmt::print("v: {} FrameTime: {}s Pingpong: {}\n", vclip.Version, vclip.FrameTime, vclip.PingPong);

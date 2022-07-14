@@ -105,11 +105,7 @@ namespace Inferno::Outrage {
     };
 
     struct Model {
-        struct Attachment {
-            int Parent = -1;
-            Vector3 Point, Normal, UpVec;
-            bool IsUsed = false; // flip upvec?? used?? found?
-        };
+
 
         int Version; // equals major * 100 + minor
         int MajorVersion;
@@ -119,11 +115,34 @@ namespace Inferno::Outrage {
         List<string> Textures;
         List<int> TextureHandles;
 
-        List<Attachment> AttachPoints;
-
         int FrameMin = 0, FrameMax = 0;
 
         ModelFlag Flags;
+
+        struct Bank {
+            int Parent = 0;
+            Vector3 Point, Normal;
+        };
+
+        List<Bank> Guns;
+        List<Bank> GroundPlanes;
+        List<Bank> AttachPoints;
+        List<bool> AttachPointsUsed;
+
+        struct WeaponBattery {
+            // Static Data  (Add to robot generic page)
+            //unsigned short num_gps;
+            //ubyte gp_index[MAX_WB_GUNPOINTS];
+            List<ubyte> Gunpoints;
+
+            // Turrets are listed from most important (greatest mobility) to least important
+            List<ushort> Turrets;
+
+            //ubyte num_turrets;
+            //unsigned short turret_index[MAX_WB_TURRETS];
+        };
+
+        List<WeaponBattery> WeaponBatteries;
 
         void SetFlag(ModelFlag flag) { Flags &= flag; }
         void ClearFlag(ModelFlag flag) { Flags &= ~flag; }
