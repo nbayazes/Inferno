@@ -6,14 +6,38 @@ namespace Inferno::Outrage {
     constexpr auto MIN_OBJFILE_VERSION = 1807;
     constexpr auto OBJFILE_VERSION = 2300;
 
-    enum ModelFlags {
-        PMF_NONE = 0,
-        PMF_LIGHTMAP_RES = 1,
-        PMF_TIMED = 2,// Uses new timed animation
-        PMF_ALPHA = 4,// Has alpha per vertex qualities
-        PMF_FACING = 8,// Has a submodel that is always facing
-        PMF_NOT_RESIDENT = 16, // This polymodel is not in memory
-        PMF_SIZE_COMPUTED = 32, // This polymodel's size is computed
+    enum class ModelFlag {
+        None = 0,
+        LightmapRes = (1 << 0),
+        Timed = (1 << 1),// Uses timed animation
+        Alpha = (1 << 2),// Has alpha per vertex qualities
+        Facing = (1 << 3),// Has a submodel that is always facing
+        NotResident = (1 << 4), // This polymodel is not in memory
+        SizeComputed = (1 << 5), // This polymodel's size is computed
+    };
+
+    enum class SubmodelFlag {
+        Rotate = (1 << 0), // This subobject is a rotator
+        Turret = (1 << 1), // This subobject is a turret that tracks
+        Shell = (1 << 2), // This subobject is a door housing
+        Frontface = (1 << 3), // This subobject contains the front face for the door
+        Monitor1 = (1 << 4),
+        Monitor2 = (1 << 5),
+        Monitor3 = (1 << 6),
+        Monitor4 = (1 << 7),
+        Monitor5 = (1 << 8),
+        Monitor6 = (1 << 9),
+        Monitor7 = (1 << 10),
+        Monitor8 = (1 << 11),
+        Facing = (1 << 12), // This subobject always faces you
+        Viewer = (1 << 13), // This subobject is marked as a 'viewer'.
+        Layer = (1 << 14), // This subobject is marked as part of possible secondary model rendering.
+        WeaponBat = (1 << 15), // This subobject is part of a weapon battery
+        Glow = (1 << 16), // This subobject glows
+        Custom = (1 << 17), // This subobject has textures/colors that are customizable
+        Thruster = (1 << 18), // This is a thruster subobject
+        Jitter = (1 << 19), // This object jitters by itself
+        Headlight = (1 << 20) // This suboject is a headlight
     };
 
     struct ModelFace {
@@ -38,9 +62,27 @@ namespace Inferno::Outrage {
             float Alpha = 1;
         };
 
+        struct Keyframe {
+            Vector3 Axis; // the axis of rotation for each keyframe
+            int Angle; // The destination angles for each key frame
+            Vector3 Position;
+            int RotStartTime, PosStartTime;
+            // todo: convert to Matrix3 
+            // the combined rotation matrices up to frame n
+            Matrix Transform;
+        };
+
+        List<Keyframe> Keyframes;
+        int NumKeyAngles = 0;
+        int RotTrackMin = 0, RotTrackMax = 0;
+        int NumKeyPos = 0;
+        int PosTrackMin = 0, PosTrackMax = 0;
+
         Vector3 Min, Max;
         int Parent;
-        Vector3 Normal, Point, Offset;
+        Vector3 Normal; // Normal for separation plane
+        Vector3 Point; // Point for separation plane
+        Vector3 Offset; // Offset from parent
         float Radius;
 
         int TreeOffset, DataOffset;
@@ -48,13 +90,27 @@ namespace Inferno::Outrage {
 
         string Name, Props;
         int MovementType, MovementAxis;
+        float Rotation; // Fixed speed rotation along ? axis
+
+        SubmodelFlag Flags;
+        void SetFlag(SubmodelFlag flag) { Flags |= flag; }
+        void ClearFlag(SubmodelFlag flag) { Flags &= ~flag; }
+        bool HasFlag(SubmodelFlag flag) const { return (int)Flags & (int)flag; }
 
         List<Vertex> Vertices;
         List<ModelFace> Faces;
+
+        Color Glow;
+        float GlowSize;
     };
 
     struct Model {
-        ModelFlags Flags;
+        struct Attachment {
+            int Parent = -1;
+            Vector3 Point, Normal, UpVec;
+            bool IsUsed = false; // flip upvec?? used?? found?
+        };
+
         int Version; // equals major * 100 + minor
         int MajorVersion;
         float Radius;
@@ -62,6 +118,16 @@ namespace Inferno::Outrage {
         List<Submodel> Submodels;
         List<string> Textures;
         List<int> TextureHandles;
+
+        List<Attachment> AttachPoints;
+
+        int FrameMin = 0, FrameMax = 0;
+
+        ModelFlag Flags;
+
+        void SetFlag(ModelFlag flag) { Flags &= flag; }
+        void ClearFlag(ModelFlag flag) { Flags &= ~flag; }
+        bool HasFlag(ModelFlag flag) const { return (int)Flags & (int)flag; }
 
         static Model Read(StreamReader& r);
     };

@@ -28,11 +28,6 @@ void Application::Initialize(int width, int height) {
     //Sound::Play(SoundID(72), 0.1f, -0.5f, 1.0f);
     //Sound::Play(SoundID(72), 0.1f, -0.3f, -1.0f);
 
-
-
-
-
-
     //if (auto gyro = Resources::Descent3Hog->ReadEntry("gyro.oof")) {
     //    StreamReader reader(*gyro);
     //    auto model = OutrageModel::Read(reader);
@@ -49,14 +44,13 @@ void Application::Initialize(int width, int height) {
     //}
 
 
-    auto& texCache = Render::NewTextureCache;
 
     //List<int> handles;
-    //if (auto r = Resources::OpenFile("gyro.oof")) {
+    //if (auto r = Resources::OpenFile("drsweitzer.oof")) {
     //    auto model = Outrage::Model::Read(*r);
-    //    for (auto& name : model.Textures) {
+    //    /*for (auto& name : model.Textures) {
     //        handles.push_back(texCache->Resolve(name));
-    //    }
+    //    }*/
     //}
 
     //for (auto& texture : Resources::GameTable.Textures) {
@@ -66,22 +60,29 @@ void Application::Initialize(int width, int height) {
 
     //for (auto& entry : Resources::Descent3Hog.Entries) {
     //    if (String::ToLower(entry.name).ends_with("oof")) {
-    //        auto r = Resources::OpenFile(entry.name);
-    //        auto model = Outrage::Model::Read(*r);
+    //        try {
+    //            auto r = Resources::OpenFile(entry.name);
+    //            auto model = Outrage::Model::Read(*r);
 
-    //        for (auto& name : model.Textures) {
-    //            texCache->Resolve(name);
-    //            //handles.push_back(texCache->Resolve(name));
-    //            //auto& h = handles.emplace_back(t);
-    //            //texCache.Resolve(h);
     //        }
+    //        catch (const std::exception& e) {
+    //            SPDLOG_ERROR("{}: {}", entry.name, e.what());
+    //        }
+
+    //        //for (auto& sm : model.Submodels) {
+    //        //    if (sm.Props.empty()) continue;
+    //        //    fmt::print("{}\n", sm.Props);
+    //        //}
+
+    //        //for (auto& name : model.Textures) {
+    //        //    texCache->Resolve(name);
+    //        //}
     //    }
     //}
 
     Render::Adapter->PrintMemoryUsage();
     Render::Heaps->Shader.GetFreeDescriptors();
 
-    texCache->MakeResident();
     Editor::Initialize();
 
     OnActivated();

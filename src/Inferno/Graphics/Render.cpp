@@ -20,6 +20,7 @@ namespace Inferno::Render {
     BoundingFrustum CameraFrustum;
     bool LevelChanged = false;
 
+    //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
     const string TEST_MODEL = "gyro.OOF";
 
     // Dynamic render batches
@@ -150,7 +151,7 @@ namespace Inferno::Render {
         constants.Eye = Camera.Position;
 
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.LightColor[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         Matrix transform = object.Transform;
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -209,22 +210,31 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawOutrageModel(const Object& object, ID3D12GraphicsCommandList* cmd, int index) {
-        auto& effect = Effects->Object;
-        effect.Apply(cmd);
 
-        /*if (model.DataSize == 0) {
-            DrawObjectOutline(object);
-            return;
-        }*/
+    // Draws a square glow that always faces the camera (Descent 3 submodels);
+    void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color) {
+        if (radius <= 0) return;
+        const auto r = radius;
+        ObjectVertex v0({ -r, r, 0 }, { 0, 0 }, color);
+        ObjectVertex v1({ r, r, 0 }, { 1, 0 }, color);
+        ObjectVertex v2({ r, -r, 0 }, { 1, 1 }, color);
+        ObjectVertex v3({ -r, -r, 0 }, { 0, 1 }, color);
+
+        // Horrible immediate mode nonsense
+        DrawCalls++;
+        _spriteBatch->Begin(cmd);
+        _spriteBatch->DrawQuad(v0, v1, v2, v3);
+        _spriteBatch->End();
+    }
+
+    void DrawOutrageModel(const Object& object, ID3D12GraphicsCommandList* cmd, int index, bool transparentPass) {
         auto& meshHandle = _meshBuffer->GetOutrageHandle(index);
 
-        effect.Shader->SetSampler(cmd, GetTextureSampler());
         ObjectShader::Constants constants = {};
         constants.Eye = Camera.Position;
 
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.LightColor[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         Matrix transform = object.Transform;
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -232,8 +242,10 @@ namespace Inferno::Render {
         auto model = Resources::GetOutrageModel(TEST_MODEL);
         if (model == nullptr) return;
 
-        int submodelIndex = 0;
-        for (auto& submodel : model->Submodels) {
+        for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
+            auto& submodel = model->Submodels[submodelIndex];
+            auto& submesh = meshHandle.Meshes[submodelIndex];
+
             // accumulate the offsets for each submodel
             auto submodelOffset = Vector3::Zero;
             auto* smc = &submodel;
@@ -243,31 +255,59 @@ namespace Inferno::Render {
             }
 
             auto world = Matrix::CreateTranslation(submodelOffset) * transform;
-            constants.World = world;
-            constants.Projection = world * ViewProjection;
+
+            using namespace Outrage;
+
+            if (submodel.HasFlag(SubmodelFlag::Facing)) {
+                auto smPos = Vector3::Transform(Vector3::Zero, world);
+                auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
+                constants.World = world;
+                constants.Projection = billboard * ViewProjection;
+            }
+            else {
+                // todo: fixed submodel rotation based on attach points
+                if (submodel.HasFlag(SubmodelFlag::Rotate))
+                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
+
+                constants.World = world;
+                constants.Projection = world * ViewProjection;
+            }
+
             //constants.Time = (float)ElapsedTime;
-            effect.Shader->SetConstants(cmd, constants);
 
             // get the mesh associated with the submodel
-            auto& subMesh = meshHandle.Meshes[submodelIndex++];
+            for (auto& [i, mesh] : submesh) {
 
-            for (auto& [i, mesh] : subMesh) {
-                //tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).GetFrame(ElapsedTime);
+                auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
+                bool transparent = material.Flags & Outrage::TF_SATURATE || material.Flags & Outrage::TF_ALPHA;
 
-                //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
-                //auto& material = Materials->GetOutrageMaterial(textureName);
-                //effect.Shader->SetMaterial(cmd, material);
+                if ((transparentPass && !transparent) || (!transparentPass && transparent))
+                    continue; // skip saturate textures unless on glow pass
+
                 auto handle = i >= 0 ?
                     Render::NewTextureCache->GetResource(model->TextureHandles[i]) :
-                    //Materials->GetOutrageMaterial(model->Textures[i]) :
                     Materials->White.Handles[0];
 
+                bool additive = material.Flags & Outrage::TF_SATURATE || submodel.HasFlag(SubmodelFlag::Facing);
+
+                auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
+                effect.Apply(cmd);
+                effect.Shader->SetSampler(cmd, GetTextureSampler());
                 effect.Shader->SetMaterial(cmd, handle);
 
-                cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                cmd->IASetIndexBuffer(&mesh->IndexBuffer);
-                cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                DrawCalls++;
+                if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
+                    constants.Colors[1] = Color(1, 1, 1, 1);
+                    effect.Shader->SetConstants(cmd, constants);
+                    DrawObjectGlow(cmd, submodel.Radius, Color(1, 1, 1, 1));
+                }
+                else {
+                    constants.Colors[1] = material.Color; // color 1 is used for texture alpha
+                    effect.Shader->SetConstants(cmd, constants);
+                    cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                    cmd->IASetIndexBuffer(&mesh->IndexBuffer);
+                    cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                    DrawCalls++;
+                }
             }
         }
     }
@@ -554,9 +594,6 @@ namespace Inferno::Render {
         PIXEndEvent(cmdList);
     }
 
-    //List<LevelTexID> PendingTextures;
-    //List<ModelID> PendingModels;
-
     void Initialize(HWND hwnd, int width, int height) {
         assert(hwnd);
         _hwnd = hwnd;
@@ -702,7 +739,7 @@ namespace Inferno::Render {
         CanvasCommands[payload.Texture].push_back(payload);
     }
 
-    void DrawObject(const Object& object, ID3D12GraphicsCommandList* cmd) {
+    void DrawObject(const Object& object, ID3D12GraphicsCommandList* cmd, bool transparentPass) {
         switch (object.Type) {
             case ObjectType::Robot:
             {
@@ -724,7 +761,7 @@ namespace Inferno::Render {
             {
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
                 //DrawModel(object, cmd, object.Render.Model.ID, texOverride);
-                DrawOutrageModel(object, cmd, 0);
+                DrawOutrageModel(object, cmd, 0, transparentPass);
                 break;
             }
 
@@ -779,10 +816,11 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void ExecuteRenderCommand(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
+    void ExecuteRenderCommand(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, bool transparentPass) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
+                if (transparentPass) return;
                 auto& mesh = *cmd.Data.LevelMesh;
 
                 LevelShader::Constants consts = {};
@@ -812,7 +850,7 @@ namespace Inferno::Render {
                 break;
             }
             case RenderCommandType::Object:
-                DrawObject(*cmd.Data.Object, cmdList);
+                DrawObject(*cmd.Data.Object, cmdList, transparentPass);
                 break;
         }
     }
@@ -977,14 +1015,17 @@ namespace Inferno::Render {
             cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             for (auto& cmd : _opaqueQueue)
-                ExecuteRenderCommand(cmdList, cmd);
+                ExecuteRenderCommand(cmdList, cmd, false);
 
             Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
                 return l.Depth > r.Depth;
             });
 
             for (auto& cmd : _transparentQueue)
-                ExecuteRenderCommand(cmdList, cmd);
+                ExecuteRenderCommand(cmdList, cmd, false);
+
+            for (auto& cmd : _transparentQueue) // draw transparent objects
+                ExecuteRenderCommand(cmdList, cmd, true);
 
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);

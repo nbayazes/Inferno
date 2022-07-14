@@ -100,12 +100,6 @@ namespace Inferno::Outrage {
             auto width = ogf.Width / sz;
             auto height = ogf.Height / sz;
 
-            auto len = width * height * (sizeof(ubyte) + sizeof(uint16));
-            //if (skipData) {
-            //    r.SeekForward(width * height * (sizeof(ubyte) + sizeof(uint16)));
-            //    continue;
-            //}
-
             List<ushort> data(width * height);
 
             int count = 0;

@@ -6,6 +6,7 @@
 #include "Polymodel.h"
 
 namespace Inferno::Render {
+    // An object mesh used for rendering
     struct Mesh {
         D3D12_INDEX_BUFFER_VIEW IndexBuffer;
         D3D12_VERTEX_BUFFER_VIEW VertexBuffer;

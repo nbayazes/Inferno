@@ -6,6 +6,58 @@
 #include "Types.h"
 
 namespace Inferno {
+
+    // defined in C++23
+    template <class T>
+    inline constexpr bool is_scoped_enum_v = std::conjunction_v<std::is_enum<T>, std::negation<std::is_convertible<T, int>>>;
+
+    template <class T>
+    struct is_scoped_enum : std::bool_constant<is_scoped_enum_v<T>> {};
+
+    // Templates to enable bitwise operators on all enums. Might be a bad idea.
+
+    template<class T> requires is_scoped_enum_v<T>
+    constexpr T operator | (T lhs, T rhs) {
+        return T((std::underlying_type_t<T>)lhs | (std::underlying_type_t<T>)rhs);
+    }
+
+    template<class T> requires is_scoped_enum_v<T>
+    inline T& operator |= (T& lhs, T rhs) {
+        return lhs = lhs | rhs;
+    }
+
+    template<class T> requires is_scoped_enum_v<T>
+    constexpr T operator & (T lhs, T rhs) {
+        return T((std::underlying_type_t<T>)lhs & (std::underlying_type_t<T>)rhs);
+    }
+
+    template<class T> requires is_scoped_enum_v<T>
+    inline T& operator &= (T& lhs, T rhs) {
+        return lhs = lhs & rhs;
+    }
+
+    template<class T> requires is_scoped_enum_v<T>
+    inline T& operator ~ (T& value) {
+        return value = T(~((int)value));
+    }
+
+    //template <class T>
+    //concept IsEnum = is_scoped_enum_v<T>;
+
+    //// Converts an enum to the underlying type
+    //constexpr auto ToUnderlying(IsEnum auto e) {
+    //    return static_cast<std::underlying_type<declspec(e)>::type>(e);
+    //};
+
+    //inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator | (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) | ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline ENUMTYPE& operator |= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) |= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator & (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) & ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline ENUMTYPE& operator &= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) &= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator ~ (ENUMTYPE a) WIN_NOEXCEPT { return ENUMTYPE(~((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a)); } \
+    //    inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator ^ (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^ ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline ENUMTYPE& operator ^= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) ^= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+
+
     // Modulus division without negative numbers
     template <class T>
     constexpr T mod(T k, T n) {
@@ -202,17 +254,6 @@ namespace Inferno {
         assert(f < 32768 && f > -32769); // out of range
         return (fix)(f * (1 << 16));
     }
-
-    // needs C++23
-    /*
-    template <class T>
-    concept IsEnum = std::is_scoped_enum_v<T>;
-
-    // Converts an enum to the underlying type
-    constexpr auto ToUnderlying(IsEnum auto e) {
-        return static_cast<std::underlying_type<declspec(e)>::type>(e);
-    };
-    */
 
     // Calls a fire-and-forget function
     void CallAsync(auto&& fn) {

@@ -20,7 +20,7 @@ namespace Inferno {
         bool PingPong = false;
         int VClip = -1; // index to Resources::VClips
 
-        MaterialHandle GetFrame(int offset, float time) {
+        MaterialHandle GetFrame(int offset, float time) const {
             auto frames = (int)FrameHandles.size();
             auto frameTime = FrameTime / frames;
             auto frame = int(time / frameTime) + offset;
@@ -221,6 +221,7 @@ namespace Inferno {
     class TextureCache {
         List<RuntimeTextureInfo> _textures;
         TextureGpuCache _gpu;
+        RuntimeTextureInfo _defaultTexture{};
     public:
 
         TextureCache() {
@@ -265,13 +266,25 @@ namespace Inferno {
             return -1;
         }
 
+        const RuntimeTextureInfo& GetTextureInfo(int handle) {
+            if (Seq::inRange(_textures, handle)) {
+                return _textures[handle];
+            };
+
+            return _defaultTexture;
+        }
+
+        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(const RuntimeTextureInfo& info) {
+            if (info.FrameHandles.empty())
+                return _gpu.GetGpuHandle(info.BitmapHandle);
+
+            return _gpu.GetGpuHandle(info.GetFrame(0, 0));
+        }
+
         D3D12_GPU_DESCRIPTOR_HANDLE GetResource(int handle) {
             if (Seq::inRange(_textures, handle)) {
                 auto& info = _textures[handle];
-                if (info.FrameHandles.empty())
-                    return _gpu.GetGpuHandle(info.BitmapHandle);
-
-                return _gpu.GetGpuHandle(info.GetFrame(0, 0));
+                return GetResource(info);
             }
 
             return _gpu.GetGpuHandle(MaterialHandle::Missing);
