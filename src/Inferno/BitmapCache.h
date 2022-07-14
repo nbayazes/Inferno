@@ -274,17 +274,17 @@ namespace Inferno {
             return _defaultTexture;
         }
 
-        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(const RuntimeTextureInfo& info) {
+        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(const RuntimeTextureInfo& info, float time) {
             if (info.FrameHandles.empty())
                 return _gpu.GetGpuHandle(info.BitmapHandle);
 
-            return _gpu.GetGpuHandle(info.GetFrame(0, 0));
+            return _gpu.GetGpuHandle(info.GetFrame(0, time));
         }
 
-        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(int handle) {
+        D3D12_GPU_DESCRIPTOR_HANDLE GetResource(int handle, float time) {
             if (Seq::inRange(_textures, handle)) {
                 auto& info = _textures[handle];
-                return GetResource(info);
+                return GetResource(info, time);
             }
 
             return _gpu.GetGpuHandle(MaterialHandle::Missing);

@@ -7,9 +7,9 @@ namespace Inferno::Outrage {
     enum TextureFlag {
         TF_VOLATILE = 1,
         TF_WATER = (1 << 1),
-        TF_METAL = (1 << 2),
-        TF_MARBLE = (1 << 3),
-        TF_PLASTIC = (1 << 4),
+        TF_METAL = (1 << 2), // Editor sorting
+        TF_MARBLE = (1 << 3), // Editor sorting
+        TF_PLASTIC = (1 << 4), // Editor sorting
         TF_FORCEFIELD = (1 << 5),
         TF_ANIMATED = (1 << 6),
         TF_DESTROYABLE = (1 << 7),
@@ -26,9 +26,9 @@ namespace Inferno::Outrage {
         TF_PING_PONG = (1 << 18),
         TF_LIGHT = (1 << 19),
         TF_BREAKABLE = (1 << 20),
-        TF_SATURATE = (1 << 21),
+        TF_SATURATE = (1 << 21), // Full bright?
         TF_ALPHA = (1 << 22),
-        TF_DONTUSE = (1 << 23),
+        TF_DONTUSE = (1 << 23), // Not intended for levels?
         TF_PROCEDURAL = (1 << 24),
         TF_WATER_PROCEDURAL = (1 << 25),
         TF_FORCE_LIGHTMAP = (1 << 26),

@@ -265,7 +265,6 @@ namespace Inferno::Render {
                 constants.Projection = billboard * ViewProjection;
             }
             else {
-                // todo: fixed submodel rotation based on attach points
                 if (submodel.HasFlag(SubmodelFlag::Rotate))
                     world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
 
@@ -285,7 +284,7 @@ namespace Inferno::Render {
                     continue; // skip saturate textures unless on glow pass
 
                 auto handle = i >= 0 ?
-                    Render::NewTextureCache->GetResource(model->TextureHandles[i]) :
+                    Render::NewTextureCache->GetResource(model->TextureHandles[i], (float)ElapsedTime) :
                     Materials->White.Handles[0];
 
                 bool additive = material.Flags & Outrage::TF_SATURATE || submodel.HasFlag(SubmodelFlag::Facing);
@@ -296,6 +295,8 @@ namespace Inferno::Render {
                 effect.Shader->SetMaterial(cmd, handle);
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
+                    if (material.Flags & Outrage::TF_SATURATE)
+                        constants.Colors[0] = Color(1, 1, 1, 1);
                     constants.Colors[1] = Color(1, 1, 1, 1);
                     effect.Shader->SetConstants(cmd, constants);
                     DrawObjectGlow(cmd, submodel.Radius, Color(1, 1, 1, 1));
