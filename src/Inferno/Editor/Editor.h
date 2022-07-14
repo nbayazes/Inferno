@@ -164,7 +164,6 @@ namespace Inferno::Editor {
 
     void CleanLevel(Level&);
     void ResetFlickeringLightTimers(Level& level);
-    void CheckLevelForErrors(const Level&);
 
     namespace Commands {
         void CleanLevel();

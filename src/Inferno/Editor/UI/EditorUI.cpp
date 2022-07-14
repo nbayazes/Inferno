@@ -1,11 +1,12 @@
 #include "pch.h"
 #include "EditorUI.h"
-#include "../Editor.h"
 #include "Graphics/Render.h"
 #include "Shell.h"
 #include "Settings.h"
 #include "imgui_local.h"
 #include "DebugOverlay.h"
+#include "Editor/Editor.h"
+#include "Editor/Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
     constexpr int ToolbarWidth = 80;
@@ -664,6 +665,7 @@ namespace Inferno::Editor {
 
                 case SelectionMode::Face:
                     MenuCommand(Commands::ConnectSides, Binding::ConnectSides);
+                    MenuCommand(Commands::JoinSides, Binding::JoinSides);
                     MenuCommand(Commands::DetachSides, Binding::DetachSides);
                     ImGui::Separator();
                     break;
