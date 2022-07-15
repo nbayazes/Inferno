@@ -18,6 +18,7 @@ namespace Inferno {
         // Geometric center, used for wall depth sorting
         Vector3 Center;
         BlendMode Blend = BlendMode::Opaque;
+        bool Cloaked = false;
 
         void AddQuad(uint16 index, const SegmentSide& side) {
             for (auto i : side.GetRenderIndices())

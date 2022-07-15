@@ -454,6 +454,13 @@ namespace Inferno::Render {
                 else
                     _black.CreateShaderResourceView(handle.GetCpuHandle());
             }
+
+            for (uint i = 0; i < Material2D::Count; i++) {
+                auto handle = Render::Heaps->Reserved.Allocate();
+                Black.Handles[i] = handle.GetGpuHandle();
+
+                _black.CreateShaderResourceView(handle.GetCpuHandle());
+            }
         }
 
 

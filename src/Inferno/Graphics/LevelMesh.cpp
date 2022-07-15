@@ -260,19 +260,19 @@ namespace Inferno {
                 if (side.HasOverlay())
                     chunk.EffectClip2 = Resources::GetEffectClip(side.TMap2);
 
-                float alpha = 1;
+                Array<Color, 4> lt = side.Light;
+                
                 if (isWall && wall) {
                     chunk.Blend = GetWallBlendMode(level, side.TMap);
                     if (wall->Type == WallType::Cloaked) {
                         chunk.Blend = BlendMode::Alpha;
-                        alpha = wall->CloakValue();
+                        auto alpha = 1 - wall->CloakValue();
+                        Seq::iter(lt, [alpha](auto& x) { x.A(alpha); });
+                        chunk.Cloaked = true;
                     }
                 }
 
                 auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-
-                Array<Color, 4> lt = side.Light;
-                Seq::iter(lt, [alpha](auto x) { x.A(alpha); });
                 AddPolygon(verts, side.UVs, lt, geo, chunk, side);
 
                 // Overlays should slide in the same direction as the base texture regardless of their rotation
@@ -323,12 +323,9 @@ namespace Inferno {
 
     void LevelMeshWorker::Work() {
         auto index = (_index + 1) % 2;
-        //SPDLOG_INFO("Updating index {}", index);
         auto& upload = _upload[index];
         auto& resources = _resources[index];
         resources = {};
-        //DX::PackedUploadBuffer upload;
-        //LevelResources2 resources;
         ChunkCache chunks;
         CreateLevelGeometry(_level, chunks, resources.Geometry);
 

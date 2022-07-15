@@ -636,6 +636,8 @@ namespace Inferno::Editor {
                 }
                 else {
                     wall->Type = wallType;
+                    if (wallType == WallType::Cloaked)
+                        wall->CloakValue(0.5f);
                     wallChanged = true;
                 }
             }
@@ -711,6 +713,7 @@ namespace Inferno::Editor {
                         if (ImGui::InputFloat("##cloak", &cloakValue, Wall::CloakStep * 110, Wall::CloakStep * 500, "%.0f%%")) {
                             wall->CloakValue(cloakValue / 100);
                             wallChanged = true;
+                            Events::LevelChanged();
                         }
 
                         break;
@@ -829,13 +832,13 @@ namespace Inferno::Editor {
     }
 
     // Updates the wall connected to this source
-    void UpdateOtherWall(Tag source) {
+    void UpdateOtherWall(Level& level, Tag source) {
         if (!Settings::EditBothWallSides) return;
 
         // Update other wall if mode is enabled
-        auto wall = Game::Level.TryGetWall(source);
-        auto otherSide = Game::Level.GetConnectedSide(source);
-        auto otherWall = Game::Level.TryGetWall(otherSide);
+        auto wall = level.TryGetWall(source);
+        auto otherSide = level.GetConnectedSide(source);
+        auto otherWall = level.TryGetWall(otherSide);
 
         if (wall && otherWall) {
             // Copy relevant values
@@ -895,7 +898,7 @@ namespace Inferno::Editor {
         }
 
         if (WallProperties(side.Wall)) {
-            UpdateOtherWall(Editor::Selection.Tag());
+            UpdateOtherWall(Game::Level, Editor::Selection.Tag());
 
             // Only snapshot wall changes if it wasn't deleted. Deleting a wall makes its own snapshot
             if (auto wall = Game::Level.TryGetWall(Editor::Selection.Tag())) {
@@ -938,7 +941,6 @@ namespace Inferno::Editor {
         changed |= SideUVs(side);
 
         if (changed) {
-            // copy to marked
             Events::LevelChanged();
         }
 

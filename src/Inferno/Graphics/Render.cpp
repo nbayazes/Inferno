@@ -264,22 +264,28 @@ namespace Inferno::Render {
         consts.Time = (float)ElapsedTime;
         consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.1f;
 
-        {
-            auto& map1 = chunk.EffectClip1 == EClipID::None ?
-                Materials->Get(chunk.TMap1) :
-                Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).GetFrame(ElapsedTime));
-
-            Shaders->Level.SetMaterial1(cmdList, map1);
+        if (chunk.Cloaked) {
+            Shaders->Level.SetMaterial1(cmdList, Materials->Black);
+            Shaders->Level.SetMaterial2(cmdList, Materials->Black);
         }
+        else {
+            {
+                auto& map1 = chunk.EffectClip1 == EClipID::None ?
+                    Materials->Get(chunk.TMap1) :
+                    Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).GetFrame(ElapsedTime));
 
-        if (chunk.TMap2 > LevelTexID::Unset) {
-            consts.Overlay = true;
+                Shaders->Level.SetMaterial1(cmdList, map1);
+            }
 
-            auto& map2 = chunk.EffectClip2 == EClipID::None ?
-                Materials->Get(chunk.TMap2) :
-                Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).GetFrame(ElapsedTime));
+            if (chunk.TMap2 > LevelTexID::Unset) {
+                consts.Overlay = true;
 
-            Shaders->Level.SetMaterial2(cmdList, map2);
+                auto& map2 = chunk.EffectClip2 == EClipID::None ?
+                    Materials->Get(chunk.TMap2) :
+                    Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).GetFrame(ElapsedTime));
+
+                Shaders->Level.SetMaterial2(cmdList, map2);
+            }
         }
 
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);

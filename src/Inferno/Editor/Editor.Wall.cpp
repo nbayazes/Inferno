@@ -238,6 +238,9 @@ namespace Inferno::Editor {
         side.TMap = tmap1;
         side.TMap2 = tmap2;
 
+        if (type == WallType::Cloaked)
+            wall.CloakValue(0.5f);
+
         if (type != WallType::WallTrigger)
             ResetUVs(level, tag, Editor::Selection.Point);
 
