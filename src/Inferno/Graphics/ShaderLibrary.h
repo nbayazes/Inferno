@@ -126,7 +126,7 @@ namespace Inferno {
 
         struct InstanceConstants {
             float Time, FrameTime;
-            float ScrollU, ScrollV;
+            Vector2 Scroll, Scroll2; // For UV scrolling
             float LightingScale;
             HlslBool Distort;
             HlslBool Overlay;

@@ -26,7 +26,7 @@ namespace Inferno {
         float Damage{}; //how much damage being against this does (for lava)
         EClipID EffectClip = EClipID::None; //the EffectClip that changes this, or -1
         LevelTexID DestroyedTexture = LevelTexID::None; //bitmap to show when destroyed, or -1
-        float SlideU{}, SlideV{}; // Siding UV rate of texture per second
+        Vector2 Slide; // Siding UV rate of texture per second
         LevelTexID ID = LevelTexID::None;;
         TexID TexID = TexID::None;
         string D1FileName;

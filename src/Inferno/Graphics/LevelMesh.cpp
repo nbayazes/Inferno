@@ -104,36 +104,12 @@ namespace Inferno {
         return Vector2::Transform(uv, Matrix::CreateRotationZ(overlayAngle));
     }
 
-    //inline void AddPolygon(Array<Vector3, 4>& verts, 
-    //                       LevelGeometry& geo, 
-    //                       LevelChunk& chunk, 
-    //                       SegmentSide& side, 
-    //                       float alpha) {
-    //    auto startIndex = geo.Vertices.size();
-    //    chunk.AddQuad((uint16)startIndex, side);
-
-    //    auto light = side.Light;
-    //    Seq::iter(light, [alpha](auto x) { x.A(alpha); });
-
-    //    // create vertices for this face
-    //    for (int i = 0; i < 4; i++) {
-    //        chunk.Center += verts[i];
-    //        auto& normal = side.AverageNormal; // todo: proper normal from split
-    //        Vector2 uv2 = side.HasOverlay() ? GetOverlayRotation(side, side.UV[i]) : Vector2();
-    //        DX::LevelVertex vertex = { verts[i], side.UV[i], side.Light[i], uv2, normal };
-
-    //        geo.Vertices.push_back(vertex);
-    //    }
-
-    //    chunk.Center /= 4;
-    //}
-
-    inline void AddPolygon(Array<Vector3, 4>& verts,
-                           Array<Vector2, 4>& uv,
-                           Array<Color, 4>& lt,
-                           LevelGeometry& geo,
-                           LevelChunk& chunk,
-                           SegmentSide& side) {
+    void AddPolygon(Array<Vector3, 4>& verts,
+                    Array<Vector2, 4>& uv,
+                    Array<Color, 4>& lt,
+                    LevelGeometry& geo,
+                    LevelChunk& chunk,
+                    SegmentSide& side) {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex, side);
 
@@ -152,75 +128,11 @@ namespace Inferno {
         chunk.Center /= 4;
     }
 
-
-    //void UpdatePolygon(Level& level, Segment& seg, LevelGeometry& geo, LevelChunk& chunk, SideID sideId, SegmentSide& side) {
-    //    auto face = Face::FromSide(level, seg, sideId);
-
-    //    for (int i = 0; i < 4; i++) {
-    //        chunk.Center += face[i];
-    //        auto& normal = side.AverageNormal; // todo: proper normal from split
-    //        Vector2 uv2 = side.HasOverlay() ? GetOverlayRotation(side, side.UV[i]) : Vector2();
-
-    //        geo.Vertices[/*chunk.IndexOffset +*/ i] = { face[i], side.UV[i], side.Light[i], uv2, normal };
-    //        geo.Vertices[/*chunk.IndexOffset +*/ i] = { face[i], side.UV[i], { 0, 0, 0, 0 }, uv2, normal };
-    //    }
-
-    //    chunk.Center /= 4;
-    //    throw NotImplementedException();
-    //}
-
-    inline void Tessellate(Array<Vector3, 4>& verts,
-                           LevelGeometry& geo,
-                           LevelChunk& chunk,
-                           SegmentSide& side,
-                           int steps) {
-
-        //float s = (float)steps + 1;
-
-        //Vector3 pts[3][3]{};
-        //pts[0][0] = verts[0];
-        //pts[2][0] = verts[1];
-        //pts[2][2] = verts[2];
-        //pts[0][2] = verts[3];
-        //pts[1][0] = (pts[0][0] + pts[2][0]) / 2.0f;
-        //pts[2][1] = (pts[2][0] + pts[2][2]) / 2.0f;
-        //pts[1][2] = (pts[2][2] + pts[0][2]) / 2.0f;
-        //pts[0][1] = (pts[0][0] + pts[0][2]) / 2.0f;
-        //pts[1][1] = (pts[1][0] + pts[1][2]) / 2.0f;
-
-        //Vector2 uvs[3][3]{};
-        //uvs[0][0] = side.UVs[0];
-        //uvs[2][0] = side.UVs[1];
-        //uvs[2][2] = side.UVs[2];
-        //uvs[0][2] = side.UVs[3];
-        //uvs[1][0] = (uvs[0][0] + uvs[2][0]) / 2.0f;
-        //uvs[2][1] = (uvs[2][0] + uvs[2][2]) / 2.0f;
-        //uvs[1][2] = (uvs[2][2] + uvs[0][2]) / 2.0f;
-        //uvs[0][1] = (uvs[0][0] + uvs[0][2]) / 2.0f;
-        //uvs[1][1] = (uvs[1][0] + uvs[1][2]) / 2.0f;
-
-        //Color light[3][3]{};
-        //light[0][0] = side.Light[0];
-        //light[2][0] = side.Light[1];
-        //light[2][2] = side.Light[2];
-        //light[0][2] = side.Light[3];
-        //light[1][0] = (light[0][0] + light[2][0]) * 0.5f;
-        //light[2][1] = (light[2][0] + light[2][2]) * 0.5f;
-        //light[1][2] = (light[2][2] + light[0][2]) * 0.5f;
-        //light[0][1] = (light[0][0] + light[0][2]) * 0.5f;
-        //light[1][1] = (light[1][0] + light[1][2]) * 0.5f;
-
-        //for (int x = 0; x < 2; x++) {
-        //    for (int y = 0; y < 2; y++) {
-        //        Array<Vector3, 4> p{ pts[x][y], pts[x + 1][y], pts[x + 1][y + 1], pts[x][y + 1] };
-        //        Array<Vector2, 4> uv{ uvs[x][y], uvs[x + 1][y], uvs[x + 1][y + 1], uvs[x][y + 1] };
-        //        Array<Color, 4> lt{ light[x][y], light[x + 1][y], light[x + 1][y + 1], light[x][y + 1] };
-        //        AddPolygon(p, uv, lt, geo, chunk, side);
-        //    };
-        //}
-
-        //steps++;
-
+    void Tessellate(Array<Vector3, 4>& verts,
+                    LevelGeometry& geo,
+                    LevelChunk& chunk,
+                    SegmentSide& side,
+                    int steps) {
         auto incr = 1 / ((float)steps + 1);
         auto vTop = (verts[1] - verts[0]) * incr; // top
         auto vBottom = (verts[2] - verts[3]) * incr; // bottom
@@ -299,87 +211,14 @@ namespace Inferno {
         return BlendMode::Alpha;
     }
 
-
-    //// Updates existing mesh data without allocations. Valid as long as the segment / wall count does not change.
-    //inline void UpdateLevelGeometry(Level& level, Dictionary<int32, LevelChunk>& chunks, LevelGeometry& geo) {
-    //    int id = 0;
-    //    int wallId = 0;
-
-    //    for (auto& seg : level.Segments) {
-    //        for (auto& sideId : SideIDs) {
-    //            auto& side = seg.GetSide(sideId);
-    //            auto isWall = seg.SideIsWall(sideId);
-
-    //            // Do not render open sides
-    //            if (seg.SideHasConnection(sideId) && !isWall)
-    //                continue;
-
-    //            // Do not render the exit
-    //            if (seg.GetConnection(sideId) == SegID::Exit)
-    //                continue;
-
-    //            WallType wallType = isWall ? level.GetWall(side.Wall).Type : WallType::None;
-
-    //            // Do not render fly-through walls
-    //            if (isWall && wallType == WallType::FlyThroughTrigger)
-    //                continue;
-
-    //            // pack the two map ids together into a single integer
-    //            int32 chunkId = (int)side.TMap | (int)side.TMap2 << 16;
-
-    //            LevelChunk* chunk = [&]() -> LevelChunk* {
-    //                if (seg.SideHasConnection(sideId) && isWall) {
-    //                    return &geo.Walls[wallId++];
-    //                }
-    //                else {
-    //                    assert(chunks.contains(chunkId));
-    //                    return &chunks[chunkId]; // Use existing chunk with tmaps
-    //                }
-    //            }();
-
-    //            chunk->MapID1 = side.TMap;
-    //            chunk->MapID2 = side.TMap2;
-    //            chunk->Map1 = Resources::LookupLevelTexID(side.TMap);
-    //            chunk->EffectClip1 = Resources::GetEffectClip(side.TMap);
-    //            chunk->ID = id;
-
-    //            if (side.HasOverlay()) {
-    //                chunk->Map2 = Resources::LookupLevelTexID(side.TMap2);
-    //                chunk->EffectClip2 = Resources::GetEffectClip(side.TMap2);
-    //            }
-
-    //            if (isWall) {
-    //                chunk->Blend = GetWallBlendMode(level, side.TMap);
-    //            }
-
-    //            //auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-
-
-    //            if (isWall && wallType != WallType::WallTrigger) {
-    //                throw NotImplementedException();
-    //                //SplitWall(verts, geo, *chunk, side);
-    //            }
-    //            else {
-    //                UpdatePolygon(level, seg, geo, *chunk, sideId, side);
-    //            }
-    //        }
-    //        id++;
-    //    }
-
-    //    int j = 0;
-    //    for (auto& [key, chunk] : chunks)
-    //        geo.Chunks[j++] = chunk;
-    //}
-
     void CreateLevelGeometry(Level& level, ChunkCache& chunks, LevelGeometry& geo) {
         chunks.clear();
         geo.Chunks.clear();
         geo.Vertices.clear();
         geo.Walls.clear();
 
-        int id = 0;
-
-        for (auto& seg : level.Segments) {
+        for (int id = 0; id < level.Segments.size(); id++) {
+            auto& seg = level.Segments[id];
             for (auto& sideId : SideIDs) {
                 auto& side = seg.GetSide(sideId);
                 auto isWall = seg.SideIsWall(sideId);
@@ -402,38 +241,30 @@ namespace Inferno {
                 if (wallType == WallType::WallTrigger)
                     isWall = false; // wall triggers aren't really walls for the purposes of rendering
 
-                // pack the two map ids together into a single integer
-                int32 chunkId = (int)side.TMap | (int)side.TMap2 << 16;
+                // For sliding textures that have an overlay, we must store the overlay rotation sliding as well
+                auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+                bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
 
-                LevelChunk wallChunk; // hack
-                LevelChunk* chunk = [&]() -> LevelChunk* {
-                    if (seg.SideHasConnection(sideId) && isWall) {
-                        return &wallChunk; // Walls always create a new chunk
-                    }
-                    else {
-                        if (!chunks.contains(chunkId))
-                            chunks[chunkId] = LevelChunk();
+                // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
+                uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
 
-                        return &chunks[chunkId]; // Use existing chunk with tmaps
-                    }
-                }();
+                LevelChunk wallChunk; // always use a new chunk for walls
+                LevelChunk& chunk = isWall ? wallChunk : chunks[chunkId];
 
-                chunk->MapID1 = side.TMap;
-                chunk->MapID2 = side.TMap2;
-                chunk->Map1 = Resources::LookupLevelTexID(side.TMap);
-                chunk->EffectClip1 = Resources::GetEffectClip(side.TMap);
-                chunk->ID = id;
+                chunk.TMap1 = side.TMap;
+                chunk.TMap2 = side.TMap2;
+                chunk.EffectClip1 = Resources::GetEffectClip(side.TMap);
+                chunk.ID = id;
 
-                if (side.HasOverlay()) {
-                    chunk->Map2 = Resources::LookupLevelTexID(side.TMap2);
-                    chunk->EffectClip2 = Resources::GetEffectClip(side.TMap2);
-                }
+                if (side.HasOverlay())
+                    chunk.EffectClip2 = Resources::GetEffectClip(side.TMap2);
 
                 float alpha = 1;
                 if (isWall && wall) {
-                    chunk->Blend = GetWallBlendMode(level, side.TMap);
+                    chunk.Blend = GetWallBlendMode(level, side.TMap);
                     if (wall->Type == WallType::Cloaked) {
-                        chunk->Blend = BlendMode::Alpha;
+                        chunk.Blend = BlendMode::Alpha;
                         alpha = wall->CloakValue();
                     }
                 }
@@ -442,23 +273,24 @@ namespace Inferno {
 
                 Array<Color, 4> lt = side.Light;
                 Seq::iter(lt, [alpha](auto x) { x.A(alpha); });
-                AddPolygon(verts, side.UVs, lt, geo, *chunk, side);
+                AddPolygon(verts, side.UVs, lt, geo, chunk, side);
 
-                if (isWall && wallType != WallType::WallTrigger) {
+                // Overlays should slide in the same direction as the base texture regardless of their rotation
+                if (needsOverlaySlide)
+                    chunk.OverlaySlide = GetOverlayRotation(side, ti.Slide);
+
+                if (isWall) {
                     // Adjust wall positions to the center of the segment so objects and walls of a segment can be sorted correctly
-                    auto vec = chunk->Center - seg.Center;
+                    auto vec = chunk.Center - seg.Center;
                     vec.Normalize();
-                    chunk->Center = seg.Center /*+ vec*/;
-                    geo.Walls.push_back(*chunk);
+                    chunk.Center = seg.Center;
+                    geo.Walls.push_back(chunk);
                 }
             }
-            id++;
         }
 
         for (auto& [key, chunk] : chunks)
             geo.Chunks.push_back(chunk);
-
-        //geo.HeatVolumes = CreateHeatVolumes(level);
     }
 
     void LevelMesh::Draw(ID3D12GraphicsCommandList* cmdList) const {
@@ -525,22 +357,6 @@ namespace Inferno {
     }
 
     void LevelMeshBuilder::Update(Level& level, PackedBuffer& buffer) {
-
-        //if (level.Segments.size() != _lastSegCount ||
-        //    level.Vertices.size() != _lastVertexCount ||
-        //    level.Walls.size() != _lastWallCount) {
-        //    // full rebuild
-        //    Geometry = CreateLevelGeometry(level, chunks);
-
-        //    _lastSegCount = level.Segments.size();
-        //    _lastVertexCount = level.Vertices.size();
-        //    _lastWallCount = level.Walls.size();
-        //}
-        //else {
-        //    // update
-        //    UpdateLevelGeometry(level, chunks, Geometry);
-        //}
-
         CreateLevelGeometry(level, _chunks, _geometry);
         UpdateBuffers(buffer);
     }

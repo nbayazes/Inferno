@@ -1,12 +1,12 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "RootConstants(b0, num32BitConstants = 23), "\
-    "RootConstants(b1, num32BitConstants = 7), "\
+    "RootConstants(b1, num32BitConstants = 9), "\
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 Texture2D Diffuse : register(t0);
-//Texture2D StMask : register(t1); // not used
+//Texture2D StMask : register(t1); // unused
 Texture2D Emissive : register(t2);
 Texture2D Specular1 : register(t3);
 

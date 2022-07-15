@@ -1,6 +1,6 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "RootConstants(b0, num32BitConstants = 23), "\
-    "RootConstants(b1, num32BitConstants = 7), "\
+    "RootConstants(b1, num32BitConstants = 9), "\
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
@@ -30,7 +30,7 @@ cbuffer FrameConstants : register(b0) {
 cbuffer InstanceConstants : register(b1) {
     float Time;
     float FrameTime;
-    float2 Scroll;
+    float2 Scroll, Scroll2;
     float LightingScale;
     bool Distort;
     bool HasOverlay;
@@ -67,7 +67,7 @@ PS_INPUT VSLevel(LevelVertex input) {
     output.col.a = clamp(output.col.a, 0, 1);
     //output.uv = input.uv + Scroll * Time * 100;
     output.uv = input.uv + Scroll * Time * 100;
-    output.uv2 = input.uv2 + Scroll * Time * 100; // this is not the right offset for sliding textures.
+    output.uv2 = input.uv2 + Scroll2 * Time * 100;
 
     //float s = sin(3.14 * 4 / 2);
     //float c = cos(3.14 * 4 / 2);

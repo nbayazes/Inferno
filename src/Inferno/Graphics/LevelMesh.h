@@ -8,13 +8,12 @@
 namespace Inferno {
     // A chunk of level geometry grouped by texture maps
     struct LevelChunk {
-        List<uint16> Indices;
-        TexID Map1 = TexID::None;
-        TexID Map2 = TexID::None;
-        LevelTexID MapID1, MapID2;
+        List<uint16> Indices; // Indices into the LevelGeometry buffer (NOT level vertices)
+        LevelTexID TMap1, TMap2;
         uint ID = 0;
         EClipID EffectClip1 = EClipID::None;
         EClipID EffectClip2 = EClipID::None;
+        Vector2 OverlaySlide; // UV sliding corrected for overlay rotation
 
         // Geometric center, used for wall depth sorting
         Vector3 Center;
@@ -41,7 +40,7 @@ namespace Inferno {
         HeatVolume HeatVolumes;
     };
 
-    using ChunkCache = Dictionary<int32, LevelChunk>;
+    using ChunkCache = Dictionary<uint32, LevelChunk>;
 
     struct LevelMesh {
         D3D12_VERTEX_BUFFER_VIEW VertexBuffer;

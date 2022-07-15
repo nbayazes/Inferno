@@ -266,26 +266,26 @@ namespace Inferno::Render {
 
         {
             auto& map1 = chunk.EffectClip1 == EClipID::None ?
-                Materials->Get(chunk.MapID1) :
+                Materials->Get(chunk.TMap1) :
                 Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).GetFrame(ElapsedTime));
 
             Shaders->Level.SetMaterial1(cmdList, map1);
         }
 
-        if (chunk.Map2 != TexID::None) {
+        if (chunk.TMap2 > LevelTexID::Unset) {
             consts.Overlay = true;
 
             auto& map2 = chunk.EffectClip2 == EClipID::None ?
-                Materials->Get(chunk.MapID2) :
+                Materials->Get(chunk.TMap2) :
                 Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).GetFrame(ElapsedTime));
 
             Shaders->Level.SetMaterial2(cmdList, map2);
         }
 
-        auto& ti = Resources::GetLevelTextureInfo(chunk.MapID1);
-        consts.ScrollU = ti.SlideU;
-        consts.ScrollV = ti.SlideV;
-        consts.Distort = ti.SlideU != 0 || ti.SlideV != 0;
+        auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
+        consts.Scroll = ti.Slide;
+        consts.Scroll2 = chunk.OverlaySlide;
+        consts.Distort = ti.Slide != Vector2::Zero;
 
         Shaders->Level.SetInstanceConstants(cmdList, consts);
         mesh.Draw(cmdList);
