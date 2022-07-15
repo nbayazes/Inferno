@@ -13,6 +13,45 @@ using namespace DirectX::SimpleMath;
 using namespace Inferno;
 using namespace Inferno::Editor;
 
+void DumpD3VClips() {
+    for (auto& vclip : Resources::VClips) {
+        fmt::print("v: {} FrameTime: {}s Pingpong: {}\n", vclip.Version, vclip.FrameTime, vclip.PingPong);
+        for (auto& frame : vclip.Frames) {
+            fmt::print("    {} : {} x {}\n", frame.Name, frame.Width, frame.Height);
+        }
+    }
+}
+
+void LoadAllD3Models() {
+    //if (auto gyro = Resources::Descent3Hog->ReadEntry("gyro.oof")) {
+    //    StreamReader reader(*gyro);
+    //    auto model = OutrageModel::Read(reader);
+    //}
+
+    for (auto& entry : Resources::Descent3Hog.Entries) {
+        if (String::ToLower(entry.name).ends_with("oof")) {
+            try {
+                auto r = Resources::OpenFile(entry.name);
+                auto model = Outrage::Model::Read(*r);
+
+            }
+            catch (const std::exception& e) {
+                SPDLOG_ERROR("{}: {}", entry.name, e.what());
+            }
+
+            //for (auto& sm : model.Submodels) {
+            //    if (sm.Props.empty()) continue;
+            //    fmt::print("{}\n", sm.Props);
+            //}
+
+            //for (auto& name : model.Textures) {
+            //    texCache->Resolve(name);
+            //}
+        }
+    }
+
+}
+
 void Application::OnShutdown() {
     Render::Shutdown();
     Sound::Shutdown();
@@ -27,58 +66,6 @@ void Application::Initialize(int width, int height) {
     //Sound::Init(hwnd);
     //Sound::Play(SoundID(72), 0.1f, -0.5f, 1.0f);
     //Sound::Play(SoundID(72), 0.1f, -0.3f, -1.0f);
-
-    //if (auto gyro = Resources::Descent3Hog->ReadEntry("gyro.oof")) {
-    //    StreamReader reader(*gyro);
-    //    auto model = OutrageModel::Read(reader);
-    //}
-
-    //auto& vclips = Resources::VClips;
-    //auto& textures = Resources::GameTable.Textures;
-
-    //for (auto& vclip : Resources::VClips) {
-    //    fmt::print("v: {} FrameTime: {}s Pingpong: {}\n", vclip.Version, vclip.FrameTime, vclip.PingPong);
-    //    for (auto& frame : vclip.Frames) {
-    //        fmt::print("    {} : {} x {}\n", frame.Name, frame.Width, frame.Height);
-    //    }
-    //}
-
-
-
-    //List<int> handles;
-    //if (auto r = Resources::OpenFile("drsweitzer.oof")) {
-    //    auto model = Outrage::Model::Read(*r);
-    //    /*for (auto& name : model.Textures) {
-    //        handles.push_back(texCache->Resolve(name));
-    //    }*/
-    //}
-
-    //for (auto& texture : Resources::GameTable.Textures) {
-    //    //if (texture.Name == "pillar.ifl1")
-    //        texCache->Resolve(texture.Name);
-    //}
-
-    //for (auto& entry : Resources::Descent3Hog.Entries) {
-    //    if (String::ToLower(entry.name).ends_with("oof")) {
-    //        try {
-    //            auto r = Resources::OpenFile(entry.name);
-    //            auto model = Outrage::Model::Read(*r);
-
-    //        }
-    //        catch (const std::exception& e) {
-    //            SPDLOG_ERROR("{}: {}", entry.name, e.what());
-    //        }
-
-    //        //for (auto& sm : model.Submodels) {
-    //        //    if (sm.Props.empty()) continue;
-    //        //    fmt::print("{}\n", sm.Props);
-    //        //}
-
-    //        //for (auto& name : model.Textures) {
-    //        //    texCache->Resolve(name);
-    //        //}
-    //    }
-    //}
 
     Render::Adapter->PrintMemoryUsage();
     Render::Heaps->Shader.GetFreeDescriptors();

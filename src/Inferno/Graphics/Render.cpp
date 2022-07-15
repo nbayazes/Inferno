@@ -761,8 +761,8 @@ namespace Inferno::Render {
             case ObjectType::Marker:
             {
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                //DrawModel(object, cmd, object.Render.Model.ID, texOverride);
-                DrawOutrageModel(object, cmd, 0, transparentPass);
+                DrawModel(object, cmd, object.Render.Model.ID, texOverride);
+                //DrawOutrageModel(object, cmd, 0, transparentPass);
                 break;
             }
 
@@ -1025,8 +1025,8 @@ namespace Inferno::Render {
             for (auto& cmd : _transparentQueue)
                 ExecuteRenderCommand(cmdList, cmd, false);
 
-            for (auto& cmd : _transparentQueue) // draw transparent objects
-                ExecuteRenderCommand(cmdList, cmd, true);
+            //for (auto& cmd : _transparentQueue) // draw glow effects on models
+            //    ExecuteRenderCommand(cmdList, cmd, true);
 
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);

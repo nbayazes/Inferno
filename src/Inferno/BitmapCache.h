@@ -44,13 +44,8 @@ namespace Inferno {
     struct Material {
         enum { Diffuse, Mask, Emissive, Specular, Count };
 
-        //bool Used;
-        //int Tablefile = -1;
         string Name;
-        //string FileName; // Bitmap file
         TexID PigID = TexID::None; // For D1/D2
-
-        // Handles to resources
 
         // where is this material on the GPU? Note that materials are 4 consecutive textures
         // This behavior could change based on the shader type
@@ -59,11 +54,6 @@ namespace Inferno {
         // Bitmaps can be shared across materials. Reference them to know when to release.
         // Frames of a vclip share the same mask, emissive and specular
         Array<Ref<Texture2D>, Count> Textures;
-
-        //BitmapHandle Diffuse = BitmapHandle::None;
-        //BitmapHandle Mask = BitmapHandle::None;
-        //BitmapHandle Emissive = BitmapHandle::None;
-        //BitmapHandle Specular = BitmapHandle::None;
     };
 
 
@@ -140,35 +130,6 @@ namespace Inferno {
                 SetResourceHandles(m);
         }
 
-        // Loads the textures for a material based on the input
-        //void Load(DirectX::ResourceUploadBatch& batch, MaterialHandle& handle, string_view fileName) {
-        //    auto& m = FetchOrAllocMaterial(handle);
-        //    string baseName = String::NameWithoutExtension(fileName);
-
-        //    if (Settings::HighRes) {
-        //        if (auto path = FileSystem::TryFindFile(baseName + ".DDS"))
-        //            m.Textures[Material::Diffuse] = Upload(batch, *path);
-        //    }
-
-        //    // Pig textures
-        //    if (!m.Textures[Material::Diffuse] && m.PigID > TexID::None) {
-        //        auto& bmp = Resources::ReadBitmap(m.PigID);
-        //        m.Textures[Material::Diffuse] = Upload(batch, bmp);
-        //    }
-
-        //    // remove the frame number when loading special textures, as they should share.
-        //    if (auto i = baseName.find("#"); i > 0)
-        //        baseName = baseName.substr(0, i);
-
-        //    if (auto path = FileSystem::TryFindFile(baseName + "_e.DDS"))
-        //        m.Textures[Material::Emissive] = Upload(batch, *path);
-
-        //    if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
-        //        m.Textures[Material::Specular] = Upload(batch, *path);
-
-        //    SetResourceHandles(m);
-        //};
-
         void LoadTextures(span<RuntimeTextureInfo> textures, bool reload = false);
 
         D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(MaterialHandle h) {
@@ -177,30 +138,6 @@ namespace Inferno {
         }
 
     private:
-
-        //Ref<Texture2D> Upload(DirectX::ResourceUploadBatch& batch, const PigBitmap& bitmap) {
-        //    auto tex = Alloc();
-        //    tex->Load(batch, bitmap.Data.data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
-        //    return tex;
-        //}
-
-        //Ref<Texture2D> Upload(DirectX::ResourceUploadBatch& batch, filesystem::path ddsPath) {
-        //    auto tex = Alloc();
-        //    tex->LoadDDS(batch, ddsPath);
-        //    return tex;
-        //}
-
-        //Ref<Texture2D> Alloc() {
-        //    std::scoped_lock lock(_lock);
-
-        //    for (auto& tex : _textures) {
-        //        if (!tex) {
-        //            return tex = MakeRef<Texture2D>();
-        //        }
-        //    }
-
-        //    return _textures.emplace_back(MakeRef<Texture2D>());
-        //}
 
         Material& FetchOrAllocMaterial(MaterialHandle& handle) {
             if (Seq::inRange(_materials, (int)handle))
@@ -302,59 +239,6 @@ namespace Inferno {
         }
 
     private:
-        //MaterialHandle Alloc(string); // D3 texture
-        //MaterialHandle Alloc(TexID); // D1 / D2 texture
-
-        //MaterialHandle Alloc();
-
-        // Handle GetBitmap(texHandle, frame, procedural)
-        // - if animated, page in vclip
-        // - use frame based on time, the bitmap stores its handle
-
-        // Returns the handle to an already loaded texture bitmap.
-        // Returns the cycled frame of animated textures
-        //MaterialHandle GetTextureBitmap(int handle, int frame) {
-        //    if (!Seq::inRange(_textures, (int)handle))
-        //        return MaterialHandle::Missing;
-
-        //    auto& mat = _textures[(int)handle];
-        //    if (!mat.Used)
-        //        return MaterialHandle::Missing;
-
-        //    if (mat.IsAnimated()) {
-        //        if (!Seq::inRange(_vclips, (int)mat.BitmapHandle))
-        //            return MaterialHandle::Missing;
-
-        //        auto& vclip = _vclips[(int)mat.BitmapHandle];
-        //        return vclip.GetFrame(0, 0 /*Game::Time*/);
-        //    }
-        //    else {
-        //        return mat.BitmapHandle;
-        //    }
-        //}
-
-        // Search loaded textures by name, returns -1 if not found
-        //int FindTextureInfoByName(string name) {
-        //    for (int i = 0; i < _textures.size(); i++) {
-        //        if (String::InvariantEquals(_textures[i].Name, name))
-        //            return i;
-        //    }
-
-        //    return -1;
-        //}
-
-        //// Search vclips by name, returns -1 if not found
-        //int FindVClip(string name) {
-        //    for (int i = 0; i < _textures.size(); i++) {
-        //        for (auto& frame : _textures[i].Frames) {
-        //            if (String::InvariantEquals(frame, name))
-        //                return i;
-        //        }
-        //    }
-
-        //    return -1;
-        //}
-
         // Allocs a slot for texture
         int AllocTextureInfo(RuntimeTextureInfo&& ti) {
             int index = -1;
@@ -387,29 +271,8 @@ namespace Inferno {
             return index;
         }
 
-        //// Allocs a slot for vclip
-        //int AllocVClip(Outrage::VClip& vclip) {
-        //    // Find unused slot
-        //    for (int i = 0; i < _vclips.size(); i++) {
-        //        if (!_vclips[i].Used) {
-        //            _vclips[i] = { vclip };
-        //            _vclips[i].Used = true;
-        //            return i;
-        //        }
-        //    }
-
-        //    // Add new slot
-        //    auto& rti = _vclips.emplace_back(vclip);
-        //    rti.Used = true;
-        //    return int(_vclips.size() - 1);
-        //}
 
         int ResolveVClip(string frameName) {
-            //if (auto id = FindVClip(name); id != -1)
-            //    return id; // Already loaded
-            //if (auto id = FindTextureInfoByName(frameName); id != -1)
-            //    return id; // Already loaded
-
             for (int id = 0; id < Resources::VClips.size(); id++) {
                 auto& vclip = Resources::VClips[id];
                 for (auto& frame : vclip.Frames) {
@@ -424,32 +287,5 @@ namespace Inferno {
 
             return -1;
         }
-
-        //// Resolves 
-        //int ResolveTextureEntry(string name) {
-        //    if (auto id = FindTextureInfoByName(name); id != -1)
-        //        return id; // Already loaded
-
-        //    for (auto& tex : Resources::GameTable.Textures) {
-        //        if (String::InvariantEquals(tex.Name, name)) {
-        //            return AllocTextureInfo({ tex });
-        //        }
-        //    }
-
-        //    return -1;
-        //}
-
-        //int ResolveFileName(string fileName) {
-        //    if (auto id = FindTextureInfoByFileName(fileName); id != -1)
-        //        return id; // Already loaded
-
-        //    for (auto& tex : Resources::GameTable.Textures) {
-        //        if (String::InvariantEquals(tex.FileName, fileName)) {
-        //            return AllocTextureInfo({ tex });
-        //        }
-        //    }
-
-        //    return -1;
-        //}
     };
 };
