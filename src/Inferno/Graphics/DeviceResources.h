@@ -92,7 +92,7 @@ namespace Inferno
         }
 
         // There's nothing special about the depth buffer for HDR, but MSAA needs a different one.
-        auto* GetHdrDepthBuffer() {
+        Inferno::DepthBuffer* GetHdrDepthBuffer() {
             return Settings::MsaaSamples > 1 ? &MsaaDepthBuffer : &SceneDepthBuffer;
         }
 

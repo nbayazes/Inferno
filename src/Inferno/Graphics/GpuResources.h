@@ -291,11 +291,19 @@ namespace Inferno {
 
             _dsvDesc.Format = format;
             _dsvDesc.ViewDimension = samples > 1 ? D3D12_DSV_DIMENSION_TEXTURE2DMS : D3D12_DSV_DIMENSION_TEXTURE2D;
+
+            _srvDesc.ViewDimension = samples == 1 ? D3D12_SRV_DIMENSION_TEXTURE2D : D3D12_SRV_DIMENSION_TEXTURE2DMS;
+            _srvDesc.Texture2D.MipLevels = 1;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+
             AddDepthView();
         }
 
         void Clear(ID3D12GraphicsCommandList* commandList) {
-            assert(_state == D3D12_RESOURCE_STATE_DEPTH_WRITE);
+            //assert(_state == D3D12_RESOURCE_STATE_DEPTH_WRITE);
+            Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
             commandList->ClearDepthStencilView(_descriptor.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
         }
 
