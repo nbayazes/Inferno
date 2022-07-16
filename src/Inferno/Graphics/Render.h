@@ -9,6 +9,7 @@
 #include "Fonts.h"
 #include "MaterialLibrary.h"
 #include "LevelMesh.h"
+#include "BitmapCache.h"
 
 class CommandListManager;
 class ContextManager;
@@ -23,6 +24,7 @@ namespace Inferno::Render {
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
 
     inline bool DebugEmissive = false;
+    inline Ptr<TextureCache> NewTextureCache;
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSampler() {
         return Settings::HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();

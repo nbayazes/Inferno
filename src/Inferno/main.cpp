@@ -8,8 +8,6 @@
 #include "Mission.h"
 #include "HogFile.h"
 #include "Settings.h"
-#include "OutrageBitmap.h"
-#include "Hog2.h"
 
 using namespace Inferno;
 
@@ -248,26 +246,10 @@ void TestSegID() {
     assert(id == SegID(6));
 }
 
-void DumpOgfHeaders() {
-    for (auto& entry : Resources::Descent3Hog->Entries) {
-        if (!entry.name.ends_with(".ogf")) continue;
-        auto data = Resources::Descent3Hog->ReadEntry(entry.name);
-        StreamReader r(data);
-        auto ogf = OutrageBitmap::Read(r);
-        string type = ogf.Type == 122 ? "1555" : (ogf.Type == 121 ? "4444" : "Unknown");
-        //std::cout << fmt::format("{}, {}, {}, {}, {}, {}\n", ogf.Name, ogf.Width, ogf.Height, ogf.BitsPerPixel, ogf.MipLevels, type);
-    }
-}
-
 int main() {
-    //TestContext();
-    //TestSegID();
-    //QuaternionTests();
-
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
-
 
     try {
         Shell shell;
@@ -278,11 +260,6 @@ int main() {
         FileSystem::Init();
         Resources::Init();
 
-        //Resources::MountD3Hog("d3.hog");
-        //DumpOgfHeaders();
-
-        //PrintWeaponInfo();
-        //PrintRobotInfo();
         shell.Show(&app, 1024, 768);
         Settings::Save();
 

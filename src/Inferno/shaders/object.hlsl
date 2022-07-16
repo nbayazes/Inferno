@@ -12,7 +12,7 @@ cbuffer Constants : register(b0) {
     float4x4 WorldMatrix;
     float4x4 ProjectionMatrix; // WVP
     float3 LightDirection[3];
-    float4 LightColor[3];
+    float4 Colors[3];
     float3 Eye;
     float Time;
 };
@@ -84,7 +84,7 @@ float4 PSMain(PS_INPUT input) : SV_Target {
     //emissive.r = 1;
     //emissive.r = smoothstep(emissive.r * 0.5, emissive.r * 4.5, 5 * emissive.r - 4);
     //emissive.r = pow(emissive.r, 3) * 5;
-    float4 ambient = LightColor[0]; // hack for ambient until nearest lights are reworked
+    float4 ambient = Colors[0]; // hack for ambient until nearest lights are reworked
     float3 lightDir = float3(0, -1, 0);
     //float4 lightColor = 1.0;
     //float3 lightDir = LightDirection[0];

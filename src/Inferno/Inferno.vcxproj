@@ -139,6 +139,7 @@
     </ClCompile>
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
+    <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
     <ClCompile Include="Editor\Bindings.cpp" />
     <ClCompile Include="Editor\Command.cpp" />
@@ -181,6 +182,7 @@
     <ClCompile Include="Shell.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BitmapCache.h" />
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Editor\Command.h" />
     <ClInclude Include="Concurrent.h" />

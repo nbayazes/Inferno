@@ -122,9 +122,6 @@ namespace Inferno {
     class Texture2D : public PixelBuffer {
     public:
         Texture2D() = default;
-        //~Texture2D() {
-        //    SPDLOG_INFO(L"Released {}", _name);
-        //}
 
         // Uploads a resource with no mip-mapping. Intended for use with low res textures.
         void Load(DirectX::ResourceUploadBatch& batch,

@@ -2,18 +2,28 @@
 
 #include "Streams.h"
 
-namespace Inferno {
+namespace Inferno::Outrage {
     // Descent 3 Outrage Graphics File (OGF)
-    struct OutrageBitmap {
+    struct Bitmap {
         int Width, Height;
         int Type;
-        List<uint> Data;
-        int MipLevels = 1;
+        List<List<uint>> Mips;
         int BitsPerPixel;
-        bool UpsideDown;
         string Name;
         
-        static OutrageBitmap Read(StreamReader& r);
+        static Bitmap Read(StreamReader& r); // Read OGF
+        static Bitmap ReadPig(StreamReader& r);
+    };
+
+    // Descent 3 VClips are bitmaps with an extra header (OAF)
+    struct VClip {
+        List<Bitmap> Frames;
+        float FrameTime;
+        int Version;
+        bool PingPong;
+        string FileName;
+
+        static VClip Read(StreamReader& r);
     };
 
 }

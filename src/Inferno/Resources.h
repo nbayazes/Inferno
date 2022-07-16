@@ -7,6 +7,7 @@
 #include "Hog2.h"
 #include "OutrageBitmap.h"
 #include "OutrageModel.h"
+#include "OutrageTable.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -69,10 +70,16 @@ namespace Inferno::Resources {
     bool FoundVertigo();
     bool HasCustomTextures();
 
-    inline Ptr<Hog2> Descent3Hog;
+    inline Hog2 Descent3Hog, Mercenary;
+    inline Outrage::GameTable GameTable;
+    inline List<Outrage::VClip> VClips; // Expanded from OAF headers
 
-    void MountD3Hog(std::filesystem::path);
+    void MountDescent3();
 
-    OutrageBitmap ReadOutrageBitmap(const string& name);
-    OutrageModel ReadOutrageModel(const string& name);
+    Option<StreamReader> OpenFile(const string& name);
+
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name);
+    Option<Outrage::Model> ReadOutrageModel(const string& name);
+
+    Outrage::Model const* GetOutrageModel(const string& name);
 }
