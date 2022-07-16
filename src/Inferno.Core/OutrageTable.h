@@ -4,39 +4,39 @@
 #include "Streams.h"
 
 namespace Inferno::Outrage {
-    enum TextureFlag {
-        TF_VOLATILE = 1,
-        TF_WATER = (1 << 1),
-        TF_METAL = (1 << 2), // Editor sorting
-        TF_MARBLE = (1 << 3), // Editor sorting
-        TF_PLASTIC = (1 << 4), // Editor sorting
-        TF_FORCEFIELD = (1 << 5),
-        TF_ANIMATED = (1 << 6),
-        TF_DESTROYABLE = (1 << 7),
-        TF_EFFECT = (1 << 8),
-        TF_HUD_COCKPIT = (1 << 9),
-        TF_MINE = (1 << 10),
-        TF_TERRAIN = (1 << 11),
-        TF_OBJECT = (1 << 12),
-        TF_TEXTURE_64 = (1 << 13),
-        TF_TMAP2 = (1 << 14),
-        TF_TEXTURE_32 = (1 << 15),
-        TF_FLY_THRU = (1 << 16),
-        TF_PASS_THRU = (1 << 17),
-        TF_PING_PONG = (1 << 18),
-        TF_LIGHT = (1 << 19),
-        TF_BREAKABLE = (1 << 20),
-        TF_SATURATE = (1 << 21), // Full bright?
-        TF_ALPHA = (1 << 22),
-        TF_DONTUSE = (1 << 23), // Not intended for levels?
-        TF_PROCEDURAL = (1 << 24),
-        TF_WATER_PROCEDURAL = (1 << 25),
-        TF_FORCE_LIGHTMAP = (1 << 26),
-        TF_SATURATE_LIGHTMAP = (1 << 27),
-        TF_TEXTURE_256 = (1 << 28),
-        TF_LAVA = (1 << 29),
-        TF_RUBBLE = (1 << 30),
-        TF_SMOOTH_SPECULAR = (1 << 31)
+    enum class TextureFlag {
+        Volatile = 1,
+        Water = (1 << 1),
+        Metal = (1 << 2), // Editor sorting
+        Marble = (1 << 3), // Editor sorting
+        Plastic = (1 << 4), // Editor sorting
+        Forcefield = (1 << 5),
+        Animated = (1 << 6),
+        Destroyable = (1 << 7),
+        Effect = (1 << 8),
+        HudCockpit = (1 << 9),
+        Mine = (1 << 10),
+        Terrain = (1 << 11),
+        Object = (1 << 12),
+        Texture64 = (1 << 13),
+        Tmap2 = (1 << 14),
+        Texture_32 = (1 << 15),
+        Fly_thru = (1 << 16),
+        PassThru = (1 << 17),
+        PingPong = (1 << 18),
+        Light = (1 << 19), // Full bright
+        Breakable = (1 << 20),
+        Saturate = (1 << 21), // Additive?
+        Alpha = (1 << 22), // Use the alpha value in the tablefile
+        Dontuse = (1 << 23), // Not intended for levels? Hidden in texture browser?
+        Procedural = (1 << 24),
+        WaterProcedural = (1 << 25),
+        ForceLightmap = (1 << 26),
+        SaturateLightmap = (1 << 27),
+        Texture256 = (1 << 28),
+        Lava = (1 << 29),
+        Rubble = (1 << 30),
+        SmoothSpecular = (1 << 31)
     };
 
     struct TextureInfo {
@@ -59,7 +59,10 @@ namespace Inferno::Outrage {
 
         string Sound;
 
-        bool IsAnimated() const { return Flags & TF_ANIMATED; }
+        constexpr bool Saturate() const { return bool(Flags & TextureFlag::Saturate); }
+        constexpr bool Alpha() const { return bool(Flags & TextureFlag::Alpha); }
+        constexpr bool Animated() const { return bool(Flags & TextureFlag::Animated); }
+        constexpr bool Procedural() const { return bool(Flags & TextureFlag::Procedural); }
     };
 
     struct GameTable {

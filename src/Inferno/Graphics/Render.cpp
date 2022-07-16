@@ -278,7 +278,7 @@ namespace Inferno::Render {
             for (auto& [i, mesh] : submesh) {
 
                 auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
-                bool transparent = material.Flags & Outrage::TF_SATURATE || material.Flags & Outrage::TF_ALPHA;
+                bool transparent = material.Saturate() || material.Alpha();
 
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
                     continue; // skip saturate textures unless on glow pass
@@ -287,7 +287,7 @@ namespace Inferno::Render {
                     Render::NewTextureCache->GetResource(model->TextureHandles[i], (float)ElapsedTime) :
                     Materials->White.Handles[0];
 
-                bool additive = material.Flags & Outrage::TF_SATURATE || submodel.HasFlag(SubmodelFlag::Facing);
+                bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 effect.Apply(cmd);
@@ -295,7 +295,7 @@ namespace Inferno::Render {
                 effect.Shader->SetMaterial(cmd, handle);
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
-                    if (material.Flags & Outrage::TF_SATURATE)
+                    if (material.Saturate())
                         constants.Colors[0] = Color(1, 1, 1, 1);
                     constants.Colors[1] = Color(1, 1, 1, 1);
                     effect.Shader->SetConstants(cmd, constants);

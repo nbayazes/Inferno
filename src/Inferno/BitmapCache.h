@@ -253,7 +253,7 @@ namespace Inferno {
                 }
             }
 
-            if (ti.IsAnimated()) {
+            if (ti.Animated()) {
                 for (int id = 0; id < Resources::VClips.size(); id++) {
                     auto& vclip = Resources::VClips[id];
                     if (vclip.FileName == ti.FileName)

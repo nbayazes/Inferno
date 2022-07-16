@@ -38,7 +38,7 @@ namespace Inferno::Outrage {
 
         tex.Flags = (TextureFlag)r.ReadInt32();
 
-        if (tex.Flags & TF_PROCEDURAL) {
+        if (tex.Procedural()) {
             for (int i = 0; i < 255; i++)
                 /*tex.Procedural.Palette[i] = */r.ReadInt16();
                 

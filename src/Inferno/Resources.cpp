@@ -467,7 +467,7 @@ namespace Inferno::Resources {
 
     void LoadVClips() {
         for (auto& tex : GameTable.Textures) {
-            if (!tex.IsAnimated()) continue;
+            if (!tex.Animated()) continue;
 
             if (auto r = OpenFile(tex.FileName)) {
                 auto vc = Outrage::VClip::Read(*r);
