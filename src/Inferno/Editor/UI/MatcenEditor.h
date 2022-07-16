@@ -120,6 +120,19 @@ namespace Inferno::Editor {
             if (auto matcen = Game::Level.TryGetMatcen(ID)) {
                 matcen->Robots = _robots;
                 matcen->Robots2 = _robots2;
+
+                for (auto& marked : GetSelectedSegments()) {
+                    if (auto seg = Game::Level.TryGetSegment(marked)) {
+                        if (seg->Type != SegmentType::Matcen) continue;
+
+                        if (auto m = Game::Level.TryGetMatcen(seg->Matcen)) {
+                            m->Robots = _robots;
+                            m->Robots2 = _robots2;
+                        }
+                    }
+                }
+
+                Editor::History.SnapshotLevel("Change matcen robots");
             }
         }
     };
