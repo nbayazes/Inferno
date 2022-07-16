@@ -375,11 +375,12 @@ namespace Inferno::Render {
         LevelShader::InstanceConstants consts{};
         consts.FrameTime = (float)FrameTime;
         consts.Time = (float)ElapsedTime;
-        consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.1f;
+        consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
         if (chunk.Cloaked) {
             Shaders->Level.SetMaterial1(cmdList, Materials->Black);
             Shaders->Level.SetMaterial2(cmdList, Materials->Black);
+            consts.LightingScale = 1;
         }
         else {
             {
