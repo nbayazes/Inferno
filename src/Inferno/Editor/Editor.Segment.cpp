@@ -178,30 +178,31 @@ namespace Inferno::Editor {
 
     // Returns connected segments up to a depth
     List<SegID> GetConnectedSegments(Level& level, SegID start, int maxDepth) {
-        List<SegID> nearby;
-        Set<SegID> visited; // only visit each segment once
-        nearby.push_back(start);
+        Set<SegID> nearby;
+        struct SearchTag { SegID Seg; int Depth; };
+        Stack<SearchTag> search;
+        search.push({ start, 0 });
 
-        std::function<void(SegID, int)> AddTouching = [&](SegID src, int depth) {
-            if (depth >= maxDepth) return;
-            depth++;
+        while (!search.empty()) {
+            SearchTag tag = search.top();
+            search.pop();
+            if (tag.Depth >= maxDepth) continue;
 
-            visited.insert(src);
-            auto seg = level.TryGetSegment(src);
-            if (!seg) return;
+            auto seg = level.TryGetSegment(tag.Seg);
+            if (!seg) continue;
+
+            nearby.insert(tag.Seg);
 
             for (auto& side : SideIDs) {
                 if (seg->SideIsWall(side) && Settings::Selection.StopAtWalls) continue;
                 auto conn = seg->GetConnection(side);
-                if (conn > SegID::None && !visited.contains(conn)) {
-                    nearby.push_back(conn);
-                    AddTouching(conn, depth);
+                if (conn > SegID::None && !nearby.contains(conn)) {
+                    search.push({ conn, tag.Depth + 1 });
                 }
             }
-        };
+        }
 
-        AddTouching(start, 0);
-        return nearby;
+        return Seq::ofSet(nearby);
     }
 
 
