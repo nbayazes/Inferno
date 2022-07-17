@@ -523,29 +523,29 @@ namespace Inferno::Editor {
             ImGui::Dummy({});
         }
 
-        {
-            static const std::array uvAngles = { (char*)u8"0°", (char*)u8"90°", (char*)u8"180°", (char*)u8"270°" };
-            ImGui::AlignTextToFramePadding();
-            ImGui::Text("UV Angle");
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Extra angle to apply when resetting UVs");
+        //{
+        //    static const std::array uvAngles = { (char*)u8"0°", (char*)u8"90°", (char*)u8"180°", (char*)u8"270°" };
+        //    ImGui::AlignTextToFramePadding();
+        //    ImGui::Text("UV Angle");
+        //    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Extra angle to apply when resetting UVs");
 
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(100);
+        //    ImGui::SameLine();
+        //    ImGui::SetNextItemWidth(100);
 
-            if (ImGui::BeginCombo("##uvangle", uvAngles[Settings::ResetUVsAngle])) {
-                for (int i = 0; i < uvAngles.size(); i++) {
-                    auto itemLabel = std::to_string((int)i);
-                    if (ImGui::Selectable(uvAngles[i], Settings::ResetUVsAngle == i)) {
-                        Settings::ResetUVsAngle = std::clamp(i, 0, 3);
-                    }
+        //    if (ImGui::BeginCombo("##uvangle", uvAngles[Settings::ResetUVsAngle])) {
+        //        for (int i = 0; i < uvAngles.size(); i++) {
+        //            auto itemLabel = std::to_string((int)i);
+        //            if (ImGui::Selectable(uvAngles[i], Settings::ResetUVsAngle == i)) {
+        //                Settings::ResetUVsAngle = std::clamp(i, 0, 3);
+        //            }
 
-                    if (Settings::ResetUVsAngle == i)
-                        ImGui::SetItemDefaultFocus();
-                }
+        //            if (Settings::ResetUVsAngle == i)
+        //                ImGui::SetItemDefaultFocus();
+        //        }
 
-                ImGui::EndPopup();
-            }
-        }
+        //        ImGui::EndPopup();
+        //    }
+        //}
 
 
         ImGui::SameLine();
