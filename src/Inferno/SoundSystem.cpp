@@ -44,11 +44,10 @@ namespace Inferno::Sound {
         // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
         Ptr<AudioEngine> Audio;
         List<Ptr<SoundEffect>> Sounds;
-        //List<Ptr<SoundEffectInstance>> Instances;
         std::atomic<bool> Alive = false;
         std::thread WorkerThread;
-        std::mutex ResetMutex;
         std::list<ObjectSound> ObjectSounds;
+        std::mutex ResetMutex, ObjectSoundsMutex;
 
         AudioListener Listener;
 
@@ -76,13 +75,46 @@ namespace Inferno::Sound {
     }
 
     void SoundWorker(milliseconds pollRate) {
+        CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         SPDLOG_INFO("Starting audio mixer thread");
         while (Alive) {
             // Update should be called often, usually in a per - frame update.
             // This can be done on the main rendering thread, or from a worker thread.
-            //
-            // This returns false if the audio engine is the 'silent' mode.
-            if (!Audio->Update()) {
+            if (Audio->Update()) {
+                try {
+                    auto dt = pollRate.count() / 1000.0f;
+                    //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
+                    Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
+                    Listener.Position = Render::Camera.Position * AUDIO_SCALE;
+
+                    std::scoped_lock lock(ObjectSoundsMutex);
+                    auto sound = ObjectSounds.begin();
+                    while (sound != ObjectSounds.end()) {
+                        auto state = sound->Instance->GetState();
+                        if (state == SoundState::STOPPED && sound->Started) {
+                            // clean up
+                            SPDLOG_INFO("Removing object sound instance");
+                            ObjectSounds.erase(sound++);
+                            continue;
+                        }
+
+                        if (state == SoundState::STOPPED && !sound->Started) {
+                            // New sound
+                            sound->Instance->Play();
+                            //if (!sound.Loop)
+                            sound->Started = true;
+                        }
+
+                        sound->UpdateEmitter(Render::Camera.Position, dt);
+                        sound->Instance->Apply3D(Listener, sound->Emitter, false);
+                        sound++;
+                    }
+                }
+                catch (const std::exception& e) {
+                    SPDLOG_ERROR("Error in audio worker: {}", e.what());
+                }
+            }
+            else {
                 if (!Audio->IsAudioDevicePresent()) {
                     // we are in 'silent mode'.
                 }
@@ -92,38 +124,10 @@ namespace Inferno::Sound {
 
                 }
             }
-            else {
-                auto dt = pollRate.count() / 1000.0f;
-                //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
-                Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
-                Listener.Position = Render::Camera.Position * AUDIO_SCALE;
-
-
-                auto sound = ObjectSounds.begin();
-                while (sound != ObjectSounds.end()) {
-                    auto state = sound->Instance->GetState();
-                    if (state == SoundState::STOPPED && sound->Started) {
-                        // clean up
-                        SPDLOG_INFO("Removing object sound instance");
-                        ObjectSounds.erase(sound++);
-                        continue;
-                    }
-
-                    if (state == SoundState::STOPPED && !sound->Started) {
-                        // New sound
-                        sound->Instance->Play();
-                        //if (!sound.Loop)
-                        sound->Started = true;
-                    }
-
-                    sound->UpdateEmitter(Render::Camera.Position, dt);
-                    sound->Instance->Apply3D(Listener, sound->Emitter, false);
-                    sound++;
-                }
-            }
             std::this_thread::sleep_for(pollRate);
         }
         SPDLOG_INFO("Stopping audio mixer thread");
+        CoUninitialize();
     }
 
     // Creates a mono PCM sound effect
@@ -165,6 +169,8 @@ namespace Inferno::Sound {
         Alive = true;
         WorkerThread = std::thread(SoundWorker, pollRate);
 
+        // no idea what the units on this are, but want to prevent blowing out
+        // due to unexpected mixing
         Audio->SetMasteringLimit(5, 600);
 
         //DWORD channelMask{};
@@ -201,14 +207,11 @@ namespace Inferno::Sound {
         Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Audio, data, frequency));
     }
 
-
     void Play(SoundID id, float volume, float pan, float pitch) {
         LoadSound(id);
         SPDLOG_INFO("Playing sound effect {}", (int)id);
         auto sound = Sounds[int(id)].get();
         sound->Play(volume, pitch, pan);
-        // Instead of play, should call CreateInstance() so start/stop and other options are available.
-        //auto instance = sound->CreateInstance();
     }
 
     void Play3D(SoundID id, float volume, ObjID source, float pitch) {
@@ -217,6 +220,7 @@ namespace Inferno::Sound {
         auto sound = Sounds[int(id)].get();
 
         {
+            std::scoped_lock lock(ObjectSoundsMutex);
             auto& s = ObjectSounds.emplace_back();
             s.Source = source;
             s.Instance = sound->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
