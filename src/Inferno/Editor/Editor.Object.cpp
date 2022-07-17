@@ -27,10 +27,18 @@ namespace Inferno::Editor {
         transform.Up(normal);
         transform.Forward(edge.Cross(normal));
         transform.Right(edge);
+
+        float distance = obj->Radius;
+
+        if (obj->Render.Type == RenderType::Polyobj) {
+            auto& model = Resources::GetModel(obj->Render.Model.ID);
+            distance = -model.MinBounds.y;
+        }
+
         if (center)
             transform.Translation(seg->Center);
         else
-            transform.Translation(face.Center() + normal * obj->Radius); // position on face
+            transform.Translation(face.Center() + normal * distance); // position on face
 
         obj->Segment = tag.Segment;
         obj->Transform = transform;
@@ -52,7 +60,7 @@ namespace Inferno::Editor {
         if (!obj) return false;
 
         obj->Transform.Translation(position);
-        
+
         // Leave the last good ID if nothing contains the object
         auto segId = FindContainingSegment(level, position);
         if (segId != SegID::None) obj->Segment = segId;
