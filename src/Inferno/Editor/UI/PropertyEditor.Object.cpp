@@ -492,7 +492,7 @@ namespace Inferno::Editor {
                 break;
         }
 
-        if (obj.Render.Type == RenderType::Polyobj && obj.Type != ObjectType::SecretExitReturn) {
+        if (obj.Render.Type == RenderType::Model && obj.Type != ObjectType::SecretExitReturn) {
             ImGui::TableRowLabel("Texture override");
             ImGui::SetNextItemWidth(-1);
             if (LevelTextureDropdown("##Texture", obj.Render.Model.TextureOverride)) {

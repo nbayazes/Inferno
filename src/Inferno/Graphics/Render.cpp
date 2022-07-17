@@ -722,7 +722,7 @@ namespace Inferno::Render {
 
         List<ModelID> modelIds;
         for (auto& model : level.Objects)
-            if (model.Render.Type == RenderType::Polyobj)
+            if (model.Render.Type == RenderType::Model)
                 _meshBuffer->LoadModel(model.Render.Model.ID);
 
         {
@@ -773,7 +773,7 @@ namespace Inferno::Render {
             }
 
             case ObjectType::Weapon:
-                if (object.Render.Type == RenderType::Polyobj) {
+                if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
                     DrawModel(object, cmd, object.Render.Model.ID, texOverride);
                 }

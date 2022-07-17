@@ -376,7 +376,7 @@ namespace Inferno {
                 case RenderType::Laser:
                     break;
                 case RenderType::Morph:
-                case RenderType::Polyobj:
+                case RenderType::Model:
                 {
                     auto& model = obj.Render.Model;
                     writer.Write(model.ID);

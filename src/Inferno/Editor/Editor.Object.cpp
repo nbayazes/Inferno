@@ -30,7 +30,7 @@ namespace Inferno::Editor {
 
         float distance = obj->Radius;
 
-        if (obj->Render.Type == RenderType::Polyobj) {
+        if (obj->Render.Type == RenderType::Model) {
             auto& model = Resources::GetModel(obj->Render.Model.ID);
             distance = -model.MinBounds.y;
         }
@@ -106,7 +106,7 @@ namespace Inferno::Editor {
 
             case ObjectType::Weapon:
             {
-                if (obj.Render.Type == RenderType::Polyobj) {
+                if (obj.Render.Type == RenderType::Model) {
                     return Resources::GetModel(obj.Render.Model.ID).Radius;
                 }
                 else {
@@ -132,13 +132,13 @@ namespace Inferno::Editor {
             case ObjectType::Player:
                 obj.Control.Type = obj.ID == 0 ? ControlType::None : ControlType::Slew; // Player 0 only
                 obj.Movement.Type = MovementType::Physics;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = playerModel;
                 break;
 
             case ObjectType::Coop:
                 obj.Movement.Type = MovementType::Physics;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = coopModel;
                 break;
 
@@ -147,7 +147,7 @@ namespace Inferno::Editor {
                 auto& ri = Resources::GetRobotInfo(0);
                 obj.Control.Type = ControlType::AI;
                 obj.Movement.Type = MovementType::Physics;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Shields = ri.Strength;
                 obj.Render.Model.ID = ri.Model;
                 obj.Control.AI.Behavior = AIBehavior::Normal;
@@ -172,7 +172,7 @@ namespace Inferno::Editor {
             case ObjectType::Reactor:
             {
                 obj.Control.Type = ControlType::Reactor;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 auto& info = Resources::GameData.Reactors.at(0);
                 obj.Render.Model.ID = info.Model;
                 obj.Shields = 200;
@@ -192,10 +192,10 @@ namespace Inferno::Editor {
                 obj.Movement.Physics.Mass = 65536;
                 obj.Movement.Physics.Drag = 2162;
                 obj.Movement.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
-                obj.Movement.Physics.Flags = PhysicsFlag::Mine;
+                obj.Movement.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FreeSpinning;
 
                 obj.ID = 51;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = Models::PlaceableMine;
                 obj.Shields = 20;
             }
@@ -203,7 +203,7 @@ namespace Inferno::Editor {
 
         obj.Radius = GetObjectRadius(obj);
 
-        if (obj.Render.Type == RenderType::Polyobj)
+        if (obj.Render.Type == RenderType::Model)
             Render::LoadModelDynamic(obj.Render.Model.ID);
 
         if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup)
@@ -262,7 +262,7 @@ namespace Inferno::Editor {
     void AddSecretLevelReturnMarker(Level& level) {
         Object marker{};
         marker.Type = ObjectType::SecretExitReturn;
-        marker.Render.Type = RenderType::Polyobj;
+        marker.Render.Type = RenderType::Model;
         //marker.Render.Model.ID = Resources::GameData.MarkerModel;
         marker.Render.Model.ID = Resources::GameData.PlayerShip.Model;
         marker.Render.Model.TextureOverride = LevelTexID(426);

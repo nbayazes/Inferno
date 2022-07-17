@@ -63,7 +63,7 @@ namespace Inferno::Render {
                     break;
                 }
                 default:
-                    if (object.Render.Type == RenderType::Polyobj) {
+                    if (object.Render.Type == RenderType::Model) {
                         auto modelIds = GetTexturesForModel(object.Render.Model.ID);
                         ids.insert(modelIds.begin(), modelIds.end());
                     }
