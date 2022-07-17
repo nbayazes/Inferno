@@ -544,7 +544,8 @@ namespace Inferno::Editor {
         }
 
         level.TryAddConnection(srcId, destId);
-        WeldConnection(level, srcId, Settings::WeldTolerance);
+        auto nearby = GetNearbySegments(Game::Level, srcId.Segment);
+        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::CleanupTolerance);
         level.UpdateAllGeometricProps();
         return true;
     }
