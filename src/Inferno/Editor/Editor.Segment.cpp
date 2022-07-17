@@ -1024,6 +1024,40 @@ namespace Inferno::Editor {
         return "Join Sides";
     }
 
+    bool MergeSegment(Level& level, Tag tag) {
+        if (!level.SegmentExists(tag)) return false;
+        auto& seg = level.GetSegment(tag);
+
+        auto opposite = level.GetConnectedSide(tag);
+        if (!level.SegmentExists(opposite)) return false; // no connection
+
+        opposite.Side = GetOppositeSide(opposite.Side);
+
+        for (auto& side : SideIDs) {
+            if (side == GetOppositeSide(tag.Side)) continue; // don't detach base side
+            DetachSide(Game::Level, { tag.Segment, side });
+        }
+
+        // move verts on top of the connected opposite side
+        auto oppFace = Face::FromSide(level, opposite);
+        auto face = Face::FromSide(level, tag);
+        for (int i = 0; i < 4; i++)
+            face[i] = oppFace[i];
+
+        DeleteSegment(level, opposite.Segment);
+        return true;
+    }
+
+    string OnMergeSegment() {
+        if (!MergeSegment(Game::Level, Editor::Selection.Tag())) {
+            SetStatusMessageWarn("Must select an open side to merge");
+            return {};
+        }
+
+        Events::LevelChanged();
+        return "Merge Segment";
+    }
+
     bool SplitSegment2(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return false;
         Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
@@ -1275,6 +1309,7 @@ namespace Inferno::Editor {
 
         Command DetachSegments{ .SnapshotAction = OnDetachSegments, .Name = "Detach Segments" };
         Command DetachSides{ .SnapshotAction = OnDetachSides, .Name = "Detach Sides" };
+        Command MergeSegment{ .SnapshotAction = OnMergeSegment, .Name = "Merge Segment" };
 
         Command JoinPoints{ .SnapshotAction = OnConnectPoints, .Name = "Join Points" };
         Command ConnectSides{ .SnapshotAction = OnConnectSegments, .Name = "Connect Sides" };

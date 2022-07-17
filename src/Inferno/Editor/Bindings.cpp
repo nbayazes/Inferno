@@ -148,6 +148,7 @@ namespace Inferno::Editor::Bindings {
                 case Binding::DetachSides: Commands::DetachSides(); break;
                 case Binding::DetachPoints: Commands::DetachPoints(); break;
                 case Binding::SplitSegment2: Commands::SplitSegment2(); break;
+                case Binding::MergeSegment: Commands::MergeSegment(); break;
                 case Binding::NewLevel: Commands::NewLevel(); break;
                 case Binding::InvertMarked: Commands::InvertMarked(); break;
             }
@@ -270,6 +271,7 @@ namespace Inferno::Editor::Bindings {
         Bindings::Add({ .Binding = Binding::DetachPoints, .Key = Keys::D, .Shift = true, .Control = true });
 
         Bindings::Add({ .Binding = Binding::SplitSegment2, .Key = Keys::S, .Shift = true });
+        Bindings::Add({ .Binding = Binding::MergeSegment, .Key = Keys::M });
         Bindings::Add({ .Binding = Binding::NewLevel, .Key = Keys::N, .Control = true });
         Bindings::Add({ .Binding = Binding::InvertMarked, .Key = Keys::I, .Control = true });
     }
@@ -285,5 +287,4 @@ namespace Inferno::Editor::Bindings {
 
         return {};
     }
-
 }

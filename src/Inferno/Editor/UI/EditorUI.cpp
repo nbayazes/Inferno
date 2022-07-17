@@ -234,6 +234,7 @@ namespace Inferno::Editor {
                 MenuCommand(Commands::JoinTouchingSegments, Binding::JoinTouchingSegments);
                 ImGui::Separator();
                 SplitMenu();
+                MenuCommand(Commands::MergeSegment, Binding::MergeSegment);
                 ImGui::Separator();
                 MenuCommand(Commands::DetachSegments, Binding::DetachSegments);
                 MenuCommand(Commands::DetachSides, Binding::DetachSides);

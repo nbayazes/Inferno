@@ -57,6 +57,7 @@ namespace Inferno::Editor {
         DetachSides,
         DetachPoints,
         SplitSegment2,
+        MergeSegment,
         ToggleWireframe,
         NewLevel,
         InvertMarked
