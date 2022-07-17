@@ -221,21 +221,24 @@ namespace Inferno::Editor {
         switch (obj.Type) {
             case ObjectType::Player:
                 if (GetObjectCount(level, ObjectType::Player) >= level.Limits.Players) {
-                    SetStatusMessage("Cannot add more than {} players!", level.Limits.Players);
-                    return ObjID::None;
+                    SetStatusMessageWarn("Cannot add more than {} players!", level.Limits.Players);
+                    InitObject(level, obj, ObjectType::Powerup);
                 }
                 break;
+
             case ObjectType::Coop:
                 if (GetObjectCount(level, ObjectType::Coop) >= level.Limits.Coop) {
-                    SetStatusMessage("Cannot add more than {} co-op players!", level.Limits.Coop);
-                    return ObjID::None;
+                    SetStatusMessageWarn("Cannot add more than {} co-op players!", level.Limits.Coop);
+                    InitObject(level, obj, ObjectType::Powerup);
                 }
                 break;
+
             case ObjectType::Reactor:
-                if (GetObjectCount(level, ObjectType::Reactor) >= level.Limits.Reactor) {
-                    SetStatusMessage("Cannot add more than {} reactor!", level.Limits.Reactor);
-                    return ObjID::None;
-                }
+                // Disable reactor check as some builds allow multiples
+                //if (GetObjectCount(level, ObjectType::Reactor) >= level.Limits.Reactor) {
+                //    SetStatusMessage("Cannot add more than {} reactor!", level.Limits.Reactor);
+                //    return ObjID::None;
+                //}
                 break;
         }
 
