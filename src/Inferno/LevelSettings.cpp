@@ -2,6 +2,7 @@
 #include <streambuf>
 #include "LevelSettings.h"
 #include "Yaml.h"
+#include "Resources.h"
 
 using namespace Yaml;
 
@@ -15,32 +16,48 @@ namespace Inferno {
                 auto& side = seg.GetSide(sideid);
                 Tag tag((SegID)segid, sideid);
 
+                bool isLightSource = side.LightOverride.has_value();
+                if (!isLightSource) {
+                    if (auto ti = Resources::TryGetLevelTextureInfo(side.TMap2)) {
+                        if (ti->Lighting > 0) isLightSource = true;
+                    }
+
+                    if (auto ti = Resources::TryGetLevelTextureInfo(side.TMap)) {
+                        if (ti->Lighting > 0) isLightSource = true;
+                    }
+                }
+
                 bool hasLockLight = side.LockLight[0] || side.LockLight[1] || side.LockLight[2] || side.LockLight[3];
 
-                if (side.LightOverride || 
-                    hasLockLight || 
-                    !side.EnableOcclusion ||
-                    side.LightRadiusOverride ||
-                    side.LightPlaneOverride) {
-                    auto child = node.append_child();
-                    child |= ryml::MAP;
-                    child["Tag"] << EncodeTag(tag);
+                // Don't write sides that aren't light sources and don't have vertex overrides
+                if (!isLightSource && !hasLockLight) continue;
 
-                    if (side.LightOverride)
-                        child["LightColor"] << EncodeColor(*side.LightOverride);
+                // Check that any properties are modified before writing
+                if (!side.LightOverride &&
+                    !hasLockLight &&
+                    side.EnableOcclusion &&
+                    !side.LightRadiusOverride &&
+                    !side.LightPlaneOverride)
+                    continue;
 
-                    if (side.LightRadiusOverride)
-                        child["LightRadius"] << *side.LightRadiusOverride;
+                auto child = node.append_child();
+                child |= ryml::MAP;
+                child["Tag"] << EncodeTag(tag);
 
-                    if (side.LightPlaneOverride)
-                        child["LightPlane"] << *side.LightPlaneOverride;
+                if (side.LightOverride)
+                    child["LightColor"] << EncodeColor3(*side.LightOverride);
 
-                    if (!side.EnableOcclusion) // Only save when false
-                        child["Occlusion"] << side.EnableOcclusion;
+                if (side.LightRadiusOverride)
+                    child["LightRadius"] << *side.LightRadiusOverride;
 
-                    if (hasLockLight)
-                        child["LockLight"] << EncodeArray(side.LockLight);
-                }
+                if (side.LightPlaneOverride)
+                    child["LightPlane"] << *side.LightPlaneOverride;
+
+                if (!side.EnableOcclusion) // Only save when false
+                    child["Occlusion"] << side.EnableOcclusion;
+
+                if (hasLockLight)
+                    child["LockLight"] << EncodeArray(side.LockLight);
             }
         }
     }
