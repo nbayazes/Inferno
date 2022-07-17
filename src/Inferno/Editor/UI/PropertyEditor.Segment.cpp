@@ -418,6 +418,17 @@ namespace Inferno::Editor {
                 }
             }
 
+            {
+                // Occlusion
+                ImGui::TableRowLabel("Occlusion");
+                if (ImGui::Checkbox("##Occlusion", &side.EnableOcclusion)) {
+                    for (auto& tag : GetSelectedFaces()) {
+                        if (auto marked = level.TryGetSide(tag))
+                            marked->EnableOcclusion = side.EnableOcclusion;
+                    }
+                }
+            }
+
             auto VertexLightSlider = [&changed, &side](const char* label, int point) {
                 if (point == (int)Editor::Selection.Point)
                     ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });

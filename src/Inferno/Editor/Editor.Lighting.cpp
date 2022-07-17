@@ -68,6 +68,7 @@ namespace Inferno::Editor {
         bool IsDynamic = false; // Is this source destroyable?
         float Radius = 20;
         float LightPlaneTolerance = -0.45f;
+        bool EnableOcclusion = true;
 
         Color MaxBrightness() const {
             Color max;
@@ -455,7 +456,7 @@ namespace Inferno::Editor {
                         auto attenuation = fullBright ? 1 : Attenuate2(dist, cast.Source->Radius, settings.Falloff);
                         if (attenuation <= 0) return Color();
 
-                        if (settings.EnableOcclusion &&
+                        if (cast.Source->EnableOcclusion &&
                             HitTest(level, segmentsToLight, destVertIds[vertIndex], lightVertIds[lightIndex], lightSamples[lightIndex], destSamples[vertIndex], src, dest))
                             return Color();
 
@@ -627,7 +628,8 @@ namespace Inferno::Editor {
                     .Colors = { color, color, color, color },
                     .IsDynamic = Resources::GetDestroyedTexture(side.TMap2) > LevelTexID::Unset || level.GetFlickeringLight(tag),
                     .Radius = side.LightRadiusOverride.value_or(settings.Radius),
-                    .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance)
+                    .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance),
+                    .EnableOcclusion = side.EnableOcclusion
                 };
                 sources.push_back(light);
             }

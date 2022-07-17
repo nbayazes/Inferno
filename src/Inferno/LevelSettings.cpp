@@ -17,7 +17,11 @@ namespace Inferno {
 
                 bool hasLockLight = side.LockLight[0] || side.LockLight[1] || side.LockLight[2] || side.LockLight[3];
 
-                if (side.LightOverride || hasLockLight) {
+                if (side.LightOverride || 
+                    hasLockLight || 
+                    !side.EnableOcclusion ||
+                    side.LightRadiusOverride ||
+                    side.LightPlaneOverride) {
                     auto child = node.append_child();
                     child |= ryml::MAP;
                     child["Tag"] << EncodeTag(tag);
@@ -30,6 +34,9 @@ namespace Inferno {
 
                     if (side.LightPlaneOverride)
                         child["LightPlane"] << *side.LightPlaneOverride;
+
+                    if (!side.EnableOcclusion) // Only save when false
+                        child["Occlusion"] << side.EnableOcclusion;
 
                     if (hasLockLight)
                         child["LockLight"] << EncodeArray(side.LockLight);
@@ -63,6 +70,9 @@ namespace Inferno {
                     ReadValue(child["LightPlane"], plane);
                     side->LightPlaneOverride = plane;
                 }
+
+                if (child.has_child("Occlusion"))
+                    ReadValue(child["Occlusion"], side->EnableOcclusion);
 
                 if (child.has_child("LockLight"))
                     ReadValue(child["LockLight"], side->LockLight);

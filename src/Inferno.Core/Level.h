@@ -54,6 +54,7 @@ namespace Inferno {
         Option<Color> LightOverride; // Editor defined override for amount of light emitted
         Option<float> LightRadiusOverride; // Editor defined override for light radius
         Option<float> LightPlaneOverride; // Editor defined override for light plane tolerance
+        bool EnableOcclusion = true; // Editor defined override for light occlusion
 
         bool HasOverlay() const { return TMap2 > LevelTexID::Unset; }
         bool HasWall() const { return Wall > WallID::None; }
