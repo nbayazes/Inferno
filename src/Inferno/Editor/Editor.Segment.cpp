@@ -205,7 +205,6 @@ namespace Inferno::Editor {
         return Seq::ofSet(nearby);
     }
 
-
     void DeleteSegment(Level& level, SegID segId) {
         if (level.Segments.size() <= 1) return; // don't delete the last segment
         if (!level.SegmentExists(segId)) return;
@@ -253,6 +252,14 @@ namespace Inferno::Editor {
         // Remove all connections
         for (auto& id : SideIDs)
             DetachSide(level, { segId, id });
+
+        // Remove trigger targets pointing at this segment
+        for (auto& trigger : level.Triggers) {
+            for (int i = trigger.Targets.Count() - 1; i >= 0; i--) {
+                if (trigger.Targets[i].Segment == segId)
+                    trigger.Targets.Remove(i);
+            }
+        }
 
         Editor::Marked.RemoveSegment(segId);
 

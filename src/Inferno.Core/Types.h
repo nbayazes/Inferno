@@ -341,6 +341,8 @@ namespace Inferno {
     constexpr float DegToRad = (float)std::numbers::pi / 180.0f;
     constexpr float RadToDeg = 180.0f / (float)std::numbers::pi;
 
+    // Array with a fixed size that allows inserting and removing elements while
+    // keeping them contiguous
     template<class T, size_t Capacity>
     class ResizeArray {
         std::array<T, Capacity> _data;

@@ -67,6 +67,7 @@ namespace Inferno::Editor {
 
     void OnDelete() {
         if (Editor::Gizmo.State == GizmoState::Dragging) return;
+        Editor::History.SnapshotSelection();
 
         switch (Settings::SelectionMode) {
             case SelectionMode::Object:
@@ -86,7 +87,6 @@ namespace Inferno::Editor {
 
             case SelectionMode::Segment:
             {
-                Editor::History.SnapshotSelection();
                 auto segs = GetSelectedSegments();
                 UpdateSelectionAfterDelete(segs);
                 DeleteSegments(Game::Level, segs);
