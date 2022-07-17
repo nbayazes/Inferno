@@ -115,7 +115,7 @@ namespace Inferno::Editor {
                 else
                     Editor::AddTrigger(level, entry, TriggerType::Exit);
 
-                // todo: link to reactor if present
+                level.ReactorTriggers.Add(tag);
                 return "Add Exit Door";
             },
             .Name = "Exit Door"
