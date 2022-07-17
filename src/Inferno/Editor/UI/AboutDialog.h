@@ -10,7 +10,6 @@ namespace Inferno::Editor {
 
     protected:
         void OnUpdate() override {
-            //ImGui::GetCurrentWindow()->FontWindowScale();
             ImGui::SetWindowFontScale(1.75);
             auto mult = float(std::sin(Game::ElapsedTime * 1.5) + 1) * 0.5f;
             ImVec4 color = { 1, 0.3f * mult, 0.3f * mult, 1 };
@@ -25,6 +24,15 @@ namespace Inferno::Editor {
 
             ImGui::Dummy({ 0, 10 });
             ImGui::Text((char*)u8"© 2022 Nicholas Bayazes");
+
+            ImGui::Dummy({ 0, 10 });
+            ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
+            ImGui::PushStyleColor(ImGuiCol_Text, { 0.5f, 0.75f, 1, 1 });
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f, 0.75f, 1, 0.15f });
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.75f, 1, 0.30f });
+            if (ImGui::SmallButton("Visit Project Page"))
+                ShellExecute(nullptr, L"open", L"https://github.com/nbayazes/Inferno", nullptr, nullptr, SW_SHOWNORMAL);
+            ImGui::PopStyleColor(4);
 
             ImGui::BeginChild("closebtns", { 0, 32 });
             ImGui::SameLine(ImGui::GetWindowWidth() - 100);
