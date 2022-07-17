@@ -63,7 +63,7 @@ void Application::Initialize(int width, int height) {
 
     Editor::Initialize();
 
-    //Sound::Init(hwnd);
+    Sound::Init(Shell::Hwnd);
     //Sound::Play(SoundID(72), 0.1f, -0.5f, 1.0f);
     //Sound::Play(SoundID(72), 0.1f, -0.3f, -1.0f);
 

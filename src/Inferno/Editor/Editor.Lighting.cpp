@@ -164,25 +164,20 @@ namespace Inferno::Editor {
         return Seq::ofSet(coplanar);
     }
 
-    // higher n, smoother falloff. default 2
-    float Attenuate(float dist, float radius, float n = 2) {
-        float d = std::max(dist - radius, 1.0f);
-        return 1.0f / std::pow(d, n);
-    }
-
     constexpr float Attenuate1(float dist, float a = 0, float b = 1) {
         return 1.0f / (1.0f + a * dist + b * dist * dist);
     }
 
-    constexpr float Attenuate2(float d, float r, float cutoff) {
+    // Returns the falloff using a cutoff 
+    constexpr float Attenuate2(float dist, float radius, float cutoff) {
         // https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
-        float denom = d / r + 1;
-        float a = 1 / (denom * denom);
+        float denom = dist / radius + 1;
+        float atten = 1 / (denom * denom);
         // scale and bias attenuation such that:
         //   attenuation == 0 at extent of max influence
         //   attenuation == 1 when d == 0
-        a = (a - cutoff) / (1 - cutoff);
-        return std::max(a, 0.0f);
+        atten = (atten - cutoff) / (1 - cutoff);
+        return std::max(atten, 0.0f);
     }
 
     // Original light eq

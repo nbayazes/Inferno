@@ -188,6 +188,7 @@
     <ClInclude Include="Concurrent.h" />
     <ClInclude Include="Editor\Editor.Diagnostics.h" />
     <ClInclude Include="Editor\UI\AboutDialog.h" />
+    <ClInclude Include="Editor\UI\SoundBrowser.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\GpuResources.h" />

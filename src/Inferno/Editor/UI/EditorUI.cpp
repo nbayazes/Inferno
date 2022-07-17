@@ -316,6 +316,7 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Reactor", nullptr, &Settings::Windows.Reactor);
                 ImGui::MenuItem("Lighting", nullptr, &Settings::Windows.Lighting);
                 ImGui::MenuItem("Noise", nullptr, &Settings::Windows.Noise);
+                ImGui::MenuItem("Sounds", nullptr, &Settings::Windows.Sound);
 
 #ifdef _DEBUG
                 ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Windows.TunnelBuilder);
@@ -887,6 +888,7 @@ namespace Inferno::Editor {
         _textureBrowser.Update();
         _propertyEditor.Update();
         _tunnelBuilder.Update();
+        _sounds.Update();
 
         if (Editor::Gizmo.State == GizmoState::Dragging) {
             DrawGizmoTooltip();

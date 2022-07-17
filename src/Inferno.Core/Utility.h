@@ -9,7 +9,7 @@ namespace Inferno {
     // Creates a four character code to identify file formats
     consteval uint32 MakeFourCC(const char cc[4]) {
         // this is the same as assigning the characters backwards to an int
-        // int i = dcba;
+        // int i = 'dcba';
         return cc[0] | cc[1] << 8 | cc[2] << 16 | cc[3] << 24;
     }
 

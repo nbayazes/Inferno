@@ -256,7 +256,7 @@ namespace Inferno::Editor {
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
                 auto translation = Step(magnitude, Settings::TranslationSnap) * Direction;
                 auto deltaTranslation = translation - _prevTranslation;
-                DeltaTransform = Matrix::CreateTranslation(deltaTranslation); // BUG: transform rely on previous iterations
+                DeltaTransform = Matrix::CreateTranslation(deltaTranslation);
                 auto sign = Direction.Dot(DeltaTransform.Translation()) > 0 ? 1 : -1;
                 Delta = (deltaTranslation).Length() * sign;
                 TotalDelta += Delta;
@@ -269,7 +269,7 @@ namespace Inferno::Editor {
                 auto delta = end - CursorStart;
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
                 auto translation = Step(magnitude, Settings::TranslationSnap) * Direction;
-                DeltaTransform.Translation(translation - _prevTranslation); // BUG: transform rely on previous iterations
+                DeltaTransform.Translation(translation - _prevTranslation);
                 Grow = Direction.Dot(DeltaTransform.Translation()) > 0;
                 Delta = (translation - _prevTranslation).Length() * (Grow ? 1 : -1);
                 TotalDelta += Delta;

@@ -13,6 +13,8 @@
 namespace Inferno::Resources {
     void Init();
 
+    extern SoundFile Sounds;
+
     WClipID GetWallClipID(LevelTexID);
     const WallClip& GetWallClip(WClipID);
     const WallClip* TryGetWallClip(WClipID);
