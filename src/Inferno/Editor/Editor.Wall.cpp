@@ -251,6 +251,44 @@ namespace Inferno::Editor {
         return wallId;
     }
 
+    TriggerType GetTriggerTypeForTarget(Level& level, Tag tag) {
+
+        if (!level.SegmentExists(tag)) return TriggerType::OpenDoor;
+        auto& seg = level.GetSegment(tag);
+        auto wall = level.TryGetWall(tag);
+
+        if (!wall && seg.Type == SegmentType::Matcen)
+            return TriggerType::Matcen;
+
+        if (!wall)
+            return TriggerType::LightOff;
+
+        switch (wall->Type) {
+            case Inferno::WallType::Destroyable:
+            case Inferno::WallType::Door: 
+                return TriggerType::OpenDoor;
+
+            case Inferno::WallType::Illusion: 
+                return TriggerType::IllusionOff;
+
+            case Inferno::WallType::Cloaked:
+            case Inferno::WallType::Closed: 
+                return TriggerType::OpenWall;
+
+            default: 
+                return TriggerType::LightOff;
+        }
+    }
+
+    void SetupTriggerOnWall(Level& level, WallID wallId, Set<Tag> targets) {
+        auto type = targets.empty() ? TriggerType::OpenDoor :
+            GetTriggerTypeForTarget(level, *targets.begin());
+
+        auto tid = AddTrigger(level, wallId, type);
+        if (Settings::SelectionMode == SelectionMode::Face)
+            AddTriggerTargets(level, tid, targets);
+    }
+
     namespace Commands {
         Command AddTrigger{
             .Action = [] {
@@ -264,6 +302,19 @@ namespace Inferno::Editor {
             .Name = "Add Trigger"
         };
 
+        Command AddFlythroughTrigger{
+            .SnapshotAction = [] {
+                auto& level = Game::Level;
+                auto tag = Editor::Selection.Tag();
+
+                auto wallId = Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
+                if (wallId == WallID::None) return "";
+                SetupTriggerOnWall(Game::Level, wallId, Marked.Faces);
+                return "Add Flythrough Trigger";
+            },
+            .Name = "Add Flythrough Trigger"
+        };
+
         Command AddWallTrigger{
             .SnapshotAction = [] {
                 auto tag = Editor::Selection.Tag();
@@ -273,11 +324,7 @@ namespace Inferno::Editor {
                 auto tmap2 = side.TMap2 == LevelTexID::Unset ? LevelTexID(414) : side.TMap2; // Switch
                 auto wallId = Editor::AddWall(Game::Level, tag, WallType::WallTrigger, side.TMap, tmap2);
                 if (wallId == WallID::None) return "";
-
-                auto tid = Editor::AddTrigger(Game::Level, wallId, TriggerType::OpenDoor);
-                if (Settings::SelectionMode == SelectionMode::Face)
-                    Editor::AddTriggerTargets(Game::Level, tid, Marked.Faces);
-
+                SetupTriggerOnWall(Game::Level, wallId, Marked.Faces);
                 return "Add Wall Trigger";
             },
             .Name = "Add Wall Trigger"

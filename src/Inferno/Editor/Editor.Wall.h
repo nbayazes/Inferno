@@ -68,24 +68,7 @@ namespace Inferno::Editor {
             .Name = "Add Cloaked Wall"
         };
 
-        inline Command AddFlythroughTrigger{
-            .SnapshotAction = [] {
-                auto& level = Game::Level;
-                auto tag = Editor::Selection.Tag();
-
-                auto wallId = Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
-                if (wallId == WallID::None) return "";
-
-                auto tid = Editor::AddTrigger(level, wallId, TriggerType::OpenDoor);
-                if (Settings::SelectionMode == SelectionMode::Face)
-                    Editor::AddTriggerTargets(level, tid, Marked.Faces);
-
-                return "Add Flythrough Trigger";
-            },
-            .Name = "Add Flythrough Trigger"
-        };
-
-        extern Command AddWallTrigger, AddTrigger;
+        extern Command AddFlythroughTrigger, AddWallTrigger, AddTrigger;
 
         inline Command AddDoor{
             .SnapshotAction = [] {
