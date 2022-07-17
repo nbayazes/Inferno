@@ -62,11 +62,13 @@ namespace ImGui {
 }
 
 namespace Inferno::Editor {
-    constexpr ImGuiWindowFlags ToolbarFlags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings;
+    constexpr ImGuiWindowFlags ToolbarFlags = 
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | 
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings | 
+        ImGuiWindowFlags_NoNavFocus;
     constexpr ImGuiWindowFlags MainWindowFlags =
         ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
-
 
     template<class TFlag>
     bool FlagCheckbox(const char* label, TFlag flagToCheck, TFlag& value) {

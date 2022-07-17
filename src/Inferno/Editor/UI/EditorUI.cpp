@@ -378,7 +378,7 @@ namespace Inferno::Editor {
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-        ImGui::Begin("snap-toolbar", nullptr, ToolbarFlags);
+        ImGui::Begin("TopToolbar", nullptr, ToolbarFlags);
 
         const ImVec2 buttonSize = { 75, 0 };
 
