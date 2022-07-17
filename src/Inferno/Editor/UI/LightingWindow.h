@@ -50,7 +50,7 @@ namespace Inferno::Editor {
             ImGui::SliderFloat("Multiplier", &settings.Multiplier, 0, 4);
             //ImGui::SliderFloat("Distance Threshold", &_settings.DistanceThreshold, 60, 300);
             //ImGui::SliderFloat("Falloff", &_settings.Attenuation, 0, 8);
-            ImGui::SliderFloat("Falloff", &settings.Falloff, 0, 0.2f);
+            ImGui::SliderFloat("Falloff", &settings.Falloff, 0.02f, 0.2f);
             //auto sz = ImGui::GetItemRectSize();
             ImGui::HelpMarker("A lower value causes light to travel further");
 

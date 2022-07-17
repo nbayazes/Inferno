@@ -85,57 +85,6 @@ namespace Inferno::Editor {
         if (Alt) modifiers = modifiers.empty() ? "Alt" : modifiers + "+Alt";
         return modifiers + "+" + KeyToString(Key);
     }
-
-    //string GetActionName(Binding action) {
-    //    switch (action) {
-    //        case Binding::NextItem: return "Next";
-    //        case Binding::PreviousItem: return "Previous";
-    //        case Binding::SegmentForward: return "Forward";
-    //        case Binding::SegmentBack: return "Backward";
-    //        case Binding::SelectLinked: return "Select Other Side";
-    //        case Binding::SideMode: return "Side Mode";
-    //        case Binding::PointMode: return "Point Mode";
-    //        case Binding::EdgeMode: return "Edge Mode";
-    //        case Binding::SegmentMode:return "Segment Mode";
-    //        case Binding::ObjectMode: return "Object Mode";
-    //        //case Binding::CameraForward: return "Edge Mode";
-    //        //case Binding::CameraBack: return "Edge Mode";
-    //        //case Binding::CameraLeft: return "Edge Mode";
-    //        //case Binding::CameraRight: return "Edge Mode";
-    //        //case Binding::CameraUp: return "Edge Mode";
-    //        //case Binding::CameraDown: return "Edge Mode";
-    //        //case Binding::CameraRollLeft: return "Edge Mode";
-    //        //case Binding::CameraRollRight: return "Edge Mode";
-    //        case Binding::ToggleMouselook: return "Mouse Look";
-    //        case Binding::ClearSelection: return "Clear Selection";
-    //        case Binding::Delete: return "Delete";
-    //        case Binding::Insert: return "Insert";
-    //        case Binding::Copy: return "Copy";
-    //        case Binding::Cut: return "Cut";
-    //        case Binding::Paste: return "Paste";
-    //        case Binding::PasteMirrored: return "Paste Mirrored";
-    //        case Binding::Save: return "Save";
-    //        case Binding::SaveAs: return "Save As";
-    //        case Binding::Open: return "Open";
-    //        case Binding::Undo: return "Undo";
-    //        case Binding::Redo: return "Redo";
-    //        case Binding::AlignViewToFace: return "Align View To Face";
-    //        case Binding::FocusSelection: return "Focus Selection";
-    //        case Binding::ZoomExtents: return "Zoom Extents";
-    //        case Binding::ShowHogDialog: return "Show HOG Editor";
-    //        case Binding::ShowGotoDialog: return "Go To Segment";
-    //        case Binding::AlignMarked: return "Edge";
-    //        case Binding::ResetUVs: return "Edge";
-    //        case Binding::CycleRenderMode: return "Edge";
-    //        case Binding::CopyUVsToOtherSide: return "Edge";
-    //        case Binding::ConnectSegments: return "Edge";
-    //        case Binding::ConnectPoints: return "Edge";
-    //        case Binding::ToggleSelection: return "Edge";
-    //        case Binding::MirrorSegment: return "Edge";
-    //        case Binding::JoinTouchingSegments: return "Edge";
-    //        default: return "Unknown";
-    //    }
-    //}
 }
 
 namespace Inferno::Editor::Bindings {
@@ -143,29 +92,6 @@ namespace Inferno::Editor::Bindings {
     namespace {
         List<EditorBinding> _bindings, _realtimeBindings;
     }
-
-    //Dictionary<Action, std::function<void(void)>> CommandTable = {
-    //    { Binding::NextItem, [] { Selection.NextItem(); } },
-    //    { Binding::PreviousItem, [] { Selection.PreviousItem(); } },
-    //    { Binding::SegmentForward, [] { Selection.Forward(); } },
-    //    { Binding::SegmentBack, [] { Selection.Back(); } },
-    //    { Binding::SelectLinked, [] { Selection.SelectLinked(); } },
-    //    { Binding::SideMode, [] { Editor::SetMode(SelectionMode::Face); } },
-    //    { Binding::PointMode, [] { Editor::SetMode(SelectionMode::Point); } },
-    //    { Binding::EdgeMode, [] { Editor::SetMode(SelectionMode::Edge); } },
-    //    { Binding::SegmentMode, [] { Editor::SetMode(SelectionMode::Segment); } },
-    //    { Binding::ObjectMode, [] { Editor::SetMode(SelectionMode::Object); } },
-    //    { Binding::CameraForward, [] { Render::Camera.MoveForward(Render::FrameTime); } },
-    //    { Binding::CameraBack, [] { Render::Camera.MoveBack(Render::FrameTime); } },
-    //    { Binding::CameraLeft, [] { Render::Camera.MoveLeft(Render::FrameTime); } },
-    //    { Binding::CameraRight, [] { Render::Camera.MoveRight(Render::FrameTime); } },
-    //    { Binding::CameraUp, [] { Render::Camera.MoveUp(Render::FrameTime); } },
-    //    { Binding::CameraDown, [] { Render::Camera.MoveDown(Render::FrameTime); } },
-    //    { Binding::CameraDown, [] { Render::Camera.MoveDown(Render::FrameTime); } },
-    //    { Binding::CameraDown, [] { Render::Camera.MoveDown(Render::FrameTime); } },
-    //    { Binding::CameraDown, [] { Render::Camera.MoveDown(Render::FrameTime); } },
-    //    { Binding::CameraDown, [] { Render::Camera.MoveDown(Render::FrameTime); } },
-    //};
 
     void ExecuteAction(Binding action) {
         try {
@@ -241,7 +167,7 @@ namespace Inferno::Editor::Bindings {
 
     void Update() {
         auto& io = ImGui::GetIO();
-        auto imguiWantsFocus = io.WantTextInput || io.WantCaptureKeyboard;
+        auto imguiWantsFocus = io.WantCaptureMouse;
 
         for (auto& binding : _bindings) {
             // don't execute navigation key bindings when imgui has focus
@@ -249,7 +175,8 @@ namespace Inferno::Editor::Bindings {
                 (binding.Key == Keys::Left && imguiWantsFocus) ||
                 (binding.Key == Keys::Right && imguiWantsFocus) ||
                 (binding.Key == Keys::Up && imguiWantsFocus) ||
-                (binding.Key == Keys::Down && imguiWantsFocus))
+                (binding.Key == Keys::Down && imguiWantsFocus) ||
+                (binding.Key == Keys::Space && imguiWantsFocus))
                 continue;
 
             if (Input::Keyboard.IsKeyPressed(binding.Key) &&

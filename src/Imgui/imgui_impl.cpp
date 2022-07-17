@@ -117,7 +117,7 @@ bool    ImGui_ImplWin32_Init(void* hwnd) {
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.BackendPlatformUserData == NULL && "Already initialized a platform backend!");
 
-    INT64 perf_frequency, perf_counter;
+    INT64 perf_frequency{}, perf_counter{};
     if (!::QueryPerformanceFrequency((LARGE_INTEGER*)&perf_frequency))
         return false;
     if (!::QueryPerformanceCounter((LARGE_INTEGER*)&perf_counter))
@@ -220,6 +220,15 @@ static bool IsVkDown(int vk) {
 
 static void ImGui_ImplWin32_AddKeyEvent(ImGuiKey key, bool down, int native_keycode, int native_scancode = -1) {
     ImGuiIO& io = ImGui::GetIO();
+    if (!io.WantCaptureMouse &&
+       (key == ImGuiKey_LeftArrow ||
+        key == ImGuiKey_RightArrow ||
+        key == ImGuiKey_UpArrow ||
+        key == ImGuiKey_DownArrow ||
+        key == ImGuiKey_Tab ||
+        key == ImGuiKey_Space))
+        return; // Skip nav keys unless mouse is over ImGui
+        
     io.AddKeyEvent(key, down);
     io.SetKeyEventNativeData(key, native_keycode, native_scancode); // To support legacy indexing (<1.87 user code)
     IM_UNUSED(native_scancode);
@@ -314,7 +323,7 @@ static void ImGui_ImplWin32_UpdateGamepads() {
     }
 
     io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
-    XINPUT_STATE xinput_state;
+    XINPUT_STATE xinput_state{};
     XINPUT_GAMEPAD& gamepad = xinput_state.Gamepad;
     if (!bd->HasGamepad || bd->XInputGetState == NULL || bd->XInputGetState(0, &xinput_state) != ERROR_SUCCESS)
         return;
@@ -1033,7 +1042,7 @@ static LRESULT CALLBACK ImGui_ImplWin32_WndProcHandler_PlatformWindow(HWND hWnd,
 }
 
 static void ImGui_ImplWin32_InitPlatformInterface() {
-    WNDCLASSEX wcex;
+    WNDCLASSEX wcex{};
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = ImGui_ImplWin32_WndProcHandler_PlatformWindow;
