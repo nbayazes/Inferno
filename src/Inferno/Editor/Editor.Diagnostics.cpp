@@ -242,7 +242,13 @@ namespace Inferno::Editor {
         wstring warnings;
 
         if (GetObjectCount(level, ObjectType::Player) == 0) {
-            warnings += L"Level does not contain a player start!\n\n";
+            warnings += L"Level does not contain a player start.\n\n";
+        }
+
+        if (GetObjectCount(level, ObjectType::Reactor) > 1) {
+            warnings += 
+                L"Level contains more than one reactor. " 
+                L"This will result in odd behavior in old versions.\n\n";
         }
 
         auto boss = Seq::findIndex(Game::Level.Objects, IsBossRobot);
@@ -251,7 +257,7 @@ namespace Inferno::Editor {
         if ((boss || reactor) && !HasExitConnection(level)) {
             warnings +=
                 L"Level has a boss or reactor but no end of exit tunnel is marked. "
-                L"This will crash some versions of Descent at end of level.";
+                L"This will crash some versions of Descent at end of level.\n\n";
         }
 
         constexpr auto title = L"Level Error Check";
