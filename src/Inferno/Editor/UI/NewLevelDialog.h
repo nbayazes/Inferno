@@ -8,7 +8,7 @@ namespace Inferno::Editor {
         NewLevelDialog() : ModalWindowBase("New Level") {}
 
         char _title[35]{};
-        char _fileName[8]{};
+        char _fileName[9]{};
         int16 Version = 7;
         bool _foundD1, _foundD2, _foundVertigo;
         bool _addToHog = false;

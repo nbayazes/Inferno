@@ -87,25 +87,22 @@ namespace Inferno::Editor {
                 }
             }
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-            ImGui::Columns(2);
-            if (!_loaded) {
-                ImGui::SetColumnWidth(0, 10);
-                _loaded = true;
-            }
-            //ImGui::Separator();
+            constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable;
 
-            // Body
-            if (Settings::SelectionMode == SelectionMode::Object) {
-                ObjectProperties();
-            }
-            else {
-                SegmentProperties();
-            }
+            if (ImGui::BeginTable("properties", 2, flags)) {
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-            ImGui::Columns(1);
-            ImGui::Separator();
-            ImGui::PopStyleVar();
+                // Body
+                if (Settings::SelectionMode == SelectionMode::Object) {
+                    ObjectProperties();
+                }
+                else {
+                    SegmentProperties();
+                }
+
+                ImGui::EndTable();
+            }
 
             _matcenEditor.Update();
         }

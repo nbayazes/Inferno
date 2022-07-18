@@ -68,6 +68,7 @@ namespace Inferno::Editor {
         bool IsDynamic = false; // Is this source destroyable?
         float Radius = 20;
         float LightPlaneTolerance = -0.45f;
+        bool EnableOcclusion = true;
 
         Color MaxBrightness() const {
             Color max;
@@ -164,25 +165,20 @@ namespace Inferno::Editor {
         return Seq::ofSet(coplanar);
     }
 
-    // higher n, smoother falloff. default 2
-    float Attenuate(float dist, float radius, float n = 2) {
-        float d = std::max(dist - radius, 1.0f);
-        return 1.0f / std::pow(d, n);
-    }
-
     constexpr float Attenuate1(float dist, float a = 0, float b = 1) {
         return 1.0f / (1.0f + a * dist + b * dist * dist);
     }
 
-    constexpr float Attenuate2(float d, float r, float cutoff) {
+    // Returns the falloff using a cutoff 
+    constexpr float Attenuate2(float dist, float radius, float cutoff) {
         // https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
-        float denom = d / r + 1;
-        float a = 1 / (denom * denom);
+        float denom = dist / radius + 1;
+        float atten = 1 / (denom * denom);
         // scale and bias attenuation such that:
         //   attenuation == 0 at extent of max influence
         //   attenuation == 1 when d == 0
-        a = (a - cutoff) / (1 - cutoff);
-        return std::max(a, 0.0f);
+        atten = (atten - cutoff) / (1 - cutoff);
+        return std::max(atten, 0.0f);
     }
 
     // Original light eq
@@ -460,7 +456,7 @@ namespace Inferno::Editor {
                         auto attenuation = fullBright ? 1 : Attenuate2(dist, cast.Source->Radius, settings.Falloff);
                         if (attenuation <= 0) return Color();
 
-                        if (settings.EnableOcclusion &&
+                        if (cast.Source->EnableOcclusion &&
                             HitTest(level, segmentsToLight, destVertIds[vertIndex], lightVertIds[lightIndex], lightSamples[lightIndex], destSamples[vertIndex], src, dest))
                             return Color();
 
@@ -632,7 +628,8 @@ namespace Inferno::Editor {
                     .Colors = { color, color, color, color },
                     .IsDynamic = Resources::GetDestroyedTexture(side.TMap2) > LevelTexID::Unset || level.GetFlickeringLight(tag),
                     .Radius = side.LightRadiusOverride.value_or(settings.Radius),
-                    .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance)
+                    .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance),
+                    .EnableOcclusion = side.EnableOcclusion
                 };
                 sources.push_back(light);
             }
@@ -655,6 +652,7 @@ namespace Inferno::Editor {
     // Calculates the volume light for all segments in the level based on surface lighting
     void SetVolumeLight(Level& level, bool accurateVolumes) {
         for (auto& seg : level.Segments) {
+            if (seg.LockVolumeLight) continue;
             Color volume;
 
             int contributingSides = 0;
@@ -669,6 +667,7 @@ namespace Inferno::Editor {
 
             if (contributingSides == 0) continue;
             seg.VolumeLight += volume * (1.0f / (contributingSides * 4));
+            seg.VolumeLight.A(1);
         }
     }
 
@@ -711,8 +710,12 @@ namespace Inferno::Editor {
                     side.Light[i] = ambient;
                 }
             }
-            seg.VolumeLight = ambient;
+
+            if (!seg.LockVolumeLight)
+                seg.VolumeLight = ambient;
+
             seg.LightSubtracted = 0;
+            seg.VolumeLight.A(1);
         }
     }
 

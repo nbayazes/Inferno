@@ -78,7 +78,7 @@ namespace Inferno {
             vbv.StrideInBytes = stride;
 
             _index += size;
-            _index = Stride(_index, 4);
+            _index = Stride(_index, 4); // ensure stride of 4 to prevent issues on AMD
             return vbv;
         }
 
@@ -97,7 +97,7 @@ namespace Inferno {
             ibv.SizeInBytes = size;
             ibv.Format = format;
             _index += size;
-            _index = Stride(_index, 4);
+            _index = Stride(_index, 4); // ensure stride of 4 to prevent issues on AMD
             return ibv;
         }
     };

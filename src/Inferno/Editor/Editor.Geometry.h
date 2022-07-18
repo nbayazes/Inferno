@@ -22,6 +22,8 @@ namespace Inferno::Editor {
 
     bool PruneVertices(Level&);
 
+    void WeldVertices(Level& level, float tolerance);
+
     // Merges overlapping verts for segments
     void WeldVertices(Level&, span<SegID>, float tolerance);
     // Welds only the vertices between connected faces

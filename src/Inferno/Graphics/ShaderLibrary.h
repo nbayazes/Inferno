@@ -126,7 +126,7 @@ namespace Inferno {
 
         struct InstanceConstants {
             float Time, FrameTime;
-            float ScrollU, ScrollV;
+            Vector2 Scroll, Scroll2; // For UV scrolling
             float LightingScale;
             HlslBool Distort;
             HlslBool Overlay;
@@ -224,7 +224,7 @@ namespace Inferno {
             DirectX::XMMATRIX World;
             DirectX::XMMATRIX Projection;
             DirectX::XMVECTOR LightDirection[3];
-            DirectX::XMVECTOR LightColor[3];
+            Color Colors[3];
             DirectX::XMVECTOR Eye;
             //float Time;
         };
@@ -235,6 +235,10 @@ namespace Inferno {
 
         void SetMaterial(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(Material, material.Handles[0]);
+        }
+
+        void SetMaterial(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Material, handle);
         }
 
         void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
@@ -258,7 +262,7 @@ namespace Inferno {
 
         struct Constants {
             DirectX::SimpleMath::Matrix Transform = Matrix::Identity;
-            DirectX::SimpleMath::Color Tint = { 1, 1, 1, 1};
+            DirectX::SimpleMath::Color Tint = { 1, 1, 1, 1 };
         };
 
         void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
@@ -302,7 +306,8 @@ namespace Inferno {
     template<class TShader>
     struct Effect {
         Effect(TShader* shader, EffectSettings settings = {})
-            : Shader(shader), Settings(settings) {}
+            : Shader(shader), Settings(settings) {
+        }
 
         EffectSettings Settings;
         TShader* Shader;
@@ -338,6 +343,7 @@ namespace Inferno {
         Effect<LevelShader> LevelFlat = { &_shaders->LevelFlat };
         Effect<LevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha } };
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha } };
+        Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
@@ -379,6 +385,7 @@ namespace Inferno {
             Compile(LevelWallFlat);
 
             Compile(Object);
+            Compile(ObjectGlow);
             Compile(Sprite);
             Compile(SpriteAdditive);
 

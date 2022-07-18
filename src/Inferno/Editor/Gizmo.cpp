@@ -171,10 +171,10 @@ namespace Inferno::Editor {
         }
 
         if (Settings::SelectionMode == SelectionMode::Transform) {
-            transform = GlobalOrientation;
+            transform = UserCSys;
         }
-        else if (Settings::CoordinateSystem == CoordinateSystem::Global) {
-            transform = GlobalOrientation;
+        else if (Settings::CoordinateSystem == CoordinateSystem::User) {
+            transform = UserCSys;
 
             // Move translation gizmo to the object even in global mode for clarity
             // Consider always doing this and drawing a line or arc to the reference?
@@ -192,6 +192,13 @@ namespace Inferno::Editor {
         }
         else if (level.SegmentExists(Selection.Segment)) {
             transform = GetTransformFromSelection(level, Selection.Tag(), Settings::SelectionMode);
+        }
+
+        if (Settings::CoordinateSystem == CoordinateSystem::Global) {
+            // global overrides the rotatation to the XYZ axis
+            transform.Right(Vector3::UnitX);
+            transform.Up(Vector3::UnitY);
+            transform.Forward(Vector3::UnitZ);
         }
 
         return transform;
@@ -249,7 +256,7 @@ namespace Inferno::Editor {
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
                 auto translation = Step(magnitude, Settings::TranslationSnap) * Direction;
                 auto deltaTranslation = translation - _prevTranslation;
-                DeltaTransform = Matrix::CreateTranslation(deltaTranslation); // BUG: transform rely on previous iterations
+                DeltaTransform = Matrix::CreateTranslation(deltaTranslation);
                 auto sign = Direction.Dot(DeltaTransform.Translation()) > 0 ? 1 : -1;
                 Delta = (deltaTranslation).Length() * sign;
                 TotalDelta += Delta;
@@ -262,7 +269,7 @@ namespace Inferno::Editor {
                 auto delta = end - CursorStart;
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
                 auto translation = Step(magnitude, Settings::TranslationSnap) * Direction;
-                DeltaTransform.Translation(translation - _prevTranslation); // BUG: transform rely on previous iterations
+                DeltaTransform.Translation(translation - _prevTranslation);
                 Grow = Direction.Dot(DeltaTransform.Translation()) > 0;
                 Delta = (translation - _prevTranslation).Length() * (Grow ? 1 : -1);
                 TotalDelta += Delta;

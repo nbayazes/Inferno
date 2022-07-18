@@ -171,11 +171,6 @@ namespace Inferno {
     template <class T, class TContainer = std::deque<T>>
     using Queue = std::queue<T, TContainer>;
 
-    // Creates a four character code to identify file formats
-    consteval uint32 MakeFourCC(const char cc[4]) {
-        return cc[0] | cc[1] << 8 | cc[2] << 16 | cc[3] << 24;
-    }
-
     using fix64 = int64; //64 bits int, for timers
     using fix = int32; //16 bits int, 16 bits frac
     using fixang = int16; //angles
@@ -346,6 +341,8 @@ namespace Inferno {
     constexpr float DegToRad = (float)std::numbers::pi / 180.0f;
     constexpr float RadToDeg = 180.0f / (float)std::numbers::pi;
 
+    // Array with a fixed size that allows inserting and removing elements while
+    // keeping them contiguous
     template<class T, size_t Capacity>
     class ResizeArray {
         std::array<T, Capacity> _data;

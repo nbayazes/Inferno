@@ -58,16 +58,18 @@ namespace Yaml {
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
-        if (token.size() != 4)
+        if (token.size() != 4 && token.size() != 3)
             return;
 
-        float r{}, g{}, b{}, a{};
-        if (ParseFloat(token[0], r) &&
-            ParseFloat(token[1], g) &&
-            ParseFloat(token[2], b) &&
-            ParseFloat(token[3], a))
-            value = { r, g, b, a };
 
+        float r{}, g{}, b{}, a{};
+        ParseFloat(token[0], r);
+        ParseFloat(token[1], g);
+        ParseFloat(token[2], b);
+        if (token.size() == 4)
+            ParseFloat(token[3], a);
+
+        value = { r, g, b, a };
         return;
     }
 
@@ -95,6 +97,10 @@ namespace Yaml {
 
     inline std::string EncodeColor(const DirectX::SimpleMath::Color& color) {
         return fmt::format("{}, {}, {}, {}", color.R(), color.G(), color.B(), color.A());
+    }
+
+    inline std::string EncodeColor3(const DirectX::SimpleMath::Color& color) {
+        return fmt::format("{}, {}, {}", color.R(), color.G(), color.B());
     }
 
     inline std::string EncodeTag(Inferno::Tag tag) {

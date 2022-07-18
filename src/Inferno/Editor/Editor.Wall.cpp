@@ -5,18 +5,16 @@
 #include "Editor.Texture.h"
 
 namespace Inferno::Editor {
-    bool FixWallClip(Level& level, WallID wid) {
-        auto wall = level.TryGetWall(wid);
-        if (!wall) return false;
-        if (!Game::Level.SegmentExists(wall->Tag)) return false;
-        auto& side = Game::Level.GetSide(wall->Tag);
+    bool FixWallClip(Wall& wall) {
+        if (!Game::Level.SegmentExists(wall.Tag)) return false;
+        auto& side = Game::Level.GetSide(wall.Tag);
 
-        if (wall->Type == WallType::Door || wall->Type == WallType::Destroyable) {
+        if (wall.Type == WallType::Door || wall.Type == WallType::Destroyable) {
             // If a clip is selected assign it
             auto id1 = Resources::GetWallClipID(side.TMap);
             if (auto wc = Resources::TryGetWallClip(id1)) {
                 if (wc->UsesTMap1()) {
-                    wall->Clip = id1;
+                    wall.Clip = id1;
                     return true;
                 }
             }
@@ -24,16 +22,16 @@ namespace Inferno::Editor {
             auto id2 = Resources::GetWallClipID(side.TMap2);
             if (auto wc = Resources::TryGetWallClip(id2)) {
                 if (!wc->UsesTMap1()) {
-                    wall->Clip = id2;
+                    wall.Clip = id2;
                     return true;
                 }
             }
 
-            SPDLOG_WARN("Door at {}:{} has no texture applied with a valid wall clip. Defaulting to 0", wall->Tag.Segment, wall->Tag.Side);
-            wall->Clip = WClipID(0);
+            SPDLOG_WARN("Door at {}:{} has no texture applied with a valid wall clip. Defaulting to 0", wall.Tag.Segment, wall.Tag.Side);
+            wall.Clip = WClipID(0);
         }
         else {
-            wall->Clip = WClipID::None;
+            wall.Clip = WClipID::None;
         }
 
         return true;
@@ -129,7 +127,7 @@ namespace Inferno::Editor {
         }
 
         for (auto& wall : level.Walls) {
-            if (wall.Trigger != TriggerID::None && wall.Trigger > id) 
+            if (wall.Trigger != TriggerID::None && wall.Trigger > id)
                 wall.Trigger--;
         }
 
@@ -240,12 +238,55 @@ namespace Inferno::Editor {
         side.TMap = tmap1;
         side.TMap2 = tmap2;
 
-        ResetUVs(level, tag, Editor::Selection.Point);
-        FixWallClip(level, wallId);
+        if (type == WallType::Cloaked)
+            wall.CloakValue(0.5f);
+
+        if (type != WallType::WallTrigger)
+            ResetUVs(level, tag, Editor::Selection.Point);
+
+        FixWallClip(wall);
 
         Events::LevelChanged();
         Events::TexturesChanged();
         return wallId;
+    }
+
+    TriggerType GetTriggerTypeForTarget(Level& level, Tag tag) {
+
+        if (!level.SegmentExists(tag)) return TriggerType::OpenDoor;
+        auto& seg = level.GetSegment(tag);
+        auto wall = level.TryGetWall(tag);
+
+        if (!wall && seg.Type == SegmentType::Matcen)
+            return TriggerType::Matcen;
+
+        if (!wall)
+            return TriggerType::LightOff;
+
+        switch (wall->Type) {
+            case Inferno::WallType::Destroyable:
+            case Inferno::WallType::Door: 
+                return TriggerType::OpenDoor;
+
+            case Inferno::WallType::Illusion: 
+                return TriggerType::IllusionOff;
+
+            case Inferno::WallType::Cloaked:
+            case Inferno::WallType::Closed: 
+                return TriggerType::OpenWall;
+
+            default: 
+                return TriggerType::LightOff;
+        }
+    }
+
+    void SetupTriggerOnWall(Level& level, WallID wallId, Set<Tag> targets) {
+        auto type = targets.empty() ? TriggerType::OpenDoor :
+            GetTriggerTypeForTarget(level, *targets.begin());
+
+        auto tid = AddTrigger(level, wallId, type);
+        if (Settings::SelectionMode == SelectionMode::Face)
+            AddTriggerTargets(level, tid, targets);
     }
 
     namespace Commands {
@@ -261,6 +302,19 @@ namespace Inferno::Editor {
             .Name = "Add Trigger"
         };
 
+        Command AddFlythroughTrigger{
+            .SnapshotAction = [] {
+                auto& level = Game::Level;
+                auto tag = Editor::Selection.Tag();
+
+                auto wallId = Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
+                if (wallId == WallID::None) return "";
+                SetupTriggerOnWall(Game::Level, wallId, Marked.Faces);
+                return "Add Flythrough Trigger";
+            },
+            .Name = "Add Flythrough Trigger"
+        };
+
         Command AddWallTrigger{
             .SnapshotAction = [] {
                 auto tag = Editor::Selection.Tag();
@@ -270,11 +324,7 @@ namespace Inferno::Editor {
                 auto tmap2 = side.TMap2 == LevelTexID::Unset ? LevelTexID(414) : side.TMap2; // Switch
                 auto wallId = Editor::AddWall(Game::Level, tag, WallType::WallTrigger, side.TMap, tmap2);
                 if (wallId == WallID::None) return "";
-
-                auto tid = Editor::AddTrigger(Game::Level, wallId, TriggerType::OpenDoor);
-                if (Settings::SelectionMode == SelectionMode::Face)
-                    Editor::AddTriggerTargets(Game::Level, tid, Marked.Faces);
-
+                SetupTriggerOnWall(Game::Level, wallId, Marked.Faces);
                 return "Add Wall Trigger";
             },
             .Name = "Add Wall Trigger"

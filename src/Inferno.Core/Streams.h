@@ -8,6 +8,7 @@ namespace Inferno {
     class MemoryBuffer : public std::streambuf {
     public:
         MemoryBuffer(char* p, size_t size) {
+            setp(p, p + size);
             setg(p, p, p + size);
         }
 
@@ -32,18 +33,16 @@ namespace Inferno {
     class MemoryStream : public std::iostream {
         MemoryBuffer _buffer;
     public:
-        MemoryStream(char* p, size_t size) :
-            std::iostream(&_buffer), _buffer(p, size) {
+        MemoryStream(char* p, size_t size) : std::iostream(&_buffer), _buffer(p, size) {
             rdbuf(&_buffer);
         }
-
-        MemoryStream(ubyte* p, size_t l) : MemoryStream((sbyte*)p, l) {}
     };
 
     // Encapsulates reading binary fixed point data from a stream.
     class StreamReader {
         std::unique_ptr<std::istream> _stream;
         std::filesystem::path _file;
+        List<ubyte> _data;
 
         template<class T>
         T Read() {
@@ -52,8 +51,16 @@ namespace Inferno {
             return b;
         }
     public:
-        StreamReader(span<ubyte> data) {
-            _stream = std::make_unique<MemoryStream>(data.data(), data.size());
+        StreamReader(span<ubyte> data, const string& name = "") {
+            _stream = std::make_unique<MemoryStream>((char*)data.data(), data.size());
+            _file = name;
+        }
+
+        // Takes ownership of data
+        StreamReader(List<ubyte>&& data, const string& name = "") {
+            _data = std::move(data);
+            _stream = std::make_unique<MemoryStream>((char*)_data.data(), _data.size());
+            _file = name;
         }
 
         StreamReader(std::unique_ptr<std::ifstream> stream) {
@@ -67,6 +74,21 @@ namespace Inferno {
         }
 
         StreamReader(const StreamReader&) = delete;
+        StreamReader& operator=(const StreamReader&) = delete;
+
+        StreamReader(StreamReader&& other) noexcept {
+            _data = std::move(other._data);
+            _stream = std::move(other._stream);
+            _file.swap(other._file);
+        }
+
+        StreamReader& operator=(StreamReader&& other) noexcept {
+            _data = std::move(other._data);
+            _stream = std::move(other._stream);
+            _file.swap(other._file);
+        }
+
+        ~StreamReader() = default;
 
         List<sbyte> ReadSBytes(size_t length) {
             List<sbyte> b(length);
@@ -84,8 +106,7 @@ namespace Inferno {
             _stream->read((char*)buffer, length);
         }
 
-        template<class T>
-        void FillBuffer(span<T> buffer) {
+        void ReadBytes(span<ubyte> buffer) {
             _stream->read((char*)buffer.data(), buffer.size());
         }
 
@@ -128,16 +149,23 @@ namespace Inferno {
         uint32 ReadUInt32() { return Read<uint32>(); }
         int32 ReadInt32() { return Read<int32>(); }
         int64 ReadInt64() { return Read<int64>(); }
+        float ReadFloat() { return Read<float>(); }
 
         // Reads a int32 fixed value into a float
         float ReadFix() { return FixToFloat(Read<int32>()); }
 
-        // Reads an int32 and limits the max value. Used to prevent allocating huge vectors due to a programming error.
-        int32 ReadElementCount(int maximum = 10000) {
+
+        // Reads an int32 and limits between positive values and maximum. Used to prevent allocating huge vectors due to a programming error.
+        int32 ReadInt32Checked(int maximum, const char* message) {
             auto len = ReadInt32();
             if (len < 0 || len > maximum)
-                throw Exception("File array length is out of range. This is likely a programming error but could be a corrupted file");
+                throw Exception(message);
             return len;
+        };
+
+        // Reads an int32 and limits between positive values and maximum. Used to prevent allocating huge vectors due to a programming error.
+        int32 ReadElementCount(int maximum = 10000) {
+            return ReadInt32Checked(maximum, "Element count is out of range. This is likely a programming error but could be a corrupted file");
         };
 
         // Reads a 12 byte fixed point vector into a floating point vector
@@ -146,6 +174,15 @@ namespace Inferno {
             v.x = ReadFix();
             v.y = ReadFix();
             v.z = ReadFix();
+            return v;
+        }
+
+        // Reads a floating point vector
+        Vector3 ReadVector3() {
+            Vector3 v;
+            v.x = ReadFloat();
+            v.y = ReadFloat();
+            v.z = ReadFloat();
             return v;
         }
 
@@ -169,7 +206,18 @@ namespace Inferno {
             return Vector3(p, h, b);
         }
 
-        bool EndOfFile() { return _stream->eof(); }
+        // Reads a 6 byte RGB color
+        Color ReadRGB() {
+            auto r = ReadByte();
+            auto g = ReadByte();
+            auto b = ReadByte();
+            return Color(r / 255.0f, g / 255.0f, b / 255.0f);
+        }
+
+        bool EndOfStream() { 
+            _stream->peek(); // need to peek to ensure EOF is correct
+            return _stream->eof(); 
+        }
 
         // Current stream offset
         size_t Position() { return _stream->tellg(); }

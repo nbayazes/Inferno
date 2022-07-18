@@ -92,7 +92,7 @@ namespace Inferno
         }
 
         // There's nothing special about the depth buffer for HDR, but MSAA needs a different one.
-        auto* GetHdrDepthBuffer() {
+        Inferno::DepthBuffer* GetHdrDepthBuffer() {
             return Settings::MsaaSamples > 1 ? &MsaaDepthBuffer : &SceneDepthBuffer;
         }
 
@@ -113,13 +113,13 @@ namespace Inferno
         }
 
         static void ReportLiveObjects() {
-#ifdef _DEBUG
+            #ifdef _DEBUG
             ComPtr<IDXGIDebug1> dxgiDebug;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
                 dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
-                // DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL
+                // DXGI_DEBUG_RLO_ALL
             }
-#endif
+            #endif
         }
 
         uint64_t PrintMemoryUsage();

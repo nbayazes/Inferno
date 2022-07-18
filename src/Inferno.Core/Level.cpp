@@ -4,6 +4,17 @@
 #include "Face.h"
 
 namespace Inferno {
+    bool Level::HasSecretExit() const {
+        for (auto& trigger : Triggers) {
+            if (IsDescent1() && trigger.HasFlag(TriggerFlagD1::SecretExit))
+                return true;
+            else if (trigger.Type == TriggerType::SecretExit)
+                return true;
+        }
+
+        return false;
+    }
+
     bool Segment::SideIsSolid(SideID side, Level& level) const {
         if (SideHasConnection(side)) {
             if (auto wall = level.TryGetWall(Sides[(int)side].Wall))

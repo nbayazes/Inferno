@@ -473,7 +473,7 @@ namespace Inferno::Editor {
                 TransformObjects(level, gizmo);
                 break;
             case SelectionMode::Transform:
-                Editor::GlobalOrientation *= gizmo.DeltaTransform;
+                Editor::UserCSys *= gizmo.DeltaTransform;
                 break;
         }
     }

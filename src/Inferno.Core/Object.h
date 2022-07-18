@@ -4,81 +4,59 @@
 #include "Weapon.h"
 
 namespace Inferno {
-    //	Time assigned to immortal objects, about 9 hours.
-    constexpr fix LIFE_IMMORTAL = 0x7fff;
-
     // Control types - what tells this object what do do
     enum class ControlType : uint8 {
-        None = 0,       //doesn't move (or change movement)
-        AI = 1,         //driven by AI
-        Explosion = 2,  //explosion sequencer
-        Flying = 4,     //the player is flying
-        Slew = 5,       //slewing. Usually a player.
-        FlyThrough = 6, //the flythrough system
-        Weapon = 9,     //laser, etc.
-        Repaircen = 10, //under the control of the repair center
-        Morph = 11,     //this object is being morphed
-        Debris = 12,    //this is a piece of debris
-        Powerup = 13,   //animating powerup blob
-        Light = 14,     //doesn't actually do anything
-        Remote = 15,    //controlled by another net player
-        Reactor = 16,   //the control center/main reactor 
+        None = 0,       // No movement
+        AI = 1,
+        Explosion = 2,  // Explosion sequence
+        Flying = 4,
+        Slew = 5,       // Editor camera?
+        FlyThrough = 6,
+        Weapon = 9,
+        Repaircen = 10, // Unused
+        Morph = 11,     // Matcen morphing in
+        Debris = 12,    // Debris of destroyed robot
+        Powerup = 13,
+        Light = 14,     // Unused
+        Remote = 15,    // Multiplayer
+        Reactor = 16,
     };
 
     enum class RenderType : uint8 {
-        None = 0,         //does not render
-        Polyobj = 1,      //a polygon model
-        Fireball = 2,     //a fireball (sprite)
-        Laser = 3,        //a laser
-        Hostage = 4,      //a hostage
-        Powerup = 5,      //a powerup
-        Morph = 6,        //a robot being morphed
-        WeaponVClip = 7, //a weapon that renders as a vclip
+        None = 0,
+        Model = 1,          // Object model  
+        Fireball = 2,       // Animated effect
+        Laser = 3,          // Weapon using a model?
+        Hostage = 4,        // Axis aligned sprite
+        Powerup = 5,        // Sprite
+        Morph = 6,          // Robot being constructed by a matcen
+        WeaponVClip = 7,    // Animated weapon projectile
     };
 
     // misc object flags
     enum class ObjectFlag : uint8 {
-        Exploding = 1,       //this object is exploding
-        ShouldBeDead = 2,  //this object should be dead, so next time we can, we should delete this object.
-        Destroyed = 4,       //this has been killed, and is showing the dead version
-        Silent = 8,          //this makes no sound when it hits a wall.  Added by MK for weapons, if you extend it to other types, do it completely!
-        Attached = 16,       //this object is a fireball attached to another object
-        Harmless = 32,       //this object does no damage.  Added to make quad lasers do 1.5 damage as normal lasers.
-        PlayerDropped = 64, //this object was dropped by the player...
+        Exploding = 1,
+        ShouldBeDead = 2,   // Scheduled for deletion
+        Destroyed = 4,      // this has been killed, and is showing the dead version
+        Silent = 8,         // No sound when colliding
+        Attached = 16,      // this object is a fireball attached to another object
+        Harmless = 32,      // Does no damage
+        PlayerDropped = 64, // Dropped by player (death?)
     };
 
     enum class PhysicsFlag : int16 {
-        None,
-        TurnRoll = 0x01,       // roll when turning
-        AutoLevel = 0x02,      // level object with closest side
-        Bounce = 0x04,         // bounce (not slide) when hit will
-        Wiggle = 0x08,         // wiggle while flying
-        Stick = 0x10,          // object sticks (stops moving) when hits wall
-        Piercing = 0x20,     // object keeps going even after it hits another object (eg, fusion cannon)
-        UseThrust = 0x40,    // this object uses its thrust
-        BouncedOnce = 0x80,   // Weapon has bounced once.
-        FreeSpinning = 0x100, // Drag does not apply to rotation of this object
-        BouncesTwice = 0x200, // This weapon bounces twice, then dies
+        None = 0,
+        TurnRoll = 0x01,        // roll when turning
+        AutoLevel = 0x02,       // align object with nearby side
+        Bounce = 0x04,          // bounce instead of slide when hitting a wall
+        Wiggle = 0x08,          // wiggle while flying
+        Stick = 0x10,           // object sticks (stops moving) when hits wall
+        Piercing = 0x20,        // object keeps going even after it hits another object
+        UseThrust = 0x40,       // this object uses its thrust
+        BouncedOnce = 0x80,     // Weapon has bounced once
+        FreeSpinning = 0x100,   // Drag does not apply to rotation of this object
+        BouncesTwice = 0x200,   // This weapon bounces twice, then dies
     };
-
-    //inline constexpr PhysicsFlag operator & (PhysicsFlag a, PhysicsFlag b) {
-    //    using T = std::underlying_type_t<PhysicsFlag>;
-    //    return PhysicsFlag((T)a & (T)b);
-    //}
-
-    //inline PhysicsFlag& operator &= (PhysicsFlag& a, PhysicsFlag b) {
-    //    using T = std::underlying_type_t<PhysicsFlag>;
-    //    return (PhysicsFlag&)((T&)a &= (T)b);
-    //}
-
-    //inline PhysicsFlag operator | (PhysicsFlag lhs, PhysicsFlag rhs) {
-    //    using T = std::underlying_type_t<PhysicsFlag>;
-    //    return PhysicsFlag((T)lhs | (T)rhs);
-    //}
-
-    //inline PhysicsFlag& operator |= (PhysicsFlag& lhs, PhysicsFlag rhs) {
-    //    return lhs = lhs | rhs;
-    //}
 
     enum class PowerupType : uint8 {
         ExtraLife = 0,
@@ -213,6 +191,13 @@ namespace Inferno {
         ObjSig DangerLaserSig{};
         double DyingStartTime{}; // Time at which this robot started dying.
         AIRuntime ail{};
+
+        void SmartMineFlag(bool value) {
+            if (value) Flags[4] |= 0x02;
+            else Flags[4] &= ~0x02;
+        }
+
+        bool SmartMineFlag() { return Flags[4] & 0x02; }
     };
 
     struct WeaponData {
@@ -357,7 +342,7 @@ namespace Inferno {
         float Shields = 100;    // Starts at maximum, when <0, object dies..
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
-        float Life = FixToFloat(LIFE_IMMORTAL); // how long until despawn
+        float Lifespan = FLT_MAX; // how long before despawning
         MovementData Movement;
         RenderData Render;
         ControlData Control;
@@ -387,9 +372,5 @@ namespace Inferno {
             Rotation *= m;
             Position = Vector3::Transform(Position, m);
         }
-
-        //Vector3 Position(float t) const {
-        //    return Vector3::Lerp(Position, LastPosition, t);
-        //}
     };
 }

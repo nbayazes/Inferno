@@ -7,6 +7,7 @@
 #include <mutex>
 #include "Game.h"
 #include "logging.h"
+#include "Graphics/Render.h"
 
 namespace Inferno::Resources {
     List<string> RobotNames;
@@ -445,9 +446,87 @@ namespace Inferno::Resources {
 
     bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }
     bool FoundDescent2() { return FileSystem::TryFindFile("descent2.hog").has_value(); }
+    bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
     bool FoundVertigo() { return FileSystem::TryFindFile("d2x.hog").has_value(); }
+    bool FoundMercenary() { return FileSystem::TryFindFile("merc.hog").has_value(); }
 
     bool HasCustomTextures() {
         return !CustomTextures.empty();
+    }
+
+    // Opens a file stream from the data paths or the loaded hogs
+    Option<StreamReader> OpenFile(const string& name) {
+        // Check file system first, then hogs
+        if (auto path = FileSystem::TryFindFile(name))
+            return StreamReader(*path);
+        else if (auto data = Descent3Hog.ReadEntry(name))
+            return StreamReader(std::move(*data), name);
+
+        return {};
+    }
+
+    void LoadVClips() {
+        for (auto& tex : GameTable.Textures) {
+            if (!tex.Animated()) continue;
+
+            if (auto r = OpenFile(tex.FileName)) {
+                auto vc = Outrage::VClip::Read(*r);
+                if (vc.Frames.size() > 0)
+                    vc.FrameTime = tex.Speed / vc.Frames.size();
+                vc.FileName = tex.FileName;
+                VClips.push_back(std::move(vc));
+            }
+        }
+    }
+
+    void MountDescent3() {
+        try {
+            if (auto path = FileSystem::TryFindFile("d3.hog")) {
+                SPDLOG_INFO(L"Loading {} and Table.gam", path->wstring());
+                Descent3Hog = Hog2::Read(*path);
+                if (auto r = OpenFile("Table.gam"))
+                    GameTable = Outrage::GameTable::Read(*r);
+
+                LoadVClips();
+            }
+
+            //if (auto path = FileSystem::TryFindFile("merc.hog")) {
+            //    Mercenary = Hog2::Read(*path);
+            //}
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Error loading Descent 3\n{}", e.what());
+        }
+    }
+
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name) {
+        if (auto r = OpenFile(name))
+            return Outrage::Bitmap::Read(*r);
+
+        return {};
+    }
+
+    Option<Outrage::Model> ReadOutrageModel(const string& name) {
+        if (auto r = OpenFile(name))
+            return Outrage::Model::Read(*r);
+
+        return {};
+    }
+
+    Dictionary<string, Outrage::Model> OutrageModels;
+
+    Outrage::Model const* GetOutrageModel(const string& name) {
+        if (OutrageModels.contains(name))
+            return &OutrageModels[name];
+
+        if (auto model = ReadOutrageModel(name)) {
+            for (auto& texture : model->Textures) {
+                model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
+            }
+            OutrageModels[name] = std::move(*model);
+            return &OutrageModels[name];
+        }
+
+        return nullptr;
     }
 };

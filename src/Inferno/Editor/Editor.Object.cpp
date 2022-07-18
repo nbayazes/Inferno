@@ -27,14 +27,21 @@ namespace Inferno::Editor {
         transform.Up(normal);
         transform.Forward(edge.Cross(normal));
         transform.Right(edge);
+
+        float distance = obj->Radius;
+
+        if (obj->Render.Type == RenderType::Model) {
+            auto& model = Resources::GetModel(obj->Render.Model.ID);
+            distance = -model.MinBounds.y;
+        }
+
         if (center)
             transform.Translation(seg->Center);
         else
-            transform.Translation(face.Center() + normal * obj->Radius); // position on face
+            transform.Translation(face.Center() + normal * distance); // position on face
 
         obj->Segment = tag.Segment;
-        obj->SetTransform(transform);
-        Editor::Gizmo.UpdatePosition();
+        obj->Transform(transform);
         return true;
     }
 
@@ -45,11 +52,22 @@ namespace Inferno::Editor {
 
         obj->Segment = segId;
         obj->Position = seg->Center;
-        Editor::Gizmo.UpdatePosition();
         return true;
     }
 
-    int GetObjectCount(Level& level, ObjectType type) {
+    bool MoveObject(Level& level, ObjID id, Vector3 position) {
+        auto obj = level.TryGetObject(id);
+        if (!obj) return false;
+
+        obj->Position = position;
+
+        // Leave the last good ID if nothing contains the object
+        auto segId = FindContainingSegment(level, position);
+        if (segId != SegID::None) obj->Segment = segId;
+        return true;
+    }
+
+    int GetObjectCount(const Level& level, ObjectType type) {
         int i = 0;
         for (auto& obj : level.Objects)
             if (obj.Type == type) i++;
@@ -57,7 +75,7 @@ namespace Inferno::Editor {
         return i;
     }
 
-    float GetObjectRadius(const Level& level, const Object& obj) {
+    float GetObjectRadius(const Object& obj) {
         constexpr float playerRadius = FixToFloat(0x46c35L);
 
         switch (obj.Type) {
@@ -86,11 +104,14 @@ namespace Inferno::Editor {
                 return Resources::GetModel(info.Model).Radius;
             }
 
-            case ObjectType::Weapon: // For placeable mines
+            case ObjectType::Weapon:
             {
-                // Only time the editor should create a weapon is if it's a mine
-                if (level.IsDescent1()) return 5; // No mines in D1
-                return Resources::GetModel(Models::PlaceableMine).Radius;
+                if (obj.Render.Type == RenderType::Model) {
+                    return Resources::GetModel(obj.Render.Model.ID).Radius;
+                }
+                else {
+                    return obj.Radius;
+                }
             }
         }
 
@@ -111,13 +132,13 @@ namespace Inferno::Editor {
             case ObjectType::Player:
                 obj.Control.Type = obj.ID == 0 ? ControlType::None : ControlType::Slew; // Player 0 only
                 obj.Movement.Type = MovementType::Physics;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = playerModel;
                 break;
 
             case ObjectType::Coop:
                 obj.Movement.Type = MovementType::Physics;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = coopModel;
                 break;
 
@@ -126,7 +147,7 @@ namespace Inferno::Editor {
                 auto& ri = Resources::GetRobotInfo(0);
                 obj.Control.Type = ControlType::AI;
                 obj.Movement.Type = MovementType::Physics;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Shields = ri.Strength;
                 obj.Render.Model.ID = ri.Model;
                 obj.Control.AI.Behavior = AIBehavior::Normal;
@@ -151,7 +172,7 @@ namespace Inferno::Editor {
             case ObjectType::Reactor:
             {
                 obj.Control.Type = ControlType::Reactor;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 auto& info = Resources::GameData.Reactors.at(0);
                 obj.Render.Model.ID = info.Model;
                 obj.Shields = 200;
@@ -174,15 +195,15 @@ namespace Inferno::Editor {
                 obj.Movement.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FreeSpinning;
 
                 obj.ID = 51;
-                obj.Render.Type = RenderType::Polyobj;
+                obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = Models::PlaceableMine;
                 obj.Shields = 20;
             }
         }
 
-        obj.Radius = GetObjectRadius(level, obj);
+        obj.Radius = GetObjectRadius(obj);
 
-        if (obj.Render.Type == RenderType::Polyobj)
+        if (obj.Render.Type == RenderType::Model)
             Render::LoadModelDynamic(obj.Render.Model.ID);
 
         if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup)
@@ -200,21 +221,24 @@ namespace Inferno::Editor {
         switch (obj.Type) {
             case ObjectType::Player:
                 if (GetObjectCount(level, ObjectType::Player) >= level.Limits.Players) {
-                    SetStatusMessage("Cannot add more than {} players!", level.Limits.Players);
-                    return ObjID::None;
+                    SetStatusMessageWarn("Cannot add more than {} players!", level.Limits.Players);
+                    InitObject(level, obj, ObjectType::Powerup);
                 }
                 break;
+
             case ObjectType::Coop:
                 if (GetObjectCount(level, ObjectType::Coop) >= level.Limits.Coop) {
-                    SetStatusMessage("Cannot add more than {} co-op players!", level.Limits.Coop);
-                    return ObjID::None;
+                    SetStatusMessageWarn("Cannot add more than {} co-op players!", level.Limits.Coop);
+                    InitObject(level, obj, ObjectType::Powerup);
                 }
                 break;
+
             case ObjectType::Reactor:
-                if (GetObjectCount(level, ObjectType::Reactor) >= level.Limits.Reactor) {
-                    SetStatusMessage("Cannot add more than {} reactor!", level.Limits.Reactor);
-                    return ObjID::None;
-                }
+                // Disable reactor check as some builds allow multiples
+                //if (GetObjectCount(level, ObjectType::Reactor) >= level.Limits.Reactor) {
+                //    SetStatusMessage("Cannot add more than {} reactor!", level.Limits.Reactor);
+                //    return ObjID::None;
+                //}
                 break;
         }
 
@@ -223,6 +247,7 @@ namespace Inferno::Editor {
 
         Selection.SetSelection(id);
         AlignObjectToSide(level, id, tag, true);
+        Editor::Gizmo.UpdatePosition();
 
         Events::TexturesChanged();
         return id;
@@ -236,32 +261,11 @@ namespace Inferno::Editor {
         return id;
     }
 
-    // Copies changes to the selected object to marked objects
-    void Commands::ChangeMarkedObjects() {
-        auto src = Game::Level.TryGetObject(Editor::Selection.Object);
-        if (!src) return;
-
-        src->Radius = GetObjectRadius(Game::Level, *src);
-
-        for (auto& id : Editor::Marked.Objects) {
-            if (id == Editor::Selection.Object) continue;
-            if (auto obj = Game::Level.TryGetObject(id)) {
-                auto seg = obj->Segment;
-                auto xform = obj->GetTransform();
-                *obj = *src;
-                obj->Segment = seg;
-                obj->SetTransform(xform);
-            }
-        }
-
-        Editor::History.SnapshotLevel("Edit object");
-    }
-
     // Adds an object to represent the secret exit return so it can be manipulated
     void AddSecretLevelReturnMarker(Level& level) {
         Object marker{};
         marker.Type = ObjectType::SecretExitReturn;
-        marker.Render.Type = RenderType::Polyobj;
+        marker.Render.Type = RenderType::Model;
         //marker.Render.Model.ID = Resources::GameData.MarkerModel;
         marker.Render.Model.ID = Resources::GameData.PlayerShip.Model;
         marker.Render.Model.TextureOverride = LevelTexID(426);
@@ -313,6 +317,7 @@ namespace Inferno::Editor {
                 if (!AlignObjectToSide(Game::Level, Editor::Selection.Object, Editor::Selection.PointTag()))
                     return "";
 
+                Editor::Gizmo.UpdatePosition();
                 return "Move Object to Side";
             },
             .Name = "Move Object to Side"
@@ -324,9 +329,21 @@ namespace Inferno::Editor {
                 if (!Editor::MoveObjectToSegment(Game::Level, Editor::Selection.Object, Editor::Selection.Segment))
                     return "";
 
+                Editor::Gizmo.UpdatePosition();
                 return "Move Object to Segment";
             },
             .Name = "Move Object to Segment"
+        };
+
+        Command MoveObjectToUserCSys{
+            .SnapshotAction = [] {
+                if (!Editor::MoveObject(Game::Level, Editor::Selection.Object, Editor::UserCSys.Translation()))
+                    return "";
+
+                Editor::Gizmo.UpdatePosition();
+                return "Move Object to User Coordinate System";
+            },
+            .Name = "Move Object to UCS"
         };
 
         Command AddObject{

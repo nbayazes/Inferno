@@ -242,7 +242,7 @@ namespace Inferno {
     }
 
     void Intersect(const Triangle& t, Object& obj, float dt, int pass) {
-        if (obj.Type == ObjectType::Player) return;
+        //if (obj.Type == ObjectType::Player) return;
 
         Plane plane(t.Points[0], t.Points[1], t.Points[2]);
         auto& pd = obj.Movement.Physics;

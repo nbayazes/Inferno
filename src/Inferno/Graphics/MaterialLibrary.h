@@ -6,6 +6,8 @@
 #include "Resources.h"
 #include "Buffers.h"
 #include "Concurrent.h"
+#include "OutrageBitmap.h"
+#include "OutrageModel.h"
 
 namespace Inferno::Render {
     struct Material2D {
@@ -25,6 +27,7 @@ namespace Inferno::Render {
         PigBitmap Bitmap;
         bool SuperTransparent = false;
         bool ForceLoad = false;
+        Outrage::Bitmap Outrage;
     };
 
     // Supports loading and unloading materials
@@ -35,6 +38,7 @@ namespace Inferno::Render {
         Texture2D _black, _white, _purple;
         ConcurrentList<Material2D> _materials, PendingCopies;
         ConcurrentList<MaterialUpload> RequestedUploads;
+        Dictionary<string, Material2D> _outrageMaterials;
 
         Ptr<WorkerThread> _worker;
         friend class MaterialUploadWorker;
@@ -42,7 +46,7 @@ namespace Inferno::Render {
         MaterialLibrary(size_t size);
 
         void Shutdown();
-        Material2D White;
+        Material2D White, Black;
 
         void LoadMaterials(span<const TexID> ids, bool forceLoad);
         void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false);
@@ -60,7 +64,14 @@ namespace Inferno::Render {
             return Get(id);
         }
 
+        const Material2D& GetOutrageMaterial(const string& name) {
+            if (!_outrageMaterials.contains(name)) return _defaultMaterial;
+            return _outrageMaterials[name];
+        };
+
         void LoadLevelTextures(const Inferno::Level& level, bool force);
+
+        void LoadOutrageModel(const Outrage::Model& model);
 
         void Reload();
 

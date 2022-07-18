@@ -14,6 +14,7 @@
 #include "HelpDialog.h"
 #include "TunnelBuilderWindow.h"
 #include "AboutDialog.h"
+#include "SoundBrowser.h"
 
 namespace Inferno::Editor {
 
@@ -59,6 +60,7 @@ namespace Inferno::Editor {
         NoiseWindow _noise;
         ReactorEditor _reactorEditor;
         TunnelBuilderWindow _tunnelBuilder;
+        SoundBrowser _sounds;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;
@@ -97,4 +99,5 @@ namespace Inferno::Editor {
     };
 
     inline bool ShowDebugOverlay = false;
+    inline float TopToolbarOffset = 0; // Used for offsetting the level title text
 }

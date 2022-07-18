@@ -32,10 +32,11 @@ namespace Inferno::Editor {
     enum class CursorDragMode { Select, Extrude, Transform };
     inline CursorDragMode DragMode = CursorDragMode::Select;
 
-    // Coordinate system used for 'reference' 
-    inline Matrix GlobalOrientation;
-    void AlignGlobalOrientation();
-    void AlignGlobalOrientationToSide();
+    // User defined coordinate system
+    inline Matrix UserCSys;
+    void AlignUserCSysToGizmo();
+    void AlignUserCSysToSide();
+    void AlignUserCSysToMarked();
 
     void SetMode(SelectionMode);
 

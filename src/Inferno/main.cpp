@@ -119,7 +119,7 @@ void QuaternionTests() {
         Vector3 p0 = { 1000, 0 , 0 };
         Vector3 p1 = { 0, 1000 , 0 };
         Vector3 v0, v1;
-        p0.Normalize(v0); 
+        p0.Normalize(v0);
         p1.Normalize(v1);
         //auto q0 = RotationBetweenVectors(v0, Vector3::Up);
         //auto q1 = RotationBetweenVectors(v1, Vector3::Up);
@@ -247,10 +247,6 @@ void TestSegID() {
 }
 
 int main() {
-    //TestContext();
-    //TestSegID();
-    //QuaternionTests();
-
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
@@ -264,8 +260,6 @@ int main() {
         FileSystem::Init();
         Resources::Init();
 
-        //PrintWeaponInfo();
-        //PrintRobotInfo();
         shell.Show(&app, 1024, 768);
         Settings::Save();
 

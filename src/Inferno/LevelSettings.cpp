@@ -2,6 +2,7 @@
 #include <streambuf>
 #include "LevelSettings.h"
 #include "Yaml.h"
+#include "Resources.h"
 
 using namespace Yaml;
 
@@ -15,30 +16,55 @@ namespace Inferno {
                 auto& side = seg.GetSide(sideid);
                 Tag tag((SegID)segid, sideid);
 
+                bool isLightSource = side.LightOverride.has_value();
+                if (!isLightSource) {
+                    if (auto ti = Resources::TryGetLevelTextureInfo(side.TMap2)) {
+                        if (ti->Lighting > 0) isLightSource = true;
+                    }
+
+                    if (auto ti = Resources::TryGetLevelTextureInfo(side.TMap)) {
+                        if (ti->Lighting > 0) isLightSource = true;
+                    }
+                }
+
                 bool hasLockLight = side.LockLight[0] || side.LockLight[1] || side.LockLight[2] || side.LockLight[3];
 
-                if (side.LightOverride || hasLockLight) {
-                    auto child = node.append_child();
-                    child |= ryml::MAP;
-                    child["Tag"] << EncodeTag(tag);
+                // Don't write sides that aren't light sources and don't have vertex overrides
+                if (!isLightSource && !hasLockLight) continue;
 
-                    if (side.LightOverride)
-                        child["LightColor"] << EncodeColor(*side.LightOverride);
+                // Check that any properties are modified before writing
+                if (!side.LightOverride &&
+                    !hasLockLight &&
+                    side.EnableOcclusion &&
+                    !side.LightRadiusOverride &&
+                    !side.LightPlaneOverride)
+                    continue;
 
-                    if (side.LightRadiusOverride)
-                        child["LightRadius"] << *side.LightRadiusOverride;
+                auto child = node.append_child();
+                child |= ryml::MAP;
+                child["Tag"] << EncodeTag(tag);
 
-                    if (side.LightPlaneOverride)
-                        child["LightPlane"] << *side.LightPlaneOverride;
+                if (side.LightOverride)
+                    child["LightColor"] << EncodeColor3(*side.LightOverride);
 
-                    if (hasLockLight)
-                        child["LockLight"] << EncodeArray(side.LockLight);
-                }
+                if (side.LightRadiusOverride)
+                    child["LightRadius"] << *side.LightRadiusOverride;
+
+                if (side.LightPlaneOverride)
+                    child["LightPlane"] << *side.LightPlaneOverride;
+
+                if (!side.EnableOcclusion) // Only save when false
+                    child["Occlusion"] << side.EnableOcclusion;
+
+                if (hasLockLight)
+                    child["LockLight"] << EncodeArray(side.LockLight);
             }
         }
     }
 
     void ReadSideInfo(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
         for (const auto& child : node.children()) {
             Tag tag;
             ReadValue(child["Tag"], tag);
@@ -62,8 +88,40 @@ namespace Inferno {
                     side->LightPlaneOverride = plane;
                 }
 
+                if (child.has_child("Occlusion"))
+                    ReadValue(child["Occlusion"], side->EnableOcclusion);
+
                 if (child.has_child("LockLight"))
                     ReadValue(child["LockLight"], side->LockLight);
+            }
+        }
+    }
+
+    void SaveSegmentInfo(ryml::NodeRef node, const Level& level) {
+        node |= ryml::SEQ;
+
+        for (int segid = 0; segid < level.Segments.size(); segid++) {
+            auto& seg = level.Segments[segid];
+
+            if (seg.LockVolumeLight) {
+                auto child = node.append_child();
+                child |= ryml::MAP;
+                child["ID"] << segid;
+                child["LockVolumeLight"] << seg.LockVolumeLight;
+            }
+        }
+    }
+
+    void ReadSegmentInfo(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
+        for (const auto& child : node.children()) {
+            int id;
+            ReadValue(child["ID"], id);
+
+            if (auto seg = level.TryGetSegment(SegID(id))) {
+                if (child.has_child("LockVolumeLight"))
+                    ReadValue(child["LockVolumeLight"], seg->LockVolumeLight);
             }
         }
     }
@@ -83,6 +141,8 @@ namespace Inferno {
     }
 
     void ReadWallInfo(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
         for (const auto& child : node.children()) {
             WallID id = WallID::None;
             ReadValue(child["ID"], (int16&)id);
@@ -102,6 +162,7 @@ namespace Inferno {
 
             if (root.is_map()) {
                 Settings::Lighting = Settings::LoadLightSettings(root["Lighting"]);
+                ReadSegmentInfo(root["Segments"], level);
                 ReadSideInfo(root["Sides"], level);
                 ReadWallInfo(root["Walls"], level);
             }
@@ -111,7 +172,6 @@ namespace Inferno {
         }
     }
 
-
     void SaveLevelMetadata(const Level& level, std::ostream& stream) {
         try {
             ryml::Tree doc(30, 128);
@@ -119,6 +179,7 @@ namespace Inferno {
 
             doc["Version"] << 1;
             Settings::SaveLightSettings(doc["Lighting"]);
+            SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);
             stream << doc;

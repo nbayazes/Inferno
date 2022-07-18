@@ -63,7 +63,7 @@ namespace Inferno::Render {
                     break;
                 }
                 default:
-                    if (object.Render.Type == RenderType::Polyobj) {
+                    if (object.Render.Type == RenderType::Model) {
                         auto modelIds = GetTexturesForModel(object.Render.Model.ID);
                         ids.insert(modelIds.begin(), modelIds.end());
                     }
@@ -180,8 +180,10 @@ namespace Inferno::Render {
                     loadedST = material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        if (!loadedDiffuse)
+        if (!loadedDiffuse) {
+
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
+        }
 
         // todo: optimize by putting all materials into a dictionary or some other way of not reloading special maps
         if (!loadedST && upload.SuperTransparent)
@@ -199,7 +201,32 @@ namespace Inferno::Render {
             texture->CreateShaderResourceView(handle);
         }
 
-        return { std::move(material) };
+        return material;
+    }
+
+
+    Option<Material2D> UploadOutrageMaterial(ResourceUploadBatch& batch,
+                                             Outrage::Bitmap& bitmap,
+                                             Texture2D& defaultTex) {
+        Material2D material;
+        material.Index = Render::Heaps->Shader.AllocateIndex();
+        assert(!bitmap.Mips.empty());
+
+        // allocate a new heap range for the material
+        for (int i = 0; i < Material2D::Count; i++)
+            material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
+
+        material.Name = bitmap.Name;
+        material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
+
+        // Set default secondary textures
+        for (uint i = 0; i < std::size(material.Textures); i++) {
+            auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
+            auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+            texture->CreateShaderResourceView(handle);
+        }
+
+        return material;
     }
 
     class MaterialUploadWorker : public WorkerThread {
@@ -364,6 +391,29 @@ namespace Inferno::Render {
         LoadMaterials(tids, force);
     }
 
+    void MaterialLibrary::LoadOutrageModel(const Outrage::Model& model) {
+        Render::Adapter->WaitForGpu();
+
+        List<Material2D> uploads;
+        auto batch = BeginTextureUpload();
+
+        for (auto& texture : model.Textures) {
+            if (_outrageMaterials.contains(texture)) continue; // skip loaded
+
+            MaterialUpload upload;
+            if (auto bitmap = Resources::ReadOutrageBitmap(texture))
+                if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
+                    material->Name = texture; // Name in the model can be different than file name
+                    uploads.emplace_back(std::move(material.value()));
+                }
+        }
+
+        EndTextureUpload(batch);
+
+        for (auto& upload : uploads)
+            _outrageMaterials[upload.Name] = std::move(upload);
+    }
+
     void MaterialLibrary::Reload() {
         List<TexID> ids;
 
@@ -401,7 +451,7 @@ namespace Inferno::Render {
             trash.emplace_back(std::move(material));
             material = {}; // mark the material as unused
         });
-        
+
         TrashTextures(std::move(trash));
     }
 
@@ -449,6 +499,13 @@ namespace Inferno::Render {
                     _white.CreateShaderResourceView(handle.GetCpuHandle());
                 else
                     _black.CreateShaderResourceView(handle.GetCpuHandle());
+            }
+
+            for (uint i = 0; i < Material2D::Count; i++) {
+                auto handle = Render::Heaps->Reserved.Allocate();
+                Black.Handles[i] = handle.GetGpuHandle();
+
+                _black.CreateShaderResourceView(handle.GetCpuHandle());
             }
         }
 

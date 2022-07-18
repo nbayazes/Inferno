@@ -51,6 +51,7 @@ namespace Inferno::Settings {
         node["Reactor"] << Windows.Reactor;
         node["Noise"] << Windows.Noise;
         node["TunnelBuilder"] << Windows.TunnelBuilder;
+        node["Sound"] << Windows.Sound;
     }
 
     void LoadOpenWindows(ryml::NodeRef node) {
@@ -61,6 +62,7 @@ namespace Inferno::Settings {
         ReadValue(node["Reactor"], Windows.Reactor);
         ReadValue(node["Noise"], Windows.Noise);
         ReadValue(node["TunnelBuilder"], Windows.TunnelBuilder);
+        ReadValue(node["Sound"], Windows.Sound);
     }
 
     void SaveSelectionSettings(ryml::NodeRef node) {
@@ -150,6 +152,7 @@ namespace Inferno::Settings {
         node["ResetUVsOnAlign"] << ResetUVsOnAlign;
         node["WeldTolerance"] << WeldTolerance;
         node["AutosaveMinutes"] << AutosaveMinutes;
+        node["CoordinateSystem"] << (int)CoordinateSystem;
 
         SaveSelectionSettings(node["Selection"]);
         SaveOpenWindows(node["Windows"]);
@@ -206,6 +209,7 @@ namespace Inferno::Settings {
         ReadValue(node["ResetUVsOnAlign"], ResetUVsOnAlign);
         ReadValue(node["WeldTolerance"], WeldTolerance);
         ReadValue(node["AutosaveMinutes"], AutosaveMinutes);
+        ReadValue(node["CoordinateSystem"], (int&)CoordinateSystem);
 
         LoadSelectionSettings(node["Selection"]);
         LoadOpenWindows(node["Windows"]);

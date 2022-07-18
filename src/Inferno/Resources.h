@@ -4,10 +4,16 @@
 #include "HamFile.h"
 #include "Mission.h"
 #include "HogFile.h"
+#include "Hog2.h"
+#include "OutrageBitmap.h"
+#include "OutrageModel.h"
+#include "OutrageTable.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
     void Init();
+
+    extern SoundFile Sounds;
 
     WClipID GetWallClipID(LevelTexID);
     const WallClip& GetWallClip(WClipID);
@@ -65,4 +71,17 @@ namespace Inferno::Resources {
     bool FoundDescent2();
     bool FoundVertigo();
     bool HasCustomTextures();
+
+    inline Hog2 Descent3Hog, Mercenary;
+    inline Outrage::GameTable GameTable;
+    inline List<Outrage::VClip> VClips; // Expanded from OAF headers
+
+    void MountDescent3();
+
+    Option<StreamReader> OpenFile(const string& name);
+
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name);
+    Option<Outrage::Model> ReadOutrageModel(const string& name);
+
+    Outrage::Model const* GetOutrageModel(const string& name);
 }

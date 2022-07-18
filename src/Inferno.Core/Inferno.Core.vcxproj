@@ -108,10 +108,14 @@
     <ClInclude Include="Face.h" />
     <ClInclude Include="Fonts.h" />
     <ClInclude Include="HamFile.h" />
+    <ClInclude Include="Hog2.h" />
     <ClInclude Include="HogFile.h" />
     <ClInclude Include="Level.h" />
     <ClInclude Include="Mission.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="OutrageBitmap.h" />
+    <ClInclude Include="OutrageModel.h" />
+    <ClInclude Include="OutrageTable.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Pig.h" />
     <ClInclude Include="Polymodel.h" />
@@ -129,6 +133,9 @@
     <ClCompile Include="Level.cpp" />
     <ClCompile Include="LevelReader.cpp" />
     <ClCompile Include="LevelWriter.cpp" />
+    <ClCompile Include="OutrageBitmap.cpp" />
+    <ClCompile Include="OutrageModel.cpp" />
+    <ClCompile Include="OutrageTable.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>

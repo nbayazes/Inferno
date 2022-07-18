@@ -2,6 +2,7 @@
 
 #include "Level.h"
 #include "Editor.Selection.h"
+#include "Game.h"
 
 namespace Inferno::Editor {
     void RemoveTrigger(Level&, TriggerID);
@@ -20,7 +21,7 @@ namespace Inferno::Editor {
 
     TriggerID AddTrigger(Level&, WallID, TriggerType);
     TriggerID AddTrigger(Level&, WallID, TriggerFlagD1);
-    bool FixWallClip(Level&, WallID);
+    bool FixWallClip(Wall&);
 
     // Returns ID of the first wall (the one on the source tag)
     WallID AddPairedWall(Level& level, Tag tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags = WallFlag::None);
@@ -67,24 +68,7 @@ namespace Inferno::Editor {
             .Name = "Add Cloaked Wall"
         };
 
-        inline Command AddFlythroughTrigger{
-            .SnapshotAction = [] {
-                auto& level = Game::Level;
-                auto tag = Editor::Selection.Tag();
-
-                auto wallId = Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
-                if (wallId == WallID::None) return "";
-
-                auto tid = Editor::AddTrigger(level, wallId, TriggerType::OpenDoor);
-                if (Settings::SelectionMode == SelectionMode::Face)
-                    Editor::AddTriggerTargets(level, tid, Marked.Faces);
-
-                return "Add Flythrough Trigger";
-            },
-            .Name = "Add Flythrough Trigger"
-        };
-
-        extern Command AddWallTrigger, AddTrigger;
+        extern Command AddFlythroughTrigger, AddWallTrigger, AddTrigger;
 
         inline Command AddDoor{
             .SnapshotAction = [] {
@@ -114,7 +98,7 @@ namespace Inferno::Editor {
                 else
                     Editor::AddTrigger(level, entry, TriggerType::Exit);
 
-                // todo: link to reactor if present
+                level.ReactorTriggers.Add(tag);
                 return "Add Exit Door";
             },
             .Name = "Exit Door"

@@ -83,7 +83,13 @@ namespace Inferno {
     }
 
     inline bool ShowOkCancelMessage(const wstring& message, const wstring& caption) {
-        auto result = MessageBox(Shell::Hwnd, message.c_str(), caption.c_str(), MB_OKCANCEL) == IDOK;
+        auto result = MessageBox(Shell::Hwnd, message.c_str(), caption.c_str(), MB_OKCANCEL | MB_ICONASTERISK) == IDOK;
+        Input::ResetState(); // Fix for keys getting stuck after showing a dialog
+        return result;
+    }
+
+    inline bool ShowOkMessage(const wstring& message, const wstring& caption) {
+        auto result = MessageBox(Shell::Hwnd, message.c_str(), caption.c_str(), MB_OK | MB_ICONASTERISK) == IDOK;
         Input::ResetState(); // Fix for keys getting stuck after showing a dialog
         return result;
     }

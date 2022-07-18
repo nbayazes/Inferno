@@ -65,6 +65,18 @@
     <ClInclude Include="Face.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="OutrageBitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hog2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutrageModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OutrageTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -95,6 +107,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HogFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutrageBitmap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutrageModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OutrageTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

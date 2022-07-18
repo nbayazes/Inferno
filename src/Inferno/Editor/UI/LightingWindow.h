@@ -50,15 +50,15 @@ namespace Inferno::Editor {
             ImGui::SliderFloat("Multiplier", &settings.Multiplier, 0, 4);
             //ImGui::SliderFloat("Distance Threshold", &_settings.DistanceThreshold, 60, 300);
             //ImGui::SliderFloat("Falloff", &_settings.Attenuation, 0, 8);
-            ImGui::SliderFloat("Falloff", &settings.Falloff, 0, 0.2f);
+            ImGui::SliderFloat("Falloff", &settings.Falloff, 0.02f, 0.2f);
             //auto sz = ImGui::GetItemRectSize();
             ImGui::HelpMarker("A lower value causes light to travel further");
 
             ImGui::SliderFloat("Clamp", &settings.MaxValue, 1, 2);
             ImGui::HelpMarker("The maximum brightness of any surface");
 
-            ImGui::SliderFloat("Light plane", &settings.LightPlaneTolerance, -0.01f, -1);
-            ImGui::HelpMarker("Tolerance to use when determining if a light should hit a surface.\nReduce if undesired bleeding occurs.");
+            //ImGui::SliderFloat("Light plane", &settings.LightPlaneTolerance, -0.01f, -1);
+            //ImGui::HelpMarker("Tolerance to use when determining if a light should hit a surface.\nReduce if undesired bleeding occurs.");
 
             //ImGui::SliderFloat("Attenuation B", &_settings.B, 0, 2.00);
             //ImGui::SliderFloat("Light Radius Mult", &_settings.Radius, 0, 60.0);

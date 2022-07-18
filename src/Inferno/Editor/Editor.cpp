@@ -64,8 +64,10 @@ namespace Inferno::Editor {
         Editor::Selection.SetSelection(nearby);
     }
 
+
     void OnDelete() {
         if (Editor::Gizmo.State == GizmoState::Dragging) return;
+        Editor::History.SnapshotSelection();
 
         switch (Settings::SelectionMode) {
             case SelectionMode::Object:
@@ -85,7 +87,6 @@ namespace Inferno::Editor {
 
             case SelectionMode::Segment:
             {
-                Editor::History.SnapshotSelection();
                 auto segs = GetSelectedSegments();
                 UpdateSelectionAfterDelete(segs);
                 DeleteSegments(Game::Level, segs);
@@ -181,6 +182,9 @@ namespace Inferno::Editor {
     CursorDragMode UpdateGizmoDragState() {
         switch (Editor::Gizmo.State) {
             case GizmoState::BeginDrag:
+                if (Settings::SelectionMode == SelectionMode::Object)
+                    Editor::History.SnapshotSelection();
+
                 if (Input::RightDragState == SelectionState::BeginDrag) {
                     return BeginRightClickDrag(Game::Level);
                 }
@@ -293,11 +297,11 @@ namespace Inferno::Editor {
         CheckForAutosave();
     }
 
-    void AlignGlobalOrientation() {
-        GlobalOrientation = Editor::Gizmo.Transform;
+    void AlignUserCSysToGizmo() {
+        UserCSys = Editor::Gizmo.Transform;
     }
 
-    void AlignGlobalOrientationToSide() {
+    void AlignUserCSysToSide() {
         if (!Game::Level.SegmentExists(Selection.Segment)) return;
         //auto& seg = Game::Level->GetSegment(Selection.Segment);
         auto face = Face::FromSide(Game::Level, Selection.Segment, Selection.Side);
@@ -308,10 +312,25 @@ namespace Inferno::Editor {
         auto up = face.AverageNormal();
         auto right = average.Cross(up);
         right.Normalize();
-        GlobalOrientation.Forward(average);
-        GlobalOrientation.Right(right);
-        GlobalOrientation.Up(up);
-        GlobalOrientation.Translation(face.Center());
+        UserCSys.Forward(average);
+        UserCSys.Right(right);
+        UserCSys.Up(up);
+        UserCSys.Translation(face.Center());
+        Editor::Gizmo.UpdatePosition();
+    }
+
+    void AlignUserCSysToMarked() {
+        Vector3 center;
+        auto indices = GetSelectedVertices();
+
+        for (auto& index : indices) {
+            if (auto v = Game::Level.TryGetVertex(index))
+                center += *v;
+        }
+
+        if (indices.empty()) return;
+        center /= (float)indices.size();
+        UserCSys.Translation(center);
         Editor::Gizmo.UpdatePosition();
     }
 
@@ -382,6 +401,14 @@ namespace Inferno::Editor {
         }
     }
 
+    // Turns on all flickering lights and updates the view
+    void DisableFlickeringLights(Level& level) {
+        for (auto& light : level.FlickeringLights) {
+            if (auto seg = level.TryGetSegment(light.Tag))
+                Render::AddLight(level, light.Tag, *seg);
+        }
+    }
+
     void OnLevelLoad(bool reload) {
         if (!reload)
             Commands::ZoomExtents();
@@ -396,16 +423,20 @@ namespace Inferno::Editor {
         ResetFlickeringLightTimers(Game::Level);
         ResetObjects(Game::Level);
 
+        
+        for (auto& obj : Game::Level.Objects)
+            obj.Radius = GetObjectRadius(obj);
+
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
         ResetAutosaveTimer();
     }
 
-    void CheckDegenerateSegments() {
+    void CheckDegenerateSegments(Level& level) {
         SegID id{};
 
-        for (auto& seg : Game::Level.Segments) {
-            if (SegmentIsDegenerate(Game::Level, seg)) {
+        for (auto& seg : level.Segments) {
+            if (SegmentIsDegenerate(level, seg)) {
                 SPDLOG_WARN("Segment {} is degenerate", id);
             }
             id++;
@@ -432,16 +463,6 @@ namespace Inferno::Editor {
             if (count > 1) {
                 SPDLOG_WARN("Trigger {} belongs to more than one wall", tid);
             }
-        }
-
-        CheckDegenerateSegments();
-    }
-
-
-    void DisableFlickeringLights(Level& level) {
-        for (auto& light : level.FlickeringLights) {
-            if (auto seg = Game::Level.TryGetSegment(light.Tag))
-                Render::AddLight(Game::Level, light.Tag, *seg);
         }
     }
 

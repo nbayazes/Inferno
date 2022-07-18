@@ -27,11 +27,11 @@ namespace Inferno::Editor {
 
     // Tries to return a segment connected to this one
     SegID GetConnectedSegment(Level&, SegID);
+    bool SetSegmentType(Level& level, Tag tag, SegmentType type);
 
     List<SegID> GetConnectedSegments(Level& level, SegID start, int maxDepth = 2);
 
     namespace Commands {
-        void SetSegmentType(SegmentType);
         void AddEnergyCenter();
         void AddMatcen();
         void AddReactor();
@@ -44,7 +44,7 @@ namespace Inferno::Editor {
         extern Command ExtrudeFaces, ExtrudeSegment, InsertSegment;
         extern Command JoinPoints, ConnectSides;
         extern Command DetachSegments, DetachSides;
-        extern Command JoinSides;
+        extern Command JoinSides, MergeSegment;
         extern Command SplitSegment2, SplitSegment5, SplitSegment7, SplitSegment8;
     }
 }

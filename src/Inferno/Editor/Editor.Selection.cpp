@@ -781,6 +781,13 @@ namespace Inferno::Editor {
         return !seg.SideHasConnection(tag.Side);
     }
 
+    void ForMarkedObjects(std::function<void(Object&)> fn) {
+        for (auto& id : Editor::Marked.Objects) {
+            if (auto o = Game::Level.TryGetObject(id))
+                fn(*o);
+        }
+    }
+
     void MarkCoplanar(Level& level, Tag tag, bool toggle, Set<Tag>& marked) {
         Set<Tag> visited; // only visit each side once
         Stack<Tag> search;

@@ -6,17 +6,72 @@
 #include "Types.h"
 
 namespace Inferno {
+    // Creates a four character code to identify file formats
+    consteval uint32 MakeFourCC(const char cc[4]) {
+        // this is the same as assigning the characters backwards to an int
+        // int i = 'dcba';
+        return cc[0] | cc[1] << 8 | cc[2] << 16 | cc[3] << 24;
+    }
+
+    //constexpr std::array<char, 4> DecodeFourCC(uint32 value) {
+    //    std::array<char, 4> cc{};
+    //    cc[0] = char(value & 0x000000ff);
+    //    cc[1] = char((value & 0x0000ff00) >> 8);
+    //    cc[2] = char((value & 0x00ff0000) >> 16);
+    //    cc[3] = char((value & 0xff000000) >> 24);
+    //    return cc;
+    //}
+
+    // defined in C++23
+    template <class T>
+    inline constexpr bool is_scoped_enum_v = std::conjunction_v<std::is_enum<T>, std::negation<std::is_convertible<T, int>>>;
+
+    template <class T>
+    struct is_scoped_enum : std::bool_constant<is_scoped_enum_v<T>> {};
+
     // Templates to enable bitwise operators on all enums. Might be a bad idea.
 
-    template<class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+    template<class T> requires is_scoped_enum_v<T>
     constexpr T operator | (T lhs, T rhs) {
         return T((std::underlying_type_t<T>)lhs | (std::underlying_type_t<T>)rhs);
     }
 
-    template<class T, std::enable_if_t<std::is_enum_v<T>, int> = 0>
+    template<class T> requires is_scoped_enum_v<T>
     inline T& operator |= (T& lhs, T rhs) {
         return lhs = lhs | rhs;
     }
+
+    template<class T> requires is_scoped_enum_v<T>
+    constexpr T operator & (T lhs, T rhs) {
+        return T((std::underlying_type_t<T>)lhs & (std::underlying_type_t<T>)rhs);
+    }
+
+    template<class T> requires is_scoped_enum_v<T>
+    inline T& operator &= (T& lhs, T rhs) {
+        return lhs = lhs & rhs;
+    }
+
+    template<class T> requires is_scoped_enum_v<T>
+    inline T& operator ~ (T& value) {
+        return value = T(~((int)value));
+    }
+
+    //template <class T>
+    //concept IsEnum = is_scoped_enum_v<T>;
+
+    //// Converts an enum to the underlying type
+    //constexpr auto ToUnderlying(IsEnum auto e) {
+    //    return static_cast<std::underlying_type<declspec(e)>::type>(e);
+    //};
+
+    //inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator | (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) | ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline ENUMTYPE& operator |= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) |= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator & (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) & ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline ENUMTYPE& operator &= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) &= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator ~ (ENUMTYPE a) WIN_NOEXCEPT { return ENUMTYPE(~((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a)); } \
+    //    inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator ^ (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^ ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+    //    inline ENUMTYPE& operator ^= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) ^= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+
 
     // Modulus division without negative numbers
     template <class T>
@@ -220,17 +275,6 @@ namespace Inferno {
         return (fix)(f * (1 << 16));
     }
 
-    // needs C++23
-    /*
-    template <class T>
-    concept IsEnum = std::is_scoped_enum_v<T>;
-
-    // Converts an enum to the underlying type
-    constexpr auto ToUnderlying(IsEnum auto e) {
-        return static_cast<std::underlying_type<declspec(e)>::type>(e);
-    };
-    */
-
     // Calls a fire-and-forget function
     void CallAsync(auto&& fn) {
         auto future = std::make_shared<std::future<void>>();
@@ -331,6 +375,13 @@ namespace Inferno {
         }
     }
 
+    // Comparator for invariant equality of strings
+    struct InvariantEquals {
+        bool operator()(const string& a, const string& b) const {
+            return String::InvariantEquals(a, b);
+        }
+    };
+
     namespace Seq {
         // Converts a std::set to a std::vector
         template<class T>
@@ -414,7 +465,7 @@ namespace Inferno {
             return std::find_if(std::begin(xs), std::end(xs), predicate) != std::end(xs);
         }
 
-        // Sorts a range in ascending order by a function (a , b) => a > b
+        // Sorts a range in ascending order by a function (a, b) -> bool
         constexpr void sortBy(auto&& xs, auto&& fn) {
             std::ranges::sort(xs, fn);
         }

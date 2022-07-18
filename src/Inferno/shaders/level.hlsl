@@ -1,6 +1,6 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "RootConstants(b0, num32BitConstants = 23), "\
-    "RootConstants(b1, num32BitConstants = 7), "\
+    "RootConstants(b1, num32BitConstants = 9), "\
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
@@ -30,7 +30,7 @@ cbuffer FrameConstants : register(b0) {
 cbuffer InstanceConstants : register(b1) {
     float Time;
     float FrameTime;
-    float2 Scroll;
+    float2 Scroll, Scroll2;
     float LightingScale;
     bool Distort;
     bool HasOverlay;
@@ -67,7 +67,7 @@ PS_INPUT VSLevel(LevelVertex input) {
     output.col.a = clamp(output.col.a, 0, 1);
     //output.uv = input.uv + Scroll * Time * 100;
     output.uv = input.uv + Scroll * Time * 100;
-    output.uv2 = input.uv2 + Scroll * Time * 100; // this is not the right offset for sliding textures.
+    output.uv2 = input.uv2 + Scroll2 * Time * 100;
 
     //float s = sin(3.14 * 4 / 2);
     //float c = cos(3.14 * 4 / 2);
@@ -122,6 +122,17 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
         float4 src = Diffuse2.Sample(sampler0, input.uv2);
+        
+        //if (src.a < 1) {
+        //    //float4 s1 = float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-2 / 64.0, -2 / 64.0)).a * 0.35;
+        //    //float4 s2 = float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, -1 / 64.0)).a * 0.30;
+        //    //src += s1 + s2;
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, -1 / 64.0)).a * 0.20; // bottom edge
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(1 / 64.0, 1 / 64.0)).a * 0.19;
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(1 / 64.0, -1 / 64.0)).a * 0.18;
+        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, 1 / 64.0)).a * 0.17;
+        //}
+        
         float4 dst = base;
         float out_a = src.a + dst.a * (1 - src.a);
         float3 out_rgb = src.a * src.rgb + (1 - src.a) * dst.rgb;

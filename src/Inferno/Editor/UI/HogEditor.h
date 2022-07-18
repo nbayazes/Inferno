@@ -140,9 +140,11 @@ namespace Inferno::Editor {
                 }
             }
 
-            if (ImGui::Button("Import", { -1, 0 })) {
+            if (ImGui::Button("Import", { -1, 0 }))
                 OnImport();
-            }
+
+            if (ImGui::Button("Import to levels", { -1, 0 }))
+                OnImportToLevels();
 
             ImGui::Dummy({ 0, 10 });
 
@@ -252,6 +254,7 @@ namespace Inferno::Editor {
                     { L"Level", L"*.RL2;*.RDL" },
                     { L"Robots", L"*.HXM" },
                     { L"Textures", L"*.POG" },
+                    { L"Descent 1 Data", L"*.DTX" },
                     { L"All Files", L"*.*" }
                 };
 
@@ -283,7 +286,75 @@ namespace Inferno::Editor {
                 SaveChanges();
             }
             catch (const std::exception& e) {
-                SetStatusMessage("Error adding file: {}", e.what());
+                ShowErrorMessage(e);
+            }
+        }
+
+        // Imports a robot or texture file to all levels in the mission
+        void OnImportToLevels() {
+            try {
+                static const COMDLG_FILTERSPEC filter[] = {
+                    { L"Custom Data", L"*.HXM;*.POG;*.DTX" },
+                    { L"Robots", L"*.HXM" },
+                    { L"Textures", L"*.POG" },
+                    { L"Descent 1 Data", L"*.DTX" },
+                    { L"All Files", L"*.*" }
+                };
+
+                auto file = OpenFileDialog(filter, L"Import file to levels");
+                if (!file) return;
+
+                auto size = filesystem::file_size(*file);
+
+                List<HogEntry> newEntries;
+                int existingCount = 0;
+
+                // Scan for new and existing entries
+                for (auto& entry : _entries) {
+                    if (!entry.IsLevel()) continue;
+                    auto name = entry.NameWithoutExtension() + file->extension().string();
+
+                    if (FindEntry(name)) {
+                        existingCount++;
+                    }
+                    else {
+                        HogEntry newEntry = { .Name = name, .Size = size, .Path = *file };
+                        newEntries.push_back(newEntry);
+                    }
+                }
+
+                if (existingCount) {
+                    auto msg = fmt::format(L"{} existing files will be overwritten.", existingCount);
+                    if (!ShowOkCancelMessage(msg, L"Confirm Overwrite"))
+                        return;
+                }
+
+                if (_entries.size() + newEntries.size() > HogFile::MAX_ENTRIES)
+                    throw Exception("HOG files can only contain 250 entries");
+
+                _selections.clear();
+                _dirty = true;
+
+                // Replace existing
+                for (auto& entry : _entries) {
+                    if (!entry.IsLevel()) continue;
+                    auto name = entry.NameWithoutExtension() + file->extension().string();
+
+                    if (auto existing = FindEntry(name)) {
+                        existing->Path = *file;
+                        existing->Size = size;
+                    }
+                }
+
+                // Insert new
+                for (auto& entry : newEntries)
+                    _entries.push_back(entry);
+
+                SortEntries();
+                SaveChanges();
+            }
+            catch (const std::exception& e) {
+                ShowErrorMessage(e);
             }
         }
 
@@ -292,11 +363,11 @@ namespace Inferno::Editor {
                 auto path = BrowseFolderDialog();
                 if (!path) return;
 
-                for (auto& i : _selections) {
-                    auto entry = Seq::tryItem(_entries, i);
-                    if (!entry) continue;
+                for (auto& index : _selections) {
+                    auto selection = Seq::tryItem(_entries, index);
+                    if (!selection) continue;
 
-                    Game::Mission->Export(i, *path / entry->Name);
+                    Game::Mission->Export(*selection->Index, *path / selection->Name);
                 }
             }
             catch (const std::exception& e) {
@@ -315,7 +386,7 @@ namespace Inferno::Editor {
 
                 if (auto path = SaveFileDialog(filter, 1, Convert::ToWideString(selection->Name), L"Export File")) {
                     if (selection->Index)
-                        Game::Mission->Export(selection->Index.value(), *path);
+                        Game::Mission->Export(*selection->Index, *path);
                 }
             }
             catch (const std::exception& e) {
@@ -325,7 +396,7 @@ namespace Inferno::Editor {
 
         HogEntry* FindEntry(string_view name) {
             return Seq::find(_entries, [&name](HogEntry& e) {
-                return e.Name == name;
+                return String::InvariantEquals(e.Name, name);
             });
         }
     };
