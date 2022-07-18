@@ -59,7 +59,7 @@ namespace Inferno::Editor {
         void OnUpdate() override {
             constexpr float PanelHeight = 600;
 
-            ImGui::BeginChild("list", { 280, PanelHeight }, true);
+            ImGui::BeginChild("list", { 300, PanelHeight }, true);
 
             for (int i = 0; i < _entries.size(); i++) {
                 auto& entry = _entries[i];
@@ -143,8 +143,15 @@ namespace Inferno::Editor {
             if (ImGui::Button("Import", { -1, 0 }))
                 OnImport();
 
-            if (ImGui::Button("Import to levels", { -1, 0 }))
+            if (ImGui::Button("Import for\neach level", { -1, 0 }))
                 OnImportToLevels();
+
+            if (ImGui::IsItemHovered()) 
+                ImGui::SetTooltip(
+                    "Inserts a copy of a file for each level in the HOG. \n"
+                    "It renames each copy to match the level file name.\n\n"
+                    "This is intended for uniformly updating custom textures\n"
+                    "and robots across all levels in a mission.");
 
             ImGui::Dummy({ 0, 10 });
 
@@ -297,6 +304,7 @@ namespace Inferno::Editor {
                     { L"Custom Data", L"*.HXM;*.POG;*.DTX" },
                     { L"Robots", L"*.HXM" },
                     { L"Textures", L"*.POG" },
+                    { L"Music", L"*.HMP" },
                     { L"Descent 1 Data", L"*.DTX" },
                     { L"All Files", L"*.*" }
                 };
