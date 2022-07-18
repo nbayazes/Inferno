@@ -255,7 +255,7 @@ namespace Inferno::Editor {
 
         // Remove trigger targets pointing at this segment
         for (auto& trigger : level.Triggers) {
-            for (int i = trigger.Targets.Count() - 1; i >= 0; i--) {
+            for (int i = (int)trigger.Targets.Count() - 1; i >= 0; i--) {
                 if (trigger.Targets[i].Segment == segId)
                     trigger.Targets.Remove(i);
             }
@@ -1027,7 +1027,6 @@ namespace Inferno::Editor {
 
     bool MergeSegment(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return false;
-        auto& seg = level.GetSegment(tag);
 
         auto opposite = level.GetConnectedSide(tag);
         if (!level.SegmentExists(opposite)) return false; // no connection

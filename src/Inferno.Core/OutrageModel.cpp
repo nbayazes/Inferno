@@ -331,7 +331,7 @@ namespace Inferno::Outrage {
                         auto turrets = r.ReadInt32Checked(100, "bad turret num");
                         battery.Turrets.resize(turrets);
                         for (auto& turret : battery.Turrets)
-                            turret = r.ReadInt32();
+                            turret = (ushort)r.ReadInt32();
                     }
 
                     break;
@@ -354,7 +354,7 @@ namespace Inferno::Outrage {
                             if (sm.PosTrackMax < pm.FrameMax)
                                 pm.FrameMax = sm.PosTrackMax;
 
-                            int numTicks = sm.PosTrackMax - sm.PosTrackMin;
+                            //int numTicks = sm.PosTrackMax - sm.PosTrackMin;
 
                             // lookup
                             //if (numTicks > 0)
@@ -407,7 +407,7 @@ namespace Inferno::Outrage {
                         sm.Keyframes.resize(sm.NumKeyAngles /*+ 1*/); // why the +1?
 
                         if (timed) {
-                            int numTicks = sm.RotTrackMax - sm.RotTrackMin;
+                            //int numTicks = sm.RotTrackMax - sm.RotTrackMin;
 
                             // Some kind of lookup...
                             //if (numTicks > 0) {

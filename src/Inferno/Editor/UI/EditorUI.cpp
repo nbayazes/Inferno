@@ -549,14 +549,14 @@ namespace Inferno::Editor {
         //}
 
 
-        ImGui::SameLine();
-        if (ImGui::GetCursorPosX() + 500 < node.Size.x) {
-            ImGui::SeparatorVertical();
-            ImGui::SameLine();
-        }
-        else {
-            ImGui::Dummy({});
-        }
+        //ImGui::SameLine();
+        //if (ImGui::GetCursorPosX() + 500 < node.Size.x) {
+        //    ImGui::SeparatorVertical();
+        //    ImGui::SameLine();
+        //}
+        //else {
+        //    ImGui::Dummy({});
+        //}
 
         {
             // Coordinate system settings
