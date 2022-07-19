@@ -41,7 +41,7 @@ namespace Inferno::Editor {
             transform.Translation(face.Center() + normal * distance); // position on face
 
         obj->Segment = tag.Segment;
-        obj->Transform(transform);
+        obj->SetTransform(transform);
         return true;
     }
 
