@@ -11,7 +11,7 @@ namespace Inferno::Editor {
     class DebugWindow : public WindowBase {
         float _frameTime = 0, _timeCounter = 1;
     public:
-        DebugWindow() : WindowBase("Debug") { IsOpen(true); }
+        DebugWindow() : WindowBase("Debug") { IsOpen(false); }
     protected:
         void OnUpdate() override {
             _timeCounter += (float)Render::FrameTime;

@@ -38,6 +38,8 @@ namespace Inferno {
 
         bool Intersects(const Ray& ray, float& dist) const {
             auto indices = Side.GetRenderIndices();
+            if (Side.AverageNormal.Dot(ray.direction) >= 0) return false; // pass through back side of faces
+
             return
                 ray.Intersects(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]), dist) ||
                 ray.Intersects(GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]), dist);
