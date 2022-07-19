@@ -42,24 +42,24 @@ namespace Inferno::Outrage {
             for (int i = 0; i < 255; i++)
                 /*tex.Procedural.Palette[i] = */r.ReadInt16();
                 
-            r.ReadByte();
-            r.ReadByte();
-            r.ReadByte();
-            r.ReadFloat();
+            r.ReadByte(); // heat
+            r.ReadByte(); // light
+            r.ReadByte(); // thickness
+            r.ReadFloat(); // eval time
             if (version >= 6) {
-                r.ReadFloat();
-                r.ReadByte();
+                r.ReadFloat(); // osc time
+                r.ReadByte(); // osc value
             }
-            int n = r.ReadInt16();
+            int n = r.ReadInt16(); // elements
             for (int i = 0; i < n; i++) {
-                r.ReadByte();
-                r.ReadByte();
-                r.ReadByte();
-                r.ReadByte();
-                r.ReadByte();
-                r.ReadByte();
-                r.ReadByte();
-                r.ReadByte();
+                r.ReadByte(); // type
+                r.ReadByte(); // frequency
+                r.ReadByte(); // speed
+                r.ReadByte(); // size
+                r.ReadByte(); // x1
+                r.ReadByte(); // y1
+                r.ReadByte(); // x2
+                r.ReadByte(); // y2
             }
         }
 

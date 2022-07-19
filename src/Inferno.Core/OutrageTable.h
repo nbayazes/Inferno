@@ -21,7 +21,7 @@ namespace Inferno::Outrage {
         Texture64 = (1 << 13),
         Tmap2 = (1 << 14),
         Texture_32 = (1 << 15),
-        Fly_thru = (1 << 16),
+        FlyThru = (1 << 16),
         PassThru = (1 << 17),
         PingPong = (1 << 18),
         Light = (1 << 19), // Full bright
@@ -37,6 +37,29 @@ namespace Inferno::Outrage {
         Lava = (1 << 29),
         Rubble = (1 << 30),
         SmoothSpecular = (1 << 31)
+    };
+
+    enum class ProceduralType : uint8 {
+        None,
+        LineLightning,
+        SphereLightning,
+        Straight,
+        RisingEmbers,
+        RandomEmbers,
+        Spinners,
+        Roamers,
+        Fountain,
+        Cone,
+        FallRight,
+        FallLeft
+    };
+
+    enum class WaterProceduralType : uint8 {
+        None,
+        HeightBlob,
+        SineBlob,
+        RandomRaindrops,
+        RandomBlobdrops
     };
 
     struct TextureInfo {
