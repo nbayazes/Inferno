@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "logging.h"
 #include "Graphics/Render.h"
+#include "Physics.h"
 #include <list>
 
 using namespace DirectX;
@@ -29,13 +30,28 @@ namespace Inferno::Sound {
             if (auto obj = Game::Level.TryGetObject(Source)) {
                 //Emitter.Update(obj->Position() * AUDIO_SCALE, obj->Transform.Up(), dt);
                 Emitter.SetPosition(obj->Position * AUDIO_SCALE);
-                auto dist = (obj->Position - listener).Length();
+                auto delta = listener - obj->Position;
+                Vector3 dir;
+                delta.Normalize(dir);
+                auto dist = delta.Length();
                 auto ratio = std::min(dist / MAX_DISTANCE, 1.0f);
                 // 1 / (0.97 + 3x)^2 - 0.065 inverse square that crosses at 0,1 and 1,0
                 //auto volume = 1 / std::powf(0.97 + 3*ratio, 2) - 0.065f;
 
+                float muffleMult = 1;
+
+                if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
+                    Ray ray(obj->Position, dir);
+                    auto hit = IntersectLevel(Game::Level, ray, obj->Segment, dist);
+                    if (hit.ID) {
+                        // we hit a wall, muffle it based on the distance from the source
+                        // a sound coming immediately around the corner shouldn't get muffled much
+                        muffleMult = std::clamp(1 - hit.Distance / 60, 0.4f, 1.0f);
+                    };
+                }
+
                 auto volume = std::powf(1 - ratio, 3);
-                Instance->SetVolume(volume * MAX_SFX_VOLUME);
+                Instance->SetVolume(volume * muffleMult * MAX_SFX_VOLUME);
             }
         }
     };
@@ -75,7 +91,10 @@ namespace Inferno::Sound {
     }
 
     void SoundWorker(milliseconds pollRate) {
-        CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        auto result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        if (!SUCCEEDED(result))
+            SPDLOG_WARN("CoInitializeEx did not succeed");
+
         SPDLOG_INFO("Starting audio mixer thread");
         while (Alive) {
             // Update should be called often, usually in a per - frame update.

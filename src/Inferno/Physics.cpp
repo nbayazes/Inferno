@@ -241,6 +241,94 @@ namespace Inferno {
         return c3;
     }
 
+    // intersects a ray with the level, returning the tag and distance
+    LevelHit IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist) {
+        SegID segId = start;
+
+        while (true) {
+            auto& seg = level.GetSegment(segId);
+
+            for (auto& side : SideIDs) {
+                auto face = Face::FromSide(level, seg, side);
+                
+                float dist{};
+                if (face.Intersects(ray, dist)) {
+                    if (dist > maxDist) return {}; // hit is too far
+
+                    if (seg.SideIsSolid(side, level)) { // todo: this isn't accurate due to door flags
+                        return { { segId, side}, dist }; // hit a solid wall
+                    }
+                    else {
+                        segId = seg.GetConnection(side);
+                        break; // go to next segment
+                    }
+                }
+            }
+
+            // if the first pass doesn't hit anything it means the ray didn't start inside a seg
+            if (segId == start) return {};
+        }
+    }
+
+    void ProjectPath(Level& level, Object& obj, SegID segId, float dt, int pass) {
+        // determine the type of intersection
+        // what side was hit? was the side a wall? should a door open?
+        // does it pass through a transparent wall?
+
+        // check traversal
+        // - project forward, if passes through open side, also check 
+        auto& pd = obj.Movement.Physics;
+
+        auto delta = obj.Position - obj.LastPosition;
+        auto distance = delta.Length();
+        if (distance < 0.001f) return;
+        Vector3 dir;
+        delta.Normalize(dir);
+
+        Ray ray(obj.LastPosition, dir);
+
+        // intersect every side in the segment and test if it is in range
+
+        // check objects in segment
+        for (auto& o : level.Objects) {
+            // most high-speed objects are projectiles with very small radii
+            // a ray cast is sufficient
+            if (o.Segment != segId) continue;
+
+            BoundingSphere sphere(o.Position, o.Radius);
+            float intersect{};
+            if (ray.Intersects(sphere, intersect) && intersect < distance - obj.Radius) {
+                // hit an object!
+                // apply physics and damage
+            }
+        }
+
+
+        auto& seg = level.GetSegment(segId);
+        for (auto& side : SideIDs) {
+            auto face = Face::FromSide(level, seg, side);
+            float intersect{};
+            if (face.Intersects(ray, intersect) && intersect < distance - obj.Radius) {
+                // hit a face
+                if (seg.SideIsSolid(side, level)) {
+                    // maybe is a wall, or a solid side
+                }
+                else {
+                    // open side, need to check that segment too
+                }
+
+            }
+            //auto t0 = face.VerticesForPoly0();
+            //if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
+            //    hit = hitDistance < expectedDistance.Length() - obj.Radius;
+            //    //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
+            //    if (hit)
+            //        obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
+            //}
+        }
+
+    }
+
     void Intersect(const Triangle& t, Object& obj, float dt, int pass) {
         //if (obj.Type == ObjectType::Player) return;
 
@@ -416,6 +504,7 @@ namespace Inferno {
         for (auto& obj : level.Objects) {
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
+            continue;
 
             if (obj.Movement.Type == MovementType::Physics) {
                 FixedPhysics(obj, dt);

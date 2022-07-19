@@ -11,4 +11,7 @@ namespace Inferno {
         inline Vector3 ClosestPoint;
         inline List<Vector3> ClosestPoints;
     };
+
+    struct LevelHit { Tag ID; float Distance; };
+    LevelHit IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist);
 }
