@@ -21,10 +21,9 @@ namespace Inferno::Sound {
 
     struct ObjectSound {
         ObjID Source = ObjID::None;
-        //float Volume, Pitch;
         bool Started = false;
         Ptr<SoundEffectInstance> Instance;
-        AudioEmitter Emitter;
+        AudioEmitter Emitter; // Stores position
 
         void UpdateEmitter(const Vector3& listener, float /*dt*/) {
             if (auto obj = Game::Level.TryGetObject(Source)) {
@@ -42,8 +41,7 @@ namespace Inferno::Sound {
 
                 if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
                     Ray ray(obj->Position, dir);
-                    auto hit = IntersectLevel(Game::Level, ray, obj->Segment, dist);
-                    if (hit.ID) {
+                    if (auto hit = IntersectLevel(Game::Level, ray, obj->Segment, dist)) {
                         // we hit a wall, muffle it based on the distance from the source
                         // a sound coming immediately around the corner shouldn't get muffled much
                         muffleMult = std::clamp(1 - hit.Distance / 60, 0.4f, 1.0f);
@@ -52,6 +50,9 @@ namespace Inferno::Sound {
 
                 auto volume = std::powf(1 - ratio, 3);
                 Instance->SetVolume(volume * muffleMult * MAX_SFX_VOLUME);
+            }
+            else {
+                // object is missing, was likely destroyed. Should the sound stop?
             }
         }
     };

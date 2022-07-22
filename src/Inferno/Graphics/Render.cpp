@@ -952,7 +952,7 @@ namespace Inferno::Render {
     }
 
     void DrawObject(Level& level, Object& obj, float distSquared, float alpha) {
-        auto position = Vector3::Lerp(obj.Position, obj.LastPosition, alpha);
+        auto position = Vector3::Lerp(obj.LastPosition, obj.Position, alpha);
 
         BoundingSphere bounds(position, obj.Radius); // might should use GetBoundingSphere
         if (!CameraFrustum.Contains(bounds))

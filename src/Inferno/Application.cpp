@@ -138,12 +138,16 @@ void Application::Update() {
 
     Render::Debug::BeginFrame();
 
-    while (accumulator >= dt) {
-#if _DEBUG
-        UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
-#endif
-        accumulator -= dt;
-        t += dt;
+    float alpha = 1; // blending between previous and current position
+
+    if (Settings::EnablePhysics) {
+        while (accumulator >= dt) {
+            UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
+            accumulator -= dt;
+            t += dt;
+        }
+
+        alpha = float(accumulator / dt);
     }
 
     Editor::Update();
@@ -154,7 +158,6 @@ void Application::Update() {
 
     PIXEndEvent();
 
-    const float alpha = float(accumulator / dt);
     Render::Present(alpha);
 }
 

@@ -46,6 +46,7 @@ namespace Inferno {
         inline filesystem::path Descent1Path, Descent2Path;
 
         inline bool InvertY = false;
+        inline bool EnablePhysics = false;
 
 #pragma region Render
         inline bool HighRes = false; // Enables high res textures and filtering

@@ -190,7 +190,7 @@ namespace Inferno {
     };
 
     // Closest point on line
-    Vector3 ClosestPoint(const Vector3& a, const Vector3& b, const Vector3& p) {
+    Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p) {
         // Project p onto ab, computing the paramaterized position d(t) = a + t * (b - a)
         auto ab = b - a;
         auto t = (p - a).Dot(ab) / ab.Dot(ab);
@@ -200,6 +200,90 @@ namespace Inferno {
 
         // Compute the projected position from the clamped t
         return a + t * ab;
+    }
+
+    struct ClosestResult { float distSq, s, t; Vector3 c1, c2; };
+
+    // Computes closest points between two lines. 
+    // C1 and C2 of S1(s)=P1+s*(Q1-P1) and S2(t)=P2+t*(Q2-P2), returning s and t. 
+    // Function result is squared distance between between S1(s) and S2(t)
+    ClosestResult ClosestPointBetweenLines(const Vector3& p1, const Vector3& q1, const Vector3& p2, const Vector3& q2) {
+        auto d1 = q1 - p1; // Direction vector of segment S1
+        auto d2 = q2 - p2; // Direction vector of segment S2
+        auto r = p1 - p2;
+        auto a = d1.Dot(d1); // Squared length of segment S1, always nonnegative
+        auto e = d2.Dot(d2); // Squared length of segment S2, always nonnegative
+        auto f = d2.Dot(r);
+
+        constexpr float EPSILON = 0.001f;
+        float s{}, t{};
+        Vector3 c1, c2;
+
+        // Check if either or both segments degenerate into points
+        if (a <= EPSILON && e <= EPSILON) {
+            // Both segments degenerate into points
+            s = t = 0.0f;
+            c1 = p1;
+            c2 = p2;
+            auto distSq = (c1 - c2).Dot(c1 - c2);
+            return { distSq, s, t, c1, c2 };
+        }
+
+        if (a <= EPSILON) {
+            // First segment degenerates into a point
+            s = 0.0f;
+            t = f / e; // s = 0 => t = (b*s + f) / e = f / e
+            t = std::clamp(t, 0.0f, 1.0f);
+        }
+        else {
+            float c = d1.Dot(r);
+            if (e <= EPSILON) {
+                // Second segment degenerates into a point
+                t = 0.0f;
+                s = std::clamp(-c / a, 0.0f, 1.0f); // t = 0 => s = (b*t - c) / a = -c / a
+            }
+            else {
+                // The general nondegenerate case starts here
+                float b = d1.Dot(d2);
+                float denom = a * e - b * b; // Always nonnegative
+                // If segments not parallel, compute closest point on L1 to L2 and
+                // clamp to segment S1. Else pick arbitrary s (here 0)
+                s = denom == 0 ? 0 : std::clamp((b * f - c * e) / denom, 0.0f, 1.0f);
+                // Compute point on L2 closest to S1(s) using
+                // t = Dot((P1 + D1*s) - P2,D2) / Dot(D2,D2) = (b*s + f) / e
+                t = (b * s + f) / e;
+                // If t in [0,1] done. Else clamp t, recompute s for the new value
+                // of t using s = Dot((P2 + D2*t) - P1,D1) / Dot(D1,D1)= (t*b - c) / a
+                // and clamp s to [0, 1]
+                if (t < 0.0f) {
+                    t = 0.0f;
+                    s = std::clamp(-c / a, 0.0f, 1.0f);
+                }
+                else if (t > 1.0f) {
+                    t = 1.0f;
+                    s = std::clamp((b - c) / a, 0.0f, 1.0f);
+                }
+            }
+        }
+
+        c1 = p1 + d1 * s;
+        c2 = p2 + d2 * t;
+        auto distSq = (c1 - c2).Dot(c1 - c2);
+        return { distSq, s, t, c1, c2 };
+    }
+
+    // Returns true if a point lies within a triangle
+    bool PointInTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point) {
+        // Move the triangle so that the point becomes the triangle's origin
+        auto a = p0 - point;
+        auto b = p1 - point;
+        auto c = p2 - point;
+
+        // Compute the normal vectors for triangles:
+        Vector3 u = b.Cross(c), v = c.Cross(a), w = a.Cross(b);
+
+        // Test if the normals are facing the same direction
+        return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f;
     }
 
     // Returns true if a point lies within a triangle
@@ -217,16 +301,17 @@ namespace Inferno {
     }
 
     // Returns the closest point on a triangle to a point
-    Vector3 ClosestPoint(const Triangle& t, Vector3 point) {
-        point = ProjectPointOntoPlane(point, t.GetPlane());
+    Vector3 ClosestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point) {
+        Plane plane(p0, p1, p2);
+        point = ProjectPointOntoPlane(point, plane);
 
-        if (PointInTriangle(t, point))
+        if (PointInTriangle(p0, p1, p2, point))
             return point; // point is on the surface of the triangle
 
         // check the points and edges
-        auto c1 = ClosestPoint(t[0], t[1], point);
-        auto c2 = ClosestPoint(t[1], t[2], point);
-        auto c3 = ClosestPoint(t[2], t[0], point);
+        auto c1 = ClosestPointOnLine(p0, p1, point);
+        auto c2 = ClosestPointOnLine(p1, p2, point);
+        auto c3 = ClosestPointOnLine(p2, p0, point);
 
         auto mag1 = (point - c1).LengthSquared();
         auto mag2 = (point - c2).LengthSquared();
@@ -241,22 +326,302 @@ namespace Inferno {
         return c3;
     }
 
-    // intersects a ray with the level, returning the tag and distance
+
+    Vector3 GetTriangleNormal(const Vector3& a, const Vector3& b, const Vector3& c) {
+        auto v1 = b - a;
+        auto v2 = c - a;
+        auto normal = v1.Cross(v2);
+        normal.Normalize();
+        return normal;
+    }
+
+    // Untested
+    Option<Vector3> NearestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, BoundingSphere& sphere) {
+        auto N = GetTriangleNormal(p0, p1, p2);
+        float dist = (sphere.Center - p0).Dot(N); // signed distance between sphere and plane
+        //if (!mesh.is_double_sided() && dist > 0)
+            //return false; // can pass through back side of triangle (optional)
+        if (dist < -sphere.Radius || dist > sphere.Radius)
+            return {}; // no intersection
+
+        auto point0 = (sphere.Center - N) * dist; // projected sphere center on triangle plane
+
+        float radiussq = sphere.Radius * sphere.Radius;
+
+        auto point1 = ClosestPointOnLine(p0, p1, sphere.Center);
+        auto v1 = sphere.Center - point1;
+        float distsq1 = v1.Dot(v1);
+        bool intersects = distsq1 < radiussq;
+
+        auto point2 = ClosestPointOnLine(p1, p2, sphere.Center);
+        auto v2 = sphere.Center - point2;
+        float distsq2 = v2.Dot(v2);
+        intersects |= distsq2 < radiussq;
+
+        auto point3 = ClosestPointOnLine(p2, p0, sphere.Center);
+        auto v3 = sphere.Center - point3;
+        float distsq3 = v3.Dot(v3);
+        intersects |= distsq3 < radiussq;
+
+        bool inside = PointInTriangle(p0, p1, p2, sphere.Center);
+
+        if (inside || intersects) {
+            auto best_point = point0;
+            Vector3 intersection_vec;
+
+            if (inside) {
+                intersection_vec = sphere.Center - point0;
+            }
+            else {
+                auto d = sphere.Center - point1;
+                float best_distsq = d.Dot(d);
+                best_point = point1;
+                intersection_vec = d;
+
+                d = sphere.Center - point2;
+                float distsq = d.Dot(d);
+                if (distsq < best_distsq) {
+                    distsq = best_distsq;
+                    best_point = point2;
+                    intersection_vec = d;
+                }
+
+                d = sphere.Center - point3;
+                distsq = d.Dot(d);
+                if (distsq < best_distsq) {
+                    distsq = best_distsq;
+                    best_point = point3;
+                    intersection_vec = d;
+                }
+            }
+
+            auto len = intersection_vec.Length();  // vector3 length calculation: 
+            auto penetration_normal = intersection_vec / len;  // normalize
+            float penetration_depth = sphere.Radius - len; //
+            return sphere.Center + penetration_normal * penetration_depth; // intersection success
+        }
+
+        return {};
+    }
+
+    //// Returns the closest point on a triangle to a point
+    //Vector3 ClosestPoint(const Triangle& t, Vector3 point) {
+    //    point = ProjectPointOntoPlane(point, t.GetPlane());
+
+    //    if (PointInTriangle(t, point))
+    //        return point; // point is on the surface of the triangle
+
+    //    // check the points and edges
+    //    auto c1 = ClosestPoint(t[0], t[1], point);
+    //    auto c2 = ClosestPoint(t[1], t[2], point);
+    //    auto c3 = ClosestPoint(t[2], t[0], point);
+
+    //    auto mag1 = (point - c1).LengthSquared();
+    //    auto mag2 = (point - c2).LengthSquared();
+    //    auto mag3 = (point - c3).LengthSquared();
+
+    //    float min = std::min(std::min(mag1, mag2), mag3);
+
+    //    if (min == mag1)
+    //        return c1;
+    //    else if (min == mag2)
+    //        return c2;
+    //    return c3;
+    //}
+
+    // Returns the nearest intersection point on a face
+    Tuple<Vector3, float> IntersectFaceSphere(const Face& face, const BoundingSphere& sphere) {
+        auto i = face.Side.GetRenderIndices();
+
+        float distance = FLT_MAX;
+        Vector3 point;
+
+        if (sphere.Intersects(face[i[0]], face[i[1]], face[i[2]])) {
+            auto p = ClosestPointOnTriangle(face[i[0]], face[i[1]], face[i[2]], sphere.Center);
+            auto vec = p - sphere.Center;
+            auto dist = (p - sphere.Center).Length();
+            if (dist < distance) {
+                point = p;
+                distance = dist;
+            }
+        }
+
+        if (sphere.Intersects(face[i[3]], face[i[4]], face[i[5]])) {
+            auto p = ClosestPointOnTriangle(face[i[3]], face[i[4]], face[i[5]], sphere.Center);
+            auto dist = (p - sphere.Center).Length();
+            if (dist < distance) {
+                point = p;
+                distance = dist;
+            }
+        }
+
+        return { point, distance };
+    }
+
+    struct BoundingCapsule {
+        Vector3 A, B;
+        float Radius;
+
+        bool Intersect(const BoundingSphere& sphere) const {
+            // Compute (squared) distance between sphere center and capsule line segment
+            auto p = ClosestPointOnLine(A, B, sphere.Center);
+            float dist2 = Vector3::DistanceSquared(sphere.Center, p);
+            // If (squared) distance smaller than (squared) sum of radii, they collide
+            float r = Radius + sphere.Radius;
+            return dist2 <= r * r;
+        }
+
+        bool Intersect(const BoundingCapsule& other) const {
+            // Compute (squared) distance between the inner structures of the capsules
+            auto p = ClosestPointBetweenLines(A, B, other.A, other.B);
+            // If (squared) distance smaller than (squared) sum of radii, they collide
+            float r = Radius + other.Radius;
+            return p.distSq <= r * r;
+        }
+
+        bool Intersect(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& center) const {
+            auto base = A;
+            auto tip = B;
+            // Compute capsule line endpoints A, B like before in capsule-capsule case:
+            auto capsuleNormal = tip - base;
+            capsuleNormal.Normalize();
+            auto offset = capsuleNormal * Radius; // line end offset
+            auto a = base + offset; // base
+            auto b = tip - offset; // tip
+
+            Render::Debug::DrawLine(a, b, { 1, 0, 0 });
+
+            Ray r(A, capsuleNormal);
+            Plane p(p0, p1, p2);
+            float t;
+            r.Intersects(p, t);
+
+            // Then for each triangle, ray-plane intersection:
+            //float t = faceNormal.Dot((p0 - base) / std::abs(capsuleNormal.Dot(faceNormal)));
+            auto linePlaneIntersect = base + capsuleNormal * t;
+            ///*Vector3*/ refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
+            auto inside = PointInTriangle(p0, p1, p2, linePlaneIntersect);
+
+            //auto c0 = (linePlaneIntersect - p0).Cross(p1 - p0);
+            //auto c1 = (linePlaneIntersect - p1).Cross(p2 - p1);
+            //auto c2 = (linePlaneIntersect - p2).Cross(p0 - p2);
+            //bool inside = c0.Dot(faceNormal) <= 0 && c1.Dot(faceNormal) <= 0 && c2.Dot(faceNormal) <= 0;
+
+            if (inside) {
+                Render::Debug::DrawPoint(linePlaneIntersect, { 1, 0, 0 });
+                refPoint = linePlaneIntersect;
+            }
+            else {
+                // Edge 1:
+                auto point1 = ClosestPointOnLine(p0, p1, linePlaneIntersect);
+                auto v1 = linePlaneIntersect - point1;
+                auto distsq = v1.Dot(v1);
+                auto bestDist = distsq;
+                refPoint = point1;
+
+                // Edge 2:
+                auto point2 = ClosestPointOnLine(p1, p2, linePlaneIntersect);
+                auto v2 = linePlaneIntersect - point2;
+                distsq = v2.Dot(v2);
+                if (distsq < bestDist) {
+                    refPoint = point2;
+                    bestDist = distsq;
+                }
+    
+                // Edge 3:
+                auto point3 = ClosestPointOnLine(p2, p0, linePlaneIntersect);
+                auto v3 = linePlaneIntersect - point3;
+                distsq = v3.Dot(v3);
+                if (distsq < bestDist) {
+                    refPoint = point3;
+                    bestDist = distsq;
+                }
+            }
+
+            // The center of the best sphere candidate:
+            /*Vector3*/ center = ClosestPointOnLine(a, b, refPoint);
+            Render::Debug::DrawPoint(refPoint, { 1, 1, 0 });
+
+            // Determine whether point is inside all triangle edges:
+            //bool inside = PointInTriangle(p0, p1, p2, linePlaneIntersect);
+
+            BoundingSphere sphere(center, Radius);
+            return sphere.Intersects(p0, p1, p2);
+        }
+    };
+
+    // Finds the nearest sphere-level intersection
+    bool IntersectLevel(Level& level, const BoundingSphere& sphere, SegID segId, LevelHit& hit) {
+        auto& seg = level.GetSegment(segId);
+        hit.Visited.insert(segId);
+
+        for (auto& side : SideIDs) {
+            auto face = Face::FromSide(level, segId, side);
+            auto [point, dist] = IntersectFaceSphere(face, sphere);
+
+            auto normal = point - sphere.Center;
+            normal.Normalize();
+            if (normal.Dot(face.AverageNormal()) > 0) continue; // check that point is in front of face
+
+            if (dist < FLT_MAX) {
+                if (seg.SideIsSolid(side, level)) {
+                    // hit a solid wall
+                    if (dist < hit.Distance) {
+                        hit.Distance = dist;
+                        hit.Point = point;
+                        hit.Tag = { segId, side };
+                        auto hitNormal = sphere.Center - point;
+                        hitNormal.Normalize();
+                        hit.Normal = hitNormal;
+                    }
+                }
+                else {
+                    // intersected with a connected side, must check faces in it too
+                    auto conn = seg.GetConnection(side);
+                    if (!hit.Visited.contains(conn))
+                        IntersectLevel(level, sphere, conn, hit); // Recursive
+                }
+            }
+        }
+
+        return hit;
+    }
+
+    // intersects a ray with the level, returning hit information
     LevelHit IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist) {
         SegID segId = start;
+        LevelHit hit;
 
-        while (true) {
+        while (segId != SegID::None) {
             auto& seg = level.GetSegment(segId);
+
+            //// Did we hit any objects in this segment?
+            //for (auto& obj : level.Objects) {
+            //    if (obj.Segment != segId) continue;
+
+            //    BoundingSphere sphere(obj.Position, obj.Radius);
+            //    float dist{};
+            //    if (ray.Intersects(sphere, dist) && dist < hit.Distance) {
+            //        // object was closer than the previous one
+            //        hit.Obj = &obj;
+            //        hit.Distance = dist;
+            //        auto normal = (ray.direction * dist) - sphere.Center;
+            //        normal.Normalize();
+            //        hit.Normal = normal;
+            //    }
+            //}
+
+            if (hit) return hit; // Objects will always be inside of a segment, no need to check walls if we hit something
 
             for (auto& side : SideIDs) {
                 auto face = Face::FromSide(level, seg, side);
-                
+
                 float dist{};
-                if (face.Intersects(ray, dist)) {
+                if (face.Intersects(ray, dist) && dist < hit.Distance) {
                     if (dist > maxDist) return {}; // hit is too far
 
                     if (seg.SideIsSolid(side, level)) { // todo: this isn't accurate due to door flags
-                        return { { segId, side}, dist }; // hit a solid wall
+                        return { { segId, side }, nullptr, dist }; // hit a solid wall
                     }
                     else {
                         segId = seg.GetConnection(side);
@@ -265,9 +630,70 @@ namespace Inferno {
                 }
             }
 
-            // if the first pass doesn't hit anything it means the ray didn't start inside a seg
+            // if the first pass doesn't hit anything it means the ray didn't start inside the seg
             if (segId == start) return {};
         }
+
+        return hit;
+    }
+
+    LevelHit IntersectLevel(Level& level, const BoundingCapsule& capsule, SegID start, float maxDist) {
+        SegID segId = start;
+        LevelHit hit;
+
+        while (segId != SegID::None) {
+            auto& seg = level.GetSegment(segId);
+
+            //// Did we hit any objects in this segment?
+            //for (auto& obj : level.Objects) {
+            //    if (obj.Segment != segId) continue;
+
+            //    BoundingSphere sphere(obj.Position, obj.Radius);
+            //    float dist{};
+            //    if (ray.Intersects(sphere, dist) && dist < hit.Distance) {
+            //        // object was closer than the previous one
+            //        hit.Obj = &obj;
+            //        hit.Distance = dist;
+            //        auto normal = (ray.direction * dist) - sphere.Center;
+            //        normal.Normalize();
+            //        hit.Normal = normal;
+            //    }
+            //}
+
+            if (hit) return hit; // Objects will always be inside of a segment, no need to check walls if we hit something
+
+            for (auto& side : SideIDs) {
+                auto face = Face::FromSide(level, seg, side);
+                auto i = face.Side.GetRenderIndices();
+                float dist{};
+
+                Vector3 refPoint, center;
+                if (capsule.Intersect(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, center)) {
+                    Render::Debug::DrawPoint(refPoint, { 1, 1, 0 });
+                    Render::Debug::DrawPoint(center, { 1, 1, 1 });
+                }
+
+                Vector3 refPoint2, center2;
+                auto d1 = capsule.Intersect(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint2, center2);
+
+                //if (face.Intersects(capsule, dist) && dist < hit.Distance) {
+                //    if (dist > maxDist) return {}; // hit is too far
+
+                //    if (seg.SideIsSolid(side, level)) { // todo: this isn't accurate due to door flags
+                //        return { { segId, side }, nullptr, dist }; // hit a solid wall
+                //    }
+                //    else {
+                //        segId = seg.GetConnection(side);
+                //        break; // go to next segment
+                //    }
+                //}
+            }
+
+            // if the first pass doesn't hit anything it means the ray didn't start inside the seg
+            if (segId == start) return {};
+        }
+
+        return hit;
     }
 
     void ProjectPath(Level& level, Object& obj, SegID segId, float dt, int pass) {
@@ -280,8 +706,8 @@ namespace Inferno {
         auto& pd = obj.Movement.Physics;
 
         auto delta = obj.Position - obj.LastPosition;
-        auto distance = delta.Length();
-        if (distance < 0.001f) return;
+        auto travel = delta.Length();
+        if (travel < 0.001f) return;
         Vector3 dir;
         delta.Normalize(dir);
 
@@ -289,92 +715,84 @@ namespace Inferno {
 
         // intersect every side in the segment and test if it is in range
 
-        // check objects in segment
-        for (auto& o : level.Objects) {
+        // This only casts a single ray, for larger objects this will not be sufficient
+        auto hit = IntersectLevel(level, ray, segId, travel);
+        if (hit.Tag) {
+            // hit a segment side
+            Debug::ClosestPoints.push_back(obj.LastPosition + ray.direction * hit.Distance);
+        }
+        else if (hit.Obj) {
+            Debug::ClosestPoints.push_back(obj.LastPosition + ray.direction * hit.Distance);
+
+            // hit an object
+
             // most high-speed objects are projectiles with very small radii
-            // a ray cast is sufficient
-            if (o.Segment != segId) continue;
-
-            BoundingSphere sphere(o.Position, o.Radius);
-            float intersect{};
-            if (ray.Intersects(sphere, intersect) && intersect < distance - obj.Radius) {
-                // hit an object!
-                // apply physics and damage
-            }
+            // a single ray cast is sufficient
         }
-
-
-        auto& seg = level.GetSegment(segId);
-        for (auto& side : SideIDs) {
-            auto face = Face::FromSide(level, seg, side);
-            float intersect{};
-            if (face.Intersects(ray, intersect) && intersect < distance - obj.Radius) {
-                // hit a face
-                if (seg.SideIsSolid(side, level)) {
-                    // maybe is a wall, or a solid side
-                }
-                else {
-                    // open side, need to check that segment too
-                }
-
-            }
-            //auto t0 = face.VerticesForPoly0();
-            //if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
-            //    hit = hitDistance < expectedDistance.Length() - obj.Radius;
-            //    //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
-            //    if (hit)
-            //        obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
-            //}
-        }
-
     }
 
-    void Intersect(const Triangle& t, Object& obj, float dt, int pass) {
+    void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
         //if (obj.Type == ObjectType::Player) return;
 
         Plane plane(t.Points[0], t.Points[1], t.Points[2]);
         auto& pd = obj.Movement.Physics;
 
         if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
-        auto expectedDistance = obj.Position - obj.LastPosition;
-        if (expectedDistance.Length() < 0.001f) return;
+        auto delta = obj.Position - obj.LastPosition;
+        auto expectedDistance = delta.Length();
+        if (expectedDistance < 0.001f) return;
         Vector3 dir;
-        expectedDistance.Normalize(dir);
+        delta.Normalize(dir);
         //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
 
         float hitDistance{};
         Ray ray(obj.LastPosition, dir);
-        bool hit = false;
+        //bool hit = false;
 
-        if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
-            hit = hitDistance < expectedDistance.Length() - obj.Radius;
-            //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
-            if (hit)
-                obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
+        //if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
+        //    hit = hitDistance < expectedDistance - obj.Radius;
+        //    //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
+        //    if (hit)
+        //        obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
+        //}
+
+        bool isHit = false;
+
+        auto hit = IntersectLevel(level, ray, segId, expectedDistance);
+        if (hit.Obj) {
+            // hit an object
+            obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
+            hitDistance = hit.Distance;
+            isHit = true;
         }
-
-        if (!hit) {
+        else if (hit.Tag) {
+            // hit a wall
+            obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
+            hitDistance = hit.Distance;
+            isHit = true;
+        }
+        else {
             // ray cast didn't hit anything, try the sphere test
             // note that this is not a sweep and will miss points between the begin and end.
             // Fortunately, most fast-moving objects are projectiles and have small radii.
             BoundingSphere sphere(obj.Position, obj.Radius);
-            hit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
+            isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
 
             float planeDist;
             ray.Intersects(plane, planeDist);
-            if (!hit && planeDist <= expectedDistance.Length()) {
+            if (!isHit && planeDist <= expectedDistance) {
                 // Last, test if the object sphere collides with the intersection of the triangle's plane
                 sphere = BoundingSphere(obj.LastPosition + dir * planeDist, obj.Radius * 1.1f);
                 //BoundingSphere sphere(obj.Position(), obj.Radius);
-                hit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
+                isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
             }
         }
 
-        if (!hit) return;
+        if (!isHit) return;
 
         bool tryAgain = false;
 
-        auto closestPoint = ClosestPoint(t, obj.Position);
+        auto closestPoint = ClosestPointOnTriangle(t[0], t[1], t[2], obj.Position);
         Debug::ClosestPoints.push_back(closestPoint);
         auto closestNormal = obj.Position - closestPoint;
         closestNormal.Normalize();
@@ -413,111 +831,95 @@ namespace Inferno {
         obj.Position = closestPoint + closestNormal * obj.Radius;
     }
 
-    class SegmentSearch {
-        Set<Segment*> _results;
-        Stack<Segment*> _stack;
-    public:
-        const Set<Segment*>& GetNearby(Level& level, const Object& obj, float range) {
-            auto root = level.TryGetSegment(obj.Segment);
-            _stack.push(root);
-            _results.clear();
+    //class SegmentSearch {
+    //    Set<Segment*> _results;
+    //    Stack<Segment*> _stack;
+    //public:
+    //    const Set<Segment*>& GetNearby(Level& level, const Object& obj, float range) {
+    //        auto root = level.TryGetSegment(obj.Segment);
+    //        _stack.push(root);
+    //        _results.clear();
 
-            while (!_stack.empty()) {
-                auto seg = _stack.top();
-                _stack.pop();
-                if (!seg) continue;
+    //        while (!_stack.empty()) {
+    //            auto seg = _stack.top();
+    //            _stack.pop();
+    //            if (!seg) continue;
 
-                _results.insert(seg);
-                for (auto& side : SideIDs) {
-                    if (auto conn = level.TryGetSegment(seg->GetConnection(side))) {
-                        if (_results.contains(conn)) continue;
-                        if (seg != root && !SideVertsInRange(level, *seg, side, obj.Position, range)) continue;
-                        _stack.push(conn);
-                    }
-                }
-            }
+    //            _results.insert(seg);
+    //            for (auto& side : SideIDs) {
+    //                if (auto conn = level.TryGetSegment(seg->GetConnection(side))) {
+    //                    if (_results.contains(conn)) continue;
+    //                    if (seg != root && !SideVertsInRange(level, *seg, side, obj.Position, range)) continue;
+    //                    _stack.push(conn);
+    //                }
+    //            }
+    //        }
 
-            return _results;
-        }
+    //        return _results;
+    //    }
 
-    private:
-        bool SideVertsInRange(Level& level, const Segment& seg, SideID side, const Vector3 point, float range) {
-            for (auto& i : seg.GetVertexIndices(side)) {
-                if (Vector3::Distance(level.Vertices[i], point) < range)
-                    return true;
-            }
+    //private:
+    //    bool SideVertsInRange(Level& level, const Segment& seg, SideID side, const Vector3 point, float range) {
+    //        for (auto& i : seg.GetVertexIndices(side)) {
+    //            if (Vector3::Distance(level.Vertices[i], point) < range)
+    //                return true;
+    //        }
 
-            return false;
-        }
-    } SegmentSearch;
-
-    void CollideTriangles(Level& level, Object& obj, float dt, int pass) {
-        // gather all nearby triangles
-
-        //int tries = 0;
-        //int totalTries = 0;
-        //do {
-
-        auto searchRange = obj.Radius * 2 + (obj.Movement.Physics.Velocity * dt).Length();
-        Debug::R = searchRange;
-        auto& nearby = SegmentSearch.GetNearby(level, obj, searchRange);
-        Debug::Steps = (float)nearby.size();
-
-        for (auto& seg : nearby) {
-            for (auto& side : SideIDs) {
-                auto face = Face::FromSide(level, *seg, side);
-                if (seg->SideIsSolid(side, level)) {
-                    Intersect({ face.VerticesForPoly0() }, obj, dt, pass);
-                    Intersect({ face.VerticesForPoly1() }, obj, dt, pass);
-                }
-            }
-        }
-
-        //for (auto& seg : level.Segments) {
-        //    for (auto& side : SideIDs) {
-        //        auto face = Face::FromSide(level, seg, side);
-        //        if (seg.SideIsSolid(side, level)) {
-        //            Intersect({ face.VerticesForPoly0() }, obj, dt, pass);
-        //            Intersect({ face.VerticesForPoly1() }, obj, dt, pass);
-        //        }
-        //    }
-        //}
-
-
-        //    totalTries++;
-        //    if (totalTries > 8) {
-        //        SPDLOG_WARN("max total tries reached");
-        //        break;
-        //    }
-        //} while (tries);
-    }
-
+    //        return false;
+    //    }
+    //} SegmentSearch;
 
     void UpdatePhysics(Level& level, double t, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
 
         HandleInput(level.Objects[0], dt);
-        Matrix m;
-        Quaternion q;
 
         for (auto& obj : level.Objects) {
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
-            continue;
 
             if (obj.Movement.Type == MovementType::Physics) {
                 FixedPhysics(obj, dt);
 
-                if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
-                    WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
+                //if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
+                //    WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
                 obj.Movement.Physics.InputVelocity = obj.Movement.Physics.Velocity;
                 obj.Position += obj.Movement.Physics.Velocity * dt;
 
-                CollideTriangles(level, obj, dt, 0);
-                CollideTriangles(level, obj, dt, 1); // Doing two passes makes the result more stable with odd geometry
-                //CollideTriangles(level, obj, dt, 2); // Doing two passes makes the result more stable with odd geometry
+
+                auto delta = obj.Position - obj.LastPosition;
+                auto maxDistance = delta.Length();
+                if (maxDistance < 0.001f) {
+                    // no travel, but need to check for being inside of wall (maybe this isn't necessary)
+                    LevelHit hit;
+                    BoundingSphere sphere(obj.Position, obj.Radius);
+
+                    if (IntersectLevel(level, sphere, obj.Segment, hit)) {
+                        Debug::ClosestPoints.push_back(hit.Point);
+                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                    }
+                }
+                else {
+                    Vector3 dir;
+                    delta.Normalize(dir);
+                    //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
+
+                    float hitDistance{};
+                    Ray ray(obj.LastPosition, dir);
+
+                    BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
+
+                    if (auto hit = IntersectLevel(level, capsule, obj.Segment, maxDistance)) {
+                        //Debug::ClosestPoints.push_back(hit.Point);
+                        //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                    }
+                }
+
+                //CollideTriangles(level, obj, dt, 0);
+                //CollideTriangles(level, obj, dt, 1); // Doing two passes makes the result more stable
+                //CollideTriangles(level, obj, dt, 2); // Doing two passes makes the result more stable
 
                 //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
                 //obj.Movement.Physics.Velocity = frameVec / dt;
