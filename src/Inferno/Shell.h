@@ -19,9 +19,10 @@ namespace Inferno {
         Shell& operator=(const Shell&) = delete;
         Shell& operator=(Shell&&) = delete;
 
-        int Show(Application* app, int width, int height, int nCmdShow = SW_SHOWMAXIMIZED);
+        int Show(int width, int height, int nCmdShow = SW_SHOWMAXIMIZED);
 
         inline static HWND Hwnd = nullptr;
+        inline static float DpiScale = 1;
     };
 }
 

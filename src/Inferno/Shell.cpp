@@ -237,7 +237,7 @@ bool RegisterWindowClass(HINSTANCE hInstance) {
     return RegisterClassEx(&wc) != 0;
 }
 
-int Shell::Show(Application* app, int width, int height, int nCmdShow) {
+int Shell::Show(int width, int height, int nCmdShow) {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
 
@@ -256,14 +256,17 @@ int Shell::Show(Application* app, int width, int height, int nCmdShow) {
     if (!hwnd)
         return 1;
 
+    Shell::DpiScale = GetDpiForWindow(hwnd) / 96.0f;
+
     EnableDarkMode(hwnd);
     Shell::Hwnd = hwnd;
     ShowWindow(hwnd, nCmdShow);
     // TODO: Change nCmdShow to SW_SHOWMAXIMIZED to default to fullscreen.
 
-    SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(app));
+    Application app;
+    SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&app));
     GetClientRect(hwnd, &rc);
-    app->Initialize(rc.right - rc.left, rc.bottom - rc.top);
+    app.Initialize(rc.right - rc.left, rc.bottom - rc.top);
 
     // Main message loop
     MSG msg{};
@@ -274,10 +277,10 @@ int Shell::Show(Application* app, int width, int height, int nCmdShow) {
             continue;
         }
 
-        app->Tick();
+        app.Tick();
     }
 
-    app->OnShutdown();
+    app.OnShutdown();
     DestroyWindow(hwnd);
     DeleteObject(BackgroundBrush);
     return (int)msg.wParam;

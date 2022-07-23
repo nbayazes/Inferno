@@ -34,7 +34,7 @@ namespace Inferno::Editor {
             ImGui::Text("File name");
             ImGui::InputText("##Filename", _fileName, std::size(_fileName), ImGuiInputTextFlags_AutoSelectAll);
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Text("Version");
             {
                 DisableControls disable(!_foundD1);
@@ -50,7 +50,7 @@ namespace Inferno::Editor {
             }
 
             if (Game::Mission) {
-                ImGui::Dummy({ 0, 10 });
+                ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 ImGui::Checkbox("Add to HOG", &_addToHog);
             }
 

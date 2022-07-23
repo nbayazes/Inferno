@@ -28,7 +28,7 @@ namespace Inferno::Editor {
         bool _dataPathsChanged = false;
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
-            Width = 800;
+            Width = 800 * Shell::DpiScale;
         }
 
     protected:
@@ -40,34 +40,34 @@ namespace Inferno::Editor {
             ImGui::Text("Descent 1 executable");
 
             strcpy_s(_d1PathBuffer.data(), MAX_PATH, _descent1Path.string().c_str());
-            if (ImGui::InputTextEx("##d1exe", nullptr, _d1PathBuffer.data(), MAX_PATH, { -100, 0 }, 0)) {
+            if (ImGui::InputTextEx("##d1exe", nullptr, _d1PathBuffer.data(), MAX_PATH, { -100 * Shell::DpiScale, 0 }, 0)) {
                 _descent1Path = string(_d1PathBuffer.data());
             }
 
             ImGui::SameLine();
-            if (ImGui::Button("Browse...##d1", { 90, 0 }))
+            if (ImGui::Button("Browse...##d1", { 90 * Shell::DpiScale, 0 }))
                 if (auto folder = OpenFileDialog(filter, L"Pick game executable"))
                     _descent1Path = *folder;
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Text("Descent 2 executable");
 
             strcpy_s(_d2PathBuffer.data(), MAX_PATH, _descent2Path.string().c_str());
-            if (ImGui::InputTextEx("##d2exe", nullptr, _d2PathBuffer.data(), MAX_PATH, { -100, 0 }, 0)) {
+            if (ImGui::InputTextEx("##d2exe", nullptr, _d2PathBuffer.data(), MAX_PATH, { -100 * Shell::DpiScale, 0 }, 0)) {
                 _descent2Path = string(_d2PathBuffer.data());
             }
 
             ImGui::SameLine();
-            if (ImGui::Button("Browse...##d2", { 90, 0 }))
+            if (ImGui::Button("Browse...##d2", { 90 * Shell::DpiScale, 0 }))
                 if (auto folder = OpenFileDialog(filter, L"Pick game executable"))
                     _descent2Path = *folder;
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Separator();
 
-            constexpr auto labelWidth = 165;
-            constexpr auto columnHeight = 375;
-            ImGui::BeginChild("left", { Width / 2 - 25, columnHeight });
+            const auto labelWidth = 165 * Shell::DpiScale;
+            const auto columnHeight = 375 * Shell::DpiScale;
+            ImGui::BeginChild("left", { Width / 2 - 25 * Shell::DpiScale, columnHeight });
 
 
             ImGui::Columns(2, nullptr, false);
@@ -99,7 +99,7 @@ namespace Inferno::Editor {
             }
 
             {
-                ImGui::Dummy({ 0, 10 });
+                ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 ImGui::TextDisabled("Graphics");
                 ImGui::NextColumn();
                 ImGui::NextColumn();
@@ -124,7 +124,7 @@ namespace Inferno::Editor {
             ImGui::Columns(1);
             ImGui::EndChild();
 
-            ImGui::SameLine(0, 10);
+            ImGui::SameLine(0, 10 * Shell::DpiScale);
 
             ImGui::BeginChild("right", { Width / 2 - 25, columnHeight });
             ImGui::Columns(2, nullptr, false);
@@ -171,7 +171,7 @@ namespace Inferno::Editor {
             }
 
             {
-                ImGui::Dummy({ 0, 10 });
+                ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 ImGui::TextDisabled("FPS limits");
                 ImGui::NextColumn();
                 ImGui::NextColumn();
@@ -211,13 +211,13 @@ namespace Inferno::Editor {
 
             ImGui::Text("Extra paths to search for game data. Paths that appear LAST have higher priority.\nDrag to reorder.");
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::BeginChild("container");
 
-            constexpr auto buttonWidth = 130;
+            const auto buttonWidth = 130 * Shell::DpiScale;
 
             {
-                ImGui::BeginChild("data paths list", { Width - buttonWidth - 25, 400 }, true);
+                ImGui::BeginChild("data paths list", { Width - buttonWidth - 25 * Shell::DpiScale, 400 * Shell::DpiScale }, true);
 
                 for (int i = 0; i < Settings::DataPaths.size(); i++) {
                     if (ImGui::Selectable(Settings::DataPaths[i].string().c_str(), _selectedPath == i))
@@ -264,7 +264,7 @@ namespace Inferno::Editor {
 
         void OnUpdate() override {
 
-            ImGui::BeginChild("prop_panel", { -1, 700 });
+            ImGui::BeginChild("prop_panel", { -1, 700 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();

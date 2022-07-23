@@ -307,11 +307,13 @@ namespace Inferno::Editor {
         auto count = (uint)_textureIds.size();
         uint i = 0;
 
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 2 });
+
         for (auto& id : _textureIds) {
             auto& material = Render::Materials->Get(id);
             if (material.ID <= TexID::Invalid) continue; // don't show invalid textures (usually TID 910)
 
-            const ImVec2 size = { 64, 64 };
+            const ImVec2 size = { 64 * Shell::DpiScale, 64 * Shell::DpiScale };
             const ImVec4 bg = { 0.1f, 0.1f, 0.1f, 1.0f };
             constexpr int borderThickess = 2;
             //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2, 2 });
@@ -361,6 +363,7 @@ namespace Inferno::Editor {
             i++;
         };
 
+        ImGui::PopStyleVar();
         ImGui::EndChild();
     }
 }

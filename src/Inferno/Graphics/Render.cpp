@@ -459,11 +459,11 @@ namespace Inferno::Render {
             auto c = str[i];
             char next = i + 1 >= str.size() ? 0 : str[i + 1];
             auto& ci = Atlas.GetCharacter(c, size);
-            auto width = font->GetWidth(c);
+            auto width = font->GetWidth(c) * Shell::DpiScale;
             auto x0 = xOffset + x;
             auto x1 = xOffset + x + width;
             auto y0 = y;
-            auto y1 = y + font->Height;
+            auto y1 = y + font->Height * Shell::DpiScale;
 
             Render::DrawQuadPayload payload{};
             payload.V0 = { Vector2{ x0, y1 }, { ci.X0, ci.Y1 }, color }; // bottom left

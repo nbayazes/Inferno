@@ -107,7 +107,7 @@ namespace Inferno::Editor {
 
             //ImGui::EndChild();
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Separator();
 
             ImGui::Columns();

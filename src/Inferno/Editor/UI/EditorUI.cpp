@@ -381,7 +381,7 @@ namespace Inferno::Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::Begin("TopToolbar", nullptr, ToolbarFlags);
 
-        const ImVec2 buttonSize = { 75, 0 };
+        const ImVec2 buttonSize = { 75 * Shell::DpiScale, 0 };
 
         auto startY = ImGui::GetCursorPosY();
 
@@ -390,7 +390,7 @@ namespace Inferno::Editor {
             ImGui::Text("Snap");
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(80);
+            ImGui::SetNextItemWidth(80 * Shell::DpiScale);
             auto snap = Settings::TranslationSnap;
             if (ImGui::InputFloat("##translation", &snap, 0, 0, "%.2f"))
                 Settings::TranslationSnap = std::clamp(snap, 0.0f, 1000.0f);
@@ -399,7 +399,7 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::GetCurrentWindow()->DC.CursorPos.x -= 8;
 
-            ImGui::SetNextWindowSize({ 110, 0 });
+            ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##drp", nullptr, ImGuiComboFlags_NoPreview)) {
                 static const float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
                 for (int i = 0; i < std::size(snapValues); i++) {
@@ -414,7 +414,7 @@ namespace Inferno::Editor {
 
         {
             ImGui::SameLine();
-            ImGui::SetNextItemWidth(80);
+            ImGui::SetNextItemWidth(80 * Shell::DpiScale);
             auto snap = Settings::RotationSnap * RadToDeg;
 
             if (ImGui::InputFloat("##rotation", &snap, 0, 0, (char*)u8"%.3f°"))
@@ -424,7 +424,7 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::GetCurrentWindow()->DC.CursorPos.x -= 8;
 
-            ImGui::SetNextWindowSize({ 110, 0 });
+            ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##rdrp", nullptr, ImGuiComboFlags_NoPreview)) {
                 static const float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
                 for (auto& value : snapValues) {
@@ -438,7 +438,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::SameLine();
-        if (ImGui::GetCursorPosX() + 300 < node.Size.x) {
+        if (ImGui::GetCursorPosX() + 300 * Shell::DpiScale < node.Size.x) {
             ImGui::SeparatorVertical();
             ImGui::SameLine();
         }
@@ -454,7 +454,7 @@ namespace Inferno::Editor {
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert mode for segments");
 
             ImGui::SameLine();
-            ImGui::SetNextItemWidth(100);
+            ImGui::SetNextItemWidth(100 * Shell::DpiScale);
 
             if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::InsertMode])) {
                 for (int i = 0; i < insertModes.size(); i++) {
@@ -473,7 +473,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::SameLine();
-        if (ImGui::GetCursorPosX() + 400 < node.Size.x) {
+        if (ImGui::GetCursorPosX() + 400 * Shell::DpiScale < node.Size.x) {
             ImGui::SeparatorVertical();
             ImGui::SameLine();
         }
@@ -485,7 +485,7 @@ namespace Inferno::Editor {
             // Selection settings
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(125);
+            ImGui::SetNextItemWidth(125 * Shell::DpiScale);
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgHovered));
 
@@ -496,13 +496,13 @@ namespace Inferno::Editor {
                 // must use utf8 encoding to properly render glyphs
                 auto tolerance = Settings::Selection.PlanarTolerance;
                 auto label = fmt::format(u8"{:.0f}°", tolerance);
-                ImGui::SetNextItemWidth(175);
+                ImGui::SetNextItemWidth(175 * Shell::DpiScale);
 
                 if (ImGui::SliderFloat("##tolerance", &tolerance, 0, 90, (char*)label.c_str())) {
                     Settings::Selection.PlanarTolerance = std::clamp(tolerance, 0.0f, 90.0f);
                 }
 
-                ImGui::Dummy({ 0, 10 });
+                ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 //ImGui::Separator();
 
                 ImGui::Text("Stop at");
@@ -517,7 +517,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::SameLine();
-        if (ImGui::GetCursorPosX() + 200 < node.Size.x) {
+        if (ImGui::GetCursorPosX() + 200 * Shell::DpiScale < node.Size.x) {
             ImGui::SeparatorVertical();
             ImGui::SameLine();
         }
@@ -561,14 +561,14 @@ namespace Inferno::Editor {
 
         {
             // Coordinate system settings
-            ImGui::SetNextItemWidth(150);
+            ImGui::SetNextItemWidth(150 * Shell::DpiScale);
 
             static const std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
-            const ImVec2 csysBtnSize = { 150, 0 };
+            const ImVec2 csysBtnSize = { 150 * Shell::DpiScale, 0 };
 
             if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
                 ImGui::Text("Coordinate system");
-                ImGui::Dummy({ 200, 0 });
+                ImGui::Dummy({ 200 * Shell::DpiScale, 0 });
                 auto csys = Settings::CoordinateSystem;
 
                 if (ImGui::RadioButton(csysModes[0], csys == CoordinateSystem::Local))
@@ -588,7 +588,7 @@ namespace Inferno::Editor {
                 }
 
                 {
-                    constexpr float Indent = 35;
+                    const float Indent = 35 * Shell::DpiScale;
                     ImGui::SetCursorPosX(Indent);
                     static SelectionMode previousMode{};
                     bool isEditing = Settings::SelectionMode == SelectionMode::Transform;
@@ -715,12 +715,12 @@ namespace Inferno::Editor {
         //statusPos.y += dock->CentralNode->Size.y;
         //_statusBar.Position = statusPos;
         //_statusBar.Width = dock->CentralNode->Size.x;
-        float btnWidth = 80;
+        float btnWidth = 80 * Shell::DpiScale;
         float width = btnWidth * 7;
 
         auto pos = node->Pos;
-        pos.x += node->Size.x / 2 - width / 2; // todo: center
-        pos.y += node->Size.y - btnWidth - 60; // status bar height?
+        pos.x += node->Size.x / 2 - width / 2;
+        pos.y += node->Size.y - btnWidth - 60 * Shell::DpiScale; // status bar height?
 
         ImGui::SetNextWindowPos(pos);
         ImGui::SetNextWindowSize({ 0, btnWidth });

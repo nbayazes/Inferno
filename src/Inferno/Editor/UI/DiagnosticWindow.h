@@ -44,7 +44,7 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::Checkbox("Mark errors", &_markErrors);
 
-            constexpr auto statsWidth = 300;
+            const auto statsWidth = 280 * Shell::DpiScale;
             ImGui::BeginChild("diag_list", { ImGui::GetWindowWidth() - statsWidth, 0 });
 
             constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;

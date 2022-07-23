@@ -19,7 +19,7 @@ namespace Inferno::Editor {
         MissionInfo Mission;
     public:
         MissionEditor() : ModalWindowBase("Mission Editor") {
-            Width = 500;
+            Width = 500 * Shell::DpiScale;
         };
 
     protected:
@@ -98,17 +98,17 @@ namespace Inferno::Editor {
 
 
             if (Game::Mission && Game::Mission->IsDescent1()) {
-                ImGui::Dummy({ 0, 10 });
+                ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 ImGui::TextInputWide("Briefing TXB", Mission.Metadata["briefing"], 12);
                 ImGui::TextInputWide("Ending TXB", Mission.Metadata["ending"], 12);
             }
 
             {
-                ImGui::Dummy({ 0, 10 });
+                ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 ImGui::BeginChild("level list container", { -1, -1 }, false);
 
                 {
-                    ImGui::BeginChild("level list", { Width - 150, -1 }, true);
+                    ImGui::BeginChild("level list", { Width - 150 * Shell::DpiScale, -1 }, true);
                     for (int n = 0; n < _entries.size(); n++) {
                         auto& entry = _entries[n];
                         auto label = entry.IsSecret ? fmt::format("{} (secret)", entry.File) : entry.File;
@@ -157,7 +157,7 @@ namespace Inferno::Editor {
                         }
                     }
 
-                    ImGui::Dummy({ 0, 10 });
+                    ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                     if (Game::Mission && ImGui::Button("Add Missing", btnSize))
                         AddMissingLevels(*Game::Mission);
 
@@ -206,9 +206,9 @@ namespace Inferno::Editor {
             MetadataCheckbox("Capture the flag", "capture_flag");
             MetadataCheckbox("Hoard", "hoard");
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Separator();
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             MetadataCheckbox("Multi author", "multi_author");
             //ImGui::SameLine();
             //MetadataCheckbox("Want feedback", "want_feedback");
@@ -216,14 +216,14 @@ namespace Inferno::Editor {
             if (Mission.Comments.capacity() < 2048)
                 Mission.Comments.resize(2048);
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Text("Comments:");
             ImGui::InputTextMultiline("##Comments", Mission.Comments.data(), 2048, { -1, -1 });
             ImGui::EndTabItem();
         }
 
         void OnUpdate() override {
-            ImGui::BeginChild("prop_panel", { -1, 700 });
+            ImGui::BeginChild("prop_panel", { -1, 700 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MissionTab();

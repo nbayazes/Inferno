@@ -9,6 +9,7 @@
 #include <imgui_impl.h>
 #include "Graphics/Render.h"
 #include "Graphics/Buffers.h"
+#include "Shell.h"
 
 namespace ImGui {
     // Copy of Selectable() with a border when selected
@@ -280,6 +281,8 @@ namespace Inferno {
             style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0, 0, 0, 0.65f);
 
             style.FrameRounding = 0;
+            style.ItemSpacing.x *= Shell::DpiScale;
+            style.ItemSpacing.y *= Shell::DpiScale;
 
             //// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
             //ImGuiStyle& style = ImGui::GetStyle();
@@ -290,10 +293,8 @@ namespace Inferno {
 
             // Setup Platform/Renderer bindings
             ImGui_ImplWin32_Init(hwnd);
-
             //static const ImWchar ranges[] = { 0x0020, 0x00FF, 0 };
-
-            /*ImFont* font = */io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\SegoeUI.ttf", fontSize, nullptr, nullptr);
+            /*ImFont* font = */io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\SegoeUI.ttf", fontSize * Shell::DpiScale, nullptr, nullptr);
         }
 
         void BeginFrame() {

@@ -15,7 +15,7 @@ namespace Inferno::Editor {
 
     public:
         HogEditor() : ModalWindowBase("HOG Editor") {
-            Width = 500;
+            Width = 500 * Shell::DpiScale;
 
             _renameDialog.Callback = [this](bool accepted) {
                 if (!accepted) return;
@@ -57,9 +57,9 @@ namespace Inferno::Editor {
         };
 
         void OnUpdate() override {
-            constexpr float PanelHeight = 600;
+            const float PanelHeight = 600 * Shell::DpiScale;
 
-            ImGui::BeginChild("list", { 300, PanelHeight }, true);
+            ImGui::BeginChild("list", { 300 * Shell::DpiScale, PanelHeight }, true);
 
             for (int i = 0; i < _entries.size(); i++) {
                 auto& entry = _entries[i];
@@ -122,7 +122,7 @@ namespace Inferno::Editor {
                 }
             }
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
             {
                 int count = 0;
@@ -153,7 +153,7 @@ namespace Inferno::Editor {
                     "This is intended for uniformly updating custom textures\n"
                     "and robots across all levels in a mission.");
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
             //int selection = GetSelection();
 
@@ -177,7 +177,7 @@ namespace Inferno::Editor {
             //    }
             //}
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
             {
                 DisableControls disable(!entry);
@@ -192,7 +192,7 @@ namespace Inferno::Editor {
                 }
             }
 
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
             if (ImGui::Checkbox("Only show levels", &_onlyShowLevels))
                 _selections.clear();

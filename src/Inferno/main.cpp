@@ -253,14 +253,13 @@ int main() {
 
     try {
         Shell shell;
-        Application app;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
         Settings::Load();
         FileSystem::Init();
         Resources::Init();
 
-        shell.Show(&app, 1024, 768);
+        shell.Show(1024, 768);
         Settings::Save();
 
         //CoUninitialize();

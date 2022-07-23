@@ -134,7 +134,7 @@ namespace Inferno::Editor {
 
         virtual ~WindowBase() = default;
 
-        float DefaultWidth = 450, DefaultHeight = 450;
+        float DefaultWidth = 450 * Shell::DpiScale, DefaultHeight = 450 * Shell::DpiScale;
 
         void Update() {
             if (!IsOpen()) return;
@@ -198,7 +198,7 @@ namespace Inferno::Editor {
         }
 
         string Name;
-        float Width = 500;
+        float Width = 500 * Shell::DpiScale;
         float Height = -1;
 
         void Show() {
@@ -226,32 +226,32 @@ namespace Inferno::Editor {
         virtual bool OnOpen() { return true; }
 
         void AcceptButtons(const char* acceptLabel = "OK", const char* cancelLabel = "Cancel", bool canAccept = true) {
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
-            ImGui::BeginChild("closebtns", { 0, 32 });
-            ImGui::SameLine(ImGui::GetWindowWidth() - 205);
+            ImGui::BeginChild("closebtns", { 0, 32 * Shell::DpiScale });
+            ImGui::SameLine(ImGui::GetWindowWidth() - 205 * Shell::DpiScale);
 
             {
                 DisableControls disable(!canAccept);
-                if (ImGui::Button(acceptLabel, { 100, 0 }))
+                if (ImGui::Button(acceptLabel, { 100 * Shell::DpiScale, 0 }))
                     Close(true);
             }
 
-            ImGui::SameLine(ImGui::GetWindowWidth() - 100);
-            if (ImGui::Button(cancelLabel, { 100, 0 }))
+            ImGui::SameLine(ImGui::GetWindowWidth() - 100 * Shell::DpiScale);
+            if (ImGui::Button(cancelLabel, { 100 * Shell::DpiScale, 0 }))
                 Close();
             ImGui::EndChild();
         }
 
         void CloseButton(const char* acceptLabel = "OK", bool canAccept = true) {
-            ImGui::Dummy({ 0, 10 });
+            ImGui::Dummy({ 0, 10 * Shell::DpiScale });
 
-            ImGui::BeginChild("closebtns", { 0, 32 });
-            ImGui::SameLine(ImGui::GetWindowWidth() - 100);
+            ImGui::BeginChild("closebtns", { 0, 32 * Shell::DpiScale });
+            ImGui::SameLine(ImGui::GetWindowWidth() - 100 * Shell::DpiScale);
 
             {
                 DisableControls disable(!canAccept);
-                if (ImGui::Button(acceptLabel, { 100, 0 }))
+                if (ImGui::Button(acceptLabel, { 100 * Shell::DpiScale, 0 }))
                     Close(true);
             }
 
