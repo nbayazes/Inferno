@@ -153,6 +153,8 @@ namespace Inferno::Settings {
         node["SelectMarkedSegment"] << SelectMarkedSegment;
         node["ResetUVsOnAlign"] << ResetUVsOnAlign;
         node["WeldTolerance"] << WeldTolerance;
+
+        node["Undos"] << UndoLevels;
         node["AutosaveMinutes"] << AutosaveMinutes;
         node["CoordinateSystem"] << (int)CoordinateSystem;
 
@@ -210,6 +212,8 @@ namespace Inferno::Settings {
         ReadValue(node["SelectMarkedSegment"], SelectMarkedSegment);
         ReadValue(node["ResetUVsOnAlign"], ResetUVsOnAlign);
         ReadValue(node["WeldTolerance"], WeldTolerance);
+
+        ReadValue(node["Undos"], UndoLevels);
         ReadValue(node["AutosaveMinutes"], AutosaveMinutes);
         ReadValue(node["CoordinateSystem"], (int&)CoordinateSystem);
 
