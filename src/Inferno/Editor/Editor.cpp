@@ -253,6 +253,8 @@ namespace Inferno::Editor {
             Editor::Gizmo.State == GizmoState::Dragging && io.MouseDown[1])
             Editor::Gizmo.CancelDrag();
 
+        Render::Camera.Update(Render::FrameTime); // for interpolation
+
         // only update mouse functionality if mouse not over imgui and not in mouselook
         if (ImGui::GetCurrentContext()->HoveredWindow && !Input::GetMouselook()) return;
 
@@ -430,17 +432,6 @@ namespace Inferno::Editor {
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
         ResetAutosaveTimer();
-    }
-
-    void CheckDegenerateSegments(Level& level) {
-        SegID id{};
-
-        for (auto& seg : level.Segments) {
-            if (SegmentIsDegenerate(level, seg)) {
-                SPDLOG_WARN("Segment {} is degenerate", id);
-            }
-            id++;
-        }
     }
 
     void CleanLevel(Level& level) {

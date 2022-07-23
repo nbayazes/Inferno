@@ -49,6 +49,7 @@ namespace Inferno::Settings {
         node["Properties"] << Windows.Properties;
         node["Textures"] << Windows.Textures;
         node["Reactor"] << Windows.Reactor;
+        node["Diagnostics"] << Windows.Diagnostics;
         node["Noise"] << Windows.Noise;
         node["TunnelBuilder"] << Windows.TunnelBuilder;
         node["Sound"] << Windows.Sound;
@@ -60,6 +61,7 @@ namespace Inferno::Settings {
         ReadValue(node["Properties"], Windows.Properties);
         ReadValue(node["Textures"], Windows.Textures);
         ReadValue(node["Reactor"], Windows.Reactor);
+        ReadValue(node["Diagnostics"], Windows.Diagnostics);
         ReadValue(node["Noise"], Windows.Noise);
         ReadValue(node["TunnelBuilder"], Windows.TunnelBuilder);
         ReadValue(node["Sound"], Windows.Sound);

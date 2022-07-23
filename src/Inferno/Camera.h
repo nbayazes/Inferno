@@ -9,6 +9,9 @@ namespace Inferno {
 
     // Descent uses LH coordinate system
     class Camera {
+        Vector3 _lerpStart, _lerpEnd;
+        float _lerpTime{}, _lerpDuration;
+
     public:
         Camera() = default;
 
@@ -73,8 +76,8 @@ namespace Inferno {
             Up.Normalize();
         }
 
-        Vector3 GetForward() const { 
-            auto forward = Target - Position; 
+        Vector3 GetForward() const {
+            auto forward = Target - Position;
             forward.Normalize();
             return forward;
         }
@@ -194,6 +197,22 @@ namespace Inferno {
             auto translation = target - Target;
             Position += translation;
             Target += translation;
+        }
+
+        void LerpTo(const Vector3& target, float duration) {
+            _lerpDuration = duration;
+            _lerpTime = 0;
+            _lerpEnd = target;
+            _lerpStart = Target;
+        }
+
+        void Update(float dt) {
+            if (_lerpTime < _lerpDuration) {
+                _lerpTime += dt;
+                auto t = _lerpTime / _lerpDuration;
+                auto lerp = Vector3::Lerp(_lerpStart, _lerpEnd, t);
+                MoveTo(lerp);
+            }
         }
     };
 }

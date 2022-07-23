@@ -142,6 +142,7 @@ namespace Inferno::Editor {
 
             _snapshot--;
             UpdateWindowTitle();
+            Events::SnapshotChanged();
         }
 
         void Redo() {
@@ -151,6 +152,7 @@ namespace Inferno::Editor {
             _snapshot->Restore(_level);
             _snapshot->RestoreSelections();
             UpdateWindowTitle();
+            Events::SnapshotChanged();
         }
 
         auto Snapshots() { return _snapshots.size(); }

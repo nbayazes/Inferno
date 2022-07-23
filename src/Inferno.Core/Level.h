@@ -750,7 +750,7 @@ namespace Inferno {
         // Returns segments that contain a given vertex
         List<SegID> SegmentsByVertex(uint i);
 
-        Array<Vector3, 4> VerticesForSide(Tag tag) {
+        Array<Vector3, 4> VerticesForSide(Tag tag) const {
             Array<Vector3, 4> verts{};
 
             if (auto seg = TryGetSegment(tag.Segment)) {
@@ -762,7 +762,7 @@ namespace Inferno {
             return verts;
         }
 
-        Option<PointID> IndexForSide(PointTag tag) {
+        Option<PointID> IndexForSide(PointTag tag) const {
             if (auto seg = TryGetSegment(tag.Segment)) {
                 auto indices = seg->GetVertexIndices(tag.Side);
                 return indices[tag.Point % 4];

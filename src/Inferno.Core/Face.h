@@ -224,6 +224,23 @@ namespace Inferno {
             return std::min(ratio1, ratio2);
         }
 
+        //// Returns the angle between the two triangles of a face
+        //float FlatnessRatio(const Face& face) {
+        //    auto v0 = face[1] - face[0];
+        //    auto v1 = face[2] - face[0]; // across center
+        //    auto v2 = face[3] - face[0];
+        //    v0.Normalize();
+        //    v1.Normalize();
+        //    v2.Normalize();
+
+        //    auto n0 = v0.Cross(v1);
+        //    auto n1 = v1.Cross(v2);
+        //    n0.Normalize();
+        //    n1.Normalize();
+        //    return AngleBetweenVectors(n0, n1);
+        //}
+
+
         void Reflect(span<Vector3> points) const {
             Plane plane(Center(), AverageNormal());
             auto reflect = Matrix::CreateReflection(plane);

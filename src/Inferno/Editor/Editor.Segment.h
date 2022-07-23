@@ -20,7 +20,6 @@ namespace Inferno::Editor {
 
     void SetTextureFromWallClip(Level&, Tag, WClipID);
     bool AddFlickeringLight(Level& level, Tag tag, FlickeringLight light);
-    bool SegmentIsDegenerate(Level& level, Segment& seg);
 
     void BreakConnection(Level& level, Tag tag);
     void DetachSide(Level& level, Tag tag);

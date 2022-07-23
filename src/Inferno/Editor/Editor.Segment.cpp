@@ -7,6 +7,7 @@
 #include "Editor.Wall.h"
 #include "Editor.Texture.h"
 #include "Graphics/Render.h"
+#include "Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
     void RemoveMatcen(Level& level, MatcenID id) {
@@ -266,6 +267,7 @@ namespace Inferno::Editor {
         // Delete the segment
         ShiftSegmentRefs(level, segId, -1);
         Seq::removeAt(level.Segments, (int)segId);
+        Events::SegmentsChanged();
     }
 
     // Inserts a uniform 20x20 segment centered on the selected face when extrude is false.
@@ -352,6 +354,7 @@ namespace Inferno::Editor {
         seg.UpdateCenter(level);
 
         level.Segments.push_back(seg);
+        Events::SegmentsChanged();
         Events::LevelChanged();
         return id;
     }
@@ -418,89 +421,6 @@ namespace Inferno::Editor {
         // Align the verts
         for (int i = 0; i < 4; i++)
             src[(srcVert + i) % 4] = dest[(dstVert + (4 - i)) % 4];
-    }
-
-    // Calculates an angle between three vectors sharing v0
-    float AngleBetweenThreeVectors(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3) {
-        auto line1 = v1 - v0;
-        auto line2 = v2 - v0;
-        auto line3 = v3 - v0;
-        // use cross product to calcluate orthogonal vector
-        auto orthog = -line1.Cross(line2);
-
-        // use dot product to determine angle A dot B = |A|*|B| * cos (angle)
-        // therfore: angle = acos (A dot B / |A|*|B|)
-        auto dot = line3.Dot(orthog);
-        auto magnitude1 = line3.Length();
-        auto magnitude2 = orthog.Length();
-
-        if (dot == 0 || magnitude1 == 0 || magnitude2 == 0) {
-            return (200.0 * M_PI) / 180.0;
-        }
-        else {
-            auto ratio = dot / (magnitude1 * magnitude2);
-            ratio = float((int)(ratio * 1000.0f)) / 1000.0f; // round
-
-            if (ratio < -1.0f || ratio > 1.0f)
-                return (199.0 * M_PI) / 180.0;
-            else
-                return acos(ratio);
-        }
-    }
-
-    // Returns the angle between the two triangles of a face
-    float FlatnessRatio(const Face& face) {
-        auto v0 = face[1] - face[0];
-        auto v1 = face[2] - face[0]; // across center
-        auto v2 = face[3] - face[0];
-        v0.Normalize();
-        v1.Normalize();
-        v2.Normalize();
-
-        auto n0 = v0.Cross(v1);
-        auto n1 = v1.Cross(v2);
-        n0.Normalize();
-        n1.Normalize();
-        return AngleBetweenVectors(n0, n1);
-    }
-
-    bool SegmentIsDegenerate(Level& level, Segment& seg) {
-        // the three adjacent points of a segment for each corner of the segment 
-        static const ubyte adjacentPointTable[8][3] = {
-            { 1, 3, 4 },
-            { 2, 0, 5 },
-            { 3, 1, 6 },
-            { 0, 2, 7 },
-            { 7, 5, 0 },
-            { 4, 6, 1 },
-            { 5, 7, 2 },
-            { 6, 4, 3 }
-        };
-
-        for (short nPoint = 0; nPoint < 8; nPoint++) {
-            // define vert numbers
-            const auto& vert0 = level.Vertices[seg.Indices[nPoint]];
-            const auto& vert1 = level.Vertices[seg.Indices[adjacentPointTable[nPoint][0]]];
-            const auto& vert2 = level.Vertices[seg.Indices[adjacentPointTable[nPoint][1]]];
-            const auto& vert3 = level.Vertices[seg.Indices[adjacentPointTable[nPoint][2]]];
-
-            if (AngleBetweenThreeVectors(vert0, vert1, vert2, vert3) > M_PI_2)
-                return true;
-            if (AngleBetweenThreeVectors(vert0, vert2, vert3, vert1) > M_PI_2)
-                return true;
-            if (AngleBetweenThreeVectors(vert0, vert3, vert1, vert2) > M_PI_2)
-                return true;
-        }
-
-        // also test for flatness
-        for (int nSide = 0; nSide < 6; nSide++) {
-            auto face = Face::FromSide(level, seg, (SideID)nSide);
-            auto flatness = FlatnessRatio(face) * RadToDeg;
-            if (flatness > 80)
-                return true;
-        }
-
-        return false;
     }
 
     bool JoinSides(Level& level, Tag srcId, Tag destId) {

@@ -377,6 +377,9 @@ namespace Inferno::Editor {
         if (!Game::Level.SegmentExists(tag))
             tag = { SegID(0) };
 
+        if (tag.Side == SideID::None) 
+            tag.Side = SideID::Left;
+
         Segment = tag.Segment;
         Side = tag.Side;
 

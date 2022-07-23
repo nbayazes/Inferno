@@ -313,7 +313,7 @@ namespace Inferno {
         return OppositeSideIDs[(int16)side];
     }
 
-    // Tags a segment side. Also matches TriggerTarget.
+    // Tags a segment side
     struct Tag {
         SegID Segment = SegID::None;
         SideID Side = SideID::Left;
@@ -333,6 +333,7 @@ namespace Inferno {
         static constexpr SideID GetSideID(const Tag& tag) { return tag.Side; }
     };
 
+    // Tags a point on a segment side
     struct PointTag : public Tag { uint16 Point; };
 
     //Some handy constants for interacting with fixed precision values

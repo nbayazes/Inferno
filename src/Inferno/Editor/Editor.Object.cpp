@@ -9,6 +9,7 @@ namespace Inferno::Editor {
         auto pObj = level.TryGetObject(id);
         if (!pObj) return;
 
+        Events::ObjectsChanged();
         Seq::removeAt(level.Objects, (int)id);
         // Shift object? are there any refs?
     }
@@ -250,15 +251,14 @@ namespace Inferno::Editor {
         Editor::Gizmo.UpdatePosition();
 
         Events::TexturesChanged();
+        Events::ObjectsChanged();
         return id;
     }
 
     ObjID AddObject(Level& level, PointTag tag, ObjectType type) {
         Object obj{};
         InitObject(level, obj, type);
-        auto id = AddObject(level, tag, obj);
-        Events::TexturesChanged();
-        return id;
+        return AddObject(level, tag, obj);
     }
 
     // Adds an object to represent the secret exit return so it can be manipulated
