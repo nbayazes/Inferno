@@ -16,15 +16,16 @@ namespace Inferno::Editor {
 
     protected:
         void BeforeUpdate() override {
-            float height = ImGui::GetTextLineHeight() + 16 * Shell::DpiScale;
+            float height = ImGui::GetTextLineHeight() + 6 * Shell::DpiScale;
             ImGui::SetNextWindowPos({ Position.x, Position.y });
             ImGui::SetNextWindowSize({ Width, height });
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 1.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 0));
         }
 
         void AfterUpdate() override {
-            ImGui::PopStyleVar(2);
+            ImGui::PopStyleVar(3);
         }
 
         void OnUpdate() override {
