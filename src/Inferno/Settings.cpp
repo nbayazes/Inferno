@@ -157,6 +157,7 @@ namespace Inferno::Settings {
         node["Undos"] << UndoLevels;
         node["AutosaveMinutes"] << AutosaveMinutes;
         node["CoordinateSystem"] << (int)CoordinateSystem;
+        node["EnablePhysics"] << EnablePhysics;
 
         SaveSelectionSettings(node["Selection"]);
         SaveOpenWindows(node["Windows"]);
@@ -216,6 +217,7 @@ namespace Inferno::Settings {
         ReadValue(node["Undos"], UndoLevels);
         ReadValue(node["AutosaveMinutes"], AutosaveMinutes);
         ReadValue(node["CoordinateSystem"], (int&)CoordinateSystem);
+        ReadValue(node["EnablePhysics"], (int&)EnablePhysics);
 
         LoadSelectionSettings(node["Selection"]);
         LoadOpenWindows(node["Windows"]);
