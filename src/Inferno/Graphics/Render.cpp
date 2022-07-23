@@ -496,7 +496,7 @@ namespace Inferno::Render {
         auto font = Atlas.GetFont(size);
         if (!font) return;
         auto [width, height] = MeasureString(str, size);
-        DrawString(str, x - (width / 2), y - (height / 2), size);
+        DrawString(str, x - (width * Shell::DpiScale / 2), y - (height * Shell::DpiScale / 2), size);
     }
 
     // Initialize device dependent objects here (independent of window size).

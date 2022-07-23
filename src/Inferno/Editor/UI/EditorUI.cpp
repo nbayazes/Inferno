@@ -9,8 +9,6 @@
 #include "Editor/Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
-    constexpr int ToolbarWidth = 80;
-    constexpr int TopToolbarHeight = 80;
     constexpr ImU32 ToolbarColor = IM_COL32(20, 20, 20, 200);
 
     void MenuCommandEx(const Command& command, const char* label, Binding bind = Binding(-1), bool selected = false) {
@@ -383,7 +381,7 @@ namespace Inferno::Editor {
 
         const ImVec2 buttonSize = { 75 * Shell::DpiScale, 0 };
 
-        auto startY = ImGui::GetCursorPosY();
+        //auto startY = ImGui::GetCursorPosY();
 
         {
             ImGui::AlignTextToFramePadding();
@@ -625,7 +623,7 @@ namespace Inferno::Editor {
             }
         }
 
-        Editor::TopToolbarOffset = TopToolbarHeight + ImGui::GetCursorPosY() - startY;
+        Editor::TopToolbarOffset = 32 * Shell::DpiScale + ImGui::GetCursorScreenPos().y;
 
         ImGui::End();
         ImGui::PopStyleVar(2);

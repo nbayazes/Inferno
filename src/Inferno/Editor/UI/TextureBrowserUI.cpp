@@ -175,8 +175,8 @@ namespace Inferno::Editor {
         auto isOpen = ImGui::CollapsingHeader("Filters", ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap);
 
         auto& s = _state;
-        ImGui::SameLine(contentWidth - 80);
-        if (ImGui::Button("Reset", { 80, 0 })) s = {};
+        ImGui::SameLine(contentWidth - 80 * Shell::DpiScale);
+        if (ImGui::Button("Reset", { 80 * Shell::DpiScale, 0 })) s = {};
 
         if (isOpen) {
             constexpr auto flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap;

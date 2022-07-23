@@ -43,7 +43,7 @@ namespace Inferno::Editor {
     bool TriggerTargetsPicker(Level& level, Trigger& trigger, TriggerID tid) {
         bool changed = false;
         ImGui::TableRowLabel("Targets");
-        ImGui::BeginChild("trigger-targets", { -1, 130 }, true);
+        ImGui::BeginChild("trigger-targets", { -1, 130 * Shell::DpiScale }, true);
 
         static int selectedIndex = 0;
 
@@ -60,7 +60,7 @@ namespace Inferno::Editor {
 
         ImGui::EndChild();
 
-        if (ImGui::Button("Add##TriggerTarget", { 100, 0 })) {
+        if (ImGui::Button("Add##TriggerTarget", { 100 * Shell::DpiScale, 0 })) {
             if (Editor::Marked.Faces.empty())
                 ShowWarningMessage(L"Please mark faces to add as targets.");
 
@@ -71,7 +71,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Remove##TriggerTarget", { 100, 0 })) {
+        if (ImGui::Button("Remove##TriggerTarget", { 100 * Shell::DpiScale, 0 })) {
             RemoveTriggerTarget(level, tid, selectedIndex);
             if (selectedIndex > trigger.Targets.Count()) selectedIndex--;
             changed = true;
@@ -89,11 +89,11 @@ namespace Inferno::Editor {
         bool open = TableBeginTreeNode("Trigger");
 
         if (!trigger) {
-            if (ImGui::Button("Add", { 100, 0 }) && wall)
+            if (ImGui::Button("Add", { 100 * Shell::DpiScale, 0 }) && wall)
                 wall->Trigger = AddTrigger(level, wid, TriggerType::OpenDoor);
         }
         else {
-            if (ImGui::Button("Remove", { 100, 0 }))
+            if (ImGui::Button("Remove", { 100 * Shell::DpiScale, 0 }))
                 RemoveTrigger(level, wall->Trigger);
         }
 
@@ -193,11 +193,11 @@ namespace Inferno::Editor {
 
         if (!light) {
             DisableControls disable(!CanAddFlickeringLight(level, tag));
-            if (ImGui::Button("Add", { 100, 0 }))
+            if (ImGui::Button("Add", { 100 * Shell::DpiScale, 0 }))
                 Commands::AddFlickeringLight();
         }
         else {
-            if (ImGui::Button("Remove", { 100, 0 }))
+            if (ImGui::Button("Remove", { 100 * Shell::DpiScale, 0 }))
                 Commands::RemoveFlickeringLight();
         }
 
@@ -228,17 +228,17 @@ namespace Inferno::Editor {
                     }
                 }
 
-                if (ImGui::Button("Shift Left", { 100, 0 }))
+                if (ImGui::Button("Shift Left", { 100 * Shell::DpiScale, 0 }))
                     light->ShiftLeft();
 
                 ImGui::SameLine(0, 5);
-                if (ImGui::Button("Shift Right", { 100, 0 }))
+                if (ImGui::Button("Shift Right", { 100 * Shell::DpiScale, 0 }))
                     light->ShiftRight();
 
                 if (ImGui::Button("Defaults..."))
                     ImGui::OpenPopup("FlickerDefaults");
 
-                ImGui::SetNextWindowSize({ 100, -1 });
+                ImGui::SetNextWindowSize({ 100 * Shell::DpiScale, -1 });
                 if (ImGui::BeginPopup("FlickerDefaults")) {
                     if (ImGui::Selectable("On")) light->Mask = FlickeringLight::Defaults::On;
                     if (ImGui::Selectable("Off")) light->Mask = 0;
@@ -317,7 +317,7 @@ namespace Inferno::Editor {
         if (!robotLabel.empty())
             ImGui::TextWrapped(robotLabel.c_str());
 
-        if (ImGui::Button("Edit", { 100, 0 })) {
+        if (ImGui::Button("Edit", { 100 * Shell::DpiScale, 0 })) {
             editor.ID = id;
             editor.Show();
         }
@@ -575,7 +575,7 @@ namespace Inferno::Editor {
                 const bool isSelected = (int)id == i;
                 auto itemLabel = std::to_string((int)i);
                 auto& clip = Resources::GameData.WallClips[i];
-                TexturePreview(clip.Frames[0], { 32, 32 });
+                TexturePreview(clip.Frames[0], { 32 * Shell::DpiScale, 32 * Shell::DpiScale });
 
                 ImGui::SameLine();
                 ImGui::AlignTextToFramePadding();
