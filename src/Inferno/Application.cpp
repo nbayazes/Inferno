@@ -84,7 +84,8 @@ using Keys = Keyboard::Keys;
 void FireTestWeapon(Level& level, const Object& obj, int gun) {
     auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
 
-    auto& weapon = Resources::GameData.Weapons[34];
+    auto id = level.IsDescent2() ? 34 : 11;
+    auto& weapon = Resources::GameData.Weapons[id];
 
     Object bullet{};
     bullet.Movement.Type = MovementType::Physics;

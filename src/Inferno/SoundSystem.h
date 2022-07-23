@@ -35,4 +35,7 @@ namespace Inferno::Sound {
     };
 
     void SetReverb(Reverb);
+
+    void Pause();
+    void Resume();
 }

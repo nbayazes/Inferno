@@ -9,6 +9,7 @@ namespace Inferno::Editor {
     class SoundBrowser : public WindowBase {
         int _selection;
         float _vol = 0.1f, _pan = 0, _pitch = 0;
+        bool _3d;
         Sound::Reverb _reverb{};
 
         const std::map<Sound::Reverb, const char*> ReverbLabels = {
@@ -41,6 +42,7 @@ namespace Inferno::Editor {
             ImGui::SliderFloat("Volume", &_vol, 0, 1);
             ImGui::SliderFloat("Pan", &_pan, -1, 1);
             ImGui::SliderFloat("Pitch", &_pitch, -1, 1);
+            ImGui::Checkbox("3D", &_3d);
 
             if (ImGui::BeginCombo("Reverb", ReverbLabels.at(_reverb), ImGuiComboFlags_HeightLarge)) {
                 for (auto& [item, text] : ReverbLabels) {
@@ -59,7 +61,10 @@ namespace Inferno::Editor {
                     auto label = fmt::format("{}: {}", i, sounds[i].Name);
                     if (ImGui::Selectable(label.c_str(), i == _selection)) {
                         _selection = i;
-                        Sound::Play3D((SoundID)_selection, _vol, Editor::Selection.Object, _pitch);
+                        if (_3d)
+                            Sound::Play3D((SoundID)_selection, _vol, Editor::Selection.Object, _pitch);
+                        else
+                            Sound::Play((SoundID)_selection, _vol, _pan, _pitch);
                     }
                 }
 

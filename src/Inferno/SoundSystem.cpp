@@ -181,7 +181,7 @@ namespace Inferno::Sound {
 
     void Init(HWND, milliseconds pollRate) {
         // HWND is not used, but indicates the sound system requires a window
-        auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters;
+        auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
 #ifdef _DEBUG
         flags |= AudioEngine_Debug;
 #endif
@@ -191,9 +191,7 @@ namespace Inferno::Sound {
         Alive = true;
         WorkerThread = std::thread(SoundWorker, pollRate);
 
-        // no idea what the units on this are, but want to prevent blowing out
-        // due to unexpected mixing
-        Engine->SetMasteringLimit(5, 600);
+        Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
 
         //DWORD channelMask{};
         //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
@@ -277,4 +275,7 @@ namespace Inferno::Sound {
                     stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
                     stats.audioBytes);
     }
+
+    void Pause() { Engine->Suspend(); }
+    void Resume() { Engine->Resume(); }
 }
