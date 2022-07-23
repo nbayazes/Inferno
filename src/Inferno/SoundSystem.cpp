@@ -14,8 +14,9 @@ using namespace DirectX::SimpleMath;
 using namespace std::chrono;
 
 namespace Inferno::Sound {
-    // Scales game coordinates to audio
-    constexpr float AUDIO_SCALE = 1 / 30.0f; // 1 game unit = ? meters
+    // Scales game coordinates to audio coordinates.
+    // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
+    constexpr float AUDIO_SCALE = 1 / 30.0f; 
     constexpr float MAX_DISTANCE = 400;
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
 
@@ -59,7 +60,7 @@ namespace Inferno::Sound {
 
     namespace {
         // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
-        Ptr<AudioEngine> Audio;
+        Ptr<AudioEngine> Engine;
         List<Ptr<SoundEffect>> Sounds;
         std::atomic<bool> Alive = false;
         std::thread WorkerThread;
@@ -98,9 +99,7 @@ namespace Inferno::Sound {
 
         SPDLOG_INFO("Starting audio mixer thread");
         while (Alive) {
-            // Update should be called often, usually in a per - frame update.
-            // This can be done on the main rendering thread, or from a worker thread.
-            if (Audio->Update()) {
+            if (Engine->Update()) {
                 try {
                     auto dt = pollRate.count() / 1000.0f;
                     //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
@@ -133,18 +132,21 @@ namespace Inferno::Sound {
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
                 }
+
+                std::this_thread::sleep_for(pollRate);
             }
             else {
-                if (!Audio->IsAudioDevicePresent()) {
-                    // we are in 'silent mode'.
+                // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
+                if (!Engine->IsAudioDevicePresent()) {
                 }
-                // attempt recovery
-                if (Audio->IsCriticalError()) {
-                    // No audio device is active
 
+                if (Engine->IsCriticalError()) {
+                    SPDLOG_WARN("Attempting to reset audio engine");
+                    Engine->Reset();
                 }
+
+                std::this_thread::sleep_for(1000ms);
             }
-            std::this_thread::sleep_for(pollRate);
         }
         SPDLOG_INFO("Stopping audio mixer thread");
         CoUninitialize();
@@ -173,17 +175,17 @@ namespace Inferno::Sound {
     void Shutdown() {
         if (!Alive) return;
         Alive = false;
-        Audio->Suspend();
+        Engine->Suspend();
         WorkerThread.join();
     }
 
     void Init(HWND, milliseconds pollRate) {
-        // HWND is not used, but indicates the sound system needs a window
+        // HWND is not used, but indicates the sound system requires a window
         auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters;
 #ifdef _DEBUG
         flags |= AudioEngine_Debug;
 #endif
-        Audio = MakePtr<AudioEngine>(flags);
+        Engine = MakePtr<AudioEngine>(flags);
         Sounds.resize(Resources::GetSoundCount());
         SPDLOG_INFO("Init sound system. Sounds: {}", Sounds.size());
         Alive = true;
@@ -191,14 +193,14 @@ namespace Inferno::Sound {
 
         // no idea what the units on this are, but want to prevent blowing out
         // due to unexpected mixing
-        Audio->SetMasteringLimit(5, 600);
+        Engine->SetMasteringLimit(5, 600);
 
         //DWORD channelMask{};
-        //Audio->GetMasterVoice()->GetChannelMask(&channelMask);
-        //auto hresult = X3DAudioInitialize(channelMask, 20, Audio->Get3DHandle());
+        //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
+        //auto hresult = X3DAudioInitialize(channelMask, 20, Engine->Get3DHandle());
 
         //XAUDIO2_VOICE_DETAILS details{};
-        //Audio->GetMasterVoice()->GetVoiceDetails(&details);
+        //Engine->GetMasterVoice()->GetVoiceDetails(&details);
 
         //DSPMatrix.resize(details.InputChannels);
         //DSPSettings.SrcChannelCount = 1;
@@ -209,7 +211,7 @@ namespace Inferno::Sound {
     }
 
     void SetReverb(Reverb reverb) {
-        Audio->SetReverb((AUDIO_ENGINE_REVERB)reverb);
+        Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
 
     void LoadSound(SoundID id) {
@@ -224,7 +226,7 @@ namespace Inferno::Sound {
             frequency = 11025;
 
         auto data = Resources::ReadSound(id);
-        Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Audio, data, frequency));
+        Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency));
     }
 
     void Play(SoundID id, float volume, float pan, float pitch) {
@@ -254,10 +256,25 @@ namespace Inferno::Sound {
         }
     }
 
-    void ClearCache() {
+    void Reset() {
         std::scoped_lock lock(ResetMutex);
+        SPDLOG_INFO("Clearing audio cache");
+
+        Sounds.clear(); // unknown if effects must be stopped before releasing
+        Engine->TrimVoicePool();
 
         for (auto& sound : Sounds)
             sound.release(); // unknown if effects must be stopped before releasing
+    }
+
+    void PrintStatistics() {
+        auto stats = Engine->GetStatistics();
+
+        SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",
+                    stats.playingOneShots, stats.playingInstances,
+                    stats.allocatedInstances, 
+                    stats.allocatedVoices, stats.allocatedVoices3d,
+                    stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
+                    stats.audioBytes);
     }
 }

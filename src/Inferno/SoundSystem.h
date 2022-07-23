@@ -9,7 +9,9 @@ namespace Inferno::Sound {
     void Shutdown();
     void Play(SoundID id, float volume = 1, float pan = 0, float pitch = 0);
     void Play3D(SoundID id, float volume, ObjID source, float pitch);
-    void ClearCache();
+
+    // Resets any cached sounds after loading a level
+    void Reset();
 
     enum class Reverb {
         Off,
