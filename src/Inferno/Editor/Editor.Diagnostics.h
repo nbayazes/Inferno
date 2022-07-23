@@ -21,8 +21,6 @@ namespace Inferno::Editor {
 
     bool SegmentIsDegenerate(Level& level, Segment& seg);
 
+    List<SegmentDiagnostic> CheckObjects(Level& level);
     List<SegmentDiagnostic> CheckSegments(Level& level);
-
-    void CheckLevelForErrors(const Level&);
-
 }

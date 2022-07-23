@@ -11,6 +11,7 @@ namespace Inferno::Render {
 namespace Inferno::Editor {
     class DiagnosticWindow : public WindowBase {
         List<SegmentDiagnostic> _segments;
+        List<SegmentDiagnostic> _objects;
         int _selection{};
         bool _showWarnings, _markErrors;
         bool _checked; // user has checked the level once already
@@ -27,10 +28,16 @@ namespace Inferno::Editor {
         void CheckLevel() {
             _checked = true;
             _segments = CheckSegments(Game::Level);
+            _objects = CheckObjects(Game::Level);
+
             if (_markErrors) {
                 Editor::Marked.Segments.clear();
                 for (auto& s : _segments)
                     Editor::Marked.Segments.insert(s.Tag.Segment);
+
+                /*Editor::Marked.Objects.clear();
+                for (auto& s : _objects)
+                    Editor::Marked.Objects.insert(s.Tag.Segment);*/
             }
         }
 
@@ -62,16 +69,38 @@ namespace Inferno::Editor {
 
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
-                    auto segLabel = item.Tag.Side == SideID::None ? fmt::format("{}", (int)item.Tag.Segment) : fmt::format("{}:{}", (int)item.Tag.Segment, (int)item.Tag.Side);
-                    if (ImGui::Selectable(segLabel.c_str(), selected, selectable_flags, ImVec2(0, 0))) {
+                    auto segLabel = item.Tag.Side == SideID::None ?
+                        fmt::format("{}", (int)item.Tag.Segment) : 
+                        fmt::format("{}:{}", (int)item.Tag.Segment, (int)item.Tag.Side);
+
+                    ImGui::Text(segLabel.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(i);
+                    if (ImGui::Selectable(item.Message.c_str(), selected, selectable_flags, ImVec2(0, 0))) {
                         _selection = i;
                         Editor::Selection.SetSelection(item.Tag);
                         auto& seg = Game::Level.GetSegment(item.Tag);
                         Render::Camera.LerpTo(seg.Center, 0.25f);
                     }
+                    ImGui::PopID();
+                }
 
+                for (int i = 0; i < _objects.size(); i++) {
+                    auto& item = _objects[i];
+                    bool selected = i + (int)_segments.size() == _selection;
+
+                    ImGui::TableNextRow();
                     ImGui::TableNextColumn();
-                    ImGui::Text(item.Message.c_str());
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(i);
+                    if (ImGui::Selectable(item.Message.c_str(), selected, selectable_flags, ImVec2(0, 0))) {
+                        _selection = i + (int)_segments.size();
+                        //Editor::Selection.SetSelection(item.Tag);
+                        //auto& seg = Game::Level.GetSegment(item.Tag);
+                        //Render::Camera.LerpTo(seg.Center, 0.25f);
+                    }
+                    ImGui::PopID();
                 }
 
                 ImGui::EndTable();
@@ -79,37 +108,6 @@ namespace Inferno::Editor {
 
             // todo: trees for each section? keep header consistent?
 
-            //if (ImGui::BeginTable("diag_table", 3, flags)) {
-            //    ImGui::TableSetupColumn("Seg", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*//*, MyItemColumnID_ID*/);
-            //    ImGui::TableSetupColumn("Obj", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_PreferSortDescending, 0.0f*//*, MyItemColumnID_Quantity*/);
-            //    ImGui::TableSetupColumn("Message", ImGuiTableColumnFlags_WidthFixed/*, MyItemColumnID_Name*/);
-            //    ImGui::TableHeadersRow();
-
-            //    constexpr auto selectable_flags = ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap;
-
-            //    for (int i = 0; i < _diagnostics.size(); i++) {
-            //        auto& item = _diagnostics[i];
-            //        bool selected = i == _selection;
-
-            //        ImGui::TableNextRow();
-            //        ImGui::TableNextColumn();
-            //        auto segLabel = item.Tag.Side == SideID::None ? fmt::format("{}", (int)item.Tag.Segment) : fmt::format("{}:{}", (int)item.Tag.Segment, (int)item.Tag.Side);
-            //        if (ImGui::Selectable(segLabel.c_str(), selected, selectable_flags, ImVec2(0, 0))) {
-            //            _selection = i;
-            //            // select and move to item
-            //        }
-
-            //        ImGui::TableNextColumn();
-            //        if (item.Object != ObjID::None)
-            //            ImGui::Text("%i", item.Object);
-
-
-            //        ImGui::TableNextColumn();
-            //        ImGui::Text(item.Message.c_str());
-            //    }
-
-            //    ImGui::EndTable();
-            //}
 
             ImGui::EndChild();
 

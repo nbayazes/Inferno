@@ -353,6 +353,44 @@ namespace Inferno::Editor {
         return true;
     }
 
+    bool HasExitConnection(const Level& level) {
+        for (auto& seg : level.Segments) {
+            for (auto& c : seg.Connections) {
+                if (c == SegID::Exit) return true;
+            }
+        }
+
+        return false;
+    }
+
+    List<SegmentDiagnostic> CheckObjects(Level& level) {
+        List<SegmentDiagnostic> results;
+
+        if (GetObjectCount(level, ObjectType::Player) == 0) {
+            results.push_back({ 0, {}, "Level does not contain a player start" });
+        }
+
+        if (GetObjectCount(level, ObjectType::Reactor) > 1) {
+            auto message =
+                "Level contains more than one reactor\n"
+                "This will result in odd behavior in old versions";
+            results.push_back({ 1, {}, message });
+        }
+
+        auto boss = Seq::findIndex(Game::Level.Objects, IsBossRobot);
+        auto reactor = Seq::findIndex(Game::Level.Objects, IsReactor);
+
+        if ((boss || reactor) && !HasExitConnection(level)) {
+            auto message = 
+                "Level has a boss or reactor but no end of exit tunnel is marked\n"
+                "This will crash some versions at end of level";
+
+            results.push_back({ 1, {}, message });
+        }
+
+        return results;
+    }
+
     List<SegmentDiagnostic> CheckSegments(Level& level) {
         List<SegmentDiagnostic> results;
 
@@ -401,45 +439,5 @@ namespace Inferno::Editor {
         }
 
         return results;
-    }
-
-    bool HasExitConnection(const Level& level) {
-        for (auto& seg : level.Segments) {
-            for (auto& c : seg.Connections) {
-                if (c == SegID::Exit) return true;
-            }
-        }
-
-        return false;
-    }
-
-    void CheckLevelForErrors(const Level& level) {
-        wstring warnings;
-
-        if (GetObjectCount(level, ObjectType::Player) == 0) {
-            warnings += L"Level does not contain a player start.\n\n";
-        }
-
-        if (GetObjectCount(level, ObjectType::Reactor) > 1) {
-            warnings +=
-                L"Level contains more than one reactor. "
-                L"This will result in odd behavior in old versions.\n\n";
-        }
-
-        auto boss = Seq::findIndex(Game::Level.Objects, IsBossRobot);
-        auto reactor = Seq::findIndex(Game::Level.Objects, IsReactor);
-
-        if ((boss || reactor) && !HasExitConnection(level)) {
-            warnings +=
-                L"Level has a boss or reactor but no end of exit tunnel is marked. "
-                L"This will crash some versions of Descent at end of level.\n\n";
-        }
-
-        constexpr auto title = L"Level Error Check";
-
-        if (warnings.empty())
-            ShowOkMessage(L"No errors found", title);
-        else
-            ShowWarningMessage(warnings, title);
     }
 }

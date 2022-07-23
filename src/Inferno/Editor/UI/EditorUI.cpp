@@ -326,9 +326,6 @@ namespace Inferno::Editor {
                 if (ImGui::MenuItem("Clean level"))
                     Commands::CleanLevel();
 
-                if (ImGui::MenuItem("Check for errors"))
-                    CheckLevelForErrors(Game::Level);
-
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))
@@ -452,7 +449,7 @@ namespace Inferno::Editor {
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Insert mode for segments");
 
             ImGui::SameLine();
-            ImGui::SetNextItemWidth(100 * Shell::DpiScale);
+            ImGui::SetNextItemWidth(110 * Shell::DpiScale);
 
             if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::InsertMode])) {
                 for (int i = 0; i < insertModes.size(); i++) {
