@@ -265,17 +265,17 @@ namespace Inferno::Editor {
 
         switch (wall->Type) {
             case Inferno::WallType::Destroyable:
-            case Inferno::WallType::Door: 
+            case Inferno::WallType::Door:
                 return TriggerType::OpenDoor;
 
-            case Inferno::WallType::Illusion: 
+            case Inferno::WallType::Illusion:
                 return TriggerType::IllusionOff;
 
             case Inferno::WallType::Cloaked:
-            case Inferno::WallType::Closed: 
+            case Inferno::WallType::Closed:
                 return TriggerType::OpenWall;
 
-            default: 
+            default:
                 return TriggerType::LightOff;
         }
     }
@@ -307,9 +307,16 @@ namespace Inferno::Editor {
                 auto& level = Game::Level;
                 auto tag = Editor::Selection.Tag();
 
-                auto wallId = Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
-                if (wallId == WallID::None) return "";
-                SetupTriggerOnWall(Game::Level, wallId, Marked.Faces);
+                auto seg = level.TryGetSegment(tag);
+                if (!seg) return "";
+
+                auto& side = seg->GetSide(tag.Side);
+                if (!side.HasWall())
+                    Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
+
+                if (!side.HasWall()) return ""; // failed to add a wall
+
+                SetupTriggerOnWall(Game::Level, side.Wall, Marked.Faces);
                 return "Add Flythrough Trigger";
             },
             .Name = "Add Flythrough Trigger"
