@@ -251,9 +251,9 @@ namespace Inferno::Editor {
         return wallId;
     }
 
-    TriggerType GetTriggerTypeForTarget(Level& level, Tag tag) {
-
+    TriggerType GetTriggerTypeForTargetD2(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return TriggerType::OpenDoor;
+
         auto& seg = level.GetSegment(tag);
         auto wall = level.TryGetWall(tag);
 
@@ -280,11 +280,35 @@ namespace Inferno::Editor {
         }
     }
 
-    void SetupTriggerOnWall(Level& level, WallID wallId, Set<Tag> targets) {
-        auto type = targets.empty() ? TriggerType::OpenDoor :
-            GetTriggerTypeForTarget(level, *targets.begin());
+    TriggerFlagD1 GetTriggerTypeForTargetD1(Level& level, Tag tag) {
+        if (!level.SegmentExists(tag)) return TriggerFlagD1::OpenDoor;
 
-        auto tid = AddTrigger(level, wallId, type);
+        auto& seg = level.GetSegment(tag);
+        auto wall = level.TryGetWall(tag);
+
+        if (!wall && seg.Type == SegmentType::Matcen)
+            return TriggerFlagD1::Matcen;
+
+        if (!wall)
+            return {};
+
+        return TriggerFlagD1::OpenDoor;
+    }
+
+    void SetupTriggerOnWall(Level& level, WallID wallId, Set<Tag> targets) {
+        TriggerID tid{};
+
+        if (level.IsDescent1()) {
+            auto type = targets.empty() ? TriggerFlagD1::OpenDoor :
+                GetTriggerTypeForTargetD1(level, *targets.begin());
+            tid = AddTrigger(level, wallId, type);
+        }
+        else {
+            auto type = targets.empty() ? TriggerType::OpenDoor :
+                GetTriggerTypeForTargetD2(level, *targets.begin());
+            tid = AddTrigger(level, wallId, type);
+        }
+
         if (Settings::SelectionMode == SelectionMode::Face)
             AddTriggerTargets(level, tid, targets);
     }

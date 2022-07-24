@@ -328,8 +328,6 @@ namespace Inferno::Editor {
 
                 ImGui::Separator();
 
-                ImGui::MenuItem("Enable Physics", nullptr, &Settings::EnablePhysics);
-
                 if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))
                     _bloomWindow.ToggleIsOpen();
 
@@ -338,6 +336,7 @@ namespace Inferno::Editor {
 
 #ifdef _DEBUG
                 ImGui::Separator();
+                ImGui::MenuItem("Enable Physics", nullptr, &Settings::EnablePhysics);
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
 #endif
                 ImGui::EndMenu();
