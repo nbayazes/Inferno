@@ -22,12 +22,17 @@ namespace Inferno::Editor {
 
     bool PruneVertices(Level&);
 
-    void WeldVertices(Level& level, float tolerance);
+    // Tries to weld vertices in src based on tolerance.
+    // Returns the number of vertices welded.
+    int WeldVertices(Level& level, span<PointID> src, float tolerance);
 
     // Merges overlapping verts for segments
     void WeldVertices(Level&, span<SegID>, float tolerance);
-    // Welds only the vertices between connected faces
-    void WeldConnection(Level& level, Tag srcid, float tolerance);
+
+    // Welds vertices from src to connected vertices.
+    // Returns true if any points were welded
+    bool WeldConnection(Level& level, Tag srcid, float tolerance);
+
     // Merges overlapping verts of open sides
     void WeldVerticesOfOpenSides(Level&, span<SegID>, float tolerance);
 
@@ -44,12 +49,11 @@ namespace Inferno::Editor {
 
     namespace Commands {
         void ApplyNoise(float scale, const Vector3& strength, int64 seed);
-
-        void WeldVertices();
         void SnapToGrid();
 
-        // Joins nearby segment faces that overlap with the selected segment
+        extern Command WeldVertices;
         extern Command MakeCoplanar;
+        // Joins nearby segment faces that overlap with the selected segment
         extern Command JoinTouchingSegments;
         extern Command DetachPoints;
     }

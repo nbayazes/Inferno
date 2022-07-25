@@ -161,7 +161,8 @@ namespace Inferno::Editor {
                     }
                 }
 
-                if (mismatched) {
+                // Try welding connection if mismatched
+                if (mismatched && !WeldConnection(level, { (SegID)srcid, srcSide }, 0.01f)) {
                     src.Connections[(int)srcSide] = SegID::None;
                     dst.Connections[(int)dstSide] = SegID::None;
                     SPDLOG_WARN("Removed invalid connections at segment {}:{} and {}:{}", srcid, srcSide, dstId, dstSide);
@@ -229,8 +230,7 @@ namespace Inferno::Editor {
     }
 
     void FixLevel(Level& level) {
-        WeldVertices(level, 0.01f);
-        FixSegmentConnections(level);
+        //FixSegmentConnections(level);
         FixObjects(level);
         FixWalls(level);
         FixTriggers(level);
@@ -321,34 +321,32 @@ namespace Inferno::Editor {
     }
 
     // Returns false is flatness is invalid
-    bool CheckSegmentFlatness(Level& level, Segment& seg) {
+    float CheckSegmentFlatness(Level& level, Segment& seg) {
+        float minFlatness = FLT_MAX;
         // also test for flatness
         for (int nSide = 0; nSide < 6; nSide++) {
             auto face = Face::FromSide(level, seg, (SideID)nSide);
             auto flatness = face.FlatnessRatio();
-            if (flatness <= 0.80f)
-                return false;
+            if (flatness < minFlatness)
+                minFlatness = flatness;
         }
 
-        return true;
+        return minFlatness;
     }
 
     bool SidesMatch(Level& level, Tag srcTag, Tag destTag) {
-        auto& src = level.GetSegment(srcTag);
-        auto& dest = level.GetSegment(destTag);
+        if (!level.SegmentExists(srcTag) || !level.SegmentExists(destTag)) return false;
 
-        short match[4]{};
-        for (int i = 0; i < 4; i++) {
-            auto u = src.GetVertexIndices(srcTag.Side)[i];
-            for (int j = 0; j < 4; j++) {
-                auto v = dest.GetVertexIndices(destTag.Side)[j];
-                if (u == v)
-                    match[i]++;
+        auto srcVerts = level.GetSegment(srcTag).GetVertexIndices(srcTag.Side);
+        auto dstVerts = level.GetSegment(destTag).GetVertexIndices(destTag.Side);
+
+        // Check that the indices match
+        bool mismatched = false;
+        for (auto& sv : srcVerts) {
+            if (!Seq::contains(dstVerts, sv)) {
+                return false;
             }
         }
-
-        for (auto& m : match) // Check that each point is matched exactly once
-            if (m != 1) return false;
 
         return true;
     }
@@ -381,7 +379,7 @@ namespace Inferno::Editor {
         auto reactor = Seq::findIndex(Game::Level.Objects, IsReactor);
 
         if ((boss || reactor) && !HasExitConnection(level)) {
-            auto message = 
+            auto message =
                 "Level has a boss or reactor but no end of exit tunnel is marked\n"
                 "This will crash some versions at end of level";
 
@@ -393,6 +391,7 @@ namespace Inferno::Editor {
 
     List<SegmentDiagnostic> CheckSegments(Level& level) {
         List<SegmentDiagnostic> results;
+        bool changedLevel = false;
 
         for (int i = 0; i < level.Segments.size(); i++) {
             auto& seg = level.Segments[i];
@@ -410,33 +409,52 @@ namespace Inferno::Editor {
                 continue; // Geometry is too deformed to bother reporting the other checks
             }
 
-            if (!CheckSegmentFlatness(level, seg)) {
-                results.push_back({ 0, { segid, SideID::None }, "Geometry flatness" });
+            auto flatness = CheckSegmentFlatness(level, seg);
+            if (flatness <= 0.80f) {
+                results.push_back({ 0, { segid, SideID::None }, fmt::format("Bad geometry flatness {:.2f}", flatness) });
             }
 
             for (auto& side : SideIDs) {
                 auto connId = seg.GetConnection(side);
                 if (connId == SegID::Exit || connId == SegID::None) continue;
 
-                if (!level.SegmentExists(connId)) {
-                    auto msg = fmt::format("Illegal segment connection {}", connId);
+                auto conn = level.TryGetSegment(connId);
+
+                if (!conn) {
+                    auto msg = fmt::format("Removed bad segment connection to {}", connId);
                     results.push_back({ 0, { segid, side }, msg });
-                    // break conn?
+                    seg.Connections[(int)side] = SegID::None;
+                    changedLevel = true;
                 }
 
                 if (auto other = level.GetConnectedSide({ segid, side })) {
                     // Check that vertices match between connections
                     if (!SidesMatch(level, { segid, side }, other)) {
-                        results.push_back({ 1, { segid, side }, "Connection vertex mismatch" });
+                        // Try to weld the vertex to fix the mismatch
+                        if (WeldConnection(level, { segid, side }, 0.01f)) {
+                            results.push_back({ 2, { segid, side }, fmt::format("Fixed connection to {}", connId) });
+                            changedLevel = true;
+                        }
+                        else {
+                            seg.Connections[(int)side] = SegID::None;
+                            conn->GetConnection(other.Side) = SegID::None;
+                            auto msg = fmt::format("Removed mismatched connection to {}", connId);
+                            results.push_back({ 1, { segid, side }, msg });
+                            changedLevel = true;
+                        }
                     }
                 }
                 else {
-                    auto msg = fmt::format("Segment does not connect to {}", connId);
+                    auto msg = fmt::format("Removed bad connection to {}", connId);
                     results.push_back({ 0, { segid, side }, msg });
+                    seg.Connections[(int)side] = SegID::None;
+                    changedLevel = true;
                 }
             }
-
         }
+
+        if (changedLevel)
+            Editor::History.SnapshotLevel("Fix segments");
 
         return results;
     }

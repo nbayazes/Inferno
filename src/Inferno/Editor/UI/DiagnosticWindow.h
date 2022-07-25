@@ -3,6 +3,7 @@
 #include "WindowBase.h"
 #include "Editor/Editor.Diagnostics.h"
 #include "Camera.h"
+#include "Editor/Editor.Undo.h"
 
 namespace Inferno::Render {
     extern Inferno::Camera Camera;
@@ -20,8 +21,13 @@ namespace Inferno::Editor {
             auto OnLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(); };
             Events::SegmentsChanged += OnLevelChanged;
             Events::ObjectsChanged += OnLevelChanged;
-            Events::LevelLoaded += OnLevelChanged;
             Events::SnapshotChanged += OnLevelChanged;
+
+            Events::LevelLoaded += [this] {
+                _checked = false;
+                _segments.clear();
+                _objects.clear();
+            };
         }
 
     protected:

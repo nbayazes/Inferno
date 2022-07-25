@@ -126,8 +126,12 @@ namespace Inferno::Editor {
 
             auto srcFace = Face::FromSide(level, side);
             for (auto& destid : nearby) {
-                for (auto& destSide : SideIDs)
-                    MergeSides(level, side, { destid, destSide }, tolerance);
+                for (auto& destSide : SideIDs) {
+                    if (auto dest = level.TryGetSegment(destid)) {
+                        if (dest->GetConnection(destSide) <= SegID::None) continue;
+                        MergeSides(level, side, { destid, destSide }, tolerance);
+                    }
+                }
             }
         }
 
@@ -269,47 +273,61 @@ namespace Inferno::Editor {
     }
 
     // Merges overlapping verts
-    void WeldVertices(Level& level, float tolerance) {
+    int WeldVertices(Level& level, span<PointID> src, float tolerance) {
         auto& verts = level.Vertices;
 
         List<VertexReplacement> replacements;
 
         // j = i + 1 because i already compares to every value of j
-        for (PointID i = 0; i < verts.size(); i++) {
-            for (PointID j = i + 1; j < verts.size(); j++) {
-                if (Vector3::Distance(verts[j], verts[i]) <= tolerance)
+        for (PointID i = 0; i < src.size(); i++) {
+            for (PointID j = i + 1; j < src.size(); j++) {
+                if (Vector3::Distance(verts[src[j]], verts[src[i]]) <= tolerance)
                     replacements.push_back({ j, i });
             }
         }
 
         ReplaceVertices(level, replacements);
+        return (int)replacements.size();
     }
 
     void WeldVertices(Level& level, span<SegID> ids, float tolerance) {
         auto& verts = level.Vertices;
 
-        for (PointID i = 0; i < verts.size(); i++) { // for every vertex
-            for (auto& id : ids) { // compare against every segment in selection
-                if (auto seg = level.TryGetSegment(id)) {
-                    for (auto& idx : seg->Indices) {
-                        // if the seg index is overlapping a global index, set it
-                        if (Vector3::Distance(verts[idx], verts[i]) <= tolerance)
-                            idx = i;
-                    }
-                }
+        Set<PointID> points;
+
+        for (auto& id : ids) { // compare against every segment in selection
+            if (auto seg = level.TryGetSegment(id)) {
+                Seq::insert(points, seg->Indices);
             }
         }
 
-        PruneVertices(level);
+        auto list = Seq::ofSet(points);
+        WeldVertices(level, list, tolerance);
+
+        //for (PointID i = 0; i < verts.size(); i++) { // for every vertex
+        //    for (auto& id : ids) { // compare against every segment in selection
+        //        if (auto seg = level.TryGetSegment(id)) {
+        //            for (auto& idx : seg->Indices) {
+        //                // if the seg index is overlapping a global index, set it
+        //                if (Vector3::Distance(verts[idx], verts[i]) <= tolerance)
+        //                    idx = i;
+        //            }
+        //        }
+        //    }
+        //}
+
+        //PruneVertices(level);
     }
 
-    void WeldConnection(Level& level, Tag srcid, float tolerance) {
+    bool WeldConnection(Level& level, Tag srcid, float tolerance) {
         auto conn = level.GetConnectedSide(srcid);
-        if (!level.SegmentExists(srcid) || !level.SegmentExists(conn)) return;
+        if (!level.SegmentExists(srcid) || !level.SegmentExists(conn)) return false;
         auto& src = level.GetSegment(srcid);
         auto& dest = level.GetSegment(conn);
-
         auto& verts = level.Vertices;
+
+        bool replaced = false;
+
         for (auto& i : src.GetVertexIndicesRef(srcid.Side)) {
             for (auto& j : dest.GetVertexIndicesRef(conn.Side)) {
                 if (*i == *j) continue;
@@ -320,14 +338,16 @@ namespace Inferno::Editor {
                         *i = *j;
                     else
                         *j = *i;
+
+                    replaced = true;
                 }
             }
         }
+
+        return replaced;
     }
 
     void WeldVerticesOfOpenSides(Level& level, span<SegID> ids, float tolerance) {
-        Set<PointID*> indices;
-
         for (auto& id : ids) {
             if (auto seg = level.TryGetSegment(id)) {
                 for (auto& side : SideIDs) {
@@ -485,12 +505,6 @@ namespace Inferno::Editor {
         Events::LevelChanged();
     }
 
-    void Commands::WeldVertices() {
-        Editor::WeldVertices(Game::Level, Settings::WeldTolerance);
-        Editor::History.SnapshotLevel("Weld Vertices");
-        Events::LevelChanged();
-    }
-
     void SnapToGrid(Level& level, span<PointID> indices, float snap) {
         for (auto& i : indices) {
             if (!Seq::inRange(level.Vertices, i)) continue;
@@ -516,6 +530,18 @@ namespace Inferno::Editor {
         JoinTouchingSegmentsExclusive(Game::Level, faces, Settings::WeldTolerance);
         Events::LevelChanged();
         return "Join Nearby Sides";
+    }
+
+    string OnWeldVertices() {
+        auto verts = Seq::ofSet(Editor::Marked.Points);
+        if (verts.empty()) {
+            SetStatusMessageWarn("Must mark vertices to weld");
+            return "";
+        }
+
+        Editor::WeldVertices(Game::Level, verts, Settings::WeldTolerance);
+        Events::LevelChanged();
+        return "Weld Vertices";
     }
 
     string OnMakeCoplanar() {
@@ -611,6 +637,7 @@ namespace Inferno::Editor {
     }
 
     namespace Commands {
+        Command WeldVertices{ .SnapshotAction = OnWeldVertices, .Name = "Weld Vertices" };
         Command MakeCoplanar{ .SnapshotAction = OnMakeCoplanar, .Name = "Make Coplanar" };
         Command JoinTouchingSegments{ .SnapshotAction = OnJoinTouchingSegments, .Name = "Join Nearby Sides" };
         Command DetachPoints{ .SnapshotAction = OnDetachPoints, .Name = "Detach Points" };
