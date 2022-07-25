@@ -10,6 +10,55 @@
 #include "Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
+    void RemoveLightDeltasForSegment(Level& level, SegID seg) {
+        int16 removed = 0;
+        for (auto& index : level.LightDeltaIndices) {
+            index.Index -= removed;
+
+            List<int> toRemove;
+            for (int i = 0; i < index.Count; i++) {
+                if (level.LightDeltas[index.Index + i].Tag.Segment == seg)
+                    toRemove.push_back(index.Index + i);
+            }
+
+            Seq::sortDescending(toRemove);
+            for (auto& i : toRemove)
+                Seq::removeAt(level.LightDeltas, i);
+
+            removed += (int16)toRemove.size();
+            index.Count -= (uint8)toRemove.size();
+        }
+    }
+
+    bool AddFlickeringLight(Level& level, Tag tag, FlickeringLight light) {
+        if (!CanAddFlickeringLight(level, tag)) return false;
+        light.Tag = tag;
+        level.FlickeringLights.push_back(light);
+
+        // Synchronize lights after adding a new one
+        for (auto& fl : level.FlickeringLights)
+            fl.Timer = 0;
+
+        return true;
+    }
+
+    bool RemoveFlickeringLight(Level& level, Tag tag) {
+        if (!level.SegmentExists(tag)) return false;
+
+        auto light = level.GetFlickeringLight(tag);
+        auto iter = ranges::find_if(level.FlickeringLights, [tag](auto x) { return x.Tag == tag; });
+
+        if (iter != level.FlickeringLights.end()) {
+            if (auto seg = level.TryGetSegment(light->Tag))
+                Render::AddLight(level, light->Tag, *seg); // restore light on before deleting
+
+            level.FlickeringLights.erase(iter);
+            return true;
+        }
+
+        return false;
+    }
+
     void RemoveMatcen(Level& level, MatcenID id) {
         if (id == MatcenID::None) return;
 
@@ -221,7 +270,7 @@ namespace Inferno::Editor {
             }
 
             // reverse sort should keep the object iterator valid
-            ranges::sort(objects, ranges::greater());
+            Seq::sortDescending(objects);
             for (auto& obj : objects)
                 DeleteObject(level, obj);
         }
@@ -245,7 +294,7 @@ namespace Inferno::Editor {
             }
 
             // reverse sort should keep the object iterator valid
-            ranges::sort(walls, ranges::greater());
+            Seq::sortDescending(walls);
             for (auto& wall : walls)
                 RemoveWall(level, wall);
         }
@@ -260,6 +309,30 @@ namespace Inferno::Editor {
                 if (trigger.Targets[i].Segment == segId)
                     trigger.Targets.Remove(i);
             }
+        }
+
+        RemoveLightDeltasForSegment(level, segId);
+
+        // Remove flickering lights
+        for (int i = (int)level.FlickeringLights.size() - 1; i >= 0; i--) {
+            if (level.FlickeringLights[i].Tag.Segment == segId)
+                RemoveFlickeringLight(level, level.FlickeringLights[i].Tag);
+        }
+
+        // Shift remaining light tags
+        for (auto& light : level.FlickeringLights) {
+            if (light.Tag.Segment > segId)
+                light.Tag.Segment--;
+        }
+
+        for (auto& light : level.LightDeltas) {
+            if (light.Tag.Segment > segId)
+                light.Tag.Segment--;
+        }
+
+        for (auto& light : level.LightDeltaIndices) {
+            if (light.Tag.Segment > segId)
+                light.Tag.Segment--;
         }
 
         Editor::Marked.RemoveSegment(segId);
@@ -703,55 +776,29 @@ namespace Inferno::Editor {
             wall->Clip = id;
     }
 
-    bool AddFlickeringLight(Level& level, Tag tag, FlickeringLight light) {
-        if (!CanAddFlickeringLight(level, tag)) return false;
-        light.Tag = tag;
-        level.FlickeringLights.push_back(light);
-
-        // Synchronize lights after adding a new one
-        for (auto& fl : level.FlickeringLights)
-            fl.Timer = 0;
-
-        return true;
-    }
-
     void Commands::AddFlickeringLight() {
         bool addedLight = false;
 
         for (auto& tag : GetSelectedFaces()) {
             auto& level = Game::Level;
-            if (!CanAddFlickeringLight(level, tag)) return;
+            if (!CanAddFlickeringLight(level, tag)) return; // out of room for lights!
 
             FlickeringLight light{ .Tag = tag, .Mask = FlickeringLight::Defaults::Strobe4, .Delay = 50.0f / 1000.0f };
-
-            if (Editor::AddFlickeringLight(level, tag, light))
-                addedLight = true;
+            addedLight |= Editor::AddFlickeringLight(level, tag, light);
         }
 
         if (addedLight)
-            Editor::History.SnapshotLevel("Add Flickering Light");
+            Editor::History.SnapshotLevel("Add flickering light");
     }
 
     void Commands::RemoveFlickeringLight() {
         bool removedLight = false;
 
-        for (auto& tag : GetSelectedFaces()) {
-            if (!Game::Level.SegmentExists(tag)) return;
-
-            auto light = Game::Level.GetFlickeringLight(tag);
-            auto iter = ranges::find_if(Game::Level.FlickeringLights, [tag](auto x) { return x.Tag == tag; });
-
-            if (iter != Game::Level.FlickeringLights.end()) {
-                if (auto seg = Game::Level.TryGetSegment(light->Tag))
-                    Render::AddLight(Game::Level, light->Tag, *seg);
-
-                Game::Level.FlickeringLights.erase(iter);
-                removedLight = true;
-            }
-        }
+        for (auto& tag : GetSelectedFaces())
+            removedLight |= Editor::RemoveFlickeringLight(Game::Level, tag);
 
         if (removedLight)
-            Editor::History.SnapshotLevel("Delete Flickering Light");
+            Editor::History.SnapshotLevel("Remove flickering light");
     }
 
     void Commands::AddDefaultSegment() {
