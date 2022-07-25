@@ -161,7 +161,7 @@ namespace Inferno::Editor {
                 auto normal = face.AverageNormal();
                 auto tangent = face.VectorForEdge(Selection.Point);
                 auto bitangent = normal.Cross(tangent);
-
+                bitangent.Normalize();
                 transform.Forward(bitangent);
                 transform.Up(tangent);
                 transform.Right(normal);
@@ -187,6 +187,7 @@ namespace Inferno::Editor {
             if (auto obj = level.TryGetObject(Selection.Object)) {
                 transform = obj->GetTransform();
                 transform.Forward(obj->Rotation.Forward());
+                transform.Forward().Normalize();
                 transform.Translation(Editor::Selection.GetOrigin(Settings::SelectionMode));
             }
         }

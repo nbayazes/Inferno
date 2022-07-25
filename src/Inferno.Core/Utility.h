@@ -155,8 +155,17 @@ namespace Inferno {
         return Color(average);
     }
 
+    const DirectX::XMVECTORF32 g_UnitVectorEpsilon = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
+
+    inline bool IsNormalized(const Vector3& v) {
+        using namespace DirectX;
+        auto difference = XMVectorSubtract(XMVector3Length(v), XMVectorSplatOne());
+        return XMVector4Less(XMVectorAbs(difference), g_UnitVectorEpsilon);
+    }
+
     // Converts a direction vector into a rotation matrix
     inline Matrix DirectionToRotationMatrix(Vector3 direction) {
+        assert(IsNormalized(direction));
         direction.Normalize();
         auto pitch = asin(direction.y);
         auto yaw = atan2(-direction.z, direction.x);
@@ -164,21 +173,22 @@ namespace Inferno {
     }
 
     inline Matrix DirectionToRotationMatrix(Vector3 direction, float roll) {
-        direction.Normalize();
+        assert(IsNormalized(direction));
         auto pitch = asin(direction.y);
         auto yaw = atan2(-direction.z, direction.x);
         return Matrix::CreateFromYawPitchRoll(yaw, roll, pitch);
     }
 
+    // Projects a ray onto a plane. What happens if parallel?
     inline Vector3 ProjectRayOntoPlane(const Ray& ray, const Vector3& planeOrigin, Vector3 planeNormal) {
-        planeNormal.Normalize();
+        assert(IsNormalized(planeNormal));
         auto length = planeNormal.Dot(ray.position - planeOrigin) / planeNormal.Dot(-ray.direction);
         return ray.position + ray.direction * length;
     }
 
     inline Vector3 ProjectPointOntoPlane(const Vector3& point, const Vector3& planeOrigin, Vector3 planeNormal) {
         // q - dot(q - p, n) * n
-        planeNormal.Normalize();
+        assert(IsNormalized(planeNormal));
         return point - (point - planeOrigin).Dot(planeNormal) * planeNormal;
     }
 
@@ -209,7 +219,7 @@ namespace Inferno {
     }
 
     inline float PointToPlaneDistance(const Vector3& point, const Vector3& planeOrigin, Vector3 planeNormal) {
-        planeNormal.Normalize();
+        assert(IsNormalized(planeNormal));
         auto w = point - planeOrigin;
         auto v = planeNormal;
         return v.Dot(w) / v.Length();

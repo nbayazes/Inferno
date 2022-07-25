@@ -43,6 +43,7 @@ namespace Inferno {
     Vector3 CreateNormal(const Vector3& v0, const Vector3& v1, const Vector3& v2) {
         auto normal = (v1 - v0).Cross(v2 - v1);
         normal.Normalize();
+        if (!IsNormalized(normal)) return Vector3::UnitY; // return a dummy normal to prevent errors
         return normal;
     }
 

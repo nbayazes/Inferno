@@ -23,15 +23,15 @@ namespace Inferno {
     };
 
     struct LightDeltaIndex {
-        Tag Tag;
-        uint8 Count = 0;
+        Tag Tag; // Which light source?
+        uint8 Count = 0; // Number of affected sides
         int16 Index = -1;
     };
 
     using SideLighting = Array<Color, 4>;
 
     struct LightDelta {
-        Tag Tag;
+        Tag Tag; // Which side to affect?
         SideLighting Color{};
     };
 
@@ -494,8 +494,8 @@ namespace Inferno {
         int32 StaticLights = 0;
         int32 DynamicLights = 0;
 
-        List<LightDeltaIndex> LightDeltaIndices;
-        List<LightDelta> LightDeltas;
+        List<LightDeltaIndex> LightDeltaIndices; // Index into LightDeltas
+        List<LightDelta> LightDeltas; // For breakable or flickering lights
 
         // 22 to 25: Descent 1
         // 26 to 29: Descent 2
