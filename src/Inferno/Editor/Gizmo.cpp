@@ -78,17 +78,17 @@ namespace Inferno::Editor {
         // Hit test each rotation plane
         Hit hits[3]{};
         float dist{};
-        if (enabled[0] 
+        if (enabled[0]
             && std::abs(transform.Forward().Dot(gizmoDir)) >= 1 - TransformGizmo::MaxViewAngle
             && ray.Intersects(xPlane, dist))
             hits[0] = { GizmoAxis::X, dist, TransformMode::Rotation };
 
-        if (enabled[1] 
+        if (enabled[1]
             && std::abs(transform.Up().Dot(gizmoDir)) >= 1 - TransformGizmo::MaxViewAngle
             && ray.Intersects(yPlane, dist))
             hits[1] = { GizmoAxis::Y, dist, TransformMode::Rotation };
 
-        if (enabled[2] 
+        if (enabled[2]
             && std::abs(transform.Right().Dot(gizmoDir)) >= 1 - TransformGizmo::MaxViewAngle
             && ray.Intersects(zPlane, dist))
             hits[2] = { GizmoAxis::Z, dist, TransformMode::Rotation };
@@ -160,6 +160,8 @@ namespace Inferno::Editor {
                 auto face = Face::FromSide(level, Selection.Tag());
                 auto normal = face.AverageNormal();
                 auto tangent = face.VectorForEdge(Selection.Point);
+                if (!IsNormalized(normal)) normal = Vector3::UnitX;
+                if (!IsNormalized(tangent)) tangent = Vector3::UnitY;
                 auto bitangent = normal.Cross(tangent);
                 bitangent.Normalize();
                 transform.Forward(bitangent);

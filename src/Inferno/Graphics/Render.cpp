@@ -723,9 +723,9 @@ namespace Inferno::Render {
         _meshBuffer = MakePtr<MeshBuffer>(Resources::GameData.Models.size());
 
         List<ModelID> modelIds;
-        for (auto& model : level.Objects)
-            if (model.Render.Type == RenderType::Model)
-                _meshBuffer->LoadModel(model.Render.Model.ID);
+        for (auto& obj : level.Objects)
+            if (obj.Render.Type == RenderType::Model)
+                _meshBuffer->LoadModel(obj.Render.Model.ID);
 
         {
             if (auto model = Resources::GetOutrageModel(TEST_MODEL)) {
@@ -867,12 +867,12 @@ namespace Inferno::Render {
     void ChangeLight(Level& level, const LightDeltaIndex& index, float multiplier = 1.0f) {
         for (int j = 0; j < index.Count; j++) {
             auto& dlp = level.LightDeltas[index.Index + j];
+            assert(level.SegmentExists(dlp.Tag));
+            auto& side = level.GetSide(dlp.Tag);
 
             for (int k = 0; k < 4; k++) {
-                assert(level.SegmentExists(dlp.Tag));
-                auto& side = level.GetSide(dlp.Tag);
                 side.Light[k] += dlp.Color[k] * multiplier;
-                ClampColor(side.Light[k], 0.0f, 5.0f);
+                //ClampColor(side.Light[k], 0.0f, 5.0f);
             }
         }
 
@@ -1015,8 +1015,10 @@ namespace Inferno::Render {
 
         if (Settings::ShowObjects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
-            for (auto& obj : Game::Level.Objects)
+            for (auto& obj : Game::Level.Objects) {
+                if (obj.Lifespan <= 0) continue;
                 DrawObject(Game::Level, obj, distSquared, alpha);
+            }
         }
 
         if (Settings::ShowMatcenEffects) {
