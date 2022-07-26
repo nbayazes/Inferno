@@ -458,6 +458,18 @@ namespace Inferno {
         return { point, distance };
     }
 
+
+    Tuple<Vector3, float> IntersectTriangleSphere(const Vector3& p0, const Vector3& p1, const Vector3& p2, const BoundingSphere& sphere) {
+        if (sphere.Intersects(p0, p1, p2)) {
+            auto p = ClosestPointOnTriangle(p0, p1, p2, sphere.Center);
+            auto vec = p - sphere.Center;
+            auto dist = (p - sphere.Center).Length();
+            return { p, dist };
+        }
+
+        return { {}, FLT_MAX };
+    }
+
     struct BoundingCapsule {
         Vector3 A, B;
         float Radius;
@@ -479,7 +491,7 @@ namespace Inferno {
             return p.distSq <= r * r;
         }
 
-        bool Intersect(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& center) const {
+        bool Intersect(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const {
             auto base = A;
             auto tip = B;
             // Compute capsule line endpoints A, B like before in capsule-capsule case:
@@ -489,64 +501,93 @@ namespace Inferno {
             auto a = base + offset; // base
             auto b = tip - offset; // tip
 
-            Render::Debug::DrawLine(a, b, { 1, 0, 0 });
+            //Render::Debug::DrawLine(a, b, { 1, 0, 0 });
 
+
+            // Project the line onto plane
             Ray r(A, capsuleNormal);
             Plane p(p0, p1, p2);
-            float t;
-            r.Intersects(p, t);
-
-            // Then for each triangle, ray-plane intersection:
-            //float t = faceNormal.Dot((p0 - base) / std::abs(capsuleNormal.Dot(faceNormal)));
-            auto linePlaneIntersect = base + capsuleNormal * t;
-            ///*Vector3*/ refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
+            auto linePlaneIntersect = ProjectRayOntoPlane(r, p0, p.Normal());
             auto inside = PointInTriangle(p0, p1, p2, linePlaneIntersect);
+
+            if (inside) {
+                refPoint = linePlaneIntersect;
+                //Render::Debug::DrawPoint(refPoint, { 0, 1, 0 });
+            }
+            else {
+                refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
+                //Render::Debug::DrawPoint(refPoint, { 0, 1, 1 });
+            }
+
+            auto center = ClosestPointOnLine(A, B, refPoint);
+            BoundingSphere sphere(center, Radius);
+
+            auto [point, idist] = IntersectTriangleSphere(p0, p1, p2, sphere);
+            refPoint = point;
+
+            normal = center - point;
+            normal.Normalize();
+            dist = idist;
+            return idist < Radius;
+
+            //float t;
+            //if(!r.Intersects(p, t))
+            //    return false;
+
+            //float t = faceNormal.Dot((p0 - base) / std::abs(capsuleNormal.Dot(faceNormal)));
+            //auto linePlaneIntersect = base + capsuleNormal * t;
+
+
+            //Render::Debug::DrawLine(b, linePlaneIntersect, { 1, 1, 1 });
+
+            ///*Vector3*/ refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
 
             //auto c0 = (linePlaneIntersect - p0).Cross(p1 - p0);
             //auto c1 = (linePlaneIntersect - p1).Cross(p2 - p1);
             //auto c2 = (linePlaneIntersect - p2).Cross(p0 - p2);
             //bool inside = c0.Dot(faceNormal) <= 0 && c1.Dot(faceNormal) <= 0 && c2.Dot(faceNormal) <= 0;
 
-            if (inside) {
-                Render::Debug::DrawPoint(linePlaneIntersect, { 1, 0, 0 });
-                refPoint = linePlaneIntersect;
-            }
-            else {
-                // Edge 1:
-                auto point1 = ClosestPointOnLine(p0, p1, linePlaneIntersect);
-                auto v1 = linePlaneIntersect - point1;
-                auto distsq = v1.Dot(v1);
-                auto bestDist = distsq;
-                refPoint = point1;
 
-                // Edge 2:
-                auto point2 = ClosestPointOnLine(p1, p2, linePlaneIntersect);
-                auto v2 = linePlaneIntersect - point2;
-                distsq = v2.Dot(v2);
-                if (distsq < bestDist) {
-                    refPoint = point2;
-                    bestDist = distsq;
-                }
-    
-                // Edge 3:
-                auto point3 = ClosestPointOnLine(p2, p0, linePlaneIntersect);
-                auto v3 = linePlaneIntersect - point3;
-                distsq = v3.Dot(v3);
-                if (distsq < bestDist) {
-                    refPoint = point3;
-                    bestDist = distsq;
-                }
-            }
+
+            //if (inside) {
+            //    Render::Debug::DrawPoint(linePlaneIntersect, { 1, 0, 0 });
+            //    refPoint = linePlaneIntersect;
+            //}
+            //else {
+            //    // Edge 1:
+            //    auto point1 = ClosestPointOnLine(p0, p1, linePlaneIntersect);
+            //    auto v1 = linePlaneIntersect - point1;
+            //    auto distsq = v1.Dot(v1);
+            //    auto bestDist = distsq;
+            //    refPoint = point1;
+
+            //    // Edge 2:
+            //    auto point2 = ClosestPointOnLine(p1, p2, linePlaneIntersect);
+            //    auto v2 = linePlaneIntersect - point2;
+            //    distsq = v2.Dot(v2);
+            //    if (distsq < bestDist) {
+            //        refPoint = point2;
+            //        bestDist = distsq;
+            //    }
+
+            //    // Edge 3:
+            //    auto point3 = ClosestPointOnLine(p2, p0, linePlaneIntersect);
+            //    auto v3 = linePlaneIntersect - point3;
+            //    distsq = v3.Dot(v3);
+            //    if (distsq < bestDist) {
+            //        refPoint = point3;
+            //        bestDist = distsq;
+            //    }
+            //}
 
             // The center of the best sphere candidate:
-            /*Vector3*/ center = ClosestPointOnLine(a, b, refPoint);
-            Render::Debug::DrawPoint(refPoint, { 1, 1, 0 });
+            /*Vector3*/
+            //Render::Debug::DrawPoint(refPoint, { 1, 1, 0 });
 
             // Determine whether point is inside all triangle edges:
             //bool inside = PointInTriangle(p0, p1, p2, linePlaneIntersect);
 
-            BoundingSphere sphere(center, Radius);
-            return sphere.Intersects(p0, p1, p2);
+
         }
     };
 
@@ -561,24 +602,23 @@ namespace Inferno {
 
             auto normal = point - sphere.Center;
             normal.Normalize();
-            if (normal.Dot(face.AverageNormal()) > 0) continue; // check that point is in front of face
+            if (normal.Dot(face.AverageNormal()) > 0)
+                continue; // passed through back of face
 
             if (dist < FLT_MAX) {
-                if (seg.SideIsSolid(side, level)) {
+                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
                     // hit a solid wall
-                    if (dist < hit.Distance) {
-                        hit.Distance = dist;
-                        hit.Point = point;
-                        hit.Tag = { segId, side };
-                        auto hitNormal = sphere.Center - point;
-                        hitNormal.Normalize();
-                        hit.Normal = hitNormal;
-                    }
+                    hit.Distance = dist;
+                    hit.Point = point;
+                    hit.Tag = { segId, side };
+                    auto hitNormal = sphere.Center - point;
+                    hitNormal.Normalize();
+                    hit.Normal = hitNormal;
                 }
                 else {
                     // intersected with a connected side, must check faces in it too
                     auto conn = seg.GetConnection(side);
-                    if (!hit.Visited.contains(conn))
+                    if (conn > SegID::None && !hit.Visited.contains(conn))
                         IntersectLevel(level, sphere, conn, hit); // Recursive
                 }
             }
@@ -588,9 +628,8 @@ namespace Inferno {
     }
 
     // intersects a ray with the level, returning hit information
-    LevelHit IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist) {
+    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit) {
         SegID segId = start;
-        LevelHit hit;
 
         while (segId != SegID::None) {
             auto& seg = level.GetSegment(segId);
@@ -621,7 +660,10 @@ namespace Inferno {
                     if (dist > maxDist) return {}; // hit is too far
 
                     if (seg.SideIsSolid(side, level)) { // todo: this isn't accurate due to door flags
-                        return { { segId, side }, nullptr, dist }; // hit a solid wall
+                        hit.Tag = { segId, side };
+                        hit.Distance = dist;
+                        hit.Normal = {}; // todo: normal
+                        return true;
                     }
                     else {
                         segId = seg.GetConnection(side);
@@ -631,105 +673,110 @@ namespace Inferno {
             }
 
             // if the first pass doesn't hit anything it means the ray didn't start inside the seg
-            if (segId == start) return {};
+            if (segId == start) return false;
         }
 
-        return hit;
+        return false;
     }
 
-    LevelHit IntersectLevel(Level& level, const BoundingCapsule& capsule, SegID start, float maxDist) {
-        SegID segId = start;
-        LevelHit hit;
+    // Intersects a capsule with the level
+    bool IntersectLevel(Level& level, const BoundingCapsule& capsule, SegID segId, LevelHit& hit) {
+        auto& seg = level.GetSegment(segId);
+        hit.Visited.insert(segId);
 
-        while (segId != SegID::None) {
-            auto& seg = level.GetSegment(segId);
+        //// Did we hit any objects in this segment?
+        //for (auto& obj : level.Objects) {
+        //    if (obj.Segment != segId) continue;
 
-            //// Did we hit any objects in this segment?
-            //for (auto& obj : level.Objects) {
-            //    if (obj.Segment != segId) continue;
+        //    BoundingSphere sphere(obj.Position, obj.Radius);
+        //    float dist{};
+        //    if (ray.Intersects(sphere, dist) && dist < hit.Distance) {
+        //        // object was closer than the previous one
+        //        hit.Obj = &obj;
+        //        hit.Distance = dist;
+        //        auto normal = (ray.direction * dist) - sphere.Center;
+        //        normal.Normalize();
+        //        hit.Normal = normal;
+        //    }
+        //}
 
-            //    BoundingSphere sphere(obj.Position, obj.Radius);
-            //    float dist{};
-            //    if (ray.Intersects(sphere, dist) && dist < hit.Distance) {
-            //        // object was closer than the previous one
-            //        hit.Obj = &obj;
-            //        hit.Distance = dist;
-            //        auto normal = (ray.direction * dist) - sphere.Center;
-            //        normal.Normalize();
-            //        hit.Normal = normal;
-            //    }
-            //}
+        //if (hit) return hit; // Objects will always be inside of a segment, no need to check walls if we hit something
 
-            if (hit) return hit; // Objects will always be inside of a segment, no need to check walls if we hit something
+        for (auto& side : SideIDs) {
+            auto face = Face::FromSide(level, seg, side);
+            auto i = face.Side.GetRenderIndices();
 
-            for (auto& side : SideIDs) {
-                auto face = Face::FromSide(level, seg, side);
-                auto i = face.Side.GetRenderIndices();
-                float dist{};
-
-                Vector3 refPoint, center;
-                if (capsule.Intersect(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, center)) {
-                    Render::Debug::DrawPoint(refPoint, { 1, 1, 0 });
-                    Render::Debug::DrawPoint(center, { 1, 1, 1 });
+            Vector3 refPoint, normal;
+            float dist{};
+            if (capsule.Intersect(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, normal, dist)) {
+                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
+                    hit.Normal = normal;
+                    hit.Point = refPoint;
+                    hit.Distance = dist;
+                    hit.Tag = { segId, side };
                 }
-
-                Vector3 refPoint2, center2;
-                auto d1 = capsule.Intersect(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint2, center2);
-
-                //if (face.Intersects(capsule, dist) && dist < hit.Distance) {
-                //    if (dist > maxDist) return {}; // hit is too far
-
-                //    if (seg.SideIsSolid(side, level)) { // todo: this isn't accurate due to door flags
-                //        return { { segId, side }, nullptr, dist }; // hit a solid wall
-                //    }
-                //    else {
-                //        segId = seg.GetConnection(side);
-                //        break; // go to next segment
-                //    }
-                //}
+                else {
+                    // scan touching seg
+                    auto conn = seg.GetConnection(side);
+                    if (conn > SegID::None && !hit.Visited.contains(conn))
+                        IntersectLevel(level, capsule, conn, hit);
+                }
             }
 
-            // if the first pass doesn't hit anything it means the ray didn't start inside the seg
-            if (segId == start) return {};
+            if (capsule.Intersect(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint, normal, dist)) {
+                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
+                    hit.Normal = normal;
+                    hit.Point = refPoint;
+                    hit.Distance = dist;
+                    hit.Tag = { segId, side };
+                }
+                else {
+                    // scan touching seg
+                    auto conn = seg.GetConnection(side);
+                    if (conn > SegID::None && !hit.Visited.contains(conn))
+                        IntersectLevel(level, capsule, conn, hit);
+                }
+            }
         }
 
         return hit;
     }
 
-    void ProjectPath(Level& level, Object& obj, SegID segId, float dt, int pass) {
-        // determine the type of intersection
-        // what side was hit? was the side a wall? should a door open?
-        // does it pass through a transparent wall?
+    //void ProjectPath(Level& level, Object& obj, SegID segId, float dt, int pass) {
+    //    // determine the type of intersection
+    //    // what side was hit? was the side a wall? should a door open?
+    //    // does it pass through a transparent wall?
 
-        // check traversal
-        // - project forward, if passes through open side, also check 
-        auto& pd = obj.Movement.Physics;
+    //    // check traversal
+    //    // - project forward, if passes through open side, also check 
+    //    auto& pd = obj.Movement.Physics;
 
-        auto delta = obj.Position - obj.LastPosition;
-        auto travel = delta.Length();
-        if (travel < 0.001f) return;
-        Vector3 dir;
-        delta.Normalize(dir);
+    //    auto delta = obj.Position - obj.LastPosition;
+    //    auto travel = delta.Length();
+    //    if (travel < 0.001f) return;
+    //    Vector3 dir;
+    //    delta.Normalize(dir);
 
-        Ray ray(obj.LastPosition, dir);
+    //    Ray ray(obj.LastPosition, dir);
 
-        // intersect every side in the segment and test if it is in range
+    //    // intersect every side in the segment and test if it is in range
 
-        // This only casts a single ray, for larger objects this will not be sufficient
-        auto hit = IntersectLevel(level, ray, segId, travel);
-        if (hit.Tag) {
-            // hit a segment side
-            Debug::ClosestPoints.push_back(obj.LastPosition + ray.direction * hit.Distance);
-        }
-        else if (hit.Obj) {
-            Debug::ClosestPoints.push_back(obj.LastPosition + ray.direction * hit.Distance);
+    //    // This only casts a single ray, for larger objects this will not be sufficient
+    //    Levelhit 
+    //    auto hit = IntersectLevel(level, ray, segId, travel);
+    //    if (hit.Tag) {
+    //        // hit a segment side
+    //        Debug::ClosestPoints.push_back(obj.LastPosition + ray.direction * hit.Distance);
+    //    }
+    //    else if (hit.Obj) {
+    //        Debug::ClosestPoints.push_back(obj.LastPosition + ray.direction * hit.Distance);
 
-            // hit an object
+    //        // hit an object
 
-            // most high-speed objects are projectiles with very small radii
-            // a single ray cast is sufficient
-        }
-    }
+    //        // most high-speed objects are projectiles with very small radii
+    //        // a single ray cast is sufficient
+    //    }
+    //}
 
     void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
         //if (obj.Type == ObjectType::Player) return;
@@ -758,7 +805,8 @@ namespace Inferno {
 
         bool isHit = false;
 
-        auto hit = IntersectLevel(level, ray, segId, expectedDistance);
+        LevelHit hit;
+        IntersectLevel(level, ray, segId, expectedDistance, hit);
         if (hit.Obj) {
             // hit an object
             obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
@@ -869,13 +917,105 @@ namespace Inferno {
     //    }
     //} SegmentSearch;
 
+    struct ActiveDoor {
+        WallID Front;
+        //WallID Back;
+        float Time;
+
+        static bool IsAlive(const ActiveDoor& d) { return d.Time > 0; }
+    };
+
+    template<class TData, class FnAlive, class TKey = int>
+    class SlotMap {
+        std::vector<TData> _data;
+
+    public:
+        TData& Get(TKey key) {
+            assert(InRange(key));
+            return _data[(int64)key];
+        }
+
+        [[nodiscard]] TKey Alloc(TData&& data) {
+            for (size_t i = 0; i < _data.size(); i++) {
+                if (!FnAlive(_data[i])) {
+                    _data = data;
+                    return (TKey)i;
+                }
+            }
+
+            _data.push_back(data);
+            return TKey(_data.size() - 1);
+        }
+
+        //[[nodiscard]]  T& Alloc() {
+        //    for (auto& v : _data) {
+        //        if (FnAlive(v))
+        //            return v;
+        //        //if (o.Lifespan <= 0) {
+        //        //    o = bullet;
+        //        //    return; // found a dead object to reuse!
+        //        //}
+        //    }
+
+        //    return _data.emplace_back();
+        //}
+
+        bool InRange(TKey index) const { return index >= (TKey)0 && index < (TKey)_data.size(); }
+
+        [[nodiscard]] auto at(size_t index) { return _data.at(index); }
+        [[nodiscard]] auto begin() { return _data.begin(); }
+        [[nodiscard]] auto end() { return _data.end(); }
+        [[nodiscard]] const auto begin() const { return _data.begin(); }
+        [[nodiscard]] const auto end() const { return _data.end(); }
+    };
+
+    SlotMap < ActiveDoor, decltype(ActiveDoor::IsAlive) > ActiveDoors;
+
+    //List<ActiveDoor> ActiveDoors;
+
+    constexpr float DOOR_WAIT_TIME = 5;
+
+    void UpdateGame(Level& level, double t, float dt) {
+        for (auto& obj : level.Objects) {
+            obj.Lifespan -= dt;
+        }
+
+        //for (auto& door : ActiveDoors) {
+        //    auto& wall = level.GetWall(door.Front);
+
+        //    if (wall.State == WallState::DoorOpening) {
+        //        OpenDoor();
+        //    }
+        //    else if (wall.State == WallState::DoorClosing) {
+        //        CloseDoor();
+        //    }
+        //    else if (wall.State == WallState::DoorWaiting) {
+        //        door.Time += dt;
+        //        if (door.Time > DOOR_WAIT_TIME) {
+        //            wall.State = WallState::DoorClosing;
+        //            door.Time = 0;
+        //        }
+        //    }
+        //}
+
+        for (auto& door : level.Walls) {
+            if (door.State == WallState::DoorOpening) {
+
+            }
+        }
+    }
+
     void UpdatePhysics(Level& level, double t, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
 
         HandleInput(level.Objects[0], dt);
 
+        UpdateGame(level, t, dt);
+
         for (auto& obj : level.Objects) {
+            if (obj.Lifespan <= 0) continue;
+
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
 
@@ -911,9 +1051,13 @@ namespace Inferno {
 
                     BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
 
-                    if (auto hit = IntersectLevel(level, capsule, obj.Segment, maxDistance)) {
-                        //Debug::ClosestPoints.push_back(hit.Point);
-                        //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                    LevelHit hit;
+                    if (IntersectLevel(level, capsule, obj.Segment, hit)) {
+                        if (obj.Type == ObjectType::Weapon)
+                            obj.Lifespan = 0;
+                        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+                        Debug::ClosestPoints.push_back(hit.Point);
+                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
                     }
                 }
 

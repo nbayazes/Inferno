@@ -42,7 +42,8 @@ namespace Inferno::Sound {
 
                 if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
                     Ray ray(obj->Position, dir);
-                    if (auto hit = IntersectLevel(Game::Level, ray, obj->Segment, dist)) {
+                    LevelHit hit;
+                    if (IntersectLevel(Game::Level, ray, obj->Segment, dist, hit)) {
                         // we hit a wall, muffle it based on the distance from the source
                         // a sound coming immediately around the corner shouldn't get muffled much
                         muffleMult = std::clamp(1 - hit.Distance / 60, 0.4f, 1.0f);

@@ -22,5 +22,5 @@ namespace Inferno {
         operator bool() { return Distance != FLT_MAX; }
     };
 
-    LevelHit IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist);
+    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit);
 }
