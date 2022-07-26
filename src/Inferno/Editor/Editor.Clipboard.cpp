@@ -167,7 +167,12 @@ namespace Inferno::Editor {
         }
 
         level.UpdateAllGeometricProps();
-        if (!newIds.empty()) JoinTouchingSegments(level, newIds[0], newIds, Settings::CleanupTolerance);
+
+        // Weld internal connections
+        for (auto& id : newIds)
+            for (auto& side : SideIDs)
+                WeldConnection(level, { id, side }, 0.01f);
+        
         return newIds;
     }
 
@@ -387,6 +392,8 @@ namespace Inferno::Editor {
     }
 
     string Paste() {
+        Editor::History.SnapshotSelection();
+
         switch (Settings::SelectionMode) {
             case SelectionMode::Segment:
                 PasteSegments(Game::Level, Editor::Selection.Tag());

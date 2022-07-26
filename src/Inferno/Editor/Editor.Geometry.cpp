@@ -52,6 +52,9 @@ namespace Inferno::Editor {
         auto srcFace = Face::FromSide(level, src);
         auto destFace = Face::FromSide(level, dest);
         if (!srcFace.Overlaps(destFace, tolerance)) return; // faces don't overlap
+        if (srcFace.AverageNormal().Dot(destFace.AverageNormal()) >= 0) return; // don't merge sides facing the same way
+        if (destSeg.GetConnection(dest.Side) > SegID::None) return; // don't merge sides already connected to something
+        if (srcSeg.GetConnection(src.Side) > SegID::None) return; // don't merge sides already connected to something
 
         srcSeg.GetConnection(src.Side) = dest.Segment;
         destSeg.GetConnection(dest.Side) = src.Segment;
@@ -112,30 +115,25 @@ namespace Inferno::Editor {
             }
         }
 
-        WeldVertices(level, segIds, Settings::CleanupTolerance); // Verts should be overlapping
+        WeldVertices(level, segIds, Settings::CleanupTolerance);
     }
 
     // Joins all segments nearby to each segment excluding segments in the source
-    void JoinTouchingSegmentsExclusive(Level& level, span<Tag> sides, float tolerance) {
-        auto segs = Seq::map(sides, Tag::GetSegID);
+    void JoinTouchingSegmentsExclusive(Level& level, span<Tag> tags, float tolerance) {
+        auto segs = Seq::map(tags, Tag::GetSegID);
         auto nearby = GetNearbySegmentsExclusive(level, segs);
 
-        for (auto& side : sides) {
-            auto srcSeg = level.TryGetSegment(side.Segment);
-            if (!srcSeg) return;
+        for (auto& tag : tags) {
+            if (!level.SegmentExists(tag)) continue;
 
-            auto srcFace = Face::FromSide(level, side);
+            auto srcFace = Face::FromSide(level, tag);
             for (auto& destid : nearby) {
                 for (auto& destSide : SideIDs) {
-                    if (auto dest = level.TryGetSegment(destid)) {
-                        if (dest->GetConnection(destSide) <= SegID::None) continue;
-                        MergeSides(level, side, { destid, destSide }, tolerance);
-                    }
+                    MergeSides(level, tag, { destid, destSide }, tolerance);
                 }
             }
         }
 
-        WeldVertices(level, segs, Settings::CleanupTolerance); // Verts should be overlapping
     }
 
     List<SegID> GetNearbySegments(Level& level, SegID srcId, float distance) {
@@ -267,9 +265,7 @@ namespace Inferno::Editor {
         for (auto& v : unused)
             DeleteVertex(level, v);
 
-        if (unused.empty()) return false;
-
-        return true;
+        return !unused.empty();
     }
 
     // Merges overlapping verts
@@ -279,9 +275,11 @@ namespace Inferno::Editor {
         List<VertexReplacement> replacements;
 
         // j = i + 1 because i already compares to every value of j
-        for (PointID i = 0; i < src.size(); i++) {
-            for (PointID j = i + 1; j < src.size(); j++) {
-                if (Vector3::Distance(verts[src[j]], verts[src[i]]) <= tolerance)
+        for (PointID i = 0; i < verts.size(); i++) {
+            if (!Seq::contains(src, i)) continue;
+            for (PointID j = i + 1; j < verts.size(); j++) {
+                if (!Seq::contains(src, j)) continue;
+                if (Vector3::Distance(verts[j], verts[i]) <= tolerance)
                     replacements.push_back({ j, i });
             }
         }
@@ -303,20 +301,6 @@ namespace Inferno::Editor {
 
         auto list = Seq::ofSet(points);
         WeldVertices(level, list, tolerance);
-
-        //for (PointID i = 0; i < verts.size(); i++) { // for every vertex
-        //    for (auto& id : ids) { // compare against every segment in selection
-        //        if (auto seg = level.TryGetSegment(id)) {
-        //            for (auto& idx : seg->Indices) {
-        //                // if the seg index is overlapping a global index, set it
-        //                if (Vector3::Distance(verts[idx], verts[i]) <= tolerance)
-        //                    idx = i;
-        //            }
-        //        }
-        //    }
-        //}
-
-        //PruneVertices(level);
     }
 
     bool WeldConnection(Level& level, Tag srcid, float tolerance) {

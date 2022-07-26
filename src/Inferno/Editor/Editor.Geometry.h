@@ -8,7 +8,8 @@
 #include "Command.h"
 
 namespace Inferno::Editor {
-    // Returns the matching edge of the connected seg and side of the provided tag. Also returns 0 if not found.
+    // Returns the matching edge of the connected seg and side of the provided tag.
+    // Returns 0 if not found.
     short GetPairedEdge(Level&, Tag, short point);
 
     void DeleteSegment(Level&, SegID);
