@@ -65,16 +65,8 @@ PS_INPUT VSLevel(LevelVertex input) {
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
-    //output.uv = input.uv + Scroll * Time * 100;
     output.uv = input.uv + Scroll * Time * 100;
     output.uv2 = input.uv2 + Scroll2 * Time * 100;
-
-    //float s = sin(3.14 * 4 / 2);
-    //float c = cos(3.14 * 4 / 2);
-    //float2x2 rotationMatrix = float2x2(c, -s, s, c);
-    //output.uv2 = mul(output.uv, rotationMatrix); // this is not the right offset for sliding textures.
-    //output.uv2 = mul(input.uv, rotationMatrix) + Scroll * Time * 100;
-    //output.uv2 = mul(input.uv, rotationMatrix) + mul(Scroll, rotationMatrix) * Time * 100;
     output.normal = input.normal;
     output.world = input.pos; // level geometry is already in world coordinates
     return output;
@@ -91,27 +83,10 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
-    float4 lighting = lerp(1, input.col, LightingScale);
+    float4 lighting = lerp(1, max(0, input.col), LightingScale);
     float4 specular = Specular(-viewDir, viewDir, input.normal);
     //float4 base;
 
-    //// Distortion effect for waterfalls.
-    //if (Distort) {
-    //    float2 uv = input.uv;
-    //    float3 pos = input.pos.xyz / 500;
-    //    // todo: clamp the input of cos / sin, otherwise as time gets large behavior will change
-    //    uv.x += (cos(Time + pos.y * 2 * PI + pos.z * 2 * PI) + 1.0) / 175.0;
-    //    uv.y += (sin(Time + pos.x * 2 * PI + pos.x * 2 * PI) + 1.0) / 250.0;
-    //    base = Diffuse.Sample(sampler0, uv);
-
-    //    //float4 subsurface = Diffuse.Sample(sampler0, input.uv + 0.5 + Scroll * 0.25);
-    //    //float brightness = (base.r + base.g + base.b) / 4; // only allow subsurface through on brighter portions
-    //    //base.rgb = base - (brightness * subsurface) * 0.5;
-    //}
-    //else {
-    //    base = Diffuse.Sample(sampler0, input.uv);
-    //}
-    
     float4 base = Diffuse.Sample(sampler0, input.uv);
     float4 emissive = Emissive.Sample(sampler0, input.uv) * base;
     emissive.a = 0;
@@ -123,22 +98,12 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
 
         float4 src = Diffuse2.Sample(sampler0, input.uv2);
         
-        //if (src.a < 1) {
-        //    //float4 s1 = float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-2 / 64.0, -2 / 64.0)).a * 0.35;
-        //    //float4 s2 = float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, -1 / 64.0)).a * 0.30;
-        //    //src += s1 + s2;
-        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, -1 / 64.0)).a * 0.20; // bottom edge
-        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(1 / 64.0, 1 / 64.0)).a * 0.19;
-        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(1 / 64.0, -1 / 64.0)).a * 0.18;
-        //    src += float4(0, 0, 0, 1) * Diffuse2.Sample(sampler0, input.uv2 + float2(-1 / 64.0, 1 / 64.0)).a * 0.17;
-        //}
-        
         float4 dst = base;
         float out_a = src.a + dst.a * (1 - src.a);
         float3 out_rgb = src.a * src.rgb + (1 - src.a) * dst.rgb;
         float4 diffuse = float4(out_rgb, out_a);
         
-        if (diffuse.a < 0.05f)
+        if (diffuse.a < 0.01f)
             discard;
         
         // layer the emissive over the base emissive
@@ -168,7 +133,7 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
 
         //base.rgb *= emissive.rgb * 0.5;
         //output.Emissive = base * lighting;
-        if (base.a < 0.02f)
+        if (base.a < 0.01f)
             discard;
         return base * lighting;
     }
