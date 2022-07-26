@@ -40,7 +40,7 @@ namespace Inferno::Editor {
     List<SegID> GetNearbySegments(Level&, SegID, float distance = 150);
     List<SegID> GetNearbySegmentsExclusive(Level&, span<SegID>, float distance = 150);
 
-    void ApplyNoise(Level& level, List<PointID> points, float scale, const Vector3& strength, int64 seed);
+    void ApplyNoise(Level& level, span<PointID> points, float scale, const Vector3& strength, int64 seed);
 
     List<SegID> ExtrudeFaces(Level& level, span<Tag> faces, const Vector3& offset);
     bool BeginExtrude(Level& level);

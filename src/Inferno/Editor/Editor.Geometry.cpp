@@ -344,7 +344,7 @@ namespace Inferno::Editor {
         PruneVertices(level);
     }
 
-    void ApplyNoise(Level& level, List<PointID> points, float scale, const Vector3& strength, int64 seed) {
+    void ApplyNoise(Level& level, span<PointID> points, float scale, const Vector3& strength, int64 seed) {
         /* std::random_device rd;
          std::mt19937_64 mt(rd());
          std::uniform_int_distribution<int64> dist(std::llround(std::pow(2, 61)), std::llround(std::pow(2, 62)));
@@ -364,7 +364,7 @@ namespace Inferno::Editor {
     // Geometry scaling only applies to one axis at a time.
     // It moves points using linear snapping instead of applying a multiplier.
     // This proves to be more useful by keeping segment sizes at whole values.
-    void ApplyGeometryScaling(Level& level, List<PointID>& points) {
+    void ApplyGeometryScaling(Level& level, span<PointID> points) {
         auto scale = Editor::Gizmo.DeltaTransform.Translation(); // Scaling stores transform values
         auto dist = scale.Length();
         if (dist == 0) return;
@@ -374,6 +374,7 @@ namespace Inferno::Editor {
         //SPDLOG_INFO("Dragging {:.2f}, {:.2f}, {:.2f} Grow: {}", g_ScaleGizmo.Scale.x, g_ScaleGizmo.Scale.y, g_ScaleGizmo.Scale.z, g_ScaleGizmo.Grow);
 
         auto origin = Editor::Gizmo.Transform.Translation();
+        bool crossedPlane = true;
 
         for (auto& v : points) {
             constexpr auto MinimumPlaneDistance = 1.0f;
@@ -390,12 +391,16 @@ namespace Inferno::Editor {
             auto offsetDir = offset - origin;
             offsetDir.Normalize();
             float planeDist = PointToPlaneDistance(offset, origin, dir * directionMultiplier);
-            if (planeDist < MinimumPlaneDistance) {
-                Editor::Gizmo.TotalDelta += dist; // hack: discard the last delta increment
+            if (planeDist < MinimumPlaneDistance)
                 continue; // don't scale if point would cross the plane
-            }
+
+            crossedPlane = false;
             level.Vertices[v] = offset;
         }
+
+        // discard the last increment if no movement happened due to everything crossing plane
+        if (crossedPlane)
+            Editor::Gizmo.TotalDelta += dist;
     }
 
     // Move objects contained by the segment after rotating or translating
