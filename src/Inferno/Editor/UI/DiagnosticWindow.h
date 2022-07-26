@@ -14,14 +14,16 @@ namespace Inferno::Editor {
         List<SegmentDiagnostic> _segments;
         List<SegmentDiagnostic> _objects;
         int _selection{};
-        bool _showWarnings, _markErrors;
-        bool _checked; // user has checked the level once already
+        bool _showWarnings = false, _markErrors = false, _fixErrors = true;
+        bool _checked = false; // user has checked the level once already
     public:
         DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Windows.Diagnostics) {
-            auto OnLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(); };
+            auto OnLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(_fixErrors); };
             Events::SegmentsChanged += OnLevelChanged;
             Events::ObjectsChanged += OnLevelChanged;
-            Events::SnapshotChanged += OnLevelChanged;
+            Events::SnapshotChanged += [this] {
+                if (IsOpen() && _checked) CheckLevel(false);
+            };
 
             Events::LevelLoaded += [this] {
                 _checked = false;
@@ -31,9 +33,9 @@ namespace Inferno::Editor {
         }
 
     protected:
-        void CheckLevel() {
+        void CheckLevel(bool fixErrors) {
             _checked = true;
-            _segments = CheckSegments(Game::Level);
+            _segments = CheckSegments(Game::Level, fixErrors);
             _objects = CheckObjects(Game::Level);
 
             if (_markErrors) {
@@ -49,10 +51,12 @@ namespace Inferno::Editor {
 
         void OnUpdate() override {
             if (ImGui::Button("Check level"))
-                CheckLevel();
+                CheckLevel(_fixErrors);
 
             //ImGui::SameLine();
             //ImGui::Checkbox("Warnings", &_showWarnings);
+            ImGui::SameLine();
+            ImGui::Checkbox("Fix errors", &_fixErrors);
 
             ImGui::SameLine();
             ImGui::Checkbox("Mark errors", &_markErrors);
@@ -76,7 +80,7 @@ namespace Inferno::Editor {
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
                     auto segLabel = item.Tag.Side == SideID::None ?
-                        fmt::format("{}", (int)item.Tag.Segment) : 
+                        fmt::format("{}", (int)item.Tag.Segment) :
                         fmt::format("{}:{}", (int)item.Tag.Segment, (int)item.Tag.Side);
 
                     ImGui::Text(segLabel.c_str());

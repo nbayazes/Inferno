@@ -389,7 +389,7 @@ namespace Inferno::Editor {
         return results;
     }
 
-    List<SegmentDiagnostic> CheckSegments(Level& level) {
+    List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors) {
         List<SegmentDiagnostic> results;
         bool changedLevel = false;
 
@@ -421,34 +421,52 @@ namespace Inferno::Editor {
                 auto conn = level.TryGetSegment(connId);
 
                 if (!conn) {
-                    auto msg = fmt::format("Removed bad segment connection to {}", connId);
-                    results.push_back({ 0, { segid, side }, msg });
-                    seg.Connections[(int)side] = SegID::None;
-                    changedLevel = true;
+                    if (fixErrors) {
+                        auto msg = fmt::format("Removed bad segment connection to {}", connId);
+                        results.push_back({ 2, { segid, side }, msg });
+                        seg.Connections[(int)side] = SegID::None;
+                        changedLevel = true;
+                    }
+                    else {
+                        auto msg = fmt::format("Bad segment connection to {}", connId);
+                        results.push_back({ 0, { segid, side }, msg });
+                    }
                 }
 
                 if (auto other = level.GetConnectedSide({ segid, side })) {
                     // Check that vertices match between connections
                     if (!SidesMatch(level, { segid, side }, other)) {
                         // Try to weld the vertex to fix the mismatch
-                        if (WeldConnection(level, { segid, side }, 0.01f)) {
+                        if (fixErrors && WeldConnection(level, { segid, side }, 0.01f)) {
                             results.push_back({ 2, { segid, side }, fmt::format("Fixed connection to {}", connId) });
                             changedLevel = true;
                         }
                         else {
-                            seg.Connections[(int)side] = SegID::None;
-                            conn->GetConnection(other.Side) = SegID::None;
-                            auto msg = fmt::format("Removed mismatched connection to {}", connId);
-                            results.push_back({ 1, { segid, side }, msg });
-                            changedLevel = true;
+                            if (fixErrors) {
+                                seg.Connections[(int)side] = SegID::None;
+                                conn->GetConnection(other.Side) = SegID::None;
+                                auto msg = fmt::format("Removed mismatched connection to {}", connId);
+                                results.push_back({ 2, { segid, side }, msg });
+                                changedLevel = true;
+                            }
+                            else {
+                                auto msg = fmt::format("Mismatched connection to {}", connId);
+                                results.push_back({ 1, { segid, side }, msg });
+                            }
                         }
                     }
                 }
                 else {
-                    auto msg = fmt::format("Removed bad connection to {}", connId);
-                    results.push_back({ 0, { segid, side }, msg });
-                    seg.Connections[(int)side] = SegID::None;
-                    changedLevel = true;
+                    if (fixErrors) {
+                        auto msg = fmt::format("Removed bad connection to {}", connId);
+                        results.push_back({ 2, { segid, side }, msg });
+                        seg.Connections[(int)side] = SegID::None;
+                        changedLevel = true;
+                    }
+                    else {
+                        auto msg = fmt::format("Bad connection to {}", connId);
+                        results.push_back({ 0, { segid, side }, msg });
+                    }
                 }
             }
         }
