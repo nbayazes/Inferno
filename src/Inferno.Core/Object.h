@@ -343,6 +343,8 @@ namespace Inferno {
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
         float Lifespan = FLT_MAX; // how long before despawning
+        ObjID Parent = ObjID::None; // Parent for projectiles, maybe attached objects
+
         MovementData Movement;
         RenderData Render;
         ControlData Control;

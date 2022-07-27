@@ -24,7 +24,7 @@ namespace Inferno {
         int Frequency = 22050; // 22050 Hz for S22, 11025 Hz for S11
         size_t DataStart = 0u;
 
-        List<ubyte> Read(SoundID id) const;
+        List<ubyte> Read(int index) const;
     };
 
     SoundFile::Header ReadSoundHeader(StreamReader& reader);

@@ -31,9 +31,9 @@ namespace Inferno {
         return file;
     }
 
-    List<ubyte> SoundFile::Read(SoundID id) const {
+    List<ubyte> SoundFile::Read(int index) const {
         StreamReader reader(Path);
-        auto& sound = Sounds[(int)id];
+        auto& sound = Sounds[index];
 
         //SPDLOG_INFO("Reading header {} ID: {}", header.Name, id);
         reader.Seek(DataStart + sound.Offset);

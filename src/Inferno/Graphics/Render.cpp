@@ -13,6 +13,7 @@
 #include "Settings.h"
 #include "DirectX.h"
 #include "Physics.h"
+#include "SoundSystem.h"
 
 using namespace DirectX;
 
@@ -980,6 +981,10 @@ namespace Inferno::Render {
             for (auto& point : Inferno::Debug::ClosestPoints) {
                 Debug::DrawPoint(point, Color(1, 0, 0));
             }
+        }
+
+        for (auto& emitter : Inferno::Sound::Debug::Emitters) {
+            Debug::DrawPoint(emitter, { 0 ,1, 0 });
         }
     }
 

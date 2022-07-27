@@ -381,16 +381,9 @@ namespace Inferno {
             return true;
         }
 
-        bool HasFlag(WallFlag flag) const {
-            return (uint8)Flags & (uint8)flag;
-        }
-
-        void SetFlag(WallFlag flag) {
-            Flags = WallFlag((uint8)Flags | (uint8)flag);
-        }
-
-        void SetState(WallState state) { State |= state; }
-        bool HasState(WallState state) { return bool(State & state); }
+        bool HasFlag(WallFlag flag) const { return bool(Flags & flag); }
+        void SetFlag(WallFlag flag) { Flags |= flag; }
+        void ClearFlag(WallFlag flag) { Flags &= ~flag; }
 
         static constexpr auto CloakStep = 1.0f / 31.0f;
 

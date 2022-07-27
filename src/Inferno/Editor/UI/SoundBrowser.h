@@ -37,7 +37,7 @@ namespace Inferno::Editor {
 
     protected:
         void OnUpdate() override {
-            auto& sounds = Resources::Sounds.Sounds;
+            auto& sounds = Resources::GameData.Sounds;
 
             ImGui::SliderFloat("Volume", &_vol, 0, 1);
             ImGui::SliderFloat("Pan", &_pan, -1, 1);
@@ -58,13 +58,17 @@ namespace Inferno::Editor {
                 ImGui::BeginChild("sounds", { -1, -1 }, true);
 
                 for (int i = 0; i < sounds.size(); i++) {
-                    auto label = fmt::format("{}: {}", i, sounds[i].Name);
+                    auto idx = sounds[i];
+                    if ((int)idx >= Resources::Sounds.Sounds.size()) continue;
+                    auto& sound = Resources::Sounds.Sounds[(int)idx];
+
+                    auto label = fmt::format("{}: {}", i, sound.Name);
                     if (ImGui::Selectable(label.c_str(), i == _selection)) {
                         _selection = i;
                         if (_3d)
-                            Sound::Play3D((SoundID)_selection, _vol, Editor::Selection.Object, _pitch);
+                            Sound::Play3D((SoundID)i, Editor::Selection.Object, _vol, _pitch);
                         else
-                            Sound::Play((SoundID)_selection, _vol, _pan, _pitch);
+                            Sound::Play((SoundID)i, _vol, _pan, _pitch);
                     }
                 }
 

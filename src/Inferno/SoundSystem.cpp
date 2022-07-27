@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <list>
 #include "DirectX.h"
 #include "SoundSystem.h"
 #include "FileSystem.h"
@@ -7,7 +8,6 @@
 #include "logging.h"
 #include "Graphics/Render.h"
 #include "Physics.h"
-#include <list>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -17,20 +17,31 @@ namespace Inferno::Sound {
     // Scales game coordinates to audio coordinates.
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
     constexpr float AUDIO_SCALE = 1 / 30.0f;
-    constexpr float MAX_DISTANCE = 400;
+    constexpr float MAX_DISTANCE = 400; // Furthest distance a sound can be heard
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
+    constexpr float MERGE_WINDOW = 1 / 8.0f; // Discard the same sound being played by a source within a window
 
     struct ObjectSound {
         ObjID Source = ObjID::None;
+        SoundID Sound = SoundID::None;
+        SegID Segment = SegID::None;
         bool Started = false;
+        bool AttachToSource = false;
         Ptr<SoundEffectInstance> Instance;
         AudioEmitter Emitter; // Stores position
+        double StartTime = 0;
 
         void UpdateEmitter(const Vector3& listener, float /*dt*/) {
-            if (auto obj = Game::Level.TryGetObject(Source)) {
+            auto obj = Game::Level.TryGetObject(Source);
+            if (obj && AttachToSource) {
                 //Emitter.Update(obj->Position() * AUDIO_SCALE, obj->Transform.Up(), dt);
                 Emitter.SetPosition(obj->Position * AUDIO_SCALE);
-                auto delta = listener - obj->Position;
+                Segment = obj->Segment;
+            }
+
+            if (obj) {
+                auto emitterPos = Emitter.Position / AUDIO_SCALE;
+                auto delta = listener - emitterPos;
                 Vector3 dir;
                 delta.Normalize(dir);
                 auto dist = delta.Length();
@@ -41,12 +52,13 @@ namespace Inferno::Sound {
                 float muffleMult = 1;
 
                 if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
-                    Ray ray(obj->Position, dir);
+                    Ray ray(emitterPos, dir);
                     LevelHit hit;
-                    if (IntersectLevel(Game::Level, ray, obj->Segment, dist, hit)) {
+                    if (IntersectLevel(Game::Level, ray, Segment, dist, hit)) {
+                        auto hitDist = (listener - hit.Point).Length();
                         // we hit a wall, muffle it based on the distance from the source
                         // a sound coming immediately around the corner shouldn't get muffled much
-                        muffleMult = std::clamp(1 - hit.Distance / 60, 0.4f, 1.0f);
+                        muffleMult = std::clamp(1 - hitDist / 60, 0.25f, 0.95f);
                     };
                 }
 
@@ -56,6 +68,8 @@ namespace Inferno::Sound {
             else {
                 // object is missing, was likely destroyed. Should the sound stop?
             }
+
+            Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
         }
     };
 
@@ -94,18 +108,19 @@ namespace Inferno::Sound {
     }
 
     void SoundWorker(milliseconds pollRate) {
+        SPDLOG_INFO("Starting audio mixer thread");
+
         auto result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         if (!SUCCEEDED(result))
             SPDLOG_WARN("CoInitializeEx did not succeed");
 
         try {
             auto devices = AudioEngine::GetRendererDetails();
-            wstring info = L"Init sound system. Available devices:\n";
+            wstring info = L"Available sound devices:\n";
             for (auto& device : devices)
                 info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
 
             SPDLOG_INFO(info);
-
 
             auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
 #ifdef _DEBUG
@@ -117,12 +132,13 @@ namespace Inferno::Sound {
             Alive = true;
         }
         catch (const std::exception& e) {
-            SPDLOG_ERROR("Unable to start sound engine:\n{}", e.what());
+            SPDLOG_ERROR("Unable to start sound engine: {}", e.what());
             return;
         }
 
-        SPDLOG_INFO("Starting audio mixer thread");
         while (Alive) {
+            Debug::Emitters.clear();
+
             if (Engine->Update()) {
                 try {
                     auto dt = pollRate.count() / 1000.0f;
@@ -207,12 +223,6 @@ namespace Inferno::Sound {
         // HWND is not used, but indicates the sound system requires a window
         WorkerThread = std::thread(SoundWorker, pollRate);
 
-        //try {
-        //}
-        //catch (const std::exception& e) {
-        //    SPDLOG_ERROR("Unable to start sound engine:\n{}", e.what());
-        //}
-
         //DWORD channelMask{};
         //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
         //auto hresult = X3DAudioInitialize(channelMask, 20, Engine->Get3DHandle());
@@ -255,8 +265,8 @@ namespace Inferno::Sound {
         sound->Play(volume, pitch, pan);
     }
 
-    void Play3D(SoundID id, float volume, ObjID source, float pitch) {
-        if (!Alive) return;
+    void Play3D(SoundID id, ObjID source, float volume, float pitch) {
+        if (!Alive || id == SoundID::None) return;
         LoadSound(id);
         SPDLOG_INFO("Playing sound effect {}", (int)id);
         auto sound = Sounds[int(id)].get();
@@ -264,7 +274,6 @@ namespace Inferno::Sound {
         {
             std::scoped_lock lock(ObjectSoundsMutex);
             auto& s = ObjectSounds.emplace_back();
-            s.Source = source;
             s.Instance = sound->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
             s.Instance->SetVolume(volume);
             s.Instance->SetPitch(pitch);
@@ -273,6 +282,49 @@ namespace Inferno::Sound {
             s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
             s.Emitter.CurveDistanceScaler = 1.0f;
             //s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
+
+            s.Source = source;
+            s.AttachToSource = true;
+            s.Sound = id;
+        }
+    }
+
+    void Play3D(SoundID id, Vector3 position, SegID segment, ObjID source, float volume, float pitch) {
+        if (!Alive || id == SoundID::None) return;
+
+        LoadSound(id);
+        auto sound = Sounds[int(id)].get();
+        position *= AUDIO_SCALE;
+
+        {
+            std::scoped_lock lock(ObjectSoundsMutex);
+
+            if (source != ObjID::None) {
+                for (auto& instance : ObjectSounds) {
+                    if (instance.Source == source &&
+                        instance.Sound == id &&
+                        instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
+                        instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
+                        return; // Don't play sounds within the merge window
+                    }
+                }
+            }
+
+            auto& s = ObjectSounds.emplace_back();
+            s.Instance = sound->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
+            s.Instance->SetVolume(volume);
+            s.Instance->SetPitch(pitch);
+
+            s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
+            s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
+            s.Emitter.CurveDistanceScaler = 1.0f;
+            s.Emitter.Position = position;
+            //s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
+
+            s.StartTime = Game::ElapsedTime;
+            s.Sound = id;
+            s.Source = source;
+            s.Segment = segment;
         }
     }
 

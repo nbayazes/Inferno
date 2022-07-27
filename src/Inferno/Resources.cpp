@@ -437,7 +437,8 @@ namespace Inferno::Resources {
 
     List<ubyte> ReadSound(SoundID id) {
         // todo: also search data directories
-        return Sounds.Read(id);
+        auto idx = GameData.Sounds[(int)id];
+        return Sounds.Read(idx);
     }
 
     List<string> GetSoundNames() {
