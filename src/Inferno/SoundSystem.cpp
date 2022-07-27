@@ -16,7 +16,7 @@ using namespace std::chrono;
 namespace Inferno::Sound {
     // Scales game coordinates to audio coordinates.
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
-    constexpr float AUDIO_SCALE = 1 / 30.0f; 
+    constexpr float AUDIO_SCALE = 1 / 30.0f;
     constexpr float MAX_DISTANCE = 400;
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
 
@@ -181,18 +181,23 @@ namespace Inferno::Sound {
     }
 
     void Init(HWND, milliseconds pollRate) {
-        // HWND is not used, but indicates the sound system requires a window
-        auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
+        try {
+            SPDLOG_INFO("Init sound system. Sounds: {}", Resources::GetSoundCount());
+            // HWND is not used, but indicates the sound system requires a window
+            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
 #ifdef _DEBUG
-        flags |= AudioEngine_Debug;
+            flags |= AudioEngine_Debug;
 #endif
-        Engine = MakePtr<AudioEngine>(flags);
-        Sounds.resize(Resources::GetSoundCount());
-        SPDLOG_INFO("Init sound system. Sounds: {}", Sounds.size());
-        Alive = true;
-        WorkerThread = std::thread(SoundWorker, pollRate);
+            Engine = MakePtr<AudioEngine>(flags);
+            Sounds.resize(Resources::GetSoundCount());
+            Alive = true;
+            WorkerThread = std::thread(SoundWorker, pollRate);
 
-        Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
+            Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Unable to start sound engine:\n{}", e.what());
+        }
 
         //DWORD channelMask{};
         //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
@@ -229,6 +234,7 @@ namespace Inferno::Sound {
     }
 
     void Play(SoundID id, float volume, float pan, float pitch) {
+        if (!Alive) return;
         LoadSound(id);
         SPDLOG_INFO("Playing sound effect {}", (int)id);
         auto sound = Sounds[int(id)].get();
@@ -236,6 +242,7 @@ namespace Inferno::Sound {
     }
 
     void Play3D(SoundID id, float volume, ObjID source, float pitch) {
+        if (!Alive) return;
         LoadSound(id);
         SPDLOG_INFO("Playing sound effect {}", (int)id);
         auto sound = Sounds[int(id)].get();
@@ -271,7 +278,7 @@ namespace Inferno::Sound {
 
         SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",
                     stats.playingOneShots, stats.playingInstances,
-                    stats.allocatedInstances, 
+                    stats.allocatedInstances,
                     stats.allocatedVoices, stats.allocatedVoices3d,
                     stats.allocatedVoicesOneShot, stats.allocatedVoicesIdle,
                     stats.audioBytes);
