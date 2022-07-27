@@ -119,10 +119,11 @@ void Application::Update() {
 
     Inferno::Input::Update();
 
-
-    if (Input::IsKeyPressed(Keys::Enter)) {
-        FireTestWeapon(Game::Level, Game::Level.Objects[0], 0);
-        FireTestWeapon(Game::Level, Game::Level.Objects[0], 1);
+    if (Settings::EnablePhysics) {
+        if (Input::IsKeyPressed(Keys::Enter)) {
+            FireTestWeapon(Game::Level, Game::Level.Objects[0], 0);
+            FireTestWeapon(Game::Level, Game::Level.Objects[0], 1);
+        }
     }
 
     if (Input::IsKeyPressed(Keys::F1))
