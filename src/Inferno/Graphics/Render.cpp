@@ -872,7 +872,7 @@ namespace Inferno::Render {
 
             for (int k = 0; k < 4; k++) {
                 side.Light[k] += dlp.Color[k] * multiplier;
-                //ClampColor(side.Light[k], 0.0f, 5.0f);
+                ClampColor(side.Light[k], 0.0f, Settings::Lighting.MaxValue);
             }
         }
 
@@ -976,8 +976,10 @@ namespace Inferno::Render {
 
     void DrawDebug(Level&) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
-        for (auto& point : Inferno::Debug::ClosestPoints) {
-            Debug::DrawPoint(point, Color(1, 0, 0));
+        if (Settings::EnablePhysics) {
+            for (auto& point : Inferno::Debug::ClosestPoints) {
+                Debug::DrawPoint(point, Color(1, 0, 0));
+            }
         }
     }
 
