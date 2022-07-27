@@ -69,6 +69,7 @@ namespace Inferno::Editor {
         float Radius = 20;
         float LightPlaneTolerance = -0.45f;
         bool EnableOcclusion = true;
+        float DynamicMultiplier = 1; // To reduce the intensity of flickering lights
 
         Color MaxBrightness() const {
             Color max;
@@ -629,7 +630,8 @@ namespace Inferno::Editor {
                     .IsDynamic = Resources::GetDestroyedTexture(side.TMap2) > LevelTexID::Unset || level.GetFlickeringLight(tag),
                     .Radius = side.LightRadiusOverride.value_or(settings.Radius),
                     .LightPlaneTolerance = side.LightPlaneOverride.value_or(settings.LightPlaneTolerance),
-                    .EnableOcclusion = side.EnableOcclusion
+                    .EnableOcclusion = side.EnableOcclusion,
+                    .DynamicMultiplier = side.DynamicMultiplierOverride.value_or(1)
                 };
                 sources.push_back(light);
             }
@@ -753,6 +755,7 @@ namespace Inferno::Editor {
                 auto& seg = level.GetSegment(dest);
                 if (seg.SideHasConnection(dest.Side) && !seg.SideIsWall(dest.Side)) continue;
 
+                for (auto& c : color) c *= light.Source->DynamicMultiplier;
                 LightDelta ld = { .Tag = dest, .Color = color };
                 for (short i = 0; i < 4; i++) ld.Color[i].A(0); // Don't affect alphas
                 level.LightDeltas.push_back(ld);

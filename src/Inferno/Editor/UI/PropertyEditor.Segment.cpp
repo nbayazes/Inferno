@@ -466,6 +466,36 @@ namespace Inferno::Editor {
                     changed = true;
             }
 
+            {
+                // Dynamic multiplier
+                bool overrideChanged = false;
+                bool hasOverride = side.DynamicMultiplierOverride.has_value();
+                auto mult = side.DynamicMultiplierOverride.value_or(1);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                if (ImGui::Checkbox("Dynamic multiplier", &hasOverride)) {
+                    side.DynamicMultiplierOverride = hasOverride ? Option<float>(mult) : std::nullopt;
+                    overrideChanged = true;
+                }
+
+                ImGui::TableNextColumn();
+                DisableControls disable(!hasOverride);
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::SliderFloat("##dynmult", &mult, 0, 1)) {
+                    side.DynamicMultiplierOverride = mult;
+                    overrideChanged = true;
+                }
+
+                if (overrideChanged) {
+                    // Also update marked faces
+                    for (auto& tag : GetSelectedFaces()) {
+                        if (auto marked = level.TryGetSide(tag))
+                            marked->DynamicMultiplierOverride = side.DynamicMultiplierOverride;
+                    }
+                }
+            }
+
             ImGui::TreePop();
         }
 

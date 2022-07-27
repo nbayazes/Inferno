@@ -37,7 +37,8 @@ namespace Inferno {
                     !hasLockLight &&
                     side.EnableOcclusion &&
                     !side.LightRadiusOverride &&
-                    !side.LightPlaneOverride)
+                    !side.LightPlaneOverride &&
+                    !side.DynamicMultiplierOverride)
                     continue;
 
                 auto child = node.append_child();
@@ -58,6 +59,9 @@ namespace Inferno {
 
                 if (hasLockLight)
                     child["LockLight"] << EncodeArray(side.LockLight);
+
+                if (side.DynamicMultiplierOverride)
+                    child["DynamicMultiplier"] << *side.DynamicMultiplierOverride;
             }
         }
     }
@@ -83,9 +87,9 @@ namespace Inferno {
                 }
 
                 if (child.has_child("LightPlane")) {
-                    float plane{};
-                    ReadValue(child["LightPlane"], plane);
-                    side->LightPlaneOverride = plane;
+                    float value{};
+                    ReadValue(child["LightPlane"], value);
+                    side->LightPlaneOverride = value;
                 }
 
                 if (child.has_child("Occlusion"))
@@ -93,6 +97,12 @@ namespace Inferno {
 
                 if (child.has_child("LockLight"))
                     ReadValue(child["LockLight"], side->LockLight);
+
+                if (child.has_child("DynamicMultiplier")) {
+                    float value{};
+                    ReadValue(child["DynamicMultiplier"], value);
+                    side->DynamicMultiplierOverride = value;
+                }
             }
         }
     }

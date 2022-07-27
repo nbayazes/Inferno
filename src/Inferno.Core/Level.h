@@ -54,6 +54,7 @@ namespace Inferno {
         Option<Color> LightOverride; // Editor defined override for amount of light emitted
         Option<float> LightRadiusOverride; // Editor defined override for light radius
         Option<float> LightPlaneOverride; // Editor defined override for light plane tolerance
+        Option<float> DynamicMultiplierOverride; // Multiplier used for flickering or breaking lights
         bool EnableOcclusion = true; // Editor defined override for light occlusion
 
         bool HasOverlay() const { return TMap2 > LevelTexID::Unset; }
@@ -315,9 +316,9 @@ namespace Inferno {
     enum class WallFlag : uint8 {
         None,
         Blasted = BIT(0), // Converts a blastable wall to an illusionary wall
-        DoorOpened = BIT(1), // Door only
-        DoorLocked = BIT(3), // Door only
-        DoorAuto = BIT(4), // Door only
+        DoorOpened = BIT(1), // Door is opened and no longer has collision
+        DoorLocked = BIT(3), // Door cannot be opened
+        DoorAuto = BIT(4), // Door closes automatically
         IllusionOff = BIT(5), // Illusionary wall off state
         Switch = BIT(6), // Unused, maybe Exploding state
         BuddyProof = BIT(7)
@@ -387,6 +388,9 @@ namespace Inferno {
         void SetFlag(WallFlag flag) {
             Flags = WallFlag((uint8)Flags | (uint8)flag);
         }
+
+        void SetState(WallState state) { State |= state; }
+        bool HasState(WallState state) { return bool(State & state); }
 
         static constexpr auto CloakStep = 1.0f / 31.0f;
 
@@ -573,12 +577,21 @@ namespace Inferno {
         constexpr Wall* TryGetWall(Tag tag) {
             if (tag.Segment == SegID::None) return nullptr;
 
-            for (auto& wall : Walls) {
-                if (wall.Tag == tag)
-                    return &wall;
+            if (auto seg = TryGetSegment(tag)) {
+                auto id = (int)seg->GetSide(tag.Side).Wall;
+                if (Seq::inRange(Walls, id))
+                    return &Walls[id];
             }
 
             return nullptr;
+        }
+
+        constexpr WallID TryGetWallID(Tag tag) const {
+            if (!tag) return WallID::None;
+            if (auto seg = TryGetSegment(tag))
+                return seg->GetSide(tag.Side).Wall;
+
+            return WallID::None;
         }
 
         constexpr Wall* TryGetWall(TriggerID trigger) {
@@ -592,17 +605,6 @@ namespace Inferno {
             return nullptr;
         }
 
-        constexpr WallID TryGetWallID(Tag tag) const {
-            if (!tag) return WallID::None;
-
-            for (int id = 0; id < Walls.size(); id++) {
-                auto& wall = Walls[id];
-                if (wall.Tag == tag)
-                    return (WallID)id;
-            }
-
-            return WallID::None;
-        }
 
         const Wall* TryGetWall(WallID id) const {
             if (id == WallID::None || (int)id >= Walls.size())
@@ -617,7 +619,7 @@ namespace Inferno {
 
         // Tries to get the side connecting the two segments
         SideID GetConnectedSide(SegID src, SegID dst) const {
-            if (!SegmentExists(src) || !SegmentExists(dst)) 
+            if (!SegmentExists(src) || !SegmentExists(dst))
                 return SideID::None;
 
             auto& other = GetSegment(dst);
@@ -644,6 +646,11 @@ namespace Inferno {
             }
 
             return {};
+        }
+
+        Wall* GetConnectedWall(const Wall& wall) {
+            auto other = GetConnectedSide(wall.Tag);
+            return TryGetWall(other);
         }
 
         // Gets the wall connected to the other side of a wall (if present)
