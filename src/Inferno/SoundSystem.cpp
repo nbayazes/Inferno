@@ -98,6 +98,29 @@ namespace Inferno::Sound {
         if (!SUCCEEDED(result))
             SPDLOG_WARN("CoInitializeEx did not succeed");
 
+        try {
+            auto devices = AudioEngine::GetRendererDetails();
+            wstring info = L"Init sound system. Available devices:\n";
+            for (auto& device : devices)
+                info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
+
+            SPDLOG_INFO(info);
+
+
+            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
+#ifdef _DEBUG
+            flags |= AudioEngine_Debug;
+#endif
+            Engine = MakePtr<AudioEngine>(flags, nullptr/*, devices[0].deviceId.c_str()*/);
+            Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
+            Sounds.resize(Resources::GetSoundCount());
+            Alive = true;
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Unable to start sound engine:\n{}", e.what());
+            return;
+        }
+
         SPDLOG_INFO("Starting audio mixer thread");
         while (Alive) {
             if (Engine->Update()) {
@@ -181,23 +204,14 @@ namespace Inferno::Sound {
     }
 
     void Init(HWND, milliseconds pollRate) {
-        try {
-            SPDLOG_INFO("Init sound system. Sounds: {}", Resources::GetSoundCount());
-            // HWND is not used, but indicates the sound system requires a window
-            auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
-#ifdef _DEBUG
-            flags |= AudioEngine_Debug;
-#endif
-            Engine = MakePtr<AudioEngine>(flags);
-            Sounds.resize(Resources::GetSoundCount());
-            Alive = true;
-            WorkerThread = std::thread(SoundWorker, pollRate);
+        // HWND is not used, but indicates the sound system requires a window
+        WorkerThread = std::thread(SoundWorker, pollRate);
 
-            Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR("Unable to start sound engine:\n{}", e.what());
-        }
+        //try {
+        //}
+        //catch (const std::exception& e) {
+        //    SPDLOG_ERROR("Unable to start sound engine:\n{}", e.what());
+        //}
 
         //DWORD channelMask{};
         //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
