@@ -152,7 +152,7 @@ namespace Inferno::Sound {
                         auto state = sound->Instance->GetState();
                         if (state == SoundState::STOPPED && sound->Started) {
                             // clean up
-                            SPDLOG_INFO("Removing object sound instance");
+                            //SPDLOG_INFO("Removing object sound instance");
                             ObjectSounds.erase(sound++);
                             continue;
                         }

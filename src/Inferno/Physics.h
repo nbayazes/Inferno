@@ -12,12 +12,35 @@ namespace Inferno {
         inline List<Vector3> ClosestPoints;
     };
 
-    struct LevelHit { 
-        Tag Tag; 
-        Object* Obj = nullptr; 
-        float Distance = FLT_MAX; 
+    struct HitInfo {
+        float Distance = FLT_MAX;
+        Vector3 Point, Normal;
+        operator bool() { return Distance != FLT_MAX; }
+    };
+
+    struct LevelHit {
+        Object* Source = nullptr;
+        Tag Tag;
+        Object* HitObj = nullptr;
+        float Distance = FLT_MAX;
         Vector3 Point, Normal;
         Set<SegID> Visited; // visited segments
+
+        void Update(const HitInfo& hit, Object* obj) {
+            if (!obj || hit.Distance > Distance) return;
+            Distance = hit.Distance;
+            Point = hit.Point;
+            Normal = hit.Normal;
+            HitObj = obj;
+        }
+
+        void Update(const HitInfo& hit, struct Tag tag) {
+            if (!tag || hit.Distance > Distance) return;
+            Distance = hit.Distance;
+            Point = hit.Point;
+            Normal = hit.Normal;
+            Tag = tag;
+        }
 
         operator bool() { return Distance != FLT_MAX; }
     };
