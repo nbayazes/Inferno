@@ -374,5 +374,7 @@ namespace Inferno {
             Rotation *= m;
             Position = Vector3::Transform(Position, m);
         }
+
+        static bool IsAlive(const Object& obj) { return obj.Lifespan >= 0; }
     };
 }

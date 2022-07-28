@@ -432,11 +432,10 @@ namespace Inferno {
     //}
 
     // Returns the nearest intersection point on a face
-    Tuple<Vector3, float> IntersectFaceSphere(const Face& face, const BoundingSphere& sphere) {
+    bool IntersectFaceSphere(const Face& face, const BoundingSphere& sphere, Vector3& point, float& distance) {
         auto i = face.Side.GetRenderIndices();
 
-        float distance = FLT_MAX;
-        Vector3 point;
+        distance = FLT_MAX;
 
         if (sphere.Intersects(face[i[0]], face[i[1]], face[i[2]])) {
             auto p = ClosestPointOnTriangle(face[i[0]], face[i[1]], face[i[2]], sphere.Center);
@@ -457,7 +456,7 @@ namespace Inferno {
             }
         }
 
-        return { point, distance };
+        return distance < sphere.Radius;
     }
 
 
@@ -600,7 +599,9 @@ namespace Inferno {
 
         for (auto& side : SideIDs) {
             auto face = Face::FromSide(level, segId, side);
-            auto [point, dist] = IntersectFaceSphere(face, sphere);
+            Vector3 point;
+            float dist{};
+            IntersectFaceSphere(face, sphere, point, dist);
 
             auto normal = point - sphere.Center;
             normal.Normalize();
@@ -1051,14 +1052,6 @@ namespace Inferno {
     void DoCloseDoor(Level& level, ActiveDoor& door, float dt) {
         auto& wall = level.GetWall(door.Front);
 
-        if (wall.HasFlag(WallFlag::DoorAuto)) {
-            // todo: check for objects in doorway
-
-            // return
-        }
-
-        door.Time += dt;
-
         auto front = level.TryGetWall(door.Front);
         auto back = level.TryGetWall(door.Back);
 
@@ -1066,7 +1059,25 @@ namespace Inferno {
         auto& side = level.GetSide(wall.Tag);
         auto& cside = level.GetSide(conn);
 
+        if (wall.HasFlag(WallFlag::DoorAuto)) {
+            for (auto& obj : level.Objects | views::filter(Object::IsAlive) ) {
+                if (obj.Segment == wall.Tag.Segment || obj.Segment == conn.Segment) {
+                    BoundingSphere sphere(obj.Position, obj.Radius);
+                    auto face = Face::FromSide(level, wall.Tag);
+                    Vector3 point;
+                    float dist{};
+                    if (IntersectFaceSphere(face, sphere, point, dist))
+                        return; // object blocking doorway!
+                }
+            }
+        }
+
         auto& clip = Resources::GetWallClip(wall.Clip);
+
+        if (door.Time == 0) // play sound at start of closing
+            Sound::Play3D(clip.CloseSound, side.Center, wall.Tag.Segment);
+
+        door.Time += dt;
         auto frameTime = clip.PlayTime / clip.NumFrames;
         auto i = int(clip.NumFrames - door.Time / frameTime - 1);
 
@@ -1109,11 +1120,6 @@ namespace Inferno {
                     fmt::print("Closing door\n");
                     wall.State = WallState::DoorClosing;
                     door.Time = 0;
-
-                    auto& side = level.GetSide(wall.Tag);
-                    auto& clip = Resources::GetWallClip(wall.Clip);
-                    if (clip.OpenSound != SoundID::None)
-                        Sound::Play3D(clip.CloseSound, side.Center, wall.Tag.Segment);
                 }
             }
         }
@@ -1196,9 +1202,7 @@ namespace Inferno {
 
         UpdateGame(level, t, dt);
 
-        for (auto& obj : level.Objects) {
-            if (obj.Lifespan <= 0) continue;
-
+        for (auto& obj : level.Objects | views::filter(Object::IsAlive)) {
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
 

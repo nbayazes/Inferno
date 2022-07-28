@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <DirectXTK12/SimpleMath.h>
 #include <span>
+#include <ranges>
 
 namespace DirectX::SimpleMath {
     struct Matrix3x3 : public XMFLOAT3X3 {
@@ -94,6 +95,8 @@ namespace Inferno {
     using std::string_view;
     using std::wstring_view;
     using std::span;
+
+    namespace views = std::views;
     namespace ranges = std::ranges;
     namespace filesystem = std::filesystem;
 
