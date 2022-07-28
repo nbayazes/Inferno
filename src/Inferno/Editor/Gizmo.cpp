@@ -187,9 +187,17 @@ namespace Inferno::Editor {
                  Selection.Object != ObjID::None) {
             // use object orientation
             if (auto obj = level.TryGetObject(Selection.Object)) {
+                // Objects can be saved with malformed vectors, normalize them
                 transform = obj->GetTransform();
-                transform.Forward(obj->Rotation.Forward());
-                transform.Forward().Normalize();
+                auto fwd = obj->Rotation.Forward();
+                fwd.Normalize();
+                auto up = obj->Rotation.Up();
+                up.Normalize();
+                auto right = obj->Rotation.Right();
+                right.Normalize();
+                transform.Forward(fwd);
+                transform.Up(up);
+                transform.Right(right);
                 transform.Translation(Editor::Selection.GetOrigin(Settings::SelectionMode));
             }
         }
