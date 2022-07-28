@@ -82,18 +82,22 @@ namespace Inferno::Render {
                 auto& side = seg.GetSide(sideId);
                 if (!seg.SideHasConnection(sideId) || seg.SideIsWall(sideId)) {
                     ids.insert(Resources::LookupLevelTexID(side.TMap));
+                    if (auto eclip = Resources::TryGetEffectClip(side.TMap))
+                        Seq::insert(ids, eclip->VClip.GetFrames());
 
-                    if (auto eclip = Resources::TryGetEffectClip(side.TMap)) {
-                        for (auto& frame : eclip->VClip.GetFrames())
-                            ids.insert(frame);
-                    }
                 }
 
                 if (side.HasOverlay()) {
                     ids.insert(Resources::LookupLevelTexID(side.TMap2));
-                    if (auto eclip = Resources::TryGetEffectClip(side.TMap2)) {
-                        for (auto& frame : eclip->VClip.GetFrames())
-                            ids.insert(frame);
+                    if (auto eclip = Resources::TryGetEffectClip(side.TMap2))
+                        Seq::insert(ids, eclip->VClip.GetFrames());
+                }
+
+                // Door clips
+                if (auto wall = level.TryGetWall(side.Wall)) {
+                    if (auto wclip = Resources::TryGetWallClip(wall->Clip)) {
+                        auto wids = Seq::map(wclip->GetFrames(), Resources::LookupLevelTexID);
+                        Seq::insert(ids, wids);
                     }
                 }
             }

@@ -193,11 +193,12 @@ namespace Inferno::Sound {
     }
 
     // Creates a mono PCM sound effect
-    SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050) {
+    SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0) {
         // create a buffer and store the waveform info at the beginning.
-        auto wavData = MakePtr<uint8[]>(raw.size() + sizeof(WAVEFORMATEX));
+        int trim = frequency * trimStart;
+        auto wavData = MakePtr<uint8[]>(raw.size() + sizeof(WAVEFORMATEX) - trim);
         auto startAudio = wavData.get() + sizeof(WAVEFORMATEX);
-        memcpy(startAudio, raw.data(), raw.size());
+        memcpy(startAudio, raw.data() + trim, raw.size() - trim);
 
         auto wfx = (WAVEFORMATEX*)wavData.get();
         wfx->wFormatTag = WAVE_FORMAT_PCM;
@@ -209,7 +210,7 @@ namespace Inferno::Sound {
         wfx->cbSize = 0;
 
         // Pass the ownership of the buffer to the sound effect
-        return SoundEffect(&engine, wavData, wfx, startAudio, raw.size());
+        return SoundEffect(&engine, wavData, wfx, startAudio, raw.size() - trim);
     }
 
     void Shutdown() {
@@ -250,11 +251,15 @@ namespace Inferno::Sound {
 
         // Use lower frequency for D1 and the Class 1 driller sound in D2.
         // The Class 1 driller sound was not resampled for D2.
-        if ((Game::Level.IsDescent1()) || (int)id == 127)
+        if ((Game::Level.IsDescent1()) || Resources::GameData.Sounds[(int)id] == 127)
             frequency = 11025;
 
+        float trimStart = 0;
+        if (Game::Level.IsDescent1() && id == SoundID(141))
+            trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
+
         auto data = Resources::ReadSound(id);
-        Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency));
+        Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
     }
 
     void Play(SoundID id, float volume, float pan, float pitch) {

@@ -40,6 +40,8 @@ namespace Inferno::Sound {
     void Pause();
     void Resume();
 
+    constexpr auto SOUND_WEAPON_HIT_DOOR = SoundID(27);
+
     namespace Debug {
         inline List<Vector3> Emitters;
     }

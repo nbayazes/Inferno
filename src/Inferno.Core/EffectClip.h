@@ -66,6 +66,11 @@ namespace Inferno {
         SoundID OpenSound{}, CloseSound{};
         WallClipFlag Flags{};
         string Filename;
+
+        span<const LevelTexID> GetFrames() const {
+            return span<const LevelTexID>(Frames.begin(), NumFrames);
+        }
+
         // Uses tmap1, otherwise tmap2
         bool UsesTMap1() const { return (bool)((WallClipFlag)((int16)Flags & (int16)WallClipFlag::TMap1)); }
     };

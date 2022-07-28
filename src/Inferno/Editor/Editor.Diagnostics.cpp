@@ -341,7 +341,6 @@ namespace Inferno::Editor {
         auto dstVerts = level.GetSegment(destTag).GetVertexIndices(destTag.Side);
 
         // Check that the indices match
-        bool mismatched = false;
         for (auto& sv : srcVerts) {
             if (!Seq::contains(dstVerts, sv)) {
                 return false;

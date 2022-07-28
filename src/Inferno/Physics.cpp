@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <iostream>
 #include "Physics.h"
 #include "Resources.h"
 #include "Game.h"
@@ -6,7 +7,8 @@
 #include "Input.h"
 #include "Editor/Editor.Object.h"
 #include "Graphics/Render.Debug.h"
-#include <iostream>
+#include "SoundSystem.h"
+#include "Editor/Events.h"
 
 using namespace DirectX;
 
@@ -336,7 +338,7 @@ namespace Inferno {
     }
 
     // Untested
-    Option<Vector3> NearestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, BoundingSphere& sphere) {
+    Option<Vector3> NearestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, const BoundingSphere& sphere) {
         auto N = GetTriangleNormal(p0, p1, p2);
         float dist = (sphere.Center - p0).Dot(N); // signed distance between sphere and plane
         //if (!mesh.is_double_sided() && dist > 0)
@@ -492,6 +494,7 @@ namespace Inferno {
         }
 
         bool Intersect(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const {
+            if (p0 == p1 || p1 == p2 || p2 == p0) return false; // Degenerate check
             auto base = A;
             auto tip = B;
             // Compute capsule line endpoints A, B like before in capsule-capsule case:
@@ -502,7 +505,6 @@ namespace Inferno {
             auto b = tip - offset; // tip
 
             //Render::Debug::DrawLine(a, b, { 1, 0, 0 });
-
 
             // Project the line onto plane
             Ray r(A, capsuleNormal);
@@ -917,27 +919,46 @@ namespace Inferno {
     //    }
     //} SegmentSearch;
 
-    struct ActiveDoor {
-        WallID Front;
-        //WallID Back;
-        float Time;
-
-        static bool IsAlive(const ActiveDoor& d) { return d.Time > 0; }
+    auto GoLess = [](int a, int b) -> bool {
+        return a < b;
     };
 
-    template<class TData, class FnAlive, class TKey = int>
+
+    template<typename Order>
+    struct foo {
+        int val;
+        bool operator<(const foo& other) {
+            return Order(val, other.val);
+        }
+    };
+
+    typedef foo<decltype(GoLess)> foo_t;
+
+    struct ActiveDoor {
+        WallID Front = WallID::None;
+        WallID Back = WallID::None;
+        //WallID Back;
+        float Time = -1;
+        int Parts = 0;
+        static bool IsAlive(const ActiveDoor& d) { return d.Time >= 0; }
+    };
+
+    template<class TData, class TKey = int>
     class SlotMap {
         std::vector<TData> _data;
+        std::function<bool(const TData&)> _aliveFn;
 
     public:
+        SlotMap(std::function<bool(const TData&)> aliveFn) : _aliveFn(aliveFn) {}
+
         TData& Get(TKey key) {
             assert(InRange(key));
             return _data[(int64)key];
         }
 
-        [[nodiscard]] TKey Alloc(TData&& data) {
+        [[nodiscard]] TKey Add(TData&& data) {
             for (size_t i = 0; i < _data.size(); i++) {
-                if (!FnAlive(_data[i])) {
+                if (!_aliveFn(_data[i])) {
                     _data = data;
                     return (TKey)i;
                 }
@@ -947,18 +968,14 @@ namespace Inferno {
             return TKey(_data.size() - 1);
         }
 
-        //[[nodiscard]]  T& Alloc() {
-        //    for (auto& v : _data) {
-        //        if (FnAlive(v))
-        //            return v;
-        //        //if (o.Lifespan <= 0) {
-        //        //    o = bullet;
-        //        //    return; // found a dead object to reuse!
-        //        //}
-        //    }
+        [[nodiscard]] TData& Alloc() {
+            for (auto& v : _data) {
+                if (_aliveFn(v))
+                    return v;
+            }
 
-        //    return _data.emplace_back();
-        //}
+            return _data.emplace_back();
+        }
 
         bool InRange(TKey index) const { return index >= (TKey)0 && index < (TKey)_data.size(); }
 
@@ -969,40 +986,206 @@ namespace Inferno {
         [[nodiscard]] const auto end() const { return _data.end(); }
     };
 
-    SlotMap < ActiveDoor, decltype(ActiveDoor::IsAlive) > ActiveDoors;
-
-    //List<ActiveDoor> ActiveDoors;
+    SlotMap<ActiveDoor> ActiveDoors(ActiveDoor::IsAlive);
 
     constexpr float DOOR_WAIT_TIME = 5;
+
+    void SetWallTMap(SegmentSide& side1, SegmentSide& side2, const WallClip& clip, int frame) {
+        frame = std::clamp(frame, 0, (int)clip.NumFrames);
+
+        auto tmap = clip.Frames[frame];
+
+        bool changed = false;
+        if (clip.UsesTMap1()) {
+            changed = side1.TMap != tmap || side2.TMap != tmap;
+            side1.TMap = side2.TMap = tmap;
+        }
+        else {
+            // assert side.tmap1 && tmap2 != 0
+            changed = side1.TMap2 != tmap || side2.TMap2 != tmap;
+            side1.TMap2 = side2.TMap2 = tmap;
+        }
+
+        if (changed) Editor::Events::LevelChanged();
+    }
+
+    void DoOpenDoor(Level& level, ActiveDoor& door, float dt) {
+        auto& wall = level.GetWall(door.Front);
+        auto conn = level.GetConnectedSide(wall.Tag);
+        auto& side = level.GetSide(wall.Tag);
+        auto& cside = level.GetSide(conn);
+        auto& cwall = level.GetWall(cside.Wall);
+
+        // todo: remove objects stuck on door
+
+        door.Time += dt;
+
+        auto& clip = Resources::GetWallClip(wall.Clip);
+        auto frameTime = clip.PlayTime / clip.NumFrames;
+        auto i = int(door.Time / frameTime);
+
+        if (i < clip.NumFrames) {
+            SetWallTMap(side, cside, clip, i);
+        }
+
+        if (i > clip.NumFrames / 2) { // half way open
+            wall.SetFlag(WallFlag::DoorOpened);
+            cwall.SetFlag(WallFlag::DoorOpened);
+        }
+
+        if (i >= clip.NumFrames - 1) {
+            SetWallTMap(side, cside, clip, i - 1);
+
+            if (!wall.HasFlag(WallFlag::DoorAuto)) {
+                door.Time = -1; // free door slot because it won't close
+            }
+            else {
+                fmt::print("Waiting door\n");
+                wall.State = WallState::DoorWaiting;
+                cwall.State = WallState::DoorWaiting;
+                door.Time = 0;
+            }
+        }
+    }
+
+    void DoCloseDoor(Level& level, ActiveDoor& door, float dt) {
+        auto& wall = level.GetWall(door.Front);
+
+        if (wall.HasFlag(WallFlag::DoorAuto)) {
+            // todo: check for objects in doorway
+
+            // return
+        }
+
+        door.Time += dt;
+
+        auto front = level.TryGetWall(door.Front);
+        auto back = level.TryGetWall(door.Back);
+
+        auto conn = level.GetConnectedSide(wall.Tag);
+        auto& side = level.GetSide(wall.Tag);
+        auto& cside = level.GetSide(conn);
+
+        auto& clip = Resources::GetWallClip(wall.Clip);
+        auto frameTime = clip.PlayTime / clip.NumFrames;
+        auto i = int(clip.NumFrames - door.Time / frameTime - 1);
+
+        if (i < clip.NumFrames / 2) { // Half way closed
+            front->ClearFlag(WallFlag::DoorOpened);
+            if (back) back->ClearFlag(WallFlag::DoorOpened);
+        }
+
+        if (i > 0) {
+            SetWallTMap(side, cside, clip, i);
+            front->State = WallState::DoorClosing;
+            if (back) back->State = WallState::DoorClosing;
+            //door.Time = 0;
+        }
+        else {
+            // CloseDoor()
+            front->State = WallState::Closed;
+            if (back) back->State = WallState::Closed;
+            SetWallTMap(side, cside, clip, 0);
+        }
+    }
 
     void UpdateGame(Level& level, double t, float dt) {
         for (auto& obj : level.Objects) {
             obj.Lifespan -= dt;
         }
 
-        //for (auto& door : ActiveDoors) {
-        //    auto& wall = level.GetWall(door.Front);
+        for (auto& door : ActiveDoors) {
+            auto& wall = level.GetWall(door.Front);
 
-        //    if (wall.State == WallState::DoorOpening) {
-        //        OpenDoor();
-        //    }
-        //    else if (wall.State == WallState::DoorClosing) {
-        //        CloseDoor();
-        //    }
-        //    else if (wall.State == WallState::DoorWaiting) {
-        //        door.Time += dt;
-        //        if (door.Time > DOOR_WAIT_TIME) {
-        //            wall.State = WallState::DoorClosing;
-        //            door.Time = 0;
-        //        }
-        //    }
-        //}
+            if (wall.State == WallState::DoorOpening) {
+                DoOpenDoor(level, door, dt);
+            }
+            else if (wall.State == WallState::DoorClosing) {
+                DoCloseDoor(level, door, dt);
+            }
+            else if (wall.State == WallState::DoorWaiting) {
+                door.Time += dt;
+                if (door.Time > DOOR_WAIT_TIME) {
+                    fmt::print("Closing door\n");
+                    wall.State = WallState::DoorClosing;
+                    door.Time = 0;
 
-        for (auto& door : level.Walls) {
-            if (door.State == WallState::DoorOpening) {
-
+                    auto& side = level.GetSide(wall.Tag);
+                    auto& clip = Resources::GetWallClip(wall.Clip);
+                    if (clip.OpenSound != SoundID::None)
+                        Sound::Play3D(clip.CloseSound, side.Center, wall.Tag.Segment);
+                }
             }
         }
+    }
+
+    ActiveDoor* FindDoor(WallID id) {
+        for (auto& door : ActiveDoors) {
+            if (door.Front == id || door.Back == id) return &door;
+        }
+
+        return nullptr;
+    }
+
+    void OpenDoor(Level& level, Tag tag) {
+        auto& seg = level.GetSegment(tag);
+        auto& side = seg.GetSide(tag.Side);
+        auto wall = level.TryGetWall(side.Wall);
+        if (!wall) throw Exception("Tried to open door on side that has no wall");
+
+        auto conn = level.GetConnectedSide(tag);
+        auto cwallId = level.TryGetWallID(conn);
+        auto cwall = level.TryGetWall(cwallId);
+
+        if (wall->State == WallState::DoorOpening ||
+            wall->State == WallState::DoorWaiting)
+            return;
+
+        fmt::print("Opening door {}:{}\n", tag.Segment, tag.Side);
+
+        ActiveDoor* door = nullptr;
+        auto& clip = Resources::GetWallClip(wall->Clip);
+
+        if (wall->State != WallState::Closed) {
+            // Reuse door
+            if (door = FindDoor(side.Wall)) {
+                door->Time = std::max(clip.PlayTime - door->Time, 0.0f);
+            }
+        }
+
+        if (!door) {
+            door = &ActiveDoors.Alloc();
+            door->Time = 0;
+        }
+
+        wall->State = WallState::DoorOpening;
+        door->Front = side.Wall;
+
+        if (cwall) {
+            door->Back = cwallId;
+            cwall->State = cwall->State = WallState::DoorOpening;
+        }
+
+
+        if (clip.OpenSound != SoundID::None) {
+            Sound::Play3D(clip.OpenSound, side.Center, tag.Segment);
+        }
+
+        //if (wall->LinkedWall == WallID::None) {
+        //    door->Parts = 1;
+        //}
+        //else {
+        //    auto lwall = level.TryGetWall(wall->LinkedWall);
+        //    auto& seg2 = level.GetSegment(lwall->Tag);
+
+        //    assert(lwall->LinkedWall == seg.GetSide(tag.Side).Wall);
+        //    lwall->State = WallState::DoorOpening;
+
+        //    auto& csegp = level.GetSegment(seg2.GetConnection(lwall->Tag.Side));
+
+        //    door->Parts = 2;
+
+        //}
     }
 
     void UpdatePhysics(Level& level, double t, float dt) {
@@ -1031,9 +1214,10 @@ namespace Inferno {
 
                 auto delta = obj.Position - obj.LastPosition;
                 auto maxDistance = delta.Length();
+                LevelHit hit;
+
                 if (maxDistance < 0.001f) {
                     // no travel, but need to check for being inside of wall (maybe this isn't necessary)
-                    LevelHit hit;
                     BoundingSphere sphere(obj.Position, obj.Radius);
 
                     if (IntersectLevel(level, sphere, obj.Segment, hit)) {
@@ -1051,13 +1235,34 @@ namespace Inferno {
 
                     BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
 
-                    LevelHit hit;
                     if (IntersectLevel(level, capsule, obj.Segment, hit)) {
-                        if (obj.Type == ObjectType::Weapon)
-                            obj.Lifespan = 0;
+
                         //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
                         Debug::ClosestPoints.push_back(hit.Point);
                         Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                    }
+                }
+
+                if (hit) {
+                    if (obj.Type == ObjectType::Weapon) {
+                        obj.Lifespan = -1;
+                    }
+
+                    if (auto wall = level.TryGetWall(hit.Tag)) {
+                        if (wall->Type == WallType::Door) {
+                            if (obj.Type == ObjectType::Weapon && wall->HasFlag(WallFlag::DoorLocked)) {
+                                // Can't open door
+                                Sound::Play3D(Sound::SOUND_WEAPON_HIT_DOOR, hit.Point, hit.Tag.Segment, obj.Parent);
+                            }
+                            else if (wall->State != WallState::DoorOpening)
+                                OpenDoor(level, hit.Tag);
+                        }
+                    }
+                    else {
+                        if (obj.Type == ObjectType::Weapon) {
+                            auto& weapon = Resources::GameData.Weapons[obj.ID];
+                            Sound::Play3D(weapon.WallHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                        }
                     }
                 }
 

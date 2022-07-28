@@ -289,8 +289,6 @@ namespace Inferno::Editor {
     }
 
     void WeldVertices(Level& level, span<SegID> ids, float tolerance) {
-        auto& verts = level.Vertices;
-
         Set<PointID> points;
 
         for (auto& id : ids) { // compare against every segment in selection

@@ -84,7 +84,7 @@ using Keys = Keyboard::Keys;
 void FireTestWeapon(Level& level, const Object& obj, int gun) {
     auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
 
-    auto id = level.IsDescent2() ? 34 : 5;
+    auto id = level.IsDescent2() ? 34 : 13;
     auto& weapon = Resources::GameData.Weapons[id];
 
     Object bullet{};
@@ -100,7 +100,11 @@ void FireTestWeapon(Level& level, const Object& obj, int gun) {
     bullet.Lifespan = weapon.Lifetime;
 
     bullet.Type = ObjectType::Weapon;
+    bullet.ID = id;
+    bullet.Parent = ObjID(0);
 
+    //auto pitch = -Random() * 0.2f;
+    Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
     Render::LoadTextureDynamic(weapon.WeaponVClip);
 
     for (auto& o : level.Objects) {
