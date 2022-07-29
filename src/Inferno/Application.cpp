@@ -93,6 +93,7 @@ void FireTestWeapon(Level& level, const Object& obj, int gun) {
     bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
     bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
     bullet.Movement.Physics.Drag = weapon.Drag;
+    bullet.Movement.Physics.Mass = weapon.Mass;
     bullet.Position = bullet.LastPosition = point;
     bullet.Rotation = bullet.LastRotation = obj.Rotation;
 

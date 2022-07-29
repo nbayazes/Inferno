@@ -43,18 +43,17 @@ namespace Inferno {
     void AngularPhysics(Object& obj, float dt) {
         auto& pd = obj.Movement.Physics;
 
-        if (pd.AngularVelocity == Vector3::Zero && pd.AngularThrust == Vector3::Zero)
+        if (IsZero(pd.AngularVelocity) && IsZero(pd.AngularThrust))
             return;
 
-        if (pd.Drag > 0) {
-            const auto drag = pd.Drag * 5 / 2;
+        auto pdDrag = pd.Drag ? pd.Drag : 1;
+        const auto drag = pdDrag * 5 / 2;
 
-            if (pd.HasFlag(PhysicsFlag::UseThrust) && pd.Mass > 0)
-                pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
+        if (pd.HasFlag(PhysicsFlag::UseThrust) && pd.Mass > 0)
+            pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
 
-            if (!pd.HasFlag(PhysicsFlag::FreeSpinning))
-                pd.AngularVelocity *= 1 - drag;
-        }
+        if (!pd.HasFlag(PhysicsFlag::FreeSpinning))
+            pd.AngularVelocity *= 1 - drag;
 
         if (pd.TurnRoll) // unrotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(pd.TurnRoll) * obj.Rotation);
@@ -1178,6 +1177,32 @@ namespace Inferno {
 
     }
 
+    void ApplyHit(const LevelHit& hit, const Object& source) {
+        if (hit.HitObj) {
+            auto& target = *hit.HitObj;
+            auto& src = source.Movement.Physics;
+            auto p = src.Mass * src.InputVelocity;
+
+            auto& targetPhys = target.Movement.Physics;
+            auto srcMass = src.Mass == 0 ? 0.01f : src.Mass;
+            auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
+
+            // apply force from projectile to object
+            auto force = src.Velocity * srcMass / targetMass;
+            //physTarget.Velocity += hit.Normal * hit.Normal.Dot(force);
+
+            Matrix basis(target.Rotation);
+            basis = basis.Invert();
+
+            force = Vector3::Transform(force, basis); // transform forces to basis of object
+            auto arm = Vector3::Transform(hit.Point - target.Position, basis);
+            auto torque = force.Cross(arm);
+            auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
+            auto accel = torque / inertia;
+            targetPhys.AngularVelocity += accel; // should we multiply by dt here?
+        }
+    }
+
     void UpdatePhysics(Level& level, double t, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
@@ -1242,8 +1267,9 @@ namespace Inferno {
                                 // Can't open door
                                 Sound::Play3D(Sound::SOUND_WEAPON_HIT_DOOR, hit.Point, hit.Tag.Segment, obj.Parent);
                             }
-                            else if (wall->State != WallState::DoorOpening)
+                            else if (wall->State != WallState::DoorOpening) {
                                 OpenDoor(level, hit.Tag);
+                            }
                         }
                     }
                     else {
@@ -1251,30 +1277,7 @@ namespace Inferno {
                             auto& weapon = Resources::GameData.Weapons[obj.ID];
                             auto sound = hit.HitObj && hit.HitObj->Type == ObjectType::Robot ? weapon.RobotHitSound : weapon.WallHitSound;
                             //Sound::Play3D(sound, hit.Point, hit.Tag.Segment, obj.Parent);
-
-                            if (hit.HitObj) {
-                                auto& target = *hit.HitObj;
-                                auto& pd0 = obj.Movement.Physics;
-                                auto p = pd0.Mass * pd0.InputVelocity;
-
-                                auto& physTarget = target.Movement.Physics;
-                                auto srcMass = pd0.Mass == 0 ? 0.01f : pd0.Mass;
-                                auto targetMass = physTarget.Mass == 0 ? 0.01f : physTarget.Mass;
-
-                                // apply force from projectile to object
-                                auto force = pd0.InputVelocity * srcMass / targetMass;
-                                //physTarget.Velocity += hit.Normal * hit.Normal.Dot(force);
-
-                                Matrix basis(target.Rotation);
-                                basis = basis.Invert();
-
-                                force = Vector3::Transform(force, basis); // transform forces to basis of object
-                                auto arm = Vector3::Transform(hit.Point - target.Position, basis);
-                                auto torque = force.Cross(arm);
-                                auto inertia = 2.0f / 5 * targetMass * target.Radius * target.Radius;
-                                auto accel = torque / inertia;
-                                physTarget.AngularVelocity += accel;
-                            }
+                            ApplyHit(hit, obj);
                         }
                     }
 

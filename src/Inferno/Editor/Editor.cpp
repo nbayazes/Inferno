@@ -400,6 +400,13 @@ namespace Inferno::Editor {
 
                 obj.Flags = (ObjectFlag)0;
             }
+
+            if (obj.Type == ObjectType::Robot) {
+                auto& physics = obj.Movement.Physics;
+                auto& robot = Resources::GameData.Robots[obj.ID];
+                physics.Mass = robot.Mass;
+                physics.Drag = robot.Drag;
+            }
         }
     }
 

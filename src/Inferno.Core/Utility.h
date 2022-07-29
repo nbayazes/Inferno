@@ -163,16 +163,20 @@ namespace Inferno {
         return XMVector4Less(XMVectorAbs(difference), g_UnitVectorEpsilon);
     }
 
+    inline bool IsZero(const Vector3& v) {
+        using namespace DirectX;
+        return XMVector4Less(XMVectorAbs(v), g_UnitVectorEpsilon);
+    }
+
     // Converts a direction vector into a rotation matrix
-    inline Matrix DirectionToRotationMatrix(Vector3 direction) {
+    inline Matrix DirectionToRotationMatrix(const Vector3& direction) {
         assert(IsNormalized(direction));
-        direction.Normalize();
         auto pitch = asin(direction.y);
         auto yaw = atan2(-direction.z, direction.x);
         return Matrix::CreateFromYawPitchRoll(yaw, 0, pitch);
     }
 
-    inline Matrix DirectionToRotationMatrix(Vector3 direction, float roll) {
+    inline Matrix DirectionToRotationMatrix(const Vector3& direction, float roll) {
         assert(IsNormalized(direction));
         auto pitch = asin(direction.y);
         auto yaw = atan2(-direction.z, direction.x);

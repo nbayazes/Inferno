@@ -148,6 +148,8 @@ namespace Inferno::Editor {
                 auto& ri = Resources::GetRobotInfo(0);
                 obj.Control.Type = ControlType::AI;
                 obj.Movement.Type = MovementType::Physics;
+                obj.Movement.Physics.Mass = ri.Mass;
+                obj.Movement.Physics.Drag = ri.Drag;
                 obj.Render.Type = RenderType::Model;
                 obj.Shields = ri.Strength;
                 obj.Render.Model.ID = ri.Model;
