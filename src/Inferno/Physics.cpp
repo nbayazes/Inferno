@@ -450,31 +450,35 @@ namespace Inferno {
     //}
 
     // Returns the nearest intersection point on a face
-    bool IntersectFaceSphere(const Face& face, const BoundingSphere& sphere, Vector3& point, float& distance) {
+    HitInfo IntersectFaceSphere(const Face& face, const BoundingSphere& sphere) {
+        HitInfo hit;
         auto i = face.Side.GetRenderIndices();
-
-        distance = FLT_MAX;
 
         if (sphere.Intersects(face[i[0]], face[i[1]], face[i[2]])) {
             auto p = ClosestPointOnTriangle(face[i[0]], face[i[1]], face[i[2]], sphere.Center);
             auto vec = p - sphere.Center;
             auto dist = (p - sphere.Center).Length();
-            if (dist < distance) {
-                point = p;
-                distance = dist;
+            if (dist < hit.Distance) {
+                hit.Point = p;
+                hit.Distance = dist;
             }
         }
 
         if (sphere.Intersects(face[i[3]], face[i[4]], face[i[5]])) {
             auto p = ClosestPointOnTriangle(face[i[3]], face[i[4]], face[i[5]], sphere.Center);
             auto dist = (p - sphere.Center).Length();
-            if (dist < distance) {
-                point = p;
-                distance = dist;
+            if (dist < hit.Distance) {
+                hit.Point = p;
+                hit.Distance = dist;
             }
         }
 
-        return distance < sphere.Radius;
+        if (hit.Distance > sphere.Radius)
+            hit.Distance = FLT_MAX;
+        else
+            (hit.Point - sphere.Center).Normalize(hit.Normal);
+
+        return hit;
     }
 
 
@@ -643,24 +647,13 @@ namespace Inferno {
 
         for (auto& side : SideIDs) {
             auto face = Face::FromSide(level, segId, side);
-            Vector3 point;
-            float dist{};
-            IntersectFaceSphere(face, sphere, point, dist);
 
-            auto normal = point - sphere.Center;
-            normal.Normalize();
-            if (normal.Dot(face.AverageNormal()) > 0)
-                continue; // passed through back of face
+            if (auto h = IntersectFaceSphere(face, sphere)) {
+                if (h.Normal.Dot(face.AverageNormal()) > 0)
+                    continue; // passed through back of face
 
-            if (dist < FLT_MAX) {
-                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                    // hit a solid wall
-                    hit.Distance = dist;
-                    hit.Point = point;
-                    hit.Tag = { segId, side };
-                    auto hitNormal = sphere.Center - point;
-                    hitNormal.Normalize();
-                    hit.Normal = hitNormal;
+                if (seg.SideIsSolid(side, level)) {
+                    hit.Update(h, { segId, side }); // hit a solid wall
                 }
                 else {
                     // intersected with a connected side, must check faces in it too
@@ -1051,9 +1044,7 @@ namespace Inferno {
                 if (obj.Segment == wall.Tag.Segment || obj.Segment == conn.Segment) {
                     BoundingSphere sphere(obj.Position, obj.Radius);
                     auto face = Face::FromSide(level, wall.Tag);
-                    Vector3 point;
-                    float dist{};
-                    if (IntersectFaceSphere(face, sphere, point, dist))
+                    if (IntersectFaceSphere(face, sphere))
                         return; // object blocking doorway!
                 }
             }
@@ -1093,19 +1084,20 @@ namespace Inferno {
         }
 
         for (auto& door : ActiveDoors) {
-            auto& wall = level.GetWall(door.Front);
+            auto wall = level.TryGetWall(door.Front);
+            if (!wall) continue;
 
-            if (wall.State == WallState::DoorOpening) {
+            if (wall->State == WallState::DoorOpening) {
                 DoOpenDoor(level, door, dt);
             }
-            else if (wall.State == WallState::DoorClosing) {
+            else if (wall->State == WallState::DoorClosing) {
                 DoCloseDoor(level, door, dt);
             }
-            else if (wall.State == WallState::DoorWaiting) {
+            else if (wall->State == WallState::DoorWaiting) {
                 door.Time += dt;
                 if (door.Time > DOOR_WAIT_TIME) {
                     fmt::print("Closing door\n");
-                    wall.State = WallState::DoorClosing;
+                    wall->State = WallState::DoorClosing;
                     door.Time = 0;
                 }
             }
@@ -1181,6 +1173,11 @@ namespace Inferno {
         //}
     }
 
+    void TurnTowardsVector(const Vector3& target, Object& obj, float rate) {
+        if (target == Vector3::Zero) return;
+
+    }
+
     void UpdatePhysics(Level& level, double t, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
@@ -1253,9 +1250,34 @@ namespace Inferno {
                         if (obj.Type == ObjectType::Weapon) {
                             auto& weapon = Resources::GameData.Weapons[obj.ID];
                             auto sound = hit.HitObj && hit.HitObj->Type == ObjectType::Robot ? weapon.RobotHitSound : weapon.WallHitSound;
-                            Sound::Play3D(sound, hit.Point, hit.Tag.Segment, obj.Parent);
+                            //Sound::Play3D(sound, hit.Point, hit.Tag.Segment, obj.Parent);
+
+                            if (hit.HitObj) {
+                                auto& target = *hit.HitObj;
+                                auto& pd0 = obj.Movement.Physics;
+                                auto p = pd0.Mass * pd0.InputVelocity;
+
+                                auto& physTarget = target.Movement.Physics;
+                                auto srcMass = pd0.Mass == 0 ? 0.01f : pd0.Mass;
+                                auto targetMass = physTarget.Mass == 0 ? 0.01f : physTarget.Mass;
+
+                                // apply force from projectile to object
+                                auto force = pd0.InputVelocity * srcMass / targetMass;
+                                //physTarget.Velocity += hit.Normal * hit.Normal.Dot(force);
+
+                                Matrix basis(target.Rotation);
+                                basis = basis.Invert();
+
+                                force = Vector3::Transform(force, basis); // transform forces to basis of object
+                                auto arm = Vector3::Transform(hit.Point - target.Position, basis);
+                                auto torque = force.Cross(arm);
+                                auto inertia = 2.0f / 5 * targetMass * target.Radius * target.Radius;
+                                auto accel = torque / inertia;
+                                physTarget.AngularVelocity += accel;
+                            }
                         }
                     }
+
                 }
 
                 //CollideTriangles(level, obj, dt, 0);

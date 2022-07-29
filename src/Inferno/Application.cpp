@@ -82,6 +82,7 @@ void Application::Initialize(int width, int height) {
 using Keys = Keyboard::Keys;
 
 void FireTestWeapon(Level& level, const Object& obj, int gun) {
+    auto& points = Resources::GameData.PlayerShip.GunPoints;
     auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
 
     auto id = level.IsDescent2() ? 34 : 13;
@@ -104,7 +105,7 @@ void FireTestWeapon(Level& level, const Object& obj, int gun) {
     bullet.Parent = ObjID(0);
 
     //auto pitch = -Random() * 0.2f;
-    Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
+    //Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
     Render::LoadTextureDynamic(weapon.WeaponVClip);
 
     for (auto& o : level.Objects) {
@@ -125,8 +126,8 @@ void Application::Update() {
 
     if (Settings::EnablePhysics) {
         if (Input::IsKeyPressed(Keys::Enter)) {
-            FireTestWeapon(Game::Level, Game::Level.Objects[0], 0);
-            FireTestWeapon(Game::Level, Game::Level.Objects[0], 1);
+            FireTestWeapon(Game::Level, Game::Level.Objects[0], 7);
+            //FireTestWeapon(Game::Level, Game::Level.Objects[0], 1);
         }
     }
 
