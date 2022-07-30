@@ -382,11 +382,6 @@ namespace Inferno::Render {
         if (Input::GetMouselook())
             Debug::DrawCrosshair(Settings::CrosshairSize);
 
-        {
-            auto size = Render::Adapter->GetOutputSize();
-            Render::DrawCenteredString(level.Name, (float)size.right / 2, Editor::TopToolbarOffset, FontSize::Big);
-        }
-
         //{
         //    auto tag = Editor::Selection.PointTag();
         //    if (level.SegmentExists(tag)) {
@@ -400,7 +395,6 @@ namespace Inferno::Render {
 
         //DrawFaceNormals(level);
         DrawTunnelBuilder();
-        //Fonts::DrawString(fmt::format("Version {}",Render::Level->Version), 1240, 80, Fonts::FontSize::MediumBlue);
     }
 
     void CreateEditorResources() {}

@@ -55,8 +55,7 @@ namespace Inferno
         void WaitForGpu() noexcept;
         void ReloadResources();
 
-        // Device Accessors.
-        RECT GetOutputSize() const noexcept { return m_outputSize; }
+        Vector2 GetOutputSize() const noexcept { return { (float)m_outputSize.right, (float)m_outputSize.bottom }; }
 
         // Direct3D Accessors.
         auto                        Device() const noexcept                { return m_d3dDevice.Get(); }

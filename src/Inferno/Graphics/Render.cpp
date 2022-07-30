@@ -316,19 +316,19 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd, 
-                   const VClip& vclip, 
+    void DrawVClip(ID3D12GraphicsCommandList* cmd,
+                   const VClip& vclip,
                    const Vector3& position,
-                   float radius, 
-                   const Color& color, 
+                   float radius,
+                   const Color& color,
                    float elapsed,
                    bool additive,
-                   float rotation, 
+                   float rotation,
                    const Vector3* up) {
         auto frame = vclip.NumFrames - (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
         auto tid = vclip.Frames[frame];
 
-        auto transform = up ? 
+        auto transform = up ?
             Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) :
             Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
 
@@ -454,36 +454,6 @@ namespace Inferno::Render {
         EndTextureUpload(batch);
     }
 
-    // todo: alignment, wrapping
-    void DrawString(string_view str, float x, float y, FontSize size) {
-        float xOffset = 0;
-        uint32 color = 0xFFFFFFFF;
-        auto font = Atlas.GetFont(size);
-        if (!font) return;
-
-        for (int i = 0; i < str.size(); i++) {
-            auto c = str[i];
-            char next = i + 1 >= str.size() ? 0 : str[i + 1];
-            auto& ci = Atlas.GetCharacter(c, size);
-            auto width = font->GetWidth(c) * Shell::DpiScale;
-            auto x0 = xOffset + x;
-            auto x1 = xOffset + x + width;
-            auto y0 = y;
-            auto y1 = y + font->Height * Shell::DpiScale;
-
-            Render::DrawQuadPayload payload{};
-            payload.V0 = { Vector2{ x0, y1 }, { ci.X0, ci.Y1 }, color }; // bottom left
-            payload.V1 = { Vector2{ x1, y1 }, { ci.X1, ci.Y1 }, color }; // bottom right
-            payload.V2 = { Vector2{ x1, y0 }, { ci.X1, ci.Y0 }, color }; // top right
-            payload.V3 = { Vector2{ x0, y0 }, { ci.X0, ci.Y0 }, color }; // top left
-            payload.Texture = &StaticTextures->Font;
-            Render::DrawQuad2D(payload);
-
-            auto kerning = Atlas.GetKerning(c, next, size);
-            xOffset += width + kerning;
-        }
-    }
-
     Vector2 MeasureString(string_view str, FontSize size) {
         float width = 0;
         auto font = Atlas.GetFont(size);
@@ -496,6 +466,58 @@ namespace Inferno::Render {
         }
 
         return { width, (float)font->Height };
+    }
+
+    void DrawString(string_view str, float x, float y, FontSize size, AlignH alignH, AlignV alignV) {
+        float xOffset = 0;
+        uint32 color = 0xFFFFFFFF;
+        auto font = Atlas.GetFont(size);
+        if (!font) return;
+
+        Vector2 alignment;
+
+        {
+            auto [width, height] = Adapter->GetOutputSize();
+            auto [strWidth, strHeight] = MeasureString(str, size);
+
+            if (alignH == AlignH::Center) {
+                // shift string center to screen center
+                alignment.x = width / 2 - strWidth / 2;
+            }
+            else if (alignH == AlignH::Right) {
+                alignment.x = width - strWidth;
+            }
+
+            if (alignV == AlignV::Center) {
+                // shift string center to screen center
+                alignment.y = height / 2 - strHeight / 2;
+            }
+            else if (alignV == AlignV::Bottom) {
+                alignment.y = height - strHeight;
+            }
+        }
+
+        for (int i = 0; i < str.size(); i++) {
+            auto c = str[i];
+            char next = i + 1 >= str.size() ? 0 : str[i + 1];
+            auto& ci = Atlas.GetCharacter(c, size);
+            auto width = font->GetWidth(c) * Shell::DpiScale;
+            auto x0 = alignment.x + xOffset + x;
+            auto x1 = alignment.x + xOffset + x + width;
+            auto y0 = alignment.y + y;
+            auto y1 = alignment.y + y + font->Height * Shell::DpiScale;
+
+            Render::DrawQuadPayload payload{};
+            payload.V0 = { Vector2{ x0, y1 }, { ci.X0, ci.Y1 }, color }; // bottom left
+            payload.V1 = { Vector2{ x1, y1 }, { ci.X1, ci.Y1 }, color }; // bottom right
+            payload.V2 = { Vector2{ x1, y0 }, { ci.X1, ci.Y0 }, color }; // top right
+            payload.V3 = { Vector2{ x0, y0 }, { ci.X0, ci.Y0 }, color }; // top left
+            payload.Texture = &StaticTextures->Font;
+            Render::DrawQuad2D(payload);
+
+            auto kerning = Atlas.GetKerning(c, next, size);
+            xOffset += width + kerning;
+        }
     }
 
     void DrawCenteredString(string_view str, float x, float y, FontSize size) {
@@ -602,7 +624,7 @@ namespace Inferno::Render {
         cmdList->RSSetScissorRects(1, &scissor);
 
         auto output = Adapter->GetOutputSize();
-        Camera.SetViewport((float)output.right, (float)output.bottom);
+        Camera.SetViewport(output.x, output.y);
         Camera.LookAtPerspective();
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
@@ -822,7 +844,8 @@ namespace Inferno::Render {
 
     void DrawBatchedText(ID3D12GraphicsCommandList* cmdList) {
         // draw batched text
-        auto orthoProj = Matrix::CreateOrthographicOffCenter(0, (float)GetWidth(), (float)GetHeight(), 0.0, 0.0, -2.0f);
+        auto [width, height] = Adapter->GetOutputSize();
+        auto orthoProj = Matrix::CreateOrthographicOffCenter(0, width, height, 0.0, 0.0, -2.0f);
 
         Effects->UserInterface.Apply(cmdList);
         Shaders->UserInterface.SetWorldViewProjection(cmdList, orthoProj);
@@ -960,7 +983,6 @@ namespace Inferno::Render {
 
         for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
             float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
-            //Debug::DrawPoint(mesh.Chunk->Center, { 0, 1, 1 });
             DrawTransparent({ &mesh, depth });
         }
     }
@@ -1027,8 +1049,6 @@ namespace Inferno::Render {
         PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Render");
         Heaps->SetDescriptorHeaps(cmdList);
 
-        //Debug::BeginFrame();
-
         ScopedTimer levelTimer(&Metrics::QueueLevel);
         if (Settings::RenderMode != RenderMode::None)
             DrawLevel();
@@ -1069,9 +1089,14 @@ namespace Inferno::Render {
 
             DrawParticles(cmdList);
 
-            DrawEditor(cmdList, Game::Level);
-            DrawDebug(Game::Level);
-
+            if (!Settings::ScreenshotMode) {
+                DrawEditor(cmdList, Game::Level);
+                DrawDebug(Game::Level);
+            }
+            else {
+                Render::DrawString(Game::Level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, AlignH::Center, AlignV::Top);
+                Render::DrawString("Inferno Engine", -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, AlignH::Right, AlignV::Bottom);
+            }
             Debug::EndFrame(cmdList);
         }
 
@@ -1092,8 +1117,8 @@ namespace Inferno::Render {
         // draw to backbuffer using a shader + polygon
         _tempBatch->SetViewport(Adapter->GetScreenViewport());
         _tempBatch->Begin(cmdList);
-        XMUINT2 size = { GetWidth(), GetHeight() };
-        _tempBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), size, XMFLOAT2{ 0, 0 });
+        auto size = Adapter->GetOutputSize();
+        _tempBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
         //if (DebugEmissive)
         //    draw with shader that subtracts 1 from all values;
 

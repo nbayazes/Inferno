@@ -56,6 +56,8 @@ namespace Inferno {
         inline float FieldOfView = 80;
 #pragma endregion
 
+        inline bool ScreenshotMode = false;
+
 #pragma region Editor
         inline Editor::InsertMode InsertMode = {};
         inline Editor::SelectionMode SelectionMode = {};

@@ -302,7 +302,7 @@ namespace Inferno {
     }
 
     namespace String {
-        inline bool Contains(const std::string_view str, const std::string_view value) {
+        constexpr bool Contains(const std::string_view str, const std::string_view value) {
             return str.find(value) != string::npos;
         }
 

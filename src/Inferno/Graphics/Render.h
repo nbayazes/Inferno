@@ -37,7 +37,9 @@ namespace Inferno::Render {
 
     void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
-    void DrawString(string_view str, float x, float y, FontSize size);
+    enum class AlignH { Left, Center, Right };
+    enum class AlignV { Top, Center, Bottom };
+    void DrawString(string_view str, float x, float y, FontSize size, AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top);
     void DrawCenteredString(string_view str, float x, float y, FontSize size);
 
     void Initialize(HWND hwnd, int width, int height);
@@ -63,9 +65,6 @@ namespace Inferno::Render {
 
     inline Inferno::Camera Camera;
     inline Matrix ViewProjection;
-
-    inline uint GetWidth() { return Adapter->GetOutputSize().right; }
-    inline uint GetHeight() { return Adapter->GetOutputSize().bottom; }
 
     inline uint16 DrawCalls = 0;
     inline uint16 PolygonCount = 0;

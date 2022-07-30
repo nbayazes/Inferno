@@ -157,6 +157,9 @@ void Application::Update() {
     if (Input::IsKeyPressed(Keys::F1))
         Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
 
+    if (Input::IsKeyPressed(Keys::F3))
+        Settings::ScreenshotMode = !Settings::ScreenshotMode;
+
     if (Input::IsKeyPressed(Keys::F5))
         Render::Adapter->ReloadResources();
 
@@ -193,7 +196,7 @@ void Application::Update() {
     Editor::Update();
 
     g_ImGuiBatch->BeginFrame();
-    _editorUI.OnRender();
+    if (!Settings::ScreenshotMode) _editorUI.OnRender();
     g_ImGuiBatch->EndFrame();
 
     PIXEndEvent();
