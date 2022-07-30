@@ -88,6 +88,17 @@ namespace Inferno::Outrage {
         constexpr bool Procedural() const { return bool(Flags & TextureFlag::Procedural); }
     };
 
+    struct SoundInfo {
+        string Name; // Entry in tablefile
+        string FileName; // File name in hog or on disk
+        int Flags;
+        int LoopStart, LoopEnd;
+        float OuterConeVolume;
+        int InnerConeAngle, OuterConeAngle;
+        float MinDistance, MaxDistance;
+        float ImportVolume;
+    };
+
     struct GameTable {
         enum {
             TABLE_FILE_BASE = 0,
@@ -98,6 +109,7 @@ namespace Inferno::Outrage {
         string Name;
 
         List<TextureInfo> Textures;
+        List<SoundInfo> Sounds;
         static GameTable Read(StreamReader&);
     };
 }

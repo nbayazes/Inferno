@@ -63,6 +63,9 @@ void Application::Initialize(int width, int height) {
     Inferno::Input::Initialize(Shell::Hwnd);
     Render::Initialize(Shell::Hwnd, width, height);
 
+    Resources::LoadSounds();
+    Resources::MountDescent3();
+
     Editor::Initialize();
 
     Sound::Init(Shell::Hwnd, 0.01f);
@@ -72,6 +75,7 @@ void Application::Initialize(int width, int height) {
     if (Settings::Descent1Path.empty() && Settings::Descent2Path.empty()) {
         Events::ShowDialog(DialogType::Settings);
     }
+
 
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
@@ -105,7 +109,12 @@ void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
     bullet.Parent = ObjID(0);
 
     //auto pitch = -Random() * 0.2f;
-    Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
+    Sound::Sound3D sound(point, obj.Segment);
+    sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
+    sound.Source = ObjID(0);
+    sound.Volume = 0.35f;
+    Sound::Play(sound);
+
     Render::LoadTextureDynamic(weapon.WeaponVClip);
 
     Render::Particle p{};

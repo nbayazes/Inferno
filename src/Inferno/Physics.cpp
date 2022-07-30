@@ -681,7 +681,7 @@ namespace Inferno {
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit) {
         SegID segId = start;
 
-        while (segId != SegID::None) {
+        while (segId > SegID::None) {
             auto& seg = level.GetSegment(segId);
 
             for (auto& side : SideIDs) {
@@ -976,7 +976,10 @@ namespace Inferno {
                         if (wall->Type == WallType::Door) {
                             if (obj.Type == ObjectType::Weapon && wall->HasFlag(WallFlag::DoorLocked)) {
                                 // Can't open door
-                                Sound::Play3D(Sound::SOUND_WEAPON_HIT_DOOR, hit.Point, hit.Tag.Segment, obj.Parent);
+                                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                                sound.Resource = Resources::GetSoundResource(Sound::SOUND_WEAPON_HIT_DOOR);
+                                sound.Source = obj.Parent;
+                                Sound::Play(sound);
                             }
                             else if (wall->State != WallState::DoorOpening) {
                                 OpenDoor(level, hit.Tag);
@@ -989,7 +992,11 @@ namespace Inferno {
                             ApplyHit(hit, obj);
 
                             if (hit.HitObj && hit.HitObj->Type == ObjectType::Robot) {
-                                Sound::Play3D(weapon.RobotHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                                sound.Resource = Resources::GetSoundResource(weapon.RobotHitSound);
+                                sound.Source = obj.Parent;
+                                Sound::Play(sound);
+
                                 auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
                                 if (ri.ExplosionClip1 > VClipID::None) {
                                     Render::Particle p{};
@@ -1000,7 +1007,11 @@ namespace Inferno {
                                 }
                             }
                             else {
-                                Sound::Play3D(weapon.WallHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                                sound.Resource = Resources::GetSoundResource(weapon.WallHitSound);
+                                sound.Source = obj.Parent;
+                                Sound::Play(sound);
+
                                 Render::Particle p{};
                                 p.Position = hit.Point;
                                 p.Radius = weapon.ImpactSize;

@@ -8,12 +8,16 @@
 #include "OutrageBitmap.h"
 #include "OutrageModel.h"
 #include "OutrageTable.h"
+#include "SoundSystem.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
     void Init();
 
-    extern SoundFile Sounds;
+    extern SoundFile SoundsD1, SoundsD2;
+    int GetSoundCount();
+    int GetSoundIndex(SoundID id);
+    Sound::SoundResource GetSoundResource(SoundID id);
 
     WClipID GetWallClipID(LevelTexID);
     const WallClip& GetWallClip(WClipID);
@@ -43,7 +47,7 @@ namespace Inferno::Resources {
     List<TexID> CopyLevelTextureLookup();
     TexID LookupLevelTexID(LevelTexID);
     TexID LookupModelTexID(const Model&, int16);
-    int GetSoundCount();
+
 
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
@@ -61,9 +65,6 @@ namespace Inferno::Resources {
 
     // Reads a level from the mounted mission
     Level ReadLevel(string name);
-    List<ubyte> ReadSound(SoundID);
-
-    List<string> GetSoundNames();
 
     inline bool HasGameData() { return !GameData.Robots.empty() && !GameData.LevelTexIdx.empty(); }
 
@@ -84,4 +85,7 @@ namespace Inferno::Resources {
     Option<Outrage::Model> ReadOutrageModel(const string& name);
 
     Outrage::Model const* GetOutrageModel(const string& name);
+
+    // Loads D1 and D2 sounds
+    void LoadSounds();
 }

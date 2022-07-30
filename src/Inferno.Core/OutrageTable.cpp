@@ -11,15 +11,36 @@ namespace Inferno::Outrage {
         PAGETYPE_GENERIC = 10,
     };
 
-    constexpr int KNOWN_TEXTURE_VERSION = 7;
     constexpr int MAX_STRING_LEN = 256;
 
-    TextureInfo ReadTexturePage(StreamReader& r) {
+    SoundInfo ReadSoundPage(StreamReader& r) {
+        constexpr int KNOWN_VERSION = 1;
         auto version = r.ReadInt16();
-        if (version > KNOWN_TEXTURE_VERSION)
+        if (version > KNOWN_VERSION)
             throw Exception("Unsupported texture info version");
 
-        TextureInfo tex;
+        SoundInfo si{};
+        si.Name = r.ReadCString(PAGENAME_LEN);
+        si.FileName = r.ReadCString(PAGENAME_LEN);
+        si.Flags = r.ReadInt32();
+        si.LoopStart = r.ReadInt32();
+        si.LoopEnd = r.ReadInt32();
+        si.OuterConeVolume = r.ReadFloat();
+        si.InnerConeAngle = r.ReadInt32();
+        si.OuterConeAngle = r.ReadInt32();
+        si.MaxDistance = r.ReadFloat();
+        si.MinDistance = r.ReadFloat();
+        si.ImportVolume = r.ReadFloat();
+        return si;
+    }
+
+    TextureInfo ReadTexturePage(StreamReader& r) {
+        constexpr int KNOWN_VERSION = 7;
+        auto version = r.ReadInt16();
+        if (version > KNOWN_VERSION)
+            throw Exception("Unsupported texture info version");
+
+        TextureInfo tex{};
         tex.Name = r.ReadCString(MAX_STRING_LEN);
         tex.FileName = r.ReadCString(MAX_STRING_LEN);
         r.ReadCString(MAX_STRING_LEN);
@@ -78,19 +99,22 @@ namespace Inferno::Outrage {
 
         while (!r.EndOfStream()) {
             auto pageType = r.ReadByte();
+            auto pageStart = r.Position();
             auto len = r.ReadInt32();
-            if (len == 0) break;
-            auto nextChunk = r.Position() + 1 + len;
+            if (len <= 0) throw Exception("bad page length");
 
             switch (pageType) {
                 case PAGETYPE_TEXTURE:
                     table.Textures.push_back(ReadTexturePage(r));
                     break;
 
-                default:
-                    r.SeekForward(nextChunk);
+                case PAGETYPE_SOUND:
+                    table.Sounds.push_back(ReadSoundPage(r));
                     break;
             }
+
+            //auto readbytes = r.Position() - pageStart;
+            r.Seek(pageStart + len); // seek to next chunk (prevents read errors due to individual chunks)
         }
 
         return table;

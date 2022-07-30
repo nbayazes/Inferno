@@ -139,8 +139,12 @@ namespace Inferno {
 
         auto& clip = Resources::GetWallClip(wall.Clip);
 
-        if (door.Time == 0) // play sound at start of closing
-            Sound::Play3D(clip.CloseSound, side.Center, wall.Tag.Segment);
+        if (door.Time == 0) { // play sound at start of closing
+            //auto sound = Resources::GetSoundIndex(clip.CloseSound);
+            Sound::Sound3D sound(side.Center, wall.Tag.Segment);
+            sound.Resource = Resources::GetSoundResource(clip.CloseSound);
+            Sound::Play(sound);
+        }
 
         door.Time += dt;
         auto frameTime = clip.PlayTime / clip.NumFrames;
@@ -207,7 +211,9 @@ namespace Inferno {
 
 
         if (clip.OpenSound != SoundID::None) {
-            Sound::Play3D(clip.OpenSound, side.Center, tag.Segment);
+            Sound::Sound3D sound(side.Center, tag.Segment);
+            sound.Resource = Resources::GetSoundResource(clip.OpenSound);
+            Sound::Play(sound);
         }
 
         //if (wall->LinkedWall == WallID::None) {

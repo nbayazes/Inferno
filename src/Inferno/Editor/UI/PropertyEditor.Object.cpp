@@ -315,26 +315,26 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Drag");
             ImGui::Text("%.2f", robot.Drag);
 
-            ImGui::TableRowLabel("See sound");
-            if(ImGui::SmallButton("Play##see")) Sound::Play3D(robot.SeeSound, Selection.Object);
+            //ImGui::TableRowLabel("See sound");
+            //if(ImGui::SmallButton("Play##see")) Sound::Play3D(robot.SeeSound, Selection.Object);
 
-            ImGui::TableRowLabel("Attack sound");
-            if (ImGui::SmallButton("Play##atk")) Sound::Play3D(robot.AttackSound, Selection.Object);
+            //ImGui::TableRowLabel("Attack sound");
+            //if (ImGui::SmallButton("Play##atk")) Sound::Play3D(robot.AttackSound, Selection.Object);
 
-            ImGui::TableRowLabel("Claw sound");
-            if (ImGui::SmallButton("Play##claw")) Sound::Play3D(robot.ClawSound, Selection.Object);
+            //ImGui::TableRowLabel("Claw sound");
+            //if (ImGui::SmallButton("Play##claw")) Sound::Play3D(robot.ClawSound, Selection.Object);
 
-            ImGui::TableRowLabel("Taunt sound");
-            if (ImGui::SmallButton("Play##taunt")) Sound::Play3D(robot.TauntSound, Selection.Object);
+            //ImGui::TableRowLabel("Taunt sound");
+            //if (ImGui::SmallButton("Play##taunt")) Sound::Play3D(robot.TauntSound, Selection.Object);
 
-            ImGui::TableRowLabel("Explosion 1");
-            if (ImGui::SmallButton("Play##exp1")) Sound::Play3D(robot.ExplosionSound1, Selection.Object);
+            //ImGui::TableRowLabel("Explosion 1");
+            //if (ImGui::SmallButton("Play##exp1")) Sound::Play3D(robot.ExplosionSound1, Selection.Object);
 
-            ImGui::TableRowLabel("Explosion 2");
-            if (ImGui::SmallButton("Play##exp2")) Sound::Play3D(robot.ExplosionSound2, Selection.Object);
+            //ImGui::TableRowLabel("Explosion 2");
+            //if (ImGui::SmallButton("Play##exp2")) Sound::Play3D(robot.ExplosionSound2, Selection.Object);
 
-            ImGui::TableRowLabel("Deathroll");
-            if (ImGui::SmallButton("Play##droll")) Sound::Play3D(robot.DeathrollSound, Selection.Object);
+            //ImGui::TableRowLabel("Deathroll");
+            //if (ImGui::SmallButton("Play##droll")) Sound::Play3D(robot.DeathrollSound, Selection.Object);
 
             ImGui::TreePop();
         }

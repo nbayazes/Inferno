@@ -8,6 +8,8 @@
 #include "logging.h"
 #include "Graphics/Render.h"
 #include "Physics.h"
+//#include "DirectXTK12/Audio/WAVFileReader.h"
+#include <vendor/WAVFileReader.h>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -23,7 +25,7 @@ namespace Inferno::Sound {
 
     struct ObjectSound {
         ObjID Source = ObjID::None;
-        SoundID Sound = SoundID::None;
+        size_t Sound = 0; // Unique ID for the source sound. Used for deduplication
         SegID Segment = SegID::None;
         bool Started = false;
         bool AttachToSource = false;
@@ -76,7 +78,9 @@ namespace Inferno::Sound {
     namespace {
         // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
         Ptr<AudioEngine> Engine;
-        List<Ptr<SoundEffect>> Sounds;
+        List<Ptr<SoundEffect>> SoundsD1, SoundsD2;
+        Dictionary<string, Ptr<SoundEffect>> SoundsD3;
+
         std::atomic<bool> Alive = false;
         std::thread WorkerThread;
         std::list<ObjectSound> ObjectSounds;
@@ -128,7 +132,8 @@ namespace Inferno::Sound {
 #endif
             Engine = MakePtr<AudioEngine>(flags, nullptr/*, devices[0].deviceId.c_str()*/);
             Engine->SetDefaultSampleRate(22050); // Change based on D1/D2
-            Sounds.resize(Resources::GetSoundCount());
+            SoundsD1.resize(255);
+            SoundsD2.resize(255);
             Alive = true;
         }
         catch (const std::exception& e) {
@@ -196,7 +201,7 @@ namespace Inferno::Sound {
 
     // Creates a mono PCM sound effect
     SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0) {
-        // create a buffer and store the waveform info at the beginning.
+        // create a buffer and store wfx at the beginning.
         int trim = int(frequency * trimStart);
         auto wavData = MakePtr<uint8[]>(raw.size() + sizeof(WAVEFORMATEX) - trim);
         auto startAudio = wavData.get() + sizeof(WAVEFORMATEX);
@@ -213,6 +218,21 @@ namespace Inferno::Sound {
 
         // Pass the ownership of the buffer to the sound effect
         return SoundEffect(&engine, wavData, wfx, startAudio, raw.size() - trim);
+    }
+
+    SoundEffect CreateSoundEffectWav(AudioEngine& engine, span<ubyte> raw) {
+        DirectX::WAVData result{};
+        DirectX::LoadWAVAudioInMemoryEx(raw.data(), raw.size(), result);
+
+        // create a buffer and store wfx at the beginning.
+        auto wavData = MakePtr<uint8[]>(result.audioBytes + sizeof(WAVEFORMATEX));
+        auto pWavData = wavData.get();
+        auto startAudio = pWavData + sizeof(WAVEFORMATEX);
+        memcpy(pWavData, result.wfx, sizeof(WAVEFORMATEX));
+        memcpy(pWavData + sizeof(WAVEFORMATEX), result.startAudio, result.audioBytes);
+
+        // Pass the ownership of the buffer to the sound effect
+        return SoundEffect(&engine, wavData, (WAVEFORMATEX*)wavData.get(), startAudio, result.audioBytes);
     }
 
     void Shutdown() {
@@ -245,72 +265,104 @@ namespace Inferno::Sound {
         Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
 
-    SoundEffect* LoadSound(SoundID id) {
-        if (Sounds[int(id)]) return Sounds[int(id)].get();
+    //SoundEffect* LoadSound(int id) {
+    //    if (!Alive) return nullptr;
+    //    if (Sounds[id]) return Sounds[int(id)].get();
+
+    //    std::scoped_lock lock(ResetMutex);
+    //    int frequency = 22050;
+
+    //    // Use lower frequency for D1 and the Class 1 driller sound in D2.
+    //    // The Class 1 driller sound was not resampled for D2.
+    //    if ((Game::Level.IsDescent1()) || Resources::GameData.Sounds[(int)id] == 127)
+    //        frequency = 11025;
+
+    //    float trimStart = 0;
+    //    if (Game::Level.IsDescent1() && id == 141)
+    //        trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
+
+    //    auto data = Resources::ReadSound(id);
+    //    if (data.empty()) return nullptr;
+    //    Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
+    //    return Sounds[int(id)].get();
+    //}
+
+    SoundEffect* LoadSoundD1(int id) {
+        if (!Seq::inRange(SoundsD1, id)) return nullptr;
+        if (SoundsD1[id]) return SoundsD1[int(id)].get();
+
+        std::scoped_lock lock(ResetMutex);
+        int frequency = 11025;
+        float trimStart = 0;
+        if (id == 47)
+            trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
+
+        auto data = Resources::SoundsD1.Read(id);
+        if (data.empty()) return nullptr;
+        //Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
+        //return Sounds[int(id)].get();
+        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency))).get();
+    }
+
+    SoundEffect* LoadSoundD2(int id) {
+        if (!Seq::inRange(SoundsD2, id)) return nullptr;
+        if (SoundsD2[id]) return SoundsD2[int(id)].get();
 
         std::scoped_lock lock(ResetMutex);
         int frequency = 22050;
 
-        // Use lower frequency for D1 and the Class 1 driller sound in D2.
-        // The Class 1 driller sound was not resampled for D2.
-        if ((Game::Level.IsDescent1()) || Resources::GameData.Sounds[(int)id] == 127)
+        // The Class 1 driller sound was not resampled for D2 and should be a lower frequency
+        if (id == 127)
             frequency = 11025;
 
-        float trimStart = 0;
-        if (Game::Level.IsDescent1() && id == SoundID(141))
-            trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
-
-        auto data = Resources::ReadSound(id);
+        auto data = Resources::SoundsD2.Read(id);
         if (data.empty()) return nullptr;
-        Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
-        return Sounds[int(id)].get();
-
+        return (SoundsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency))).get();
     }
 
-    void Play(SoundID id, float volume, float pan, float pitch) {
-        if (!Alive) return;
-        auto sound = LoadSound(id);
+    SoundEffect* LoadSoundD3(string fileName) {
+        if (fileName.empty()) return nullptr;
+        if (SoundsD3[fileName]) return SoundsD3[fileName].get();
+
+        std::scoped_lock lock(ResetMutex);
+
+        if (auto data = Resources::Descent3Hog.ReadEntry(fileName)) {
+            return (SoundsD3[fileName] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, *data))).get();
+        }
+        else {
+            return nullptr;
+        }
+    }
+
+    SoundEffect* LoadSound(const SoundResource& resource) {
+        if (!Alive) return nullptr;
+
+        SoundEffect* sound = LoadSoundD3(resource.D3);
+        if (!sound) sound = LoadSoundD1(resource.D1);
+        if (!sound) sound = LoadSoundD2(resource.D2);
+        return sound;
+    }
+
+    void Play(const SoundResource& resource, float volume, float pan, float pitch) {
+        auto sound = LoadSound(resource);
         if (!sound) return;
         sound->Play(volume, pitch, pan);
     }
 
-    void Play3D(SoundID id, ObjID source, float volume, float pitch) {
-        if (!Alive || id == SoundID::None) return;
-        auto sound = LoadSound(id);
-        if (!sound) return;
+    void Play(const Sound3D& sound) {
+        auto sfx = LoadSound(sound.Resource);
+        if (!sfx) return;
 
-        {
-            std::scoped_lock lock(ObjectSoundsMutex);
-            auto& s = ObjectSounds.emplace_back();
-            s.Instance = sound->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-            s.Instance->SetVolume(volume);
-            s.Instance->SetPitch(pitch);
-
-            s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
-            s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
-            s.Emitter.CurveDistanceScaler = 1.0f;
-            //s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
-
-            s.Source = source;
-            s.AttachToSource = true;
-            s.Sound = id;
-        }
-    }
-
-    void Play3D(SoundID id, Vector3 position, SegID segment, ObjID source, float volume, float pitch) {
-        if (!Alive || id == SoundID::None) return;
-        auto sound = LoadSound(id);
-        if (!sound) return;
-        position *= AUDIO_SCALE;
+        auto position = sound.Position * AUDIO_SCALE;
 
         {
             std::scoped_lock lock(ObjectSoundsMutex);
 
             // Check if any emitters are already playing this sound from this source
-            if (source != ObjID::None) {
+            if (sound.Source != ObjID::None) {
                 for (auto& instance : ObjectSounds) {
-                    if (instance.Source == source &&
-                        instance.Sound == id &&
+                    if (instance.Source == sound.Source &&
+                        instance.Sound == sound.Resource.GetID() &&
                         instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
                         instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
                         return; // Don't play sounds within the merge window
@@ -319,9 +371,9 @@ namespace Inferno::Sound {
             }
 
             auto& s = ObjectSounds.emplace_back();
-            s.Instance = sound->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-            s.Instance->SetVolume(volume);
-            s.Instance->SetPitch(pitch);
+            s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
+            s.Instance->SetVolume(sound.Volume);
+            s.Instance->SetPitch(sound.Pitch);
 
             s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
             s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
@@ -330,9 +382,10 @@ namespace Inferno::Sound {
             //s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
 
             s.StartTime = Game::ElapsedTime;
-            s.Sound = id;
-            s.Source = source;
-            s.Segment = segment;
+            s.Sound = sound.Resource.GetID();
+            s.Source = sound.Source;
+            s.Segment = sound.Segment;
+            s.AttachToSource = sound.AttachToSource;
         }
     }
 
@@ -340,7 +393,7 @@ namespace Inferno::Sound {
         std::scoped_lock lock(ResetMutex);
         SPDLOG_INFO("Clearing audio cache");
 
-        Sounds.clear(); // unknown if effects must be stopped before releasing
+        //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Engine->TrimVoicePool();
 
         //for (auto& sound : Sounds)
@@ -361,8 +414,21 @@ namespace Inferno::Sound {
     void Pause() { Engine->Suspend(); }
     void Resume() { Engine->Resume(); }
 
-    float GetVolume() {
-        return Alive ? Engine->GetMasterVolume() : 0;
-    }
+    float GetVolume() { return Alive ? Engine->GetMasterVolume() : 0; }
     void SetVolume(float volume) { if (Alive) Engine->SetMasterVolume(volume); }
+
+    void Stop3DSounds() {
+        if (!Alive) return;
+
+        std::scoped_lock lock(ObjectSoundsMutex);
+        for (auto& sound : ObjectSounds) {
+            sound.Instance->Stop();
+        }
+    }
+
+    void Stop2DSounds() {
+        //for (auto& effect : SoundEffects) {
+
+        //}
+    }
 }

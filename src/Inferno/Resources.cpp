@@ -14,7 +14,7 @@ namespace Inferno::Resources {
     List<string> PowerupNames;
 
     HogFile Hog;
-    SoundFile Sounds;
+    SoundFile SoundsD1, SoundsD2;
     Palette LevelPalette;
     PigFile Pig;
     Dictionary<TexID, PigBitmap> CustomTextures;
@@ -201,6 +201,17 @@ namespace Inferno::Resources {
 
     int GetSoundCount() { return (int)GameData.Sounds.size(); }
 
+    int GetSoundIndex(SoundID id) {
+        return GameData.Sounds[(int)id];
+    }
+
+    Sound::SoundResource GetSoundResource(SoundID id) {
+        if (Game::Level.IsDescent1())
+            return { .D1 = GameData.Sounds[(int)id] };
+        else
+            return { .D2 = GameData.Sounds[(int)id] };
+    }
+
     TexID LookupModelTexID(const Model& m, int16 i) {
         if (i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
@@ -236,7 +247,6 @@ namespace Inferno::Resources {
         SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
         StreamReader reader(FileSystem::FindFile(L"descent2.ham"));
         auto ham = ReadHam(reader);
-        auto sounds = ReadSoundFile(FileSystem::FindFile(L"descent2.s22"));
         auto hog = HogFile::Read(FileSystem::FindFile(L"descent2.hog"));
         auto pigName = ReplaceExtension(level.Palette, ".pig");
         auto pig = ReadPigFile(FileSystem::FindFile(pigName));
@@ -260,7 +270,6 @@ namespace Inferno::Resources {
         }
 
         // Everything loaded okay, set the internal data
-        Sounds = std::move(sounds);
         LevelPalette = std::move(palette);
         Pig = std::move(pig);
         Hog = std::move(hog);
@@ -275,6 +284,31 @@ namespace Inferno::Resources {
             auto hxmData = Game::Mission->ReadEntry(hxm);
             StreamReader hxmReader(hxmData);
             ReadHXM(hxmReader, GameData);
+        }
+    }
+
+    void LoadSounds() {
+        if (FoundDescent1()) {
+            try {
+                // Unfortunately have to parse the whole pig file because there's no specialized method
+                // for just reading sounds
+                auto hog = HogFile::Read(FileSystem::FindFile(L"descent.hog"));
+                auto paletteData = hog.ReadEntry("palette.256");
+                auto palette = ReadPalette(paletteData);
+
+                auto path = FileSystem::FindFile(L"descent.pig");
+                StreamReader reader(path);
+                auto [ham, pig, sounds] = ReadDescent1GameData(reader, palette);
+                sounds.Path = path;
+                SoundsD1 = std::move(sounds);
+            }
+            catch (const std::exception&) {
+                SPDLOG_ERROR("Unable to read D1 sound data");
+            }
+        }
+
+        if (auto s22 = FileSystem::TryFindFile(L"descent2.s22")) {
+            SoundsD2 = ReadSoundFile(*s22);
         }
     }
 
@@ -314,7 +348,6 @@ namespace Inferno::Resources {
 
         // Everything loaded okay, set the internal data
         Textures = std::move(textures);
-        Sounds = std::move(sounds);
         LevelPalette = std::move(palette);
         Pig = std::move(pig);
         Hog = std::move(hog);
@@ -345,7 +378,6 @@ namespace Inferno::Resources {
     }
 
     void ResetResources() {
-        Sounds = {};
         LevelPalette = {};
         Pig = {};
         Hog = {};
@@ -433,16 +465,6 @@ namespace Inferno::Resources {
         auto level = Level::Deserialize(data);
         level.FileName = name;
         return level;
-    }
-
-    List<ubyte> ReadSound(SoundID id) {
-        // todo: also search data directories
-        auto idx = GameData.Sounds[(int)id];
-        return Sounds.Read(idx);
-    }
-
-    List<string> GetSoundNames() {
-        return Seq::map(Sounds.Sounds, [](const auto& s) { return s.Name; });
     }
 
     bool FoundDescent1() { return FileSystem::TryFindFile("descent.hog").has_value(); }

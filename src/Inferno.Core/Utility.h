@@ -302,9 +302,15 @@ namespace Inferno {
     }
 
     namespace String {
-        inline bool Contains(const string& str, const char* value) {
+        inline bool Contains(const std::string_view str, const std::string_view value) {
             return str.find(value) != string::npos;
         }
+
+        //inline bool InvariantContains(const std::wstring_view str, const std::wstring_view value) {
+        //    int found;
+        //    FindNLSString(LOCALE_NAME_USER_DEFAULT, LINGUISTIC_IGNORECASE, str.data(), -1, value.data(), -1, &found);
+        //    return found;
+        //}
 
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const std::string_view s1, const std::string_view s2) {
