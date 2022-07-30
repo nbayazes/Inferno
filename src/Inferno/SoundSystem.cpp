@@ -19,7 +19,7 @@ namespace Inferno::Sound {
     constexpr float AUDIO_SCALE = 1 / 30.0f;
     constexpr float MAX_DISTANCE = 400; // Furthest distance a sound can be heard
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
-    constexpr float MERGE_WINDOW = 1 / 8.0f; // Discard the same sound being played by a source within a window
+    constexpr float MERGE_WINDOW = 1 / 10.0f; // Discard the same sound being played by a source within a window
 
     struct ObjectSound {
         ObjID Source = ObjID::None;
@@ -245,8 +245,8 @@ namespace Inferno::Sound {
         Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
 
-    void LoadSound(SoundID id) {
-        if (Sounds[int(id)]) return;
+    SoundEffect* LoadSound(SoundID id) {
+        if (Sounds[int(id)]) return Sounds[int(id)].get();
 
         std::scoped_lock lock(ResetMutex);
         int frequency = 22050;
@@ -261,22 +261,23 @@ namespace Inferno::Sound {
             trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
 
         auto data = Resources::ReadSound(id);
+        if (data.empty()) return nullptr;
         Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
+        return Sounds[int(id)].get();
+
     }
 
     void Play(SoundID id, float volume, float pan, float pitch) {
         if (!Alive) return;
-        LoadSound(id);
-        SPDLOG_INFO("Playing sound effect {}", (int)id);
-        auto sound = Sounds[int(id)].get();
+        auto sound = LoadSound(id);
+        if (!sound) return;
         sound->Play(volume, pitch, pan);
     }
 
     void Play3D(SoundID id, ObjID source, float volume, float pitch) {
         if (!Alive || id == SoundID::None) return;
-        LoadSound(id);
-        SPDLOG_INFO("Playing sound effect {}", (int)id);
-        auto sound = Sounds[int(id)].get();
+        auto sound = LoadSound(id);
+        if (!sound) return;
 
         {
             std::scoped_lock lock(ObjectSoundsMutex);
@@ -298,14 +299,14 @@ namespace Inferno::Sound {
 
     void Play3D(SoundID id, Vector3 position, SegID segment, ObjID source, float volume, float pitch) {
         if (!Alive || id == SoundID::None) return;
-
-        LoadSound(id);
-        auto sound = Sounds[int(id)].get();
+        auto sound = LoadSound(id);
+        if (!sound) return;
         position *= AUDIO_SCALE;
 
         {
             std::scoped_lock lock(ObjectSoundsMutex);
 
+            // Check if any emitters are already playing this sound from this source
             if (source != ObjID::None) {
                 for (auto& instance : ObjectSounds) {
                     if (instance.Source == source &&
@@ -342,8 +343,8 @@ namespace Inferno::Sound {
         Sounds.clear(); // unknown if effects must be stopped before releasing
         Engine->TrimVoicePool();
 
-        for (auto& sound : Sounds)
-            sound.release(); // unknown if effects must be stopped before releasing
+        //for (auto& sound : Sounds)
+        //    sound.release(); // unknown if effects must be stopped before releasing
     }
 
     void PrintStatistics() {

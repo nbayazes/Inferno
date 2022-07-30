@@ -32,11 +32,7 @@ namespace Inferno {
         Vector3 GunPoints[MAX_GUNS]; // where each gun model is
         ubyte GunSubmodels[MAX_GUNS];   // which submodel is each gun in?
 
-        VClipID ExplosionClip1;
-        SoundID ExplosionSound1;
-
-        VClipID ExplosionClip2;
-        SoundID ExplosionSound2;
+        VClipID ExplosionClip1, ExplosionClip2;
 
         sbyte WeaponType;
         sbyte WeaponType2;    // Secondary weapon number, -1 means none, otherwise gun #0 fires this weapon.
@@ -52,7 +48,7 @@ namespace Inferno {
         int8 EnergyDrain;    // Energy drained when touched
 
         float Lighting;
-        float Strength; // Health
+        float HitPoints;
 
         float Mass, Drag;
 
@@ -61,10 +57,13 @@ namespace Inferno {
         CloakType Cloaking = CloakType::None;
         AttackType Attack = AttackType::Ranged;
 
-        SoundID SeeSound;
-        SoundID AttackSound;
-        SoundID ClawSound;
-        SoundID TauntSound;
+        SoundID ExplosionSound1 = SoundID::None;
+        SoundID ExplosionSound2 = SoundID::None;
+        SoundID SeeSound = SoundID::None;
+        SoundID AttackSound = SoundID::None;
+        SoundID ClawSound = SoundID::None;
+        SoundID TauntSound = SoundID::None;
+        SoundID DeathrollSound = SoundID::None;
 
         bool IsBoss;
         bool IsCompanion;    // Companion robot, leads you to things.
@@ -79,7 +78,6 @@ namespace Inferno {
 
         ubyte Flags;   // misc properties
 
-        SoundID DeathrollSound; // if has deathroll, what sound?
         ubyte Glow;        // apply this light to robot itself. stored as 4:4 fixed-point
         ubyte Behavior;    // Default behavior
         ubyte Aim;         // 255 = perfect, less = more likely to miss.  0 != random, would look stupid.  0=45 degree spread

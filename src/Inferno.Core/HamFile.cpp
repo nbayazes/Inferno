@@ -107,7 +107,7 @@ namespace Inferno {
         ri.Score = (short)r.ReadInt32();
 
         ri.Lighting = r.ReadFix();
-        ri.Strength = r.ReadFix();
+        ri.HitPoints = r.ReadFix();
 
         ri.Mass = r.ReadFix();
         ri.Drag = r.ReadFix();
@@ -179,7 +179,7 @@ namespace Inferno {
         ri.EnergyDrain = r.ReadByte();
 
         ri.Lighting = r.ReadFix();
-        ri.Strength = r.ReadFix();
+        ri.HitPoints = r.ReadFix();
 
         ri.Mass = r.ReadFix();
         ri.Drag = r.ReadFix();

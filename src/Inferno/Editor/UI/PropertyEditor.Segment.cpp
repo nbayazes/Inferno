@@ -3,15 +3,6 @@
 #include "../Editor.h"
 
 namespace Inferno::Editor {
-    bool TableBeginTreeNode(const char* label) {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        ImGui::AlignTextToFramePadding();
-        auto open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAvailWidth);
-        ImGui::TableNextColumn();
-        return open;
-    }
-
     inline bool TriggerTypesDropdown(int& value) {
         static const char* TriggerTypeLabels[] = {
             "None", "Open Door", "Close Door", "Matcen", "Exit", "Secret Exit", "Illusion Off",
@@ -86,7 +77,7 @@ namespace Inferno::Editor {
 
         auto trigger = wall ? level.TryGetTrigger(wall->Trigger) : nullptr;
 
-        bool open = TableBeginTreeNode("Trigger");
+        bool open = ImGui::TableBeginTreeNode("Trigger");
 
         if (!trigger) {
             if (ImGui::Button("Add", { 100 * Shell::DpiScale, 0 }) && wall)
@@ -138,7 +129,7 @@ namespace Inferno::Editor {
         auto tid = level.GetTriggerID(wallId);
         auto trigger = level.TryGetTrigger(wallId);
         DisableControls disable(!wall);
-        bool open = TableBeginTreeNode("Trigger");
+        bool open = ImGui::TableBeginTreeNode("Trigger");
 
         {
             // Shift values by 1 to use 0 as "None"
@@ -189,7 +180,7 @@ namespace Inferno::Editor {
 
     void FlickeringProperties(Level& level, Tag tag) {
         auto light = level.GetFlickeringLight(tag);
-        bool open = TableBeginTreeNode("Flickering light");
+        bool open = ImGui::TableBeginTreeNode("Flickering light");
 
         if (!light) {
             DisableControls disable(!CanAddFlickeringLight(level, tag));
@@ -324,7 +315,7 @@ namespace Inferno::Editor {
     }
 
     bool SideLighting(Level& level, Segment& seg, SegmentSide& side) {
-        bool open = TableBeginTreeNode("Light override");
+        bool open = ImGui::TableBeginTreeNode("Light override");
         bool changed = false;
 
         if (open) {
@@ -504,9 +495,8 @@ namespace Inferno::Editor {
 
     bool SideUVs(SegmentSide& side) {
         bool changed = false;
-        bool open = TableBeginTreeNode("UVs");
 
-        if (open) {
+        if (ImGui::TableBeginTreeNode("UVs")) {
             ImGui::TableRowLabel("UV 0");
             ImGui::SetNextItemWidth(-1);
             changed |= ImGui::DragFloat2("##P0", &side.UVs[0].x, 0.01f);
@@ -663,7 +653,7 @@ namespace Inferno::Editor {
     bool WallProperties(Level& level, WallID id) {
         auto wall = level.TryGetWall(id);
         bool wallChanged = false;
-        bool open = TableBeginTreeNode("Wall type");
+        bool open = ImGui::TableBeginTreeNode("Wall type");
 
         auto wallType = wall ? wall->Type : WallType::None;
 
@@ -799,7 +789,7 @@ namespace Inferno::Editor {
     }
 
     void TextureProperties(const char* label, LevelTexID ltid, bool isOverlay) {
-        bool open = TableBeginTreeNode(label);
+        bool open = ImGui::TableBeginTreeNode(label);
         const auto ti = Resources::TryGetTextureInfo(ltid);
 
         if (isOverlay && ltid == LevelTexID::Unset) {

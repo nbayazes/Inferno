@@ -2,6 +2,7 @@
 #include "PropertyEditor.h"
 #include "Game.h"
 #include "../Editor.h"
+#include "SoundSystem.h"
 
 namespace Inferno::Editor {
     const char* GetObjectTypeName(ObjectType type) {
@@ -230,10 +231,13 @@ namespace Inferno::Editor {
 
         ImGui::TableRowLabel("Robot");
         ImGui::SetNextItemWidth(-1);
+        auto& robot = Resources::GameData.Robots[(int)obj.ID];
+
         if (RobotDropdown("##Robot", obj.ID)) {
-            auto& robot = Resources::GameData.Robots[(int)obj.ID];
             obj.Render.Model.ID = robot.Model;
             obj.Radius = GetObjectRadius(obj);
+            obj.Movement.Physics.Mass = robot.Mass;
+            obj.Movement.Physics.Drag = robot.Drag;
 
             Render::LoadModelDynamic(robot.Model);
             ForMarkedObjects([&obj](Object& o) {
@@ -299,6 +303,40 @@ namespace Inferno::Editor {
                 o.Contains = obj.Contains;
             });
             changed = true;
+        }
+
+        if (ImGui::TableBeginTreeNode("Robot details")) {
+            ImGui::TableRowLabel("Hit points");
+            ImGui::Text("%.2f", robot.HitPoints);
+
+            ImGui::TableRowLabel("Mass");
+            ImGui::Text("%.2f", robot.Mass);
+
+            ImGui::TableRowLabel("Drag");
+            ImGui::Text("%.2f", robot.Drag);
+
+            ImGui::TableRowLabel("See sound");
+            if(ImGui::SmallButton("Play##see")) Sound::Play3D(robot.SeeSound, Selection.Object);
+
+            ImGui::TableRowLabel("Attack sound");
+            if (ImGui::SmallButton("Play##atk")) Sound::Play3D(robot.AttackSound, Selection.Object);
+
+            ImGui::TableRowLabel("Claw sound");
+            if (ImGui::SmallButton("Play##claw")) Sound::Play3D(robot.ClawSound, Selection.Object);
+
+            ImGui::TableRowLabel("Taunt sound");
+            if (ImGui::SmallButton("Play##taunt")) Sound::Play3D(robot.TauntSound, Selection.Object);
+
+            ImGui::TableRowLabel("Explosion 1");
+            if (ImGui::SmallButton("Play##exp1")) Sound::Play3D(robot.ExplosionSound1, Selection.Object);
+
+            ImGui::TableRowLabel("Explosion 2");
+            if (ImGui::SmallButton("Play##exp2")) Sound::Play3D(robot.ExplosionSound2, Selection.Object);
+
+            ImGui::TableRowLabel("Deathroll");
+            if (ImGui::SmallButton("Play##droll")) Sound::Play3D(robot.DeathrollSound, Selection.Object);
+
+            ImGui::TreePop();
         }
 
         return changed;

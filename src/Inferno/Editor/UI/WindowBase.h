@@ -15,6 +15,15 @@ namespace ImGui {
         }
     }
 
+    inline bool TableBeginTreeNode(const char* label) {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        auto open = ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_SpanAvailWidth);
+        ImGui::TableNextColumn();
+        return open;
+    }
+
     // Identical to TextInput but fills horizontal space
     inline bool TextInputWide(std::string_view label, std::string& str, int maxSize) {
         if (str.size() < maxSize)

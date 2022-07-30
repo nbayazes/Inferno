@@ -162,7 +162,7 @@ void PrintRobotInfo() {
     for (uint i = 0; i < Resources::GameData.Robots.size(); i++) {
         auto& robot = Resources::GetRobotInfo(i);
         auto name = Resources::GetRobotName(i);
-        SPDLOG_INFO("{}, {:.0f}", name, robot.Strength);
+        SPDLOG_INFO("{}, {:.0f}", name, robot.HitPoints);
     }
 }
 

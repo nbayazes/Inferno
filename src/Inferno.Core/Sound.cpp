@@ -32,6 +32,7 @@ namespace Inferno {
     }
 
     List<ubyte> SoundFile::Read(int index) const {
+        if (!Seq::inRange(Sounds, index)) return {};
         StreamReader reader(Path);
         auto& sound = Sounds[index];
 

@@ -151,7 +151,7 @@ namespace Inferno::Editor {
                 obj.Movement.Physics.Mass = ri.Mass;
                 obj.Movement.Physics.Drag = ri.Drag;
                 obj.Render.Type = RenderType::Model;
-                obj.Shields = ri.Strength;
+                obj.Shields = ri.HitPoints;
                 obj.Render.Model.ID = ri.Model;
                 obj.Control.AI.Behavior = AIBehavior::Normal;
                 obj.Contains.Type = ObjectType::None;
