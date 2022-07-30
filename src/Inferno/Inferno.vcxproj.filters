@@ -152,6 +152,9 @@
     <ClCompile Include="Graphics\Render.Particles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Game.Wall.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -394,7 +397,7 @@
     <ClInclude Include="Graphics\Render.Particles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DataPool.h">
+    <ClInclude Include="Game.Wall.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

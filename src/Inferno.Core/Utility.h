@@ -283,8 +283,6 @@ namespace Inferno {
         return { PaletteToRGB(r), PaletteToRGB(g), PaletteToRGB(b) };
     }
 
-    consteval auto BIT(auto x) { return 1 << x; }
-
     constexpr float FixToFloat(fix f) {
         return (float)f / (float)(1 << 16);
     }

@@ -56,6 +56,8 @@ namespace DirectX::SimpleMath {
 }
 
 namespace Inferno {
+    consteval auto BIT(auto x) { return 1 << x; }
+
     //constexpr void SafeRelease(auto x) {
     //    if (x != nullptr) {
     //        x->Release();

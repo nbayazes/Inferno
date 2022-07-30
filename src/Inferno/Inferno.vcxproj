@@ -151,6 +151,7 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
+    <ClCompile Include="Game.Wall.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
     <ClCompile Include="Editor\Bindings.cpp" />
     <ClCompile Include="Editor\Command.cpp" />
@@ -203,9 +204,9 @@
     <ClInclude Include="Editor\UI\AboutDialog.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
+    <ClInclude Include="Game.Wall.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\Compiler.h" />
-    <ClInclude Include="DataPool.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
     <ClInclude Include="Convert.h" />
     <ClInclude Include="Editor\UI\DebugOverlay.h" />

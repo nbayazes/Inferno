@@ -373,7 +373,7 @@ namespace Inferno::Render {
         }
 
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        DrawVClip(cmd, vclip, object.Position, object.Radius, color, ElapsedTime, additive, object.Render.VClip.Rotation, up);
+        DrawVClip(cmd, vclip, object.Position, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
     }
 
     void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {

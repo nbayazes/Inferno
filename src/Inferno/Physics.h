@@ -1,5 +1,6 @@
 #pragma once
 #include "Level.h"
+#include "Face.h"
 
 namespace Inferno {
     void UpdatePhysics(Level& level, double t, float dt);
@@ -46,4 +47,5 @@ namespace Inferno {
     };
 
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit);
+    HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
 }

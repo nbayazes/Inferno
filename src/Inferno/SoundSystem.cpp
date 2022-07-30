@@ -197,7 +197,7 @@ namespace Inferno::Sound {
     // Creates a mono PCM sound effect
     SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0) {
         // create a buffer and store the waveform info at the beginning.
-        int trim = frequency * trimStart;
+        int trim = int(frequency * trimStart);
         auto wavData = MakePtr<uint8[]>(raw.size() + sizeof(WAVEFORMATEX) - trim);
         auto startAudio = wavData.get() + sizeof(WAVEFORMATEX);
         memcpy(startAudio, raw.data() + trim, raw.size() - trim);

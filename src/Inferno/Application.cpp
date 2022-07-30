@@ -83,13 +83,9 @@ using Keys = Keyboard::Keys;
 float g_FireDelay = 0;
 
 void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
-    auto& points = Resources::GameData.PlayerShip.GunPoints;
     auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
-
-    //auto id = level.IsDescent2() ? 34 : 13;
     auto& weapon = Resources::GameData.Weapons[id];
 
- 
     Object bullet{};
     bullet.Movement.Type = MovementType::Physics;
     bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
@@ -105,7 +101,7 @@ void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
     bullet.Lifespan = weapon.Lifetime;
 
     bullet.Type = ObjectType::Weapon;
-    bullet.ID = id;
+    bullet.ID = (int8)id;
     bullet.Parent = ObjID(0);
 
     //auto pitch = -Random() * 0.2f;

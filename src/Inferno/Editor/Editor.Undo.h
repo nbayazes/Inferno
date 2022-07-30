@@ -22,15 +22,9 @@ namespace Inferno::Editor {
             MultiSelection Marked;
 
             enum Flag {
-                Nothing,
-                Segments = BIT(0),
-                Matcens = BIT(1),
-                Walls = BIT(2),
-                Objects = BIT(3),
-                Triggers = BIT(4),
-                Vertices = BIT(5),
-                Selections = BIT(6),
-                Level = BIT(7)
+                Nothing = 0,
+                Selections = BIT(0),
+                Level = BIT(1)
             } Data;
 
             void RestoreSelections() const {

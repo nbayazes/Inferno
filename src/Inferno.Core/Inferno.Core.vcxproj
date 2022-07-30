@@ -104,6 +104,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AI.h" />
+    <ClInclude Include="DataPool.h" />
     <ClInclude Include="EffectClip.h" />
     <ClInclude Include="Face.h" />
     <ClInclude Include="Fonts.h" />
@@ -120,10 +121,12 @@
     <ClInclude Include="Pig.h" />
     <ClInclude Include="Polymodel.h" />
     <ClInclude Include="Robot.h" />
+    <ClInclude Include="Segment.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="Streams.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="Utility.h" />
+    <ClInclude Include="Wall.h" />
     <ClInclude Include="Weapon.h" />
   </ItemGroup>
   <ItemGroup>
@@ -142,6 +145,7 @@
     </ClCompile>
     <ClCompile Include="Pig.cpp" />
     <ClCompile Include="Polymodel.cpp" />
+    <ClCompile Include="Segment.cpp" />
     <ClCompile Include="Sound.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
