@@ -35,7 +35,7 @@ namespace Inferno::Render {
         return Settings::HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned, const Color& color, float elapsed);
+    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
     void DrawString(string_view str, float x, float y, FontSize size);
     void DrawCenteredString(string_view str, float x, float y, FontSize size);

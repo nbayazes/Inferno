@@ -316,34 +316,41 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned, const Color& color, float elapsed) {
+    void DrawVClip(ID3D12GraphicsCommandList* cmd, 
+                   const VClip& vclip, 
+                   const Vector3& position,
+                   float radius, 
+                   const Color& color, 
+                   float elapsed,
+                   bool additive,
+                   float rotation, 
+                   const Vector3* up) {
         auto frame = vclip.NumFrames - (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
         auto tid = vclip.Frames[frame];
-        //auto forward = Camera.GetForward();
 
-        Matrix billboard = [&] {
-            if (aligned)
-                return Matrix::CreateConstrainedBillboard(transform.Translation(), Camera.Position, transform.Up());
-            else
-                return Matrix::CreateBillboard(transform.Translation(), Camera.Position, Camera.Up);
-        }();
+        auto transform = up ? 
+            Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) :
+            Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+
+        if (rotation != 0)
+            transform = Matrix::CreateRotationZ(rotation) * transform;
 
         // create quad and transform it
         auto& ti = Resources::GetTextureInfo(tid);
         auto ratio = (float)ti.Height / (float)ti.Width;
         auto h = radius * ratio;
         auto w = radius;
-        auto p0 = Vector3::Transform({ -w, h, 0 }, billboard); // bl
-        auto p1 = Vector3::Transform({ w, h, 0 }, billboard); // br
-        auto p2 = Vector3::Transform({ w, -h, 0 }, billboard); // tr
-        auto p3 = Vector3::Transform({ -w, -h, 0 }, billboard); // tl
+        auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
+        auto p1 = Vector3::Transform({ w, h, 0 }, transform); // br
+        auto p2 = Vector3::Transform({ w, -h, 0 }, transform); // tr
+        auto p3 = Vector3::Transform({ -w, -h, 0 }, transform); // tl
 
         ObjectVertex v0(p0, { 0, 0 }, color);
         ObjectVertex v1(p1, { 1, 0 }, color);
         ObjectVertex v2(p2, { 1, 1 }, color);
         ObjectVertex v3(p3, { 0, 1 }, color);
 
-        auto& effect = Effects->Sprite;
+        auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
         effect.Apply(cmd);
         auto& material = Materials->Get(tid);
         effect.Shader->SetWorldViewProjection(cmd, ViewProjection);
@@ -357,7 +364,8 @@ namespace Inferno::Render {
         g_SpriteBatch->End();
     }
 
-    void DrawSprite(const Object& object, ID3D12GraphicsCommandList* cmd, bool aligned = false, bool lit = false) {
+    // When up is provided, it constrains the sprite to that axis
+    void DrawSprite(const Object& object, ID3D12GraphicsCommandList* cmd, bool additive, const Vector3* up = nullptr, bool lit = false) {
         auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
         if (vclip.NumFrames == 0) {
             DrawObjectOutline(object);
@@ -365,7 +373,7 @@ namespace Inferno::Render {
         }
 
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        DrawVClip(cmd, vclip, object.GetTransform(), object.Radius, aligned, color, ElapsedTime);
+        DrawVClip(cmd, vclip, object.Position, object.Radius, color, ElapsedTime, additive, object.Render.VClip.Rotation, up);
     }
 
     void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {
@@ -758,8 +766,11 @@ namespace Inferno::Render {
             }
 
             case ObjectType::Hostage:
-                DrawSprite(object, cmd, true, Settings::RenderMode == RenderMode::Shaded);
+            {
+                auto up = object.Rotation.Up();
+                DrawSprite(object, cmd, false, &up, Settings::RenderMode == RenderMode::Shaded);
                 break;
+            }
 
             case ObjectType::Coop:
             case ObjectType::Player:
@@ -778,20 +789,25 @@ namespace Inferno::Render {
                     DrawModel(cmd, object, object.Render.Model.ID, alpha, texOverride);
                 }
                 else {
-                    DrawSprite(object, cmd, false);
+                    DrawSprite(object, cmd, true);
                 }
                 break;
 
             case ObjectType::Fireball:
             {
-                bool axisAligned = object.Render.VClip.ID == VClips::Matcen;
-                DrawSprite(object, cmd, axisAligned);
+                if (object.Render.VClip.ID == VClips::Matcen) {
+                    auto up = object.Rotation.Up();
+                    DrawSprite(object, cmd, true, &up);
+                }
+                else {
+                    DrawSprite(object, cmd, true);
+                }
                 break;
             }
 
             case ObjectType::Powerup:
             {
-                DrawSprite(object, cmd);
+                DrawSprite(object, cmd, false);
                 break;
             }
 

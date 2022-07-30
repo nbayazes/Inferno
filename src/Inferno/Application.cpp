@@ -65,9 +65,7 @@ void Application::Initialize(int width, int height) {
 
     Editor::Initialize();
 
-    Sound::Init(Shell::Hwnd);
-    //Sound::Play(SoundID(72), 0.1f, -0.5f, 1.0f);
-    //Sound::Play(SoundID(72), 0.1f, -0.3f, -1.0f);
+    Sound::Init(Shell::Hwnd, 0.01f);
 
     OnActivated();
 
@@ -103,12 +101,12 @@ void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
 
     bullet.Render.Type = RenderType::WeaponVClip;
     bullet.Render.VClip.ID = weapon.WeaponVClip;
+    bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
     bullet.Lifespan = weapon.Lifetime;
 
     bullet.Type = ObjectType::Weapon;
     bullet.ID = id;
     bullet.Parent = ObjID(0);
-
 
     //auto pitch = -Random() * 0.2f;
     Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
@@ -171,7 +169,7 @@ void Application::Update() {
 
     accumulator += Render::FrameTime;
 
-    Render::Debug::BeginFrame();
+    Render::Debug::BeginFrame(); // enable Debug calls during physics
 
     float alpha = 1; // blending between previous and current position
 

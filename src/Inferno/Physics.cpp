@@ -1237,7 +1237,6 @@ namespace Inferno {
                 obj.Movement.Physics.InputVelocity = obj.Movement.Physics.Velocity;
                 obj.Position += obj.Movement.Physics.Velocity * dt;
 
-
                 auto delta = obj.Position - obj.LastPosition;
                 auto maxDistance = delta.Length();
                 LevelHit hit{ .Source = &obj };
@@ -1291,7 +1290,7 @@ namespace Inferno {
                             ApplyHit(hit, obj);
 
                             if (hit.HitObj && hit.HitObj->Type == ObjectType::Robot) {
-                                //Sound::Play3D(weapon.RobotHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                                Sound::Play3D(weapon.RobotHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
                                 auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
                                 if (ri.ExplosionClip1 > VClipID::None) {
                                     Render::Particle p{};
@@ -1302,7 +1301,7 @@ namespace Inferno {
                                 }
                             }
                             else {
-                                //Sound::Play3D(weapon.WallHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                                Sound::Play3D(weapon.WallHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
                                 Render::Particle p{};
                                 p.Position = hit.Point;
                                 p.Radius = weapon.ImpactSize;
@@ -1311,7 +1310,6 @@ namespace Inferno {
                             }
                         }
                     }
-
                 }
 
                 //CollideTriangles(level, obj, dt, 0);

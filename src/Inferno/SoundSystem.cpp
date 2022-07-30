@@ -107,7 +107,7 @@ namespace Inferno::Sound {
         };
     }
 
-    void SoundWorker(milliseconds pollRate) {
+    void SoundWorker(float volume, milliseconds pollRate) {
         SPDLOG_INFO("Starting audio mixer thread");
 
         auto result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -135,6 +135,8 @@ namespace Inferno::Sound {
             SPDLOG_ERROR("Unable to start sound engine: {}", e.what());
             return;
         }
+
+        Engine->SetMasterVolume(volume);
 
         while (Alive) {
             Debug::Emitters.clear();
@@ -220,9 +222,9 @@ namespace Inferno::Sound {
         WorkerThread.join();
     }
 
-    void Init(HWND, milliseconds pollRate) {
+    void Init(HWND, float volume, milliseconds pollRate) {
         // HWND is not used, but indicates the sound system requires a window
-        WorkerThread = std::thread(SoundWorker, pollRate);
+        WorkerThread = std::thread(SoundWorker, volume, pollRate);
 
         //DWORD channelMask{};
         //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
@@ -357,4 +359,9 @@ namespace Inferno::Sound {
 
     void Pause() { Engine->Suspend(); }
     void Resume() { Engine->Resume(); }
+
+    float GetVolume() {
+        return Alive ? Engine->GetMasterVolume() : 0;
+    }
+    void SetVolume(float volume) { if (Alive) Engine->SetMasterVolume(volume); }
 }

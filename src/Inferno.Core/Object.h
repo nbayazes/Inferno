@@ -146,9 +146,10 @@ namespace Inferno {
     };
 
     struct VClipData {
-        VClipID ID;
-        float FrameTime;
-        uint8 Frame;
+        VClipID ID = VClipID::None;
+        float FrameTime = 0;
+        uint8 Frame = 0;
+        float Rotation = 0;
     };
 
     // Object signature

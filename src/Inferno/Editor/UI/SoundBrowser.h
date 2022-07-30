@@ -39,6 +39,10 @@ namespace Inferno::Editor {
         void OnUpdate() override {
             auto& sounds = Resources::GameData.Sounds;
 
+            auto masterVol = Sound::GetVolume();
+            if (ImGui::SliderFloat("Master Volume", &masterVol, 0, 1))
+                Sound::SetVolume(masterVol);
+
             ImGui::SliderFloat("Volume", &_vol, 0, 1);
             ImGui::SliderFloat("Pan", &_pan, -1, 1);
             ImGui::SliderFloat("Pitch", &_pitch, -1, 1);
