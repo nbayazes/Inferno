@@ -157,11 +157,6 @@ namespace Inferno::Editor {
         return nullptr;
     }
 
-    // Returns a random value between 0 and 1
-    inline float Random() {
-        return (float)rand() / RAND_MAX;
-    }
-
     void CleanLevel(Level&);
     void ResetFlickeringLightTimers(Level& level);
 

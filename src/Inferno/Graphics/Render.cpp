@@ -14,6 +14,7 @@
 #include "DirectX.h"
 #include "Physics.h"
 #include "SoundSystem.h"
+#include "Render.Particles.h"
 
 using namespace DirectX;
 
@@ -101,7 +102,6 @@ namespace Inferno::Render {
 
         // todo: put all of these resources into a class and use RAII
         Ptr<GraphicsMemory> _graphicsMemory;
-        Ptr<PrimitiveBatch<ObjectVertex>> _spriteBatch;
 
         Ptr<PrimitiveBatch<CanvasVertex>> _canvasBatch;
         Ptr<MeshBuffer> _meshBuffer;
@@ -225,9 +225,9 @@ namespace Inferno::Render {
 
         // Horrible immediate mode nonsense
         DrawCalls++;
-        _spriteBatch->Begin(cmd);
-        _spriteBatch->DrawQuad(v0, v1, v2, v3);
-        _spriteBatch->End();
+        g_SpriteBatch->Begin(cmd);
+        g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+        g_SpriteBatch->End();
     }
 
     void DrawOutrageModel(const Object& object, ID3D12GraphicsCommandList* cmd, int index, bool transparentPass) {
@@ -316,19 +316,16 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned, const Color& color) {
-        auto frame = vclip.NumFrames - (int)std::floor(ElapsedTime / vclip.FrameTime) % vclip.NumFrames - 1;
+    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned, const Color& color, float elapsed) {
+        auto frame = vclip.NumFrames - (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
         auto tid = vclip.Frames[frame];
-        auto forward = Camera.GetForward();
+        //auto forward = Camera.GetForward();
 
         Matrix billboard = [&] {
-            if (aligned) {
-                auto objectUp = transform.Up();
-                return Matrix::CreateConstrainedBillboard(transform.Translation(), Camera.Position, objectUp, &forward);
-            }
-            else {
-                return Matrix::CreateBillboard(transform.Translation(), Camera.Position, Camera.Up, &forward);
-            }
+            if (aligned)
+                return Matrix::CreateConstrainedBillboard(transform.Translation(), Camera.Position, transform.Up());
+            else
+                return Matrix::CreateBillboard(transform.Translation(), Camera.Position, Camera.Up);
         }();
 
         // create quad and transform it
@@ -355,9 +352,9 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmd, sampler);
 
         DrawCalls++;
-        _spriteBatch->Begin(cmd);
-        _spriteBatch->DrawQuad(v0, v1, v2, v3);
-        _spriteBatch->End();
+        g_SpriteBatch->Begin(cmd);
+        g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+        g_SpriteBatch->End();
     }
 
     void DrawSprite(const Object& object, ID3D12GraphicsCommandList* cmd, bool aligned = false, bool lit = false) {
@@ -368,7 +365,7 @@ namespace Inferno::Render {
         }
 
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        DrawVClip(cmd, vclip, object.GetTransform(), object.Radius, aligned, color);
+        DrawVClip(cmd, vclip, object.GetTransform(), object.Radius, aligned, color, ElapsedTime);
     }
 
     void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {
@@ -505,7 +502,7 @@ namespace Inferno::Render {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
         Materials = MakePtr<MaterialLibrary>(3000);
-        _spriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
+        g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         _canvasBatch = MakePtr<PrimitiveBatch<CanvasVertex>>(Device);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
@@ -640,7 +637,7 @@ namespace Inferno::Render {
         Effects.reset();
         Shaders.reset();
         _graphicsMemory.reset();
-        _spriteBatch.reset();
+        g_SpriteBatch.reset();
         _canvasBatch.reset();
         g_ImGuiBatch.reset();
 
@@ -1053,6 +1050,8 @@ namespace Inferno::Render {
 
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
+
+            DrawParticles(cmdList);
 
             DrawEditor(cmdList, Game::Level);
             DrawDebug(Game::Level);

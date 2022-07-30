@@ -149,6 +149,9 @@
     <ClCompile Include="Physics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\Render.Particles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -386,6 +389,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Editor\UI\DiagnosticWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Render.Particles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

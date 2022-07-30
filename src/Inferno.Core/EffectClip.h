@@ -22,8 +22,8 @@ namespace Inferno {
         }
 
         // Returns the frame for the vclip based on elapsed time
-        TexID GetFrame(double elapsedTime) const {
-            auto frame = (int)std::floor(elapsedTime / FrameTime) % NumFrames;
+        TexID GetFrame(double t) const {
+            auto frame = (int)(t / FrameTime) % NumFrames;
             assert(frame < NumFrames);
             return Frames[frame];
         };

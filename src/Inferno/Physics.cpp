@@ -9,6 +9,7 @@
 #include "Graphics/Render.Debug.h"
 #include "SoundSystem.h"
 #include "Editor/Events.h"
+#include "Graphics/Render.Particles.h"
 
 using namespace DirectX;
 
@@ -627,20 +628,28 @@ namespace Inferno {
     };
 
     // Finds the nearest sphere-level intersection
-    bool IntersectLevel(Level& level, const BoundingSphere& sphere, SegID segId, LevelHit& hit) {
+    bool IntersectLevel(Level& level, const BoundingSphere& sphere, SegID segId, ObjID oid, LevelHit& hit) {
         auto& seg = level.GetSegment(segId);
         hit.Visited.insert(segId);
 
+        auto& obj = level.Objects[(int)oid];
+
         // Did we hit any objects in this segment?
         for (int i = 0; i < level.Objects.size(); i++) {
-            auto& obj = level.Objects[i];
-            if (!Object::IsAlive(obj) || obj.Segment != segId) continue;
-            if (hit.Source && hit.Source->Parent == (ObjID)i) continue; // don't hit parent
-            if (hit.Source == &obj) continue; // don't hit yourself!
+            auto& other = level.Objects[i];
+            //if (!Object::IsAlive(obj) || obj.Segment != segId) continue;
+            //if (hit.Source && hit.Source->Parent == (ObjID)i) continue; // don't hit parent
+            //if (hit.Source == &obj) continue; // don't hit yourself!
+            //if (source.Parent == obj.Parent) continue; // Don't hit your siblings!
 
-            BoundingSphere objSphere(obj.Position, obj.Radius);
+            if (!Object::IsAlive(other) || other.Segment != segId) continue;
+            if (oid == (ObjID)i) continue; // don't hit yourself!
+            if (obj.Parent == other.Parent) continue; // Don't hit your siblings!
+            if (oid == other.Parent) continue; // Don't hit your children!
+
+            BoundingSphere objSphere(other.Position, other.Radius);
             if (auto info = IntersectSphereSphere(sphere, objSphere)) {
-                hit.Update(info, &obj);
+                hit.Update(info, &other);
             }
         }
 
@@ -658,7 +667,7 @@ namespace Inferno {
                     // intersected with a connected side, must check faces in it too
                     auto conn = seg.GetConnection(side);
                     if (conn > SegID::None && !hit.Visited.contains(conn))
-                        IntersectLevel(level, sphere, conn, hit); // Recursive
+                        IntersectLevel(level, sphere, conn, oid, hit); // Recursive
                 }
             }
         }
@@ -711,6 +720,7 @@ namespace Inferno {
             auto& obj = level.Objects[i];
             if (!Object::IsAlive(obj) || obj.Segment != segId) continue;
             if (object.Parent == (ObjID)i || &obj == &object) continue; // don't hit yourself!
+            if (object.Parent == obj.Parent) continue; // Don't hit your siblings!
 
             BoundingSphere sphere(obj.Position, obj.Radius);
             if (auto info = capsule.Intersects(sphere)) {
@@ -1211,7 +1221,10 @@ namespace Inferno {
 
         UpdateGame(level, t, dt);
 
-        for (auto& obj : level.Objects | views::filter(Object::IsAlive)) {
+        for (int id = 0; id < level.Objects.size(); id++) {
+            auto& obj = level.Objects[id];
+            if (!Object::IsAlive(obj)) continue;
+
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
 
@@ -1233,7 +1246,7 @@ namespace Inferno {
                     // no travel, but need to check for being inside of wall (maybe this isn't necessary)
                     BoundingSphere sphere(obj.Position, obj.Radius);
 
-                    if (IntersectLevel(level, sphere, obj.Segment, hit)) {
+                    if (IntersectLevel(level, sphere, obj.Segment, (ObjID)id, hit)) {
                         Debug::ClosestPoints.push_back(hit.Point);
                         Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
                     }
@@ -1275,9 +1288,27 @@ namespace Inferno {
                     else {
                         if (obj.Type == ObjectType::Weapon) {
                             auto& weapon = Resources::GameData.Weapons[obj.ID];
-                            auto sound = hit.HitObj && hit.HitObj->Type == ObjectType::Robot ? weapon.RobotHitSound : weapon.WallHitSound;
-                            //Sound::Play3D(sound, hit.Point, hit.Tag.Segment, obj.Parent);
                             ApplyHit(hit, obj);
+
+                            if (hit.HitObj && hit.HitObj->Type == ObjectType::Robot) {
+                                //Sound::Play3D(weapon.RobotHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                                auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
+                                if (ri.ExplosionClip1 > VClipID::None) {
+                                    Render::Particle p{};
+                                    p.Position = hit.Point;
+                                    p.Radius = weapon.ImpactSize; // (robot->size / 2 * 3)
+                                    p.Clip = ri.ExplosionClip1;
+                                    Render::AddParticle(p);
+                                }
+                            }
+                            else {
+                                //Sound::Play3D(weapon.WallHitSound, hit.Point, hit.Tag.Segment, obj.Parent);
+                                Render::Particle p{};
+                                p.Position = hit.Point;
+                                p.Radius = weapon.ImpactSize;
+                                p.Clip = weapon.WallHitVClip;
+                                Render::AddParticle(p);
+                            }
                         }
                     }
 

@@ -22,6 +22,7 @@ namespace Inferno::Render {
     inline Ptr<ShaderResources> Shaders;
     inline Ptr<EffectResources> Effects;
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
+    inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
 
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
@@ -33,6 +34,8 @@ namespace Inferno::Render {
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetClampedTextureSampler() {
         return Settings::HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
+
+    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Matrix& transform, float radius, bool aligned, const Color& color, float elapsed);
 
     void DrawString(string_view str, float x, float y, FontSize size);
     void DrawCenteredString(string_view str, float x, float y, FontSize size);

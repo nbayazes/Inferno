@@ -8,6 +8,7 @@
 #include "imgui_local.h"
 #include "BitmapCache.h"
 #include "Physics.h"
+#include "Graphics/Render.Particles.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -81,13 +82,16 @@ void Application::Initialize(int width, int height) {
 
 using Keys = Keyboard::Keys;
 
-void FireTestWeapon(Level& level, const Object& obj, int gun) {
+float g_FireDelay = 0;
+
+void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
     auto& points = Resources::GameData.PlayerShip.GunPoints;
     auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
 
-    auto id = level.IsDescent2() ? 34 : 13;
+    //auto id = level.IsDescent2() ? 34 : 13;
     auto& weapon = Resources::GameData.Weapons[id];
 
+ 
     Object bullet{};
     bullet.Movement.Type = MovementType::Physics;
     bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
@@ -105,9 +109,16 @@ void FireTestWeapon(Level& level, const Object& obj, int gun) {
     bullet.ID = id;
     bullet.Parent = ObjID(0);
 
+
     //auto pitch = -Random() * 0.2f;
-    //Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
+    Sound::Play3D(weapon.FlashSound, point, obj.Segment, ObjID(0), 0.35f);
     Render::LoadTextureDynamic(weapon.WeaponVClip);
+
+    Render::Particle p{};
+    p.Clip = weapon.FlashVClip;
+    p.Position = point;
+    p.Radius = weapon.FlashSize;
+    Render::AddParticle(p);
 
     for (auto& o : level.Objects) {
         if (o.Lifespan <= 0) {
@@ -126,9 +137,17 @@ void Application::Update() {
     Inferno::Input::Update();
 
     if (Settings::EnablePhysics) {
-        if (Input::IsKeyPressed(Keys::Enter)) {
-            FireTestWeapon(Game::Level, Game::Level.Objects[0], 7);
-            //FireTestWeapon(Game::Level, Game::Level.Objects[0], 1);
+        g_FireDelay -= Render::FrameTime;
+
+        if (Input::IsKeyDown(Keys::Enter)) {
+            if (g_FireDelay <= 0) {
+                g_FireDelay = 0;
+                auto id = Game::Level.IsDescent2() ? 13 : 13;
+                auto& weapon = Resources::GameData.Weapons[id];
+                g_FireDelay += weapon.FireDelay;
+                FireTestWeapon(Game::Level, Game::Level.Objects[0], 0, id);
+                FireTestWeapon(Game::Level, Game::Level.Objects[0], 1, id);
+            }
         }
     }
 
@@ -166,6 +185,8 @@ void Application::Update() {
         alpha = float(accumulator / dt);
     }
 
+    // todo: only update particles if game is not paused
+    Render::UpdateParticles(Render::FrameTime);
     Editor::Update();
 
     g_ImGuiBatch->BeginFrame();

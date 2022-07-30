@@ -170,6 +170,7 @@
     <ClCompile Include="Editor\UI\PropertyEditor.Segment.cpp" />
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
+    <ClCompile Include="Graphics\Render.Particles.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Settings.cpp" />
@@ -204,6 +205,7 @@
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\Compiler.h" />
+    <ClInclude Include="DataPool.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
     <ClInclude Include="Convert.h" />
     <ClInclude Include="Editor\UI\DebugOverlay.h" />
@@ -225,6 +227,7 @@
     <ClInclude Include="Editor\UI\SettingsDialog.h" />
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
+    <ClInclude Include="Graphics\Render.Particles.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Version.h" />
