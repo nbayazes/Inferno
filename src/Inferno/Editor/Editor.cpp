@@ -16,6 +16,7 @@
 #include "LevelSettings.h"
 #include "Editor.IO.h"
 #include "Version.h"
+#include "Game.Segment.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;
@@ -414,7 +415,7 @@ namespace Inferno::Editor {
     void DisableFlickeringLights(Level& level) {
         for (auto& light : level.FlickeringLights) {
             if (auto seg = level.TryGetSegment(light.Tag))
-                Render::AddLight(level, light.Tag, *seg);
+                Inferno::AddLight(level, light.Tag, *seg);
         }
     }
 
@@ -431,7 +432,6 @@ namespace Inferno::Editor {
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
         ResetObjects(Game::Level);
-
         
         for (auto& obj : Game::Level.Objects)
             obj.Radius = GetObjectRadius(obj);

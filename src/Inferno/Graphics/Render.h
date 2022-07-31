@@ -79,12 +79,6 @@ namespace Inferno::Render {
     // Draws a quad to the 2D canvas (UI Layer)
     void DrawQuad2D(DrawQuadPayload& payload);
 
-    enum class DxRenderType {
-        Polygon,
-        Sprite,
-        AlignedSprite
-    };
-
     enum class RenderCommandType {
         LevelMesh, Object
     };
@@ -117,8 +111,5 @@ namespace Inferno::Render {
     };
 
     inline Ptr<StaticTextureDef> StaticTextures;
-
-    void SubtractLight(Level&, Tag light, Segment&);
-    void AddLight(Level&, Tag light, Segment&);
-    void ToggleLight(Level& level, Tag light);
+    extern bool LevelChanged;
 }

@@ -8,6 +8,7 @@
 #include "Editor.Texture.h"
 #include "Graphics/Render.h"
 #include "Editor.Diagnostics.h"
+#include "Game.Segment.h"
 
 namespace Inferno::Editor {
     void RemoveLightDeltasForSegment(Level& level, SegID seg) {
@@ -50,7 +51,7 @@ namespace Inferno::Editor {
 
         if (iter != level.FlickeringLights.end()) {
             if (auto seg = level.TryGetSegment(light->Tag))
-                Render::AddLight(level, light->Tag, *seg); // restore light on before deleting
+                Inferno::AddLight(level, light->Tag, *seg); // restore light on before deleting
 
             level.FlickeringLights.erase(iter);
             return true;

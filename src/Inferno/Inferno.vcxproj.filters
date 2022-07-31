@@ -158,6 +158,9 @@
     <ClCompile Include="..\vendor\WAVFileReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Game.Segment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -407,6 +410,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Editor\UI\BriefingEditor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.Segment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

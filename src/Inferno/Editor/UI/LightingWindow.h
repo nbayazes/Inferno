@@ -3,6 +3,7 @@
 #include "WindowBase.h"
 #include "Graphics/Render.h"
 #include "../Editor.Lighting.h"
+#include "Game.Segment.h"
 
 namespace Inferno::Editor {
     class LightingWindow : public WindowBase {
@@ -24,7 +25,7 @@ namespace Inferno::Editor {
             if (ImGui::Button("Break light")) {
                 seg.GetSide(Editor::Selection.Side).TMap2 = destroyedTex;
 
-                Render::SubtractLight(Game::Level, Editor::Selection.Tag(), seg);
+                Inferno::SubtractLight(Game::Level, Editor::Selection.Tag(), seg);
                 Events::LevelChanged();
                 //Render::LoadTextureDynamic(destroyedTex);
             }
@@ -39,7 +40,7 @@ namespace Inferno::Editor {
                 return;
 
             if (ImGui::Button("Toggle light")) {
-                Render::ToggleLight(Game::Level, Editor::Selection.Tag());
+                Inferno::ToggleLight(Game::Level, Editor::Selection.Tag());
                 Events::LevelChanged();
             }
         }
