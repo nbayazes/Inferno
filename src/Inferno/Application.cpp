@@ -76,7 +76,6 @@ void Application::Initialize(int width, int height) {
         Events::ShowDialog(DialogType::Settings);
     }
 
-
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };

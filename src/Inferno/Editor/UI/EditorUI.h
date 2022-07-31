@@ -16,6 +16,7 @@
 #include "AboutDialog.h"
 #include "SoundBrowser.h"
 #include "DiagnosticWindow.h"
+#include "BriefingEditor.h"
 
 namespace Inferno::Editor {
 
@@ -63,6 +64,7 @@ namespace Inferno::Editor {
         TunnelBuilderWindow _tunnelBuilder;
         SoundBrowser _sounds;
         DiagnosticWindow _diagnosticWindow;
+        BriefingEditor _briefingEditor;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;

@@ -204,6 +204,7 @@
     <ClInclude Include="Concurrent.h" />
     <ClInclude Include="Editor\Editor.Diagnostics.h" />
     <ClInclude Include="Editor\UI\AboutDialog.h" />
+    <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
     <ClInclude Include="Game.Wall.h" />

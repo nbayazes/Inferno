@@ -27,7 +27,8 @@ namespace Inferno::Editor {
         RenameLevel,
         Settings,
         Help,
-        About
+        About,
+        Briefings
     };
 
     namespace Events {

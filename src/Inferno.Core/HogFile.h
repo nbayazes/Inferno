@@ -31,6 +31,11 @@ namespace Inferno {
             auto ext = Extension();
             return String::InvariantEquals(ext, ".rl2") || String::InvariantEquals(ext, ".rdl");
         }
+
+        bool IsBriefing() const {
+            auto ext = Extension();
+            return String::InvariantEquals(ext, ".txb");
+        }
     };
 
     // Contains menu backgrounds, palettes, music, levels
