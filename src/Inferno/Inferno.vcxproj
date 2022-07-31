@@ -152,6 +152,7 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
+    <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
     <ClCompile Include="Game.Wall.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
@@ -207,6 +208,7 @@
     <ClInclude Include="Editor\UI\AboutDialog.h" />
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
+    <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
     <ClInclude Include="Game.Wall.h" />
@@ -233,6 +235,7 @@
     <ClInclude Include="Editor\UI\SettingsDialog.h" />
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
+    <ClInclude Include="Graphics\Render.Canvas.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="Physics.h" />

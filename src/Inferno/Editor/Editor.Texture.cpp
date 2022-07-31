@@ -275,6 +275,7 @@ namespace Inferno::Editor {
         }
 
         Events::LevelChanged();
+        Editor::History.SnapshotSelection();
         Editor::History.SnapshotLevel("Set texture");
     }
 

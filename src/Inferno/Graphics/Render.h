@@ -10,6 +10,7 @@
 #include "MaterialLibrary.h"
 #include "LevelMesh.h"
 #include "BitmapCache.h"
+#include "Render.Canvas.h"
 
 class CommandListManager;
 class ContextManager;
@@ -23,6 +24,7 @@ namespace Inferno::Render {
     inline Ptr<EffectResources> Effects;
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
+    inline Ptr<Canvas2D> Canvas;
 
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
@@ -37,11 +39,6 @@ namespace Inferno::Render {
 
     void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
-    enum class AlignH { Left, Center, Right };
-    enum class AlignV { Top, Center, Bottom };
-    void DrawString(string_view str, float x, float y, FontSize size, AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top);
-    void DrawCenteredString(string_view str, float x, float y, FontSize size);
-
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
     void Shutdown();
@@ -53,7 +50,6 @@ namespace Inferno::Render {
     void LoadModelDynamic(ModelID);
     void LoadTextureDynamic(LevelTexID);
     void LoadTextureDynamic(VClipID);
-
     void LoadLevel(Inferno::Level&);
 
     inline ID3D12Device* Device;
@@ -70,14 +66,6 @@ namespace Inferno::Render {
     inline uint16 PolygonCount = 0;
     inline float FrameTime = 0; // Time of this frame in seconds
     inline double ElapsedTime = 0; // Game time elapsed in seconds. Stops updating when paused or animations are disabled.
-
-    struct DrawQuadPayload {
-        CanvasVertex V0, V1, V2, V3;
-        Texture2D* Texture;
-    };
-
-    // Draws a quad to the 2D canvas (UI Layer)
-    void DrawQuad2D(DrawQuadPayload& payload);
 
     enum class RenderCommandType {
         LevelMesh, Object
