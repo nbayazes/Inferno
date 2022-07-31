@@ -146,6 +146,11 @@ namespace Inferno::Editor {
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Most source ports have a maximum of 36000 vertices");
 
+                ImGui::TableRowLabel("Objects");
+                ImGui::Text("%i", level.Objects.size());
+                ImGui::TableNextColumn();
+                ImGui::Text("%i", level.Limits.Objects);
+
                 ImGui::TableRowLabel("Walls");
                 ImGui::Text("%i", level.Walls.size());
                 ImGui::TableNextColumn();
