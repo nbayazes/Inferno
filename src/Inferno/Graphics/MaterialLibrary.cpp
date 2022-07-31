@@ -163,7 +163,7 @@ namespace Inferno::Render {
         for (int i = 0; i < Material2D::Count; i++)
             material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
 
-        material.Name = upload.Bitmap.Name;
+        material.Name = upload.Bitmap->Name;
         material.ID = upload.ID;
 
         bool loadedDiffuse = false;
@@ -176,7 +176,7 @@ namespace Inferno::Render {
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
         if (Settings::HighRes) {
-            if (auto path = FileSystem::TryFindFile(upload.Bitmap.Name + ".DDS"))
+            if (auto path = FileSystem::TryFindFile(upload.Bitmap->Name + ".DDS"))
                 loadedDiffuse = material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
 
             if (upload.SuperTransparent)
@@ -186,12 +186,12 @@ namespace Inferno::Render {
 
         if (!loadedDiffuse) {
 
-            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap.Data.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
+            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
         }
 
         // todo: optimize by putting all materials into a dictionary or some other way of not reloading special maps
         if (!loadedST && upload.SuperTransparent)
-            material.Textures[Material2D::SuperTransparency].Load(batch, upload.Bitmap.Mask.data(), upload.Bitmap.Width, upload.Bitmap.Height, Convert::ToWideString(upload.Bitmap.Name));
+            material.Textures[Material2D::SuperTransparency].Load(batch, upload.Bitmap->Mask.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
 
         if (auto path = FileSystem::TryFindFile(baseName + "_e.DDS"))
             material.Textures[Material2D::Emissive].LoadDDS(batch, *path);
@@ -249,7 +249,7 @@ namespace Inferno::Render {
 
             List<Material2D> uploads;
             for (auto& upload : queuedUploads) {
-                if (upload.Bitmap.Width == 0 || upload.Bitmap.Height == 0)
+                if (upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                     continue;
 
                 auto material = UploadMaterial(batch, upload, _lib->_black);
@@ -299,7 +299,7 @@ namespace Inferno::Render {
 
         for (auto& id : tids) {
             auto upload = PrepareUpload(id, forceLoad);
-            if (upload.Bitmap.Width == 0 || upload.Bitmap.Height == 0)
+            if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                 continue;
 
             auto material = UploadMaterial(batch, upload, _black);
@@ -332,7 +332,7 @@ namespace Inferno::Render {
         if (!forceLoad && _materials[(int)id].ID == id) return {};
 
         MaterialUpload upload;
-        upload.Bitmap = Resources::ReadBitmap(id);
+        upload.Bitmap = &Resources::ReadBitmap(id);
         upload.ID = id;
         upload.SuperTransparent = ti->SuperTransparent;
         return upload;

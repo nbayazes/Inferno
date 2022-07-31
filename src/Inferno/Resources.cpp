@@ -437,7 +437,7 @@ namespace Inferno::Resources {
         //std::scoped_lock lock(PigMutex);
         if (Textures.empty()) {
             assert(!Textures.empty());
-            static const PigBitmap empty{};
+            static const PigBitmap empty(64, 64, "default");
             return empty;
         }
 

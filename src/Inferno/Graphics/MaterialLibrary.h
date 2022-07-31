@@ -24,7 +24,7 @@ namespace Inferno::Render {
 
     struct MaterialUpload {
         TexID ID = TexID::None;
-        PigBitmap Bitmap;
+        const PigBitmap* Bitmap;
         bool SuperTransparent = false;
         bool ForceLoad = false;
         Outrage::Bitmap Outrage;

@@ -56,6 +56,15 @@ namespace Inferno {
 
         uint16 Width, Height;
         string Name;
+
+        PigBitmap() : Width(0), Height(0) {}
+        PigBitmap(uint16 width, uint16 height, string name) 
+            : Width(width), Height(height), Name(name) {}
+        ~PigBitmap() = default;
+        PigBitmap(const PigBitmap&) = delete;
+        PigBitmap(PigBitmap&&) = default;
+        PigBitmap& operator=(const PigBitmap&) = delete;
+        PigBitmap& operator=(PigBitmap&&) = default;
     };
 
     struct PigEntry {

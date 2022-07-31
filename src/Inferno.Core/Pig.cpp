@@ -205,12 +205,7 @@ namespace Inferno {
         reader.Seek(dataStart + entry.DataOffset);
         /*auto size = */reader.ReadInt32();
 
-        PigBitmap bmp{
-            .Width = entry.Width,
-            .Height = entry.Height,
-            .Name = entry.Name
-        };
-
+        PigBitmap bmp(entry.Width, entry.Height, entry.Name);
         List<uint16> rowSize(bmp.Height);
         List<uint8> buffer(bmp.Width * 3);
         bmp.Data.resize((size_t)bmp.Width * bmp.Height);
@@ -256,12 +251,7 @@ namespace Inferno {
                        const PigEntry& entry) {
         reader.Seek(dataStart + entry.DataOffset);
 
-        PigBitmap bmp{
-            .Width = entry.Width,
-            .Height = entry.Height,
-            .Name = entry.Name
-        };
-
+        PigBitmap bmp(entry.Width, entry.Height, entry.Name);
         bmp.Data.resize((size_t)bmp.Width * bmp.Height);
         for (int y = bmp.Height - 1; y >= 0; y--) {
             int h = y * bmp.Width;
@@ -292,7 +282,7 @@ namespace Inferno {
 
     PigBitmap ReadBitmap(PigFile& pig, const Palette& palette, TexID id) {
         auto index = (int)id;
-        if (pig.Entries.empty()) return {};
+        if (pig.Entries.empty()) return { 0, 0, "" };
         if (index >= pig.Entries.size() || index < 0) index = 0;
 
         auto& entry = pig.Entries[index];
