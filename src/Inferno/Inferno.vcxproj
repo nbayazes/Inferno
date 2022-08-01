@@ -213,6 +213,7 @@
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
     <ClInclude Include="Game.Wall.h" />
     <ClInclude Include="Graphics\Buffers.h" />
+    <ClInclude Include="Graphics\CommandContext.h" />
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
     <ClInclude Include="Convert.h" />

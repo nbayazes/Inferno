@@ -79,11 +79,11 @@ namespace Inferno {
 
 
     // Modulus division without negative numbers
-    template <class T>
-    constexpr T mod(T k, T n) {
+    constexpr auto mod(std::integral auto k, std::integral auto n) {
         return (k %= n) < 0 ? k + n : k;
     }
 
+    // Returns 1 for positive numbers, -1 for negative numbers
     template <typename T>
     constexpr int Sign(T val) {
         return (T(0) < val) - (val < T(0));
@@ -94,11 +94,12 @@ namespace Inferno {
         return a >= b ? a * a + a + b : a + b * b;
     }
 
+    // Executes a function on a new thread asynchronously
     void StartAsync(auto&& fun) {
-        auto futptr = std::make_shared<std::future<void>>();
-        *futptr = std::async(std::launch::async, [futptr, fun]() {
+        auto future = std::make_shared<std::future<void>>();
+        *future = std::async(std::launch::async, [future, fun]() {
             fun();
-        });
+        }); // future disposes itself on exit
     }
 
     constexpr float Step(float value, float step) {

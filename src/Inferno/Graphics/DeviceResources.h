@@ -8,12 +8,11 @@
 #include "Heap.h"
 #include "Buffers.h"
 #include "Settings.h"
+#include "CommandContext.h"
 
-namespace Inferno
-{
+namespace Inferno {
     // Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
-    interface IDeviceNotify
-    {
+    struct IDeviceNotify {
         virtual void OnDeviceLost() = 0;
         virtual void OnDeviceRestored() = 0;
 
@@ -22,12 +21,11 @@ namespace Inferno
     };
 
     // Controls all the DirectX device resources.
-    class DeviceResources
-    {
+    class DeviceResources {
         bool _typedUAVLoadSupport_R11G11B10_FLOAT = false;
     public:
-        static const unsigned int c_AllowTearing    = 0x1;
-        static const unsigned int c_EnableHDR       = 0x2;
+        static const unsigned int c_AllowTearing = 0x1;
+        static const unsigned int c_EnableHDR = 0x2;
 
         DeviceResources(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
                         DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT,
@@ -50,7 +48,7 @@ namespace Inferno
         bool WindowSizeChanged(int width, int height);
         void HandleDeviceLost();
         void RegisterDeviceNotify(IDeviceNotify* deviceNotify) noexcept { m_deviceNotify = deviceNotify; }
-        void Prepare();
+        //void Prepare();
         void Present();
         void WaitForGpu() noexcept;
         void ReloadResources();
@@ -58,24 +56,27 @@ namespace Inferno
         Vector2 GetOutputSize() const noexcept { return { (float)m_outputSize.right, (float)m_outputSize.bottom }; }
 
         // Direct3D Accessors.
-        auto                        Device() const noexcept                { return m_d3dDevice.Get(); }
-        auto                        GetSwapChain() const noexcept          { return m_swapChain.Get(); }
-        auto                        GetDXGIFactory() const noexcept        { return m_dxgiFactory.Get(); }
-        HWND                        GetWindow() const noexcept             { return m_window; }
+        auto                        Device() const noexcept { return m_d3dDevice.Get(); }
+        auto                        GetSwapChain() const noexcept { return m_swapChain.Get(); }
+        auto                        GetDXGIFactory() const noexcept { return m_dxgiFactory.Get(); }
+        HWND                        GetWindow() const noexcept { return m_window; }
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const noexcept { return m_d3dFeatureLevel; }
 
         // Gets the active render target
         auto GetBackBuffer() noexcept { return &BackBuffers[m_backBufferIndex]; }
-        ID3D12CommandQueue*         GetCommandQueue() const noexcept       { return m_commandQueue.Get(); }
-        ID3D12CommandAllocator*     GetCommandAllocator() const noexcept   { return m_commandAllocators[m_backBufferIndex].Get(); }
-        auto                        GetCommandList() const noexcept        { return m_commandList.Get(); }
-        DXGI_FORMAT                 GetBackBufferFormat() const noexcept   { return m_backBufferFormat; }
-        D3D12_VIEWPORT              GetScreenViewport() const noexcept     { return m_screenViewport; }
-        D3D12_RECT                  GetScissorRect() const noexcept        { return m_scissorRect; }
-        UINT                        GetCurrentFrameIndex() const noexcept  { return m_backBufferIndex; }
-        UINT                        GetBackBufferCount() const noexcept    { return m_backBufferCount; }
-        DXGI_COLOR_SPACE_TYPE       GetColorSpace() const noexcept         { return m_colorSpace; }
-        unsigned int                GetDeviceOptions() const noexcept      { return m_options; }
+        ID3D12CommandQueue* GetCommandQueue() const noexcept { return m_commandQueue.Get(); }
+
+        Graphics::GraphicsContext& GetGraphicsContext() { return *_graphicsContext[m_backBufferIndex].get(); }
+
+        //ID3D12CommandAllocator* GetCommandAllocator() const noexcept { return m_commandAllocators[m_backBufferIndex].Get(); }
+        //auto                        GetCommandList() const noexcept { return m_commandList.Get(); }
+        DXGI_FORMAT                 GetBackBufferFormat() const noexcept { return m_backBufferFormat; }
+        D3D12_VIEWPORT              GetScreenViewport() const noexcept { return m_screenViewport; }
+        D3D12_RECT                  GetScissorRect() const noexcept { return m_scissorRect; }
+        UINT                        GetCurrentFrameIndex() const noexcept { return m_backBufferIndex; }
+        UINT                        GetBackBufferCount() const noexcept { return m_backBufferCount; }
+        DXGI_COLOR_SPACE_TYPE       GetColorSpace() const noexcept { return m_colorSpace; }
+        unsigned int                GetDeviceOptions() const noexcept { return m_options; }
 
         // Both MSAA and normal render targets are necessary when using MSAA.
         // The MSAA buffers are resolved to normal sources before being drawn
@@ -100,25 +101,23 @@ namespace Inferno
 
         bool TypedUAVLoadSupport_R11G11B10_FLOAT() const noexcept { return _typedUAVLoadSupport_R11G11B10_FLOAT; }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const noexcept
-        {
+        D3D12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const noexcept {
             return Render::Heaps->RenderTargets[m_backBufferIndex].GetCpuHandle();
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const noexcept
-        {
+        D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const noexcept {
             return Render::Heaps->DepthStencil[0].GetCpuHandle();
             //return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
         }
 
         static void ReportLiveObjects() {
-            #ifdef _DEBUG
+#ifdef _DEBUG
             ComPtr<IDXGIDebug1> dxgiDebug;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
                 dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
                 // DXGI_DEBUG_RLO_ALL
             }
-            #endif
+#endif
         }
 
         uint64_t PrintMemoryUsage();
@@ -134,11 +133,12 @@ namespace Inferno
 
         UINT m_backBufferIndex;
 
+        Ptr<Graphics::GraphicsContext> _graphicsContext[2];
         // Direct3D objects.
         Microsoft::WRL::ComPtr<ID3D12Device>                m_d3dDevice;
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
+        //Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
         Microsoft::WRL::ComPtr<ID3D12CommandQueue>          m_commandQueue;
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
+        //Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
 
         // Swap chain objects.
         Microsoft::WRL::ComPtr<IDXGIFactory4>               m_dxgiFactory;

@@ -251,14 +251,14 @@ namespace Inferno {
     }
 
     constexpr SegID operator+(const SegID& a, const SegID& b) {
-        assert(a != SegID::None);
+        assert(a > SegID::None);
         auto id = (int)a + (int)b;
         if (id < 0) return SegID(0); // Never allow going negative
         return SegID(id);
     }
 
     constexpr SegID operator-(const SegID& a, const SegID& b) {
-        assert(a != SegID::None);
+        assert(a > SegID::None);
         auto id = (int)a - (int)b;
         if (id < 0) return SegID(0); // Never allow going negative
         return SegID(id);

@@ -30,9 +30,9 @@ namespace Inferno {
             _resource.Reset();
         }
 
-        void Transition(ID3D12GraphicsCommandList* commandList, D3D12_RESOURCE_STATES state) {
+        void Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
             if (_state == state) return;
-            DirectX::TransitionResource(commandList, _resource.Get(), _state, state);
+            DirectX::TransitionResource(cmdList, _resource.Get(), _state, state);
             _state = state;
         }
 

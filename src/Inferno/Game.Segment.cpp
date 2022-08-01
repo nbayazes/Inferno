@@ -54,7 +54,7 @@ namespace Inferno {
         }
     }
 
-    void FlickerLights(Level& level, float t, float dt) {
+    void UpdateFlickeringLights(Level& level, float t, float dt) {
         for (auto& light : level.FlickeringLights) {
             auto& seg = level.GetSegment(light.Tag);
 

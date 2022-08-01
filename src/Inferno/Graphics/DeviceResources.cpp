@@ -66,7 +66,7 @@ namespace Inferno {
 
     // Configures the Direct3D device, and stores handles to it and the device context.
     void DeviceResources::CreateDeviceResources() {
-#if defined(_DEBUG)
+#ifdef _DEBUG
         // Enable the debug layer (requires the Graphics Tools "optional feature").
         //
         // NOTE: Enabling the debug layer after device creation will invalidate the active device.
@@ -187,15 +187,16 @@ namespace Inferno {
 
         // Create a command allocator for each back buffer that will be rendered to.
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocators[n].ReleaseAndGetAddressOf())));
-            m_commandAllocators[n]->SetName(fmt::format(L"Render target {}", n).c_str());
+            _graphicsContext[n] = MakePtr<Graphics::GraphicsContext>(m_d3dDevice.Get(), fmt::format(L"Render target {}", n).c_str());
+            //ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocators[n].ReleaseAndGetAddressOf())));
+            //m_commandAllocators[n]->SetName();
         }
 
         // Create a command list for recording graphics commands.
-        ThrowIfFailed(m_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(m_commandList.ReleaseAndGetAddressOf())));
-        ThrowIfFailed(m_commandList->Close());
+        //ThrowIfFailed(m_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(m_commandList.ReleaseAndGetAddressOf())));
+        //ThrowIfFailed(m_commandList->Close());
 
-        m_commandList->SetName(L"DeviceResources");
+        //m_commandList->SetName(L"DeviceResources");
 
         // Create a fence for tracking GPU execution progress.
         ThrowIfFailed(m_d3dDevice->CreateFence(m_fenceValues[m_backBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.ReleaseAndGetAddressOf())));
@@ -362,12 +363,13 @@ namespace Inferno {
         }
 
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            m_commandAllocators[n].Reset();
+            _graphicsContext[n].release();
+            //m_commandAllocators[n].Reset();
             BackBuffers[n].Release();
         }
 
         m_commandQueue.Reset();
-        m_commandList.Reset();
+        //m_commandList.Reset();
         m_fence.Reset();
         m_swapChain.Reset();
         m_d3dDevice.Reset();
@@ -383,21 +385,24 @@ namespace Inferno {
     }
 
     // Prepare the command list and render target for rendering.
-    void DeviceResources::Prepare() {
-        // Reset command list and allocator.
-        ThrowIfFailed(m_commandAllocators[m_backBufferIndex]->Reset());
-        ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_backBufferIndex].Get(), nullptr));
-
-        BackBuffers[m_backBufferIndex].Transition(m_commandList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    }
+    //void DeviceResources::Prepare() {
+    //    // Reset command list and allocator.
+    //    auto& allocators = m_commandAllocators[m_backBufferIndex];
+    //    ThrowIfFailed(allocators->Reset());
+    //    ThrowIfFailed(m_commandList->Reset(allocators.Get(), nullptr));
+    //}
 
     // Present the contents of the swap chain to the screen.
     void DeviceResources::Present() {
-        BackBuffers[m_backBufferIndex].Transition(m_commandList.Get(), D3D12_RESOURCE_STATE_PRESENT);
+        auto cmdList = _graphicsContext[m_backBufferIndex]->CommandList();
+        BackBuffers[m_backBufferIndex].Transition(cmdList, D3D12_RESOURCE_STATE_PRESENT);
 
         // Send the command list off to the GPU for processing.
-        ThrowIfFailed(m_commandList->Close());
-        m_commandQueue->ExecuteCommandLists(1, CommandListCast(m_commandList.GetAddressOf()));
+        ThrowIfFailed(cmdList->Close());
+
+        ID3D12CommandList* ppCommandLists[] = { cmdList };
+        m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+        //m_commandQueue->ExecuteCommandLists(1, CommandListCast(cmdList));
 
         HRESULT hr{};
         if (m_options & c_AllowTearing) {

@@ -427,6 +427,9 @@
     <ClInclude Include="Graphics\Render.Commands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\CommandContext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">

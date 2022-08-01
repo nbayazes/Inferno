@@ -19,6 +19,7 @@
 #include "Game.Text.h"
 
 using namespace DirectX;
+using namespace Inferno::Graphics;
 
 namespace Inferno::Render {
     Color ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
@@ -480,22 +481,16 @@ namespace Inferno::Render {
         commandList->RSSetScissorRects(1, &scissor);
     }
 
-    void Clear() {
-        auto cmdList = Adapter->GetCommandList();
-        PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Clear");
-
-        auto target = Adapter->GetHdrRenderTarget();
-        auto depthBuffer = Adapter->GetHdrDepthBuffer();
-        auto baseRtv = target->GetRTV();
-        auto dsv = depthBuffer->GetDSV();
+    void Clear(GraphicsContext& ctx, RenderTarget* target, DepthBuffer* depthBuffer) {
+        ctx.BeginEvent(L"Clear");
 
         //D3D12_CPU_DESCRIPTOR_HANDLE rtvs[2] = {
         //    baseRtv, emissiveBuffer->GetRTV()
         //};
-
         //cmdList->OMSetRenderTargets(2, rtvs, false, &dsv);
+        ctx.SetRenderTarget(target->GetRTV(), depthBuffer->GetDSV());
+        auto cmdList = ctx.CommandList();
 
-        cmdList->OMSetRenderTargets(1, &baseRtv, true, &dsv);
         //target->SetAsRenderTarget(cmdList, depthBuffer);
         target->Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
         target->Clear(cmdList);
@@ -523,7 +518,7 @@ namespace Inferno::Render {
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
 
-        PIXEndEvent(cmdList);
+        ctx.EndEvent();
     }
 
     void Initialize(HWND hwnd, int width, int height) {
@@ -792,16 +787,12 @@ namespace Inferno::Render {
         }
     }
 
-    void Present(float alpha) {
-        //SPDLOG_INFO("Begin Frame");
-        Metrics::BeginFrame();
-        ScopedTimer presentTimer(&Metrics::Present);
-        DrawCalls = 0;
-        PolygonCount = 0;
+    void DrawLevel(float lerp) {
         CameraFrustum = Camera.GetFrustum();
 
+
         if (Settings::ShowFlickeringLights)
-            FlickerLights(Game::Level, (float)ElapsedTime, FrameTime);
+            UpdateFlickeringLights(Game::Level, (float)ElapsedTime, FrameTime);
 
         if (LevelChanged) {
             Adapter->WaitForGpu();
@@ -809,13 +800,14 @@ namespace Inferno::Render {
             LevelChanged = false;
         }
 
-        // Prepare the command list to render a new frame.
-        Adapter->Prepare();
-        Clear();
+        auto& ctx = Adapter->GetGraphicsContext();
+        Clear(ctx, Adapter->GetHdrRenderTarget(), Adapter->GetHdrDepthBuffer());
+        /*Adapter->GetBackBuffer()->Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        ctx.ClearColor(*Adapter->GetHdrRenderTarget());
+        ctx.ClearDepth(*Adapter->GetHdrDepthBuffer());*/
 
-        auto cmdList = Adapter->GetCommandList();
-        PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Render");
-        Heaps->SetDescriptorHeaps(cmdList);
+        ctx.BeginEvent(L"Level");
+        Heaps->SetDescriptorHeaps(ctx.CommandList());
 
         ScopedTimer levelTimer(&Metrics::QueueLevel);
         if (Settings::RenderMode != RenderMode::None)
@@ -825,23 +817,23 @@ namespace Inferno::Render {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects) {
                 if (obj.Lifespan <= 0) continue;
-                DrawObject(Game::Level, obj, distSquared, alpha);
+                DrawObject(Game::Level, obj, distSquared, lerp);
             }
         }
 
         {
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
-            cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             for (auto& cmd : _opaqueQueue)
-                ExecuteRenderCommand(cmdList, cmd, alpha, false);
+                ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
 
             Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
                 return l.Depth > r.Depth;
             });
 
             for (auto& cmd : _transparentQueue)
-                ExecuteRenderCommand(cmdList, cmd, alpha, false);
+                ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
 
             //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
             //    ExecuteRenderCommand(cmdList, cmd, true);
@@ -849,36 +841,36 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            DrawParticles(cmdList);
+            DrawParticles(ctx.CommandList());
 
             if (!Settings::ScreenshotMode) {
-                DrawEditor(cmdList, Game::Level);
+                DrawEditor(ctx.CommandList(), Game::Level);
                 DrawDebug(Game::Level);
             }
             else {
                 Inferno::DrawGameText(Game::Level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, AlignH::Center, AlignV::Top);
                 Inferno::DrawGameText("Inferno Engine", -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, AlignH::Right, AlignV::Bottom);
             }
-            Debug::EndFrame(cmdList);
+            Debug::EndFrame(ctx.CommandList());
         }
 
 
         if (Settings::MsaaSamples > 1) {
-            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaColorBuffer);
+            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
         }
 
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
-        SetRenderTarget(cmdList, *backBuffer);
+        SetRenderTarget(ctx.CommandList(), *backBuffer);
 
-        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (Settings::EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            Bloom->Apply(cmdList, Adapter->SceneColorBuffer);
+            Bloom->Apply(ctx.CommandList(), Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
         _tempBatch->SetViewport(Adapter->GetScreenViewport());
-        _tempBatch->Begin(cmdList);
+        _tempBatch->Begin(ctx.CommandList());
         auto size = Adapter->GetOutputSize();
         _tempBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
         //if (DebugEmissive)
@@ -886,20 +878,34 @@ namespace Inferno::Render {
 
         _tempBatch->End();
 
-        {
-            ScopedTimer imguiTimer(&Metrics::ImGui);
-            Canvas->Render(cmdList, size);
-            // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
-            g_ImGuiBatch->Render(cmdList);
-        }
+        ctx.EndEvent();
+    }
 
-        PIXEndEvent(cmdList);
+    void DrawUI() {
+        auto& ctx = Adapter->GetGraphicsContext();
+        auto size = Adapter->GetOutputSize();
+        ScopedTimer imguiTimer(&Metrics::ImGui);
+        Canvas->Render(ctx.CommandList(), size);
+        // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
+        g_ImGuiBatch->Render(ctx.CommandList());
+    }
+
+    void Present(float alpha) {
+        //SPDLOG_INFO("Begin Frame");
+        Metrics::BeginFrame();
+        ScopedTimer presentTimer(&Metrics::Present);
+        DrawCalls = 0;
+        PolygonCount = 0;
+        
+        Adapter->GetGraphicsContext().Reset();
+
+        DrawLevel(alpha);
+        DrawUI();
 
         auto commandQueue = Adapter->GetCommandQueue();
         {
             ScopedTimer presentCallTimer(&Metrics::PresentCall);
             // Show the new frame.
-            //SPDLOG_INFO("Present");
             PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
             Adapter->Present();
             PIXEndEvent(commandQueue);
