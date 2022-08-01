@@ -114,7 +114,7 @@ namespace Inferno {
             bool TunnelBuilder = false;
             bool Sound = false;
             bool Diagnostics = false;
-            bool BriefingEditor = true;
+            bool BriefingEditor = false;
         } Windows;
 
         inline bool ShowWireframe = false;

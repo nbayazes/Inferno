@@ -236,6 +236,7 @@
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
     <ClInclude Include="Graphics\Render.Canvas.h" />
+    <ClInclude Include="Graphics\Render.Commands.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="Physics.h" />

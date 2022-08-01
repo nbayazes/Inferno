@@ -8,10 +8,11 @@ namespace Inferno::Render {
 
     DataPool<Particle> Particles(Particle::IsAlive, 100);
 
-    void AddParticle(Particle& p) {
+    void AddParticle(Particle& p, bool randomRotation) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
         p.Life = vclip.PlayTime;
-        p.Rotation = Random() * DirectX::XM_2PI;
+        if (randomRotation)
+            p.Rotation = Random() * DirectX::XM_2PI;
         Particles.Add(p);
         Render::LoadTextureDynamic(p.Clip);
     }
@@ -35,7 +36,8 @@ namespace Inferno::Render {
             auto& vclip = Resources::GetVideoClip(p.Clip);
             auto elapsed = vclip.PlayTime - p.Life;
 
-            DrawVClip(cmd, vclip, p.Position, p.Radius, p.Color, elapsed, true, p.Rotation);
+            auto* up = p.Up == Vector3::Zero ? nullptr : &p.Up;
+            DrawVClip(cmd, vclip, p.Position, p.Radius, p.Color, elapsed, true, p.Rotation, up);
 
             //auto frame = vclip.NumFrames - (int)(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
             //auto tid = vclip.Frames[frame];

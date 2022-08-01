@@ -107,7 +107,6 @@ namespace Inferno::Render {
 
         Ptr<MeshBuffer> _meshBuffer;
         Ptr<SpriteBatch> _tempBatch;
-        List<Object> MatcenEffects;
     }
 
     struct RenderBatchHandle {
@@ -616,28 +615,6 @@ namespace Inferno::Render {
         Materials->LoadMaterials(vclip.GetFrames(), false);
     }
 
-    void CreateMatcenEffects(const Level& level) {
-        MatcenEffects.clear();
-
-        for (auto& seg : level.Segments) {
-            if (seg.Type == SegmentType::Matcen) {
-                const auto& top = seg.GetSide(SideID::Top).Center;
-                const auto& bottom = seg.GetSide(SideID::Bottom).Center;
-
-                Object vfx{};
-                auto up = top - bottom;
-                vfx.Type = ObjectType::Fireball;
-                vfx.Radius = up.Length() / 2;
-                up.Normalize();
-                vfx.Position = seg.Center;
-                vfx.Rotation.Up(up);
-                vfx.Render.Type = RenderType::Fireball;
-                vfx.Render.VClip.ID = VClips::Matcen;
-                MatcenEffects.push_back(vfx);
-            }
-        }
-    }
-
     void LoadLevel(Level& level) {
         Adapter->WaitForGpu();
 
@@ -660,7 +637,6 @@ namespace Inferno::Render {
         }
 
         _levelMeshBuilder.Update(level, *_levelMeshBuffer);
-        CreateMatcenEffects(level);
     }
 
     void DrawObject(ID3D12GraphicsCommandList* cmd, const Object& object, float alpha) {
@@ -830,7 +806,6 @@ namespace Inferno::Render {
         if (LevelChanged) {
             Adapter->WaitForGpu();
             _levelMeshBuilder.Update(Game::Level, *_levelMeshBuffer);
-            CreateMatcenEffects(Game::Level);
             LevelChanged = false;
         }
 
@@ -852,12 +827,6 @@ namespace Inferno::Render {
                 if (obj.Lifespan <= 0) continue;
                 DrawObject(Game::Level, obj, distSquared, alpha);
             }
-        }
-
-        if (Settings::ShowMatcenEffects) {
-            auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
-            for (auto& effect : MatcenEffects)
-                DrawObject(Game::Level, effect, distSquared, alpha);
         }
 
         {

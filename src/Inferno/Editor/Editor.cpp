@@ -17,6 +17,7 @@
 #include "Editor.IO.h"
 #include "Version.h"
 #include "Game.Segment.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;
@@ -232,6 +233,30 @@ namespace Inferno::Editor {
             Input::SetMouselook(false);
     }
 
+    void CreateMatcenEffects(const Level& level) {
+        static float nextMatcenTime = 0;
+        if (nextMatcenTime > Game::ElapsedTime) return;
+
+        auto& vclip = Resources::GetVideoClip(VClips::Matcen);
+        nextMatcenTime = Game::ElapsedTime + vclip.PlayTime;
+
+        for (auto& seg : level.Segments) {
+            if (seg.Type == SegmentType::Matcen) {
+                const auto& top = seg.GetSide(SideID::Top).Center;
+                const auto& bottom = seg.GetSide(SideID::Bottom).Center;
+
+                Render::Particle p{};
+                auto up = top - bottom;
+                p.Clip = VClips::Matcen;
+                p.Radius = up.Length() / 2;
+                up.Normalize(p.Up);
+                p.Life = vclip.PlayTime;
+                p.Position = seg.Center;
+                Render::AddParticle(p, false);
+            }
+        }
+    }
+
     void Update() {
         // don't do anything when a modal is open
         if (ImGui::GetTopMostPopupModal()) return;
@@ -241,6 +266,9 @@ namespace Inferno::Editor {
         auto& level = Game::Level;
         auto& io = ImGui::GetIO();
         MouseRay = Render::Camera.UnprojectRay(Input::MousePosition, Matrix::Identity);
+
+        if (Settings::ShowMatcenEffects)
+            CreateMatcenEffects(Game::Level);
 
         // Only execute keyboard bindings if text focus is not in imgui
         if (!io.WantTextInput)
@@ -432,7 +460,7 @@ namespace Inferno::Editor {
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
         ResetObjects(Game::Level);
-        
+
         for (auto& obj : Game::Level.Objects)
             obj.Radius = GetObjectRadius(obj);
 
