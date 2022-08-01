@@ -6,7 +6,7 @@ namespace Inferno::Editor {
 
     class ReactorEditor : public WindowBase {
     public:
-        ReactorEditor() : WindowBase("Reactor", &Settings::Windows.Reactor) { }
+        ReactorEditor() : WindowBase("Reactor", &Settings::Windows.Reactor) {}
     protected:
         void OnUpdate() override {
             constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_Resizable;
@@ -49,7 +49,7 @@ namespace Inferno::Editor {
     private:
         void ReactorTriggers() {
             ImGui::TableRowLabelEx("Targets to open\nwhen destroyed", "Only doors or destroyable walls are valid targets");
-            
+
             ImGui::BeginChild("##cctriggers", { -1, 200 }, true);
 
             static int selection = 0;
@@ -67,13 +67,25 @@ namespace Inferno::Editor {
             ImGui::EndChild();
 
             if (ImGui::Button("Add##ReactorTriggerTarget", { 100, 0 })) {
-                if (Editor::Marked.Faces.empty())
-                    ShowWarningMessage(L"Please mark faces to add as targets.");
+                auto marked = GetSelectedFaces();
 
-                for (auto& mark : Editor::Marked.Faces)
-                    Game::Level.ReactorTriggers.Add(mark);
+                bool failed = false;
+                for (auto& face : GetSelectedFaces()) {
+                    if (auto wall = Game::Level.TryGetWall(face)) {
+                        if (wall->Type != WallType::Door && wall->Type != WallType::Destroyable)
+                            failed = true;
+                        else
+                            Game::Level.ReactorTriggers.Add(face);
+                    }
+                    else {
+                        failed = true;
+                    }
+                }
 
-                Editor::History.SnapshotLevel("Add reactor trigger");
+                if (failed)
+                    SetStatusMessageWarn("Reactor triggers can only target doors");
+                else
+                    Editor::History.SnapshotLevel("Add reactor trigger");
             }
             ImGui::SameLine();
             if (ImGui::Button("Delete##ReactorTriggerTarget", { 100, 0 })) {
