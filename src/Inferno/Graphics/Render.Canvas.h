@@ -4,6 +4,7 @@
 #include "DirectX.h"
 #include "ShaderLibrary.h"
 #include "DeviceResources.h"
+#include "CommandContext.h"
 
 namespace Inferno::Render {
     struct CanvasPayload {
@@ -28,11 +29,12 @@ namespace Inferno::Render {
             _commands[payload.Texture].push_back(payload);
         }
 
-        void Render(ID3D12GraphicsCommandList* cmdList, const Vector2& outputSize) {
+        void Render(Graphics::GraphicsContext& ctx, const Vector2& outputSize) {
             // draw batched text
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, outputSize.x, outputSize.y, 0.0, 0.0, -2.0f);
 
-            Effects->UserInterface.Apply(cmdList);
+            auto cmdList = ctx.CommandList();
+            ctx.ApplyEffect(Effects->UserInterface);
             Shaders->UserInterface.SetWorldViewProjection(cmdList, orthoProj);
 
             for (auto& [texture, group] : _commands) {

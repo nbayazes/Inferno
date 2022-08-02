@@ -2,6 +2,7 @@
 
 #include "Types.h"
 #include "DirectX.h"
+#include "ShaderLibrary.h"
 
 namespace Inferno::Graphics {
 
@@ -21,42 +22,25 @@ namespace Inferno::Graphics {
             _cmdList->SetName(name.data());
         }
 
-
         ~GraphicsContext() = default;
         GraphicsContext(const GraphicsContext&) = delete;
         GraphicsContext(GraphicsContext&&) = default;
         GraphicsContext& operator=(const GraphicsContext&) = delete;
         GraphicsContext& operator=(GraphicsContext&&) = default;
 
-
         void Reset() {
-            //auto& allocators = m_commandAllocators[m_backBufferIndex];
             ThrowIfFailed(_allocator->Reset());
             ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));
         }
 
-        //void Prepare(ID3D12CommandAllocator* allocator) {
-        //    // Reset command list and allocator.
-        //    //auto& allocators = m_commandAllocators[m_backBufferIndex];
-        //    //ThrowIfFailed(allocators->Reset());
-        //    ThrowIfFailed(_cmdList->Reset(allocator, nullptr));
-        //}
-
-        // Present the contents of the swap chain to the screen.
-        //void Present() {
-        //    //BackBuffers[m_backBufferIndex].Transition(m_commandList.Get(), D3D12_RESOURCE_STATE_PRESENT);
-
-        //    // Send the command list off to the GPU for processing.
-        //    ThrowIfFailed(_cmdList->Close());
-        //    m_commandQueue->ExecuteCommandLists(1, CommandListCast(m_commandList.GetAddressOf()));
-        //}
-
         ID3D12GraphicsCommandList* CommandList() { return _cmdList.Get(); }
 
+        // Sets multiple render targets with a depth buffer. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs, D3D12_CPU_DESCRIPTOR_HANDLE dsv) {
             _cmdList->OMSetRenderTargets(rtvs.size(), rtvs.data(), false, &dsv);
         }
 
+        // Sets multiple render targets. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs) {
             _cmdList->OMSetRenderTargets(rtvs.size(), rtvs.data(), false, nullptr);
         }
@@ -70,15 +54,29 @@ namespace Inferno::Graphics {
 
         void ClearColor(RenderTarget& target, D3D12_RECT* rect = nullptr) {
             //FlushResourceBarriers();
-            //_cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
-            target.Clear(_cmdList.Get());
+            target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+            _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
         }
 
         void ClearDepth(DepthBuffer& target, D3D12_RECT* rect = nullptr) {
-            target.Clear(_cmdList.Get());
             //FlushResourceBarriers();
-            //target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            //_cmdList->ClearDepthStencilView(target->get _descriptor.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
+            target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
+            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.StencilDepth, 0, 0, nullptr);
+        }
+
+        void SetViewportAndScissor(UINT width, UINT height) {
+            D3D12_RECT scissor{};
+            scissor.right = (LONG)width;
+            scissor.bottom = (LONG)height;
+
+            D3D12_VIEWPORT viewport{};
+            viewport.Width = (float)width;
+            viewport.Height = (float)height;
+            viewport.MinDepth = D3D12_MIN_DEPTH;
+            viewport.MaxDepth = D3D12_MAX_DEPTH;
+
+            _cmdList->RSSetViewports(1, &viewport);
+            _cmdList->RSSetScissorRects(1, &scissor);
         }
 
         void BeginEvent(wstring_view name) {
@@ -87,6 +85,16 @@ namespace Inferno::Graphics {
 
         void EndEvent() {
             PIXEndEvent(_cmdList.Get());
+        }
+
+        template<class T>
+        void ApplyEffect(Effect<T>& effect) {
+            _cmdList->SetPipelineState(effect.PipelineState.Get());
+            _cmdList->SetGraphicsRootSignature(effect.Shader->RootSignature.Get());
+        }
+
+        void SetConstantsArray(uint rootIndex, uint numConstants, const void *data) {
+            _cmdList->SetGraphicsRoot32BitConstants(rootIndex, numConstants, data, 0);
         }
     };
 

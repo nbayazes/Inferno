@@ -312,8 +312,8 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Mass");
             ImGui::Text("%.2f", robot.Mass);
 
-            ImGui::TableRowLabel("Drag");
-            ImGui::Text("%.2f", robot.Drag);
+            //ImGui::TableRowLabel("Drag");
+            //ImGui::Text("%.2f", robot.Drag);
 
             //ImGui::TableRowLabel("See sound");
             //if(ImGui::SmallButton("Play##see")) Sound::Play3D(robot.SeeSound, Selection.Object);

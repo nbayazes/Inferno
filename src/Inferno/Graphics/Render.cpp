@@ -481,46 +481,8 @@ namespace Inferno::Render {
         commandList->RSSetScissorRects(1, &scissor);
     }
 
-    void Clear(GraphicsContext& ctx, RenderTarget* target, DepthBuffer* depthBuffer) {
-        ctx.BeginEvent(L"Clear");
 
-        //D3D12_CPU_DESCRIPTOR_HANDLE rtvs[2] = {
-        //    baseRtv, emissiveBuffer->GetRTV()
-        //};
-        //cmdList->OMSetRenderTargets(2, rtvs, false, &dsv);
-        ctx.SetRenderTarget(target->GetRTV(), depthBuffer->GetDSV());
-        auto cmdList = ctx.CommandList();
-
-        //target->SetAsRenderTarget(cmdList, depthBuffer);
-        target->Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-        target->Clear(cmdList);
-        depthBuffer->Clear(cmdList);
-
-        auto width = target->GetWidth();
-        auto height = target->GetHeight();
-
-        D3D12_RECT scissor = {};
-        scissor.right = (LONG)width;
-        scissor.bottom = (LONG)height;
-
-        D3D12_VIEWPORT viewport = {};
-        viewport.Width = (float)width;
-        viewport.Height = (float)height;
-        viewport.MinDepth = D3D12_MIN_DEPTH;
-        viewport.MaxDepth = D3D12_MAX_DEPTH;
-
-        cmdList->RSSetViewports(1, &viewport);
-        cmdList->RSSetScissorRects(1, &scissor);
-
-        auto output = Adapter->GetOutputSize();
-        Camera.SetViewport(output.x, output.y);
-        Camera.LookAtPerspective();
-        ViewProjection = Camera.ViewProj();
-        CameraFrustum = Camera.GetFrustum();
-
-        ctx.EndEvent();
-    }
-
+ 
     void Initialize(HWND hwnd, int width, int height) {
         assert(hwnd);
         _hwnd = hwnd;
@@ -740,16 +702,6 @@ namespace Inferno::Render {
         }
     }
 
-    // Queues draw commands for the level
-    void DrawLevel() {
-        for (auto& mesh : _levelMeshBuilder.GetMeshes())
-            DrawOpaque({ &mesh, 0 });
-
-        for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
-            float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
-            DrawTransparent({ &mesh, depth });
-        }
-    }
 
     void DrawObject(Level& level, Object& obj, float distSquared, float alpha) {
         auto position = Vector3::Lerp(obj.LastPosition, obj.Position, alpha);
@@ -787,10 +739,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawLevel(float lerp) {
-        CameraFrustum = Camera.GetFrustum();
-
-
+    void DrawLevel(GraphicsContext& ctx, float lerp) {
         if (Settings::ShowFlickeringLights)
             UpdateFlickeringLights(Game::Level, (float)ElapsedTime, FrameTime);
 
@@ -800,18 +749,38 @@ namespace Inferno::Render {
             LevelChanged = false;
         }
 
-        auto& ctx = Adapter->GetGraphicsContext();
-        Clear(ctx, Adapter->GetHdrRenderTarget(), Adapter->GetHdrDepthBuffer());
-        /*Adapter->GetBackBuffer()->Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-        ctx.ClearColor(*Adapter->GetHdrRenderTarget());
-        ctx.ClearDepth(*Adapter->GetHdrDepthBuffer());*/
+        {
+            ctx.BeginEvent(L"Clear");
+
+            auto target = Adapter->GetHdrRenderTarget();
+            auto depthBuffer = Adapter->GetHdrDepthBuffer();
+            ctx.SetRenderTarget(target->GetRTV(), depthBuffer->GetDSV());
+            ctx.ClearColor(*target);
+            ctx.ClearDepth(*depthBuffer);
+            ctx.SetViewportAndScissor((UINT)target->GetWidth(), (UINT)target->GetHeight());
+            auto output = Adapter->GetOutputSize();
+            Camera.SetViewport(output.x, output.y);
+            Camera.LookAtPerspective();
+            ViewProjection = Camera.ViewProj();
+            CameraFrustum = Camera.GetFrustum();
+
+            ctx.EndEvent();
+        }
 
         ctx.BeginEvent(L"Level");
         Heaps->SetDescriptorHeaps(ctx.CommandList());
 
         ScopedTimer levelTimer(&Metrics::QueueLevel);
-        if (Settings::RenderMode != RenderMode::None)
-            DrawLevel();
+        if (Settings::RenderMode != RenderMode::None) {
+            // Queue commands for level meshes
+            for (auto& mesh : _levelMeshBuilder.GetMeshes())
+                DrawOpaque({ &mesh, 0 });
+
+            for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
+                float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
+                DrawTransparent({ &mesh, depth });
+            }
+        }
 
         if (Settings::ShowObjects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
@@ -881,11 +850,10 @@ namespace Inferno::Render {
         ctx.EndEvent();
     }
 
-    void DrawUI() {
-        auto& ctx = Adapter->GetGraphicsContext();
+    void DrawUI(GraphicsContext& ctx) {
         auto size = Adapter->GetOutputSize();
         ScopedTimer imguiTimer(&Metrics::ImGui);
-        Canvas->Render(ctx.CommandList(), size);
+        Canvas->Render(ctx, size);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
         g_ImGuiBatch->Render(ctx.CommandList());
     }
@@ -897,19 +865,20 @@ namespace Inferno::Render {
         DrawCalls = 0;
         PolygonCount = 0;
         
-        Adapter->GetGraphicsContext().Reset();
+        auto& ctx = Adapter->GetGraphicsContext();
+        ctx.Reset();
 
-        DrawLevel(alpha);
-        DrawUI();
+        DrawLevel(ctx, alpha);
+        DrawUI(ctx);
 
         auto commandQueue = Adapter->GetCommandQueue();
         {
             ScopedTimer presentCallTimer(&Metrics::PresentCall);
-            // Show the new frame.
             PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
             Adapter->Present();
             PIXEndEvent(commandQueue);
         }
+
         Materials->Dispatch();
         _graphicsMemory->Commit(commandQueue);
         _opaqueQueue.clear();

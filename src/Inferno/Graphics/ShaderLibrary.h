@@ -91,7 +91,7 @@ namespace Inferno {
 
         ShaderInfo Info;
         D3D12_INPUT_LAYOUT_DESC InputLayout;
-        // resources... extract?
+        
         ComPtr<ID3DBlob> VertexShader;
         ComPtr<ID3DBlob> PixelShader;
         ComPtr<ID3D12RootSignature> RootSignature;
