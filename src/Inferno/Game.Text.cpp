@@ -54,16 +54,23 @@ namespace Inferno {
         Render::EndTextureUpload(batch);
     }
 
-    void DrawGameText(string_view str, float x, float y, FontSize size, AlignH alignH, AlignV alignV) {
-        float xOffset = 0;
-        uint32 color = 0xFFFFFFFF;
+    void DrawGameText(string_view str, 
+                      Render::Canvas2D& canvas,
+                      const RenderTarget& target, 
+                      float x, float y, 
+                      FontSize size,
+                      const Color& color,
+                      AlignH alignH, AlignV alignV) {
+        float xOffset = 0, yOffset = 0;
+        //uint32 color = 0xFFFFFFFF;
         auto font = Atlas.GetFont(size);
         if (!font) return;
 
         Vector2 alignment;
 
         {
-            auto [width, height] = Render::Adapter->GetOutputSize();
+            auto width = (float)target.GetWidth();
+            auto height = (float)target.GetHeight();
             auto [strWidth, strHeight] = MeasureString(str, size);
 
             if (alignH == AlignH::Center) {
@@ -85,21 +92,27 @@ namespace Inferno {
 
         for (int i = 0; i < str.size(); i++) {
             auto c = str[i];
+            if (c == '\n') {
+                xOffset = 0;
+                yOffset += font->Height * 1.5f * Shell::DpiScale;
+                continue;
+            }
+
             char next = i + 1 >= str.size() ? 0 : str[i + 1];
             auto& ci = Atlas.GetCharacter(c, size);
             auto width = font->GetWidth(c) * Shell::DpiScale;
             auto x0 = alignment.x + xOffset + x;
             auto x1 = alignment.x + xOffset + x + width;
-            auto y0 = alignment.y + y;
-            auto y1 = alignment.y + y + font->Height * Shell::DpiScale;
-
+            auto y0 = alignment.y + yOffset + y;
+            auto y1 = alignment.y + yOffset + y + font->Height * Shell::DpiScale;
+            
             Render::CanvasPayload payload{};
-            payload.V0 = { Vector2{ x0, y1 },{ ci.X0, ci.Y1 }, color }; // bottom left
-            payload.V1 = { Vector2{ x1, y1 },{ ci.X1, ci.Y1 }, color }; // bottom right
-            payload.V2 = { Vector2{ x1, y0 },{ ci.X1, ci.Y0 }, color }; // top right
-            payload.V3 = { Vector2{ x0, y0 },{ ci.X0, ci.Y0 }, color }; // top left
+            payload.V0 = { Vector2{ x0, y1 },{ ci.X0, ci.Y1 }, color.BGRA() }; // bottom left
+            payload.V1 = { Vector2{ x1, y1 },{ ci.X1, ci.Y1 }, color.BGRA() }; // bottom right
+            payload.V2 = { Vector2{ x1, y0 },{ ci.X1, ci.Y0 }, color.BGRA() }; // top right
+            payload.V3 = { Vector2{ x0, y0 },{ ci.X0, ci.Y0 }, color.BGRA() }; // top left
             payload.Texture = &Render::StaticTextures->Font;
-            Render::Canvas->Draw(payload);
+            canvas.Draw(payload);
 
             auto kerning = Atlas.GetKerning(c, next, size);
             xOffset += width + kerning;

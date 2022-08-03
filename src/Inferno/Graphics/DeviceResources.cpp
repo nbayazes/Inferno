@@ -630,13 +630,15 @@ namespace Inferno {
         auto scaledHeight = UINT(height * RenderScale);
 
         // Order of buffer creation matters
+        Color clearColor(0.1f, 0.1f, 0.1f);
 
-        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, IntermediateFormat, 1);
+        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, 1);
         SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
         SceneColorBuffer.AddUnorderedAccessView();
+        BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
 
         if (Settings::MsaaSamples > 1) {
-            MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, Settings::MsaaSamples);
+            MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::MsaaSamples);
             MsaaDepthBuffer.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::MsaaSamples);
         }
         else {

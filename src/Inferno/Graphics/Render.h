@@ -24,7 +24,7 @@ namespace Inferno::Render {
     inline Ptr<EffectResources> Effects;
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
-    inline Ptr<Canvas2D> Canvas;
+    inline Ptr<Canvas2D> Canvas, BriefingCanvas;
 
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;

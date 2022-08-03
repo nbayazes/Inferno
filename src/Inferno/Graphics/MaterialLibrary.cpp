@@ -252,8 +252,7 @@ namespace Inferno::Render {
                 if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                     continue;
 
-                auto material = UploadMaterial(batch, upload, _lib->_black);
-                if (material)
+                if (auto material = UploadMaterial(batch, upload, _lib->_black))
                     uploads.emplace_back(std::move(material.value()));
             }
 
@@ -302,8 +301,7 @@ namespace Inferno::Render {
             if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                 continue;
 
-            auto material = UploadMaterial(batch, upload, _black);
-            if (material)
+            if (auto material = UploadMaterial(batch, upload, _black))
                 uploads.emplace_back(std::move(material.value()));
         }
 

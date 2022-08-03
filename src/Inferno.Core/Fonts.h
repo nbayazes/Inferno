@@ -27,7 +27,13 @@ namespace Inferno {
         Palette Palette;
 
         int16 GetWidth(ubyte character) const {
-            return Flags & FT_PROPORTIONAL ? Widths[character - MinChar] : Width;
+            if (Flags & FT_PROPORTIONAL) {
+                if (!Seq::inRange(Widths, character - MinChar)) return 0;
+                return Widths[character - MinChar];
+            }
+            else {
+                return Width;
+            }
         }
 
         static Font Read(span<ubyte>);

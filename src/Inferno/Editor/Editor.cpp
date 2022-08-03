@@ -238,7 +238,7 @@ namespace Inferno::Editor {
         if (nextMatcenTime > Game::ElapsedTime) return;
 
         auto& vclip = Resources::GetVideoClip(VClips::Matcen);
-        nextMatcenTime = Game::ElapsedTime + vclip.PlayTime;
+        nextMatcenTime = (float)Game::ElapsedTime + vclip.PlayTime;
 
         for (auto& seg : level.Segments) {
             if (seg.Type == SegmentType::Matcen) {

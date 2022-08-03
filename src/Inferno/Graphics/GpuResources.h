@@ -317,7 +317,7 @@ namespace Inferno {
 
     class RenderTarget : public PixelBuffer {
     public:
-        Color ClearColor = { 0.1, 0.1, 0.1, 1.0 };
+        Color ClearColor;
 
         // Creates a RTV for a swap chain buffer
         void Create(wstring name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
@@ -332,7 +332,9 @@ namespace Inferno {
         }
 
         // Creates a render target on the default heap
-        void Create(wstring name, UINT width, UINT height, DXGI_FORMAT format, UINT samples = 1) {
+        void Create(wstring name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
+            ClearColor = clearColor;
+
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(
                 format,
                 width,
@@ -350,7 +352,7 @@ namespace Inferno {
 
             D3D12_CLEAR_VALUE optimizedClearValue = {};
             optimizedClearValue.Format = format;
-            memcpy(optimizedClearValue.Color, ClearColor, sizeof(float) * 4);
+            memcpy(optimizedClearValue.Color, clearColor, sizeof(float) * 4);
 
             // Create on default hep
             CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -401,9 +403,9 @@ namespace Inferno {
                 commandList->OMSetRenderTargets(1, &_rtv, false, nullptr);
         }
 
-        void Clear(ID3D12GraphicsCommandList* commandList) {
-            assert(_state == D3D12_RESOURCE_STATE_RENDER_TARGET);
-            commandList->ClearRenderTargetView(_rtv.GetCpuHandle(), ClearColor, 0, nullptr);
-        }
+        //void Clear(ID3D12GraphicsCommandList* commandList) {
+        //    assert(_state == D3D12_RESOURCE_STATE_RENDER_TARGET);
+        //    commandList->ClearRenderTargetView(_rtv.GetCpuHandle(), ClearColor, 0, nullptr);
+        //}
     };
 }

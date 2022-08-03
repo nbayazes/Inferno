@@ -16,8 +16,14 @@ namespace Inferno::Editor {
             _buffer.resize(BUFFER_SIZE);
         }
 
+        inline static Briefing::Screen DebugBriefingScreen;
+
     protected:
         void OnUpdate() override {
+            if (!Game::Mission) {
+                ImGui::Text("Current file is not a mission (HOG)");
+                return;
+            }
 
             ImGui::BeginChild("pages", { 200, 0 }, true);
             for (auto& entry : Game::Mission->Entries) {
@@ -36,9 +42,17 @@ namespace Inferno::Editor {
             {
                 ImGui::BeginGroup();
 
-                ImGui::BeginChild("editor", { 0, 0 }, true);
-                ImGui::InputTextMultiline("##editor", _buffer.data(), BUFFER_SIZE, { -1, -1 }, ImGuiInputTextFlags_AllowTabInput);
+                //ImGui::BeginChild("editor", { 0, 0 }, true);
+                //ImGui::InputTextMultiline("##editor", _buffer.data(), BUFFER_SIZE, { -1, -1 }, ImGuiInputTextFlags_AllowTabInput);
+                //ImGui::EndChild();
+
+                //ImGui::SameLine();
+
+                ImGui::BeginChild("preview", { 0, 0 }, true);
+                auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
+                ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
                 ImGui::EndChild();
+
 
                 ImGui::EndGroup();
             }
@@ -60,9 +74,11 @@ namespace Inferno::Editor {
         }
 
         void OpenBriefing(HogEntry& entry) {
-           auto data = Game::Mission->ReadEntry(entry);
-           auto briefing = Briefing::Read(data);
-           _buffer = briefing.Raw;
+            auto data = Game::Mission->ReadEntry(entry);
+            auto briefing = Briefing::Read(data);
+            _buffer = briefing.Raw;
+            if (!briefing.Screens.empty())
+                DebugBriefingScreen = briefing.Screens[1];
         }
     };
 }

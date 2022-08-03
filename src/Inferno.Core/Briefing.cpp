@@ -126,7 +126,6 @@ namespace Inferno {
     Briefing::Screen ReadScreen(span<ubyte> data) {
         List<Briefing::Screen> screens;
 
-        bool done = false;
         bool flashingCursor = false;
         int currentColor = 0;
         int prevChar = -1;
@@ -271,7 +270,8 @@ namespace Inferno {
 
         Briefing briefing;
         briefing.Raw.resize(data.size() + 1);
-        std::copy(data.begin(), data.end(), briefing.Raw.data());
+        //auto dest = span{ briefing.Raw.data(), briefing.Raw.size() };
+        std::copy(data.begin(), data.end(), briefing.Raw.begin());
         briefing.Screens = ParseScreens(data);
         return briefing;
     }

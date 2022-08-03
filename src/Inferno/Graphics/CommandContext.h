@@ -37,12 +37,12 @@ namespace Inferno::Graphics {
 
         // Sets multiple render targets with a depth buffer. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs, D3D12_CPU_DESCRIPTOR_HANDLE dsv) {
-            _cmdList->OMSetRenderTargets(rtvs.size(), rtvs.data(), false, &dsv);
+            _cmdList->OMSetRenderTargets((UINT)rtvs.size(), rtvs.data(), false, &dsv);
         }
 
         // Sets multiple render targets. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs) {
-            _cmdList->OMSetRenderTargets(rtvs.size(), rtvs.data(), false, nullptr);
+            _cmdList->OMSetRenderTargets((UINT)rtvs.size(), rtvs.data(), false, nullptr);
         }
 
         void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv) { SetRenderTargets({ &rtv, 1 }); }
@@ -61,7 +61,7 @@ namespace Inferno::Graphics {
         void ClearDepth(DepthBuffer& target, D3D12_RECT* rect = nullptr) {
             //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.StencilDepth, 0, 0, nullptr);
+            _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.StencilDepth, 0, (rect == nullptr) ? 0 : 1, rect);
         }
 
         void SetViewportAndScissor(UINT width, UINT height) {
@@ -88,7 +88,7 @@ namespace Inferno::Graphics {
         }
 
         template<class T>
-        void ApplyEffect(Effect<T>& effect) {
+        void ApplyEffect(const Effect<T>& effect) {
             _cmdList->SetPipelineState(effect.PipelineState.Get());
             _cmdList->SetGraphicsRootSignature(effect.Shader->RootSignature.Get());
         }

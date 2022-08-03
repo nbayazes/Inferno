@@ -17,6 +17,7 @@
 #include "Render.Particles.h"
 #include "Game.Segment.h"
 #include "Game.Text.h"
+#include "Editor/UI/BriefingEditor.h"
 
 using namespace DirectX;
 using namespace Inferno::Graphics;
@@ -429,6 +430,7 @@ namespace Inferno::Render {
         Materials = MakePtr<MaterialLibrary>(3000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         Canvas = MakePtr<Canvas2D>(Device);
+        BriefingCanvas = MakePtr<Canvas2D>(Device);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
         NewTextureCache = MakePtr<TextureCache>();
@@ -460,29 +462,6 @@ namespace Inferno::Render {
         Bloom->Create(width, height);
     }
 
-    // Set the viewport and scissor rect.
-    void SetRenderTarget(ID3D12GraphicsCommandList* commandList, RenderTarget& target, Inferno::DepthBuffer* depthBuffer = nullptr) {
-        target.SetAsRenderTarget(commandList, depthBuffer);
-
-        auto width = target.GetWidth();
-        auto height = target.GetHeight();
-
-        D3D12_RECT scissor = {};
-        scissor.right = (LONG)width;
-        scissor.bottom = (LONG)height;
-
-        D3D12_VIEWPORT viewport = {};
-        viewport.Width = (float)width;
-        viewport.Height = (float)height;
-        viewport.MinDepth = D3D12_MIN_DEPTH;
-        viewport.MaxDepth = D3D12_MAX_DEPTH;
-
-        commandList->RSSetViewports(1, &viewport);
-        commandList->RSSetScissorRects(1, &scissor);
-    }
-
-
- 
     void Initialize(HWND hwnd, int width, int height) {
         assert(hwnd);
         _hwnd = hwnd;
@@ -739,7 +718,27 @@ namespace Inferno::Render {
         }
     }
 
+    void ClearMainRenderTarget(GraphicsContext& ctx) {
+        ctx.BeginEvent(L"Clear");
+
+        auto& target = Adapter->GetHdrRenderTarget();
+        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+        ctx.ClearColor(target);
+        ctx.ClearDepth(depthBuffer);
+        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+        auto output = Adapter->GetOutputSize();
+        Camera.SetViewport(output.x, output.y);
+        Camera.LookAtPerspective();
+        ViewProjection = Camera.ViewProj();
+        CameraFrustum = Camera.GetFrustum();
+
+        ctx.EndEvent();
+    }
+
     void DrawLevel(GraphicsContext& ctx, float lerp) {
+        ctx.BeginEvent(L"Level");
+
         if (Settings::ShowFlickeringLights)
             UpdateFlickeringLights(Game::Level, (float)ElapsedTime, FrameTime);
 
@@ -748,27 +747,6 @@ namespace Inferno::Render {
             _levelMeshBuilder.Update(Game::Level, *_levelMeshBuffer);
             LevelChanged = false;
         }
-
-        {
-            ctx.BeginEvent(L"Clear");
-
-            auto target = Adapter->GetHdrRenderTarget();
-            auto depthBuffer = Adapter->GetHdrDepthBuffer();
-            ctx.SetRenderTarget(target->GetRTV(), depthBuffer->GetDSV());
-            ctx.ClearColor(*target);
-            ctx.ClearDepth(*depthBuffer);
-            ctx.SetViewportAndScissor((UINT)target->GetWidth(), (UINT)target->GetHeight());
-            auto output = Adapter->GetOutputSize();
-            Camera.SetViewport(output.x, output.y);
-            Camera.LookAtPerspective();
-            ViewProjection = Camera.ViewProj();
-            CameraFrustum = Camera.GetFrustum();
-
-            ctx.EndEvent();
-        }
-
-        ctx.BeginEvent(L"Level");
-        Heaps->SetDescriptorHeaps(ctx.CommandList());
 
         ScopedTimer levelTimer(&Metrics::QueueLevel);
         if (Settings::RenderMode != RenderMode::None) {
@@ -817,8 +795,9 @@ namespace Inferno::Render {
                 DrawDebug(Game::Level);
             }
             else {
-                Inferno::DrawGameText(Game::Level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, AlignH::Center, AlignV::Top);
-                Inferno::DrawGameText("Inferno Engine", -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, AlignH::Right, AlignV::Bottom);
+                auto& target = Adapter->GetHdrRenderTarget();
+                Inferno::DrawGameText(Game::Level.Name, *Canvas, target, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, AlignH::Center, AlignV::Top);
+                Inferno::DrawGameText("Inferno Engine", *Canvas, target, -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, AlignH::Right, AlignV::Bottom);
             }
             Debug::EndFrame(ctx.CommandList());
         }
@@ -828,9 +807,19 @@ namespace Inferno::Render {
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
         }
 
+        
+
+        ctx.EndEvent();
+    }
+
+    void PostProcess(GraphicsContext& ctx) {
+        ctx.BeginEvent(L"Post");
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
-        SetRenderTarget(ctx.CommandList(), *backBuffer);
+        ctx.ClearColor(*backBuffer);
+        ctx.SetRenderTarget(backBuffer->GetRTV());
+        //backBuffer->Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        //SetRenderTarget(ctx.CommandList(), *backBuffer);
 
         Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -846,16 +835,30 @@ namespace Inferno::Render {
         //    draw with shader that subtracts 1 from all values;
 
         _tempBatch->End();
-
-        ctx.EndEvent();
     }
 
     void DrawUI(GraphicsContext& ctx) {
+        ctx.BeginEvent(L"UI");
         auto size = Adapter->GetOutputSize();
         ScopedTimer imguiTimer(&Metrics::ImGui);
         Canvas->Render(ctx, size);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
         g_ImGuiBatch->Render(ctx.CommandList());
+        ctx.EndEvent();
+    }
+
+    void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
+        ctx.BeginEvent(L"Briefing");
+        ctx.ClearColor(target);
+        ctx.SetRenderTarget(target.GetRTV());
+        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+        auto& screen = Editor::BriefingEditor::DebugBriefingScreen;
+        if (!screen.Pages.empty()) {
+            DrawGameText(screen.Pages[0], *BriefingCanvas, target, 20, 20, FontSize::Small, { 0, 1, 0 });
+        }
+        BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
+        target.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        ctx.EndEvent();
     }
 
     void Present(float alpha) {
@@ -868,7 +871,11 @@ namespace Inferno::Render {
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
 
+        Heaps->SetDescriptorHeaps(ctx.CommandList());
+        DrawBriefing(ctx, Adapter->BriefingColorBuffer);
+        ClearMainRenderTarget(ctx);
         DrawLevel(ctx, alpha);
+        PostProcess(ctx);
         DrawUI(ctx);
 
         auto commandQueue = Adapter->GetCommandQueue();
