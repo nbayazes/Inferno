@@ -249,7 +249,7 @@ namespace Inferno::Render {
 
             List<Material2D> uploads;
             for (auto& upload : queuedUploads) {
-                if (upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
+                if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                     continue;
 
                 auto material = UploadMaterial(batch, upload, _lib->_black);
