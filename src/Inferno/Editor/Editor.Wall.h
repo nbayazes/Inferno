@@ -26,8 +26,6 @@ namespace Inferno::Editor {
     // Returns ID of the first wall (the one on the source tag)
     WallID AddPairedWall(Level& level, Tag tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags = WallFlag::None);
 
-    void ChangeMarkedWalls(Level& level, const Wall& src);
-
     namespace Commands {
         inline Command RemoveWall{
             .SnapshotAction = [] {

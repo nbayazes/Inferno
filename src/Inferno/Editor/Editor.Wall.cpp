@@ -51,21 +51,6 @@ namespace Inferno::Editor {
         return id;
     }
 
-    void ChangeMarkedWalls(Level& level, const Wall& src) {
-        for (auto& face : Editor::Marked.Faces) {
-            auto wall = level.TryGetWall(face);
-            if (!wall) continue;
-
-            wall->BlocksLight = src.BlocksLight;
-            wall->Clip = src.Clip;
-            wall->Flags = src.Flags;
-            wall->HitPoints = src.HitPoints;
-            wall->Keys = src.Keys;
-            wall->State = src.State;
-            wall->Type = src.Type;
-        }
-    }
-
     WallID AddWall(Level& level, Tag tag) {
         if (!level.SegmentExists(tag.Segment)) return WallID::None;
         auto [seg, side] = level.GetSegmentAndSide(tag);

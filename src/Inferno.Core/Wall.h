@@ -76,6 +76,10 @@ namespace Inferno {
         void SetFlag(WallFlag flag) { Flags |= flag; }
         void ClearFlag(WallFlag flag) { Flags &= ~flag; }
 
+        void SetFlag(WallFlag flag, bool state) {
+            if (state) SetFlag(flag); else ClearFlag(flag);
+        }
+
         static constexpr auto CloakStep = 1.0f / 31.0f;
 
         constexpr float CloakValue() const { return float(cloak_value % 32) * CloakStep; }

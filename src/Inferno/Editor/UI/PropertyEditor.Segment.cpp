@@ -650,9 +650,9 @@ namespace Inferno::Editor {
     }
 
     // Returns true if any wall properties changed
-    bool WallProperties(Level& level, WallID id) {
+    void WallProperties(Level& level, WallID id) {
         auto wall = level.TryGetWall(id);
-        bool wallChanged = false;
+        auto other = level.TryGetWall(level.GetConnectedWall(Editor::Selection.Tag()));
         bool open = ImGui::TableBeginTreeNode("Wall type");
 
         auto wallType = wall ? wall->Type : WallType::None;
@@ -669,7 +669,12 @@ namespace Inferno::Editor {
                     wall->Type = wallType;
                     if (wallType == WallType::Cloaked)
                         wall->CloakValue(0.5f);
-                    wallChanged = true;
+
+                    if (other && Settings::EditBothWallSides) {
+                        other->Type = wallType;
+                        if (wallType == WallType::Cloaked)
+                            other->CloakValue(0.5f);
+                    }
                 }
             }
 
@@ -686,12 +691,23 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("Edit both sides");
                 ImGui::Checkbox("##bothsides", &Settings::EditBothWallSides);
 
+                auto flagCheckbox = [&other](const char* label, WallFlag flag, Wall* wall) {
+                    ImGui::TableRowLabel(label);
+                    if (FlagCheckbox(fmt::format("##{}", label).c_str(), flag, wall->Flags)) {
+                        if (Settings::EditBothWallSides && other && other->Type == wall->Type)
+                            other->SetFlag(flag, wall->HasFlag(flag));
+                    }
+                };
+
                 switch (wall->Type) {
                     case WallType::Destroyable:
                         ImGui::TableRowLabel("Clip");
                         if (WallClipDropdown(wall->Clip)) {
-                            wallChanged = true;
                             OnChangeWallClip(level, *wall);
+                            if (other && Settings::EditBothWallSides) {
+                                other->Clip = wall->Clip;
+                                OnChangeWallClip(level, *other);
+                            }
                         }
 
                         if (auto clip = Resources::TryGetWallClip(wall->Clip))
@@ -699,42 +715,46 @@ namespace Inferno::Editor {
 
                         ImGui::TableRowLabel("Hit points");
                         ImGui::SetNextItemWidth(-1);
-                        if (ImGui::InputFloat("##Hit points", &wall->HitPoints, 1, 10, "%.0f"))
-                            wallChanged = true;
+                        if (ImGui::InputFloat("##Hit points", &wall->HitPoints, 1, 10, "%.0f")) {
+                            if (Settings::EditBothWallSides && other && other->Type == wall->Type)
+                                other->HitPoints = wall->HitPoints;
+                        }
 
                         //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
                         break;
 
                     case WallType::Door:
+                    {
                         ImGui::TableRowLabel("Clip");
                         if (WallClipDropdown(wall->Clip)) {
-                            wallChanged = true;
                             OnChangeWallClip(level, *wall);
+                            if (other && Settings::EditBothWallSides) {
+                                other->Clip = wall->Clip;
+                                OnChangeWallClip(level, *other);
+                            }
                         }
 
                         if (auto clip = Resources::TryGetWallClip(wall->Clip))
                             TexturePreview(clip->Frames[0]);
 
                         ImGui::TableRowLabel("Key");
-                        wallChanged |= KeyDropdown(wall->Keys);
+                        if (KeyDropdown(wall->Keys))
+                            if (other && Settings::EditBothWallSides)
+                                other->Keys = wall->Keys;
 
-                        ImGui::TableRowLabel("Opened");
-                        wallChanged |= FlagCheckbox("##Opened", WallFlag::DoorOpened, wall->Flags);
-
-                        ImGui::TableRowLabel("Locked");
-                        wallChanged |= FlagCheckbox("##Locked", WallFlag::DoorLocked, wall->Flags);
-
-                        ImGui::TableRowLabel("Auto Close");
-                        wallChanged |= FlagCheckbox("##Auto Close", WallFlag::DoorAuto, wall->Flags);
-
-                        ImGui::TableRowLabel("Buddy Proof");
-                        wallChanged |= FlagCheckbox("##Buddy Proof", WallFlag::BuddyProof, wall->Flags);
+                        flagCheckbox("Opened", WallFlag::DoorOpened, wall);
+                        flagCheckbox("Locked", WallFlag::DoorLocked, wall);
+                        flagCheckbox("Auto Close", WallFlag::DoorAuto, wall);
+                        flagCheckbox("Buddy Proof", WallFlag::BuddyProof, wall);
                         break;
+                    }
 
                     case WallType::Illusion:
-                        ImGui::TableRowLabelEx("Off", "Set the wall to start invisible.\nTrigger with 'illusion on' to make visible.");
-                        wallChanged |= FlagCheckbox("##Off", WallFlag::IllusionOff, wall->Flags);
+                    {
+                        //ImGui::TableRowLabelEx("Off", "Set the wall to start invisible.\nTrigger with 'illusion on' to make visible.");
+                        flagCheckbox("Off", WallFlag::IllusionOff, wall);
                         break;
+                    }
 
                     case WallType::Cloaked:
                     {
@@ -743,7 +763,10 @@ namespace Inferno::Editor {
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::InputFloat("##cloak", &cloakValue, Wall::CloakStep * 110, Wall::CloakStep * 500, "%.0f%%")) {
                             wall->CloakValue(cloakValue / 100);
-                            wallChanged = true;
+
+                            if (Settings::EditBothWallSides && other && other->Type == wall->Type)
+                                other->CloakValue(cloakValue / 100);
+
                             Events::LevelChanged();
                         }
 
@@ -756,6 +779,9 @@ namespace Inferno::Editor {
                     for (auto& wid : GetSelectedWalls())
                         if (auto w = level.TryGetWall(wid))
                             w->BlocksLight = wall->BlocksLight;
+
+                    if(Settings::EditBothWallSides && other)
+                        other->BlocksLight = wall->BlocksLight;
                 }
             }
             else {
@@ -764,8 +790,6 @@ namespace Inferno::Editor {
 
             ImGui::TreePop();
         }
-
-        return wallChanged;
     }
 
     string TextureFlagToString(TextureFlag flags) {
@@ -930,15 +954,7 @@ namespace Inferno::Editor {
             }
         }
 
-        if (WallProperties(level, side.Wall)) {
-            UpdateOtherWall(level, Editor::Selection.Tag());
-
-            // Only snapshot wall changes if it wasn't deleted. Deleting a wall makes its own snapshot
-            if (auto wall = level.TryGetWall(Editor::Selection.Tag())) {
-                ChangeMarkedWalls(level, *wall);
-                Editor::History.SnapshotLevel("Change Wall");
-            }
-        }
+        WallProperties(level, side.Wall);
 
         bool triggerChanged = false;
         if (level.IsDescent1())
