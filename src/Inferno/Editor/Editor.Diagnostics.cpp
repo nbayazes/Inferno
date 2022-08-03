@@ -281,39 +281,41 @@ namespace Inferno::Editor {
         auto orthog = -line1.Cross(line2);
 
         // use dot product to determine angle A dot B = |A|*|B| * cos (angle)
-        // therfore: angle = acos (A dot B / |A|*|B|)
+        // therefore: angle = acos (A dot B / |A|*|B|)
         auto dot = line3.Dot(orthog);
         auto magnitude1 = line3.Length();
         auto magnitude2 = orthog.Length();
 
         if (dot == 0 || magnitude1 == 0 || magnitude2 == 0) {
-            return 200 * DegToRad;
+            return 200 * DegToRad; // degenerate length
         }
         else {
             auto ratio = dot / (magnitude1 * magnitude2);
             ratio = float((int)(ratio * 1000.0f)) / 1000.0f; // round
 
             if (ratio < -1.0f || ratio > 1.0f)
-                return 199 * DegToRad;
+                return 199 * DegToRad; // too skewed
             else
                 return acos(ratio);
         }
     }
 
-    // returns true if segment is degenerate
+    // returns true if segment is degenerate. Compares the angles between the edges of each corner.
     bool SegmentIsDegenerate(Level& level, Segment& seg) {
-        for (short nPoint = 0; nPoint < 8; nPoint++) {
+        for (short n = 0; n < 8; n++) {
             // define vert numbers
-            const auto& vert0 = level.Vertices[seg.Indices[nPoint]];
-            const auto& vert1 = level.Vertices[seg.Indices[AdjacentPointTable[nPoint][0]]];
-            const auto& vert2 = level.Vertices[seg.Indices[AdjacentPointTable[nPoint][1]]];
-            const auto& vert3 = level.Vertices[seg.Indices[AdjacentPointTable[nPoint][2]]];
+            const auto& v0 = level.Vertices[seg.Indices[n]];
+            const auto& v1 = level.Vertices[seg.Indices[AdjacentPointTable[n][0]]];
+            const auto& v2 = level.Vertices[seg.Indices[AdjacentPointTable[n][1]]];
+            const auto& v3 = level.Vertices[seg.Indices[AdjacentPointTable[n][2]]];
 
-            if (AngleBetweenThreeVectors(vert0, vert1, vert2, vert3) > DirectX::XM_PIDIV2)
+            // Lowered from 90 degrees to 80 degrees due to false negatives
+            constexpr auto minAngle = 80 * RadToDeg;
+            if (AngleBetweenThreeVectors(v0, v1, v2, v3) > minAngle)
                 return true;
-            if (AngleBetweenThreeVectors(vert0, vert2, vert3, vert1) > DirectX::XM_PIDIV2)
+            if (AngleBetweenThreeVectors(v0, v2, v3, v1) > minAngle)
                 return true;
-            if (AngleBetweenThreeVectors(vert0, vert3, vert1, vert2) > DirectX::XM_PIDIV2)
+            if (AngleBetweenThreeVectors(v0, v3, v1, v2) > minAngle)
                 return true;
         }
 

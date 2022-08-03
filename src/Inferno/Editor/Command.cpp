@@ -7,6 +7,7 @@ void Inferno::Editor::Command::Execute() const {
         if (!CanExecute()) return;
         assert(Action || SnapshotAction);
         if (SnapshotAction) {
+            Editor::History.SnapshotSelection();
             if (auto label = SnapshotAction(); !label.empty())
                 Editor::History.SnapshotLevel(label);
         }

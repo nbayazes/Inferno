@@ -551,7 +551,7 @@ namespace Inferno::Editor {
         }
 
         auto seg = InsertSegment(Game::Level, Editor::Selection.Tag(), 0, InsertMode::Extrude);
-
+        
         if (JoinSides(Game::Level, { seg, Editor::Selection.Side }, *Editor::Marked.Faces.begin())) {
             Events::LevelChanged();
             Editor::Selection.SetSelection(seg);
