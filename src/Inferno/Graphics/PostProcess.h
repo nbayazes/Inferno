@@ -2,6 +2,11 @@
 
 #include "Buffers.h"
 #include "Compiler.h"
+#include "Camera.h"
+
+namespace Inferno::Render {
+    extern Inferno::Camera Camera;
+}
 
 namespace Inferno::PostFx {
     // Divides a value and rounds up to the nearest alignment.
@@ -53,6 +58,30 @@ namespace Inferno::PostFx {
             commandList->SetComputeRootDescriptorTable(T0_Source, source.GetSRV());
             commandList->SetPipelineState(_pso.Get());
             Dispatch2D(commandList, dest);
+        }
+    };
+
+    class LinearizeDepthCS : public ComputeShader {
+        enum RootSig { B0_Constants, U0_Result, T0_Source };
+    public:
+        LinearizeDepthCS() : ComputeShader(16, 16) {}
+
+        void Execute(ID3D12GraphicsCommandList* commandList, DepthBuffer& source, PixelBuffer& dest) {
+            source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+            const float nearClip = Render::Camera.NearClip;
+            const float farClip = Render::Camera.FarClip;
+            float constants[2] = { nearClip, farClip };
+            //float constants[1] = { (farClip - nearClip) / nearClip };
+
+            commandList->SetComputeRootSignature(_rootSignature.Get());
+            commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
+            commandList->SetComputeRootDescriptorTable(U0_Result, dest.GetUAV());
+            commandList->SetComputeRootDescriptorTable(T0_Source, source.GetSRV());
+            commandList->SetPipelineState(_pso.Get());
+            Dispatch2D(commandList, dest);
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         }
     };
 
@@ -271,4 +300,5 @@ namespace Inferno::PostFx {
     };
 
     inline ScanlineCS Scanline;
+    inline LinearizeDepthCS LinearizeDepth;
 }

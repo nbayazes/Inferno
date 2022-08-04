@@ -498,5 +498,8 @@
     <CopyFileToFolders Include="shaders\ScanlineCS.hlsl">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\LinearizeDepthCS.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

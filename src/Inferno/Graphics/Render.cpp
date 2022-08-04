@@ -881,6 +881,7 @@ namespace Inferno::Render {
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
         ClearMainRenderTarget(ctx);
         DrawLevel(ctx, alpha);
+        PostFx::LinearizeDepth.Execute(ctx.CommandList(), Adapter->GetHdrDepthBuffer(), Adapter->LinearizedDepthBuffer);
         PostProcess(ctx);
         DrawUI(ctx);
 

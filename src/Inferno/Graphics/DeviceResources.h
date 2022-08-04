@@ -89,6 +89,8 @@ namespace Inferno {
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 
+        Inferno::ColorBuffer LinearizedDepthBuffer;
+
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {
             return Settings::MsaaSamples > 1 ? MsaaColorBuffer : SceneColorBuffer;
