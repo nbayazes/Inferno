@@ -53,6 +53,7 @@ namespace Inferno::Settings {
         node["Noise"] << Windows.Noise;
         node["TunnelBuilder"] << Windows.TunnelBuilder;
         node["Sound"] << Windows.Sound;
+        node["BriefingEditor"] << Windows.BriefingEditor;
     }
 
     void LoadOpenWindows(ryml::NodeRef node) {
@@ -65,6 +66,7 @@ namespace Inferno::Settings {
         ReadValue(node["Noise"], Windows.Noise);
         ReadValue(node["TunnelBuilder"], Windows.TunnelBuilder);
         ReadValue(node["Sound"], Windows.Sound);
+        ReadValue(node["BriefingEditor"], Windows.BriefingEditor);
     }
 
     void SaveSelectionSettings(ryml::NodeRef node) {

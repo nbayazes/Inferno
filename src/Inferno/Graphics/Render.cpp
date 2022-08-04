@@ -807,7 +807,7 @@ namespace Inferno::Render {
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
         }
 
-        
+
 
         ctx.EndEvent();
     }
@@ -848,6 +848,8 @@ namespace Inferno::Render {
     }
 
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
+        if (!Settings::Windows.BriefingEditor) return;
+
         ctx.BeginEvent(L"Briefing");
         ctx.ClearColor(target);
         ctx.SetRenderTarget(target.GetRTV());
@@ -871,7 +873,7 @@ namespace Inferno::Render {
         ScopedTimer presentTimer(&Metrics::Present);
         DrawCalls = 0;
         PolygonCount = 0;
-        
+
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
 
