@@ -257,6 +257,8 @@ namespace Inferno::Editor {
         }
     }
 
+    bool ImGuiHadMouseFocus = false;
+
     void Update() {
         // don't do anything when a modal is open
         if (ImGui::GetTopMostPopupModal()) return;
@@ -266,6 +268,14 @@ namespace Inferno::Editor {
         auto& level = Game::Level;
         auto& io = ImGui::GetIO();
         MouseRay = Render::Camera.UnprojectRay(Input::MousePosition, Matrix::Identity);
+
+        if (!io.WantCaptureMouse && ImGuiHadMouseFocus) {
+            // Reset the keyboard state so holding a key down while moving the mouse
+            // off the UI doesn't cause the key to get stuck
+            io.ClearInputKeys();
+        }
+
+        ImGuiHadMouseFocus = io.WantCaptureMouse;
 
         if (Settings::ShowMatcenEffects)
             CreateMatcenEffects(Game::Level);
