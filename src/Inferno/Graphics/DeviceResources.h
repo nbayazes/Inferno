@@ -82,14 +82,14 @@ namespace Inferno {
         // The MSAA buffers are resolved to normal sources before being drawn
         Inferno::RenderTarget MsaaColorBuffer;
         Inferno::DepthBuffer MsaaDepthBuffer;
+        Inferno::ColorBuffer MsaaLinearizedDepthBuffer;
 
         Inferno::RenderTarget SceneColorBuffer;
         Inferno::DepthBuffer SceneDepthBuffer;
+        Inferno::ColorBuffer LinearizedDepthBuffer;
 
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
-
-        Inferno::ColorBuffer LinearizedDepthBuffer;
 
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {
@@ -99,6 +99,10 @@ namespace Inferno {
         // There's nothing special about the depth buffer for HDR, but MSAA needs a different one.
         Inferno::DepthBuffer& GetHdrDepthBuffer() {
             return Settings::MsaaSamples > 1 ? MsaaDepthBuffer : SceneDepthBuffer;
+        }
+
+        Inferno::ColorBuffer& GetLinearDepthBuffer() {
+            return Settings::MsaaSamples > 1 ? MsaaLinearizedDepthBuffer : LinearizedDepthBuffer;
         }
 
         static constexpr size_t MAX_BACK_BUFFER_COUNT = 3;

@@ -107,12 +107,33 @@ namespace Inferno {
         D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
+    class FlatLevelShader : public IShader {
+        enum RootParameterIndex : uint {
+            Constant,
+            RootParameterCount
+        };
+    public:
+        struct Constants {
+            Matrix WVP;
+            Vector3 Eye;
+        };
+
+        FlatLevelShader(ShaderInfo info) : IShader(info) {
+            InputLayout = LevelVertex::Layout;
+        }
+
+        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
+        }
+    };
+
     class LevelShader : public IShader {
         enum RootParameterIndex : uint {
             Constant,
             InstanceConstant,
             Material1,
             Material2,
+            Depth,
             Sampler,
             RootParameterCount
         };
@@ -122,6 +143,8 @@ namespace Inferno {
             Vector3 Eye;
             float _pad;
             Vector3 LightDirection;
+            float _pad2;
+            Vector2 FrameSize;
         };
 
         struct InstanceConstants {
@@ -148,6 +171,10 @@ namespace Inferno {
             commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[0]);
         }
 
+        void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Depth, texture);
+        }
+
         void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
         }
@@ -161,6 +188,7 @@ namespace Inferno {
         enum RootParameterIndex : uint {
             ConstantBuffer,
             Diffuse,
+            LinearZ,
             Sampler,
             RootParameterCount
         };
@@ -175,6 +203,10 @@ namespace Inferno {
 
         void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
+        }
+
+        void SetLinearZ(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(LinearZ, texture);
         }
 
         void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
@@ -325,7 +357,7 @@ namespace Inferno {
 
     struct ShaderResources {
         LevelShader Level = ShaderInfo{ L"shaders/level.hlsl", "VSLevel", "PSLevel" };
-        LevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl", "VSLevel", "PSLevel" };
+        FlatLevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl", "VSLevel", "PSLevel" };
         FlatShader Flat = ShaderInfo{ L"shaders/editor.hlsl", "VSFlat", "PSFlat" };
         UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl", "VSMain", "PSMain" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl", "VSMain", "PSMain" };
@@ -337,11 +369,11 @@ namespace Inferno {
     public:
         EffectResources(ShaderResources* shaders) : _shaders(shaders) {}
 
-        Effect<LevelShader> Level = { &_shaders->Level };
-        Effect<LevelShader> LevelWall = { &_shaders->Level, { BlendMode::Alpha } };
-        Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive } };
-        Effect<LevelShader> LevelFlat = { &_shaders->LevelFlat };
-        Effect<LevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha } };
+        Effect<LevelShader> Level = { &_shaders->Level, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<LevelShader> LevelWall = { &_shaders->Level, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat };
+        Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha } };
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };

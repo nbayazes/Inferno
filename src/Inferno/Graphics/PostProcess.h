@@ -47,6 +47,7 @@ namespace Inferno::PostFx {
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
             float constants[2] = {
                 1.0f / dest.GetWidth(), 1.0f / dest.GetHeight()
@@ -78,10 +79,16 @@ namespace Inferno::PostFx {
             commandList->SetComputeRootSignature(_rootSignature.Get());
             commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
             commandList->SetComputeRootDescriptorTable(U0_Result, dest.GetUAV());
+            auto srcSrv = source.GetSRV();
+            //if (!srcSrv.ptr) {
+            //    source.AddShaderResourceView();
+            //    srcSrv = source.GetSRV();
+            //}
+
+            assert(srcSrv.ptr);
             commandList->SetComputeRootDescriptorTable(T0_Source, source.GetSRV());
             commandList->SetPipelineState(_pso.Get());
             Dispatch2D(commandList, dest);
-            dest.Transition(commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         }
     };
 

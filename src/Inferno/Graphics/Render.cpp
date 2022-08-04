@@ -379,13 +379,15 @@ namespace Inferno::Render {
     }
 
     void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {
-        assert(mesh.Chunk);
+        if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
 
         LevelShader::InstanceConstants consts{};
         consts.FrameTime = (float)FrameTime;
         consts.Time = (float)ElapsedTime;
         consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
+
+        Shaders->Level.SetDepthTexture(cmdList, Adapter->GetLinearDepthBuffer().GetSRV());
 
         if (chunk.Cloaked) {
             Shaders->Level.SetMaterial1(cmdList, Materials->Black);
@@ -469,7 +471,7 @@ namespace Inferno::Render {
         StaticTextures = MakePtr<StaticTextureDef>();
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
-        Render::Heaps = MakePtr<DescriptorHeaps>(20000, 100, 10);
+        Render::Heaps = MakePtr<DescriptorHeaps>(20000, 200, 10);
         Adapter->CreateWindowSizeDependentResources();
         CreateDeviceDependentResources();
         Adapter->ReloadResources();
@@ -642,6 +644,30 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
+    void DepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
+        FlatLevelShader::Constants consts = {};
+        consts.WVP = ViewProjection;
+        consts.Eye = Camera.Position;
+        auto& effect = Effects->LevelWallFlat;
+        effect.Apply(cmdList);
+        effect.Shader->SetConstants(cmdList, consts);
+
+        switch (cmd.Type) {
+            case RenderCommandType::LevelMesh:
+            {
+                auto& mesh = *cmd.Data.LevelMesh;
+                if (!mesh.Chunk) return;
+                auto& chunk = *mesh.Chunk;
+                mesh.Draw(cmdList);
+                DrawCalls++;
+                break;
+            }
+            case RenderCommandType::Object:
+                //DrawObject(cmdList, *cmd.Data.Object, lerp/*, transparentPass*/);
+                break;
+        }
+    }
+
     void ExecuteRenderCommand(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float alpha, bool transparentPass) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
@@ -653,6 +679,7 @@ namespace Inferno::Render {
                 consts.WVP = ViewProjection;
                 consts.Eye = Camera.Position;
                 consts.LightDirection = -Vector3::UnitY;
+                consts.FrameSize = Adapter->GetOutputSize();
 
                 if (Settings::RenderMode == RenderMode::Flat) {
                     if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive)
@@ -754,23 +781,42 @@ namespace Inferno::Render {
             for (auto& mesh : _levelMeshBuilder.GetMeshes())
                 DrawOpaque({ &mesh, 0 });
 
+
             for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
                 float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
                 DrawTransparent({ &mesh, depth });
             }
         }
 
-        if (Settings::ShowObjects) {
-            auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
-            for (auto& obj : Game::Level.Objects) {
-                if (obj.Lifespan <= 0) continue;
-                DrawObject(Game::Level, obj, distSquared, lerp);
-            }
+        //if (Settings::ShowObjects) {
+        //    auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
+        //    for (auto& obj : Game::Level.Objects) {
+        //        if (obj.Lifespan <= 0) continue;
+        //        DrawObject(Game::Level, obj, distSquared, lerp);
+        //    }
+        //}
+
+        ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        {
+            // Depth prepass
+            //ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
+
+            for (auto& cmd : _opaqueQueue)
+                DepthPrepass(ctx.CommandList(), cmd, lerp);
+
+            auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+            auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
+            PostFx::LinearizeDepth.Execute(ctx.CommandList(), depthBuffer, linearDepthBuffer);
+            //ctx.SetRenderTarget(Adapter->GetHdrRenderTarget().GetRTV(), Adapter->GetHdrDepthBuffer().GetDSV());
+            //ctx.InsertUAVBarrier(Adapter->GetHdrDepthBuffer());
+
+            linearDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            depthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_DEPTH_READ);
         }
 
         {
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
-            ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             for (auto& cmd : _opaqueQueue)
                 ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
@@ -881,7 +927,7 @@ namespace Inferno::Render {
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
         ClearMainRenderTarget(ctx);
         DrawLevel(ctx, alpha);
-        PostFx::LinearizeDepth.Execute(ctx.CommandList(), Adapter->GetHdrDepthBuffer(), Adapter->LinearizedDepthBuffer);
+
         PostProcess(ctx);
         DrawUI(ctx);
 

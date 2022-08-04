@@ -1,10 +1,12 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "RootConstants(b0, num32BitConstants = 16), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 SamplerState sampler0 : register(s0);
 Texture2D Diffuse : register(t0);
+Texture2D LinearZ : register(t1);
 
 cbuffer vertexBuffer : register(b0) {
     float4x4 ProjectionMatrix;
@@ -33,7 +35,7 @@ PS_INPUT VSMain(VS_INPUT input) {
 
 float4 PSMain(PS_INPUT input) : SV_Target {
     float4 diffuse = Diffuse.Sample(sampler0, input.uv);
-    if (diffuse.a < 0.02f)
+    if (diffuse.a <= 0.0)
         discard;
     return diffuse * input.col;
 }

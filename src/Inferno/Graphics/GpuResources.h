@@ -33,6 +33,14 @@ namespace Inferno {
         void Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
             if (_state == state) return;
             DirectX::TransitionResource(cmdList, _resource.Get(), _state, state);
+
+            //if (state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+            //    D3D12_RESOURCE_BARRIER barrier{};
+            //    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            //    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            //    barrier.UAV.pResource = _resource.Get();
+            //    cmdList->ResourceBarrier(1, &barrier);
+            //}
             _state = state;
         }
 
@@ -249,8 +257,7 @@ namespace Inferno {
     };
 
     class DepthBuffer : public PixelBuffer {
-        DescriptorHandle _descriptor;
-        friend class RenderTarget;
+        DescriptorHandle _dsv, _roDescriptor;
         D3D12_DEPTH_STENCIL_VIEW_DESC _dsvDesc = {};
 
     public:
@@ -296,22 +303,31 @@ namespace Inferno {
             _srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 
             AddDepthView();
+            AddShaderResourceView();
         }
 
         void Clear(ID3D12GraphicsCommandList* commandList) {
             //assert(_state == D3D12_RESOURCE_STATE_DEPTH_WRITE);
             Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-            commandList->ClearDepthStencilView(_descriptor.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
+            commandList->ClearDepthStencilView(_dsv.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
         }
 
-        auto GetDSV() { return _descriptor.GetCpuHandle(); }
+        auto GetDSV() { return _dsv.GetCpuHandle(); }
+        //auto GetReadOnlyDSV() { return _roDescriptor.GetCpuHandle(); }
 
     private:
         void AddDepthView() {
-            if (!_descriptor)
-                _descriptor = Render::Heaps->DepthStencil.Allocate();
+            if (!_dsv)
+                _dsv = Render::Heaps->DepthStencil.Allocate();
 
-            Render::Device->CreateDepthStencilView(_resource.Get(), &_dsvDesc, _descriptor.GetCpuHandle());
+            Render::Device->CreateDepthStencilView(_resource.Get(), &_dsvDesc, _dsv.GetCpuHandle());
+
+            //if (!_roDescriptor)
+            //    _roDescriptor = Render::Heaps->DepthStencil.Allocate();
+
+            //auto ro = _dsvDesc;
+            //ro.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+            //Render::Device->CreateDepthStencilView(_resource.Get(), &ro, _roDescriptor.GetCpuHandle());
         }
     };
 
@@ -383,7 +399,6 @@ namespace Inferno {
 
         bool IsMultisampled() { return _desc.SampleDesc.Count > 1; }
 
-
         // Copies a MSAA source into a non-sampled buffer
         void ResolveFromMultisample(ID3D12GraphicsCommandList* commandList, RenderTarget& src) {
             if (!src.IsMultisampled())
@@ -394,14 +409,14 @@ namespace Inferno {
             commandList->ResolveSubresource(Get(), 0, src.Get(), 0, src._desc.Format);
         }
 
-        void SetAsRenderTarget(ID3D12GraphicsCommandList* commandList, Inferno::DepthBuffer* depthBuffer = nullptr) {
-            Transition(commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+        //void SetAsRenderTarget(ID3D12GraphicsCommandList* commandList, Inferno::DepthBuffer* depthBuffer = nullptr) {
+        //    Transition(commandList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-            if (depthBuffer)
-                commandList->OMSetRenderTargets(1, &_rtv, false, &depthBuffer->_descriptor);
-            else
-                commandList->OMSetRenderTargets(1, &_rtv, false, nullptr);
-        }
+        //    if (depthBuffer)
+        //        commandList->OMSetRenderTargets(1, &_rtv, false, &depthBuffer->GetDSV());
+        //    else
+        //        commandList->OMSetRenderTargets(1, &_rtv, false, nullptr);
+        //}
 
         //void Clear(ID3D12GraphicsCommandList* commandList) {
         //    assert(_state == D3D12_RESOURCE_STATE_RENDER_TARGET);

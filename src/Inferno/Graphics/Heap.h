@@ -17,8 +17,8 @@ namespace Inferno {
         operator bool() const { return _cpuHandle.ptr; }
         const CD3DX12_CPU_DESCRIPTOR_HANDLE* operator&() const { return &_cpuHandle; }
 
-        CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }
-        CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return _gpuHandle; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }
+        D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return _gpuHandle; }
 
         DescriptorHandle Offset(int index, uint descriptorSize) {
             auto copy = *this;
@@ -176,7 +176,6 @@ namespace Inferno {
             std::scoped_lock lock(_indexLock);
             for (uint i = 0; i < _free.size(); i++) {
                 if (_free[i]) {
-                    //SPDLOG_INFO("Allocating index {}", _start + index * TStride);
                     _free[i] = false;
                     //if (index < _index)
                         //SPDLOG_WARN("Wrapped descriptor range index");
@@ -184,6 +183,7 @@ namespace Inferno {
                     _index = i;
                     auto newIndex = _start + i * TStride;
                     assert(newIndex >= _start && newIndex < _start + _size);
+                    //SPDLOG_INFO("Allocating index {}", newIndex);
                     return newIndex;
                 }
             }

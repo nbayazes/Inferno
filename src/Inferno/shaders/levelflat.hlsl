@@ -1,21 +1,5 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 23), "\
-    "RootConstants(b1, num32BitConstants = 9), "\
-    "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
-
-Texture2D Diffuse : register(t0);
-//Texture2D StMask : register(t1); // unused
-Texture2D Emissive : register(t2);
-Texture2D Specular1 : register(t3);
-
-Texture2D Diffuse2 : register(t4);
-Texture2D StMask : register(t5);
-Texture2D Emissive2 : register(t6);
-Texture2D Specular2 : register(t7);
-
-SamplerState sampler0 : register(s0);
+    "RootConstants(b0, num32BitConstants = 19)"
 
 static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
@@ -24,16 +8,6 @@ static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 cbuffer FrameConstants : register(b0) {
     float4x4 ProjectionMatrix;
     float3 Eye;
-    float3 LightDirection;
-};
-
-cbuffer InstanceConstants : register(b1) {
-    float Time;
-    float FrameTime;
-    float2 Scroll;
-    float LightingScale;
-    bool Distort;
-    bool HasOverlay;
 };
 
 struct LevelVertex {

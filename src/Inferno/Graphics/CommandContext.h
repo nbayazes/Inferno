@@ -97,6 +97,14 @@ namespace Inferno::Graphics {
         void SetConstantsArray(uint rootIndex, uint numConstants, const void *data) {
             _cmdList->SetGraphicsRoot32BitConstants(rootIndex, numConstants, data, 0);
         }
+
+        void InsertUAVBarrier(GpuResource& resource) {
+            //D3D12_RESOURCE_BARRIER barrier{};
+            //barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            //barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            //barrier.UAV.pResource = resource.Get();
+            //_cmdList->ResourceBarrier(1, &barrier);
+        }
     };
 
 }

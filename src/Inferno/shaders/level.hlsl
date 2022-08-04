@@ -1,8 +1,9 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 23), "\
+    "RootConstants(b0, num32BitConstants = 26), "\
     "RootConstants(b1, num32BitConstants = 9), "\
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t8, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 Texture2D Diffuse : register(t0);
@@ -14,6 +15,7 @@ Texture2D Diffuse2 : register(t4);
 Texture2D StMask : register(t5);
 Texture2D Emissive2 : register(t6);
 Texture2D Specular2 : register(t7);
+Texture2D Depth : register(t8);
 
 SamplerState sampler0 : register(s0);
 
@@ -25,6 +27,7 @@ cbuffer FrameConstants : register(b0) {
     float4x4 ProjectionMatrix;
     float3 Eye;
     float3 LightDirection;
+    float2 FrameSize;
 };
 
 cbuffer InstanceConstants : register(b1) {
@@ -91,6 +94,10 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
     float4 emissive = Emissive.Sample(sampler0, input.uv) * base;
     emissive.a = 0;
 
+    float depth = Depth.Sample(sampler0, (input.pos.xy + 0.5) / FrameSize);
+    float fogx = depth * 6;
+    float4 fog = float4(float3(1, 0, 0) * fogx, 1);
+    
     if (HasOverlay) {
         // Apply supertransparency mask
         float mask = StMask.Sample(sampler0, input.uv2).r; // only need a single channel
@@ -120,7 +127,7 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
         //float multiplier = length(emissive.rgb); 
         //lighting.a = saturate(lighting.a);
         //output.Color = diffuse * lighting;
-        return diffuse * lighting;
+        return diffuse * lighting + fog;
         // assume overlay is only emissive source for now
         //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
         //output.Emissive = diffuse * (1 + lighting);
@@ -135,6 +142,8 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
         //output.Emissive = base * lighting;
         if (base.a < 0.01f)
             discard;
-        return base * lighting;
+        
+        
+        return base * lighting + fog;
     }
 }
