@@ -467,6 +467,7 @@ namespace Inferno {
             auto height = m_outputSize.bottom;
 
             Render::Effects->Compile(m_d3dDevice.Get(), IntermediateFormat, Settings::MsaaSamples);
+            PostFx::Scanline.Load(L"shaders/ScanlineCS.hlsl");
             Render::Bloom->ReloadShaders();
 
             CreateBuffers(width, height);
@@ -636,6 +637,8 @@ namespace Inferno {
         SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
         SceneColorBuffer.AddUnorderedAccessView();
         BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
+        BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
+        BriefingScanlineBuffer.AddUnorderedAccessView();
 
         if (Settings::MsaaSamples > 1) {
             MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::MsaaSamples);

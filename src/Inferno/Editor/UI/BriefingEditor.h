@@ -10,13 +10,14 @@ namespace Inferno::Editor {
     class BriefingEditor : public WindowBase {
         int _txbIndex = 0;
         string _buffer;
+        Briefing _briefing;
         static constexpr int BUFFER_SIZE = 2048 * 10;
     public:
         BriefingEditor() : WindowBase("Briefing Editor", &Settings::Windows.BriefingEditor) {
             _buffer.resize(BUFFER_SIZE);
         }
 
-        inline static Briefing::Screen DebugBriefingScreen;
+        inline static Briefing DebugBriefing;
 
     protected:
         void OnUpdate() override {
@@ -49,8 +50,16 @@ namespace Inferno::Editor {
                 //ImGui::SameLine();
 
                 ImGui::BeginChild("preview", { 0, 0 }, true);
-                auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
-                ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+                {
+                    auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
+                    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+                }
+                ImGui::SameLine();
+                {
+                    auto srv = Render::Adapter->BriefingScanlineBuffer.GetSRV();
+                    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+                }
+
                 ImGui::EndChild();
 
 
@@ -75,10 +84,8 @@ namespace Inferno::Editor {
 
         void OpenBriefing(HogEntry& entry) {
             auto data = Game::Mission->ReadEntry(entry);
-            auto briefing = Briefing::Read(data);
-            _buffer = briefing.Raw;
-            if (!briefing.Screens.empty())
-                DebugBriefingScreen = briefing.Screens[1];
+            _briefing = Briefing::Read(data);
+            DebugBriefing = _briefing;
         }
     };
 }

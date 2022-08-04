@@ -852,12 +852,16 @@ namespace Inferno::Render {
         ctx.ClearColor(target);
         ctx.SetRenderTarget(target.GetRTV());
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
-        auto& screen = Editor::BriefingEditor::DebugBriefingScreen;
-        if (!screen.Pages.empty()) {
-            DrawGameText(screen.Pages[0], *BriefingCanvas, target, 20, 20, FontSize::Small, { 0, 1, 0 });
+        auto& briefing = Editor::BriefingEditor::DebugBriefing;
+        if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
+            DrawGameText(briefing.Screens[1].Pages[1], *BriefingCanvas, target, 20, 20, FontSize::Small, { 0, 1, 0 });
         }
         BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
+
+        PostFx::Scanline.Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
+        Adapter->BriefingScanlineBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         target.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
         ctx.EndEvent();
     }
 

@@ -270,7 +270,6 @@ namespace Inferno {
 
         Briefing briefing;
         briefing.Raw.resize(data.size() + 1);
-        //auto dest = span{ briefing.Raw.data(), briefing.Raw.size() };
         std::copy(data.begin(), data.end(), briefing.Raw.begin());
         briefing.Screens = ParseScreens(data);
         return briefing;

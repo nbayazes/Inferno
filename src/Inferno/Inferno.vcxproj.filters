@@ -495,5 +495,8 @@
       <Filter>Resource Files</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\..\thirdparty.txt" />
+    <CopyFileToFolders Include="shaders\ScanlineCS.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

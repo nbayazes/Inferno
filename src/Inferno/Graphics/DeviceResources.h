@@ -87,6 +87,7 @@ namespace Inferno {
         Inferno::DepthBuffer SceneDepthBuffer;
 
         Inferno::RenderTarget BriefingColorBuffer;
+        Inferno::RenderTarget BriefingScanlineBuffer;
 
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {

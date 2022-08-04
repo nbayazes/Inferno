@@ -35,6 +35,27 @@ namespace Inferno::PostFx {
         }
     };
 
+    class ScanlineCS : public ComputeShader {
+        enum RootSig { B0_Constants, U0_Result, T0_Source };
+    public:
+        ScanlineCS() : ComputeShader(8, 8) {}
+
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) {
+            source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+            float constants[2] = {
+                1.0f / dest.GetWidth(), 1.0f / dest.GetHeight()
+            };
+
+            commandList->SetComputeRootSignature(_rootSignature.Get());
+            commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
+            commandList->SetComputeRootDescriptorTable(U0_Result, dest.GetUAV());
+            commandList->SetComputeRootDescriptorTable(T0_Source, source.GetSRV());
+            commandList->SetPipelineState(_pso.Get());
+            Dispatch2D(commandList, dest);
+        }
+    };
+
     class BloomExtractDownsampleCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_Bloom, U1_Luma, T0_Source, T1_Emissive };
     public:
@@ -248,4 +269,6 @@ namespace Inferno::PostFx {
             PIXEndEvent(commandList);
         }
     };
+
+    inline ScanlineCS Scanline;
 }

@@ -89,6 +89,7 @@ namespace Inferno::Graphics {
 
         template<class T>
         void ApplyEffect(const Effect<T>& effect) {
+            assert(effect.PipelineState);
             _cmdList->SetPipelineState(effect.PipelineState.Get());
             _cmdList->SetGraphicsRootSignature(effect.Shader->RootSignature.Get());
         }

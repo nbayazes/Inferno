@@ -34,11 +34,12 @@ namespace Inferno::Render {
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, outputSize.x, outputSize.y, 0.0, 0.0, -2.0f);
 
             auto cmdList = ctx.CommandList();
-            ctx.ApplyEffect(Effects->UserInterface);
-            Shaders->UserInterface.SetWorldViewProjection(cmdList, orthoProj);
+            auto& effect = Effects->UserInterface;
+            ctx.ApplyEffect(effect);
+            effect.Shader->SetWorldViewProjection(cmdList, orthoProj);
 
             for (auto& [texture, group] : _commands) {
-                Shaders->UserInterface.SetDiffuse(cmdList, texture->GetSRV());
+                effect.Shader->SetDiffuse(cmdList, texture->GetSRV());
                 _batch.Begin(cmdList);
                 for (auto& c : group)
                     _batch.DrawQuad(c.V0, c.V1, c.V2, c.V3);
