@@ -645,13 +645,6 @@ namespace Inferno::Render {
     IEffect* _activeEffect;
 
     void DepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
-        FlatLevelShader::Constants consts = {};
-        consts.WVP = ViewProjection;
-        consts.Eye = Camera.Position;
-        auto& effect = Effects->LevelWallFlat;
-        effect.Apply(cmdList);
-        effect.Shader->SetConstants(cmdList, consts);
-
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
@@ -745,22 +738,38 @@ namespace Inferno::Render {
         }
     }
 
-    void ClearMainRenderTarget(GraphicsContext& ctx) {
+    void ClearDepthPrepass(GraphicsContext& ctx) {
         ctx.BeginEvent(L"Clear");
 
         auto& target = Adapter->GetHdrRenderTarget();
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+        auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
+        //D3D12_CPU_DESCRIPTOR_HANDLE targets[] = {
+        //    linearDepthBuffer.GetRTV(),
+        //    linearDepthBuffer.GetRTV()
+        //};
+
+        ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
         ctx.ClearColor(target);
         ctx.ClearDepth(depthBuffer);
+        ctx.ClearColor(linearDepthBuffer);
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
-        auto output = Adapter->GetOutputSize();
-        Camera.SetViewport(output.x, output.y);
-        Camera.LookAtPerspective();
-        ViewProjection = Camera.ViewProj();
-        CameraFrustum = Camera.GetFrustum();
+        linearDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
 
         ctx.EndEvent();
+    }
+
+    void ClearMainRenderTarget(GraphicsContext& ctx) {
+        //ctx.BeginEvent(L"Clear");
+
+        auto& target = Adapter->GetHdrRenderTarget();
+        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+        //ctx.ClearColor(target);
+        //ctx.ClearDepth(depthBuffer);
+        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+
+        //ctx.EndEvent();
     }
 
     void DrawLevel(GraphicsContext& ctx, float lerp) {
@@ -798,22 +807,43 @@ namespace Inferno::Render {
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+
         {
             // Depth prepass
+            ClearDepthPrepass(ctx);
+
             //ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
+            FlatLevelShader::Constants consts = {};
+            consts.WVP = ViewProjection;
+            consts.Eye = Camera.Position;
+            auto& effect = Effects->LevelWallFlat;
+            effect.Apply(ctx.CommandList());
+            effect.Shader->SetConstants(ctx.CommandList(), consts);
 
             for (auto& cmd : _opaqueQueue)
                 DepthPrepass(ctx.CommandList(), cmd, lerp);
 
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-            auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
-            PostFx::LinearizeDepth.Execute(ctx.CommandList(), depthBuffer, linearDepthBuffer);
+            //auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
+            //PostFx::LinearizeDepth.Execute(ctx.CommandList(), depthBuffer, linearDepthBuffer);
             //ctx.SetRenderTarget(Adapter->GetHdrRenderTarget().GetRTV(), Adapter->GetHdrDepthBuffer().GetDSV());
             //ctx.InsertUAVBarrier(Adapter->GetHdrDepthBuffer());
 
-            linearDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            if (Settings::MsaaSamples > 1) {
+                // do this for debugging / displaying in UI
+                Adapter->LinearizedDepthBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaLinearizedDepthBuffer);
+                Adapter->MsaaLinearizedDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            }
+
+            Adapter->LinearizedDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             depthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_DEPTH_READ);
         }
+
+        //ClearMainRenderTarget(ctx);
+        auto& target = Adapter->GetHdrRenderTarget();
+        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
 
         {
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
@@ -925,7 +955,13 @@ namespace Inferno::Render {
 
         Heaps->SetDescriptorHeaps(ctx.CommandList());
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
-        ClearMainRenderTarget(ctx);
+
+        auto output = Adapter->GetOutputSize();
+        Camera.SetViewport(output.x, output.y);
+        Camera.LookAtPerspective();
+        ViewProjection = Camera.ViewProj();
+        CameraFrustum = Camera.GetFrustum();
+
         DrawLevel(ctx, alpha);
 
         PostProcess(ctx);

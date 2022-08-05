@@ -44,12 +44,12 @@ namespace Inferno {
             _state = state;
         }
 
-        void CreateOnUploadHeap(wstring name) {
-            Create(D3D12_HEAP_TYPE_UPLOAD, name);
+        void CreateOnUploadHeap(wstring name, D3D12_CLEAR_VALUE* clearValue = nullptr) {
+            Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }
 
-        void CreateOnDefaultHeap(wstring name) {
-            Create(D3D12_HEAP_TYPE_DEFAULT, name);
+        void CreateOnDefaultHeap(wstring name, D3D12_CLEAR_VALUE* clearValue = nullptr) {
+            Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue);
         }
 
         // If desc is null then default initialization is used. Not supported for all resources.
@@ -63,7 +63,7 @@ namespace Inferno {
         }
 
     private:
-        void Create(D3D12_HEAP_TYPE heapType, wstring name) {
+        void Create(D3D12_HEAP_TYPE heapType, wstring name, D3D12_CLEAR_VALUE* clearValue) {
             _heapType = heapType;
             CD3DX12_HEAP_PROPERTIES props(_heapType);
             ThrowIfFailed(
@@ -72,7 +72,7 @@ namespace Inferno {
                     D3D12_HEAP_FLAG_NONE,
                     &_desc,
                     _state,
-                    nullptr,
+                    clearValue,
                     IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
             _resource->SetName(name.c_str());
@@ -125,6 +125,18 @@ namespace Inferno {
             if (!_rtv) _rtv = Render::Heaps->RenderTargets.Allocate();
             Render::Device->CreateRenderTargetView(Get(), &_rtvDesc, _rtv.GetCpuHandle());
         }
+
+        bool IsMultisampled() { return _desc.SampleDesc.Count > 1; }
+
+        // Copies a MSAA source into a non-sampled buffer
+        void ResolveFromMultisample(ID3D12GraphicsCommandList* commandList, PixelBuffer& src) {
+            if (!src.IsMultisampled())
+                throw std::exception("Source must be multisampled");
+
+            src.Transition(commandList, D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+            Transition(commandList, D3D12_RESOURCE_STATE_RESOLVE_DEST);
+            commandList->ResolveSubresource(Get(), 0, src.Get(), 0, src._desc.Format);
+        }
     };
 
     class Texture2D : public PixelBuffer {
@@ -152,7 +164,7 @@ namespace Inferno {
             upload.SlicePitch = upload.RowPitch * GetHeight();
 
             if (!_resource)
-                CreateOnDefaultHeap(name);
+                CreateOnDefaultHeap(name, nullptr);
 
             auto resource = _resource.Get();
             batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -173,7 +185,7 @@ namespace Inferno {
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
 
-            CreateOnDefaultHeap(name);
+            CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
@@ -201,23 +213,23 @@ namespace Inferno {
         uint32 _fragmentCount, _sampleCount;
 
     public:
-        Color ClearColor;
+        Color ClearColor = { 0, 0, 0, 0 };
 
         void Create(wstring name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
             _sampleCount = samples;
 
             CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height);
+            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1, samples);
             _desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-            _desc.MipLevels = 1;
             if (samples == 1)
                 _desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 
-            //D3D12_CLEAR_VALUE optimizedClearValue = {};
-            //optimizedClearValue.Format = format;
-            //memcpy(optimizedClearValue.Color, ClearColor, sizeof(ClearColor));
-            CreateOnDefaultHeap(name);
+            D3D12_CLEAR_VALUE clearValue = {};
+            clearValue.Format = format;
+            memcpy(clearValue.Color, ClearColor, sizeof(ClearColor));
+
+            CreateOnDefaultHeap(name, &clearValue);
 
             _rtvDesc.Format = format;
             _rtvDesc.ViewDimension = samples == 1 ? D3D12_RTV_DIMENSION_TEXTURE2D : D3D12_RTV_DIMENSION_TEXTURE2DMS;
@@ -321,6 +333,7 @@ namespace Inferno {
                 _dsv = Render::Heaps->DepthStencil.Allocate();
 
             Render::Device->CreateDepthStencilView(_resource.Get(), &_dsvDesc, _dsv.GetCpuHandle());
+            assert(_dsv.GetCpuHandle().ptr);
 
             //if (!_roDescriptor)
             //    _roDescriptor = Render::Heaps->DepthStencil.Allocate();
@@ -366,9 +379,9 @@ namespace Inferno {
 
             _state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-            D3D12_CLEAR_VALUE optimizedClearValue = {};
-            optimizedClearValue.Format = format;
-            memcpy(optimizedClearValue.Color, clearColor, sizeof(float) * 4);
+            D3D12_CLEAR_VALUE clearValue = {};
+            clearValue.Format = format;
+            memcpy(clearValue.Color, clearColor, sizeof(float) * 4);
 
             // Create on default hep
             CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
@@ -377,7 +390,7 @@ namespace Inferno {
                 D3D12_HEAP_FLAG_NONE,
                 &_desc,
                 _state,
-                &optimizedClearValue,
+                &clearValue,
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
@@ -395,18 +408,6 @@ namespace Inferno {
             if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
             Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
             //AddShaderResourceView();
-        }
-
-        bool IsMultisampled() { return _desc.SampleDesc.Count > 1; }
-
-        // Copies a MSAA source into a non-sampled buffer
-        void ResolveFromMultisample(ID3D12GraphicsCommandList* commandList, RenderTarget& src) {
-            if (!src.IsMultisampled())
-                throw std::exception("Source must be multisampled");
-
-            src.Transition(commandList, D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
-            Transition(commandList, D3D12_RESOURCE_STATE_RESOLVE_DEST);
-            commandList->ResolveSubresource(Get(), 0, src.Get(), 0, src._desc.Format);
         }
 
         //void SetAsRenderTarget(ID3D12GraphicsCommandList* commandList, Inferno::DepthBuffer* depthBuffer = nullptr) {

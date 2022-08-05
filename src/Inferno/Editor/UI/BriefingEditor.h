@@ -52,8 +52,9 @@ namespace Inferno::Editor {
                 ImGui::BeginChild("preview", { 0, 0 }, true);
                 {
                     //auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
-                    //auto srv = Render::Adapter->LinearizedDepthBuffer.GetSRV();
-                    //ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+                    auto srv = Render::Adapter->LinearizedDepthBuffer.GetSRV();
+                    //auto srv = Render::Adapter->GetLinearDepthBuffer().GetSRV();
+                    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
                 }
                 ImGui::SameLine();
                 {

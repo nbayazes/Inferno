@@ -58,6 +58,12 @@ namespace Inferno::Graphics {
             _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
         }
 
+        void ClearColor(ColorBuffer& target, D3D12_RECT* rect = nullptr) {
+            //FlushResourceBarriers();
+            target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+            _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
+        }
+
         void ClearDepth(DepthBuffer& target, D3D12_RECT* rect = nullptr) {
             //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);

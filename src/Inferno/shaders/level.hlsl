@@ -97,6 +97,7 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
     float depth = Depth.Sample(sampler0, (input.pos.xy + 0.5) / FrameSize);
     float fogx = depth * 6;
     float4 fog = float4(float3(1, 0, 0) * fogx, 1);
+    fog = 0;
     
     if (HasOverlay) {
         // Apply supertransparency mask

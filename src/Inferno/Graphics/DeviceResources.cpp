@@ -637,6 +637,7 @@ namespace Inferno {
         LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DXGI_FORMAT_R8_UNORM);
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
+        LinearizedDepthBuffer.AddRenderTargetView();
         SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, 1);
         SceneColorBuffer.AddUnorderedAccessView();
         SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
@@ -648,10 +649,13 @@ namespace Inferno {
             MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::MsaaSamples);
             MsaaDepthBuffer.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::MsaaSamples);
             MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", scaledWidth, scaledHeight, DXGI_FORMAT_R8_UNORM, Settings::MsaaSamples);
+            MsaaLinearizedDepthBuffer.AddRenderTargetView();
+            MsaaLinearizedDepthBuffer.AddShaderResourceView();
         }
         else {
             MsaaColorBuffer.Release();
             MsaaDepthBuffer.Release();
+            MsaaLinearizedDepthBuffer.Release();
         }
     }
 

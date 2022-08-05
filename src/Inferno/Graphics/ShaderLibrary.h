@@ -413,8 +413,9 @@ namespace Inferno {
             Compile(LevelWall);
             Compile(LevelWallAdditive);
 
-            Compile(LevelFlat);
-            Compile(LevelWallFlat);
+            auto depthFormat = DXGI_FORMAT_R8_UNORM;
+            Compile(LevelFlat, 1, &depthFormat);
+            Compile(LevelWallFlat, 1, &depthFormat);
 
             Compile(Object);
             Compile(ObjectGlow);
