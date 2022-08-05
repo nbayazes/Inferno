@@ -387,7 +387,7 @@ namespace Inferno::Render {
         consts.Time = (float)ElapsedTime;
         consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
-        Shaders->Level.SetDepthTexture(cmdList, Adapter->GetLinearDepthBuffer().GetSRV());
+        Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
 
         if (chunk.Cloaked) {
             Shaders->Level.SetMaterial1(cmdList, Materials->Black);
@@ -661,6 +661,58 @@ namespace Inferno::Render {
         }
     }
 
+    void DepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
+        switch (cmd.Type) {
+            case RenderCommandType::LevelMesh:
+            {
+                auto& mesh = *cmd.Data.LevelMesh;
+                if (!mesh.Chunk) return;
+                auto& chunk = *mesh.Chunk;
+
+                DepthCutoutShader::Constants consts{};
+                consts.WVP = ViewProjection;
+                consts.NearClip = Camera.NearClip;
+                consts.FarClip = Camera.FarClip;
+                consts.Time = (float)ElapsedTime;
+                consts.Threshold = 0.01f;
+
+                auto& effect = Effects->DepthCutout;
+                effect.Apply(cmdList);
+                effect.Shader->SetSampler(cmdList, GetTextureSampler());
+
+                {
+                    auto& map1 = chunk.EffectClip1 == EClipID::None ?
+                        Materials->Get(chunk.TMap1) :
+                        Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
+
+                    effect.Shader->SetMaterial1(cmdList, map1);
+                }
+
+                if (chunk.TMap2 > LevelTexID::Unset) {
+                    consts.HasOverlay = true;
+
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ?
+                        Materials->Get(chunk.TMap2) :
+                        Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
+
+                    effect.Shader->SetMaterial2(cmdList, map2);
+                }
+
+                auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
+                consts.Scroll = ti.Slide;
+                consts.Scroll2 = chunk.OverlaySlide;
+                effect.Shader->SetConstants(cmdList, consts);
+
+                mesh.Draw(cmdList);
+                DrawCalls++;
+                break;
+            }
+            case RenderCommandType::Object:
+                //DrawObject(cmdList, *cmd.Data.Object, lerp/*, transparentPass*/);
+                break;
+        }
+    }
+
     void ExecuteRenderCommand(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float alpha, bool transparentPass) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
@@ -739,8 +791,6 @@ namespace Inferno::Render {
     }
 
     void ClearDepthPrepass(GraphicsContext& ctx) {
-        ctx.BeginEvent(L"Clear");
-
         auto& target = Adapter->GetHdrRenderTarget();
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
@@ -755,8 +805,6 @@ namespace Inferno::Render {
         ctx.ClearColor(linearDepthBuffer);
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
         linearDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-        ctx.EndEvent();
     }
 
     void ClearMainRenderTarget(GraphicsContext& ctx) {
@@ -809,19 +857,32 @@ namespace Inferno::Render {
 
 
         {
+            ctx.BeginEvent(L"Depth prepass");
             // Depth prepass
             ClearDepthPrepass(ctx);
 
             //ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
-            FlatLevelShader::Constants consts = {};
-            consts.WVP = ViewProjection;
-            consts.Eye = Camera.Position;
-            auto& effect = Effects->LevelWallFlat;
-            effect.Apply(ctx.CommandList());
-            effect.Shader->SetConstants(ctx.CommandList(), consts);
+            {
+                DepthShader::Constants consts{};
+                consts.WVP = ViewProjection;
+                consts.NearClip = Camera.NearClip;
+                consts.FarClip = Camera.FarClip;
 
-            for (auto& cmd : _opaqueQueue)
-                DepthPrepass(ctx.CommandList(), cmd, lerp);
+                auto& effect = Effects->Depth;
+                effect.Apply(ctx.CommandList());
+                effect.Shader->SetConstants(ctx.CommandList(), consts);
+
+                for (auto& cmd : _opaqueQueue)
+                    DepthPrepass(ctx.CommandList(), cmd, lerp);
+            }
+
+            {
+                auto& effect = Effects->DepthCutout;
+                effect.Apply(ctx.CommandList());
+
+                for (auto& cmd : _transparentQueue)
+                    DepthCutout(ctx.CommandList(), cmd, lerp);
+            }
 
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
             //auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
@@ -837,6 +898,7 @@ namespace Inferno::Render {
 
             Adapter->LinearizedDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             depthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_DEPTH_READ);
+            ctx.EndEvent();
         }
 
         //ClearMainRenderTarget(ctx);

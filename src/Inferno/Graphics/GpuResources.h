@@ -213,7 +213,7 @@ namespace Inferno {
         uint32 _fragmentCount, _sampleCount;
 
     public:
-        Color ClearColor = { 0, 0, 0, 0 };
+        Color ClearColor = { 0, 0, 0, 1 };
 
         void Create(wstring name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
             _sampleCount = samples;

@@ -466,7 +466,7 @@ namespace Inferno {
             auto width = m_outputSize.right;
             auto height = m_outputSize.bottom;
 
-            Render::Effects->Compile(m_d3dDevice.Get(), IntermediateFormat, Settings::MsaaSamples);
+            Render::Effects->Compile(m_d3dDevice.Get(), Settings::MsaaSamples);
             PostFx::Scanline.Load(L"shaders/ScanlineCS.hlsl");
             PostFx::LinearizeDepth.Load(L"shaders/LinearizeDepthCS.hlsl");
             Render::Bloom->ReloadShaders();
@@ -633,8 +633,8 @@ namespace Inferno {
 
         // Order of buffer creation matters
         Color clearColor(0.1f, 0.1f, 0.1f);
-
-        LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DXGI_FORMAT_R8_UNORM);
+        //constexpr auto linearBufferFormat = IntermediateFormat;
+        LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
         LinearizedDepthBuffer.AddRenderTargetView();
@@ -648,7 +648,7 @@ namespace Inferno {
         if (Settings::MsaaSamples > 1) {
             MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::MsaaSamples);
             MsaaDepthBuffer.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::MsaaSamples);
-            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", scaledWidth, scaledHeight, DXGI_FORMAT_R8_UNORM, Settings::MsaaSamples);
+            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
         }

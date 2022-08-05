@@ -11,8 +11,8 @@ namespace Inferno {
     // Shader definition to allow recompilation
     struct ShaderInfo {
         std::wstring File;
-        string VSEntryPoint;
-        string PSEntryPoint;
+        string VSEntryPoint = "vsmain";
+        string PSEntryPoint = "psmain";
     };
 
     using HlslBool = int32; // For alignment on GPU
@@ -37,7 +37,6 @@ namespace Inferno {
         };
 
         static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
-
     };
 
     struct FlatVertex {
@@ -91,7 +90,8 @@ namespace Inferno {
 
         ShaderInfo Info;
         D3D12_INPUT_LAYOUT_DESC InputLayout;
-        
+        DXGI_FORMAT Format = DXGI_FORMAT_R11G11B10_FLOAT;
+
         ComPtr<ID3DBlob> VertexShader;
         ComPtr<ID3DBlob> PixelShader;
         ComPtr<ID3D12RootSignature> RootSignature;
@@ -124,6 +124,69 @@ namespace Inferno {
 
         void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
+        }
+    };
+
+    class DepthShader : public IShader {
+        enum RootParameterIndex : uint {
+            Constant,
+            RootParameterCount
+        };
+    public:
+        struct Constants {
+            Matrix WVP;
+            float NearClip, FarClip;
+        };
+
+        const static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
+
+        DepthShader(ShaderInfo info) : IShader(info) {
+            InputLayout = LevelVertex::Layout;
+            Format = OutputFormat;
+        }
+
+        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
+        }
+    };
+
+    class DepthCutoutShader : public IShader {
+        enum RootParameterIndex : uint {
+            Constant,
+            Material1,
+            Material2,
+            Sampler,
+            RootParameterCount
+        };
+    public:
+        struct Constants {
+            Matrix WVP;
+            float NearClip, FarClip;
+            float Time;
+            HlslBool HasOverlay;
+            Vector2 Scroll, Scroll2; // For UV scrolling
+            float Threshold = 0;
+        };
+
+        DepthCutoutShader(ShaderInfo info) : IShader(info) {
+            InputLayout = LevelVertex::Layout;
+            Format = DepthShader::OutputFormat;
+        }
+
+        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
+        }
+
+        void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[Material2D::Diffuse]);
+        }
+
+        void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[Material2D::SuperTransparency]);
+        }
+
+        void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
     };
 
@@ -312,6 +375,7 @@ namespace Inferno {
     public:
         UIShader(ShaderInfo info) : IShader(info) {
             InputLayout = CanvasVertex::Layout;
+            Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         }
 
         void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
@@ -353,12 +417,14 @@ namespace Inferno {
 
     void CompileShader(IShader*) noexcept;
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, DXGI_FORMAT format, uint msaaSamples, uint renderTargets = 1);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets = 1);
 
     struct ShaderResources {
         LevelShader Level = ShaderInfo{ L"shaders/level.hlsl", "VSLevel", "PSLevel" };
         FlatLevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl", "VSLevel", "PSLevel" };
         FlatShader Flat = ShaderInfo{ L"shaders/editor.hlsl", "VSFlat", "PSFlat" };
+        DepthShader Depth = ShaderInfo{ L"shaders/Depth.hlsl" };
+        DepthCutoutShader DepthCutout = ShaderInfo{ L"shaders/DepthCutout.hlsl" };
         UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl", "VSMain", "PSMain" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl", "VSMain", "PSMain" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl", "VSMain", "PSMain" };
@@ -372,8 +438,10 @@ namespace Inferno {
         Effect<LevelShader> Level = { &_shaders->Level, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<LevelShader> LevelWall = { &_shaders->Level, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat };
-        Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha } };
+        Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque } };
+        Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Opaque } };
+        Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
+        Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
@@ -384,7 +452,7 @@ namespace Inferno {
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
 
-        void Compile(ID3D12Device* device, DXGI_FORMAT format, uint msaaSamples) {
+        void Compile(ID3D12Device* device, uint msaaSamples) {
             auto Reset = [](IShader& shader) {
                 shader.PixelShader.Reset();
                 shader.VertexShader.Reset();
@@ -397,11 +465,12 @@ namespace Inferno {
             CompileShader(&_shaders->UserInterface);
             CompileShader(&_shaders->Sprite);
             CompileShader(&_shaders->Object);
+            CompileShader(&_shaders->Depth);
+            CompileShader(&_shaders->DepthCutout);
 
-            auto Compile = [&](auto& effect, uint renderTargets = 1, DXGI_FORMAT* formatOverride = nullptr) {
+            auto Compile = [&](auto& effect, uint renderTargets = 1) {
                 try {
-                    auto fmt = formatOverride ? *formatOverride : format;
-                    auto psoDesc = BuildPipelineStateDesc(effect.Settings, effect.Shader, fmt, msaaSamples, renderTargets);
+                    auto psoDesc = BuildPipelineStateDesc(effect.Settings, effect.Shader, msaaSamples, renderTargets);
                     ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&effect.PipelineState)));
                 }
                 catch (const std::exception& e) {
@@ -413,9 +482,11 @@ namespace Inferno {
             Compile(LevelWall);
             Compile(LevelWallAdditive);
 
-            auto depthFormat = DXGI_FORMAT_R8_UNORM;
-            Compile(LevelFlat, 1, &depthFormat);
-            Compile(LevelWallFlat, 1, &depthFormat);
+            Compile(Depth);
+            Compile(DepthCutout);
+
+            Compile(LevelFlat);
+            Compile(LevelWallFlat);
 
             Compile(Object);
             Compile(ObjectGlow);
@@ -427,8 +498,7 @@ namespace Inferno {
             Compile(EditorSelection);
             Compile(Line);
 
-            auto backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM; // todo: pass this as a parameter. The debug UI is rendered on top of the scene.
-            Compile(UserInterface, 1, &backBufferFormat);
+            Compile(UserInterface);
 
             //msaaSamples = 1;
             //Compile(Emissive);

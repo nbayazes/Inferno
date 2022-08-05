@@ -501,5 +501,11 @@
     <CopyFileToFolders Include="shaders\LinearizeDepthCS.hlsl">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\DepthCutout.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\Depth.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

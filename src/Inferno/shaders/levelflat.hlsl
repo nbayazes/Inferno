@@ -1,10 +1,6 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "RootConstants(b0, num32BitConstants = 19)"
 
-static const float PI = 3.14159265f;
-static const float PIDIV2 = PI / 2;
-static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
-            
 cbuffer FrameConstants : register(b0) {
     float4x4 ProjectionMatrix;
     float3 Eye;
@@ -20,19 +16,20 @@ struct LevelVertex {
 
 struct PS_INPUT {
     float4 pos : SV_POSITION;
+    float4 col : COLOR0;
     float3 normal : NORMAL;
-    float depth : COLOR0;
+    float3 world : TEXCOORD2;
 };
 
-/*
-    Combined level shader
-*/ 
+
 [RootSignature(RS)]
 PS_INPUT VSLevel(LevelVertex input) {
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos, 1));
+    output.pos = mul(ProjectionMatrix, float4(input.pos.xyz, 1));
+    //output.col = float4(1, 0.72, 0.25, 1);
+    output.col = float4(0.8, 0.8, 0.8, 1);
     output.normal = input.normal;
-    output.depth = output.pos.z / output.pos.w;
+    output.world = input.pos; // level geometry is already in world coordinates
     return output;
 }
 
@@ -43,25 +40,10 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
     return float4(specular, 0);
 }
 
-
-float linearizeDepth(in float depth) {
-    float n = 0.1;
-    float f = 90.0f;
-    return n / (f - depth * (f - n)) * f;
-}
-
-struct PS_OUTPUT {
-    //float4 Color : SV_Target0;
-    float Depth : SV_Target0;
-};
-
-PS_OUTPUT PSLevel(PS_INPUT input) : SV_Target {
-    PS_OUTPUT output;
-    //float3 lightDir = normalize(float3(-1, -2, 0));
-    //float4 color = float4(0.8, 0.8, 0.8, 1);
-    //color *= 0.6 - dot(lightDir, input.normal) * 0.4;
-    //color.a = 0.75;
-    //output.Color = saturate(color);
-    output.Depth = input.depth;
-    return output;
+float4 PSLevel(PS_INPUT input) : SV_Target {
+    float3 lightDir = normalize(float3(-1, -2, 0));
+    float4 color = input.col;
+    color *= 0.6 - dot(lightDir, input.normal) * 0.4;
+    color.a = 0.75;
+    return saturate(color);
 }

@@ -28,7 +28,7 @@ namespace Inferno {
         }
     }
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, DXGI_FORMAT format, uint msaaSamples, uint renderTargets) {
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets) {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         if (!shader->RootSignature || !shader->VertexShader || !shader->PixelShader)
             throw Exception("Shader is not valid");
@@ -69,7 +69,7 @@ namespace Inferno {
         psoDesc.PrimitiveTopologyType = effect.TopologyType;
         psoDesc.NumRenderTargets = renderTargets;
         for (uint i = 0; i < renderTargets; i++)
-            psoDesc.RTVFormats[i] = format;
+            psoDesc.RTVFormats[i] = shader->Format;
 
         psoDesc.SampleDesc.Count = effect.EnableMultisample ? msaaSamples : 1;
         return psoDesc;
