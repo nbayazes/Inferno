@@ -1,10 +1,11 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 19)"
+    "CBV(b0)"
 
 cbuffer FrameConstants : register(b0) {
     float4x4 ProjectionMatrix;
     float NearClip, FarClip;
-};
+    float Time; // elapsed game time in seconds
+}
 
 struct LevelVertex {
     float3 pos : POSITION;

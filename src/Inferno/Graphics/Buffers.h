@@ -102,54 +102,54 @@ namespace Inferno {
         }
     };
 
-    class RingBuffer {
-        struct FrameResource {
-            uint Frame;
-            uint8* ResourceOffset;
-        };
+    //class RingBuffer {
+    //    struct FrameResource {
+    //        uint Frame;
+    //        uint8* ResourceOffset;
+    //    };
 
-        Queue<FrameResource> _frameQueue;
-        uint _size;
+    //    Queue<FrameResource> _frameQueue;
+    //    uint _size;
 
-    public:
-        void Update() {}
+    //public:
+    //    void Update() {}
 
-        //void Suballocate(ID3D12CommandQueue* cmdQueue, uint size, uint alignment) {
-        //    // check memory
-        //
-        //};
-    };
+    //    //void Suballocate(ID3D12CommandQueue* cmdQueue, uint size, uint alignment) {
+    //    //    // check memory
+    //    //
+    //    //};
+    //};
 
-    template<class T>
-    class DynamicBuffer {
-        bool _mapped = false;
-    public:
-        ComPtr<ID3D12Resource> Resource;
+    //template<class T>
+    //class DynamicBuffer {
+    //    bool _mapped = false;
+    //public:
+    //    ComPtr<ID3D12Resource> Resource;
 
-        void Map(void* data) {
-            // technically resources support nested mapping, but unsure when you'd want to do so
-            if (_mapped) throw Exception("Buffer is already mapped");
-            ThrowIfFailed(Resource->Map(0, &CPU_READ_NONE, &data));
-            _mapped = true;
-        }
+    //    void Map(void* data) {
+    //        // technically resources support nested mapping, but unsure when you'd want to do so
+    //        if (_mapped) throw Exception("Buffer is already mapped");
+    //        ThrowIfFailed(Resource->Map(0, &CPU_READ_NONE, &data));
+    //        _mapped = true;
+    //    }
 
-        bool Copy(List<T>& src) {
-            /*if (src.size() > Size) return false;
-            memcpy(data, src.data(), src.size() * sizeof(T));
-            return true;*/
-        }
+    //    bool Copy(List<T>& src) {
+    //        /*if (src.size() > Size) return false;
+    //        memcpy(data, src.data(), src.size() * sizeof(T));
+    //        return true;*/
+    //    }
 
-        void Unmap() {
-            Resource->Unmap(0, &CPU_READ_NONE);
-            _mapped = false;
+    //    void Unmap() {
+    //        Resource->Unmap(0, &CPU_READ_NONE);
+    //        _mapped = false;
 
-            // transition copy state
-        }
+    //        // transition copy state
+    //    }
 
-        /*void CopyTo(Buffer<T> buffer) {
+    //    /*void CopyTo(Buffer<T> buffer) {
 
-        }*/
-    };
+    //    }*/
+    //};
 
     /* Buffer to allocate shader constants for each draw call. Stays mapped for its lifespan.
 
@@ -203,16 +203,6 @@ namespace Inferno {
         }
     };
 
-    //struct VertexBuffer {
-    //    ComPtr<ID3D12Resource> Resource;
-    //    D3D12_VERTEX_BUFFER_VIEW View{};
-    //};
-
-    //struct IndexBuffer {
-    //    ComPtr<ID3D12Resource> Resource;
-    //    D3D12_INDEX_BUFFER_VIEW View{};
-    //};
-
     // Fixed size upload heap buffer
     template<class T>
     struct Buffer {
@@ -233,6 +223,7 @@ namespace Inferno {
         }
     };
 
+    // Buffer for packing indices and vertices into a single buffer
     class PackedUploadBuffer {
         uint _offset = 0; // offset in bytes into the buffer
         uint _size;
@@ -324,10 +315,8 @@ namespace Inferno {
             _inUpdate = false;
 
             // copy to GPU
-            //if (!_buffer.empty()) {
-                memcpy(_mappedData, _buffer.data(), _buffer.size() * sizeof(T));
-                _gpuElements = _buffer.size();
-            //}
+            memcpy(_mappedData, _buffer.data(), _buffer.size() * sizeof(T));
+            _gpuElements = _buffer.size();
             return true;
         }
 

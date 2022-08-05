@@ -82,10 +82,36 @@ namespace Inferno {
 
     // General purpose buffer
     class GpuBuffer : public GpuResource {
+        DescriptorHandle _srv;
+        D3D12_SHADER_RESOURCE_VIEW_DESC _srvDesc{};
     public:
         GpuBuffer(uint64 size) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+        }
+
+        void CreateGenericBuffer(wstring_view name, uint32 elementSize, uint32 elementCount) {
+            _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount);
             _state = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            _srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Buffer.NumElements = elementCount;
+            _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+            ThrowIfFailed(Render::Device->CreateCommittedResource(
+                &heapProps,
+                D3D12_HEAP_FLAG_NONE,
+                &_desc,
+                _state,
+                nullptr,
+                IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
+            ));
+
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
+            _resource->SetName(name.data());
         }
     };
 

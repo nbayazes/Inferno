@@ -91,6 +91,8 @@ namespace Inferno {
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 
+        UploadBuffer<FrameConstants> FrameConstantsBuffer{ 2 };
+
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {
             return Settings::MsaaSamples > 1 ? MsaaColorBuffer : SceneColorBuffer;

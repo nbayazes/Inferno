@@ -670,10 +670,6 @@ namespace Inferno::Render {
                 auto& chunk = *mesh.Chunk;
 
                 DepthCutoutShader::Constants consts{};
-                consts.WVP = ViewProjection;
-                consts.NearClip = Camera.NearClip;
-                consts.FarClip = Camera.FarClip;
-                consts.Time = (float)ElapsedTime;
                 consts.Threshold = 0.01f;
 
                 auto& effect = Effects->DepthCutout;
@@ -838,7 +834,6 @@ namespace Inferno::Render {
             for (auto& mesh : _levelMeshBuilder.GetMeshes())
                 DrawOpaque({ &mesh, 0 });
 
-
             for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
                 float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
                 DrawTransparent({ &mesh, depth });
@@ -863,14 +858,9 @@ namespace Inferno::Render {
 
             //ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
             {
-                DepthShader::Constants consts{};
-                consts.WVP = ViewProjection;
-                consts.NearClip = Camera.NearClip;
-                consts.FarClip = Camera.FarClip;
-
                 auto& effect = Effects->Depth;
                 effect.Apply(ctx.CommandList());
-                effect.Shader->SetConstants(ctx.CommandList(), consts);
+                ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
                 for (auto& cmd : _opaqueQueue)
                     DepthPrepass(ctx.CommandList(), cmd, lerp);
@@ -879,6 +869,7 @@ namespace Inferno::Render {
             {
                 auto& effect = Effects->DepthCutout;
                 effect.Apply(ctx.CommandList());
+                ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
                 for (auto& cmd : _transparentQueue)
                     DepthCutout(ctx.CommandList(), cmd, lerp);
@@ -1023,6 +1014,16 @@ namespace Inferno::Render {
         Camera.LookAtPerspective();
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
+
+        FrameConstants constants{};
+        constants.ElapsedTime = ElapsedTime;
+        constants.WVP = Camera.ViewProj();
+        constants.NearClip = Camera.NearClip;
+        constants.FarClip = Camera.FarClip;
+
+        Adapter->FrameConstantsBuffer.Begin();
+        Adapter->FrameConstantsBuffer.Copy({ &constants, 1 });
+        Adapter->FrameConstantsBuffer.End();
 
         DrawLevel(ctx, alpha);
 

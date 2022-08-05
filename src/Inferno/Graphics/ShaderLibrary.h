@@ -15,6 +15,12 @@ namespace Inferno {
         string PSEntryPoint = "psmain";
     };
 
+    struct alignas(16) FrameConstants {
+        Matrix WVP;
+        float NearClip, FarClip;
+        float ElapsedTime;
+    };
+
     using HlslBool = int32; // For alignment on GPU
 
     constexpr D3D12_INPUT_LAYOUT_DESC CreateLayout(span<const D3D12_INPUT_ELEMENT_DESC> desc) {
@@ -129,29 +135,21 @@ namespace Inferno {
 
     class DepthShader : public IShader {
         enum RootParameterIndex : uint {
-            Constant,
+            FrameConstants,
             RootParameterCount
         };
     public:
-        struct Constants {
-            Matrix WVP;
-            float NearClip, FarClip;
-        };
-
         const static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
 
         DepthShader(ShaderInfo info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
             Format = OutputFormat;
         }
-
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
-        }
     };
 
     class DepthCutoutShader : public IShader {
         enum RootParameterIndex : uint {
+            FrameConstants,
             Constant,
             Material1,
             Material2,
@@ -160,11 +158,8 @@ namespace Inferno {
         };
     public:
         struct Constants {
-            Matrix WVP;
-            float NearClip, FarClip;
-            float Time;
-            HlslBool HasOverlay;
             Vector2 Scroll, Scroll2; // For UV scrolling
+            HlslBool HasOverlay;
             float Threshold = 0;
         };
 

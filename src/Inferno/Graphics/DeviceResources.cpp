@@ -644,6 +644,7 @@ namespace Inferno {
         BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
         BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
         BriefingScanlineBuffer.AddUnorderedAccessView();
+        //FrameConstantsBuffer.CreateGenericBuffer(L"Frame constants");
 
         if (Settings::MsaaSamples > 1) {
             MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::MsaaSamples);

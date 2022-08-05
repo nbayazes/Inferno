@@ -100,17 +100,36 @@ namespace Inferno::Graphics {
             _cmdList->SetGraphicsRootSignature(effect.Shader->RootSignature.Get());
         }
 
-        void SetConstantsArray(uint rootIndex, uint numConstants, const void *data) {
+        void SetConstantsArray(uint rootIndex, uint numConstants, const void* data) {
             _cmdList->SetGraphicsRoot32BitConstants(rootIndex, numConstants, data, 0);
         }
 
-        void InsertUAVBarrier(GpuResource& resource) {
-            //D3D12_RESOURCE_BARRIER barrier{};
-            //barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-            //barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            //barrier.UAV.pResource = resource.Get();
-            //_cmdList->ResourceBarrier(1, &barrier);
+        void SetConstantBuffer(uint rootIndex, D3D12_GPU_VIRTUAL_ADDRESS cbv) {
+            _cmdList->SetGraphicsRootConstantBufferView(rootIndex, cbv);
         }
+
+        //void SetDynamicConstantBuffer(uint rootIndex, size_t bufferSize, const void* data) {
+        //    //_cmdList->SetGraphicsRootConstantBufferView(rootIndex, cbv);
+
+        //    assert(data && IsAligned(data, 16));
+        //    auto cb = m_CpuLinearAllocator.Allocate(bufferSize);
+        //    //SIMDMemCopy(cb.DataPtr, BufferData, Math::AlignUp(BufferSize, 16) >> 4);
+        //    memcpy(cb.DataPtr, data, bufferSize);
+        //    _cmdList->SetGraphicsRootConstantBufferView(rootIndex, cb.GpuAddress);
+        //}
+
+        void InsertUAVBarrier(GpuResource& resource) {
+            D3D12_RESOURCE_BARRIER barrier{};
+            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+            barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.UAV.pResource = resource.Get();
+            _cmdList->ResourceBarrier(1, &barrier);
+        }
+
+        private:
+            constexpr bool IsAligned(auto value, size_t alignment) {
+                return 0 == ((size_t)value & (alignment - 1));
+            }
     };
 
 }

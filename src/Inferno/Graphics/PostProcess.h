@@ -26,6 +26,8 @@ namespace Inferno::PostFx {
 
         void Load(wstring file, string entryPoint = "main") {
             LoadComputeShader(file, _rootSignature, _pso);
+            if(!_rootSignature || !_pso)
+                throw Exception("Unable to load compute shader");
         }
 
         void Dispatch2D(ID3D12GraphicsCommandList* commandList, UINT width, UINT height) {

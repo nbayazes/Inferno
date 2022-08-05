@@ -1,5 +1,6 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 25),"\
+    "CBV(b0),"\
+    "RootConstants(b1, num32BitConstants = 6),"\
     "DescriptorTable(SRV(t0, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t1, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
@@ -9,13 +10,15 @@ Texture2D StMask : register(t1);
 SamplerState Sampler : register(s0);
 
 cbuffer FrameConstants : register(b0) {
-    // Frame constants
     float4x4 ProjectionMatrix;
     float NearClip, FarClip;
     float Time; // elapsed game time in seconds
+}
+
+cbuffer InstanceConstants : register(b1) {
     // Instance constants
-    bool HasOverlay;
     float2 Scroll, Scroll2;
+    bool HasOverlay;
     float Threshold;
 };
 
