@@ -673,6 +673,7 @@ namespace Inferno::Render {
         auto& mesh = *cmd.Data.LevelMesh;
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
+        if (chunk.Blend != BlendMode::Opaque) return;
 
         DepthCutoutShader::Constants consts{};
         consts.Threshold = 0.01f;
@@ -720,6 +721,9 @@ namespace Inferno::Render {
                         ApplyEffect(ctx, Effects->LevelWallFlat);
                     else
                         ApplyEffect(ctx, Effects->LevelFlat);
+
+                    cmd.Data.LevelMesh->Draw(ctx.CommandList());
+                    DrawCalls++;
                 }
                 else {
                     if (mesh.Chunk->Blend == BlendMode::Alpha)
@@ -730,9 +734,9 @@ namespace Inferno::Render {
                         ApplyEffect(ctx, Effects->Level);
 
                     Shaders->Level.SetSampler(ctx.CommandList(), GetTextureSampler());
+                    DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
                 }
 
-                DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
                 break;
             }
             case RenderCommandType::Object:
@@ -896,7 +900,8 @@ namespace Inferno::Render {
                 }
             }
 
-            {
+
+            if (Settings::RenderMode != RenderMode::Flat) {
                 // Level walls (potentially transparent)
                 auto& effect = Effects->DepthCutout;
                 ApplyEffect(ctx, effect);
@@ -906,7 +911,6 @@ namespace Inferno::Render {
                     LevelDepthCutout(cmdList, cmd);
                 }
             }
-
 
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
 
