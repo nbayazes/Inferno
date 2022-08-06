@@ -12,6 +12,16 @@
 #include "PostProcess.h"
 
 namespace Inferno {
+    inline void ReportLiveObjects() {
+#ifdef _DEBUG
+        ComPtr<IDXGIDebug1> dxgiDebug;
+        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
+            //dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+            dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+        }
+#endif
+    }
+
     // Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
     struct IDeviceNotify {
         virtual void OnDeviceLost() = 0;
@@ -121,16 +131,6 @@ namespace Inferno {
         D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const noexcept {
             return Render::Heaps->DepthStencil[0].GetCpuHandle();
             //return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-        }
-
-        static void ReportLiveObjects() {
-#ifdef _DEBUG
-            ComPtr<IDXGIDebug1> dxgiDebug;
-            if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
-                //dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
-                dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
-            }
-#endif
         }
 
         uint64_t PrintMemoryUsage();

@@ -499,16 +499,8 @@ namespace Inferno::Render {
         Bloom.reset();
         _tempBatch.reset();
         Debug::Shutdown();
-        DeviceResources::ReportLiveObjects();
         Device = nullptr;
-
-        //#if defined(_DEBUG)
-        //        ID3D12DebugDevice* debugInterface;
-        //        ThrowIfFailed(device->QueryInterface(&debugInterface));
-        //        debugInterface->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
-        //        debugInterface->Release();
-        //#endif
-                //device->Release();
+        ReportLiveObjects();
     }
 
     void Resize(int width, int height) {
