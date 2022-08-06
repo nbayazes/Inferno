@@ -231,21 +231,22 @@ namespace Inferno::Editor {
 
         ImGui::TableRowLabel("Robot");
         ImGui::SetNextItemWidth(-1);
-        auto& robot = Resources::GameData.Robots[(int)obj.ID];
 
         if (RobotDropdown("##Robot", obj.ID)) {
+            const auto& robot = Resources::GameData.Robots[obj.ID];
             obj.Render.Model.ID = robot.Model;
             obj.Radius = GetObjectRadius(obj);
             obj.Movement.Physics.Mass = robot.Mass;
             obj.Movement.Physics.Drag = robot.Drag;
 
-            Render::LoadModelDynamic(robot.Model);
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
                 o.ID = obj.ID;
                 o.Render.Model.ID = obj.Render.Model.ID;
                 o.Radius = GetObjectRadius(obj);
             });
+
+            Render::LoadModelDynamic(robot.Model);
             changed = true;
         }
 
@@ -306,6 +307,7 @@ namespace Inferno::Editor {
         }
 
         if (ImGui::TableBeginTreeNode("Robot details")) {
+            const auto& robot = Resources::GameData.Robots[obj.ID];
             ImGui::TableRowLabel("Hit points");
             ImGui::Text("%.2f", robot.HitPoints);
 
