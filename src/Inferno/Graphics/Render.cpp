@@ -127,8 +127,6 @@ namespace Inferno::Render {
     LevelMeshBuilder _levelMeshBuilder;
     Ptr<PackedBuffer> _levelMeshBuffer;
 
-    void DrawObject(ID3D12GraphicsCommandList* cmd, const Object& object, float alpha);
-
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
 
@@ -136,12 +134,14 @@ namespace Inferno::Render {
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
         auto cmdList = ctx.CommandList();
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
             DrawObjectOutline(object);
             return;
         }
+
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
 
         effect.Shader->SetSampler(cmdList, GetTextureSampler());
@@ -162,10 +162,6 @@ namespace Inferno::Render {
             transform *= Matrix::CreateTranslation(-translation);
         }
 
-        // Draw model radius (debug)
-        //auto facingMatrix = Matrix::CreateBillboard(object.Position(), Camera.Position, Camera.Up);
-        //Debug::DrawCircle(object.Radius, facingMatrix, Color(0, 1, 0));
-
         int submodelIndex = 0;
         for (auto& submodel : model.Submodels) {
             // accumulate the offsets for each submodel
@@ -178,15 +174,10 @@ namespace Inferno::Render {
 
             auto world = Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
-            //constants.Time = (float)ElapsedTime;
             effect.Shader->SetConstants(cmdList, constants);
 
             // get the mesh associated with the submodel
             auto& subMesh = meshHandle.Meshes[submodelIndex++];
-
-            // Draw submodel radii (debug)
-            //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, transform), Camera.Position, Camera.Up);
-            //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.6, 0.6, 1.0, 1.0 });
 
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];
@@ -625,17 +616,61 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void LevelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
-        if (cmd.Type == RenderCommandType::Object) return;
-        auto& mesh = *cmd.Data.LevelMesh;
-        if (!mesh.Chunk) return;
-        //auto& chunk = *mesh.Chunk;
-        mesh.Draw(cmdList);
+    void LevelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
+        assert(cmd.Type == RenderCommandType::LevelMesh);
+        cmd.Data.LevelMesh->Draw(cmdList);
         DrawCalls++;
     }
 
-    void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
-        if (cmd.Type == RenderCommandType::Object) return;
+    void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, Object& object, ModelID modelId, float lerp) {
+        auto& model = Resources::GetModel(modelId);
+        auto& meshHandle = _meshBuffer->GetHandle(modelId);
+
+        ObjectDepthShader::Constants constants = {};
+        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
+        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        auto& shader = Shaders->DepthObject;
+
+        if (object.Control.Type == ControlType::Weapon) {
+            auto r = Matrix::CreateFromYawPitchRoll(object.Movement.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
+            auto translation = transform.Translation();
+            transform *= Matrix::CreateTranslation(translation);
+            transform = r * transform;
+            transform *= Matrix::CreateTranslation(-translation);
+        }
+
+        int submodelIndex = 0;
+        for (auto& submodel : model.Submodels) {
+            // accumulate the offsets for each submodel
+            auto submodelOffset = Vector3::Zero;
+            auto* smc = &submodel;
+            while (smc->Parent != ROOT_SUBMODEL) {
+                submodelOffset += smc->Offset;
+                smc = &model.Submodels[smc->Parent];
+            }
+
+            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+            constants.World = world;
+            shader.SetConstants(cmdList, constants);
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodelIndex++];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                DrawCalls++;
+            }
+        }
+    }
+
+    void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
+        assert(cmd.Type == RenderCommandType::LevelMesh);
         auto& mesh = *cmd.Data.LevelMesh;
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
@@ -830,26 +865,49 @@ namespace Inferno::Render {
             ctx.BeginEvent(L"Depth prepass");
             // Depth prepass
             ClearDepthPrepass(ctx);
+            auto cmdList = ctx.CommandList();
 
-            //ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
             {
-                auto cmdList = ctx.CommandList();
+                // Opaque level geometry prepass
                 auto& effect = Effects->Depth;
-                effect.Apply(cmdList);
+                ctx.ApplyEffect(effect);
                 ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
                 for (auto& cmd : _opaqueQueue) {
-                    LevelDepthPrepass(cmdList, cmd, lerp);
+                    LevelDepthPrepass(cmdList, cmd);
                 }
             }
 
             {
+                // Level walls
                 auto& effect = Effects->DepthCutout;
-                effect.Apply(ctx.CommandList());
+                ctx.ApplyEffect(effect);
                 ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
-                for (auto& cmd : _transparentQueue)
-                    LevelDepthCutout(ctx.CommandList(), cmd, lerp);
+                for (auto& cmd : _transparentQueue) {
+                    if (cmd.Type != RenderCommandType::LevelMesh) continue;
+                    LevelDepthCutout(cmdList, cmd);
+                }
+            }
+
+            {
+                // Opaque object depth prepass
+                auto& effect = Effects->DepthObject;
+                ctx.ApplyEffect(effect);
+                ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+
+                for (auto& cmd : _transparentQueue) {
+                    if (cmd.Type != RenderCommandType::Object) continue;
+
+                    auto& object = *cmd.Data.Object;
+                    if (object.Render.Type != RenderType::Model) continue;
+                    auto model = object.Render.Model.ID;
+
+                    if (cmd.Data.Object->Type == ObjectType::Robot)
+                        model = Resources::GetRobotInfo(object.ID).Model;
+
+                    ModelDepthPrepass(cmdList, object, model, lerp);
+                }
             }
 
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
@@ -859,13 +917,13 @@ namespace Inferno::Render {
             //ctx.InsertUAVBarrier(Adapter->GetHdrDepthBuffer());
 
             if (Settings::MsaaSamples > 1) {
-                // do this for debugging / displaying in UI
-                Adapter->LinearizedDepthBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaLinearizedDepthBuffer);
-                Adapter->MsaaLinearizedDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                // must resolve MS target to allow shader sampling
+                Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
+                Adapter->MsaaLinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             }
 
-            Adapter->LinearizedDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            depthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_DEPTH_READ);
+            Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
             ctx.EndEvent();
         }
 

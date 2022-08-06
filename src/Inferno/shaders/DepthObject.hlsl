@@ -23,7 +23,7 @@ struct PS_INPUT {
 
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
-    float4x4 wvp = WorldMatrix * ViewProjectionMatrix;
+    float4x4 wvp = mul(ViewProjectionMatrix, WorldMatrix);
     PS_INPUT output;
     output.pos = mul(wvp, float4(input.pos, 1));
     output.depth = output.pos.z / output.pos.w;

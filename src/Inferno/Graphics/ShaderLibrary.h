@@ -140,14 +140,14 @@ namespace Inferno {
         }
     };
 
-    class DepthObjectShader : public IShader {
+    class ObjectDepthShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
             RootConstants,
             RootParameterCount
         };
     public:
-        DepthObjectShader(ShaderInfo info) : IShader(info) {
+        ObjectDepthShader(ShaderInfo info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
             Format = DepthShader::OutputFormat;
         }
@@ -279,8 +279,8 @@ namespace Inferno {
     public:
         struct Constants {
             Matrix World;
-            Vector3 LightDirection[3];
             Color Colors[3];
+            Vector3 LightDirection[3];
         };
 
         ObjectShader(ShaderInfo info) : IShader(info) {
@@ -383,7 +383,7 @@ namespace Inferno {
         FlatLevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl" };
         FlatShader Flat = ShaderInfo{ L"shaders/editor.hlsl" };
         DepthShader Depth = ShaderInfo{ L"shaders/Depth.hlsl" };
-        DepthObjectShader DepthObject = ShaderInfo{ L"shaders/DepthObject.hlsl" };
+        ObjectDepthShader DepthObject = ShaderInfo{ L"shaders/DepthObject.hlsl" };
         DepthCutoutShader DepthCutout = ShaderInfo{ L"shaders/DepthCutout.hlsl" };
         UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
@@ -402,10 +402,10 @@ namespace Inferno {
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Opaque } };
         
         Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
-        Effect<DepthObjectShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque } };
+        Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
         
-        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
+        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };

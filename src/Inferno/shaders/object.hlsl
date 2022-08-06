@@ -13,8 +13,8 @@ Texture2D Emissive : register(t2);
 
 cbuffer Constants : register(b1) {
     float4x4 WorldMatrix;
-    float3 LightDirection[3];
     float4 Colors[3];
+    float3 LightDirection[3];
 };
 
 struct VS_INPUT {
@@ -34,7 +34,7 @@ struct PS_INPUT {
 
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
-    float4x4 wvp = WorldMatrix * ViewProjectionMatrix;
+    float4x4 wvp = mul(ViewProjectionMatrix, WorldMatrix);
     PS_INPUT output;
     output.pos = mul(wvp, float4(input.pos, 1));
     output.col = input.col;
