@@ -24,7 +24,8 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawParticles(ID3D12GraphicsCommandList* cmd) {
+    void DrawParticles(Graphics::GraphicsContext& ctx) {
+        ctx.BeginEvent(L"Particles");
         //auto& effect = Effects->SpriteAdditive;
         //effect.Apply(cmd);
         //effect.Shader->SetWorldViewProjection(cmd, ViewProjection);
@@ -37,7 +38,7 @@ namespace Inferno::Render {
             auto elapsed = vclip.PlayTime - p.Life;
 
             auto* up = p.Up == Vector3::Zero ? nullptr : &p.Up;
-            DrawVClip(cmd, vclip, p.Position, p.Radius, p.Color, elapsed, true, p.Rotation, up);
+            DrawVClip(ctx, vclip, p.Position, p.Radius, p.Color, elapsed, true, p.Rotation, up);
 
             //auto frame = vclip.NumFrames - (int)(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
             //auto tid = vclip.Frames[frame];
@@ -67,5 +68,7 @@ namespace Inferno::Render {
             //g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
             //g_SpriteBatch->End();
         }
+
+        ctx.EndEvent();
     }
 }

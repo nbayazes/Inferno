@@ -311,16 +311,6 @@ namespace Inferno {
         cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
     }
 
-    void LevelResources::Draw() {
-        for (auto& mesh : Meshes)
-            Render::DrawOpaque(Render::RenderCommand(&mesh, 0));
-
-        for (auto& mesh : WallMeshes) {
-            float depth = (mesh.Chunk->Center - Render::Camera.Position).LengthSquared();
-            Render::DrawTransparent(Render::RenderCommand{ &mesh, depth });
-        }
-    }
-
     void LevelMeshWorker::Work() {
         auto index = (_index + 1) % 2;
         auto& upload = _upload[index];

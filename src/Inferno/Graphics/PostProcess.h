@@ -307,7 +307,4 @@ namespace Inferno::PostFx {
             PIXEndEvent(commandList);
         }
     };
-
-    inline ScanlineCS Scanline;
-    inline LinearizeDepthCS LinearizeDepth;
 }

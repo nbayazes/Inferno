@@ -1,6 +1,7 @@
 #define RS \
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 60), "\
+    "CBV(b0),"\
+    "RootConstants(b1, num32BitConstants = 37), "\
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
@@ -8,13 +9,12 @@ SamplerState sampler0 : register(s0);
 Texture2D Diffuse : register(t0);
 Texture2D Emissive : register(t2);
 
-cbuffer Constants : register(b0) {
+#include "FrameConstants.hlsli"
+
+cbuffer Constants : register(b1) {
     float4x4 WorldMatrix;
-    float4x4 ProjectionMatrix; // WVP
     float3 LightDirection[3];
     float4 Colors[3];
-    float3 Eye;
-    float Time;
 };
 
 struct VS_INPUT {
@@ -33,9 +33,10 @@ struct PS_INPUT {
 };
 
 [RootSignature(RS)]
-PS_INPUT VSMain(VS_INPUT input) {
+PS_INPUT vsmain(VS_INPUT input) {
+    float4x4 wvp = WorldMatrix * ViewProjectionMatrix;
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos, 1));
+    output.pos = mul(wvp, float4(input.pos, 1));
     output.col = input.col;
     output.uv = input.uv;
 
@@ -60,7 +61,7 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
     return 1 + pow(color * fresnel, power);
 }
 
-float4 PSMain(PS_INPUT input) : SV_Target {
+float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(Eye - input.world);
     //float3 viewDir = normalize(float3(229, 0, 340) - input.world);
     //return float4(viewDir, 1);

@@ -26,7 +26,7 @@ struct PS_INPUT {
 };
             
 [RootSignature(RS)]
-PS_INPUT VSMain(VS_INPUT input) {
+PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
     output.col = input.col;
@@ -34,6 +34,6 @@ PS_INPUT VSMain(VS_INPUT input) {
     return output;
 }
             
-float4 PSMain(PS_INPUT input) : SV_Target {
+float4 psmain(PS_INPUT input) : SV_Target {
     return input.col * texture0.Sample(sampler0, input.uv);
 }

@@ -123,7 +123,7 @@ namespace Inferno {
             IID_PPV_ARGS(m_d3dDevice.ReleaseAndGetAddressOf())
         ));
 
-        m_d3dDevice->SetName(L"DeviceResources");
+        m_d3dDevice->SetName(L"D3D Device");
 
 #ifndef NDEBUG
         // Configure debug device (if active).
@@ -183,7 +183,7 @@ namespace Inferno {
 
         ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.ReleaseAndGetAddressOf())));
 
-        m_commandQueue->SetName(L"DeviceResources");
+        m_commandQueue->SetName(L"DeviceResources CQ");
 
         // Create a command allocator for each back buffer that will be rendered to.
         for (UINT n = 0; n < m_backBufferCount; n++) {
@@ -202,7 +202,7 @@ namespace Inferno {
         ThrowIfFailed(m_d3dDevice->CreateFence(m_fenceValues[m_backBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.ReleaseAndGetAddressOf())));
         m_fenceValues[m_backBufferIndex]++;
 
-        m_fence->SetName(L"DeviceResources");
+        m_fence->SetName(L"Fence");
 
         m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
         if (!m_fenceEvent.IsValid())
@@ -467,8 +467,7 @@ namespace Inferno {
             auto height = m_outputSize.bottom;
 
             Render::Effects->Compile(m_d3dDevice.Get(), Settings::MsaaSamples);
-            PostFx::Scanline.Load(L"shaders/ScanlineCS.hlsl");
-            PostFx::LinearizeDepth.Load(L"shaders/LinearizeDepthCS.hlsl");
+            Scanline.Load(L"shaders/ScanlineCS.hlsl");
             Render::Bloom->ReloadShaders();
 
             CreateBuffers(width, height);

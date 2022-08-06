@@ -1,5 +1,5 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 26), "\
+    "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 9), "\
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -17,24 +17,17 @@ Texture2D Emissive2 : register(t6);
 Texture2D Specular2 : register(t7);
 Texture2D Depth : register(t8);
 
-SamplerState sampler0 : register(s0);
+SamplerState Sampler : register(s0);
 
 static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
             
-cbuffer FrameConstants : register(b0) {
-    float4x4 ProjectionMatrix;
-    float3 Eye;
-    float3 LightDirection;
-    float2 FrameSize;
-};
+#include "FrameConstants.hlsli"
 
 cbuffer InstanceConstants : register(b1) {
-    float Time;
-    float FrameTime;
     float2 Scroll, Scroll2;
-    float LightingScale;
+    float LightingScale; // for unlit mode
     bool Distort;
     bool HasOverlay;
 };
@@ -62,9 +55,9 @@ struct PS_INPUT {
     Combined level shader
 */ 
 [RootSignature(RS)]
-PS_INPUT VSLevel(LevelVertex input) {
+PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos, 1));
+    output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
@@ -82,7 +75,7 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
     return float4(specular, 0);
 }
 
-float4 PSLevel(PS_INPUT input) : SV_Target {
+float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
@@ -90,11 +83,12 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
     float4 specular = Specular(-viewDir, viewDir, input.normal);
     //float4 base;
 
-    float4 base = Diffuse.Sample(sampler0, input.uv);
-    float4 emissive = Emissive.Sample(sampler0, input.uv) * base;
+    float4 base = Diffuse.Sample(Sampler, input.uv);
+    float4 emissive = Emissive.Sample(Sampler, input.uv) * base;
     emissive.a = 0;
 
-    float depth = Depth.Sample(sampler0, (input.pos.xy + 0.5) / FrameSize);
+    
+    float depth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
     float4 fog = float4(0.25, 0.35, 0.75, 1);
     //float fStart = 100;
     //float fEnd = 500;
@@ -103,10 +97,10 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
     
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = StMask.Sample(sampler0, input.uv2).r; // only need a single channel
+        float mask = StMask.Sample(Sampler, input.uv2).r; // only need a single channel
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
-        float4 src = Diffuse2.Sample(sampler0, input.uv2);
+        float4 src = Diffuse2.Sample(Sampler, input.uv2);
         
         float4 dst = base;
         float out_a = src.a + dst.a * (1 - src.a);
@@ -117,7 +111,7 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
             discard;
         
         // layer the emissive over the base emissive
-        float4 emissive2 = Emissive2.Sample(sampler0, input.uv2) * diffuse;
+        float4 emissive2 = Emissive2.Sample(Sampler, input.uv2) * diffuse;
         emissive2.a = 0;
         emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
 
@@ -148,7 +142,6 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
         if (base.a < 0.01f)
             discard;
         
-        //return base * lighting;
         return f * (base * lighting) + (1 - f) * fog;
     }
 }

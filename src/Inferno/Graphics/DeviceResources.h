@@ -9,6 +9,7 @@
 #include "Buffers.h"
 #include "Settings.h"
 #include "CommandContext.h"
+#include "PostProcess.h"
 
 namespace Inferno {
     // Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
@@ -92,6 +93,7 @@ namespace Inferno {
         Inferno::RenderTarget BriefingScanlineBuffer;
 
         UploadBuffer<FrameConstants> FrameConstantsBuffer{ 2 };
+        PostFx::ScanlineCS Scanline;
 
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {
@@ -125,8 +127,8 @@ namespace Inferno {
 #ifdef _DEBUG
             ComPtr<IDXGIDebug1> dxgiDebug;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
-                dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
-                // DXGI_DEBUG_RLO_ALL
+                //dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+                dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
             }
 #endif
         }

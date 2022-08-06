@@ -46,6 +46,7 @@ ComPtr<ID3DBlob> Inferno::LoadComputeShader(filesystem::path file, ComPtr<ID3D12
         }
         else {
             SPDLOG_INFO(L"Compiling compute shader {}:{}", file.wstring(), Convert::ToWideString(entryPoint));
+            
             ThrowIfFailed(D3DCompileFromFile(
                 file.c_str(), nullptr,
                 D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -90,7 +91,9 @@ ComPtr<ID3DBlob> Inferno::LoadVertexShader(filesystem::path file, ComPtr<ID3D12R
 
             SPDLOG_INFO(L"Compiling vertex shader {}:{}", file.wstring(), Convert::ToWideString(entryPoint));
             ThrowIfFailed(D3DCompileFromFile(
-                file.c_str(), nullptr, nullptr,
+                file.c_str(), 
+                nullptr, 
+                D3D_COMPILE_STANDARD_FILE_INCLUDE,
                 entryPoint.c_str(),
                 "vs_5_1", COMPILE_FLAGS,
                 0, &shader, &error));
@@ -121,7 +124,9 @@ ComPtr<ID3DBlob> Inferno::LoadPixelShader(filesystem::path file, string entryPoi
         else {
             SPDLOG_INFO(L"Compiling pixel shader {}:{}", file.wstring(), Convert::ToWideString(entryPoint));
             ThrowIfFailed(D3DCompileFromFile(
-                file.c_str(), nullptr, nullptr,
+                file.c_str(), 
+                nullptr, 
+                D3D_COMPILE_STANDARD_FILE_INCLUDE,
                 entryPoint.c_str(),
                 "ps_5_1", COMPILE_FLAGS,
                 0, &shader, &error));

@@ -64,9 +64,6 @@ namespace Inferno {
         LevelGeometry Geometry;
         List<LevelMesh> Meshes;
         List<LevelMesh> WallMeshes;
-
-        // Submits meshes to the queue
-        void Draw();
     };
 
     class LevelMeshWorker : public WorkerThread {
@@ -83,9 +80,9 @@ namespace Inferno {
 
         void CopyLevel(Level level) { _level = level; }
 
-        void Draw() {
-            _resources[_index % 2].Draw();
-        }
+        //void Draw() {
+        //    _resources[_index % 2].Draw();
+        //}
 
         void SwapBuffer() {
             _hasNewData = false;

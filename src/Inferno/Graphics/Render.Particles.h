@@ -2,6 +2,7 @@
 
 #include "EffectClip.h"
 #include "DirectX.h"
+#include "Graphics/CommandContext.h"
 
 namespace Inferno::Render {
     struct Particle {
@@ -19,5 +20,5 @@ namespace Inferno::Render {
     void AddParticle(Particle&, bool randomRotation = true);
 
     void UpdateParticles(float dt);
-    void DrawParticles(ID3D12GraphicsCommandList* cmd);
+    void DrawParticles(Graphics::GraphicsContext& ctx);
 }

@@ -1,10 +1,7 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 19)"
+    "CBV(b0)"
 
-cbuffer FrameConstants : register(b0) {
-    float4x4 ProjectionMatrix;
-    float3 Eye;
-};
+#include "FrameConstants.hlsli"
 
 struct LevelVertex {
     float3 pos : POSITION;
@@ -21,11 +18,10 @@ struct PS_INPUT {
     float3 world : TEXCOORD2;
 };
 
-
 [RootSignature(RS)]
-PS_INPUT VSLevel(LevelVertex input) {
+PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos.xyz, 1));
+    output.pos = mul(ViewProjectionMatrix, float4(input.pos.xyz, 1));
     //output.col = float4(1, 0.72, 0.25, 1);
     output.col = float4(0.8, 0.8, 0.8, 1);
     output.normal = input.normal;
@@ -40,7 +36,7 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
     return float4(specular, 0);
 }
 
-float4 PSLevel(PS_INPUT input) : SV_Target {
+float4 psmain(PS_INPUT input) : SV_Target {
     float3 lightDir = normalize(float3(-1, -2, 0));
     float4 color = input.col;
     color *= 0.6 - dot(lightDir, input.normal) * 0.4;

@@ -15,10 +15,12 @@ namespace Inferno {
         string PSEntryPoint = "psmain";
     };
 
-    struct alignas(16) FrameConstants {
-        Matrix WVP;
-        float NearClip, FarClip;
+    struct FrameConstants {
+        Matrix ViewProjection;
+        Vector3 Eye;
         float ElapsedTime;
+        Vector2 FrameSize;
+        float NearClip, FarClip;
     };
 
     using HlslBool = int32; // For alignment on GPU
@@ -115,21 +117,12 @@ namespace Inferno {
 
     class FlatLevelShader : public IShader {
         enum RootParameterIndex : uint {
-            Constant,
+            FrameConstants,
             RootParameterCount
         };
     public:
-        struct Constants {
-            Matrix WVP;
-            Vector3 Eye;
-        };
-
         FlatLevelShader(ShaderInfo info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
-        }
-
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
         }
     };
 
@@ -147,10 +140,31 @@ namespace Inferno {
         }
     };
 
+    class DepthObjectShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants,
+            RootConstants,
+            RootParameterCount
+        };
+    public:
+        DepthObjectShader(ShaderInfo info) : IShader(info) {
+            InputLayout = LevelVertex::Layout;
+            Format = DepthShader::OutputFormat;
+        }
+
+        struct Constants {
+            Matrix World;
+        };
+
+        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
+        }
+    };
+
     class DepthCutoutShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
-            Constant,
+            RootConstants,
             Material1,
             Material2,
             Sampler,
@@ -169,7 +183,7 @@ namespace Inferno {
         }
 
         void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
 
         void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
@@ -187,8 +201,8 @@ namespace Inferno {
 
     class LevelShader : public IShader {
         enum RootParameterIndex : uint {
-            Constant,
-            InstanceConstant,
+            FrameConstants,
+            RootConstants,
             Material1,
             Material2,
             Depth,
@@ -196,17 +210,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        struct Constants {
-            Matrix WVP;
-            Vector3 Eye;
-            float _pad;
-            Vector3 LightDirection;
-            float _pad2;
-            Vector2 FrameSize;
-        };
-
         struct InstanceConstants {
-            float Time, FrameTime;
             Vector2 Scroll, Scroll2; // For UV scrolling
             float LightingScale;
             HlslBool Distort;
@@ -233,18 +237,14 @@ namespace Inferno {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
         }
 
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(Constant, sizeof(consts) / 4, &consts, 0);
-        }
-
         void SetInstanceConstants(ID3D12GraphicsCommandList* commandList, const InstanceConstants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(InstanceConstant, sizeof(consts) / 4, &consts, 0);
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
     };
 
     class SpriteShader : public IShader {
         enum RootParameterIndex : uint {
-            ConstantBuffer,
+            FrameConstants,
             Diffuse,
             LinearZ,
             Sampler,
@@ -266,57 +266,21 @@ namespace Inferno {
         void SetLinearZ(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(LinearZ, texture);
         }
-
-        void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
-            commandList->SetGraphicsRoot32BitConstants(ConstantBuffer, sizeof(wvp) / 4, &wvp.m, 0);
-        }
-    };
-
-    class EmissiveShader : public IShader {
-        enum RootParameterIndex : uint {
-            ConstantBuffer,
-            Diffuse,
-            Emissive,
-            Sampler,
-            RootParameterCount
-        };
-    public:
-        EmissiveShader(ShaderInfo info) : IShader(info) {
-            InputLayout = LevelVertex::Layout;
-        }
-
-        void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
-            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
-        }
-
-        void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
-            commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
-        }
-
-        void SetEmissive(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
-            commandList->SetGraphicsRootDescriptorTable(Emissive, texture);
-        }
-
-        void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
-            commandList->SetGraphicsRoot32BitConstants(ConstantBuffer, sizeof(wvp) / 4, &wvp.m, 0);
-        }
     };
 
     class ObjectShader : public IShader {
         enum RootParameterIndex : uint {
-            ConstantBuffer,
+            FrameConstants,
+            RootConstants,
             Material,
             Sampler,
             RootParameterCount
         };
     public:
         struct Constants {
-            DirectX::XMMATRIX World;
-            DirectX::XMMATRIX Projection;
-            DirectX::XMVECTOR LightDirection[3];
+            Matrix World;
+            Vector3 LightDirection[3];
             Color Colors[3];
-            DirectX::XMVECTOR Eye;
-            //float Time;
         };
 
         ObjectShader(ShaderInfo info) : IShader(info) {
@@ -336,7 +300,7 @@ namespace Inferno {
         }
 
         void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(ConstantBuffer, sizeof(consts) / 4, &consts, 0);
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
     };
 
@@ -415,14 +379,15 @@ namespace Inferno {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets = 1);
 
     struct ShaderResources {
-        LevelShader Level = ShaderInfo{ L"shaders/level.hlsl", "VSLevel", "PSLevel" };
-        FlatLevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl", "VSLevel", "PSLevel" };
-        FlatShader Flat = ShaderInfo{ L"shaders/editor.hlsl", "VSFlat", "PSFlat" };
+        LevelShader Level = ShaderInfo{ L"shaders/level.hlsl" };
+        FlatLevelShader LevelFlat = ShaderInfo{ L"shaders/levelflat.hlsl" };
+        FlatShader Flat = ShaderInfo{ L"shaders/editor.hlsl" };
         DepthShader Depth = ShaderInfo{ L"shaders/Depth.hlsl" };
+        DepthObjectShader DepthObject = ShaderInfo{ L"shaders/DepthObject.hlsl" };
         DepthCutoutShader DepthCutout = ShaderInfo{ L"shaders/DepthCutout.hlsl" };
-        UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl", "VSMain", "PSMain" };
-        SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl", "VSMain", "PSMain" };
-        ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl", "VSMain", "PSMain" };
+        UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl" };
+        SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
+        ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
     };
 
     class EffectResources {
@@ -435,15 +400,20 @@ namespace Inferno {
         Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque } };
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Opaque } };
+        
         Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
+        Effect<DepthObjectShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
-        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha } };
+        
+        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
+        
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
+       
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
 
@@ -461,6 +431,7 @@ namespace Inferno {
             CompileShader(&_shaders->Sprite);
             CompileShader(&_shaders->Object);
             CompileShader(&_shaders->Depth);
+            CompileShader(&_shaders->DepthObject);
             CompileShader(&_shaders->DepthCutout);
 
             auto Compile = [&](auto& effect, uint renderTargets = 1) {
@@ -478,6 +449,7 @@ namespace Inferno {
             Compile(LevelWallAdditive);
 
             Compile(Depth);
+            Compile(DepthObject);
             Compile(DepthCutout);
 
             Compile(LevelFlat);
@@ -494,10 +466,6 @@ namespace Inferno {
             Compile(Line);
 
             Compile(UserInterface);
-
-            //msaaSamples = 1;
-            //Compile(Emissive);
-            //Compile(EmissiveWall);
         }
     };
 }

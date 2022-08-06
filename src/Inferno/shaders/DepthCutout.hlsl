@@ -9,11 +9,7 @@ Texture2D Diffuse : register(t0);
 Texture2D StMask : register(t1);
 SamplerState Sampler : register(s0);
 
-cbuffer FrameConstants : register(b0) {
-    float4x4 ProjectionMatrix;
-    float NearClip, FarClip;
-    float Time; // elapsed game time in seconds
-}
+#include "FrameConstants.hlsli"
 
 cbuffer InstanceConstants : register(b1) {
     // Instance constants
@@ -40,7 +36,7 @@ struct PS_INPUT {
 [RootSignature(RS)]
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos, 1));
+    output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
     output.depth = output.pos.z / output.pos.w;
     output.uv = input.uv + Scroll * Time * 100;
     output.uv2 = input.uv2 + Scroll2 * Time * 100;

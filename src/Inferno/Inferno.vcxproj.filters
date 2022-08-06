@@ -507,5 +507,9 @@
     <CopyFileToFolders Include="shaders\Depth.hlsl">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\DepthObject.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\FrameConstants.hlsli" />
   </ItemGroup>
 </Project>

@@ -132,17 +132,11 @@ namespace Inferno::Render {
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
 
-    void DrawOpaque(RenderCommand cmd) {
-        _opaqueQueue.push_back(cmd);
-    }
-
-    void DrawTransparent(RenderCommand cmd) {
-        _transparentQueue.push_back(cmd);
-    }
-
-    void DrawModel(ID3D12GraphicsCommandList* cmd, const Object& object, ModelID modelId, float alpha, TexID texOverride = TexID::None) {
+    void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float alpha, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
-        effect.Apply(cmd);
+        ctx.ApplyEffect(effect);
+        auto cmdList = ctx.CommandList();
+
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
             DrawObjectOutline(object);
@@ -150,9 +144,8 @@ namespace Inferno::Render {
         }
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
 
-        effect.Shader->SetSampler(cmd, GetTextureSampler());
+        effect.Shader->SetSampler(cmdList, GetTextureSampler());
         ObjectShader::Constants constants = {};
-        constants.Eye = Camera.Position;
 
         auto& seg = Game::Level.GetSegment(object.Segment);
         constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
@@ -185,9 +178,8 @@ namespace Inferno::Render {
 
             auto world = Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
-            constants.Projection = world * ViewProjection;
             //constants.Time = (float)ElapsedTime;
-            effect.Shader->SetConstants(cmd, constants);
+            effect.Shader->SetConstants(cmdList, constants);
 
             // get the mesh associated with the submodel
             auto& subMesh = meshHandle.Meshes[submodelIndex++];
@@ -205,11 +197,11 @@ namespace Inferno::Render {
                     tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
 
                 const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
-                effect.Shader->SetMaterial(cmd, material);
+                effect.Shader->SetMaterial(cmdList, material);
 
-                cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                cmd->IASetIndexBuffer(&mesh->IndexBuffer);
-                cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
                 DrawCalls++;
             }
         }
@@ -236,8 +228,6 @@ namespace Inferno::Render {
         auto& meshHandle = _meshBuffer->GetOutrageHandle(index);
 
         ObjectShader::Constants constants = {};
-        constants.Eye = Camera.Position;
-
         auto& seg = Game::Level.GetSegment(object.Segment);
         constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
@@ -267,14 +257,14 @@ namespace Inferno::Render {
                 auto smPos = Vector3::Transform(Vector3::Zero, world);
                 auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
                 constants.World = world;
-                constants.Projection = billboard * ViewProjection;
+                //constants.Projection = billboard * ViewProjection;
             }
             else {
                 if (submodel.HasFlag(SubmodelFlag::Rotate))
                     world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
 
                 constants.World = world;
-                constants.Projection = world * ViewProjection;
+                //constants.Projection = world * ViewProjection;
             }
 
             //constants.Time = (float)ElapsedTime;
@@ -318,7 +308,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd,
+    void DrawVClip(GraphicsContext& ctx,
                    const VClip& vclip,
                    const Vector3& position,
                    float radius,
@@ -353,21 +343,20 @@ namespace Inferno::Render {
         ObjectVertex v3(p3, { 0, 1 }, color);
 
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
-        effect.Apply(cmd);
+        ctx.ApplyEffect(effect);
         auto& material = Materials->Get(tid);
-        effect.Shader->SetWorldViewProjection(cmd, ViewProjection);
-        effect.Shader->SetDiffuse(cmd, material.Handles[0]);
+        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
         auto sampler = Render::GetClampedTextureSampler();
-        effect.Shader->SetSampler(cmd, sampler);
+        effect.Shader->SetSampler(ctx.CommandList(), sampler);
 
         DrawCalls++;
-        g_SpriteBatch->Begin(cmd);
+        g_SpriteBatch->Begin(ctx.CommandList());
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
     }
 
     // When up is provided, it constrains the sprite to that axis
-    void DrawSprite(const Object& object, ID3D12GraphicsCommandList* cmd, bool additive, const Vector3* up = nullptr, bool lit = false) {
+    void DrawSprite(GraphicsContext& ctx, const Object& object, bool additive, const Vector3* up = nullptr, bool lit = false) {
         auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
         if (vclip.NumFrames == 0) {
             DrawObjectOutline(object);
@@ -375,24 +364,23 @@ namespace Inferno::Render {
         }
 
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        DrawVClip(cmd, vclip, object.Position, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
+        DrawVClip(ctx, vclip, object.Position, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
     }
 
-    void DrawLevelMesh(ID3D12GraphicsCommandList* cmdList, const Inferno::LevelMesh& mesh) {
+    void DrawLevelMesh(GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
 
-        LevelShader::InstanceConstants consts{};
-        consts.FrameTime = (float)FrameTime;
-        consts.Time = (float)ElapsedTime;
-        consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
+        LevelShader::InstanceConstants constants{};
+        constants.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
+        auto cmdList = ctx.CommandList();
         Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
 
         if (chunk.Cloaked) {
             Shaders->Level.SetMaterial1(cmdList, Materials->Black);
             Shaders->Level.SetMaterial2(cmdList, Materials->Black);
-            consts.LightingScale = 1;
+            constants.LightingScale = 1;
         }
         else {
             {
@@ -404,7 +392,7 @@ namespace Inferno::Render {
             }
 
             if (chunk.TMap2 > LevelTexID::Unset) {
-                consts.Overlay = true;
+                constants.Overlay = true;
 
                 auto& map2 = chunk.EffectClip2 == EClipID::None ?
                     Materials->Get(chunk.TMap2) :
@@ -415,11 +403,11 @@ namespace Inferno::Render {
         }
 
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
-        consts.Scroll = ti.Slide;
-        consts.Scroll2 = chunk.OverlaySlide;
-        consts.Distort = ti.Slide != Vector2::Zero;
+        constants.Scroll = ti.Slide;
+        constants.Scroll2 = chunk.OverlaySlide;
+        constants.Distort = ti.Slide != Vector2::Zero;
 
-        Shaders->Level.SetInstanceConstants(cmdList, consts);
+        Shaders->Level.SetInstanceConstants(cmdList, constants);
         mesh.Draw(cmdList);
         DrawCalls++;
     }
@@ -577,20 +565,20 @@ namespace Inferno::Render {
         _levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
 
-    void DrawObject(ID3D12GraphicsCommandList* cmd, const Object& object, float alpha) {
+    void DrawObject(GraphicsContext& ctx, const Object& object, float alpha) {
         switch (object.Type) {
             case ObjectType::Robot:
             {
                 auto& info = Resources::GetRobotInfo(object.ID);
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(cmd, object, info.Model, alpha, texOverride);
+                DrawModel(ctx, object, info.Model, alpha, texOverride);
                 break;
             }
 
             case ObjectType::Hostage:
             {
                 auto up = object.Rotation.Up();
-                DrawSprite(object, cmd, false, &up, Settings::RenderMode == RenderMode::Shaded);
+                DrawSprite(ctx, object, false, &up, Settings::RenderMode == RenderMode::Shaded);
                 break;
             }
 
@@ -601,17 +589,17 @@ namespace Inferno::Render {
             case ObjectType::Marker:
             {
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(cmd, object, object.Render.Model.ID, alpha, texOverride);
+                DrawModel(ctx, object, object.Render.Model.ID, alpha, texOverride);
                 break;
             }
 
             case ObjectType::Weapon:
                 if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                    DrawModel(cmd, object, object.Render.Model.ID, alpha, texOverride);
+                    DrawModel(ctx, object, object.Render.Model.ID, alpha, texOverride);
                 }
                 else {
-                    DrawSprite(object, cmd, true);
+                    DrawSprite(ctx, object, true);
                 }
                 break;
 
@@ -619,17 +607,17 @@ namespace Inferno::Render {
             {
                 if (object.Render.VClip.ID == VClips::Matcen) {
                     auto up = object.Rotation.Up();
-                    DrawSprite(object, cmd, true, &up);
+                    DrawSprite(ctx, object, true, &up);
                 }
                 else {
-                    DrawSprite(object, cmd, true);
+                    DrawSprite(ctx, object, true);
                 }
                 break;
             }
 
             case ObjectType::Powerup:
             {
-                DrawSprite(object, cmd, false);
+                DrawSprite(ctx, object, false);
                 break;
             }
 
@@ -644,107 +632,85 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void DepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
-        switch (cmd.Type) {
-            case RenderCommandType::LevelMesh:
-            {
-                auto& mesh = *cmd.Data.LevelMesh;
-                if (!mesh.Chunk) return;
-                auto& chunk = *mesh.Chunk;
-                mesh.Draw(cmdList);
-                DrawCalls++;
-                break;
-            }
-            case RenderCommandType::Object:
-                //DrawObject(cmdList, *cmd.Data.Object, lerp/*, transparentPass*/);
-                break;
-        }
+    void LevelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
+        if (cmd.Type == RenderCommandType::Object) return;
+        auto& mesh = *cmd.Data.LevelMesh;
+        if (!mesh.Chunk) return;
+        //auto& chunk = *mesh.Chunk;
+        mesh.Draw(cmdList);
+        DrawCalls++;
     }
 
-    void DepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
-        switch (cmd.Type) {
-            case RenderCommandType::LevelMesh:
-            {
-                auto& mesh = *cmd.Data.LevelMesh;
-                if (!mesh.Chunk) return;
-                auto& chunk = *mesh.Chunk;
+    void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float lerp) {
+        if (cmd.Type == RenderCommandType::Object) return;
+        auto& mesh = *cmd.Data.LevelMesh;
+        if (!mesh.Chunk) return;
+        auto& chunk = *mesh.Chunk;
 
-                DepthCutoutShader::Constants consts{};
-                consts.Threshold = 0.01f;
+        DepthCutoutShader::Constants consts{};
+        consts.Threshold = 0.01f;
 
-                auto& effect = Effects->DepthCutout;
-                effect.Apply(cmdList);
-                effect.Shader->SetSampler(cmdList, GetTextureSampler());
+        auto& effect = Effects->DepthCutout;
+        effect.Apply(cmdList);
+        effect.Shader->SetSampler(cmdList, GetTextureSampler());
 
-                {
-                    auto& map1 = chunk.EffectClip1 == EClipID::None ?
-                        Materials->Get(chunk.TMap1) :
-                        Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
+        {
+            auto& map1 = chunk.EffectClip1 == EClipID::None ?
+                Materials->Get(chunk.TMap1) :
+                Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
 
-                    effect.Shader->SetMaterial1(cmdList, map1);
-                }
-
-                if (chunk.TMap2 > LevelTexID::Unset) {
-                    consts.HasOverlay = true;
-
-                    auto& map2 = chunk.EffectClip2 == EClipID::None ?
-                        Materials->Get(chunk.TMap2) :
-                        Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
-
-                    effect.Shader->SetMaterial2(cmdList, map2);
-                }
-
-                auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
-                consts.Scroll = ti.Slide;
-                consts.Scroll2 = chunk.OverlaySlide;
-                effect.Shader->SetConstants(cmdList, consts);
-
-                mesh.Draw(cmdList);
-                DrawCalls++;
-                break;
-            }
-            case RenderCommandType::Object:
-                //DrawObject(cmdList, *cmd.Data.Object, lerp/*, transparentPass*/);
-                break;
+            effect.Shader->SetMaterial1(cmdList, map1);
         }
+
+        if (chunk.TMap2 > LevelTexID::Unset) {
+            consts.HasOverlay = true;
+
+            auto& map2 = chunk.EffectClip2 == EClipID::None ?
+                Materials->Get(chunk.TMap2) :
+                Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
+
+            effect.Shader->SetMaterial2(cmdList, map2);
+        }
+
+        auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
+        consts.Scroll = ti.Slide;
+        consts.Scroll2 = chunk.OverlaySlide;
+        effect.Shader->SetConstants(cmdList, consts);
+
+        mesh.Draw(cmdList);
+        DrawCalls++;
     }
 
-    void ExecuteRenderCommand(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd, float alpha, bool transparentPass) {
+    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, float alpha, bool transparentPass) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
                 if (transparentPass) return;
                 auto& mesh = *cmd.Data.LevelMesh;
 
-                LevelShader::Constants consts = {};
-                consts.WVP = ViewProjection;
-                consts.Eye = Camera.Position;
-                consts.LightDirection = -Vector3::UnitY;
-                consts.FrameSize = Adapter->GetOutputSize();
-
                 if (Settings::RenderMode == RenderMode::Flat) {
                     if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive)
-                        Effects->LevelWallFlat.Apply(cmdList);
+                        ctx.ApplyEffect(Effects->LevelWallFlat);
                     else
-                        Effects->LevelFlat.Apply(cmdList);
+                        ctx.ApplyEffect(Effects->LevelFlat);
                 }
                 else {
                     if (mesh.Chunk->Blend == BlendMode::Alpha)
-                        Effects->LevelWall.Apply(cmdList);
+                        ctx.ApplyEffect(Effects->LevelWall);
                     else if (mesh.Chunk->Blend == BlendMode::Additive)
-                        Effects->LevelWallAdditive.Apply(cmdList);
+                        ctx.ApplyEffect(Effects->LevelWallAdditive);
                     else
-                        Effects->Level.Apply(cmdList); // effect must be applied before setting any shader parameters
+                        ctx.ApplyEffect(Effects->Level);
+
+                    Effects->Level.Shader->SetSampler(ctx.CommandList(), GetTextureSampler());
+                    ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
                 }
 
-                Effects->Level.Shader->SetConstants(cmdList, consts);
-                Effects->Level.Shader->SetSampler(cmdList, GetTextureSampler());
-
-                DrawLevelMesh(cmdList, *cmd.Data.LevelMesh);
+                DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
                 break;
             }
             case RenderCommandType::Object:
-                DrawObject(cmdList, *cmd.Data.Object, alpha/*, transparentPass*/);
+                DrawObject(ctx, *cmd.Data.Object, alpha/*, transparentPass*/);
                 break;
         }
     }
@@ -769,8 +735,10 @@ namespace Inferno::Render {
 
         if (depth > distSquared)
             DrawObjectOutline(obj);
+        else if (obj.Render.Type == RenderType::Model)
+            _transparentQueue.push_back({ &obj, depth });
         else
-            DrawTransparent({ &obj, depth });
+            _transparentQueue.push_back({ &obj, depth });
     }
 
     void DrawDebug(Level&) {
@@ -816,6 +784,17 @@ namespace Inferno::Render {
         //ctx.EndEvent();
     }
 
+    //void QueueMeshes() {
+    //    for (auto& mesh : Meshes)
+    //        Render::DrawOpaque(Render::RenderCommand(&mesh, 0));
+
+    //    for (auto& mesh : WallMeshes) {
+    //        float depth = (mesh.Chunk->Center - Render::Camera.Position).LengthSquared();
+    //        Render::DrawTransparent(Render::RenderCommand{ &mesh, depth });
+    //    }
+    //}
+
+
     void DrawLevel(GraphicsContext& ctx, float lerp) {
         ctx.BeginEvent(L"Level");
 
@@ -832,24 +811,27 @@ namespace Inferno::Render {
         if (Settings::RenderMode != RenderMode::None) {
             // Queue commands for level meshes
             for (auto& mesh : _levelMeshBuilder.GetMeshes())
-                DrawOpaque({ &mesh, 0 });
+                _opaqueQueue.push_back({ &mesh, 0 });
 
             for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
                 float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
-                DrawTransparent({ &mesh, depth });
+                _transparentQueue.push_back({ &mesh, depth });
             }
         }
 
-        //if (Settings::ShowObjects) {
-        //    auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
-        //    for (auto& obj : Game::Level.Objects) {
-        //        if (obj.Lifespan <= 0) continue;
-        //        DrawObject(Game::Level, obj, distSquared, lerp);
-        //    }
-        //}
+        if (Settings::ShowObjects) {
+            auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
+            for (auto& obj : Game::Level.Objects) {
+                if (obj.Lifespan <= 0) continue;
+                DrawObject(Game::Level, obj, distSquared, lerp);
+            }
+        }
+
+        Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
+            return l.Depth > r.Depth;
+        });
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 
         {
             ctx.BeginEvent(L"Depth prepass");
@@ -858,12 +840,14 @@ namespace Inferno::Render {
 
             //ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
             {
+                auto cmdList = ctx.CommandList();
                 auto& effect = Effects->Depth;
-                effect.Apply(ctx.CommandList());
+                effect.Apply(cmdList);
                 ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
-                for (auto& cmd : _opaqueQueue)
-                    DepthPrepass(ctx.CommandList(), cmd, lerp);
+                for (auto& cmd : _opaqueQueue) {
+                    LevelDepthPrepass(cmdList, cmd, lerp);
+                }
             }
 
             {
@@ -872,7 +856,7 @@ namespace Inferno::Render {
                 ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
                 for (auto& cmd : _transparentQueue)
-                    DepthCutout(ctx.CommandList(), cmd, lerp);
+                    LevelDepthCutout(ctx.CommandList(), cmd, lerp);
             }
 
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
@@ -899,17 +883,17 @@ namespace Inferno::Render {
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
 
         {
+            ctx.BeginEvent(L"Level");
+
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
 
             for (auto& cmd : _opaqueQueue)
-                ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
-
-            Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
-                return l.Depth > r.Depth;
-            });
+                ExecuteRenderCommand(ctx, cmd, lerp, false);
 
             for (auto& cmd : _transparentQueue)
-                ExecuteRenderCommand(ctx.CommandList(), cmd, lerp, false);
+                ExecuteRenderCommand(ctx, cmd, lerp, false);
+
+            ctx.EndEvent();
 
             //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
             //    ExecuteRenderCommand(cmdList, cmd, true);
@@ -917,14 +901,15 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            DrawParticles(ctx.CommandList());
+            DrawParticles(ctx);
 
             if (!Settings::ScreenshotMode) {
+                ctx.BeginEvent(L"Editor");
                 DrawEditor(ctx.CommandList(), Game::Level);
                 DrawDebug(Game::Level);
+                ctx.EndEvent();
             }
             else {
-                auto& target = Adapter->GetHdrRenderTarget();
                 Inferno::DrawGameText(Game::Level.Name, *Canvas, target, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, AlignH::Center, AlignV::Top);
                 Inferno::DrawGameText("Inferno Engine", *Canvas, target, -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, AlignH::Right, AlignV::Bottom);
             }
@@ -935,8 +920,6 @@ namespace Inferno::Render {
         if (Settings::MsaaSamples > 1) {
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
         }
-
-
 
         ctx.EndEvent();
     }
@@ -989,7 +972,7 @@ namespace Inferno::Render {
         }
         BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
 
-        PostFx::Scanline.Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
+        Adapter->Scanline.Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
         Adapter->BriefingScanlineBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         target.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -997,7 +980,6 @@ namespace Inferno::Render {
     }
 
     void Present(float alpha) {
-        //SPDLOG_INFO("Begin Frame");
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
         DrawCalls = 0;
@@ -1015,14 +997,16 @@ namespace Inferno::Render {
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
 
-        FrameConstants constants{};
-        constants.ElapsedTime = ElapsedTime;
-        constants.WVP = Camera.ViewProj();
-        constants.NearClip = Camera.NearClip;
-        constants.FarClip = Camera.FarClip;
+        FrameConstants frameConstants{};
+        frameConstants.ElapsedTime = (float)ElapsedTime;
+        frameConstants.ViewProjection = Camera.ViewProj();
+        frameConstants.NearClip = Camera.NearClip;
+        frameConstants.FarClip = Camera.FarClip;
+        frameConstants.Eye = Camera.Position;
+        frameConstants.FrameSize = Adapter->GetOutputSize();
 
         Adapter->FrameConstantsBuffer.Begin();
-        Adapter->FrameConstantsBuffer.Copy({ &constants, 1 });
+        Adapter->FrameConstantsBuffer.Copy({ &frameConstants, 1 });
         Adapter->FrameConstantsBuffer.End();
 
         DrawLevel(ctx, alpha);

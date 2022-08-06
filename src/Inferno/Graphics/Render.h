@@ -11,6 +11,7 @@
 #include "LevelMesh.h"
 #include "BitmapCache.h"
 #include "Render.Canvas.h"
+#include "Graphics/CommandContext.h"
 
 class CommandListManager;
 class ContextManager;
@@ -37,7 +38,7 @@ namespace Inferno::Render {
         return Settings::HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
 
-    void DrawVClip(ID3D12GraphicsCommandList* cmd, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
+    void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
@@ -89,9 +90,6 @@ namespace Inferno::Render {
             Data.LevelMesh = mesh;
         }
     };
-
-    void DrawOpaque(RenderCommand);
-    void DrawTransparent(RenderCommand);
 
     struct StaticTextureDef {
         Texture2D Font;
