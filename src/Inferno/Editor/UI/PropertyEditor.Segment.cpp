@@ -649,6 +649,13 @@ namespace Inferno::Editor {
         return changed;
     }
 
+    void ChangeWallType(Wall* wall, WallType type) {
+        if (!wall) return;
+        wall->Type = type;
+        if (type == WallType::Cloaked)
+            wall->CloakValue(0.5f);
+    }
+
     // Returns true if any wall properties changed
     void WallProperties(Level& level, WallID id) {
         auto wall = level.TryGetWall(id);
@@ -666,15 +673,17 @@ namespace Inferno::Editor {
                     Commands::RemoveWall();
                 }
                 else {
-                    wall->Type = wallType;
-                    if (wallType == WallType::Cloaked)
-                        wall->CloakValue(0.5f);
+                    ChangeWallType(wall, wallType);
 
-                    if (other && Settings::EditBothWallSides) {
-                        other->Type = wallType;
-                        if (wallType == WallType::Cloaked)
-                            other->CloakValue(0.5f);
-                    }
+                    if (Settings::EditBothWallSides)
+                        ChangeWallType(other, wallType);
+
+                    // Change type of marked faces if they already have a wall
+                    for (auto& face : GetSelectedFaces())
+                        if (auto markedWall = Game::Level.TryGetWall(face))
+                            ChangeWallType(markedWall, wallType);
+
+                    Editor::History.SnapshotLevel("Change wall type");
                 }
             }
 
@@ -780,7 +789,7 @@ namespace Inferno::Editor {
                         if (auto w = level.TryGetWall(wid))
                             w->BlocksLight = wall->BlocksLight;
 
-                    if(Settings::EditBothWallSides && other)
+                    if (Settings::EditBothWallSides && other)
                         other->BlocksLight = wall->BlocksLight;
                 }
             }
