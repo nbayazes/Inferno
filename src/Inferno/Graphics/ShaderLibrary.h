@@ -246,7 +246,7 @@ namespace Inferno {
         enum RootParameterIndex : uint {
             FrameConstants,
             Diffuse,
-            LinearZ,
+            Depth,
             Sampler,
             RootParameterCount
         };
@@ -263,8 +263,8 @@ namespace Inferno {
             commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
         }
 
-        void SetLinearZ(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
-            commandList->SetGraphicsRootDescriptorTable(LinearZ, texture);
+        void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Depth, texture);
         }
     };
 

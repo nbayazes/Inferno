@@ -341,6 +341,7 @@ namespace Inferno::Render {
         ApplyEffect(ctx, effect);
         auto& material = Materials->Get(tid);
         effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+        effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(ctx.CommandList(), sampler);
 
@@ -512,6 +513,7 @@ namespace Inferno::Render {
     // Loads a single model at runtime
     void LoadModelDynamic(ModelID id) {
         if (!_meshBuffer) return;
+        SPDLOG_INFO("LoadModelDynamic: {}", id);
         _meshBuffer->LoadModel(id);
         auto ids = GetTexturesForModel(id);
         Materials->LoadMaterials(ids, false);
@@ -936,11 +938,15 @@ namespace Inferno::Render {
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
 
+            ctx.BeginEvent(L"Opaque queue");
             for (auto& cmd : _opaqueQueue)
                 ExecuteRenderCommand(ctx, cmd, lerp, false);
+            ctx.EndEvent();
 
+            ctx.BeginEvent(L"Transparent queue");
             for (auto& cmd : _transparentQueue)
                 ExecuteRenderCommand(ctx, cmd, lerp, false);
+            ctx.EndEvent();
 
             ctx.EndEvent();
 

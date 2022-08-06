@@ -1,5 +1,6 @@
 #pragma once
 
+#define NOMINMAX
 #include <wtypes.h>
 #include "Editor/Editor.h"
 #include "Graphics/ShaderLibrary.h"

@@ -4,9 +4,9 @@
     "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
-SamplerState sampler0 : register(s0);
+SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
-Texture2D LinearZ : register(t1);
+Texture2D Depth : register(t1);
 
 #include "FrameConstants.hlsli"
 
@@ -31,9 +31,23 @@ PS_INPUT vsmain(VS_INPUT input) {
     return output;
 }
 
+float LinearizeDepth(float near, float far, float depth) {
+    return near / (far + depth * (near - far));
+}
+
+float SaturateSoft(float depth, float contrast) {
+    float Output = 0.5 * pow(saturate(2 * ((depth > 0.5) ? 1 - depth : depth)), contrast);
+    return (depth > 0.5) ? 1 - Output : Output;
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
-    float4 diffuse = Diffuse.Sample(sampler0, input.uv);
+    float4 diffuse = Diffuse.Sample(Sampler, input.uv);
     if (diffuse.a <= 0.0)
         discard;
-    return diffuse * input.col;
+    
+    float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
+    float pixelDepth = LinearizeDepth(NearClip, FarClip, input.pos.z);
+    //float d = saturate((sceneDepth - pixelDepth) * FarClip / 2);
+    float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip / 2, 4);
+    return diffuse * input.col * d;
 }

@@ -175,6 +175,7 @@ void Application::Update() {
     static double t = 0;
 
     accumulator += Render::FrameTime;
+    accumulator = std::min(accumulator, 2.0);
 
     Render::Debug::BeginFrame(); // enable Debug calls during physics
 
