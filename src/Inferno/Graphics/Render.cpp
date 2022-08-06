@@ -109,6 +109,7 @@ namespace Inferno::Render {
 
         Ptr<MeshBuffer> _meshBuffer;
         Ptr<SpriteBatch> _tempBatch;
+        void* ActiveEffect = nullptr; // address of the currently active effect
     }
 
     struct RenderBatchHandle {
@@ -117,12 +118,15 @@ namespace Inferno::Render {
         int Size;
     };
 
-    //struct PolygonDrawData {
-    //    int Buffer; // src buffer id
-    //    RenderBatchHandle Handle;
-    //    IEffect* Effect;
-    //    void* EffectData; // cbuffer parameters to effect... needs to be packed
-    //};
+
+    // Applies an effect that uses the frame constants
+    template<class T>
+    void ApplyEffect(GraphicsContext& ctx, const Effect<T>& effect) {
+        if (ActiveEffect == &effect) return;
+        ActiveEffect = (void*)&effect;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+    }
 
     LevelMeshBuilder _levelMeshBuilder;
     Ptr<PackedBuffer> _levelMeshBuffer;
@@ -132,7 +136,7 @@ namespace Inferno::Render {
 
     void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float alpha, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
-        ctx.ApplyEffect(effect);
+        ApplyEffect(ctx, effect);
         auto cmdList = ctx.CommandList();
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
 
@@ -334,7 +338,7 @@ namespace Inferno::Render {
         ObjectVertex v3(p3, { 0, 1 }, color);
 
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
-        ctx.ApplyEffect(effect);
+        ApplyEffect(ctx, effect);
         auto& material = Materials->Get(tid);
         effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
         auto sampler = Render::GetClampedTextureSampler();
@@ -616,12 +620,7 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void LevelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
-        assert(cmd.Type == RenderCommandType::LevelMesh);
-        cmd.Data.LevelMesh->Draw(cmdList);
-        DrawCalls++;
-    }
-
+    // todo: skip transparent submodels (D2 energy guy, D3 facing lights)
     void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, Object& object, ModelID modelId, float lerp) {
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
@@ -718,20 +717,19 @@ namespace Inferno::Render {
 
                 if (Settings::RenderMode == RenderMode::Flat) {
                     if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive)
-                        ctx.ApplyEffect(Effects->LevelWallFlat);
+                        ApplyEffect(ctx, Effects->LevelWallFlat);
                     else
-                        ctx.ApplyEffect(Effects->LevelFlat);
+                        ApplyEffect(ctx, Effects->LevelFlat);
                 }
                 else {
                     if (mesh.Chunk->Blend == BlendMode::Alpha)
-                        ctx.ApplyEffect(Effects->LevelWall);
+                        ApplyEffect(ctx, Effects->LevelWall);
                     else if (mesh.Chunk->Blend == BlendMode::Additive)
-                        ctx.ApplyEffect(Effects->LevelWallAdditive);
+                        ApplyEffect(ctx, Effects->LevelWallAdditive);
                     else
-                        ctx.ApplyEffect(Effects->Level);
+                        ApplyEffect(ctx, Effects->Level);
 
-                    Effects->Level.Shader->SetSampler(ctx.CommandList(), GetTextureSampler());
-                    ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                    Shaders->Level.SetSampler(ctx.CommandList(), GetTextureSampler());
                 }
 
                 DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
@@ -870,31 +868,19 @@ namespace Inferno::Render {
             {
                 // Opaque level geometry prepass
                 auto& effect = Effects->Depth;
-                ctx.ApplyEffect(effect);
-                ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                ApplyEffect(ctx, effect);
 
                 for (auto& cmd : _opaqueQueue) {
-                    LevelDepthPrepass(cmdList, cmd);
-                }
-            }
-
-            {
-                // Level walls
-                auto& effect = Effects->DepthCutout;
-                ctx.ApplyEffect(effect);
-                ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-
-                for (auto& cmd : _transparentQueue) {
-                    if (cmd.Type != RenderCommandType::LevelMesh) continue;
-                    LevelDepthCutout(cmdList, cmd);
+                    assert(cmd.Type == RenderCommandType::LevelMesh);
+                    cmd.Data.LevelMesh->Draw(cmdList);
+                    DrawCalls++;
                 }
             }
 
             {
                 // Opaque object depth prepass
                 auto& effect = Effects->DepthObject;
-                ctx.ApplyEffect(effect);
-                ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                ApplyEffect(ctx, effect);
 
                 for (auto& cmd : _transparentQueue) {
                     if (cmd.Type != RenderCommandType::Object) continue;
@@ -910,11 +896,19 @@ namespace Inferno::Render {
                 }
             }
 
+            {
+                // Level walls (potentially transparent)
+                auto& effect = Effects->DepthCutout;
+                ApplyEffect(ctx, effect);
+
+                for (auto& cmd : _transparentQueue) {
+                    if (cmd.Type != RenderCommandType::LevelMesh) continue;
+                    LevelDepthCutout(cmdList, cmd);
+                }
+            }
+
+
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-            //auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
-            //PostFx::LinearizeDepth.Execute(ctx.CommandList(), depthBuffer, linearDepthBuffer);
-            //ctx.SetRenderTarget(Adapter->GetHdrRenderTarget().GetRTV(), Adapter->GetHdrDepthBuffer().GetDSV());
-            //ctx.InsertUAVBarrier(Adapter->GetHdrDepthBuffer());
 
             if (Settings::MsaaSamples > 1) {
                 // must resolve MS target to allow shader sampling
@@ -1038,6 +1032,7 @@ namespace Inferno::Render {
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
+        ActiveEffect = nullptr;
 
         Heaps->SetDescriptorHeaps(ctx.CommandList());
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
