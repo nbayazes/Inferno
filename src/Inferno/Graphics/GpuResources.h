@@ -34,13 +34,13 @@ namespace Inferno {
             if (_state == state) return;
             DirectX::TransitionResource(cmdList, _resource.Get(), _state, state);
 
-            //if (state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
-            //    D3D12_RESOURCE_BARRIER barrier{};
-            //    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
-            //    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            //    barrier.UAV.pResource = _resource.Get();
-            //    cmdList->ResourceBarrier(1, &barrier);
-            //}
+            if (state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+                D3D12_RESOURCE_BARRIER barrier{};
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+                barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+                barrier.UAV.pResource = _resource.Get();
+                cmdList->ResourceBarrier(1, &barrier);
+            }
             _state = state;
         }
 

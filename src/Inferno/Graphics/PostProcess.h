@@ -106,8 +106,8 @@ namespace Inferno::PostFx {
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& destBloom, PixelBuffer& destLuma) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-            destBloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-            destLuma.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            destBloom.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            destLuma.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
             float constants[6] = {
                 1.0f / destBloom.GetWidth(), 1.0f / destBloom.GetHeight(), BloomThreshold,
@@ -132,7 +132,7 @@ namespace Inferno::PostFx {
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-            dest.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
             DirectX::XMFLOAT2 constants = { 1.0f / source.GetWidth(), 1.0f / source.GetHeight() };
 
@@ -151,8 +151,9 @@ namespace Inferno::PostFx {
     public:
         BlurCS() : ComputeShader(8, 8) { } 
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, const PixelBuffer& dest) {
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
             commandList->SetComputeRootSignature(_rootSignature.Get());
             commandList->SetComputeRootDescriptorTable(U0_Result, dest.GetUAV());
@@ -170,9 +171,10 @@ namespace Inferno::PostFx {
 
         float UpsampleBlendFactor = 0.6f; // How much to blend between low and high res
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& highResSrc, PixelBuffer& lowerResSrc, const PixelBuffer& dest) {
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& highResSrc, PixelBuffer& lowerResSrc, PixelBuffer& dest) {
             highResSrc.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             lowerResSrc.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
             DirectX::XMFLOAT3 constants = { 1.0f / highResSrc.GetWidth(), 1.0f / highResSrc.GetHeight(), UpsampleBlendFactor };
 
@@ -195,9 +197,10 @@ namespace Inferno::PostFx {
         float Exposure = 1.0f; // final scene exposure
         float BloomStrength = 2.25f;
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& bloom, PixelBuffer& colorDest, const PixelBuffer& lumaDest) {
-            colorDest.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) {
             bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            colorDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            lumaDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
             DirectX::XMFLOAT4 constants = {
                 1.0f / colorDest.GetWidth(), 1.0f / colorDest.GetHeight(),
