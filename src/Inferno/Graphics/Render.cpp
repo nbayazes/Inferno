@@ -98,6 +98,11 @@ namespace Inferno::Render {
 }
 
 namespace Inferno::Render {
+    enum class RenderPass {
+        Opaque, // Solid level geometry or objects
+        Walls, // Level walls, might be transparent
+        Transparent // Sprites, transparent portions of models
+    };
 
     using VertexType = DirectX::VertexPositionTexture;
 
@@ -556,18 +561,20 @@ namespace Inferno::Render {
         _levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
 
-    void DrawObject(GraphicsContext& ctx, const Object& object, float alpha) {
+    void DrawObject(GraphicsContext& ctx, const Object& object, float lerp, RenderPass pass) {
         switch (object.Type) {
             case ObjectType::Robot:
             {
+                // could be transparent or opaque pass
                 auto& info = Resources::GetRobotInfo(object.ID);
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(ctx, object, info.Model, alpha, texOverride);
+                DrawModel(ctx, object, info.Model, lerp, texOverride);
                 break;
             }
 
             case ObjectType::Hostage:
             {
+                if (pass != RenderPass::Transparent) return;
                 auto up = object.Rotation.Up();
                 DrawSprite(ctx, object, false, &up, Settings::RenderMode == RenderMode::Shaded);
                 break;
@@ -579,23 +586,26 @@ namespace Inferno::Render {
             case ObjectType::SecretExitReturn:
             case ObjectType::Marker:
             {
+                if (pass != RenderPass::Opaque) return;
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(ctx, object, object.Render.Model.ID, alpha, texOverride);
+                DrawModel(ctx, object, object.Render.Model.ID, lerp, texOverride);
                 break;
             }
 
             case ObjectType::Weapon:
                 if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                    DrawModel(ctx, object, object.Render.Model.ID, alpha, texOverride);
+                    DrawModel(ctx, object, object.Render.Model.ID, lerp, texOverride);
                 }
                 else {
+                    if (pass != RenderPass::Transparent) return;
                     DrawSprite(ctx, object, true);
                 }
                 break;
 
             case ObjectType::Fireball:
             {
+                if (pass != RenderPass::Transparent) return;
                 if (object.Render.VClip.ID == VClips::Matcen) {
                     auto up = object.Rotation.Up();
                     DrawSprite(ctx, object, true, &up);
@@ -608,6 +618,7 @@ namespace Inferno::Render {
 
             case ObjectType::Powerup:
             {
+                if (pass != RenderPass::Transparent) return;
                 DrawSprite(ctx, object, false);
                 break;
             }
@@ -623,7 +634,7 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    // todo: skip transparent submodels (D2 energy guy, D3 facing lights)
+    // todo: skip transparent submodels (D2 energy guy, D3 facing submodels)
     void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, Object& object, ModelID modelId, float lerp) {
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
@@ -676,7 +687,7 @@ namespace Inferno::Render {
         auto& mesh = *cmd.Data.LevelMesh;
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
-        if (chunk.Blend != BlendMode::Opaque) return;
+        if (chunk.Blend == BlendMode::Additive) return;
 
         DepthCutoutShader::Constants consts{};
         consts.Threshold = 0.01f;
@@ -712,29 +723,38 @@ namespace Inferno::Render {
         DrawCalls++;
     }
 
-    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, float alpha, bool transparentPass) {
+    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, float lerp, RenderPass pass) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
-                if (transparentPass) return;
                 auto& mesh = *cmd.Data.LevelMesh;
 
                 if (Settings::RenderMode == RenderMode::Flat) {
-                    if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive)
+                    if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive) {
+                        if (pass != RenderPass::Walls) return;
                         ApplyEffect(ctx, Effects->LevelWallFlat);
-                    else
+                    }
+                    else {
+                        if (pass != RenderPass::Opaque) return;
                         ApplyEffect(ctx, Effects->LevelFlat);
+                    }
 
                     cmd.Data.LevelMesh->Draw(ctx.CommandList());
                     DrawCalls++;
                 }
                 else {
-                    if (mesh.Chunk->Blend == BlendMode::Alpha)
+                    if (mesh.Chunk->Blend == BlendMode::Alpha) {
+                        if (pass != RenderPass::Walls) return;
                         ApplyEffect(ctx, Effects->LevelWall);
-                    else if (mesh.Chunk->Blend == BlendMode::Additive)
+                    }
+                    else if (mesh.Chunk->Blend == BlendMode::Additive) {
+                        if (pass != RenderPass::Walls) return;
                         ApplyEffect(ctx, Effects->LevelWallAdditive);
-                    else
+                    }
+                    else {
+                        if (pass != RenderPass::Opaque) return;
                         ApplyEffect(ctx, Effects->Level);
+                    }
 
                     Shaders->Level.SetSampler(ctx.CommandList(), GetTextureSampler());
                     DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
@@ -743,11 +763,10 @@ namespace Inferno::Render {
                 break;
             }
             case RenderCommandType::Object:
-                DrawObject(ctx, *cmd.Data.Object, alpha/*, transparentPass*/);
+                DrawObject(ctx, *cmd.Data.Object, lerp, pass);
                 break;
         }
     }
-
 
     void DrawObject(Level& level, Object& obj, float distSquared, float alpha) {
         auto position = Vector3::Lerp(obj.LastPosition, obj.Position, alpha);
@@ -769,7 +788,7 @@ namespace Inferno::Render {
         if (depth > distSquared)
             DrawObjectOutline(obj);
         else if (obj.Render.Type == RenderType::Model)
-            _transparentQueue.push_back({ &obj, depth });
+            _opaqueQueue.push_back({ &obj, depth });
         else
             _transparentQueue.push_back({ &obj, depth });
     }
@@ -827,6 +846,73 @@ namespace Inferno::Render {
     //    }
     //}
 
+    void DepthPrepass(GraphicsContext& ctx, float lerp) {
+        ctx.BeginEvent(L"Depth prepass");
+        // Depth prepass
+        ClearDepthPrepass(ctx);
+        auto cmdList = ctx.CommandList();
+
+        {
+            // Opaque geometry prepass
+            for (auto& cmd : _opaqueQueue) {
+                if (cmd.Type == RenderCommandType::LevelMesh) {
+                    ApplyEffect(ctx, Effects->Depth);
+                    cmd.Data.LevelMesh->Draw(cmdList);
+                    DrawCalls++;
+                }
+                else {
+                    // Models
+                    ApplyEffect(ctx, Effects->DepthObject);
+                    auto& object = *cmd.Data.Object;
+                    if (object.Render.Type != RenderType::Model) continue;
+                    auto model = object.Render.Model.ID;
+                    if (cmd.Data.Object->Type == ObjectType::Robot)
+                        model = Resources::GetRobotInfo(object.ID).Model;
+                    ModelDepthPrepass(cmdList, object, model, lerp);
+                }
+            }
+        }
+
+        //{
+        //    // Opaque object depth prepass
+        //    ApplyEffect(ctx, Effects->DepthObject);
+
+        //    for (auto& cmd : _transparentQueue) {
+        //        if (cmd.Type != RenderCommandType::Object) continue;
+
+        //        auto& object = *cmd.Data.Object;
+        //        if (object.Render.Type != RenderType::Model) continue;
+        //        auto model = object.Render.Model.ID;
+
+        //        if (cmd.Data.Object->Type == ObjectType::Robot)
+        //            model = Resources::GetRobotInfo(object.ID).Model;
+
+        //        ModelDepthPrepass(cmdList, object, model, lerp);
+        //    }
+        //}
+
+
+        if (Settings::RenderMode != RenderMode::Flat) {
+            // Level walls (potentially transparent)
+            auto& effect = Effects->DepthCutout;
+            ApplyEffect(ctx, effect);
+
+            for (auto& cmd : _transparentQueue) {
+                if (cmd.Type != RenderCommandType::LevelMesh) continue;
+                LevelDepthCutout(cmdList, cmd);
+            }
+        }
+
+        if (Settings::MsaaSamples > 1) {
+            // must resolve MS target to allow shader sampling
+            Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
+            Adapter->MsaaLinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        }
+
+        Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Adapter->GetHdrDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
+        ctx.EndEvent();
+    }
 
     void DrawLevel(GraphicsContext& ctx, float lerp) {
         ctx.BeginEvent(L"Level");
@@ -866,87 +952,30 @@ namespace Inferno::Render {
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        {
-            ctx.BeginEvent(L"Depth prepass");
-            // Depth prepass
-            ClearDepthPrepass(ctx);
-            auto cmdList = ctx.CommandList();
-
-            {
-                // Opaque level geometry prepass
-                auto& effect = Effects->Depth;
-                ApplyEffect(ctx, effect);
-
-                for (auto& cmd : _opaqueQueue) {
-                    assert(cmd.Type == RenderCommandType::LevelMesh);
-                    cmd.Data.LevelMesh->Draw(cmdList);
-                    DrawCalls++;
-                }
-            }
-
-            {
-                // Opaque object depth prepass
-                auto& effect = Effects->DepthObject;
-                ApplyEffect(ctx, effect);
-
-                for (auto& cmd : _transparentQueue) {
-                    if (cmd.Type != RenderCommandType::Object) continue;
-
-                    auto& object = *cmd.Data.Object;
-                    if (object.Render.Type != RenderType::Model) continue;
-                    auto model = object.Render.Model.ID;
-
-                    if (cmd.Data.Object->Type == ObjectType::Robot)
-                        model = Resources::GetRobotInfo(object.ID).Model;
-
-                    ModelDepthPrepass(cmdList, object, model, lerp);
-                }
-            }
-
-
-            if (Settings::RenderMode != RenderMode::Flat) {
-                // Level walls (potentially transparent)
-                auto& effect = Effects->DepthCutout;
-                ApplyEffect(ctx, effect);
-
-                for (auto& cmd : _transparentQueue) {
-                    if (cmd.Type != RenderCommandType::LevelMesh) continue;
-                    LevelDepthCutout(cmdList, cmd);
-                }
-            }
-
-            auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-
-            if (Settings::MsaaSamples > 1) {
-                // must resolve MS target to allow shader sampling
-                Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
-                Adapter->MsaaLinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            }
-
-            Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            depthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
-            ctx.EndEvent();
-        }
-
-        //ClearMainRenderTarget(ctx);
-        auto& target = Adapter->GetHdrRenderTarget();
-        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+        DepthPrepass(ctx, lerp);
 
         {
             ctx.BeginEvent(L"Level");
+            auto& target = Adapter->GetHdrRenderTarget();
+            auto& depthBuffer = Adapter->GetHdrDepthBuffer();
+            ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+            ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
 
             ctx.BeginEvent(L"Opaque queue");
             for (auto& cmd : _opaqueQueue)
-                ExecuteRenderCommand(ctx, cmd, lerp, false);
+                ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Opaque);
+            ctx.EndEvent();
+
+            ctx.BeginEvent(L"Wall queue");
+            for (auto& cmd : _transparentQueue)
+                ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Walls);
             ctx.EndEvent();
 
             ctx.BeginEvent(L"Transparent queue");
             for (auto& cmd : _transparentQueue)
-                ExecuteRenderCommand(ctx, cmd, lerp, false);
+                ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Transparent);
             ctx.EndEvent();
 
             ctx.EndEvent();

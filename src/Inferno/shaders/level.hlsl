@@ -75,6 +75,13 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
     return float4(specular, 0);
 }
 
+float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
+    float depth = Depth.Sample(Sampler, (pos.xy + 0.5) / FrameSize);
+    float f = saturate((((end - start) / 3000) - depth) / ((end - start) / 3000));
+    //float f = saturate(1 / exp(pow(depth * 5, 2)));
+    return f * pixel + (1 - f) * fogColor;
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
@@ -88,13 +95,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     emissive.a = 0;
 
     
-    float depth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
-    //float4 fog = float4(0.25, 0.35, 0.75, 1);
-    //float fStart = 100;
-    //float fEnd = 500;
-    //float f = saturate((((fEnd - fStart) / 3000) - depth) / ((fEnd - fStart) / 3000)); // linear fog
-    //float f = saturate(1 / exp(pow(depth * 5, 2)));
-    
+
     if (HasOverlay) {
         // Apply supertransparency mask
         float mask = StMask.Sample(Sampler, input.uv2).r; // only need a single channel
@@ -102,9 +103,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         float4 src = Diffuse2.Sample(Sampler, input.uv2);
         
-        float4 dst = base;
-        float out_a = src.a + dst.a * (1 - src.a);
-        float3 out_rgb = src.a * src.rgb + (1 - src.a) * dst.rgb;
+        float out_a = src.a + base.a * (1 - src.a);
+        float3 out_rgb = src.a * src.rgb + (1 - src.a) * base.rgb;
         float4 diffuse = float4(out_rgb, out_a);
         
         if (diffuse.a < 0.01f)
@@ -125,7 +125,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //lighting.a = saturate(lighting.a);
         //output.Color = diffuse * lighting;
         return diffuse * lighting;
-        //return f * (diffuse * lighting) + (1 - f) * fog;
+        //return ApplyLinearFog(diffuse * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
         
         // assume overlay is only emissive source for now
         //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
@@ -143,6 +143,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
             discard;
         
         return base * lighting;
-        //return f * (base * lighting) + (1 - f) * fog;
+        //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     }
 }
