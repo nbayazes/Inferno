@@ -1064,7 +1064,7 @@ namespace Inferno::Render {
         ctx.EndEvent();
     }
 
-    void Present(float alpha) {
+    void Present(float lerp) {
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
         DrawCalls = 0;
@@ -1095,7 +1095,7 @@ namespace Inferno::Render {
         Adapter->FrameConstantsBuffer.Copy({ &frameConstants, 1 });
         Adapter->FrameConstantsBuffer.End();
 
-        DrawLevel(ctx, alpha);
+        DrawLevel(ctx, lerp);
 
         PostProcess(ctx);
         DrawUI(ctx);

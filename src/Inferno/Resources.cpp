@@ -124,6 +124,18 @@ namespace Inferno::Resources {
         return GetEffectClip(tid);
     }
 
+    // Some vclips have very fast speeds (like robot engine glows) that looks bad.
+    // This slows them down
+    void FixVClipTimes(span<EffectClip> clips) {
+        for (auto& clip : clips) {
+            auto& vclip = clip.VClip;
+            if (vclip.FrameTime > 0 && vclip.FrameTime < 0.01f) {
+                vclip.FrameTime *= 5;
+                vclip.PlayTime *= 5;
+            }
+        }
+    }
+
     VClip DefaultVClip{};
 
     const VClip& GetVideoClip(VClipID id) {
@@ -275,6 +287,8 @@ namespace Inferno::Resources {
         Hog = std::move(hog);
         GameData = std::move(ham);
         Textures = std::move(textures);
+
+        //FixVClipTimes(GameData.Effects);
 
         // Read hxm
         auto hxm = ReplaceExtension(level.FileName, ".hxm");

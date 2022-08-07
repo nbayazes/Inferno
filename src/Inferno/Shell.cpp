@@ -5,6 +5,9 @@
 #include <dwmapi.h>
 #include <DirectXTK12/Keyboard.h>
 #include <DirectXTK12/Mouse.h>
+#include "imgui_local.h"
+#include "Input.h"
+#include "Version.h"
 
 //#include <versionhelpers.h>
 

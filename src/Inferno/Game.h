@@ -4,6 +4,10 @@
 #include "Mission.h"
 
 namespace Inferno::Game {
+    enum class GameState { Game, Editor, Paused };
+
+    inline GameState State = GameState::Editor;
+
     // The loaded level. Only one level can be active at a time.
     inline Inferno::Level Level;
 
@@ -32,6 +36,9 @@ namespace Inferno::Game {
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo();
 
-    // Game time elapsed in seconds
+    // Elapsed game time  in seconds. Stops when paused.
     inline double ElapsedTime = 0;
+
+    void Update(float dt);
+    void ToggleEditorMode();
 }

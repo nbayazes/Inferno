@@ -2,17 +2,14 @@
 
 #define NOMINMAX
 #include <wtypes.h>
-#include "Editor/Editor.h"
 #include "Graphics/ShaderLibrary.h"
 #include "Graphics/Render.h"
 #include "Level.h"
 #include "SystemClock.h"
-#include "Editor/UI/EditorUI.h"
 
 namespace Inferno {
 
     class Application final : public IDeviceNotify {
-        Inferno::Editor::EditorUI _editorUI;
         SystemClock _clock;
         double _fpsLimit = 0;
         double _nextUpdate = 0;

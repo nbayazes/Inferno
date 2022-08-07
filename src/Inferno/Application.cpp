@@ -7,8 +7,8 @@
 #include "Game.h"
 #include "imgui_local.h"
 #include "BitmapCache.h"
-#include "Physics.h"
-#include "Graphics/Render.Particles.h"
+#include "Editor/Editor.h"
+#include "Editor/UI/EditorUI.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -83,140 +83,8 @@ void Application::Initialize(int width, int height) {
 
 using Keys = Keyboard::Keys;
 
-float g_FireDelay = 0;
-
-void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
-    //auto& guns = Resources::GameData.PlayerShip.GunPoints;
-    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1), obj.GetTransform());
-    auto& weapon = Resources::GameData.Weapons[id];
-
-    Object bullet{};
-    bullet.Movement.Type = MovementType::Physics;
-    bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
-    bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
-    bullet.Movement.Physics.Drag = weapon.Drag;
-    bullet.Movement.Physics.Mass = weapon.Mass;
-    bullet.Position = bullet.LastPosition = point;
-    bullet.Rotation = bullet.LastRotation = obj.Rotation;
-
-    if (weapon.RenderType == WeaponRenderType::Blob || weapon.RenderType == WeaponRenderType::VClip) {
-        bullet.Render.Type = RenderType::WeaponVClip;
-        bullet.Render.VClip.ID = weapon.WeaponVClip;
-        bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
-        Render::LoadTextureDynamic(weapon.WeaponVClip);
-    }
-    else if (weapon.RenderType == WeaponRenderType::Model) {
-        bullet.Render.Type = RenderType::Model;
-        bullet.Render.Model.ID = weapon.Model;
-        auto& model = Resources::GetModel(weapon.Model);
-        bullet.Radius = model.Radius / weapon.ModelSizeRatio;
-        //auto length = model.Radius * 2;
-        Render::LoadModelDynamic(weapon.Model);
-    }
-
-    bullet.Lifespan = weapon.Lifetime;
-
-    bullet.Type = ObjectType::Weapon;
-    bullet.ID = (int8)id;
-    bullet.Parent = ObjID(0);
-    bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f }; // laser level 5
-
-    //auto pitch = -Random() * 0.2f;
-    Sound::Sound3D sound(point, obj.Segment);
-    sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-    sound.Source = ObjID(0);
-    sound.Volume = 0.35f;
-    Sound::Play(sound);
-
-
-    Render::Particle p{};
-    p.Clip = weapon.FlashVClip;
-    p.Position = point /*+ obj.Rotation.Forward() * 1.5f*/; // shift flash to end of gun barrel
-    p.Radius = weapon.FlashSize;
-    Render::AddParticle(p);
-
-    for (auto& o : level.Objects) {
-        if (o.Lifespan <= 0) {
-            o = bullet;
-            return; // found a dead object to reuse!
-        }
-    }
-
-    level.Objects.push_back(bullet); // insert a new object
-}
-
-
 void Application::Update() {
-    PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");
 
-    Inferno::Input::Update();
-
-    if (Settings::EnablePhysics) {
-        g_FireDelay -= Render::FrameTime;
-
-        if (Input::IsKeyDown(Keys::Enter)) {
-            if (g_FireDelay <= 0) {
-                g_FireDelay = 0;
-                auto id = Game::Level.IsDescent2() ? 30 : 13; // plasma: 13, super laser: 30
-                auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay += weapon.FireDelay / 2;
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 0, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 1, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 2, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 3, id);
-            }
-        }
-    }
-
-    if (Input::IsKeyPressed(Keys::F1))
-        Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
-
-    if (Input::IsKeyPressed(Keys::F3))
-        Settings::ScreenshotMode = !Settings::ScreenshotMode;
-
-    if (Input::IsKeyPressed(Keys::F5))
-        Render::Adapter->ReloadResources();
-
-    if (Input::IsKeyPressed(Keys::F6))
-        Render::ReloadTextures();
-
-    if (Input::IsKeyPressed(Keys::F7)) {
-        Settings::HighRes = !Settings::HighRes;
-        Render::ReloadTextures();
-    }
-
-    constexpr double dt = 1.0f / 64;
-    static double accumulator = 0;
-    static double t = 0;
-
-    accumulator += Render::FrameTime;
-    accumulator = std::min(accumulator, 2.0);
-
-    Render::Debug::BeginFrame(); // enable Debug calls during physics
-
-    float alpha = 1; // blending between previous and current position
-
-    if (Settings::EnablePhysics) {
-        while (accumulator >= dt) {
-            UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
-            accumulator -= dt;
-            t += dt;
-        }
-
-        alpha = float(accumulator / dt);
-    }
-
-    // todo: only update particles if game is not paused
-    Render::UpdateParticles(Render::FrameTime);
-    Editor::Update();
-
-    g_ImGuiBatch->BeginFrame();
-    if (!Settings::ScreenshotMode) _editorUI.OnRender();
-    g_ImGuiBatch->EndFrame();
-
-    PIXEndEvent();
-
-    Render::Present(alpha);
 }
 
 void Application::UpdateFpsLimit() {
@@ -241,14 +109,21 @@ void Application::Tick() {
 
     _clock.Update(false);
 
-    Render::FrameTime = (float)_clock.GetElapsedSeconds();
+    float dt = (float)_clock.GetElapsedSeconds();
+    if (dt > 2) dt = 2;
+
+    Render::FrameTime = dt;
     Game::ElapsedTime = _clock.GetTotalMilliseconds() / 1000.;
 
-    if (Render::FrameTime > 2) Render::FrameTime = 2;
 
     if (Settings::ShowAnimation)
         Render::ElapsedTime = milliseconds / 1000.;
-    Update();
+
+    //PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");
+
+    //PIXEndEvent();
+
+    Game::Update(dt);
 }
 
 bool Inferno::Application::OnClose() {

@@ -66,7 +66,7 @@ namespace Inferno::Render {
     inline uint16 DrawCalls = 0;
     inline uint16 PolygonCount = 0;
     inline float FrameTime = 0; // Time of this frame in seconds
-    inline double ElapsedTime = 0; // Game time elapsed in seconds. Stops updating when paused or animations are disabled.
+    inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     enum class RenderCommandType {
         LevelMesh, Object
