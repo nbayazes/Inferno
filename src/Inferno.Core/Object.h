@@ -313,6 +313,7 @@ namespace Inferno {
 
     struct RenderData {
         RenderType Type;
+        Color Emissive;
         union {
             struct ModelData Model {}; // polygon model
             struct VClipData VClip;   // vclip

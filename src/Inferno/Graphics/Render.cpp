@@ -149,10 +149,10 @@ namespace Inferno::Render {
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
 
         effect.Shader->SetSampler(cmdList, GetTextureSampler());
-        ObjectShader::Constants constants = {};
-
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        ObjectShader::Constants constants = {};
+        constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.EmissiveLight = object.Render.Emissive;
 
         //Matrix transform = object.GetTransform(t);
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), alpha);
@@ -224,7 +224,8 @@ namespace Inferno::Render {
 
         ObjectShader::Constants constants = {};
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.EmissiveLight = object.Render.Emissive;
+        constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         Matrix transform = object.GetTransform();
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -286,13 +287,13 @@ namespace Inferno::Render {
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
                     if (material.Saturate())
-                        constants.Colors[0] = Color(1, 1, 1, 1);
-                    constants.Colors[1] = Color(1, 1, 1, 1);
+                        constants.Ambient = Color(1, 1, 1);
+                    //constants.Colors[1] = Color(1, 1, 1, 1);
                     effect.Shader->SetConstants(cmd, constants);
                     DrawObjectGlow(cmd, submodel.Radius, Color(1, 1, 1, 1));
                 }
                 else {
-                    constants.Colors[1] = material.Color; // color 1 is used for texture alpha
+                    //constants.Colors[1] = material.Color; // color 1 is used for texture alpha
                     effect.Shader->SetConstants(cmd, constants);
                     cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                     cmd->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -513,7 +514,7 @@ namespace Inferno::Render {
     // Loads a single model at runtime
     void LoadModelDynamic(ModelID id) {
         if (!_meshBuffer) return;
-        SPDLOG_INFO("LoadModelDynamic: {}", id);
+        //SPDLOG_INFO("LoadModelDynamic: {}", id);
         _meshBuffer->LoadModel(id);
         auto ids = GetTexturesForModel(id);
         Materials->LoadMaterials(ids, false);

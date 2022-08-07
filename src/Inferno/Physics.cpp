@@ -1,4 +1,5 @@
 #include "pch.h"
+#define NOMINMAX
 #include <iostream>
 #include "Physics.h"
 #include "Resources.h"
@@ -1012,8 +1013,10 @@ namespace Inferno {
                                 sound.Source = obj.Parent;
                                 Sound::Play(sound);
 
+                                auto dir = obj.Movement.Physics.Velocity;
+                                dir.Normalize();
                                 Render::Particle p{};
-                                p.Position = hit.Point;
+                                p.Position = hit.Point - dir * weapon.ImpactSize * 0.5f; // move explosion out of wall
                                 p.Radius = weapon.ImpactSize;
                                 p.Clip = weapon.WallHitVClip;
                                 Render::AddParticle(p);

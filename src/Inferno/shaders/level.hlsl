@@ -89,11 +89,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     
     float depth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
-    float4 fog = float4(0.25, 0.35, 0.75, 1);
+    //float4 fog = float4(0.25, 0.35, 0.75, 1);
     //float fStart = 100;
     //float fEnd = 500;
     //float f = saturate((((fEnd - fStart) / 3000) - depth) / ((fEnd - fStart) / 3000)); // linear fog
-    float f = saturate(1 / exp(pow(depth * 5, 2)));
+    //float f = saturate(1 / exp(pow(depth * 5, 2)));
     
     if (HasOverlay) {
         // Apply supertransparency mask
@@ -124,8 +124,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float multiplier = length(emissive.rgb); 
         //lighting.a = saturate(lighting.a);
         //output.Color = diffuse * lighting;
-        //return diffuse * lighting;
-        return f * (diffuse * lighting) + (1 - f) * fog;
+        return diffuse * lighting;
+        //return f * (diffuse * lighting) + (1 - f) * fog;
         
         // assume overlay is only emissive source for now
         //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
@@ -142,6 +142,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         if (base.a < 0.01f)
             discard;
         
-        return f * (base * lighting) + (1 - f) * fog;
+        return base * lighting;
+        //return f * (base * lighting) + (1 - f) * fog;
     }
 }

@@ -279,8 +279,7 @@ namespace Inferno {
     public:
         struct Constants {
             Matrix World;
-            Color Colors[3];
-            Vector3 LightDirection[3];
+            Vector4 EmissiveLight, Ambient;
         };
 
         ObjectShader(ShaderInfo info) : IShader(info) {

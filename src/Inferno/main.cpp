@@ -30,8 +30,6 @@ void PrintWeaponInfo(const Weapon& weapon) {
 }
 
 void PrintWeaponInfo() {
-    //Resources::LoadDescent2();
-
     int weapons[] = {
         0, 1, 2, 3,
         11, 12, 13, 14,
@@ -44,6 +42,7 @@ void PrintWeaponInfo() {
         "Gauss", "Helix", "Phoenix", "Omega" };
     int j = 0;
     for (auto& i : weapons) {
+        if (i >= Resources::GameData.Weapons.size()) break;
         SPDLOG_INFO("Weapon info {}", names[j++]);
         PrintWeaponInfo(Resources::GameData.Weapons[i]);
     }

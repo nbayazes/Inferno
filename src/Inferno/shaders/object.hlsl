@@ -5,7 +5,7 @@
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
-SamplerState sampler0 : register(s0);
+SamplerState Sampler : register(s0);
 Texture2D Diffuse : register(t0);
 Texture2D Emissive : register(t2);
 
@@ -13,8 +13,8 @@ Texture2D Emissive : register(t2);
 
 cbuffer Constants : register(b1) {
     float4x4 WorldMatrix;
-    float4 Colors[3];
-    float3 LightDirection[3];
+    float3 EmissiveLight; // for untextured objects like lasers
+    float3 Ambient;
 };
 
 struct VS_INPUT {
@@ -71,9 +71,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3 light = 1 + saturate(dot(-input.normal, lightDir));
     //float3 shadow = 1 - saturate(dot(input.normal, lightDir)) * 0.5;
 
-    float4 diffuse = Diffuse.Sample(sampler0, input.uv) * input.col;
-    float4 emissive = Emissive.Sample(sampler0, input.uv) * diffuse;
-    emissive.a = 0;
+    float4 diffuse = Diffuse.Sample(Sampler, input.uv) * input.col;
+    float3 emissive = Emissive.Sample(Sampler, input.uv).rgb * diffuse.rgb;
+    emissive += EmissiveLight;
+    //emissive.rgb = float3(0.8, 0, 0.5);
     //emissive.r = emissive.r > 0.70 ? emissive.r * 2.5 : emissive.r * 0.25;
     //emissive = emissive > 0.70 ? emissive * 2.5 : emissive * 0.25;
     //emissive = smoothstep(emissive * 0.25, emissive * 2, 1) - (emissive * 0.25);
@@ -85,13 +86,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //emissive.r = 1;
     //emissive.r = smoothstep(emissive.r * 0.5, emissive.r * 4.5, 5 * emissive.r - 4);
     //emissive.r = pow(emissive.r, 3) * 5;
-    float4 ambient = Colors[0]; // hack for ambient until nearest lights are reworked
     float3 lightDir = float3(0, -1, 0);
     //float4 lightColor = 1.0;
     //float3 lightDir = LightDirection[0];
     //float4 lightColor = LightColor[0];
     //float4 specular = Specular(lightDir, viewDir, input.normal) - 1;
-    float4 light = ambient + emissive + pow(emissive, 3) * 10;
+    float3 light = Ambient + emissive + pow(emissive, 3) * 10;
     light *= Specular(lightDir, viewDir, input.normal);
     //light += saturate(dot(-input.normal, lightDir)) * 0.25;
     //light -= saturate(dot(input.normal, lightDir)) * 0.5;
@@ -113,8 +113,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //output.Color = color * (1 + float4(light, 1));
     //emissive *= 1;
     //output.Color = diffuse * light + emissive + pow(emissive, 3);
-    light.a = clamp(light.a, 0, 1);
-    return diffuse * light;
+    //light.a = clamp(light.a, 0, 1);
+    diffuse.rgb *= light;
+    return diffuse;
     //output.Color = diffuse + 1 + emissive;
     //float4 emissiveLight = smoothstep(0, output.Color, light);
     //float4 emissiveLight = output.Color > 0.5 ? output.Color : 0;

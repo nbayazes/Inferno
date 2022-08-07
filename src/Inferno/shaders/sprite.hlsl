@@ -47,7 +47,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
     
     float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
     float pixelDepth = LinearizeDepth(NearClip, FarClip, input.pos.z);
-    //float d = saturate((sceneDepth - pixelDepth) * FarClip / 2);
-    float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip / 2, 4);
+    //float d = saturate((sceneDepth - pixelDepth) * FarClip);
+    float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip, 4);
     return diffuse * input.col * d;
+    
+    // highlights on sprites
+    //float4 color = diffuse * input.col;
+    //float4 specular = pow(saturate(color - 0.6) + 1, 5) - 1;
+    //specular.a = 0;
+    //return (color + specular) * d;
 }

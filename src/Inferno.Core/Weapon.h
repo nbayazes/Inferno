@@ -10,7 +10,8 @@ namespace Inferno {
     enum class WeaponRenderType : sbyte {
         Laser = 0,
         Blob = 1,
-        Model = 2
+        Model = 2,
+        VClip = 3
     };
 
     enum PrimaryWeaponIndex : uint8 {

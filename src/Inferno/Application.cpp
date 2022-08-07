@@ -86,7 +86,8 @@ using Keys = Keyboard::Keys;
 float g_FireDelay = 0;
 
 void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
-    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun], obj.GetTransform());
+    //auto& guns = Resources::GameData.PlayerShip.GunPoints;
+    auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1), obj.GetTransform());
     auto& weapon = Resources::GameData.Weapons[id];
 
     Object bullet{};
@@ -98,14 +99,27 @@ void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
     bullet.Position = bullet.LastPosition = point;
     bullet.Rotation = bullet.LastRotation = obj.Rotation;
 
-    bullet.Render.Type = RenderType::WeaponVClip;
-    bullet.Render.VClip.ID = weapon.WeaponVClip;
-    bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
+    if (weapon.RenderType == WeaponRenderType::Blob || weapon.RenderType == WeaponRenderType::VClip) {
+        bullet.Render.Type = RenderType::WeaponVClip;
+        bullet.Render.VClip.ID = weapon.WeaponVClip;
+        bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
+        Render::LoadTextureDynamic(weapon.WeaponVClip);
+    }
+    else if (weapon.RenderType == WeaponRenderType::Model) {
+        bullet.Render.Type = RenderType::Model;
+        bullet.Render.Model.ID = weapon.Model;
+        auto& model = Resources::GetModel(weapon.Model);
+        bullet.Radius = model.Radius / weapon.ModelSizeRatio;
+        //auto length = model.Radius * 2;
+        Render::LoadModelDynamic(weapon.Model);
+    }
+
     bullet.Lifespan = weapon.Lifetime;
 
     bullet.Type = ObjectType::Weapon;
     bullet.ID = (int8)id;
     bullet.Parent = ObjID(0);
+    bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f }; // laser level 5
 
     //auto pitch = -Random() * 0.2f;
     Sound::Sound3D sound(point, obj.Segment);
@@ -114,11 +128,10 @@ void FireTestWeapon(Level& level, const Object& obj, int gun, int id) {
     sound.Volume = 0.35f;
     Sound::Play(sound);
 
-    Render::LoadTextureDynamic(weapon.WeaponVClip);
 
     Render::Particle p{};
     p.Clip = weapon.FlashVClip;
-    p.Position = point;
+    p.Position = point /*+ obj.Rotation.Forward() * 1.5f*/; // shift flash to end of gun barrel
     p.Radius = weapon.FlashSize;
     Render::AddParticle(p);
 
@@ -144,11 +157,13 @@ void Application::Update() {
         if (Input::IsKeyDown(Keys::Enter)) {
             if (g_FireDelay <= 0) {
                 g_FireDelay = 0;
-                auto id = Game::Level.IsDescent2() ? 13 : 13;
+                auto id = Game::Level.IsDescent2() ? 30 : 13; // plasma: 13, super laser: 30
                 auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay += weapon.FireDelay;
+                g_FireDelay += weapon.FireDelay / 2;
                 FireTestWeapon(Game::Level, Game::Level.Objects[0], 0, id);
                 FireTestWeapon(Game::Level, Game::Level.Objects[0], 1, id);
+                FireTestWeapon(Game::Level, Game::Level.Objects[0], 2, id);
+                FireTestWeapon(Game::Level, Game::Level.Objects[0], 3, id);
             }
         }
     }
