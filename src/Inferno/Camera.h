@@ -13,20 +13,17 @@ namespace Inferno {
         float _lerpTime{}, _lerpDuration;
 
     public:
-        Camera() = default;
-
         Matrix View;
         Matrix Projection;
 
         float NearClip = 2.0f;
         float FarClip = 3000.0f;
 
-        //Quaternion Rotation;
         Vector3 Position = { 40, 0, 0 };
         Vector3 Target = Vector3::Zero;
         Vector3 Up = Vector3::UnitY;
 
-        const float MinimumZoom = 10; // closest the camera can get to the target
+        float MinimumZoom = 10; // closest the camera can get to the target
         Viewport Viewport = { 0, 0, 1024, 768, NearClip, FarClip };
 
         void SetViewport(float width, float height) {

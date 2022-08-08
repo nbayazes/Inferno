@@ -132,6 +132,9 @@ bool Inferno::Application::OnClose() {
 
 // Message handlers
 void Application::OnActivated() {
+    if (Game::State == GameState::Game)
+        Input::SetMouselook(true);
+
     Input::ResetState();
     _isForeground = true;
     UpdateFpsLimit();

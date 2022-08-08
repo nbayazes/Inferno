@@ -84,7 +84,7 @@ namespace Inferno::Editor {
             }*/
         }
 
-        void OpenBriefing(HogEntry& entry) {
+        void OpenBriefing(const HogEntry& entry) {
             auto data = Game::Mission->ReadEntry(entry);
             _briefing = Briefing::Read(data);
             DebugBriefing = _briefing;

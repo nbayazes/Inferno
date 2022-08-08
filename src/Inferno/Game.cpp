@@ -161,7 +161,7 @@ namespace Inferno::Game {
                 g_FireDelay = 0;
                 auto id = Game::Level.IsDescent2() ? 30 : 13; // plasma: 13, super laser: 30
                 auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay += weapon.FireDelay / 2;
+                g_FireDelay += weapon.FireDelay;
                 FireTestWeapon(Game::Level, Game::Level.Objects[0], 0, id);
                 FireTestWeapon(Game::Level, Game::Level.Objects[0], 1, id);
                 FireTestWeapon(Game::Level, Game::Level.Objects[0], 2, id);
@@ -189,13 +189,19 @@ namespace Inferno::Game {
             t += tickRate;
         }
 
-        Render::UpdateParticles(dt);
         //lerp = float(accumulator / tickRate);
         //Render::Present(lerp);
         return float(accumulator / tickRate);
     }
 
     Inferno::Editor::EditorUI EditorUI;
+
+    void MoveCameraToObject(Camera& camera, const Object& obj, float lerp) {
+        Matrix transform = Matrix::Lerp(obj.GetLastTransform(), obj.GetTransform(), lerp);
+        camera.Position = transform.Translation();
+        camera.Target = camera.Position + transform.Forward();
+        camera.Up = transform.Up();
+    }
 
     void Update(float dt) {
         Inferno::Input::Update();
@@ -208,6 +214,10 @@ namespace Inferno::Game {
         switch (State) {
             case GameState::Game:
                 lerp = GameTick(dt);
+                if (!Level.Objects.empty())
+                    MoveCameraToObject(Render::Camera, Level.Objects[0], lerp);
+
+                Render::UpdateParticles(dt);
                 break;
             case GameState::Editor:
                 Editor::Update();
@@ -221,10 +231,14 @@ namespace Inferno::Game {
         Render::Present(lerp);
     }
 
+    Camera EditorCameraSnapshot;
+
     void ToggleEditorMode() {
         if (State == GameState::Game) {
             Editor::History.Undo();
             State = GameState::Editor;
+            Render::Camera = EditorCameraSnapshot;
+            Input::SetMouselook(false);
         }
         else if (State == GameState::Editor) {
             Editor::History.SnapshotLevel("Playtest");
@@ -233,6 +247,10 @@ namespace Inferno::Game {
                 obj.LastPosition = obj.Position;
                 obj.LastRotation = obj.Rotation;
             }
+
+            EditorCameraSnapshot = Render::Camera;
+            Settings::RenderMode = RenderMode::Shaded;
+            Input::SetMouselook(true);
         }
     }
 }

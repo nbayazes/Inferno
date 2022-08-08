@@ -139,7 +139,7 @@ namespace Inferno::Render {
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
 
-    void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float alpha, TexID texOverride = TexID::None) {
+    void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float lerp, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
         ApplyEffect(ctx, effect);
         auto cmdList = ctx.CommandList();
@@ -160,7 +160,7 @@ namespace Inferno::Render {
         constants.EmissiveLight = object.Render.Emissive;
 
         //Matrix transform = object.GetTransform(t);
-        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), alpha);
+        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         if (object.Control.Type == ControlType::Weapon) {
@@ -914,6 +914,12 @@ namespace Inferno::Render {
         ctx.EndEvent();
     }
 
+    bool ShouldDrawObject(const Object& obj) {
+        if (obj.Lifespan <= 0) return false;
+        if (Game::State == GameState::Editor) return true;
+        return obj.Type != ObjectType::Player && obj.Type != ObjectType::Coop;
+    }
+
     void DrawLevel(GraphicsContext& ctx, float lerp) {
         ctx.BeginEvent(L"Level");
 
@@ -941,7 +947,7 @@ namespace Inferno::Render {
         if (Settings::ShowObjects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects) {
-                if (obj.Lifespan <= 0) continue;
+                if (!ShouldDrawObject(obj)) continue;
                 DrawObject(Game::Level, obj, distSquared, lerp);
             }
         }
@@ -988,7 +994,7 @@ namespace Inferno::Render {
 
             DrawParticles(ctx);
 
-            if (!Settings::ScreenshotMode) {
+            if (!Settings::ScreenshotMode && Game::State == GameState::Editor) {
                 ctx.BeginEvent(L"Editor");
                 DrawEditor(ctx.CommandList(), Game::Level);
                 DrawDebug(Game::Level);

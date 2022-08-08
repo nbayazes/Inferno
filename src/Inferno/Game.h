@@ -3,8 +3,11 @@
 #include "HogFile.h"
 #include "Mission.h"
 
-namespace Inferno::Game {
+namespace Inferno {
     enum class GameState { Game, Editor, Paused };
+}
+
+namespace Inferno::Game {
 
     inline GameState State = GameState::Editor;
 
