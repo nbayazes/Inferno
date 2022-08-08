@@ -39,6 +39,8 @@ namespace Inferno::Game {
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo();
 
+    void FireTestWeapon(Inferno::Level& level, ObjID, int gun, int id);
+
     // Elapsed game time  in seconds. Stops when paused.
     inline double ElapsedTime = 0;
 

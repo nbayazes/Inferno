@@ -11,6 +11,7 @@
 #include "imgui_local.h"
 #include "Editor/Editor.h"
 #include "Editor/UI/EditorUI.h"
+#include "Game.Input.h"
 
 using namespace DirectX;
 
@@ -69,7 +70,6 @@ namespace Inferno::Game {
         }
     }
 
-    float g_FireDelay = 0;
 
     using Keys = Keyboard::Keys;
 
@@ -95,7 +95,8 @@ namespace Inferno::Game {
         }
     }
 
-    void FireTestWeapon(Inferno::Level& level, const Object& obj, int gun, int id) {
+    void FireTestWeapon(Inferno::Level& level, ObjID objId, int gun, int id) {
+        auto& obj = level.Objects[(int)objId];
         //auto& guns = Resources::GameData.PlayerShip.GunPoints;
         auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1), obj.GetTransform());
         auto& weapon = Resources::GameData.Weapons[id];
@@ -141,7 +142,7 @@ namespace Inferno::Game {
 
         Render::Particle p{};
         p.Clip = weapon.FlashVClip;
-        p.Position = point /*+ obj.Rotation.Forward() * 1.5f*/; // shift flash to end of gun barrel
+        p.Position = point;
         p.Radius = weapon.FlashSize;
         Render::AddParticle(p);
 
@@ -153,21 +154,6 @@ namespace Inferno::Game {
         }
 
         level.Objects.push_back(bullet); // insert a new object
-    }
-
-    void HandleGameInput() {
-        if (Input::IsKeyDown(Keys::Enter)) {
-            if (g_FireDelay <= 0) {
-                g_FireDelay = 0;
-                auto id = Game::Level.IsDescent2() ? 30 : 13; // plasma: 13, super laser: 30
-                auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay += weapon.FireDelay;
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 0, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 1, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 2, id);
-                FireTestWeapon(Game::Level, Game::Level.Objects[0], 3, id);
-            }
-        }
     }
 
     // Returns the lerp amount for the current tick
@@ -182,8 +168,8 @@ namespace Inferno::Game {
         //float lerp = 1; // blending between previous and current position
 
         while (accumulator >= tickRate) {
-            g_FireDelay -= tickRate;
-            HandleGameInput();
+            if(!Level.Objects.empty())
+                HandleInput(Level.Objects[0], tickRate);
             UpdatePhysics(Game::Level, t, tickRate); // catch up if physics falls behind
             accumulator -= tickRate;
             t += tickRate;

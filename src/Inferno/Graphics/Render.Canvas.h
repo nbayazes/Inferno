@@ -29,7 +29,7 @@ namespace Inferno::Render {
             _commands[payload.Texture.ptr].push_back(payload);
         }
 
-        void DrawBitmap(TexID id, Vector2& pos, Vector2& size) {
+        void DrawBitmap(TexID id, const Vector2& pos, const Vector2& size) {
             //auto material = &Materials->Get(id);
             auto handle = Materials->Get(id).Handles[Material2D::Diffuse];
             if (!handle.ptr) 

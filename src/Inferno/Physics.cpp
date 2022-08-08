@@ -84,51 +84,6 @@ namespace Inferno {
         }
     }
 
-    // This should be done elsewhere but is useful for testing
-    // todo: keyboard ramping
-    void HandleInput(Object& obj, float dt) {
-        auto& physics = obj.Movement.Physics;
-        using Keys = DirectX::Keyboard::Keys;
-
-        //auto ht0 = GetHoldTime(true, 0, frameTime);
-        //auto ht1 = GetHoldTime(true, 1, frameTime);
-
-        physics.Thrust = Vector3::Zero;
-        physics.AngularThrust = Vector3::Zero;
-
-        if (Input::IsKeyDown(Keys::Add))
-            physics.Thrust += obj.Rotation.Forward() * dt;
-
-        if (Input::IsKeyDown(Keys::Subtract))
-            physics.Thrust += obj.Rotation.Backward() * dt;
-
-        // yaw
-        if (Input::IsKeyDown(Keys::NumPad4))
-            physics.AngularThrust.y = -dt;
-        if (Input::IsKeyDown(Keys::NumPad6))
-            physics.AngularThrust.y = dt;
-
-        // pitch
-        if (Input::IsKeyDown(Keys::NumPad5))
-            physics.AngularThrust.x = -dt;
-        if (Input::IsKeyDown(Keys::NumPad8))
-            physics.AngularThrust.x = dt;
-
-
-        // roll
-        if (Input::IsKeyDown(Keys::NumPad7))
-            physics.AngularThrust.z = -dt;
-        if (Input::IsKeyDown(Keys::NumPad9))
-            physics.AngularThrust.z = dt;
-
-
-        if (Input::IsKeyDown(Keys::NumPad1))
-            physics.Thrust += obj.Rotation.Left() * dt;
-
-        if (Input::IsKeyDown(Keys::NumPad3))
-            physics.Thrust += obj.Rotation.Right() * dt;
-    }
-
     void PlotPhysics(double t, const PhysicsData& pd) {
         static int index = 0;
         static double refresh_time = 0.0;
@@ -917,8 +872,6 @@ namespace Inferno {
     void UpdatePhysics(Level& level, double t, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
-
-        HandleInput(level.Objects[0], dt);
 
         UpdateGame(level, t, dt);
 
