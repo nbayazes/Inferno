@@ -239,6 +239,7 @@
     <ClInclude Include="Graphics\Render.Canvas.h" />
     <ClInclude Include="Graphics\Render.Commands.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
+    <ClInclude Include="HUD.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Version.h" />

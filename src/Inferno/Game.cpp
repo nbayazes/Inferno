@@ -235,12 +235,15 @@ namespace Inferno::Game {
 
     void ToggleEditorMode() {
         if (State == GameState::Game) {
+            // Activate editor mode
             Editor::History.Undo();
             State = GameState::Editor;
             Render::Camera = EditorCameraSnapshot;
             Input::SetMouselook(false);
+            Sound::Stop3DSounds();
         }
         else if (State == GameState::Editor) {
+            // Activate game mode
             Editor::History.SnapshotLevel("Playtest");
             State = GameState::Game;
             for (auto& obj : Level.Objects) {
@@ -251,6 +254,7 @@ namespace Inferno::Game {
             EditorCameraSnapshot = Render::Camera;
             Settings::RenderMode = RenderMode::Shaded;
             Input::SetMouselook(true);
+            Render::LoadHUDTextures();
         }
     }
 }

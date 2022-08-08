@@ -18,7 +18,7 @@ namespace Inferno {
 
         // Returns the active frames
         span<const TexID> GetFrames() const { 
-            return span<const TexID>(Frames.begin(), NumFrames); 
+            return span<const TexID>(Frames.begin(), std::max(NumFrames, 0)); 
         }
 
         // Returns the frame for the vclip based on elapsed time

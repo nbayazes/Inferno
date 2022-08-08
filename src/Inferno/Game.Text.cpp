@@ -143,7 +143,7 @@ namespace Inferno {
             bg.V1 = { Vector2{ x1, y1 },{ ci.X1, ci.Y1 }, background.BGRA() }; // bottom right
             bg.V2 = { Vector2{ x1, y0 },{ ci.X1, ci.Y0 }, background.BGRA() }; // top right
             bg.V3 = { Vector2{ x0, y0 },{ ci.X0, ci.Y0 }, background.BGRA() }; // top left
-            bg.Texture = &Render::StaticTextures->Font;
+            bg.Texture = Render::StaticTextures->Font.GetSRV();
             canvas.Draw(bg);
 
             Render::CanvasPayload payload{};
@@ -151,7 +151,7 @@ namespace Inferno {
             payload.V1 = { Vector2{ x1 + 1, y1 },{ ci.X1, ci.Y1 }, color.BGRA() }; // bottom right
             payload.V2 = { Vector2{ x1 + 1, y0 },{ ci.X1, ci.Y0 }, color.BGRA() }; // top right
             payload.V3 = { Vector2{ x0 + 1, y0 },{ ci.X0, ci.Y0 }, color.BGRA() }; // top left
-            payload.Texture = &Render::StaticTextures->Font;
+            payload.Texture = Render::StaticTextures->Font.GetSRV();
             canvas.Draw(payload);
 
             auto kerning = Atlas.GetKerning(c, next, size);

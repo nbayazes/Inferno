@@ -430,6 +430,9 @@
     <ClInclude Include="Graphics\CommandContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="HUD.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">

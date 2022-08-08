@@ -2,6 +2,8 @@
     "RootConstants(b0, num32BitConstants = 16, visibility=SHADER_VISIBILITY_VERTEX), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "StaticSampler(s0," \
+        "filter = FILTER_MIN_MAG_MIP_POINT,"\
+        "addressU = TEXTURE_ADDRESS_CLAMP, addressV = TEXTURE_ADDRESS_CLAMP,"\
         "comparisonFunc=COMPARISON_ALWAYS," \
         "borderColor=STATIC_BORDER_COLOR_TRANSPARENT_BLACK," \
         "visibility=SHADER_VISIBILITY_PIXEL)"

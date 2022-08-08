@@ -18,6 +18,7 @@
 #include "Game.Segment.h"
 #include "Game.Text.h"
 #include "Editor/UI/BriefingEditor.h"
+#include "HUD.h"
 
 using namespace DirectX;
 using namespace Inferno::Graphics;
@@ -532,6 +533,18 @@ namespace Inferno::Render {
         Materials->LoadMaterials(list, false);
     }
 
+    void LoadTextureDynamic(TexID id) {
+        if (id <= TexID::None) return;
+        List<TexID> list{ id };
+        if (auto eclip = Resources::TryGetEffectClip(id))
+            Seq::append(eclip->VClip.GetFrames(), list);
+        Materials->LoadMaterials(list, false);
+    }
+
+    void LoadHUDTextures() {
+        Materials->LoadMaterials(Resources::GameData.HiResGauges, false);
+    }
+
     void LoadTextureDynamic(VClipID id) {
         auto& vclip = Resources::GetVideoClip(id);
         Materials->LoadMaterials(vclip.GetFrames(), false);
@@ -1044,6 +1057,8 @@ namespace Inferno::Render {
         ctx.BeginEvent(L"UI");
         auto size = Adapter->GetOutputSize();
         ScopedTimer imguiTimer(&Metrics::ImGui);
+        if (Game::State == GameState::Game)
+            DrawHUD(size);
         Canvas->Render(ctx, size);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
         g_ImGuiBatch->Render(ctx.CommandList());
