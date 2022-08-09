@@ -70,7 +70,7 @@ namespace Inferno::Render {
         };
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
-
+        void LoadTextures(span<string> names);
         void LoadOutrageModel(const Outrage::Model& model);
 
         void Reload();

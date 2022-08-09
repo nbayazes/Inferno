@@ -208,6 +208,27 @@ namespace Inferno::Render {
         return material;
     }
 
+    Option<Material2D> UploadBitmap(ResourceUploadBatch& batch, string name, Texture2D& defaultTex) {
+        Material2D material;
+        material.Index = Render::Heaps->Shader.AllocateIndex();
+
+        // allocate a new heap range for the material
+        for (int i = 0; i < Material2D::Count; i++)
+            material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
+
+        material.Name = name;
+        if (auto path = FileSystem::TryFindFile(name + ".DDS"))
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
+
+        // Set default secondary textures
+        for (uint i = 0; i < std::size(material.Textures); i++) {
+            auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
+            auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+            texture->CreateShaderResourceView(handle);
+        }
+
+        return material;
+    }
 
     Option<Material2D> UploadOutrageMaterial(ResourceUploadBatch& batch,
                                              Outrage::Bitmap& bitmap,
@@ -391,6 +412,26 @@ namespace Inferno::Render {
         auto ids = GetLevelTextures(level, PreloadDoors);
         auto tids = Seq::ofSet(ids);
         LoadMaterials(tids, force);
+    }
+
+    void MaterialLibrary::LoadTextures(span<string> names) {
+        Render::Adapter->WaitForGpu();
+
+        List<Material2D> uploads;
+        auto batch = BeginTextureUpload();
+
+
+        for (auto& name : names) {
+            if (_outrageMaterials.contains(name)) continue; // skip loaded
+
+            if (auto material = UploadBitmap(batch, name, _black))
+                uploads.emplace_back(std::move(material.value()));
+        }
+
+        EndTextureUpload(batch);
+
+        for (auto& upload : uploads)
+            _outrageMaterials[upload.Name] = std::move(upload);
     }
 
     void MaterialLibrary::LoadOutrageModel(const Outrage::Model& model) {

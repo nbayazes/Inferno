@@ -25,7 +25,8 @@ namespace Inferno::Render {
     inline Ptr<EffectResources> Effects;
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
-    inline Ptr<Canvas2D> Canvas, BriefingCanvas;
+    inline Ptr<Canvas2D<UIShader>> Canvas, BriefingCanvas;
+    inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
 
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
@@ -93,11 +94,5 @@ namespace Inferno::Render {
         }
     };
 
-    struct StaticTextureDef {
-        Texture2D Font;
-        Texture2D ImguiFont;
-    };
-
-    inline Ptr<StaticTextureDef> StaticTextures;
     extern bool LevelChanged;
 }

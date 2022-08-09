@@ -9,17 +9,27 @@ namespace Inferno {
     FontAtlas Atlas(1024, 512);
 
     Vector2 MeasureString(string_view str, FontSize size) {
+        float maxWidth = 0;
         float width = 0;
         auto font = Atlas.GetFont(size);
         if (!font) return {};
 
+        float height = font->Height;
+
         for (int i = 0; i < str.size(); i++) {
-            char next = i + 1 >= str.size() ? 0 : str[i + 1];
-            auto kerning = Atlas.GetKerning(str[i], next, size);
-            width += font->GetWidth(str[i]) + kerning;
+            if (str[i] == '\n') {
+                maxWidth = std::max(maxWidth, width);
+                width = 0;
+                height += font->Height * 1.5f;
+            }
+            else {
+                char next = i + 1 >= str.size() ? 0 : str[i + 1];
+                auto kerning = Atlas.GetKerning(str[i], next, size);
+                width += font->GetWidth(str[i]) + kerning;
+            }
         }
 
-        return { width, (float)font->Height };
+        return { std::max(maxWidth, width), height };
     }
 
     // Loads fonts from the d2 hog file as they are higher resolution
@@ -55,7 +65,7 @@ namespace Inferno {
     }
 
     void DrawGameText(string_view str,
-                      Render::Canvas2D& canvas,
+                      Render::Canvas2D<UIShader>& canvas,
                       const RenderTarget& target,
                       float x, float y,
                       FontSize size,

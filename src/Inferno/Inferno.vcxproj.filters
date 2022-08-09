@@ -167,6 +167,9 @@
     <ClCompile Include="Game.Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\Render.Canvas.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -520,5 +523,8 @@
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\FrameConstants.hlsli" />
+    <CopyFileToFolders Include="shaders\HUD.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

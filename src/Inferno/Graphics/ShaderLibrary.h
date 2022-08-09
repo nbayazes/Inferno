@@ -74,6 +74,20 @@ namespace Inferno {
         static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
+    //struct HudVertex {
+    //    Vector2 Position;
+    //    Vector2 UV;
+    //    Color Color;
+
+    //    static inline const D3D12_INPUT_ELEMENT_DESC Description[] = {
+    //        { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    //        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    //        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    //    };
+
+    //    static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+    //};
+
     struct ObjectVertex {
         Vector3 Position;
         Vector2 UV;
@@ -314,8 +328,8 @@ namespace Inferno {
         }
 
         struct Constants {
-            DirectX::SimpleMath::Matrix Transform = Matrix::Identity;
-            DirectX::SimpleMath::Color Tint = { 1, 1, 1, 1 };
+            Matrix Transform = Matrix::Identity;
+            Color Tint = { 1, 1, 1, 1 };
         };
 
         void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
@@ -342,6 +356,35 @@ namespace Inferno {
 
         void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
             commandList->SetGraphicsRoot32BitConstants(Constants, sizeof(wvp) / 4, &wvp.m, 0);
+        }
+    };
+
+    class HudShader : public IShader {
+        enum RootParameterIndex : uint {
+            RootConstants,
+            Diffuse,
+            Sampler,
+            RootParameterCount
+        };
+    public:
+        struct Constants {
+            Matrix Transform = Matrix::Identity;
+            Color Tint = { 1, 1, 1 };
+            float ScanlinePitch = 0;
+            float ScanelineIntensity = 0;
+        };
+
+        HudShader(ShaderInfo info) : IShader(info) {
+            InputLayout = CanvasVertex::Layout;
+            Format = DXGI_FORMAT_R11G11B10_FLOAT;
+        }
+
+        void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
+        }
+
+        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(constants) / 4, &constants, 0);
         }
     };
 
@@ -385,6 +428,7 @@ namespace Inferno {
         ObjectDepthShader DepthObject = ShaderInfo{ L"shaders/DepthObject.hlsl" };
         DepthCutoutShader DepthCutout = ShaderInfo{ L"shaders/DepthCutout.hlsl" };
         UIShader UserInterface = ShaderInfo{ L"shaders/imgui.hlsl" };
+        HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
     };
@@ -408,6 +452,8 @@ namespace Inferno {
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
+        Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
+        Effect<HudShader> HudAdditive = { &_shaders->Hud, { BlendMode::Additive, CullMode::None, DepthMode::None } };
         Effect<FlatShader> Flat = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
@@ -432,6 +478,7 @@ namespace Inferno {
             CompileShader(&_shaders->Depth);
             CompileShader(&_shaders->DepthObject);
             CompileShader(&_shaders->DepthCutout);
+            CompileShader(&_shaders->Hud);
 
             auto Compile = [&](auto& effect, uint renderTargets = 1) {
                 try {
@@ -465,6 +512,8 @@ namespace Inferno {
             Compile(Line);
 
             Compile(UserInterface);
+            Compile(Hud);
+            Compile(HudAdditive);
         }
     };
 }

@@ -65,6 +65,8 @@ namespace Inferno {
         void ReloadResources();
 
         Vector2 GetOutputSize() const noexcept { return { (float)m_outputSize.right, (float)m_outputSize.bottom }; }
+        uint GetWidth() const noexcept { return m_outputSize.right; }
+        uint GetHeight() const noexcept { return m_outputSize.bottom; }
 
         // Direct3D Accessors.
         auto                        Device() const noexcept { return m_d3dDevice.Get(); }

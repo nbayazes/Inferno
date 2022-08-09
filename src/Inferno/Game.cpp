@@ -241,6 +241,18 @@ namespace Inferno::Game {
             Settings::RenderMode = RenderMode::Shaded;
             Input::SetMouselook(true);
             Render::LoadHUDTextures();
+
+            string customHudTextures[] = {
+                "cockpit-ctr",
+                "cockpit-left",
+                "cockpit-right"
+            };
+
+            Render::Materials->LoadTextures(customHudTextures);
+
+            //TexID weaponTextures[] = {
+            //    TexID(30), TexID(11), TexID(
+            //};
         }
     }
 }

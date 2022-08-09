@@ -175,6 +175,7 @@
     <ClCompile Include="Editor\UI\PropertyEditor.Segment.cpp" />
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
+    <ClCompile Include="Graphics\Render.Canvas.cpp" />
     <ClCompile Include="Graphics\Render.Particles.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="Physics.cpp" />
@@ -511,6 +512,15 @@
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="shaders\DepthObject.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)\shaders</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)\shaders</DestinationFolders>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="shaders\HUD.hlsl">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
       <FileType>Document</FileType>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>

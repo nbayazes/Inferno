@@ -422,8 +422,10 @@ namespace Inferno::Render {
         Effects = MakePtr<EffectResources>(Shaders.get());
         Materials = MakePtr<MaterialLibrary>(3000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
-        Canvas = MakePtr<Canvas2D>(Device);
-        BriefingCanvas = MakePtr<Canvas2D>(Device);
+        Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        BriefingCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
+        HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
         NewTextureCache = MakePtr<TextureCache>();
@@ -491,6 +493,8 @@ namespace Inferno::Render {
         Shaders.reset();
         Canvas.reset();
         BriefingCanvas.reset();
+        HudCanvas.reset();
+        HudGlowCanvas.reset();
         _graphicsMemory.reset();
         g_SpriteBatch.reset();
         g_ImGuiBatch.reset();
@@ -1006,6 +1010,7 @@ namespace Inferno::Render {
             //    _levelResources->Volumes.Draw(cmdList);
 
             DrawParticles(ctx);
+            Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::ScreenshotMode && Game::State == GameState::Editor) {
                 ctx.BeginEvent(L"Editor");
@@ -1014,16 +1019,12 @@ namespace Inferno::Render {
                 ctx.EndEvent();
             }
             else {
-                Inferno::DrawGameText(Game::Level.Name, *Canvas, target, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, AlignH::Center, AlignV::Top);
-                Inferno::DrawGameText("Inferno Engine", *Canvas, target, -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, AlignH::Right, AlignV::Bottom);
+                //Canvas->DrawGameText(Game::Level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
+                Canvas->DrawGameText("Inferno Engine", -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
             Debug::EndFrame(ctx.CommandList());
         }
 
-
-        if (Settings::MsaaSamples > 1) {
-            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
-        }
 
         ctx.EndEvent();
     }
@@ -1055,11 +1056,8 @@ namespace Inferno::Render {
 
     void DrawUI(GraphicsContext& ctx) {
         ctx.BeginEvent(L"UI");
-        auto size = Adapter->GetOutputSize();
         ScopedTimer imguiTimer(&Metrics::ImGui);
-        if (Game::State == GameState::Game)
-            DrawHUD(size);
-        Canvas->Render(ctx, size);
+        Canvas->Render(ctx);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
         g_ImGuiBatch->Render(ctx.CommandList());
         ctx.EndEvent();
@@ -1073,10 +1071,11 @@ namespace Inferno::Render {
         ctx.SetRenderTarget(target.GetRTV());
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
         auto& briefing = Editor::BriefingEditor::DebugBriefing;
+        BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
         if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
-            DrawGameText(briefing.Screens[1].Pages[1], *BriefingCanvas, target, 20, 20, FontSize::Small, { 0, 1, 0 });
+            BriefingCanvas->DrawGameText(briefing.Screens[1].Pages[1], 20, 20, FontSize::Small, { 0, 1, 0 });
         }
-        BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
+        BriefingCanvas->Render(ctx);
 
         Adapter->Scanline.Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
         Adapter->BriefingScanlineBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -1117,6 +1116,19 @@ namespace Inferno::Render {
         Adapter->FrameConstantsBuffer.End();
 
         DrawLevel(ctx, lerp);
+        if (Game::State == GameState::Game) {
+            auto width = Adapter->GetWidth();
+            auto height = Adapter->GetHeight();
+            HudCanvas->SetSize(width, height);
+            HudGlowCanvas->SetSize(width, height);
+            DrawHUD();
+            HudCanvas->Render(ctx);
+            HudGlowCanvas->Render(ctx);
+        }
+
+        if (Settings::MsaaSamples > 1) {
+            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
+        }
 
         PostProcess(ctx);
         DrawUI(ctx);
