@@ -46,27 +46,26 @@ float4 psmain(PS_INPUT input) : SV_Target {
     
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0) * input.col;
     if (ScanlinePitch > 0.1) {
-        float2 dc = abs(0.5 - input.uvScreen);
-        dc *= dc;
-        float warp = 0.0;
-        //float scan = 0.5;
-    
+        //dc *= dc;
         // warp the fragment coordinates
+        //float2 dc = abs(0.5 - input.uvScreen);
+        //float warp = 0.0;
         //uv.x -= 0.1;
-        uv.x *= 1.0 + (dc.y/* * (0.3 * warp)*/);
+        //uv.x *= 1.0 + (dc.y/* * (0.3 * warp)*/);
         //uv.x += 0.1;
         //uv.y -= 0.1;
-        uv.y *= 1.0 + (dc.x * (0.4 * warp));
+        //uv.y *= 1.0 + (dc.x * (0.4 * warp));
         //uv.y += 0.1;
         
-        const float offset = 0.0001;
+        const float offset = 0.0005;
+        const float ins = 0.5;
         //color += Diffuse.SampleLevel(Sampler, input.uv + float2(offset, 0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
         //color += Diffuse.SampleLevel(Sampler, input.uv + float2(-offset, -0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
         color.a = saturate(color.a);
         float apply = abs(sin(input.uvScreen.y) * 0.5 * ScanlinePitch) * 0.5;
         color = lerp(color, float4(0, 0, 0, 0), apply);
         
-        color.rgb += saturate(color.rgb - 0.6) * 2;
+        color.rgb += saturate(color.rgb - 0.5) * 2;
         //color.rgb *= 0.6;
     }
     //float4 color = lerp(Diffuse.SampleLevel(Sampler, input.uv + uv, 0), float4(0, 0, 0, 0), apply);

@@ -245,7 +245,8 @@ namespace Inferno::Game {
             string customHudTextures[] = {
                 "cockpit-ctr",
                 "cockpit-left",
-                "cockpit-right"
+                "cockpit-right",
+                "gauge03b"
             };
 
             Render::Materials->LoadTextures(customHudTextures);
