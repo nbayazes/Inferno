@@ -61,11 +61,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         const float ins = 0.5;
         //color += Diffuse.SampleLevel(Sampler, input.uv + float2(offset, 0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
         //color += Diffuse.SampleLevel(Sampler, input.uv + float2(-offset, -0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
+        color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
+        float apply = abs(sin(input.uvScreen.y) * 0.5 * ScanlinePitch) * 0.75;
         color.a = saturate(color.a);
-        float apply = abs(sin(input.uvScreen.y) * 0.5 * ScanlinePitch) * 0.5;
         color = lerp(color, float4(0, 0, 0, 0), apply);
-        
-        color.rgb += saturate(color.rgb - 0.5) * 2;
         //color.rgb *= 0.6;
     }
     //float4 color = lerp(Diffuse.SampleLevel(Sampler, input.uv + uv, 0), float4(0, 0, 0, 0), apply);

@@ -246,7 +246,10 @@ namespace Inferno::Game {
                 "cockpit-ctr",
                 "cockpit-left",
                 "cockpit-right",
-                "gauge03b"
+                "gauge01b#0",
+                "gauge02b",
+                "gauge03b",
+                "gauge16b" // lock
             };
 
             Render::Materials->LoadTextures(customHudTextures);

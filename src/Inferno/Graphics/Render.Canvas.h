@@ -190,7 +190,7 @@ namespace Inferno::Render {
                 auto c = str[i];
                 if (c == '\n') {
                     xOffset = 0;
-                    yOffset += font->Height * 1.5f;
+                    yOffset += font->Height * scale * FONT_LINE_SPACING;
                     continue;
                 }
 
@@ -328,7 +328,7 @@ namespace Inferno::Render {
                 auto c = str[i];
                 if (c == '\n') {
                     xOffset = 0;
-                    yOffset += font->Height * 1.5f * scale;
+                    yOffset += font->Height * scale * FONT_LINE_SPACING;
                     continue;
                 }
 

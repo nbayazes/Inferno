@@ -15,7 +15,6 @@ namespace Inferno {
         //BlueKeyOff = 27,
         //GoldKeyOff = 28,
         //RedKeyOff = 29,
-        //BlueKeySB = 30,
         Lives = 37,
         Ship = 38, // 8 Colors
         ReticleCross = 46, // 2 frames: not ready, ready
@@ -27,9 +26,10 @@ namespace Inferno {
 
 
     constexpr float WEAPON_TEXT_Y_OFFSET = -75;
+    constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + 15;
     constexpr float WEAPON_BMP_Y_OFFSET = -20;
-    constexpr Color MonitorGreenText = { 0, 0.6f, 0 };
-    constexpr Color MonitorRedText = { 0.6f, 0, 0 };
+    constexpr Color MonitorGreenText = { 0, 0.7f, 0 };
+    constexpr Color MonitorRedText = { 0.8f, 0, 0 };
 
     void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
@@ -40,47 +40,44 @@ namespace Inferno {
     }
 
     // Draws text with a dark background, easier to read
-    void DrawMonitorText(string_view text, Render::DrawTextInfo& info, float shadow = 0) {
+    void DrawMonitorText(string_view text, Render::DrawTextInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawGameText(text, info);
         info.Color = { 0, 0, 0, shadow };
         info.Scanline = 0.0f;
         Render::HudCanvas->DrawGameText(text, info);
     }
 
-
     void DrawReticleBitmap(const Vector2& offset, Gauges gauge, int frame) {
         TexID id = Resources::GameData.HiResGauges[(int)gauge + frame];
-        auto& ti = Resources::GetTextureInfo(id);
         auto scale = Render::HudCanvas->GetScale();
+        auto& material = Render::Materials->Get(id);
 
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = Vector2((float)ti.Width, (float)ti.Height) * scale;
-        info.Texture = Render::Materials->Get(id).Handles[Material2D::Diffuse];
+        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };;
+        info.Size *= scale;
+        info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.4f;
         Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawShipBitmap(const Vector2& offset, Gauges gauge) {
-        TexID id = Resources::GameData.HiResGauges[(int)gauge];
-        auto& ti = Resources::GetTextureInfo(id);
+    void DrawShipBitmap(const Vector2& offset, const Material2D& material) {
         auto scale = Render::HudCanvas->GetScale();
 
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = Vector2((float)ti.Width, (float)ti.Height) * scale;
-        info.Texture = Render::Materials->Get(id).Handles[Material2D::Diffuse];
+        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };;
+        info.Size *= scale;
+        info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.5f;
-        DrawMonitorBitmap(info, 0.95f);
+        DrawMonitorBitmap(info, 0.90f);
     }
 
-    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, string bitmapName) {
-        auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
-
+    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const Material2D& material) {
         auto scale = Render::HudCanvas->GetScale();
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
@@ -92,19 +89,33 @@ namespace Inferno {
         Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float scanline = 0.4f) {
-        TexID id = Resources::GameData.HiResGauges[(int)gauge];
-        auto& ti = Resources::GetTextureInfo(id);
-        auto scale = Render::HudCanvas->GetScale();
+    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, string bitmapName) {
+        auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
+        DrawOpaqueBitmap(offset, align, material);
+    }
 
+    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float scanline) {
+        auto scale = Render::HudCanvas->GetScale();
         Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = Vector2((float)ti.Width, (float)ti.Height) * scale;
-        info.Texture = Render::Materials->Get(id).Handles[Material2D::Diffuse];
+        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size *= scale;
+        info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = scanline;
         Render::HudGlowCanvas->DrawBitmap(info);
+    }
+
+    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float scanline = 0.4f) {
+        TexID id = Resources::GameData.HiResGauges[(int)gauge];
+        auto& material = Render::Materials->Get(id);
+        DrawAdditiveBitmap(offset, align, material, scanline);
+    }
+
+    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, string bitmapName, float scanline = 0.4f) {
+        auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
+        DrawAdditiveBitmap(offset, align, material, scanline);
     }
 
     void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id) {
@@ -189,7 +200,7 @@ namespace Inferno {
 
         DrawEnergyBar(x, false);
 
-        DrawAdditiveBitmap({ x - 151, -38 }, AlignH::CenterLeft, Gauges::Afterburner);
+        DrawAdditiveBitmap({ x - 151, -38 }, AlignH::CenterLeft, "gauge02b");
     }
 
     void DrawRightMonitor(float x) {
@@ -207,7 +218,7 @@ namespace Inferno {
 
         // Ammo counter
         info.Color = MonitorRedText;
-        info.Position = Vector2(x + 50, WEAPON_TEXT_Y_OFFSET + 15) * scale;
+        info.Position = Vector2(x + 50, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.5f;
@@ -224,16 +235,16 @@ namespace Inferno {
 
         // Bomb counter
         info.Color = MonitorRedText;
-        info.Position = Vector2(x + 158, -26) * scale;
+        info.Position = Vector2(x + 157, -26) * scale;
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.5f;
         DrawMonitorText("B:04", info);
 
         // Draw Keys
-        DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, 1.25f);
-        DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, 1.25f);
-        DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, 1.25f);
+        DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, 1.0f);
+        DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, 1.0f);
+        DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, 1.0f);
     }
 
     void DrawCenterMonitor() {
@@ -259,9 +270,12 @@ namespace Inferno {
             info.Scanline = 0.5f;
             DrawMonitorText("100", info, 0.5f);
         }
-
-        DrawShipBitmap({ 0, -29 }, Gauges::Shield);
-        DrawShipBitmap({ 0, -40 }, Gauges::Ship);
+        
+        {
+            TexID id = Resources::GameData.HiResGauges[(int)Gauges::Ship];
+            DrawShipBitmap({ 0, -40 }, Render::Materials->Get(id));
+            DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial("gauge01b#0"));
+        }
     }
 
     void DrawHUD() {
@@ -271,6 +285,77 @@ namespace Inferno {
         DrawCenterMonitor();
 
         DrawReticle();
+
+
+        auto scale = Render::HudCanvas->GetScale();
+
+        {
+            // Life text
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Small;
+            info.Color = MonitorGreenText;
+            info.Position = Vector2(30, 5) * scale;
+            info.HorizontalAlign = AlignH::Left; 
+            info.VerticalAlign = AlignV::Top;
+            info.Scanline = 0.5f;
+            Render::HudCanvas->DrawGameText("X 2", info);
+        }
+
+        {
+            // Life marker
+            Inferno::Render::CanvasBitmapInfo info;
+            info.Position = Vector2(5, 5) * scale;
+            TexID id = Resources::GameData.HiResGauges[(int)Gauges::Lives];
+            auto& material = Render::Materials->Get(id);
+            info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+            info.Size *= scale;
+            info.Texture = material.Handles[0];
+            info.HorizontalAlign = AlignH::Left;
+            info.VerticalAlign = AlignV::Top;
+            info.Scanline = 0.5f;
+            Render::HudCanvas->DrawBitmap(info);
+        }
+
+        {
+            // Score
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Small;
+            info.Color = MonitorGreenText;
+            info.Position = Vector2(-5, 5) * scale;
+            info.HorizontalAlign = AlignH::Right;
+            info.VerticalAlign = AlignV::Top;
+            info.Scanline = 0.5f;
+            Render::HudCanvas->DrawGameText("SCORE:       0", info);
+        }
+
+        {
+            // Lock text
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Small;
+            info.Color = MonitorRedText;
+            info.Position = Vector2(0, 40) * scale;
+            info.HorizontalAlign = AlignH::Center;
+            info.VerticalAlign = AlignV::CenterTop;
+            info.Scanline = 0.8f;
+            DrawMonitorText("!LOCK!", info);
+        }
+
+        // Lock warning
+        //DrawAdditiveBitmap({ -220, -230 }, AlignH::CenterRight, "gauge16b", 1);
+
+        //{
+        //    auto& material = Render::Materials->GetOutrageMaterial("gauge16b");
+
+        //    Render::CanvasBitmapInfo info;
+        //    info.Position = { -300, 0 } *scale;
+        //    info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        //    info.Size *= scale;
+        //    info.Texture = material.Handles[Material2D::Diffuse];
+        //    info.HorizontalAlign = AlignH::CenterRight;
+        //    info.VerticalAlign = AlignV::CenterTop;
+        //    info.Scanline = 1;
+        //    Render::HudGlowCanvas->DrawBitmap(info);
+        //}
     }
 
 }

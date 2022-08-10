@@ -1020,11 +1020,10 @@ namespace Inferno::Render {
             }
             else {
                 //Canvas->DrawGameText(Game::Level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
-                Canvas->DrawGameText("Inferno Engine", -20 * Shell::DpiScale, -20 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
+                Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
             Debug::EndFrame(ctx.CommandList());
         }
-
 
         ctx.EndEvent();
     }
