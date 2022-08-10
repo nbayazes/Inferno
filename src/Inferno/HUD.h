@@ -270,11 +270,50 @@ namespace Inferno {
             info.Scanline = 0.5f;
             DrawMonitorText("100", info, 0.5f);
         }
-        
+
         {
             TexID id = Resources::GameData.HiResGauges[(int)Gauges::Ship];
             DrawShipBitmap({ 0, -40 }, Render::Materials->Get(id));
             DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial("gauge01b#0"));
+        }
+    }
+
+    void DrawHighlights(bool flip, float opacity = 0.07f) {
+        auto& material = Render::Materials->GetOutrageMaterial("SmHilite");
+        auto scale = Render::HudCanvas->GetScale() * 1.5f;
+        auto& screen = Render::HudCanvas->GetSize();
+        int fl = flip ? 1 : -1;
+
+        auto height = (float)material.Textures[0].GetWidth() * scale;
+        auto width = (float)material.Textures[0].GetHeight() * scale * fl;
+
+        Color color(1, 1, 1, opacity);
+
+        const int steps = 16;
+        const float vStep = 1.0f / steps;
+        const float yStep = height / steps * 0.75f;
+        float offset = screen.x / 2 + 150 * scale * fl;
+        float yOffset = 10 * scale;
+
+        for (int i = 0; i < steps; i++) {
+            Render::CanvasPayload payload;
+            payload.Texture = material.Handles[0];
+
+            float x0 = -cos((steps - i) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
+            float x1 = -cos((steps - i - 1) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
+            float y0 = yOffset + yStep * i;
+            float y1 = yOffset + yStep * (i + 1);
+
+            Vector2 v0 = { x0, y0 }; 
+            Vector2 v1 = { x0 + (width * 2), y0 }; 
+            Vector2 v2 = { x1 + (width * 2), y1 }; 
+            Vector2 v3 = { x1, y1 }; 
+
+            payload.V0 = CanvasVertex{ v0, { 1 - vStep * i      , 0 }, color.RGBA().v }; // bottom left
+            payload.V1 = CanvasVertex{ v1, { 1 - vStep * i      , 1 }, color.RGBA().v }; // bottom right
+            payload.V2 = CanvasVertex{ v2, { 1 - vStep * (i + 1), 1 }, color.RGBA().v }; // top right
+            payload.V3 = CanvasVertex{ v3, { 1 - vStep * (i + 1), 0 }, color.RGBA().v }; // top left
+            Render::HudGlowCanvas->Draw(payload);
         }
     }
 
@@ -295,7 +334,7 @@ namespace Inferno {
             info.Font = FontSize::Small;
             info.Color = MonitorGreenText;
             info.Position = Vector2(30, 5) * scale;
-            info.HorizontalAlign = AlignH::Left; 
+            info.HorizontalAlign = AlignH::Left;
             info.VerticalAlign = AlignV::Top;
             info.Scanline = 0.5f;
             Render::HudCanvas->DrawGameText("X 2", info);
@@ -337,8 +376,11 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::Center;
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.8f;
-            DrawMonitorText("!LOCK!", info);
+            //DrawMonitorText("!LOCK!", info);
         }
+
+        DrawHighlights(false);
+        DrawHighlights(true);
 
         // Lock warning
         //DrawAdditiveBitmap({ -220, -230 }, AlignH::CenterRight, "gauge16b", 1);

@@ -266,7 +266,8 @@ namespace Inferno::Render {
             _scale = (float)height / targetScreenHeight; // scaling due to original screen size being 480 pixels
         }
 
-        float GetScale() { return _scale; }
+        float GetScale() const { return _scale; }
+        const Vector2& GetSize() const { return _size; }
 
         void DrawBitmap(const CanvasBitmapInfo& info) {
             CanvasPayload payload{};
@@ -387,7 +388,6 @@ namespace Inferno::Render {
             }
         }
 
-    private:
         void Draw(const CanvasPayload& payload) {
             if (!payload.Texture.ptr) return;
             _commands[payload.Texture.ptr].push_back(payload);
