@@ -59,6 +59,9 @@ namespace Inferno {
         info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::CenterTop;
+        info.Scanline = 0.0f;
+        Render::HudCanvas->DrawBitmap(info);
+
         info.Scanline = 0.4f;
         Render::HudCanvas->DrawBitmap(info);
     }
@@ -242,9 +245,10 @@ namespace Inferno {
         DrawMonitorText("B:04", info);
 
         // Draw Keys
-        DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, 1.0f);
-        DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, 1.0f);
-        DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, 1.0f);
+        float keyScanline = 0.0f;
+        DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, keyScanline);
+        DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, keyScanline);
+        DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, keyScanline);
     }
 
     void DrawCenterMonitor() {

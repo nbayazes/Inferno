@@ -5,5 +5,5 @@
 #include "Object.h"
 
 namespace Inferno::Game {
-    void HandleInput(Object& obj, float dt);
+    void HandleInput(float dt);
 }

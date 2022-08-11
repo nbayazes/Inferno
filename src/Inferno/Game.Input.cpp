@@ -4,24 +4,9 @@
 #include "Resources.h"
 
 namespace Inferno::Game {
-    float g_FireDelay = 0;
-
-    void HandleInput(Object& obj, float dt) {
+    void HandleInput(float dt) {
         using Keys = DirectX::Keyboard::Keys;
-        g_FireDelay -= dt;
-
-        if (Input::IsKeyDown(Keys::Enter)) {
-            if (g_FireDelay <= 0) {
-                auto id = Game::Level.IsDescent2() ? 30 : 13; // plasma: 13, super laser: 30
-                auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay = weapon.FireDelay;
-                FireTestWeapon(Game::Level, ObjID(0), 0, id);
-                FireTestWeapon(Game::Level, ObjID(0), 1, id);
-                FireTestWeapon(Game::Level, ObjID(0), 2, id);
-                FireTestWeapon(Game::Level, ObjID(0), 3, id);
-            }
-        }
-
+        auto& obj = Level.Objects[0];
         auto& physics = obj.Movement.Physics;
 
         //auto ht0 = GetHoldTime(true, 0, frameTime);
@@ -30,37 +15,52 @@ namespace Inferno::Game {
         physics.Thrust = Vector3::Zero;
         physics.AngularThrust = Vector3::Zero;
 
-        if (Input::IsKeyDown(Keys::Add))
-            physics.Thrust += obj.Rotation.Forward() * dt;
+        //SPDLOG_INFO("Mouse delta {} {}", Input::MouseDelta.x, Input::MouseDelta.y);
+        //auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust * (dt / tick);
+        auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
+        auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
 
-        if (Input::IsKeyDown(Keys::Subtract))
-            physics.Thrust += obj.Rotation.Backward() * dt;
+        if (Input::IsKeyDown(Keys::Add) || Input::IsKeyDown(Keys::W))
+            physics.Thrust += obj.Rotation.Forward() * maxThrust;
+
+        if (Input::IsKeyDown(Keys::Subtract) || Input::IsKeyDown(Keys::S))
+            physics.Thrust += obj.Rotation.Backward() * maxThrust;
+
+        if (Input::IsKeyDown(Keys::NumPad1) || Input::IsKeyDown(Keys::A))
+            physics.Thrust += obj.Rotation.Left() * maxThrust;
+
+        if (Input::IsKeyDown(Keys::NumPad3) || Input::IsKeyDown(Keys::D))
+            physics.Thrust += obj.Rotation.Right() * maxThrust;
 
         // yaw
         if (Input::IsKeyDown(Keys::NumPad4))
-            physics.AngularThrust.y = -dt;
+            physics.AngularThrust.y = -maxAngularThrust;
         if (Input::IsKeyDown(Keys::NumPad6))
-            physics.AngularThrust.y = dt;
+            physics.AngularThrust.y = maxAngularThrust;
 
         // pitch
         if (Input::IsKeyDown(Keys::NumPad5))
-            physics.AngularThrust.x = -dt;
+            physics.AngularThrust.x = -maxAngularThrust;
         if (Input::IsKeyDown(Keys::NumPad8))
-            physics.AngularThrust.x = dt;
-
+            physics.AngularThrust.x = maxAngularThrust;
 
         // roll
-        if (Input::IsKeyDown(Keys::NumPad7))
-            physics.AngularThrust.z = -dt;
-        if (Input::IsKeyDown(Keys::NumPad9))
-            physics.AngularThrust.z = dt;
+        if (Input::IsKeyDown(Keys::NumPad7) || Input::IsKeyDown(Keys::Q))
+            physics.AngularThrust.z = -maxAngularThrust;
+        if (Input::IsKeyDown(Keys::NumPad9) || Input::IsKeyDown(Keys::E))
+            physics.AngularThrust.z = maxAngularThrust;
 
+        float invertMult = -1;
+        float sensitivity = 1 * 64;
+        float scale = 1 / (sensitivity * dt / TICK_RATE);
+        physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
+        physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
 
-        if (Input::IsKeyDown(Keys::NumPad1))
-            physics.Thrust += obj.Rotation.Left() * dt;
+        Vector3 maxAngVec(maxAngularThrust, maxAngularThrust, maxAngularThrust);
+        physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
+        Vector3 maxThrustVec(maxThrust, maxThrust, maxThrust);
+        physics.Thrust.Clamp(-maxThrustVec, maxThrustVec);
 
-        if (Input::IsKeyDown(Keys::NumPad3))
-            physics.Thrust += obj.Rotation.Right() * dt;
-
+        //SPDLOG_INFO("mouse delta: {}", Input::MouseDelta.x);
     }
 }

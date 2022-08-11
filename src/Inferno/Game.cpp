@@ -156,9 +156,10 @@ namespace Inferno::Game {
         level.Objects.push_back(bullet); // insert a new object
     }
 
+    float g_FireDelay = 0;
+
     // Returns the lerp amount for the current tick
     float GameTick(float dt) {
-        constexpr double tickRate = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
         static double accumulator = 0;
         static double t = 0;
 
@@ -166,18 +167,33 @@ namespace Inferno::Game {
         accumulator = std::min(accumulator, 2.0);
 
         //float lerp = 1; // blending between previous and current position
+        if(!Level.Objects.empty())
+            HandleInput(dt);
 
-        while (accumulator >= tickRate) {
-            if(!Level.Objects.empty())
-                HandleInput(Level.Objects[0], tickRate);
-            UpdatePhysics(Game::Level, t, tickRate); // catch up if physics falls behind
-            accumulator -= tickRate;
-            t += tickRate;
+        while (accumulator >= TICK_RATE) {
+            UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
+            g_FireDelay -= TICK_RATE;
+
+            // must check held keys inside of fixed updates so events aren't missed 
+            if (Input::IsKeyDown(Keys::Enter) || Input::Mouse.leftButton == Input::MouseState::HELD) {
+                if (g_FireDelay <= 0) {
+                    auto id = Game::Level.IsDescent2() ? 13 : 13; // plasma: 13, super laser: 30
+                    auto& weapon = Resources::GameData.Weapons[id];
+                    g_FireDelay = weapon.FireDelay;
+                    FireTestWeapon(Game::Level, ObjID(0), 0, id);
+                    FireTestWeapon(Game::Level, ObjID(0), 1, id);
+                    //FireTestWeapon(Game::Level, ObjID(0), 2, id);
+                    //FireTestWeapon(Game::Level, ObjID(0), 3, id);
+                }
+            }
+
+            accumulator -= TICK_RATE;
+            t += TICK_RATE;
         }
 
         //lerp = float(accumulator / tickRate);
         //Render::Present(lerp);
-        return float(accumulator / tickRate);
+        return float(accumulator / TICK_RATE);
     }
 
     Inferno::Editor::EditorUI EditorUI;

@@ -20,12 +20,12 @@ namespace Inferno {
     constexpr auto PlayerTurnRollRate = FixToFloat(0x2000) * XM_2PI;
 
     // Rolls the object when turning
-    void TurnRoll(Object& obj, float rollScale, float rollRate, float dt) {
+    void TurnRoll(Object& obj, float rollScale, float rollRate) {
         auto& pd = obj.Movement.Physics;
         const auto desiredBank = pd.AngularVelocity.y * rollScale;
 
         if (std::abs(pd.TurnRoll - desiredBank) > 0.001f) {
-            auto roll = rollRate * dt;
+            auto roll = rollRate;
             const auto theta = desiredBank - pd.TurnRoll;
 
             if (std::abs(theta) < roll) {
@@ -38,7 +38,6 @@ namespace Inferno {
 
             pd.TurnRoll += roll;
         }
-
         //Debug::R = pd.TurnRoll;
     }
 
@@ -64,13 +63,13 @@ namespace Inferno {
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
         if (pd.HasFlag(PhysicsFlag::TurnRoll))
-            TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate, dt);
+            TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate * dt);
 
         if (pd.TurnRoll) // re-rotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
     }
 
-    void LinearPhysics(Object& obj) {
+    void LinearPhysics(Object& obj, float dt) {
         auto& pd = obj.Movement.Physics;
 
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
@@ -118,8 +117,8 @@ namespace Inferno {
         if (obj.Type == ObjectType::Player) {
             const auto& ship = Resources::GameData.PlayerShip;
 
-            physics.Thrust *= ship.MaxThrust / dt;
-            physics.AngularThrust *= ship.MaxRotationalThrust / dt;
+            //physics.Thrust *= ship.MaxThrust / dt;
+            //physics.AngularThrust *= ship.MaxRotationalThrust / dt;
 
             Debug::ShipThrust = physics.AngularThrust;
             Debug::ShipAcceleration = Vector3::Zero;
@@ -127,7 +126,7 @@ namespace Inferno {
         }
 
         AngularPhysics(obj, dt);
-        LinearPhysics(obj);
+        LinearPhysics(obj, dt);
     }
 
     struct Triangle {
@@ -674,14 +673,17 @@ namespace Inferno {
 
         // Did we hit any objects in this segment?
         for (int i = 0; i < level.Objects.size(); i++) {
-            auto& obj = level.Objects[i];
-            if (!Object::IsAlive(obj) || obj.Segment != segId) continue;
-            if (object.Parent == (ObjID)i || &obj == &object) continue; // don't hit yourself!
-            if (object.Parent == obj.Parent) continue; // Don't hit your siblings!
+            auto& target = level.Objects[i];
+            if (!Object::IsAlive(target) || target.Segment != segId) continue;
+            if (object.Parent == (ObjID)i || &target == &object) continue; // don't hit yourself!
+            if (object.Parent == target.Parent) continue; // Don't hit your siblings!
 
-            BoundingSphere sphere(obj.Position, obj.Radius);
+            // todo: skip certain object types based on the source type
+            if (target.Type != ObjectType::Reactor && target.Type != ObjectType::Robot) continue;
+
+            BoundingSphere sphere(target.Position, target.Radius);
             if (auto info = capsule.Intersects(sphere)) {
-                hit.Update(info, &obj);
+                hit.Update(info, &target);
             }
         }
 
