@@ -12,8 +12,9 @@ namespace Inferno::Render {
         p.Life = vclip.PlayTime;
         if (randomRotation)
             p.Rotation = Random() * DirectX::XM_2PI;
-        Particles.Add(p);
+
         Render::LoadTextureDynamic(p.Clip);
+        Particles.Add(p);
     }
 
     void UpdateParticles(Level& level, float dt) {

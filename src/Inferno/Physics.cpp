@@ -713,11 +713,13 @@ namespace Inferno {
             }
 
             if (capsule.Intersects(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint, normal, dist)) {
-                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                    hit.Normal = normal;
-                    hit.Point = refPoint;
-                    hit.Distance = dist;
-                    hit.Tag = { segId, side };
+                if (seg.SideIsSolid(side, level)) {
+                    if (dist < hit.Distance) {
+                        hit.Normal = normal;
+                        hit.Point = refPoint;
+                        hit.Distance = dist;
+                        hit.Tag = { segId, side };
+                    }
                 }
                 else {
                     // scan touching seg

@@ -48,7 +48,7 @@ namespace Inferno {
  //    [[nodiscard]] const auto end() const { return _data.end(); }
  //};
 
-    constexpr float DOOR_WAIT_TIME = 5;
+    constexpr float DOOR_WAIT_TIME = 2;
 
     ActiveDoor* FindDoor(Level& level, WallID id) {
         for (auto& door : level.ActiveDoors) {
@@ -105,7 +105,7 @@ namespace Inferno {
             SetWallTMap(side, cside, clip, i - 1);
 
             if (!wall.HasFlag(WallFlag::DoorAuto)) {
-                door.Time = -1; // free door slot because it won't close
+                door = {}; // free door slot because it won't close
             }
             else {
                 fmt::print("Waiting door\n");
@@ -151,21 +151,25 @@ namespace Inferno {
         auto i = int(clip.NumFrames - door.Time / frameTime - 1);
 
         if (i < clip.NumFrames / 2) { // Half way closed
+            //SPDLOG_INFO("Set door {}:{} state to opened", wall.Tag.Segment, wall.Tag.Side);
             front->ClearFlag(WallFlag::DoorOpened);
             if (back) back->ClearFlag(WallFlag::DoorOpened);
         }
 
         if (i > 0) {
             SetWallTMap(side, cside, clip, i);
+            //fmt::print("{}:{} Set wall state to closing\n", wall.Tag.Segment, wall.Tag.Side);
             front->State = WallState::DoorClosing;
             if (back) back->State = WallState::DoorClosing;
             //door.Time = 0;
         }
         else {
             // CloseDoor()
+            fmt::print("{}:{} Set wall state to closed\n", wall.Tag.Segment, wall.Tag.Side);
             front->State = WallState::Closed;
             if (back) back->State = WallState::Closed;
             SetWallTMap(side, cside, clip, 0);
+            door = {};
         }
     }
 
@@ -184,8 +188,6 @@ namespace Inferno {
             wall->State == WallState::DoorWaiting)
             return;
 
-        fmt::print("Opening door {}:{}\n", tag.Segment, tag.Side);
-
         ActiveDoor* door = nullptr;
         auto& clip = Resources::GetWallClip(wall->Clip);
 
@@ -201,6 +203,7 @@ namespace Inferno {
             door->Time = 0;
         }
 
+        fmt::print("Opening door {}:{}\n", tag.Segment, tag.Side);
         wall->State = WallState::DoorOpening;
         door->Front = side.Wall;
 
@@ -208,7 +211,6 @@ namespace Inferno {
             door->Back = cwallId;
             cwall->State = cwall->State = WallState::DoorOpening;
         }
-
 
         if (clip.OpenSound != SoundID::None) {
             Sound::Sound3D sound(side.Center, tag.Segment);
@@ -233,7 +235,6 @@ namespace Inferno {
         //}
     }
 
-
     void UpdateDoors(Level& level, float dt) {
         for (auto& door : level.ActiveDoors) {
             auto wall = level.TryGetWall(door.Front);
@@ -248,7 +249,7 @@ namespace Inferno {
             else if (wall->State == WallState::DoorWaiting) {
                 door.Time += dt;
                 if (door.Time > DOOR_WAIT_TIME) {
-                    fmt::print("Closing door\n");
+                    fmt::print("Closing door {}\n", door.Front);
                     wall->State = WallState::DoorClosing;
                     door.Time = 0;
                 }
