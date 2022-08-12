@@ -225,7 +225,7 @@ namespace Inferno {
             obj.Position = _reader.ReadVector();
             obj.Rotation = obj.LastRotation = _reader.ReadRotation();
             obj.Radius = _reader.ReadFix();
-            obj.Shields = _reader.ReadFix();
+            obj.HitPoints = _reader.ReadFix();
             obj.LastPosition = _reader.ReadVector();
 
             obj.Contains.Type = (ObjectType)_reader.ReadByte();

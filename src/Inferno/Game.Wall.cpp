@@ -127,7 +127,7 @@ namespace Inferno {
         auto& cside = level.GetSide(conn);
 
         if (wall.HasFlag(WallFlag::DoorAuto)) {
-            for (auto& obj : level.Objects | views::filter(Object::IsAlive)) {
+            for (auto& obj : level.Objects | views::filter(Object::IsAliveFn)) {
                 if (obj.Segment == wall.Tag.Segment || obj.Segment == conn.Segment) {
                     DirectX::BoundingSphere sphere(obj.Position, obj.Radius);
                     auto face = Face::FromSide(level, wall.Tag);

@@ -23,14 +23,16 @@ namespace Inferno::Render {
             p.Life -= dt;
 
             if (auto parent = level.TryGetObject(p.Parent)) {
-                auto pos = Vector3::Lerp(parent->LastPosition, parent->Position, Game::LerpAmount);
+                auto pos = parent->GetPosition(Game::LerpAmount);
                 if (p.ParentOffset != Vector3::Zero) {
-                    auto rot = Matrix::Lerp(parent->LastRotation, parent->Rotation, Game::LerpAmount);
-                    pos += Vector3::Transform(p.ParentOffset, rot);
+                    pos += Vector3::Transform(p.ParentOffset, parent->GetRotation(Game::LerpAmount));
                 }
 
                 p.Position = pos;
             }
+
+            if (!Particle::IsAlive(p))
+                p = {};
         }
     }
 

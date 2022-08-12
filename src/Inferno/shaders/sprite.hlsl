@@ -48,7 +48,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
     float pixelDepth = LinearizeDepth(NearClip, FarClip, input.pos.z);
     //float d = saturate((sceneDepth - pixelDepth) * FarClip);
-    float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip, 4);
+    const float DEPTH_SCALE = 1; // larger explosions want a smaller scale to blend into the surroundings better
+    const float DEPTH_EXPONENT = 4;
+    float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip * DEPTH_SCALE, 4);
     return diffuse * input.col * d;
     
     // highlights on sprites

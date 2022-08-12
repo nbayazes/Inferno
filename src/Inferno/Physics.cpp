@@ -598,7 +598,7 @@ namespace Inferno {
             //if (hit.Source == &obj) continue; // don't hit yourself!
             //if (source.Parent == obj.Parent) continue; // Don't hit your siblings!
 
-            if (!Object::IsAlive(other) || other.Segment != segId) continue;
+            if (!other.IsAlive() || other.Segment != segId) continue;
             if (oid == (ObjID)i) continue; // don't hit yourself!
             if (obj.Parent == other.Parent) continue; // Don't hit your siblings!
             if (oid == other.Parent) continue; // Don't hit your children!
@@ -676,7 +676,7 @@ namespace Inferno {
         // Did we hit any objects in this segment?
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& target = level.Objects[i];
-            if (!Object::IsAlive(target) || target.Segment != segId) continue;
+            if (!target.IsAlive() || target.Segment != segId) continue;
             if (object.Parent == (ObjID)i || &target == &object) continue; // don't hit yourself!
             if (object.Parent == target.Parent) continue; // Don't hit your siblings!
 
@@ -849,11 +849,13 @@ namespace Inferno {
 
     //}
 
-    void ApplyHit(const LevelHit& hit, const Object& source) {
+    void ApplyWeaponHit(const LevelHit& hit, const Object& source) {
+        auto& weapon = Resources::GameData.Weapons[source.ID];
+
         if (hit.HitObj) {
             auto& target = *hit.HitObj;
             auto& src = source.Movement.Physics;
-            auto p = src.Mass * src.InputVelocity;
+            //auto p = src.Mass * src.InputVelocity;
 
             auto& targetPhys = target.Movement.Physics;
             auto srcMass = src.Mass == 0 ? 0.01f : src.Mass;
@@ -861,7 +863,7 @@ namespace Inferno {
 
             // apply force from projectile to object
             auto force = src.Velocity * srcMass / targetMass;
-            //physTarget.Velocity += hit.Normal * hit.Normal.Dot(force);
+            targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
 
             Matrix basis(target.Rotation);
             basis = basis.Invert();
@@ -872,6 +874,39 @@ namespace Inferno {
             auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
             auto accel = torque / inertia;
             targetPhys.AngularVelocity += accel; // should we multiply by dt here?
+
+            if (hit.HitObj->Type == ObjectType::Robot) {
+                hit.HitObj->HitPoints -= weapon.Damage[Game::Difficulty];
+
+                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                sound.Resource = Resources::GetSoundResource(weapon.RobotHitSound);
+                sound.Source = source.Parent;
+                Sound::Play(sound);
+
+                auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
+                if (ri.ExplosionClip1 > VClipID::None) {
+                    Render::Particle p{};
+                    p.Position = hit.Point;
+                    p.Radius = weapon.ImpactSize; // (robot->size / 2 * 3)
+                    p.Clip = ri.ExplosionClip1;
+                    Render::AddParticle(p);
+                }
+            }
+        }
+        else { // Hit a wall
+            Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+            sound.Resource = Resources::GetSoundResource(weapon.WallHitSound);
+            sound.Source = source.Parent;
+            Sound::Play(sound);
+
+            auto dir = source.Movement.Physics.Velocity;
+            dir.Normalize();
+            Render::Particle p{};
+            p.Position = hit.Point - dir * weapon.ImpactSize * 0.5f; // move explosion out of wall
+            p.Radius = weapon.ImpactSize;
+            p.Clip = weapon.WallHitVClip;
+            p.FadeTime = 0.1f;
+            Render::AddParticle(p);
         }
     }
 
@@ -883,7 +918,7 @@ namespace Inferno {
 
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
-            if (!Object::IsAlive(obj)) continue;
+            if (!obj.IsAlive()) continue;
 
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
@@ -891,8 +926,8 @@ namespace Inferno {
             if (obj.Movement.Type == MovementType::Physics) {
                 FixedPhysics(obj, dt);
 
-                //if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
-                //    WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
+                if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
+                    WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
                 obj.Movement.Physics.InputVelocity = obj.Movement.Physics.Velocity;
                 obj.Position += obj.Movement.Physics.Velocity * dt;
@@ -929,10 +964,12 @@ namespace Inferno {
 
                 if (hit) {
                     if (obj.Type == ObjectType::Weapon) {
-                        obj.Lifespan = -1;
+                        obj.Lifespan = -1; // destroy weapon projectiles on hit (todo: unless bounce!)
                     }
 
                     if (auto wall = level.TryGetWall(hit.Tag)) {
+                        // todo: only open doors for certain robot behaviors and player weapons
+
                         if (wall->Type == WallType::Door) {
                             if (obj.Type == ObjectType::Weapon && wall->HasFlag(WallFlag::DoorLocked)) {
                                 // Can't open door
@@ -946,42 +983,9 @@ namespace Inferno {
                             }
                         }
                     }
-                    else {
-                        if (obj.Type == ObjectType::Weapon) {
-                            auto& weapon = Resources::GameData.Weapons[obj.ID];
-                            ApplyHit(hit, obj);
 
-                            if (hit.HitObj && hit.HitObj->Type == ObjectType::Robot) {
-                                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-                                sound.Resource = Resources::GetSoundResource(weapon.RobotHitSound);
-                                sound.Source = obj.Parent;
-                                Sound::Play(sound);
-
-                                auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
-                                if (ri.ExplosionClip1 > VClipID::None) {
-                                    Render::Particle p{};
-                                    p.Position = hit.Point;
-                                    p.Radius = weapon.ImpactSize; // (robot->size / 2 * 3)
-                                    p.Clip = ri.ExplosionClip1;
-                                    Render::AddParticle(p);
-                                }
-                            }
-                            else {
-                                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-                                sound.Resource = Resources::GetSoundResource(weapon.WallHitSound);
-                                sound.Source = obj.Parent;
-                                Sound::Play(sound);
-
-                                auto dir = obj.Movement.Physics.Velocity;
-                                dir.Normalize();
-                                Render::Particle p{};
-                                p.Position = hit.Point - dir * weapon.ImpactSize * 0.5f; // move explosion out of wall
-                                p.Radius = weapon.ImpactSize;
-                                p.Clip = weapon.WallHitVClip;
-                                p.FadeTime = 0.1f;
-                                Render::AddParticle(p);
-                            }
-                        }
+                    if (obj.Type == ObjectType::Weapon) {
+                        ApplyWeaponHit(hit, obj);
                     }
                 }
 

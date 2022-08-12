@@ -337,11 +337,11 @@ namespace Inferno {
     struct Object {
         ObjSig Signature{};     // Every object ever has a unique signature
         ObjectType Type{};
-        int8 ID{};              // Index in powerup, robot, etc. list (subtype)
-        ObjectFlag Flags{};          // misc flags
+        int8 ID{};              // Index in powerups, robots, etc. Also used for player and co-op IDs.
+        ObjectFlag Flags{};
         SegID Segment{};        // segment number containing object
-        float Radius = 2; // radius of object for collision detection
-        float Shields = 100;    // Starts at maximum, when <0, object dies..
+        float Radius = 2;       // radius of object for collision detection
+        float HitPoints = 100;
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
         float Lifespan = FLT_MAX; // how long before despawning
@@ -371,12 +371,24 @@ namespace Inferno {
             Position = m.Translation();
         }
 
+        Vector3 GetPosition(float lerp) const {
+            return Vector3::Lerp(LastPosition, Position, lerp);
+        }
+
+        Matrix GetRotation(float lerp) const {
+            return Matrix::Lerp(LastRotation, Rotation, lerp);
+        }
+
         // Transform object position and rotation by a matrix
         void Transform(const Matrix& m) {
             Rotation *= m;
             Position = Vector3::Transform(Position, m);
         }
 
-        static bool IsAlive(const Object& obj) { return obj.Lifespan >= 0; }
+        static bool IsAliveFn(const Object& obj) {
+            return obj.Lifespan >= 0 && obj.HitPoints >= 0;
+        }
+
+        bool IsAlive() const { return IsAliveFn(*this); }
     };
 }

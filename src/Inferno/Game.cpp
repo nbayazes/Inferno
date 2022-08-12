@@ -162,7 +162,120 @@ namespace Inferno::Game {
         level.Objects.push_back(bullet); // insert a new object
     }
 
+    Object& AllocObject() {
+        for (auto& obj : Level.Objects) {
+            if (!obj.IsAlive()) {
+                obj = {};
+                return obj;
+            }
+        }
+
+        return Level.Objects.emplace_back();
+    }
+
+    struct ExplosionInfo {
+        ObjID Parent = ObjID::None;
+        SegID Segment = SegID::None;
+        VClipID Clip = VClipID::None;
+        SoundID Sound = SoundID::None;
+        float Radius = 2.5f;
+        float Variance = 0;
+        int Instances = 1;
+        float Delay = -1;
+        Vector3 Position;
+        //float Lifespan = -1;
+
+        static bool IsAlive(const ExplosionInfo& info) { return info.Delay >= 0; }
+    };
+
+    DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
+
+    void DestroyObject(Object& obj) {
+        if (obj.Lifespan < 0) return; // already dead
+
+        switch (obj.Type) {
+            case ObjectType::Fireball:
+            {
+                break;
+            }
+            case ObjectType::Robot:
+            {
+                constexpr float EXPLOSION_DELAY = 0.25f;
+                constexpr float EXPLOSION_SCALE = 1.15f;
+
+                ExplosionInfo expl;
+                // Add an explosion object with a lifespan of 0.25f
+                auto& robot = Resources::GetRobotInfo(obj.ID);
+                expl.Sound = robot.ExplosionSound2;
+                expl.Clip = robot.ExplosionClip2;
+                expl.Delay = EXPLOSION_DELAY;
+                expl.Radius = obj.Radius * EXPLOSION_SCALE;
+                expl.Segment = obj.Segment;
+                expl.Position = obj.GetPosition(LerpAmount);
+                expl.Variance = obj.Radius * 0.5f;
+                expl.Instances = 4;
+                Explosions.Add(expl);
+                //fmt::print("adding expl sound\n");
+
+                //if (robot.ExplosionSound2 != SoundID::None) {
+                //    Sound::Sound3D sound(obj.Position, obj.Segment);
+                //    sound.Resource = Resources::GetSoundResource(robot.ExplosionSound2);
+                //    Sound::Play(sound);
+                //}
+
+                //if (robot.ExplosionClip2 > VClipID::None) {
+                //    auto& vclip = Resources::GetVideoClip(robot.ExplosionClip2);
+                //    Render::Particle p{};
+                //    p.Position = obj.Position;
+                //    p.Radius = obj.Radius * EXPLOSION_SCALE;
+                //    p.Clip = robot.ExplosionClip2;
+                //    Render::AddParticle(p);
+                //}
+                break;
+
+                // todo: drop contents
+            }
+
+            case ObjectType::Player:
+            {
+                // Player_ship->expl_vclip_num
+                break;
+            }
+
+            default:
+                // VCLIP_SMALL_EXPLOSION = 2
+                break;
+        }
+
+
+        obj.Lifespan = -1;
+    }
+
     float g_FireDelay = 0;
+
+    void UpdateExplosions(float dt) {
+        for (auto& expl : Explosions) {
+            if (expl.Delay < 0) continue;
+            expl.Delay -= dt;
+            if (expl.Delay > 0) continue;
+
+            //fmt::print("playing explosion sound\n");
+            Sound::Sound3D sound(expl.Position, expl.Segment);
+            sound.Resource = Resources::GetSoundResource(expl.Sound);
+            Sound::Play(sound);
+
+            for (int i = 0; i < expl.Instances; i++) {
+                Render::Particle p{};
+                p.Position = expl.Position;
+                if (expl.Variance > 0)
+                    p.Position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
+
+                p.Radius = expl.Radius + RandomN11() * expl.Radius / 2;
+                p.Clip = expl.Clip;
+                Render::AddParticle(p);
+            }
+        }
+    }
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
@@ -180,6 +293,10 @@ namespace Inferno::Game {
                 //FireTestWeapon(Game::Level, ObjID(0), 2, id);
                 //FireTestWeapon(Game::Level, ObjID(0), 3, id);
             }
+        }
+
+        for (auto& obj : Level.Objects) {
+            if (obj.HitPoints < 0) DestroyObject(obj);
         }
     }
 
@@ -221,6 +338,7 @@ namespace Inferno::Game {
             t += TICK_RATE;
         }
 
+        UpdateExplosions(dt);
 
         //lerp = float(accumulator / tickRate);
         //Render::Present(lerp);

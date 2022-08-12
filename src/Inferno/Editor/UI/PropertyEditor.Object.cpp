@@ -309,7 +309,7 @@ namespace Inferno::Editor {
         if (ImGui::TableBeginTreeNode("Robot details")) {
             const auto& robot = Resources::GameData.Robots[obj.ID];
             ImGui::TableRowLabel("Hit points");
-            ImGui::Text("%.2f", robot.HitPoints);
+            ImGui::Text("%.2f (%.2f)", robot.HitPoints, obj.HitPoints);
 
             ImGui::TableRowLabel("Mass");
             ImGui::Text("%.2f", robot.Mass);

@@ -31,9 +31,9 @@ namespace Inferno::Sound {
         void UpdateEmitter(const Vector3& listener, float /*dt*/) {
             auto obj = Game::Level.TryGetObject(Source);
             if (obj && AttachToSource) {
-                auto pos = Vector3::Lerp(obj->LastPosition, obj->Position, Game::LerpAmount);
+                auto pos = obj->GetPosition(Game::LerpAmount);
                 if (AttachOffset != Vector3::Zero) {
-                    auto rot = Matrix::Lerp(obj->LastRotation, obj->Rotation, Game::LerpAmount);
+                    auto rot = obj->GetRotation(Game::LerpAmount);
                     pos += Vector3::Transform(AttachOffset, rot);
                 }
 

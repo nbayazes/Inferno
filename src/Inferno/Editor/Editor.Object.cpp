@@ -151,7 +151,7 @@ namespace Inferno::Editor {
                 obj.Movement.Physics.Mass = ri.Mass;
                 obj.Movement.Physics.Drag = ri.Drag;
                 obj.Render.Type = RenderType::Model;
-                obj.Shields = ri.HitPoints;
+                obj.HitPoints = ri.HitPoints;
                 obj.Render.Model.ID = ri.Model;
                 obj.Control.AI.Behavior = AIBehavior::Normal;
                 obj.Contains.Type = ObjectType::None;
@@ -178,7 +178,7 @@ namespace Inferno::Editor {
                 obj.Render.Type = RenderType::Model;
                 auto& info = Resources::GameData.Reactors.at(0);
                 obj.Render.Model.ID = info.Model;
-                obj.Shields = 200;
+                obj.HitPoints = 200;
                 break;
             }
 
@@ -200,7 +200,7 @@ namespace Inferno::Editor {
                 obj.ID = 51;
                 obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = Models::PlaceableMine;
-                obj.Shields = 20;
+                obj.HitPoints = 20;
             }
         }
 

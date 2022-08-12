@@ -27,6 +27,11 @@ namespace Inferno {
         return (float)rand() / RAND_MAX;
     }
 
+    // Returns a random value between -1 and 1
+    inline float RandomN11() {
+        return Random() - Random();
+    }
+
     // defined in C++23
     template <class T>
     inline constexpr bool is_scoped_enum_v = std::conjunction_v<std::is_enum<T>, std::negation<std::is_convertible<T, int>>>;

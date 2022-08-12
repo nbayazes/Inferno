@@ -6,6 +6,15 @@
 namespace Inferno {
     enum class VClipFlag : uint32 { None, Rod = 1 }; // Rod is a hostage?? Axis aligned billboard?
 
+    //VCLIP_PLAYER_HIT 1
+    //VCLIP_MORPHING_ROBOT 10
+    //VCLIP_PLAYER_APPEARANCE	61
+    //VCLIP_POWERUP_DISAPPEARANCE	62
+    //VCLIP_VOLATILE_WALL_HIT	5
+
+    //VCLIP_MAXNUM 70
+    //VCLIP_MAX_FRAMES 30
+
     // Video clip (power ups or animated walls)
     struct VClip {
         float PlayTime{}; // total time (in seconds) of clip

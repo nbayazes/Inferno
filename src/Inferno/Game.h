@@ -10,6 +10,8 @@ namespace Inferno {
 namespace Inferno::Game {
     constexpr double TICK_RATE = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
 
+    inline int Difficulty = 0; // 0 to 4
+
     inline GameState State = GameState::Editor;
 
     // The loaded level. Only one level can be active at a time.

@@ -319,7 +319,7 @@ namespace Inferno::Render {
                    bool additive,
                    float rotation,
                    const Vector3* up) {
-        auto frame = vclip.NumFrames - (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames - 1;
+        auto frame = (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames;
         auto tid = vclip.Frames[frame];
 
         auto transform = up ?
@@ -367,7 +367,7 @@ namespace Inferno::Render {
         }
 
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        auto pos = Vector3::Lerp(object.LastPosition, object.Position, lerp);
+        auto pos = object.GetPosition(lerp);
         DrawVClip(ctx, vclip, pos, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
     }
 
@@ -786,8 +786,8 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawObject(Level& level, Object& obj, float distSquared, float alpha) {
-        auto position = Vector3::Lerp(obj.LastPosition, obj.Position, alpha);
+    void DrawObject(Level& level, Object& obj, float distSquared, float lerp) {
+        auto position = obj.GetPosition(lerp);
 
         BoundingSphere bounds(position, obj.Radius); // might should use GetBoundingSphere
         if (!CameraFrustum.Contains(bounds))
@@ -933,7 +933,7 @@ namespace Inferno::Render {
     }
 
     bool ShouldDrawObject(const Object& obj) {
-        if (obj.Lifespan <= 0) return false;
+        if (!obj.IsAlive()) return false;
         if (Game::State == GameState::Editor) return true;
         return obj.Type != ObjectType::Player && obj.Type != ObjectType::Coop;
     }
