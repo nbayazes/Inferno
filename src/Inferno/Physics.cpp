@@ -490,6 +490,9 @@ namespace Inferno {
             // Compute capsule line endpoints A, B like before in capsule-capsule case:
             auto capsuleNormal = tip - base;
             capsuleNormal.Normalize();
+            if (capsuleNormal.Dot(faceNormal) > 0) 
+                return false; // skip backfacing. This might be undesireable for some capsule tests.
+
             auto offset = capsuleNormal * Radius; // line end offset
             auto a = base + offset; // base
             auto b = tip - offset; // tip
@@ -532,7 +535,7 @@ namespace Inferno {
 
             //Render::Debug::DrawLine(b, linePlaneIntersect, { 1, 1, 1 });
 
-            ///*Vector3*/ refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
+            //*Vector3*/ refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
 
             //auto c0 = (linePlaneIntersect - p0).Cross(p1 - p0);
             //auto c1 = (linePlaneIntersect - p1).Cross(p2 - p1);
