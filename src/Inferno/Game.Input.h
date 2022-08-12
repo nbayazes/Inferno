@@ -5,5 +5,6 @@
 #include "Object.h"
 
 namespace Inferno::Game {
+    void HandleEditorDebugInput(float dt);
     void HandleInput(float dt);
 }

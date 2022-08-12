@@ -2,10 +2,9 @@
 #include "Render.Particles.h"
 #include "DataPool.h"
 #include "Render.h"
+#include "Game.h"
 
 namespace Inferno::Render {
-    //using namespace DirectX;
-
     DataPool<Particle> Particles(Particle::IsAlive, 100);
 
     void AddParticle(Particle& p, bool randomRotation) {
@@ -17,10 +16,20 @@ namespace Inferno::Render {
         Render::LoadTextureDynamic(p.Clip);
     }
 
-    void UpdateParticles(float dt) {
+    void UpdateParticles(Level& level, float dt) {
         for (auto& p : Particles) {
             if (!Particle::IsAlive(p)) continue;
             p.Life -= dt;
+
+            if (auto parent = level.TryGetObject(p.Parent)) {
+                auto pos = Vector3::Lerp(parent->LastPosition, parent->Position, Game::LerpAmount);
+                if (p.ParentOffset != Vector3::Zero) {
+                    auto rot = Matrix::Lerp(parent->LastRotation, parent->Rotation, Game::LerpAmount);
+                    pos += Vector3::Transform(p.ParentOffset, rot);
+                }
+
+                p.Position = pos;
+            }
         }
     }
 

@@ -16,7 +16,7 @@ namespace Inferno {
         Matrix View;
         Matrix Projection;
 
-        float NearClip = 2.0f;
+        float NearClip = 1.0f;
         float FarClip = 3000.0f;
 
         Vector3 Position = { 40, 0, 0 };

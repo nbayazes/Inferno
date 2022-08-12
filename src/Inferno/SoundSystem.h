@@ -37,12 +37,14 @@ namespace Inferno::Sound {
         float Pitch = 0;
         SoundResource Resource;
         bool AttachToSource = false;
+        Vector3 AttachOffset;
     };
     
-    void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(10));
+    void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
     void Shutdown();
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
     void Play(const Sound3D& sound);
+    void UpdateEmitterPositions(float dt);
 
     // Resets any cached sounds after loading a level
     void Reset();

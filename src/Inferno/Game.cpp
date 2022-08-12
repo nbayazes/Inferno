@@ -98,7 +98,8 @@ namespace Inferno::Game {
     void FireTestWeapon(Inferno::Level& level, ObjID objId, int gun, int id) {
         auto& obj = level.Objects[(int)objId];
         //auto& guns = Resources::GameData.PlayerShip.GunPoints;
-        auto point = Vector3::Transform(Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1), obj.GetTransform());
+        auto gunOffset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
+        auto point = Vector3::Transform(gunOffset, obj.GetTransform());
         auto& weapon = Resources::GameData.Weapons[id];
 
         Object bullet{};
@@ -126,24 +127,27 @@ namespace Inferno::Game {
         }
 
         bullet.Lifespan = weapon.Lifetime;
-
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
         bullet.Parent = ObjID(0);
         bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f }; // laser level 5
 
         //auto pitch = -Random() * 0.2f;
-        Sound::Sound3D sound(point, obj.Segment);
+        //Sound::Sound3D sound(point, obj.Segment);
+        Sound::Sound3D sound(ObjID(0));
         sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-        sound.Source = ObjID(0);
-        sound.Volume = 0.35f;
+        //sound.Source = ObjID(0);
+        sound.Volume = 0.55f;
+        sound.AttachToSource = true;
+        sound.AttachOffset = gunOffset;
         Sound::Play(sound);
-
 
         Render::Particle p{};
         p.Clip = weapon.FlashVClip;
         p.Position = point;
         p.Radius = weapon.FlashSize;
+        p.Parent = ObjID(0);
+        p.ParentOffset = gunOffset;
         Render::AddParticle(p);
 
         for (auto& o : level.Objects) {
@@ -158,6 +162,25 @@ namespace Inferno::Game {
 
     float g_FireDelay = 0;
 
+    // Updates on each game tick
+    void FixedUpdate(float dt) {
+        g_FireDelay -= dt;
+
+        // must check held keys inside of fixed updates so events aren't missed
+        if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
+           (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
+            if (g_FireDelay <= 0) {
+                auto id = Game::Level.IsDescent2() ? 13 : 13; // plasma: 13, super laser: 30
+                auto& weapon = Resources::GameData.Weapons[id];
+                g_FireDelay = weapon.FireDelay;
+                FireTestWeapon(Game::Level, ObjID(0), 0, id);
+                FireTestWeapon(Game::Level, ObjID(0), 1, id);
+                //FireTestWeapon(Game::Level, ObjID(0), 2, id);
+                //FireTestWeapon(Game::Level, ObjID(0), 3, id);
+            }
+        }
+    }
+
     // Returns the lerp amount for the current tick
     float GameTick(float dt) {
         static double accumulator = 0;
@@ -167,29 +190,35 @@ namespace Inferno::Game {
         accumulator = std::min(accumulator, 2.0);
 
         //float lerp = 1; // blending between previous and current position
-        if(!Level.Objects.empty())
-            HandleInput(dt);
+        if (!Level.Objects.empty()) {
+            auto& physics = Level.Objects[0].Movement.Physics;
+            physics.Thrust = Vector3::Zero;
+            physics.AngularThrust = Vector3::Zero;
+
+            if (Game::State == GameState::Editor) {
+                if (Settings::EnablePhysics)
+                    HandleEditorDebugInput(dt);
+            }
+            else {
+                HandleInput(dt);
+            }
+
+            // Clamp max input speeds
+            auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
+            auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
+            Vector3 maxAngVec(Settings::LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);
+            physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
+            Vector3 maxThrustVec(maxThrust, maxThrust, maxThrust);
+            physics.Thrust.Clamp(-maxThrustVec, maxThrustVec);
+        }
 
         while (accumulator >= TICK_RATE) {
             UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
-            g_FireDelay -= TICK_RATE;
-
-            // must check held keys inside of fixed updates so events aren't missed 
-            if (Input::IsKeyDown(Keys::Enter) || Input::Mouse.leftButton == Input::MouseState::HELD) {
-                if (g_FireDelay <= 0) {
-                    auto id = Game::Level.IsDescent2() ? 13 : 13; // plasma: 13, super laser: 30
-                    auto& weapon = Resources::GameData.Weapons[id];
-                    g_FireDelay = weapon.FireDelay;
-                    FireTestWeapon(Game::Level, ObjID(0), 0, id);
-                    FireTestWeapon(Game::Level, ObjID(0), 1, id);
-                    //FireTestWeapon(Game::Level, ObjID(0), 2, id);
-                    //FireTestWeapon(Game::Level, ObjID(0), 3, id);
-                }
-            }
-
+            FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
             t += TICK_RATE;
         }
+
 
         //lerp = float(accumulator / tickRate);
         //Render::Present(lerp);
@@ -210,18 +239,26 @@ namespace Inferno::Game {
         HandleGlobalInput();
         Render::Debug::BeginFrame(); // enable Debug calls during physics
 
-        float lerp = 1; // blending between previous and current position
-
         g_ImGuiBatch->BeginFrame();
         switch (State) {
             case GameState::Game:
-                lerp = GameTick(dt);
+                LerpAmount = GameTick(dt);
                 if (!Level.Objects.empty())
-                    MoveCameraToObject(Render::Camera, Level.Objects[0], lerp);
+                    MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
 
-                Render::UpdateParticles(dt);
+                //Sound::UpdateEmitterPositions(dt);
+                Render::UpdateParticles(Level, dt);
                 break;
             case GameState::Editor:
+                if (Settings::EnablePhysics) {
+                    LerpAmount = Settings::EnablePhysics ? GameTick(dt) : 1;
+                    Render::UpdateParticles(Level, dt);
+                    //Sound::UpdateEmitterPositions(dt);
+                }
+                else {
+                    LerpAmount = 0;
+                }
+
                 Editor::Update();
                 if (!Settings::ScreenshotMode) EditorUI.OnRender();
                 break;
@@ -230,7 +267,7 @@ namespace Inferno::Game {
         }
 
         g_ImGuiBatch->EndFrame();
-        Render::Present(lerp);
+        Render::Present(LerpAmount);
     }
 
     Camera EditorCameraSnapshot;
@@ -243,6 +280,7 @@ namespace Inferno::Game {
             Render::Camera = EditorCameraSnapshot;
             Input::SetMouselook(false);
             Sound::Stop3DSounds();
+            LerpAmount = 1;
         }
         else if (State == GameState::Editor) {
             // Activate game mode

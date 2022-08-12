@@ -359,7 +359,7 @@ namespace Inferno::Render {
     }
 
     // When up is provided, it constrains the sprite to that axis
-    void DrawSprite(GraphicsContext& ctx, const Object& object, bool additive, const Vector3* up = nullptr, bool lit = false) {
+    void DrawSprite(GraphicsContext& ctx, const Object& object, bool additive, float lerp, const Vector3* up = nullptr, bool lit = false) {
         auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
         if (vclip.NumFrames == 0) {
             DrawObjectOutline(object);
@@ -367,7 +367,8 @@ namespace Inferno::Render {
         }
 
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        DrawVClip(ctx, vclip, object.Position, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
+        auto pos = Vector3::Lerp(object.LastPosition, object.Position, lerp);
+        DrawVClip(ctx, vclip, pos, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
     }
 
     void DrawLevelMesh(GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
@@ -593,7 +594,7 @@ namespace Inferno::Render {
             {
                 if (pass != RenderPass::Transparent) return;
                 auto up = object.Rotation.Up();
-                DrawSprite(ctx, object, false, &up, Settings::RenderMode == RenderMode::Shaded);
+                DrawSprite(ctx, object, false, lerp, &up, Settings::RenderMode == RenderMode::Shaded);
                 break;
             }
 
@@ -616,7 +617,7 @@ namespace Inferno::Render {
                 }
                 else {
                     if (pass != RenderPass::Transparent) return;
-                    DrawSprite(ctx, object, true);
+                    DrawSprite(ctx, object, true, lerp);
                 }
                 break;
 
@@ -625,10 +626,10 @@ namespace Inferno::Render {
                 if (pass != RenderPass::Transparent) return;
                 if (object.Render.VClip.ID == VClips::Matcen) {
                     auto up = object.Rotation.Up();
-                    DrawSprite(ctx, object, true, &up);
+                    DrawSprite(ctx, object, true, lerp, &up);
                 }
                 else {
-                    DrawSprite(ctx, object, true);
+                    DrawSprite(ctx, object, true, lerp);
                 }
                 break;
             }
@@ -636,7 +637,7 @@ namespace Inferno::Render {
             case ObjectType::Powerup:
             {
                 if (pass != RenderPass::Transparent) return;
-                DrawSprite(ctx, object, false);
+                DrawSprite(ctx, object, false, lerp);
                 break;
             }
 

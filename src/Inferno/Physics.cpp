@@ -631,12 +631,15 @@ namespace Inferno {
         return hit;
     }
 
-
     // intersects a ray with the level, returning hit information
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit) {
-        SegID segId = start;
+        if (maxDist <= 0.01f) return false;
+        SegID next = start;
 
-        while (segId > SegID::None) {
+        while (next > SegID::None) {
+            SegID segId = next;
+            hit.Visited.insert(segId); // must track visited segs to prevent circular logic
+            next = SegID::None;
             auto& seg = level.GetSegment(segId);
 
             for (auto& side : SideIDs) {
@@ -646,21 +649,20 @@ namespace Inferno {
                 if (face.Intersects(ray, dist) && dist < hit.Distance) {
                     if (dist > maxDist) return {}; // hit is too far
 
-                    if (seg.SideIsSolid(side, level)) { // todo: this isn't accurate due to door flags
+                    if (seg.SideIsSolid(side, level)) {
                         hit.Tag = { segId, side };
                         hit.Distance = dist;
-                        hit.Normal = {}; // todo: normal
+                        hit.Normal = face.AverageNormal();
                         return true;
                     }
                     else {
-                        segId = seg.GetConnection(side);
+                        auto conn = seg.GetConnection(side);
+                        if (!hit.Visited.contains(conn))
+                            next = conn;
                         break; // go to next segment
                     }
                 }
             }
-
-            // if the first pass doesn't hit anything it means the ray didn't start inside the seg
-            if (segId == start) return false;
         }
 
         return false;

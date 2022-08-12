@@ -13,12 +13,14 @@ namespace Inferno::Render {
         float Radius = 1;
         float Rotation = 0;
         float Life = 0;
+        ObjID Parent = ObjID::None;
+        Vector3 ParentOffset;
 
         static bool IsAlive(const Particle& p) { return p.Life > 0; }
     };
 
     void AddParticle(Particle&, bool randomRotation = true);
 
-    void UpdateParticles(float dt);
+    void UpdateParticles(Level&, float dt);
     void DrawParticles(Graphics::GraphicsContext& ctx);
 }

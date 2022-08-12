@@ -44,6 +44,7 @@ namespace Inferno::Game {
 
     // Elapsed game time  in seconds. Stops when paused.
     inline double ElapsedTime = 0;
+    inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     void Update(float dt);
     void ToggleEditorMode();

@@ -46,7 +46,8 @@ namespace Inferno {
         inline filesystem::path Descent1Path, Descent2Path;
 
         inline bool InvertY = false;
-        inline bool EnablePhysics = false;
+        inline bool LimitPitchSpeed = true; // Halves the maximum pitch speed
+        inline bool EnablePhysics = false; // Enable physics in editor (for debugging)
 
 #pragma region Render
         inline bool HighRes = false; // Enables high res textures and filtering

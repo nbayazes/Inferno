@@ -8,7 +8,6 @@
 #include "logging.h"
 #include "Graphics/Render.h"
 #include "Physics.h"
-//#include "DirectXTK12/Audio/WAVFileReader.h"
 #include <vendor/WAVFileReader.h>
 
 using namespace DirectX;
@@ -29,6 +28,7 @@ namespace Inferno::Sound {
         SegID Segment = SegID::None;
         bool Started = false;
         bool AttachToSource = false;
+        Vector3 AttachOffset;
         Ptr<SoundEffectInstance> Instance;
         AudioEmitter Emitter; // Stores position
         double StartTime = 0;
@@ -36,8 +36,13 @@ namespace Inferno::Sound {
         void UpdateEmitter(const Vector3& listener, float /*dt*/) {
             auto obj = Game::Level.TryGetObject(Source);
             if (obj && AttachToSource) {
-                //Emitter.Update(obj->Position() * AUDIO_SCALE, obj->Transform.Up(), dt);
-                Emitter.SetPosition(obj->Position * AUDIO_SCALE);
+                auto pos = Vector3::Lerp(obj->LastPosition, obj->Position, Game::LerpAmount);
+                if (AttachOffset != Vector3::Zero) {
+                    auto rot = Matrix::Lerp(obj->LastRotation, obj->Rotation, Game::LerpAmount);
+                    pos += Vector3::Transform(AttachOffset, rot);
+                }
+
+                Emitter.SetPosition(pos * AUDIO_SCALE);
                 Segment = obj->Segment;
             }
 
@@ -54,14 +59,22 @@ namespace Inferno::Sound {
                 float muffleMult = 1;
 
                 if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
-                    Ray ray(emitterPos, dir);
-                    LevelHit hit;
-                    if (IntersectLevel(Game::Level, ray, Segment, dist, hit)) {
-                        auto hitDist = (listener - hit.Point).Length();
-                        // we hit a wall, muffle it based on the distance from the source
-                        // a sound coming immediately around the corner shouldn't get muffled much
-                        muffleMult = std::clamp(1 - hitDist / 60, 0.25f, 0.95f);
-                    };
+                    constexpr float MUFFLE_MAX = 0.95f;
+                    constexpr float MUFFLE_MIN = 0.25f;
+
+                    if (dist < 5) {
+                        muffleMult = MUFFLE_MAX; // don't hit test very close sounds
+                    }
+                    else {
+                        Ray ray(emitterPos, dir);
+                        LevelHit hit;
+                        if (IntersectLevel(Game::Level, ray, Segment, dist, hit)) {
+                            auto hitDist = (listener - hit.Point).Length();
+                            // we hit a wall, muffle it based on the distance from the source
+                            // a sound coming immediately around the corner shouldn't get muffled much
+                            muffleMult = std::clamp(1 - hitDist / 60, MUFFLE_MIN, MUFFLE_MAX);
+                        };
+                    }
                 }
 
                 auto volume = std::powf(1 - ratio, 3);
@@ -110,6 +123,35 @@ namespace Inferno::Sound {
             (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_Reverb_CurvePoints[0], 3
         };
     }
+
+    //void UpdateEmitterPositions(float dt) {
+    //    Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
+    //    Listener.Position = Render::Camera.Position * AUDIO_SCALE;
+
+    //    std::scoped_lock lock(ObjectSoundsMutex);
+    //    auto sound = ObjectSounds.begin();
+    //    while (sound != ObjectSounds.end()) {
+    //        auto state = sound->Instance->GetState();
+    //        if (state == SoundState::STOPPED && sound->Started) {
+    //            // clean up
+    //            //SPDLOG_INFO("Removing object sound instance");
+    //            ObjectSounds.erase(sound++);
+    //            continue;
+    //        }
+
+    //        if (state == SoundState::STOPPED && !sound->Started) {
+    //            // New sound
+    //            sound->Instance->Play();
+    //            //if (!sound.Loop)
+    //            sound->Started = true;
+    //        }
+
+    //        sound->UpdateEmitter(Render::Camera.Position, dt);
+    //        //sound->Emitter.Position = Listener.Position; // debug
+    //        //sound->Instance->Apply3D(Listener, sound->Emitter, false);
+    //        sound++;
+    //    }
+    //}
 
     void SoundWorker(float volume, milliseconds pollRate) {
         SPDLOG_INFO("Starting audio mixer thread");
@@ -172,6 +214,10 @@ namespace Inferno::Sound {
                         }
 
                         sound->UpdateEmitter(Render::Camera.Position, dt);
+                        // Hack to force sounds caused by the player to be exactly on top of the listener.
+                        // Objects and the camera are slightly out of sync due to update timing and threading
+                        if (Game::State == GameState::Game && sound->Source == ObjID(0))
+                            sound->Emitter.Position = Listener.Position;
                         sound->Instance->Apply3D(Listener, sound->Emitter, false);
                         sound++;
                     }
@@ -364,6 +410,8 @@ namespace Inferno::Sound {
                     if (instance.Source == sound.Source &&
                         instance.Sound == sound.Resource.GetID() &&
                         instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
+                        if (instance.AttachToSource && sound.AttachToSource)
+                            instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
                         instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
                         return; // Don't play sounds within the merge window
                     }
@@ -386,6 +434,7 @@ namespace Inferno::Sound {
             s.Source = sound.Source;
             s.Segment = sound.Segment;
             s.AttachToSource = sound.AttachToSource;
+            s.AttachOffset = sound.AttachOffset;
         }
     }
 
