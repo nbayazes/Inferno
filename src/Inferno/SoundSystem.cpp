@@ -22,13 +22,8 @@ namespace Inferno::Sound {
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
     constexpr float MERGE_WINDOW = 1 / 10.0f; // Discard the same sound being played by a source within a window
 
-    struct ObjectSound {
-        ObjID Source = ObjID::None;
-        size_t Sound = 0; // Unique ID for the source sound. Used for deduplication
-        SegID Segment = SegID::None;
+    struct Sound3DInstance : public Sound3D {
         bool Started = false;
-        bool AttachToSource = false;
-        Vector3 AttachOffset;
         Ptr<SoundEffectInstance> Instance;
         AudioEmitter Emitter; // Stores position
         double StartTime = 0;
@@ -96,7 +91,7 @@ namespace Inferno::Sound {
 
         std::atomic<bool> Alive = false;
         std::thread WorkerThread;
-        std::list<ObjectSound> ObjectSounds;
+        std::list<Sound3DInstance> ObjectSounds;
         std::mutex ResetMutex, ObjectSoundsMutex;
 
         AudioListener Listener;
@@ -123,35 +118,6 @@ namespace Inferno::Sound {
             (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_Reverb_CurvePoints[0], 3
         };
     }
-
-    //void UpdateEmitterPositions(float dt) {
-    //    Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
-    //    Listener.Position = Render::Camera.Position * AUDIO_SCALE;
-
-    //    std::scoped_lock lock(ObjectSoundsMutex);
-    //    auto sound = ObjectSounds.begin();
-    //    while (sound != ObjectSounds.end()) {
-    //        auto state = sound->Instance->GetState();
-    //        if (state == SoundState::STOPPED && sound->Started) {
-    //            // clean up
-    //            //SPDLOG_INFO("Removing object sound instance");
-    //            ObjectSounds.erase(sound++);
-    //            continue;
-    //        }
-
-    //        if (state == SoundState::STOPPED && !sound->Started) {
-    //            // New sound
-    //            sound->Instance->Play();
-    //            //if (!sound.Loop)
-    //            sound->Started = true;
-    //        }
-
-    //        sound->UpdateEmitter(Render::Camera.Position, dt);
-    //        //sound->Emitter.Position = Listener.Position; // debug
-    //        //sound->Instance->Apply3D(Listener, sound->Emitter, false);
-    //        sound++;
-    //    }
-    //}
 
     void SoundWorker(float volume, milliseconds pollRate) {
         SPDLOG_INFO("Starting audio mixer thread");
@@ -216,7 +182,7 @@ namespace Inferno::Sound {
                         sound->UpdateEmitter(Render::Camera.Position, dt);
                         // Hack to force sounds caused by the player to be exactly on top of the listener.
                         // Objects and the camera are slightly out of sync due to update timing and threading
-                        if (Game::State == GameState::Game && sound->Source == ObjID(0))
+                        if (Game::State == GameState::Game && sound->FromPlayer)
                             sound->Emitter.Position = Listener.Position;
                         sound->Instance->Apply3D(Listener, sound->Emitter, false);
                         sound++;
@@ -408,7 +374,7 @@ namespace Inferno::Sound {
             if (sound.Source != ObjID::None) {
                 for (auto& instance : ObjectSounds) {
                     if (instance.Source == sound.Source &&
-                        instance.Sound == sound.Resource.GetID() &&
+                        instance.Resource.GetID() == sound.Resource.GetID() &&
                         instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
                         if (instance.AttachToSource && sound.AttachToSource)
                             instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
@@ -418,7 +384,7 @@ namespace Inferno::Sound {
                 }
             }
 
-            auto& s = ObjectSounds.emplace_back();
+            auto& s = ObjectSounds.emplace_back(sound);
             s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
             s.Instance->SetVolume(sound.Volume);
             s.Instance->SetPitch(sound.Pitch);
@@ -430,11 +396,6 @@ namespace Inferno::Sound {
             //s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
 
             s.StartTime = Game::ElapsedTime;
-            s.Sound = sound.Resource.GetID();
-            s.Source = sound.Source;
-            s.Segment = sound.Segment;
-            s.AttachToSource = sound.AttachToSource;
-            s.AttachOffset = sound.AttachOffset;
         }
     }
 

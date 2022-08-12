@@ -38,6 +38,7 @@ namespace Inferno::Sound {
         SoundResource Resource;
         bool AttachToSource = false;
         Vector3 AttachOffset;
+        bool FromPlayer = false; // For the player's firing sounds, afterburner, etc
     };
     
     void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
