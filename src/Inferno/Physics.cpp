@@ -976,6 +976,7 @@ namespace Inferno {
                                 p.Position = hit.Point - dir * weapon.ImpactSize * 0.5f; // move explosion out of wall
                                 p.Radius = weapon.ImpactSize;
                                 p.Clip = weapon.WallHitVClip;
+                                p.FadeTime = 0.1f;
                                 Render::AddParticle(p);
                             }
                         }

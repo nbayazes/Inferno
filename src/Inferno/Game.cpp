@@ -126,7 +126,8 @@ namespace Inferno::Game {
             Render::LoadModelDynamic(weapon.Model);
         }
 
-        bullet.Lifespan = weapon.Lifetime;
+        //bullet.Lifespan = weapon.Lifetime;
+        bullet.Lifespan = 3;
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
         bullet.Parent = ObjID(0);
@@ -136,10 +137,10 @@ namespace Inferno::Game {
         //Sound::Sound3D sound(point, obj.Segment);
         Sound::Sound3D sound(ObjID(0));
         sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-        //sound.Source = ObjID(0);
         sound.Volume = 0.55f;
         sound.AttachToSource = true;
         sound.AttachOffset = gunOffset;
+        sound.FromPlayer = true;
         Sound::Play(sound);
 
         Render::Particle p{};
@@ -148,6 +149,7 @@ namespace Inferno::Game {
         p.Radius = weapon.FlashSize;
         p.Parent = ObjID(0);
         p.ParentOffset = gunOffset;
+        p.FadeTime = 0.175f;
         Render::AddParticle(p);
 
         for (auto& o : level.Objects) {
