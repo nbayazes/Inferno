@@ -52,7 +52,7 @@ namespace Inferno {
 
     struct Powerup {
         VClipID VClip;
-        int HitSound;
+        SoundID HitSound; // sound when picked up
         float Size;
         float Light;
     };

@@ -189,6 +189,46 @@ namespace Inferno::Game {
     };
 
     DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
+    List<Object> PendingNewObjects;
+
+    void DropContainedItems(const Object& obj) {
+        switch (obj.Contains.Type) {
+            case ObjectType::Powerup:
+            {
+                for (int i = 0; i < obj.Contains.Count; i++) {
+                    Object powerup{};
+                    powerup.Position = obj.Position;
+                    powerup.Type = ObjectType::Powerup;
+                    powerup.ID = obj.Contains.ID;
+                    powerup.Segment = obj.Segment;
+
+                    auto vclip = Resources::GameData.Powerups[powerup.ID].VClip;
+                    powerup.Render.Type = RenderType::Powerup;
+                    powerup.Render.VClip.ID = vclip;
+                    powerup.Render.VClip.Frame = 0;
+                    powerup.Render.VClip.FrameTime = Resources::GetVideoClip(vclip).FrameTime;
+
+                    powerup.Movement.Type = MovementType::Physics;
+                    powerup.Movement.Physics.Velocity = RandomVector(32);
+                    powerup.Movement.Physics.Mass = 1;
+                    powerup.Movement.Physics.Drag = FixToFloat(512);
+                    powerup.Movement.Physics.Flags = PhysicsFlag::Bounce;
+
+                    // game originally times-out conc missiles, shields and energy after about 3 minutes
+                    PendingNewObjects.push_back(powerup);
+                }
+                break;
+            }
+            case ObjectType::Robot:
+            {
+
+                break;
+            }
+            default:
+                break;
+        }
+
+    }
 
     void DestroyObject(Object& obj) {
         if (obj.Lifespan < 0) return; // already dead
@@ -215,25 +255,9 @@ namespace Inferno::Game {
                 expl.Variance = obj.Radius * 0.5f;
                 expl.Instances = 4;
                 Explosions.Add(expl);
-                //fmt::print("adding expl sound\n");
 
-                //if (robot.ExplosionSound2 != SoundID::None) {
-                //    Sound::Sound3D sound(obj.Position, obj.Segment);
-                //    sound.Resource = Resources::GetSoundResource(robot.ExplosionSound2);
-                //    Sound::Play(sound);
-                //}
-
-                //if (robot.ExplosionClip2 > VClipID::None) {
-                //    auto& vclip = Resources::GetVideoClip(robot.ExplosionClip2);
-                //    Render::Particle p{};
-                //    p.Position = obj.Position;
-                //    p.Radius = obj.Radius * EXPLOSION_SCALE;
-                //    p.Clip = robot.ExplosionClip2;
-                //    Render::AddParticle(p);
-                //}
+                DropContainedItems(obj);
                 break;
-
-                // todo: drop contents
             }
 
             case ObjectType::Player:
@@ -300,6 +324,12 @@ namespace Inferno::Game {
         for (auto& obj : Level.Objects) {
             if (obj.HitPoints < 0) DestroyObject(obj);
         }
+
+        for (auto& obj : PendingNewObjects) {
+            Level.Objects.push_back(obj); // todo: search for dead object instead
+        }
+
+        PendingNewObjects.clear();
     }
 
     // Returns the lerp amount for the current tick

@@ -32,6 +32,10 @@ namespace Inferno {
         return Random() - Random();
     }
 
+    inline Vector3 RandomVector(float scale) {
+        return Vector3(RandomN11(), RandomN11(), RandomN11()) * scale;
+    }
+
     // defined in C++23
     template <class T>
     inline constexpr bool is_scoped_enum_v = std::conjunction_v<std::is_enum<T>, std::negation<std::is_convertible<T, int>>>;

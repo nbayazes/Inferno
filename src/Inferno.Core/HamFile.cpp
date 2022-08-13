@@ -301,7 +301,7 @@ namespace Inferno {
     Powerup ReadPowerup(StreamReader& r) {
         Powerup p{};
         p.VClip = (VClipID)r.ReadInt32();
-        p.HitSound = r.ReadInt32();
+        p.HitSound = (SoundID)r.ReadInt32();
         p.Size = r.ReadFix();
         p.Light = r.ReadFix();
         return p;

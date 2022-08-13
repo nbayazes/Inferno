@@ -490,7 +490,7 @@ namespace Inferno {
             // Compute capsule line endpoints A, B like before in capsule-capsule case:
             auto capsuleNormal = tip - base;
             capsuleNormal.Normalize();
-            if (capsuleNormal.Dot(faceNormal) > 0) 
+            if (capsuleNormal.Dot(faceNormal) > 0)
                 return false; // skip backfacing. This might be undesireable for some capsule tests.
 
             auto offset = capsuleNormal * Radius; // line end offset
@@ -586,6 +586,68 @@ namespace Inferno {
         }
     };
 
+
+    bool ObjectCanHitTarget(ObjectType src, ObjectType target) {
+        switch (src) {
+            case ObjectType::Robot:
+                switch (target) {
+                    case ObjectType::Wall:
+                        //case ObjectType::Robot:
+                    case ObjectType::Player:
+                    case ObjectType::Coop:
+                        //case ObjectType::Weapon:
+                    case ObjectType::Clutter:
+                        return true;
+                }
+                break;
+
+            case ObjectType::Coop:
+            case ObjectType::Player:
+                switch (target) {
+                    case ObjectType::Wall:
+                    case ObjectType::Robot:
+                        //case ObjectType::Weapon:
+                    case ObjectType::Powerup:
+                    case ObjectType::Reactor:
+                    case ObjectType::Clutter:
+                        //case ObjectType::Player: // player can hit other players, but not in singleplayer
+                        //case ObjectType::Coop:
+                    case ObjectType::Marker:
+                        return true;
+                }
+                break;
+
+            case ObjectType::Weapon:
+                switch (target) {
+                    case ObjectType::Wall:
+                    case ObjectType::Robot:
+                        //case ObjectType::Player:
+                        //case ObjectType::Coop:
+                        //case ObjectType::Weapon:
+                    case ObjectType::Reactor:
+                    case ObjectType::Clutter:
+                        return true;
+                }
+                break;
+
+            case ObjectType::Reactor:
+                switch (target) {
+                    case ObjectType::Wall:
+                        //case ObjectType::Robot:
+                    case ObjectType::Player:
+                    case ObjectType::Clutter:
+                    case ObjectType::Coop:
+                        return true;
+                }
+                break;
+
+            case ObjectType::Clutter:
+                return false; // not implemented
+        }
+
+        return false;
+    }
+
     // Finds the nearest sphere-level intersection
     bool IntersectLevel(Level& level, const BoundingSphere& sphere, SegID segId, ObjID oid, LevelHit& hit) {
         auto& seg = level.GetSegment(segId);
@@ -605,6 +667,8 @@ namespace Inferno {
             if (oid == (ObjID)i) continue; // don't hit yourself!
             if (obj.Parent == other.Parent) continue; // Don't hit your siblings!
             if (oid == other.Parent) continue; // Don't hit your children!
+
+            if (!ObjectCanHitTarget(obj.Type, other.Type)) continue;
 
             BoundingSphere objSphere(other.Position, other.Radius);
             if (auto info = IntersectSphereSphere(sphere, objSphere)) {
@@ -681,10 +745,8 @@ namespace Inferno {
             auto& target = level.Objects[i];
             if (!target.IsAlive() || target.Segment != segId) continue;
             if (object.Parent == (ObjID)i || &target == &object) continue; // don't hit yourself!
-            if (object.Parent == target.Parent) continue; // Don't hit your siblings!
-
-            // todo: skip certain object types based on the source type
-            if (target.Type != ObjectType::Reactor && target.Type != ObjectType::Robot) continue;
+            if ((object.Parent != ObjID::None && target.Parent != ObjID::None) && object.Parent == target.Parent) continue; // Don't hit your siblings!
+            if (!ObjectCanHitTarget(object.Type, target.Type)) continue;
 
             BoundingSphere sphere(target.Position, target.Radius);
             if (auto info = capsule.Intersects(sphere)) {
@@ -958,7 +1020,6 @@ namespace Inferno {
                     BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
 
                     if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
-
                         //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
                         Debug::ClosestPoints.push_back(hit.Point);
                         Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
@@ -967,6 +1028,7 @@ namespace Inferno {
 
                 if (hit) {
                     if (obj.Type == ObjectType::Weapon) {
+                        ApplyWeaponHit(hit, obj);
                         obj.Lifespan = -1; // destroy weapon projectiles on hit (todo: unless bounce!)
                     }
 
@@ -987,8 +1049,16 @@ namespace Inferno {
                         }
                     }
 
-                    if (obj.Type == ObjectType::Weapon) {
-                        ApplyWeaponHit(hit, obj);
+                    if (obj.Type == ObjectType::Player) {
+                        if (hit.HitObj && hit.HitObj->Type == ObjectType::Powerup) {
+                            hit.HitObj->Lifespan = -1;
+
+                            auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
+                            Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                            sound.Resource = Resources::GetSoundResource(powerup.HitSound);
+                            sound.Source = obj.Parent;
+                            Sound::Play(sound);
+                        }
                     }
                 }
 
