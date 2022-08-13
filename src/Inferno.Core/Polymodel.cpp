@@ -49,6 +49,21 @@ namespace Inferno {
         }
     }
 
+    void UpdateGeometricProperties(Model& model) {
+        for (auto& sm : model.Submodels) {
+            if (sm.ExpandedPoints.empty()) continue;
+
+            for (auto& p : sm.ExpandedPoints) {
+                sm.Min = Vector3::Min(p, sm.Min);
+                sm.Max = Vector3::Max(p, sm.Max);
+                sm.Center += p;
+            }
+
+            sm.Center /= sm.ExpandedPoints.size();
+            sm.Radius = Vector3::Distance(sm.Max, sm.Min) / 2;
+        }
+    }
+
     void ReadPolymodel(Model& model, span<ubyte> data, Palette* palette) {
         // 'global' state for the interpreter
         int16 highestTex = -1;
@@ -94,10 +109,10 @@ namespace Inferno {
                         // vectors used for normal facing checks (no longer needed)
                         /*auto v0 =*/ reader.ReadVector(); // @4
                         /*auto v1 =*/ reader.ReadVector(); // @16
-                        
+
                         auto color = reader.ReadUInt16();
                         auto colorf = UnpackColor(color);
-                        
+
                         if (palette && color < palette->Data.size()) {
                             auto& c = palette->Data[color];
                             colorf = ColorFromRGB(c.r, c.g, c.b, c.a);
@@ -243,6 +258,7 @@ namespace Inferno {
         }
 
         Expand(model, points);
+        UpdateGeometricProperties(model);
 
         if (highestTex >= model.TextureCount) throw Exception("Model contains too many textures");
         if (model.Submodels.size() > MAX_SUBMODELS) throw Exception("Model contains too many submodels");

@@ -48,4 +48,5 @@ namespace Inferno {
 
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit);
     HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
+    bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere& sphere, SegID segId, LevelHit& hit);
 }

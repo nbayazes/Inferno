@@ -140,8 +140,88 @@ namespace Inferno::Render {
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
 
-    void SubmitToTransparentQueue(RenderCommand& command) {
+    void QueueTransparent(RenderCommand& command) {
         _transparentQueue.push_back(command);
+    }
+
+    void QueueOpaque(RenderCommand& command) {
+        _opaqueQueue.push_back(command);
+    }
+
+    void DrawDebrisPrepass(GraphicsContext& ctx, const Debris& debris, float lerp) {
+        auto& model = Resources::GetModel(debris.Model);
+        if (model.DataSize == 0) return;
+        if (!Seq::inRange(model.Submodels, debris.Submodel)) return;
+        auto& meshHandle = _meshBuffer->GetHandle(debris.Model);
+
+        auto& effect = Effects->DepthObject;
+        ApplyEffect(ctx, effect);
+        auto cmdList = ctx.CommandList();
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+
+        Matrix transform = Matrix::Lerp(debris.PrevTransform, debris.Transform, lerp);
+        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        ObjectDepthShader::Constants constants = {};
+        constants.World = transform;
+
+        effect.Shader->SetConstants(cmdList, constants);
+
+        // get the mesh associated with the submodel
+        auto& subMesh = meshHandle.Meshes[debris.Submodel];
+
+        for (int i = 0; i < subMesh.size(); i++) {
+            auto mesh = subMesh[i];
+            if (!mesh) continue;
+
+            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+            DrawCalls++;
+        }
+    }
+
+    void DrawDebris(GraphicsContext& ctx, const Debris& debris, float lerp) {
+        auto& model = Resources::GetModel(debris.Model);
+        if (model.DataSize == 0) return;
+        if (!Seq::inRange(model.Submodels, debris.Submodel)) return;
+        auto& meshHandle = _meshBuffer->GetHandle(debris.Model);
+
+        auto& effect = Effects->Object;
+        ApplyEffect(ctx, effect);
+        auto cmdList = ctx.CommandList();
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+
+        effect.Shader->SetSampler(cmdList, GetTextureSampler());
+        auto& seg = Game::Level.GetSegment(debris.Segment);
+        ObjectShader::Constants constants = {};
+        constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.EmissiveLight = Vector4::Zero;
+
+        Matrix transform = Matrix::Lerp(debris.PrevTransform, debris.Transform, lerp);
+        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+        constants.World = transform;
+        effect.Shader->SetConstants(cmdList, constants);
+
+        // get the mesh associated with the submodel
+        auto& subMesh = meshHandle.Meshes[debris.Submodel];
+
+        for (int i = 0; i < subMesh.size(); i++) {
+            auto mesh = subMesh[i];
+            if (!mesh) continue;
+
+            TexID tid = debris.TexOverride;
+            if (tid == TexID::None)
+                tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
+
+            const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+            effect.Shader->SetMaterial(cmdList, material);
+
+            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+            DrawCalls++;
+        }
     }
 
     void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float lerp, TexID texOverride = TexID::None) {
@@ -164,11 +244,10 @@ namespace Inferno::Render {
         constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
         constants.EmissiveLight = object.Render.Emissive;
 
-        //Matrix transform = object.GetTransform(t);
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        if (object.Control.Type == ControlType::Weapon) {
+        if (object.Control.Type == ControlType::Weapon) { // Mines. todo: move to game update
             auto r = Matrix::CreateFromYawPitchRoll(object.Movement.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
             auto translation = transform.Translation();
             transform *= Matrix::CreateTranslation(translation);
@@ -179,13 +258,7 @@ namespace Inferno::Render {
         int submodelIndex = 0;
         for (auto& submodel : model.Submodels) {
             // accumulate the offsets for each submodel
-            auto submodelOffset = Vector3::Zero;
-            auto* smc = &submodel;
-            while (smc->Parent != ROOT_SUBMODEL) {
-                submodelOffset += smc->Offset;
-                smc = &model.Submodels[smc->Parent];
-            }
-
+            auto submodelOffset = model.GetSubmodelOffset(submodelIndex);
             auto world = Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
             effect.Shader->SetConstants(cmdList, constants);
@@ -804,6 +877,11 @@ namespace Inferno::Render {
                 if (pass != RenderPass::Transparent) return;
                 DrawParticle(ctx, *cmd.Data.Particle);
                 break;
+
+            case RenderCommandType::Debris:
+                if (pass != RenderPass::Opaque) return;
+                DrawDebris(ctx, *cmd.Data.Debris, lerp);
+                break;
         }
     }
 
@@ -891,15 +969,17 @@ namespace Inferno::Render {
         ClearDepthPrepass(ctx);
         auto cmdList = ctx.CommandList();
 
-        {
-            // Opaque geometry prepass
-            for (auto& cmd : _opaqueQueue) {
-                if (cmd.Type == RenderCommandType::LevelMesh) {
+        // Opaque geometry prepass
+        for (auto& cmd : _opaqueQueue) {
+            switch (cmd.Type) {
+                case RenderCommandType::LevelMesh:
                     ApplyEffect(ctx, Effects->Depth);
                     cmd.Data.LevelMesh->Draw(cmdList);
                     DrawCalls++;
-                }
-                else {
+                    break;
+
+                case RenderCommandType::Object:
+                {
                     // Models
                     ApplyEffect(ctx, Effects->DepthObject);
                     auto& object = *cmd.Data.Object;
@@ -908,28 +988,19 @@ namespace Inferno::Render {
                     if (cmd.Data.Object->Type == ObjectType::Robot)
                         model = Resources::GetRobotInfo(object.ID).Model;
                     ModelDepthPrepass(cmdList, object, model, lerp);
+                    break;
                 }
+
+                case RenderCommandType::Debris:
+                {
+                    DrawDebrisPrepass(ctx, *cmd.Data.Debris, lerp);
+                    break;
+                }
+
+                default:
+                    throw Exception("Render command not supported in depth prepass");
             }
         }
-
-        //{
-        //    // Opaque object depth prepass
-        //    ApplyEffect(ctx, Effects->DepthObject);
-
-        //    for (auto& cmd : _transparentQueue) {
-        //        if (cmd.Type != RenderCommandType::Object) continue;
-
-        //        auto& object = *cmd.Data.Object;
-        //        if (object.Render.Type != RenderType::Model) continue;
-        //        auto model = object.Render.Model.ID;
-
-        //        if (cmd.Data.Object->Type == ObjectType::Robot)
-        //            model = Resources::GetRobotInfo(object.ID).Model;
-
-        //        ModelDepthPrepass(cmdList, object, model, lerp);
-        //    }
-        //}
-
 
         if (Settings::RenderMode != RenderMode::Flat) {
             // Level walls (potentially transparent)
@@ -984,6 +1055,7 @@ namespace Inferno::Render {
         }
 
         QueueParticles();
+        QueueDebris();
 
         if (Settings::ShowObjects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;

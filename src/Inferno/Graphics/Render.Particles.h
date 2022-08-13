@@ -89,4 +89,27 @@ namespace Inferno::Render {
     void UpdateParticles(Level&, float dt);
     void QueueParticles();
     void DrawParticles(Graphics::GraphicsContext& ctx);
+
+    // Remains of a destroyed robot
+    struct Debris {
+        float Life = 0;
+        Matrix Transform, PrevTransform;
+        //Vector3 Position, LastPosition;
+        //Matrix3x3 Rotation, LastRotation;
+        Vector3 Velocity;
+        Vector3 AngularVelocity;
+        float Mass = 1;
+        float Drag = 0.01f;
+        float Radius = 1;
+        ModelID Model = ModelID::None;
+        int Submodel = 0;
+        SegID Segment;
+        TexID TexOverride = TexID::None;
+
+        static bool IsAlive(const Debris& d) { return d.Life > 0; }
+    };
+
+    void AddDebris(Debris& debris);
+    void UpdateDebris(float dt);
+    void QueueDebris();
 }

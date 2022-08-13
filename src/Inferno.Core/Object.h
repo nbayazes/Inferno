@@ -351,6 +351,7 @@ namespace Inferno {
         RenderData Render;
         ControlData Control;
 
+        Vector3 LastHitForce;
         Vector3 Position, LastPosition;
         Matrix3x3 Rotation, LastRotation;
 

@@ -178,7 +178,7 @@ namespace Inferno::Game {
         SegID Segment = SegID::None;
         VClipID Clip = VClipID::None;
         SoundID Sound = SoundID::None;
-        float Radius = 2.5f;
+        float MinRadius = 2.5f, MaxRadius = 2.5f;
         float Variance = 0;
         int Instances = 1;
         float Delay = -1;
@@ -211,7 +211,7 @@ namespace Inferno::Game {
                     powerup.Movement.Type = MovementType::Physics;
                     powerup.Movement.Physics.Velocity = RandomVector(32);
                     powerup.Movement.Physics.Mass = 1;
-                    powerup.Movement.Physics.Drag = FixToFloat(512);
+                    powerup.Movement.Physics.Drag = 0.01f;
                     powerup.Movement.Physics.Flags = PhysicsFlag::Bounce;
 
                     // game originally times-out conc missiles, shields and energy after about 3 minutes
@@ -240,20 +240,65 @@ namespace Inferno::Game {
             }
             case ObjectType::Robot:
             {
-                constexpr float EXPLOSION_DELAY = 0.0f;
-                constexpr float EXPLOSION_SCALE = 1.15f;
+                constexpr float EXPLOSION_DELAY = 0.2f;
+                constexpr float EXPLOSION_SCALE = 1.25f;
+
+                auto& robot = Resources::GetRobotInfo(obj.ID);
 
                 ExplosionInfo expl;
-                auto& robot = Resources::GetRobotInfo(obj.ID);
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
-                expl.Delay = EXPLOSION_DELAY;
-                expl.Radius = obj.Radius * EXPLOSION_SCALE;
+                expl.MinRadius = expl.MaxRadius  = obj.Radius * 1.9f;
+                expl.Delay = 0;
                 expl.Segment = obj.Segment;
                 expl.Position = obj.GetPosition(LerpAmount);
-                expl.Variance = obj.Radius * 0.5f;
-                expl.Instances = 4;
                 Explosions.Add(expl);
+
+                expl.Sound = SoundID::None;
+                expl.Delay = EXPLOSION_DELAY;
+                expl.MinRadius = obj.Radius * 1.15f;
+                expl.MaxRadius = obj.Radius * 1.55f;
+                expl.Variance = obj.Radius * 0.5f;
+                expl.Instances = 3;
+                Explosions.Add(expl);
+
+                auto& model = Resources::GetModel(robot.Model);
+                for (int i = 0; i < model.Submodels.size(); i++) {
+                    // accumulate the offsets for each submodel
+                    auto submodelOffset = model.GetSubmodelOffset(i);
+                    Matrix transform = Matrix::Lerp(obj.GetLastTransform(), obj.GetTransform(), Game::LerpAmount);
+                    //auto transform = obj.GetLastTransform();
+                    transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+                    auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+                    //world = obj.GetLastTransform();
+
+                    auto explosionVec = world.Translation() - obj.Position;
+                    explosionVec.Normalize();
+
+                    auto hitForce = obj.LastHitForce * 6;
+
+                    Render::Debris debris;
+                    //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
+                    //auto vec = RandomVector(obj.Radius * 5);
+                    //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
+                    //debris.Velocity =  RandomVector(obj.Radius * 5);
+                    debris.Velocity = explosionVec * (0.5 + Random()) * 16 + hitForce;
+                    debris.AngularVelocity = RandomVector(obj.LastHitForce.Length());
+                    debris.Transform = world;
+                    //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
+                    debris.PrevTransform = world;
+                    debris.Mass = 1; // obj.Movement.Physics.Mass;
+                    debris.Drag = 0.005f; // obj.Movement.Physics.Drag;
+                    // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
+                    debris.Life =  0.25f + Random() * (i == 0 ? 0.75f : 1.75f);
+                    debris.Segment = obj.Segment;
+                    debris.Radius = model.Submodels[i].Radius;
+                    //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
+                    debris.Model = robot.Model;
+                    debris.Submodel = i;
+                    debris.TexOverride = Resources::LookupLevelTexID(obj.Render.Model.TextureOverride);
+                    Render::AddDebris(debris);
+                }
 
                 DropContainedItems(obj);
                 break;
@@ -282,10 +327,12 @@ namespace Inferno::Game {
             expl.Delay -= dt;
             if (expl.Delay > 0) continue;
 
-            fmt::print("playing explosion sound\n");
-            Sound::Sound3D sound(expl.Position, expl.Segment);
-            sound.Resource = Resources::GetSoundResource(expl.Sound);
-            Sound::Play(sound);
+            if (expl.Sound != SoundID::None) {
+                fmt::print("playing explosion sound\n");
+                Sound::Sound3D sound(expl.Position, expl.Segment);
+                sound.Resource = Resources::GetSoundResource(expl.Sound);
+                Sound::Play(sound);
+            }
 
             for (int i = 0; i < expl.Instances; i++) {
                 Render::Particle p{};
@@ -293,7 +340,7 @@ namespace Inferno::Game {
                 if (expl.Variance > 0)
                     p.Position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
 
-                p.Radius = expl.Radius + RandomN11() * expl.Radius / 2;
+                p.Radius = expl.MinRadius + Random() * (expl.MaxRadius - expl.MinRadius);
                 p.Clip = expl.Clip;
                 if (expl.Instances > 1)
                     p.Delay = Random() * 0.5f;
@@ -319,6 +366,8 @@ namespace Inferno::Game {
                 //FireTestWeapon(Game::Level, ObjID(0), 3, id);
             }
         }
+
+        Render::UpdateDebris(dt);
 
         for (auto& obj : Level.Objects) {
             if (obj.HitPoints < 0) DestroyObject(obj);

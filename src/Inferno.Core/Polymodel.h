@@ -25,8 +25,8 @@ namespace Inferno {
         Vector3 Point; // point on sep plane
         float Radius;
         ubyte Parent;
-        Vector3 Min;
-        Vector3 Max;
+        Vector3 Min, Max; // Geometric min/max
+        Vector3 Center; // Geometric center
 
         // Mesh data
         List<uint16> Indices;
@@ -54,6 +54,19 @@ namespace Inferno {
         ushort FirstTexture;
         ubyte SimplerModel; //alternate model with less detail (0 if none, model_num+1 else), probably a bool?
         List<Vector3> angles; // was in POF data, maybe not used at runtime?
+
+        Vector3 GetSubmodelOffset(int index) const {
+            if (!Seq::inRange(Submodels, index)) return Vector3::Zero;
+
+            auto submodelOffset = Vector3::Zero;
+            auto* smc = &Submodels[index];
+            while (smc->Parent != ROOT_SUBMODEL) {
+                submodelOffset += smc->Offset;
+                smc = &Submodels[smc->Parent];
+            }
+
+            return submodelOffset;
+        }
     };
 
     // Read parallax object format

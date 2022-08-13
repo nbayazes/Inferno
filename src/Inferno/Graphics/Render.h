@@ -73,7 +73,7 @@ namespace Inferno::Render {
     inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     enum class RenderCommandType {
-        LevelMesh, Object, Particle, Emitter
+        LevelMesh, Object, Particle, Emitter, Debris
     };
 
     struct RenderCommand {
@@ -84,6 +84,7 @@ namespace Inferno::Render {
             Inferno::LevelMesh* LevelMesh;
             ParticleEmitter* Emitter;
             Particle* Particle;
+            struct Debris* Debris;
         } Data;
 
         RenderCommand(Object* obj, float depth)
@@ -105,9 +106,15 @@ namespace Inferno::Render {
             : Depth(depth), Type(RenderCommandType::Emitter) {
             Data.Emitter = emitter;
         }
+
+        RenderCommand(Debris* debris, float depth)
+            : Depth(depth), Type(RenderCommandType::Debris) {
+            Data.Debris = debris;
+        }
     };
 
-    void SubmitToTransparentQueue(RenderCommand&);
+    void QueueTransparent(RenderCommand&);
+    void QueueOpaque(RenderCommand&);
 
     extern bool LevelChanged;
 }

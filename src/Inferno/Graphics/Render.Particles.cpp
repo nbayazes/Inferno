@@ -3,6 +3,7 @@
 #include "DataPool.h"
 #include "Render.h"
 #include "Game.h"
+#include "Physics.h"
 
 namespace Inferno::Render {
     DataPool<Particle> Particles(Particle::IsAlive, 100);
@@ -39,17 +40,13 @@ namespace Inferno::Render {
     }
 
     void QueueParticles() {
-        int liveParticles = 0;
         for (auto& p : Particles) {
             if (!Particle::IsAlive(p)) continue;
             auto depth = Vector3::DistanceSquared(Render::Camera.Position, p.Position) * 0.98f - 100;
             if (p.Delay > 0) continue;
-            liveParticles++;
             RenderCommand cmd(&p, depth);
-            SubmitToTransparentQueue(cmd);
+            QueueTransparent(cmd);
         }
-
-        //fmt::print("live particles: {}", liveParticles);
     }
 
     void DrawParticles(Graphics::GraphicsContext& ctx) {
@@ -100,10 +97,58 @@ namespace Inferno::Render {
         for (auto& emitter : ParticleEmitters) {
             if (!ParticleEmitter::IsAlive(emitter)) continue;
             emitter.Update(dt);
-            
+
             auto depth = Vector3::DistanceSquared(Render::Camera.Position, emitter.Position) * 0.98f - 100;
             RenderCommand cmd(&emitter, depth);
-            SubmitToTransparentQueue(cmd);
+            QueueTransparent(cmd);
+        }
+    }
+
+    DataPool<Debris> DebrisPool(Debris::IsAlive, 100);
+
+    void AddDebris(Debris& debris) {
+        DebrisPool.Add(debris);
+    }
+
+    void UpdateDebris(float dt) {
+        for (auto& debris : DebrisPool) {
+            if (!Debris::IsAlive(debris)) continue;
+            debris.Velocity *= 1 - debris.Drag;
+            debris.Life -= dt;
+            debris.PrevTransform = debris.Transform;
+            auto translation = debris.Transform.Translation() + debris.Velocity * dt;
+            //debris.Transform.Translation(debris.Transform.Translation() + debris.Velocity * dt);
+
+            const auto drag = debris.Drag * 5 / 2;
+            debris.AngularVelocity *= 1 - drag;
+            debris.Transform.Translation(Vector3::Zero);
+            debris.Transform = Matrix::CreateFromYawPitchRoll(-debris.AngularVelocity * dt * DirectX::XM_2PI) * debris.Transform;
+            debris.Transform.Translation(translation);
+
+            DirectX::BoundingSphere bounds(debris.Transform.Translation(), debris.Radius / 2);
+            LevelHit hit;
+            if (IntersectLevelDebris(Game::Level, bounds, debris.Segment, hit)) {
+                debris.Life = -1; // destroy on contact
+                // scorch marks on walls?
+            }
+
+            if (debris.Life < 0) {
+                Render::Particle p{};
+                //p.Position = Vector3::Lerp(debris.PrevTransform.Translation(), debris.Transform.Translation(), Game::LerpAmount);
+                p.Position = debris.PrevTransform.Translation();
+                p.Radius = debris.Radius * 1.5f;
+                p.Clip = VClipID(2); // small explosion, randomize?
+                AddParticle(p);
+            }
+        }
+    }
+
+    void QueueDebris() {
+        for (auto& debris : DebrisPool) {
+            if (!Debris::IsAlive(debris)) continue;
+            auto depth = Vector3::DistanceSquared(Render::Camera.Position, debris.Transform.Translation()) * 0.98f - 100;
+            RenderCommand cmd(&debris, depth);
+            QueueOpaque(cmd);
         }
     }
 }

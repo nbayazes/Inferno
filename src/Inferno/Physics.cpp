@@ -69,7 +69,7 @@ namespace Inferno {
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
     }
 
-    void LinearPhysics(Object& obj, float dt) {
+    void LinearPhysics(Object& obj) {
         auto& pd = obj.Movement.Physics;
 
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
@@ -126,7 +126,7 @@ namespace Inferno {
         }
 
         AngularPhysics(obj, dt);
-        LinearPhysics(obj, dt);
+        LinearPhysics(obj);
     }
 
     struct Triangle {
@@ -658,11 +658,6 @@ namespace Inferno {
         // Did we hit any objects in this segment?
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& other = level.Objects[i];
-            //if (!Object::IsAlive(obj) || obj.Segment != segId) continue;
-            //if (hit.Source && hit.Source->Parent == (ObjID)i) continue; // don't hit parent
-            //if (hit.Source == &obj) continue; // don't hit yourself!
-            //if (source.Parent == obj.Parent) continue; // Don't hit your siblings!
-
             if (!other.IsAlive() || other.Segment != segId) continue;
             if (oid == (ObjID)i) continue; // don't hit yourself!
             if (obj.Parent == other.Parent) continue; // Don't hit your siblings!
@@ -691,6 +686,51 @@ namespace Inferno {
                     auto conn = seg.GetConnection(side);
                     if (conn > SegID::None && !hit.Visited.contains(conn))
                         IntersectLevel(level, sphere, conn, oid, hit); // Recursive
+                }
+            }
+        }
+
+        return hit;
+    }
+
+    // Finds the nearest sphere-level intersection for debris
+    // Debris only collide with robots, players and walls
+    bool IntersectLevelDebris(Level& level, const BoundingSphere& sphere, SegID segId, LevelHit& hit) {
+        auto& seg = level.GetSegment(segId);
+        hit.Visited.insert(segId);
+
+        //auto& obj = level.Objects[(int)oid];
+
+        // Did we hit any objects in this segment?
+        for (int i = 0; i < level.Objects.size(); i++) {
+            auto& other = level.Objects[i];
+            if (!other.IsAlive() || other.Segment != segId) continue;
+
+            if(other.Type != ObjectType::Player && other.Type != ObjectType::Robot && other.Type != ObjectType::Reactor)
+                continue;
+            //if (!ObjectCanHitTarget(obj.Type, other.Type)) continue;
+
+            BoundingSphere objSphere(other.Position, other.Radius);
+            if (auto info = IntersectSphereSphere(sphere, objSphere)) {
+                hit.Update(info, &other);
+            }
+        }
+
+        for (auto& side : SideIDs) {
+            auto face = Face::FromSide(level, segId, side);
+
+            if (auto h = IntersectFaceSphere(face, sphere)) {
+                if (h.Normal.Dot(face.AverageNormal()) > 0)
+                    continue; // passed through back of face
+
+                if (seg.SideIsSolid(side, level)) {
+                    hit.Update(h, { segId, side }); // hit a solid wall
+                }
+                else {
+                    // intersected with a connected side, must check faces in it too
+                    auto conn = seg.GetConnection(side);
+                    if (conn > SegID::None && !hit.Visited.contains(conn))
+                        IntersectLevelDebris(level, sphere, conn, hit); // Recursive
                 }
             }
         }
@@ -914,7 +954,7 @@ namespace Inferno {
 
     //}
 
-    void ApplyWeaponHit(const LevelHit& hit, const Object& source) {
+    void ApplyWeaponHit(const LevelHit& hit, const Object& source, const Vector3& hitVelocity) {
         auto& weapon = Resources::GameData.Weapons[source.ID];
 
         if (hit.HitObj) {
@@ -926,13 +966,13 @@ namespace Inferno {
             auto srcMass = src.Mass == 0 ? 0.01f : src.Mass;
             auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
 
-            // apply force from projectile to object
+            // apply forces from projectile to object
             auto force = src.Velocity * srcMass / targetMass;
             targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
+            hit.HitObj->LastHitForce += force * 2;
 
             Matrix basis(target.Rotation);
             basis = basis.Invert();
-
             force = Vector3::Transform(force, basis); // transform forces to basis of object
             auto arm = Vector3::Transform(hit.Point - target.Position, basis);
             auto torque = force.Cross(arm);
@@ -956,7 +996,9 @@ namespace Inferno {
                     p.Clip = ri.ExplosionClip1;
                     Render::AddParticle(p);
                 }
+
             }
+
         }
         else { // Hit a wall
             Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
@@ -1028,7 +1070,7 @@ namespace Inferno {
 
                 if (hit) {
                     if (obj.Type == ObjectType::Weapon) {
-                        ApplyWeaponHit(hit, obj);
+                        ApplyWeaponHit(hit, obj, obj.Movement.Physics.Velocity);
                         obj.Lifespan = -1; // destroy weapon projectiles on hit (todo: unless bounce!)
                     }
 
@@ -1036,12 +1078,15 @@ namespace Inferno {
                         // todo: only open doors for certain robot behaviors and player weapons
 
                         if (wall->Type == WallType::Door) {
-                            if (obj.Type == ObjectType::Weapon && wall->HasFlag(WallFlag::DoorLocked)) {
+                            if (wall->HasFlag(WallFlag::DoorLocked)) {
                                 // Can't open door
-                                Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-                                sound.Resource = Resources::GetSoundResource(Sound::SOUND_WEAPON_HIT_DOOR);
-                                sound.Source = obj.Parent;
-                                Sound::Play(sound);
+                                if (obj.Type == ObjectType::Weapon) {
+                                    // todo: only play sound and message if door is in front of the player
+                                    Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                                    sound.Resource = Resources::GetSoundResource(Sound::SOUND_WEAPON_HIT_DOOR);
+                                    sound.Source = obj.Parent;
+                                    Sound::Play(sound);
+                                }
                             }
                             else if (wall->State != WallState::DoorOpening) {
                                 OpenDoor(level, hit.Tag);
@@ -1075,6 +1120,8 @@ namespace Inferno {
 
                 //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
                 //obj.Movement.Physics.Velocity = frameVec / dt;
+                obj.LastHitForce *= 0.85f; // decay every update
+
                 Editor::UpdateObjectSegment(level, obj);
             }
 
