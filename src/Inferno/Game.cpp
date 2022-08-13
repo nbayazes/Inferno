@@ -272,6 +272,8 @@ namespace Inferno::Game {
 
                 p.Radius = expl.Radius + RandomN11() * expl.Radius / 2;
                 p.Clip = expl.Clip;
+                if (expl.Instances > 1)
+                    p.Delay = Random() * 0.5f;
                 Render::AddParticle(p);
             }
         }

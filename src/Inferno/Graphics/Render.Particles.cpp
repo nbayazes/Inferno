@@ -20,6 +20,7 @@ namespace Inferno::Render {
     void UpdateParticles(Level& level, float dt) {
         for (auto& p : Particles) {
             if (!Particle::IsAlive(p)) continue;
+            if ((p.Delay -= dt) > 0) continue;
             p.Life -= dt;
 
             if (auto parent = level.TryGetObject(p.Parent)) {
@@ -46,6 +47,7 @@ namespace Inferno::Render {
 
         for (auto& p : Particles) {
             if (!Particle::IsAlive(p)) continue;
+            if (p.Delay > 0) continue;
             auto& vclip = Resources::GetVideoClip(p.Clip);
             auto elapsed = vclip.PlayTime - p.Life;
 

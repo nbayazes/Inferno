@@ -14,6 +14,7 @@ namespace Inferno::Render {
         float Rotation = 0;
         float Life = 0;
         float FadeTime = 0; // How long it takes to fade the particle out
+        float Delay = 0; // How long to delay animating the particle
         //float FadeDuration = 0;
         ObjID Parent = ObjID::None;
         Vector3 ParentOffset;
