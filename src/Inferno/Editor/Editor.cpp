@@ -466,7 +466,6 @@ namespace Inferno::Editor {
         Editor::Marked.Clear();
 
         Editor::Selection.SetSelection({ seg, SideID::Left });
-        Editor::History = { &Game::Level, Settings::UndoLevels };
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
         ResetObjects(Game::Level);
@@ -476,6 +475,7 @@ namespace Inferno::Editor {
 
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
+        Editor::History = { &Game::Level, Settings::UndoLevels };
         ResetAutosaveTimer();
     }
 
