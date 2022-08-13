@@ -1060,6 +1060,12 @@ namespace Inferno {
                             Sound::Play(sound);
                         }
                     }
+
+                    if (obj.Type == ObjectType::Powerup) {
+                        if (obj.Movement.Physics.HasFlag(PhysicsFlag::Bounce)) {
+                            obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
+                        }
+                    }
                 }
 
                 //CollideTriangles(level, obj, dt, 0);

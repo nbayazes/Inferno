@@ -240,7 +240,7 @@ namespace Inferno::Game {
             }
             case ObjectType::Robot:
             {
-                constexpr float EXPLOSION_DELAY = 0.25f;
+                constexpr float EXPLOSION_DELAY = 0.0f;
                 constexpr float EXPLOSION_SCALE = 1.15f;
 
                 ExplosionInfo expl;
@@ -326,6 +326,8 @@ namespace Inferno::Game {
         }
 
         for (auto& obj : PendingNewObjects) {
+            obj.LastPosition = obj.Position;
+            obj.LastRotation = obj.Rotation;
             Level.Objects.push_back(obj); // todo: search for dead object instead
         }
 
