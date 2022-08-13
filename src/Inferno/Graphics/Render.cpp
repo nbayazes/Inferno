@@ -801,6 +801,7 @@ namespace Inferno::Render {
                 break;
 
             case RenderCommandType::Particle:
+                if (pass != RenderPass::Transparent) return;
                 DrawParticle(ctx, *cmd.Data.Particle);
                 break;
         }
