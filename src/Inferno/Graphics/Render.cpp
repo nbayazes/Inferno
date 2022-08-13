@@ -782,7 +782,7 @@ namespace Inferno::Render {
                         ApplyEffect(ctx, Effects->LevelWall);
                     }
                     else if (mesh.Chunk->Blend == BlendMode::Additive) {
-                        if (pass != RenderPass::Walls) return;
+                        if (pass != RenderPass::Transparent) return;
                         ApplyEffect(ctx, Effects->LevelWallAdditive);
                     }
                     else {
