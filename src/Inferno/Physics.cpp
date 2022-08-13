@@ -115,7 +115,7 @@ namespace Inferno {
         auto& physics = obj.Movement.Physics;
 
         if (obj.Type == ObjectType::Player) {
-            const auto& ship = Resources::GameData.PlayerShip;
+            //const auto& ship = Resources::GameData.PlayerShip;
 
             //physics.Thrust *= ship.MaxThrust / dt;
             //physics.AngularThrust *= ship.MaxRotationalThrust / dt;
@@ -900,7 +900,7 @@ namespace Inferno {
     }
 
 
-    void UpdateGame(Level& level, double t, float dt) {
+    void UpdateGame(Level& level, float dt) {
         for (auto& obj : level.Objects) {
             obj.Lifespan -= dt;
         }
@@ -979,7 +979,7 @@ namespace Inferno {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
 
-        UpdateGame(level, t, dt);
+        UpdateGame(level, dt);
 
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
@@ -1057,6 +1057,7 @@ namespace Inferno {
                             Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
                             sound.Resource = Resources::GetSoundResource(powerup.HitSound);
                             sound.Source = obj.Parent;
+                            sound.FromPlayer = true;
                             Sound::Play(sound);
                         }
                     }

@@ -140,6 +140,10 @@ namespace Inferno::Render {
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
 
+    void SubmitToTransparentQueue(RenderCommand& command) {
+        _transparentQueue.push_back(command);
+    }
+
     void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float lerp, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
         ApplyEffect(ctx, effect);
@@ -741,6 +745,18 @@ namespace Inferno::Render {
         DrawCalls++;
     }
 
+    void DrawParticle(GraphicsContext& ctx, const Particle& p) {
+        auto& vclip = Resources::GetVideoClip(p.Clip);
+        auto elapsed = vclip.PlayTime - p.Life;
+
+        auto* up = p.Up == Vector3::Zero ? nullptr : &p.Up;
+        auto color = p.Color;
+        if (p.FadeTime != 0 && p.Life <= p.FadeTime) {
+            color.w = 1 - std::clamp((p.FadeTime - p.Life) / p.FadeTime, 0.0f, 1.0f);
+        }
+        DrawVClip(ctx, vclip, p.Position, p.Radius, color, elapsed, true, p.Rotation, up);
+    }
+
     void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, float lerp, RenderPass pass) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
@@ -782,6 +798,10 @@ namespace Inferno::Render {
             }
             case RenderCommandType::Object:
                 DrawObject(ctx, *cmd.Data.Object, lerp, pass);
+                break;
+
+            case RenderCommandType::Particle:
+                DrawParticle(ctx, *cmd.Data.Particle);
                 break;
         }
     }
@@ -962,6 +982,8 @@ namespace Inferno::Render {
             }
         }
 
+        QueueParticles();
+
         if (Settings::ShowObjects) {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects) {
@@ -1010,7 +1032,7 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            DrawParticles(ctx);
+            //DrawParticles(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::ScreenshotMode && Game::State == GameState::Editor) {

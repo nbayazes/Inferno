@@ -6,6 +6,7 @@
 
 namespace Inferno::Render {
     DataPool<Particle> Particles(Particle::IsAlive, 100);
+    DataPool<ParticleEmitter> ParticleEmitters(ParticleEmitter::IsAlive, 20);
 
     void AddParticle(Particle& p, bool randomRotation) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
@@ -37,14 +38,21 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawParticles(Graphics::GraphicsContext& ctx) {
-        ctx.BeginEvent(L"Particles");
-        //auto& effect = Effects->SpriteAdditive;
-        //effect.Apply(cmd);
-        //effect.Shader->SetWorldViewProjection(cmd, ViewProjection);
-        //auto sampler = Render::GetClampedTextureSampler();
-        //effect.Shader->SetSampler(cmd, sampler);
+    void QueueParticles() {
+        int liveParticles = 0;
+        for (auto& p : Particles) {
+            if (!Particle::IsAlive(p)) continue;
+            auto depth = Vector3::DistanceSquared(Render::Camera.Position, p.Position) * 0.98f - 100;
+            if (p.Delay > 0) continue;
+            liveParticles++;
+            RenderCommand cmd(&p, depth);
+            SubmitToTransparentQueue(cmd);
+        }
 
+        //fmt::print("live particles: {}", liveParticles);
+    }
+
+    void DrawParticles(Graphics::GraphicsContext& ctx) {
         for (auto& p : Particles) {
             if (!Particle::IsAlive(p)) continue;
             if (p.Delay > 0) continue;
@@ -59,6 +67,43 @@ namespace Inferno::Render {
             DrawVClip(ctx, vclip, p.Position, p.Radius, color, elapsed, true, p.Rotation, up);
         }
 
-        ctx.EndEvent();
+    }
+
+    void AddEmitter(ParticleEmitterInfo& info, size_t capacity) {
+        Render::LoadTextureDynamic(info.Clip);
+        ParticleEmitter emitter(info, capacity);
+        ParticleEmitters.Add(emitter);
+    }
+
+    void ParticleEmitter::Update(float dt) {
+        if (!ParticleEmitter::IsAlive(*this)) return;
+        if ((_startDelay -= dt) > 0) return;
+
+        _life -= dt;
+
+        if ((_info.MaxDelay == 0 && _info.MinDelay == 0) && _info.ParticlesToSpawn > 0) {
+            // Create all particles at once if delay is zero
+            while (_info.ParticlesToSpawn-- > 0) {
+                AddParticle();
+            }
+        }
+        else {
+            _spawnTimer -= dt;
+            if (_spawnTimer < 0) {
+                AddParticle();
+                _spawnTimer = _info.MinDelay + Random() * (_info.MaxDelay - _info.MinDelay);
+            }
+        }
+    }
+
+    void UpdateEmitters(float dt) {
+        for (auto& emitter : ParticleEmitters) {
+            if (!ParticleEmitter::IsAlive(emitter)) continue;
+            emitter.Update(dt);
+            
+            auto depth = Vector3::DistanceSquared(Render::Camera.Position, emitter.Position) * 0.98f - 100;
+            RenderCommand cmd(&emitter, depth);
+            SubmitToTransparentQueue(cmd);
+        }
     }
 }

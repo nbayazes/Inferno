@@ -12,6 +12,7 @@
 #include "BitmapCache.h"
 #include "Render.Canvas.h"
 #include "Graphics/CommandContext.h"
+#include "Graphics/Render.Particles.h"
 
 class CommandListManager;
 class ContextManager;
@@ -72,7 +73,7 @@ namespace Inferno::Render {
     inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     enum class RenderCommandType {
-        LevelMesh, Object
+        LevelMesh, Object, Particle, Emitter
     };
 
     struct RenderCommand {
@@ -80,7 +81,9 @@ namespace Inferno::Render {
         RenderCommandType Type;
         union Data {
             struct Object* Object;
-            struct Inferno::LevelMesh* LevelMesh;
+            Inferno::LevelMesh* LevelMesh;
+            ParticleEmitter* Emitter;
+            Particle* Particle;
         } Data;
 
         RenderCommand(Object* obj, float depth)
@@ -92,7 +95,19 @@ namespace Inferno::Render {
             : Depth(depth), Type(RenderCommandType::LevelMesh) {
             Data.LevelMesh = mesh;
         }
+
+        RenderCommand(Particle* particle, float depth)
+            : Depth(depth), Type(RenderCommandType::Particle) {
+            Data.Particle = particle;
+        }
+
+        RenderCommand(ParticleEmitter* emitter, float depth)
+            : Depth(depth), Type(RenderCommandType::Emitter) {
+            Data.Emitter = emitter;
+        }
     };
+
+    void SubmitToTransparentQueue(RenderCommand&);
 
     extern bool LevelChanged;
 }

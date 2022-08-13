@@ -244,7 +244,6 @@ namespace Inferno::Game {
                 constexpr float EXPLOSION_SCALE = 1.15f;
 
                 ExplosionInfo expl;
-                // Add an explosion object with a lifespan of 0.25f
                 auto& robot = Resources::GetRobotInfo(obj.ID);
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
@@ -283,7 +282,7 @@ namespace Inferno::Game {
             expl.Delay -= dt;
             if (expl.Delay > 0) continue;
 
-            //fmt::print("playing explosion sound\n");
+            fmt::print("playing explosion sound\n");
             Sound::Sound3D sound(expl.Position, expl.Segment);
             sound.Resource = Resources::GetSoundResource(expl.Sound);
             Sound::Play(sound);
