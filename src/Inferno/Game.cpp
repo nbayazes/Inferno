@@ -115,6 +115,7 @@ namespace Inferno::Game {
             bullet.Render.Type = RenderType::WeaponVClip;
             bullet.Render.VClip.ID = weapon.WeaponVClip;
             bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
+            bullet.Radius = weapon.BlobSize;
             Render::LoadTextureDynamic(weapon.WeaponVClip);
         }
         else if (weapon.RenderType == WeaponRenderType::Model) {
@@ -173,22 +174,6 @@ namespace Inferno::Game {
         return Level.Objects.emplace_back();
     }
 
-    struct ExplosionInfo {
-        ObjID Parent = ObjID::None;
-        SegID Segment = SegID::None;
-        VClipID Clip = VClipID::None;
-        SoundID Sound = SoundID::None;
-        float MinRadius = 2.5f, MaxRadius = 2.5f;
-        float Variance = 0;
-        int Instances = 1;
-        float Delay = -1;
-        Vector3 Position;
-        //float Lifespan = -1;
-
-        static bool IsAlive(const ExplosionInfo& info) { return info.Delay >= 0; }
-    };
-
-    DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
     List<Object> PendingNewObjects;
 
     void DropContainedItems(const Object& obj) {
@@ -241,26 +226,24 @@ namespace Inferno::Game {
             case ObjectType::Robot:
             {
                 constexpr float EXPLOSION_DELAY = 0.2f;
-                constexpr float EXPLOSION_SCALE = 1.25f;
 
                 auto& robot = Resources::GetRobotInfo(obj.ID);
 
-                ExplosionInfo expl;
+                Render::ExplosionInfo expl;
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
                 expl.MinRadius = expl.MaxRadius  = obj.Radius * 1.9f;
-                expl.Delay = 0;
                 expl.Segment = obj.Segment;
                 expl.Position = obj.GetPosition(LerpAmount);
-                Explosions.Add(expl);
+                Render::CreateExplosion(expl);
 
                 expl.Sound = SoundID::None;
-                expl.Delay = EXPLOSION_DELAY;
+                expl.InitialDelay = EXPLOSION_DELAY;
                 expl.MinRadius = obj.Radius * 1.15f;
                 expl.MaxRadius = obj.Radius * 1.55f;
                 expl.Variance = obj.Radius * 0.5f;
-                expl.Instances = 3;
-                Explosions.Add(expl);
+                expl.Instances = 1;
+                Render::CreateExplosion(expl);
 
                 auto& model = Resources::GetModel(robot.Model);
                 for (int i = 0; i < model.Submodels.size(); i++) {
@@ -320,34 +303,6 @@ namespace Inferno::Game {
     }
 
     float g_FireDelay = 0;
-
-    void UpdateExplosions(float dt) {
-        for (auto& expl : Explosions) {
-            if (expl.Delay < 0) continue;
-            expl.Delay -= dt;
-            if (expl.Delay > 0) continue;
-
-            if (expl.Sound != SoundID::None) {
-                fmt::print("playing explosion sound\n");
-                Sound::Sound3D sound(expl.Position, expl.Segment);
-                sound.Resource = Resources::GetSoundResource(expl.Sound);
-                Sound::Play(sound);
-            }
-
-            for (int i = 0; i < expl.Instances; i++) {
-                Render::Particle p{};
-                p.Position = expl.Position;
-                if (expl.Variance > 0)
-                    p.Position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
-
-                p.Radius = expl.MinRadius + Random() * (expl.MaxRadius - expl.MinRadius);
-                p.Clip = expl.Clip;
-                if (expl.Instances > 1)
-                    p.Delay = Random() * 0.5f;
-                Render::AddParticle(p);
-            }
-        }
-    }
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
@@ -416,11 +371,10 @@ namespace Inferno::Game {
         while (accumulator >= TICK_RATE) {
             UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
             FixedUpdate(TICK_RATE);
+            Render::UpdateExplosions(TICK_RATE);
             accumulator -= TICK_RATE;
             t += TICK_RATE;
         }
-
-        UpdateExplosions(dt);
 
         //lerp = float(accumulator / tickRate);
         //Render::Present(lerp);

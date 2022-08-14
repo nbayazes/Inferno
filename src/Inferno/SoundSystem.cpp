@@ -371,16 +371,16 @@ namespace Inferno::Sound {
             std::scoped_lock lock(ObjectSoundsMutex);
 
             // Check if any emitters are already playing this sound from this source
-            if (sound.Source != ObjID::None) {
-                for (auto& instance : ObjectSounds) {
-                    if (instance.Source == sound.Source &&
-                        instance.Resource.GetID() == sound.Resource.GetID() &&
-                        instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
-                        if (instance.AttachToSource && sound.AttachToSource)
-                            instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
-                        instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                        return; // Don't play sounds within the merge window
-                    }
+            for (auto& instance : ObjectSounds) {
+                if (instance.Source == sound.Source &&
+                    instance.Resource.GetID() == sound.Resource.GetID() &&
+                    instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
+                    if (instance.AttachToSource && sound.AttachToSource)
+                        instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
+                    instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
+                    // todo: merge volume?
+                    fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
+                    return; // Don't play sounds within the merge window
                 }
             }
 

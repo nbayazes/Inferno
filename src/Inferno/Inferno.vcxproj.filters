@@ -442,6 +442,9 @@
     <ClInclude Include="Game.Input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Physics.Math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">

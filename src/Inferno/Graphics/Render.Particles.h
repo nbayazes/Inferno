@@ -112,4 +112,23 @@ namespace Inferno::Render {
     void AddDebris(Debris& debris);
     void UpdateDebris(float dt);
     void QueueDebris();
+
+    struct ExplosionInfo {
+        ObjID Parent = ObjID::None;
+        SegID Segment = SegID::None;
+        VClipID Clip = VClips::SmallExplosion; // Default explosion
+        SoundID Sound = SoundID::None;
+        float MinRadius = 2.5f, MaxRadius = 2.5f;
+        float Variance = 0; // Position variance
+        int Instances = 1; // how many explosions to create
+        float MinDelay = 0.25f, MaxDelay = 0.75f; // how long to wait before creating the next explosion instance
+        float InitialDelay = -1; // how long to wait before creating any explosions
+        Color Color = { 2, 2, 2 }; // Particle color
+        Vector3 Position;
+
+        static bool IsAlive(const ExplosionInfo& info) { return info.InitialDelay >= 0; }
+    };
+
+    void CreateExplosion(ExplosionInfo&);
+    void UpdateExplosions(float dt);
 }

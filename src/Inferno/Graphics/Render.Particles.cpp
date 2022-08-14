@@ -125,20 +125,29 @@ namespace Inferno::Render {
             debris.Transform = Matrix::CreateFromYawPitchRoll(-debris.AngularVelocity * dt * DirectX::XM_2PI) * debris.Transform;
             debris.Transform.Translation(translation);
 
-            DirectX::BoundingSphere bounds(debris.Transform.Translation(), debris.Radius / 2);
             LevelHit hit;
-            if (IntersectLevelDebris(Game::Level, bounds, debris.Segment, hit)) {
+            BoundingCapsule capsule = { 
+                .A = debris.PrevTransform.Translation(), 
+                .B = debris.Transform.Translation(), 
+                .Radius = debris.Radius / 2 
+            };
+
+            if (IntersectLevelDebris(Game::Level, capsule, debris.Segment, hit)) {
                 debris.Life = -1; // destroy on contact
                 // scorch marks on walls?
             }
 
             if (debris.Life < 0) {
-                Render::Particle p{};
-                //p.Position = Vector3::Lerp(debris.PrevTransform.Translation(), debris.Transform.Translation(), Game::LerpAmount);
-                p.Position = debris.PrevTransform.Translation();
-                p.Radius = debris.Radius * 1.5f;
-                p.Clip = VClipID(2); // small explosion, randomize?
-                AddParticle(p);
+                ExplosionInfo e;
+                e.MinRadius = debris.Radius * 1.0f;
+                e.MaxRadius = debris.Radius * 1.45f;
+                e.Position = debris.PrevTransform.Translation();
+                e.Variance = debris.Radius * 1.0f;
+                e.Instances = 2;
+                e.Segment = debris.Segment;
+                e.MinDelay = 0.15f;
+                e.MaxDelay = 0.3f;
+                CreateExplosion(e);
             }
         }
     }
@@ -151,4 +160,43 @@ namespace Inferno::Render {
             QueueOpaque(cmd);
         }
     }
+
+    DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
+
+    void CreateExplosion(ExplosionInfo& e) {
+        if (e.InitialDelay < 0) e.InitialDelay = 0;
+        if (e.Instances < 0) e.Instances = 1;
+        Explosions.Add(e);
+    }
+
+    void UpdateExplosions(float dt) {
+        for (auto& expl : Explosions) {
+            if (expl.InitialDelay < 0) continue;
+            expl.InitialDelay -= dt;
+            if (expl.InitialDelay > 0) continue;
+
+            if (expl.Sound != SoundID::None) {
+                fmt::print("playing expl sound\n");
+                Sound::Sound3D sound(expl.Position, expl.Segment);
+                sound.Resource = Resources::GetSoundResource(expl.Sound);
+                //sound.Source = expl.Parent; // no parent so all nearby explosions merge
+                Sound::Play(sound);
+            }
+
+            for (int i = 0; i < expl.Instances; i++) {
+                Render::Particle p{};
+                p.Position = expl.Position;
+                if (expl.Variance > 0)
+                    p.Position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
+
+                p.Radius = expl.MinRadius + Random() * (expl.MaxRadius - expl.MinRadius);
+                p.Clip = expl.Clip;
+                p.Color = expl.Color;
+                if (expl.Instances > 1 && i > 0)
+                    p.Delay = expl.MinDelay + Random() * (expl.MaxDelay - expl.MinDelay);
+                Render::AddParticle(p);
+            }
+        }
+    }
+
 }

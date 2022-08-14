@@ -1,6 +1,7 @@
 #pragma once
 #include "Level.h"
 #include "Face.h"
+#include "DirectX.h"
 
 namespace Inferno {
     void UpdatePhysics(Level& level, double t, float dt);
@@ -46,7 +47,23 @@ namespace Inferno {
         operator bool() { return Distance != FLT_MAX; }
     };
 
+    //Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p);
+    //HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
+
+    //struct ClosestResult { float distSq, s, t; Vector3 c1, c2; };
+    //ClosestResult ClosestPointBetweenLines(const Vector3& p1, const Vector3& q1, const Vector3& p2, const Vector3& q2);
+    //bool PointInTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point);
+
+    struct BoundingCapsule {
+        Vector3 A, B;
+        float Radius;
+
+        HitInfo Intersects(const DirectX::BoundingSphere& sphere) const;
+        bool Intersects(const BoundingCapsule& other) const;
+        bool Intersects(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const;
+    };
+
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit);
     HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
-    bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere& sphere, SegID segId, LevelHit& hit);
+    bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
 }

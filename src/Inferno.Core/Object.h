@@ -223,7 +223,7 @@ namespace Inferno {
         fix64 last_afterburner_time{}; // Time at which this object last created afterburner blobs.
     };
 
-    struct ExplosionInfo {
+    struct ExplosionObjectInfo {
         float SpawnTime{};  // when lifeleft is < this, spawn another
         float DeleteTime{}; // when to delete object
         ObjID DeleteObject{}; // and what object to delete
@@ -301,7 +301,7 @@ namespace Inferno {
     struct ControlData {
         ControlType Type = ControlType::None;
         union {
-            struct ExplosionInfo Explosion; //debris also uses this
+            struct ExplosionObjectInfo Explosion; //debris also uses this
             struct LightInfo Light;
             struct PowerupControlInfo Powerup;
             struct RobotAI AI;

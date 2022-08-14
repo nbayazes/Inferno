@@ -8,7 +8,7 @@ namespace Inferno {
 }
 
 namespace Inferno::Game {
-    constexpr double TICK_RATE = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
+    constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
 
     inline int Difficulty = 0; // 0 to 4
 
