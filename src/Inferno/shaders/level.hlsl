@@ -65,8 +65,8 @@ PS_INPUT VSLevel(LevelVertex input) {
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
-    output.uv = input.uv + Scroll * Time * 100;
-    output.uv2 = input.uv2 + Scroll2 * Time * 100;
+    output.uv = input.uv + Scroll * Time * 200;
+    output.uv2 = input.uv2 + Scroll2 * Time * 200;
     output.normal = input.normal;
     output.world = input.pos; // level geometry is already in world coordinates
     return output;

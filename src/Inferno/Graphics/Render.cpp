@@ -497,6 +497,7 @@ namespace Inferno::Render {
         Effects.reset();
         Shaders.reset();
         Canvas.reset();
+        BriefingCanvas.reset();
         _graphicsMemory.reset();
         g_SpriteBatch.reset();
         g_ImGuiBatch.reset();
