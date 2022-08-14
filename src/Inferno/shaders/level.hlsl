@@ -61,8 +61,8 @@ PS_INPUT vsmain(LevelVertex input) {
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
-    output.uv = input.uv + Scroll * Time * 100;
-    output.uv2 = input.uv2 + Scroll2 * Time * 100;
+    output.uv = input.uv + Scroll * Time * 200;
+    output.uv2 = input.uv2 + Scroll2 * Time * 200;
     output.normal = input.normal;
     output.world = input.pos; // level geometry is already in world coordinates
     return output;
@@ -77,7 +77,7 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
 
 float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
     float depth = Depth.Sample(Sampler, (pos.xy + 0.5) / FrameSize);
-    float f = saturate((((end - start) / 3000) - depth) / ((end - start) / 3000));
+    float f = saturate((((end - start) / FarClip) - depth) / ((end - start) / FarClip));
     //float f = saturate(1 / exp(pow(depth * 5, 2)));
     return f * pixel + (1 - f) * fogColor;
 }

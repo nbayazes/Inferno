@@ -255,16 +255,15 @@ namespace Inferno::Render {
             transform *= Matrix::CreateTranslation(-translation);
         }
 
-        int submodelIndex = 0;
-        for (auto& submodel : model.Submodels) {
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             // accumulate the offsets for each submodel
-            auto submodelOffset = model.GetSubmodelOffset(submodelIndex);
+            auto submodelOffset = model.GetSubmodelOffset(submodel);
             auto world = Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
             effect.Shader->SetConstants(cmdList, constants);
 
             // get the mesh associated with the submodel
-            auto& subMesh = meshHandle.Meshes[submodelIndex++];
+            auto& subMesh = meshHandle.Meshes[submodel];
 
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];

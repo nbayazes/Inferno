@@ -189,7 +189,7 @@ namespace Inferno::Input {
                 if (raw.header.dwType == RIM_TYPEMOUSE) {
                     RawX += raw.data.mouse.lLastX;
                     RawY += raw.data.mouse.lLastY;
-
+                    //fmt::print("raw mouse x/y: {}, {}\n", RawX, RawY);
                     ResetEvent(RelativeReadEvent.get());
                 }
                 return;

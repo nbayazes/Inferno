@@ -1066,8 +1066,10 @@ namespace Inferno {
             if (obj.LastPosition != obj.Position)
                 Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
 
-            Debug::ShipVelocity = obj.Movement.Physics.Velocity;
-            Debug::ShipPosition = obj.Position;
+            if (id == 0) {
+                Debug::ShipVelocity = obj.Movement.Physics.Velocity;
+                Debug::ShipPosition = obj.Position;
+            }
         }
     }
 }

@@ -238,7 +238,7 @@ namespace Inferno {
         info.Scanline = 0.5f;
         DrawMonitorText("004", info);
 
-        auto resScale = Game::Level.IsDescent1() ? 2 : 1;
+        float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
         {
             // concussion
             auto texId = GetWeaponTexID(Resources::GameData.Weapons[8]);

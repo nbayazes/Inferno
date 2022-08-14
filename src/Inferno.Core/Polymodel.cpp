@@ -59,7 +59,7 @@ namespace Inferno {
                 sm.Center += p;
             }
 
-            sm.Center /= sm.ExpandedPoints.size();
+            sm.Center /= (float)sm.ExpandedPoints.size();
             sm.Radius = Vector3::Distance(sm.Max, sm.Min) / 2;
         }
     }
