@@ -21,6 +21,8 @@ namespace Inferno::FileSystem {
     void Init() {
         Directories.clear();
 
+        SPDLOG_INFO(L"Working directory: {}", std::filesystem::current_path().wstring());
+
         if (!Settings::Descent2Path.empty())
             AddDataDirectory(Settings::Descent2Path.parent_path());
 
@@ -28,6 +30,8 @@ namespace Inferno::FileSystem {
         // (directories are searched in reverse order)
         if (!Settings::Descent1Path.empty())
             AddDataDirectory(Settings::Descent1Path.parent_path());
+
+        AddDataDirectory("./data");
 
         for (auto& path : Settings::DataPaths)
             AddDataDirectory(path);
