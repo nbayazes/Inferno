@@ -422,22 +422,7 @@ namespace Inferno::Editor {
     void ResetObjects(Level& level) {
         for (auto& obj : level.Objects) {
             if (obj.Type == ObjectType::Player) {
-                // Reload player settings
-                const auto& ship = Resources::GameData.PlayerShip;
-                auto& physics = obj.Movement.Physics;
-                physics.Brakes = physics.TurnRoll = 0;
-                physics.Drag = ship.Drag;
-                physics.Mass = ship.Mass;
-
-                physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
-
-                obj.Render.Model.ID = ship.Model;
-                obj.Render.Model.subobj_flags = 0;
-                obj.Render.Model.TextureOverride = LevelTexID::None;
-                for (auto& angle : obj.Render.Model.Angles)
-                    angle = Vector3::Zero;
-
-                obj.Flags = (ObjectFlag)0;
+                InitObject(level, obj, ObjectType::Player);
             }
 
             if (obj.Type == ObjectType::Robot) {

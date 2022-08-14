@@ -120,7 +120,6 @@ namespace Inferno::Editor {
     }
 
     void InitObject(const Level& level, Object& obj, ObjectType type) {
-        const ModelID playerModel = level.IsDescent1() ? Models::D1Player : Models::D2Player;
         const ModelID coopModel = level.IsDescent1() ? Models::D1Coop : Models::D2Coop;
 
         obj.Type = type;
@@ -131,11 +130,27 @@ namespace Inferno::Editor {
 
         switch (type) {
             case ObjectType::Player:
+            {
                 obj.Control.Type = obj.ID == 0 ? ControlType::None : ControlType::Slew; // Player 0 only
                 obj.Movement.Type = MovementType::Physics;
+
+                const auto& ship = Resources::GameData.PlayerShip;
+                auto& physics = obj.Movement.Physics;
+                physics.Brakes = physics.TurnRoll = 0;
+                physics.Drag = ship.Drag;
+                physics.Mass = ship.Mass;
+
+                physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model.ID = playerModel;
+                obj.Render.Model.ID = ship.Model;
+                obj.Render.Model.subobj_flags = 0;
+                obj.Render.Model.TextureOverride = LevelTexID::None;
+                for (auto& angle : obj.Render.Model.Angles)
+                    angle = Vector3::Zero;
+
+                obj.Flags = (ObjectFlag)0;
                 break;
+            }
 
             case ObjectType::Coop:
                 obj.Movement.Type = MovementType::Physics;

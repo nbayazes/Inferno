@@ -11,6 +11,7 @@
 #include "imgui_local.h"
 #include "Editor/Editor.h"
 #include "Editor/UI/EditorUI.h"
+#include "Editor/Editor.Object.h"
 #include "Game.Input.h"
 
 using namespace DirectX;
@@ -265,7 +266,7 @@ namespace Inferno::Game {
                     //auto vec = RandomVector(obj.Radius * 5);
                     //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
-                    debris.Velocity = explosionVec * (0.5 + Random()) * 16 + hitForce;
+                    debris.Velocity = explosionVec * (0.5f + Random()) * 16 + hitForce;
                     debris.AngularVelocity = RandomVector(obj.LastHitForce.Length());
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
@@ -439,8 +440,16 @@ namespace Inferno::Game {
             LerpAmount = 1;
         }
         else if (State == GameState::Editor) {
+            if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
+                Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
+            }
+            else {
+                return; // no player start!
+            }
+
             // Activate game mode
             Editor::History.SnapshotLevel("Playtest");
+
             State = GameState::Game;
             for (auto& obj : Level.Objects) {
                 obj.LastPosition = obj.Position;
