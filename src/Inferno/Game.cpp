@@ -405,19 +405,17 @@ namespace Inferno::Game {
                 if (!Level.Objects.empty())
                     MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
 
-                //Sound::UpdateEmitterPositions(dt);
                 Render::UpdateParticles(Level, dt);
                 break;
             case GameState::Editor:
                 if (Settings::EnablePhysics) {
                     LerpAmount = Settings::EnablePhysics ? GameTick(dt) : 1;
-                    Render::UpdateParticles(Level, dt);
-                    //Sound::UpdateEmitterPositions(dt);
                 }
                 else {
                     LerpAmount = 1;
                 }
 
+                Render::UpdateParticles(Level, dt);
                 Editor::Update();
                 if (!Settings::ScreenshotMode) EditorUI.OnRender();
                 break;
