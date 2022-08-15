@@ -279,7 +279,7 @@ namespace Inferno::Editor {
             for (int8 i = 0; i < sorted.size(); i++) {
                 const bool isSelected = id == sorted[i].ID;
                 if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
-                    id = i;
+                    id = sorted[i].ID;
                     changed = true;
                 }
 
@@ -298,9 +298,9 @@ namespace Inferno::Editor {
 
         ImGui::TableRowLabel("Robot");
         ImGui::SetNextItemWidth(-1);
-        auto& robot = Resources::GameData.Robots[(int)obj.ID];
 
         if (RobotDropdown("##Robot", obj.ID)) {
+            auto& robot = Resources::GameData.Robots[(int)obj.ID];
             obj.Render.Model.ID = robot.Model;
             obj.Radius = GetObjectRadius(obj);
             obj.Movement.Physics.Mass = robot.Mass;
@@ -380,6 +380,7 @@ namespace Inferno::Editor {
         }
 
         if (ImGui::TableBeginTreeNode("Robot details")) {
+            auto& robot = Resources::GameData.Robots[(int)obj.ID];
             ImGui::TableRowLabel("Hit points");
             ImGui::Text("%.2f", robot.HitPoints);
 
