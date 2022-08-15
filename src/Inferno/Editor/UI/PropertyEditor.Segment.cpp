@@ -217,25 +217,35 @@ namespace Inferno::Editor {
                         else
                             light->Mask &= ~(1 << i);
                     }
+
                 }
 
-                if (ImGui::Button("Shift Left", { 100 * Shell::DpiScale, 0 }))
+                bool changed = false;
+
+                if (ImGui::IsItemDeactivatedAfterEdit())
+                    changed = true;
+
+                if (ImGui::Button("Shift Left", { 100 * Shell::DpiScale, 0 })) {
                     light->ShiftLeft();
+                    changed = true;
+                }
 
                 ImGui::SameLine(0, 5);
-                if (ImGui::Button("Shift Right", { 100 * Shell::DpiScale, 0 }))
+                if (ImGui::Button("Shift Right", { 100 * Shell::DpiScale, 0 })) {
                     light->ShiftRight();
+                    changed = true;
+                }
 
                 if (ImGui::Button("Defaults..."))
                     ImGui::OpenPopup("FlickerDefaults");
 
                 ImGui::SetNextWindowSize({ 100 * Shell::DpiScale, -1 });
                 if (ImGui::BeginPopup("FlickerDefaults")) {
-                    if (ImGui::Selectable("On")) light->Mask = FlickeringLight::Defaults::On;
-                    if (ImGui::Selectable("Off")) light->Mask = 0;
-                    if (ImGui::Selectable("Strobe / 4")) light->Mask = FlickeringLight::Defaults::Strobe4;
-                    if (ImGui::Selectable("Strobe / 8")) light->Mask = FlickeringLight::Defaults::Strobe8;
-                    if (ImGui::Selectable("Flicker")) light->Mask = FlickeringLight::Defaults::Flicker;
+                    if (ImGui::Selectable("On")) { light->Mask = FlickeringLight::Defaults::On; changed = true; }
+                    if (ImGui::Selectable("Off")) { light->Mask = 0; changed = true; }
+                    if (ImGui::Selectable("Strobe / 4")) { light->Mask = FlickeringLight::Defaults::Strobe4; changed = true; }
+                    if (ImGui::Selectable("Strobe / 8")) { light->Mask = FlickeringLight::Defaults::Strobe8; changed = true; }
+                    if (ImGui::Selectable("Flicker")) { light->Mask = FlickeringLight::Defaults::Flicker; changed = true; }
                     ImGui::EndPopup();
                 }
 
@@ -247,6 +257,11 @@ namespace Inferno::Editor {
                             if (orig.Mask != light->Mask) l->Mask = light->Mask;
                         }
                     }
+                }
+
+                if (changed) {
+                    Editor::History.SnapshotSelection();
+                    Editor::History.SnapshotLevel("Change flickering light");
                 }
             }
             else {

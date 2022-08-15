@@ -788,8 +788,10 @@ namespace Inferno::Editor {
             addedLight |= Editor::AddFlickeringLight(level, tag, light);
         }
 
-        if (addedLight)
+        if (addedLight) {
+            Editor::History.SnapshotSelection();
             Editor::History.SnapshotLevel("Add flickering light");
+        }
     }
 
     void Commands::RemoveFlickeringLight() {
@@ -798,8 +800,10 @@ namespace Inferno::Editor {
         for (auto& tag : GetSelectedFaces())
             removedLight |= Editor::RemoveFlickeringLight(Game::Level, tag);
 
-        if (removedLight)
+        if (removedLight) {
+            Editor::History.SnapshotSelection();
             Editor::History.SnapshotLevel("Remove flickering light");
+        }
     }
 
     void Commands::AddDefaultSegment() {

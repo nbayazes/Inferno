@@ -79,22 +79,69 @@ namespace Inferno::Editor {
         return changed;
     }
 
+    constexpr int GetPowerupGroup(int id) {
+        if (id == 1 || id == 2)
+            return 0; // shields and energy to the top
+
+        if (id >= 4 && id <= 6) 
+            return 1; // Keys
+
+        if (id == 3 || (id >= 12 && id <= 16) || (id >= 28 && id <= 32))
+            return 2; // primary weapons
+
+        if (id == 10 || id == 11 || (id >= 17 && id <= 21) || (id >= 38 && id <= 45))
+            return 3; // secondary weapons
+
+        if (id == 46 || id == 47)
+            return 11; // flags at the end
+
+        return 10; // Everything else
+    }
+
+    struct PowerupSort {
+        int ID;
+        const Powerup* Ptr;
+        string Name;
+    };
+
+    List<PowerupSort> SortPowerups() {
+        auto powerupCount = Game::Level.IsDescent1() ? 26 : Resources::GameData.Powerups.size();
+        List<PowerupSort> sorted;
+        sorted.reserve(powerupCount);
+
+        for (int i = 0; i < powerupCount; i++) {
+            if (auto name = Resources::GetPowerupName(i)) {
+                sorted.push_back({ i, &Resources::GameData.Powerups[i], *name });
+            }
+        }
+
+        Seq::sortBy(sorted, [](PowerupSort& a, PowerupSort& b) {
+            auto p0 = GetPowerupGroup(a.ID);
+            auto p1 = GetPowerupGroup(b.ID);
+            if (p0 < p1) return true;
+            if (p1 < p0) return false;
+            if (a.Name < b.Name) return true;
+            if (b.Name < a.Name) return false;
+            return false;
+        });
+
+        return sorted;
+    }
+
     bool PowerupDropdown(const char* label, int8& id, VClipID* vclipID = nullptr) {
         auto name = Resources::GetPowerupName(id);
         auto preview = name.value_or("Unknown");
-        auto powerupCount = Game::Level.IsDescent1() ? 26 : Resources::GameData.Powerups.size();
         bool changed = false;
 
         if (ImGui::BeginCombo(label, preview.c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int8 i = 0; i < powerupCount; i++) {
-                const bool isSelected = id == i;
-                auto itemName = Resources::GetPowerupName(i);
-                if (!itemName) continue;
-
-                if (ImGui::Selectable(itemName->c_str(), isSelected)) {
-                    id = i;
+            auto sorted = SortPowerups();
+            for (int i = 0; i < sorted.size(); i++) {
+                const bool isSelected = id == sorted[i].ID;
+                ImGui::PushID(i);
+                if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
+                    id = sorted[i].ID;
                     if (vclipID) {
-                        *vclipID = Resources::GameData.Powerups[i].VClip;
+                        *vclipID = sorted[i].Ptr->VClip;
                         Render::LoadTextureDynamic(*vclipID);
                     }
                     changed = true;
@@ -102,8 +149,8 @@ namespace Inferno::Editor {
 
                 if (isSelected)
                     ImGui::SetItemDefaultFocus();
+                ImGui::PopID();
             }
-
             ImGui::EndCombo();
         }
 
@@ -203,16 +250,36 @@ namespace Inferno::Editor {
         return changed;
     }
 
+    struct RobotSort { int ID; string Name; };
+
+    List<RobotSort> SortRobots() {
+        auto robotCount = Game::Level.IsDescent1() ? 24 : Resources::GameData.Robots.size();
+        List<RobotSort> sorted;
+        sorted.reserve(robotCount);
+
+        for (int i = 0; i < robotCount; i++) {
+            sorted.push_back({ i, Resources::GetRobotName(i) });
+        }
+
+        Seq::sortBy(sorted, [](RobotSort& a, RobotSort& b) {
+            if (a.Name < b.Name) return true;
+            if (b.Name < a.Name) return false;
+            return false;
+        });
+
+        return sorted;
+    }
+
     bool RobotDropdown(const char* label, int8& id) {
         bool changed = false;
 
-        auto robotCount = Game::Level.IsDescent1() ? 24 : Resources::GameData.Robots.size();
-
         if (ImGui::BeginCombo(label, Resources::GetRobotName(id).c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int8 i = 0; i < robotCount; i++) {
-                const bool isSelected = id == i;
-                if (ImGui::Selectable(Resources::GetRobotName(i).c_str(), isSelected)) {
-                    id = i;
+            auto sorted = SortRobots();
+
+            for (int8 i = 0; i < sorted.size(); i++) {
+                const bool isSelected = id == sorted[i].ID;
+                if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
+                    id = sorted[i].ID;
                     changed = true;
                 }
 
@@ -268,9 +335,16 @@ namespace Inferno::Editor {
         ImGui::SetNextItemWidth(-1);
         if (ContainsDropdown("##Contains", obj.Contains.Type)) {
             obj.Contains.ID = 0; // Reset to prevent out of range IDs
+
+            if (obj.Contains.Type != ObjectType::None && obj.Contains.Count == 0)
+                obj.Contains.Count = 1;
+            else if (obj.Contains.Type == ObjectType::None)
+                obj.Contains.Count = 0;
+
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
                 o.Contains.Type = obj.Contains.Type;
+                o.Contains.Count = obj.Contains.Count;
             });
             changed = true;
         }
@@ -417,9 +491,9 @@ namespace Inferno::Editor {
         //auto label = fmt::format("{}: {}", id, GetObjectName(level.Objects[(int)id]));
         auto label = GetObjectName(level.Objects[(int)id]);
 
-        auto sorted = SortObjects(level.Objects);
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##objs", label.c_str(), ImGuiComboFlags_HeightLarge)) {
+            auto sorted = SortObjects(level.Objects);
             for (int i = 0; i < sorted.size(); i++) {
                 const bool isSelected = id == sorted[i].ID;
                 ImGui::PushID(i);

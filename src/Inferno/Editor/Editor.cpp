@@ -641,6 +641,8 @@ namespace Inferno::Editor {
                     }
                 }
 
+                EnsureVertigoData(hogPath);
+
                 // Write the mission info file
                 auto infoFile = Game::Level.IsDescent1() ? "_test.msn" : "_test.mn2";
                 MissionInfo info;
