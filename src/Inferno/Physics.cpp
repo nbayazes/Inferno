@@ -624,7 +624,7 @@ namespace Inferno {
             auto& other = level.Objects[i];
             if (!other.IsAlive() || other.Segment != segId) continue;
 
-            if(other.Type != ObjectType::Player && other.Type != ObjectType::Robot && other.Type != ObjectType::Reactor)
+            if (other.Type != ObjectType::Player && other.Type != ObjectType::Robot && other.Type != ObjectType::Reactor)
                 continue;
             //if (!ObjectCanHitTarget(obj.Type, other.Type)) continue;
 
@@ -892,7 +892,7 @@ namespace Inferno {
 
     //}
 
-    void ApplyWeaponHit(const LevelHit& hit, const Object& source, const Vector3& hitVelocity) {
+    void ApplyWeaponHit(const LevelHit& hit, const Object& source, const Vector3& hitVelocity, Level& level) {
         auto& weapon = Resources::GameData.Weapons[source.ID];
 
         if (hit.HitObj) {
@@ -939,8 +939,29 @@ namespace Inferno {
 
         }
         else { // Hit a wall
+            SoundID soundId = weapon.WallHitSound;
+            VClipID vclip = weapon.WallHitVClip;
+
+            if (auto side = level.TryGetSide(hit.Tag)) {
+                auto& ti = Resources::GetLevelTextureInfo(side->TMap);
+                if (ti.HasFlag(TextureFlag::Volatile)) {
+                    constexpr auto VCLIP_VOLATILE_WALL_HIT = VClipID(5);
+                    constexpr auto SOUND_VOLATILE_WALL_HIT = SoundID(20);
+                    vclip = VCLIP_VOLATILE_WALL_HIT;
+                    soundId = SOUND_VOLATILE_WALL_HIT;
+                }
+                else if (ti.HasFlag(TextureFlag::Water)) {
+                    constexpr auto VCLIP_WATER_HIT = VClipID(84);
+                    constexpr auto SOUND_LASER_HIT_WATER = SoundID(232);
+                    constexpr auto SOUND_MISSILE_HIT_WATER = SoundID(233);
+                    soundId = SOUND_LASER_HIT_WATER;
+                    vclip = VCLIP_WATER_HIT;
+                    // zero out hit damage if hit water (cancels explosions)
+                }
+            }
+
             Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-            sound.Resource = Resources::GetSoundResource(weapon.WallHitSound);
+            sound.Resource = Resources::GetSoundResource(soundId);
             sound.Source = source.Parent;
             Sound::Play(sound);
 
@@ -949,7 +970,7 @@ namespace Inferno {
             Render::Particle p{};
             p.Position = hit.Point - dir * weapon.ImpactSize * 0.5f; // move explosion out of wall
             p.Radius = weapon.ImpactSize;
-            p.Clip = weapon.WallHitVClip;
+            p.Clip = vclip;
             p.FadeTime = 0.1f;
             Render::AddParticle(p);
         }
@@ -1008,7 +1029,7 @@ namespace Inferno {
 
                 if (hit) {
                     if (obj.Type == ObjectType::Weapon) {
-                        ApplyWeaponHit(hit, obj, obj.Movement.Physics.Velocity);
+                        ApplyWeaponHit(hit, obj, obj.Movement.Physics.Velocity, level);
                         obj.Lifespan = -1; // destroy weapon projectiles on hit (todo: unless bounce!)
                     }
 

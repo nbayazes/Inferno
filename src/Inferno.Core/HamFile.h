@@ -30,6 +30,8 @@ namespace Inferno {
         LevelTexID ID = LevelTexID::None;;
         TexID TexID = TexID::None;
         string D1FileName;
+
+        bool HasFlag(TextureFlag flag) const { return bool(Flags & flag); }
     };
 
     struct PlayerShip {
