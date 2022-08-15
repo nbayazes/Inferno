@@ -224,7 +224,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float lerp, TexID texOverride = TexID::None) {
+    void DrawModel(GraphicsContext& ctx, const Object& object, ModelID modelId, float lerp, RenderPass pass, TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
         ApplyEffect(ctx, effect);
         auto cmdList = ctx.CommandList();
@@ -273,6 +273,10 @@ namespace Inferno::Render {
                 if (texOverride == TexID::None)
                     tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
 
+                auto& ti = Resources::GetTextureInfo(tid);
+                if (ti.Transparent && pass != RenderPass::Transparent) continue;
+                if (!ti.Transparent && pass != RenderPass::Opaque) continue;
+
                 const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
                 effect.Shader->SetMaterial(cmdList, material);
 
@@ -283,7 +287,6 @@ namespace Inferno::Render {
             }
         }
     }
-
 
     // Draws a square glow that always faces the camera (Descent 3 submodels);
     void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color) {
@@ -663,7 +666,7 @@ namespace Inferno::Render {
                 // could be transparent or opaque pass
                 auto& info = Resources::GetRobotInfo(object.ID);
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(ctx, object, info.Model, lerp, texOverride);
+                DrawModel(ctx, object, info.Model, lerp, pass, texOverride);
                 break;
             }
 
@@ -681,16 +684,15 @@ namespace Inferno::Render {
             case ObjectType::SecretExitReturn:
             case ObjectType::Marker:
             {
-                if (pass != RenderPass::Opaque) return;
                 auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                DrawModel(ctx, object, object.Render.Model.ID, lerp, texOverride);
+                DrawModel(ctx, object, object.Render.Model.ID, lerp, pass, texOverride);
                 break;
             }
 
             case ObjectType::Weapon:
                 if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                    DrawModel(ctx, object, object.Render.Model.ID, lerp, texOverride);
+                    DrawModel(ctx, object, object.Render.Model.ID, lerp, pass, texOverride);
                 }
                 else {
                     if (pass != RenderPass::Transparent) return;
@@ -768,6 +770,9 @@ namespace Inferno::Render {
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
+
+                auto& ti = Resources::GetTextureInfo(mesh->Texture); // this doesn't account for overrides
+                if (ti.Transparent) continue;
 
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -885,7 +890,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawObject(Level& level, Object& obj, float distSquared, float lerp) {
+    void QueueObject(Level& level, Object& obj, float distSquared, float lerp) {
         auto position = obj.GetPosition(lerp);
 
         BoundingSphere bounds(position, obj.Radius); // might should use GetBoundingSphere
@@ -904,10 +909,33 @@ namespace Inferno::Render {
 
         if (depth > distSquared)
             DrawObjectOutline(obj);
-        else if (obj.Render.Type == RenderType::Model)
+
+        else if (obj.Render.Type == RenderType::Model) {
             _opaqueQueue.push_back({ &obj, depth });
-        else
+
+            auto& mesh = _meshBuffer->GetHandle(obj.Render.Model.ID);
+            //for (auto& [key, subMesh] : meshHandle.Meshes) {
+            //    for (auto& [id, mesh] : subMesh) {
+            //        auto& ti = Resources::GetTextureInfo()
+            //        if(mesh->Texture
+            //    }
+            //    for (int i = 0; i < subMesh.size(); i++) {
+            //        auto mesh = subMesh[i];
+            //    }
+            //}
+            //for (int sm = 0; sm < meshHandle.Meshes; sm++) {
+
+            //}
+            //auto& subMesh = meshHandle.Meshes[0];
+            //for (int i = 0; i < subMesh.size(); i++) {
+            //    auto mesh = subMesh[i];
+            //}
+            if (mesh.HasTransparentTexture)
+                _transparentQueue.push_back({ &obj, depth });
+        }
+        else {
             _transparentQueue.push_back({ &obj, depth });
+        }
     }
 
     void DrawDebug(Level&) {
@@ -1061,7 +1089,7 @@ namespace Inferno::Render {
             auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects) {
                 if (!ShouldDrawObject(obj)) continue;
-                DrawObject(Game::Level, obj, distSquared, lerp);
+                QueueObject(Game::Level, obj, distSquared, lerp);
             }
         }
 

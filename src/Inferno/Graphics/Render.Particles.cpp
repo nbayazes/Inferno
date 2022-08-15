@@ -4,6 +4,7 @@
 #include "Render.h"
 #include "Game.h"
 #include "Physics.h"
+#include "Editor/Editor.Segment.h"
 
 namespace Inferno::Render {
     DataPool<Particle> Particles(Particle::IsAlive, 100);
@@ -116,14 +117,14 @@ namespace Inferno::Render {
             debris.Velocity *= 1 - debris.Drag;
             debris.Life -= dt;
             debris.PrevTransform = debris.Transform;
-            auto translation = debris.Transform.Translation() + debris.Velocity * dt;
+            auto position = debris.Transform.Translation() + debris.Velocity * dt;
             //debris.Transform.Translation(debris.Transform.Translation() + debris.Velocity * dt);
 
             const auto drag = debris.Drag * 5 / 2;
             debris.AngularVelocity *= 1 - drag;
             debris.Transform.Translation(Vector3::Zero);
             debris.Transform = Matrix::CreateFromYawPitchRoll(-debris.AngularVelocity * dt * DirectX::XM_2PI) * debris.Transform;
-            debris.Transform.Translation(translation);
+            debris.Transform.Translation(position);
 
             LevelHit hit;
             BoundingCapsule capsule = { 
@@ -135,6 +136,11 @@ namespace Inferno::Render {
             if (IntersectLevelDebris(Game::Level, capsule, debris.Segment, hit)) {
                 debris.Life = -1; // destroy on contact
                 // scorch marks on walls?
+            }
+
+            if (!Editor::PointInSegment(Game::Level, debris.Segment, position)) {
+                auto id = Editor::FindContainingSegment(Game::Level, position);
+                if (id != SegID::None) debris.Segment = id;
             }
 
             if (debris.Life < 0) {

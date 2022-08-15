@@ -4,6 +4,7 @@
 #include "EffectClip.h"
 #include "logging.h"
 #include "Polymodel.h"
+#include "ShaderLibrary.h"
 
 namespace Inferno::Render {
     // An object mesh used for rendering
@@ -13,6 +14,7 @@ namespace Inferno::Render {
         uint IndexCount;
         TexID Texture;
         EClipID EffectClip = EClipID::None;
+        bool HasTransparentTexture = false;
     };
 
     class MeshBuffer {
@@ -24,12 +26,12 @@ namespace Inferno::Render {
             // A lookup of meshes based on submodel and then texture
             Dictionary<int, Dictionary<int, Mesh*>> Meshes;
             bool Loaded = false;
+            bool HasTransparentTexture = false;
         };
 
         List<MeshIndex> _handles;
         size_t _capacity;
     public:
-
         MeshBuffer(size_t capacity) : _capacity(capacity) {
             SPDLOG_INFO("Created mesh buffer with capacity {}", capacity);
             constexpr int AVG_TEXTURES_PER_MESH = 3;
@@ -81,6 +83,11 @@ namespace Inferno::Render {
                         mesh.IndexCount = (uint)indices.size();
                         mesh.Texture = Resources::LookupModelTexID(model, slot);
                         mesh.EffectClip = Resources::GetEffectClip(mesh.Texture);
+                        auto& ti = Resources::GetTextureInfo(mesh.Texture);
+                        if (ti.Transparent) {
+                            mesh.HasTransparentTexture = true;
+                            handle.HasTransparentTexture = true;
+                        }
                     }
                     slot++;
                 }
@@ -128,7 +135,7 @@ namespace Inferno::Render {
                                 .UV = uv,
                                 .Color = color,
                                 .Normal = vtx.Normal
-                            });
+                                                   });
                             smm.Indices.push_back(smm.Index++);
                         };
 

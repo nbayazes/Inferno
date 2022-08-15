@@ -259,22 +259,24 @@ namespace Inferno::Game {
                     auto explosionVec = world.Translation() - obj.Position;
                     explosionVec.Normalize();
 
-                    auto hitForce = obj.LastHitForce * 6;
+                    auto hitForce = obj.LastHitForce * 20 * (0.75f + Random() * 0.5f);
 
                     Render::Debris debris;
                     //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
                     //auto vec = RandomVector(obj.Radius * 5);
                     //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
-                    debris.Velocity = explosionVec * (0.5f + Random()) * 16 + hitForce;
+                    debris.Velocity = i == 0 ? hitForce
+                        : explosionVec * 25 + RandomVector(20) + hitForce;
+                    debris.Velocity += obj.Movement.Physics.Velocity;
                     debris.AngularVelocity = RandomVector(obj.LastHitForce.Length());
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
                     debris.PrevTransform = world;
                     debris.Mass = 1; // obj.Movement.Physics.Mass;
-                    debris.Drag = 0.005f; // obj.Movement.Physics.Drag;
+                    debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
-                    debris.Life =  0.25f + Random() * (i == 0 ? 0.75f : 1.75f);
+                    debris.Life =  0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
                     debris.Segment = obj.Segment;
                     debris.Radius = model.Submodels[i].Radius;
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
@@ -413,7 +415,7 @@ namespace Inferno::Game {
                     //Sound::UpdateEmitterPositions(dt);
                 }
                 else {
-                    LerpAmount = 0;
+                    LerpAmount = 1;
                 }
 
                 Editor::Update();

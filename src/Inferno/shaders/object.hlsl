@@ -72,8 +72,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3 shadow = 1 - saturate(dot(input.normal, lightDir)) * 0.5;
 
     float4 diffuse = Diffuse.Sample(Sampler, input.uv) * input.col;
-    float3 emissive = Emissive.Sample(Sampler, input.uv).rgb * diffuse.rgb;
-    emissive += EmissiveLight;
+    float3 emissive = Emissive.Sample(Sampler, input.uv).rgb;
+    emissive = EmissiveLight + emissive * diffuse.rgb;
     //emissive.rgb = float3(0.8, 0, 0.5);
     //emissive.r = emissive.r > 0.70 ? emissive.r * 2.5 : emissive.r * 0.25;
     //emissive = emissive > 0.70 ? emissive * 2.5 : emissive * 0.25;
@@ -91,7 +91,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3 lightDir = LightDirection[0];
     //float4 lightColor = LightColor[0];
     //float4 specular = Specular(lightDir, viewDir, input.normal) - 1;
-    float3 light = Ambient + emissive + pow(emissive, 3) * 10;
+    float sum = emissive.r + emissive.g + emissive.b; // is there a better way to sum this?
+    float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
+    float3 light = Ambient + pow(emissive * mult, 4);
+    //float3 light = Ambient + emissive + pow(emissive, 4) * 10;
+    
     light *= Specular(lightDir, viewDir, input.normal);
     //light += saturate(dot(-input.normal, lightDir)) * 0.25;
     //light -= saturate(dot(input.normal, lightDir)) * 0.5;
