@@ -8,6 +8,7 @@ namespace Inferno::Editor {
     void NewLevel(string name, string fileName, int16 version, bool addToHog);
     void CheckForAutosave();
     void ResetAutosaveTimer();
+    void EnsureVertigoData(filesystem::path missionPath);
 
     namespace Commands {
         extern Command ConvertToD2, ConvertToVertigo;

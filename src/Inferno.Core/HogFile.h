@@ -33,8 +33,11 @@ namespace Inferno {
         }
 
         bool IsBriefing() const {
-            auto ext = Extension();
-            return String::InvariantEquals(ext, ".txb");
+            return String::InvariantEquals(Extension(), ".txb");
+        }
+
+        bool IsHam() const {
+            return String::InvariantEquals(Extension(), ".ham");
         }
     };
 

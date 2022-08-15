@@ -14,10 +14,10 @@
 
 namespace Inferno::Editor {
     constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
-   
+
     size_t SaveLevel(Level& level, StreamWriter& writer) {
         if (level.Walls.size() >= (int)WallID::Max)
-            throw Exception("Cannot save a level with more than 254 walls");
+            throw Exception("Cannot save a level with more than 255 walls");
 
         DisableFlickeringLights(level);
         ResetFlickeringLightTimers(level);
@@ -26,8 +26,8 @@ namespace Inferno::Editor {
     }
 
     // Saves a level to the file system
-    void SaveLevelToPath(std::filesystem::path path, bool autosave = false) {
-        CleanLevel(Game::Level);
+    void SaveLevelToPath(Level& level, std::filesystem::path path, bool autosave = false) {
+        CleanLevel(level);
 
         filesystem::path temp = path;
         temp.replace_extension("tmp");
@@ -53,7 +53,7 @@ namespace Inferno::Editor {
         filesystem::path metadataPath = path;
         metadataPath.replace_extension(METADATA_EXTENSION);
         std::ofstream metadata(metadataPath);
-        SaveLevelMetadata(Game::Level, metadata);
+        SaveLevelMetadata(level, metadata);
         SetStatusMessage(L"Saved level to {}", path.wstring());
 
         if (!autosave) {
@@ -206,17 +206,40 @@ namespace Inferno::Editor {
         return data;
     }
 
+    void EnsureVertigoData(filesystem::path missionPath) {
+        try {
+            if (!Game::Level.IsVertigo()) return;
+            auto mission = HogFile::Read(missionPath);
+
+            if (mission.ContainsFileType(".ham")) return; // Already has ham data
+            if (!Resources::FoundVertigo()) {
+                SPDLOG_WARN("Level is marked as Vertigo but has no .ham and d2x.hog was not found");
+                return;
+            }
+
+            // Insert vertigo data
+            auto d2xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
+            auto vertigoData = d2xhog.ReadEntry("d2x.ham");
+            auto hamName = missionPath.stem().string() + ".ham";
+            mission.AddOrUpdateEntry(hamName, vertigoData);
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Unable to add vertigo data: {}", e.what());
+        }
+    }
+
     void OnSaveAs() {
         if (!Resources::HasGameData()) return;
 
+        auto& level = Game::Level;
         List<COMDLG_FILTERSPEC> filter = { { L"Mission", L"*.hog" } };
 
-        if (Game::Level.IsDescent1())
+        if (level.IsDescent1())
             filter.push_back({ L"Descent 1 Level", L"*.rdl" });
         else
             filter.push_back({ L"Descent 2 Level", L"*.rl2" });
 
-        auto name = Game::Level.FileName == "" ? "level" : Game::Level.FileName;
+        auto name = level.FileName == "" ? "level" : level.FileName;
 
         wstring defaultName;
         uint filterIndex = 0;
@@ -230,26 +253,28 @@ namespace Inferno::Editor {
             filterIndex = 2;
         }
 
-        auto ext = Game::Level.IsDescent1() ? "rdl" : "rl2";
+        auto ext = level.IsDescent1() ? "rdl" : "rl2";
 
         if (auto path = SaveFileDialog(filter, filterIndex, defaultName)) {
             if (ExtensionEquals(*path, L"hog")) {
-                auto levelData = WriteLevelToMemory(Game::Level);
-                auto levelMetadata = WriteLevelMetadataToMemory(Game::Level);
+                auto levelData = WriteLevelToMemory(level);
+                auto levelMetadata = WriteLevelMetadataToMemory(level);
 
                 if (Game::Mission) {
                     // Save to new location, then update the current level in it
                     Game::Mission = Game::Mission->SaveCopy(*path);
-                    Game::Mission->AddOrUpdateEntry(Game::Level.FileName, levelData);
-                    auto metadataName = String::NameWithoutExtension(Game::Level.FileName) + "." + METADATA_EXTENSION;
+                    Game::Mission->AddOrUpdateEntry(level.FileName, levelData);
+                    auto metadataName = String::NameWithoutExtension(level.FileName) + "." + METADATA_EXTENSION;
                     Game::Mission->AddOrUpdateEntry(metadataName, levelMetadata);
+                    EnsureVertigoData(*path);
                 }
                 else {
                     // Create a new hog
                     filesystem::path fileName = name; // set proper extension
                     fileName.replace_extension(ext);
-                    Game::Level.FileName = fileName.string();
-                    HogFile::CreateFromEntry(*path, Game::Level.FileName, levelData);
+                    level.FileName = fileName.string();
+                    HogFile::CreateFromEntry(*path, level.FileName, levelData);
+                    EnsureVertigoData(*path);
                     Game::LoadMission(*path);
                     Events::ShowDialog(DialogType::HogEditor);
                 }
@@ -258,12 +283,11 @@ namespace Inferno::Editor {
             }
             else {
                 path->replace_extension(ext);
-                SaveLevelToPath(*path);
+                SaveLevelToPath(level, *path);
                 Game::UnloadMission();
             }
 
             Settings::AddRecentFile(*path);
-
         }
 
         History.UpdateCleanSnapshot();
@@ -271,27 +295,28 @@ namespace Inferno::Editor {
 
     void OnSave() {
         if (!Resources::HasGameData()) return;
+        auto& level = Game::Level;
 
         if (Game::Mission) {
-            assert(Game::Level.FileName != "");
-            auto data = WriteLevelToMemory(Game::Level);
-            Game::Mission->AddOrUpdateEntry(Game::Level.FileName, data);
-            auto levelMetadata = WriteLevelMetadataToMemory(Game::Level);
-            auto metadataName = String::NameWithoutExtension(Game::Level.FileName) + "." + METADATA_EXTENSION;
+            assert(level.FileName != "");
+            auto data = WriteLevelToMemory(level);
+            Game::Mission->AddOrUpdateEntry(level.FileName, data);
+            auto levelMetadata = WriteLevelMetadataToMemory(level);
+            auto metadataName = String::NameWithoutExtension(level.FileName) + "." + METADATA_EXTENSION;
             Game::Mission->AddOrUpdateEntry(metadataName, levelMetadata);
-
+            EnsureVertigoData(Game::Mission->Path);
             Game::LoadMission(Game::Mission->Path);
             SetStatusMessage(L"Mission saved to {}", Game::Mission->Path.filename().wstring());
             Settings::AddRecentFile(Game::Mission->Path);
         }
         else {
             // standalone level
-            if (Game::Level.Path.empty()) {
+            if (level.Path.empty()) {
                 OnSaveAs();
             }
             else {
-                SaveLevelToPath(Game::Level.Path);
-                Settings::AddRecentFile(Game::Level.Path);
+                SaveLevelToPath(level, level.Path);
+                Settings::AddRecentFile(level.Path);
             }
         }
 
@@ -354,7 +379,7 @@ namespace Inferno::Editor {
                     Game::Mission->SaveCopy(backupPath);
                 }
                 else {
-                    SaveLevelToPath(backupPath, true);
+                    SaveLevelToPath(Game::Level, backupPath, true);
                 }
 
                 ResetAutosaveTimer();
