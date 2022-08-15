@@ -529,6 +529,7 @@ namespace Inferno {
                     case ObjectType::Powerup:
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
+                    case ObjectType::Hostage:
                         //case ObjectType::Player: // player can hit other players, but not in singleplayer
                         //case ObjectType::Coop:
                     case ObjectType::Marker:
@@ -1042,6 +1043,21 @@ namespace Inferno {
                             sound.Source = obj.Parent;
                             sound.FromPlayer = true;
                             Sound::Play(sound);
+
+                            // todo: do the powerup effects
+                        }
+
+                        if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
+                            hit.HitObj->Lifespan = -1;
+
+                            constexpr auto SOUND_HOSTAGE_RESCUED = SoundID(91);
+                            Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                            sound.Resource = Resources::GetSoundResource(SOUND_HOSTAGE_RESCUED);
+                            sound.Source = obj.Parent;
+                            sound.FromPlayer = true;
+                            Sound::Play(sound);
+
+                            // todo: pickup hostage
                         }
                     }
 
