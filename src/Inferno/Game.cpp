@@ -13,6 +13,7 @@
 #include "Editor/UI/EditorUI.h"
 #include "Editor/Editor.Object.h"
 #include "Game.Input.h"
+#include "DebugOverlay.h"
 
 using namespace DirectX;
 
@@ -76,7 +77,7 @@ namespace Inferno::Game {
 
     void HandleGlobalInput() {
         if (Input::IsKeyPressed(Keys::F1))
-            Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
+            Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
         if (Input::IsKeyPressed(Keys::F2))
             Game::ToggleEditorMode();
@@ -364,7 +365,6 @@ namespace Inferno::Game {
         accumulator += dt;
         accumulator = std::min(accumulator, 2.0);
 
-        //float lerp = 1; // blending between previous and current position
         if (!Level.Objects.empty()) {
             auto& physics = Level.Objects[0].Movement.Physics;
             physics.Thrust = Vector3::Zero;
@@ -395,8 +395,12 @@ namespace Inferno::Game {
             t += TICK_RATE;
         }
 
-        //lerp = float(accumulator / tickRate);
-        //Render::Present(lerp);
+        if (Game::ShowDebugOverlay) {
+            auto vp = ImGui::GetMainViewport();
+            DrawDebugOverlay({ vp->Size.x, 0 }, { 1, 0 });
+            DrawGameDebugOverlay({ 10, 10 }, { 0, 0 });
+        }
+
         return float(accumulator / TICK_RATE);
     }
 
@@ -412,7 +416,7 @@ namespace Inferno::Game {
     void Update(float dt) {
         Inferno::Input::Update();
         HandleGlobalInput();
-        Render::Debug::BeginFrame(); // enable Debug calls during physics
+        Render::Debug::BeginFrame(); // enable debug calls during updates
 
         g_ImGuiBatch->BeginFrame();
         switch (State) {

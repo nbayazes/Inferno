@@ -834,7 +834,11 @@ namespace Inferno::Editor {
         ImGui::End();
 
         DrawTopToolbar(*dock->CentralNode);
-        if (ShowDebugOverlay) DrawDebugOverlay(dock->CentralNode);
+        if (Game::ShowDebugOverlay) {
+            auto pos = ImVec2(dock->CentralNode->Pos.x + dock->CentralNode->Size.x, dock->CentralNode->Pos.y + 40);
+            ImGui::SetNextWindowViewport(dock->CentralNode->ID);
+            DrawDebugOverlay(pos, { 1, 0 });
+        }
         //DrawSelectionToolbar({ viewport->Pos.x + viewportSize.x - 100, dock->CentralNode->Pos.y });
     }
 

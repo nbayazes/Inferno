@@ -50,4 +50,6 @@ namespace Inferno::Game {
 
     void Update(float dt);
     void ToggleEditorMode();
+
+    inline bool ShowDebugOverlay = false;
 }

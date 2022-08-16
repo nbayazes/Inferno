@@ -385,7 +385,7 @@
     <ClInclude Include="Editor\Editor.IO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Editor\UI\DebugOverlay.h">
+    <ClInclude Include="DebugOverlay.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Editor\UI\AboutDialog.h">

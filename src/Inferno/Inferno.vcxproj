@@ -220,7 +220,7 @@
     <ClInclude Include="Graphics\Compiler.h" />
     <ClInclude Include="Graphics\GpuResources.h" />
     <ClInclude Include="Convert.h" />
-    <ClInclude Include="Editor\UI\DebugOverlay.h" />
+    <ClInclude Include="DebugOverlay.h" />
     <ClInclude Include="Editor\Editor.Clipboard.h" />
     <ClInclude Include="Editor\Editor.IO.h" />
     <ClInclude Include="Editor\Editor.Lighting.h" />
