@@ -1119,7 +1119,7 @@ namespace Inferno {
         if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
             auto& prevSeg = level.GetSegment(prevSegId);
 
-            auto sideId = level.GetConnectedSide(prevSegId, obj.Segment);
+            auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
             if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
                 if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
                     if(level.IsDescent1())

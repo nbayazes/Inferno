@@ -370,29 +370,6 @@ namespace Inferno {
         }
     }
 
-    void CloseDoors(Level& level, Trigger& trigger) {
-        for (auto& target : trigger.Targets) {
-            CloseDoor(level, target);
-        }
-    }
-
-    void UnlockDoors(Level& level, Trigger& trigger) {
-        for (auto& tag : trigger.Targets) {
-            if (auto wall = level.TryGetWall(tag)) {
-                wall->ClearFlag(WallFlag::DoorLocked);
-                wall->Keys = WallKey::None;
-            }
-        }
-    }
-
-    void LockDoors(Level& level, Trigger& trigger) {
-        for (auto& tag : trigger.Targets) {
-            if (auto wall = level.TryGetWall(tag)) {
-                wall->SetFlag(WallFlag::DoorLocked);
-            }
-        }
-    }
-
     void TriggerMatcen(SegID seg) {
         // do matcen stuff
     }
@@ -438,18 +415,29 @@ namespace Inferno {
                 break;
 
             case TriggerType::CloseDoor:
-                CloseDoors(level, trigger);
                 PrintTriggerMessage(trigger, "Door{} closed");
+                for (auto& target : trigger.Targets) {
+                    CloseDoor(level, target);
+                }
                 break;
 
             case TriggerType::UnlockDoor:
-                UnlockDoors(level, trigger);
                 PrintTriggerMessage(trigger, "Door{} unlocked");
+                for (auto& tag : trigger.Targets) {
+                    if (auto wall = level.TryGetWall(tag)) {
+                        wall->ClearFlag(WallFlag::DoorLocked);
+                        wall->Keys = WallKey::None;
+                    }
+                }
                 break;
 
             case TriggerType::LockDoor:
-                LockDoors(level, trigger);
                 PrintTriggerMessage(trigger, "Door{} locked");
+                for (auto& tag : trigger.Targets) {
+                    if (auto wall = level.TryGetWall(tag)) {
+                        wall->SetFlag(WallFlag::DoorLocked);
+                    }
+                }
                 break;
 
             case TriggerType::CloseWall:
@@ -505,6 +493,7 @@ namespace Inferno {
                 break;
 
             case TriggerType::Matcen:
+                fmt::print("Trigger Matcen\n");
                 for (auto& tag : trigger.Targets) {
                     TriggerMatcen(tag.Segment);
                 }
