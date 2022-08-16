@@ -49,6 +49,35 @@ namespace Inferno {
         Level6,
     };
 
+    namespace WeaponID {
+        constexpr int Laser = 0;
+        constexpr int Concussion = 8;
+        constexpr int Flare = 9;
+        constexpr int Vulcan = 11;
+        constexpr int Spreadfire = 12;
+        constexpr int Plasma = 13;
+        constexpr int Fusion = 14;
+        constexpr int Homing = 15;
+        constexpr int ProxMine = 16;
+        constexpr int Smart = 17;
+        constexpr int Mega = 18;
+
+        constexpr int Laser5 = 30;
+        constexpr int Laser6 = 31;
+        constexpr int Gauss = 32;
+        constexpr int Helix = 33;
+        constexpr int Phoenix = 34;
+        constexpr int Omega = 35;
+
+        constexpr int Flash = 36;
+        constexpr int Guided = 37;
+        constexpr int SmartMine = 38;
+        constexpr int Mercury = 39;
+        constexpr int Shaker = 40;
+
+        constexpr int LevelMine = 51; // Placeable level mine
+    }
+
     struct Weapon {
         WeaponRenderType RenderType;
         bool Piercing;

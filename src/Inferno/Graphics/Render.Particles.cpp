@@ -64,7 +64,6 @@ namespace Inferno::Render {
             }
             DrawVClip(ctx, vclip, p.Position, p.Radius, color, elapsed, true, p.Rotation, up);
         }
-
     }
 
     void AddEmitter(ParticleEmitterInfo& info, size_t capacity) {
@@ -198,6 +197,7 @@ namespace Inferno::Render {
                 p.Radius = expl.MinRadius + Random() * (expl.MaxRadius - expl.MinRadius);
                 p.Clip = expl.Clip;
                 p.Color = expl.Color;
+                p.FadeTime = expl.FadeTime;
                 if (expl.Instances > 1 && i > 0)
                     p.Delay = expl.MinDelay + Random() * (expl.MaxDelay - expl.MinDelay);
                 Render::AddParticle(p);

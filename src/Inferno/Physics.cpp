@@ -892,8 +892,123 @@ namespace Inferno {
 
     //}
 
+    // Explosion that can cause damage or knockback
+    struct GameExplosion {
+        Vector3 Position;
+        SegID Segment;
+
+        float Radius;
+        float Damage;
+        float Force;
+
+        //float Size;
+        //float VClipRadius;
+        //int VClip;
+    };
+
+    void ApplyForce(Object& obj, const Vector3& force) {
+        if (obj.Movement.Type != MovementType::Physics) return;
+        if (obj.Movement.Physics.Mass == 0) return;
+        obj.Movement.Physics.Velocity += force * 1.0 / obj.Movement.Physics.Mass;
+    }
+
+    // Creates an explosion that can cause damage or knockback
+    void CreateExplosion(Level& level, const Object& source, const GameExplosion& explosion) {
+        for (auto& obj : level.Objects) {
+            if (&obj == &source) continue;
+            if (!obj.IsAlive()) continue;
+
+            if (obj.Type == ObjectType::Weapon && (obj.ID != WeaponID::ProxMine && obj.ID != WeaponID::SmartMine && obj.ID != WeaponID::LevelMine))
+                continue; // only allow explosions to affect mines
+
+            // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
+            //if (&level.GetObject(obj.Parent) == &source) continue; // don't hit your parent
+
+            if (obj.Type != ObjectType::Player && obj.Type != ObjectType::Robot && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor)
+                continue;
+
+            auto dist = Vector3::Distance(obj.Position, explosion.Position);
+
+            // subtract radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
+            // however don't apply it to players due to dramatically increasing the amount of damage taken
+            if (obj.Type != ObjectType::Player && obj.Type != ObjectType::Coop)
+                dist -= obj.Radius;
+
+            if (dist >= explosion.Radius) continue;
+            dist = std::max(dist, 0.0f);
+
+            Vector3 dir = obj.Position - explosion.Position;
+            dir.Normalize();
+            Ray ray(explosion.Position, dir);
+            LevelHit hit;
+            if (IntersectLevel(level, ray, explosion.Segment, dist, hit)) continue;
+
+            float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
+            float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
+
+            Vector3 forceVec = dir * force;
+            //auto hitPos = (source.Position - obj.Position) * obj.Radius / (obj.Radius + dist);
+
+            // Find where the point of impact is... ( pos_hit )
+            //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
+
+            switch (obj.Type) {
+                case ObjectType::Weapon:
+                {
+                    ApplyForce(obj, forceVec);
+
+                    // Mines can blow up under enough force
+                    if (obj.ID == WeaponID::ProxMine || obj.ID == WeaponID::SmartMine) {
+                        if (dist * force > 0.122f) {
+                            obj.Lifespan = 0;
+                            // explode()?
+                        }
+                    }
+                    break;
+                }
+
+                case ObjectType::Robot:
+                {
+                    ApplyForce(obj, forceVec);
+                    obj.HitPoints -= damage;
+                    obj.LastHitForce += forceVec;
+                    fmt::print("applied {} splash damage at dist {}\n", damage, dist);
+
+                    // stun robot if not boss
+
+                    // Boss invuln stuff
+
+                    // guidebot ouchies
+                    break;
+                }
+
+                case ObjectType::Reactor:
+                {
+                    // apply damage if source is player
+                    break;
+                }
+
+                case ObjectType::Player:
+                {
+                    ApplyForce(obj, forceVec);
+                    // also apply rotational
+
+                    // shields, flash, physics
+                    // divide damage by 4 on trainee
+
+                    break;
+                }
+
+                default:
+                    throw Exception("Invalid object type in CreateExplosion()");
+            }
+        }
+    }
+
     void ApplyWeaponHit(const LevelHit& hit, const Object& source, const Vector3& hitVelocity, Level& level) {
         auto& weapon = Resources::GameData.Weapons[source.ID];
+        float damage = weapon.Damage[Game::Difficulty];
+        float splashRadius = weapon.SplashRadius;
 
         if (hit.HitObj) {
             auto& target = *hit.HitObj;
@@ -907,7 +1022,7 @@ namespace Inferno {
             // apply forces from projectile to object
             auto force = src.Velocity * srcMass / targetMass;
             targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
-            hit.HitObj->LastHitForce += force * 2;
+            hit.HitObj->LastHitForce += force;
 
             Matrix basis(target.Rotation);
             basis = basis.Invert();
@@ -918,8 +1033,9 @@ namespace Inferno {
             auto accel = torque / inertia;
             targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
-            if (hit.HitObj->Type == ObjectType::Robot) {
-                hit.HitObj->HitPoints -= weapon.Damage[Game::Difficulty];
+            if (hit.HitObj->Type == ObjectType::Robot || hit.HitObj->Type == ObjectType::Reactor) {
+                hit.HitObj->HitPoints -= damage;
+                //fmt::print("applied {} damage\n", damage);
 
                 auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
                 if (ri.ExplosionClip1 > VClipID::None) {
@@ -933,10 +1049,18 @@ namespace Inferno {
                     expl.MinRadius = weapon.ImpactSize * 0.85f;
                     expl.MaxRadius = weapon.ImpactSize * 1.15f;
                     expl.Color = { 1.15f, 1.15f, 1.15f };
+                    expl.FadeTime = 0.1f;
+
+                    if (source.ID == WeaponID::Concussion) { // todo: and all other missiles
+                        expl.Instances = 3;
+                        expl.MinDelay = expl.MaxDelay = 0;
+                        expl.Clip = weapon.WallHitVClip;
+                        expl.Color = { 1, 1, 1 };
+                    }
+
                     Render::CreateExplosion(expl);
                 }
             }
-
         }
         else { // Hit a wall
             SoundID soundId = weapon.WallHitSound;
@@ -954,25 +1078,43 @@ namespace Inferno {
                     constexpr auto VCLIP_WATER_HIT = VClipID(84);
                     constexpr auto SOUND_LASER_HIT_WATER = SoundID(232);
                     constexpr auto SOUND_MISSILE_HIT_WATER = SoundID(233);
-                    soundId = SOUND_LASER_HIT_WATER;
+                    if (source.ID == WeaponID::Concussion)
+                        soundId = SOUND_MISSILE_HIT_WATER;
+                    else
+                        soundId = SOUND_LASER_HIT_WATER;
+
                     vclip = VCLIP_WATER_HIT;
-                    // zero out hit damage if hit water (cancels explosions)
+                    splashRadius = 0; // Cancel explosions when hitting water
                 }
             }
 
-            Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-            sound.Resource = Resources::GetSoundResource(soundId);
-            sound.Source = source.Parent;
-            Sound::Play(sound);
-
             auto dir = source.Movement.Physics.Velocity;
             dir.Normalize();
-            Render::Particle p{};
-            p.Position = hit.Point - dir * weapon.ImpactSize * 0.5f; // move explosion out of wall
-            p.Radius = weapon.ImpactSize;
-            p.Clip = vclip;
-            p.FadeTime = 0.1f;
-            Render::AddParticle(p);
+
+            Render::ExplosionInfo e;
+            e.MinRadius = weapon.ImpactSize * 0.9f;
+            e.MaxRadius = weapon.ImpactSize * 1.1f;
+            e.Clip = vclip;
+            e.Sound = soundId;
+            e.Position = hit.Point - dir * (1 + weapon.ImpactSize * 0.25f); // move explosion out of wall
+            e.Color = { 1, 1, 1 };
+            e.FadeTime = 0.1f;
+
+            if (source.ID == WeaponID::Concussion) {
+                e.Instances = 3;
+                e.MinDelay = e.MaxDelay = 0;
+            }
+            Render::CreateExplosion(e);
+        }
+
+        if (splashRadius > 0) {
+            GameExplosion ge{};
+            ge.Damage = damage;
+            ge.Force = damage; // force = damage, really?
+            ge.Radius = splashRadius;
+            ge.Segment = hit.Tag.Segment;
+            ge.Position = hit.Point;
+            CreateExplosion(level, source, ge);
         }
     }
 
@@ -1095,7 +1237,7 @@ namespace Inferno {
 
                 //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
                 //obj.Movement.Physics.Velocity = frameVec / dt;
-                obj.LastHitForce *= 0.85f; // decay every update
+                obj.LastHitForce *= 0.80f; // decay every update
 
                 Editor::UpdateObjectSegment(level, obj);
             }

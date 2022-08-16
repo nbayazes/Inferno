@@ -125,6 +125,7 @@ namespace Inferno::Render {
         float InitialDelay = -1; // how long to wait before creating any explosions
         Color Color = { 2, 2, 2 }; // Particle color
         Vector3 Position;
+        float FadeTime = 0; // How long it takes to fade the particles out
 
         static bool IsAlive(const ExplosionInfo& info) { return info.InitialDelay >= 0; }
     };

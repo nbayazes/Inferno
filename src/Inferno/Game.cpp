@@ -133,7 +133,9 @@ namespace Inferno::Game {
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
         bullet.Parent = ObjID(0);
-        bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f }; // laser level 5
+
+        if (id == WeaponID::Laser5)
+            bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f };
 
         //auto pitch = -Random() * 0.2f;
         //Sound::Sound3D sound(point, obj.Segment);
@@ -224,6 +226,7 @@ namespace Inferno::Game {
             {
                 break;
             }
+
             case ObjectType::Robot:
             {
                 constexpr float EXPLOSION_DELAY = 0.2f;
@@ -233,7 +236,7 @@ namespace Inferno::Game {
                 Render::ExplosionInfo expl;
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
-                expl.MinRadius = expl.MaxRadius  = obj.Radius * 1.9f;
+                expl.MinRadius = expl.MaxRadius = obj.Radius * 1.9f;
                 expl.Segment = obj.Segment;
                 expl.Position = obj.GetPosition(LerpAmount);
                 Render::CreateExplosion(expl);
@@ -259,7 +262,7 @@ namespace Inferno::Game {
                     auto explosionVec = world.Translation() - obj.Position;
                     explosionVec.Normalize();
 
-                    auto hitForce = obj.LastHitForce * 20 * (0.75f + Random() * 0.5f);
+                    auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
 
                     Render::Debris debris;
                     //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
@@ -267,16 +270,16 @@ namespace Inferno::Game {
                     //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
                     debris.Velocity = i == 0 ? hitForce
-                        : explosionVec * 25 + RandomVector(20) + hitForce;
+                        : explosionVec * 25 + RandomVector(10) + hitForce;
                     debris.Velocity += obj.Movement.Physics.Velocity;
-                    debris.AngularVelocity = RandomVector(obj.LastHitForce.Length());
+                    debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
                     debris.PrevTransform = world;
                     debris.Mass = 1; // obj.Movement.Physics.Mass;
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
-                    debris.Life =  0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
+                    debris.Life = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
                     debris.Segment = obj.Segment;
                     debris.Radius = model.Submodels[i].Radius;
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
@@ -305,17 +308,19 @@ namespace Inferno::Game {
         obj.Lifespan = -1;
     }
 
-    float g_FireDelay = 0;
+    float g_FireDelay = 0, g_SecondaryFireDelay;
+    int g_SecondaryIndex = 0;
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
         g_FireDelay -= dt;
+        g_SecondaryFireDelay -= dt;
 
         // must check held keys inside of fixed updates so events aren't missed
         if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
-           (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
+            (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
             if (g_FireDelay <= 0) {
-                auto id = Game::Level.IsDescent2() ? 13 : 13; // plasma: 13, super laser: 30
+                auto id = Game::Level.IsDescent2() ? WeaponID::Plasma : WeaponID::Plasma;
                 auto& weapon = Resources::GameData.Weapons[id];
                 g_FireDelay = weapon.FireDelay;
                 FireTestWeapon(Game::Level, ObjID(0), 0, id);
@@ -324,6 +329,17 @@ namespace Inferno::Game {
                 //FireTestWeapon(Game::Level, ObjID(0), 3, id);
             }
         }
+
+        if ((Game::State != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD)) {
+            if (g_SecondaryFireDelay <= 0) {
+                auto id = Game::Level.IsDescent2() ? WeaponID::Concussion : WeaponID::Concussion;
+                auto& weapon = Resources::GameData.Weapons[id];
+                g_SecondaryFireDelay = weapon.FireDelay;
+                g_SecondaryIndex = (g_SecondaryIndex + 1) % 2;
+                FireTestWeapon(Game::Level, ObjID(0), g_SecondaryIndex, id);
+            }
+        }
+
 
         Render::UpdateDebris(dt);
 
@@ -454,6 +470,11 @@ namespace Inferno::Game {
             for (auto& obj : Level.Objects) {
                 obj.LastPosition = obj.Position;
                 obj.LastRotation = obj.Rotation;
+
+                if (obj.Type == ObjectType::Robot) {
+                    auto& ri = Resources::GetRobotInfo(obj.ID);
+                    obj.HitPoints = ri.HitPoints;
+                }
             }
 
             EditorCameraSnapshot = Render::Camera;
