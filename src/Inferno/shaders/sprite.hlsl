@@ -25,7 +25,7 @@ struct PS_INPUT {
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
-    output.pos = mul(ViewProjectionMatrix, float4(input.pos.xyz, 1));
+    output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
     output.col = input.col;
     output.uv = input.uv;
     return output;
@@ -50,9 +50,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
         return diffuse * input.col; // don't apply softening to particles against the background
     
     float pixelDepth = LinearizeDepth(NearClip, FarClip, input.pos.z);
-    //float d = saturate((sceneDepth - pixelDepth) * FarClip);
-    const float DEPTH_SCALE = 0.75; // larger explosions want a smaller scale to blend into the surroundings better
+    const float DEPTH_SCALE = 0.35; // larger explosions want a smaller scale to blend into the surroundings better
     const float DEPTH_EXPONENT = 1.5;
+    //float d = saturate((sceneDepth - pixelDepth) * 1000);
     float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip * DEPTH_SCALE, DEPTH_EXPONENT);
     return diffuse * input.col * d;
     

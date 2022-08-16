@@ -30,21 +30,19 @@ struct PS_INPUT {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
-    float depth : COLOR0;
 };
 
 [RootSignature(RS)]
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
     output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
-    output.depth = output.pos.z / output.pos.w;
     output.uv = input.uv + Scroll * Time * 100;
     output.uv2 = input.uv2 + Scroll2 * Time * 100;
     return output;
 }
 
-float LinearizeDepth(float n, float f, float depth) {
-    return n / (f + depth * (n - f));
+float LinearizeDepth(float near, float far, float depth) {
+    return near / (far + depth * (near - far));
 }
 
 float psmain(PS_INPUT input) : SV_Target {

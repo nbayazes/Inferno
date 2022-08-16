@@ -7,6 +7,7 @@
 #include "Face.h"
 #include "Game.h"
 #include "Graphics/Render.Particles.h"
+#include "HUD.h"
 
 namespace Inferno {
     //template<class TData, class TKey = int>
@@ -282,8 +283,6 @@ namespace Inferno {
     }
 
 
-    void PrintHudMessage(string msg) {}
-
     void PrintTriggerMessage(const Trigger& trigger, string message) {
         if (trigger.HasFlag(TriggerFlag::NoMessage)) return;
 
@@ -494,6 +493,7 @@ namespace Inferno {
 
             case TriggerType::Matcen:
                 fmt::print("Trigger Matcen\n");
+                PrintHudMessage("Trigger matcen");
                 for (auto& tag : trigger.Targets) {
                     TriggerMatcen(tag.Segment);
                 }

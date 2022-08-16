@@ -1244,7 +1244,7 @@ namespace Inferno::Render {
             auto height = Adapter->GetHeight();
             HudCanvas->SetSize(width, height);
             HudGlowCanvas->SetSize(width, height);
-            DrawHUD();
+            DrawHUD(Render::FrameTime);
             HudCanvas->Render(ctx);
             HudGlowCanvas->Render(ctx);
         }

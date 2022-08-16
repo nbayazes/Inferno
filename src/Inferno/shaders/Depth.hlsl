@@ -24,8 +24,8 @@ PS_INPUT vsmain(LevelVertex input) {
     return output;
 }
 
-float LinearizeDepth(float n, float f, float depth) {
-    return n / (f + depth * (n - f));
+float LinearizeDepth(float near, float far, float depth) {
+    return near / (far + depth * (near - far));
 }
 
 float psmain(PS_INPUT input) : SV_Target {

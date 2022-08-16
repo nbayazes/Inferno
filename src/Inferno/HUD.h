@@ -24,11 +24,11 @@ namespace Inferno {
         HomingWarningOff = 57,
     };
 
-    TexID GetGaugeTexID(Gauges gauge) {
+    inline TexID GetGaugeTexID(Gauges gauge) {
         return Game::Level.IsDescent1() ? Resources::GameData.Gauges[(int)gauge] : Resources::GameData.HiResGauges[(int)gauge];
     }
 
-    TexID GetWeaponTexID(Weapon& weapon) {
+    inline TexID GetWeaponTexID(Weapon& weapon) {
         return Game::Level.IsDescent1() ? weapon.Icon : weapon.HiresIcon;
     }
 
@@ -38,7 +38,7 @@ namespace Inferno {
     constexpr Color MonitorGreenText = { 0, 0.7f, 0 };
     constexpr Color MonitorRedText = { 0.8f, 0, 0 };
 
-    void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
+    inline void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
 
         info.Scanline = 0.0f;
@@ -47,14 +47,14 @@ namespace Inferno {
     }
 
     // Draws text with a dark background, easier to read
-    void DrawMonitorText(string_view text, Render::DrawTextInfo& info, float shadow = 0.6f) {
+    inline void DrawMonitorText(string_view text, Render::DrawTextInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawGameText(text, info);
         info.Color = { 0, 0, 0, shadow };
         info.Scanline = 0.0f;
         Render::HudCanvas->DrawGameText(text, info);
     }
 
-    void DrawReticleBitmap(const Vector2& offset, Gauges gauge, int frame, float scale) {
+    inline void DrawReticleBitmap(const Vector2& offset, Gauges gauge, int frame, float scale) {
         TexID id = GetGaugeTexID(Gauges((int)gauge + frame));
         scale *= Render::HudCanvas->GetScale();
         auto& material = Render::Materials->Get(id);
@@ -73,7 +73,7 @@ namespace Inferno {
         Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawShipBitmap(const Vector2& offset, const Material2D& material, float sizeScale) {
+    inline void DrawShipBitmap(const Vector2& offset, const Material2D& material, float sizeScale) {
         auto scale = Render::HudCanvas->GetScale();
 
         Inferno::Render::CanvasBitmapInfo info;
@@ -87,7 +87,7 @@ namespace Inferno {
         DrawMonitorBitmap(info, 0.90f);
     }
 
-    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const Material2D& material) {
+    inline void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const Material2D& material) {
         auto scale = Render::HudCanvas->GetScale();
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
@@ -99,12 +99,12 @@ namespace Inferno {
         Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, string bitmapName) {
+    inline void DrawOpaqueBitmap(const Vector2& offset, AlignH align, string bitmapName) {
         auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
         DrawOpaqueBitmap(offset, align, material);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline) {
+    inline void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline) {
         float scale = Render::HudCanvas->GetScale();
         Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
@@ -117,18 +117,18 @@ namespace Inferno {
         Render::HudGlowCanvas->DrawBitmap(info);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float sizeScale, float scanline = 0.4f) {
+    inline void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float sizeScale, float scanline = 0.4f) {
         TexID id = GetGaugeTexID(gauge);
         auto& material = Render::Materials->Get(id);
         DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, string bitmapName, float sizeScale, float scanline = 0.4f) {
+    inline void DrawAdditiveBitmap(const Vector2& offset, AlignH align, string bitmapName, float sizeScale, float scanline = 0.4f) {
         auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
         DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
     }
 
-    void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, float sizeScale) {
+    inline void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, float sizeScale) {
         Render::LoadTextureDynamic(id);
         auto& ti = Resources::GetTextureInfo(id);
         float scale = Render::HudCanvas->GetScale();
@@ -143,7 +143,7 @@ namespace Inferno {
         DrawMonitorBitmap(info);
     }
 
-    void DrawReticle() {
+    inline void DrawReticle() {
         const Vector2 crossOffset(0/*-8*/, -5);
         const Vector2 primaryOffset(0/*-30*/, 14);
         const Vector2 secondaryOffset(0/*-24*/, 2);
@@ -163,7 +163,7 @@ namespace Inferno {
         //Render::Canvas->DrawBitmap(id, pos, scaledSize);
     }
 
-    void DrawEnergyBar(float spacing, bool flipX) {
+    inline void DrawEnergyBar(float spacing, bool flipX) {
         constexpr float ENERGY_HEIGHT = -125;
         constexpr float ENERGY_SPACING = -9;
 
@@ -188,7 +188,7 @@ namespace Inferno {
         //Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawLeftMonitor(float x) {
+    inline void DrawLeftMonitor(float x) {
         DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left");
 
         auto scale = Render::HudCanvas->GetScale();
@@ -217,7 +217,7 @@ namespace Inferno {
         DrawAdditiveBitmap({ x - 151, -38 }, AlignH::CenterLeft, "gauge02b", 1);
     }
 
-    void DrawRightMonitor(float x) {
+    inline void DrawRightMonitor(float x) {
         DrawOpaqueBitmap({ x, 0 }, AlignH::CenterRight, "cockpit-right");
 
         auto scale = Render::HudCanvas->GetScale();
@@ -264,7 +264,7 @@ namespace Inferno {
         DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, keyScanline);
     }
 
-    void DrawCenterMonitor() {
+    inline void DrawCenterMonitor() {
         DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr");
         // Draw shields, invuln state, shield / energy count
 
@@ -299,7 +299,7 @@ namespace Inferno {
         }
     }
 
-    void DrawHighlights(bool flip, float opacity = 0.07f) {
+    inline void DrawHighlights(bool flip, float opacity = 0.07f) {
         auto& material = Render::Materials->GetOutrageMaterial("SmHilite");
         auto scale = Render::HudCanvas->GetScale() * 1.5f;
         auto& screen = Render::HudCanvas->GetSize();
@@ -338,14 +338,66 @@ namespace Inferno {
         }
     }
 
-    void DrawHUD() {
+    inline string HudMessages[4]{};
+    inline int HudMessageCount = 0;
+    inline float HudTimer = 0;
+
+    // Shifts all messages down by one
+    inline void ShiftHudMessages() {
+        if (HudMessageCount <= 0) return;
+
+        for (int i = 0; i < (int)std::size(HudMessages) - 1; i++) {
+            HudMessages[i] = std::move(HudMessages[i + 1]);
+            //HudMessages[i] = HudMessages[i + 1];
+        }
+
+        HudMessages[std::size(HudMessages) - 1] = "";
+        HudMessageCount--;
+    }
+
+    inline void PrintHudMessage(string_view msg) {
+        //if (msg == HudMessages[0]) return; // duplicated
+
+        if (HudMessageCount >= std::size(HudMessages)) {
+            ShiftHudMessages();
+        }
+
+        HudMessages[HudMessageCount] = msg.data();
+        HudMessageCount++;
+        HudTimer = 3;
+    }
+
+    inline void DrawHudMessages(float dt) {
+        auto scale = Render::HudCanvas->GetScale();
+        float offset = 5;
+
+        Render::DrawTextInfo info;
+        info.Font = FontSize::Small;
+        info.Color = MonitorGreenText;
+        info.HorizontalAlign = AlignH::Center;
+        info.VerticalAlign = AlignV::Top;
+        info.Scanline = 0.5f;
+
+        for (auto& msg : HudMessages) {
+            info.Position = Vector2(0, offset) * scale;
+            Render::HudCanvas->DrawGameText(msg, info);
+            offset += 16;
+        }
+
+        HudTimer -= dt;
+        if (HudTimer <= 0) {
+            ShiftHudMessages();
+            HudTimer = 3;
+        }
+    }
+
+    inline void DrawHUD(float dt) {
         float spacing = 100;
         DrawLeftMonitor(-spacing);
         DrawRightMonitor(spacing);
         DrawCenterMonitor();
 
         DrawReticle();
-
 
         auto scale = Render::HudCanvas->GetScale();
 
@@ -418,6 +470,7 @@ namespace Inferno {
         //    info.Scanline = 1;
         //    Render::HudGlowCanvas->DrawBitmap(info);
         //}
-    }
 
+        DrawHudMessages(dt);
+    }
 }
