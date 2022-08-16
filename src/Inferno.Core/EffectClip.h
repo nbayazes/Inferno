@@ -80,6 +80,8 @@ namespace Inferno {
             return span<const LevelTexID>(Frames.begin(), NumFrames);
         }
 
+        bool HasFlag(WallClipFlag flag) const { return bool(Flags & flag); }
+
         // Uses tmap1, otherwise tmap2
         bool UsesTMap1() const { return (bool)((WallClipFlag)((int16)Flags & (int16)WallClipFlag::TMap1)); }
     };

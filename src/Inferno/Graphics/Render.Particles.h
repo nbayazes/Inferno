@@ -116,7 +116,7 @@ namespace Inferno::Render {
     struct ExplosionInfo {
         ObjID Parent = ObjID::None;
         SegID Segment = SegID::None;
-        VClipID Clip = VClips::SmallExplosion; // Default explosion
+        VClipID Clip = VClipID::SmallExplosion; // Default explosion
         SoundID Sound = SoundID::None;
         float MinRadius = 2.5f, MaxRadius = 2.5f;
         float Variance = 0; // Position variance

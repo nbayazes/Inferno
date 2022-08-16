@@ -80,8 +80,6 @@ namespace Inferno::Sound {
     void Stop3DSounds();
     void Stop2DSounds();
 
-    constexpr auto SOUND_WEAPON_HIT_DOOR = SoundID(27);
-
     namespace Debug {
         inline List<Vector3> Emitters;
     }

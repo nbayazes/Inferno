@@ -139,7 +139,7 @@ namespace Inferno::Editor {
                 const bool isSelected = id == sorted[i].ID;
                 ImGui::PushID(i);
                 if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
-                    id = sorted[i].ID;
+                    id = (int8)sorted[i].ID;
                     if (vclipID) {
                         *vclipID = sorted[i].Ptr->VClip;
                         Render::LoadTextureDynamic(*vclipID);
@@ -279,7 +279,7 @@ namespace Inferno::Editor {
             for (int8 i = 0; i < sorted.size(); i++) {
                 const bool isSelected = id == sorted[i].ID;
                 if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
-                    id = sorted[i].ID;
+                    id = (int8)sorted[i].ID;
                     changed = true;
                 }
 

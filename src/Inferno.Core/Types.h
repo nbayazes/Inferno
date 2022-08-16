@@ -192,31 +192,79 @@ namespace Inferno {
     };
     enum class WallID : int16 { None = -1, Max = 255 }; // Unfortunately segments save their wall IDs as bytes, limiting us to 255
     enum class WClipID : sbyte { None = -1, Unset = 2 }; // Wall clip ID
-    enum class VClipID : int32 { None = -1 };
     enum class EClipID : int16 { None = -1 }; // Effect clip ID
-    enum class SoundID : int16 { None = -1 };
-    enum class ModelID : int32 { None = -1 };
     enum class MatcenID : uint8 { None = 255 };
     enum class TriggerID : uint8 { None = 255 };
 
-    namespace Models {
-        constexpr auto PlaceableMine = ModelID(159); // D2 editor placeable mine
-        constexpr auto D1Coop = ModelID(44);
-        constexpr auto D2Coop = ModelID(108);
-        constexpr auto D1Player = ModelID(43);
-        constexpr auto D2Player = ModelID(108);
-    }
+    enum class VClipID : int32 { 
+        None = -1,
+        HitPlayer = 1,
+        SmallExplosion = 2,
+        HitLava = 5,
+        Matcen = 10,
+        PlayerSpawn = 61,
+        Despawn = 62,
+        HitWater = 84,
+        AfterburnerBlob = 95,
+    };
 
-    namespace VClips {
-        constexpr auto PlayerHit = VClipID(1); // Wall scrape effect
-        constexpr auto SmallExplosion = VClipID(2);
-        constexpr auto VolatileWallHit = VClipID(5);
-        constexpr auto Matcen = VClipID(10);
-        constexpr auto PlayerSpawn = VClipID(61);
-        constexpr auto PowerupDespawn = VClipID(62);
-        constexpr auto WaterHit = VClipID(84);
-        constexpr auto AfterburnerBlob = VClipID(95);
-    }
+    enum class SoundID : int16 { 
+        None = -1,
+
+        Explosion = 11,
+        RobotHitPlayer = 17,
+        HitLava = 20,
+        RobotDestroyed = 21,
+        DropBomb = 26,
+        HitLockedDoor = 27,
+        HitControlCenter = 30,
+        ExplodingWall = 31, // Long sound
+        Siren = 32,
+        MineBlewUp = 33,
+        FusionWarmup = 34,
+        DropWeapon = 39, // D2
+        ForcefieldBouncePlayer = 40,
+        HitForcefield = 41,
+        ForcefieldHum = 42,
+        ForcefieldOff = 43,
+        TouchMarker = 50,
+        BuddyReachedGoal = 51,
+        Refuel = 62,
+        PlayerHitWall = 70,
+        HitPlayer = 71,
+        // WallScrape = 72,
+        RescueHostage = 91,
+        BriefingHum = 94,
+        BriefingPrint = 95,
+        Countdown0 = 100, // countdown messages are 100-114
+        Countdown13 = 113,
+        Countdown29 = 114,
+        HomingWarning = 122,
+
+        TouchLavafall = 150,
+        VolatileWall = 151,
+        TouchWater = 152,
+        TouchWaterfall = 158,
+
+        SelectPrimary = 153,
+        SelectPrimaryNo = 156,
+        SelectSecondary = 154,
+        AlreadySelected = 155,
+
+        CloseWall = 160,
+        CloakOff = 161,
+
+        HitWater = 232,
+        MissileHitWater = 233
+    };
+
+    enum class ModelID : int32 { 
+        None = -1,
+        D1Player = 43,
+        D1Coop = 44,
+        D2Player = 108, // Also used for co-op
+        Mine = 159, // D2 editor placeable mine
+    };
 
     enum class SideID : int16 {
         None = -1,

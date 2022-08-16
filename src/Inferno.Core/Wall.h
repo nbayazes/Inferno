@@ -151,7 +151,10 @@ namespace Inferno {
         //int8 targetCount = 0;
         ResizeArray<Tag, MAX_TRIGGER_TARGETS> Targets{};
 
-        bool HasFlag(TriggerFlagD1 flag) const { return (uint16)FlagsD1 & (uint16)flag; }
+        bool HasFlag(TriggerFlag flag) const { return bool(Flags & flag); }
+        bool SetFlag(TriggerFlag flag) { Flags |= flag; }
+
+        bool HasFlag(TriggerFlagD1 flag) const { return bool(FlagsD1 & flag); }
         void SetFlag(TriggerFlagD1 flag) {
             FlagsD1 = TriggerFlagD1((uint16)FlagsD1 | (uint16)flag);
         }

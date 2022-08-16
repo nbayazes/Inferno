@@ -1069,21 +1069,16 @@ namespace Inferno {
             if (auto side = level.TryGetSide(hit.Tag)) {
                 auto& ti = Resources::GetLevelTextureInfo(side->TMap);
                 if (ti.HasFlag(TextureFlag::Volatile)) {
-                    constexpr auto VCLIP_VOLATILE_WALL_HIT = VClipID(5);
-                    constexpr auto SOUND_VOLATILE_WALL_HIT = SoundID(20);
-                    vclip = VCLIP_VOLATILE_WALL_HIT;
-                    soundId = SOUND_VOLATILE_WALL_HIT;
+                    vclip = VClipID::HitLava;
+                    soundId = SoundID::HitLava;
                 }
                 else if (ti.HasFlag(TextureFlag::Water)) {
-                    constexpr auto VCLIP_WATER_HIT = VClipID(84);
-                    constexpr auto SOUND_LASER_HIT_WATER = SoundID(232);
-                    constexpr auto SOUND_MISSILE_HIT_WATER = SoundID(233);
                     if (source.ID == WeaponID::Concussion)
-                        soundId = SOUND_MISSILE_HIT_WATER;
+                        soundId = SoundID::MissileHitWater;
                     else
-                        soundId = SOUND_LASER_HIT_WATER;
+                        soundId = SoundID::HitWater;
 
-                    vclip = VCLIP_WATER_HIT;
+                    vclip = VClipID::HitWater;
                     splashRadius = 0; // Cancel explosions when hitting water
                 }
             }
@@ -1115,6 +1110,25 @@ namespace Inferno {
             ge.Segment = hit.Tag.Segment;
             ge.Position = hit.Point;
             CreateExplosion(level, source, ge);
+        }
+    }
+
+    void UpdateObjectSegment(Level& level, Object& obj) {
+        auto prevSegId = obj.Segment;
+        Editor::UpdateObjectSegment(level, obj);
+        if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
+            auto& prevSeg = level.GetSegment(prevSegId);
+
+            auto sideId = level.GetConnectedSide(prevSegId, obj.Segment);
+            if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
+                if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
+                    if(level.IsDescent1())
+                        ActivateTriggerD1(level, *trigger);
+
+                    else if (level.IsDescent2())
+                        ActivateTriggerD2(level, *trigger); 
+                }
+            }
         }
     }
 
@@ -1184,7 +1198,7 @@ namespace Inferno {
                                 if (obj.Type == ObjectType::Weapon) {
                                     // todo: only play sound and message if door is in front of the player
                                     Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-                                    sound.Resource = Resources::GetSoundResource(Sound::SOUND_WEAPON_HIT_DOOR);
+                                    sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
                                     sound.Source = obj.Parent;
                                     sound.FromPlayer = true;
                                     Sound::Play(sound);
@@ -1213,9 +1227,8 @@ namespace Inferno {
                         if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
                             hit.HitObj->Lifespan = -1;
 
-                            constexpr auto SOUND_HOSTAGE_RESCUED = SoundID(91);
                             Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
-                            sound.Resource = Resources::GetSoundResource(SOUND_HOSTAGE_RESCUED);
+                            sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
                             sound.Source = obj.Parent;
                             sound.FromPlayer = true;
                             Sound::Play(sound);
@@ -1239,7 +1252,7 @@ namespace Inferno {
                 //obj.Movement.Physics.Velocity = frameVec / dt;
                 obj.LastHitForce *= 0.80f; // decay every update
 
-                Editor::UpdateObjectSegment(level, obj);
+                UpdateObjectSegment(level, obj);
             }
 
             if (obj.LastPosition != obj.Position)

@@ -409,15 +409,15 @@ namespace Inferno::Resources {
                     break;
 
                 case ObjectType::Weapon:
-                    obj.Render.Model.ID = Models::PlaceableMine;
+                    obj.Render.Model.ID = ModelID::Mine;
                     break;
 
                 case ObjectType::Player:
-                    obj.Render.Model.ID = level.IsDescent1() ? Models::D1Player : Models::D2Player;
+                    obj.Render.Model.ID = level.IsDescent1() ? ModelID::D1Player : ModelID::D2Player;
                     break;
 
                 case ObjectType::Coop:
-                    obj.Render.Model.ID = level.IsDescent1() ? Models::D1Coop : Models::D2Coop;
+                    obj.Render.Model.ID = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
                     break;
 
             }

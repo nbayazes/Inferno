@@ -3,10 +3,10 @@
 #include "Game.h"
 #include "Resources.h"
 
-namespace Inferno::Game {
+namespace Inferno {
     void HandleEditorDebugInput(float dt) {
         using Keys = DirectX::Keyboard::Keys;
-        auto& obj = Level.Objects[0];
+        auto& obj = Game::Level.Objects[0];
         auto& physics = obj.Movement.Physics;
 
         auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
@@ -45,7 +45,7 @@ namespace Inferno::Game {
 
     void HandleInput(float dt) {
         using Keys = DirectX::Keyboard::Keys;
-        auto& obj = Level.Objects[0];
+        auto& obj = Game::Level.Objects[0];
         auto& physics = obj.Movement.Physics;
 
         //auto ht0 = GetHoldTime(true, 0, frameTime);
@@ -74,7 +74,7 @@ namespace Inferno::Game {
 
         float invertMult = -1;
         float sensitivity = 1 * 64;
-        float scale = 1 / (sensitivity * dt / TICK_RATE);
+        float scale = 1 / (sensitivity * dt / Game::TICK_RATE);
         physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
         physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
     }

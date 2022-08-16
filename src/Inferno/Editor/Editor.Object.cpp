@@ -120,7 +120,7 @@ namespace Inferno::Editor {
     }
 
     void InitObject(const Level& level, Object& obj, ObjectType type) {
-        const ModelID coopModel = level.IsDescent1() ? Models::D1Coop : Models::D2Coop;
+        const ModelID coopModel = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
 
         obj.Type = type;
         obj.ID = 0; // can only have one ID 0 player, fix it later
@@ -214,7 +214,7 @@ namespace Inferno::Editor {
 
                 obj.ID = 51;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model.ID = Models::PlaceableMine;
+                obj.Render.Model.ID = ModelID::Mine;
                 obj.HitPoints = 20;
             }
         }

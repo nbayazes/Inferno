@@ -703,7 +703,7 @@ namespace Inferno::Render {
             case ObjectType::Fireball:
             {
                 if (pass != RenderPass::Transparent) return;
-                if (object.Render.VClip.ID == VClips::Matcen) {
+                if (object.Render.VClip.ID == VClipID::Matcen) {
                     auto up = object.Rotation.Up();
                     DrawSprite(ctx, object, true, lerp, &up);
                 }

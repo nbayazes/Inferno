@@ -237,7 +237,7 @@ namespace Inferno::Editor {
         static float nextMatcenTime = 0;
         if (nextMatcenTime > Game::ElapsedTime) return;
 
-        auto& vclip = Resources::GetVideoClip(VClips::Matcen);
+        auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
         nextMatcenTime = (float)Game::ElapsedTime + vclip.PlayTime;
 
         for (auto& seg : level.Segments) {
@@ -247,7 +247,7 @@ namespace Inferno::Editor {
 
                 Render::Particle p{};
                 auto up = top - bottom;
-                p.Clip = VClips::Matcen;
+                p.Clip = VClipID::Matcen;
                 p.Radius = up.Length() / 2;
                 up.Normalize(p.Up);
                 p.Life = vclip.PlayTime;

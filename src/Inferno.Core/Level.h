@@ -80,8 +80,7 @@ namespace Inferno {
             Segments(version == 1 ? 800 : 900),
             Vertices(version == 1 ? 2808 : 3608),
             Walls(version == 1 ? 175 : 255),
-            FlickeringLights(version >= 1 ? 100 : 0) {
-        }
+            FlickeringLights(version >= 1 ? 100 : 0) {}
 
         int Objects = 350;
         int Segments; // Note that source ports allow thousands of segments
@@ -209,7 +208,8 @@ namespace Inferno {
         constexpr Wall& GetWall(WallID id) { return Walls[(int)id]; }
 
         constexpr Wall* TryGetWall(Tag tag) {
-            if (tag.Segment == SegID::None) return nullptr;
+            if (tag.Segment == SegID::None || tag.Side == SideID::None) 
+                return nullptr;
 
             if (auto seg = TryGetSegment(tag)) {
                 auto id = (int)seg->GetSide(tag.Side).Wall;
@@ -218,6 +218,15 @@ namespace Inferno {
             }
 
             return nullptr;
+        }
+
+        constexpr Tuple<Wall*, Wall*> TryGetWalls(Tag tag) {
+            if (tag.Segment == SegID::None || tag.Side == SideID::None)
+                return { nullptr, nullptr };
+
+            auto wall = TryGetWall(tag);
+            auto cwall = TryGetConnectedWall(tag);
+            return { wall, cwall };
         }
 
         constexpr WallID TryGetWallID(Tag tag) const {
@@ -282,8 +291,8 @@ namespace Inferno {
             return {};
         }
 
-        Wall* GetConnectedWall(const Wall& wall) {
-            auto other = GetConnectedSide(wall.Tag);
+        Wall* TryGetConnectedWall(Tag tag) {
+            auto other = GetConnectedSide(tag);
             return TryGetWall(other);
         }
 
@@ -326,11 +335,13 @@ namespace Inferno {
         Segment& GetSegment(Tag tag) { return Segments[(int)tag.Segment]; }
         const Segment& GetSegment(Tag tag) const { return Segments[(int)tag.Segment]; }
 
+        // Unchecked access
         SegmentSide& GetSide(Tag tag) {
             return Segments[(int)tag.Segment].Sides[(int)tag.Side];
         };
 
         SegmentSide* TryGetSide(Tag tag) {
+            if (tag.Side == SideID::None) return nullptr;
             auto seg = TryGetSegment(tag);
             if (!seg) return nullptr;
             return &seg->GetSide(tag.Side);

@@ -117,7 +117,7 @@ namespace Inferno::Render {
         }
 
         {
-            auto& matcen = Resources::GetVideoClip(VClips::Matcen);
+            auto& matcen = Resources::GetVideoClip(VClipID::Matcen);
             Seq::insert(vclips, matcen.GetFrames()); // Always load matcen effect
         }
         return vclips;

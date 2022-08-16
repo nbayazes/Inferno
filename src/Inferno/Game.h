@@ -52,4 +52,6 @@ namespace Inferno::Game {
     void ToggleEditorMode();
 
     inline bool ShowDebugOverlay = false;
+
+    inline bool SecretLevelDestroyed = false;
 }

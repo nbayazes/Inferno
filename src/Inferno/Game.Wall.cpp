@@ -1,52 +1,56 @@
 #include "pch.h"
+#define NOMINMAX
 #include "Game.Wall.h"
 #include "SoundSystem.h"
 #include "Physics.h"
+#include <Game.Segment.h>
 #include "Face.h"
+#include "Game.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
- //template<class TData, class TKey = int>
- //class SlotMap {
- //    std::vector<TData> _data;
- //    std::function<bool(const TData&)> _aliveFn;
+    //template<class TData, class TKey = int>
+    //class SlotMap {
+    //    std::vector<TData> _data;
+    //    std::function<bool(const TData&)> _aliveFn;
 
- //public:
- //    SlotMap(std::function<bool(const TData&)> aliveFn) : _aliveFn(aliveFn) {}
+    //public:
+    //    SlotMap(std::function<bool(const TData&)> aliveFn) : _aliveFn(aliveFn) {}
 
- //    TData& Get(TKey key) {
- //        assert(InRange(key));
- //        return _data[(int64)key];
- //    }
+    //    TData& Get(TKey key) {
+    //        assert(InRange(key));
+    //        return _data[(int64)key];
+    //    }
 
- //    [[nodiscard]] TKey Add(TData&& data) {
- //        for (size_t i = 0; i < _data.size(); i++) {
- //            if (!_aliveFn(_data[i])) {
- //                _data = data;
- //                return (TKey)i;
- //            }
- //        }
+    //    [[nodiscard]] TKey Add(TData&& data) {
+    //        for (size_t i = 0; i < _data.size(); i++) {
+    //            if (!_aliveFn(_data[i])) {
+    //                _data = data;
+    //                return (TKey)i;
+    //            }
+    //        }
 
- //        _data.push_back(data);
- //        return TKey(_data.size() - 1);
- //    }
+    //        _data.push_back(data);
+    //        return TKey(_data.size() - 1);
+    //    }
 
- //    [[nodiscard]] TData& Alloc() {
- //        for (auto& v : _data) {
- //            if (_aliveFn(v))
- //                return v;
- //        }
+    //    [[nodiscard]] TData& Alloc() {
+    //        for (auto& v : _data) {
+    //            if (_aliveFn(v))
+    //                return v;
+    //        }
 
- //        return _data.emplace_back();
- //    }
+    //        return _data.emplace_back();
+    //    }
 
- //    bool InRange(TKey index) const { return index >= (TKey)0 && index < (TKey)_data.size(); }
+    //    bool InRange(TKey index) const { return index >= (TKey)0 && index < (TKey)_data.size(); }
 
- //    [[nodiscard]] auto at(size_t index) { return _data.at(index); }
- //    [[nodiscard]] auto begin() { return _data.begin(); }
- //    [[nodiscard]] auto end() { return _data.end(); }
- //    [[nodiscard]] const auto begin() const { return _data.begin(); }
- //    [[nodiscard]] const auto end() const { return _data.end(); }
- //};
+    //    [[nodiscard]] auto at(size_t index) { return _data.at(index); }
+    //    [[nodiscard]] auto begin() { return _data.begin(); }
+    //    [[nodiscard]] auto end() { return _data.end(); }
+    //    [[nodiscard]] const auto begin() const { return _data.begin(); }
+    //    [[nodiscard]] const auto end() const { return _data.end(); }
+    //};
 
     constexpr float DOOR_WAIT_TIME = 2;
 
@@ -116,6 +120,20 @@ namespace Inferno {
         }
     }
 
+    bool DoorIsObstructed(Level& level, Tag tag) {
+        auto other = level.GetConnectedSide(tag);
+        for (auto& obj : level.Objects | views::filter(Object::IsAliveFn)) {
+            if (obj.Segment == tag.Segment || obj.Segment == other.Segment) {
+                DirectX::BoundingSphere sphere(obj.Position, obj.Radius);
+                auto face = Face::FromSide(level, tag);
+                if (IntersectFaceSphere(face, sphere))
+                    return true; // object blocking doorway!
+            }
+        }
+
+        return false;
+    }
+
     void DoCloseDoor(Level& level, ActiveDoor& door, float dt) {
         auto& wall = level.GetWall(door.Front);
 
@@ -127,14 +145,7 @@ namespace Inferno {
         auto& cside = level.GetSide(conn);
 
         if (wall.HasFlag(WallFlag::DoorAuto)) {
-            for (auto& obj : level.Objects | views::filter(Object::IsAliveFn)) {
-                if (obj.Segment == wall.Tag.Segment || obj.Segment == conn.Segment) {
-                    DirectX::BoundingSphere sphere(obj.Position, obj.Radius);
-                    auto face = Face::FromSide(level, wall.Tag);
-                    if (IntersectFaceSphere(face, sphere))
-                        return; // object blocking doorway!
-                }
-            }
+            if (DoorIsObstructed(level, wall.Tag)) return;
         }
 
         auto& clip = Resources::GetWallClip(wall.Clip);
@@ -173,7 +184,7 @@ namespace Inferno {
         }
     }
 
-
+    // Commands a door to open
     void OpenDoor(Level& level, Tag tag) {
         auto& seg = level.GetSegment(tag);
         auto& side = seg.GetSide(tag.Side);
@@ -235,6 +246,19 @@ namespace Inferno {
         //}
     }
 
+    // Commands a door to close
+    void CloseDoor(Level& level, Tag tag) {
+        auto wall = level.TryGetWall(tag);
+        if (!wall) return;
+
+        if (wall->State == WallState::DoorClosing ||
+            wall->State == WallState::DoorWaiting ||
+            wall->State == WallState::Closed)
+            return;
+
+
+    }
+
     void UpdateDoors(Level& level, float dt) {
         for (auto& door : level.ActiveDoors) {
             auto wall = level.TryGetWall(door.Front);
@@ -256,4 +280,236 @@ namespace Inferno {
             }
         }
     }
+
+
+    void PrintHudMessage(string msg) {}
+
+    void PrintTriggerMessage(const Trigger& trigger, string message) {
+        if (trigger.HasFlag(TriggerFlag::NoMessage)) return;
+
+        auto msg = fmt::format(message, trigger.Targets.Count() > 1 ? "s" : "");
+        PrintHudMessage(msg);
+    }
+
+    void ActivateTriggerD1(Level& level, Trigger& trigger) {}
+
+    bool WallIsForcefield(Level& level, Trigger& trigger) {
+        for (auto& tag : trigger.Targets) {
+            if (auto seg = level.TryGetSide(tag)) {
+                if (Resources::GetLevelTextureInfo(seg->TMap).HasFlag(TextureFlag::ForceField))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    bool ChangeWalls(Trigger& trigger) {
+        bool changed = false;
+
+        return changed;
+    }
+
+    void StartExitSequence(Level&) {
+
+    }
+
+    void EnterSecretLevel() {}
+
+    void ToggleWall(Segment& seg, SideID side) {
+
+    }
+
+    Option<SideID> GetConnectedSide(Segment& base, SegID conn) {
+        for (auto& side : SideIDs) {
+            if (base.GetConnection(side) == conn)
+                return side;
+        }
+
+        return {};
+    }
+
+    void ExplodeWall(Tag tag) {
+        // create small explosions on the face
+        //SoundID::ExplodingWall = 31;
+        // do_exploding_wall_frame()
+    }
+
+    void DestroyWall(Level& level, Tag tag) {
+        auto [wall, cwall] = level.TryGetWalls(tag);
+        if (!wall) return;
+
+        wall->HitPoints = -1;
+        if (cwall) cwall->HitPoints = -1;
+
+        // todo: remove objects stuck on side (flares, decals)
+
+        auto& wclip = Resources::GetWallClip(wall->Clip);
+        if (wclip.HasFlag(WallClipFlag::Explodes)) {
+            ExplodeWall(wall->Tag);
+        }
+        else {
+            // if not exploding, set final frame and open
+            wclip.NumFrames;
+            wall->SetFlag(WallFlag::Blasted);
+            if (cwall)
+                cwall->SetFlag(WallFlag::Blasted);
+        }
+    }
+
+    // Opens doors targeted by a trigger (or destroys them)
+    void OpenDoorTrigger(Level& level, Trigger& trigger) {
+        for (auto& target : trigger.Targets) {
+            //ToggleWall(target);
+            if (auto wall = level.TryGetWall(target)) {
+                if (wall->Type == WallType::Destroyable)
+                    DestroyWall(level, target);
+
+                if (wall->Type == WallType::Door || wall->Type == WallType::Closed)
+                    OpenDoor(level, target);
+            }
+        }
+    }
+
+    void CloseDoors(Level& level, Trigger& trigger) {
+        for (auto& target : trigger.Targets) {
+            CloseDoor(level, target);
+        }
+    }
+
+    void UnlockDoors(Level& level, Trigger& trigger) {
+        for (auto& tag : trigger.Targets) {
+            if (auto wall = level.TryGetWall(tag)) {
+                wall->ClearFlag(WallFlag::DoorLocked);
+                wall->Keys = WallKey::None;
+            }
+        }
+    }
+
+    void LockDoors(Level& level, Trigger& trigger) {
+        for (auto& tag : trigger.Targets) {
+            if (auto wall = level.TryGetWall(tag)) {
+                wall->SetFlag(WallFlag::DoorLocked);
+            }
+        }
+    }
+
+    void TriggerMatcen(SegID seg) {
+        // do matcen stuff
+    }
+
+    void IllusionOn(Level& level, Tag tag) {
+        auto [wall, cwall] = level.TryGetWalls(tag);
+        if (wall) wall->SetFlag(WallFlag::IllusionOff);
+        if (cwall) wall->SetFlag(WallFlag::IllusionOff);
+    }
+
+    void IllusionOff(Level& level, Tag tag) {
+        auto [wall, cwall] = level.TryGetWalls(tag);
+        if (wall) wall->ClearFlag(WallFlag::IllusionOff);
+        if (cwall) wall->ClearFlag(WallFlag::IllusionOff);
+    }
+
+    void ActivateTriggerD2(Level& level, Trigger& trigger) {
+        if (trigger.HasFlag(TriggerFlag::Disabled))
+            return;
+
+        if (trigger.HasFlag(TriggerFlag::OneShot))
+            trigger.Flags |= TriggerFlag::Disabled;
+
+        switch (trigger.Type) {
+            case TriggerType::Exit:
+                StartExitSequence(level);
+                break;
+
+            case TriggerType::SecretExit:
+                // warp to secret level unless destroyed
+                // stop sounds
+                // play secret exit sound 249
+
+                if (Game::SecretLevelDestroyed)
+                    PrintHudMessage("Secret Level destroyed. Exit disabled.");
+                else
+                    EnterSecretLevel();
+                break;
+
+            case TriggerType::OpenDoor:
+                OpenDoorTrigger(level, trigger);
+                PrintTriggerMessage(trigger, "Door{} opened");
+                break;
+
+            case TriggerType::CloseDoor:
+                CloseDoors(level, trigger);
+                PrintTriggerMessage(trigger, "Door{} closed");
+                break;
+
+            case TriggerType::UnlockDoor:
+                UnlockDoors(level, trigger);
+                PrintTriggerMessage(trigger, "Door{} unlocked");
+                break;
+
+            case TriggerType::LockDoor:
+                LockDoors(level, trigger);
+                PrintTriggerMessage(trigger, "Door{} locked");
+                break;
+
+            case TriggerType::CloseWall:
+                if (ChangeWalls(trigger)) {
+                    if (WallIsForcefield(level, trigger))
+                        PrintTriggerMessage(trigger, "Force field{} deactivated!");
+                    else
+                        PrintTriggerMessage(trigger, "Wall{} opened!");
+                }
+                break;
+
+            case TriggerType::OpenWall:
+                if (ChangeWalls(trigger)) {
+                    if (WallIsForcefield(level, trigger))
+                        PrintTriggerMessage(trigger, "Force field{} activated!");
+                    else
+                        PrintTriggerMessage(trigger, "Wall{} closed!");
+                }
+                break;
+
+            case TriggerType::IllusoryWall:
+                ChangeWalls(trigger); // not sure what message to print
+                break;
+
+            case TriggerType::IllusionOn:
+                PrintTriggerMessage(trigger, "Illusion{} on!");
+                for (auto& tag : trigger.Targets)
+                    IllusionOn(level, tag);
+                break;
+
+            case TriggerType::IllusionOff:
+                PrintTriggerMessage(trigger, "Illusion{} off!");
+                for (auto& tag : trigger.Targets) {
+                    // todo: play SOUND::WallRemoved
+                    IllusionOff(level, tag);
+                }
+                break;
+
+            case TriggerType::LightOff:
+                PrintTriggerMessage(trigger, "Light{} off!");
+                for (auto& tag : trigger.Targets) {
+                    if (auto seg = level.TryGetSegment(tag))
+                        SubtractLight(level, tag, *seg);
+                }
+                break;
+
+            case TriggerType::LightOn:
+                PrintTriggerMessage(trigger, "Light{} on!");
+                for (auto& tag : trigger.Targets) {
+                    if (auto seg = level.TryGetSegment(tag))
+                        AddLight(level, tag, *seg);
+                }
+                break;
+
+            case TriggerType::Matcen:
+                for (auto& tag : trigger.Targets) {
+                    TriggerMatcen(tag.Segment);
+                }
+                break;
+        }
+    }
+
 }
