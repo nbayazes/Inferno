@@ -720,7 +720,10 @@ namespace Inferno::Editor {
                     if (FlagCheckbox(fmt::format("##{}", label).c_str(), flag, wall->Flags)) {
                         if (Settings::EditBothWallSides && other && other->Type == wall->Type)
                             other->SetFlag(flag, wall->HasFlag(flag));
+
+                        return true;
                     }
+                    return false;
                 };
 
                 switch (wall->Type) {
@@ -766,10 +769,35 @@ namespace Inferno::Editor {
                             if (other && Settings::EditBothWallSides)
                                 other->Keys = wall->Keys;
 
-                        flagCheckbox("Opened", WallFlag::DoorOpened, wall);
+                        if (flagCheckbox("Opened", WallFlag::DoorOpened, wall)) {
+                            // If opened, also set the wall state to open so that close triggers will work on it
+                            bool opened = wall->HasFlag(WallFlag::DoorOpened);
+                            auto& wclip = Resources::GetWallClip(wall->Clip);
+                            auto tmap = opened ? wclip.GetFrames().back() : wclip.Frames[0];
+
+                            wall->State = opened ? WallState::DoorOpen : WallState::Closed;
+
+                            if (auto side = level.TryGetSide(wall->Tag)) {
+                                if (wclip.UsesTMap1()) side->TMap = tmap;
+                                else side->TMap2 = tmap;
+                            }
+
+                            if (Settings::EditBothWallSides && other && other->Type == wall->Type) {
+                                other->State = opened ? WallState::DoorOpen : WallState::Closed;
+
+                                if (auto side = level.TryGetSide(other->Tag)) {
+                                    if (wclip.UsesTMap1()) side->TMap = tmap;
+                                    else side->TMap2 = tmap;
+                                }
+                            }
+
+                            Events::LevelChanged();
+                        }
+
                         flagCheckbox("Locked", WallFlag::DoorLocked, wall);
                         flagCheckbox("Auto Close", WallFlag::DoorAuto, wall);
-                        flagCheckbox("Buddy Proof", WallFlag::BuddyProof, wall);
+                        if (!level.IsDescent1())
+                            flagCheckbox("Buddy Proof", WallFlag::BuddyProof, wall);
                         break;
                     }
 
