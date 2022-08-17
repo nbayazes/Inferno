@@ -73,6 +73,36 @@ namespace Inferno::Game {
         }
     }
 
+    void UpdateAmbientSounds() {
+        auto& player = Level.Objects[0];
+        bool hasLava = bool(Level.GetSegment(player.Segment).AmbientSound & SoundFlag::AmbientLava);
+        bool hasWater = bool(Level.GetSegment(player.Segment).AmbientSound & SoundFlag::AmbientWater);
+
+        SoundID sound{};
+
+        if (hasLava) {
+            sound = SoundID::AmbientLava;
+            if (hasWater && Random() > 0.5f) // if both water and lava pick one at random
+                sound = SoundID::AmbientWater;
+        }
+        else if (hasWater) {
+            sound = SoundID::AmbientWater;
+        }
+        else {
+            return;
+        }
+
+        if (Random() < 0.003f) {
+            // Playing the sound at player is what the original game does,
+            // but it would be nicer to come from the environment instead...
+            Sound3D s(ObjID(0));
+            s.Volume = Random() + 0.5f;
+            s.Resource = Resources::GetSoundResource(sound);
+            s.AttachToSource = true;
+            s.FromPlayer = true;
+            Sound::Play(s);
+        }
+    }
 
     using Keys = Keyboard::Keys;
 
@@ -141,7 +171,7 @@ namespace Inferno::Game {
 
         //auto pitch = -Random() * 0.2f;
         //Sound::Sound3D sound(point, obj.Segment);
-        Sound::Sound3D sound(ObjID(0));
+        Sound3D sound(ObjID(0));
         sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
         sound.Volume = 0.55f;
         sound.AttachToSource = true;
@@ -342,7 +372,7 @@ namespace Inferno::Game {
             }
         }
 
-
+        UpdateAmbientSounds();
         Render::UpdateDebris(dt);
 
         for (auto& obj : Level.Objects) {
@@ -450,6 +480,51 @@ namespace Inferno::Game {
 
     Camera EditorCameraSnapshot;
 
+    void MarkNearby(SegID id, span<int8> marked, int depth) {
+        if (depth < 0) return;
+        marked[(int)id] = true;
+
+        auto& seg = Level.GetSegment(id);
+        for (auto& sid : SideIDs) {
+            auto conn = seg.GetConnection(sid);
+            if (conn > SegID::None && !seg.SideIsWall(sid) && !marked[(int)conn])
+                MarkNearby(conn, marked, depth - 1);
+        }
+    }
+
+    void MarkAmbientSegments(SoundFlag sflag, TextureFlag tflag) {
+        List<int8> marked(Level.Segments.size());
+
+        for (auto& seg : Level.Segments) {
+            seg.AmbientSound &= ~sflag;
+        }
+
+        for (int i = 0; i < Level.Segments.size(); i++) {
+            auto& seg = Level.Segments[i];
+            for (auto& sid : SideIDs) {
+                auto& side = seg.GetSide(sid);
+                auto& tmi1 = Resources::GetLevelTextureInfo(side.TMap);
+                auto& tmi2 = Resources::GetLevelTextureInfo(side.TMap2);
+                if (tmi1.HasFlag(tflag) || tmi2.HasFlag(tflag)) {
+                    seg.AmbientSound |= sflag;
+                }
+            }
+        }
+
+        constexpr auto MAX_DEPTH = 5;
+
+        for (int i = 0; i < Level.Segments.size(); i++) {
+            auto& seg = Level.Segments[i];
+            if (bool(seg.AmbientSound & sflag))
+                MarkNearby(SegID(i), marked, MAX_DEPTH);
+        }
+
+        for (int i = 0; i < Level.Segments.size(); i++) {
+            if (marked[i])
+                Level.Segments[i].AmbientSound |= sflag;
+        }
+    }
+
     void ToggleEditorMode() {
         if (State == GameState::Game) {
             // Activate editor mode
@@ -465,6 +540,7 @@ namespace Inferno::Game {
                 Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
             }
             else {
+                SPDLOG_ERROR("No player start at object 0!");
                 return; // no player start!
             }
 
@@ -472,6 +548,7 @@ namespace Inferno::Game {
             Editor::History.SnapshotLevel("Playtest");
 
             State = GameState::Game;
+
             for (auto& obj : Level.Objects) {
                 obj.LastPosition = obj.Position;
                 obj.LastRotation = obj.Rotation;
@@ -481,6 +558,9 @@ namespace Inferno::Game {
                     obj.HitPoints = ri.HitPoints;
                 }
             }
+
+            MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
+            MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
 
             EditorCameraSnapshot = Render::Camera;
             Settings::RenderMode = RenderMode::Shaded;

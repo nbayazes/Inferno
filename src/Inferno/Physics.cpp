@@ -12,6 +12,7 @@
 #include "Editor/Events.h"
 #include "Graphics/Render.Particles.h"
 #include "Game.Wall.h"
+#include "HUD.h"
 
 using namespace DirectX;
 
@@ -1197,11 +1198,14 @@ namespace Inferno {
                                 // Can't open door
                                 if (obj.Type == ObjectType::Weapon) {
                                     // todo: only play sound and message if door is in front of the player
-                                    Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                                    Sound3D sound(hit.Point, hit.Tag.Segment);
                                     sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
                                     sound.Source = obj.Parent;
                                     sound.FromPlayer = true;
                                     Sound::Play(sound);
+
+                                    // TXT_CANT_OPEN_DOOR - from descent.TXB
+                                    PrintHudMessage("Locked!");
                                 }
                             }
                             else if (wall->State != WallState::DoorOpening) {
@@ -1215,7 +1219,7 @@ namespace Inferno {
                             hit.HitObj->Lifespan = -1;
 
                             auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
-                            Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                            Sound3D sound(hit.Point, hit.Tag.Segment);
                             sound.Resource = Resources::GetSoundResource(powerup.HitSound);
                             sound.Source = obj.Parent;
                             sound.FromPlayer = true;
@@ -1227,7 +1231,7 @@ namespace Inferno {
                         if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
                             hit.HitObj->Lifespan = -1;
 
-                            Sound::Sound3D sound(hit.Point, hit.Tag.Segment);
+                            Sound3D sound(hit.Point, hit.Tag.Segment);
                             sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
                             sound.Source = obj.Parent;
                             sound.FromPlayer = true;

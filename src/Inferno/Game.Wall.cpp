@@ -153,7 +153,7 @@ namespace Inferno {
 
         if (door.Time == 0) { // play sound at start of closing
             //auto sound = Resources::GetSoundIndex(clip.CloseSound);
-            Sound::Sound3D sound(side.Center, wall.Tag.Segment);
+            Sound3D sound(side.Center, wall.Tag.Segment);
             sound.Resource = Resources::GetSoundResource(clip.CloseSound);
             Sound::Play(sound);
         }
@@ -225,7 +225,7 @@ namespace Inferno {
         }
 
         if (clip.OpenSound != SoundID::None) {
-            Sound::Sound3D sound(side.Center, tag.Segment);
+            Sound3D sound(side.Center, tag.Segment);
             sound.Resource = Resources::GetSoundResource(clip.OpenSound);
             Sound::Play(sound);
         }

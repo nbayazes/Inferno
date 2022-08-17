@@ -77,7 +77,7 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(-1);
             ImGui::InputText("Search", search.data(), 50);
 
-            Sound::Sound3D s(Editor::Selection.Object);
+            Sound3D s(Editor::Selection.Object);
             s.Volume = _vol;
             s.Pitch = _pitch;
             s.AttachToSource = true;

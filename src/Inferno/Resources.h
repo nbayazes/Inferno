@@ -17,7 +17,7 @@ namespace Inferno::Resources {
     extern SoundFile SoundsD1, SoundsD2;
     int GetSoundCount();
     int GetSoundIndex(SoundID id);
-    Sound::SoundResource GetSoundResource(SoundID id);
+    SoundResource GetSoundResource(SoundID id);
 
     WClipID GetWallClipID(LevelTexID);
     const WallClip& GetWallClip(WClipID);

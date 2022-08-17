@@ -217,7 +217,7 @@ namespace Inferno::Resources {
         return GameData.Sounds[(int)id];
     }
 
-    Sound::SoundResource GetSoundResource(SoundID id) {
+    SoundResource GetSoundResource(SoundID id) {
         if (Game::Level.IsDescent1())
             return { .D1 = GameData.Sounds[(int)id] };
         else

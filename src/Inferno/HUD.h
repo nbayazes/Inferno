@@ -356,7 +356,7 @@ namespace Inferno {
     }
 
     inline void PrintHudMessage(string_view msg) {
-        //if (msg == HudMessages[0]) return; // duplicated
+        if (msg == HudMessages[0]) return; // duplicated
 
         if (HudMessageCount >= std::size(HudMessages)) {
             ShiftHudMessages();

@@ -54,10 +54,13 @@ namespace Inferno {
                 auto st = SegmentType::None;
                 if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
                     st = seg->Type;
-                }
 
-                ImGui::Text("Segment: %d Type: %d", player->Segment, st);
-                ImGui::Text("Room type: Normal");
+                    bool hasLava = bool(seg->AmbientSound & SoundFlag::AmbientLava);
+                    bool hasWater = bool(seg->AmbientSound & SoundFlag::AmbientWater);
+                    ImGui::Text("Segment: %d Type: %d", player->Segment, st);
+                    string type = hasLava ? "Lava" : hasWater ? "Water" : "Normal";
+                    ImGui::Text("Room type: %s", type.c_str());
+                }
                 ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
             }
         }

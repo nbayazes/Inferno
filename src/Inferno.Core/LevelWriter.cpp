@@ -155,7 +155,7 @@ namespace Inferno {
                 writer.Write((int16)segment.Value);
 
             if (level.Version > 5) {
-                writer.Write((ubyte)segment.S2Flags);
+                writer.Write((ubyte)segment.AmbientSound);
                 Color desaturate;
                 segment.VolumeLight.AdjustSaturation(0, desaturate);
                 writer.WriteFix(desaturate.x * 12);

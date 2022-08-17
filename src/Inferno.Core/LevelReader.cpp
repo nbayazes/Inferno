@@ -110,7 +110,7 @@ namespace Inferno {
             seg.Value = _levelVersion > 5 ? reader.ReadByte() : (sbyte)reader.ReadInt16();
 
             if (_levelVersion > 5) {
-                seg.S2Flags = reader.ReadByte(); // Ambient sound flag, overwritten at runtime
+                seg.AmbientSound = (SoundFlag)reader.ReadByte(); // overwritten at runtime
                 // 24 light samples per segment. 12 = 24/2 due to conversion from fix to float
                 auto light = reader.ReadFix() / 12;
                 seg.VolumeLight = Color(light, light, light);

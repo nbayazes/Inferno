@@ -121,6 +121,11 @@ namespace Inferno {
 
     struct Level;
 
+    enum class SoundFlag : ubyte {
+        AmbientWater = 0x01,
+        AmbientLava = 0x02
+    };
+
     struct Segment {
         Array<SegID, MAX_SIDES> Connections = { SegID::None, SegID::None, SegID::None, SegID::None, SegID::None, SegID::None };
         Array<SegmentSide, MAX_SIDES> Sides{};
@@ -129,7 +134,7 @@ namespace Inferno {
         MatcenID Matcen = MatcenID::None; // Which center segment is associated
         ubyte StationIndex{};
         ubyte Value{}; // related to fuel center numbers, unused
-        ubyte S2Flags{}; // ambient sound flag
+        SoundFlag AmbientSound{};
 
         ObjID Objects = ObjID::None; // pointer to objects in this segment.
         // If bit n (1 << n) is set, then side #n in segment has had light subtracted from original (editor-computed) value.

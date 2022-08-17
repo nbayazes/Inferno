@@ -249,7 +249,7 @@ namespace Inferno {
     };
 
     struct PlayerData {
-        ObjID objnum;   // What object number this player is.
+        ObjID ID = ObjID(0);   // What object number this player is.
         float energy;     // Amount of energy remaining.
         float homing_object_dist; // Distance of nearest homing object.
         float Fusion_charge;

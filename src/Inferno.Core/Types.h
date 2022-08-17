@@ -247,15 +247,31 @@ namespace Inferno {
         TouchWaterfall = 158,
 
         SelectPrimary = 153,
-        SelectPrimaryNo = 156,
         SelectSecondary = 154,
+        SelectFail = 156,
         AlreadySelected = 155,
 
         CloseWall = 160,
+        OpenWall = 246,
         CloakOff = 161,
 
+        Cheater = 200,
+
         HitWater = 232,
-        MissileHitWater = 233
+        MissileHitWater = 233,
+
+        AmbientLava = 222,
+        AmbientWater = 223,
+
+        ConvertEnergy = 241,
+        ItemStolen = 244,
+        LightDestroyed = 157,
+
+        SeismicStart = 251,
+        AfterburnerStart = 247,
+        AfterburnerLoop = 248,
+
+        SecretExit = 249,
     };
 
     enum class ModelID : int32 { 

@@ -4,7 +4,7 @@
 #include "Types.h"
 #include "Camera.h"
 
-namespace Inferno::Sound {
+namespace Inferno {
     // Sound source priority: D3, D1, D2
     // D1 has higher priority than D2
     struct SoundResource {
@@ -14,8 +14,8 @@ namespace Inferno::Sound {
 
         size_t GetID() const {
             if (!D3.empty()) return std::hash<string>{}(D3);
-            else if(D1 != -1) return D1;
-            else if(D2 != -1) return 1000 + D2;
+            else if (D1 != -1) return D1;
+            else if (D2 != -1) return 1000 + D2;
             return 0;
         }
     };
@@ -27,7 +27,7 @@ namespace Inferno::Sound {
     };
 
     struct Sound3D {
-        Sound3D(ObjID source) : Source(source) { }
+        Sound3D(ObjID source) : Source(source) {}
         Sound3D(const Vector3& pos, SegID seg) : Position(pos), Segment(seg) {}
 
         Vector3 Position; // Position the sound comes from
@@ -40,7 +40,10 @@ namespace Inferno::Sound {
         Vector3 AttachOffset;
         bool FromPlayer = false; // For the player's firing sounds, afterburner, etc
     };
-    
+}
+
+namespace Inferno::Sound {
+
     void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
     void Shutdown();
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
