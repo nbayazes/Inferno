@@ -42,8 +42,6 @@ namespace Inferno::Editor {
         All = 0xFFFFFFFF
     };
 
-    DEFINE_ENUM_FLAG_OPERATORS(FilterGroup);
-
     struct TextureBrowserState {
         bool GrayRock, BrownRock, RedRock, GreenRock, YellowRock, BlueRock;
         bool Ice, Stones, Grass, Sand, Lava, Water;
@@ -143,5 +141,7 @@ namespace Inferno::Editor {
     private:
         void DrawFilter();
     };
+
+    void LoadTextureFilter(const Level&);
 }
 

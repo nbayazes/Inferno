@@ -25,6 +25,7 @@ namespace Inferno::Game {
             assert(level.FileName != "");
             bool reload = level.FileName == Level.FileName;
 
+            Editor::LoadTextureFilter(level);
             bool forceReload =
                 level.IsDescent2() != Level.IsDescent2() ||
                 Resources::HasCustomTextures() ||

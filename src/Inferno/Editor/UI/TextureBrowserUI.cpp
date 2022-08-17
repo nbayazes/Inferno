@@ -87,6 +87,13 @@ namespace Inferno::Editor {
 
     List<TextureFilter> D1Filter, D2Filter;
 
+    void LoadTextureFilter(const Level& level) {
+        if (level.IsDescent1())
+            D1Filter = ParseFilter("d1filter.txt");
+        else
+            D2Filter = ParseFilter("d2filter.txt");
+    }
+
     Set<LevelTexID> GetInUseBaseTextures(const Level& level) {
         Set<LevelTexID> texIds;
 
@@ -150,9 +157,6 @@ namespace Inferno::Editor {
     TextureBrowserUI::TextureBrowserUI() : WindowBase("Textures", &Settings::Windows.Textures) {
         Events::LevelLoaded += [this] { UpdateTextureList(_filter, true); };
         Events::LevelChanged += [this] { UpdateTextureList(_filter, false); };
-
-        D1Filter = ParseFilter("d1filter.txt");
-        D2Filter = ParseFilter("d2filter.txt");
     }
 
     void TextureBrowserUI::DrawFilter() {
