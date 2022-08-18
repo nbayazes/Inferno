@@ -514,7 +514,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::SameLine();
-        if (ImGui::GetCursorPosX() + 200 * Shell::DpiScale < node.Size.x) {
+        if (ImGui::GetCursorPosX() + 150 * Shell::DpiScale < node.Size.x) {
             ImGui::SeparatorVertical();
             ImGui::SameLine();
         }
