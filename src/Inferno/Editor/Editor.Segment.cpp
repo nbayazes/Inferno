@@ -237,7 +237,7 @@ namespace Inferno::Editor {
         while (!search.empty()) {
             SearchTag tag = search.top();
             search.pop();
-            if (tag.Depth >= maxDepth) continue;
+            if (tag.Depth > maxDepth) continue;
 
             auto seg = level.TryGetSegment(tag.Seg);
             if (!seg) continue;

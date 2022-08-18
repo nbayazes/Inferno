@@ -705,7 +705,7 @@ namespace Inferno::Editor {
         if (!level.SegmentExists(src.Segment)) return faces;
         auto& srcSeg = level.GetSegment(src.Segment);
 
-        auto nearby = GetConnectedSegments(level, src.Segment);
+        auto nearby = GetConnectedSegments(level, src.Segment, 3);
 
         for (int16 srcEdge = 0; srcEdge < 4; srcEdge++) {
             auto src0 = srcSeg.GetVertexIndex(src.Side, srcEdge);
