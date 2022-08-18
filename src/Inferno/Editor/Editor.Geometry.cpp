@@ -118,7 +118,6 @@ namespace Inferno::Editor {
         WeldVertices(level, segIds, Settings::CleanupTolerance);
     }
 
-    // Joins all segments nearby to each segment excluding segments in the source
     void JoinTouchingSegmentsExclusive(Level& level, span<Tag> tags, float tolerance) {
         auto segs = Seq::map(tags, Tag::GetSegID);
         auto nearby = GetNearbySegmentsExclusive(level, segs);

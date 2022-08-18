@@ -36,9 +36,9 @@ namespace Inferno {
             return Face(v0, v1, v2, v3, seg.GetSide(side), seg.GetVertexIndices(side));
         }
 
-        bool Intersects(const Ray& ray, float& dist) const {
+        bool Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
             auto indices = Side.GetRenderIndices();
-            if (Side.AverageNormal.Dot(ray.direction) >= 0) return false; // pass through back side of faces
+            if (!hitBackface && Side.AverageNormal.Dot(ray.direction) >= 0) return false; // pass through back side of faces
 
             return
                 ray.Intersects(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]), dist) ||

@@ -341,6 +341,11 @@ namespace Inferno {
     // Tags a point on a segment side
     struct PointTag : public Tag { uint16 Point; };
 
+    constexpr Tag GetOppositeSide(Tag tag) {
+        tag.Side = GetOppositeSide(tag.Side);
+        return tag;
+    }
+
     //Some handy constants for interacting with fixed precision values
     constexpr auto F1_0 = 0x10000;
 

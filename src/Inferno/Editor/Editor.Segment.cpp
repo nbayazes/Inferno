@@ -424,8 +424,7 @@ namespace Inferno::Editor {
                 side.TMap2 = LevelTexID::Unset;
         }
 
-        seg.UpdateNormals(level);
-        seg.UpdateCenter(level);
+        seg.UpdateGeometricProps(level);
 
         level.Segments.push_back(seg);
         Events::SegmentsChanged();
@@ -459,8 +458,7 @@ namespace Inferno::Editor {
         seg.Sides[4].TMap = LevelTexID(0);
         seg.Sides[5].TMap = LevelTexID(0);
 
-        seg.UpdateCenter(level);
-        seg.UpdateNormals(level);
+        seg.UpdateGeometricProps(level);
 
         Render::LoadTextureDynamic(seg.Sides[0].TMap);
         Render::LoadTextureDynamic(seg.Sides[1].TMap);
@@ -473,7 +471,8 @@ namespace Inferno::Editor {
         return id;
     }
 
-    // Simple approach to aligning sides from OLE but isn't reliable
+    // Simple approach to aligning sides from OLE but isn't reliable.
+    // Moves src onto dest
     void AlignFaces(const Face& src, const Face& dest) {
         float minDist = FLT_MAX;
         int srcVert = 0;
@@ -497,24 +496,53 @@ namespace Inferno::Editor {
             src[(srcVert + i) % 4] = dest[(dstVert + (4 - i)) % 4];
     }
 
-    bool JoinSides(Level& level, Tag srcId, Tag destId) {
-        if (srcId.Segment == destId.Segment)
-            return false;
+    // Projects a ray from the center of src face to dest face and checks the flatness ratio
+    bool RayCheckDegenerate(Level& level, Tag tag) {
+        auto opposite = GetOppositeSide(tag.Side);
+        auto srcFace = Face::FromSide(level, tag);
+        auto destFace = Face::FromSide(level, { tag.Segment, opposite });
 
-        if (!level.SegmentExists(srcId) || !level.SegmentExists(destId))
-            return false;
+        auto vec = destFace.Center() - srcFace.Center();
+        auto maxDist = vec.Length();
+        vec.Normalize();
+        if (vec == Vector3::Zero) return true;
 
-        if (level.HasConnection(srcId) || level.HasConnection(destId))
-            return false;
+        Ray ray(srcFace.Center(), vec);
+        for (auto side : SideIDs) {
+            if (side == tag.Side || side == opposite) continue;
+            auto tface = Face::FromSide(level, { tag.Segment, side });
+            auto flatness = tface.FlatnessRatio();
+            if (flatness <= 0.80f) return true;
 
-        auto& seg = level.GetSegment(srcId);
-        auto srcFace = Face::FromSide(level, seg, srcId.Side);
-        auto destFace = Face::FromSide(level, destId);
-
-        if (srcFace.SharesIndices(destFace)) {
-            AlignFaces(srcFace, destFace);
+            float dist{};
+            if (tface.Intersects(ray, dist, true) && dist > 0.01f/*&& dist < maxDist*/)
+                if (dist < maxDist)
+                    return true;
         }
-        else {
+
+        return false;
+    }
+
+    bool JoinSides(Level& level, Tag srcTag, Tag destId) {
+        if (srcTag.Segment == destId.Segment)
+            return false;
+
+        if (!level.SegmentExists(srcTag) || !level.SegmentExists(destId))
+            return false;
+
+        if (level.HasConnection(srcTag) || level.HasConnection(destId))
+            return false;
+
+        auto& seg = level.GetSegment(srcTag);
+        auto srcFace = Face::FromSide(level, seg, srcTag.Side);
+        auto destFace = Face::FromSide(level, destId);
+        auto original = srcFace.CopyPoints();
+
+        // Use a simple approach to begin with
+        AlignFaces(srcFace, destFace);
+        seg.UpdateGeometricProps(level);
+
+        if (SegmentIsDegenerate(level, seg) || RayCheckDegenerate(level, srcTag)) {
             static const std::array forward = { 0, 1, 2, 3 };
             static const std::array reverse = { 3, 2, 1, 0 };
             bool foundValid = false;
@@ -527,18 +555,21 @@ namespace Inferno::Editor {
                 for (int f = 0; f < 4; f++)
                     srcFace[f] = destFace[order[(f + i) % 4]];
 
-                if (!SegmentIsDegenerate(level, seg)) {
+                if (!SegmentIsDegenerate(level, seg) && !RayCheckDegenerate(level, srcTag)) {
                     foundValid = true;
                     break;
                 }
             }
 
-            if (!foundValid)
+            if (!foundValid) {
+                for (int f = 0; f < 4; f++)
+                    srcFace[f] = original[f]; // restore original location
                 return false;
+            }
         }
 
-        level.TryAddConnection(srcId, destId);
-        auto nearby = GetNearbySegments(Game::Level, srcId.Segment);
+        level.TryAddConnection(srcTag, destId);
+        auto nearby = GetNearbySegments(Game::Level, srcTag.Segment);
         WeldVerticesOfOpenSides(Game::Level, nearby, Settings::CleanupTolerance);
         level.UpdateAllGeometricProps();
         return true;
@@ -551,10 +582,14 @@ namespace Inferno::Editor {
         }
 
         auto seg = InsertSegment(Game::Level, Editor::Selection.Tag(), 0, InsertMode::Extrude);
-        
+
         if (JoinSides(Game::Level, { seg, Editor::Selection.Side }, *Editor::Marked.Faces.begin())) {
-            Events::LevelChanged();
+            std::array segs = { seg };
+            auto tags = FacesForSegments(segs);
+            JoinTouchingSegmentsExclusive(Game::Level, tags, 0.01f);
+
             Editor::Selection.SetSelection(seg);
+            Events::LevelChanged();
             Editor::History.SnapshotSelection();
             return "Connect Segments";
         }
@@ -988,17 +1023,21 @@ namespace Inferno::Editor {
         Tag dest = *Editor::Marked.Faces.begin();
         auto srcFace = Face::FromSide(Game::Level, src);
         auto destFace = Face::FromSide(Game::Level, dest);
-        JoinSides(Game::Level, src, dest);
+        if (!JoinSides(Game::Level, src, dest)) {
+            SetStatusMessage("Unable to join sides");
+            return {};
+        }
 
         Events::LevelChanged();
         return "Join Sides";
     }
 
-    bool MergeSegment(Level& level, Tag tag) {
-        if (!level.SegmentExists(tag)) return false;
+    string MergeSegment(Level& level, Tag tag) {
+        if (!level.SegmentExists(tag)) return "No segment selected";
+        auto& seg = level.GetSegment(tag);
 
         auto opposite = level.GetConnectedSide(tag);
-        if (!level.SegmentExists(opposite)) return false; // no connection
+        if (!level.SegmentExists(opposite)) return "Must select an open side to merge segments";
 
         opposite.Side = GetOppositeSide(opposite.Side);
 
@@ -1008,20 +1047,55 @@ namespace Inferno::Editor {
         }
 
         // move verts on top of the connected opposite side
-        auto oppFace = Face::FromSide(level, opposite);
-        auto face = Face::FromSide(level, tag);
-        for (int i = 0; i < 4; i++)
-            face[i] = oppFace[i];
+        auto endFace = Face::FromSide(level, opposite);
+        auto selFace = Face::FromSide(level, tag);
+        auto startFaceSide = GetOppositeSide(tag.Side);
+        auto startFace = Face::FromSide(level, tag.Segment, startFaceSide);
+
+        static const std::array forward = { 0, 1, 2, 3 };
+        static const std::array reverse = { 3, 2, 1, 0 };
+        bool foundValid = false;
+
+        // try attaching the segment to the dest in each orientation until one isn't degenerate
+        for (int i = 0; i < 8; i++) {
+            //int i = 0;
+            auto order = i < 4 ? forward : reverse;
+
+            // copy point locations from dest to src
+            for (int f = 0; f < 4; f++) {
+                selFace[f] = endFace[order[(f + i) % 4]];
+                seg.UpdateGeometricProps(level);
+            }
+
+            if (!RayCheckDegenerate(level, tag)) {
+                foundValid = true;
+                break;
+            }
+        }
+
+        if (!foundValid)
+            return "Unable to create valid segment";
 
         DeleteSegment(level, opposite.Segment);
-        return true;
+        return {};
     }
 
     string OnMergeSegment() {
-        if (!MergeSegment(Game::Level, Editor::Selection.Tag())) {
-            SetStatusMessageWarn("Must select an open side to merge");
+        auto tag = Editor::Selection.Tag();
+        auto opposite = Game::Level.GetConnectedSide(tag);
+        auto msg = MergeSegment(Game::Level, tag);
+        if (!msg.empty()) {
+            SetStatusMessageWarn(msg);
             return {};
         }
+
+        if (opposite.Segment < tag.Segment)
+            tag.Segment--;
+        
+        Editor::Selection.SetSelection(tag.Segment);
+        std::array segs = { tag.Segment };
+        auto tags = FacesForSegments(segs);
+        JoinTouchingSegmentsExclusive(Game::Level, tags, 0.01f);
 
         Events::LevelChanged();
         return "Merge Segment";

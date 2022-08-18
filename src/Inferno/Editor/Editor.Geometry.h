@@ -18,7 +18,10 @@ namespace Inferno::Editor {
     struct VertexReplacement { PointID Old, New; };
     void ReplaceVertices(Level&, span<VertexReplacement>);
 
+    // Tries to join the source segment to all provided segments
     void JoinTouchingSegments(Level&, SegID, span<SegID>, float tolerance, bool skipValidation = false);
+
+    // Joins all segments nearby to each segment excluding segments in the source
     void JoinTouchingSegmentsExclusive(Level&, span<Tag>, float tolerance);
 
     bool PruneVertices(Level&);
