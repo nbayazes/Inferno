@@ -35,9 +35,12 @@ namespace Inferno {
         ObjID Source = ObjID::None; // Source to attach the sound to
         float Volume = 1;
         float Pitch = 0;
+        bool Looped = false;
+        bool Occlusion = true; // Occludes level geometry when determining volume
+        float Radius = 250; // Determines max range and falloff
         SoundResource Resource;
-        bool AttachToSource = false;
-        Vector3 AttachOffset;
+        bool AttachToSource = false; // The sound moves with the Source object
+        Vector3 AttachOffset; // The offset from the Source when attached
         bool FromPlayer = false; // For the player's firing sounds, afterburner, etc
     };
 }

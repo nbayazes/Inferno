@@ -208,7 +208,7 @@ namespace Inferno {
         constexpr Wall& GetWall(WallID id) { return Walls[(int)id]; }
 
         constexpr Wall* TryGetWall(Tag tag) {
-            if (tag.Segment == SegID::None || tag.Side == SideID::None) 
+            if (tag.Segment == SegID::None || tag.Side == SideID::None)
                 return nullptr;
 
             if (auto seg = TryGetSegment(tag)) {
@@ -345,6 +345,10 @@ namespace Inferno {
             auto seg = TryGetSegment(tag);
             if (!seg) return nullptr;
             return &seg->GetSide(tag.Side);
+        };
+
+        SegmentSide* TryGetConnectedSide(Tag tag) {
+            return TryGetSide(GetConnectedSide(tag));
         };
 
         Tuple<Segment&, SegmentSide&> GetSegmentAndSide(Tag tag) {

@@ -480,6 +480,50 @@ namespace Inferno::Game {
 
     Camera EditorCameraSnapshot;
 
+    SoundID GetSoundForSide(SegmentSide& side) {
+        auto ti1 = Resources::TryGetEffectClip(side.TMap);
+        auto ti2 = Resources::TryGetEffectClip(side.TMap2);
+
+        if (ti1 && ti1->Sound != SoundID::None)
+            return ti1->Sound;
+        if (ti2 && ti2->Sound != SoundID::None)
+            return ti2->Sound;
+
+        return SoundID::None;
+    }
+
+    // Adds sound sources from eclips such as lava and forcefields
+    void AddSoundSources() {
+        // todo: clear sounds
+
+        for (int i = 0; i < Level.Segments.size(); i++) {
+            SegID segid = SegID(i);
+            auto& seg = Level.GetSegment(segid);
+            for (auto& sid : SideIDs) {
+                if (!seg.SideIsSolid(sid, Level)) continue;
+
+                auto& side = seg.GetSide(sid);
+                auto sound = GetSoundForSide(side);
+                if (sound == SoundID::None) continue;
+
+                if (auto cside = Level.TryGetConnectedSide({ segid, sid })) {
+                    auto csound = GetSoundForSide(*cside);
+                    if (csound == sound && seg.GetConnection(sid) < segid)
+                        continue; // skip sound on lower numbered segment
+                }
+
+                // Place the sound behind the wall to reduce the doppler effect of flying by it
+                Sound3D s(side.Center - side.AverageNormal * 15, segid);
+                s.Looped = true;
+                s.Radius = 150;
+                s.Resource = Resources::GetSoundResource(sound);
+                s.Volume = 0.55f;
+                s.Occlusion = false;
+                Sound::Play(s);
+            }
+        }
+    }
+
     void MarkNearby(SegID id, span<int8> marked, int depth) {
         if (depth < 0) return;
         marked[(int)id] = true;
@@ -532,7 +576,7 @@ namespace Inferno::Game {
             State = GameState::Editor;
             Render::Camera = EditorCameraSnapshot;
             Input::SetMouselook(false);
-            Sound::Stop3DSounds();
+            Sound::Reset();
             LerpAmount = 1;
         }
         else if (State == GameState::Editor) {
@@ -559,8 +603,10 @@ namespace Inferno::Game {
                 }
             }
 
+            Sound::Reset();
             MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
             MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
+            AddSoundSources();
 
             EditorCameraSnapshot = Render::Camera;
             Settings::RenderMode = RenderMode::Shaded;

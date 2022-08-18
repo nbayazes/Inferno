@@ -18,19 +18,20 @@ namespace Inferno::Sound {
     // Scales game coordinates to audio coordinates.
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
     constexpr float AUDIO_SCALE = 1 / 30.0f;
-    constexpr float MAX_DISTANCE = 400; // Furthest distance a sound can be heard
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
     constexpr float MERGE_WINDOW = 1 / 10.0f; // Discard the same sound being played by a source within a window
 
     struct Sound3DInstance : public Sound3D {
+        float Muffle = 1, TargetMuffle = 1;
         bool Started = false;
         Ptr<SoundEffectInstance> Instance;
         AudioEmitter Emitter; // Stores position
         double StartTime = 0;
 
-        void UpdateEmitter(const Vector3& listener, float /*dt*/) {
+        void UpdateEmitter(const Vector3& listener, float dt) {
             auto obj = Game::Level.TryGetObject(Source);
-            if (obj && AttachToSource) {
+            if (obj && obj->IsAlive() && AttachToSource) {
+                // Move the emitter to the object location if attached
                 auto pos = obj->GetPosition(Game::LerpAmount);
                 if (AttachOffset != Vector3::Zero) {
                     auto rot = obj->GetRotation(Game::LerpAmount);
@@ -40,44 +41,61 @@ namespace Inferno::Sound {
                 Emitter.SetPosition(pos * AUDIO_SCALE);
                 Segment = obj->Segment;
             }
+            else {
+                // object is dead. Should the sound stop?
+            }
 
-            if (obj) {
-                auto emitterPos = Emitter.Position / AUDIO_SCALE;
-                auto delta = listener - emitterPos;
-                Vector3 dir;
-                delta.Normalize(dir);
-                auto dist = delta.Length();
-                auto ratio = std::min(dist / MAX_DISTANCE, 1.0f);
-                // 1 / (0.97 + 3x)^2 - 0.065 inverse square that crosses at 0,1 and 1,0
-                //auto volume = 1 / std::powf(0.97 + 3*ratio, 2) - 0.065f;
+            assert(Radius > 0);
+            auto emitterPos = Emitter.Position / AUDIO_SCALE;
+            auto delta = listener - emitterPos;
+            Vector3 dir;
+            delta.Normalize(dir);
+            auto dist = delta.Length();
 
-                float muffleMult = 1;
+            auto ratio = std::min(dist / Radius, 1.0f);
+            // 1 / (0.97 + 3x)^2 - 0.065 inverse square that crosses at 0,1 and 1,0
+            //auto volume = 1 / std::powf(0.97 + 3*ratio, 2) - 0.065f;
 
-                if (dist < MAX_DISTANCE) { // only hit test if sound is actually within range
+            TargetMuffle = 1; // don't hit test very close sounds
+
+            if (dist < Radius) { // only hit test if sound is actually within range
+                if (Looped && !Instance->GetState() == SoundState::PLAYING) {
+                    //fmt::print("Starting looped sound\n");
+                    Instance->Play(true);
+                }
+
+                if (Occlusion) {
                     constexpr float MUFFLE_MAX = 0.95f;
                     constexpr float MUFFLE_MIN = 0.25f;
 
-                    if (dist < 5) {
-                        muffleMult = MUFFLE_MAX; // don't hit test very close sounds
-                    }
-                    else {
+                    if (dist > 10) { // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;
                         if (IntersectLevel(Game::Level, ray, Segment, dist, hit)) {
                             auto hitDist = (listener - hit.Point).Length();
                             // we hit a wall, muffle it based on the distance from the source
                             // a sound coming immediately around the corner shouldn't get muffled much
-                            muffleMult = std::clamp(1 - hitDist / 60, MUFFLE_MIN, MUFFLE_MAX);
-                        };
+                            TargetMuffle = std::clamp(1 - hitDist / 60, MUFFLE_MIN, MUFFLE_MAX);
+                        }
                     }
                 }
-
-                auto volume = std::powf(1 - ratio, 3);
-                Instance->SetVolume(volume * muffleMult * MAX_SFX_VOLUME);
             }
             else {
-                // object is missing, was likely destroyed. Should the sound stop?
+                // stop looped sounds when going out of range
+                if (Looped && Instance->GetState() == SoundState::PLAYING) {
+                    //fmt::print("Stopping out of range looped sound\n");
+                    Instance->Stop();
+                }
             }
+
+            auto diff = TargetMuffle - Muffle;
+            auto sign = Sign(diff);
+            Muffle += std::min(abs(diff), dt * 3) * sign; // Take 1/3 a second to reach muffle target
+
+            //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
+            auto falloff = 1 - ratio; // linear falloff
+            //auto falloff = 1 - (ratio * ratio); // square falloff
+            Instance->SetVolume(Volume * falloff * Muffle * MAX_SFX_VOLUME);
 
             Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
         }
@@ -91,8 +109,8 @@ namespace Inferno::Sound {
 
         std::atomic<bool> Alive = false;
         std::thread WorkerThread;
-        std::list<Sound3DInstance> ObjectSounds;
-        std::mutex ResetMutex, ObjectSoundsMutex;
+        std::list<Sound3DInstance> SoundInstances;
+        std::mutex ResetMutex, SoundInstancesMutex;
 
         AudioListener Listener;
 
@@ -161,23 +179,27 @@ namespace Inferno::Sound {
                     Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
                     Listener.Position = Render::Camera.Position * AUDIO_SCALE;
 
-                    std::scoped_lock lock(ObjectSoundsMutex);
-                    auto sound = ObjectSounds.begin();
-                    while (sound != ObjectSounds.end()) {
+                    std::scoped_lock lock(SoundInstancesMutex);
+                    auto sound = SoundInstances.begin();
+                    while (sound != SoundInstances.end()) {
                         auto state = sound->Instance->GetState();
-                        if (state == SoundState::STOPPED && sound->Started) {
-                            // clean up
-                            //SPDLOG_INFO("Removing object sound instance");
-                            ObjectSounds.erase(sound++);
-                            continue;
-                        }
 
-                        if (state == SoundState::STOPPED && !sound->Started) {
-                            // New sound
-                            sound->Instance->Play();
-                            //if (!sound.Loop)
-                            sound->Started = true;
+                        if (!sound->Looped) {
+                            if (state == SoundState::STOPPED && sound->Started) {
+                                //SPDLOG_INFO("Removing object sound instance");
+                                SoundInstances.erase(sound++);
+                                continue;
+                            }
+
+                            if (state == SoundState::STOPPED && !sound->Started) {
+                                // New sound
+                                sound->Instance->Play();
+                                sound->Started = true;
+                            }
                         }
+                        //else {
+
+                        //}
 
                         sound->UpdateEmitter(Render::Camera.Position, dt);
                         // Hack to force sounds caused by the player to be exactly on top of the listener.
@@ -368,23 +390,25 @@ namespace Inferno::Sound {
         auto position = sound.Position * AUDIO_SCALE;
 
         {
-            std::scoped_lock lock(ObjectSoundsMutex);
+            std::scoped_lock lock(SoundInstancesMutex);
 
             // Check if any emitters are already playing this sound from this source
-            for (auto& instance : ObjectSounds) {
+            for (auto& instance : SoundInstances) {
                 if (instance.Source == sound.Source &&
                     instance.Resource.GetID() == sound.Resource.GetID() &&
-                    instance.StartTime + MERGE_WINDOW > Game::ElapsedTime) {
+                    instance.StartTime + MERGE_WINDOW > Game::ElapsedTime &&
+                    !instance.Looped) {
                     if (instance.AttachToSource && sound.AttachToSource)
                         instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
                     instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                    // todo: merge volume?
+                    // only use a portion of the duplicate sound to increase volume
+                    instance.Volume = std::max(instance.Volume, sound.Volume) * 1.15f;
                     fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                     return; // Don't play sounds within the merge window
                 }
             }
 
-            auto& s = ObjectSounds.emplace_back(sound);
+            auto& s = SoundInstances.emplace_back(sound);
             s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
             s.Instance->SetVolume(sound.Volume);
             s.Instance->SetPitch(sound.Pitch);
@@ -404,6 +428,8 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Clearing audio cache");
 
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
+        Stop3DSounds();
+        SoundInstances.clear();
         Engine->TrimVoicePool();
 
         //for (auto& sound : Sounds)
@@ -430,8 +456,8 @@ namespace Inferno::Sound {
     void Stop3DSounds() {
         if (!Alive) return;
 
-        std::scoped_lock lock(ObjectSoundsMutex);
-        for (auto& sound : ObjectSounds) {
+        std::scoped_lock lock(SoundInstancesMutex);
+        for (auto& sound : SoundInstances) {
             sound.Instance->Stop();
         }
     }
