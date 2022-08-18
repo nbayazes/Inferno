@@ -242,7 +242,7 @@ namespace Inferno::Editor {
                 MenuCommand(Commands::MirrorSegments);
                 if (ImGui::MenuItem("Weld All Vertices")) Commands::WeldVertices();
                 if (ImGui::MenuItem("Snap To Grid")) Commands::SnapToGrid();
-                MenuCommand(Commands::MakeCoplanar);
+                MenuCommand(Commands::MakeCoplanar, Binding::MakeCoplanar);
 
                 ImGui::EndMenu();
             }

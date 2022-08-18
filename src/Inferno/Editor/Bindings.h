@@ -60,7 +60,8 @@ namespace Inferno::Editor {
         MergeSegment,
         ToggleWireframe,
         NewLevel,
-        InvertMarked
+        InvertMarked,
+        MakeCoplanar
     };
 
     struct EditorBinding {

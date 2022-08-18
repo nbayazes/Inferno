@@ -151,6 +151,7 @@ namespace Inferno::Editor::Bindings {
                 case Binding::MergeSegment: Commands::MergeSegment(); break;
                 case Binding::NewLevel: Commands::NewLevel(); break;
                 case Binding::InvertMarked: Commands::InvertMarked(); break;
+                case Binding::MakeCoplanar: Commands::MakeCoplanar(); break;
             }
         }
         catch (const std::exception& e) {
@@ -274,6 +275,7 @@ namespace Inferno::Editor::Bindings {
         Bindings::Add({ .Binding = Binding::MergeSegment, .Key = Keys::M });
         Bindings::Add({ .Binding = Binding::NewLevel, .Key = Keys::N, .Control = true });
         Bindings::Add({ .Binding = Binding::InvertMarked, .Key = Keys::I, .Control = true });
+        Bindings::Add({ .Binding = Binding::MakeCoplanar, .Key = Keys::P });
     }
 
     string GetShortcut(Binding bind) {
