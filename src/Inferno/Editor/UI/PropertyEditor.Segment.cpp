@@ -1003,6 +1003,17 @@ namespace Inferno::Editor {
         changed |= SideLighting(level, seg, side);
         changed |= SideUVs(side);
 
+        ImGui::TableRowLabel("Segment size");
+        ImGui::Text("%.2f x %.2f x %.2f", 
+                    Vector3::Distance(seg.Sides[0].Center, seg.Sides[2].Center),
+                    Vector3::Distance(seg.Sides[1].Center, seg.Sides[3].Center),
+                    Vector3::Distance(seg.Sides[4].Center, seg.Sides[5].Center));
+
+        //auto vertIndex = seg.GetVertexIndex(Selection.Side, Selection.Point);
+        //ImGui::TableRowLabel(fmt::format("Vertex {}", vertIndex).c_str());
+        //auto& vert = level.Vertices[vertIndex];
+        //ImGui::Text("%.2f, %.2f, %.2f", vert.x, vert.y, vert.z);
+
         if (changed) {
             Events::LevelChanged();
         }
