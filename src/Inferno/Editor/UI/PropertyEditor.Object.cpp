@@ -99,7 +99,7 @@ namespace Inferno::Editor {
     }
 
     struct PowerupSort {
-        int ID;
+        int8 ID;
         const Powerup* Ptr;
         string Name;
     };
@@ -109,7 +109,7 @@ namespace Inferno::Editor {
         List<PowerupSort> sorted;
         sorted.reserve(powerupCount);
 
-        for (int i = 0; i < powerupCount; i++) {
+        for (int8 i = 0; i < powerupCount; i++) {
             if (auto name = Resources::GetPowerupName(i)) {
                 sorted.push_back({ i, &Resources::GameData.Powerups[i], *name });
             }
@@ -250,14 +250,14 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    struct RobotSort { int ID; string Name; };
+    struct RobotSort { int8 ID; string Name; };
 
     List<RobotSort> SortRobots() {
         auto robotCount = Game::Level.IsDescent1() ? 24 : Resources::GameData.Robots.size();
         List<RobotSort> sorted;
         sorted.reserve(robotCount);
 
-        for (int i = 0; i < robotCount; i++) {
+        for (int8 i = 0; i < robotCount; i++) {
             sorted.push_back({ i, Resources::GetRobotName(i) });
         }
 
