@@ -424,10 +424,6 @@ namespace Inferno::Editor {
             }
         }
 
-        if (gizmo.Mode != TransformMode::Scale && Settings::SelectionMode == SelectionMode::Face) {
-            auto marked = Seq::ofSet(Editor::Marked.Faces);
-            AlignMarked(Game::Level, Editor::Selection.Tag(), marked, false);
-        }
         Events::LevelChanged();
     }
 
