@@ -504,6 +504,11 @@ namespace Inferno::Editor {
     }
 
     void Commands::SnapToGrid() {
+        if (Settings::TranslationSnap <= 0) {
+            SetStatusMessageWarn("Cannot Snap to Grid with a snap of 0");
+            return;
+        }
+
         auto indices = GetSelectedVertices();
         Editor::SnapToGrid(Game::Level, indices, Settings::TranslationSnap);
         Editor::History.SnapshotLevel("Snap To Grid");
