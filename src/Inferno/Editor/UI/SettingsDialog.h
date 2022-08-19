@@ -26,6 +26,7 @@ namespace Inferno::Editor {
 
         int _selectedPath;
         bool _dataPathsChanged = false;
+        TexturePreviewSize _texturePreviewSize;
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
             Width = 800 * Shell::DpiScale;
@@ -203,6 +204,11 @@ namespace Inferno::Editor {
 
             ImGui::Checkbox("Reopen last level on start", &_reopenLastLevel);
 
+            ImGui::Text("Texture preview size");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(150 * Shell::DpiScale);
+            ImGui::Combo("##texpreview", (int*)&_texturePreviewSize, "Small\0Medium\0Large");
+
             ImGui::EndTabItem();
         }
 
@@ -298,6 +304,7 @@ namespace Inferno::Editor {
             _selectMarkedSegment = Settings::SelectMarkedSegment;
             _reopenLastLevel = Settings::ReopenLastLevel;
             _autosaveMinutes = Settings::AutosaveMinutes;
+            _texturePreviewSize = Settings::TexturePreviewSize;
 
             switch (Settings::MsaaSamples) {
                 case 1: _msaa = 0; break;
@@ -326,6 +333,7 @@ namespace Inferno::Editor {
             Settings::SelectMarkedSegment = _selectMarkedSegment;
             Settings::ReopenLastLevel = _reopenLastLevel;
             Settings::AutosaveMinutes = _autosaveMinutes;
+            Settings::TexturePreviewSize = _texturePreviewSize;
 
             bool resourcesChanged = false;
             if (_dataPathsChanged || _descent1Path != Settings::Descent1Path || _descent2Path != Settings::Descent2Path) {

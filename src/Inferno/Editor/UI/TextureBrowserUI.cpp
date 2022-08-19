@@ -311,13 +311,23 @@ namespace Inferno::Editor {
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 2 });
 
+        ImVec2 tileSize{};
+        switch (Settings::TexturePreviewSize) {
+            case TexturePreviewSize::Small: tileSize = { 32, 32 }; break;
+            case TexturePreviewSize::Large: tileSize = { 96, 96 }; break;
+            default: tileSize = { 64, 64 };
+        }
+
+        tileSize.x *= Shell::DpiScale;
+        tileSize.y *= Shell::DpiScale;
+
+        const ImVec4 bg = { 0.1f, 0.1f, 0.1f, 1.0f };
+        constexpr int borderThickess = 2;
+
         for (auto& id : _textureIds) {
             auto& material = Render::Materials->Get(id);
             if (material.ID <= TexID::Invalid) continue; // don't show invalid textures (usually TID 910)
 
-            const ImVec2 size = { 64 * Shell::DpiScale, 64 * Shell::DpiScale };
-            const ImVec4 bg = { 0.1f, 0.1f, 0.1f, 1.0f };
-            constexpr int borderThickess = 2;
             //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2, 2 });
             //ImGui::PushStyleColor(ImGuiCol_BorderShadow, { 1, 0, 0, 1 });
 
@@ -327,7 +337,7 @@ namespace Inferno::Editor {
 
             ImGui::PushStyleColor(ImGuiCol_Button, borderColor);
 
-            ImGui::ImageButton((ImTextureID)material.Handles[0].ptr, size, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+            ImGui::ImageButton((ImTextureID)material.Handles[0].ptr, tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
 
             if (ImGui::IsItemHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
@@ -358,7 +368,7 @@ namespace Inferno::Editor {
 
             float spacing = style.ItemSpacing.x / 2.0f;
             float xLast = ImGui::GetItemRectMax().x;
-            float xNext = xLast + spacing + size.x; // Expected position if next button was on same line
+            float xNext = xLast + spacing + tileSize.x; // Expected position if next button was on same line
             if (i + 1 < count && xNext < availableWidth)
                 ImGui::SameLine(0, spacing);
 

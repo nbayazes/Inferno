@@ -160,6 +160,7 @@ namespace Inferno::Settings {
         node["AutosaveMinutes"] << AutosaveMinutes;
         node["CoordinateSystem"] << (int)CoordinateSystem;
         node["EnablePhysics"] << EnablePhysics;
+        node["TexturePreviewSize"] << (int)TexturePreviewSize;
 
         SaveSelectionSettings(node["Selection"]);
         SaveOpenWindows(node["Windows"]);
@@ -220,6 +221,7 @@ namespace Inferno::Settings {
         ReadValue(node["AutosaveMinutes"], AutosaveMinutes);
         ReadValue(node["CoordinateSystem"], (int&)CoordinateSystem);
         ReadValue(node["EnablePhysics"], (int&)EnablePhysics);
+        ReadValue(node["TexturePreviewSize"], (int&)TexturePreviewSize);
 
         LoadSelectionSettings(node["Selection"]);
         LoadOpenWindows(node["Windows"]);

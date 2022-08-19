@@ -13,6 +13,9 @@ namespace Inferno {
             Normal, Extrude, Mirror
         };
 
+        enum class TexturePreviewSize {
+            Small, Medium, Large
+        };
     }
 
     enum class RenderMode {
@@ -63,6 +66,7 @@ namespace Inferno {
         inline Editor::SelectionMode SelectionMode = {};
         inline float TranslationSnap = 5, RotationSnap = 0;
         inline Editor::CoordinateSystem CoordinateSystem{};
+        inline Editor::TexturePreviewSize TexturePreviewSize = Editor::TexturePreviewSize::Medium;
 
         inline LightSettings Lighting;
         inline float MouselookSensitivity = 0.005f; // Editor mouselook
