@@ -169,24 +169,25 @@ namespace Inferno::Editor {
 
         ImGui::HelpMarker("This includes animation frames and textures\nnot in the normal filters");
 
-        //ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-        //ImGui::Separator();
-
-        auto isOpen = ImGui::CollapsingHeader("Filters", ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap);
-
         auto& s = _state;
-        ImGui::SameLine(contentWidth - 80 * Shell::DpiScale);
-        if (ImGui::Button("Reset", { 80 * Shell::DpiScale, 0 })) s = {};
+        constexpr auto flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap;
+
+        ImGui::Separator();
+        ImGui::AlignTextToFramePadding();
+        bool isOpen = ImGui::TreeNodeEx("##filters", flags);
+        ImGui::SameLine();
+        bool allChecked = s.SelectAll();
+        if (ImGui::Checkbox("##toggle", &allChecked))
+            s.SelectAll(allChecked);
+        ImGui::SameLine();
+        ImGui::Text("Filters");
 
         if (isOpen) {
-            constexpr auto flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap;
-
             auto ToggleGroupButtons = [&](const char* label, std::function<void(bool)> fn, std::function<bool(void)> getCheckState) {
                 ImGui::PushID(label);
                 ImGui::AlignTextToFramePadding();
                 bool open = ImGui::TreeNodeEx("##label", flags);
                 ImGui::SameLine();
-                //ImGui::SameLine(contentWidth - 31, -1);
                 bool checked = getCheckState();
                 if (ImGui::Checkbox("##toggle", &checked))
                     fn(checked);
@@ -266,13 +267,14 @@ namespace Inferno::Editor {
                 ImGui::TreePop();
             }
 
-            auto newState = s.GetState();
-            if (newState != _filter) {
-                _filter = newState;
-                UpdateTextureList(_filter, true);
-            }
+            ImGui::TreePop();
+        }
+        ImGui::Separator();
 
-            ImGui::Separator();
+        auto newState = s.GetState();
+        if (newState != _filter) {
+            _filter = newState;
+            UpdateTextureList(_filter, true);
         }
     }
 

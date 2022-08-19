@@ -85,6 +85,20 @@ namespace Inferno::Editor {
         void SelectSigns(bool state) { Labels = Monitors = Stripes = state; }
         bool SelectSigns() { return Labels && Monitors && Stripes; }
 
+        void SelectAll(bool state) {
+            SelectRock(state);
+            SelectNatural(state);
+            SelectBuilding(state);
+            SelectMisc(state);
+            SelectTechnical(state);
+            SelectSigns(state);
+        }
+
+        bool SelectAll() {
+            return SelectRock() && SelectNatural() && SelectBuilding() && 
+                SelectMisc() && SelectTechnical() && SelectSigns();
+        }
+
         FilterGroup GetState() const {
             FilterGroup state = FilterGroup::None;
             if (GrayRock) state |= FilterGroup::GrayRock;
