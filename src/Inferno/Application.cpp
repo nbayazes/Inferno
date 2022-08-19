@@ -156,7 +156,7 @@ void Application::Update() {
     if (Input::IsKeyPressed(Keys::F1))
         Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
 
-    if (Input::IsKeyPressed(Keys::F3))
+    if (Input::IsKeyPressed(Keys::F12))
         Settings::ScreenshotMode = !Settings::ScreenshotMode;
 
     if (Input::IsKeyPressed(Keys::F5))
