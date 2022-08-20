@@ -134,7 +134,7 @@ namespace Inferno::Render::Debug {
                 _indices.push_back((uint16)vertices.size() + coneIndices[i]);
             }
         }
-        
+
         span<FlatVertex> GetVertices() { return _vertices; }
         span<uint16> GetIndices() { return _indices; }
     };
@@ -178,6 +178,7 @@ namespace Inferno::Render::Debug {
     }
 
     void DrawLine(const Vector3& v0, const Vector3& v1, const Color& color) {
+        if (color.w <= 0) return;
         Resources->LineBatch.DrawLine({ v0, color }, { v1, color });
     }
 
@@ -195,7 +196,7 @@ namespace Inferno::Render::Debug {
         auto right = Render::Camera.GetRight();
         auto up = Render::Camera.Up;
         auto scale = (Render::Camera.Position - p).Length() * 0.006f;
-        
+
         Vector3 v0 = p - right * scale - up * scale;
         Vector3 v1 = p + right * scale - up * scale;
         Vector3 v2 = p + right * scale + up * scale;
@@ -366,7 +367,7 @@ namespace Inferno::Render::Debug {
             Vector3 v3 = Polar(radius2, i);
             DrawTriangle(v0, v1, v2, color);
             DrawTriangle(v2, v1, v3, color);
-            
+
             v0 = v1;
             v2 = v3;
         }
@@ -374,7 +375,7 @@ namespace Inferno::Render::Debug {
 
 
     void DrawArc(float radius, float radians, float offset, const Matrix& transform, const Color& color) {
-        Option<Vector3> p0 = {}; 
+        Option<Vector3> p0 = {};
 
         constexpr int Steps = 18;
         for (int i = 0; i <= Steps; i++) {
@@ -416,7 +417,7 @@ namespace Inferno::Render::Debug {
         auto i = side.GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(tag.Side);
-        
+
         DrawTriangle(v[si[i[0]]], v[si[i[1]]], v[si[i[2]]], color);
         DrawTriangle(v[si[i[3]]], v[si[i[4]]], v[si[i[5]]], color);
     }

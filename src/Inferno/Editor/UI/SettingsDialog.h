@@ -22,6 +22,7 @@ namespace Inferno::Editor {
         int _msaa;
         int _fontSize;
         int _autosaveMinutes;
+        float _wireframeOpacity;
         const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
         int _selectedPath;
@@ -121,6 +122,11 @@ namespace Inferno::Editor {
                     ImGui::Checkbox("##Bloom", &_bloom);
                     ImGui::NextColumn();
                 }
+
+                ImGui::ColumnLabel("Wireframe opacity");
+                ImGui::SetNextItemWidth(-1);
+                ImGui::SliderFloat("##wfopacity", &_wireframeOpacity, 0, 1, "%.2f");
+                ImGui::NextColumn();
             }
             ImGui::Columns(1);
             ImGui::EndChild();
@@ -208,7 +214,6 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(150 * Shell::DpiScale);
             ImGui::Combo("##texpreview", (int*)&_texturePreviewSize, "Small\0Medium\0Large");
-
             ImGui::EndTabItem();
         }
 
@@ -270,7 +275,7 @@ namespace Inferno::Editor {
 
         void OnUpdate() override {
 
-            ImGui::BeginChild("prop_panel", { -1, 700 * Shell::DpiScale });
+            ImGui::BeginChild("prop_panel", { -1, 750 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
@@ -305,6 +310,7 @@ namespace Inferno::Editor {
             _reopenLastLevel = Settings::ReopenLastLevel;
             _autosaveMinutes = Settings::AutosaveMinutes;
             _texturePreviewSize = Settings::TexturePreviewSize;
+            _wireframeOpacity = Settings::WireframeOpacity;
 
             switch (Settings::MsaaSamples) {
                 case 1: _msaa = 0; break;
@@ -334,6 +340,7 @@ namespace Inferno::Editor {
             Settings::ReopenLastLevel = _reopenLastLevel;
             Settings::AutosaveMinutes = _autosaveMinutes;
             Settings::TexturePreviewSize = _texturePreviewSize;
+            Settings::WireframeOpacity = _wireframeOpacity;
 
             bool resourcesChanged = false;
             if (_dataPathsChanged || _descent1Path != Settings::Descent1Path || _descent2Path != Settings::Descent2Path) {

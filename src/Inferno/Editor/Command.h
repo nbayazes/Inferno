@@ -1,6 +1,5 @@
 #pragma once
 #include "WindowsDialogs.h"
-#include "Bindings.h"
 
 namespace Inferno::Editor {
     // Executes either Action or SnapshotAction when CanExecute returns true

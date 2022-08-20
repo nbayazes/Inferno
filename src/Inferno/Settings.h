@@ -108,6 +108,7 @@ namespace Inferno {
         inline bool ShowAnimation = true;
         inline bool ShowLighting = true;
         inline bool ShowMatcenEffects = false;
+        inline float WireframeOpacity = 0.5f;
 
         inline struct OpenWindows {
             bool Lighting = false;

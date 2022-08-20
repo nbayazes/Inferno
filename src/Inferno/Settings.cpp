@@ -142,6 +142,7 @@ namespace Inferno::Settings {
         node["ShowFlickeringLights"] << ShowFlickeringLights;
         node["ShowAnimation"] << ShowAnimation;
         node["ShowMatcenEffects"] << ShowMatcenEffects;
+        node["WireframeOpacity"] << WireframeOpacity;
 
         node["ShowWireframe"] << ShowWireframe;
         node["RenderMode"] << (int)RenderMode;
@@ -201,6 +202,7 @@ namespace Inferno::Settings {
         ReadValue(node["ShowFlickeringLights"], ShowFlickeringLights);
         ReadValue(node["ShowAnimation"], ShowAnimation);
         ReadValue(node["ShowMatcenEffects"], ShowMatcenEffects);
+        ReadValue(node["WireframeOpacity"], WireframeOpacity);
 
         ReadValue(node["ShowWireframe"], ShowWireframe);
         ReadValue(node["RenderMode"], (int&)RenderMode);

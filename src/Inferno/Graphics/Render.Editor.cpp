@@ -272,6 +272,7 @@ namespace Inferno::Render {
         for (auto& seg : level.Segments) {
             auto vs = seg.GetVertices(level);
             Color color = Colors::Wireframe;
+            color.w = Settings::WireframeOpacity;
             Color fill;
 
             if (seg.Type != SegmentType::None)
