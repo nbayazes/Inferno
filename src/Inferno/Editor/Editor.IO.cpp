@@ -22,6 +22,13 @@ namespace Inferno::Editor {
         DisableFlickeringLights(level);
         ResetFlickeringLightTimers(level);
         FixLevel(level);
+
+        for (auto& obj : level.Objects) {
+            if (obj.Type == ObjectType::SecretExitReturn) {
+                level.SecretExitReturn = obj.Segment;
+                level.SecretReturnOrientation = obj.Rotation;
+            }
+        }
         return level.Serialize(writer);
     }
 
