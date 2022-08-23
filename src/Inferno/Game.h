@@ -20,11 +20,6 @@ namespace Inferno::Game {
 
     void LoadMission(filesystem::path file);
 
-    inline void ReloadMission() {
-        if (!Mission) throw Exception("No mission is loaded");
-        LoadMission(Mission->Path);
-    }
-
     inline void UnloadMission() {
         Mission = {};
     }

@@ -115,6 +115,93 @@ namespace Inferno::Editor {
         return -1;
     }
 
+    void AppendVertigoData(HogWriter& writer, string hamName) {
+        try {
+            //if (mission.ContainsFileType(".ham")) return; // Already has ham data
+            if (!Resources::FoundVertigo()) {
+                SPDLOG_WARN("Level is marked as Vertigo but has no .ham and d2x.hog was not found");
+                return;
+            }
+
+            // Insert vertigo data
+            auto d2xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
+            auto vertigoData = d2xhog.ReadEntry("d2x.ham");
+            writer.WriteEntry(hamName, vertigoData);
+            SPDLOG_INFO("Copied Vertigo d2x.ham into HOG");
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Unable to add vertigo data: {}", e.what());
+        }
+    }
+
+    // Serializes a level to bytes
+    std::vector<ubyte> SerializeLevel(Level& level) {
+        std::stringstream stream;
+        stream.unsetf(std::ios::skipws);
+        StreamWriter writer(stream);
+        auto len = SaveLevel(level, writer);
+        std::vector<ubyte> data(len);
+        stream.read((char*)data.data(), data.size());
+        return data;
+    }
+
+    // Serializes level settings to bytes
+    std::vector<ubyte> SerializeLevelMetadata(const Level& level) {
+        std::stringstream stream;
+        stream.unsetf(std::ios::skipws);
+        SaveLevelMetadata(level, stream);
+        std::vector<ubyte> data(stream.tellp());
+        stream.read((char*)data.data(), data.size());
+        return data;
+    }
+
+    // Writes a HOG file and updates the level
+    void WriteHog(Level& level, HogFile& mission, filesystem::path path) {
+        filesystem::path tempPath = path;
+        tempPath.replace_extension(".tmp");
+
+        try {
+            auto metadataName = String::NameWithoutExtension(level.FileName) + "." + METADATA_EXTENSION;
+            HogWriter writer(tempPath); // write to temp
+            fmt::print("Writing HOG files: ");
+
+            for (auto& entry : mission.Entries) {
+                auto data = mission.ReadEntry(entry);
+                if (entry.Name == level.FileName || entry.Name == metadataName) {
+                    continue; // skip level and metadata
+                }
+                else {
+                    writer.WriteEntry(entry.Name, data);
+                    fmt::print("{}:{} ", entry.Name, data.size());
+                }
+            }
+
+            if (level.FileName.empty())
+                throw Exception("Level filename is empty!");
+
+            // Write level and metadata
+            auto levelData = SerializeLevel(level);
+            writer.WriteEntry(level.FileName, levelData);
+            fmt::print("{}:{} ", level.FileName, levelData.size());
+
+            auto levelMetadata = SerializeLevelMetadata(level);
+            writer.WriteEntry(metadataName, levelMetadata); // IED file
+            fmt::print("{}:{}\n", metadataName, levelMetadata.size());
+
+            if (level.IsVertigo() && !mission.ContainsFileType(".ham"))
+                AppendVertigoData(writer, path.stem().string() + ".ham");
+        }
+        catch (const std::exception& e) {
+            ShowErrorMessage(e);
+            SPDLOG_ERROR(e.what());
+            return;
+        }
+
+        BackupFile(path);
+        filesystem::remove(path); // Remove existing
+        filesystem::rename(tempPath, path); // Rename temp to destination
+    }
+
     void LoadFile(filesystem::path path) {
         try {
             auto version = FileVersionFromHeader(path);
@@ -178,7 +265,7 @@ namespace Inferno::Editor {
         level.FileName = fileName.substr(0, 8) + ext;
 
         if (Game::Mission) {
-            // Find a unique file name
+            // Find a unique file name in the hog
             int i = 1;
             while (Game::Mission->Exists(level.FileName))
                 level.FileName = fmt::format("{}{}{}", fileName.substr(0, 7), i++, ext);
@@ -186,53 +273,20 @@ namespace Inferno::Editor {
 
         auto tag = AddDefaultSegment(level);
         AddObject(level, { tag, SideID::Bottom }, ObjectType::Player);
+
+        if (Game::Mission) {
+            WriteHog(level, *Game::Mission, Game::Mission->Path);
+            Game::LoadMission(Game::Mission->Path); // reload
+        }
+
         Game::LoadLevel(std::move(level));
-
-        if (Game::Mission)
-            OnSave(); // Trigger save to add the level to the HOG
     }
 
-
-    // Serializes a level to memory
-    std::vector<ubyte> WriteLevelToMemory(Level& level) {
-        std::stringstream stream;
-        stream.unsetf(std::ios::skipws);
-        StreamWriter writer(stream);
-        auto len = SaveLevel(level, writer);
-        std::vector<ubyte> data(len);
-        stream.read((char*)data.data(), data.size());
-        return data;
-    }
-
-    std::vector<ubyte> WriteLevelMetadataToMemory(const Level& level) {
-        std::stringstream stream;
-        stream.unsetf(std::ios::skipws);
-        SaveLevelMetadata(level, stream);
-        std::vector<ubyte> data(stream.tellp());
-        stream.read((char*)data.data(), data.size());
-        return data;
-    }
-
-    void EnsureVertigoData(filesystem::path missionPath) {
-        try {
-            if (!Game::Level.IsVertigo()) return;
-            auto mission = HogFile::Read(missionPath);
-
-            if (mission.ContainsFileType(".ham")) return; // Already has ham data
-            if (!Resources::FoundVertigo()) {
-                SPDLOG_WARN("Level is marked as Vertigo but has no .ham and d2x.hog was not found");
-                return;
-            }
-
-            // Insert vertigo data
-            auto d2xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
-            auto vertigoData = d2xhog.ReadEntry("d2x.ham");
-            auto hamName = missionPath.stem().string() + ".ham";
-            mission.AddOrUpdateEntry(hamName, vertigoData);
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR("Unable to add vertigo data: {}", e.what());
-        }
+    void BackupFile(filesystem::path path, string_view ext) {
+        if (!filesystem::exists(path)) return;
+        filesystem::path backupPath = path;
+        backupPath.replace_extension(ext);
+        filesystem::copy(path, backupPath, filesystem::copy_options::overwrite_existing);
     }
 
     void OnSaveAs() {
@@ -264,28 +318,24 @@ namespace Inferno::Editor {
 
         if (auto path = SaveFileDialog(filter, filterIndex, defaultName)) {
             if (ExtensionEquals(*path, L"hog")) {
-                auto levelData = WriteLevelToMemory(level);
-                auto levelMetadata = WriteLevelMetadataToMemory(level);
-
                 if (Game::Mission) {
-                    // Save to new location, then update the current level in it
-                    Game::Mission = Game::Mission->SaveCopy(*path);
-                    Game::Mission->AddOrUpdateEntry(level.FileName, levelData);
-                    auto metadataName = String::NameWithoutExtension(level.FileName) + "." + METADATA_EXTENSION;
-                    Game::Mission->AddOrUpdateEntry(metadataName, levelMetadata);
-                    EnsureVertigoData(*path);
+                    // Update level in existing hog
+                    WriteHog(Game::Level, *Game::Mission, *path);
+                    auto msnPath = Game::Mission->GetMissionPath(); // get the msn path before reloading
+                    Game::LoadMission(*path);
+
+                    if (filesystem::exists(msnPath)) {
+                        filesystem::path destMsnPath = Game::Mission->GetMissionPath();
+                        filesystem::copy(msnPath, destMsnPath);
+                    }
                 }
                 else {
                     // Create a new hog
-                    filesystem::path fileName = name; // set proper extension
-                    fileName.replace_extension(ext);
-                    level.FileName = fileName.string();
-                    HogFile::CreateFromEntry(*path, level.FileName, levelData);
-                    EnsureVertigoData(*path);
+                    HogFile hog{}; // empty
+                    WriteHog(Game::Level, hog, *path);
                     Game::LoadMission(*path);
                     Events::ShowDialog(DialogType::HogEditor);
                 }
-
                 SetStatusMessage("Mission saved to {}", path->string());
             }
             else {
@@ -306,13 +356,7 @@ namespace Inferno::Editor {
 
         if (Game::Mission) {
             assert(level.FileName != "");
-            auto data = WriteLevelToMemory(level);
-            Game::Mission->AddOrUpdateEntry(level.FileName, data);
-            auto levelMetadata = WriteLevelMetadataToMemory(level);
-            auto metadataName = String::NameWithoutExtension(level.FileName) + "." + METADATA_EXTENSION;
-            Game::Mission->AddOrUpdateEntry(metadataName, levelMetadata);
-            EnsureVertigoData(Game::Mission->Path);
-            Game::LoadMission(Game::Mission->Path);
+            WriteHog(level, *Game::Mission, Game::Mission->Path);
             SetStatusMessage(L"Mission saved to {}", Game::Mission->Path.filename().wstring());
             Settings::AddRecentFile(Game::Mission->Path);
         }
@@ -375,6 +419,50 @@ namespace Inferno::Editor {
         _nextAutosave = Game::ElapsedTime + Settings::AutosaveMinutes * 60;
     }
 
+    void WritePlaytestLevel(filesystem::path missionFolder, Level& level, HogFile* mission = nullptr) {
+        auto hogPath = missionFolder / "_test.hog";
+
+        HogWriter writer(hogPath);
+        bool wroteHam = false;
+
+        if (mission) {
+            auto missionFileName = mission->GetMissionPath().stem().string();
+
+            // Copy aux entries for level if any exist such as pogs / hxms
+            for (auto& entry : mission->Entries) {
+                if (String::InvariantEquals(entry.NameWithoutExtension(), String::NameWithoutExtension(level.FileName)) &&
+                    !entry.IsLevel()) { // level is written after using latest data
+                    auto data = mission->ReadEntry(entry);
+                    writer.WriteEntry("_test" + entry.Extension(), data);
+                }
+
+                // Copy HAM if present
+                if (entry.IsHam() && String::InvariantEquals(entry.NameWithoutExtension(), missionFileName)) {
+                    auto data = mission->ReadEntry(entry);
+                    writer.WriteEntry("_test.ham", data);
+                    wroteHam = true;
+                }
+            }
+        }
+
+        auto levelFileName = level.IsDescent1() ? "_test.rdl" : "_test.rl2";
+        auto levelData = SerializeLevel(level);
+        writer.WriteEntry(levelFileName, levelData);
+
+        if (level.IsVertigo() && !wroteHam)
+            AppendVertigoData(writer, "_test.ham");
+
+        // Write the mission info file
+        auto infoFile = level.IsDescent1() ? "_test.msn" : "_test.mn2";
+        MissionInfo info;
+        info.Name = "_test";
+        info.Levels.push_back(levelFileName);
+        info.Enhancement = level.IsVertigo() ? MissionEnhancement::VertigoHam : MissionEnhancement::Standard;
+        info.Write(missionFolder / infoFile);
+
+        SetStatusMessage("Test mission saved to {}", hogPath.string());
+    }
+
     void CheckForAutosave() {
         if (Game::ElapsedTime > _nextAutosave) {
             try {
@@ -383,7 +471,7 @@ namespace Inferno::Editor {
                 SPDLOG_INFO(L"Autosaving backup to {}", backupPath);
 
                 if (Game::Mission) {
-                    Game::Mission->SaveCopy(backupPath);
+                    WriteHog(Game::Level, *Game::Mission, backupPath);
                 }
                 else {
                     SaveLevelToPath(Game::Level, backupPath, true);

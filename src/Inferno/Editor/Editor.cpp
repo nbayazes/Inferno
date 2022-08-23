@@ -637,37 +637,8 @@ namespace Inferno::Editor {
             try {
                 filesystem::path exe = GetGameExecutablePath();
                 auto missionFolder = exe.parent_path() / "missions";
-                auto fileName = Game::Level.IsDescent1() ? "test.rdl" : "test.rl2";
-
-                auto levelData = WriteLevelToMemory(Game::Level);
-                auto hogPath = missionFolder / "_test.hog";
-                HogFile::CreateFromEntry(missionFolder / "_test.hog", fileName, levelData);
-                auto hog = HogFile::Read(hogPath);
-
-                if (Game::Mission) {
-                    // Copy entries for level from mission if any exist
-                    for (auto& entry : Game::Mission->Entries) {
-                        if (entry.NameWithoutExtension() == String::NameWithoutExtension(Game::Level.FileName) &&
-                            !entry.IsLevel()) {
-                            auto data = Game::Mission->ReadEntry(entry);
-                            auto name = "test" + entry.Extension();
-                            HogFile::AppendEntry(hogPath, name, data);
-                        }
-                    }
-                }
-
-                EnsureVertigoData(hogPath);
-
-                // Write the mission info file
-                auto infoFile = Game::Level.IsDescent1() ? "_test.msn" : "_test.mn2";
-                MissionInfo info;
-                info.Name = "_test";
-                info.Levels.push_back(fileName);
-                info.Enhancement = Game::Level.IsVertigo() ? MissionEnhancement::VertigoHam : MissionEnhancement::Standard;
-                info.Write(missionFolder / infoFile);
-
-                SetStatusMessage("Test mission saved to {}", hogPath.string());
-                //StartGame();
+                auto mission = Game::Mission ? &Game::Mission.value() : nullptr;
+                WritePlaytestLevel(missionFolder, Game::Level, mission);
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
