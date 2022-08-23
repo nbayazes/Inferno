@@ -288,8 +288,11 @@ namespace Inferno {
         return (float)f / (float)(1 << 16);
     }
 
+    constexpr int MAX_FIX = 32768; // Maximum fixed point value
+    constexpr int MIN_FIX = -32769; // Minimum fixed point value
+
     constexpr fix FloatToFix(float f) {
-        assert(f < 32768 && f > -32769); // out of range
+        assert(f < MAX_FIX && f > MIN_FIX); // out of range
         return (fix)(f * (1 << 16));
     }
 

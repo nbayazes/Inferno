@@ -83,7 +83,7 @@ namespace Inferno::Editor {
         if (id == 1 || id == 2)
             return 0; // shields and energy to the top
 
-        if (id >= 4 && id <= 6) 
+        if (id >= 4 && id <= 6)
             return 1; // Keys
 
         if (id == 3 || (id >= 12 && id <= 16) || (id >= 28 && id <= 32))
@@ -512,6 +512,50 @@ namespace Inferno::Editor {
         return changed;
     }
 
+    void TransformPosition(Object& obj) {
+        bool changed = false;
+        bool finishedEdit = false;
+        auto speed = Settings::TranslationSnap > 0 ? Settings::TranslationSnap : 0.01f;
+        auto angleSpeed = Settings::RotationSnap > 0 ? Settings::RotationSnap : DirectX::XM_PI / 32;
+
+        auto Slider = [&](const char* label, float& value) {
+            ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::PushID(label);
+            changed |= ImGui::DragFloat("##xyz", &value, speed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopID();
+        };
+
+        auto AngleSlider = [&](const char* label, float& value) {
+            ImGui::Text(label); ImGui::SameLine(60 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::PushID(label);
+            changed |= ImGui::DragFloat("##pyr", &value, angleSpeed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopID();
+        };
+
+        ImGui::TableRowLabel("Object position");
+        Slider("X", obj.Position.x);
+        Slider("Y", obj.Position.y);
+        Slider("Z", obj.Position.z);
+
+        //ImGui::TableRowLabel("Object rotation");
+        //auto angles = Matrix(obj.Rotation).ToEuler(); 
+        //AngleSlider("Pitch", angles.x);
+        //AngleSlider("Yaw", angles.y);
+        //AngleSlider("Roll", angles.z);
+        
+        if (changed) {
+            //obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(angles));
+            Editor::Gizmo.UpdatePosition();
+        }
+
+        if (finishedEdit) {
+            Editor::History.SnapshotSelection();
+            Editor::History.SnapshotLevel("Edit object position");
+        }
+    }
+
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
@@ -593,8 +637,10 @@ namespace Inferno::Editor {
                         if (o.Type != obj.Type) return;
                         o.Movement.Physics.AngularVelocity = obj.Movement.Physics.AngularVelocity;
                     });
-                    //Editor::History.SnapshotLevel("Change object"); // causes too many snapshots
                 }
+
+                if (ImGui::IsItemDeactivatedAfterEdit())
+                    Editor::History.SnapshotLevel("Change angular velocity");
 
                 break;
 
@@ -621,5 +667,7 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Polymodel");
             ImGui::Text("%i", obj.Render.Model.ID);
         }
+
+        TransformPosition(obj);
     }
 }

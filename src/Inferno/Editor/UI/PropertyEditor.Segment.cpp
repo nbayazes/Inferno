@@ -922,6 +922,104 @@ namespace Inferno::Editor {
         }
     }
 
+    void TransformPosition(Level& level, Segment& seg, Editor::SelectionMode mode) {
+        bool changed = false;
+        bool finishedEdit = false;
+        auto speed = Settings::TranslationSnap > 0 ? Settings::TranslationSnap : 0.01f;
+
+        auto Slider = [&](const char* label, float& value) {
+            ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::PushID(label);
+            changed |= ImGui::DragFloat("##xyz", &value, speed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopID();
+        };
+
+        switch (mode) {
+            case SelectionMode::Segment:
+            {
+                ImGui::TableRowLabel("Segment position");
+                auto center = seg.Center;
+                auto original = center;
+
+                Slider("X", center.x);
+                Slider("Y", center.y);
+                Slider("Z", center.z);
+
+                if (changed) {
+                    auto delta = center - original;
+                    auto verts = seg.GetVertices(level);
+
+                    for (int i = 0; i < 8; i++)
+                        level.Vertices[seg.Indices[i]] += delta;
+                }
+                break;
+            }
+
+            case SelectionMode::Face:
+            {
+                ImGui::TableRowLabel("Face position");
+                auto face = Face::FromSide(level, Editor::Selection.Tag());
+                auto center = face.Center();
+                auto original = center;
+
+                Slider("X", center.x);
+                Slider("Y", center.y);
+                Slider("Z", center.z);
+
+                if (changed) {
+                    auto delta = center - original;
+                    for (int i = 0; i < 4; i++)
+                        face.GetPoint(i) += delta;
+                }
+
+                break;
+            }
+
+            case SelectionMode::Edge:
+            {
+                ImGui::TableRowLabel("Edge position");
+                auto face = Face::FromSide(level, Editor::Selection.Tag());
+                auto center = face.GetEdgeMidpoint(Editor::Selection.Point);
+                auto original = center;
+
+                Slider("X", center.x);
+                Slider("Y", center.y);
+                Slider("Z", center.z);
+
+                if (changed) {
+                    auto delta = center - original;
+                    face.GetPoint(Editor::Selection.Point) += delta;
+                    face.GetPoint(Editor::Selection.Point + 1) += delta;
+                }
+
+                break;
+            }
+
+            case SelectionMode::Point:
+            {
+                ImGui::TableRowLabel("Vertex position");
+                auto face = Face::FromSide(level, Editor::Selection.Tag());
+                auto& point = face.GetPoint(Editor::Selection.Point);
+
+                Slider("X", point.x);
+                Slider("Y", point.y);
+                Slider("Z", point.z);
+                break;
+            }
+        }
+
+        if (changed) {
+            Game::Level.UpdateAllGeometricProps();
+            Events::LevelChanged();
+        }
+
+        if (finishedEdit) {
+            Editor::History.SnapshotSelection();
+            Editor::History.SnapshotLevel("Edit geometry position");
+        }
+    }
+
     void PropertyEditor::SegmentProperties() {
         auto& level = Game::Level;
 
@@ -998,21 +1096,18 @@ namespace Inferno::Editor {
             }
         }
 
-        TextureProperties("Base Texture", side.TMap, false);
-        TextureProperties("Overlay Texture", side.TMap2, true);
+        TextureProperties("Base texture", side.TMap, false);
+        TextureProperties("Overlay texture", side.TMap2, true);
         changed |= SideLighting(level, seg, side);
         changed |= SideUVs(side);
 
         ImGui::TableRowLabel("Segment size");
-        ImGui::Text("%.2f x %.2f x %.2f", 
+        ImGui::Text("%.2f x %.2f x %.2f",
                     Vector3::Distance(seg.Sides[0].Center, seg.Sides[2].Center),
                     Vector3::Distance(seg.Sides[1].Center, seg.Sides[3].Center),
                     Vector3::Distance(seg.Sides[4].Center, seg.Sides[5].Center));
 
-        //auto vertIndex = seg.GetVertexIndex(Selection.Side, Selection.Point);
-        //ImGui::TableRowLabel(fmt::format("Vertex {}", vertIndex).c_str());
-        //auto& vert = level.Vertices[vertIndex];
-        //ImGui::Text("%.2f, %.2f, %.2f", vert.x, vert.y, vert.z);
+        TransformPosition(Game::Level, seg, Settings::SelectionMode);
 
         if (changed) {
             Events::LevelChanged();
