@@ -301,11 +301,22 @@ namespace Inferno::Editor {
             case SelectionMode::Edge:
             {
                 auto p1 = Game::Level.IndexForSide(Selection.PointTag());
-                auto p2 = Game::Level.IndexForSide({ Selection.Tag(), uint16(Selection.Point + 1) });
+                auto p2 = Game::Level.IndexForSide({ Selection.Tag(), uint16(Selection.Point + 1u) });
                 if (!p1 || !p2) return;
 
-                ToggleElement(Points, *p1);
-                ToggleElement(Points, *p2);
+                // check if selection is mixed, and if so, mark both
+                auto c1 = Points.contains(*p1);
+                auto c2 = Points.contains(*p2);
+                bool mixed = c1 && !c2 || c2 && !c1;
+
+                if (mixed) {
+                    Points.insert(*p1);
+                    Points.insert(*p2);
+                }
+                else {
+                    ToggleElement(Points, *p1);
+                    ToggleElement(Points, *p2);
+                }
             }
             break;
 
