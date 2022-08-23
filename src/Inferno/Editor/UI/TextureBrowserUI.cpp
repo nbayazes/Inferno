@@ -313,7 +313,7 @@ namespace Inferno::Editor {
 
         ImVec2 tileSize{};
         switch (Settings::TexturePreviewSize) {
-            case TexturePreviewSize::Small: tileSize = { 32, 32 }; break;
+            case TexturePreviewSize::Small: tileSize = { 48, 48 }; break;
             case TexturePreviewSize::Large: tileSize = { 96, 96 }; break;
             default: tileSize = { 64, 64 };
         }
