@@ -183,8 +183,13 @@ namespace Inferno::Editor {
                 DisableControls disable(!entry);
                 if (ImGui::Button("Delete", { -1, 0 })) {
                     Seq::sortDescending(_selections);
-                    for (auto& i : _selections)
+                    for (auto& i : _selections) {
+                        if (String::InvariantEquals(_entries[i].Name, Game::Level.FileName)) {
+                            if (!ShowYesNoMessage(L"Are you sure you want to delete the currently opened level?", L"Confirm delete"))
+                                continue;
+                        }
                         Seq::removeAt(_entries, i);
+                    }
 
                     _selections.clear();
                     _dirty = true;
@@ -227,6 +232,8 @@ namespace Inferno::Editor {
         }
 
         void LoadMission() {
+            if (!Game::Mission) return;
+            Game::LoadMission(Game::Mission->Path);
             _entries.clear();
             _selections.clear();
             _dirty = false;
@@ -257,7 +264,6 @@ namespace Inferno::Editor {
             filesystem::remove(source.Path); // Remove existing
             filesystem::rename(tempPath, source.Path); // Rename temp to destination
 
-            Game::LoadMission(source.Path);
             LoadMission();
         }
 

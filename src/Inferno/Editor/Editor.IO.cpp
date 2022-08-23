@@ -321,8 +321,8 @@ namespace Inferno::Editor {
                 if (Game::Mission) {
                     // Update level in existing hog
                     WriteHog(Game::Level, *Game::Mission, *path);
-                    auto msnPath = Game::Mission->GetMissionPath(); // get the msn path before reloading
                     Game::LoadMission(*path);
+                    auto msnPath = Game::Mission->GetMissionPath(); // get the msn path before reloading
 
                     if (filesystem::exists(msnPath)) {
                         filesystem::path destMsnPath = Game::Mission->GetMissionPath();
@@ -357,6 +357,7 @@ namespace Inferno::Editor {
         if (Game::Mission) {
             assert(level.FileName != "");
             WriteHog(level, *Game::Mission, Game::Mission->Path);
+            Game::LoadMission(Game::Mission->Path);
             SetStatusMessage(L"Mission saved to {}", Game::Mission->Path.filename().wstring());
             Settings::AddRecentFile(Game::Mission->Path);
         }
