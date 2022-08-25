@@ -16,9 +16,9 @@ namespace Inferno::Render {
         Debug::DrawCircle(radius, facingMatrix, color);
     }
 
-    void DrawObjectOutline(const Object& object, const Color& color) {
-        if (object.Radius == 0) return;
-        DrawFacingCircle(object.Position, object.Radius, color);
+    void DrawObjectOutline(const Object& object, const Color& color, float scale = 1.0f) {
+        if (object.Radius <= 0 || scale <= 0) return;
+        DrawFacingCircle(object.Position, object.Radius * scale, color);
         // submodel hitboxes
         //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
         //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.1, 0.5, 0.1, 0.50 });
@@ -345,7 +345,7 @@ namespace Inferno::Render {
 
                 for (auto& id : Editor::Marked.Objects) {
                     if (auto obj = level.TryGetObject(id))
-                        DrawObjectOutline(*obj, Colors::MarkedObject);
+                        DrawObjectOutline(*obj, Colors::MarkedObject, 1.1f);
                 }
                 break;
             }
