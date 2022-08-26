@@ -188,6 +188,8 @@ namespace Inferno::Editor {
             : Name(name), _flags(flags) {}
         virtual ~ModalWindowBase() = default;
 
+        bool EnableCloseHotkeys = true; // Enables enter and escape to close the window
+
         void Update() {
             if (IsOpen)
                 ImGui::OpenPopup(Name.c_str());
@@ -196,11 +198,13 @@ namespace Inferno::Editor {
             if (ImGui::BeginPopupModal(Name.c_str(), &IsOpen, _flags)) {
                 OnUpdate();
 
-                if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
-                    Close();
+                if (EnableCloseHotkeys) {
+                    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
+                        Close();
 
-                if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) && !ImGui::GetIO().WantTextInput)
-                    Close(true);
+                    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) && !ImGui::GetIO().WantTextInput)
+                        Close(true);
+                }
 
                 ImGui::EndPopup();
             }

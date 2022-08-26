@@ -1,8 +1,13 @@
 #include "pch.h"
+#define MAGIC_ENUM_RANGE_MIN 0
+#define MAGIC_ENUM_RANGE_MAX 256
+#include <magic_enum.hpp>
+
 #include <fstream>
 #include "Settings.h"
 #include <spdlog/spdlog.h>
 #include "Yaml.h"
+#include "Editor/Bindings.h"
 
 using namespace Yaml;
 
@@ -116,6 +121,68 @@ namespace Inferno::Settings {
         ReadValue(node["Radius"], settings.Radius);
         ReadValue(node["Reflectance"], settings.Reflectance);
         return settings;
+    }
+
+    void SaveEditorBindings(ryml::NodeRef node) {
+        node |= ryml::SEQ;
+
+        for (auto& binding : Editor::Bindings::Active.GetBindings()) {
+            auto child = node.append_child();
+            child |= ryml::MAP;
+            auto action = magic_enum::enum_name(binding.Action);
+            auto key = string(magic_enum::enum_name(binding.Key));
+            if (binding.Alt) key = "Alt " + key;
+            if (binding.Shift) key = "Shift " + key;
+            if (binding.Control) key = "Ctrl " + key;
+            child[ryml::to_csubstr(action.data())] << key;
+        }
+    }
+
+    void LoadEditorBindings(ryml::NodeRef node) {
+        if (node.is_seed()) return;
+        auto& bindings = Editor::Bindings::Active;
+        bindings.Clear(); // we have some bindings to replace defaults!
+
+        for (const auto& c : node.children()) {
+            if (c.is_seed() || !c.is_map()) continue;
+
+            auto kvp = c.child(0);
+            string value, command;
+            if (kvp.has_key()) command = string(kvp.key().data(), kvp.key().len);
+            if (kvp.has_val()) value = string(kvp.val().data(), kvp.val().len);
+            if (value.empty() || command.empty()) continue;
+
+            Editor::EditorBinding binding{};
+            if (auto commandName = magic_enum::enum_cast<Editor::EditorAction>(command))
+                binding.Action = *commandName;
+
+            auto tokens = String::Split(value, ' ');
+            binding.Alt = Seq::contains(tokens, "Alt");
+            binding.Shift = Seq::contains(tokens, "Shift");
+            binding.Control = Seq::contains(tokens, "Ctrl");
+            if (auto key = magic_enum::enum_cast<DirectX::Keyboard::Keys>(tokens.back()))
+                binding.Key = *key;
+
+            // Note that it is valid for Key to equal None to indicate that the user unbound it on purpose
+            bindings.Add(binding);
+        }
+
+        for (auto& binding : Editor::Bindings::Default.GetBindings()) {
+            if (!bindings.GetBinding(binding.Action))
+                bindings.Add(binding);
+        }
+
+        for (auto& binding : Editor::Bindings::Default.GetBindings()) {
+            if (!bindings.GetBinding(binding.Action))
+                bindings.Add(binding);
+        }
+    }
+
+    void SaveBindings(ryml::NodeRef node) {
+        node |= ryml::MAP;
+        SaveEditorBindings(node["Editor"]);
+
+        // Game bindings
     }
 
     void SaveEditorSettings(ryml::NodeRef node) {
@@ -240,6 +307,7 @@ namespace Inferno::Settings {
 
             SaveEditorSettings(doc["Editor"]);
             SaveRenderSettings(doc["Render"]);
+            SaveBindings(doc["Bindings"]);
 
             std::ofstream file(SettingsFile);
             file << doc;
@@ -265,6 +333,10 @@ namespace Inferno::Settings {
 
                 LoadEditorSettings(root["Editor"]);
                 LoadRenderSettings(root["Render"]);
+                auto bindings = root["Bindings"];
+                if (!bindings.is_seed()) {
+                    LoadEditorBindings(bindings["Editor"]);
+                }
             }
         }
         catch (const std::exception& e) {

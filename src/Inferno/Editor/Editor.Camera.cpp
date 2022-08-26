@@ -18,17 +18,6 @@ namespace Inferno::Editor {
         if (wheelDelta > 0) camera.ZoomOut();
     }
 
-    void Commands::FocusSegment() {
-        if (auto seg = Game::Level.TryGetSegment(Selection.Segment)) {
-            Render::Camera.MoveTo(seg->Center);
-        }
-    }
-
-    void Commands::FocusObject() {
-        if (auto obj = Game::Level.TryGetObject(Selection.Object))
-            Render::Camera.MoveTo(obj->Position);
-    }
-
     void ZoomExtents(const Level& level, Camera& camera) {
         Vector3 min, max, target;
 
@@ -65,4 +54,23 @@ namespace Inferno::Editor {
         camera.Position = face.Center() + face.AverageNormal() * std::sqrt(face.Area()) * 1.25;
         camera.Up = face.VectorForEdge(point).Cross(-face.AverageNormal());
     }
+
+    namespace Commands {
+        Command FocusSegment{
+            .Action = [] {
+                if (auto seg = Game::Level.TryGetSegment(Selection.Segment))
+                    Render::Camera.MoveTo(seg->Center);
+            },
+            .Name = "Focus Segment"
+        };
+
+        Command FocusObject{
+            .Action = [] {
+                if (auto obj = Game::Level.TryGetObject(Selection.Object))
+                    Render::Camera.MoveTo(obj->Position);
+            },
+            .Name = "Focus Object"
+        };
+    }
+
 }

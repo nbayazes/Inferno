@@ -190,6 +190,7 @@ int main() {
         Shell shell;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
+        Editor::Bindings::LoadDefaults();
         Settings::Load();
         FileSystem::Init();
         Resources::Init();

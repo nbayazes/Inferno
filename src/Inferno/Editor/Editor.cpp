@@ -503,8 +503,6 @@ namespace Inferno::Editor {
     }
 
     void Initialize() {
-        Bindings::LoadDefaults();
-
         Events::SelectTexture += OnSelectTexture;
         Events::LevelLoaded += [] { Editor::Gizmo.UpdatePosition(); };
         Events::SelectObject += [] { Editor::Gizmo.UpdatePosition(); };
@@ -528,13 +526,15 @@ namespace Inferno::Editor {
     }
 
     namespace Commands {
-        void AlignViewToFace() {
-            Editor::AlignViewToFace(Game::Level, Render::Camera, Selection.Tag(), Selection.Point);
-        }
+        Command AlignViewToFace{
+            .Action = [] { Editor::AlignViewToFace(Game::Level, Render::Camera, Selection.Tag(), Selection.Point); },
+            .Name = "Align View to Face"
+        };
 
-        void ZoomExtents() {
-            Editor::ZoomExtents(Game::Level, Render::Camera);
-        }
+        Command ZoomExtents{
+            .Action = [] { Editor::ZoomExtents(Game::Level, Render::Camera); },
+            .Name = "Zoom Extents"
+        };
 
         void CleanLevel() {
             Editor::CleanLevel(Game::Level);
@@ -651,5 +651,32 @@ namespace Inferno::Editor {
 
         Command Insert{ .Action = OnInsert, .Name = "Insert" };
         Command Delete{ .Action = OnDelete, .Name = "Delete" };
+
+        Command CycleRenderMode{
+            .Action = [] {
+                int i = (int)Settings::RenderMode + 1;
+                if (i > (int)RenderMode::Shaded) {
+                    i = 0;
+                    Settings::ShowWireframe = true;
+                }
+                else {
+                    Settings::ShowWireframe = false;
+                }
+                Settings::RenderMode = (RenderMode)i;
+            },
+            .Name = "Cycle Render Mode"
+        };
+
+        Command ToggleWireframe{
+            .Action = [] {
+                Settings::ShowWireframe = !Settings::ShowWireframe;
+
+                // Always keep something visible
+                if (!Settings::ShowWireframe && Settings::RenderMode == RenderMode::None)
+                    Settings::RenderMode = RenderMode::Textured;
+            },
+            .Name = "Toggle Wireframe"
+        };
+
     }
 }

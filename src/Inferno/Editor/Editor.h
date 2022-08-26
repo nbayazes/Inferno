@@ -162,13 +162,6 @@ namespace Inferno::Editor {
 
     namespace Commands {
         void CleanLevel();
-
-        // Camera
-        void AlignViewToFace();
-        void ZoomExtents();
-        void FocusSegment();
-        void FocusObject();
-
         void GoToReactor();
         void GoToBoss();
 
@@ -182,32 +175,11 @@ namespace Inferno::Editor {
 
         void Exit();
 
-        inline void CycleRenderMode() {
-            int i = (int)Settings::RenderMode + 1;
-            if (i > (int)RenderMode::Shaded) {
-                i = 0;
-                Settings::ShowWireframe = true;
-            }
-            else {
-                Settings::ShowWireframe = false;
-            }
-            Settings::RenderMode = (RenderMode)i;
-        }
-
-        inline Command ToggleWireframe{
-            .Action = [] {
-                Settings::ShowWireframe = !Settings::ShowWireframe;
-
-                // Always keep something visible
-                if (!Settings::ShowWireframe && Settings::RenderMode == RenderMode::None)
-                    Settings::RenderMode = RenderMode::Textured;
-            },
-            .Name = "Toggle Wireframe"
-        };
-
-        inline Command Undo{ .Action = [] { History.Undo(); }, .CanExecute = [] { return History.CanUndo(); } };
-        inline Command Redo{ .Action = [] { History.Redo(); }, .CanExecute = [] { return History.CanRedo(); } };
+        inline Command Undo{ .Action = [] { History.Undo(); }, .CanExecute = [] { return History.CanUndo(); }, .Name = "Undo" };
+        inline Command Redo{ .Action = [] { History.Redo(); }, .CanExecute = [] { return History.CanRedo(); }, .Name = "Redo" };
         extern Command Insert, Delete;
         inline Command DisableFlickeringLights{ .Action = [] { Editor::DisableFlickeringLights(Game::Level); } };
+        extern Command AlignViewToFace, FocusSegment, FocusObject, ZoomExtents;
+        extern Command CycleRenderMode, ToggleWireframe;
     }
 }

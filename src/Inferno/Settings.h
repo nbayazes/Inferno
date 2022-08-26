@@ -81,7 +81,7 @@ namespace Inferno {
 
         inline float ObjectRenderDistance = 300.0f;
 
-        inline float GizmoSize = 4.0f;
+        inline float GizmoSize = 5.0f;
         inline float GizmoThickness = 0.3f;
         inline float CrosshairSize = 0.5f;
         inline float WeldTolerance = 1.0f;

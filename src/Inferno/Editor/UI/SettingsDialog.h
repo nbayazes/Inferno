@@ -28,9 +28,12 @@ namespace Inferno::Editor {
         int _selectedPath;
         bool _dataPathsChanged = false;
         TexturePreviewSize _texturePreviewSize;
+
+        EditorBindings _bindings;
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
             Width = 800 * Shell::DpiScale;
+            EnableCloseHotkeys = false;
         }
 
     protected:
@@ -217,6 +220,107 @@ namespace Inferno::Editor {
             ImGui::EndTabItem();
         }
 
+        void KeyBindingsTab() {
+            if (!ImGui::BeginTabItem("Shortcuts")) return;
+
+            ImGui::BeginChild("container");
+
+            constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
+            if (ImGui::BeginTable("binds", 3, flags)) {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*/);
+                ImGui::TableSetupColumn("Shortcut");
+                ImGui::TableHeadersRow();
+
+                using Keys = DirectX::Keyboard::Keys;
+                static int selectedBinding = -1;
+
+                auto bindings = _bindings.GetBindings();
+                for (int i = 0; i < bindings.size(); i++) {
+                    ImGui::PushID(i);
+                    auto& binding = bindings[i];
+
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    auto& cmd = GetCommandForAction(binding.Action);
+                    ImGui::Text(cmd.Name.c_str());
+                    ImGui::TableNextColumn();
+                    //ImGui::Text(Bindings::GetShortcut(binding.Action).c_str());
+                    ImVec2 bindBtnSize = { 150 * Shell::DpiScale, 0 };
+
+                    if (i == selectedBinding) {
+                        if (ImGui::Button("Press a key...", bindBtnSize))
+                            selectedBinding = -1;
+                    }
+                    else {
+                        auto label = binding.Key == Keys::None ? "None" : binding.GetShortcutLabel();
+                        if (ImGui::Button(label.c_str(), bindBtnSize)) {
+                            selectedBinding = i;
+                        }
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImVec2 editBtnSize = { 100 * Shell::DpiScale, 0 };
+                    // only enable if binding doesn't equal default
+                    {
+                        auto defaultBind = Bindings::Default.GetBinding(binding.Action);
+                        DisableControls disable(!defaultBind || *defaultBind == binding);
+
+                        if (ImGui::Button("Reset", editBtnSize)) {
+                            _bindings.UnbindExisting(*defaultBind);
+                            binding = *defaultBind;
+                        }
+                    }
+
+                    ImGui::SameLine();
+
+                    {
+                        DisableControls disable(binding.Key == Keys::None);
+                        if (ImGui::Button("Clear", editBtnSize)) {
+                            binding.Key = Keys::None;
+                        }
+                    }
+                    ImGui::PopID();
+                }
+
+                // In bind mode - capture the next pressed key
+                if (selectedBinding != -1) {
+                    for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys(((unsigned char)key) + 1)) {
+                        if (key == Keys::LeftWindows ||
+                            key == Keys::RightWindows ||
+                            key == Keys::Pause ||
+                            key == Keys::Scroll ||
+                            key == Keys::PrintScreen ||
+                            key == Keys::LeftAlt ||
+                            key == Keys::RightAlt ||
+                            key == Keys::LeftShift ||
+                            key == Keys::RightShift ||
+                            key == Keys::LeftControl ||
+                            key == Keys::RightControl ||
+                            key == Keys::NumLock) continue;
+
+                        if (Input::IsKeyDown(key)) {
+                            EditorBinding binding = bindings[selectedBinding]; // copy
+                            binding.Key = key;
+                            binding.Alt = Input::AltDown;
+                            binding.Shift = Input::ShiftDown;
+                            binding.Control = Input::ControlDown;
+                            
+                            _bindings.UnbindExisting(binding);
+                            bindings[selectedBinding] = binding; // assign the new binding
+                            selectedBinding = -1;
+                        }
+                    }
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::EndChild();
+
+            ImGui::EndTabItem();
+        }
+
         void DataPathsTab() {
             if (!ImGui::BeginTabItem("Data Paths")) return;
 
@@ -279,6 +383,7 @@ namespace Inferno::Editor {
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
+                KeyBindingsTab();
                 DataPathsTab();
                 ImGui::EndTabBar();
             }
@@ -288,6 +393,9 @@ namespace Inferno::Editor {
         }
 
         bool OnOpen() override {
+            _bindings = Bindings::Active;
+            _bindings.Sort();
+
             _descent1Path = Settings::Descent1Path;
             _descent2Path = Settings::Descent2Path;
             _mouselookSensitivity = Settings::MouselookSensitivity * 1000;
@@ -322,6 +430,7 @@ namespace Inferno::Editor {
         }
 
         void OnAccept() override {
+            Bindings::Active = _bindings;
             Settings::MouselookSensitivity = _mouselookSensitivity / 1000;
             Settings::ObjectRenderDistance = _objectDrawDistance;
             Settings::InvertY = _invertY;

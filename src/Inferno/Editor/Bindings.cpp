@@ -14,10 +14,191 @@ using namespace DirectX;
 using Keys = DirectX::Keyboard::Keys;
 
 namespace Inferno::Editor {
+    namespace Commands {
+        Command NullCommand{
+            .Action = [] {},
+            .Name = "Null Command"
+        };
+
+        Command SelectionNext{
+            .Action = [] { Selection.NextItem(); },
+            .Name = "Select Next"
+        };
+        Command SelectionPrevious{
+            .Action = [] { Selection.PreviousItem(); },
+            .Name = "Select Previous"
+        };
+
+        Command SelectionForward{
+            .Action = [] { Selection.Forward(); },
+            .Name = "Select Forward"
+        };
+
+        Command SelectionBack{
+            .Action = [] { Selection.Back(); },
+            .Name = "Select Backwards"
+        };
+
+        Command SelectLinked{
+            .Action = [] { Selection.SelectLinked(); },
+            .Name = "Select Linked"
+        };
+
+        Command SetFaceMode{
+            .Action = [] { Editor::SetMode(SelectionMode::Face); },
+            .Name = "Face Mode"
+        };
+
+        Command SetPointMode{
+            .Action = [] { Editor::SetMode(SelectionMode::Point); },
+            .Name = "Point Mode"
+        };
+
+        Command SetEdgeMode{
+            .Action = [] { Editor::SetMode(SelectionMode::Edge); },
+            .Name = "Edge Mode"
+        };
+
+        Command SetSegmentMode{
+            .Action = [] { Editor::SetMode(SelectionMode::Segment); },
+            .Name = "Segment Mode"
+        };
+
+        Command SetObjectMode{
+            .Action = [] { Editor::SetMode(SelectionMode::Object); },
+            .Name = "Object Mode"
+        };
+
+        Command CameraForward{
+            .Action = [] { Render::Camera.MoveForward(Render::FrameTime); },
+            .Name = "Camera: Forward"
+        };
+
+        Command CameraBack{
+            .Action = [] { Render::Camera.MoveBack(Render::FrameTime); },
+            .Name = "Camera: Back"
+        };
+
+        Command CameraLeft{
+            .Action = [] { Render::Camera.MoveLeft(Render::FrameTime); },
+            .Name = "Camera: Left"
+        };
+
+        Command CameraRight{
+            .Action = [] { Render::Camera.MoveRight(Render::FrameTime); },
+            .Name = "Camera: Right"
+        };
+
+        Command CameraUp{
+            .Action = [] { Render::Camera.MoveUp(Render::FrameTime); },
+            .Name = "Camera: Up"
+        };
+
+        Command CameraDown{
+            .Action = [] { Render::Camera.MoveDown(Render::FrameTime); },
+            .Name = "Camera: Down"
+        };
+
+        Command CameraRollLeft{
+            .Action = [] { Render::Camera.Roll(Render::FrameTime); },
+            .Name = "Camera: Roll Left"
+        };
+
+        Command CameraRollRight{
+            .Action = [] { Render::Camera.Roll(-Render::FrameTime); },
+            .Name = "Camera: Roll Right"
+        };
+
+        Command ToggleMouselook{
+            .Action = [] { Input::SetMouselook(!Input::GetMouselook()); },
+            .Name = "Toggle Mouselook"
+        };
+
+        Command OpenHogEditor{
+            .Action = [] { Events::ShowDialog(DialogType::HogEditor); },
+            .CanExecute = [] { return Game::Mission.has_value(); },
+            .Name = "Hog Editor"
+        };
+
+        Command OpenMissionEditor{
+            .Action = [] { Events::ShowDialog(DialogType::MissionEditor); },
+            .CanExecute = [] { return Game::Mission.has_value(); },
+            .Name = "Mission Editor"
+        };
+
+        Command GotoSegment{
+            .Action = [] { Events::ShowDialog(DialogType::HogEditor); },
+            .Name = "Go to Segment"
+        };
+    }
+
+    const Command& GetCommandForAction(EditorAction action) {
+        switch (action) {
+            case EditorAction::NextItem: return Commands::SelectionNext;
+            case EditorAction::PreviousItem: return Commands::SelectionPrevious;
+            case EditorAction::SegmentForward: return Commands::SelectionForward;
+            case EditorAction::SegmentBack: return Commands::SelectionBack;
+            case EditorAction::SelectLinked: return Commands::SelectLinked;
+            case EditorAction::SideMode: return Commands::SetFaceMode;
+            case EditorAction::PointMode: return Commands::SetPointMode;
+            case EditorAction::EdgeMode: return Commands::SetEdgeMode;
+            case EditorAction::SegmentMode: return Commands::SetSegmentMode;
+            case EditorAction::ObjectMode: return Commands::SetObjectMode;
+            case EditorAction::CameraForward: return Commands::CameraForward;
+            case EditorAction::CameraBack: return Commands::CameraBack;
+            case EditorAction::CameraLeft: return Commands::CameraLeft;
+            case EditorAction::CameraRight: return Commands::CameraRight;
+            case EditorAction::CameraUp: return Commands::CameraUp;
+            case EditorAction::CameraDown: return Commands::CameraDown;
+            case EditorAction::CameraRollLeft: return Commands::CameraRollLeft;
+            case EditorAction::CameraRollRight: return Commands::CameraRollRight;
+            case EditorAction::ToggleMouselook: return Commands::ToggleMouselook;
+            case EditorAction::ClearSelection: return Commands::ClearMarked;
+            case EditorAction::Delete: return Commands::Delete;
+            case EditorAction::Insert: return Commands::Insert;
+            case EditorAction::Copy: return Commands::Copy;
+            case EditorAction::Cut: return Commands::Cut;
+            case EditorAction::Paste: return Commands::Paste;
+            case EditorAction::PasteMirrored: return Commands::PasteMirrored;
+            case EditorAction::Save: return Commands::Save;
+            case EditorAction::SaveAs: return Commands::SaveAs;
+            case EditorAction::Open: return Commands::Open;
+            case EditorAction::Undo: return Commands::Undo;
+            case EditorAction::Redo: return Commands::Redo;
+            case EditorAction::AlignViewToFace: return Commands::AlignViewToFace;
+            case EditorAction::FocusSelection: return Commands::FocusSegment;
+            case EditorAction::ZoomExtents: return Commands::ZoomExtents;
+            case EditorAction::ShowHogEditor: return Commands::OpenHogEditor;
+            case EditorAction::ShowMissionEditor: return Commands::OpenMissionEditor;
+            case EditorAction::ShowGotoDialog: return Commands::GotoSegment;
+            case EditorAction::AlignMarked: return Commands::AlignMarked;
+            case EditorAction::ResetUVs: return Commands::ResetUVs;
+            case EditorAction::CycleRenderMode: return Commands::CycleRenderMode;
+            case EditorAction::ToggleWireframe: return Commands::ToggleWireframe;
+
+            case EditorAction::CopyUVsToFaces: return Commands::CopyUVsToFaces;
+            case EditorAction::ConnectSides: return Commands::ConnectSides;
+            case EditorAction::JoinPoints: return Commands::JoinPoints;
+            case EditorAction::ToggleMark: return Commands::ToggleMarked;
+            case EditorAction::InsertMirrored: return Commands::InsertMirrored;
+            case EditorAction::JoinTouchingSegments: return Commands::JoinTouchingSegments;
+            case EditorAction::JoinSides: return Commands::JoinSides;
+            case EditorAction::DetachSegments: return Commands::DetachSegments;
+            case EditorAction::DetachSides: return Commands::DetachSides;
+            case EditorAction::DetachPoints: return Commands::DetachPoints;
+            case EditorAction::SplitSegment2: return Commands::SplitSegment2;
+            case EditorAction::MergeSegment: return Commands::MergeSegment;
+            case EditorAction::NewLevel: return Commands::NewLevel;
+            case EditorAction::InvertMarked: return Commands::InvertMarked;
+            case EditorAction::MakeCoplanar: return Commands::MakeCoplanar;
+        }
+
+        return Commands::NullCommand;
+    }
 
     constexpr string KeyToString(Keys key) {
         switch (key) {
-            case Keys::Back: return "Back";
+            case Keys::Back: return "Backspace";
             case Keys::Tab: return "Tab";
             case Keys::Enter: return "Enter";
             case Keys::Escape: return "Esc";
@@ -32,6 +213,37 @@ namespace Inferno::Editor {
             case Keys::Down: return "Down";
             case Keys::Insert: return "Ins";
             case Keys::Delete: return "Del";
+
+            // OEM keys
+            case Keys::OemOpenBrackets: return "[";
+            case Keys::OemCloseBrackets: return "]";
+            case Keys::OemPlus: return "+";
+            case Keys::OemMinus: return "-";
+            case Keys::OemPipe: return "\\";
+            case Keys::OemComma: return ",";
+            case Keys::OemPeriod: return ".";
+            case Keys::OemTilde: return "~";
+            case Keys::OemQuestion: return "/";
+            case Keys::OemSemicolon: return ";";
+            case Keys::OemQuotes: return "'";
+
+            // Numpad
+            case Keys::Multiply: return "*";
+            case Keys::Divide: return "/";
+            case Keys::Subtract: return "-";
+            case Keys::Add: return "+";
+            case Keys::Decimal: return ".";
+            case Keys::NumPad0: return "Pad0";
+            case Keys::NumPad1: return "Pad1";
+            case Keys::NumPad2: return "Pad2";
+            case Keys::NumPad3: return "Pad3";
+            case Keys::NumPad4: return "Pad4";
+            case Keys::NumPad5: return "Pad5";
+            case Keys::NumPad6: return "Pad6";
+            case Keys::NumPad7: return "Pad7";
+            case Keys::NumPad8: return "Pad8";
+            case Keys::NumPad9: return "Pad9";
+
             case Keys::A: return "A";
             case Keys::B: return "B";
             case Keys::C: return "C";
@@ -72,8 +284,18 @@ namespace Inferno::Editor {
             case Keys::F11: return "F11";
             case Keys::F12: return "F12";
 
+            case Keys::D1: return "1";
+            case Keys::D2: return "2";
+            case Keys::D3: return "3";
+            case Keys::D4: return "4";
+            case Keys::D5: return "5";
+            case Keys::D6: return "6";
+            case Keys::D7: return "7";
+            case Keys::D8: return "8";
+            case Keys::D9: return "9";
+
             default:
-                return string(1, key);
+                return "???";
         }
     }
 
@@ -85,208 +307,155 @@ namespace Inferno::Editor {
         if (Alt) modifiers = modifiers.empty() ? "Alt" : modifiers + "+Alt";
         return modifiers + "+" + KeyToString(Key);
     }
+
+    void EditorBindings::Add(EditorBinding binding) {
+        if (binding.Action == EditorAction::None) return;
+
+        switch (binding.Action) {
+            case EditorAction::CameraBack:
+            case EditorAction::CameraForward:
+            case EditorAction::CameraUp:
+            case EditorAction::CameraDown:
+            case EditorAction::CameraLeft:
+            case EditorAction::CameraRight:
+            case EditorAction::CameraRollLeft:
+            case EditorAction::CameraRollRight:
+                binding.Realtime = true;
+                break;
+        }
+
+        UnbindExisting(binding);
+
+        if (!binding.Command || binding.Command == &Commands::NullCommand) 
+            binding.Command = &GetCommandForAction(binding.Action);
+        _bindings.push_back(binding);
+    }
 }
 
 namespace Inferno::Editor::Bindings {
-
-    namespace {
-        List<EditorBinding> _bindings, _realtimeBindings;
-    }
-
-    void ExecuteAction(Binding action) {
-        try {
-            switch (action) {
-                case Binding::NextItem: Selection.NextItem(); break;
-                case Binding::PreviousItem: Selection.PreviousItem(); break;
-                case Binding::SegmentForward: Selection.Forward(); break;
-                case Binding::SegmentBack: Selection.Back(); break;
-                case Binding::SelectLinked: Selection.SelectLinked(); break;
-                case Binding::SideMode: Editor::SetMode(SelectionMode::Face); break;
-                case Binding::PointMode: Editor::SetMode(SelectionMode::Point); break;
-                case Binding::EdgeMode: Editor::SetMode(SelectionMode::Edge); break;
-                case Binding::SegmentMode: Editor::SetMode(SelectionMode::Segment); break;
-                case Binding::ObjectMode: Editor::SetMode(SelectionMode::Object); break;
-                case Binding::CameraForward: Render::Camera.MoveForward(Render::FrameTime); break;
-                case Binding::CameraBack: Render::Camera.MoveBack(Render::FrameTime); break;
-                case Binding::CameraLeft: Render::Camera.MoveLeft(Render::FrameTime); break;
-                case Binding::CameraRight: Render::Camera.MoveRight(Render::FrameTime); break;
-                case Binding::CameraUp: Render::Camera.MoveUp(Render::FrameTime); break;
-                case Binding::CameraDown: Render::Camera.MoveDown(Render::FrameTime); break;
-                case Binding::CameraRollLeft: Render::Camera.Roll(Render::FrameTime); break;
-                case Binding::CameraRollRight: Render::Camera.Roll(-Render::FrameTime); break;
-                case Binding::ToggleMouselook: Input::SetMouselook(!Input::GetMouselook()); break;
-                case Binding::ClearSelection: Commands::ClearMarked(); break;
-                case Binding::Delete: Commands::Delete(); break;
-                case Binding::Insert: Commands::Insert(); break;
-                case Binding::Copy: Commands::Copy(); break;
-                case Binding::Cut: Commands::Cut(); break;
-                case Binding::Paste: Commands::Paste(); break;
-                case Binding::PasteMirrored: Commands::PasteMirrored(); break;
-                case Binding::Save: Commands::Save(); break;
-                case Binding::SaveAs: Commands::SaveAs(); break;
-                case Binding::Open: Commands::Open(); break;
-                case Binding::Undo: Commands::Undo(); break;
-                case Binding::Redo: Commands::Redo(); break;
-                case Binding::AlignViewToFace: Commands::AlignViewToFace(); break;
-                case Binding::FocusSelection: Commands::FocusSegment(); break;
-                case Binding::ZoomExtents: Commands::ZoomExtents(); break;
-                case Binding::ShowHogDialog: Events::ShowDialog(DialogType::HogEditor); break;
-                case Binding::ShowGotoDialog: Events::ShowDialog(DialogType::GotoSegment); break;
-                case Binding::AlignMarked: Commands::AlignMarked(); break;
-                case Binding::ResetUVs: Commands::ResetUVs(); break;
-                case Binding::CycleRenderMode: Commands::CycleRenderMode(); break;
-                case Binding::ToggleWireframe: Commands::ToggleWireframe(); break;
-                    
-                case Binding::CopyUVsToFaces: Commands::CopyUVsToFaces(); break;
-                case Binding::ConnectSides: Commands::ConnectSides(); break;
-                case Binding::JoinPoints: Commands::JoinPoints(); break;
-                case Binding::ToggleMark: Commands::ToggleMarked(); break;
-                case Binding::InsertMirrored: Commands::InsertMirrored(); break;
-                case Binding::JoinTouchingSegments: Commands::JoinTouchingSegments(); break;
-                case Binding::JoinSides: Commands::JoinSides(); break;
-                case Binding::DetachSegments: Commands::DetachSegments(); break;
-                case Binding::DetachSides: Commands::DetachSides(); break;
-                case Binding::DetachPoints: Commands::DetachPoints(); break;
-                case Binding::SplitSegment2: Commands::SplitSegment2(); break;
-                case Binding::MergeSegment: Commands::MergeSegment(); break;
-                case Binding::NewLevel: Commands::NewLevel(); break;
-                case Binding::InvertMarked: Commands::InvertMarked(); break;
-                case Binding::MakeCoplanar: Commands::MakeCoplanar(); break;
-            }
-        }
-        catch (const std::exception& e) {
-            ShowErrorMessage(e);
-        }
-    }
-
-    void Add(EditorBinding binding) {
-        _bindings.push_back(binding);
-    }
-
-    void AddRealtime(EditorBinding binding) {
-        _realtimeBindings.push_back(binding);
-    }
-
     void Update() {
         auto& io = ImGui::GetIO();
         auto imguiWantsFocus = io.WantCaptureMouse;
 
-        for (auto& binding : _bindings) {
-            // don't execute navigation key bindings when imgui has focus
-            if ((binding.Key == Keys::Tab && imguiWantsFocus) ||
-                (binding.Key == Keys::Left && imguiWantsFocus) ||
-                (binding.Key == Keys::Right && imguiWantsFocus) ||
-                (binding.Key == Keys::Up && imguiWantsFocus) ||
-                (binding.Key == Keys::Down && imguiWantsFocus) ||
-                (binding.Key == Keys::Space && imguiWantsFocus))
-                continue;
-
-            if (Input::IsKeyPressed(binding.Key) &&
+        for (auto& binding : Bindings::Active.GetBindings()) {
+            if (binding.Realtime) {
+                // Realtime bindings are executed constantly
+                if (Input::IsKeyDown(binding.Key) &&
                 binding.Shift == Input::ShiftDown &&
                 binding.Alt == Input::AltDown &&
                 binding.Control == Input::ControlDown) {
-                ExecuteAction(binding.Binding);
+                    if (binding.Command)
+                        binding.Command->Execute();
+                }
             }
-        }
+            else {
+                // don't execute navigation key bindings when imgui has focus
+                if ((binding.Key == Keys::Tab && imguiWantsFocus) ||
+                    (binding.Key == Keys::Left && imguiWantsFocus) ||
+                    (binding.Key == Keys::Right && imguiWantsFocus) ||
+                    (binding.Key == Keys::Up && imguiWantsFocus) ||
+                    (binding.Key == Keys::Down && imguiWantsFocus) ||
+                    (binding.Key == Keys::Space && imguiWantsFocus))
+                    continue;
 
-        for (auto& binding : _realtimeBindings) {
-            if (Input::IsKeyDown(binding.Key) &&
-                binding.Shift == Input::ShiftDown &&
-                binding.Alt == Input::AltDown &&
-                binding.Control == Input::ControlDown) {
-                ExecuteAction(binding.Binding);
+                // Special case shift for mode bindings
+                auto shiftOverride =
+                    binding.Action == EditorAction::PointMode ||
+                    binding.Action == EditorAction::EdgeMode ||
+                    binding.Action == EditorAction::SideMode ||
+                    binding.Action == EditorAction::SegmentMode;
+
+                if (Input::IsKeyPressed(binding.Key) &&
+                    (binding.Shift == Input::ShiftDown || shiftOverride) &&
+                    binding.Alt == Input::AltDown &&
+                    binding.Control == Input::ControlDown) {
+                    if (binding.Command)
+                        binding.Command->Execute();
+                }
             }
         }
     }
 
     void LoadDefaults() {
-        Bindings::Add({ Binding::PointMode, Keys::D1 });
-        Bindings::Add({ Binding::PointMode, Keys::D1, true });
-        Bindings::Add({ Binding::EdgeMode, Keys::D2 });
-        Bindings::Add({ Binding::EdgeMode, Keys::D2, true });
-        Bindings::Add({ Binding::SideMode, Keys::D3 });
-        Bindings::Add({ Binding::SideMode, Keys::D3, true });
-        Bindings::Add({ Binding::SegmentMode, Keys::D4 });
-        Bindings::Add({ Binding::SegmentMode, Keys::D4, true });
-        Bindings::Add({ Binding::ObjectMode, Keys::D5 });
-        Bindings::Add({ Binding::NextItem, Keys::Right });
-        Bindings::Add({ Binding::PreviousItem, Keys::Left });
-        Bindings::Add({ Binding::SelectLinked, Keys::Tab });
-        Bindings::Add({ Binding::SegmentForward, Keys::Up });
-        Bindings::Add({ Binding::SelectLinked, Keys::Up, true });
-        Bindings::Add({ Binding::SegmentBack, Keys::Down });
-        Bindings::Add({ Binding::Delete, Keys::Delete });
-        Bindings::Add({ Binding::Delete, Keys::Back });
-        Bindings::Add({ Binding::Insert, Keys::Insert });
-        Bindings::Add({ Binding::ClearSelection, Keys::Escape });
+        auto& bindings = Default;
+        bindings.Add({ EditorAction::PointMode, Keys::D1 });
+        bindings.Add({ EditorAction::PointMode, Keys::D1, true });
+        bindings.Add({ EditorAction::EdgeMode, Keys::D2 });
+        bindings.Add({ EditorAction::EdgeMode, Keys::D2, true });
+        bindings.Add({ EditorAction::SideMode, Keys::D3 });
+        bindings.Add({ EditorAction::SideMode, Keys::D3, true });
+        bindings.Add({ EditorAction::SegmentMode, Keys::D4 });
+        bindings.Add({ EditorAction::SegmentMode, Keys::D4, true });
+        bindings.Add({ EditorAction::ObjectMode, Keys::D5 });
+        bindings.Add({ EditorAction::NextItem, Keys::Right });
+        bindings.Add({ EditorAction::PreviousItem, Keys::Left });
+        bindings.Add({ EditorAction::SelectLinked, Keys::Tab });
+        bindings.Add({ EditorAction::SegmentForward, Keys::Up });
+        bindings.Add({ EditorAction::SelectLinked, Keys::Up, true });
+        bindings.Add({ EditorAction::SegmentBack, Keys::Down });
+        bindings.Add({ EditorAction::Delete, Keys::Delete });
+        bindings.Add({ EditorAction::Delete, Keys::Back });
+        bindings.Add({ EditorAction::Insert, Keys::Insert });
+        bindings.Add({ EditorAction::ClearSelection, Keys::Escape });
 
-        Bindings::Add({ .Binding = Binding::FocusSelection, .Key = Keys::F });
-        Bindings::Add({ .Binding = Binding::AlignViewToFace, .Key = Keys::F, .Shift = true });
+        bindings.Add({ .Action = EditorAction::FocusSelection, .Key = Keys::F });
+        bindings.Add({ .Action = EditorAction::AlignViewToFace, .Key = Keys::F, .Shift = true });
 
-        Bindings::AddRealtime({ Binding::CameraForward, Keys::W });
-        Bindings::AddRealtime({ Binding::CameraBack, Keys::S });
-        Bindings::AddRealtime({ Binding::CameraLeft, Keys::A });
-        Bindings::AddRealtime({ Binding::CameraRight, Keys::D });
-        Bindings::AddRealtime({ Binding::CameraUp, Keys::E });
-        Bindings::AddRealtime({ Binding::CameraDown, Keys::Q });
-        Bindings::AddRealtime({ .Binding = Binding::CameraRollLeft, .Key = Keys::Q, .Shift = true });
-        Bindings::AddRealtime({ .Binding = Binding::CameraRollRight, .Key = Keys::E, .Shift = true });
+        bindings.Add({ EditorAction::CameraForward, Keys::W });
+        bindings.Add({ EditorAction::CameraBack, Keys::S });
+        bindings.Add({ EditorAction::CameraLeft, Keys::A });
+        bindings.Add({ EditorAction::CameraRight, Keys::D });
+        bindings.Add({ EditorAction::CameraUp, Keys::E });
+        bindings.Add({ EditorAction::CameraDown, Keys::Q });
+        bindings.Add({ .Action = EditorAction::CameraRollLeft, .Key = Keys::Q, .Shift = true });
+        bindings.Add({ .Action = EditorAction::CameraRollRight, .Key = Keys::E, .Shift = true });
 
-        Bindings::Add({ Binding::ToggleMouselook, Keys::Z });
+        bindings.Add({ EditorAction::ToggleMouselook, Keys::Z });
 
-        Bindings::Add({ .Binding = Binding::Copy, .Key = Keys::C, .Control = true });
-        Bindings::Add({ .Binding = Binding::Cut, .Key = Keys::X, .Control = true });
-        Bindings::Add({ .Binding = Binding::Paste, .Key = Keys::V, .Control = true });
-        Bindings::Add({ .Binding = Binding::PasteMirrored, .Key = Keys::V, .Shift = true, .Control = true });
+        bindings.Add({ .Action = EditorAction::Copy, .Key = Keys::C, .Control = true });
+        bindings.Add({ .Action = EditorAction::Cut, .Key = Keys::X, .Control = true });
+        bindings.Add({ .Action = EditorAction::Paste, .Key = Keys::V, .Control = true });
+        bindings.Add({ .Action = EditorAction::PasteMirrored, .Key = Keys::V, .Shift = true, .Control = true });
 
-        Bindings::Add({ .Binding = Binding::Save, .Key = Keys::S, .Control = true });
-        Bindings::Add({ .Binding = Binding::SaveAs, .Key = Keys::S, .Shift = true, .Control = true });
-        Bindings::Add({ .Binding = Binding::Open, .Key = Keys::O, .Control = true });
+        bindings.Add({ .Action = EditorAction::Save, .Key = Keys::S, .Control = true });
+        bindings.Add({ .Action = EditorAction::SaveAs, .Key = Keys::S, .Shift = true, .Control = true });
+        bindings.Add({ .Action = EditorAction::Open, .Key = Keys::O, .Control = true });
 
-        Bindings::Add({ .Binding = Binding::Undo, .Key = Keys::Z, .Control = true });
-        Bindings::Add({ .Binding = Binding::Redo, .Key = Keys::Z, .Shift = true, .Control = true });
-        Bindings::Add({ .Binding = Binding::Redo, .Key = Keys::Y, .Control = true });
+        bindings.Add({ .Action = EditorAction::Undo, .Key = Keys::Z, .Control = true });
+        bindings.Add({ .Action = EditorAction::Redo, .Key = Keys::Z, .Shift = true, .Control = true });
+        bindings.Add({ .Action = EditorAction::Redo, .Key = Keys::Y, .Control = true });
 
-        Bindings::Add({ .Binding = Binding::ShowHogDialog, .Key = Keys::H, .Control = true });
-        Bindings::Add({ .Binding = Binding::ShowGotoDialog, .Key = Keys::G, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
 
-        Bindings::Add({ .Binding = Binding::AlignMarked, .Key = Keys::T });
-        Bindings::Add({ .Binding = Binding::AlignMarked, .Key = Keys::A, .Control = true });
-        Bindings::Add({ .Binding = Binding::ResetUVs, .Key = Keys::R });
-        Bindings::Add({ .Binding = Binding::ResetUVs, .Key = Keys::R, .Control = true });
-        Bindings::Add({ .Binding = Binding::CopyUVsToFaces, .Key = Keys::O });
-        Bindings::Add({ .Binding = Binding::ToggleMark, .Key = Keys::Space });
+        bindings.Add({ .Action = EditorAction::AlignMarked, .Key = Keys::T });
+        bindings.Add({ .Action = EditorAction::AlignMarked, .Key = Keys::A, .Control = true });
+        bindings.Add({ .Action = EditorAction::ResetUVs, .Key = Keys::R });
+        bindings.Add({ .Action = EditorAction::ResetUVs, .Key = Keys::R, .Control = true });
+        bindings.Add({ .Action = EditorAction::CopyUVsToFaces, .Key = Keys::O });
+        bindings.Add({ .Action = EditorAction::ToggleMark, .Key = Keys::Space });
 
-        Bindings::Add({ .Binding = Binding::CycleRenderMode, .Key = Keys::F4 });
-        Bindings::Add({ .Binding = Binding::ToggleWireframe, .Key = Keys::F3 });
-        Bindings::Add({ .Binding = Binding::InsertMirrored, .Key = Keys::Insert, .Shift = true });
+        bindings.Add({ .Action = EditorAction::CycleRenderMode, .Key = Keys::F4 });
+        bindings.Add({ .Action = EditorAction::ToggleWireframe, .Key = Keys::F3 });
+        bindings.Add({ .Action = EditorAction::InsertMirrored, .Key = Keys::Insert, .Shift = true });
 
-        Bindings::Add({ .Binding = Binding::ConnectSides, .Key = Keys::C });
-        Bindings::Add({ .Binding = Binding::JoinSides, .Key = Keys::C, .Shift = true });
+        bindings.Add({ .Action = EditorAction::ConnectSides, .Key = Keys::C });
+        bindings.Add({ .Action = EditorAction::JoinSides, .Key = Keys::C, .Shift = true });
 
-        Bindings::Add({ .Binding = Binding::JoinTouchingSegments, .Key = Keys::J });
-        Bindings::Add({ .Binding = Binding::JoinPoints, .Key = Keys::J, .Shift = true });
+        bindings.Add({ .Action = EditorAction::JoinTouchingSegments, .Key = Keys::J });
+        bindings.Add({ .Action = EditorAction::JoinPoints, .Key = Keys::J, .Shift = true });
 
-        Bindings::Add({ .Binding = Binding::DetachSegments, .Key = Keys::D, .Control = true });
-        Bindings::Add({ .Binding = Binding::DetachSides, .Key = Keys::D, .Shift = true });
-        Bindings::Add({ .Binding = Binding::DetachPoints, .Key = Keys::D, .Shift = true, .Control = true });
+        bindings.Add({ .Action = EditorAction::DetachSegments, .Key = Keys::D, .Control = true });
+        bindings.Add({ .Action = EditorAction::DetachSides, .Key = Keys::D, .Shift = true });
+        bindings.Add({ .Action = EditorAction::DetachPoints, .Key = Keys::D, .Shift = true, .Control = true });
 
-        Bindings::Add({ .Binding = Binding::SplitSegment2, .Key = Keys::S, .Shift = true });
-        Bindings::Add({ .Binding = Binding::MergeSegment, .Key = Keys::M });
-        Bindings::Add({ .Binding = Binding::NewLevel, .Key = Keys::N, .Control = true });
-        Bindings::Add({ .Binding = Binding::InvertMarked, .Key = Keys::I, .Control = true });
-        Bindings::Add({ .Binding = Binding::MakeCoplanar, .Key = Keys::P });
-    }
+        bindings.Add({ .Action = EditorAction::SplitSegment2, .Key = Keys::S, .Shift = true });
+        bindings.Add({ .Action = EditorAction::MergeSegment, .Key = Keys::M });
+        bindings.Add({ .Action = EditorAction::NewLevel, .Key = Keys::N, .Control = true });
+        bindings.Add({ .Action = EditorAction::InvertMarked, .Key = Keys::I, .Control = true });
+        bindings.Add({ .Action = EditorAction::MakeCoplanar, .Key = Keys::P });
 
-    string GetShortcut(Binding bind) {
-        for (auto& binding : _bindings) {
-            if (binding.Binding == bind) return binding.GetShortcutLabel();
-        }
-
-        for (auto& binding : _realtimeBindings) {
-            if (binding.Binding == bind) return binding.GetShortcutLabel();
-        }
-
-        return {};
+        bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
     }
 }
