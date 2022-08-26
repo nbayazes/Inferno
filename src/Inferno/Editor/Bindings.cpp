@@ -46,27 +46,27 @@ namespace Inferno::Editor {
 
         Command SetFaceMode{
             .Action = [] { Editor::SetMode(SelectionMode::Face); },
-            .Name = "Face Mode"
+            .Name = "Mode: Face"
         };
 
         Command SetPointMode{
             .Action = [] { Editor::SetMode(SelectionMode::Point); },
-            .Name = "Point Mode"
+            .Name = "Mode: Point"
         };
 
         Command SetEdgeMode{
             .Action = [] { Editor::SetMode(SelectionMode::Edge); },
-            .Name = "Edge Mode"
+            .Name = "Mode: Edge"
         };
 
         Command SetSegmentMode{
             .Action = [] { Editor::SetMode(SelectionMode::Segment); },
-            .Name = "Segment Mode"
+            .Name = "Mode: Segment"
         };
 
         Command SetObjectMode{
             .Action = [] { Editor::SetMode(SelectionMode::Object); },
-            .Name = "Object Mode"
+            .Name = "Mode: Object"
         };
 
         Command CameraForward{
@@ -379,13 +379,9 @@ namespace Inferno::Editor::Bindings {
     void LoadDefaults() {
         auto& bindings = Default;
         bindings.Add({ EditorAction::PointMode, Keys::D1 });
-        bindings.Add({ EditorAction::PointMode, Keys::D1, true });
         bindings.Add({ EditorAction::EdgeMode, Keys::D2 });
-        bindings.Add({ EditorAction::EdgeMode, Keys::D2, true });
         bindings.Add({ EditorAction::SideMode, Keys::D3 });
-        bindings.Add({ EditorAction::SideMode, Keys::D3, true });
         bindings.Add({ EditorAction::SegmentMode, Keys::D4 });
-        bindings.Add({ EditorAction::SegmentMode, Keys::D4, true });
         bindings.Add({ EditorAction::ObjectMode, Keys::D5 });
         bindings.Add({ EditorAction::NextItem, Keys::Right });
         bindings.Add({ EditorAction::PreviousItem, Keys::Left });
@@ -425,9 +421,6 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::Redo, .Key = Keys::Z, .Shift = true, .Control = true });
         bindings.Add({ .Action = EditorAction::Redo, .Key = Keys::Y, .Control = true });
 
-        bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
-        bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
-
         bindings.Add({ .Action = EditorAction::AlignMarked, .Key = Keys::T });
         bindings.Add({ .Action = EditorAction::AlignMarked, .Key = Keys::A, .Control = true });
         bindings.Add({ .Action = EditorAction::ResetUVs, .Key = Keys::R });
@@ -457,5 +450,6 @@ namespace Inferno::Editor::Bindings {
 
         bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
+        bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
     }
 }

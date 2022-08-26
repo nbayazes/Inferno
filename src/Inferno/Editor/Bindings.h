@@ -148,7 +148,7 @@ namespace Inferno::Editor {
         }
 
         // Clears a binding that uses the same shortcut as the provided one
-        void UnbindExisting(EditorBinding binding) {
+        void UnbindExisting(const EditorBinding& binding) {
             if (auto existing = Seq::find(_bindings, [&binding](auto& b) { return b == binding; })) {
                 existing->ClearShortcut();
             }

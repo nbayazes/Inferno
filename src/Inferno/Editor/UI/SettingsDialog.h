@@ -30,6 +30,15 @@ namespace Inferno::Editor {
         TexturePreviewSize _texturePreviewSize;
 
         EditorBindings _bindings;
+
+        struct BindingEntry {
+            EditorAction Action{};
+            string Label;
+            EditorBinding Primary, Secondary;
+        };
+
+        List<BindingEntry> _bindingEntries;
+
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
             Width = 800 * Shell::DpiScale;
@@ -223,63 +232,86 @@ namespace Inferno::Editor {
         void KeyBindingsTab() {
             if (!ImGui::BeginTabItem("Shortcuts")) return;
 
+            if (ImGui::Button("Reset to defaults")) {
+                _bindingEntries = BuildBindingEntries(Bindings::Default);
+            }
+
             ImGui::BeginChild("container");
 
             constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
-            if (ImGui::BeginTable("binds", 3, flags)) {
+            if (ImGui::BeginTable("binds", 4, flags)) {
                 ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
                 ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*/);
                 ImGui::TableSetupColumn("Shortcut");
+                ImGui::TableSetupColumn("Alt Shortcut");
                 ImGui::TableHeadersRow();
 
                 using Keys = DirectX::Keyboard::Keys;
                 static int selectedBinding = -1;
+                static bool editAlt = false;
 
-                auto bindings = _bindings.GetBindings();
-                for (int i = 0; i < bindings.size(); i++) {
+                for (int i = 0; i < _bindingEntries.size(); i++) {
                     ImGui::PushID(i);
-                    auto& binding = bindings[i];
+                    auto& binding = _bindingEntries[i];
 
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
                     auto& cmd = GetCommandForAction(binding.Action);
                     ImGui::Text(cmd.Name.c_str());
                     ImGui::TableNextColumn();
-                    //ImGui::Text(Bindings::GetShortcut(binding.Action).c_str());
                     ImVec2 bindBtnSize = { 150 * Shell::DpiScale, 0 };
 
-                    if (i == selectedBinding) {
+                    if (i == selectedBinding && !editAlt) {
                         if (ImGui::Button("Press a key...", bindBtnSize))
                             selectedBinding = -1;
                     }
                     else {
-                        auto label = binding.Key == Keys::None ? "None" : binding.GetShortcutLabel();
+                        auto label = binding.Primary.Key == Keys::None ? "None" : binding.Primary.GetShortcutLabel();
                         if (ImGui::Button(label.c_str(), bindBtnSize)) {
                             selectedBinding = i;
+                            editAlt = false;
                         }
                     }
+
+                    const ImVec2 clearBtnSize = { 40 * Shell::DpiScale, 0 };
+                    ImGui::SameLine(0, 1);
+                    if (binding.Primary.Key == Keys::None) {
+                        ImGui::Dummy(clearBtnSize);
+                    }
+                    else {
+                        if (ImGui::ButtonEx("X", clearBtnSize))
+                            binding.Primary.ClearShortcut();
+                    }
+
+                    ImGui::PushID(10);
+                    ImGui::TableNextColumn();
+                    if (i == selectedBinding && editAlt) {
+                        if (ImGui::Button("Press a key...", bindBtnSize))
+                            selectedBinding = -1;
+                    }
+                    else {
+                        auto label = binding.Secondary.Key == Keys::None ? "None" : binding.Secondary.GetShortcutLabel();
+                        if (ImGui::Button(label.c_str(), bindBtnSize)) {
+                            selectedBinding = i;
+                            editAlt = true;
+                        }
+                    }
+
+                    ImGui::SameLine(0, 1);
+                    if (binding.Secondary.Key == Keys::None) {
+                        ImGui::Dummy(clearBtnSize);
+                    }
+                    else {
+                        if (ImGui::Button("X", clearBtnSize))
+                            binding.Secondary.ClearShortcut();
+                    }
+
+                    ImGui::PopID();
 
                     ImGui::TableNextColumn();
                     ImVec2 editBtnSize = { 100 * Shell::DpiScale, 0 };
-                    // only enable if binding doesn't equal default
-                    {
-                        auto defaultBind = Bindings::Default.GetBinding(binding.Action);
-                        DisableControls disable(!defaultBind || *defaultBind == binding);
-
-                        if (ImGui::Button("Reset", editBtnSize)) {
-                            _bindings.UnbindExisting(*defaultBind);
-                            binding = *defaultBind;
-                        }
-                    }
-
                     ImGui::SameLine();
 
-                    {
-                        DisableControls disable(binding.Key == Keys::None);
-                        if (ImGui::Button("Clear", editBtnSize)) {
-                            binding.Key = Keys::None;
-                        }
-                    }
                     ImGui::PopID();
                 }
 
@@ -300,14 +332,21 @@ namespace Inferno::Editor {
                             key == Keys::NumLock) continue;
 
                         if (Input::IsKeyDown(key)) {
-                            EditorBinding binding = bindings[selectedBinding]; // copy
+                            // assign the new binding
+                            auto& entry = _bindingEntries[selectedBinding];
+                            EditorBinding binding = editAlt ? entry.Secondary : entry.Primary; // copy
                             binding.Key = key;
                             binding.Alt = Input::AltDown;
                             binding.Shift = Input::ShiftDown;
                             binding.Control = Input::ControlDown;
-                            
-                            _bindings.UnbindExisting(binding);
-                            bindings[selectedBinding] = binding; // assign the new binding
+
+                            UnbindExisting(_bindingEntries, binding);
+
+                            if (editAlt)
+                                _bindingEntries[selectedBinding].Secondary = binding;
+                            else
+                                _bindingEntries[selectedBinding].Primary = binding;
+
                             selectedBinding = -1;
                         }
                     }
@@ -393,8 +432,7 @@ namespace Inferno::Editor {
         }
 
         bool OnOpen() override {
-            _bindings = Bindings::Active;
-            _bindings.Sort();
+            _bindingEntries = BuildBindingEntries(Bindings::Active);
 
             _descent1Path = Settings::Descent1Path;
             _descent2Path = Settings::Descent2Path;
@@ -430,7 +468,7 @@ namespace Inferno::Editor {
         }
 
         void OnAccept() override {
-            Bindings::Active = _bindings;
+            CopyBindingEntries(_bindingEntries);
             Settings::MouselookSensitivity = _mouselookSensitivity / 1000;
             Settings::ObjectRenderDistance = _objectDrawDistance;
             Settings::InvertY = _invertY;
@@ -485,6 +523,47 @@ namespace Inferno::Editor {
                 Render::LoadLevel(Game::Level);
                 Render::Materials->LoadLevelTextures(Game::Level, true);
                 Render::Adapter->ReloadResources();
+            }
+        }
+
+        void UnbindExisting(span<BindingEntry> entries, const EditorBinding& binding) {
+            for (auto& entry : entries) {
+                if (entry.Primary == binding) entry.Primary.ClearShortcut();
+                if (entry.Secondary == binding) entry.Secondary.ClearShortcut();
+            }
+        }
+
+        List<BindingEntry> BuildBindingEntries(EditorBindings bindings /*copy*/) {
+            bindings.Sort();
+            List<BindingEntry> entries;
+
+            for (auto& binding : bindings.GetBindings()) {
+                if (auto existing = Seq::find(entries, [&binding](BindingEntry& e) { return e.Action == binding.Action; })) {
+                    existing->Secondary = binding;
+                }
+                else {
+                    BindingEntry entry{};
+                    auto& cmd = GetCommandForAction(binding.Action);
+                    entry.Label = cmd.Name;
+                    entry.Action = binding.Action;
+                    entry.Primary = binding;
+                    entries.push_back(entry);
+                }
+            }
+
+            return entries;
+        }
+
+        void CopyBindingEntries(span<BindingEntry> entries) {
+            using Keys = DirectX::Keyboard::Keys;
+            Bindings::Active.Clear();
+
+            for (auto& entry : entries) {
+                if (entry.Primary.Key != Keys::None)
+                    Bindings::Active.Add(entry.Primary);
+
+                if (entry.Secondary.Key != Keys::None)
+                    Bindings::Active.Add(entry.Secondary);
             }
         }
     };
