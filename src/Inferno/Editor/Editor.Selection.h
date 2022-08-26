@@ -170,7 +170,7 @@ namespace Inferno::Editor {
                     break;
 
                 default:
-                    Seq::append(Faces, faces);
+                    Seq::append(faces, Faces);
                     break;
             }
 

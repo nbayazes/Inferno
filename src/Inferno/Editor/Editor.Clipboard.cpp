@@ -26,8 +26,7 @@ namespace Inferno::Editor {
             auto offset = (PointID)copy.Vertices.size();
             // copy verts without regard to connections and update seg indices
             auto verts = seg.CopyVertices(level); // grabs front then back
-
-            Seq::move(verts, copy.Vertices);
+            Seq::move(copy.Vertices, verts);
 
             auto& front = SideIndices[(int)SideID::Front];
             auto& back = SideIndices[(int)SideID::Back];
@@ -111,7 +110,7 @@ namespace Inferno::Editor {
         auto wallOffset = level.Walls.size();
         auto segIdOffset = (SegID)level.Segments.size();
         auto matcenOffset = level.Matcens.size();
-        Seq::move(copy.Vertices, level.Vertices);
+        Seq::move(level.Vertices, copy.Vertices);
 
         List<SegID> newIds;
 

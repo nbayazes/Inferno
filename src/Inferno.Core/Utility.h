@@ -416,6 +416,11 @@ namespace Inferno {
             return List<T>(set.begin(), set.end());
         }
 
+        template<class T>
+        constexpr auto toList(const span<T> xs) {
+            return List<T>(xs.begin(), xs.end());
+        }
+
         constexpr bool inRange(auto&& xs, size_t index) {
             return index >= 0 && index < xs.size();
         }
@@ -466,12 +471,12 @@ namespace Inferno {
         }
 
         // Moves the contents of src to the end of dest
-        constexpr void move(auto&& src, auto& dest) {
+        constexpr void move(auto& dest, auto&& src) {
             std::move(src.begin(), src.end(), std::back_inserter(dest));
         }
 
         // Copies the contents of src to the end of dest
-        constexpr void append(const auto& src, auto& dest) {
+        constexpr void append(auto& dest, const auto& src) {
             std::copy(src.begin(), src.end(), std::back_inserter(dest));
         }
 

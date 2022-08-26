@@ -143,7 +143,7 @@ namespace Inferno::Editor {
 
         // Update ids immediately. They will display as loading completes.
         _textureIds.clear();
-        Seq::append(ids, _textureIds);
+        Seq::append(_textureIds, ids);
         Seq::insert(Render::Materials->KeepLoaded, tids); // so browser textures don't get discarded after a prune
     }
 
