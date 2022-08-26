@@ -235,6 +235,8 @@ namespace Inferno::Editor {
 
             ImGui::Checkbox("Reopen last level on start", &_editor.ReopenLastLevel);
 
+            ImGui::Checkbox("Show level title", &_editor.ShowLevelTitle);
+
             ImGui::Text("Texture preview size");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(150 * Shell::DpiScale);

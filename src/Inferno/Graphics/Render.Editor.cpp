@@ -9,6 +9,7 @@
 #include "Settings.h"
 #include "Editor/Editor.Object.h"
 #include "Editor/UI/EditorUI.h"
+#include "Game.Text.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -384,6 +385,14 @@ namespace Inferno::Render {
         if (Input::GetMouselook())
             Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
 
+        if (Settings::Editor.ShowLevelTitle) {
+            Color color = { 1, 1, 1 };
+            auto& target = Adapter->GetHdrRenderTarget();
+            auto strSize = MeasureString(level.Name, FontSize::Big) * Shell::DpiScale;
+            auto x = Editor::MainViewportXOffset + Editor::MainViewportWidth / 2 - strSize.x / 2;
+            
+            DrawGameText(level.Name, *Render::Canvas, target, x, Editor::TopToolbarOffset, FontSize::Big/*, color, AlignH::Center*/);
+        }
         //{
         //    auto tag = Editor::Selection.PointTag();
         //    if (level.SegmentExists(tag)) {

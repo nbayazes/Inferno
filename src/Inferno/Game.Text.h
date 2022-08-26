@@ -11,4 +11,5 @@ namespace Inferno {
     enum class AlignH { Left, Center, Right };
     enum class AlignV { Top, Center, Bottom };
     void DrawGameText(string_view str, Render::Canvas2D& canvas, const RenderTarget& target, float x, float y, FontSize size, Color color = { 1, 1, 1 }, AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top);
+    Vector2 MeasureString(string_view str, FontSize size);
 }

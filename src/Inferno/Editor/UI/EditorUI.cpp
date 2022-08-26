@@ -836,6 +836,8 @@ namespace Inferno::Editor {
 
         DrawTopToolbar(*dock->CentralNode);
         if (ShowDebugOverlay) DrawDebugOverlay(dock->CentralNode);
+        Editor::MainViewportWidth = dock->CentralNode->Size.x;
+        Editor::MainViewportXOffset = dock->CentralNode->Pos.x;
         //DrawSelectionToolbar({ viewport->Pos.x + viewportSize.x - 100, dock->CentralNode->Pos.y });
     }
 
