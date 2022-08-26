@@ -93,29 +93,6 @@ namespace Inferno::Editor {
             Key = {};
         }
 
-        //struct Shortcut {
-        //    DirectX::Keyboard::Keys Key{};
-        //    bool Shift = false;
-        //    bool Control = false;
-        //    bool Alt = false;
-        //    bool Realtime = false;
-
-        //    bool operator==(const Shortcut& rhs) {
-        //        return Key == rhs.Key && Shift == rhs.Shift && Control == rhs.Control && Alt == rhs.Alt;
-        //    }
-
-        //    void Clear() {
-        //        Shift = Control = Alt = false;
-        //        Key = {};
-        //    }
-        //} Primary, Secondary;
-
-        //bool operator==(const EditorBinding& rhs) {
-        //    return
-        //        rhs.Primary == Primary || rhs.Primary == Secondary ||
-        //        rhs.Secondary == Primary || rhs.Secondary == Secondary;
-        //}
-
         string GetShortcutLabel();
     };
 

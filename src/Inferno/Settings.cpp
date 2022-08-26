@@ -167,14 +167,14 @@ namespace Inferno::Settings {
             bindings.Add(binding);
         }
 
-        for (auto& binding : Editor::Bindings::Default.GetBindings()) {
-            if (!bindings.GetBinding(binding.Action))
-                bindings.Add(binding);
-        }
+        // copy bindings before adding defaults so that multiple shortcuts for the same action will apply properly
+        Editor::EditorBindings fileBindings = bindings;
 
-        for (auto& binding : Editor::Bindings::Default.GetBindings()) {
-            if (!bindings.GetBinding(binding.Action))
-                bindings.Add(binding);
+        for (auto& defaultBinding : Editor::Bindings::Default.GetBindings()) {
+            if (!fileBindings.GetBinding(defaultBinding.Action)) {
+                // there's a default binding for this action and the file didn't provide one
+                bindings.Add(defaultBinding);
+            }
         }
     }
 
@@ -182,7 +182,7 @@ namespace Inferno::Settings {
         node |= ryml::MAP;
         SaveEditorBindings(node["Editor"]);
 
-        // Game bindings
+        // todo: Game bindings
     }
 
     void SaveEditorSettings(ryml::NodeRef node) {
