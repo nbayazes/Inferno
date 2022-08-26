@@ -2,6 +2,7 @@
 
 #include "Render.Debug.h"
 #include <DirectXMath.h>
+#include "Editor/Gizmo.h"
 
 namespace Inferno::Render {
     namespace Colors {
@@ -38,6 +39,39 @@ namespace Inferno::Render {
         }
     }
 
+    inline void DrawGizmoPreview(const Editor::TransformGizmo& gizmo) {
+        using namespace Editor;
+        if (gizmo.SelectedAxis == GizmoAxis::None) return;
+        if (gizmo.State == GizmoState::None) return;
+
+        auto color = [&gizmo] {
+            switch (gizmo.SelectedAxis) {
+                default:
+                case GizmoAxis::X: return Colors::GizmoXHighlight;
+                case GizmoAxis::Y: return Colors::GizmoYHighlight;
+                case GizmoAxis::Z: return Colors::GizmoZHighlight;
+            }
+        }();
+
+        if (gizmo.Mode == TransformMode::Translation || gizmo.Mode == TransformMode::Rotation)
+            Debug::DrawLine(GizmoPreview::Start, GizmoPreview::End, color);
+
+        if (gizmo.Mode == TransformMode::Scale) {
+            auto [up, right] = [&gizmo]() -> Tuple<Vector3, Vector3> {
+                switch (gizmo.SelectedAxis) {
+                    default:
+                    case GizmoAxis::X: return { gizmo.Transform.Up(), gizmo.Transform.Right() };
+                    case GizmoAxis::Y: return { gizmo.Transform.Forward(), gizmo.Transform.Right() };
+                    case GizmoAxis::Z: return { gizmo.Transform.Up(), gizmo.Transform.Forward() };
+                }
+            }();
+
+            auto position = gizmo.Transform.Translation();
+            auto scale = Editor::GetGizmoScale(position, Camera);
+            Debug::DrawPlane(position, right, up, color, scale * 10);
+        }
+    }
+
     inline void DrawTranslationGizmo(ID3D12GraphicsCommandList* commandList, const Editor::TransformGizmo& gizmo, const Matrix& viewProjection) {
         using namespace Editor;
         auto sizeScale = Settings::GizmoSize / 5.0f; // arrows have a default size of 5
@@ -49,7 +83,7 @@ namespace Inferno::Render {
         gizmoDir.Normalize();
 
         auto DrawAxis = [&](GizmoAxis axis, Vector3 dir) {
-            if (std::abs(dir.Dot(gizmoDir)) > TransformGizmo::MaxViewAngle) 
+            if (std::abs(dir.Dot(gizmoDir)) > TransformGizmo::MaxViewAngle)
                 return; // Hide gizmo if camera is aligned to it
 
             auto rotation = DirectionToRotationMatrix(dir);
@@ -126,7 +160,7 @@ namespace Inferno::Render {
                 rotation.Right(-gizmo.Transform.Forward());
             }
 
-            if (std::abs(rotation.Forward().Dot(gizmoDir)) > TransformGizmo::MaxViewAngle) 
+            if (std::abs(rotation.Forward().Dot(gizmoDir)) > TransformGizmo::MaxViewAngle)
                 return; // Hide gizmo if camera is aligned to it
 
             auto offset = Matrix::CreateTranslation(rotation.Forward() * Settings::GizmoSize);

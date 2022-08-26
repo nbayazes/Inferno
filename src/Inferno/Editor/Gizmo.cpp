@@ -309,6 +309,27 @@ namespace Inferno::Editor {
         }
     }
 
+    void SetGizmoPreviewPoints(GizmoAxis axis, Matrix& transform) {
+        auto origin = transform.Translation();
+
+        switch (axis) {
+            case GizmoAxis::X:
+                GizmoPreview::Start = origin + transform.Forward() * MIN_FIX;
+                GizmoPreview::End = origin + transform.Forward() * MAX_FIX;
+                break;
+
+            case GizmoAxis::Y:
+                GizmoPreview::Start = origin + transform.Up() * MIN_FIX;
+                GizmoPreview::End = origin + transform.Up() * MAX_FIX;
+                break;
+
+            case GizmoAxis::Z:
+                GizmoPreview::Start = origin + transform.Right() * MIN_FIX;
+                GizmoPreview::End = origin + transform.Right() * MAX_FIX;
+                break;
+        }
+    }
+
     void TransformGizmo::Update(Input::SelectionState state, const Camera& camera) {
         switch (state) {
             case Input::SelectionState::None:
@@ -341,6 +362,8 @@ namespace Inferno::Editor {
 
                 if (State == GizmoState::None)
                     State = GizmoState::BeginDrag;
+
+                SetGizmoPreviewPoints(SelectedAxis, Transform);
 
                 DeltaTransform = Matrix::Identity;
                 _prevTranslation = {};

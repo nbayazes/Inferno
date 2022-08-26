@@ -47,7 +47,7 @@ namespace Inferno::Render::Debug {
     void DrawSide(Level& level, Segment& seg, SideID side, const Color& color);
     void DrawSideOutline(Level&, Tag, const Color&);
     void DrawSideOutline(Level& level, Segment& seg, SideID side, const Color& color);
-
+    void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 }
 
 namespace Inferno::Render::Metrics {

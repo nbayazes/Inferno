@@ -379,6 +379,7 @@ namespace Inferno::Render {
         if (drawTranslationGizmo) DrawTranslationGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
         if (drawRotationGizmo) DrawRotationGizmo(Editor::Gizmo);
         if (drawScaleGizmo) DrawScaleGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
+        DrawGizmoPreview(Editor::Gizmo);
 
         if (Input::GetMouselook())
             Debug::DrawCrosshair(Settings::CrosshairSize);

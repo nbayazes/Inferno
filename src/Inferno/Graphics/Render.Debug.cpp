@@ -412,6 +412,22 @@ namespace Inferno::Render::Debug {
         DrawLine(end, p1, color);
     }
 
+    void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size) {
+        auto p0 = pos + right * size + up * size;
+        auto p1 = pos - right * size + up * size;
+        auto p2 = pos - right * size - up * size;
+        auto p3 = pos + right * size - up * size;
+        Color fill = color;
+        fill.w = 0.1f;
+        DrawTriangle(p0, p1, p2, fill);
+        DrawTriangle(p2, p3, p0, fill);
+
+        DrawLine(p0, p1, color);
+        DrawLine(p1, p2, color);
+        DrawLine(p2, p3, color);
+        DrawLine(p3, p0, color);
+    }
+
     void DrawSide(Level& level, Tag tag, const Color& color) {
         auto [seg, side] = level.GetSegmentAndSide(tag);
         auto i = side.GetRenderIndices();
