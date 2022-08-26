@@ -384,12 +384,18 @@ namespace Inferno::Editor {
         auto face = Face::FromSide(level, tag);
         auto normal = face.AverageNormal();
         auto tangent = face.VectorForEdge(point % 4);
-
         transform.Forward(normal);
-        transform.Up(tangent);
-        auto bitangent = normal.Cross(tangent);
-        bitangent.Normalize();
-        transform.Right(bitangent);
+
+        if (IsZero(tangent)) {
+            transform = {}; // global transform if edge length is zero
+        }
+        else {
+            auto bitangent = normal.Cross(tangent);
+            bitangent.Normalize();
+            transform.Up(tangent);
+            transform.Right(bitangent);
+        }
+
         return transform;
     }
 

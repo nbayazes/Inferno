@@ -49,7 +49,8 @@ namespace Inferno::Render {
         gizmoDir.Normalize();
 
         auto DrawAxis = [&](GizmoAxis axis, Vector3 dir) {
-            if (std::abs(dir.Dot(gizmoDir)) > TransformGizmo::MaxViewAngle) return; // Hide gizmo if camera is aligned to it
+            if (std::abs(dir.Dot(gizmoDir)) > TransformGizmo::MaxViewAngle) 
+                return; // Hide gizmo if camera is aligned to it
 
             auto rotation = DirectionToRotationMatrix(dir);
             auto transform = rotation * scale * translation * viewProjection;
@@ -111,18 +112,31 @@ namespace Inferno::Render {
         auto gizmoDir = Camera.Position - gizmo.Transform.Translation();
         gizmoDir.Normalize();
 
-        auto DrawAxis = [&](GizmoAxis axis, Vector3 dir) {
-            if (std::abs(dir.Dot(gizmoDir)) > TransformGizmo::MaxViewAngle) return; // Hide gizmo if camera is aligned to it
+        auto DrawAxis = [&](GizmoAxis axis) {
+            auto rotation = gizmo.Transform;
+            rotation.Translation(Vector3::Zero);
 
-            auto rotation = DirectionToRotationMatrix(dir);
-            auto offset = Matrix::CreateTranslation(dir * Settings::GizmoSize);
+            if (axis == GizmoAxis::Y) {
+                rotation.Forward(gizmo.Transform.Up());
+                rotation.Up(-gizmo.Transform.Forward());
+            }
+
+            if (axis == GizmoAxis::Z) {
+                rotation.Forward(gizmo.Transform.Right());
+                rotation.Right(-gizmo.Transform.Forward());
+            }
+
+            if (std::abs(rotation.Forward().Dot(gizmoDir)) > TransformGizmo::MaxViewAngle) 
+                return; // Hide gizmo if camera is aligned to it
+
+            auto offset = Matrix::CreateTranslation(rotation.Forward() * Settings::GizmoSize);
             auto transform = rotation * offset * scale * translation * viewProjection;
             auto color = GetColor(axis, gizmo, Editor::TransformMode::Scale);
             Debug::DrawCube(commandList, transform, color);
         };
 
-        if (gizmo.ShowScaleAxis[0]) DrawAxis(GizmoAxis::X, gizmo.Transform.Forward());
-        if (gizmo.ShowScaleAxis[1]) DrawAxis(GizmoAxis::Y, gizmo.Transform.Up());
-        if (gizmo.ShowScaleAxis[2]) DrawAxis(GizmoAxis::Z, gizmo.Transform.Right());
+        if (gizmo.ShowScaleAxis[0]) DrawAxis(GizmoAxis::X);
+        if (gizmo.ShowScaleAxis[1]) DrawAxis(GizmoAxis::Y);
+        if (gizmo.ShowScaleAxis[2]) DrawAxis(GizmoAxis::Z);
     }
 }

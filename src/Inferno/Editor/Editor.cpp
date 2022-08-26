@@ -191,6 +191,7 @@ namespace Inferno::Editor {
                     return BeginRightClickDrag(Game::Level);
                 }
                 else if (Input::LeftDragState == SelectionState::BeginDrag) {
+                    Editor::History.SnapshotSelection();
                     return CursorDragMode::Transform;
                 }
                 break;
