@@ -6,28 +6,15 @@
 namespace Inferno::Editor {
     class SettingsDialog : public ModalWindowBase {
         Array<char, MAX_PATH> _d1PathBuffer, _d2PathBuffer;
-        filesystem::path _descent1Path, _descent2Path;
-        string _d1exe, _d2exe;
-        float _mouselookSensitivity;
-        float _objectDrawDistance;
-        float _weldTolerance;
-        int _fieldOfView, _cameraSpeed;
-        int _foregroundFpsLimit, _backgroundFpsLimit;
-        bool _enableForegroundFpsLimit;
-        float _gizmoSize, _crosshairSize;
-        int _undos;
-        bool _invertY, _textureFiltering, _bloom;
-        bool _resetUvsOnAlign, _selectMarkedSegment;
-        bool _reopenLastLevel;
-        int _msaa;
-        int _fontSize;
-        int _autosaveMinutes;
-        float _wireframeOpacity;
+        bool _enableForegroundFpsLimit = false;
         const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
         int _selectedPath;
-        bool _dataPathsChanged = false;
         TexturePreviewSize _texturePreviewSize;
+
+        EditorSettings _editor;
+        InfernoSettings _inferno;
+        GraphicsSettings _graphics;
 
         EditorBindings _bindings;
 
@@ -53,28 +40,28 @@ namespace Inferno::Editor {
 
             ImGui::Text("Descent 1 executable");
 
-            strcpy_s(_d1PathBuffer.data(), MAX_PATH, _descent1Path.string().c_str());
+            strcpy_s(_d1PathBuffer.data(), MAX_PATH, _inferno.Descent1Path.string().c_str());
             if (ImGui::InputTextEx("##d1exe", nullptr, _d1PathBuffer.data(), MAX_PATH, { -100 * Shell::DpiScale, 0 }, 0)) {
-                _descent1Path = string(_d1PathBuffer.data());
+                _inferno.Descent1Path = string(_d1PathBuffer.data());
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Browse...##d1", { 90 * Shell::DpiScale, 0 }))
                 if (auto folder = OpenFileDialog(filter, L"Pick game executable"))
-                    _descent1Path = *folder;
+                    _inferno.Descent1Path = *folder;
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Text("Descent 2 executable");
 
-            strcpy_s(_d2PathBuffer.data(), MAX_PATH, _descent2Path.string().c_str());
+            strcpy_s(_d2PathBuffer.data(), MAX_PATH, _inferno.Descent2Path.string().c_str());
             if (ImGui::InputTextEx("##d2exe", nullptr, _d2PathBuffer.data(), MAX_PATH, { -100 * Shell::DpiScale, 0 }, 0)) {
-                _descent2Path = string(_d2PathBuffer.data());
+                _inferno.Descent2Path = string(_d2PathBuffer.data());
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Browse...##d2", { 90 * Shell::DpiScale, 0 }))
                 if (auto folder = OpenFileDialog(filter, L"Pick game executable"))
-                    _descent2Path = *folder;
+                    _inferno.Descent2Path = *folder;
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Separator();
@@ -93,22 +80,25 @@ namespace Inferno::Editor {
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Invert Y");
-                ImGui::Checkbox("##invert", &_invertY);
+                ImGui::Checkbox("##invert", &_editor.InvertY);
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabelEx("Sensitivity", "How sensitive the camera is in mouselook mode");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderFloat("##mlook", &_mouselookSensitivity, 1, 10, "%.2f");
+
+                auto sensitivity = _editor.MouselookSensitivity * 1000;
+                if (ImGui::SliderFloat("##mlook", &sensitivity, 1, 10, "%.2f"))
+                    _editor.MouselookSensitivity = sensitivity / 1000;
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Speed");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderInt("##Speed", &_cameraSpeed, 40, 300);
+                ImGui::SliderFloat("##Speed", &_editor.MoveSpeed, 40, 300, "%.0f");
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Field of view");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderInt("##FOV", &_fieldOfView, 55, 120);
+                ImGui::SliderFloat("##FOV", &_editor.FieldOfView, 55, 120, "%.0f");
                 ImGui::NextColumn();
             }
 
@@ -120,24 +110,44 @@ namespace Inferno::Editor {
 
                 ImGui::ColumnLabelEx("MSAA", "Multisample antialiasinging\n\nReduces jagged edges of polygons.\nHas a potentially high performance impact.");
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderInt("##MSAA", &_msaa, 0, (int)std::size(_msaaSamples) - 1, std::to_string(_msaaSamples[_msaa]).c_str()))
-                    _msaa = std::clamp(_msaa, 0, 3);
+
+                auto msaa = [](int samples) {
+                    switch (samples) {
+                        default:
+                        case 1: return 0;
+                        case 2: return 1;
+                        case 4: return 2;
+                        case 8: return 3;
+                    }
+                }(_graphics.MsaaSamples);
+
+                if (ImGui::SliderInt("##MSAA", &msaa, 0, (int)std::size(_msaaSamples) - 1, std::to_string(_msaaSamples[msaa]).c_str())) {
+                    _graphics.MsaaSamples = [&msaa]() {
+                        switch (msaa) {
+                            default:
+                            case 0: return 1;
+                            case 1: return 2;
+                            case 2: return 4;
+                            case 3: return 8;
+                        }
+                    }();
+                }
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabelEx("Texture filtering", "Also enables high-res replacement textures");
-                ImGui::Checkbox("##filtering", &_textureFiltering);
+                ImGui::Checkbox("##filtering", &_graphics.HighRes);
                 ImGui::NextColumn();
 
                 {
                     DisableControls disable(!Render::Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT());
                     ImGui::ColumnLabelEx("Bloom", "Bloom is an effect that has no impact on the level.\nCustom emissive textures are suggested to appear correctly.\n\nRequires a GPU that supports typed UAV loads");
-                    ImGui::Checkbox("##Bloom", &_bloom);
+                    ImGui::Checkbox("##Bloom", &_graphics.EnableBloom);
                     ImGui::NextColumn();
                 }
 
                 ImGui::ColumnLabel("Wireframe opacity");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderFloat("##wfopacity", &_wireframeOpacity, 0, 1, "%.2f");
+                ImGui::SliderFloat("##wfopacity", &_editor.WireframeOpacity, 0, 1, "%.2f");
                 ImGui::NextColumn();
             }
             ImGui::Columns(1);
@@ -155,37 +165,37 @@ namespace Inferno::Editor {
 
                 ImGui::ColumnLabelEx("Undos", "Must reload the level to take effect");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::InputInt("##Undos", &_undos, 1, 5);
+                ImGui::InputInt("##Undos", &_editor.UndoLevels, 1, 5);
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Gizmo size");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::DragFloat("##gizmo", &_gizmoSize, 0.1f, 2.5, 10, "%.1f");
+                ImGui::DragFloat("##gizmo", &_editor.GizmoSize, 0.1f, 2.5, 10, "%.1f");
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Crosshair size");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::DragFloat("##Crosshair", &_crosshairSize, 0.1f, 0.1f, 2, "%.1f");
+                ImGui::DragFloat("##Crosshair", &_editor.CrosshairSize, 0.1f, 0.1f, 2, "%.1f");
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Weld Tolerance");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::DragFloat("##Weld", &_weldTolerance, 0.1f, 0.1f, 5, "%.1f");
+                ImGui::DragFloat("##Weld", &_editor.WeldTolerance, 0.1f, 0.1f, 5, "%.1f");
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabelEx("Object distance", "Max distance to draw sprites and models for objects");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderFloat("##drawdist", &_objectDrawDistance, 0, 1500, "%.0f");
+                ImGui::SliderFloat("##drawdist", &_editor.ObjectRenderDistance, 0, 1500, "%.0f");
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabelEx("Text size", "Must restart the editor to take effect");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderInt("##font", &_fontSize, 18, 32);
+                ImGui::SliderInt("##font", &_editor.FontSize, 18, 32);
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabelEx("Autosave", "Zero is off");
                 ImGui::SetNextItemWidth(-1);
-                ImGui::SliderInt("##autosave", &_autosaveMinutes, 0, 60, "%d min");
+                ImGui::SliderInt("##autosave", &_editor.AutosaveMinutes, 0, 60, "%d min");
                 ImGui::NextColumn();
             }
 
@@ -199,28 +209,31 @@ namespace Inferno::Editor {
                 ImGui::SetNextItemWidth(-40);
                 {
                     DisableControls disable(!_enableForegroundFpsLimit);
-                    ImGui::SliderInt("##Foreground", &_foregroundFpsLimit, 30, 120);
+                    ImGui::SliderInt("##Foreground", &_graphics.ForegroundFpsLimit, 30, 120);
                 }
                 ImGui::SameLine();
-                ImGui::Checkbox("##enablelimit", &_enableForegroundFpsLimit);
+                if (ImGui::Checkbox("##enablelimit", &_enableForegroundFpsLimit)) {
+                    if (!_enableForegroundFpsLimit) _graphics.ForegroundFpsLimit = -1;
+                }
+
                 ImGui::NextColumn();
 
                 ImGui::ColumnLabel("Background");
                 ImGui::SetNextItemWidth(-40);
-                ImGui::SliderInt("##Background", &_backgroundFpsLimit, 1, 30);
+                ImGui::SliderInt("##Background", &_graphics.BackgroundFpsLimit, 1, 30);
                 ImGui::NextColumn();
             }
 
             ImGui::Columns(1);
             ImGui::EndChild();
 
-            ImGui::Checkbox("Reset UVs on alignment", &_resetUvsOnAlign);
+            ImGui::Checkbox("Reset UVs on alignment", &_editor.ResetUVsOnAlign);
             ImGui::HelpMarker("Resets the UVs of marked faces when\nusing the align marked command");
 
-            ImGui::Checkbox("Select segment when marking", &_selectMarkedSegment);
+            ImGui::Checkbox("Select segment when marking", &_editor.SelectMarkedSegment);
             ImGui::HelpMarker("Enable to select the clicked segment when\nmarking connected faces (Ctrl+Shift+Click)");
 
-            ImGui::Checkbox("Reopen last level on start", &_reopenLastLevel);
+            ImGui::Checkbox("Reopen last level on start", &_editor.ReopenLastLevel);
 
             ImGui::Text("Texture preview size");
             ImGui::SameLine();
@@ -369,20 +382,20 @@ namespace Inferno::Editor {
             ImGui::BeginChild("container");
 
             const auto buttonWidth = 130 * Shell::DpiScale;
+            auto& dataPaths = _inferno.DataPaths;
 
             {
                 ImGui::BeginChild("data paths list", { Width - buttonWidth - 25 * Shell::DpiScale, 400 * Shell::DpiScale }, true);
 
-                for (int i = 0; i < Settings::DataPaths.size(); i++) {
-                    if (ImGui::Selectable(Settings::DataPaths[i].string().c_str(), _selectedPath == i))
+                for (int i = 0; i < dataPaths.size(); i++) {
+                    if (ImGui::Selectable(dataPaths[i].string().c_str(), _selectedPath == i))
                         _selectedPath = i;
 
                     if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
                         int n_next = i + (ImGui::GetMouseDragDelta(0).y < 0.f ? -1 : 1);
-                        if (n_next >= 0 && n_next < Settings::DataPaths.size()) {
-                            std::swap(Settings::DataPaths[i], Settings::DataPaths[n_next]);
+                        if (n_next >= 0 && n_next < dataPaths.size()) {
+                            std::swap(dataPaths[i], dataPaths[n_next]);
                             _selectedPath = n_next;
-                            _dataPathsChanged = true;
                             ImGui::ResetMouseDragDelta();
                         }
                     }
@@ -398,14 +411,12 @@ namespace Inferno::Editor {
 
                 if (ImGui::Button("Add...", { -1, 0 })) {
                     if (auto path = BrowseFolderDialog()) {
-                        Settings::DataPaths.push_back(*path);
-                        _dataPathsChanged = true;
+                        dataPaths.push_back(*path);
                     }
                 }
 
                 if (ImGui::Button("Remove", { -1, 0 })) {
-                    Seq::removeAt(Settings::DataPaths, _selectedPath);
-                    _dataPathsChanged = true;
+                    Seq::removeAt(dataPaths, _selectedPath);
                     if (_selectedPath > 0) _selectedPath--;
                 }
 
@@ -433,92 +444,38 @@ namespace Inferno::Editor {
 
         bool OnOpen() override {
             _bindingEntries = BuildBindingEntries(Bindings::Active);
-
-            _descent1Path = Settings::Descent1Path;
-            _descent2Path = Settings::Descent2Path;
-            _mouselookSensitivity = Settings::MouselookSensitivity * 1000;
-            _objectDrawDistance = Settings::ObjectRenderDistance;
-            _invertY = Settings::InvertY;
-            _cameraSpeed = (int)Settings::MoveSpeed;
-            _fieldOfView = (int)Settings::FieldOfView;
-            _textureFiltering = Settings::HighRes;
-            _bloom = Settings::EnableBloom;
-            _undos = Settings::UndoLevels;
-            _gizmoSize = Settings::GizmoSize;
-            _crosshairSize = Settings::CrosshairSize;
-            _weldTolerance = Settings::WeldTolerance;
-            _fontSize = Settings::FontSize;
-            _enableForegroundFpsLimit = Settings::ForegroundFpsLimit != -1;
-            _foregroundFpsLimit = _enableForegroundFpsLimit ? Settings::ForegroundFpsLimit : 60;
-            _backgroundFpsLimit = Settings::BackgroundFpsLimit;
-            _resetUvsOnAlign = Settings::ResetUVsOnAlign;
-            _selectMarkedSegment = Settings::SelectMarkedSegment;
-            _reopenLastLevel = Settings::ReopenLastLevel;
-            _autosaveMinutes = Settings::AutosaveMinutes;
-            _texturePreviewSize = Settings::TexturePreviewSize;
-            _wireframeOpacity = Settings::WireframeOpacity;
-
-            switch (Settings::MsaaSamples) {
-                case 1: _msaa = 0; break;
-                case 2: _msaa = 1; break;
-                case 4: _msaa = 2; break;
-                case 8: _msaa = 3; break;
-            }
+            _inferno = Settings::Inferno;
+            _editor = Settings::Editor;
+            _graphics = Settings::Graphics;
+            _enableForegroundFpsLimit = Settings::Graphics.ForegroundFpsLimit != -1;
             return true;
         }
 
         void OnAccept() override {
             CopyBindingEntries(_bindingEntries);
-            Settings::MouselookSensitivity = _mouselookSensitivity / 1000;
-            Settings::ObjectRenderDistance = _objectDrawDistance;
-            Settings::InvertY = _invertY;
-            Settings::MoveSpeed = (float)_cameraSpeed;
-            Settings::FieldOfView = (float)_fieldOfView;
-            Settings::EnableBloom = _bloom;
-            Settings::UndoLevels = _undos;
-            Settings::GizmoSize = _gizmoSize;
-            Settings::CrosshairSize = _crosshairSize;
-            Settings::WeldTolerance = _weldTolerance;
-            Settings::FontSize = _fontSize;
-            Settings::ForegroundFpsLimit = _enableForegroundFpsLimit ? _foregroundFpsLimit : -1;
-            Settings::BackgroundFpsLimit = _backgroundFpsLimit;
-            Settings::ResetUVsOnAlign = _resetUvsOnAlign;
-            Settings::SelectMarkedSegment = _selectMarkedSegment;
-            Settings::ReopenLastLevel = _reopenLastLevel;
-            Settings::AutosaveMinutes = _autosaveMinutes;
-            Settings::TexturePreviewSize = _texturePreviewSize;
-            Settings::WireframeOpacity = _wireframeOpacity;
 
             bool resourcesChanged = false;
-            if (_dataPathsChanged || _descent1Path != Settings::Descent1Path || _descent2Path != Settings::Descent2Path) {
-                Settings::Descent1Path = _descent1Path;
-                Settings::Descent2Path = _descent2Path;
-                FileSystem::Init();
+            auto dataPathsChanged = _inferno.DataPaths != Settings::Inferno.DataPaths;
+            if (dataPathsChanged || _inferno.Descent1Path != Settings::Inferno.Descent1Path || _inferno.Descent2Path != Settings::Inferno.Descent2Path) {
                 resourcesChanged = true;
             }
 
-            if (_textureFiltering != Settings::HighRes) {
-                Settings::HighRes = _textureFiltering;
+            if (_graphics.HighRes != Settings::Graphics.HighRes) {
                 resourcesChanged = true;
             }
 
-            int msaa = _msaa;
-            switch (_msaa) {
-                case 0: msaa = 1; break;
-                case 1: msaa = 2; break;
-                case 2: msaa = 4; break;
-                case 3: msaa = 8; break;
-            }
-
-            if (msaa != Settings::MsaaSamples) {
-                Settings::MsaaSamples = msaa;
+            if (_graphics.MsaaSamples != Settings::Graphics.MsaaSamples) {
                 resourcesChanged = true;
             }
 
+            Settings::Inferno = _inferno;
+            Settings::Editor = _editor;
+            Settings::Graphics = _graphics;
             Settings::Save();
             Events::SettingsChanged();
 
             if (resourcesChanged) {
+                FileSystem::Init();
                 Resources::LoadLevel(Game::Level);
                 Render::LoadLevel(Game::Level);
                 Render::Materials->LoadLevelTextures(Game::Level, true);

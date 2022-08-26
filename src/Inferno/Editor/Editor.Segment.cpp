@@ -245,7 +245,7 @@ namespace Inferno::Editor {
             nearby.insert(tag.Seg);
 
             for (auto& side : SideIDs) {
-                if (seg->SideIsWall(side) && Settings::Selection.StopAtWalls) continue;
+                if (seg->SideIsWall(side) && Settings::Editor.Selection.StopAtWalls) continue;
                 auto conn = seg->GetConnection(side);
                 if (conn > SegID::None && !nearby.contains(conn)) {
                     search.push({ conn, tag.Depth + 1 });
@@ -570,7 +570,7 @@ namespace Inferno::Editor {
 
         level.TryAddConnection(srcTag, destId);
         auto nearby = GetNearbySegments(Game::Level, srcTag.Segment);
-        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::CleanupTolerance);
+        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::Editor.CleanupTolerance);
         level.UpdateAllGeometricProps();
         return true;
     }
@@ -911,7 +911,7 @@ namespace Inferno::Editor {
             DetachSide(Game::Level, face);
 
         auto nearby = GetNearbySegmentsExclusive(Game::Level, segs);
-        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::CleanupTolerance);
+        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::Editor.CleanupTolerance);
         Events::LevelChanged();
         return "Detach segments";
     }
@@ -945,10 +945,10 @@ namespace Inferno::Editor {
 
         // Weld nearby segments outside the selection
         auto nearby = GetNearbySegmentsExclusive(Game::Level, segs);
-        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::CleanupTolerance);
+        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::Editor.CleanupTolerance);
 
         // Weld segments in the selection
-        WeldVerticesOfOpenSides(Game::Level, segs, Settings::CleanupTolerance);
+        WeldVerticesOfOpenSides(Game::Level, segs, Settings::Editor.CleanupTolerance);
 
         Events::LevelChanged();
         return "Detach Sides";
@@ -960,17 +960,17 @@ namespace Inferno::Editor {
 
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
-        JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::CleanupTolerance);
+        JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
         return "Extrude Segment";
     }
 
     string OnInsertSegment() {
-        auto newSeg = InsertSegment(Game::Level, Selection.Tag(), Selection.Point, Settings::InsertMode);
+        auto newSeg = InsertSegment(Game::Level, Selection.Tag(), Selection.Point, Settings::Editor.InsertMode);
         if (newSeg == SegID::None) return {};
 
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
-        JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::CleanupTolerance);
+        JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
         return "Insert Segment";
     }
 
@@ -980,7 +980,7 @@ namespace Inferno::Editor {
 
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
-        JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::CleanupTolerance);
+        JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
         return "Mirror Segment";
     }
 
@@ -1009,7 +1009,7 @@ namespace Inferno::Editor {
         auto newSegs = ExtrudeFaces(Game::Level, faces, offset);
         ResetSegmentUVs(Game::Level, newSegs);
         auto segFaces = FacesForSegments(newSegs);
-        JoinTouchingSegmentsExclusive(Game::Level, segFaces, Settings::CleanupTolerance);
+        JoinTouchingSegmentsExclusive(Game::Level, segFaces, Settings::Editor.CleanupTolerance);
         return "Extrude Faces";
     }
 
@@ -1141,7 +1141,7 @@ namespace Inferno::Editor {
         if (connected) {
             level.GetSegment(newid).GetConnection(tag.Side) = connected.Segment;
             level.GetSegment(connected.Segment).GetConnection(connected.Side) = newid;
-            WeldConnection(level, { newid, tag.Side }, Settings::CleanupTolerance);
+            WeldConnection(level, { newid, tag.Side }, Settings::Editor.CleanupTolerance);
         }
 
         level.UpdateAllGeometricProps();
@@ -1192,7 +1192,7 @@ namespace Inferno::Editor {
         }
 
         auto nearby = GetNearbySegments(level, tag.Segment);
-        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::CleanupTolerance);
+        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::Editor.CleanupTolerance);
 
         newSegs.push_back(tag.Segment);
         ResetSegmentUVs(level, newSegs);
@@ -1245,7 +1245,7 @@ namespace Inferno::Editor {
         }
 
         auto nearby = GetNearbySegments(level, tag.Segment);
-        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::CleanupTolerance);
+        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::Editor.CleanupTolerance);
 
         newSegs.push_back(tag.Segment);
         ResetSegmentUVs(level, newSegs);
@@ -1327,7 +1327,7 @@ namespace Inferno::Editor {
         }
 
         auto nearby = GetNearbySegments(level, tag.Segment);
-        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::CleanupTolerance);
+        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::Editor.CleanupTolerance);
 
         ResetSegmentUVs(level, newSegs);
         level.UpdateAllGeometricProps();

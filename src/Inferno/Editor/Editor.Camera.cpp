@@ -10,8 +10,8 @@ namespace Inferno::Editor {
         auto& wheelDelta = Input::WheelDelta;
 
         if (Input::GetMouselook()) {
-            int inv = Settings::InvertY ? 1 : -1;
-            camera.Rotate(delta.x * Settings::MouselookSensitivity, delta.y * inv * Settings::MouselookSensitivity);
+            int inv = Settings::Editor.InvertY ? 1 : -1;
+            camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
         }
 
         if (wheelDelta < 0) camera.ZoomIn();

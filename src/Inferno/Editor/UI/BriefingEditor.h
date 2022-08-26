@@ -13,7 +13,7 @@ namespace Inferno::Editor {
         Briefing _briefing;
         static constexpr int BUFFER_SIZE = 2048 * 10;
     public:
-        BriefingEditor() : WindowBase("Briefing Editor", &Settings::Windows.BriefingEditor) {
+        BriefingEditor() : WindowBase("Briefing Editor", &Settings::Editor.Windows.BriefingEditor) {
             _buffer.resize(BUFFER_SIZE);
         }
 

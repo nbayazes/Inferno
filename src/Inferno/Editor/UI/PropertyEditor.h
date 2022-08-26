@@ -69,12 +69,12 @@ namespace Inferno::Editor {
         MatcenEditor _matcenEditor;
         bool _loaded = false;
     public:
-        PropertyEditor() : WindowBase("Properties", &Settings::Windows.Properties) { }
+        PropertyEditor() : WindowBase("Properties", &Settings::Editor.Windows.Properties) { }
 
     protected:
         void OnUpdate() override {
             // Header
-            if (Settings::SelectionMode == SelectionMode::Object) {
+            if (Settings::Editor.SelectionMode == SelectionMode::Object) {
                 if (!Game::Level.TryGetObject(Selection.Object)) {
                     ImGui::Text("No object is selected");
                     return;
@@ -94,7 +94,7 @@ namespace Inferno::Editor {
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
                 // Body
-                if (Settings::SelectionMode == SelectionMode::Object) {
+                if (Settings::Editor.SelectionMode == SelectionMode::Object) {
                     ObjectProperties();
                 }
                 else {

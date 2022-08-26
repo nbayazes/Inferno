@@ -368,7 +368,7 @@ namespace Inferno::Editor {
                 // Radius override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightRadiusOverride.has_value();
-                auto radius = side.LightRadiusOverride.value_or(Settings::Lighting.Radius);
+                auto radius = side.LightRadiusOverride.value_or(Settings::Editor.Lighting.Radius);
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -398,7 +398,7 @@ namespace Inferno::Editor {
                 // Light plane override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightPlaneOverride.has_value();
-                auto plane = side.LightPlaneOverride.value_or(Settings::Lighting.LightPlaneTolerance);
+                auto plane = side.LightPlaneOverride.value_or(Settings::Editor.Lighting.LightPlaneTolerance);
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -685,7 +685,7 @@ namespace Inferno::Editor {
                     if (wallType == WallType::Cloaked)
                         wall->CloakValue(0.5f);
 
-                    if (other && Settings::EditBothWallSides) {
+                    if (other && Settings::Editor.EditBothWallSides) {
                         other->Type = wallType;
                         if (wallType == WallType::Cloaked)
                             other->CloakValue(0.5f);
@@ -704,12 +704,12 @@ namespace Inferno::Editor {
                 //ImGui::Text("%i Seg %i:%i", id, wall->Tag.Segment, wall->Tag.Side);
 
                 ImGui::TableRowLabel("Edit both sides");
-                ImGui::Checkbox("##bothsides", &Settings::EditBothWallSides);
+                ImGui::Checkbox("##bothsides", &Settings::Editor.EditBothWallSides);
 
                 auto flagCheckbox = [&other](const char* label, WallFlag flag, Wall* wall) {
                     ImGui::TableRowLabel(label);
                     if (FlagCheckbox(fmt::format("##{}", label).c_str(), flag, wall->Flags)) {
-                        if (Settings::EditBothWallSides && other && other->Type == wall->Type)
+                        if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                             other->SetFlag(flag, wall->HasFlag(flag));
                     }
                 };
@@ -719,7 +719,7 @@ namespace Inferno::Editor {
                         ImGui::TableRowLabel("Clip");
                         if (WallClipDropdown(wall->Clip)) {
                             OnChangeWallClip(level, *wall);
-                            if (other && Settings::EditBothWallSides) {
+                            if (other && Settings::Editor.EditBothWallSides) {
                                 other->Clip = wall->Clip;
                                 OnChangeWallClip(level, *other);
                             }
@@ -731,7 +731,7 @@ namespace Inferno::Editor {
                         ImGui::TableRowLabel("Hit points");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::InputFloat("##Hit points", &wall->HitPoints, 1, 10, "%.0f")) {
-                            if (Settings::EditBothWallSides && other && other->Type == wall->Type)
+                            if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                                 other->HitPoints = wall->HitPoints;
                         }
 
@@ -743,7 +743,7 @@ namespace Inferno::Editor {
                         ImGui::TableRowLabel("Clip");
                         if (WallClipDropdown(wall->Clip)) {
                             OnChangeWallClip(level, *wall);
-                            if (other && Settings::EditBothWallSides) {
+                            if (other && Settings::Editor.EditBothWallSides) {
                                 other->Clip = wall->Clip;
                                 OnChangeWallClip(level, *other);
                             }
@@ -754,7 +754,7 @@ namespace Inferno::Editor {
 
                         ImGui::TableRowLabel("Key");
                         if (KeyDropdown(wall->Keys))
-                            if (other && Settings::EditBothWallSides)
+                            if (other && Settings::Editor.EditBothWallSides)
                                 other->Keys = wall->Keys;
 
                         flagCheckbox("Opened", WallFlag::DoorOpened, wall);
@@ -779,7 +779,7 @@ namespace Inferno::Editor {
                         if (ImGui::InputFloat("##cloak", &cloakValue, Wall::CloakStep * 110, Wall::CloakStep * 500, "%.0f%%")) {
                             wall->CloakValue(cloakValue / 100);
 
-                            if (Settings::EditBothWallSides && other && other->Type == wall->Type)
+                            if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                                 other->CloakValue(cloakValue / 100);
 
                             Events::LevelChanged();
@@ -795,7 +795,7 @@ namespace Inferno::Editor {
                         if (auto w = level.TryGetWall(wid))
                             w->BlocksLight = wall->BlocksLight;
 
-                    if (Settings::EditBothWallSides && other)
+                    if (Settings::Editor.EditBothWallSides && other)
                         other->BlocksLight = wall->BlocksLight;
                 }
             }
@@ -903,7 +903,7 @@ namespace Inferno::Editor {
 
     // Updates the wall connected to this source
     void UpdateOtherWall(Level& level, Tag source) {
-        if (!Settings::EditBothWallSides) return;
+        if (!Settings::Editor.EditBothWallSides) return;
 
         // Update other wall if mode is enabled
         auto wall = level.TryGetWall(source);
@@ -925,7 +925,7 @@ namespace Inferno::Editor {
     void TransformPosition(Level& level, Segment& seg, Editor::SelectionMode mode) {
         bool changed = false;
         bool finishedEdit = false;
-        auto speed = Settings::TranslationSnap > 0 ? Settings::TranslationSnap : 0.01f;
+        auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
 
         auto Slider = [&](const char* label, float& value) {
             ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
@@ -1107,7 +1107,7 @@ namespace Inferno::Editor {
                     Vector3::Distance(seg.Sides[1].Center, seg.Sides[3].Center),
                     Vector3::Distance(seg.Sides[4].Center, seg.Sides[5].Center));
 
-        TransformPosition(Game::Level, seg, Settings::SelectionMode);
+        TransformPosition(Game::Level, seg, Settings::Editor.SelectionMode);
 
         if (changed) {
             Events::LevelChanged();

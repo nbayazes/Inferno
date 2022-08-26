@@ -49,7 +49,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 auto [seg, side] = level.GetSegmentAndSide(Selection.Tag());
 
-                switch (Settings::SelectionMode) {
+                switch (Settings::Editor.SelectionMode) {
                     case SelectionMode::Point:
                     case SelectionMode::Edge:
                         ImGui::Text("Marked: %i", Editor::Marked.Points.size());

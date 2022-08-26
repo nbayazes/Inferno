@@ -11,7 +11,7 @@ namespace Inferno::Editor {
         int _seed = 0;
         bool _randomSeed = true;
     public:
-        NoiseWindow() : WindowBase("Noise", &Settings::Windows.Noise) {}
+        NoiseWindow() : WindowBase("Noise", &Settings::Editor.Windows.Noise) {}
 
     protected:
         void OnUpdate() override {

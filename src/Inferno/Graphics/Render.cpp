@@ -155,7 +155,7 @@ namespace Inferno::Render {
         constants.Eye = Camera.Position;
 
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Colors[0] = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         //Matrix transform = object.GetTransform(t);
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), alpha);
@@ -239,7 +239,7 @@ namespace Inferno::Render {
         constants.Eye = Camera.Position;
 
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.Colors[0] = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Colors[0] = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         Matrix transform = object.GetTransform();
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -385,7 +385,7 @@ namespace Inferno::Render {
         LevelShader::InstanceConstants consts{};
         consts.FrameTime = (float)FrameTime;
         consts.Time = (float)ElapsedTime;
-        consts.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
+        consts.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
         if (chunk.Cloaked) {
             Shaders->Level.SetMaterial1(cmdList, Materials->Black);
@@ -437,7 +437,7 @@ namespace Inferno::Render {
 
         Debug::Initialize();
 
-        ImGuiBatch::Initialize(_hwnd, (float)Settings::FontSize);
+        ImGuiBatch::Initialize(_hwnd, (float)Settings::Editor.FontSize);
         static_assert(sizeof(ImTextureID) >= sizeof(D3D12_CPU_DESCRIPTOR_HANDLE), "D3D12_CPU_DESCRIPTOR_HANDLE is too large to fit in an ImTextureID");
         g_ImGuiBatch = MakePtr<ImGuiBatch>(Adapter->GetBackBufferCount());
 
@@ -589,7 +589,7 @@ namespace Inferno::Render {
             case ObjectType::Hostage:
             {
                 auto up = object.Rotation.Up();
-                DrawSprite(object, cmd, false, &up, Settings::RenderMode == RenderMode::Shaded);
+                DrawSprite(object, cmd, false, &up, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
 
@@ -655,7 +655,7 @@ namespace Inferno::Render {
                 consts.Eye = Camera.Position;
                 consts.LightDirection = -Vector3::UnitY;
 
-                if (Settings::RenderMode == RenderMode::Flat) {
+                if (Settings::Editor.RenderMode == RenderMode::Flat) {
                     if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive)
                         Effects->LevelWallFlat.Apply(cmdList);
                     else
@@ -708,7 +708,7 @@ namespace Inferno::Render {
 
     void DrawDebug(Level&) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
-        if (Settings::EnablePhysics) {
+        if (Settings::Editor.EnablePhysics) {
             for (auto& point : Inferno::Debug::ClosestPoints) {
                 Debug::DrawPoint(point, Color(1, 0, 0));
             }
@@ -730,7 +730,7 @@ namespace Inferno::Render {
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
         auto output = Adapter->GetOutputSize();
         Camera.SetViewport(output.x, output.y);
-        Camera.LookAtPerspective();
+        Camera.LookAtPerspective(Settings::Editor.FieldOfView);
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
 
@@ -740,7 +740,7 @@ namespace Inferno::Render {
     void DrawLevel(GraphicsContext& ctx, float lerp) {
         ctx.BeginEvent(L"Level");
 
-        if (Settings::ShowFlickeringLights)
+        if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(Game::Level, (float)ElapsedTime, FrameTime);
 
         if (LevelChanged) {
@@ -750,7 +750,7 @@ namespace Inferno::Render {
         }
 
         ScopedTimer levelTimer(&Metrics::QueueLevel);
-        if (Settings::RenderMode != RenderMode::None) {
+        if (Settings::Editor.RenderMode != RenderMode::None) {
             // Queue commands for level meshes
             for (auto& mesh : _levelMeshBuilder.GetMeshes())
                 DrawOpaque({ &mesh, 0 });
@@ -761,8 +761,8 @@ namespace Inferno::Render {
             }
         }
 
-        if (Settings::ShowObjects) {
-            auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
+        if (Settings::Editor.ShowObjects) {
+            auto distSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects) {
                 if (obj.Lifespan <= 0) continue;
                 DrawObject(Game::Level, obj, distSquared, lerp);
@@ -791,7 +791,7 @@ namespace Inferno::Render {
 
             DrawParticles(ctx.CommandList());
 
-            if (!Settings::ScreenshotMode) {
+            if (!Settings::Inferno.ScreenshotMode) {
                 DrawEditor(ctx.CommandList(), Game::Level);
                 DrawDebug(Game::Level);
             }
@@ -804,7 +804,7 @@ namespace Inferno::Render {
         }
 
 
-        if (Settings::MsaaSamples > 1) {
+        if (Settings::Graphics.MsaaSamples > 1) {
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
         }
 
@@ -824,7 +824,7 @@ namespace Inferno::Render {
 
         Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-        if (Settings::EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
+        if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
             Bloom->Apply(ctx.CommandList(), Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
@@ -849,7 +849,7 @@ namespace Inferno::Render {
     }
 
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
-        if (!Settings::Windows.BriefingEditor) return;
+        if (!Settings::Editor.Windows.BriefingEditor) return;
 
         ctx.BeginEvent(L"Briefing");
         ctx.ClearColor(target);

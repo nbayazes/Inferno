@@ -225,7 +225,7 @@ namespace Inferno::Editor {
                 throw Exception("Unknown file type");
             }
 
-            Settings::AddRecentFile(path);
+            Settings::Editor.AddRecentFile(path);
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
@@ -344,7 +344,7 @@ namespace Inferno::Editor {
                 Game::UnloadMission();
             }
 
-            Settings::AddRecentFile(*path);
+            Settings::Editor.AddRecentFile(*path);
         }
 
         History.UpdateCleanSnapshot();
@@ -359,7 +359,7 @@ namespace Inferno::Editor {
             WriteHog(level, *Game::Mission, Game::Mission->Path);
             Game::LoadMission(Game::Mission->Path);
             SetStatusMessage(L"Mission saved to {}", Game::Mission->Path.filename().wstring());
-            Settings::AddRecentFile(Game::Mission->Path);
+            Settings::Editor.AddRecentFile(Game::Mission->Path);
         }
         else {
             // standalone level
@@ -368,7 +368,7 @@ namespace Inferno::Editor {
             }
             else {
                 SaveLevelToPath(level, level.Path);
-                Settings::AddRecentFile(level.Path);
+                Settings::Editor.AddRecentFile(level.Path);
             }
         }
 
@@ -416,8 +416,8 @@ namespace Inferno::Editor {
     double _nextAutosave = FLT_MAX;
 
     void ResetAutosaveTimer() {
-        if (Settings::AutosaveMinutes == 0) _nextAutosave = FLT_MAX;
-        _nextAutosave = Game::ElapsedTime + Settings::AutosaveMinutes * 60;
+        if (Settings::Editor.AutosaveMinutes == 0) _nextAutosave = FLT_MAX;
+        _nextAutosave = Game::ElapsedTime + Settings::Editor.AutosaveMinutes * 60;
     }
 
     void WritePlaytestLevel(filesystem::path missionFolder, Level& level, HogFile* mission = nullptr) {

@@ -393,7 +393,7 @@ namespace Inferno::Editor {
     string Paste() {
         Editor::History.SnapshotSelection();
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
                 PasteSegments(Game::Level, Editor::Selection.Tag());
                 return "Paste segments";
@@ -416,7 +416,7 @@ namespace Inferno::Editor {
     }
 
     void Copy() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
                 auto segs = GetSelectedSegments();
@@ -443,7 +443,7 @@ namespace Inferno::Editor {
     }
 
     string Cut() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
                 auto segs = GetSelectedSegments();

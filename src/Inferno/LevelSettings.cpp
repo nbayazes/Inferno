@@ -171,7 +171,7 @@ namespace Inferno {
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
-                Settings::Lighting = Settings::LoadLightSettings(root["Lighting"]);
+                Settings::Editor.Lighting = LoadLightSettings(root["Lighting"]);
                 ReadSegmentInfo(root["Segments"], level);
                 ReadSideInfo(root["Sides"], level);
                 ReadWallInfo(root["Walls"], level);
@@ -188,7 +188,7 @@ namespace Inferno {
             doc.rootref() |= ryml::MAP;
 
             doc["Version"] << 1;
-            Settings::SaveLightSettings(doc["Lighting"]);
+            SaveLightSettings(doc["Lighting"], Settings::Editor.Lighting);
             SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);

@@ -11,11 +11,8 @@
 
 using namespace Yaml;
 
-namespace Inferno::Settings {
-    constexpr auto SettingsFile = "inferno.cfg";
-
-
-    void AddRecentFile(filesystem::path path) {
+namespace Inferno {
+    void EditorSettings::AddRecentFile(filesystem::path path) {
         if (!filesystem::exists(path)) return;
 
         if (Seq::contains(RecentFiles, path))
@@ -27,82 +24,88 @@ namespace Inferno::Settings {
             RecentFiles.pop_back();
     }
 
-    void SaveRenderSettings(ryml::NodeRef node) {
+    void SaveGraphicsSettings(ryml::NodeRef node, const GraphicsSettings& s) {
         node |= ryml::MAP;
-        node["HighRes"] << HighRes;
-        node["EnableBloom"] << EnableBloom;
-        node["MsaaSamples"] << MsaaSamples;
-        node["ForegroundFpsLimit"] << ForegroundFpsLimit;
-        node["BackgroundFpsLimit"] << BackgroundFpsLimit;
+        node["HighRes"] << s.HighRes;
+        node["EnableBloom"] << s.EnableBloom;
+        node["MsaaSamples"] << s.MsaaSamples;
+        node["ForegroundFpsLimit"] << s.ForegroundFpsLimit;
+        node["BackgroundFpsLimit"] << s.BackgroundFpsLimit;
     }
 
-    void LoadRenderSettings(ryml::NodeRef node) {
-        if (node.is_seed()) return;
-        ReadValue(node["HighRes"], HighRes);
-        ReadValue(node["EnableBloom"], EnableBloom);
-        ReadValue(node["MsaaSamples"], MsaaSamples);
-        if (MsaaSamples != 1 && MsaaSamples != 2 && MsaaSamples != 4 && MsaaSamples != 8)
-            MsaaSamples = 1;
+    GraphicsSettings LoadGraphicsSettings(ryml::NodeRef node) {
+        GraphicsSettings s{};
+        if (node.is_seed()) return s;
+        ReadValue(node["HighRes"], s.HighRes);
+        ReadValue(node["EnableBloom"], s.EnableBloom);
+        ReadValue(node["MsaaSamples"], s.MsaaSamples);
+        if (s.MsaaSamples != 1 && s.MsaaSamples != 2 && s.MsaaSamples != 4 && s.MsaaSamples != 8)
+            s.MsaaSamples = 1;
 
-        ReadValue(node["ForegroundFpsLimit"], ForegroundFpsLimit);
-        ReadValue(node["BackgroundFpsLimit"], BackgroundFpsLimit);
+        ReadValue(node["ForegroundFpsLimit"], s.ForegroundFpsLimit);
+        ReadValue(node["BackgroundFpsLimit"], s.BackgroundFpsLimit);
+        return s;
     }
 
-    void SaveOpenWindows(ryml::NodeRef node) {
+    void SaveOpenWindows(ryml::NodeRef node, const EditorSettings::OpenWindows& w) {
         node |= ryml::MAP;
-        node["Lighting"] << Windows.Lighting;
-        node["Properties"] << Windows.Properties;
-        node["Textures"] << Windows.Textures;
-        node["Reactor"] << Windows.Reactor;
-        node["Diagnostics"] << Windows.Diagnostics;
-        node["Noise"] << Windows.Noise;
-        node["TunnelBuilder"] << Windows.TunnelBuilder;
-        node["Sound"] << Windows.Sound;
-        node["BriefingEditor"] << Windows.BriefingEditor;
+        node["Lighting"] << w.Lighting;
+        node["Properties"] << w.Properties;
+        node["Textures"] << w.Textures;
+        node["Reactor"] << w.Reactor;
+        node["Diagnostics"] << w.Diagnostics;
+        node["Noise"] << w.Noise;
+        node["TunnelBuilder"] << w.TunnelBuilder;
+        node["Sound"] << w.Sound;
+        node["BriefingEditor"] << w.BriefingEditor;
     }
 
-    void LoadOpenWindows(ryml::NodeRef node) {
-        if (node.is_seed()) return;
-        ReadValue(node["Lighting"], Windows.Lighting);
-        ReadValue(node["Properties"], Windows.Properties);
-        ReadValue(node["Textures"], Windows.Textures);
-        ReadValue(node["Reactor"], Windows.Reactor);
-        ReadValue(node["Diagnostics"], Windows.Diagnostics);
-        ReadValue(node["Noise"], Windows.Noise);
-        ReadValue(node["TunnelBuilder"], Windows.TunnelBuilder);
-        ReadValue(node["Sound"], Windows.Sound);
-        ReadValue(node["BriefingEditor"], Windows.BriefingEditor);
+    EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
+        EditorSettings::OpenWindows w{};
+        if (node.is_seed()) return w;
+        ReadValue(node["Lighting"], w.Lighting);
+        ReadValue(node["Properties"], w.Properties);
+        ReadValue(node["Textures"], w.Textures);
+        ReadValue(node["Reactor"], w.Reactor);
+        ReadValue(node["Diagnostics"], w.Diagnostics);
+        ReadValue(node["Noise"], w.Noise);
+        ReadValue(node["TunnelBuilder"], w.TunnelBuilder);
+        ReadValue(node["Sound"], w.Sound);
+        ReadValue(node["BriefingEditor"], w.BriefingEditor);
+        return w;
     }
 
-    void SaveSelectionSettings(ryml::NodeRef node) {
+    void SaveSelectionSettings(ryml::NodeRef node, const EditorSettings::SelectionSettings& s) {
         node |= ryml::MAP;
-        node["PlanarTolerance"] << Selection.PlanarTolerance;
-        node["StopAtWalls"] << Selection.StopAtWalls;
-        node["UseTMap1"] << Selection.UseTMap1;
-        node["UseTMap2"] << Selection.UseTMap2;
+        node["PlanarTolerance"] << s.PlanarTolerance;
+        node["StopAtWalls"] << s.StopAtWalls;
+        node["UseTMap1"] << s.UseTMap1;
+        node["UseTMap2"] << s.UseTMap2;
     }
 
-    void LoadSelectionSettings(ryml::NodeRef node) {
-        if (node.is_seed()) return;
-        ReadValue(node["PlanarTolerance"], Selection.PlanarTolerance);
-        ReadValue(node["StopAtWalls"], Selection.StopAtWalls);
-        ReadValue(node["UseTMap1"], Selection.UseTMap1);
-        ReadValue(node["UseTMap2"], Selection.UseTMap2);
+    EditorSettings::SelectionSettings LoadSelectionSettings(ryml::NodeRef node) {
+        EditorSettings::SelectionSettings s{};
+        if (node.is_seed()) return s;
+        ReadValue(node["PlanarTolerance"], s.PlanarTolerance);
+        ReadValue(node["StopAtWalls"], s.StopAtWalls);
+        ReadValue(node["UseTMap1"], s.UseTMap1);
+        ReadValue(node["UseTMap2"], s.UseTMap2);
+        return s;
     }
 
-    void SaveLightSettings(ryml::NodeRef node) {
+    void SaveLightSettings(ryml::NodeRef node, const LightSettings& s) {
         node |= ryml::MAP;
-        node["Ambient"] << EncodeColor(Lighting.Ambient);
-        node["AccurateVolumes"] << Lighting.AccurateVolumes;
-        node["Bounces"] << Lighting.Bounces;
-        node["DistanceThreshold"] << Lighting.DistanceThreshold;
-        node["EnableColor"] << Lighting.EnableColor;
-        node["EnableOcclusion"] << Lighting.EnableOcclusion;
-        node["Falloff"] << Lighting.Falloff;
-        node["MaxValue"] << Lighting.MaxValue;
-        node["Multiplier"] << Lighting.Multiplier;
-        node["Radius"] << Lighting.Radius;
-        node["Reflectance"] << Lighting.Reflectance;
+        node["Ambient"] << EncodeColor(s.Ambient);
+        node["AccurateVolumes"] << s.AccurateVolumes;
+        node["Bounces"] << s.Bounces;
+        node["DistanceThreshold"] << s.DistanceThreshold;
+        node["EnableColor"] << s.EnableColor;
+        node["EnableOcclusion"] << s.EnableOcclusion;
+        node["Falloff"] << s.Falloff;
+        node["MaxValue"] << s.MaxValue;
+        node["Multiplier"] << s.Multiplier;
+        node["Radius"] << s.Radius;
+        node["Reflectance"] << s.Reflectance;
     }
 
     LightSettings LoadLightSettings(ryml::NodeRef node) {
@@ -185,131 +188,138 @@ namespace Inferno::Settings {
         // todo: Game bindings
     }
 
-    void SaveEditorSettings(ryml::NodeRef node) {
+    void SaveEditorSettings(ryml::NodeRef node, const EditorSettings& s) {
         node |= ryml::MAP;
-        WriteSequence(node["RecentFiles"], RecentFiles);
-        WriteSequence(node["DataPaths"], DataPaths);
+        WriteSequence(node["RecentFiles"], s.RecentFiles);
 
-        node["EnableWallMode"] << EnableWallMode;
-        node["EnableTextureMode"] << EnableTextureMode;
-        node["ObjectRenderDistance"] << ObjectRenderDistance;
+        node["EnableWallMode"] << s.EnableWallMode;
+        node["EnableTextureMode"] << s.EnableTextureMode;
+        node["ObjectRenderDistance"] << s.ObjectRenderDistance;
 
-        node["TranslationSnap"] << TranslationSnap;
-        node["RotationSnap"] << RotationSnap;
+        node["TranslationSnap"] << s.TranslationSnap;
+        node["RotationSnap"] << s.RotationSnap;
 
-        node["MouselookSensitivity"] << MouselookSensitivity;
-        node["MoveSpeed"] << MoveSpeed;
+        node["MouselookSensitivity"] << s.MouselookSensitivity;
+        node["MoveSpeed"] << s.MoveSpeed;
 
-        node["SelectionMode"] << (int)SelectionMode;
-        node["InsertMode"] << (int)InsertMode;
+        node["SelectionMode"] << (int)s.SelectionMode;
+        node["InsertMode"] << (int)s.InsertMode;
 
-        node["ShowObjects"] << ShowObjects;
-        node["ShowWalls"] << ShowWalls;
-        node["ShowTriggers"] << ShowTriggers;
-        node["ShowFlickeringLights"] << ShowFlickeringLights;
-        node["ShowAnimation"] << ShowAnimation;
-        node["ShowMatcenEffects"] << ShowMatcenEffects;
-        node["WireframeOpacity"] << WireframeOpacity;
+        node["ShowObjects"] << s.ShowObjects;
+        node["ShowWalls"] << s.ShowWalls;
+        node["ShowTriggers"] << s.ShowTriggers;
+        node["ShowFlickeringLights"] << s.ShowFlickeringLights;
+        node["ShowAnimation"] << s.ShowAnimation;
+        node["ShowMatcenEffects"] << s.ShowMatcenEffects;
+        node["WireframeOpacity"] << s.WireframeOpacity;
 
-        node["ShowWireframe"] << ShowWireframe;
-        node["RenderMode"] << (int)RenderMode;
-        node["GizmoSize"] << GizmoSize;
-        node["InvertY"] << InvertY;
-        node["FieldOfView"] << FieldOfView;
-        node["FontSize"] << FontSize;
+        node["ShowWireframe"] << s.ShowWireframe;
+        node["RenderMode"] << (int)s.RenderMode;
+        node["GizmoSize"] << s.GizmoSize;
+        node["InvertY"] << s.InvertY;
+        node["FieldOfView"] << s.FieldOfView;
+        node["FontSize"] << s.FontSize;
 
-        node["EditBothWallSides"] << EditBothWallSides;
-        node["ReopenLastLevel"] << ReopenLastLevel;
-        node["SelectMarkedSegment"] << SelectMarkedSegment;
-        node["ResetUVsOnAlign"] << ResetUVsOnAlign;
-        node["WeldTolerance"] << WeldTolerance;
+        node["EditBothWallSides"] << s.EditBothWallSides;
+        node["ReopenLastLevel"] << s.ReopenLastLevel;
+        node["SelectMarkedSegment"] << s.SelectMarkedSegment;
+        node["ResetUVsOnAlign"] << s.ResetUVsOnAlign;
+        node["WeldTolerance"] << s.WeldTolerance;
 
-        node["Undos"] << UndoLevels;
-        node["AutosaveMinutes"] << AutosaveMinutes;
-        node["CoordinateSystem"] << (int)CoordinateSystem;
-        node["EnablePhysics"] << EnablePhysics;
-        node["TexturePreviewSize"] << (int)TexturePreviewSize;
+        node["Undos"] << s.UndoLevels;
+        node["AutosaveMinutes"] << s.AutosaveMinutes;
+        node["CoordinateSystem"] << (int)s.CoordinateSystem;
+        node["EnablePhysics"] << s.EnablePhysics;
+        node["TexturePreviewSize"] << (int)s.TexturePreviewSize;
+        node["ShowLevelTitle"] << s.ShowLevelTitle;
 
-        SaveSelectionSettings(node["Selection"]);
-        SaveOpenWindows(node["Windows"]);
-        SaveLightSettings(node["Lighting"]);
+        SaveSelectionSettings(node["Selection"], s.Selection);
+        SaveOpenWindows(node["Windows"], s.Windows);
+        SaveLightSettings(node["Lighting"], s.Lighting);
     }
 
-    void LoadEditorSettings(ryml::NodeRef node) {
-        if (node.is_seed()) return;
+    EditorSettings LoadEditorSettings(ryml::NodeRef node, InfernoSettings& settings) {
+        EditorSettings s{};
+        if (node.is_seed()) return s;
 
         for (const auto& c : node["RecentFiles"].children()) {
             filesystem::path path;
             ReadValue(c, path);
-            if (!path.empty()) RecentFiles.push_back(path);
+            if (!path.empty()) s.RecentFiles.push_back(path);
         }
 
-        for (const auto& c : node["DataPaths"].children()) {
-            filesystem::path path;
-            ReadValue(c, path);
-            if (!path.empty()) DataPaths.push_back(path);
+        // Legacy. Read editor data paths into top level data paths
+        auto dataPaths = node["DataPaths"];
+        if (!dataPaths.is_seed()) {
+            for (const auto& c : node["DataPaths"].children()) {
+                filesystem::path path;
+                ReadValue(c, path);
+                if (!path.empty()) settings.DataPaths.push_back(path);
+            }
         }
 
-        ReadValue(node["EnableWallMode"], EnableWallMode);
-        ReadValue(node["EnableTextureMode"], EnableTextureMode);
-        ReadValue(node["ObjectRenderDistance"], ObjectRenderDistance);
+        ReadValue(node["EnableWallMode"], s.EnableWallMode);
+        ReadValue(node["EnableTextureMode"], s.EnableTextureMode);
+        ReadValue(node["ObjectRenderDistance"], s.ObjectRenderDistance);
 
-        ReadValue(node["TranslationSnap"], TranslationSnap);
-        ReadValue(node["RotationSnap"], RotationSnap);
+        ReadValue(node["TranslationSnap"], s.TranslationSnap);
+        ReadValue(node["RotationSnap"], s.RotationSnap);
 
-        ReadValue(node["MouselookSensitivity"], MouselookSensitivity);
-        ReadValue(node["MoveSpeed"], MoveSpeed);
+        ReadValue(node["MouselookSensitivity"], s.MouselookSensitivity);
+        ReadValue(node["MoveSpeed"], s.MoveSpeed);
 
-        ReadValue(node["SelectionMode"], (int&)SelectionMode);
-        ReadValue(node["InsertMode"], (int&)InsertMode);
+        ReadValue(node["SelectionMode"], (int&)s.SelectionMode);
+        ReadValue(node["InsertMode"], (int&)s.InsertMode);
 
-        ReadValue(node["ShowObjects"], ShowObjects);
-        ReadValue(node["ShowWalls"], ShowWalls);
-        ReadValue(node["ShowTriggers"], ShowTriggers);
-        ReadValue(node["ShowFlickeringLights"], ShowFlickeringLights);
-        ReadValue(node["ShowAnimation"], ShowAnimation);
-        ReadValue(node["ShowMatcenEffects"], ShowMatcenEffects);
-        ReadValue(node["WireframeOpacity"], WireframeOpacity);
+        ReadValue(node["ShowObjects"], s.ShowObjects);
+        ReadValue(node["ShowWalls"], s.ShowWalls);
+        ReadValue(node["ShowTriggers"], s.ShowTriggers);
+        ReadValue(node["ShowFlickeringLights"], s.ShowFlickeringLights);
+        ReadValue(node["ShowAnimation"], s.ShowAnimation);
+        ReadValue(node["ShowMatcenEffects"], s.ShowMatcenEffects);
+        ReadValue(node["WireframeOpacity"], s.WireframeOpacity);
 
-        ReadValue(node["ShowWireframe"], ShowWireframe);
-        ReadValue(node["RenderMode"], (int&)RenderMode);
-        ReadValue(node["GizmoSize"], GizmoSize);
-        ReadValue(node["InvertY"], InvertY);
-        ReadValue(node["FieldOfView"], FieldOfView);
-        FieldOfView = std::clamp(FieldOfView, 45.0f, 130.0f);
-        ReadValue(node["FontSize"], FontSize);
-        FontSize = std::clamp(FontSize, 8, 48);
+        ReadValue(node["ShowWireframe"], s.ShowWireframe);
+        ReadValue(node["RenderMode"], (int&)s.RenderMode);
+        ReadValue(node["GizmoSize"], s.GizmoSize);
+        ReadValue(node["InvertY"], s.InvertY);
+        ReadValue(node["FieldOfView"], s.FieldOfView);
+        s.FieldOfView = std::clamp(s.FieldOfView, 45.0f, 130.0f);
+        ReadValue(node["FontSize"], s.FontSize);
+        s.FontSize = std::clamp(s.FontSize, 8, 48);
 
-        ReadValue(node["EditBothWallSides"], EditBothWallSides);
-        ReadValue(node["ReopenLastLevel"], ReopenLastLevel);
-        ReadValue(node["SelectMarkedSegment"], SelectMarkedSegment);
-        ReadValue(node["ResetUVsOnAlign"], ResetUVsOnAlign);
-        ReadValue(node["WeldTolerance"], WeldTolerance);
+        ReadValue(node["EditBothWallSides"], s.EditBothWallSides);
+        ReadValue(node["ReopenLastLevel"], s.ReopenLastLevel);
+        ReadValue(node["SelectMarkedSegment"], s.SelectMarkedSegment);
+        ReadValue(node["ResetUVsOnAlign"], s.ResetUVsOnAlign);
+        ReadValue(node["WeldTolerance"], s.WeldTolerance);
 
-        ReadValue(node["Undos"], UndoLevels);
-        ReadValue(node["AutosaveMinutes"], AutosaveMinutes);
-        ReadValue(node["CoordinateSystem"], (int&)CoordinateSystem);
-        ReadValue(node["EnablePhysics"], (int&)EnablePhysics);
-        ReadValue(node["TexturePreviewSize"], (int&)TexturePreviewSize);
+        ReadValue(node["Undos"], s.UndoLevels);
+        ReadValue(node["AutosaveMinutes"], s.AutosaveMinutes);
+        ReadValue(node["CoordinateSystem"], (int&)s.CoordinateSystem);
+        ReadValue(node["EnablePhysics"], (int&)s.EnablePhysics);
+        ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
+        ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
 
-        LoadSelectionSettings(node["Selection"]);
-        LoadOpenWindows(node["Windows"]);
-        Lighting = LoadLightSettings(node["Lighting"]);
+        s.Selection = LoadSelectionSettings(node["Selection"]);
+        s.Windows = LoadOpenWindows(node["Windows"]);
+        s.Lighting = LoadLightSettings(node["Lighting"]);
+        return s;
     }
 
-    void Save() {
+    void Settings::Save(filesystem::path path) {
         try {
-            ryml::Tree doc(30, 128);
+            ryml::Tree doc(128, 128);
             doc.rootref() |= ryml::MAP;
 
-            doc["Descent1Path"] << Descent1Path.string();
-            doc["Descent2Path"] << Descent2Path.string();
-
-            SaveEditorSettings(doc["Editor"]);
-            SaveRenderSettings(doc["Render"]);
+            doc["Descent1Path"] << Settings::Inferno.Descent1Path.string();
+            doc["Descent2Path"] << Settings::Inferno.Descent2Path.string();
+            WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
+            SaveEditorSettings(doc["Editor"], Settings::Editor);
+            SaveGraphicsSettings(doc["Render"], Settings::Graphics);
             SaveBindings(doc["Bindings"]);
 
-            std::ofstream file(SettingsFile);
+            std::ofstream file(path);
             file << doc;
         }
         catch (const std::exception& e) {
@@ -317,10 +327,10 @@ namespace Inferno::Settings {
         }
     }
 
-    void Load() {
+    void Settings::Load(filesystem::path path) {
         try {
-            std::ifstream file(SettingsFile);
-            if (!SettingsFile) return;
+            std::ifstream file(path);
+            if (!file) return;
 
             std::stringstream buffer;
             buffer << file.rdbuf();
@@ -328,11 +338,19 @@ namespace Inferno::Settings {
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
-                ReadValue(root["Descent1Path"], Descent1Path);
-                ReadValue(root["Descent2Path"], Descent2Path);
+                ReadValue(root["Descent1Path"], Settings::Inferno.Descent1Path);
+                ReadValue(root["Descent2Path"], Settings::Inferno.Descent2Path);
+                auto dataPaths = root["DataPaths"];
+                if (!dataPaths.is_seed()) {
+                    for (const auto& c : root["DataPaths"].children()) {
+                        filesystem::path dataPath;
+                        ReadValue(c, dataPath);
+                        if (!dataPath.empty()) Settings::Inferno.DataPaths.push_back(dataPath);
+                    }
+                }
 
-                LoadEditorSettings(root["Editor"]);
-                LoadRenderSettings(root["Render"]);
+                Settings::Editor = LoadEditorSettings(root["Editor"], Settings::Inferno);
+                Settings::Graphics = LoadGraphicsSettings(root["Render"]);
                 auto bindings = root["Bindings"];
                 if (!bindings.is_seed()) {
                     LoadEditorBindings(bindings["Editor"]);

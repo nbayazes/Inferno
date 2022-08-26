@@ -145,9 +145,9 @@ namespace Inferno::Editor {
                     }
                 }
 
-                if (!Settings::RecentFiles.empty()) {
+                if (!Settings::Editor.RecentFiles.empty()) {
                     ImGui::Separator();
-                    for (auto& file : Settings::RecentFiles) {
+                    for (auto& file : Settings::Editor.RecentFiles) {
                         if (file.empty()) continue;
                         if (ImGui::MenuItem(file.filename().string().c_str()))
                             if (CanCloseCurrentFile()) Editor::LoadFile(file);
@@ -276,52 +276,52 @@ namespace Inferno::Editor {
                     Input::SetMouselook(true);
                 ImGui::Separator();
 
-                //if (ImGui::MenuItem("Wireframe", nullptr, Settings::RenderMode == RenderMode::Wireframe))
-                //    Settings::RenderMode = RenderMode::Wireframe;
+                //if (ImGui::MenuItem("Wireframe", nullptr, Settings::Editor.RenderMode == RenderMode::Wireframe))
+                //    Settings::Editor.RenderMode = RenderMode::Wireframe;
 
-                if (ImGui::MenuItem("No Fill", "F4", Settings::RenderMode == RenderMode::None)) {
-                    Settings::RenderMode = RenderMode::None;
-                    if (!Settings::ShowWireframe)
-                        Settings::ShowWireframe = true;
+                if (ImGui::MenuItem("No Fill", "F4", Settings::Editor.RenderMode == RenderMode::None)) {
+                    Settings::Editor.RenderMode = RenderMode::None;
+                    if (!Settings::Editor.ShowWireframe)
+                        Settings::Editor.ShowWireframe = true;
                 }
-                if (ImGui::MenuItem("Flat", "F4", Settings::RenderMode == RenderMode::Flat))
-                    Settings::RenderMode = RenderMode::Flat;
-                if (ImGui::MenuItem("Textured", "F4", Settings::RenderMode == RenderMode::Textured))
-                    Settings::RenderMode = RenderMode::Textured;
-                if (ImGui::MenuItem("Shaded", "F4", Settings::RenderMode == RenderMode::Shaded))
-                    Settings::RenderMode = RenderMode::Shaded;
+                if (ImGui::MenuItem("Flat", "F4", Settings::Editor.RenderMode == RenderMode::Flat))
+                    Settings::Editor.RenderMode = RenderMode::Flat;
+                if (ImGui::MenuItem("Textured", "F4", Settings::Editor.RenderMode == RenderMode::Textured))
+                    Settings::Editor.RenderMode = RenderMode::Textured;
+                if (ImGui::MenuItem("Shaded", "F4", Settings::Editor.RenderMode == RenderMode::Shaded))
+                    Settings::Editor.RenderMode = RenderMode::Shaded;
 
                 ImGui::Separator();
-                MenuCommandEx(Commands::ToggleWireframe, "Show Wireframe", EditorAction::ToggleWireframe, Settings::ShowWireframe);
+                MenuCommandEx(Commands::ToggleWireframe, "Show Wireframe", EditorAction::ToggleWireframe, Settings::Editor.ShowWireframe);
                 ImGui::Separator();
 
-                ImGui::MenuItem("Objects", nullptr, &Settings::ShowObjects);
-                //ImGui::MenuItem("Walls", nullptr, &Settings::ShowWalls);
-                //ImGui::MenuItem("Triggers", nullptr, &Settings::ShowTriggers);
+                ImGui::MenuItem("Objects", nullptr, &Settings::Editor.ShowObjects);
+                //ImGui::MenuItem("Walls", nullptr, &Settings::Editor.ShowWalls);
+                //ImGui::MenuItem("Triggers", nullptr, &Settings::Editor.ShowTriggers);
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Flickering lights", nullptr, &Settings::ShowFlickeringLights))
-                    if (!Settings::ShowFlickeringLights) Commands::DisableFlickeringLights();
+                if (ImGui::MenuItem("Flickering lights", nullptr, &Settings::Editor.ShowFlickeringLights))
+                    if (!Settings::Editor.ShowFlickeringLights) Commands::DisableFlickeringLights();
 
-                ImGui::MenuItem("Animation", nullptr, &Settings::ShowAnimation);
-                ImGui::MenuItem("Matcen Effects", nullptr, &Settings::ShowMatcenEffects);
+                ImGui::MenuItem("Animation", nullptr, &Settings::Editor.ShowAnimation);
+                ImGui::MenuItem("Matcen Effects", nullptr, &Settings::Editor.ShowMatcenEffects);
 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Tools")) {
-                ImGui::MenuItem("Textures", nullptr, &Settings::Windows.Textures);
-                ImGui::MenuItem("Properties", nullptr, &Settings::Windows.Properties);
-                ImGui::MenuItem("Reactor", nullptr, &Settings::Windows.Reactor);
-                ImGui::MenuItem("Lighting", nullptr, &Settings::Windows.Lighting);
-                ImGui::MenuItem("Diagnostics", nullptr, &Settings::Windows.Diagnostics);
-                ImGui::MenuItem("Noise", nullptr, &Settings::Windows.Noise);
-                ImGui::MenuItem("Sounds", nullptr, &Settings::Windows.Sound);
+                ImGui::MenuItem("Textures", nullptr, &Settings::Editor.Windows.Textures);
+                ImGui::MenuItem("Properties", nullptr, &Settings::Editor.Windows.Properties);
+                ImGui::MenuItem("Reactor", nullptr, &Settings::Editor.Windows.Reactor);
+                ImGui::MenuItem("Lighting", nullptr, &Settings::Editor.Windows.Lighting);
+                ImGui::MenuItem("Diagnostics", nullptr, &Settings::Editor.Windows.Diagnostics);
+                ImGui::MenuItem("Noise", nullptr, &Settings::Editor.Windows.Noise);
+                ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
                 
 #ifdef _DEBUG
-                ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Windows.BriefingEditor);
-                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Windows.TunnelBuilder);
+                ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
+                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
 #endif
 
                 ImGui::Separator();
@@ -338,7 +338,7 @@ namespace Inferno::Editor {
 
 #ifdef _DEBUG
                 ImGui::Separator();
-                ImGui::MenuItem("Enable Physics", nullptr, &Settings::EnablePhysics);
+                ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
 #endif
                 ImGui::EndMenu();
@@ -389,9 +389,9 @@ namespace Inferno::Editor {
             ImGui::SameLine();
 
             ImGui::SetNextItemWidth(80 * Shell::DpiScale);
-            auto snap = Settings::TranslationSnap;
+            auto snap = Settings::Editor.TranslationSnap;
             if (ImGui::InputFloat("##translation", &snap, 0, 0, "%.2f"))
-                Settings::TranslationSnap = std::clamp(snap, 0.0f, 1000.0f);
+                Settings::Editor.TranslationSnap = std::clamp(snap, 0.0f, 1000.0f);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Translation snapping");
 
             ImGui::SameLine();
@@ -403,7 +403,7 @@ namespace Inferno::Editor {
                 for (int i = 0; i < std::size(snapValues); i++) {
                     auto label = i == 1 ? "Pixel" : fmt::format("{:.1f}", snapValues[i]);
                     if (ImGui::Selectable(label.c_str()))
-                        Settings::TranslationSnap = snapValues[i];
+                        Settings::Editor.TranslationSnap = snapValues[i];
                 }
                 ImGui::EndCombo();
             }
@@ -413,10 +413,10 @@ namespace Inferno::Editor {
         {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(80 * Shell::DpiScale);
-            auto snap = Settings::RotationSnap * RadToDeg;
+            auto snap = Settings::Editor.RotationSnap * RadToDeg;
 
             if (ImGui::InputFloat("##rotation", &snap, 0, 0, (char*)u8"%.3f°"))
-                Settings::RotationSnap = std::clamp(snap, 0.0f, 180.0f) * DegToRad;
+                Settings::Editor.RotationSnap = std::clamp(snap, 0.0f, 180.0f) * DegToRad;
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Rotation snapping");
 
             ImGui::SameLine();
@@ -428,7 +428,7 @@ namespace Inferno::Editor {
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
-                        Settings::RotationSnap = value * DegToRad;
+                        Settings::Editor.RotationSnap = value * DegToRad;
                 }
                 ImGui::EndCombo();
             }
@@ -454,12 +454,12 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(110 * Shell::DpiScale);
 
-            if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::InsertMode])) {
+            if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::Editor.InsertMode])) {
                 for (int i = 0; i < insertModes.size(); i++) {
-                    const bool isSelected = (int)Settings::InsertMode == i;
+                    const bool isSelected = (int)Settings::Editor.InsertMode == i;
                     auto itemLabel = std::to_string((int)i);
                     if (ImGui::Selectable(insertModes[i], isSelected)) {
-                        Settings::InsertMode = (InsertMode)i;
+                        Settings::Editor.InsertMode = (InsertMode)i;
                     }
 
                     if (isSelected)
@@ -492,21 +492,21 @@ namespace Inferno::Editor {
                 ImGui::Text("Planar tolerance");
 
                 // must use utf8 encoding to properly render glyphs
-                auto tolerance = Settings::Selection.PlanarTolerance;
+                auto tolerance = Settings::Editor.Selection.PlanarTolerance;
                 auto label = fmt::format(u8"{:.0f}°", tolerance);
                 ImGui::SetNextItemWidth(175 * Shell::DpiScale);
 
                 if (ImGui::SliderFloat("##tolerance", &tolerance, 0, 90, (char*)label.c_str())) {
-                    Settings::Selection.PlanarTolerance = std::clamp(tolerance, 0.0f, 90.0f);
+                    Settings::Editor.Selection.PlanarTolerance = std::clamp(tolerance, 0.0f, 90.0f);
                 }
 
                 ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 //ImGui::Separator();
 
                 ImGui::Text("Stop at");
-                ImGui::Checkbox("Texture 1", &Settings::Selection.UseTMap1);
-                ImGui::Checkbox("Texture 2", &Settings::Selection.UseTMap2);
-                ImGui::Checkbox("Walls", &Settings::Selection.StopAtWalls);
+                ImGui::Checkbox("Texture 1", &Settings::Editor.Selection.UseTMap1);
+                ImGui::Checkbox("Texture 2", &Settings::Editor.Selection.UseTMap2);
+                ImGui::Checkbox("Walls", &Settings::Editor.Selection.StopAtWalls);
                 ImGui::EndPopup();
             }
             else {
@@ -532,14 +532,14 @@ namespace Inferno::Editor {
         //    ImGui::SameLine();
         //    ImGui::SetNextItemWidth(100);
 
-        //    if (ImGui::BeginCombo("##uvangle", uvAngles[Settings::ResetUVsAngle])) {
+        //    if (ImGui::BeginCombo("##uvangle", uvAngles[Settings::Editor.ResetUVsAngle])) {
         //        for (int i = 0; i < uvAngles.size(); i++) {
         //            auto itemLabel = std::to_string((int)i);
-        //            if (ImGui::Selectable(uvAngles[i], Settings::ResetUVsAngle == i)) {
-        //                Settings::ResetUVsAngle = std::clamp(i, 0, 3);
+        //            if (ImGui::Selectable(uvAngles[i], Settings::Editor.ResetUVsAngle == i)) {
+        //                Settings::Editor.ResetUVsAngle = std::clamp(i, 0, 3);
         //            }
 
-        //            if (Settings::ResetUVsAngle == i)
+        //            if (Settings::Editor.ResetUVsAngle == i)
         //                ImGui::SetItemDefaultFocus();
         //        }
 
@@ -564,10 +564,10 @@ namespace Inferno::Editor {
             static const std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
             const ImVec2 csysBtnSize = { 150 * Shell::DpiScale, 0 };
 
-            if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
+            if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::Editor.CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
                 ImGui::Text("Coordinate system");
                 ImGui::Dummy({ 200 * Shell::DpiScale, 0 });
-                auto csys = Settings::CoordinateSystem;
+                auto csys = Settings::Editor.CoordinateSystem;
 
                 if (ImGui::RadioButton(csysModes[0], csys == CoordinateSystem::Local))
                     csys = CoordinateSystem::Local;
@@ -580,8 +580,8 @@ namespace Inferno::Editor {
 
                 // Average csys? uses geometric average of marked
 
-                if (csys != Settings::CoordinateSystem) {
-                    Settings::CoordinateSystem = csys;
+                if (csys != Settings::Editor.CoordinateSystem) {
+                    Settings::Editor.CoordinateSystem = csys;
                     Editor::Gizmo.UpdatePosition();
                 }
 
@@ -589,13 +589,13 @@ namespace Inferno::Editor {
                     const float Indent = 35 * Shell::DpiScale;
                     ImGui::SetCursorPosX(Indent);
                     static SelectionMode previousMode{};
-                    bool isEditing = Settings::SelectionMode == SelectionMode::Transform;
+                    bool isEditing = Settings::Editor.SelectionMode == SelectionMode::Transform;
                     if (ImGui::Button(isEditing ? "Finish edit" : "Edit", csysBtnSize)) {
                         if (isEditing) {
                             SetMode(previousMode);
                         }
                         else {
-                            previousMode = Settings::SelectionMode;
+                            previousMode = Settings::Editor.SelectionMode;
                             SetMode(SelectionMode::Transform);
                         }
                     }
@@ -632,7 +632,7 @@ namespace Inferno::Editor {
     bool BeginContextMenu() {
         if (Editor::Gizmo.State == GizmoState::EndDrag ||
             Input::GetMouselook() ||
-            (Editor::Gizmo.State == GizmoState::RightClick && Settings::EnableTextureMode) || // Disable right click in texture mode
+            (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) || // Disable right click in texture mode
             Input::LeftDragState == Input::SelectionState::Dragging ||
             ImGui::GetTopMostPopupModal()) return false;
 
@@ -648,7 +648,7 @@ namespace Inferno::Editor {
     void DrawContextMenu() {
         //ImGui::BeginPopupContextWindow();
         if (BeginContextMenu()) {
-            auto mode = Settings::SelectionMode;
+            auto mode = Settings::Editor.SelectionMode;
 
             ClipboardMenu();
 
@@ -733,7 +733,7 @@ namespace Inferno::Editor {
             ImGuiStyle& style = ImGui::GetStyle();
             const ImVec2 size(btnWidth - style.WindowPadding.x * 2, btnWidth - style.WindowPadding.x * 2);
 
-            auto& mode = Settings::SelectionMode;
+            auto& mode = Settings::Editor.SelectionMode;
             if (ImGui::Selectable("Point", mode == SelectionMode::Point, 0, size))
                 SetMode(SelectionMode::Point);
 
@@ -762,13 +762,13 @@ namespace Inferno::Editor {
 
             // Toggle features
             ImGui::SameLine();
-            if (ImGui::ToggleButton("Wall", Settings::EnableWallMode, 0, size, 3))
-                Settings::EnableWallMode = !Settings::EnableWallMode;
+            if (ImGui::ToggleButton("Wall", Settings::Editor.EnableWallMode, 0, size, 3))
+                Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
 
             ImGui::SameLine(0, 10);
-            if (ImGui::ToggleButton("Texture", Settings::EnableTextureMode, 0, size, 3)) {
-                Settings::EnableTextureMode = !Settings::EnableTextureMode;
-                Editor::Gizmo.UpdateAxisVisiblity(Settings::SelectionMode);
+            if (ImGui::ToggleButton("Texture", Settings::Editor.EnableTextureMode, 0, size, 3)) {
+                Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
+                Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
                 Editor::Gizmo.UpdatePosition();
             }
 

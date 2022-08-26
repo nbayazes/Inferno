@@ -31,7 +31,7 @@ namespace Inferno::Editor {
             .SnapshotAction = [] {
                 auto wall = Game::Level.TryGetWallID(Editor::Selection.Tag());
                 if (Editor::RemoveWall(Game::Level, wall)) {
-                    if (Settings::EditBothWallSides) {
+                    if (Settings::Editor.EditBothWallSides) {
                         auto other = Game::Level.GetConnectedWall(Editor::Selection.Tag());
                         Editor::RemoveWall(Game::Level, other);
                     }

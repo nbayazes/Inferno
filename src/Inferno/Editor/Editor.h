@@ -103,7 +103,7 @@ namespace Inferno::Editor {
     inline List<Tag> GetSelectedFaces() {
         auto faces = Editor::Marked.GetMarkedFaces();
         if (faces.empty()) {
-            if (Settings::SelectionMode == SelectionMode::Segment) {
+            if (Settings::Editor.SelectionMode == SelectionMode::Segment) {
                 for (auto& side : SideIDs)
                     faces.push_back({ Editor::Selection.Segment, side });
             }

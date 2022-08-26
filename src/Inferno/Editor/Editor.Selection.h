@@ -177,7 +177,7 @@ namespace Inferno::Editor {
             return faces;
         }
 
-        List<Tag> GetMarkedFaces() { return GetMarkedFaces(Settings::SelectionMode); }
+        List<Tag> GetMarkedFaces() { return GetMarkedFaces(Settings::Editor.SelectionMode); }
 
         // Adjusts remaining selection after removing a segment
         void RemoveSegment(SegID id) {
@@ -206,7 +206,7 @@ namespace Inferno::Editor {
         }
 
         void ClearCurrentMode() {
-            switch (Settings::SelectionMode) {
+            switch (Settings::Editor.SelectionMode) {
                 case SelectionMode::Face: Faces.clear(); break;
                 case SelectionMode::Segment: Segments.clear(); break;
                 case SelectionMode::Point: Points.clear(); break;

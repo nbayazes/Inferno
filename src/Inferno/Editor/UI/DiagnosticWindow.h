@@ -18,7 +18,7 @@ namespace Inferno::Editor {
         bool _checked = false; // user has checked the level once already
         bool _showStats = true;
     public:
-        DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Windows.Diagnostics) {
+        DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Editor.Windows.Diagnostics) {
             auto OnLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(_fixErrors); };
             Events::SegmentsChanged += OnLevelChanged;
             Events::ObjectsChanged += OnLevelChanged;

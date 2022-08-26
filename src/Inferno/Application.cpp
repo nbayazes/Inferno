@@ -72,7 +72,7 @@ void Application::Initialize(int width, int height) {
 
     OnActivated();
 
-    if (Settings::Descent1Path.empty() && Settings::Descent2Path.empty()) {
+    if (Settings::Inferno.Descent1Path.empty() && Settings::Inferno.Descent2Path.empty()) {
         Events::ShowDialog(DialogType::Settings);
     }
 
@@ -138,7 +138,7 @@ void Application::Update() {
 
     Inferno::Input::Update();
 
-    if (Settings::EnablePhysics) {
+    if (Settings::Editor.EnablePhysics) {
         g_FireDelay -= Render::FrameTime;
 
         if (Input::IsKeyDown(Keys::Enter)) {
@@ -157,7 +157,7 @@ void Application::Update() {
         Editor::ShowDebugOverlay = !Editor::ShowDebugOverlay;
 
     if (Input::IsKeyPressed(Keys::F12))
-        Settings::ScreenshotMode = !Settings::ScreenshotMode;
+        Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
 
     if (Input::IsKeyPressed(Keys::F5))
         Render::Adapter->ReloadResources();
@@ -166,7 +166,7 @@ void Application::Update() {
         Render::ReloadTextures();
 
     if (Input::IsKeyPressed(Keys::F7)) {
-        Settings::HighRes = !Settings::HighRes;
+        Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
         Render::ReloadTextures();
     }
 
@@ -180,7 +180,7 @@ void Application::Update() {
 
     float alpha = 1; // blending between previous and current position
 
-    if (Settings::EnablePhysics) {
+    if (Settings::Editor.EnablePhysics) {
         while (accumulator >= dt) {
             UpdatePhysics(Game::Level, t, dt); // catch up if physics falls behind
             accumulator -= dt;
@@ -195,7 +195,7 @@ void Application::Update() {
     Editor::Update();
 
     g_ImGuiBatch->BeginFrame();
-    if (!Settings::ScreenshotMode) _editorUI.OnRender();
+    if (!Settings::Inferno.ScreenshotMode) _editorUI.OnRender();
     g_ImGuiBatch->EndFrame();
 
     PIXEndEvent();
@@ -204,7 +204,7 @@ void Application::Update() {
 }
 
 void Application::UpdateFpsLimit() {
-    auto limit = _isForeground ? Settings::ForegroundFpsLimit : Settings::BackgroundFpsLimit;
+    auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
     _fpsLimit = limit > 0 ? 1000.0f / limit : 0;
 }
 
@@ -230,7 +230,7 @@ void Application::Tick() {
 
     if (Render::FrameTime > 2) Render::FrameTime = 2;
 
-    if (Settings::ShowAnimation)
+    if (Settings::Editor.ShowAnimation)
         Render::ElapsedTime = milliseconds / 1000.;
     Update();
 }

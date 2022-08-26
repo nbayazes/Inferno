@@ -515,8 +515,8 @@ namespace Inferno::Editor {
     void TransformPosition(Object& obj) {
         bool changed = false;
         bool finishedEdit = false;
-        auto speed = Settings::TranslationSnap > 0 ? Settings::TranslationSnap : 0.01f;
-        auto angleSpeed = Settings::RotationSnap > 0 ? Settings::RotationSnap : DirectX::XM_PI / 32;
+        auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
+        auto angleSpeed = Settings::Editor.RotationSnap > 0 ? Settings::Editor.RotationSnap : DirectX::XM_PI / 32;
 
         auto Slider = [&](const char* label, float& value) {
             ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);

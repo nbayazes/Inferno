@@ -147,7 +147,7 @@ namespace Inferno::Editor {
         Seq::insert(Render::Materials->KeepLoaded, tids); // so browser textures don't get discarded after a prune
     }
 
-    TextureBrowserUI::TextureBrowserUI() : WindowBase("Textures", &Settings::Windows.Textures) {
+    TextureBrowserUI::TextureBrowserUI() : WindowBase("Textures", &Settings::Editor.Windows.Textures) {
         Events::LevelLoaded += [this] { UpdateTextureList(_filter, true); };
         Events::LevelChanged += [this] { UpdateTextureList(_filter, false); };
 
@@ -312,7 +312,7 @@ namespace Inferno::Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 2 });
 
         ImVec2 tileSize{};
-        switch (Settings::TexturePreviewSize) {
+        switch (Settings::Editor.TexturePreviewSize) {
             case TexturePreviewSize::Small: tileSize = { 48, 48 }; break;
             case TexturePreviewSize::Large: tileSize = { 96, 96 }; break;
             default: tileSize = { 64, 64 };

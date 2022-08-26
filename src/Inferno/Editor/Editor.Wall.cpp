@@ -294,7 +294,7 @@ namespace Inferno::Editor {
             tid = AddTrigger(level, wallId, type);
         }
 
-        if (Settings::SelectionMode == SelectionMode::Face)
+        if (Settings::Editor.SelectionMode == SelectionMode::Face)
             AddTriggerTargets(level, tid, targets);
     }
 

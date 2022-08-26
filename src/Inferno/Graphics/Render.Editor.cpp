@@ -108,15 +108,15 @@ namespace Inferno::Render {
         auto vs = seg.GetVertices(level);
 
         Array<Vector4, 12> colors = {};
-        auto segColor = Settings::SelectionMode == SelectionMode::Segment ? Colors::SelectionPrimary : Colors::SelectionOutline;
+        auto segColor = Settings::Editor.SelectionMode == SelectionMode::Segment ? Colors::SelectionPrimary : Colors::SelectionOutline;
         colors.fill(segColor);
 
-        auto sideColor = Settings::SelectionMode == SelectionMode::Face ? Colors::SelectionPrimary : Colors::SelectionTertiary;
+        auto sideColor = Settings::Editor.SelectionMode == SelectionMode::Face ? Colors::SelectionPrimary : Colors::SelectionTertiary;
         auto& edges = EdgesOfSide[(int)selection.Side];
         for (int i = 0; i < 4; i++)
             colors[edges[i]] = sideColor;
 
-        auto edgeColor = Settings::SelectionMode == SelectionMode::Edge ? Colors::SelectionPrimary : Colors::SelectionSecondary;
+        auto edgeColor = Settings::Editor.SelectionMode == SelectionMode::Edge ? Colors::SelectionPrimary : Colors::SelectionSecondary;
         colors[edges[selection.Point]] = edgeColor;
 
         // Draw each of the 12 edges
@@ -129,7 +129,7 @@ namespace Inferno::Render {
 
         auto indices = seg.GetVertexIndices(selection.Side);
         auto& pointPos = level.Vertices[indices[selection.Point]];
-        if (Settings::SelectionMode == SelectionMode::Point)
+        if (Settings::Editor.SelectionMode == SelectionMode::Point)
             DrawFacingCircle(pointPos, 1.5, Colors::SelectionPrimary);
     }
 
@@ -272,7 +272,7 @@ namespace Inferno::Render {
         for (auto& seg : level.Segments) {
             auto vs = seg.GetVertices(level);
             Color color = Colors::Wireframe;
-            color.w = Settings::WireframeOpacity;
+            color.w = Settings::Editor.WireframeOpacity;
             Color fill;
 
             if (seg.Type != SegmentType::None)
@@ -302,10 +302,10 @@ namespace Inferno::Render {
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
         bool drawTranslationGizmo = true, drawRotationGizmo = true, drawScaleGizmo = true;
 
-        if (Settings::ShowWireframe)
+        if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             default:
             case Editor::SelectionMode::Face:
                 DrawMarkedFaces(level);
@@ -351,12 +351,12 @@ namespace Inferno::Render {
             }
         }
 
-        if (Settings::EnableWallMode) {
+        if (Settings::Editor.EnableWallMode) {
             DrawWallMarkers(level);
             DrawReactorTriggers(level);
         }
 
-        if (Settings::ShowFlickeringLights) {
+        if (Settings::Editor.ShowFlickeringLights) {
             for (auto& fl : level.FlickeringLights) {
                 if (!level.SegmentExists(fl.Tag)) continue;
                 auto face = Face::FromSide(level, fl.Tag);
@@ -366,7 +366,7 @@ namespace Inferno::Render {
 
         DrawSelection(Editor::Selection, level);
 
-        if (Settings::SelectionMode != Editor::SelectionMode::Transform)
+        if (Settings::Editor.SelectionMode != Editor::SelectionMode::Transform)
             DrawUserCSysMarker(cmdList);
 
         //if (level.HasSecretExit()) {
@@ -382,7 +382,7 @@ namespace Inferno::Render {
         DrawGizmoPreview(Editor::Gizmo);
 
         if (Input::GetMouselook())
-            Debug::DrawCrosshair(Settings::CrosshairSize);
+            Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
 
         //{
         //    auto tag = Editor::Selection.PointTag();

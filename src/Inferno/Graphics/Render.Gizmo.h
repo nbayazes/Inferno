@@ -74,7 +74,7 @@ namespace Inferno::Render {
 
     inline void DrawTranslationGizmo(ID3D12GraphicsCommandList* commandList, const Editor::TransformGizmo& gizmo, const Matrix& viewProjection) {
         using namespace Editor;
-        auto sizeScale = Settings::GizmoSize / 5.0f; // arrows have a default size of 5
+        auto sizeScale = Settings::Editor.GizmoSize / 5.0f; // arrows have a default size of 5
         auto position = gizmo.Transform.Translation();
         auto scale = Matrix::CreateScale(Editor::GetGizmoScale(position, Camera) * sizeScale);
         auto translation = Matrix::CreateTranslation(position);
@@ -125,9 +125,9 @@ namespace Inferno::Render {
             auto color = GetColor(axis, gizmo, Editor::TransformMode::Rotation);
 
             if (std::abs(cdot) > TransformGizmo::MaxViewAngle) // Draw solid ring if camera is looking directly at circle
-                Debug::DrawRing(Settings::GizmoSize, 0.25f, transform, color);
+                Debug::DrawRing(Settings::Editor.GizmoSize, 0.25f, transform, color);
             else
-                Debug::DrawSolidArc(Settings::GizmoSize, 0.25f,
+                Debug::DrawSolidArc(Settings::Editor.GizmoSize, 0.25f,
                                     180 * DegToRad, // length
                                     cameraAngle, // offset
                                     transform, color);
@@ -163,7 +163,7 @@ namespace Inferno::Render {
             if (std::abs(rotation.Forward().Dot(gizmoDir)) > TransformGizmo::MaxViewAngle)
                 return; // Hide gizmo if camera is aligned to it
 
-            auto offset = Matrix::CreateTranslation(rotation.Forward() * Settings::GizmoSize);
+            auto offset = Matrix::CreateTranslation(rotation.Forward() * Settings::Editor.GizmoSize);
             auto transform = rotation * offset * scale * translation * viewProjection;
             auto color = GetColor(axis, gizmo, Editor::TransformMode::Scale);
             Debug::DrawCube(commandList, transform, color);
