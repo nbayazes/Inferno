@@ -405,9 +405,12 @@ namespace Inferno::Editor {
     Matrix GetTransformFromSide(Level& level, Tag tag, int point) {
         Matrix transform;
         auto face = Face::FromSide(level, tag);
-        auto normal = face.AverageNormal();
+        bool useAverageNormal =
+            Settings::Editor.SelectionMode == SelectionMode::Segment ||
+            Settings::Editor.SelectionMode == SelectionMode::Face;
+
+        Vector3 normal = useAverageNormal ? face.AverageNormal() : face.Side.NormalForEdge(point);
         auto tangent = face.VectorForEdge(point % 4);
-        transform.Forward(normal);
 
         if (IsZero(tangent)) {
             transform = {}; // global transform if edge length is zero
@@ -417,6 +420,9 @@ namespace Inferno::Editor {
             bitangent.Normalize();
             transform.Up(tangent);
             transform.Right(bitangent);
+            if (useAverageNormal)
+                normal = bitangent.Cross(tangent); // On triangulated faces, the normal isn't perpendicular
+            transform.Forward(normal);
         }
 
         return transform;
