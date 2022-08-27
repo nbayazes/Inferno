@@ -451,5 +451,7 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
+
+        Active = Default;
     }
 }
