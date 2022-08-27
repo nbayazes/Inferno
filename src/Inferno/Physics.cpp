@@ -528,7 +528,7 @@ namespace Inferno {
             return p.distSq <= r * r;
         }
 
-        bool Intersects(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const {
+        bool Intersects(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& /*faceNormal*/, Vector3& refPoint, Vector3& normal, float& dist) const {
             if (p0 == p1 || p1 == p2 || p2 == p0) return false; // Degenerate check
             auto base = A;
             auto tip = B;
@@ -873,7 +873,7 @@ namespace Inferno {
     }
 
 
-    void UpdateGame(Level& level, double t, float dt) {
+    void UpdateGame(Level& level, double /*t*/, float dt) {
         for (auto& obj : level.Objects) {
             obj.Lifespan -= dt;
         }

@@ -31,22 +31,20 @@ namespace Inferno::Editor {
                     if (seg.SideHasConnection(side) && !visibleWall) continue;
                 }
 
-                auto face = Face::FromSide(level, seg, side);
-                auto normal = face.AverageNormal();
-                if (normal.Dot(ray.direction) > 0) // reject backfacing
-                    continue;
+                for (int i = 0; i < 2; i++) {
+                    auto face = Face::FromSide(level, seg, side);
+                    float dist;
+                    if (face.Intersects(ray, dist)) {
+                        auto intersect = ray.position + dist * ray.direction;
+                        int16 edge = 0;
+                        if (mode == SelectionMode::Point)
+                            // find the point on this face closest to the intersect
+                            edge = face.GetClosestPoint(intersect);
+                        else
+                            edge = face.GetClosestEdge(intersect);
 
-                float dist;
-                if (face.Intersects(ray, dist)) {
-                    auto intersect = ray.position + dist * ray.direction;
-                    int16 edge = 0;
-                    if (mode == SelectionMode::Point)
-                        // find the point on this face closest to the intersect
-                        edge = face.GetClosestPoint(intersect);
-                    else
-                        edge = face.GetClosestEdge(intersect);
-
-                    hits.push_back({ { SegID(segid), side }, edge, normal, dist });
+                        hits.push_back({ { SegID(segid), side }, edge, face.Side.AverageNormal, dist });
+                    }
                 }
             }
 
