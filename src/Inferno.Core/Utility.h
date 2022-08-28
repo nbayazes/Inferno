@@ -177,7 +177,7 @@ namespace Inferno {
     // Converts a direction vector into a rotation matrix
     inline Matrix DirectionToRotationMatrix(const Vector3& direction, float roll = 0) {
         assert(IsNormalized(direction));
-        auto pitch = asin(direction.y);
+        auto pitch = asin(std::clamp(direction.y, -1.0f, 1.0f));
         auto yaw = atan2(-direction.z, direction.x);
         return Matrix::CreateFromYawPitchRoll(yaw, roll, pitch);
     }

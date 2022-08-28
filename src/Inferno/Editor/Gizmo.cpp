@@ -36,9 +36,9 @@ namespace Inferno::Editor {
         auto position = transform.Translation();
         auto scale = GetGizmoScale(position, camera);
         auto xAxis = transform.Forward(), yAxis = transform.Up(), zAxis = transform.Right();
-        auto xBounds = GetGizmoBoundingBox(position, xAxis, scale);
-        auto yBounds = GetGizmoBoundingBox(position, yAxis, scale);
-        auto zBounds = GetGizmoBoundingBox(position, zAxis, scale);
+        const auto xBounds = GetGizmoBoundingBox(position, xAxis, scale);
+        const auto yBounds = GetGizmoBoundingBox(position, yAxis, scale);
+        const auto zBounds = GetGizmoBoundingBox(position, zAxis, scale);
 
         auto gizmoDir = camera.Position - position;
         gizmoDir.Normalize();
