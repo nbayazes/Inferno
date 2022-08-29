@@ -10,7 +10,7 @@ namespace Inferno::Editor {
         int _steps = 10;
         float _startLength = 20, _endLength = 20;
     public:
-        TunnelBuilderWindow() : WindowBase("Tunnel Builder", &Settings::Windows.TunnelBuilder) {
+        TunnelBuilderWindow() : WindowBase("Tunnel Builder", &Settings::Editor.Windows.TunnelBuilder) {
             Events::LevelChanged += [this] { if (IsOpen()) RefreshTunnel(); };
         }
 

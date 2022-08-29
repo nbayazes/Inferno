@@ -2,6 +2,8 @@
 #include <variant>
 #include "Types.h"
 #include "Utility.h"
+#include <fstream>
+#include "Streams.h"
 
 namespace Inferno {
     struct HogEntry {
@@ -48,6 +50,7 @@ namespace Inferno {
         List<HogEntry> Entries;
         std::filesystem::path Path;
 
+        // Reads data from an entry. Can come from the HogFile Path or a file system path.
         List<ubyte> ReadEntry(const HogEntry& entry) const;
 
         List<ubyte> ReadEntry(string_view name) const {
@@ -86,21 +89,8 @@ namespace Inferno {
         HogFile& operator=(const HogFile&) = delete;
         HogFile& operator=(HogFile&&) = default;
 
-        // Adds or updates entry data and resaves the file
-        void AddOrUpdateEntry(string_view name, span<ubyte> data);
-
         static HogFile Read(std::filesystem::path file);
         static constexpr int MAX_ENTRIES = 250;
-
-        // Saves entries from the current HOG to a new file
-        HogFile Save(span<HogEntry> entries, filesystem::path dest = "");
-
-        HogFile SaveCopy(filesystem::path dest) {
-            return Save(Entries, dest);
-        }
-
-        // Exports an entry to a folder
-        void Export(int index, filesystem::path path);
 
         List<string> GetContents() {
             return Seq::map(Entries, [](const auto& e) { return e.Name; });
@@ -114,9 +104,25 @@ namespace Inferno {
         List<HogEntry> GetLevels() {
             return Seq::filter(Entries, [](const HogEntry& e) { return e.IsLevel(); });
         }
+    };
 
-        static void CreateFromEntry(filesystem::path path, string_view name, span<ubyte> data);
+    class HogWriter {
+        std::ofstream _stream;
+        StreamWriter _writer;
+        int _entries = 0;
+        static constexpr int MAX_ENTRIES = 250;
+    public:
+        HogWriter(filesystem::path path) : _stream(path, std::ios::binary), _writer(_stream) {
+            _writer.WriteString("DHF", 3);
+        }
 
-        static void AppendEntry(filesystem::path path, string_view name, span<ubyte> data);
+        void WriteEntry(string_view name, span<ubyte> data) {
+            if (data.empty()) return;
+            if (_entries >= MAX_ENTRIES) throw Exception("Cannot have more than 250 entries!");
+            _writer.WriteString(string(name), 13);
+            _writer.Write((int32)data.size());
+            _writer.WriteBytes(data);
+            _entries++;
+        }
     };
 }

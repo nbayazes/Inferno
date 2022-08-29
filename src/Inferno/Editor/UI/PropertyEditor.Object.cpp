@@ -83,7 +83,7 @@ namespace Inferno::Editor {
         if (id == 1 || id == 2)
             return 0; // shields and energy to the top
 
-        if (id >= 4 && id <= 6) 
+        if (id >= 4 && id <= 6)
             return 1; // Keys
 
         if (id == 3 || (id >= 12 && id <= 16) || (id >= 28 && id <= 32))
@@ -99,7 +99,7 @@ namespace Inferno::Editor {
     }
 
     struct PowerupSort {
-        int ID;
+        int8 ID;
         const Powerup* Ptr;
         string Name;
     };
@@ -109,7 +109,7 @@ namespace Inferno::Editor {
         List<PowerupSort> sorted;
         sorted.reserve(powerupCount);
 
-        for (int i = 0; i < powerupCount; i++) {
+        for (int8 i = 0; i < powerupCount; i++) {
             if (auto name = Resources::GetPowerupName(i)) {
                 sorted.push_back({ i, &Resources::GameData.Powerups[i], *name });
             }
@@ -250,14 +250,14 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    struct RobotSort { int ID; string Name; };
+    struct RobotSort { int8 ID; string Name; };
 
     List<RobotSort> SortRobots() {
         auto robotCount = Game::Level.IsDescent1() ? 24 : Resources::GameData.Robots.size();
         List<RobotSort> sorted;
         sorted.reserve(robotCount);
 
-        for (int i = 0; i < robotCount; i++) {
+        for (int8 i = 0; i < robotCount; i++) {
             sorted.push_back({ i, Resources::GetRobotName(i) });
         }
 
@@ -513,6 +513,50 @@ namespace Inferno::Editor {
         return changed;
     }
 
+    void TransformPosition(Object& obj) {
+        bool changed = false;
+        bool finishedEdit = false;
+        auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
+        auto angleSpeed = Settings::Editor.RotationSnap > 0 ? Settings::Editor.RotationSnap : DirectX::XM_PI / 32;
+
+        auto Slider = [&](const char* label, float& value) {
+            ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::PushID(label);
+            changed |= ImGui::DragFloat("##xyz", &value, speed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopID();
+        };
+
+        auto AngleSlider = [&](const char* label, float& value) {
+            ImGui::Text(label); ImGui::SameLine(60 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::PushID(label);
+            changed |= ImGui::DragFloat("##pyr", &value, angleSpeed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+            ImGui::PopID();
+        };
+
+        ImGui::TableRowLabel("Object position");
+        Slider("X", obj.Position.x);
+        Slider("Y", obj.Position.y);
+        Slider("Z", obj.Position.z);
+
+        //ImGui::TableRowLabel("Object rotation");
+        //auto angles = Matrix(obj.Rotation).ToEuler(); 
+        //AngleSlider("Pitch", angles.x);
+        //AngleSlider("Yaw", angles.y);
+        //AngleSlider("Roll", angles.z);
+        
+        if (changed) {
+            //obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(angles));
+            Editor::Gizmo.UpdatePosition();
+        }
+
+        if (finishedEdit) {
+            Editor::History.SnapshotSelection();
+            Editor::History.SnapshotLevel("Edit object position");
+        }
+    }
+
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
@@ -594,8 +638,10 @@ namespace Inferno::Editor {
                         if (o.Type != obj.Type) return;
                         o.Movement.Physics.AngularVelocity = obj.Movement.Physics.AngularVelocity;
                     });
-                    //Editor::History.SnapshotLevel("Change object"); // causes too many snapshots
                 }
+
+                if (ImGui::IsItemDeactivatedAfterEdit())
+                    Editor::History.SnapshotLevel("Change angular velocity");
 
                 break;
 
@@ -622,5 +668,7 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Polymodel");
             ImGui::Text("%i", obj.Render.Model.ID);
         }
+
+        TransformPosition(obj);
     }
 }

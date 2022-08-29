@@ -9,7 +9,7 @@ namespace Inferno::Editor {
 
     public:
         MatcenEditor() : ModalWindowBase("Matcen Editor") {
-            Width = 500;
+            Width = 500 * Shell::DpiScale;
             //Height = 500;
         };
 
@@ -52,7 +52,7 @@ namespace Inferno::Editor {
             };
 
             {
-                ImGui::BeginChild("##available", ImVec2(-1, 400), true);
+                ImGui::BeginChild("##available", ImVec2(-1, 400 * Shell::DpiScale), true);
 
                 for (uint i = 0; i < maxRobots; i++) {
                     bool flagged = i < 32
@@ -75,7 +75,7 @@ namespace Inferno::Editor {
 
             //ImGui::SameLine(0, 20);
             {
-                ImGui::BeginChild("##active", ImVec2(-1, 400), true);
+                ImGui::BeginChild("##active", ImVec2(-1, 400 * Shell::DpiScale), true);
 
                 for (uint i = 0; i < maxRobots; i++) {
                     bool flagged = i < 32
@@ -96,13 +96,13 @@ namespace Inferno::Editor {
             }
             ImGui::NextColumn();
 
-            if (ImGui::Button("Add##addmatcenrbt", { 100, 0 }) && selectedAddRobot != -1)
+            if (ImGui::Button("Add##addmatcenrbt", { 100 * Shell::DpiScale, 0 }) && selectedAddRobot != -1)
                 AddRobot();
 
             //ImGui::SameLine(170);
             ImGui::NextColumn();
 
-            if (ImGui::Button("Remove##delmatcenrbt", { 100, 0 }) && selectedDelRobot != -1)
+            if (ImGui::Button("Remove##delmatcenrbt", { 100 * Shell::DpiScale, 0 }) && selectedDelRobot != -1)
                 RemoveRobot();
 
             //ImGui::EndChild();

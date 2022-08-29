@@ -195,7 +195,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, GetTextureSampler());
         auto& seg = Game::Level.GetSegment(debris.Segment);
         ObjectShader::Constants constants = {};
-        constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
         constants.EmissiveLight = Vector4::Zero;
 
         Matrix transform = Matrix::Lerp(debris.PrevTransform, debris.Transform, lerp);
@@ -241,7 +241,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, GetTextureSampler());
         auto& seg = Game::Level.GetSegment(object.Segment);
         ObjectShader::Constants constants = {};
-        constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
         constants.EmissiveLight = object.Render.Emissive;
 
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
@@ -310,7 +310,7 @@ namespace Inferno::Render {
         ObjectShader::Constants constants = {};
         auto& seg = Game::Level.GetSegment(object.Segment);
         constants.EmissiveLight = object.Render.Emissive;
-        constants.Ambient = Settings::RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
 
         Matrix transform = object.GetTransform();
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -455,7 +455,7 @@ namespace Inferno::Render {
         auto& chunk = *mesh.Chunk;
 
         LevelShader::InstanceConstants constants{};
-        constants.LightingScale = Settings::RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
+        constants.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
         auto cmdList = ctx.CommandList();
         Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
@@ -512,7 +512,7 @@ namespace Inferno::Render {
 
         Debug::Initialize();
 
-        ImGuiBatch::Initialize(_hwnd, (float)Settings::FontSize);
+        ImGuiBatch::Initialize(_hwnd, (float)Settings::Editor.FontSize);
         static_assert(sizeof(ImTextureID) >= sizeof(D3D12_CPU_DESCRIPTOR_HANDLE), "D3D12_CPU_DESCRIPTOR_HANDLE is too large to fit in an ImTextureID");
         g_ImGuiBatch = MakePtr<ImGuiBatch>(Adapter->GetBackBufferCount());
 
@@ -613,7 +613,7 @@ namespace Inferno::Render {
     void LoadTextureDynamic(LevelTexID id) {
         List<TexID> list = { Resources::LookupLevelTexID(id) };
         if (auto eclip = Resources::TryGetEffectClip(id))
-            Seq::append(eclip->VClip.GetFrames(), list);
+            Seq::append(list, eclip->VClip.GetFrames());
         Materials->LoadMaterials(list, false);
     }
 
@@ -621,7 +621,7 @@ namespace Inferno::Render {
         if (id <= TexID::None) return;
         List<TexID> list{ id };
         if (auto eclip = Resources::TryGetEffectClip(id))
-            Seq::append(eclip->VClip.GetFrames(), list);
+            Seq::append(list, eclip->VClip.GetFrames());
         Materials->LoadMaterials(list, false);
     }
 
@@ -674,7 +674,7 @@ namespace Inferno::Render {
             {
                 if (pass != RenderPass::Transparent) return;
                 auto up = object.Rotation.Up();
-                DrawSprite(ctx, object, false, lerp, &up, Settings::RenderMode == RenderMode::Shaded);
+                DrawSprite(ctx, object, false, lerp, &up, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
 
@@ -841,7 +841,7 @@ namespace Inferno::Render {
             {
                 auto& mesh = *cmd.Data.LevelMesh;
 
-                if (Settings::RenderMode == RenderMode::Flat) {
+                if (Settings::Editor.RenderMode == RenderMode::Flat) {
                     if (mesh.Chunk->Blend == BlendMode::Alpha || mesh.Chunk->Blend == BlendMode::Additive) {
                         if (pass != RenderPass::Walls) return;
                         ApplyEffect(ctx, Effects->LevelWallFlat);
@@ -940,7 +940,7 @@ namespace Inferno::Render {
 
     void DrawDebug(Level&) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
-        if (Settings::EnablePhysics) {
+        if (Settings::Editor.EnablePhysics) {
             for (auto& point : Inferno::Debug::ClosestPoints) {
                 Debug::DrawPoint(point, Color(1, 0, 0));
             }
@@ -1030,7 +1030,7 @@ namespace Inferno::Render {
             }
         }
 
-        if (Settings::RenderMode != RenderMode::Flat) {
+        if (Settings::Editor.RenderMode != RenderMode::Flat) {
             // Level walls (potentially transparent)
             auto& effect = Effects->DepthCutout;
             ApplyEffect(ctx, effect);
@@ -1041,7 +1041,7 @@ namespace Inferno::Render {
             }
         }
 
-        if (Settings::MsaaSamples > 1) {
+        if (Settings::Graphics.MsaaSamples > 1) {
             // must resolve MS target to allow shader sampling
             Adapter->LinearizedDepthBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaLinearizedDepthBuffer);
             Adapter->MsaaLinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -1061,7 +1061,7 @@ namespace Inferno::Render {
     void DrawLevel(GraphicsContext& ctx, float lerp) {
         ctx.BeginEvent(L"Level");
 
-        if (Settings::ShowFlickeringLights)
+        if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(Game::Level, (float)ElapsedTime, FrameTime);
 
         if (LevelChanged) {
@@ -1071,7 +1071,7 @@ namespace Inferno::Render {
         }
 
         ScopedTimer levelTimer(&Metrics::QueueLevel);
-        if (Settings::RenderMode != RenderMode::None) {
+        if (Settings::Editor.RenderMode != RenderMode::None) {
             // Queue commands for level meshes
             for (auto& mesh : _levelMeshBuilder.GetMeshes())
                 _opaqueQueue.push_back({ &mesh, 0 });
@@ -1085,8 +1085,8 @@ namespace Inferno::Render {
         QueueParticles();
         QueueDebris();
 
-        if (Settings::ShowObjects) {
-            auto distSquared = Settings::ObjectRenderDistance * Settings::ObjectRenderDistance;
+        if (Settings::Editor.ShowObjects) {
+            auto distSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
             for (auto& obj : Game::Level.Objects) {
                 if (!ShouldDrawObject(obj)) continue;
                 QueueObject(Game::Level, obj, distSquared, lerp);
@@ -1136,7 +1136,7 @@ namespace Inferno::Render {
             //DrawParticles(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
-            if (!Settings::ScreenshotMode && Game::State == GameState::Editor) {
+            if (!Settings::Inferno.ScreenshotMode && Game::State == GameState::Editor) {
                 ctx.BeginEvent(L"Editor");
                 DrawEditor(ctx.CommandList(), Game::Level);
                 DrawDebug(Game::Level);
@@ -1163,7 +1163,7 @@ namespace Inferno::Render {
 
         Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
-        if (Settings::EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
+        if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
             Bloom->Apply(ctx.CommandList(), Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
@@ -1187,7 +1187,7 @@ namespace Inferno::Render {
     }
 
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
-        if (!Settings::Windows.BriefingEditor) return;
+        if (!Settings::Editor.Windows.BriefingEditor) return;
 
         ctx.BeginEvent(L"Briefing");
         ctx.ClearColor(target);
@@ -1222,7 +1222,7 @@ namespace Inferno::Render {
 
         auto output = Adapter->GetOutputSize();
         Camera.SetViewport(output.x, output.y);
-        Camera.LookAtPerspective();
+        Camera.LookAtPerspective(Settings::Editor.FieldOfView);
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
 
@@ -1249,7 +1249,7 @@ namespace Inferno::Render {
             HudGlowCanvas->Render(ctx);
         }
 
-        if (Settings::MsaaSamples > 1) {
+        if (Settings::Graphics.MsaaSamples > 1) {
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
         }
 

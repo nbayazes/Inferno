@@ -66,7 +66,7 @@ namespace Inferno {
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T& operator ~ (T value) {
+    inline T operator ~ (T value) {
         return value = T(~((std::underlying_type_t<T>)value));
     }
 
@@ -184,16 +184,9 @@ namespace Inferno {
     }
 
     // Converts a direction vector into a rotation matrix
-    inline Matrix DirectionToRotationMatrix(const Vector3& direction) {
+    inline Matrix DirectionToRotationMatrix(const Vector3& direction, float roll = 0) {
         assert(IsNormalized(direction));
-        auto pitch = asin(direction.y);
-        auto yaw = atan2(-direction.z, direction.x);
-        return Matrix::CreateFromYawPitchRoll(yaw, 0, pitch);
-    }
-
-    inline Matrix DirectionToRotationMatrix(const Vector3& direction, float roll) {
-        assert(IsNormalized(direction));
-        auto pitch = asin(direction.y);
+        auto pitch = asin(std::clamp(direction.y, -1.0f, 1.0f));
         auto yaw = atan2(-direction.z, direction.x);
         return Matrix::CreateFromYawPitchRoll(yaw, roll, pitch);
     }
@@ -297,8 +290,11 @@ namespace Inferno {
         return (float)f / (float)(1 << 16);
     }
 
+    constexpr int MAX_FIX = 32768; // Maximum fixed point value
+    constexpr int MIN_FIX = -32769; // Minimum fixed point value
+
     constexpr fix FloatToFix(float f) {
-        assert(f < 32768 && f > -32769); // out of range
+        assert(f < MAX_FIX&& f > MIN_FIX); // out of range
         return (fix)(f * (1 << 16));
     }
 
@@ -422,6 +418,11 @@ namespace Inferno {
             return List<T>(set.begin(), set.end());
         }
 
+        template<class T>
+        constexpr auto toList(const span<T> xs) {
+            return List<T>(xs.begin(), xs.end());
+        }
+
         constexpr bool inRange(auto&& xs, size_t index) {
             return index >= 0 && index < xs.size();
         }
@@ -472,12 +473,12 @@ namespace Inferno {
         }
 
         // Moves the contents of src to the end of dest
-        constexpr void move(auto&& src, auto& dest) {
+        constexpr void move(auto& dest, auto&& src) {
             std::move(src.begin(), src.end(), std::back_inserter(dest));
         }
 
         // Copies the contents of src to the end of dest
-        constexpr void append(const auto& src, auto& dest) {
+        constexpr void append(auto& dest, const auto& src) {
             std::copy(src.begin(), src.end(), std::back_inserter(dest));
         }
 

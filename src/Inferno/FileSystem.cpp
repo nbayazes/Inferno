@@ -21,19 +21,17 @@ namespace Inferno::FileSystem {
     void Init() {
         Directories.clear();
 
-        SPDLOG_INFO(L"Working directory: {}", std::filesystem::current_path().wstring());
-
-        if (!Settings::Descent2Path.empty())
-            AddDataDirectory(Settings::Descent2Path.parent_path());
+        if (!Settings::Inferno.Descent2Path.empty())
+            AddDataDirectory(Settings::Inferno.Descent2Path.parent_path());
 
         // Search D1 before D2 because some people might have a descent.hog in their d2 directory
         // (directories are searched in reverse order)
-        if (!Settings::Descent1Path.empty())
-            AddDataDirectory(Settings::Descent1Path.parent_path());
+        if (!Settings::Inferno.Descent1Path.empty())
+            AddDataDirectory(Settings::Inferno.Descent1Path.parent_path());
 
         AddDataDirectory("./data");
 
-        for (auto& path : Settings::DataPaths)
+        for (auto& path : Settings::Inferno.DataPaths)
             AddDataDirectory(path);
     }
 

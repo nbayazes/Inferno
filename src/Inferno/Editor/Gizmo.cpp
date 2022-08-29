@@ -3,6 +3,7 @@
 #include "Settings.h"
 #include "Editor.h"
 #include "Input.h"
+#include "Graphics/Render.Debug.h"
 
 namespace Inferno::Editor {
     using namespace DirectX::SimpleMath;
@@ -10,8 +11,8 @@ namespace Inferno::Editor {
 
     BoundingOrientedBox GetGizmoBoundingBox(const Vector3& position, const Vector3& direction, float scale) {
         BoundingOrientedBox bounds(
-            { Settings::GizmoSize, 0, 0 },
-            { Settings::GizmoSize, Settings::GizmoThickness * 2, Settings::GizmoThickness * 2 },
+            { Settings::Editor.GizmoSize, 0, 0 },
+            { Settings::Editor.GizmoSize, Settings::Editor.GizmoThickness * 2, Settings::Editor.GizmoThickness * 2 },
             Vector4::UnitW);
         bounds.Transform(bounds, Matrix::CreateScale(scale) * DirectionToRotationMatrix(direction) * Matrix::CreateTranslation(position));
         return bounds;
@@ -36,9 +37,9 @@ namespace Inferno::Editor {
         auto position = transform.Translation();
         auto scale = GetGizmoScale(position, camera);
         auto xAxis = transform.Forward(), yAxis = transform.Up(), zAxis = transform.Right();
-        auto xBounds = GetGizmoBoundingBox(position, xAxis, scale);
-        auto yBounds = GetGizmoBoundingBox(position, yAxis, scale);
-        auto zBounds = GetGizmoBoundingBox(position, zAxis, scale);
+        const auto xBounds = GetGizmoBoundingBox(position, xAxis, scale);
+        const auto yBounds = GetGizmoBoundingBox(position, yAxis, scale);
+        const auto zBounds = GetGizmoBoundingBox(position, zAxis, scale);
 
         auto gizmoDir = camera.Position - position;
         gizmoDir.Normalize();
@@ -98,12 +99,16 @@ namespace Inferno::Editor {
         // Check if any intersections lie on the gizmo circle
         for (auto& hit : hits) {
             if (hit.Axis == GizmoAxis::None) continue;
-            auto intersection = ray.direction * hit.Distance;
-            auto distance = Vector3::Distance(intersection, position - camera.Position);
+            auto intersection = ray.position + ray.direction * hit.Distance;
+            auto distance = Vector3::Distance(intersection, position);
 
-            if (distance > Settings::GizmoSize * 0.8 * scale &&
-                distance < Settings::GizmoSize * 1.2 * scale)
+            if (distance > Settings::Editor.GizmoSize * 0.8 * scale &&
+                distance < Settings::Editor.GizmoSize * 1.2 * scale) {
+                auto ivec = intersection - position;
+                ivec.Normalize();
+                GizmoPreview::RotationStart = position + ivec * Settings::Editor.GizmoSize * scale;
                 return hit;
+            }
         }
 
         return {};
@@ -112,7 +117,7 @@ namespace Inferno::Editor {
     Hit IntersectScale(const Matrix& transform, const Ray& ray, Array<bool, 3>& enabled, const Camera& camera) {
         auto GetBoundingBox = [](const Vector3& position, const Vector3& direction, float scale) {
             BoundingOrientedBox bounds({ 0, 0, 0 }, { 1, 1, 1 }, Vector4::UnitW);
-            auto translation = Matrix::CreateTranslation(position + direction * Settings::GizmoSize * scale);
+            auto translation = Matrix::CreateTranslation(position + direction * Settings::Editor.GizmoSize * scale);
             bounds.Transform(bounds, Matrix::CreateScale(scale) * DirectionToRotationMatrix(direction) * translation);
             return bounds;
         };
@@ -151,7 +156,7 @@ namespace Inferno::Editor {
     Matrix GetGizmoTransform(Level& level, const TransformGizmo& gizmo) {
         Matrix transform;
 
-        if (Settings::EnableTextureMode) {
+        if (Settings::Editor.EnableTextureMode) {
             if (gizmo.State == GizmoState::Dragging) {
                 transform = Editor::Gizmo.Transform; // no change;
             }
@@ -172,10 +177,10 @@ namespace Inferno::Editor {
             return transform;
         }
 
-        if (Settings::SelectionMode == SelectionMode::Transform) {
+        if (Settings::Editor.SelectionMode == SelectionMode::Transform) {
             transform = UserCSys;
         }
-        else if (Settings::CoordinateSystem == CoordinateSystem::User) {
+        else if (Settings::Editor.CoordinateSystem == CoordinateSystem::User) {
             transform = UserCSys;
 
             // Move translation gizmo to the object even in global mode for clarity
@@ -183,7 +188,7 @@ namespace Inferno::Editor {
             //if (Settings::ActiveTransform == TransformMode::Translation)
             //transform.Translation(Editor::Selection.GetOrigin());
         }
-        else if (Settings::SelectionMode == SelectionMode::Object &&
+        else if (Settings::Editor.SelectionMode == SelectionMode::Object &&
                  Selection.Object != ObjID::None) {
             // use object orientation
             if (auto obj = level.TryGetObject(Selection.Object)) {
@@ -198,14 +203,14 @@ namespace Inferno::Editor {
                 transform.Forward(fwd);
                 transform.Up(up);
                 transform.Right(right);
-                transform.Translation(Editor::Selection.GetOrigin(Settings::SelectionMode));
+                transform.Translation(Editor::Selection.GetOrigin(Settings::Editor.SelectionMode));
             }
         }
         else if (level.SegmentExists(Selection.Segment)) {
-            transform = GetTransformFromSelection(level, Selection.Tag(), Settings::SelectionMode);
+            transform = GetTransformFromSelection(level, Selection.Tag(), Settings::Editor.SelectionMode);
         }
 
-        if (Settings::CoordinateSystem == CoordinateSystem::Global) {
+        if (Settings::Editor.CoordinateSystem == CoordinateSystem::Global) {
             // global overrides the rotatation to the XYZ axis
             transform.Right(Vector3::UnitX);
             transform.Up(Vector3::UnitY);
@@ -220,7 +225,7 @@ namespace Inferno::Editor {
     }
 
     void TransformGizmo::UpdateAxisVisiblity(SelectionMode mode) {
-        if (Settings::EnableTextureMode) {
+        if (Settings::Editor.EnableTextureMode) {
             switch (mode) {
                 case Inferno::Editor::SelectionMode::Segment:
                 case Inferno::Editor::SelectionMode::Face:
@@ -265,7 +270,7 @@ namespace Inferno::Editor {
                 auto end = ProjectRayOntoPlane(MouseRay, StartTransform.Translation(), camera.GetForward());
                 auto delta = end - CursorStart;
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
-                auto translation = Step(magnitude, Settings::TranslationSnap) * Direction;
+                auto translation = Step(magnitude, Settings::Editor.TranslationSnap) * Direction;
                 auto deltaTranslation = translation - _prevTranslation;
                 DeltaTransform = Matrix::CreateTranslation(deltaTranslation);
                 auto sign = Direction.Dot(DeltaTransform.Translation()) > 0 ? 1 : -1;
@@ -279,7 +284,7 @@ namespace Inferno::Editor {
                 auto end = ProjectRayOntoPlane(MouseRay, StartTransform.Translation(), camera.GetForward());
                 auto delta = end - CursorStart;
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
-                auto translation = Step(magnitude, Settings::TranslationSnap) * Direction;
+                auto translation = Step(magnitude, Settings::Editor.TranslationSnap) * Direction;
                 DeltaTransform.Translation(translation - _prevTranslation);
                 Grow = Direction.Dot(DeltaTransform.Translation()) > 0;
                 Delta = (translation - _prevTranslation).Length() * (Grow ? 1 : -1);
@@ -295,7 +300,7 @@ namespace Inferno::Editor {
                 auto position = StartTransform.Translation();
                 auto end = ProjectRayOntoPlane(MouseRay, position, normal);
                 float angle = AngleBetweenPoints(CursorStart, end, position, normal);
-                angle = Step(angle, Settings::RotationSnap);
+                angle = Step(angle, Settings::Editor.RotationSnap);
                 if (normal.Dot(planeNormal) < 0)
                     angle = -angle;
 
@@ -309,12 +314,33 @@ namespace Inferno::Editor {
         }
     }
 
+    void SetGizmoPreviewPoints(GizmoAxis axis, Matrix& transform) {
+        auto origin = transform.Translation();
+
+        switch (axis) {
+            case GizmoAxis::X:
+                GizmoPreview::Start = origin + transform.Forward() * MIN_FIX;
+                GizmoPreview::End = origin + transform.Forward() * MAX_FIX;
+                break;
+
+            case GizmoAxis::Y:
+                GizmoPreview::Start = origin + transform.Up() * MIN_FIX;
+                GizmoPreview::End = origin + transform.Up() * MAX_FIX;
+                break;
+
+            case GizmoAxis::Z:
+                GizmoPreview::Start = origin + transform.Right() * MIN_FIX;
+                GizmoPreview::End = origin + transform.Right() * MAX_FIX;
+                break;
+        }
+    }
+
     void TransformGizmo::Update(Input::SelectionState state, const Camera& camera) {
         switch (state) {
             case Input::SelectionState::None:
             {
                 State = GizmoState::None;
-                if (Settings::SelectionMode == SelectionMode::Object &&
+                if (Settings::Editor.SelectionMode == SelectionMode::Object &&
                     !Game::Level.TryGetObject(Editor::Selection.Object))
                     return; // valid object not selected, don't hit test gizmo
 
@@ -322,6 +348,7 @@ namespace Inferno::Editor {
                 hits[0] = IntersectTranslation(Transform, MouseRay, ShowTranslationAxis, camera);
                 hits[1] = IntersectRotation(Transform, MouseRay, ShowRotationAxis, camera);
                 hits[2] = IntersectScale(Transform, MouseRay, ShowScaleAxis, camera);
+
                 Seq::sortBy(hits, [](auto& a, auto& b) { return a.Distance < b.Distance; });
 
                 Mode = hits[0].Transform;
@@ -341,6 +368,8 @@ namespace Inferno::Editor {
 
                 if (State == GizmoState::None)
                     State = GizmoState::BeginDrag;
+
+                SetGizmoPreviewPoints(SelectedAxis, Transform);
 
                 DeltaTransform = Matrix::Identity;
                 _prevTranslation = {};
@@ -382,14 +411,26 @@ namespace Inferno::Editor {
     Matrix GetTransformFromSide(Level& level, Tag tag, int point) {
         Matrix transform;
         auto face = Face::FromSide(level, tag);
-        auto normal = face.AverageNormal();
+        bool useAverageNormal =
+            Settings::Editor.SelectionMode == SelectionMode::Segment ||
+            Settings::Editor.SelectionMode == SelectionMode::Face;
+
+        Vector3 normal = useAverageNormal ? face.AverageNormal() : face.Side.NormalForEdge(point);
         auto tangent = face.VectorForEdge(point % 4);
 
-        transform.Forward(normal);
-        transform.Up(tangent);
-        auto bitangent = normal.Cross(tangent);
-        bitangent.Normalize();
-        transform.Right(bitangent);
+        if (IsZero(tangent)) {
+            transform = {}; // global transform if edge length is zero
+        }
+        else {
+            auto bitangent = normal.Cross(tangent);
+            bitangent.Normalize();
+            transform.Up(tangent);
+            transform.Right(bitangent);
+            if (useAverageNormal)
+                normal = bitangent.Cross(tangent); // On triangulated faces, the normal isn't perpendicular
+            transform.Forward(normal);
+        }
+
         return transform;
     }
 

@@ -34,11 +34,11 @@ namespace Inferno::Editor {
             if (!ImGui::BeginTable("statusbar", 5, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV, {}, Width))
                 return;
 
-            ImGui::TableSetupColumn("status", 0, Width - (130 + 150 + 250 + 170) * Shell::DpiScale);
+            ImGui::TableSetupColumn("status", 0, Width - (130 + 150 + 150 + 150) * Shell::DpiScale);
             ImGui::TableSetupColumn("c1", 0, 130 * Shell::DpiScale);
             ImGui::TableSetupColumn("c2", 0, 150 * Shell::DpiScale);
-            ImGui::TableSetupColumn("c3", 0, 250 * Shell::DpiScale);
-            ImGui::TableSetupColumn("c4", 0, 170 * Shell::DpiScale);
+            ImGui::TableSetupColumn("c3", 0, 150 * Shell::DpiScale);
+            ImGui::TableSetupColumn("c4", 0, 150 * Shell::DpiScale);
             //ImGui::TableSetupColumn("c5", 0, 200 * Shell::DpiScale);
             
             ImGui::TableNextRow();
@@ -49,7 +49,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 auto [seg, side] = level.GetSegmentAndSide(Selection.Tag());
 
-                switch (Settings::SelectionMode) {
+                switch (Settings::Editor.SelectionMode) {
                     case SelectionMode::Point:
                     case SelectionMode::Edge:
                         ImGui::Text("Marked: %i", Editor::Marked.Points.size());
@@ -74,8 +74,9 @@ namespace Inferno::Editor {
 
                 ImGui::TableNextColumn();
                 auto vertIndex = seg.GetVertexIndex(Selection.Side, Selection.Point);
-                auto& vert = level.Vertices[vertIndex];
-                ImGui::Text("Point %i: %.1f, %.1f, %.1f", vertIndex, vert.x, vert.y, vert.z);
+                //auto& vert = level.Vertices[vertIndex];
+                //ImGui::Text("Vert %i: %.1f, %.1f, %.1f", vertIndex, vert.x, vert.y, vert.z);
+                ImGui::Text("Pt: %i Vert: %i", Editor::Selection.Point, vertIndex);
             }
             else {
                 ImGui::TableNextColumn();
@@ -84,10 +85,9 @@ namespace Inferno::Editor {
             }
 
             ImGui::TableNextColumn();
-            ImGui::Text("Seg: %i:%i:%i",
+            ImGui::Text("Seg: %i:%i",
                         Editor::Selection.Segment,
-                        Editor::Selection.Side,
-                        Editor::Selection.Point);
+                        Editor::Selection.Side);
 
             ImGui::EndTable();
 

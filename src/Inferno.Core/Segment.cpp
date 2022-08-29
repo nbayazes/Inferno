@@ -22,7 +22,7 @@ namespace Inferno {
         return normal;
     }
 
-    void Segment::UpdateNormals(Level& level) {
+    void Segment::UpdateGeometricProps(Level& level) {
         for (auto& s : SideIDs) {
             auto& side = GetSide(s);
             auto& sideVerts = SideIndices[(int)s];
@@ -58,9 +58,7 @@ namespace Inferno {
             side.AverageNormal.Normalize();
             side.Center = (v0 + v1 + v2 + v3) / 4;
         }
-    }
 
-    void Segment::UpdateCenter(const Level& level) {
         auto verts = GetVertices(level);
 
         Vector3 center;

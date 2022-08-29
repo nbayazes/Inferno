@@ -169,10 +169,21 @@ namespace Inferno::Render {
             _commands.clear();
         }
 
+        // Draws text using Descent fonts at 1:1 scaling of the original pixels.
+        void DrawGameTextUnscaled(string_view str,
+                          float x, float y,
+                          FontSize size,
+                          Color color = Color(1, 1, 1),
+                          float scale = 1,
+                          AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top) {
+            DrawGameText(str, x, y, size, color, scale / _scale, alignH, alignV);
+        }
+
+        // Draws text using Descent fonts, scaled to be a constant size based on the output height.
         void DrawGameText(string_view str,
                           float x, float y,
                           FontSize size,
-                          Color color,
+                          Color color = Color(1, 1, 1),
                           float scale = 1,
                           AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top) {
             float xOffset = 0, yOffset = 0;

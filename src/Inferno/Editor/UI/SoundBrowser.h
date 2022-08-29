@@ -33,7 +33,7 @@ namespace Inferno::Editor {
         };
 
     public:
-        SoundBrowser() : WindowBase("Sounds", &Settings::Windows.Sound) {}
+        SoundBrowser() : WindowBase("Sounds", &Settings::Editor.Windows.Sound) {}
 
     protected:
         void OnUpdate() override {

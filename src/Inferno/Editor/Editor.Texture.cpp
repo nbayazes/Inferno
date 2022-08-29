@@ -402,7 +402,7 @@ namespace Inferno::Editor {
         auto uvTangent = face.VectorForEdgeUV(selection.Point);
         auto uvBitangent = Vector2(uvTangent.y, -uvTangent.x);
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Face:
             case SelectionMode::Segment:
             {
@@ -424,16 +424,12 @@ namespace Inferno::Editor {
             }
         }
 
-        if (gizmo.Mode != TransformMode::Scale && Settings::SelectionMode == SelectionMode::Face) {
-            auto marked = Seq::ofSet(Editor::Marked.Faces);
-            AlignMarked(Game::Level, Editor::Selection.Tag(), marked, false);
-        }
         Events::LevelChanged();
     }
 
     string OnResetUVs() {
         for (auto& face : GetSelectedFaces())
-            Editor::ResetUVs(Game::Level, face, Editor::Selection.Point, Settings::ResetUVsAngle * 90 * DegToRad);
+            Editor::ResetUVs(Game::Level, face, Editor::Selection.Point, Settings::Editor.ResetUVsAngle * 90 * DegToRad);
 
         Events::LevelChanged();
         return "Reset UVs";
@@ -565,7 +561,7 @@ namespace Inferno::Editor {
         // it'd be nice to tell the user that align marked needs the
         // selected face to touch or overlap the marked faces
         auto marked = Seq::ofSet(Editor::Marked.Faces);
-        Editor::AlignMarked(Game::Level, Editor::Selection.Tag(), marked, Settings::ResetUVsOnAlign);
+        Editor::AlignMarked(Game::Level, Editor::Selection.Tag(), marked, Settings::Editor.ResetUVsOnAlign);
         Events::LevelChanged();
         return "Align Marked";
     }

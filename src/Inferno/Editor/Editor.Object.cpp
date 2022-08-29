@@ -14,8 +14,9 @@ namespace Inferno::Editor {
         // Shift object? are there any refs?
     }
 
-    // If center is true the object is moved to segment center, otherwise it is moved to the selected face
-    bool AlignObjectToSide(Level& level, ObjID id, PointTag tag, bool center) {
+    // If center is true the object is moved to segment center, otherwise it is moved to the selected face.
+    // The object is aligned to the selected edge in both cases.
+    bool MoveObjectToSide(Level& level, ObjID id, PointTag tag, bool center) {
         auto obj = level.TryGetObject(id);
         auto seg = level.TryGetSegment(tag.Segment);
         if (!obj || !seg) return false;
@@ -23,6 +24,7 @@ namespace Inferno::Editor {
         auto face = Face::FromSide(level, *seg, tag.Side);
         auto edge = face.VectorForEdge(tag.Point);
         auto normal = face.AverageNormal();
+        //auto& normal = face.Side.NormalForEdge(tag.Point);
 
         Matrix transform;
         transform.Up(normal);
@@ -66,6 +68,22 @@ namespace Inferno::Editor {
         auto segId = FindContainingSegment(level, position);
         if (segId != SegID::None) obj->Segment = segId;
         return true;
+    }
+
+    // Rotates an object to face towards a side
+    void AlignObjectToSide(Level& level, Object& obj, PointTag tag) {
+        auto seg = level.TryGetSegment(tag.Segment);
+        if (!seg) return;
+
+        auto face = Face::FromSide(level, *seg, tag.Side);
+        auto edge = face.VectorForEdge(tag.Point);
+        auto& normal = face.Side.NormalForEdge(tag.Point);
+
+        Matrix3x3 transform;
+        transform.Up(edge.Cross(-normal));
+        transform.Forward(-normal);
+        transform.Right(-edge);
+        obj.Rotation = transform;
     }
 
     int GetObjectCount(const Level& level, ObjectType type) {
@@ -264,7 +282,7 @@ namespace Inferno::Editor {
         level.Objects.push_back(obj);
 
         Selection.SetSelection(id);
-        AlignObjectToSide(level, id, tag, true);
+        MoveObjectToSide(level, id, tag, true);
         Editor::Gizmo.UpdatePosition();
 
         Events::TexturesChanged();
@@ -329,9 +347,21 @@ namespace Inferno::Editor {
     }
 
     namespace Commands {
+        Command AlignObjectToSide{
+            .SnapshotAction = [] {
+                auto obj = Game::Level.TryGetObject(Editor::Selection.Object);
+                if (!obj) return "";
+
+                Editor::AlignObjectToSide(Game::Level, *obj, Editor::Selection.PointTag());
+                Editor::Gizmo.UpdatePosition();
+                return "Align Object To Side";
+            },
+            .Name = "Align Object To Side"
+        };
+
         Command MoveObjectToSide{
             .SnapshotAction = [] {
-                if (!AlignObjectToSide(Game::Level, Editor::Selection.Object, Editor::Selection.PointTag()))
+                if (!Editor::MoveObjectToSide(Game::Level, Editor::Selection.Object, Editor::Selection.PointTag(), false))
                     return "";
 
                 Editor::Gizmo.UpdatePosition();
@@ -339,7 +369,6 @@ namespace Inferno::Editor {
             },
             .Name = "Move Object to Side"
         };
-
 
         Command MoveObjectToSegment{
             .SnapshotAction = [] {

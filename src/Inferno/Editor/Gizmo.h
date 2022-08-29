@@ -55,4 +55,9 @@ namespace Inferno::Editor {
 
     Matrix GetTransformFromSelection(Level&, Tag, SelectionMode);
     float GetGizmoScale(const Vector3& position, const Camera& camera);
+
+    namespace GizmoPreview {
+        inline Vector3 Start, End;
+        inline Vector3 RotationStart;
+    }
 }

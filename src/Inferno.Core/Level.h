@@ -452,8 +452,7 @@ namespace Inferno {
 
         void UpdateAllGeometricProps() {
             for (auto& seg : Segments) {
-                seg.UpdateNormals(*this);
-                seg.UpdateCenter(*this);
+                seg.UpdateGeometricProps(*this);
             }
         }
 

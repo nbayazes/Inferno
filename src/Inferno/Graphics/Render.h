@@ -33,11 +33,11 @@ namespace Inferno::Render {
     inline Ptr<TextureCache> NewTextureCache;
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSampler() {
-        return Settings::HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
+        return Settings::Graphics.HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
     }
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetClampedTextureSampler() {
-        return Settings::HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
+        return Settings::Graphics.HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
 
     void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);

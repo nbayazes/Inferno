@@ -24,14 +24,14 @@ namespace Inferno::Editor {
 
     void SetMode(SelectionMode mode) {
         // Cycle selection on subsequent presses
-        if (Settings::SelectionMode == mode) {
+        if (Settings::Editor.SelectionMode == mode) {
             if (Input::ShiftDown)
                 Editor::Selection.PreviousItem();
             else
                 Editor::Selection.NextItem();
         }
 
-        Settings::SelectionMode = mode;
+        Settings::Editor.SelectionMode = mode;
 
         switch (mode) {
             case SelectionMode::Object:
@@ -44,7 +44,7 @@ namespace Inferno::Editor {
         Editor::Gizmo.UpdateAxisVisiblity(mode);
     }
 
-    Editor::SelectionMode GetMode() { return Settings::SelectionMode; }
+    Editor::SelectionMode GetMode() { return Settings::Editor.SelectionMode; }
 
     // Selects a nearby segment that isn't in the marked items
     void UpdateSelectionAfterDelete(span<SegID> marked) {
@@ -71,7 +71,7 @@ namespace Inferno::Editor {
         if (Editor::Gizmo.State == GizmoState::Dragging) return;
         Editor::History.SnapshotSelection();
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Object:
             {
                 auto objs = Seq::ofSet(Editor::Marked.Objects);
@@ -113,17 +113,17 @@ namespace Inferno::Editor {
     void OnInsert() {
         if (Editor::Gizmo.State == GizmoState::Dragging) return;
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Object:
                 Commands::AddObject();
                 break;
 
             default:
-                if (!Editor::Marked.Faces.empty() && Settings::SelectionMode == SelectionMode::Face) {
+                if (!Editor::Marked.Faces.empty() && Settings::Editor.SelectionMode == SelectionMode::Face) {
                     Commands::ExtrudeFaces();
                 }
                 else {
-                    switch (Settings::InsertMode) {
+                    switch (Settings::Editor.InsertMode) {
                         case InsertMode::Normal: Commands::InsertSegment(); break;
                         case InsertMode::Extrude: Commands::ExtrudeSegment(); break;
                         case InsertMode::Mirror: Commands::InsertMirrored(); break;
@@ -136,24 +136,24 @@ namespace Inferno::Editor {
     void UpdateSelections(Level& level) {
         if (Input::ControlDown || Input::ShiftDown) {
             Editor::Marked.Update(level, MouseRay);
-            if (Settings::SelectMarkedSegment && Input::ControlDown && Input::ShiftDown)
-                Editor::Selection.Click(level, MouseRay, Settings::SelectionMode, false);
+            if (Settings::Editor.SelectMarkedSegment && Input::ControlDown && Input::ShiftDown)
+                Editor::Selection.Click(level, MouseRay, Settings::Editor.SelectionMode, false);
         }
         else {
             // Override the selection mode when alt is held down. Also enable invisible hit testing.
-            auto mode = Input::AltDown ? SelectionMode::Face : Settings::SelectionMode;
+            auto mode = Input::AltDown ? SelectionMode::Face : Settings::Editor.SelectionMode;
             Editor::Selection.Click(level, MouseRay, mode, Input::AltDown);
         }
     }
 
     CursorDragMode BeginRightClickDrag(Level& level) {
-        if (Settings::SelectionMode == SelectionMode::Face &&
-            !Settings::EnableTextureMode) {
+        if (Settings::Editor.SelectionMode == SelectionMode::Face &&
+            !Settings::Editor.EnableTextureMode) {
             Editor::History.SnapshotSelection();
             if (BeginExtrude(level))
                 return CursorDragMode::Extrude;
         }
-        else if (Settings::SelectionMode == SelectionMode::Object) {
+        else if (Settings::Editor.SelectionMode == SelectionMode::Object) {
             List<ObjID> newObjects;
             for (auto& id : GetSelectedObjects()) {
                 if (auto obj = level.TryGetObject(id)) {
@@ -169,8 +169,8 @@ namespace Inferno::Editor {
 
             return CursorDragMode::Transform;
         }
-        else if (Settings::SelectionMode == SelectionMode::Segment &&
-                 !Settings::EnableTextureMode) {
+        else if (Settings::Editor.SelectionMode == SelectionMode::Segment &&
+                 !Settings::Editor.EnableTextureMode) {
             Editor::History.SnapshotSelection();
             auto segs = GetSelectedSegments();
             auto copy = CopySegments(level, segs);
@@ -184,13 +184,14 @@ namespace Inferno::Editor {
     CursorDragMode UpdateGizmoDragState() {
         switch (Editor::Gizmo.State) {
             case GizmoState::BeginDrag:
-                if (Settings::SelectionMode == SelectionMode::Object)
+                if (Settings::Editor.SelectionMode == SelectionMode::Object)
                     Editor::History.SnapshotSelection();
 
                 if (Input::RightDragState == SelectionState::BeginDrag) {
                     return BeginRightClickDrag(Game::Level);
                 }
                 else if (Input::LeftDragState == SelectionState::BeginDrag) {
+                    Editor::History.SnapshotSelection();
                     return CursorDragMode::Transform;
                 }
                 break;
@@ -210,9 +211,9 @@ namespace Inferno::Editor {
                     }
                 }
                 else if (DragMode == CursorDragMode::Transform) {
-                    if (Settings::SelectionMode == SelectionMode::Object)
+                    if (Settings::Editor.SelectionMode == SelectionMode::Object)
                         Editor::History.SnapshotLevel("Transform Object");
-                    else if (Settings::EnableTextureMode)
+                    else if (Settings::Editor.EnableTextureMode)
                         Editor::History.SnapshotLevel("Transform Texture");
                     else
                         Editor::History.SnapshotLevel("Transform Level");
@@ -277,7 +278,7 @@ namespace Inferno::Editor {
 
         ImGuiHadMouseFocus = io.WantCaptureMouse;
 
-        if (Settings::ShowMatcenEffects)
+        if (Settings::Editor.ShowMatcenEffects)
             CreateMatcenEffects(Game::Level);
 
         // Only execute keyboard bindings if text focus is not in imgui
@@ -288,7 +289,7 @@ namespace Inferno::Editor {
         Editor::Gizmo.Update(Input::DragState, Render::Camera);
 
         // Cancel right click drags on global transform mode and texture mode
-        if ((Settings::SelectionMode == SelectionMode::Transform || Settings::EnableTextureMode) &&
+        if ((Settings::Editor.SelectionMode == SelectionMode::Transform || Settings::Editor.EnableTextureMode) &&
             Editor::Gizmo.State == GizmoState::Dragging && io.MouseDown[1])
             Editor::Gizmo.CancelDrag();
 
@@ -313,7 +314,7 @@ namespace Inferno::Editor {
                 break;
         }
 
-        if (Editor::Gizmo.State == GizmoState::RightClick && Settings::EnableTextureMode) {
+        if (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) {
             if (Editor::Gizmo.SelectedAxis == GizmoAxis::X) Commands::FlipTextureV();
             if (Editor::Gizmo.SelectedAxis == GizmoAxis::Y) Commands::FlipTextureU();
             if (Editor::Gizmo.SelectedAxis == GizmoAxis::Z) Commands::RotateOverlay();
@@ -451,6 +452,7 @@ namespace Inferno::Editor {
         Editor::Marked.Clear();
 
         Editor::Selection.SetSelection({ seg, SideID::Left });
+        Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
         ResetObjects(Game::Level);
@@ -460,7 +462,7 @@ namespace Inferno::Editor {
 
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
-        Editor::History = { &Game::Level, Settings::UndoLevels };
+        Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
         ResetAutosaveTimer();
     }
 
@@ -488,18 +490,16 @@ namespace Inferno::Editor {
     }
 
     void Initialize() {
-        Bindings::LoadDefaults();
-
         Events::SelectTexture += OnSelectTexture;
         Events::LevelLoaded += [] { Editor::Gizmo.UpdatePosition(); };
         Events::SelectObject += [] { Editor::Gizmo.UpdatePosition(); };
         Events::SelectSegment += [] { Editor::Gizmo.UpdatePosition(); };
         Events::LevelChanged += [] { Editor::Gizmo.UpdatePosition(); };
 
-        if (Settings::ReopenLastLevel &&
-            !Settings::RecentFiles.empty() &&
-            filesystem::exists(Settings::RecentFiles.front())) {
-            LoadFile(Settings::RecentFiles.front());
+        if (Settings::Editor.ReopenLastLevel &&
+            !Settings::Editor.RecentFiles.empty() &&
+            filesystem::exists(Settings::Editor.RecentFiles.front())) {
+            LoadFile(Settings::Editor.RecentFiles.front());
         }
         else {
             int16 version = 7; // Default to D2 levels
@@ -509,17 +509,19 @@ namespace Inferno::Editor {
     }
 
     filesystem::path GetGameExecutablePath() {
-        return Game::Level.IsDescent1() ? Settings::Descent1Path : Settings::Descent2Path;
+        return Game::Level.IsDescent1() ? Settings::Inferno.Descent1Path : Settings::Inferno.Descent2Path;
     }
 
     namespace Commands {
-        void AlignViewToFace() {
-            Editor::AlignViewToFace(Game::Level, Render::Camera, Selection.Tag(), Selection.Point);
-        }
+        Command AlignViewToFace{
+            .Action = [] { Editor::AlignViewToFace(Game::Level, Render::Camera, Selection.Tag(), Selection.Point); },
+            .Name = "Align View to Face"
+        };
 
-        void ZoomExtents() {
-            Editor::ZoomExtents(Game::Level, Render::Camera);
-        }
+        Command ZoomExtents{
+            .Action = [] { Editor::ZoomExtents(Game::Level, Render::Camera); },
+            .Name = "Zoom Extents"
+        };
 
         void CleanLevel() {
             Editor::CleanLevel(Game::Level);
@@ -622,37 +624,8 @@ namespace Inferno::Editor {
             try {
                 filesystem::path exe = GetGameExecutablePath();
                 auto missionFolder = exe.parent_path() / "missions";
-                auto fileName = Game::Level.IsDescent1() ? "test.rdl" : "test.rl2";
-
-                auto levelData = WriteLevelToMemory(Game::Level);
-                auto hogPath = missionFolder / "_test.hog";
-                HogFile::CreateFromEntry(missionFolder / "_test.hog", fileName, levelData);
-                auto hog = HogFile::Read(hogPath);
-
-                if (Game::Mission) {
-                    // Copy entries for level from mission if any exist
-                    for (auto& entry : Game::Mission->Entries) {
-                        if (entry.NameWithoutExtension() == String::NameWithoutExtension(Game::Level.FileName) &&
-                            !entry.IsLevel()) {
-                            auto data = Game::Mission->ReadEntry(entry);
-                            auto name = "test" + entry.Extension();
-                            HogFile::AppendEntry(hogPath, name, data);
-                        }
-                    }
-                }
-
-                EnsureVertigoData(hogPath);
-
-                // Write the mission info file
-                auto infoFile = Game::Level.IsDescent1() ? "_test.msn" : "_test.mn2";
-                MissionInfo info;
-                info.Name = "_test";
-                info.Levels.push_back(fileName);
-                info.Enhancement = Game::Level.IsVertigo() ? MissionEnhancement::VertigoHam : MissionEnhancement::Standard;
-                info.Write(missionFolder / infoFile);
-
-                SetStatusMessage("Test mission saved to {}", hogPath.string());
-                //StartGame();
+                auto mission = Game::Mission ? &Game::Mission.value() : nullptr;
+                WritePlaytestLevel(missionFolder, Game::Level, mission);
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
@@ -665,5 +638,32 @@ namespace Inferno::Editor {
 
         Command Insert{ .Action = OnInsert, .Name = "Insert" };
         Command Delete{ .Action = OnDelete, .Name = "Delete" };
+
+        Command CycleRenderMode{
+            .Action = [] {
+                int i = (int)Settings::Editor.RenderMode + 1;
+                if (i > (int)RenderMode::Shaded) {
+                    i = 0;
+                    Settings::Editor.ShowWireframe = true;
+                }
+                else {
+                    Settings::Editor.ShowWireframe = false;
+                }
+                Settings::Editor.RenderMode = (RenderMode)i;
+            },
+            .Name = "Cycle Render Mode"
+        };
+
+        Command ToggleWireframe{
+            .Action = [] {
+                Settings::Editor.ShowWireframe = !Settings::Editor.ShowWireframe;
+
+                // Always keep something visible
+                if (!Settings::Editor.ShowWireframe && Settings::Editor.RenderMode == RenderMode::None)
+                    Settings::Editor.RenderMode = RenderMode::Textured;
+            },
+            .Name = "Toggle Wireframe"
+        };
+
     }
 }

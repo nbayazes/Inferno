@@ -52,7 +52,7 @@ namespace Inferno::Editor {
                     }
                 }
 
-                SaveChanges();
+                SaveChanges(*Game::Mission);
             };
         };
 
@@ -183,12 +183,17 @@ namespace Inferno::Editor {
                 DisableControls disable(!entry);
                 if (ImGui::Button("Delete", { -1, 0 })) {
                     Seq::sortDescending(_selections);
-                    for (auto& i : _selections)
+                    for (auto& i : _selections) {
+                        if (String::InvariantEquals(_entries[i].Name, Game::Level.FileName)) {
+                            if (!ShowYesNoMessage(L"Are you sure you want to delete the currently opened level?", L"Confirm delete"))
+                                continue;
+                        }
                         Seq::removeAt(_entries, i);
+                    }
 
                     _selections.clear();
                     _dirty = true;
-                    SaveChanges();
+                    SaveChanges(*Game::Mission);
                 }
             }
 
@@ -227,6 +232,8 @@ namespace Inferno::Editor {
         }
 
         void LoadMission() {
+            if (!Game::Mission) return;
+            Game::LoadMission(Game::Mission->Path);
             _entries.clear();
             _selections.clear();
             _dirty = false;
@@ -235,9 +242,28 @@ namespace Inferno::Editor {
         }
 
     private:
-        void SaveChanges() {
-            Game::Mission->Save(_entries);
-            Game::ReloadMission();
+        void SaveChanges(HogFile& source) {
+            filesystem::path tempPath = source.Path;
+            tempPath.replace_extension(".tmp");
+
+            try {
+                HogWriter writer(tempPath);
+
+                for (auto& entry : _entries) {
+                    auto data = source.ReadEntry(entry);
+                    writer.WriteEntry(entry.Name, data);
+                }
+            }
+            catch (const std::exception& e) {
+                ShowErrorMessage(e);
+                SPDLOG_ERROR(e.what());
+                return;
+            }
+
+            BackupFile(source.Path);
+            filesystem::remove(source.Path); // Remove existing
+            filesystem::rename(tempPath, source.Path); // Rename temp to destination
+
             LoadMission();
         }
 
@@ -272,7 +298,7 @@ namespace Inferno::Editor {
                 _dirty = true;
 
                 for (auto& file : files) {
-                    if (_entries.size() + 1 > HogFile::MAX_ENTRIES)
+                    if (_entries.size() >= HogFile::MAX_ENTRIES)
                         throw Exception("HOG files can only contain 250 entries");
 
                     auto size = filesystem::file_size(file);
@@ -290,7 +316,7 @@ namespace Inferno::Editor {
                 }
 
                 SortEntries();
-                SaveChanges();
+                SaveChanges(*Game::Mission);
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
@@ -359,11 +385,20 @@ namespace Inferno::Editor {
                     _entries.push_back(entry);
 
                 SortEntries();
-                SaveChanges();
+                SaveChanges(*Game::Mission);
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
             }
+        }
+
+        // Exports an entry to a destination
+        void ExportEntry(HogEntry& entry, filesystem::path dest) {
+            auto data = Game::Mission->ReadEntry(entry);
+            if (data.empty()) throw Exception("Entry does not exist");
+
+            std::ofstream file(dest, std::ios::binary);
+            file.write((char*)data.data(), data.size());
         }
 
         void ExportFiles() {
@@ -372,10 +407,9 @@ namespace Inferno::Editor {
                 if (!path) return;
 
                 for (auto& index : _selections) {
-                    auto selection = Seq::tryItem(_entries, index);
-                    if (!selection) continue;
-
-                    Game::Mission->Export(*selection->Index, *path / selection->Name);
+                    auto entry = Seq::tryItem(_entries, index);
+                    if (!entry) continue;
+                    ExportEntry(*entry, *path / entry->Name);
                 }
             }
             catch (const std::exception& e) {
@@ -385,16 +419,15 @@ namespace Inferno::Editor {
 
         void ExportFile() {
             try {
-                auto selection = Seq::tryItem(_entries, _selections[0]);
-                if (!selection) return;
+                auto entry = Seq::tryItem(_entries, _selections[0]);
+                if (!entry) return;
 
                 static const COMDLG_FILTERSPEC filter[] = {
                     { L"All Files", L"*.*" }
                 };
 
-                if (auto path = SaveFileDialog(filter, 1, Convert::ToWideString(selection->Name), L"Export File")) {
-                    if (selection->Index)
-                        Game::Mission->Export(*selection->Index, *path);
+                if (auto path = SaveFileDialog(filter, 1, Convert::ToWideString(entry->Name), L"Export File")) {
+                    ExportEntry(*entry, *path);
                 }
             }
             catch (const std::exception& e) {

@@ -36,13 +36,17 @@ namespace Inferno {
             return Face(v0, v1, v2, v3, seg.GetSide(side), seg.GetVertexIndices(side));
         }
 
-        bool Intersects(const Ray& ray, float& dist) const {
-            auto indices = Side.GetRenderIndices();
-            if (Side.AverageNormal.Dot(ray.direction) >= 0) return false; // pass through back side of faces
+        bool Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
+            auto i = Side.GetRenderIndices();
+            bool hitTri0 = hitBackface || Side.Normals[0].Dot(ray.direction) < 0;
+            bool hitTri1 = hitBackface || Side.Normals[1].Dot(ray.direction) < 0;
+            if (hitTri0 && ray.Intersects(GetPoint(i[0]), GetPoint(i[1]), GetPoint(i[2]), dist))
+                return true;
 
-            return
-                ray.Intersects(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]), dist) ||
-                ray.Intersects(GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]), dist);
+            if (hitTri1 && ray.Intersects(GetPoint(i[3]), GetPoint(i[4]), GetPoint(i[5]), dist))
+                return true;
+
+            return false;
         }
 
         Array<Vector3, 4> CopyPoints() const {

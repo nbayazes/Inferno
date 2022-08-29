@@ -17,6 +17,7 @@ using namespace Inferno;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace {
+    int AppWidth = 1024, AppHeight = 768;
     bool AppMoving = false;
     bool AppSuspended = false;
     bool AppMinimized = false;
@@ -58,16 +59,16 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             Input::ProcessRawMouseInput(message, wParam, lParam);
             break;
 
-        //case WM_PAINT:
-        //    if (/*AppMoving &&*/ app) {
-        //        app->Tick();
-        //    }
-        //    else {
-        //        PAINTSTRUCT ps;
-        //        (void)BeginPaint(hWnd, &ps);
-        //        EndPaint(hWnd, &ps);
-        //    }
-        //    break;
+            //case WM_PAINT:
+            //    if (/*AppMoving &&*/ app) {
+            //        app->Tick();
+            //    }
+            //    else {
+            //        PAINTSTRUCT ps;
+            //        (void)BeginPaint(hWnd, &ps);
+            //        EndPaint(hWnd, &ps);
+            //    }
+            //    break;
 
         case WM_MOVE:
             if (app) app->OnWindowMoved();
@@ -174,21 +175,20 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                     SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
                     SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
 
-                    /*int width = app->GetWidth();
-                    int height = app->GetHeight();*/
-                    int width = 2560;
-                    int height = 1440;
-
                     ShowWindow(hWnd, SW_SHOWMAXIMIZED);
-
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+                    SetWindowPos(hWnd, HWND_TOP, 0, 0, AppWidth, AppHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
                 }
                 else {
                     SetWindowLongPtr(hWnd, GWL_STYLE, 0);
                     SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
 
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+                    RECT r{};
+                    GetWindowRect(hWnd, &r);
 
+                    AppWidth = r.right;
+                    AppHeight = r.bottom;
+
+                    SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
                     ShowWindow(hWnd, SW_SHOWMAXIMIZED);
                 }
 
@@ -245,6 +245,8 @@ int Shell::Show(int width, int height, int nCmdShow) {
         throw std::exception("Failed to register window class");
 
     // Create window
+    AppWidth = width;
+    AppHeight = height;
     RECT rc = { 0, 0, width, height };
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);

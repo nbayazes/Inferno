@@ -26,25 +26,6 @@ namespace Inferno {
         return buffer;
     }
 
-    filesystem::path GetTempHogName(const HogFile& hog) {
-        filesystem::path tempPath = hog.Path;
-        tempPath.replace_extension(".tmp");
-        return tempPath;
-    }
-
-    void SwapTempFile(const HogFile& hog) {
-        filesystem::path backupPath = hog.Path;
-        backupPath.replace_extension(".bak");
-
-        if (filesystem::exists(backupPath))
-            filesystem::remove(backupPath);
-
-        // Replace existing hog file with temp
-        auto temp = GetTempHogName(hog);
-        filesystem::rename(hog.Path, backupPath);
-        filesystem::rename(temp, hog.Path);
-    }
-
     List<ubyte> HogFile::ReadEntry(const HogEntry& entry) const {
         if (entry.Path != "") {
             auto size = filesystem::file_size(entry.Path);
@@ -89,52 +70,13 @@ namespace Inferno {
         throw Exception("File not found in hog file");
     }
 
-    void WriteEntry(StreamWriter& writer, string_view name, span<ubyte> data) {
-        if (data.empty()) return;
-        writer.WriteString(string(name), 13);
-        writer.Write((int32)data.size());
-        writer.WriteBytes(data);
-    }
 
-    void HogFile::AddOrUpdateEntry(string_view name, span<ubyte> data) {
-        // write to temp file. swap
-        filesystem::path tempPath = Path;
-        tempPath.replace_extension(".tmp");
 
-        {
-            std::ofstream file(tempPath, std::ios::binary);
-            StreamWriter writer(file);
-            writer.WriteString("DHF", 3);
 
-            bool foundEntry = false;
 
-            for (auto& entry : Entries) {
-                if (String::InvariantEquals(entry.Name, name)) {
-                    WriteEntry(writer, entry.Name, data);
-                    foundEntry = true;
-                }
-                else {
-                    // Copy existing entry data
-                    auto entryData = ReadEntry(entry);
-                    WriteEntry(writer, entry.Name, entryData);
-                }
-            }
 
-            // Append the new entry
-            if (!foundEntry)
-                WriteEntry(writer, string(name), data);
-        }
 
-        // Swap the temp file for the existing
-        filesystem::path backupPath = Path;
-        backupPath.replace_extension(".bak");
-        filesystem::remove(backupPath);
-        filesystem::rename(Path, backupPath);
-        filesystem::rename(tempPath, Path);
 
-        // Reload entries from file
-        *this = Read(Path);
-    }
 
     HogFile HogFile::Read(filesystem::path file) {
         HogFile hog{};
@@ -161,53 +103,10 @@ namespace Inferno {
         return hog;
     }
 
-    HogFile HogFile::Save(span<HogEntry> entries, filesystem::path dest) {
-        if (Entries.size() > MAX_ENTRIES)
-            throw Exception("HOG files can only contain 250 entries");
 
-        HogFile newFile{};
-        newFile.Path = dest.empty() ? Path : dest;
-        newFile.Entries.assign(entries.begin(), entries.end());
 
-        if (newFile.Path == Path)
-            dest = GetTempHogName(*this);
 
-        {
-            std::ofstream file(dest, std::ios::binary);
-            StreamWriter writer(file);
-            writer.WriteString("DHF", 3);
 
-            for (auto& entry : entries) {
-                auto data = ReadEntry(entry);
-                WriteEntry(writer, entry.Name, data);
-            }
-        }
 
-        if (newFile.Path == Path)
-            SwapTempFile(*this);
 
-        return newFile;
-    }
-
-    void HogFile::CreateFromEntry(filesystem::path path, string_view name, span<ubyte> data) {
-        std::ofstream file(path, std::ios::binary);
-        StreamWriter writer(file);
-        writer.WriteString("DHF", 3);
-
-        WriteEntry(writer, name, data);
-    }
-
-    void HogFile::AppendEntry(filesystem::path path, string_view name, span<ubyte> data) {
-        std::ofstream file(path, std::ios::binary | std::ios::app);
-        StreamWriter writer(file);
-        WriteEntry(writer, name, data);
-    }
-
-    void HogFile::Export(int index, filesystem::path path) {
-        auto data = TryReadEntry(index);
-        if (data.empty()) throw Exception("File does not exist");
-
-        std::ofstream file(path, std::ios::binary);
-        file.write((char*)data.data(), data.size());
-    }
 }

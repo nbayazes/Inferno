@@ -103,4 +103,5 @@ namespace Inferno::Editor {
     };
 
     inline float TopToolbarOffset = 0; // Used for offsetting the level title text
+    inline float MainViewportXOffset = 0, MainViewportWidth = 0;
 }

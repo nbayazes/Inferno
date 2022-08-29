@@ -8,7 +8,7 @@
 namespace Inferno::Editor {
     class LightingWindow : public WindowBase {
     public:
-        LightingWindow() : WindowBase("Lighting", &Settings::Windows.Lighting) {}
+        LightingWindow() : WindowBase("Lighting", &Settings::Editor.Windows.Lighting) {}
 
     protected:
         void BreakLight() {
@@ -46,7 +46,7 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            auto& settings = Settings::Lighting;
+            auto& settings = Settings::Editor.Lighting;
             ImGui::ColorEdit3("Ambient", &settings.Ambient.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
             ImGui::SliderFloat("Multiplier", &settings.Multiplier, 0, 4);
             //ImGui::SliderFloat("Distance Threshold", &_settings.DistanceThreshold, 60, 300);

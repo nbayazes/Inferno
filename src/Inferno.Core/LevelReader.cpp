@@ -81,8 +81,7 @@ namespace Inferno {
             ReadDynamicLights(level);
 
             for (auto& seg : level.Segments) {
-                seg.UpdateCenter(level);
-                seg.UpdateNormals(level);
+                seg.UpdateGeometricProps(level);
             }
 
             return level;

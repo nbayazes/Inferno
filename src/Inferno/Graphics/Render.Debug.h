@@ -22,6 +22,8 @@ namespace Inferno::Render::Debug {
     void DrawCross(const Vector3& p, const Color& color);
     void DrawPoint(const Vector3& p, const Color& color);
 
+    void DrawTriangle(const Vector3 v0, const Vector3 v1, const Vector3 v2, const Color& color);
+
     // Draws a circle on the x/y plane with the given radius
     void DrawCircle(float radius, const Matrix& transform, const Color& color);
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color);
@@ -47,7 +49,7 @@ namespace Inferno::Render::Debug {
     void DrawSide(Level& level, Segment& seg, SideID side, const Color& color);
     void DrawSideOutline(Level&, Tag, const Color&);
     void DrawSideOutline(Level& level, Segment& seg, SideID side, const Color& color);
-
+    void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 }
 
 namespace Inferno::Render::Metrics {

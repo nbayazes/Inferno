@@ -310,12 +310,11 @@ namespace Inferno::Editor {
             const auto& v3 = level.Vertices[seg.Indices[AdjacentPointTable[n][2]]];
 
             // Lowered from 90 degrees to 80 degrees due to false negatives
-            constexpr auto minAngle = 80 * RadToDeg;
-            if (AngleBetweenThreeVectors(v0, v1, v2, v3) > minAngle)
-                return true;
-            if (AngleBetweenThreeVectors(v0, v2, v3, v1) > minAngle)
-                return true;
-            if (AngleBetweenThreeVectors(v0, v3, v1, v2) > minAngle)
+            constexpr auto minAngle = 80 * DegToRad;
+            auto a1 = AngleBetweenThreeVectors(v0, v1, v2, v3);
+            auto a2 = AngleBetweenThreeVectors(v0, v2, v3, v1);
+            auto a3 = AngleBetweenThreeVectors(v0, v3, v1, v2);
+            if (a1 > minAngle || a2 > minAngle || a3 > minAngle)
                 return true;
         }
 

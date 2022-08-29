@@ -115,10 +115,9 @@ namespace Inferno::Editor {
             }
         }
 
-        WeldVertices(level, segIds, Settings::CleanupTolerance);
+        WeldVertices(level, segIds, Settings::Editor.CleanupTolerance);
     }
 
-    // Joins all segments nearby to each segment excluding segments in the source
     void JoinTouchingSegmentsExclusive(Level& level, span<Tag> tags, float tolerance) {
         auto segs = Seq::map(tags, Tag::GetSegID);
         auto nearby = GetNearbySegmentsExclusive(level, segs);
@@ -201,7 +200,7 @@ namespace Inferno::Editor {
             Editor::Marked.Faces.erase(tag);
 
         for (auto& seg : toAdd)
-            JoinTouchingSegments(level, seg.Segment, newSegs, Settings::CleanupTolerance);
+            JoinTouchingSegments(level, seg.Segment, newSegs, Settings::Editor.CleanupTolerance);
 
         return newSegs;
     }
@@ -227,14 +226,14 @@ namespace Inferno::Editor {
             return false;
 
         auto segs = Seq::map(GetSelectedFaces(), Tag::GetSegID);
-        auto faces = FacesForSegments(segs);
         ResetSegmentUVs(level, segs);
+        auto faces = FacesForSegments(segs);
         JoinTouchingSegmentsExclusive(level, faces, 0.09f);
         return true;
     }
 
     void UpdateExtrudes(Level& level, const TransformGizmo& gizmo) {
-        if (Editor::Marked.HasSelection(Settings::SelectionMode)) {
+        if (Editor::Marked.HasSelection(Settings::Editor.SelectionMode)) {
             // tries to merge new segments together when extruding multiple at once
             if (std::abs(gizmo.TotalDelta) > 0.1f && !TriedMergingNewSegments) {
                 TriedMergingNewSegments = true;
@@ -403,7 +402,7 @@ namespace Inferno::Editor {
 
     // Move objects contained by the segment after rotating or translating
     void TransformContainedObjects(Level& level, const TransformGizmo& gizmo) {
-        if (Settings::SelectionMode == SelectionMode::Segment && gizmo.Mode != TransformMode::Scale) {
+        if (Settings::Editor.SelectionMode == SelectionMode::Segment && gizmo.Mode != TransformMode::Scale) {
             if (Marked.HasSelection(SelectionMode::Segment)) {
                 for (auto& obj : level.Objects) {
                     if (Marked.Segments.contains(obj.Segment)) {
@@ -427,7 +426,7 @@ namespace Inferno::Editor {
         if (Selection.Segment == SegID::None) return;
 
         List<PointID> points =
-            Marked.HasSelection(Settings::SelectionMode) ?
+            Marked.HasSelection(Settings::Editor.SelectionMode) ?
             Marked.GetVertexHandles(level) :
             Selection.GetVertexHandles(level);
 
@@ -464,12 +463,12 @@ namespace Inferno::Editor {
     void TransformSelection(Level& level, const TransformGizmo& gizmo) {
         if (gizmo.State != GizmoState::Dragging) return;
 
-        if (Settings::EnableTextureMode) {
+        if (Settings::Editor.EnableTextureMode) {
             OnTransformTextures(level, gizmo);
             return;
         }
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             case SelectionMode::Face:
             case SelectionMode::Edge:
@@ -505,8 +504,13 @@ namespace Inferno::Editor {
     }
 
     void Commands::SnapToGrid() {
+        if (Settings::Editor.TranslationSnap <= 0) {
+            SetStatusMessageWarn("Cannot Snap to Grid with a snap of 0");
+            return;
+        }
+
         auto indices = GetSelectedVertices();
-        Editor::SnapToGrid(Game::Level, indices, Settings::TranslationSnap);
+        Editor::SnapToGrid(Game::Level, indices, Settings::Editor.TranslationSnap);
         Editor::History.SnapshotLevel("Snap To Grid");
         Events::LevelChanged();
     }
@@ -514,7 +518,7 @@ namespace Inferno::Editor {
     // Joins nearby segment faces that overlap with the selected segment
     string OnJoinTouchingSegments() {
         auto faces = GetSelectedFaces();
-        JoinTouchingSegmentsExclusive(Game::Level, faces, Settings::WeldTolerance);
+        JoinTouchingSegmentsExclusive(Game::Level, faces, Settings::Editor.WeldTolerance);
         Events::LevelChanged();
         return "Join Nearby Sides";
     }
@@ -526,7 +530,7 @@ namespace Inferno::Editor {
             return "";
         }
 
-        Editor::WeldVertices(Game::Level, verts, Settings::WeldTolerance);
+        Editor::WeldVertices(Game::Level, verts, Settings::Editor.WeldTolerance);
         Events::LevelChanged();
         return "Weld Vertices";
     }

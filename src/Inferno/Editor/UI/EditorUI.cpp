@@ -11,14 +11,20 @@
 namespace Inferno::Editor {
     constexpr ImU32 ToolbarColor = IM_COL32(20, 20, 20, 200);
 
-    void MenuCommandEx(const Command& command, const char* label, Binding bind = Binding(-1), bool selected = false) {
+    void MenuCommandEx(const Command& command, const char* label, EditorAction bind = EditorAction::None, bool selected = false) {
         if (!label) label = command.Name.c_str();
-        if (ImGui::MenuItem(label, Bindings::GetShortcut(bind).c_str(), selected, command.CanExecute()))
+        if (ImGui::MenuItem(label, Bindings::Active.GetShortcut(bind).c_str(), selected, command.CanExecute()))
             command();
     }
 
-    void MenuCommand(const Command& command, Binding bind = Binding(-1)) {
+    void MenuCommand(const Command& command, EditorAction bind = EditorAction::None) {
         MenuCommandEx(command, command.Name.c_str(), bind);
+    }
+
+    void MenuCommand(EditorAction action, const char* label = nullptr) {
+        auto& command = GetCommandForAction(action);
+        auto name = label ? label : command.Name.c_str();
+        MenuCommandEx(command, name, action);
     }
 
     void FaceEditMenu() {
@@ -32,19 +38,26 @@ namespace Inferno::Editor {
     }
 
     void ClipboardMenu() {
-        MenuCommand(Commands::Cut, Binding::Cut);
-        MenuCommand(Commands::Copy, Binding::Copy);
-        MenuCommand(Commands::Paste, Binding::Paste);
+        MenuCommand(Commands::Cut, EditorAction::Cut);
+        MenuCommand(Commands::Copy, EditorAction::Copy);
+        MenuCommand(Commands::Paste, EditorAction::Paste);
     }
 
     void SplitMenu() {
         if (ImGui::BeginMenu("Split Segment")) {
-            MenuCommand(Commands::SplitSegment2, Binding::SplitSegment2);
+            MenuCommand(Commands::SplitSegment2, EditorAction::SplitSegment2);
             MenuCommand(Commands::SplitSegment5);
             MenuCommand(Commands::SplitSegment7);
             MenuCommand(Commands::SplitSegment8);
             ImGui::EndMenu();
         }
+    }
+
+    void ObjectMenu() {
+        MenuCommand(Commands::MoveObjectToSide);
+        MenuCommand(Commands::MoveObjectToSegment);
+        MenuCommand(Commands::MoveObjectToUserCSys);
+        MenuCommand(Commands::AlignObjectToSide);
     }
 
     void InsertMenuItems() {
@@ -96,22 +109,18 @@ namespace Inferno::Editor {
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                MenuCommand(Commands::NewLevel, Binding::NewLevel);
-                MenuCommand(Commands::Open, Binding::Open);
+                MenuCommand(EditorAction::NewLevel);
+                MenuCommand(EditorAction::Open);
 
                 ImGui::Separator();
 
-                MenuCommand(Commands::Save, Binding::Save);
-                MenuCommand(Commands::SaveAs, Binding::SaveAs);
+                MenuCommand(EditorAction::Save);
+                MenuCommand(EditorAction::SaveAs);
 
                 ImGui::Separator();
-                if (ImGui::MenuItem("Edit HOG...", "Ctrl+H", nullptr, Game::Mission.has_value())) {
-                    Events::ShowDialog(DialogType::HogEditor);
-                }
-
-                if (ImGui::MenuItem("Edit Mission...", "Ctrl+M", nullptr, Game::Mission.has_value())) {
-                    Events::ShowDialog(DialogType::MissionEditor);
-                }
+                
+                MenuCommand(EditorAction::ShowHogEditor, "Edit HOG...");
+                MenuCommand(EditorAction::ShowMissionEditor, "Edit Mission...");
 
                 if (ImGui::MenuItem("Rename Level...")) {
                     Events::ShowDialog(DialogType::RenameLevel);
@@ -143,9 +152,9 @@ namespace Inferno::Editor {
                     }
                 }
 
-                if (!Settings::RecentFiles.empty()) {
+                if (!Settings::Editor.RecentFiles.empty()) {
                     ImGui::Separator();
-                    for (auto& file : Settings::RecentFiles) {
+                    for (auto& file : Settings::Editor.RecentFiles) {
                         if (file.empty()) continue;
                         if (ImGui::MenuItem(file.filename().string().c_str()))
                             if (CanCloseCurrentFile()) Editor::LoadFile(file);
@@ -183,29 +192,29 @@ namespace Inferno::Editor {
 
                 ImGui::Separator();
 
-                MenuCommand(Commands::Delete, Binding::Delete);
+                MenuCommand(Commands::Delete, EditorAction::Delete);
                 MenuCommand(Commands::RemoveWall);
 
                 ImGui::Separator();
 
                 auto undoLabel = fmt::format("Undo {}", Editor::History.GetUndoName());
-                MenuCommandEx(Commands::Undo, undoLabel.c_str(), Binding::Undo);
+                MenuCommandEx(Commands::Undo, undoLabel.c_str(), EditorAction::Undo);
 
                 auto redoLabel = fmt::format("Redo {}", Editor::History.GetRedoName());
-                MenuCommandEx(Commands::Redo, redoLabel.c_str(), Binding::Redo);
+                MenuCommandEx(Commands::Redo, redoLabel.c_str(), EditorAction::Redo);
 
                 ImGui::Separator();
 
                 ClipboardMenu();
-                MenuCommand(Commands::PasteMirrored, Binding::PasteMirrored);
+                MenuCommand(Commands::PasteMirrored, EditorAction::PasteMirrored);
 
                 ImGui::Separator();
 
                 if (ImGui::BeginMenu("Marks")) {
-                    MenuCommand(Commands::ToggleMarked, Binding::ToggleMark);
-                    MenuCommand(Commands::ClearMarked, Binding::ClearSelection);
+                    MenuCommand(Commands::ToggleMarked, EditorAction::ToggleMark);
+                    MenuCommand(Commands::ClearMarked, EditorAction::ClearSelection);
                     MenuCommand(Commands::MarkAll);
-                    MenuCommand(Commands::InvertMarked, Binding::InvertMarked);
+                    MenuCommand(Commands::InvertMarked, EditorAction::InvertMarked);
 
                     FaceEditMenu();
 
@@ -213,9 +222,7 @@ namespace Inferno::Editor {
                 }
 
                 ImGui::Separator();
-                MenuCommand(Commands::MoveObjectToSide);
-                MenuCommand(Commands::MoveObjectToSegment);
-                MenuCommand(Commands::MoveObjectToUserCSys);
+                ObjectMenu();
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Settings..."))
@@ -225,32 +232,32 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginMenu("Geometry")) {
-                MenuCommand(Commands::ConnectSides, Binding::ConnectSides);
-                MenuCommand(Commands::JoinSides, Binding::JoinSides);
+                MenuCommand(Commands::ConnectSides, EditorAction::ConnectSides);
+                MenuCommand(Commands::JoinSides, EditorAction::JoinSides);
                 ImGui::Separator();
-                MenuCommand(Commands::JoinPoints, Binding::JoinPoints);
-                MenuCommand(Commands::JoinTouchingSegments, Binding::JoinTouchingSegments);
+                MenuCommand(Commands::JoinPoints, EditorAction::JoinPoints);
+                MenuCommand(Commands::JoinTouchingSegments, EditorAction::JoinTouchingSegments);
                 ImGui::Separator();
                 SplitMenu();
-                MenuCommand(Commands::MergeSegment, Binding::MergeSegment);
+                MenuCommand(Commands::MergeSegment, EditorAction::MergeSegment);
                 ImGui::Separator();
-                MenuCommand(Commands::DetachSegments, Binding::DetachSegments);
-                MenuCommand(Commands::DetachSides, Binding::DetachSides);
-                MenuCommand(Commands::DetachPoints, Binding::DetachPoints);
+                MenuCommand(Commands::DetachSegments, EditorAction::DetachSegments);
+                MenuCommand(Commands::DetachSides, EditorAction::DetachSides);
+                MenuCommand(Commands::DetachPoints, EditorAction::DetachPoints);
                 ImGui::Separator();
 
                 MenuCommand(Commands::MirrorSegments);
                 if (ImGui::MenuItem("Weld All Vertices")) Commands::WeldVertices();
                 if (ImGui::MenuItem("Snap To Grid")) Commands::SnapToGrid();
-                MenuCommand(Commands::MakeCoplanar);
+                MenuCommand(Commands::MakeCoplanar, EditorAction::MakeCoplanar);
 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Texturing")) {
-                MenuCommand(Commands::ResetUVs, Binding::ResetUVs);
-                MenuCommand(Commands::AlignMarked, Binding::AlignMarked);
-                MenuCommand(Commands::CopyUVsToFaces, Binding::CopyUVsToFaces);
+                MenuCommand(Commands::ResetUVs, EditorAction::ResetUVs);
+                MenuCommand(Commands::AlignMarked, EditorAction::AlignMarked);
+                MenuCommand(Commands::CopyUVsToFaces, EditorAction::CopyUVsToFaces);
                 MenuCommand(Commands::PlanarMapping);
                 MenuCommand(Commands::CubeMapping);
 
@@ -258,8 +265,8 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginMenu("Insert")) {
-                MenuCommandEx(Commands::Insert, "Segment or Object", Binding::Insert);
-                MenuCommandEx(Commands::InsertMirrored, "Mirrored Segment", Binding::InsertMirrored);
+                MenuCommandEx(Commands::Insert, "Segment or Object", EditorAction::Insert);
+                MenuCommandEx(Commands::InsertMirrored, "Mirrored Segment", EditorAction::InsertMirrored);
                 if (ImGui::MenuItem("Default Segment")) Commands::AddDefaultSegment();
                 ImGui::Separator();
                 InsertMenuItems();
@@ -269,58 +276,57 @@ namespace Inferno::Editor {
             if (ImGui::BeginMenu("View")) {
                 if (ImGui::MenuItem("Focus Selection", "F"))
                     Commands::FocusSegment();
-                if (ImGui::MenuItem("Align View To Face", "Shift + F"))
-                    Commands::AlignViewToFace();
+                MenuCommand(Commands::AlignViewToFace, EditorAction::AlignViewToFace);
                 if (ImGui::MenuItem("Mouselook mode", "Z"))
                     Input::SetMouselook(true);
                 ImGui::Separator();
 
-                //if (ImGui::MenuItem("Wireframe", nullptr, Settings::RenderMode == RenderMode::Wireframe))
-                //    Settings::RenderMode = RenderMode::Wireframe;
+                //if (ImGui::MenuItem("Wireframe", nullptr, Settings::Editor.RenderMode == RenderMode::Wireframe))
+                //    Settings::Editor.RenderMode = RenderMode::Wireframe;
 
-                if (ImGui::MenuItem("No Fill", "F4", Settings::RenderMode == RenderMode::None)) {
-                    Settings::RenderMode = RenderMode::None;
-                    if (!Settings::ShowWireframe)
-                        Settings::ShowWireframe = true;
+                if (ImGui::MenuItem("No Fill", "F4", Settings::Editor.RenderMode == RenderMode::None)) {
+                    Settings::Editor.RenderMode = RenderMode::None;
+                    if (!Settings::Editor.ShowWireframe)
+                        Settings::Editor.ShowWireframe = true;
                 }
-                if (ImGui::MenuItem("Flat", "F4", Settings::RenderMode == RenderMode::Flat))
-                    Settings::RenderMode = RenderMode::Flat;
-                if (ImGui::MenuItem("Textured", "F4", Settings::RenderMode == RenderMode::Textured))
-                    Settings::RenderMode = RenderMode::Textured;
-                if (ImGui::MenuItem("Shaded", "F4", Settings::RenderMode == RenderMode::Shaded))
-                    Settings::RenderMode = RenderMode::Shaded;
+                if (ImGui::MenuItem("Flat", "F4", Settings::Editor.RenderMode == RenderMode::Flat))
+                    Settings::Editor.RenderMode = RenderMode::Flat;
+                if (ImGui::MenuItem("Textured", "F4", Settings::Editor.RenderMode == RenderMode::Textured))
+                    Settings::Editor.RenderMode = RenderMode::Textured;
+                if (ImGui::MenuItem("Shaded", "F4", Settings::Editor.RenderMode == RenderMode::Shaded))
+                    Settings::Editor.RenderMode = RenderMode::Shaded;
 
                 ImGui::Separator();
-                MenuCommandEx(Commands::ToggleWireframe, "Show Wireframe", Binding::ToggleWireframe, Settings::ShowWireframe);
+                MenuCommandEx(Commands::ToggleWireframe, "Show Wireframe", EditorAction::ToggleWireframe, Settings::Editor.ShowWireframe);
                 ImGui::Separator();
 
-                ImGui::MenuItem("Objects", nullptr, &Settings::ShowObjects);
-                //ImGui::MenuItem("Walls", nullptr, &Settings::ShowWalls);
-                //ImGui::MenuItem("Triggers", nullptr, &Settings::ShowTriggers);
+                ImGui::MenuItem("Objects", nullptr, &Settings::Editor.ShowObjects);
+                //ImGui::MenuItem("Walls", nullptr, &Settings::Editor.ShowWalls);
+                //ImGui::MenuItem("Triggers", nullptr, &Settings::Editor.ShowTriggers);
 
                 ImGui::Separator();
 
-                if (ImGui::MenuItem("Flickering lights", nullptr, &Settings::ShowFlickeringLights))
-                    if (!Settings::ShowFlickeringLights) Commands::DisableFlickeringLights();
+                if (ImGui::MenuItem("Flickering lights", nullptr, &Settings::Editor.ShowFlickeringLights))
+                    if (!Settings::Editor.ShowFlickeringLights) Commands::DisableFlickeringLights();
 
-                ImGui::MenuItem("Animation", nullptr, &Settings::ShowAnimation);
-                ImGui::MenuItem("Matcen Effects", nullptr, &Settings::ShowMatcenEffects);
+                ImGui::MenuItem("Animation", nullptr, &Settings::Editor.ShowAnimation);
+                ImGui::MenuItem("Matcen Effects", nullptr, &Settings::Editor.ShowMatcenEffects);
 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Tools")) {
-                ImGui::MenuItem("Textures", nullptr, &Settings::Windows.Textures);
-                ImGui::MenuItem("Properties", nullptr, &Settings::Windows.Properties);
-                ImGui::MenuItem("Reactor", nullptr, &Settings::Windows.Reactor);
-                ImGui::MenuItem("Lighting", nullptr, &Settings::Windows.Lighting);
-                ImGui::MenuItem("Diagnostics", nullptr, &Settings::Windows.Diagnostics);
-                ImGui::MenuItem("Noise", nullptr, &Settings::Windows.Noise);
-                ImGui::MenuItem("Sounds", nullptr, &Settings::Windows.Sound);
+                ImGui::MenuItem("Textures", nullptr, &Settings::Editor.Windows.Textures);
+                ImGui::MenuItem("Properties", nullptr, &Settings::Editor.Windows.Properties);
+                ImGui::MenuItem("Reactor", nullptr, &Settings::Editor.Windows.Reactor);
+                ImGui::MenuItem("Lighting", nullptr, &Settings::Editor.Windows.Lighting);
+                ImGui::MenuItem("Diagnostics", nullptr, &Settings::Editor.Windows.Diagnostics);
+                ImGui::MenuItem("Noise", nullptr, &Settings::Editor.Windows.Noise);
+                ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
                 
 #ifdef _DEBUG
-                ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Windows.BriefingEditor);
-                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Windows.TunnelBuilder);
+                ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
+                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
 #endif
 
                 ImGui::Separator();
@@ -337,7 +343,7 @@ namespace Inferno::Editor {
 
 #ifdef _DEBUG
                 ImGui::Separator();
-                ImGui::MenuItem("Enable Physics", nullptr, &Settings::EnablePhysics);
+                ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
 #endif
                 ImGui::EndMenu();
@@ -388,9 +394,9 @@ namespace Inferno::Editor {
             ImGui::SameLine();
 
             ImGui::SetNextItemWidth(80 * Shell::DpiScale);
-            auto snap = Settings::TranslationSnap;
+            auto snap = Settings::Editor.TranslationSnap;
             if (ImGui::InputFloat("##translation", &snap, 0, 0, "%.2f"))
-                Settings::TranslationSnap = std::clamp(snap, 0.0f, 1000.0f);
+                Settings::Editor.TranslationSnap = std::clamp(snap, 0.0f, 1000.0f);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Translation snapping");
 
             ImGui::SameLine();
@@ -402,7 +408,7 @@ namespace Inferno::Editor {
                 for (int i = 0; i < std::size(snapValues); i++) {
                     auto label = i == 1 ? "Pixel" : fmt::format("{:.1f}", snapValues[i]);
                     if (ImGui::Selectable(label.c_str()))
-                        Settings::TranslationSnap = snapValues[i];
+                        Settings::Editor.TranslationSnap = snapValues[i];
                 }
                 ImGui::EndCombo();
             }
@@ -412,10 +418,10 @@ namespace Inferno::Editor {
         {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(80 * Shell::DpiScale);
-            auto snap = Settings::RotationSnap * RadToDeg;
+            auto snap = Settings::Editor.RotationSnap * RadToDeg;
 
             if (ImGui::InputFloat("##rotation", &snap, 0, 0, (char*)u8"%.3f°"))
-                Settings::RotationSnap = std::clamp(snap, 0.0f, 180.0f) * DegToRad;
+                Settings::Editor.RotationSnap = std::clamp(snap, 0.0f, 180.0f) * DegToRad;
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Rotation snapping");
 
             ImGui::SameLine();
@@ -427,7 +433,7 @@ namespace Inferno::Editor {
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
-                        Settings::RotationSnap = value * DegToRad;
+                        Settings::Editor.RotationSnap = value * DegToRad;
                 }
                 ImGui::EndCombo();
             }
@@ -453,12 +459,12 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(110 * Shell::DpiScale);
 
-            if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::InsertMode])) {
+            if (ImGui::BeginCombo("##insert", insertModes[(int)Settings::Editor.InsertMode])) {
                 for (int i = 0; i < insertModes.size(); i++) {
-                    const bool isSelected = (int)Settings::InsertMode == i;
+                    const bool isSelected = (int)Settings::Editor.InsertMode == i;
                     auto itemLabel = std::to_string((int)i);
                     if (ImGui::Selectable(insertModes[i], isSelected)) {
-                        Settings::InsertMode = (InsertMode)i;
+                        Settings::Editor.InsertMode = (InsertMode)i;
                     }
 
                     if (isSelected)
@@ -491,21 +497,21 @@ namespace Inferno::Editor {
                 ImGui::Text("Planar tolerance");
 
                 // must use utf8 encoding to properly render glyphs
-                auto tolerance = Settings::Selection.PlanarTolerance;
+                auto tolerance = Settings::Editor.Selection.PlanarTolerance;
                 auto label = fmt::format(u8"{:.0f}°", tolerance);
                 ImGui::SetNextItemWidth(175 * Shell::DpiScale);
 
                 if (ImGui::SliderFloat("##tolerance", &tolerance, 0, 90, (char*)label.c_str())) {
-                    Settings::Selection.PlanarTolerance = std::clamp(tolerance, 0.0f, 90.0f);
+                    Settings::Editor.Selection.PlanarTolerance = std::clamp(tolerance, 0.0f, 90.0f);
                 }
 
                 ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                 //ImGui::Separator();
 
                 ImGui::Text("Stop at");
-                ImGui::Checkbox("Texture 1", &Settings::Selection.UseTMap1);
-                ImGui::Checkbox("Texture 2", &Settings::Selection.UseTMap2);
-                ImGui::Checkbox("Walls", &Settings::Selection.StopAtWalls);
+                ImGui::Checkbox("Texture 1", &Settings::Editor.Selection.UseTMap1);
+                ImGui::Checkbox("Texture 2", &Settings::Editor.Selection.UseTMap2);
+                ImGui::Checkbox("Walls", &Settings::Editor.Selection.StopAtWalls);
                 ImGui::EndPopup();
             }
             else {
@@ -531,14 +537,14 @@ namespace Inferno::Editor {
         //    ImGui::SameLine();
         //    ImGui::SetNextItemWidth(100);
 
-        //    if (ImGui::BeginCombo("##uvangle", uvAngles[Settings::ResetUVsAngle])) {
+        //    if (ImGui::BeginCombo("##uvangle", uvAngles[Settings::Editor.ResetUVsAngle])) {
         //        for (int i = 0; i < uvAngles.size(); i++) {
         //            auto itemLabel = std::to_string((int)i);
-        //            if (ImGui::Selectable(uvAngles[i], Settings::ResetUVsAngle == i)) {
-        //                Settings::ResetUVsAngle = std::clamp(i, 0, 3);
+        //            if (ImGui::Selectable(uvAngles[i], Settings::Editor.ResetUVsAngle == i)) {
+        //                Settings::Editor.ResetUVsAngle = std::clamp(i, 0, 3);
         //            }
 
-        //            if (Settings::ResetUVsAngle == i)
+        //            if (Settings::Editor.ResetUVsAngle == i)
         //                ImGui::SetItemDefaultFocus();
         //        }
 
@@ -563,10 +569,10 @@ namespace Inferno::Editor {
             static const std::array csysModes = { "Local", "Global", "User Defined (UCS)" };
             const ImVec2 csysBtnSize = { 150 * Shell::DpiScale, 0 };
 
-            if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
+            if (ImGui::BeginCombo("##csys-dropdown", csysModes[(int)Settings::Editor.CoordinateSystem], ImGuiComboFlags_HeightLarge)) {
                 ImGui::Text("Coordinate system");
                 ImGui::Dummy({ 200 * Shell::DpiScale, 0 });
-                auto csys = Settings::CoordinateSystem;
+                auto csys = Settings::Editor.CoordinateSystem;
 
                 if (ImGui::RadioButton(csysModes[0], csys == CoordinateSystem::Local))
                     csys = CoordinateSystem::Local;
@@ -579,8 +585,8 @@ namespace Inferno::Editor {
 
                 // Average csys? uses geometric average of marked
 
-                if (csys != Settings::CoordinateSystem) {
-                    Settings::CoordinateSystem = csys;
+                if (csys != Settings::Editor.CoordinateSystem) {
+                    Settings::Editor.CoordinateSystem = csys;
                     Editor::Gizmo.UpdatePosition();
                 }
 
@@ -588,13 +594,13 @@ namespace Inferno::Editor {
                     const float Indent = 35 * Shell::DpiScale;
                     ImGui::SetCursorPosX(Indent);
                     static SelectionMode previousMode{};
-                    bool isEditing = Settings::SelectionMode == SelectionMode::Transform;
+                    bool isEditing = Settings::Editor.SelectionMode == SelectionMode::Transform;
                     if (ImGui::Button(isEditing ? "Finish edit" : "Edit", csysBtnSize)) {
                         if (isEditing) {
                             SetMode(previousMode);
                         }
                         else {
-                            previousMode = Settings::SelectionMode;
+                            previousMode = Settings::Editor.SelectionMode;
                             SetMode(SelectionMode::Transform);
                         }
                     }
@@ -631,7 +637,7 @@ namespace Inferno::Editor {
     bool BeginContextMenu() {
         if (Editor::Gizmo.State == GizmoState::EndDrag ||
             Input::GetMouselook() ||
-            (Editor::Gizmo.State == GizmoState::RightClick && Settings::EnableTextureMode) || // Disable right click in texture mode
+            (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) || // Disable right click in texture mode
             Input::LeftDragState == Input::SelectionState::Dragging ||
             ImGui::GetTopMostPopupModal()) return false;
 
@@ -647,48 +653,46 @@ namespace Inferno::Editor {
     void DrawContextMenu() {
         //ImGui::BeginPopupContextWindow();
         if (BeginContextMenu()) {
-            auto mode = Settings::SelectionMode;
+            auto mode = Settings::Editor.SelectionMode;
 
             ClipboardMenu();
 
             if (mode == SelectionMode::Segment)
-                MenuCommand(Commands::PasteMirrored, Binding::PasteMirrored);
+                MenuCommand(Commands::PasteMirrored, EditorAction::PasteMirrored);
 
             ImGui::Separator();
 
             switch (mode) {
                 case SelectionMode::Point:
                 case SelectionMode::Edge:
-                    MenuCommand(Commands::DetachPoints, Binding::DetachPoints);
+                    MenuCommand(Commands::DetachPoints, EditorAction::DetachPoints);
                     ImGui::Separator();
                     break;
 
                 case SelectionMode::Face:
-                    MenuCommand(Commands::ConnectSides, Binding::ConnectSides);
-                    MenuCommand(Commands::JoinSides, Binding::JoinSides);
-                    MenuCommand(Commands::DetachSides, Binding::DetachSides);
+                    MenuCommand(Commands::ConnectSides, EditorAction::ConnectSides);
+                    MenuCommand(Commands::JoinSides, EditorAction::JoinSides);
+                    MenuCommand(Commands::DetachSides, EditorAction::DetachSides);
                     ImGui::Separator();
                     break;
 
                 case SelectionMode::Segment:
                     SplitMenu();
                     MenuCommand(Commands::MirrorSegments);
-                    MenuCommand(Commands::DetachSegments, Binding::DetachSegments);
+                    MenuCommand(Commands::DetachSegments, EditorAction::DetachSegments);
                     ImGui::Separator();
                     break;
 
                 case SelectionMode::Object:
-                    MenuCommand(Commands::MoveObjectToSide);
-                    MenuCommand(Commands::MoveObjectToSegment);
-                    MenuCommand(Commands::MoveObjectToUserCSys);
+                    ObjectMenu();
                     ImGui::Separator();
                     break;
             }
 
             if (mode != SelectionMode::Object && mode != SelectionMode::Transform) {
-                MenuCommand(Commands::ResetUVs, Binding::ResetUVs);
-                MenuCommand(Commands::AlignMarked, Binding::AlignMarked);
-                MenuCommand(Commands::CopyUVsToFaces, Binding::CopyUVsToFaces);
+                MenuCommand(Commands::ResetUVs, EditorAction::ResetUVs);
+                MenuCommand(Commands::AlignMarked, EditorAction::AlignMarked);
+                MenuCommand(Commands::CopyUVsToFaces, EditorAction::CopyUVsToFaces);
                 if (ImGui::MenuItem("Clear Overlay Texture"))
                     Events::SelectTexture(LevelTexID::None, LevelTexID::Unset);
 
@@ -732,7 +736,7 @@ namespace Inferno::Editor {
             ImGuiStyle& style = ImGui::GetStyle();
             const ImVec2 size(btnWidth - style.WindowPadding.x * 2, btnWidth - style.WindowPadding.x * 2);
 
-            auto& mode = Settings::SelectionMode;
+            auto& mode = Settings::Editor.SelectionMode;
             if (ImGui::Selectable("Point", mode == SelectionMode::Point, 0, size))
                 SetMode(SelectionMode::Point);
 
@@ -761,13 +765,13 @@ namespace Inferno::Editor {
 
             // Toggle features
             ImGui::SameLine();
-            if (ImGui::ToggleButton("Wall", Settings::EnableWallMode, 0, size, 3))
-                Settings::EnableWallMode = !Settings::EnableWallMode;
+            if (ImGui::ToggleButton("Wall", Settings::Editor.EnableWallMode, 0, size, 3))
+                Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
 
             ImGui::SameLine(0, 10);
-            if (ImGui::ToggleButton("Texture", Settings::EnableTextureMode, 0, size, 3)) {
-                Settings::EnableTextureMode = !Settings::EnableTextureMode;
-                Editor::Gizmo.UpdateAxisVisiblity(Settings::SelectionMode);
+            if (ImGui::ToggleButton("Texture", Settings::Editor.EnableTextureMode, 0, size, 3)) {
+                Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
+                Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
                 Editor::Gizmo.UpdatePosition();
             }
 
@@ -834,6 +838,9 @@ namespace Inferno::Editor {
         ImGui::End();
 
         DrawTopToolbar(*dock->CentralNode);
+        Editor::MainViewportWidth = dock->CentralNode->Size.x;
+        Editor::MainViewportXOffset = dock->CentralNode->Pos.x;
+
         if (Game::ShowDebugOverlay) {
             auto pos = ImVec2(dock->CentralNode->Pos.x + dock->CentralNode->Size.x, dock->CentralNode->Pos.y + 40);
             ImGui::SetNextWindowViewport(dock->CentralNode->ID);

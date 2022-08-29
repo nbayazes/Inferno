@@ -1,9 +1,11 @@
 #pragma once
 #include <DirectXTK12/Keyboard.h>
 #include "Types.h"
+#include "Command.h"
 
 namespace Inferno::Editor {
-    enum class Binding {
+    enum class EditorAction {
+        None = 0,
         SideMode,
         PointMode,
         SegmentMode,
@@ -22,6 +24,7 @@ namespace Inferno::Editor {
         GizmoScale,
         Delete,
         Insert,
+
         CameraLeft,
         CameraRight,
         CameraForward,
@@ -30,6 +33,7 @@ namespace Inferno::Editor {
         CameraDown,
         CameraRollLeft,
         CameraRollRight,
+
         ToggleMouselook,
         ClearSelection,
         Copy,
@@ -41,7 +45,8 @@ namespace Inferno::Editor {
         Open,
         Undo,
         Redo,
-        ShowHogDialog,
+        ShowHogEditor,
+        ShowMissionEditor,
         ShowGotoDialog,
         AlignMarked,
         ResetUVs,
@@ -60,29 +65,77 @@ namespace Inferno::Editor {
         MergeSegment,
         ToggleWireframe,
         NewLevel,
-        InvertMarked
+        InvertMarked,
+        MakeCoplanar
     };
 
+    const Command& GetCommandForAction(EditorAction action);
+    namespace Commands {
+        extern Command NullCommand;
+    }
+
     struct EditorBinding {
-        Binding Binding;
-        DirectX::Keyboard::Keys Key;
-        bool Shift;
-        bool Control;
-        bool Alt;
+        EditorAction Action{};
+        DirectX::Keyboard::Keys Key{};
+
+        bool Shift = false;
+        bool Control = false;
+        bool Alt = false;
+        bool Realtime = false;
+        const Command* Command = &Commands::NullCommand; // To avoid looking up command every time
+
+        bool operator==(const EditorBinding& rhs) {
+            return Key == rhs.Key && Shift == rhs.Shift && Control == rhs.Control && Alt == rhs.Alt;
+        }
+
+        void ClearShortcut() {
+            Shift = Control = Alt = false;
+            Key = {};
+        }
 
         string GetShortcutLabel();
     };
 
+    class EditorBindings {
+        List<EditorBinding> _bindings;
+    public:
+        // Adds a new binding and unbinds any existing actions using the same shortcut
+        void Add(EditorBinding binding);
+        void Clear() { _bindings.clear(); }
+        span<EditorBinding> GetBindings() { return _bindings; }
+
+        EditorBinding* GetBinding(EditorAction action) {
+            return Seq::find(_bindings, [&action](auto& b) { return b.Action == action; });
+        }
+
+        // Gets the text to display for a shortcut
+        string GetShortcut(EditorAction bind) {
+            for (auto& binding : _bindings) {
+                if (binding.Action == bind)
+                    return binding.GetShortcutLabel();
+            }
+
+            return {};
+        }
+
+        void Sort() {
+            Seq::sortBy(_bindings, [](EditorBinding& a, EditorBinding& b) {
+                return a.Command->Name < b.Command->Name;
+            });
+        }
+
+        // Clears a binding that uses the same shortcut as the provided one
+        void UnbindExisting(const EditorBinding& binding) {
+            if (auto existing = Seq::find(_bindings, [&binding](auto& b) { return b == binding; })) {
+                existing->ClearShortcut();
+            }
+        }
+    };
+
     namespace Bindings {
-        string GetShortcut(Binding);
+        inline EditorBindings Active, Default;
 
-        // Adds a binding that executes when the key is first pressed
-        void Add(EditorBinding);
-
-        // Adds a binding that executes every frame the key is held
-        void AddRealtime(EditorBinding);
         void Update();
-
         void LoadDefaults();
     }
 }

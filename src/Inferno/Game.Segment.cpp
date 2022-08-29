@@ -12,7 +12,7 @@ namespace Inferno {
 
             for (int k = 0; k < 4; k++) {
                 side.Light[k] += dlp.Color[k] * multiplier;
-                ClampColor(side.Light[k], 0.0f, Settings::Lighting.MaxValue);
+                ClampColor(side.Light[k], 0.0f, Settings::Editor.Lighting.MaxValue);
             }
         }
 

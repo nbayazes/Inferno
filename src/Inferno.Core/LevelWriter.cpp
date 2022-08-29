@@ -501,7 +501,7 @@ namespace Inferno {
             info.Objects.Count = (int32)level.Objects.size();
             info.Objects.ElementSize = 264;
             if (level.HasSecretExit() && level.IsDescent2())
-                info.Objects.Count--;
+                info.Objects.Count--; // Secret exit return is represented as an object but we don't serialize it
 
             for (auto& obj : level.Objects)
                 WriteObject(writer, level, obj);

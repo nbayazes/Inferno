@@ -9,10 +9,10 @@ namespace Inferno::Editor {
         auto& s0 = level.GetSide(src);
         auto& s1 = level.GetSide(tag);
 
-        if (Settings::Selection.UseTMap1 && s0.TMap != s1.TMap)
+        if (Settings::Editor.Selection.UseTMap1 && s0.TMap != s1.TMap)
             return false;
 
-        if (Settings::Selection.UseTMap2 && s0.TMap2 != s1.TMap2)
+        if (Settings::Editor.Selection.UseTMap2 && s0.TMap2 != s1.TMap2)
             return false;
 
         return true;
@@ -26,27 +26,25 @@ namespace Inferno::Editor {
                 if (!includeInvisible) {
                     bool visibleWall = false;
                     if (auto wall = level.TryGetWall(seg.Sides[(int)side].Wall))
-                        visibleWall = Settings::EnableWallMode || wall->Type != WallType::FlyThroughTrigger;
+                        visibleWall = Settings::Editor.EnableWallMode || wall->Type != WallType::FlyThroughTrigger;
 
                     if (seg.SideHasConnection(side) && !visibleWall) continue;
                 }
 
-                auto face = Face::FromSide(level, seg, side);
-                auto normal = face.AverageNormal();
-                if (normal.Dot(ray.direction) > 0) // reject backfacing
-                    continue;
+                for (int i = 0; i < 2; i++) {
+                    auto face = Face::FromSide(level, seg, side);
+                    float dist;
+                    if (face.Intersects(ray, dist)) {
+                        auto intersect = ray.position + dist * ray.direction;
+                        int16 edge = 0;
+                        if (mode == SelectionMode::Point)
+                            // find the point on this face closest to the intersect
+                            edge = face.GetClosestPoint(intersect);
+                        else
+                            edge = face.GetClosestEdge(intersect);
 
-                float dist;
-                if (face.Intersects(ray, dist)) {
-                    auto intersect = ray.position + dist * ray.direction;
-                    int16 edge = 0;
-                    if (mode == SelectionMode::Point)
-                        // find the point on this face closest to the intersect
-                        edge = face.GetClosestPoint(intersect);
-                    else
-                        edge = face.GetClosestEdge(intersect);
-
-                    hits.push_back({ { SegID(segid), side }, edge, normal, dist });
+                        hits.push_back({ { SegID(segid), side }, edge, face.Side.AverageNormal, dist });
+                    }
                 }
             }
 
@@ -152,7 +150,7 @@ namespace Inferno::Editor {
         if (!Game::Level.SegmentExists(Segment)) return points;
         auto& segment = level.GetSegment(Segment);
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
                 auto segVerts = segment.GetVertices(level);
@@ -193,7 +191,7 @@ namespace Inferno::Editor {
     List<PointID> MultiSelection::GetVertexHandles(Level& level) {
         Set<PointID> points;
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
                 for (auto& id : Segments) {
                     if (const auto& seg = level.TryGetSegment(id)) {
@@ -224,7 +222,7 @@ namespace Inferno::Editor {
     List<SegID> MultiSelection::GetSegments(Level& level) {
         Set<SegID> segs;
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
                 for (auto& id : Segments) {
                     if (level.SegmentExists(id))
@@ -263,7 +261,7 @@ namespace Inferno::Editor {
     };
 
     void MultiSelection::MarkAll() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
                 for (int i = 0; i < Game::Level.Segments.size(); i++)
                     Segments.insert(SegID(i));
@@ -289,7 +287,7 @@ namespace Inferno::Editor {
     }
 
     void MultiSelection::ToggleMark() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
                 ToggleElement(Segments, Selection.Segment);
                 break;
@@ -301,11 +299,22 @@ namespace Inferno::Editor {
             case SelectionMode::Edge:
             {
                 auto p1 = Game::Level.IndexForSide(Selection.PointTag());
-                auto p2 = Game::Level.IndexForSide({ Selection.Tag(), uint16(Selection.Point + 1) });
+                auto p2 = Game::Level.IndexForSide({ Selection.Tag(), uint16(Selection.Point + 1u) });
                 if (!p1 || !p2) return;
 
-                ToggleElement(Points, *p1);
-                ToggleElement(Points, *p2);
+                // check if selection is mixed, and if so, mark both
+                auto c1 = Points.contains(*p1);
+                auto c2 = Points.contains(*p2);
+                bool mixed = c1 && !c2 || c2 && !c1;
+
+                if (mixed) {
+                    Points.insert(*p1);
+                    Points.insert(*p2);
+                }
+                else {
+                    ToggleElement(Points, *p1);
+                    ToggleElement(Points, *p2);
+                }
             }
             break;
 
@@ -323,7 +332,7 @@ namespace Inferno::Editor {
     }
 
     void MultiSelection::InvertMarked() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
                 for (int seg = 0; seg < Game::Level.Segments.size(); seg++)
                     ToggleElement(Segments, (SegID)seg);
@@ -402,7 +411,7 @@ namespace Inferno::Editor {
     }
 
     void EditorSelection::NextItem() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             default:
                 NextSide();
                 break;
@@ -416,7 +425,7 @@ namespace Inferno::Editor {
     }
 
     void EditorSelection::PreviousItem() {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             default:
                 PreviousSide();
                 break;
@@ -486,10 +495,10 @@ namespace Inferno::Editor {
     }
 
     void MultiSelection::Update(Level& level, const Ray& ray) {
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Face:
             {
-                auto hits = HitTestSegments(level, ray, false, Settings::SelectionMode);
+                auto hits = HitTestSegments(level, ray, false, Settings::Editor.SelectionMode);
                 if (hits.empty()) return;
                 auto tag = hits[0].Tag;
 
@@ -518,7 +527,7 @@ namespace Inferno::Editor {
 
             case SelectionMode::Segment:
             {
-                auto hits = HitTestSegments(level, ray, false, Settings::SelectionMode);
+                auto hits = HitTestSegments(level, ray, false, Settings::Editor.SelectionMode);
                 if (hits.empty()) return;
 
                 if (Input::ControlDown && Input::ShiftDown) {
@@ -535,7 +544,7 @@ namespace Inferno::Editor {
 
             case SelectionMode::Edge:
             {
-                auto hits = HitTestSegments(level, ray, false, Settings::SelectionMode);
+                auto hits = HitTestSegments(level, ray, false, Settings::Editor.SelectionMode);
                 if (hits.empty()) return;
 
                 auto intersectPoint = ray.position + hits[0].Distance * ray.direction;
@@ -563,7 +572,7 @@ namespace Inferno::Editor {
             case SelectionMode::Point:
             {
                 if (Input::ShiftDown) {
-                    auto hits = HitTestSegments(level, ray, false, Settings::SelectionMode);
+                    auto hits = HitTestSegments(level, ray, false, Settings::Editor.SelectionMode);
                     if (hits.empty()) return;
                     auto& seg = level.GetSegment(hits[0].Tag);
 
@@ -626,7 +635,7 @@ namespace Inferno::Editor {
 
         auto frustum = Render::Camera.GetFrustum();
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             default:
             case SelectionMode::Segment:
             {
@@ -705,7 +714,7 @@ namespace Inferno::Editor {
         if (!level.SegmentExists(src.Segment)) return faces;
         auto& srcSeg = level.GetSegment(src.Segment);
 
-        auto nearby = GetConnectedSegments(level, src.Segment);
+        auto nearby = GetConnectedSegments(level, src.Segment, 3);
 
         for (int16 srcEdge = 0; srcEdge < 4; srcEdge++) {
             auto src0 = srcSeg.GetVertexIndex(src.Side, srcEdge);
@@ -726,7 +735,7 @@ namespace Inferno::Editor {
                         // Check if the vertices are the same
                         if ((dest0 == src0 && dest1 == src1) ||
                             (dest0 == src1 && dest1 == src0)) {
-                            if (Settings::Selection.StopAtWalls &&
+                            if (Settings::Editor.Selection.StopAtWalls &&
                                 (EdgeHasWall(level, destSeg, dest0, dest1) ||
                                  EdgeHasWall(level, srcSeg, src0, src1)))
                                 continue;
@@ -820,7 +829,7 @@ namespace Inferno::Editor {
                     auto f0 = Face::FromSide(level, src);
                     auto f1 = Face::FromSide(level, dest);
                     auto angle = AngleBetweenVectors(f0.AverageNormal(), f1.AverageNormal()) * RadToDeg;
-                    if (angle < Settings::Selection.PlanarTolerance && !visited.contains(dest))
+                    if (angle < Settings::Editor.Selection.PlanarTolerance && !visited.contains(dest))
                         search.push(dest);
                 }
             }

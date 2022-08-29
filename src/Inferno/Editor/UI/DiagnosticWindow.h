@@ -16,8 +16,9 @@ namespace Inferno::Editor {
         int _selection{};
         bool _showWarnings = false, _markErrors = false, _fixErrors = true;
         bool _checked = false; // user has checked the level once already
+        bool _showStats = true;
     public:
-        DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Windows.Diagnostics) {
+        DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Editor.Windows.Diagnostics) {
             auto OnLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(_fixErrors); };
             Events::SegmentsChanged += OnLevelChanged;
             Events::ObjectsChanged += OnLevelChanged;
@@ -61,7 +62,14 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::Checkbox("Mark errors", &_markErrors);
 
-            const auto statsWidth = 280 * Shell::DpiScale;
+
+            const char* toggleLabel = _showStats ? "Hide stats" : " Show stats";
+            const auto toggleButtonWidth = 140 * Shell::DpiScale;
+            ImGui::SameLine(ImGui::GetWindowWidth() - toggleButtonWidth);
+            if (ImGui::Button(toggleLabel, { toggleButtonWidth, 0 }))
+                _showStats = !_showStats;
+
+            const auto statsWidth = _showStats ? 280 * Shell::DpiScale : 0;
             ImGui::BeginChild("diag_list", { ImGui::GetWindowWidth() - statsWidth, 0 });
 
             constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
@@ -121,70 +129,72 @@ namespace Inferno::Editor {
 
             ImGui::EndChild();
 
-            ImGui::SameLine();
-            ImGui::BeginChild("stats", { statsWidth, 0 });
+            if (_showStats) {
+                ImGui::SameLine();
+                ImGui::BeginChild("stats", { statsWidth, 0 });
 
-            if (ImGui::BeginTable("diag_table", 3, flags)) {
-                auto& level = Game::Level;
+                if (ImGui::BeginTable("diag_table", 3, flags)) {
+                    auto& level = Game::Level;
 
-                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*//*, MyItemColumnID_ID*/);
-                ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_PreferSortDescending, 0.0f*//*, MyItemColumnID_Quantity*/);
-                ImGui::TableSetupColumn("Limit", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_PreferSortDescending, 0.0f*//*, MyItemColumnID_Quantity*/);
-                ImGui::TableHeadersRow();
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*//*, MyItemColumnID_ID*/);
+                    ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_PreferSortDescending, 0.0f*//*, MyItemColumnID_Quantity*/);
+                    ImGui::TableSetupColumn("Limit", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_PreferSortDescending, 0.0f*//*, MyItemColumnID_Quantity*/);
+                    ImGui::TableHeadersRow();
 
-                ImGui::TableRowLabel("Segments");
-                ImGui::Text("%i", level.Segments.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i (9000)", level.Limits.Segments);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Most source ports have a maximum of 9000 segments");
+                    ImGui::TableRowLabel("Segments");
+                    ImGui::Text("%i", level.Segments.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i (9000)", level.Limits.Segments);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Most source ports have a maximum of 9000 segments");
 
-                ImGui::TableRowLabel("Vertices");
-                ImGui::Text("%i", level.Vertices.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i (36000)", level.Limits.Vertices);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Most source ports have a maximum of 36000 vertices");
+                    ImGui::TableRowLabel("Vertices");
+                    ImGui::Text("%i", level.Vertices.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i (36000)", level.Limits.Vertices);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Most source ports have a maximum of 36000 vertices");
 
-                ImGui::TableRowLabel("Objects");
-                ImGui::Text("%i", level.Objects.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.Objects);
+                    ImGui::TableRowLabel("Objects");
+                    ImGui::Text("%i", level.Objects.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.Objects);
 
-                ImGui::TableRowLabel("Walls");
-                ImGui::Text("%i", level.Walls.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.Walls);
+                    ImGui::TableRowLabel("Walls");
+                    ImGui::Text("%i", level.Walls.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.Walls);
 
-                ImGui::TableRowLabel("Triggers");
-                ImGui::Text("%i", level.Triggers.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.Triggers);
+                    ImGui::TableRowLabel("Triggers");
+                    ImGui::Text("%i", level.Triggers.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.Triggers);
 
-                ImGui::TableRowLabel("Matcens");
-                ImGui::Text("%i", level.Matcens.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.Matcens);
+                    ImGui::TableRowLabel("Matcens");
+                    ImGui::Text("%i", level.Matcens.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.Matcens);
 
-                ImGui::TableRowLabel("F. lights");
-                ImGui::Text("%i", level.FlickeringLights.size());
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.FlickeringLights);
+                    ImGui::TableRowLabel("F. lights");
+                    ImGui::Text("%i", level.FlickeringLights.size());
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.FlickeringLights);
 
-                ImGui::TableRowLabel("Players");
-                ImGui::Text("%i", GetObjectCount(level, ObjectType::Player));
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.Players);
+                    ImGui::TableRowLabel("Players");
+                    ImGui::Text("%i", GetObjectCount(level, ObjectType::Player));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.Players);
 
-                ImGui::TableRowLabel("Co-op");
-                ImGui::Text("%i", GetObjectCount(level, ObjectType::Coop));
-                ImGui::TableNextColumn();
-                ImGui::Text("%i", level.Limits.Coop);
+                    ImGui::TableRowLabel("Co-op");
+                    ImGui::Text("%i", GetObjectCount(level, ObjectType::Coop));
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%i", level.Limits.Coop);
 
-                ImGui::EndTable();
+                    ImGui::EndTable();
+                }
+
+                ImGui::EndChild();
             }
-
-            ImGui::EndChild();
         }
     };
 }

@@ -209,8 +209,8 @@ namespace Inferno {
             return { s.TMap, s.TMap2 };
         }
 
-        void UpdateNormals(Level&);
-        void UpdateCenter(const Level&);
+        // Updates the normals and centers
+        void UpdateGeometricProps(Level&);
         float GetEstimatedVolume(Level&);
         bool IsZeroVolume(Level&);
 

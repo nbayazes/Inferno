@@ -6,7 +6,7 @@ namespace Inferno::Editor {
 
     class ReactorEditor : public WindowBase {
     public:
-        ReactorEditor() : WindowBase("Reactor", &Settings::Windows.Reactor) {}
+        ReactorEditor() : WindowBase("Reactor", &Settings::Editor.Windows.Reactor) {}
     protected:
         void OnUpdate() override {
             constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_Resizable;

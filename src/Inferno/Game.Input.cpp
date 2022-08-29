@@ -4,7 +4,7 @@
 #include "Resources.h"
 
 namespace Inferno {
-    void HandleEditorDebugInput(float dt) {
+    void HandleEditorDebugInput(float /*dt*/) {
         using Keys = DirectX::Keyboard::Keys;
         auto& obj = Game::Level.Objects[0];
         auto& physics = obj.Movement.Physics;

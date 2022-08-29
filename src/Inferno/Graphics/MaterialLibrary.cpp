@@ -175,7 +175,7 @@ namespace Inferno::Render {
             baseName = baseName.substr(0, i);
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
-        if (Settings::HighRes) {
+        if (Settings::Graphics.HighRes) {
             if (auto path = FileSystem::TryFindFile(upload.Bitmap->Name + ".DDS"))
                 loadedDiffuse = material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
 

@@ -11,7 +11,7 @@ namespace Inferno::Editor {
 
     protected:
         void OnUpdate() override {
-            DisableControls disable(!Settings::EnableBloom);
+            DisableControls disable(!Settings::Graphics.EnableBloom);
             ImGui::SliderFloat("Bloom Exposure", &Render::Bloom->BloomExtractDownsample.Exposure, 0.1f, 5.0f);
             ImGui::SliderFloat("Bloom Threshold", &Render::Bloom->BloomExtractDownsample.BloomThreshold, 0.0f, 3.0f);
 

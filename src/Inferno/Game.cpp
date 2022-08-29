@@ -114,7 +114,7 @@ namespace Inferno::Game {
             Game::ToggleEditorMode();
 
         if (Input::IsKeyPressed(Keys::F3))
-            Settings::ScreenshotMode = !Settings::ScreenshotMode;
+            Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
 
         if (Input::IsKeyPressed(Keys::F5))
             Render::Adapter->ReloadResources();
@@ -123,7 +123,7 @@ namespace Inferno::Game {
             Render::ReloadTextures();
 
         if (Input::IsKeyPressed(Keys::F7)) {
-            Settings::HighRes = !Settings::HighRes;
+            Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
             Render::ReloadTextures();
         }
     }
@@ -402,7 +402,7 @@ namespace Inferno::Game {
             physics.AngularThrust = Vector3::Zero;
 
             if (Game::State == GameState::Editor) {
-                if (Settings::EnablePhysics)
+                if (Settings::Editor.EnablePhysics)
                     HandleEditorDebugInput(dt);
             }
             else {
@@ -412,7 +412,7 @@ namespace Inferno::Game {
             // Clamp max input speeds
             auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
             auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
-            Vector3 maxAngVec(Settings::LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);
+            Vector3 maxAngVec(Settings::Inferno.LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);
             physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
             Vector3 maxThrustVec(maxThrust, maxThrust, maxThrust);
             physics.Thrust.Clamp(-maxThrustVec, maxThrustVec);
@@ -459,8 +459,8 @@ namespace Inferno::Game {
                 Render::UpdateParticles(Level, dt);
                 break;
             case GameState::Editor:
-                if (Settings::EnablePhysics) {
-                    LerpAmount = Settings::EnablePhysics ? GameTick(dt) : 1;
+                if (Settings::Editor.EnablePhysics) {
+                    LerpAmount = Settings::Editor.EnablePhysics ? GameTick(dt) : 1;
                 }
                 else {
                     LerpAmount = 1;
@@ -468,7 +468,7 @@ namespace Inferno::Game {
 
                 Render::UpdateParticles(Level, dt);
                 Editor::Update();
-                if (!Settings::ScreenshotMode) EditorUI.OnRender();
+                if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;
             case GameState::Paused:
                 break;
@@ -609,7 +609,7 @@ namespace Inferno::Game {
             AddSoundSources();
 
             EditorCameraSnapshot = Render::Camera;
-            Settings::RenderMode = RenderMode::Shaded;
+            Settings::Editor.RenderMode = RenderMode::Shaded;
             Input::SetMouselook(true);
             Render::LoadHUDTextures();
 

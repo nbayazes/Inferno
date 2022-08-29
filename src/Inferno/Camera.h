@@ -30,9 +30,9 @@ namespace Inferno {
             Viewport = { 0, 0, width, height, NearClip, FarClip };
         }
 
-        void LookAtPerspective() {
+        void LookAtPerspective(float fovDeg) {
             View = DirectX::XMMatrixLookAtLH(Position, Target, Up);
-            Projection = DirectX::XMMatrixPerspectiveFovLH(Settings::FieldOfView * DegToRad, Viewport.AspectRatio(), Viewport.minDepth, Viewport.maxDepth);
+            Projection = DirectX::XMMatrixPerspectiveFovLH(fovDeg * DegToRad, Viewport.AspectRatio(), Viewport.minDepth, Viewport.maxDepth);
         }
 
         void LookAtOrthographic() {
@@ -93,37 +93,37 @@ namespace Inferno {
         }
 
         void MoveForward(float frameTime) {
-            auto step = GetForward() * frameTime * Settings::MoveSpeed;
+            auto step = GetForward() * frameTime;
             Position += step;
             Target += step;
         }
 
         void MoveBack(float frameTime) {
-            auto step = -GetForward() * frameTime * Settings::MoveSpeed;
+            auto step = -GetForward() * frameTime;
             Position += step;
             Target += step;
         }
 
         void MoveLeft(float frameTime) {
-            auto step = GetRight() * frameTime * Settings::MoveSpeed;
+            auto step = GetRight() * frameTime;
             Position += step;
             Target += step;
         }
 
         void MoveRight(float frameTime) {
-            auto step = -GetRight() * frameTime * Settings::MoveSpeed;
+            auto step = -GetRight() * frameTime;
             Position += step;
             Target += step;
         }
 
         void MoveUp(float frameTime) {
-            auto step = Up * frameTime * Settings::MoveSpeed;
+            auto step = Up * frameTime;
             Position += step;
             Target += step;
         }
 
         void MoveDown(float frameTime) {
-            auto step = -Up * frameTime * Settings::MoveSpeed;
+            auto step = -Up * frameTime;
             Position += step;
             Target += step;
         }

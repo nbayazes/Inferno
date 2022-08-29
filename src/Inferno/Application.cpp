@@ -72,7 +72,7 @@ void Application::Initialize(int width, int height) {
 
     OnActivated();
 
-    if (Settings::Descent1Path.empty() && Settings::Descent2Path.empty()) {
+    if (Settings::Inferno.Descent1Path.empty() && Settings::Inferno.Descent2Path.empty()) {
         Events::ShowDialog(DialogType::Settings);
     }
 
@@ -88,7 +88,7 @@ void Application::Update() {
 }
 
 void Application::UpdateFpsLimit() {
-    auto limit = _isForeground ? Settings::ForegroundFpsLimit : Settings::BackgroundFpsLimit;
+    auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
     _fpsLimit = limit > 0 ? 1000.0f / limit : 0;
 }
 
@@ -116,7 +116,7 @@ void Application::Tick() {
     Game::ElapsedTime = _clock.GetTotalMilliseconds() / 1000.;
 
 
-    if (Settings::ShowAnimation)
+    if (Settings::Editor.ShowAnimation)
         Render::ElapsedTime = milliseconds / 1000.;
 
     //PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");

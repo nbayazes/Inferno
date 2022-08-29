@@ -1,14 +1,15 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
   "name": "inferno",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "builtin-baseline": "67e734c04ca963f0fc43a2787d6559c01a27a55a",
   "dependencies": [
     "directxtk12",
     "ryml",
     "fmt",
     "spdlog",
-    "lodepng"
+    "lodepng",
+    "magic-enum"
   ],
   "overrides": [
     {

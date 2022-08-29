@@ -9,6 +9,7 @@
 #include "Settings.h"
 #include "Editor/Editor.Object.h"
 #include "Editor/UI/EditorUI.h"
+#include "Game.Text.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -16,10 +17,10 @@ namespace Inferno::Render {
         Debug::DrawCircle(radius, facingMatrix, color);
     }
 
-    void DrawObjectOutline(const Object& object, const Color& color) {
+    void DrawObjectOutline(const Object& object, const Color& color, float scale = 1.0f) {
         if (object.Radius == 0) return;
-        if (Game::State != GameState::Editor || Settings::ScreenshotMode) return;
-        DrawFacingCircle(object.Position, object.Radius, color);
+        if (Game::State != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
+        DrawFacingCircle(object.Position, object.Radius * scale, color);
         // submodel hitboxes
         //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
         //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.1, 0.5, 0.1, 0.50 });
@@ -109,15 +110,15 @@ namespace Inferno::Render {
         auto vs = seg.GetVertices(level);
 
         Array<Vector4, 12> colors = {};
-        auto segColor = Settings::SelectionMode == SelectionMode::Segment ? Colors::SelectionPrimary : Colors::SelectionOutline;
+        auto segColor = Settings::Editor.SelectionMode == SelectionMode::Segment ? Colors::SelectionPrimary : Colors::SelectionOutline;
         colors.fill(segColor);
 
-        auto sideColor = Settings::SelectionMode == SelectionMode::Face ? Colors::SelectionPrimary : Colors::SelectionTertiary;
+        auto sideColor = Settings::Editor.SelectionMode == SelectionMode::Face ? Colors::SelectionPrimary : Colors::SelectionTertiary;
         auto& edges = EdgesOfSide[(int)selection.Side];
         for (int i = 0; i < 4; i++)
             colors[edges[i]] = sideColor;
 
-        auto edgeColor = Settings::SelectionMode == SelectionMode::Edge ? Colors::SelectionPrimary : Colors::SelectionSecondary;
+        auto edgeColor = Settings::Editor.SelectionMode == SelectionMode::Edge ? Colors::SelectionPrimary : Colors::SelectionSecondary;
         colors[edges[selection.Point]] = edgeColor;
 
         // Draw each of the 12 edges
@@ -130,7 +131,7 @@ namespace Inferno::Render {
 
         auto indices = seg.GetVertexIndices(selection.Side);
         auto& pointPos = level.Vertices[indices[selection.Point]];
-        if (Settings::SelectionMode == SelectionMode::Point)
+        if (Settings::Editor.SelectionMode == SelectionMode::Point)
             DrawFacingCircle(pointPos, 1.5, Colors::SelectionPrimary);
     }
 
@@ -273,6 +274,7 @@ namespace Inferno::Render {
         for (auto& seg : level.Segments) {
             auto vs = seg.GetVertices(level);
             Color color = Colors::Wireframe;
+            color.w = Settings::Editor.WireframeOpacity;
             Color fill;
 
             if (seg.Type != SegmentType::None)
@@ -302,10 +304,10 @@ namespace Inferno::Render {
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
         bool drawTranslationGizmo = true, drawRotationGizmo = true, drawScaleGizmo = true;
 
-        if (Settings::ShowWireframe)
+        if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
 
-        switch (Settings::SelectionMode) {
+        switch (Settings::Editor.SelectionMode) {
             default:
             case Editor::SelectionMode::Face:
                 DrawMarkedFaces(level);
@@ -345,18 +347,18 @@ namespace Inferno::Render {
 
                 for (auto& id : Editor::Marked.Objects) {
                     if (auto obj = level.TryGetObject(id))
-                        DrawObjectOutline(*obj, Colors::MarkedObject);
+                        DrawObjectOutline(*obj, Colors::MarkedObject, 1.1f);
                 }
                 break;
             }
         }
 
-        if (Settings::EnableWallMode) {
+        if (Settings::Editor.EnableWallMode) {
             DrawWallMarkers(level);
             DrawReactorTriggers(level);
         }
 
-        if (Settings::ShowFlickeringLights) {
+        if (Settings::Editor.ShowFlickeringLights) {
             for (auto& fl : level.FlickeringLights) {
                 if (!level.SegmentExists(fl.Tag)) continue;
                 auto face = Face::FromSide(level, fl.Tag);
@@ -366,7 +368,7 @@ namespace Inferno::Render {
 
         DrawSelection(Editor::Selection, level);
 
-        if (Settings::SelectionMode != Editor::SelectionMode::Transform)
+        if (Settings::Editor.SelectionMode != Editor::SelectionMode::Transform)
             DrawUserCSysMarker(cmdList);
 
         //if (level.HasSecretExit()) {
@@ -376,13 +378,25 @@ namespace Inferno::Render {
         //    }
         //}
 
-        if (drawTranslationGizmo) DrawTranslationGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
-        if (drawRotationGizmo) DrawRotationGizmo(Editor::Gizmo);
-        if (drawScaleGizmo) DrawScaleGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
+        if (Editor::Gizmo.State != Editor::GizmoState::Dragging) {
+            if (drawTranslationGizmo) DrawTranslationGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
+            if (drawRotationGizmo) DrawRotationGizmo(Editor::Gizmo);
+            if (drawScaleGizmo) DrawScaleGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
+        }
+        else {
+            DrawGizmoPreview(Editor::Gizmo);
+        }
 
         if (Input::GetMouselook())
-            Debug::DrawCrosshair(Settings::CrosshairSize);
+            Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
 
+        if (Settings::Editor.ShowLevelTitle) {
+            Color color = { 1, 1, 1 };
+            auto& target = Adapter->GetHdrRenderTarget();
+            auto strSize = MeasureString(level.Name, FontSize::Big) * Shell::DpiScale;
+            auto x = Editor::MainViewportXOffset + Editor::MainViewportWidth / 2 - strSize.x / 2;
+            Render::Canvas->DrawGameText(level.Name, x, Editor::TopToolbarOffset, FontSize::Big, Color(1, 1, 1), 1 / Render::Canvas->GetScale());
+        }
         //{
         //    auto tag = Editor::Selection.PointTag();
         //    if (level.SegmentExists(tag)) {
