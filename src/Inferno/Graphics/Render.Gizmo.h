@@ -42,7 +42,6 @@ namespace Inferno::Render {
     inline void DrawGizmoPreview(const Editor::TransformGizmo& gizmo) {
         using namespace Editor;
         if (gizmo.SelectedAxis == GizmoAxis::None) return;
-        if (gizmo.State == GizmoState::None) return;
 
         auto color = [&gizmo] {
             switch (gizmo.SelectedAxis) {

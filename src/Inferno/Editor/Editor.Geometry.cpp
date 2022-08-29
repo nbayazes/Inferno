@@ -226,8 +226,8 @@ namespace Inferno::Editor {
             return false;
 
         auto segs = Seq::map(GetSelectedFaces(), Tag::GetSegID);
-        auto faces = FacesForSegments(segs);
         ResetSegmentUVs(level, segs);
+        auto faces = FacesForSegments(segs);
         JoinTouchingSegmentsExclusive(level, faces, 0.09f);
         return true;
     }

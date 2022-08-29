@@ -587,6 +587,7 @@ namespace Inferno::Editor {
             std::array segs = { seg };
             auto tags = FacesForSegments(segs);
             JoinTouchingSegmentsExclusive(Game::Level, tags, 0.01f);
+            ResetSegmentUVs(Game::Level, segs);
 
             Editor::Selection.SetSelection(seg);
             Events::LevelChanged();

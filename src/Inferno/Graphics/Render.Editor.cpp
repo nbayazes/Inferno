@@ -377,12 +377,14 @@ namespace Inferno::Render {
         //    }
         //}
 
-        if (Editor::Gizmo.State == Editor::GizmoState::None) {
+        if (Editor::Gizmo.State != Editor::GizmoState::Dragging) {
             if (drawTranslationGizmo) DrawTranslationGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
             if (drawRotationGizmo) DrawRotationGizmo(Editor::Gizmo);
             if (drawScaleGizmo) DrawScaleGizmo(cmdList, Editor::Gizmo, Render::ViewProjection);
         }
-        DrawGizmoPreview(Editor::Gizmo);
+        else {
+            DrawGizmoPreview(Editor::Gizmo);
+        }
 
         if (Input::GetMouselook())
             Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
