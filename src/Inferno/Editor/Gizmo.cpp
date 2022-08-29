@@ -3,6 +3,7 @@
 #include "Settings.h"
 #include "Editor.h"
 #include "Input.h"
+#include "Graphics/Render.Debug.h"
 
 namespace Inferno::Editor {
     using namespace DirectX::SimpleMath;
@@ -98,12 +99,16 @@ namespace Inferno::Editor {
         // Check if any intersections lie on the gizmo circle
         for (auto& hit : hits) {
             if (hit.Axis == GizmoAxis::None) continue;
-            auto intersection = ray.direction * hit.Distance;
-            auto distance = Vector3::Distance(intersection, position - camera.Position);
+            auto intersection = ray.position + ray.direction * hit.Distance;
+            auto distance = Vector3::Distance(intersection, position);
 
             if (distance > Settings::Editor.GizmoSize * 0.8 * scale &&
-                distance < Settings::Editor.GizmoSize * 1.2 * scale)
+                distance < Settings::Editor.GizmoSize * 1.2 * scale) {
+                auto ivec = intersection - position;
+                ivec.Normalize();
+                GizmoPreview::RotationStart = position + ivec * Settings::Editor.GizmoSize * scale;
                 return hit;
+            }
         }
 
         return {};
@@ -343,6 +348,7 @@ namespace Inferno::Editor {
                 hits[0] = IntersectTranslation(Transform, MouseRay, ShowTranslationAxis, camera);
                 hits[1] = IntersectRotation(Transform, MouseRay, ShowRotationAxis, camera);
                 hits[2] = IntersectScale(Transform, MouseRay, ShowScaleAxis, camera);
+
                 Seq::sortBy(hits, [](auto& a, auto& b) { return a.Distance < b.Distance; });
 
                 Mode = hits[0].Transform;

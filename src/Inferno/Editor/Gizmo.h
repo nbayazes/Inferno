@@ -58,5 +58,6 @@ namespace Inferno::Editor {
 
     namespace GizmoPreview {
         inline Vector3 Start, End;
+        inline Vector3 RotationStart;
     }
 }

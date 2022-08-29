@@ -53,8 +53,50 @@ namespace Inferno::Render {
             }
         }();
 
-        if (gizmo.Mode == TransformMode::Translation || gizmo.Mode == TransformMode::Rotation)
+        if (gizmo.Mode == TransformMode::Translation)
             Debug::DrawLine(GizmoPreview::Start, GizmoPreview::End, color);
+
+        auto position = gizmo.Transform.Translation();
+        auto gizmoScale = Editor::GetGizmoScale(position, Camera);
+
+        if (gizmo.Mode == TransformMode::Rotation) {
+            auto scale = Matrix::CreateScale(gizmoScale);
+            auto translation = Matrix::CreateTranslation(position);
+
+            Debug::DrawLine(GizmoPreview::Start, GizmoPreview::End, color);
+            auto rvec = GizmoPreview::RotationStart - position;
+            rvec.Normalize();
+
+            auto gizmoDir = Camera.Position - position;
+            gizmoDir.Normalize();
+
+            auto DrawAxis = [&](GizmoAxis axis, const Vector3& normal) {
+                //auto target = ProjectPointOntoPlane(Camera.Position, position, normal);
+                auto rotation = Matrix::CreateRotationY(DirectX::XM_PIDIV2) * DirectionToRotationMatrix(normal);
+                auto transform = rotation * scale * translation;
+                auto color = GetColor(axis, gizmo, Editor::TransformMode::Rotation);
+                Plane plane(position, transform.Forward());
+
+                auto& ray = Editor::MouseRay;
+                float dist{};
+                if (ray.Intersects(plane, dist)) {
+                    auto ivec = ray.position + ray.direction * dist - position;
+                    ivec.Normalize();
+
+                    auto rotationEnd = position + ivec * Settings::Editor.GizmoSize * gizmoScale;
+                    Debug::DrawLine(position, GizmoPreview::RotationStart, color);
+                    Debug::DrawLine(position, rotationEnd, color);
+                }
+
+                Debug::DrawRing(Settings::Editor.GizmoSize, 0.25f, transform, color);
+            };
+
+            switch (gizmo.SelectedAxis) {
+                case GizmoAxis::X: return DrawAxis(GizmoAxis::X, gizmo.Transform.Forward());
+                case GizmoAxis::Y: return DrawAxis(GizmoAxis::Y, gizmo.Transform.Up());
+                case GizmoAxis::Z: return DrawAxis(GizmoAxis::Z, gizmo.Transform.Right());
+            }
+        }
 
         if (gizmo.Mode == TransformMode::Scale) {
             auto [up, right] = [&gizmo]() -> Tuple<Vector3, Vector3> {
@@ -66,9 +108,8 @@ namespace Inferno::Render {
                 }
             }();
 
-            auto position = gizmo.Transform.Translation();
-            auto scale = Editor::GetGizmoScale(position, Camera);
-            Debug::DrawPlane(position, right, up, color, scale * 10);
+            Debug::DrawLine(GizmoPreview::Start, GizmoPreview::End, color);
+            Debug::DrawPlane(position, right, up, color, gizmoScale * 10);
         }
     }
 
@@ -110,27 +151,25 @@ namespace Inferno::Render {
             auto cdot = normal.Dot(gizmoDir);
             if (std::abs(cdot) < 1 - TransformGizmo::MaxViewAngle) return; // Don't draw axis at sharp angles
 
-            auto target = ProjectPointOntoPlane(Camera.Position, position, normal);
-            //Debug::DrawArrow(position, position + normal * 5, Color(1, 0, 0));
-            //Debug::DrawArrow(position, position + orient * 5, Color(1, 1, 0));
-            //Debug::DrawArrow(position, target, Color(0, 1, 1));
-            auto cameraDir = target - position; // direction towards the camera on this plane
-            auto cameraAngle = AngleBetweenVectors(orient, cameraDir, normal); // angle between the camera on this plane and the ref
-            // DrawArc() draws on the XY axis, rotate it by 90 on Y to align to XZ axis.
             auto rotation = Matrix::CreateRotationY(DirectX::XM_PIDIV2) * DirectionToRotationMatrix(normal);
-            Vector3 arcRef = Vector3::Transform(Vector3::UnitY, rotation); // rotate the arc center ref with it
-
-            cameraAngle += AngleBetweenVectors(arcRef, orient, normal); // center the arc on the orientation vector
             auto transform = rotation * scale * translation;
             auto color = GetColor(axis, gizmo, Editor::TransformMode::Rotation);
 
-            if (std::abs(cdot) > TransformGizmo::MaxViewAngle) // Draw solid ring if camera is looking directly at circle
+            if (std::abs(cdot) > TransformGizmo::MaxViewAngle) {// Draw solid ring if camera is looking directly at circle
                 Debug::DrawRing(Settings::Editor.GizmoSize, 0.25f, transform, color);
-            else
+            }
+            else {
+                // DrawArc() draws on the XY axis, rotate it by 90 on Y to align to XZ axis.
+                auto target = ProjectPointOntoPlane(Camera.Position, position, normal);
+                auto cameraDir = target - position; // direction towards the camera on this plane
+                auto cameraAngle = AngleBetweenVectors(orient, cameraDir, normal); // angle between the camera on this plane and the ref
+                Vector3 arcRef = Vector3::Transform(Vector3::UnitY, rotation); // rotate the arc center ref with it
+                cameraAngle += AngleBetweenVectors(arcRef, orient, normal); // center the arc on the orientation vector
                 Debug::DrawSolidArc(Settings::Editor.GizmoSize, 0.25f,
                                     180 * DegToRad, // length
                                     cameraAngle, // offset
                                     transform, color);
+            }
         };
 
         if (gizmo.ShowRotationAxis[0]) DrawAxis(GizmoAxis::X, gizmo.Transform.Forward(), gizmo.Transform.Right());
