@@ -53,6 +53,13 @@ namespace Inferno::Editor {
         }
     }
 
+    void ObjectMenu() {
+        MenuCommand(Commands::MoveObjectToSide);
+        MenuCommand(Commands::MoveObjectToSegment);
+        MenuCommand(Commands::MoveObjectToUserCSys);
+        MenuCommand(Commands::AlignObjectToSide);
+    }
+
     void InsertMenuItems() {
         if (ImGui::BeginMenu("Add Segment")) {
             if (ImGui::MenuItem("Energy Center")) Commands::AddEnergyCenter();
@@ -215,9 +222,7 @@ namespace Inferno::Editor {
                 }
 
                 ImGui::Separator();
-                MenuCommand(Commands::MoveObjectToSide);
-                MenuCommand(Commands::MoveObjectToSegment);
-                MenuCommand(Commands::MoveObjectToUserCSys);
+                ObjectMenu();
                 ImGui::Separator();
 
                 if (ImGui::MenuItem("Settings..."))
@@ -679,9 +684,7 @@ namespace Inferno::Editor {
                     break;
 
                 case SelectionMode::Object:
-                    MenuCommand(Commands::MoveObjectToSide);
-                    MenuCommand(Commands::MoveObjectToSegment);
-                    MenuCommand(Commands::MoveObjectToUserCSys);
+                    ObjectMenu();
                     ImGui::Separator();
                     break;
             }
