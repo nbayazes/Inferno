@@ -34,7 +34,7 @@ namespace Inferno::Editor {
                 for (int i = 0; i < 2; i++) {
                     auto face = Face::FromSide(level, seg, side);
                     float dist;
-                    if (face.Intersects(ray, dist)) {
+                    if (face.Intersects(ray, dist) && dist >= Render::Camera.NearClip) {
                         auto intersect = ray.position + dist * ray.direction;
                         int16 edge = 0;
                         if (mode == SelectionMode::Point)
@@ -633,7 +633,7 @@ namespace Inferno::Editor {
             }
         };
 
-        auto frustum = Render::Camera.GetFrustum();
+        auto frustum = camera.GetFrustum();
 
         switch (Settings::Editor.SelectionMode) {
             default:

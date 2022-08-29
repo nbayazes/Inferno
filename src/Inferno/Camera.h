@@ -182,14 +182,13 @@ namespace Inferno {
         }
 
         // Returns a frustum for the perspective view
-        DirectX::BoundingFrustum GetFrustum() {
+        DirectX::BoundingFrustum GetFrustum() const {
             DirectX::BoundingFrustum frustum;
             DirectX::BoundingFrustum::CreateFromMatrix(frustum, Projection);
-            Quaternion rotation;
-            Vector3 translation, scale;
-            View.Decompose(scale, rotation, translation);
-            rotation.Inverse(rotation);
-            frustum.Transform(frustum, 1.0f, rotation, Position);
+            DirectX::XMVECTOR s, r, t;
+            DirectX::XMMatrixDecompose(&s, &r, &t, View);
+            r = DirectX::XMQuaternionInverse(r);
+            frustum.Transform(frustum, 1.0f, r, Position);
             return frustum;
         }
 
