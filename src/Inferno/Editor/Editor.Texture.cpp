@@ -255,9 +255,11 @@ namespace Inferno::Editor {
             auto& side = Game::Level.GetSide(tag);
             auto wclip = WClipID::None;
 
-            if (tmap2 != LevelTexID::None) {
+            if (tmap2 == side.TMap)
+                tmap2 = LevelTexID::Unset; // Clear tmap2 if it is the same as the base texture
+
+            if (tmap2 != LevelTexID::None)
                 side.TMap2 = tmap2;
-            }
 
             if (tmap1 != LevelTexID::None) {
                 side.TMap = tmap1;

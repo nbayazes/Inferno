@@ -343,20 +343,14 @@ namespace Inferno::Editor {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     tmap1 = id;
                     Events::SelectTexture(tmap1, LevelTexID::None);
-                    Events::TextureInfo(id);
-                    Render::LoadTextureDynamic(id);
+                    Events::TextureInfo(tmap1);
+                    Render::LoadTextureDynamic(tmap1);
                 }
                 else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
                     tmap2 = id;
-                    auto tm1 = LevelTexID::None;
-                    if (tmap1 == id) {
-                        tm1 = id;
-                        tmap2 = LevelTexID::Unset;
-                    }
-
-                    Events::SelectTexture(tm1, tmap2);
-                    Events::TextureInfo(id);
-                    Render::LoadTextureDynamic(id);
+                    Events::SelectTexture(LevelTexID::None, tmap2);
+                    Events::TextureInfo(tmap2);
+                    Render::LoadTextureDynamic(tmap2);
                 }
                 else if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle)) {
                     Events::TextureInfo(id);
