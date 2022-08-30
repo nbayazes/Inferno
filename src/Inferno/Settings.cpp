@@ -168,6 +168,9 @@ namespace Inferno {
 
             // Note that it is valid for Key to equal None to indicate that the user unbound it on purpose
             bindings.Add(binding);
+
+            if (binding.Action == Editor::EditorAction::HoldMouselook)
+                Editor::Bindings::MouselookHoldBinding = binding;
         }
 
         // copy bindings before adding defaults so that multiple shortcuts for the same action will apply properly

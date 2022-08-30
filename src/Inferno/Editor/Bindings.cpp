@@ -451,7 +451,33 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
-
+        bindings.Add({ .Action = EditorAction::HoldMouselook });
         Active = Default;
+    }
+
+    bool IsReservedKey(DirectX::Keyboard::Keys key) {
+        switch (key) {
+            case Keys::LeftWindows:
+            case Keys::RightWindows:
+            case Keys::Pause:
+            case Keys::Scroll:
+            case Keys::PrintScreen:
+            case Keys::LeftAlt:
+            case Keys::RightAlt:
+            case Keys::LeftShift:
+            case Keys::RightShift:
+            case Keys::LeftControl:
+            case Keys::RightControl:
+            case Keys::NumLock:
+            case Keys::F1:
+            case Keys::F2:
+            case Keys::F5:
+            case Keys::F6:
+            case Keys::F7:
+            case Keys::F8:
+                return true;
+            default:
+                return false;
+        }
     }
 }

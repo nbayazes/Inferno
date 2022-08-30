@@ -35,6 +35,7 @@ namespace Inferno::Editor {
         CameraRollRight,
 
         ToggleMouselook,
+        HoldMouselook,
         ClearSelection,
         Copy,
         Paste,
@@ -137,5 +138,7 @@ namespace Inferno::Editor {
 
         void Update();
         void LoadDefaults();
+        bool IsReservedKey(DirectX::Keyboard::Keys);
+        inline EditorBinding MouselookHoldBinding;
     }
 }
