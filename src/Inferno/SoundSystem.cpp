@@ -17,7 +17,7 @@ using namespace std::chrono;
 namespace Inferno::Sound {
     // Scales game coordinates to audio coordinates.
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
-    constexpr float AUDIO_SCALE = 1 / 30.0f;
+    constexpr float AUDIO_SCALE = 1;
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
     constexpr float MERGE_WINDOW = 1 / 10.0f; // Discard the same sound being played by a source within a window
 
@@ -95,7 +95,7 @@ namespace Inferno::Sound {
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
             auto falloff = 1 - ratio; // linear falloff
             //auto falloff = 1 - (ratio * ratio); // square falloff
-            Instance->SetVolume(Volume * falloff * Muffle * MAX_SFX_VOLUME);
+            //Instance->SetVolume(Volume * falloff * Muffle * MAX_SFX_VOLUME);
 
             Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
         }
@@ -117,6 +117,7 @@ namespace Inferno::Sound {
         constexpr X3DAUDIO_CONE c_listenerCone = {
             X3DAUDIO_PI * 5.0f / 6.0f, X3DAUDIO_PI * 11.0f / 6.0f, 1.0f, 0.75f, 0.0f, 0.25f, 0.708f, 1.0f
         };
+
         constexpr X3DAUDIO_CONE c_emitterCone = {
             0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 1.f
         };
@@ -292,6 +293,8 @@ namespace Inferno::Sound {
         //DSPSettings.DstChannelCount = DSPMatrix.size();
         //DSPSettings.pMatrixCoefficients = DSPMatrix.data();
 
+        Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
+
         //X3DAudioCalculate(instance, listener, emitter, flags, &dsp);
     }
 
@@ -383,6 +386,14 @@ namespace Inferno::Sound {
         sound->Play(volume, pitch, pan);
     }
 
+    // Specify LFE level distance curve such that it rolls off much sooner than
+    // all non-LFE channels, making use of the subwoofer more dramatic.
+    static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_LFE_CurvePoints[3] = { 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f };
+    static const X3DAUDIO_DISTANCE_CURVE       Emitter_LFE_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_LFE_CurvePoints[0], 3 };
+
+    static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_Reverb_CurvePoints[3] = { 0.0f, 0.5f, 0.75f, 1.0f, 1.0f, 0.0f };
+    static const X3DAUDIO_DISTANCE_CURVE       Emitter_Reverb_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_Reverb_CurvePoints[0], 3 };
+
     void Play(const Sound3D& sound) {
         auto sfx = LoadSound(sound.Resource);
         if (!sfx) return;
@@ -413,11 +424,17 @@ namespace Inferno::Sound {
             s.Instance->SetVolume(sound.Volume);
             s.Instance->SetPitch(sound.Pitch);
 
-            s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
-            s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
-            s.Emitter.CurveDistanceScaler = 1.0f;
+            //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
+            //s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
+            s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
+            s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
+            s.Emitter.CurveDistanceScaler = sound.Radius;
             s.Emitter.Position = position;
-            //s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
+            s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
+            s.Emitter.DopplerScaler = 1.0f;
+            s.Emitter.InnerRadius = 5.0f;
+            s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
+            s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
 
             s.StartTime = Game::ElapsedTime;
         }
