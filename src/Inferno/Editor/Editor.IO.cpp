@@ -263,7 +263,6 @@ namespace Inferno::Editor {
         level.GameVersion = version == 1 ? 25 : 32;
         auto ext = level.IsDescent1() ? ".rdl" : ".rl2";
         level.FileName = fileName.substr(0, 8) + ext;
-        level.Path = level.FileName;
 
         if (Game::Mission) {
             // Find a unique file name in the hog
@@ -469,6 +468,7 @@ namespace Inferno::Editor {
         if (Game::ElapsedTime > _nextAutosave) {
             try {
                 auto& path = Game::Mission ? Game::Mission->Path : Game::Level.Path;
+                if (path.empty()) path = Game::Level.FileName;
                 wstring backupPath = path.wstring() + L".sav";
                 SPDLOG_INFO(L"Autosaving backup to {}", backupPath);
 
