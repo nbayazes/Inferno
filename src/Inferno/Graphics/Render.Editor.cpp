@@ -366,9 +366,7 @@ namespace Inferno::Render {
         }
 
         DrawSelection(Editor::Selection, level);
-
-        if (Settings::Editor.SelectionMode != Editor::SelectionMode::Transform)
-            DrawUserCSysMarker(cmdList);
+        DrawUserCSysMarker(cmdList);
 
         //if (level.HasSecretExit()) {
         //    if (auto seg = level.TryGetSegment(level.SecretExitReturn)) {
