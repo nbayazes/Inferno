@@ -70,7 +70,7 @@ namespace Inferno {
     constexpr uint16 MAX_VERTICES = 8;
 
     // Segment point ids for a segment side
-    static constexpr Array<Array<int16, 4>, MAX_SIDES> SideIndices{ {
+    inline constexpr Array<Array<int16, 4>, MAX_SIDES> SideIndices{ {
             {{ 7, 6, 2, 3 }}, // left
             {{ 0, 4, 7, 3 }}, // top
             {{ 0, 1, 5, 4 }}, // right
@@ -80,7 +80,7 @@ namespace Inferno {
     } };
 
     // Lookup for the edges of each side. Uses the same order / winding as the vertex lookup.
-    constexpr Array<Array<int16, 4>, MAX_SIDES> EdgesOfSide{ {
+    inline constexpr Array<Array<int16, 4>, MAX_SIDES> EdgesOfSide{ {
         {{ 4, 9, 0, 8  }}, // right
         {{ 11, 7, 8, 3 }}, // top
         {{ 2, 10, 6, 11 }}, // left
@@ -89,7 +89,7 @@ namespace Inferno {
         {{ 0, 1, 2, 3 }}, // front
     } };
 
-    constexpr Array<Array<int16, 2>, 12> VertsOfEdge{ {
+    inline constexpr Array<Array<int16, 2>, 12> VertsOfEdge{ {
         {{ 0, 1 }}, // 0 // front
         {{ 1, 2 }}, // 1
         {{ 2, 3 }}, // 2
@@ -115,9 +115,6 @@ namespace Inferno {
         Count
     };
 
-    constexpr const char* SegmentTypeLabels[] = {
-        "None", "Energy", "Repair", "Reactor", "Matcen", "Blue Goal", "Red Goal"
-    };
 
     struct Level;
 

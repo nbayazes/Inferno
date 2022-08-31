@@ -272,6 +272,10 @@ namespace Inferno::Editor {
     }
 
     bool SegmentTypeDropdown(SegmentType& type) {
+        static constexpr const char* SegmentTypeLabels[] = {
+            "None", "Energy", "Repair", "Reactor", "Matcen", "Blue Goal", "Red Goal"
+        };
+
         bool changed = false;
 
         ImGui::SetNextItemWidth(-1);

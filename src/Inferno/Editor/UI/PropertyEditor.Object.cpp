@@ -8,7 +8,7 @@ namespace Inferno::Editor {
     const char* GetObjectTypeName(ObjectType type) {
         if (type == ObjectType::None) return "None";
 
-        constexpr std::array objectTypeLabels = {
+        static constexpr std::array objectTypeLabels = {
             "None", // or "Wall"
             "Fireball",
             "Robot",
