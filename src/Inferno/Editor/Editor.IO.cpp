@@ -67,6 +67,7 @@ namespace Inferno::Editor {
             Editor::History.UpdateCleanSnapshot();
             Game::Level.Path = path;
             Game::Level.FileName = path.filename().string();
+            UpdateWindowTitle();
             History.UpdateCleanSnapshot();
         }
     }
