@@ -311,7 +311,9 @@ namespace Inferno::Editor {
                 if (o.Type != obj.Type) return;
                 o.ID = obj.ID;
                 o.Render.Model.ID = obj.Render.Model.ID;
-                o.Radius = GetObjectRadius(obj);
+                o.Radius = obj.Radius;
+                o.Movement.Physics.Mass = obj.Movement.Physics.Mass;
+                o.Movement.Physics.Drag = obj.Movement.Physics.Drag;
             });
             changed = true;
         }
@@ -610,6 +612,7 @@ namespace Inferno::Editor {
                 if (PowerupDropdown("##Powerup", obj.ID, &obj.Render.VClip.ID)) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
+                        o.ID = obj.ID;
                         o.Render.VClip.ID = obj.Render.VClip.ID;
                     });
                     Editor::History.SnapshotLevel("Change object");
