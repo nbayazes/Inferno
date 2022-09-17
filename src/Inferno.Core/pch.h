@@ -18,6 +18,7 @@ typedef struct tagRECT {
     long bottom;
 } RECT, * PRECT, * NPRECT, * LPRECT;
 
+#define NOMINMAX
 #include <DirectXTK12/SimpleMath.h>
 
 #define FMT_HEADER_ONLY

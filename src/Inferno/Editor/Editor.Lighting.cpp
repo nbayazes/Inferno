@@ -800,7 +800,9 @@ namespace Inferno::Editor {
             ScopedCursor cursor(IDC_WAIT);
             Metrics::Reset();
             HitTests.clear();
+            HitTests.reserve(1'000'000);
             RayCasts.clear();
+            RayCasts.reserve(1000);
             level.LightDeltaIndices.clear();
             level.LightDeltas.clear();
 
@@ -822,7 +824,7 @@ namespace Inferno::Editor {
 
             if (!settings.EnableColor)
                 DesaturateAccumulated(RayCasts);
-
+            
             auto maxValue = std::clamp(settings.MaxValue, 0.0f, 10.0f);
             const Color max = { maxValue, maxValue, maxValue, 1 };
             SetSideLighting(level, RayCasts, max, settings.EnableColor);
