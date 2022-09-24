@@ -28,7 +28,7 @@ namespace Inferno {
         return Game::Level.IsDescent1() ? Resources::GameData.Gauges[(int)gauge] : Resources::GameData.HiResGauges[(int)gauge];
     }
 
-    inline TexID GetWeaponTexID(Weapon& weapon) {
+    inline TexID GetWeaponTexID(const Weapon& weapon) {
         return Game::Level.IsDescent1() ? weapon.Icon : weapon.HiresIcon;
     }
 
@@ -310,8 +310,8 @@ namespace Inferno {
 
         Color color(1, 1, 1, opacity);
 
-        const int steps = 16;
-        const float vStep = 1.0f / steps;
+        constexpr int steps = 16;
+        constexpr float vStep = 1.0f / steps;
         const float yStep = height / steps * 0.75f;
         float offset = screen.x / 2 + 150 * scale * fl;
         float yOffset = 10 * scale;

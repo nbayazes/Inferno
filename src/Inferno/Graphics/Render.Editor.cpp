@@ -392,7 +392,6 @@ namespace Inferno::Render {
 
         if (Settings::Editor.ShowLevelTitle) {
             Color color = { 1, 1, 1 };
-            auto& target = Adapter->GetHdrRenderTarget();
             auto strSize = MeasureString(level.Name, FontSize::Big) * Shell::DpiScale;
             auto x = Editor::MainViewportXOffset + Editor::MainViewportWidth / 2 - strSize.x / 2;
             Render::Canvas->DrawGameText(level.Name, x, Editor::TopToolbarOffset, FontSize::Big, Color(1, 1, 1), 1 / Render::Canvas->GetScale());

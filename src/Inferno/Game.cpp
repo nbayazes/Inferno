@@ -158,16 +158,19 @@ namespace Inferno::Game {
             bullet.Radius = model.Radius / weapon.ModelSizeRatio;
             //auto length = model.Radius * 2;
             Render::LoadModelDynamic(weapon.Model);
+            Render::LoadModelDynamic(weapon.ModelInner);
         }
 
         //bullet.Lifespan = weapon.Lifetime;
-        bullet.Lifespan = 3;
+        bullet.Lifespan = 3; // for testing fade-out
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
         bullet.Parent = ObjID(0);
 
         if (id == WeaponID::Laser5)
             bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f };
+        else
+            bullet.Render.Emissive = { 0.1f, 0.1f, 0.1f };
 
         //auto pitch = -Random() * 0.2f;
         //Sound::Sound3D sound(point, obj.Segment);
@@ -352,7 +355,7 @@ namespace Inferno::Game {
         if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
             (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
             if (g_FireDelay <= 0) {
-                auto id = Game::Level.IsDescent2() ? WeaponID::Plasma : WeaponID::Plasma;
+                auto id = Game::Level.IsDescent2() ? WeaponID::Laser1: WeaponID::Plasma;
                 auto& weapon = Resources::GameData.Weapons[id];
                 g_FireDelay = weapon.FireDelay;
                 FireTestWeapon(Game::Level, ObjID(0), 0, id);
@@ -480,7 +483,7 @@ namespace Inferno::Game {
 
     Camera EditorCameraSnapshot;
 
-    SoundID GetSoundForSide(SegmentSide& side) {
+    SoundID GetSoundForSide(const SegmentSide& side) {
         auto ti1 = Resources::TryGetEffectClip(side.TMap);
         auto ti2 = Resources::TryGetEffectClip(side.TMap2);
 

@@ -242,7 +242,7 @@ namespace Inferno::Editor {
         }
 
     private:
-        void SaveChanges(HogFile& source) {
+        void SaveChanges(const HogFile& source) {
             filesystem::path tempPath = source.Path;
             tempPath.replace_extension(".tmp");
 
@@ -393,7 +393,7 @@ namespace Inferno::Editor {
         }
 
         // Exports an entry to a destination
-        void ExportEntry(HogEntry& entry, filesystem::path dest) {
+        void ExportEntry(const HogEntry& entry, filesystem::path dest) {
             auto data = Game::Mission->ReadEntry(entry);
             if (data.empty()) throw Exception("Entry does not exist");
 

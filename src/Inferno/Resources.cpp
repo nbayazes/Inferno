@@ -126,7 +126,7 @@ namespace Inferno::Resources {
 
     // Some vclips have very fast speeds (like robot engine glows) that looks bad.
     // This slows them down
-    void FixVClipTimes(span<EffectClip> clips) {
+    constexpr void FixVClipTimes(span<EffectClip> clips) {
         for (auto& clip : clips) {
             auto& vclip = clip.VClip;
             if (vclip.FrameTime > 0 && vclip.FrameTime < 0.01f) {

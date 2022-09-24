@@ -446,6 +446,7 @@ namespace Inferno {
         
         Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
         Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque } };
+        Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::Clockwise } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
         
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
@@ -496,6 +497,7 @@ namespace Inferno {
 
             Compile(Depth);
             Compile(DepthObject);
+            Compile(DepthObjectFlipped);
             Compile(DepthCutout);
 
             Compile(LevelFlat);

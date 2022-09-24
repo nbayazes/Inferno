@@ -241,8 +241,16 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, GetTextureSampler());
         auto& seg = Game::Level.GetSegment(object.Segment);
         ObjectShader::Constants constants = {};
-        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
-        constants.EmissiveLight = object.Render.Emissive;
+
+        if (object.Render.Emissive != Color(0, 0, 0)) {
+            // Change the ambient color to white if object has any emissivity
+            constants.Ambient = Color(1, 1, 1);
+            constants.EmissiveLight = object.Render.Emissive;
+        }
+        else {
+            constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+            constants.EmissiveLight = Color(0, 0, 0);
+        }
 
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -693,6 +701,9 @@ namespace Inferno::Render {
                 if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
                     DrawModel(ctx, object, object.Render.Model.ID, lerp, pass, texOverride);
+                    if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
+                        DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, lerp, pass, texOverride);
+                    }
                 }
                 else {
                     if (pass != RenderPass::Transparent) return;
@@ -731,10 +742,10 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    // todo: skip transparent submodels (D2 energy guy, D3 facing submodels)
     void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, Object& object, ModelID modelId, float lerp) {
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
+        auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
 
         ObjectDepthShader::Constants constants = {};
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
@@ -771,7 +782,7 @@ namespace Inferno::Render {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
 
-                auto& ti = Resources::GetTextureInfo(mesh->Texture); // this doesn't account for overrides
+                auto& ti = Resources::GetTextureInfo(texOverride == TexID::None ? mesh->Texture : texOverride);
                 if (ti.Transparent) continue;
 
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
@@ -1009,12 +1020,17 @@ namespace Inferno::Render {
                 case RenderCommandType::Object:
                 {
                     // Models
-                    ApplyEffect(ctx, Effects->DepthObject);
                     auto& object = *cmd.Data.Object;
                     if (object.Render.Type != RenderType::Model) continue;
                     auto model = object.Render.Model.ID;
                     if (cmd.Data.Object->Type == ObjectType::Robot)
                         model = Resources::GetRobotInfo(object.ID).Model;
+
+                    if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None)
+                        ApplyEffect(ctx, Effects->DepthObjectFlipped); // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
+                    else
+                        ApplyEffect(ctx, Effects->DepthObject);
+
                     ModelDepthPrepass(cmdList, object, model, lerp);
                     break;
                 }

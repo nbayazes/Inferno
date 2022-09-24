@@ -147,6 +147,7 @@ namespace Inferno {
 
         // Determine maximum supported feature level for this device
         static const D3D_FEATURE_LEVEL s_featureLevels[] = {
+            D3D_FEATURE_LEVEL_12_2, // Requires agility SDK on Windows 10
             D3D_FEATURE_LEVEL_12_1,
             D3D_FEATURE_LEVEL_12_0,
             D3D_FEATURE_LEVEL_11_1,

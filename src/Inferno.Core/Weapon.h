@@ -50,7 +50,10 @@ namespace Inferno {
     };
 
     namespace WeaponID {
-        constexpr int Laser = 0;
+        constexpr int Laser1 = 0;
+        constexpr int Laser2 = 1;
+        constexpr int Laser3 = 2;
+        constexpr int Laser4 = 3;
         constexpr int Concussion = 8;
         constexpr int Flare = 9;
         constexpr int Vulcan = 11;
