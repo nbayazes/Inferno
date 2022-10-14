@@ -77,12 +77,13 @@ namespace Inferno {
         return Game::Level.IsDescent1() ? weapon.Icon : weapon.HiresIcon;
     }
 
+    constexpr float WEAPON_TEXT_X_OFFSET = -90;
     constexpr float WEAPON_TEXT_Y_OFFSET = 140;
     constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + 25;
     constexpr float WEAPON_BMP_Y_OFFSET = -20;
     constexpr float WEAPON_BMP_X_OFFSET = -135;
     constexpr Color MonitorGreenText = { 0, 0.7f, 0 };
-    constexpr Color MonitorRedText = { 0.8f, 0, 0 };
+    constexpr Color MonitorRedText = { 0.7f, 0, 0 };
 
     void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
@@ -261,13 +262,24 @@ namespace Inferno {
             info.Font = FontSize::Small;
             info.Color = MonitorGreenText;
             info.Color.w = state.Opacity;
-            info.Position = Vector2(x - 90, WEAPON_TEXT_Y_OFFSET) * scale;
+            info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET, WEAPON_TEXT_Y_OFFSET) * scale;
             info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
-            // todo: fix alignment to be from top
             //DrawMonitorText("S.LASER\nLVL: 5", info);
             DrawMonitorText(Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
+
+            if (state.WeaponIndex == 1 || state.WeaponIndex == 6) {
+                // Ammo counter
+                info.Color = MonitorRedText;
+                info.Color.w = state.Opacity;
+                info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET + 5, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
+                info.HorizontalAlign = AlignH::CenterRight;
+                info.VerticalAlign = AlignV::CenterTop;
+                info.Scanline = 0.5f;
+                auto ammo = fmt::format("{:05}", Game::Player.PrimaryAmmo[1]);
+                DrawMonitorText(ammo, info, 0.6f * state.Opacity);
+            }
         }
 
         {
@@ -302,7 +314,8 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        DrawMonitorText("004", info, 0.6f * state.Opacity);
+        auto ammo = fmt::format("{:03}", Game::Player.SecondaryAmmo[state.WeaponIndex]);
+        DrawMonitorText(ammo, info, 0.6f * state.Opacity);
 
         float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
         {

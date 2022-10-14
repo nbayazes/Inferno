@@ -85,7 +85,10 @@ namespace Inferno {
     }
 
     void Player::FirePrimary() {
-        if (!CanFirePrimary()) return;
+        if (!CanFirePrimary()) {
+            // Arm different weapon
+            return;
+        }
 
         auto id = GetPrimaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
@@ -93,6 +96,7 @@ namespace Inferno {
         if (Primary == PrimaryWeaponIndex::Vulcan ||
             Primary == PrimaryWeaponIndex::Gauss) {
             Game::FirePlayerWeapon(Game::Level, ObjID(0), 7, id);
+            PrimaryAmmo[1] -= weapon.AmmoUsage;
         }
         else {
             Game::FirePlayerWeapon(Game::Level, ObjID(0), 0, id);
@@ -103,6 +107,8 @@ namespace Inferno {
                 Game::FirePlayerWeapon(Game::Level, ObjID(0), 3, id);
             }
         }
+
+        // Swap to different weapon if ammo or energy == 0
     }
 
     void Player::FireSecondary() {
@@ -112,6 +118,8 @@ namespace Inferno {
         auto& weapon = Resources::GameData.Weapons[(int)id];
         SecondaryDelay = weapon.FireDelay;
         MissileGunpoint = (MissileGunpoint + 1) % 2;
+        SecondaryAmmo[(int)Secondary] -= weapon.AmmoUsage;
         Game::FirePlayerWeapon(Game::Level, ObjID(0), MissileGunpoint, id);
+        // Swap to different weapon if ammo == 0
     }
 }
