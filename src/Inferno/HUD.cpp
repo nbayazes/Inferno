@@ -77,9 +77,10 @@ namespace Inferno {
         return Game::Level.IsDescent1() ? weapon.Icon : weapon.HiresIcon;
     }
 
-    constexpr float WEAPON_TEXT_Y_OFFSET = -75;
-    constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + 15;
+    constexpr float WEAPON_TEXT_Y_OFFSET = 140;
+    constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + 25;
     constexpr float WEAPON_BMP_Y_OFFSET = -20;
+    constexpr float WEAPON_BMP_X_OFFSET = -135;
     constexpr Color MonitorGreenText = { 0, 0.7f, 0 };
     constexpr Color MonitorRedText = { 0.8f, 0, 0 };
 
@@ -262,7 +263,7 @@ namespace Inferno {
             info.Color.w = state.Opacity;
             info.Position = Vector2(x - 90, WEAPON_TEXT_Y_OFFSET) * scale;
             info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
-            info.VerticalAlign = AlignV::Bottom;
+            info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
             // todo: fix alignment to be from top
             //DrawMonitorText("S.LASER\nLVL: 5", info);
@@ -272,7 +273,7 @@ namespace Inferno {
         {
             float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
             auto texId = GetWeaponTexID(Resources::GetWeapon(PrimaryToWeaponID[state.WeaponIndex]));
-            DrawWeaponBitmap({ x - 100, WEAPON_BMP_Y_OFFSET }, AlignH::CenterLeft, texId, resScale, state.Opacity);
+            DrawWeaponBitmap({ x + WEAPON_BMP_X_OFFSET, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
         }
 
         DrawEnergyBar(x, false);
@@ -290,18 +291,18 @@ namespace Inferno {
         info.Color.w = state.Opacity;
         info.Position = Vector2(x + 25, WEAPON_TEXT_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
-        info.VerticalAlign = AlignV::Bottom;
+        info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
         DrawMonitorText(Resources::GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
 
         // Ammo counter
         info.Color = MonitorRedText;
         info.Color.w = state.Opacity;
-        info.Position = Vector2(x + 50, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
+        info.Position = Vector2(x + 35, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight;
-        info.VerticalAlign = AlignV::Bottom;
+        info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        DrawMonitorText("004", info);
+        DrawMonitorText("004", info, 0.6f * state.Opacity);
 
         float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
         {
