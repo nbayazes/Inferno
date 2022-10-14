@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "logging.h"
 #include "Graphics/Render.h"
+#include <Briefing.h>
 
 namespace Inferno::Resources {
     List<string> RobotNames;
@@ -19,6 +20,7 @@ namespace Inferno::Resources {
     PigFile Pig;
     Dictionary<TexID, PigBitmap> CustomTextures;
     List<PigBitmap> Textures;
+    List<string> StringTable; // Text for the UI
 
     std::mutex PigMutex;
 
@@ -230,6 +232,13 @@ namespace Inferno::Resources {
         return GameData.ObjectBitmaps[ptr];
     }
 
+    Weapon DefaultWeapon{};
+
+    Weapon& GetWeapon(WeaponID id) {
+        if (!Seq::inRange(GameData.Weapons, (int)id)) return DefaultWeapon;
+        return GameData.Weapons[(int)id];
+    }
+
     string ReplaceExtension(string src, string ext) {
         auto offset = src.find('.');
         if (!ext.starts_with('.')) ext = "." + ext;
@@ -326,6 +335,11 @@ namespace Inferno::Resources {
         }
     }
 
+    string_view GetStringTableEntry(StringTableEntry i) {
+        if (!Seq::inRange(StringTable, (int)i)) return "???";
+        return StringTable[(int)i];
+    }
+
     // Some levels don't have the D1 reactor model set
     void FixD1ReactorModel(Level& level) {
         for (auto& obj : level.Objects) {
@@ -368,8 +382,27 @@ namespace Inferno::Resources {
         GameData = std::move(ham);
     }
 
+    void LoadStringTable() {
+        StringTable.clear();
+        auto data = Hog.ReadEntry("descent.txb");
+        auto briefing = Briefing::Read(data);
+
+        std::stringstream ss(briefing.Raw);
+        std::string line;
+
+        while (std::getline(ss, line, '\n')) {
+            size_t i{};
+            while ((i = line.find("\\n")) != std::string::npos)
+                line.replace(i, 2, "\n");
+
+            while ((i = line.find("\\t")) != std::string::npos)
+                line.replace(i, 2, "\t");
+
+            StringTable.push_back(line);
+        }
+    }
+
     void UpdateObjectRadii(Level& level) {
-        SPDLOG_INFO(L"Updating object radii");
         for (auto& obj : level.Objects) {
             switch (obj.Type) {
                 case ObjectType::Robot:
@@ -438,6 +471,7 @@ namespace Inferno::Resources {
                 throw Exception("Unsupported level version");
             }
 
+            LoadStringTable();
             UpdateAverageTextureColor();
 
             FixObjectModelIds(level);

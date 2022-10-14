@@ -177,6 +177,7 @@
     <ClCompile Include="Graphics\LevelMesh.cpp" />
     <ClCompile Include="Graphics\Render.Canvas.cpp" />
     <ClCompile Include="Graphics\Render.Particles.cpp" />
+    <ClCompile Include="HUD.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Settings.cpp" />
@@ -211,6 +212,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Game.Input.h" />
+    <ClInclude Include="Game.Player.h" />
     <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />

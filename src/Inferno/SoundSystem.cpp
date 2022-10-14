@@ -19,7 +19,7 @@ namespace Inferno::Sound {
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
     constexpr float AUDIO_SCALE = 1;
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
-    constexpr float MERGE_WINDOW = 1 / 10.0f; // Discard the same sound being played by a source within a window
+    constexpr float MERGE_WINDOW = 1 / 20.0f; // Discard the same sound being played by a source within a window
 
     struct Sound3DInstance : public Sound3D {
         float Muffle = 1, TargetMuffle = 1;
@@ -179,6 +179,11 @@ namespace Inferno::Sound {
                     //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
                     Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
                     Listener.Position = Render::Camera.Position * AUDIO_SCALE;
+                    //Listener.Position = {};
+                    //Listener.OrientTop = {};
+                    //Listener.OrientTop.y = sin(Game::ElapsedTime * 3.14f);
+                    //Listener.OrientTop.x = -cos(Game::ElapsedTime * 3.14f);
+                    //Listener.Velocity = {};
 
                     std::scoped_lock lock(SoundInstancesMutex);
                     auto sound = SoundInstances.begin();
@@ -207,7 +212,42 @@ namespace Inferno::Sound {
                         // Objects and the camera are slightly out of sync due to update timing and threading
                         if (Game::State == GameState::Game && sound->FromPlayer)
                             sound->Emitter.Position = Listener.Position;
+
                         sound->Instance->Apply3D(Listener, sound->Emitter, false);
+                        //DWORD flags = X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER
+                        //    | X3DAUDIO_CALCULATE_LPF_DIRECT | X3DAUDIO_CALCULATE_LPF_REVERB
+                        //    | X3DAUDIO_CALCULATE_REVERB;
+
+                        //{
+                        //    float matrix[XAUDIO2_MAX_AUDIO_CHANNELS * 8] = {};
+                        //    X3DAUDIO_DSP_SETTINGS dspSettings{};
+                        //    dspSettings.SrcChannelCount = 1;
+                        //    dspSettings.DstChannelCount = 2;
+                        //    dspSettings.pMatrixCoefficients = matrix;
+
+                        //    X3DAUDIO_EMITTER emitter;
+                        //    memcpy(&emitter, &sound->Emitter, sizeof(X3DAUDIO_EMITTER));
+                        //    //emitter.OrientTop = {};
+                        //    //emitter.OrientFront = {};
+                        //    emitter.OrientTop.y = emitter.OrientFront.z = 1.0f;
+
+                        //    X3DAUDIO_LISTENER listener;
+                        //    memcpy(&listener, &Listener, sizeof(X3DAUDIO_LISTENER));
+                        //    //listener.OrientTop = {};
+                        //    listener.OrientFront = {};
+                        //    //listener.OrientTop.y = -1.0f;
+                        //    listener.OrientFront.z = 1.0f;
+                        //    //Vector3 top = listener.OrientTop;
+                        //    //top.Normalize();
+                        //    //listener.OrientTop = top;
+
+                        //    //if (listener.OrientTop.y > 0.8f) 
+                        //      //listener.OrientTop = { 0.00001f, 0.99f, 0 };
+
+                        //    auto handle = Engine->Get3DHandle();
+                        //    X3DAudioCalculate(handle, &listener, &emitter, flags, &dspSettings);
+                        //    SPDLOG_INFO("XY: {:.2f} {:.2f}  LR: {:.2f}, {:.2f}", listener.OrientTop.x, listener.OrientTop.y, matrix[0], matrix[1]);
+                        //}
                         sound++;
                     }
                 }
@@ -302,28 +342,6 @@ namespace Inferno::Sound {
         Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
 
-    //SoundEffect* LoadSound(int id) {
-    //    if (!Alive) return nullptr;
-    //    if (Sounds[id]) return Sounds[int(id)].get();
-
-    //    std::scoped_lock lock(ResetMutex);
-    //    int frequency = 22050;
-
-    //    // Use lower frequency for D1 and the Class 1 driller sound in D2.
-    //    // The Class 1 driller sound was not resampled for D2.
-    //    if ((Game::Level.IsDescent1()) || Resources::GameData.Sounds[(int)id] == 127)
-    //        frequency = 11025;
-
-    //    float trimStart = 0;
-    //    if (Game::Level.IsDescent1() && id == 141)
-    //        trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
-
-    //    auto data = Resources::ReadSound(id);
-    //    if (data.empty()) return nullptr;
-    //    Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
-    //    return Sounds[int(id)].get();
-    //}
-
     SoundEffect* LoadSoundD1(int id) {
         if (!Seq::inRange(SoundsD1, id)) return nullptr;
         if (SoundsD1[id]) return SoundsD1[int(id)].get();
@@ -336,8 +354,6 @@ namespace Inferno::Sound {
 
         auto data = Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;
-        //Sounds[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart));
-        //return Sounds[int(id)].get();
         return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency))).get();
     }
 
@@ -409,8 +425,10 @@ namespace Inferno::Sound {
                     instance.Resource.GetID() == sound.Resource.GetID() &&
                     instance.StartTime + MERGE_WINDOW > Game::ElapsedTime &&
                     !instance.Looped) {
+
                     if (instance.AttachToSource && sound.AttachToSource)
                         instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
+
                     instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
                     // only use a portion of the duplicate sound to increase volume
                     instance.Volume = std::max(instance.Volume, sound.Volume) * 1.15f;
@@ -423,16 +441,17 @@ namespace Inferno::Sound {
             s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
             s.Instance->SetVolume(sound.Volume);
             s.Instance->SetPitch(sound.Pitch);
+            auto addr = (void*)&s.Instance;
 
             //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
             //s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
+            s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
             s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
             s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
             s.Emitter.CurveDistanceScaler = sound.Radius;
             s.Emitter.Position = position;
-            s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
             s.Emitter.DopplerScaler = 1.0f;
-            s.Emitter.InnerRadius = 5.0f;
+            s.Emitter.InnerRadius = sound.Radius / 6;
             s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
             s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
 

@@ -113,8 +113,10 @@ void Application::Tick() {
     if (dt > 2) dt = 2;
 
     Render::FrameTime = dt;
-    Game::ElapsedTime = _clock.GetTotalMilliseconds() / 1000.;
 
+    if (Game::State == GameState::Game) {
+        Game::ElapsedTime = milliseconds / 1000.; // this should be accumulating
+    }
 
     if (Settings::Editor.ShowAnimation)
         Render::ElapsedTime = milliseconds / 1000.;

@@ -13,17 +13,16 @@ class WorkerThread {
     std::atomic<bool> _alive;
 public:
     WorkerThread() {}
-
-    virtual ~WorkerThread() {
-        Stop();
-    }
+    virtual ~WorkerThread() { Stop(); }
 
     void Start() {
+        assert(!_alive);
         _alive = true;
         _worker = std::thread(&WorkerThread::Worker, this);
     }
 
     void Stop() {
+        assert(_alive);
         _alive = false;
         _workAvailable.notify_all();
         if (_worker.joinable())
@@ -57,7 +56,7 @@ private:
                 SPDLOG_ERROR(e.what());
             }
 
-            // New work could be requested while work is being done
+            // New work could be requested while work is being done, so check before sleeping
             if (!_hasWork) {
                 std::unique_lock lock(_notifyLock);
                 _workAvailable.wait(lock); // sleep until work requested

@@ -397,18 +397,14 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawVClip(GraphicsContext& ctx,
-                   const VClip& vclip,
-                   const Vector3& position,
-                   float radius,
-                   const Color& color,
-                   float elapsed,
-                   bool additive,
-                   float rotation,
-                   const Vector3* up) {
-        auto frame = (int)std::floor(elapsed / vclip.FrameTime) % vclip.NumFrames;
-        auto tid = vclip.Frames[frame];
-
+    void DrawBillboard(GraphicsContext& ctx,
+                       TexID tid,
+                       const Vector3& position,
+                       float radius,
+                       const Color& color,
+                       bool additive,
+                       float rotation,
+                       const Vector3* up) {
         auto transform = up ?
             Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) :
             Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
@@ -447,15 +443,30 @@ namespace Inferno::Render {
 
     // When up is provided, it constrains the sprite to that axis
     void DrawSprite(GraphicsContext& ctx, const Object& object, bool additive, float lerp, const Vector3* up = nullptr, bool lit = false) {
-        auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
-        if (vclip.NumFrames == 0) {
+        Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
+        auto pos = object.GetPosition(lerp);
+
+        if (object.Render.Type == RenderType::WeaponVClip ||
+            object.Render.Type == RenderType::Powerup ||
+            object.Render.Type == RenderType::Hostage) {
+            auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
+            if (vclip.NumFrames == 0) {
+                DrawObjectOutline(object);
+                return;
+            }
+
+            auto tid = vclip.GetFrame((float)ElapsedTime);
+            DrawBillboard(ctx, tid, pos, object.Radius, color, additive, object.Render.Rotation, up);
+        }
+        else if (object.Render.Type == RenderType::Laser) {
+            // "laser" is used for "blobs" like spreadfire
+            auto& weapon = Resources::GetWeapon((WeaponID)object.ID);
+            DrawBillboard(ctx, weapon.BlobBitmap, pos, object.Radius, color, additive, object.Render.Rotation, up);
+        }
+        else {
             DrawObjectOutline(object);
             return;
         }
-
-        Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        auto pos = object.GetPosition(lerp);
-        DrawVClip(ctx, vclip, pos, object.Radius, color, (float)ElapsedTime, additive, object.Render.VClip.Rotation, up);
     }
 
     void DrawLevelMesh(GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
@@ -698,7 +709,10 @@ namespace Inferno::Render {
             }
 
             case ObjectType::Weapon:
-                if (object.Render.Type == RenderType::Model) {
+                if (object.Render.Type == RenderType::None) {
+                    // Do nothing, what did you expect?
+                }
+                else if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
                     DrawModel(ctx, object, object.Render.Model.ID, lerp, pass, texOverride);
                     if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
@@ -843,7 +857,8 @@ namespace Inferno::Render {
         if (p.FadeTime != 0 && p.Life <= p.FadeTime) {
             color.w = 1 - std::clamp((p.FadeTime - p.Life) / p.FadeTime, 0.0f, 1.0f);
         }
-        DrawVClip(ctx, vclip, p.Position, p.Radius, color, elapsed, true, p.Rotation, up);
+        auto tid = vclip.GetFrame(elapsed);
+        DrawBillboard(ctx, tid, p.Position, p.Radius, color, true, p.Rotation, up);
     }
 
     void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, float lerp, RenderPass pass) {

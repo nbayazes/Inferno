@@ -14,6 +14,7 @@
 #include "Editor/Editor.Object.h"
 #include "Game.Input.h"
 #include "DebugOverlay.h"
+#include "HUD.h"
 
 using namespace DirectX;
 
@@ -128,12 +129,12 @@ namespace Inferno::Game {
         }
     }
 
-    void FireTestWeapon(Inferno::Level& level, ObjID objId, int gun, int id) {
+    void FireTestWeapon(Inferno::Level& level, ObjID objId, int gun, WeaponID id) {
         auto& obj = level.Objects[(int)objId];
         //auto& guns = Resources::GameData.PlayerShip.GunPoints;
         auto gunOffset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
         auto point = Vector3::Transform(gunOffset, obj.GetTransform());
-        auto& weapon = Resources::GameData.Weapons[id];
+        auto& weapon = Resources::GameData.Weapons[(int)id];
 
         Object bullet{};
         bullet.Movement.Type = MovementType::Physics;
@@ -144,10 +145,14 @@ namespace Inferno::Game {
         bullet.Position = bullet.LastPosition = point;
         bullet.Rotation = bullet.LastRotation = obj.Rotation;
 
-        if (weapon.RenderType == WeaponRenderType::Blob || weapon.RenderType == WeaponRenderType::VClip) {
+        if (weapon.RenderType == WeaponRenderType::Blob) {
+            bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
+            bullet.Radius = weapon.BlobSize;
+            Render::LoadTextureDynamic(weapon.BlobBitmap);
+        }
+        else if (weapon.RenderType == WeaponRenderType::VClip) {
             bullet.Render.Type = RenderType::WeaponVClip;
             bullet.Render.VClip.ID = weapon.WeaponVClip;
-            bullet.Render.VClip.Rotation = Random() * DirectX::XM_2PI;
             bullet.Radius = weapon.BlobSize;
             Render::LoadTextureDynamic(weapon.WeaponVClip);
         }
@@ -160,6 +165,8 @@ namespace Inferno::Game {
             Render::LoadModelDynamic(weapon.Model);
             Render::LoadModelDynamic(weapon.ModelInner);
         }
+
+        bullet.Render.Rotation = Random() * DirectX::XM_2PI;
 
         //bullet.Lifespan = weapon.Lifetime;
         bullet.Lifespan = 3; // for testing fade-out
@@ -343,39 +350,84 @@ namespace Inferno::Game {
         obj.Lifespan = -1;
     }
 
-    float g_FireDelay = 0, g_SecondaryFireDelay;
-    int g_SecondaryIndex = 0;
+    void ArmPrimary(PrimaryWeaponIndex index) {
+        if (index == Player.State.Primary) {
+            Sound::Play(Resources::GetSoundResource(SoundID::AlreadySelected));
+            return;
+        }
+
+        if (!Player.HasWeapon(index)) {
+            auto dontHave = Resources::GetStringTableEntry(StringTableEntry::DontHave);
+            auto msg = fmt::format("{} {}!", dontHave, Resources::GetPrimaryName(index));
+            PrintHudMessage(msg);
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            return;
+        }
+
+        Sound::Play(Resources::GetSoundResource(SoundID::SelectPrimary));
+        Player.State.PrimaryDelay = Player.RearmTime;
+        Player.State.Primary = index;
+    }
+
+    void ArmSecondary(SecondaryWeaponIndex index) {
+        if (index == Player.State.Secondary) {
+            Sound::Play(Resources::GetSoundResource(SoundID::AlreadySelected));
+            return;
+        }
+
+        if (!Player.HasWeapon(index)) {
+            auto haveNo = Resources::GetStringTableEntry(StringTableEntry::HaveNo);
+            auto sx = Resources::GetStringTableEntry(StringTableEntry::Sx);
+            auto msg = fmt::format("{} {}{}!", haveNo, Resources::GetSecondaryName(index), sx);
+            PrintHudMessage(msg);
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            return;
+        }
+
+        Sound::Play(Resources::GetSoundResource(SoundID::SelectPrimary));
+        Player.State.SecondaryDelay = Player.RearmTime;
+        Player.State.Secondary = index;
+    }
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
-        g_FireDelay -= dt;
-        g_SecondaryFireDelay -= dt;
+        Player.State.PrimaryDelay -= dt;
+        Player.State.SecondaryDelay -= dt;
 
         // must check held keys inside of fixed updates so events aren't missed
         if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
             (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
-            if (g_FireDelay <= 0) {
-                auto id = Game::Level.IsDescent2() ? WeaponID::Laser1: WeaponID::Plasma;
-                auto& weapon = Resources::GameData.Weapons[id];
-                g_FireDelay = weapon.FireDelay;
-                FireTestWeapon(Game::Level, ObjID(0), 0, id);
-                FireTestWeapon(Game::Level, ObjID(0), 1, id);
-                //FireTestWeapon(Game::Level, ObjID(0), 2, id);
-                //FireTestWeapon(Game::Level, ObjID(0), 3, id);
+            if (Player.State.PrimaryDelay <= 0) {
+                auto id = Player.GetPrimaryWeaponID();
+                auto& weapon = Resources::GameData.Weapons[(int)id];
+                Player.State.PrimaryDelay = weapon.FireDelay;
+                if (Player.State.Primary == PrimaryWeaponIndex::Vulcan ||
+                    Player.State.Primary == PrimaryWeaponIndex::Gauss) {
+                    FireTestWeapon(Game::Level, ObjID(0), 7, id);
+                }
+                else {
+                    FireTestWeapon(Game::Level, ObjID(0), 0, id);
+                    FireTestWeapon(Game::Level, ObjID(0), 1, id);
+
+                    if (Player.HasPowerup(PowerupFlag::QuadLasers) && Player.State.Primary == PrimaryWeaponIndex::Laser) {
+                        FireTestWeapon(Game::Level, ObjID(0), 2, id);
+                        FireTestWeapon(Game::Level, ObjID(0), 3, id);
+                    }
+                }
             }
         }
 
         if ((Game::State != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD)) {
-            if (g_SecondaryFireDelay <= 0) {
-                auto id = Game::Level.IsDescent2() ? WeaponID::Concussion : WeaponID::Concussion;
-                auto& weapon = Resources::GameData.Weapons[id];
-                g_SecondaryFireDelay = weapon.FireDelay;
-                g_SecondaryIndex = (g_SecondaryIndex + 1) % 2;
-                FireTestWeapon(Game::Level, ObjID(0), g_SecondaryIndex, id);
+            if (Player.State.SecondaryDelay <= 0) {
+                auto id = Player.GetSecondaryWeaponID();
+                auto& weapon = Resources::GameData.Weapons[(int)id];
+                Player.State.SecondaryDelay = weapon.FireDelay;
+                Player.State.MissileGunpoint = (Player.State.MissileGunpoint + 1) % 2;
+                FireTestWeapon(Game::Level, ObjID(0), Player.State.MissileGunpoint, id);
             }
         }
 
-        UpdateAmbientSounds();
+        //UpdateAmbientSounds();
         Render::UpdateDebris(dt);
 
         for (auto& obj : Level.Objects) {
@@ -427,6 +479,7 @@ namespace Inferno::Game {
             Render::UpdateExplosions(TICK_RATE);
             accumulator -= TICK_RATE;
             t += TICK_RATE;
+            Game::DeltaTime += TICK_RATE;
         }
 
         if (Game::ShowDebugOverlay) {
@@ -451,6 +504,7 @@ namespace Inferno::Game {
         Inferno::Input::Update();
         HandleGlobalInput();
         Render::Debug::BeginFrame(); // enable debug calls during updates
+        Game::DeltaTime = 0;
 
         g_ImGuiBatch->BeginFrame();
         switch (State) {
@@ -629,6 +683,14 @@ namespace Inferno::Game {
             };
 
             Render::Materials->LoadTextures(customHudTextures);
+            Player.GiveWeapon(PrimaryWeaponIndex::Laser);
+            Player.GiveWeapon(PrimaryWeaponIndex::Vulcan);
+            Player.GiveWeapon(PrimaryWeaponIndex::Spreadfire);
+            Player.GiveWeapon(PrimaryWeaponIndex::Helix);
+            Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
+            Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
+            Player.PrimaryWeapons = 0xffff;
+            Player.SecondaryWeapons = 0xffff;
 
             //TexID weaponTextures[] = {
             //    TexID(30), TexID(11), TexID(

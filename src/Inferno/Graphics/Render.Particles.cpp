@@ -62,7 +62,8 @@ namespace Inferno::Render {
             if (p.FadeTime != 0 && p.Life <= p.FadeTime) {
                 color.w = 1 - std::clamp((p.FadeTime - p.Life) / p.FadeTime, 0.0f, 1.0f);
             }
-            DrawVClip(ctx, vclip, p.Position, p.Radius, color, elapsed, true, p.Rotation, up);
+            auto tid = vclip.GetFrame(elapsed);
+            DrawBillboard(ctx, tid, p.Position, p.Radius, color, true, p.Rotation, up);
         }
     }
 

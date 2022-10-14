@@ -21,7 +21,7 @@ namespace Inferno::Game {
     inline Option<HogFile> Mission;
 
     // Only single player for now
-    inline PlayerData Player = {};
+    inline struct Player Player = {};
 
     // is the game level loading?
     inline std::atomic<bool> IsLoading = false;
@@ -39,8 +39,8 @@ namespace Inferno::Game {
 
     void FireTestWeapon(Inferno::Level& level, ObjID, int gun, int id);
 
-    // Elapsed game time  in seconds. Stops when paused.
-    inline double ElapsedTime = 0;
+    inline double ElapsedTime = 0; // Elapsed game time in seconds. Stops when paused.
+    inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     void Update(float dt);

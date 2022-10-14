@@ -120,11 +120,13 @@
     <ClInclude Include="OutrageTable.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Pig.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="Polymodel.h" />
     <ClInclude Include="Robot.h" />
     <ClInclude Include="Segment.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="Streams.h" />
+    <ClInclude Include="StringTable.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Wall.h" />

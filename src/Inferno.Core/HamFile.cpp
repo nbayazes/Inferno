@@ -265,12 +265,12 @@ namespace Inferno {
         w.Bounce = r.ReadByte();
         w.IsHoming = r.ReadByte();
 
-        w.SpeedVariance = r.ReadByte();
+        w.SpeedVariance = r.ReadByte() / 128.0f;
         w.Flags = (WeaponFlag)r.ReadByte();
-        w.HasFlashEffect = r.ReadByte();
+        w.FlashStrength = r.ReadByte();
         w.TrailSize = r.ReadByte();
 
-        w.Children = r.ReadByte();
+        w.Children = (WeaponID)r.ReadByte();
 
         w.EnergyUsage = r.ReadFix();
         w.FireDelay = r.ReadFix();

@@ -9,6 +9,7 @@
 #include "OutrageModel.h"
 #include "OutrageTable.h"
 #include "SoundSystem.h"
+#include "StringTable.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -48,6 +49,7 @@ namespace Inferno::Resources {
     TexID LookupLevelTexID(LevelTexID);
     TexID LookupModelTexID(const Model&, int16);
 
+    Weapon& GetWeapon(WeaponID);
 
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
@@ -88,4 +90,21 @@ namespace Inferno::Resources {
 
     // Loads D1 and D2 sounds
     void LoadSounds();
+
+    string_view GetStringTableEntry(StringTableEntry);
+    inline string_view GetPrimaryName(PrimaryWeaponIndex id) {
+        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::Laser + (int)id });
+    }
+
+    inline string_view GetSecondaryName(SecondaryWeaponIndex id) {
+        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::Concussion + (int)id });
+    }
+
+    inline string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
+        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::LaserShort + (int)id });
+    }
+
+    inline string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
+        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::ConcussionShort + (int)id });
+    }
 }

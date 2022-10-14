@@ -2,6 +2,7 @@
 
 #include "AI.h"
 #include "Weapon.h"
+#include "Player.h"
 
 namespace Inferno {
     // Control types - what tells this object what do do
@@ -149,7 +150,6 @@ namespace Inferno {
         VClipID ID = VClipID::None;
         float FrameTime = 0;
         uint8 Frame = 0;
-        float Rotation = 0;
     };
 
     // Object signature
@@ -248,56 +248,6 @@ namespace Inferno {
         Array<Vector3, 8> GunPoints, GunDirs;
     };
 
-    struct PlayerData {
-        ObjID ID = ObjID(0);   // What object number this player is.
-        float energy;     // Amount of energy remaining.
-        float homing_object_dist; // Distance of nearest homing object.
-        float Fusion_charge;
-        float Omega_charge = 1;
-        float Omega_recharge_delay;
-        uint32 PowerupFlags;
-        ObjID Killer = ObjID::None; // who killed the player
-        uint16 vulcan_ammo;
-        uint16 primary_weapon_flags;
-        uint16 secondary_weapon_flags;
-        bool Player_eggs_dropped;
-        bool FakingInvul;
-        bool lavafall_hiss_playing;
-        uint8 missile_gun;
-        LaserLevel LaserLevel;
-        Array<uint8, 10> secondary_ammo; // How much ammo of each type.
-        uint8 Spreadfire_toggle;
-        uint8 Primary_last_was_super;
-        uint8 Secondary_last_was_super;
-        uint8 Helix_orientation;
-        int16 net_killed_total; // Number of times killed total
-        int16 net_kills_total;  // Number of net kills total
-        int16 KillGoalCount;    // Num of players killed this level
-
-        union {
-            struct {
-                int score;				// Current score.
-                int last_score;			// Score at beginning of current level.
-                uint16 hostages_rescued_total; // Total number of hostages rescued.
-                uint8 hostages_on_board;
-            } mission;
-            struct {
-                uint8 orbs;
-            } hoard;
-        };
-        enum {
-            max_hoard_orbs = 12,
-        };
-
-        float cloak_time;         // Time cloaked
-        float invulnerable_time;  // Time invulnerable
-        float Next_flare_fire_time;
-        float Next_laser_fire_time;
-        float Next_missile_fire_time;
-        float Last_bumped_local_player;
-        float Auto_fire_fusion_cannon_time;
-    };
-
     struct ControlData {
         ControlType Type = ControlType::None;
         union {
@@ -305,15 +255,16 @@ namespace Inferno {
             struct LightInfo Light;
             struct PowerupControlInfo Powerup;
             struct RobotAI AI;
-            struct ReactorControlInfo Reactor;
             struct WeaponData Weapon;
-            struct PlayerData Player {}; // be sure to init using the largest struct
+            struct ReactorControlInfo Reactor; // Not in original data
+            struct Player Player {}; // Not in original data. be sure to init using the largest struct
         };
     };
 
     struct RenderData {
         RenderType Type;
         Color Emissive;
+        float Rotation = 0;
         union {
             struct ModelData Model {}; // polygon model
             struct VClipData VClip;   // vclip

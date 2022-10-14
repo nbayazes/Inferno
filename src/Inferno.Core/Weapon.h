@@ -14,7 +14,7 @@ namespace Inferno {
         VClip = 3
     };
 
-    enum PrimaryWeaponIndex : uint8 {
+    enum class PrimaryWeaponIndex : uint8 {
         Laser = 0,
         Vulcan = 1,
         Spreadfire = 2,
@@ -49,71 +49,79 @@ namespace Inferno {
         Level6,
     };
 
-    namespace WeaponID {
-        constexpr int Laser1 = 0;
-        constexpr int Laser2 = 1;
-        constexpr int Laser3 = 2;
-        constexpr int Laser4 = 3;
-        constexpr int Concussion = 8;
-        constexpr int Flare = 9;
-        constexpr int Vulcan = 11;
-        constexpr int Spreadfire = 12;
-        constexpr int Plasma = 13;
-        constexpr int Fusion = 14;
-        constexpr int Homing = 15;
-        constexpr int ProxMine = 16;
-        constexpr int Smart = 17;
-        constexpr int Mega = 18;
+    // HAM IDs for each weapon
+    enum class WeaponID : sbyte {
+        None = -1,
+        Laser1 = 0,
+        Laser2 = 1,
+        Laser3 = 2,
+        Laser4 = 3,
+        Concussion = 8,
+        Flare = 9,
+        Vulcan = 11,
+        Spreadfire = 12,
+        Plasma = 13,
+        Fusion = 14,
+        Homing = 15,
+        ProxMine = 16,
+        Smart = 17,
+        Mega = 18,
 
-        constexpr int Laser5 = 30;
-        constexpr int Laser6 = 31;
-        constexpr int Gauss = 32;
-        constexpr int Helix = 33;
-        constexpr int Phoenix = 34;
-        constexpr int Omega = 35;
+        Laser5 = 30,
+        Laser6 = 31,
+        Gauss = 32,
+        Helix = 33,
+        Phoenix = 34,
+        Omega = 35,
 
-        constexpr int Flash = 36;
-        constexpr int Guided = 37;
-        constexpr int SmartMine = 38;
-        constexpr int Mercury = 39;
-        constexpr int Shaker = 40;
+        Flash = 36,
+        Guided = 37,
+        SmartMine = 38,
+        Mercury = 39,
+        Shaker = 40,
 
-        constexpr int LevelMine = 51; // Placeable level mine
-    }
+        LevelMine = 51, // Placeable level mine
+    };
+
+    static inline WeaponID PrimaryToWeaponID[10] = { WeaponID::Laser1, WeaponID::Vulcan, WeaponID::Spreadfire, WeaponID::Plasma, WeaponID::Fusion, WeaponID::Laser5, WeaponID::Gauss, WeaponID::Helix, WeaponID::Phoenix, WeaponID::Omega };
+    static inline WeaponID SecondaryToWeaponID[10] = { WeaponID::Concussion, WeaponID::Homing, WeaponID::ProxMine, WeaponID::Smart, WeaponID::Mega, WeaponID::Flash, WeaponID::Guided, WeaponID::SmartMine, WeaponID::Mercury, WeaponID::Shaker };
 
     struct Weapon {
         WeaponRenderType RenderType;
-        bool Piercing;
-        ModelID Model;
-        ModelID ModelInner;
+        bool Piercing; // Passes through enemies (fusion)
+        ModelID Model = ModelID::None;
+        ModelID ModelInner = ModelID::None;
         
-        VClipID FlashVClip; // Muzzle flash
-        SoundID FlashSound; // Sound to play when fired
+        VClipID FlashVClip = VClipID::None; // Muzzle flash
+        SoundID FlashSound = SoundID::None; // Sound to play when fired
 
-        sbyte FireCount;        // Bursts fired from each gun point?
+        // Number of times to 'fire' this weapon per pull of the trigger. 
+        // For missiles it will alternate gunpoints.
+        // For most lasers it will stack the projectiles.
+        sbyte FireCount = 1;
 
-        VClipID RobotHitVClip;
-        SoundID RobotHitSound;
+        VClipID RobotHitVClip = VClipID::None;
+        SoundID RobotHitSound = SoundID::None;
 
-        sbyte AmmoUsage;
-        VClipID WeaponVClip;
+        sbyte AmmoUsage = 0;
+        VClipID WeaponVClip = VClipID::None;
 
-        VClipID WallHitVClip;
-        SoundID WallHitSound;
+        VClipID WallHitVClip = VClipID::None;
+        SoundID WallHitSound = SoundID::None;
 
-        bool IsDestroyable;       // If true this weapon can be destroyed by another weapon
-        bool IsMatter;            // Is a matter weapon if true, energy if false
-        sbyte Bounce;            // 1 always bounces, 2 bounces twice
-        bool IsHoming;
+        bool IsDestroyable = false;     // If true this weapon can be destroyed by another weapon
+        bool IsMatter = false;          // Is a matter weapon if true, energy if false
+        sbyte Bounce = 0;           // 1 always bounces, 2 bounces twice
+        bool IsHoming = false;
 
-        ubyte SpeedVariance;  // allowed variance in speed below average, /128: 64 = 50% meaning if speed = 100, can be 50..100
+        float SpeedVariance = 1;  // Randomized speed multiplier. 0.5 is 50-100%
 
-        WeaponFlag Flags;
+        WeaponFlag Flags{};
 
-        sbyte HasFlashEffect;
+        sbyte FlashStrength = 0; // Blinding flash effect strength
         sbyte TrailSize; // Size of blobs in 1/16 units. Player afterburner size = 2.5.
 
-        sbyte Children;  // ID of weapon to drop if this contains children. -1 means no children.
+        WeaponID Children = WeaponID::None;  // Weapon to spawn when destroyed
 
         float EnergyUsage; 
         float FireDelay;
@@ -134,7 +142,72 @@ namespace Inferno {
         float Light;
         float Lifetime;
         float SplashRadius;
-        TexID Icon, HiresIcon;  // Texture to use in the cockpit or UI
+        TexID Icon = TexID::None, HiresIcon = TexID::None;  // Texture to use in the cockpit or UI
     };
 
+    struct WeaponExtended {
+        WeaponID ID; // Associate with this existing weapon ID in the HAM
+        string Name; // Name in fullscreen HUD
+        string ShortName; // Name in cockpit window
+        string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
+
+        int PowerupType; // Powerup when dropped
+        int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
+        int AmmoType;
+        bool Chargable = false; // Fusion, Mass Driver
+        float ChargeTime = 3; // Max charge time
+        int Crosshair = 0; // Crosshair shown when selected but not ready to fire
+        float HomingTurnRate = 0; // Amount of rotational force to apply each second for homing weapons
+        List<int> Levels; // Weapon ID fired at each upgrade level (for lasers)
+
+        bool SilentSelectFail = false; // Hide HUD errors when selecting
+        Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
+
+        struct FiringPattern {
+            string Crosshair;
+
+            // Fires a projectile from an object using:
+            // Object.FVec + Direction +- Spread
+            struct Projectile {
+                int Gun = 0;
+                Vector3 Direction = { 0, 0, 1 }; // Fixed direction firing vector (Z-forward)
+                bool QuadOnly = false;
+                float DamageMultiplier = 1;
+            };
+        };
+
+        List<FiringPattern> Pattern;
+        ubyte State[32]; // Buffer to serialize arbitrary weapon state. Helix / Spreadfire rotation. Omega charge?
+    };
+
+    struct ShipInfo {
+        float DamageMultiplier = 1.0f; // Multiplier on damage taken
+
+        struct PrimaryAmmo {
+            int Max = 10000;
+            float DisplayMultiplier = 1;
+        };
+
+        // Ammo used by primary weapons. Vulcan and Gauss share. Could add Napalm fuel.
+        List<PrimaryAmmo> PrimaryAmmoTypes;
+
+        struct WeaponBattery {
+            float EnergyUsage = 0; // Energy per shot
+            float AmmoUsage = 0; // Ammo per shot
+            int AmmoType = -1;
+            int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
+
+            // Crosshair should be determined by gunpoints
+            struct FiringInfo {
+                bool Gunpoints[8]{};
+                float Delay = 0.25f; // Delay between shots
+            };
+
+            List<FiringInfo> Firing; // Cycles through each entry after firing.
+
+            bool QuadGunpoints[8]{}; // Gunpoints to use with quad upgrade
+        };
+
+        List<WeaponBattery> Weapons[20]; // 10 primaries, 10 secondaries
+    };
 }

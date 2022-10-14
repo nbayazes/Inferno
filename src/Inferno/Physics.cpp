@@ -919,7 +919,7 @@ namespace Inferno {
             if (&obj == &source) continue;
             if (!obj.IsAlive()) continue;
 
-            if (obj.Type == ObjectType::Weapon && (obj.ID != WeaponID::ProxMine && obj.ID != WeaponID::SmartMine && obj.ID != WeaponID::LevelMine))
+            if (obj.Type == ObjectType::Weapon && (obj.ID != (int)WeaponID::ProxMine && obj.ID != (int)WeaponID::SmartMine && obj.ID != (int)WeaponID::LevelMine))
                 continue; // only allow explosions to affect mines
 
             // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
@@ -959,7 +959,7 @@ namespace Inferno {
                     ApplyForce(obj, forceVec);
 
                     // Mines can blow up under enough force
-                    if (obj.ID == WeaponID::ProxMine || obj.ID == WeaponID::SmartMine) {
+                    if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
                         if (dist * force > 0.122f) {
                             obj.Lifespan = 0;
                             // explode()?
@@ -1052,7 +1052,7 @@ namespace Inferno {
                     expl.Color = { 1.15f, 1.15f, 1.15f };
                     expl.FadeTime = 0.1f;
 
-                    if (source.ID == WeaponID::Concussion) { // todo: and all other missiles
+                    if (source.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
                         expl.Instances = 3;
                         expl.MinDelay = expl.MaxDelay = 0;
                         expl.Clip = weapon.WallHitVClip;
@@ -1074,7 +1074,7 @@ namespace Inferno {
                     soundId = SoundID::HitLava;
                 }
                 else if (ti.HasFlag(TextureFlag::Water)) {
-                    if (source.ID == WeaponID::Concussion)
+                    if (source.ID == (int)WeaponID::Concussion)
                         soundId = SoundID::MissileHitWater;
                     else
                         soundId = SoundID::HitWater;
@@ -1092,11 +1092,15 @@ namespace Inferno {
             e.MaxRadius = weapon.ImpactSize * 1.1f;
             e.Clip = vclip;
             e.Sound = soundId;
-            e.Position = hit.Point - dir * (1 + weapon.ImpactSize * 0.25f); // move explosion out of wall
+            if (source.Radius < 0.5f)
+                e.Position = hit.Point - dir * (1 + weapon.ImpactSize * 0.25f); // move explosion out of wall
+            else
+                e.Position = source.Position; // it looks weird if large objects have their explosion at the contact point
+
             e.Color = { 1, 1, 1 };
             e.FadeTime = 0.1f;
 
-            if (source.ID == WeaponID::Concussion) {
+            if (source.ID == (int)WeaponID::Concussion) {
                 e.Instances = 3;
                 e.MinDelay = e.MaxDelay = 0;
             }
@@ -1259,8 +1263,8 @@ namespace Inferno {
                 UpdateObjectSegment(level, obj);
             }
 
-            if (obj.LastPosition != obj.Position)
-                Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
+            //if (obj.LastPosition != obj.Position)
+            //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
 
             if (id == 0) {
                 Debug::ShipVelocity = obj.Movement.Physics.Velocity;

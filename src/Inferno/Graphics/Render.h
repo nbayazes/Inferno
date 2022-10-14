@@ -40,7 +40,7 @@ namespace Inferno::Render {
         return Settings::Graphics.HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
 
-    void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
+    //void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
@@ -70,6 +70,7 @@ namespace Inferno::Render {
     inline uint16 DrawCalls = 0;
     inline uint16 PolygonCount = 0;
     inline float FrameTime = 0; // Time of this frame in seconds
+    inline float GameFrameTime = 0 ; // Time of this frame in seconds. 0 when paused.
     inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     enum class RenderCommandType {
@@ -116,5 +117,6 @@ namespace Inferno::Render {
     void QueueTransparent(RenderCommand&);
     void QueueOpaque(RenderCommand&);
 
+    void DrawBillboard(Graphics::GraphicsContext& ctx, TexID tid, const Vector3& position, float radius, const Color& color, bool additive, float rotation, const Vector3* up);
     extern bool LevelChanged;
 }
