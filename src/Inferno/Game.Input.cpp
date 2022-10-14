@@ -6,11 +6,6 @@
 namespace Inferno {
     using Keys = DirectX::Keyboard::Keys;
 
-    namespace Game {
-        void ArmPrimary(PrimaryWeaponIndex index);
-        void ArmSecondary(SecondaryWeaponIndex index);
-    }
-
     void HandleEditorDebugInput(float /*dt*/) {
         using Keys = DirectX::Keyboard::Keys;
         auto& obj = Game::Level.Objects[0];
@@ -51,77 +46,45 @@ namespace Inferno {
     }
 
     void HandleWeaponKeys() {
-
         if (Input::IsKeyPressed(Keys::D1)) {
-            Game::ArmPrimary(PrimaryWeaponIndex::Laser);
+            Game::Player.ArmPrimary(PrimaryWeaponIndex::Laser);
         }
 
         if (Input::IsKeyPressed(Keys::D2)) {
-            Game::ArmPrimary(PrimaryWeaponIndex::Vulcan);
+            Game::Player.ArmPrimary(PrimaryWeaponIndex::Vulcan);
         }
 
         if (Input::IsKeyPressed(Keys::D3)) {
-            Game::ArmPrimary(PrimaryWeaponIndex::Spreadfire);
+            Game::Player.ArmPrimary(PrimaryWeaponIndex::Spreadfire);
         }
 
         if (Input::IsKeyPressed(Keys::D4)) {
-            Game::ArmPrimary(PrimaryWeaponIndex::Plasma);
+            Game::Player.ArmPrimary(PrimaryWeaponIndex::Plasma);
         }
 
         if (Input::IsKeyPressed(Keys::D5)) {
-            Game::ArmPrimary(PrimaryWeaponIndex::Fusion);
+            Game::Player.ArmPrimary(PrimaryWeaponIndex::Fusion);
         }
 
-        //// Secondaries
-        //if (Input::IsKeyPressed(Keys::D1)) {
-        //    if (Game::Level.IsDescent1()) {
-        //        Game::ArmSecondary(SecondaryWeaponIndex::Concussion);
-        //    }
-        //    else {
-        //        auto id = Game::Player.State.Primary == SecondaryWeaponIndex::Concussion ? SecondaryWeaponIndex::Flash : SecondaryWeaponIndex::Concussion;
-        //        Game::ArmSecondary(id);
-        //    }
-        //}
+        if (Input::IsKeyPressed(Keys::D6)) {
+            Game::Player.ArmSecondary(SecondaryWeaponIndex::Concussion);
+        }
 
-        //if (Input::IsKeyPressed(Keys::D2)) {
-        //    if (Game::Level.IsDescent1()) {
-        //        Game::ArmSecondary(PrimaryWeaponIndex::Vulcan);
-        //    }
-        //    else {
-        //        auto id = Game::Player.State.Primary == PrimaryWeaponIndex::Vulcan ? PrimaryWeaponIndex::Gauss : PrimaryWeaponIndex::Vulcan;
-        //        Game::ArmSecondary(id);
-        //    }
-        //}
+        if (Input::IsKeyPressed(Keys::D7)) {
+            Game::Player.ArmSecondary(SecondaryWeaponIndex::Homing);
+        }
 
-        //if (Input::IsKeyPressed(Keys::D3)) {
-        //    if (Game::Level.IsDescent1()) {
-        //        Game::ArmSecondary(PrimaryWeaponIndex::Spreadfire);
-        //    }
-        //    else {
-        //        auto id = Game::Player.State.Primary == PrimaryWeaponIndex::Spreadfire ? PrimaryWeaponIndex::Helix : PrimaryWeaponIndex::Spreadfire;
-        //        Game::ArmSecondary(id);
-        //    }
-        //}
+        if (Input::IsKeyPressed(Keys::D8)) {
+            Game::Player.ArmSecondary(SecondaryWeaponIndex::Proximity);
+        }
 
-        //if (Input::IsKeyPressed(Keys::D4)) {
-        //    if (Game::Level.IsDescent1()) {
-        //        Game::ArmSecondary(PrimaryWeaponIndex::Plasma);
-        //    }
-        //    else {
-        //        auto id = Game::Player.State.Primary == PrimaryWeaponIndex::Plasma ? PrimaryWeaponIndex::Phoenix : PrimaryWeaponIndex::Plasma;
-        //        Game::ArmSecondary(id);
-        //    }
-        //}
+        if (Input::IsKeyPressed(Keys::D9)) {
+            Game::Player.ArmSecondary(SecondaryWeaponIndex::Smart);
+        }
 
-        //if (Input::IsKeyPressed(Keys::D5)) {
-        //    if (Game::Level.IsDescent1()) {
-        //        Game::ArmSecondary(PrimaryWeaponIndex::Fusion);
-        //    }
-        //    else {
-        //        auto id = Game::Player.State.Primary == PrimaryWeaponIndex::Fusion ? PrimaryWeaponIndex::Omega : PrimaryWeaponIndex::Fusion;
-        //        Game::ArmSecondary(id);
-        //    }
-        //}
+        if (Input::IsKeyPressed(Keys::D0)) {
+            Game::Player.ArmSecondary(SecondaryWeaponIndex::Mega);
+        }
     }
 
     void HandleInput(float dt) {

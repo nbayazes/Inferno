@@ -194,23 +194,13 @@ namespace Inferno {
         const Vector2 primaryOffset(0/*-30*/, 14);
         const Vector2 secondaryOffset(0/*-24*/, 2);
 
-        auto& primary = Resources::GetWeapon(Game::Player.GetPrimaryWeaponID());
-        bool primaryReady = Game::Player.CanFirePrimary(primary);
-
-        auto& secondary = Resources::GetWeapon(Game::Player.GetSecondaryWeaponID());
-        bool secondaryReady = Game::Player.CanFireSecondary(secondary);
-
-        //bool primaryReady = Game::Player.State.PrimaryDelay <= 0;
-        //bool secondaryReady = Game::Player.State.SecondaryDelay <= 0;
-
-        //primary_bm_num = (laser_ready && laser_ammo == HAS_ALL);
-        //secondary_bm_num = (missile_ready && missile_ammo == HAS_ALL);
-
+        bool primaryReady = Game::Player.CanFirePrimary();
+        bool secondaryReady = Game::Player.CanFireSecondary();
         float scale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
         // cross deactivates when no primary or secondary weapons are available
         int crossFrame = primaryReady || secondaryReady ? 1 : 0;
 
-        bool quadLasers = Game::Player.HasPowerup(PowerupFlag::QuadLasers) && Game::Player.State.Primary == PrimaryWeaponIndex::Laser;
+        bool quadLasers = Game::Player.HasPowerup(PowerupFlag::QuadLasers) && Game::Player.Primary == PrimaryWeaponIndex::Laser;
         int primaryFrame = primaryReady ? (quadLasers ? 2 : 1) : 0;
         DrawReticleBitmap(crossOffset, Gauges::ReticleCross, crossFrame, scale); // gauss, vulkan
         DrawReticleBitmap(primaryOffset, Gauges::ReticlePrimary, primaryFrame, scale);
@@ -218,9 +208,9 @@ namespace Inferno {
         int secondaryFrame = secondaryReady;
         static constexpr uint8_t Secondary_weapon_to_gun_num[10] = { 4,4,7,7,7,4,4,7,4,7 };
 
-        if (Secondary_weapon_to_gun_num[(int)Game::Player.State.Secondary] == 7)
+        if (Secondary_weapon_to_gun_num[(int)Game::Player.Secondary] == 7)
             secondaryFrame += 3;		//now value is 0,1 or 3,4
-        else if (secondaryFrame && !(Game::Player.State.MissileGunpoint & 1))
+        else if (secondaryFrame && (Game::Player.MissileGunpoint & 1))
             secondaryFrame++;
 
         DrawReticleBitmap(secondaryOffset, Gauges::ReticleSecondary, secondaryFrame, scale);
@@ -472,8 +462,8 @@ namespace Inferno {
     public:
         void Draw(float dt, Player& player) {
             float spacing = 100;
-            LeftMonitor.Update(dt, player, (int)player.State.Primary);
-            RightMonitor.Update(dt, player, (int)player.State.Secondary);
+            LeftMonitor.Update(dt, player, (int)player.Primary);
+            RightMonitor.Update(dt, player, (int)player.Secondary);
 
             DrawLeftMonitor(-spacing, LeftMonitor);
             DrawRightMonitor(spacing, RightMonitor);
@@ -555,130 +545,9 @@ namespace Inferno {
 
             DrawHudMessages(dt);
         }
-    private:
-        void DrawMonitor(float dt, Player& player, MonitorState& monitor, WeaponID weapon) {
-            //// Check if primary or secondary weapons have changed and start fading
-            //if (monitor.Weapon != weapon) {
-            //    monitor.State = FadeOut;
-            //    monitor.Opacity = player.RearmTime;
-            //    monitor.PrevWeapon = monitor.Weapon;
-            //    monitor.Weapon = weapon;
-            //}
-
-            //if (monitor.PrevWeapon == WeaponID::None) {
-            //    // draw current weapon
-            //    monitor.PrevWeapon = weapon;
-            //    monitor.Opacity = 1;
-            //    monitor.State = FadeNone;
-            //}
-
-            //if (monitor.State == FadeOut) {
-            //    // draw old weapon
-
-            //    monitor.Opacity -= dt * player.RearmTime * 2;
-            //    if (monitor.Opacity <= 0) {
-            //        monitor.State = FadeIn;
-            //        monitor.PrevWeapon = monitor.Weapon;
-            //        //monitor.Weapon = weapon;
-            //    }
-            //}
-            //else if (monitor.State == FadeIn) {
-            //    // draw new weapon
-
-            //    if (monitor.PrevWeapon != weapon) {
-            //        monitor.State = FadeOut; // weapon was changed while swapping
-            //    }
-            //    else {
-
-            //    }
-            //}
-
-
-        }
     } Hud;
 
     void DrawHUD(float dt) {
         Hud.Draw(dt, Game::Player);
-
-        //float spacing = 100;
-        //DrawLeftMonitor(-spacing, 1);
-        //DrawRightMonitor(spacing, 1);
-        //DrawCenterMonitor();
-
-        //DrawReticle();
-
-        //auto scale = Render::HudCanvas->GetScale();
-
-        //{
-        //    // Life text
-        //    Render::DrawTextInfo info;
-        //    info.Font = FontSize::Small;
-        //    info.Color = MonitorGreenText;
-        //    info.Position = Vector2(30, 5) * scale;
-        //    info.HorizontalAlign = AlignH::Left;
-        //    info.VerticalAlign = AlignV::Top;
-        //    info.Scanline = 0.5f;
-        //    Render::HudCanvas->DrawGameText("X 2", info);
-        //}
-
-        //{
-        //    // Life marker
-        //    Inferno::Render::CanvasBitmapInfo info;
-        //    info.Position = Vector2(5, 5) * scale;
-        //    auto& material = Render::Materials->Get(GetGaugeTexID(Gauges::Lives));
-        //    info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
-        //    info.Size *= scale;
-        //    info.Texture = material.Handles[0];
-        //    info.HorizontalAlign = AlignH::Left;
-        //    info.VerticalAlign = AlignV::Top;
-        //    info.Scanline = 0.5f;
-        //    Render::HudCanvas->DrawBitmap(info);
-        //}
-
-        //{
-        //    // Score
-        //    Render::DrawTextInfo info;
-        //    info.Font = FontSize::Small;
-        //    info.Color = MonitorGreenText;
-        //    info.Position = Vector2(-5, 5) * scale;
-        //    info.HorizontalAlign = AlignH::Right;
-        //    info.VerticalAlign = AlignV::Top;
-        //    info.Scanline = 0.5f;
-        //    Render::HudCanvas->DrawGameText("SCORE:       0", info);
-        //}
-
-        //{
-        //    // Lock text
-        //    Render::DrawTextInfo info;
-        //    info.Font = FontSize::Small;
-        //    info.Color = MonitorRedText;
-        //    info.Position = Vector2(0, 40) * scale;
-        //    info.HorizontalAlign = AlignH::Center;
-        //    info.VerticalAlign = AlignV::CenterTop;
-        //    info.Scanline = 0.8f;
-        //    //DrawMonitorText("!LOCK!", info);
-        //}
-
-        //DrawHighlights(false);
-        //DrawHighlights(true);
-
-        //// Lock warning
-        ////DrawAdditiveBitmap({ -220, -230 }, AlignH::CenterRight, "gauge16b", 1);
-
-        ////{
-        ////    auto& material = Render::Materials->GetOutrageMaterial("gauge16b");
-
-        ////    Render::CanvasBitmapInfo info;
-        ////    info.Position = { -300, 0 } *scale;
-        ////    info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
-        ////    info.Size *= scale;
-        ////    info.Texture = material.Handles[Material2D::Diffuse];
-        ////    info.HorizontalAlign = AlignH::CenterRight;
-        ////    info.VerticalAlign = AlignV::CenterTop;
-        ////    info.Scanline = 1;
-        ////    Render::HudGlowCanvas->DrawBitmap(info);
-        ////}
-
-        //DrawHudMessages(dt);
     }
 }

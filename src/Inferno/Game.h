@@ -2,6 +2,7 @@
 #include "Level.h"
 #include "HogFile.h"
 #include "Mission.h"
+#include "Game.Player.h"
 
 namespace Inferno {
     enum class GameState { Game, Editor, Paused };
@@ -36,8 +37,6 @@ namespace Inferno::Game {
 
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo();
-
-    void FireTestWeapon(Inferno::Level& level, ObjID, int gun, int id);
 
     inline double ElapsedTime = 0; // Elapsed game time in seconds. Stops when paused.
     inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.

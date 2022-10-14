@@ -254,12 +254,13 @@ namespace Inferno {
             struct ExplosionObjectInfo Explosion; //debris also uses this
             struct LightInfo Light;
             struct PowerupControlInfo Powerup;
-            struct RobotAI AI;
+            struct RobotAI AI {}; // be sure to init using the largest struct
             struct WeaponData Weapon;
-            struct ReactorControlInfo Reactor; // Not in original data
-            struct Player Player {}; // Not in original data. be sure to init using the largest struct
+            //struct ReactorControlInfo Reactor; // Not in original data
         };
     };
+
+    constexpr auto sz = sizeof(RobotAI);
 
     struct RenderData {
         RenderType Type;
