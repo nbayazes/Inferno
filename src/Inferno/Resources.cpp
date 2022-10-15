@@ -335,7 +335,7 @@ namespace Inferno::Resources {
         }
     }
 
-    string_view GetStringTableEntry(StringTableEntry i) {
+    string_view GetString(StringTableEntry i) {
         if (!Seq::inRange(StringTable, (int)i)) return "???";
         return StringTable[(int)i];
     }
@@ -384,6 +384,7 @@ namespace Inferno::Resources {
 
     void LoadStringTable() {
         StringTable.clear();
+        StringTable.reserve(700);
         auto data = Hog.ReadEntry("descent.txb");
         auto briefing = Briefing::Read(data);
 

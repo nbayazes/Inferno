@@ -252,6 +252,12 @@ namespace Inferno {
         //Render::HudCanvas->DrawBitmap(info);
     }
 
+    // convert '1' characters to special wide ones (fixed width?)
+    void UseWide1Char(string& s) {
+        for (auto& c : s)
+            if (c == '1') c = 132;
+    }
+
     void DrawLeftMonitor(float x, const MonitorState& state) {
         DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left");
 
@@ -266,10 +272,33 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
-            //DrawMonitorText("S.LASER\nLVL: 5", info);
-            DrawMonitorText(Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
+            auto weaponName = Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex);
+            string label = string(weaponName), ammo;
 
-            if (state.WeaponIndex == 1 || state.WeaponIndex == 6) {
+            switch ((PrimaryWeaponIndex)state.WeaponIndex) {
+                case PrimaryWeaponIndex::Laser:
+                case PrimaryWeaponIndex::SuperLaser:
+                {
+                    auto lvl = Resources::GetString(StringTableEntry::Lvl);
+                    if (Game::Player.HasPowerup(PowerupFlag::QuadLasers))
+                        label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, Game::Player.LaserLevel + 1, Resources::GetString(StringTableEntry::Quad));
+                    else
+                        label = fmt::format("{}\n{}: {}", weaponName, lvl, Game::Player.LaserLevel + 1);
+                    break;
+                }
+
+                case PrimaryWeaponIndex::Vulcan:
+                case PrimaryWeaponIndex::Gauss:
+                    ammo = fmt::format("{:05}", Game::Player.PrimaryAmmo[1]);
+                    break;
+
+                default:
+                    break;
+            }
+
+            DrawMonitorText(label, info, 0.6f * state.Opacity);
+
+            if (!ammo.empty()) {
                 // Ammo counter
                 info.Color = MonitorRedText;
                 info.Color.w = state.Opacity;
@@ -277,9 +306,11 @@ namespace Inferno {
                 info.HorizontalAlign = AlignH::CenterRight;
                 info.VerticalAlign = AlignV::CenterTop;
                 info.Scanline = 0.5f;
-                auto ammo = fmt::format("{:05}", Game::Player.PrimaryAmmo[1]);
+                UseWide1Char(ammo);
                 DrawMonitorText(ammo, info, 0.6f * state.Opacity);
             }
+
+            // todo: omega charge
         }
 
         {
@@ -315,6 +346,7 @@ namespace Inferno {
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
         auto ammo = fmt::format("{:03}", Game::Player.SecondaryAmmo[state.WeaponIndex]);
+        UseWide1Char(ammo);
         DrawMonitorText(ammo, info, 0.6f * state.Opacity);
 
         float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f;

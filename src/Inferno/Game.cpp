@@ -626,10 +626,11 @@ namespace Inferno::Game {
             Player.GiveWeapon(PrimaryWeaponIndex::Helix);
             Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
             Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
+            uint16 VULCAN_AMMO_MAX = Level.IsDescent1() ? 10000 : 20000;
             Player.PrimaryWeapons = 0xffff;
             Player.SecondaryWeapons = 0xffff;
             std::ranges::generate(Player.SecondaryAmmo, [] { return 20; });
-            std::ranges::generate(Player.PrimaryAmmo, [] { return 40000; });
+            std::ranges::generate(Player.PrimaryAmmo, [VULCAN_AMMO_MAX] { return VULCAN_AMMO_MAX; });
 
             //TexID weaponTextures[] = {
             //    TexID(30), TexID(11), TexID(

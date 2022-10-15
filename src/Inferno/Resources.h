@@ -91,20 +91,20 @@ namespace Inferno::Resources {
     // Loads D1 and D2 sounds
     void LoadSounds();
 
-    string_view GetStringTableEntry(StringTableEntry);
+    string_view GetString(StringTableEntry);
     inline string_view GetPrimaryName(PrimaryWeaponIndex id) {
-        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::Laser + (int)id });
+        return GetString(StringTableEntry{ (int)StringTableEntry::Laser + (int)id });
     }
 
     inline string_view GetSecondaryName(SecondaryWeaponIndex id) {
-        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::Concussion + (int)id });
+        return GetString(StringTableEntry{ (int)StringTableEntry::Concussion + (int)id });
     }
 
     inline string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
-        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::LaserShort + (int)id });
+        return GetString(StringTableEntry{ (int)StringTableEntry::LaserShort + (int)id });
     }
 
     inline string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
-        return GetStringTableEntry(StringTableEntry{ (int)StringTableEntry::ConcussionShort + (int)id });
+        return GetString(StringTableEntry{ (int)StringTableEntry::ConcussionShort + (int)id });
     }
 }

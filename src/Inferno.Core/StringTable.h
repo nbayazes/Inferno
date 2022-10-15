@@ -23,5 +23,8 @@ namespace Inferno {
 		DontHave = 145, // For primary weapons
 		HaveNo = 147, // For secondary weapons
 		Sx = 149,
+
+		Lvl = 309, // Laser lvl
+		Quad = 330,
 	};
 }

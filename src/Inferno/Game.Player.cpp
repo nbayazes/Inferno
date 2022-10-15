@@ -31,7 +31,7 @@ namespace Inferno {
         }
 
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            auto dontHave = Resources::GetStringTableEntry(StringTableEntry::DontHave);
+            auto dontHave = Resources::GetString(StringTableEntry::DontHave);
             auto msg = fmt::format("{} {}!", dontHave, Resources::GetPrimaryName(index));
             PrintHudMessage(msg);
             Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
@@ -70,8 +70,8 @@ namespace Inferno {
         }
 
         if (!HasWeapon((SecondaryWeaponIndex)weapon)) {
-            auto haveNo = Resources::GetStringTableEntry(StringTableEntry::HaveNo);
-            auto sx = Resources::GetStringTableEntry(StringTableEntry::Sx);
+            auto haveNo = Resources::GetString(StringTableEntry::HaveNo);
+            auto sx = Resources::GetString(StringTableEntry::Sx);
             auto msg = fmt::format("{} {}{}!", haveNo, Resources::GetSecondaryName(index), sx);
             PrintHudMessage(msg);
             Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
@@ -96,7 +96,7 @@ namespace Inferno {
         if (Primary == PrimaryWeaponIndex::Vulcan ||
             Primary == PrimaryWeaponIndex::Gauss) {
             Game::FirePlayerWeapon(Game::Level, ObjID(0), 7, id);
-            PrimaryAmmo[1] -= weapon.AmmoUsage;
+            PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
         }
         else {
             Game::FirePlayerWeapon(Game::Level, ObjID(0), 0, id);
