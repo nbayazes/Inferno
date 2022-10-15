@@ -5,10 +5,6 @@
 #include "HUD.h"
 
 namespace Inferno {
-    namespace Game {
-        void FirePlayerWeapon(Inferno::Level& level, ObjID objId, int gun, WeaponID id);
-    }
-
     // Extracted player state that was scattered across methods or globals as static variables
     struct Player : public PlayerInfo {
         float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
@@ -31,7 +27,7 @@ namespace Inferno {
         bool SpawnInvuln = false; // temporary invuln when spawning
         bool LavafallHissPlaying = false; // checks if a lavafall (or waterfall) sound is already playing
         uint8 MissileGunpoint = 0; // used to alternate left/right missile pods
-        uint8 SpreadfireToggle = 0; // horizontal / vertical
+        bool SpreadfireToggle = false; // horizontal / vertical
         uint8 HelixOrientation = 0; // increments in 22.5 degrees
 
 

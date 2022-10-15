@@ -19,7 +19,7 @@ namespace Inferno::Sound {
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
     constexpr float AUDIO_SCALE = 1;
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
-    constexpr float MERGE_WINDOW = 1 / 20.0f; // Discard the same sound being played by a source within a window
+    constexpr float MERGE_WINDOW = 1 / 10.0f; // Merge the same sound being played by a source within a window
 
     struct Sound3DInstance : public Sound3D {
         float Muffle = 1, TargetMuffle = 1;
@@ -460,9 +460,9 @@ namespace Inferno::Sound {
     }
 
     void Reset() {
+        if (!Engine) return;
         std::scoped_lock lock(ResetMutex);
         SPDLOG_INFO("Clearing audio cache");
-
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Stop3DSounds();
         SoundInstances.clear();
@@ -473,6 +473,7 @@ namespace Inferno::Sound {
     }
 
     void PrintStatistics() {
+        if (!Engine) return;
         auto stats = Engine->GetStatistics();
 
         SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",

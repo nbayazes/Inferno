@@ -22,7 +22,7 @@ namespace Inferno {
     //    return cc;
     //}
 
-    // Returns a random value between 0 and 1
+    // Returns a random value between 0 and 1. Equiv to P_Rand()
     inline float Random() {
         return (float)rand() / RAND_MAX;
     }

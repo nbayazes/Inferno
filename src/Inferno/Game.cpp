@@ -129,21 +129,50 @@ namespace Inferno::Game {
         }
     }
 
-    void FirePlayerWeapon(Inferno::Level& level, ObjID objId, int gun, WeaponID id) {
+    Vector3 GetGunpointOffset(const Object& obj, int gun) {
+        //Vector3 offset = Vector3::Zero;
+        gun = std::clamp(gun, 0, 8);
+
+        if (obj.Type == ObjectType::Robot) {
+            auto& robot = Resources::GetRobotInfo(obj.ID);
+            return robot.GunPoints[gun] * Vector3(1, 1, -1);
+        }
+        else if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
+            return Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);;
+            //offset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
+        }
+        else if (obj.Type == ObjectType::Reactor) {
+            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return Vector3::Zero;
+            auto& reactor = Resources::GameData.Reactors[obj.ID];
+            return reactor.GunPoints[gun];
+            //if (!Seq::inRange(reactor.GunPoints, gun));
+        }
+
+        return Vector3::Zero;
+    }
+
+    void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash, const Vector2& spread) {
+        auto& level = Level;
         auto& obj = level.Objects[(int)objId];
-        //auto& guns = Resources::GameData.PlayerShip.GunPoints;
-        auto gunOffset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
+        auto gunOffset = GetGunpointOffset(obj, gun);
         auto point = Vector3::Transform(gunOffset, obj.GetTransform());
         auto& weapon = Resources::GameData.Weapons[(int)id];
 
         Object bullet{};
+        bullet.Position = bullet.LastPosition = point;
+        bullet.Rotation = bullet.LastRotation = obj.Rotation;
+        auto direction = obj.Rotation.Forward();
+
+        if (spread != Vector2::Zero) {
+            direction += obj.Rotation.Right() * spread.x;
+            direction += obj.Rotation.Up() * spread.y;
+        }
+
         bullet.Movement.Type = MovementType::Physics;
-        bullet.Movement.Physics.Velocity = obj.Rotation.Forward() * weapon.Speed[0] * 1;
+        bullet.Movement.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
         bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
         bullet.Movement.Physics.Drag = weapon.Drag;
         bullet.Movement.Physics.Mass = weapon.Mass;
-        bullet.Position = bullet.LastPosition = point;
-        bullet.Rotation = bullet.LastRotation = obj.Rotation;
 
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
@@ -168,8 +197,8 @@ namespace Inferno::Game {
 
         bullet.Render.Rotation = Random() * DirectX::XM_2PI;
 
-        //bullet.Lifespan = weapon.Lifetime;
-        bullet.Lifespan = 3; // for testing fade-out
+        bullet.Lifespan = weapon.Lifetime;
+        //bullet.Lifespan = 3; // for testing fade-out
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
         bullet.Parent = ObjID(0);
@@ -181,22 +210,25 @@ namespace Inferno::Game {
 
         //auto pitch = -Random() * 0.2f;
         //Sound::Sound3D sound(point, obj.Segment);
-        Sound3D sound(ObjID(0));
-        sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-        sound.Volume = 0.55f;
-        sound.AttachToSource = true;
-        sound.AttachOffset = gunOffset;
-        sound.FromPlayer = true;
-        Sound::Play(sound);
 
-        Render::Particle p{};
-        p.Clip = weapon.FlashVClip;
-        p.Position = point;
-        p.Radius = weapon.FlashSize;
-        p.Parent = ObjID(0);
-        p.ParentOffset = gunOffset;
-        p.FadeTime = 0.175f;
-        Render::AddParticle(p);
+        if (showFlash) {
+            Sound3D sound(ObjID(0));
+            sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
+            sound.Volume = 0.55f;
+            sound.AttachToSource = true;
+            sound.AttachOffset = gunOffset;
+            sound.FromPlayer = true;
+            Sound::Play(sound);
+
+            Render::Particle p{};
+            p.Clip = weapon.FlashVClip;
+            p.Position = point;
+            p.Radius = weapon.FlashSize;
+            p.Parent = ObjID(0);
+            p.ParentOffset = gunOffset;
+            p.FadeTime = 0.175f;
+            Render::AddParticle(p);
+        }
 
         for (auto& o : level.Objects) {
             if (o.Lifespan <= 0) {

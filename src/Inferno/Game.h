@@ -11,7 +11,7 @@ namespace Inferno {
 namespace Inferno::Game {
     constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
 
-    inline int Difficulty = 0; // 0 to 4
+    inline int Difficulty = 0; // 0 to 4 for trainee to insane
 
     inline GameState State = GameState::Editor;
 
@@ -41,6 +41,8 @@ namespace Inferno::Game {
     inline double ElapsedTime = 0; // Elapsed game time in seconds. Stops when paused.
     inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
+
+    void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
 
     void Update(float dt);
     void ToggleEditorMode();

@@ -1055,7 +1055,7 @@ namespace Inferno {
                     if (source.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
                         expl.Instances = 3;
                         expl.MinDelay = expl.MaxDelay = 0;
-                        expl.Clip = weapon.WallHitVClip;
+                        expl.Clip = weapon.RobotHitVClip;
                         expl.Color = { 1, 1, 1 };
                     }
 
@@ -1064,8 +1064,9 @@ namespace Inferno {
             }
         }
         else { // Hit a wall
-            SoundID soundId = weapon.WallHitSound;
-            VClipID vclip = weapon.WallHitVClip;
+            // weapons with splash damage (explosions) always use robot hit effects
+            SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
+            VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
             if (auto side = level.TryGetSide(hit.Tag)) {
                 auto& ti = Resources::GetLevelTextureInfo(side->TMap);
@@ -1092,10 +1093,10 @@ namespace Inferno {
             e.MaxRadius = weapon.ImpactSize * 1.1f;
             e.Clip = vclip;
             e.Sound = soundId;
-            if (source.Radius < 0.5f)
-                e.Position = hit.Point - dir * (1 + weapon.ImpactSize * 0.25f); // move explosion out of wall
-            else
-                e.Position = source.Position; // it looks weird if large objects have their explosion at the contact point
+            //if (source.Radius < 0.5f)
+            e.Position = hit.Point - dir * (weapon.ImpactSize * 0.5f); // move explosion out of wall
+            //else
+                //e.Position = source.Position; // it looks weird if large objects have their explosion at the contact point
 
             e.Color = { 1, 1, 1 };
             e.FadeTime = 0.1f;

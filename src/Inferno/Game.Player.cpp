@@ -84,6 +84,20 @@ namespace Inferno {
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
     }
 
+    Vector2 GetHelixOffset(int index) {
+        switch (index) {
+            default:
+            case 0: return { 1 / 16.0f, 0 };
+            case 1: return { 1 / 17.0f, 1 / 42.0f };
+            case 2: return { 1 / 22.0f, 1 / 22.0f };
+            case 3: return { 1 / 42.0f, 1 / 17.0f };
+            case 4: return { 0, 1 / 16.0f };
+            case 5: return { -1 / 42.0f, 1 / 17.0f };
+            case 6: return { -1 / 22.0f, 1 / 22.0f };
+            case 7: return { -1 / 17.0f, 1 / 42.0f };
+        }
+    }
+
     void Player::FirePrimary() {
         if (!CanFirePrimary()) {
             // Arm different weapon
@@ -93,19 +107,68 @@ namespace Inferno {
         auto id = GetPrimaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
         PrimaryDelay = weapon.FireDelay;
-        if (Primary == PrimaryWeaponIndex::Vulcan ||
-            Primary == PrimaryWeaponIndex::Gauss) {
-            Game::FirePlayerWeapon(Game::Level, ObjID(0), 7, id);
-            PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
-        }
-        else {
-            Game::FirePlayerWeapon(Game::Level, ObjID(0), 0, id);
-            Game::FirePlayerWeapon(Game::Level, ObjID(0), 1, id);
+        switch (Primary) {
+            //case PrimaryWeaponIndex::Laser:
+            //case PrimaryWeaponIndex::SuperLaser:
+            //case PrimaryWeaponIndex::Plasma:
+            //    break;
 
-            if (HasPowerup(PowerupFlag::QuadLasers) && Primary == PrimaryWeaponIndex::Laser) {
-                Game::FirePlayerWeapon(Game::Level, ObjID(0), 2, id);
-                Game::FirePlayerWeapon(Game::Level, ObjID(0), 3, id);
+            case PrimaryWeaponIndex::Vulcan:
+            case PrimaryWeaponIndex::Gauss:
+                if (Primary == PrimaryWeaponIndex::Vulcan) {
+                    // -0.03125 to 0.03125 spread
+                    Vector2 spread = { RandomN11() / 32, RandomN11() / 32 };
+                    Game::FireWeapon(ID, 7, id, true, spread);
+                }
+                else {
+                    Game::FireWeapon(ID, 7, id);
+                }
+                PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
+                break;
+
+            case PrimaryWeaponIndex::Spreadfire:
+            {
+                constexpr float SPREAD_ANGLE = 1 / 16.0f;
+                if (SpreadfireToggle) {
+                    Game::FireWeapon(ID, 6, id);
+                    Game::FireWeapon(ID, 6, id, false, { 0, -SPREAD_ANGLE });
+                    Game::FireWeapon(ID, 6, id, false, { 0, SPREAD_ANGLE });
+                }
+                else {
+                    Game::FireWeapon(ID, 6, id);
+                    Game::FireWeapon(ID, 6, id, false, { -SPREAD_ANGLE, 0 });
+                    Game::FireWeapon(ID, 6, id, false, { SPREAD_ANGLE, 0 });
+                }
+                SpreadfireToggle = !SpreadfireToggle;
+                break;
             }
+            case PrimaryWeaponIndex::Helix:
+            {
+                HelixOrientation = (HelixOrientation + 1) % 8;
+                auto offset = GetHelixOffset(HelixOrientation);
+                Game::FireWeapon(ID, 6, id);
+                Game::FireWeapon(ID, 6, id, false, offset);
+                Game::FireWeapon(ID, 6, id, false, offset * 2);
+                Game::FireWeapon(ID, 6, id, false, -offset);
+                Game::FireWeapon(ID, 6, id, false, -offset * 2);
+                break;
+            }
+
+            //case PrimaryWeaponIndex::Fusion:
+                //break;
+            //case PrimaryWeaponIndex::Phoenix:
+                //break;
+            //case PrimaryWeaponIndex::Omega:
+                //break;
+            default:
+                Game::FireWeapon(ID, 0, id);
+                Game::FireWeapon(ID, 1, id);
+
+                if (HasPowerup(PowerupFlag::QuadLasers) && Primary == PrimaryWeaponIndex::Laser) {
+                    Game::FireWeapon(ID, 2, id);
+                    Game::FireWeapon(ID, 3, id);
+                }
+                break;
         }
 
         // Swap to different weapon if ammo or energy == 0
@@ -119,7 +182,7 @@ namespace Inferno {
         SecondaryDelay = weapon.FireDelay;
         MissileGunpoint = (MissileGunpoint + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= weapon.AmmoUsage;
-        Game::FirePlayerWeapon(Game::Level, ObjID(0), MissileGunpoint, id);
+        Game::FireWeapon(ID, MissileGunpoint, id);
         // Swap to different weapon if ammo == 0
     }
 }

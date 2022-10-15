@@ -291,9 +291,6 @@ namespace Inferno {
                 case PrimaryWeaponIndex::Gauss:
                     ammo = fmt::format("{:05}", Game::Player.PrimaryAmmo[1]);
                     break;
-
-                default:
-                    break;
             }
 
             DrawMonitorText(label, info, 0.6f * state.Opacity);
