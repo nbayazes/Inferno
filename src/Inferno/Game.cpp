@@ -389,11 +389,29 @@ namespace Inferno::Game {
         // must check held keys inside of fixed updates so events aren't missed
         if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
             (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
-            Player.FirePrimary();
+            if (Player.PrimaryState == FireState::None)
+                Player.PrimaryState = FireState::Press;
+            else if (Player.PrimaryState == FireState::Press)
+                Player.PrimaryState = FireState::Hold;
+        }
+        else {
+            if (Player.PrimaryState == FireState::Release)
+                Player.PrimaryState = FireState::None;
+            else if (Player.PrimaryState != FireState::None)
+                Player.PrimaryState = FireState::Release;
         }
 
         if ((Game::State != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD)) {
-            Player.FireSecondary();
+            if (Player.SecondaryState == FireState::None)
+                Player.SecondaryState = FireState::Press;
+            else if (Player.SecondaryState == FireState::Press)
+                Player.SecondaryState = FireState::Hold;
+        }
+        else {
+            if (Player.SecondaryState == FireState::Release)
+                Player.SecondaryState = FireState::None;
+            else if (Player.SecondaryState != FireState::None)
+                Player.SecondaryState = FireState::Release;
         }
 
         UpdateAmbientSounds();
@@ -644,6 +662,14 @@ namespace Inferno::Game {
                 "cockpit-left",
                 "cockpit-right",
                 "gauge01b#0",
+                "gauge01b#1",
+                "gauge01b#2",
+                "gauge01b#3",
+                "gauge01b#4",
+                "gauge01b#5",
+                "gauge01b#6",
+                "gauge01b#7",
+                "gauge01b#8",
                 "gauge02b",
                 "gauge03b",
                 //"gauge16b", // lock

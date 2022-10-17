@@ -45,7 +45,7 @@ namespace Inferno {
         PowerupFlag Powerups;
         float Energy = 100;
         float Shields = 100;
-        uint8 Lives;
+        uint8 Lives = 2;
         int8 Level;             // Level the player is in. Negative for secret levels
         uint8 LaserLevel;       // 0 to 5
         int8 StartingLevel;     // Level the player started the mission on. Used for final score screen.
@@ -58,8 +58,8 @@ namespace Inferno {
         int Score;
         int64 LevelTime, TotalTime;
 
-        float CloakTime;
-        float InvulnTime;
+        float CloakTime; // Amount of cloak remaining
+        float InvulnerableTime; // Amount of invulnerability remaining
 
         struct {
             short Kills;            // Robots killed this level. Used to prevent matcens from spawning too many robots.

@@ -340,6 +340,11 @@ namespace Inferno::Resources {
         return StringTable[(int)i];
     }
 
+    void LoadExtendedWeaponInfo() {
+        if (GameData.Weapons.size() < 32) return;
+        GameData.Weapons[(int)WeaponID::Fusion].Extended.Chargable = true;
+    }
+
     // Some levels don't have the D1 reactor model set
     void FixD1ReactorModel(Level& level) {
         for (auto& obj : level.Objects) {
@@ -476,6 +481,7 @@ namespace Inferno::Resources {
             UpdateAverageTextureColor();
 
             FixObjectModelIds(level);
+            LoadExtendedWeaponInfo();
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

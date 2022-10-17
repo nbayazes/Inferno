@@ -5,6 +5,8 @@
 #include "HUD.h"
 
 namespace Inferno {
+    enum class FireState { None, Press, Hold, Release };
+
     // Extracted player state that was scattered across methods or globals as static variables
     struct Player : public PlayerInfo {
         float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
@@ -16,7 +18,7 @@ namespace Inferno {
 
         float PrimarySwapTime = 0; // Primary weapon is changing. Used to fade monitor contents.
         float SecondarySwapTime = 0; // Secondary weapon is changing. Used to fade monitor contents.
-        float FusionCharge = 0; // How long fusion has been held down
+        float WeaponCharge = 0; // How long weapon has been charging (held down)
         float OmegaCharge = 1; // How much charge the omega has stored
         float OmegaRechargeDelay = 0; // Delay before Omega starts recharging after firing
         float FlareDelay = 0;
@@ -26,10 +28,25 @@ namespace Inferno {
         bool HasSpew = false; // has dropped items on death
         bool SpawnInvuln = false; // temporary invuln when spawning
         bool LavafallHissPlaying = false; // checks if a lavafall (or waterfall) sound is already playing
-        uint8 MissileGunpoint = 0; // used to alternate left/right missile pods
         bool SpreadfireToggle = false; // horizontal / vertical
         uint8 HelixOrientation = 0; // increments in 22.5 degrees
+        float FusionNextSoundDelay = 0;
+        uint8 FiringIndex = 0, MissileFiringIndex;
 
+        FireState PrimaryState, SecondaryState;
+
+        bool Gunpoints[20][8] = {
+            { true, true }, // Laser
+            { false, false, false, false, false, false, true }, // Center fire
+            { false, false, false, false, false, false, true }, // Center fire
+            { true, true }, // Plasma
+            { true, true }, // Fusion
+            { true, true }, // Laser
+            { false, false, false, false, false, false, true }, // Center fire
+            { false, false, false, false, false, false, true }, // Center fire
+            { true, true }, // Phoenix
+            { true }, // Omega
+        };
 
         void GiveWeapon(PrimaryWeaponIndex weapon) {
             PrimaryWeapons |= (1 << (uint16)weapon);
@@ -76,7 +93,7 @@ namespace Inferno {
         }
 
         bool CanFirePrimary() {
-            auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID());
+            auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
             auto index = Primary;
             if (!HasWeapon(index)) return false;
             if (PrimaryDelay > 0) return false;
@@ -112,10 +129,65 @@ namespace Inferno {
         void Update(float dt) {
             PrimaryDelay -= dt;
             SecondaryDelay -= dt;
-            // todo: cloak, invuln
+            if (CloakTime > 0) CloakTime -= dt;
+            if (InvulnerableTime > 0) InvulnerableTime -= dt;
+
+            auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
+
+            if (weapon.Extended.Chargable) {
+                if (PrimaryState == FireState::Press) {
+                    WeaponCharge = 0;
+                    FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
+                }
+                else if (PrimaryState == FireState::Hold && CanFirePrimary()) {
+                    Energy -= dt;
+                    WeaponCharge += dt;
+                    if (Energy <= 0) {
+                        Energy = 0;
+                        //ForceFire = true;
+                    }
+
+                    FusionNextSoundDelay -= dt;
+                    if (FusionNextSoundDelay < 0) {
+                        if (WeaponCharge > weapon.Extended.MaxCharge) {
+                            // Self damage
+                            Sound3D sound(ID);
+                            sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
+                            sound.FromPlayer = true;
+                            Sound::Play(sound);
+                            constexpr float OVERCHARGE_DAMAGE = 3.0f;
+                            Shields -= Random() * OVERCHARGE_DAMAGE;
+                        }
+                        else {
+                            // increase robot awareness
+                            Sound3D sound(ID);
+                            sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
+                            sound.FromPlayer = true;
+                            Sound::Play(sound);
+                        }
+
+                        FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
+                    }
+                }
+                else if (PrimaryState == FireState::Release) {
+                    FirePrimary();
+                    //WeaponCharge = 0;
+                    //FusionNextSoundDelay = 0;
+                }
+            }
+            else if (PrimaryState == FireState::Hold) {
+                FirePrimary();
+            }
+
+            if (SecondaryState == FireState::Hold || SecondaryState == FireState::Press) {
+                FireSecondary();
+            }
         }
 
         void FirePrimary();
+        void HoldPrimary();
+        void ReleasePrimary();
+
         void FireSecondary();
     };
 }

@@ -1094,7 +1094,9 @@ namespace Inferno {
             e.Clip = vclip;
             e.Sound = soundId;
             //if (source.Radius < 0.5f)
-            e.Position = hit.Point - dir * (weapon.ImpactSize * 0.5f); // move explosion out of wall
+            //e.Position = source.LastPosition + dir * hit.Distance - dir * (weapon.ImpactSize /** 0.5f*/); // move explosion out of wall
+            e.Position = source.LastPosition + dir * hit.Distance; // move explosion out of wall
+            //e.Position = source.LastPosition; // move explosion out of wall
             //else
                 //e.Position = source.Position; // it looks weird if large objects have their explosion at the contact point
 

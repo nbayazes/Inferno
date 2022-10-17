@@ -86,12 +86,48 @@ namespace Inferno {
     static inline WeaponID PrimaryToWeaponID[10] = { WeaponID::Laser1, WeaponID::Vulcan, WeaponID::Spreadfire, WeaponID::Plasma, WeaponID::Fusion, WeaponID::Laser5, WeaponID::Gauss, WeaponID::Helix, WeaponID::Phoenix, WeaponID::Omega };
     static inline WeaponID SecondaryToWeaponID[10] = { WeaponID::Concussion, WeaponID::Homing, WeaponID::ProxMine, WeaponID::Smart, WeaponID::Mega, WeaponID::Flash, WeaponID::Guided, WeaponID::SmartMine, WeaponID::Mercury, WeaponID::Shaker };
 
+    struct WeaponExtended {
+        WeaponID ID; // Associate with this existing weapon ID in the HAM
+        string Name; // Name in fullscreen HUD
+        string ShortName; // Name in cockpit window
+        string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
+
+        int PowerupType; // Powerup when dropped
+        int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
+        int AmmoType; // Vulcan and gauss share ammo types
+        bool Zooms; // Zooms in when fire is held
+        bool Chargable = false; // Fusion, Mass Driver
+        float MaxCharge = 2; // Max charge time for full power
+        int Crosshair = 0; // Crosshair shown when selected but not ready to fire
+        float HomingTurnRate = 0; // Amount of rotational force to apply each second for homing weapons
+        List<int> Levels; // Weapon ID fired at each upgrade level (for lasers)
+
+        bool SilentSelectFail = false; // Hide HUD errors when selecting
+        Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
+
+        //struct FiringPattern {
+        //    string Crosshair;
+
+        //    // Fires a projectile from an object using:
+        //    // Object.FVec + Direction +- Spread
+        //    struct Projectile {
+        //        int Gun = 0;
+        //        Vector3 Direction = { 0, 0, 1 }; // Fixed direction firing vector (Z-forward)
+        //        bool QuadOnly = false;
+        //        float DamageMultiplier = 1;
+        //    };
+        //};
+
+        //List<FiringPattern> Pattern;
+        //ubyte State[32]; // Buffer to serialize arbitrary weapon state. Helix / Spreadfire rotation. Omega charge?
+    };
+
     struct Weapon {
         WeaponRenderType RenderType;
         bool Piercing; // Passes through enemies (fusion)
         ModelID Model = ModelID::None;
         ModelID ModelInner = ModelID::None;
-        
+
         VClipID FlashVClip = VClipID::None; // Muzzle flash
         SoundID FlashSound = SoundID::None; // Sound to play when fired
 
@@ -123,7 +159,7 @@ namespace Inferno {
 
         WeaponID Children = WeaponID::None;  // Weapon to spawn when destroyed
 
-        float EnergyUsage; 
+        float EnergyUsage;
         float FireDelay;
 
         float PlayerDamageScale = 1; // Scale damage by this amount when hitting a player
@@ -143,41 +179,8 @@ namespace Inferno {
         float Lifetime;
         float SplashRadius;
         TexID Icon = TexID::None, HiresIcon = TexID::None;  // Texture to use in the cockpit or UI
-    };
 
-    struct WeaponExtended {
-        WeaponID ID; // Associate with this existing weapon ID in the HAM
-        string Name; // Name in fullscreen HUD
-        string ShortName; // Name in cockpit window
-        string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
-
-        int PowerupType; // Powerup when dropped
-        int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
-        int AmmoType;
-        bool Chargable = false; // Fusion, Mass Driver
-        float ChargeTime = 3; // Max charge time
-        int Crosshair = 0; // Crosshair shown when selected but not ready to fire
-        float HomingTurnRate = 0; // Amount of rotational force to apply each second for homing weapons
-        List<int> Levels; // Weapon ID fired at each upgrade level (for lasers)
-
-        bool SilentSelectFail = false; // Hide HUD errors when selecting
-        Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
-
-        struct FiringPattern {
-            string Crosshair;
-
-            // Fires a projectile from an object using:
-            // Object.FVec + Direction +- Spread
-            struct Projectile {
-                int Gun = 0;
-                Vector3 Direction = { 0, 0, 1 }; // Fixed direction firing vector (Z-forward)
-                bool QuadOnly = false;
-                float DamageMultiplier = 1;
-            };
-        };
-
-        List<FiringPattern> Pattern;
-        ubyte State[32]; // Buffer to serialize arbitrary weapon state. Helix / Spreadfire rotation. Omega charge?
+        WeaponExtended Extended{};
     };
 
     struct ShipInfo {
@@ -192,10 +195,12 @@ namespace Inferno {
         List<PrimaryAmmo> PrimaryAmmoTypes;
 
         struct WeaponBattery {
-            float EnergyUsage = 0; // Energy per shot
-            float AmmoUsage = 0; // Ammo per shot
+            //float EnergyUsage = 0; // Energy per shot
+            //float AmmoUsage = 0; // Ammo per shot
             int AmmoType = -1;
-            int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
+            //int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
+            WeaponID Weapon;
+            //bool Gunpoints[8]{};
 
             // Crosshair should be determined by gunpoints
             struct FiringInfo {
@@ -208,6 +213,167 @@ namespace Inferno {
             bool QuadGunpoints[8]{}; // Gunpoints to use with quad upgrade
         };
 
-        List<WeaponBattery> Weapons[20]; // 10 primaries, 10 secondaries
+        WeaponBattery Weapons[20]; // 10 primaries, 10 secondaries
+    };
+
+    inline ShipInfo PyroGX = {
+        .Weapons = {
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Laser1,
+                    .Firing = { {.Gunpoints = { 1, 1 } } },
+                    .QuadGunpoints = { 1, 1, 1, 1 }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Vulcan,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Spreadfire,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Plasma,
+                    .Firing = { {.Gunpoints = { 1, 1 } } }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Fusion,
+                    .Firing = { {.Gunpoints = { 1, 1 } } }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Laser5,
+                    .Firing = { {.Gunpoints = { 1, 1 } } },
+                    .QuadGunpoints = { 1, 1, 1, 1 }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Gauss,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Helix,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Phoenix,
+                    .Firing = { {.Gunpoints = { 1, 1 } } }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Omega,
+                    .Firing = { {.Gunpoints = { 0, 1 } } }
+                }
+            },
+            {
+                // Secondaries (Gun 4 and 5 for alternating)
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Concussion,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Homing,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::ProxMine,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Smart,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Mega,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
+                    }
+                }
+            },
+                {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Flash,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 }  }
+                    }
+                }
+                },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Guided,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::SmartMine,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Mercury,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 1 } },
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
+                    }
+                }
+            },
+            {
+                ShipInfo::WeaponBattery {
+                    .Weapon = WeaponID::Shaker,
+                    .Firing = {
+                        {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
+                    }
+                }
+            },
+        }
     };
 }

@@ -104,6 +104,8 @@ namespace Inferno {
             return;
         }
 
+        auto& ship = PyroGX;
+
         auto id = GetPrimaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
         PrimaryDelay = weapon.FireDelay;
@@ -116,12 +118,12 @@ namespace Inferno {
             case PrimaryWeaponIndex::Vulcan:
             case PrimaryWeaponIndex::Gauss:
                 if (Primary == PrimaryWeaponIndex::Vulcan) {
-                    // -0.03125 to 0.03125 spread
-                    Vector2 spread = { RandomN11() / 32, RandomN11() / 32 };
-                    Game::FireWeapon(ID, 7, id, true, spread);
+                    constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
+                    Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
+                    Game::FireWeapon(ID, 6, id, true, spread);
                 }
                 else {
-                    Game::FireWeapon(ID, 7, id);
+                    Game::FireWeapon(ID, 6, id);
                 }
                 PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
                 break;
@@ -155,23 +157,65 @@ namespace Inferno {
             }
 
             //case PrimaryWeaponIndex::Fusion:
-                //break;
+            //    WeaponCharge += Game::TICK_RATE;
+            //    break;
             //case PrimaryWeaponIndex::Phoenix:
                 //break;
             //case PrimaryWeaponIndex::Omega:
                 //break;
             default:
-                Game::FireWeapon(ID, 0, id);
+                //if (weapon.Extended.Chargable) {
+                //    //WeaponCharge += Game::TICK_RATE;
+
+                //    Sound3D sound(ID);
+                //    sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
+                //    sound.FromPlayer = true;
+                //    Sound::Play(sound);
+                //}
+                //else {
+                auto& sequence = ship.Weapons[(int)Primary].Firing;
+                if (FiringIndex >= sequence.size()) FiringIndex = 0;
+
+                for (int i = 0; i < 8; i++) {
+                    if (sequence[FiringIndex].Gunpoints[i])
+                        Game::FireWeapon(ID, i, id);
+                }
+
+                if (HasPowerup(PowerupFlag::QuadLasers)) {
+                    for (int i = 0; i < 8; i++) {
+                        if (ship.Weapons[(int)Primary].QuadGunpoints[i])
+                            Game::FireWeapon(ID, i, id);
+                    }
+                }
+
+                FiringIndex = (FiringIndex + 1) % sequence.size();
+
+                /*Game::FireWeapon(ID, 0, id);
                 Game::FireWeapon(ID, 1, id);
 
                 if (HasPowerup(PowerupFlag::QuadLasers) && Primary == PrimaryWeaponIndex::Laser) {
                     Game::FireWeapon(ID, 2, id);
                     Game::FireWeapon(ID, 3, id);
-                }
+                }*/
+                //}
                 break;
         }
 
         // Swap to different weapon if ammo or energy == 0
+    }
+
+    void Player::HoldPrimary() {
+
+    }
+
+    void Player::ReleasePrimary() {
+        auto id = GetPrimaryWeaponID();
+        auto& weapon = Resources::GameData.Weapons[(int)id];
+
+        if (weapon.Extended.Chargable && WeaponCharge > 0) {
+            Game::FireWeapon(ID, 0, id);
+            Game::FireWeapon(ID, 1, id);
+        }
     }
 
     void Player::FireSecondary() {
@@ -180,9 +224,18 @@ namespace Inferno {
         auto id = GetSecondaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
         SecondaryDelay = weapon.FireDelay;
-        MissileGunpoint = (MissileGunpoint + 1) % 2;
+        auto& ship = PyroGX;
+
+        auto& sequence = ship.Weapons[10 + (int)Secondary].Firing;
+        if (MissileFiringIndex >= sequence.size()) MissileFiringIndex = 0;
+
+        for (int i = 0; i < 8; i++) {
+            if (sequence[MissileFiringIndex].Gunpoints[i])
+                Game::FireWeapon(ID, i, id);
+        }
+
+        MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= weapon.AmmoUsage;
-        Game::FireWeapon(ID, MissileGunpoint, id);
         // Swap to different weapon if ammo == 0
     }
 }

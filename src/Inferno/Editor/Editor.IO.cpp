@@ -283,7 +283,7 @@ namespace Inferno::Editor {
         Game::LoadLevel(std::move(level));
     }
 
-    void BackupFile(filesystem::path path, string_view ext) {
+    void BackupFile(const filesystem::path& path, string_view ext) {
         if (!filesystem::exists(path)) return;
         filesystem::path backupPath = path;
         backupPath.replace_extension(ext);
@@ -421,7 +421,7 @@ namespace Inferno::Editor {
         _nextAutosave = Game::ElapsedTime + Settings::Editor.AutosaveMinutes * 60;
     }
 
-    void WritePlaytestLevel(filesystem::path missionFolder, Level& level, HogFile* mission = nullptr) {
+    void WritePlaytestLevel(const filesystem::path& missionFolder, Level& level, HogFile* mission = nullptr) {
         auto hogPath = missionFolder / "_test.hog";
 
         HogWriter writer(hogPath);

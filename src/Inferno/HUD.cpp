@@ -32,7 +32,7 @@ namespace Inferno {
         int WeaponIndex = -1; // The visible weapon
         float Opacity{}; // Fade out/in based on rearm time / 2
 
-        void Update(float dt, Player& player, int weapon) {
+        void Update(float dt, const Player& player, int weapon) {
             if (Requested != weapon) {
                 State = FadeOut;
                 //Opacity = player.RearmTime;
@@ -212,7 +212,7 @@ namespace Inferno {
 
         if (Secondary_weapon_to_gun_num[(int)Game::Player.Secondary] == 7)
             secondaryFrame += 3;		//now value is 0,1 or 3,4
-        else if (secondaryFrame && (Game::Player.MissileGunpoint & 1))
+        else if (secondaryFrame && !(Game::Player.MissileFiringIndex & 1))
             secondaryFrame++;
 
         DrawReticleBitmap(secondaryOffset, Gauges::ReticleSecondary, secondaryFrame, scale);
@@ -371,7 +371,7 @@ namespace Inferno {
         DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, keyScanline);
     }
 
-    void DrawCenterMonitor() {
+    void DrawCenterMonitor(const Player& player) {
         DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr");
         // Draw shields, invuln state, shield / energy count
 
@@ -384,7 +384,8 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::Center;
             info.VerticalAlign = AlignV::Bottom;
             info.Scanline = 0.5f;
-            DrawMonitorText("100", info, 0.5f);
+            auto shields = fmt::format("{:.0f}", player.Shields < 0 ? 0 : player.Shields);
+            DrawMonitorText(shields, info, 0.5f);
             //info.Scanline = 0.0f;
             //info.Color *= 0.1;
             //info.Color.z = 0.8f;
@@ -392,7 +393,8 @@ namespace Inferno {
             info.Color = { 0.78f, 0.56f, 0.18f };
             info.Position = Vector2(2, -150) * scale;
             info.Scanline = 0.5f;
-            DrawMonitorText("100", info, 0.5f);
+            auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : player.Energy);
+            DrawMonitorText(energy, info, 0.5f);
         }
 
         {
@@ -402,7 +404,19 @@ namespace Inferno {
             else
                 DrawShipBitmap({ 0, -40 }, Render::Materials->Get(ship), 1);
 
-            DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial("gauge01b#0"), 1);
+            // flicker effect invuln effect every half second when < 4 seconds remaining
+            if (player.InvulnerableTime > 0) {
+                // todo: invuln animation
+                int frame = 10 + (int)(player.InvulnerableTime * 5) % 10; // frames 10 to 19, 5 fps
+                auto shieldGfx = fmt::format("gauge01b#{}", frame);
+            }
+            else {
+                int frame = std::clamp((int)((100 - player.Shields) / 10), 0, 9);
+                if (frame < 9) {
+                    auto shieldGfx = fmt::format("gauge01b#{}", frame);
+                    DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial(shieldGfx), 1);
+                }
+            }
         }
     }
 
@@ -503,20 +517,20 @@ namespace Inferno {
 
         // cloak fade
     public:
-        void Draw(float dt, Player& player) {
+        void Draw(float dt, const Player& player) {
             float spacing = 100;
             LeftMonitor.Update(dt, player, (int)player.Primary);
             RightMonitor.Update(dt, player, (int)player.Secondary);
 
             DrawLeftMonitor(-spacing, LeftMonitor);
             DrawRightMonitor(spacing, RightMonitor);
-            DrawCenterMonitor();
+            DrawCenterMonitor(player);
 
             DrawReticle();
 
             auto scale = Render::HudCanvas->GetScale();
 
-            {
+            if (player.Lives > 0) {
                 // Life text
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
@@ -525,7 +539,8 @@ namespace Inferno {
                 info.HorizontalAlign = AlignH::Left;
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;
-                Render::HudCanvas->DrawGameText("X 2", info);
+                auto lives = fmt::format("X {}", player.Lives);
+                Render::HudCanvas->DrawGameText(lives, info);
             }
 
             {
@@ -551,7 +566,8 @@ namespace Inferno {
                 info.HorizontalAlign = AlignH::Right;
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;
-                Render::HudCanvas->DrawGameText("SCORE:       0", info);
+                auto score = fmt::format("{}: {:7}", Resources::GetString(StringTableEntry::Score), player.Score);
+                Render::HudCanvas->DrawGameText(score, info);
             }
 
             {
