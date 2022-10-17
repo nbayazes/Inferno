@@ -354,7 +354,7 @@ namespace Inferno::Sound {
 
         auto data = Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;
-        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency))).get();
+        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart))).get();
     }
 
     SoundEffect* LoadSoundD2(int id) {
