@@ -157,6 +157,7 @@
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
     <ClCompile Include="Game.Wall.cpp" />
+    <ClCompile Include="Game.Weapon.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
     <ClCompile Include="Editor\Bindings.cpp" />
     <ClCompile Include="Editor\Command.cpp" />

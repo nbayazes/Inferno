@@ -290,7 +290,7 @@ namespace Inferno {
             writer.Write(obj.Type);
             writer.Write(obj.ID); // subtype
             writer.Write(obj.Control.Type);
-            writer.Write(obj.Movement.Type);
+            writer.Write(obj.Movement);
             writer.Write(obj.Render.Type);
             writer.Write((sbyte)obj.Flags);
             writer.Write(obj.Segment);
@@ -301,10 +301,10 @@ namespace Inferno {
             writer.WriteVector(obj.LastPosition);
             writer.Write(obj.Contains);
 
-            switch (obj.Movement.Type) {
+            switch (obj.Movement) {
                 case MovementType::Physics:
                 {
-                    auto& physics = obj.Movement.Physics;
+                    auto& physics = obj.Physics;
                     writer.WriteVector(physics.Velocity);
                     writer.WriteVector(physics.Thrust);
 
@@ -321,7 +321,7 @@ namespace Inferno {
                 }
 
                 case MovementType::Spinning:
-                    writer.WriteVector(obj.Movement.SpinRate);
+                    writer.WriteVector(obj.Physics.SpinRate);
                     break;
             }
 

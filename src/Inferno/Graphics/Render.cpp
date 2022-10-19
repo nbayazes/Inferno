@@ -256,7 +256,7 @@ namespace Inferno::Render {
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         if (object.Control.Type == ControlType::Weapon) { // Mines. todo: move to game update
-            auto r = Matrix::CreateFromYawPitchRoll(object.Movement.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
+            auto r = Matrix::CreateFromYawPitchRoll(object.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
             auto translation = transform.Translation();
             transform *= Matrix::CreateTranslation(translation);
             transform = r * transform;
@@ -769,7 +769,7 @@ namespace Inferno::Render {
         auto& shader = Shaders->DepthObject;
 
         if (object.Control.Type == ControlType::Weapon) {
-            auto r = Matrix::CreateFromYawPitchRoll(object.Movement.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
+            auto r = Matrix::CreateFromYawPitchRoll(object.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
             auto translation = transform.Translation();
             transform *= Matrix::CreateTranslation(translation);
             transform = r * transform;

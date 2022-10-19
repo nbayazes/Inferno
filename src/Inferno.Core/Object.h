@@ -166,10 +166,11 @@ namespace Inferno {
         Vector3 AngularThrust;  // Rotational acceleration
         float TurnRoll;   // Rotation caused by turn banking
         PhysicsFlag Flags;
+        Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
 
-        bool HasFlag(PhysicsFlag flag) {
-            return (int16)Flags & (int16)flag;
-        }
+        bool HasFlag(PhysicsFlag flag) const { return bool(Flags & flag); }
+        void SetFlag(PhysicsFlag flag) { Flags |= flag; }
+        void ClearFlag(PhysicsFlag flag) { Flags &= ~flag; }
     };
 
     struct ModelData {
@@ -199,6 +200,8 @@ namespace Inferno {
         }
 
         bool SmartMineFlag() { return Flags[4] & 0x02; }
+
+        bool IsCloaked() { return Flags[6]; }
     };
 
     struct WeaponData {
@@ -206,7 +209,8 @@ namespace Inferno {
         ObjID Parent = ObjID::None;     // The object's parent's number
         ObjSig ParentSig = ObjSig(-1);
 
-        double CreationTime{}; // Absolute time of creation.
+        float AliveTime = 0; // How long the weapon has been alive
+        bool SineMovement = false;
         /* hitobj_pos specifies the next position to which a value should be
          * written. That position may have a defined value if the array has
          * wrapped, but should be treated as write-only in the general case.
@@ -218,8 +222,10 @@ namespace Inferno {
          */
         uint8 hitobj_pos{}, hitobj_count{};
         Array<ObjID, 83> hitobj_values{};
-        ObjID TrackingTarget{}; // Object this object is tracking.
+        ObjID TrackingTarget = ObjID::None; // Object this object is tracking.
         float Multiplier{}; // Power if this is a fusion bolt
+        float SoundDelay = 0;
+        bool DetonateMine = false;
         fix64 last_afterburner_time{}; // Time at which this object last created afterburner blobs.
     };
 
@@ -272,19 +278,13 @@ namespace Inferno {
         };
     };
 
-    struct MovementData {
-        MovementType Type = MovementType::None;
-        union {
-            struct PhysicsData Physics {}; // a physics object
-            struct Vector3 SpinRate; // for spinning objects
-        };
-    };
-
     struct ContainsData {
         ObjectType Type = ObjectType::None;  // Type of object this object contains (eg, spider contains powerup)
         int8 ID = 0;    // ID of object this object contains (eg, id = blue type = key)
         int8 Count = 0; // number of objects of type:id this object contains
     };
+
+    constexpr float NEVER_THINK = -1;
 
     struct Object {
         ObjSig Signature{};     // Every object ever has a unique signature
@@ -299,13 +299,19 @@ namespace Inferno {
         float Lifespan = FLT_MAX; // how long before despawning
         ObjID Parent = ObjID::None; // Parent for projectiles, maybe attached objects
 
-        MovementData Movement;
+        MovementType Movement;
+        PhysicsData Physics;
         RenderData Render;
         ControlData Control;
 
         Vector3 LastHitForce;
-        Vector3 Position, LastPosition;
-        Matrix3x3 Rotation, LastRotation;
+
+        Vector3 Position; // The current "real" position
+        Matrix3x3 Rotation; // The current "real" rotation
+        Vector3 LastPosition; // The position from the previous update. Used for graphics interpolation.
+        Matrix3x3 LastRotation; // The rotation from the previous update. Used for graphics interpolation.
+
+        float NextThinkTime = NEVER_THINK;
 
         Matrix GetTransform() const {
             Matrix m(Rotation);
@@ -343,5 +349,9 @@ namespace Inferno {
         }
 
         bool IsAlive() const { return IsAliveFn(*this); }
+
+        float Distance(const Object& obj) {
+            return Vector3::Distance(Position, obj.Position);
+        }
     };
 }

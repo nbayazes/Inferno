@@ -18,9 +18,9 @@ namespace Inferno {
             static int usedValues = 0;
 
             if (refresh_time == 0.0)
-                refresh_time = Game::ElapsedTime;
+                refresh_time = Game::Time;
 
-            while (refresh_time < Game::ElapsedTime) {
+            while (refresh_time < Game::Time) {
                 values[values_offset] = Render::FrameTime;
                 values_offset = (values_offset + 1) % values.size();
                 refresh_time += 1.0f / 60.0f;

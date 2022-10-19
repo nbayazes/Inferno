@@ -150,10 +150,10 @@ namespace Inferno::Editor {
             case ObjectType::Player:
             {
                 obj.Control.Type = obj.ID == 0 ? ControlType::None : ControlType::Slew; // Player 0 only
-                obj.Movement.Type = MovementType::Physics;
+                obj.Movement = MovementType::Physics;
 
                 const auto& ship = Resources::GameData.PlayerShip;
-                auto& physics = obj.Movement.Physics;
+                auto& physics = obj.Physics;
                 physics.Brakes = physics.TurnRoll = 0;
                 physics.Drag = ship.Drag;
                 physics.Mass = ship.Mass;
@@ -171,7 +171,7 @@ namespace Inferno::Editor {
             }
 
             case ObjectType::Coop:
-                obj.Movement.Type = MovementType::Physics;
+                obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
                 obj.Render.Model.ID = coopModel;
                 break;
@@ -180,9 +180,9 @@ namespace Inferno::Editor {
             {
                 auto& ri = Resources::GetRobotInfo(0);
                 obj.Control.Type = ControlType::AI;
-                obj.Movement.Type = MovementType::Physics;
-                obj.Movement.Physics.Mass = ri.Mass;
-                obj.Movement.Physics.Drag = ri.Drag;
+                obj.Movement = MovementType::Physics;
+                obj.Physics.Mass = ri.Mass;
+                obj.Physics.Drag = ri.Drag;
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
                 obj.Render.Model.ID = ri.Model;
@@ -224,11 +224,11 @@ namespace Inferno::Editor {
                 obj.Control.Weapon.ParentSig = (ObjSig)-1;
                 obj.Control.Weapon.ParentType = obj.Type;
 
-                obj.Movement.Type = MovementType::Physics;
-                obj.Movement.Physics.Mass = FixToFloat(65536);
-                obj.Movement.Physics.Drag = FixToFloat(2162);
-                obj.Movement.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
-                obj.Movement.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FreeSpinning;
+                obj.Movement = MovementType::Physics;
+                obj.Physics.Mass = FixToFloat(65536);
+                obj.Physics.Drag = FixToFloat(2162);
+                obj.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
+                obj.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FreeSpinning;
 
                 obj.ID = 51;
                 obj.Render.Type = RenderType::Model;

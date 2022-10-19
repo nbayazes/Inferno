@@ -22,7 +22,7 @@ namespace Inferno {
 
     // Rolls the object when turning
     void TurnRoll(Object& obj, float rollScale, float rollRate) {
-        auto& pd = obj.Movement.Physics;
+        auto& pd = obj.Physics;
         const auto desiredBank = pd.AngularVelocity.y * rollScale;
 
         if (std::abs(pd.TurnRoll - desiredBank) > 0.001f) {
@@ -44,7 +44,7 @@ namespace Inferno {
 
     // Applies angular physics to the player
     void AngularPhysics(Object& obj, float dt) {
-        auto& pd = obj.Movement.Physics;
+        auto& pd = obj.Physics;
 
         if (IsZero(pd.AngularVelocity) && IsZero(pd.AngularThrust))
             return;
@@ -71,13 +71,13 @@ namespace Inferno {
     }
 
     void LinearPhysics(Object& obj) {
-        auto& pd = obj.Movement.Physics;
+        auto& pd = obj.Physics;
 
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
             return;
 
         if (pd.Drag > 0) {
-            if (pd.HasFlag(PhysicsFlag::UseThrust) && pd.Mass > 0)
+            if (pd.Thrust != Vector3::Zero /*pd.HasFlag(PhysicsFlag::UseThrust)*/ && pd.Mass > 0)
                 pd.Velocity += pd.Thrust / pd.Mass; // acceleration
 
             pd.Velocity *= 1 - pd.Drag;
@@ -109,11 +109,18 @@ namespace Inferno {
     void WiggleObject(Object& obj, double t, float dt, float amplitude) {
         auto angle = std::sinf((float)t * XM_2PI) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
         auto wiggle = obj.Rotation.Up() * angle * amplitude * dt;
-        obj.Movement.Physics.Velocity += wiggle;
+        obj.Physics.Velocity += wiggle;
+    }
+
+    // Moves a projectile in a sine pattern
+    void SineWeapon(Object& obj, float dt, float speed, float amplitude) {
+        if (obj.Control.Type != ControlType::Weapon || !obj.Control.Weapon.SineMovement) return;
+        auto offset = std::sin((float)obj.Control.Weapon.AliveTime * XM_2PI * speed + dt) - std::sin((float)obj.Control.Weapon.AliveTime * XM_2PI * speed);
+        obj.Position += obj.Rotation.Up() * offset * amplitude;
     }
 
     void FixedPhysics(Object& obj, float dt) {
-        auto& physics = obj.Movement.Physics;
+        auto& physics = obj.Physics;
 
         if (obj.Type == ObjectType::Player) {
             //const auto& ship = Resources::GameData.PlayerShip;
@@ -777,11 +784,20 @@ namespace Inferno {
         return hit;
     }
 
+    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool transparent) {
+        auto dir = b.Position - a.Position;
+        auto dist = dir.Length();
+        dir.Normalize();
+        Ray ray(a.Position, dir);
+        LevelHit hit;
+        return IntersectLevel(Game::Level, ray, a.Segment, dist, hit);
+    }
+
     void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
         //if (obj.Type == ObjectType::Player) return;
 
         Plane plane(t.Points[0], t.Points[1], t.Points[2]);
-        auto& pd = obj.Movement.Physics;
+        auto& pd = obj.Physics;
 
         if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
         auto delta = obj.Position - obj.LastPosition;
@@ -870,7 +886,7 @@ namespace Inferno {
                 //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
 
                 // Counter the input velocity
-                pd.Velocity -= obj.Movement.Physics.InputVelocity * strength * dt;
+                pd.Velocity -= obj.Physics.InputVelocity * strength * dt;
             }
         }
 
@@ -893,24 +909,10 @@ namespace Inferno {
 
     //}
 
-    // Explosion that can cause damage or knockback
-    struct GameExplosion {
-        Vector3 Position;
-        SegID Segment;
-
-        float Radius;
-        float Damage;
-        float Force;
-
-        //float Size;
-        //float VClipRadius;
-        //int VClip;
-    };
-
     void ApplyForce(Object& obj, const Vector3& force) {
-        if (obj.Movement.Type != MovementType::Physics) return;
-        if (obj.Movement.Physics.Mass == 0) return;
-        obj.Movement.Physics.Velocity += force * 1.0 / obj.Movement.Physics.Mass;
+        if (obj.Movement != MovementType::Physics) return;
+        if (obj.Physics.Mass == 0) return;
+        obj.Physics.Velocity += force * 1.0 / obj.Physics.Mass;
     }
 
     // Creates an explosion that can cause damage or knockback
@@ -1013,10 +1015,10 @@ namespace Inferno {
 
         if (hit.HitObj) {
             auto& target = *hit.HitObj;
-            auto& src = source.Movement.Physics;
+            auto& src = source.Physics;
             //auto p = src.Mass * src.InputVelocity;
 
-            auto& targetPhys = target.Movement.Physics;
+            auto& targetPhys = target.Physics;
             auto srcMass = src.Mass == 0 ? 0.01f : src.Mass;
             auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
 
@@ -1085,7 +1087,7 @@ namespace Inferno {
                 }
             }
 
-            auto dir = source.Movement.Physics.Velocity;
+            auto dir = source.Physics.Velocity;
             dir.Normalize();
 
             Render::ExplosionInfo e;
@@ -1130,11 +1132,11 @@ namespace Inferno {
             auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
             if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
                 if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
-                    if(level.IsDescent1())
+                    if (level.IsDescent1())
                         ActivateTriggerD1(level, *trigger);
 
                     else if (level.IsDescent2())
-                        ActivateTriggerD2(level, *trigger); 
+                        ActivateTriggerD2(level, *trigger);
                 }
             }
         }
@@ -1150,108 +1152,110 @@ namespace Inferno {
             auto& obj = level.Objects[id];
             if (!obj.IsAlive()) continue;
 
+            if (obj.Movement != MovementType::Physics) continue;
+
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
 
-            if (obj.Movement.Type == MovementType::Physics) {
-                FixedPhysics(obj, dt);
+            FixedPhysics(obj, dt);
 
-                if (obj.Movement.Physics.HasFlag(PhysicsFlag::Wiggle))
-                    WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
+            if (obj.Physics.HasFlag(PhysicsFlag::Wiggle))
+                WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
-                obj.Movement.Physics.InputVelocity = obj.Movement.Physics.Velocity;
-                obj.Position += obj.Movement.Physics.Velocity * dt;
+            //SineWeapon(obj, dt, 1, 25);
 
-                auto delta = obj.Position - obj.LastPosition;
-                auto maxDistance = delta.Length();
-                LevelHit hit{ .Source = &obj };
+            obj.Physics.InputVelocity = obj.Physics.Velocity;
+            obj.Position += obj.Physics.Velocity * dt;
 
-                if (maxDistance < 0.001f) {
-                    // no travel, but need to check for being inside of wall (maybe this isn't necessary)
-                    BoundingSphere sphere(obj.Position, obj.Radius);
+            auto delta = obj.Position - obj.LastPosition;
+            auto maxDistance = delta.Length();
+            LevelHit hit{ .Source = &obj };
 
-                    if (IntersectLevel(level, sphere, obj.Segment, (ObjID)id, hit)) {
-                        Debug::ClosestPoints.push_back(hit.Point);
-                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+            if (maxDistance < 0.001f) {
+                // no travel, but need to check for being inside of wall (maybe this isn't necessary)
+                BoundingSphere sphere(obj.Position, obj.Radius);
+
+                if (IntersectLevel(level, sphere, obj.Segment, (ObjID)id, hit)) {
+                    Debug::ClosestPoints.push_back(hit.Point);
+                    Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                }
+            }
+            else {
+                Vector3 dir;
+                delta.Normalize(dir);
+                //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
+
+                Ray ray(obj.LastPosition, dir);
+
+                BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
+
+                if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
+                    //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+                    Debug::ClosestPoints.push_back(hit.Point);
+                    Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                }
+            }
+
+            if (hit) {
+                if (obj.Physics.HasFlag(PhysicsFlag::Bounce)) {
+                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
+                }
+
+                if (obj.Type == ObjectType::Weapon) {
+                    if (!obj.Physics.HasFlag(PhysicsFlag::Bounce)) {
+                        //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
+                        ApplyWeaponHit(hit, obj, obj.Physics.Velocity, level);
+                        obj.Lifespan = -1; // destroy weapon projectiles on hit
                     }
                 }
-                else {
-                    Vector3 dir;
-                    delta.Normalize(dir);
-                    //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
 
-                    Ray ray(obj.LastPosition, dir);
+                if (auto wall = level.TryGetWall(hit.Tag)) {
+                    // todo: only open doors for certain robot behaviors and player weapons
 
-                    BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
+                    if (wall->Type == WallType::Door) {
+                        if (wall->HasFlag(WallFlag::DoorLocked)) {
+                            // Can't open door
+                            if (obj.Type == ObjectType::Weapon) {
+                                // todo: only play sound and message if door is in front of the player
+                                Sound3D sound(hit.Point, hit.Tag.Segment);
+                                sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
+                                sound.Source = obj.Parent;
+                                sound.FromPlayer = true;
+                                Sound::Play(sound);
 
-                    if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
-                        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-                        Debug::ClosestPoints.push_back(hit.Point);
-                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                                PrintHudMessage(Resources::GetString(StringTableEntry::CantOpenDoor));
+                            }
+                        }
+                        else if (wall->State != WallState::DoorOpening) {
+                            OpenDoor(level, hit.Tag);
+                        }
                     }
                 }
 
-                if (hit) {
-                    if (obj.Type == ObjectType::Weapon) {
-                        ApplyWeaponHit(hit, obj, obj.Movement.Physics.Velocity, level);
-                        obj.Lifespan = -1; // destroy weapon projectiles on hit (todo: unless bounce!)
+                if (obj.Type == ObjectType::Player) {
+                    if (hit.HitObj && hit.HitObj->Type == ObjectType::Powerup) {
+                        hit.HitObj->Lifespan = -1;
+
+                        auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
+                        Sound3D sound(hit.Point, hit.Tag.Segment);
+                        sound.Resource = Resources::GetSoundResource(powerup.HitSound);
+                        sound.Source = obj.Parent;
+                        sound.FromPlayer = true;
+                        Sound::Play(sound);
+
+                        // todo: do the powerup effects
                     }
 
-                    if (auto wall = level.TryGetWall(hit.Tag)) {
-                        // todo: only open doors for certain robot behaviors and player weapons
+                    if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
+                        hit.HitObj->Lifespan = -1;
 
-                        if (wall->Type == WallType::Door) {
-                            if (wall->HasFlag(WallFlag::DoorLocked)) {
-                                // Can't open door
-                                if (obj.Type == ObjectType::Weapon) {
-                                    // todo: only play sound and message if door is in front of the player
-                                    Sound3D sound(hit.Point, hit.Tag.Segment);
-                                    sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
-                                    sound.Source = obj.Parent;
-                                    sound.FromPlayer = true;
-                                    Sound::Play(sound);
+                        Sound3D sound(hit.Point, hit.Tag.Segment);
+                        sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
+                        sound.Source = obj.Parent;
+                        sound.FromPlayer = true;
+                        Sound::Play(sound);
 
-                                    // TXT_CANT_OPEN_DOOR - from descent.TXB
-                                    PrintHudMessage("Locked!");
-                                }
-                            }
-                            else if (wall->State != WallState::DoorOpening) {
-                                OpenDoor(level, hit.Tag);
-                            }
-                        }
-                    }
-
-                    if (obj.Type == ObjectType::Player) {
-                        if (hit.HitObj && hit.HitObj->Type == ObjectType::Powerup) {
-                            hit.HitObj->Lifespan = -1;
-
-                            auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
-                            Sound3D sound(hit.Point, hit.Tag.Segment);
-                            sound.Resource = Resources::GetSoundResource(powerup.HitSound);
-                            sound.Source = obj.Parent;
-                            sound.FromPlayer = true;
-                            Sound::Play(sound);
-
-                            // todo: do the powerup effects
-                        }
-
-                        if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
-                            hit.HitObj->Lifespan = -1;
-
-                            Sound3D sound(hit.Point, hit.Tag.Segment);
-                            sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
-                            sound.Source = obj.Parent;
-                            sound.FromPlayer = true;
-                            Sound::Play(sound);
-
-                            // todo: pickup hostage
-                        }
-                    }
-
-                    if (obj.Type == ObjectType::Powerup) {
-                        if (obj.Movement.Physics.HasFlag(PhysicsFlag::Bounce)) {
-                            obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
-                        }
+                        // todo: pickup hostage
                     }
                 }
 
@@ -1270,7 +1274,7 @@ namespace Inferno {
             //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
 
             if (id == 0) {
-                Debug::ShipVelocity = obj.Movement.Physics.Velocity;
+                Debug::ShipVelocity = obj.Physics.Velocity;
                 Debug::ShipPosition = obj.Position;
             }
         }

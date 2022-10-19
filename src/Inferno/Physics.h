@@ -47,6 +47,22 @@ namespace Inferno {
         operator bool() { return Distance != FLT_MAX; }
     };
 
+    // Explosion that can cause damage or knockback
+    struct GameExplosion {
+        Vector3 Position;
+        SegID Segment;
+
+        float Radius;
+        float Damage;
+        float Force;
+
+        //float Size;
+        //float VClipRadius;
+        //int VClip;
+    };
+
+    void CreateExplosion(Level& level, const Object& source, const GameExplosion& explosion);
+
     //Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p);
     //HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
 
@@ -66,4 +82,5 @@ namespace Inferno {
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit);
     HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
     bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
+    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool transparent);
 }

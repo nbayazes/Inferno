@@ -9,7 +9,7 @@ namespace Inferno {
     void HandleEditorDebugInput(float /*dt*/) {
         using Keys = DirectX::Keyboard::Keys;
         auto& obj = Game::Level.Objects[0];
-        auto& physics = obj.Movement.Physics;
+        auto& physics = obj.Physics;
 
         auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
         auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
@@ -88,8 +88,8 @@ namespace Inferno {
     }
 
     void HandleInput(float dt) {
-        auto& obj = Game::Level.Objects[0];
-        auto& physics = obj.Movement.Physics;
+        auto& player = Game::Level.Objects[0];
+        auto& physics = player.Physics;
 
         HandleWeaponKeys();
 
@@ -100,16 +100,16 @@ namespace Inferno {
         auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
 
         if (Input::IsKeyDown(Keys::W))
-            physics.Thrust += obj.Rotation.Forward() * maxThrust;
+            physics.Thrust += player.Rotation.Forward() * maxThrust;
 
         if (Input::IsKeyDown(Keys::S))
-            physics.Thrust += obj.Rotation.Backward() * maxThrust;
+            physics.Thrust += player.Rotation.Backward() * maxThrust;
 
         if (Input::IsKeyDown(Keys::A))
-            physics.Thrust += obj.Rotation.Left() * maxThrust;
+            physics.Thrust += player.Rotation.Left() * maxThrust;
 
         if (Input::IsKeyDown(Keys::D))
-            physics.Thrust += obj.Rotation.Right() * maxThrust;
+            physics.Thrust += player.Rotation.Right() * maxThrust;
 
         // roll
         if (Input::IsKeyDown(Keys::Q))

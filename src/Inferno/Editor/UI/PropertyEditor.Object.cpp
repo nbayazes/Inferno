@@ -303,8 +303,8 @@ namespace Inferno::Editor {
             const auto& robot = Resources::GameData.Robots[obj.ID];
             obj.Render.Model.ID = robot.Model;
             obj.Radius = GetObjectRadius(obj);
-            obj.Movement.Physics.Mass = robot.Mass;
-            obj.Movement.Physics.Drag = robot.Drag;
+            obj.Physics.Mass = robot.Mass;
+            obj.Physics.Drag = robot.Drag;
 
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
@@ -633,10 +633,10 @@ namespace Inferno::Editor {
             case ObjectType::Weapon: // mines
                 ImGui::TableRowLabel("Angular velocity");
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat3("##angular", &obj.Movement.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f")) {
+                if (ImGui::SliderFloat3("##angular", &obj.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f")) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                        o.Movement.Physics.AngularVelocity = obj.Movement.Physics.AngularVelocity;
+                        o.Physics.AngularVelocity = obj.Physics.AngularVelocity;
                     });
                 }
 

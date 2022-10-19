@@ -38,16 +38,30 @@ namespace Inferno::Game {
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo();
 
-    inline double ElapsedTime = 0; // Elapsed game time in seconds. Stops when paused.
+    inline double Time = 0; // Elapsed game time in seconds. Stops when paused.
     inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
-    void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
+    ObjID FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
+    void ExplodeBomb(const Weapon& weapon, Object& bomb);
 
     void Update(float dt);
     void ToggleEditorMode();
 
+    // Finds the nearest object ID to an object
+    Tuple<ObjID, float> FindNearestObject(const Object&);
+    void UpdateWeapon(Object&, float dt);
+
     inline bool ShowDebugOverlay = false;
 
     inline bool SecretLevelDestroyed = false;
+
+    /*inline bool ObjShouldThink(const Object& obj) {
+        return obj.NextThinkTime <= Time && obj.NextThinkTime != -1;
+    }*/
+
+    // Returns true if the provided time has come to pass
+    inline bool TimeHasElapsed(float time) {
+        return time <= Time && time != -1;
+    }
 }

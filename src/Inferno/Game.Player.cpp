@@ -106,6 +106,7 @@ namespace Inferno {
 
         auto& ship = PyroGX;
 
+        auto& player = Game::Level.GetObject(ID);
         auto id = GetPrimaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
         PrimaryDelay = weapon.FireDelay;
@@ -131,16 +132,17 @@ namespace Inferno {
             case PrimaryWeaponIndex::Spreadfire:
             {
                 constexpr float SPREAD_ANGLE = 1 / 16.0f;
-                if (SpreadfireToggle) {
+                if (SpreadfireToggle) { // Vertical
                     Game::FireWeapon(ID, 6, id);
                     Game::FireWeapon(ID, 6, id, false, { 0, -SPREAD_ANGLE });
                     Game::FireWeapon(ID, 6, id, false, { 0, SPREAD_ANGLE });
                 }
-                else {
+                else { // Horizontal
                     Game::FireWeapon(ID, 6, id);
                     Game::FireWeapon(ID, 6, id, false, { -SPREAD_ANGLE, 0 });
                     Game::FireWeapon(ID, 6, id, false, { SPREAD_ANGLE, 0 });
                 }
+
                 SpreadfireToggle = !SpreadfireToggle;
                 break;
             }

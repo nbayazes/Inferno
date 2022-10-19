@@ -418,7 +418,7 @@ namespace Inferno::Editor {
 
     void ResetAutosaveTimer() {
         if (Settings::Editor.AutosaveMinutes == 0) _nextAutosave = FLT_MAX;
-        _nextAutosave = Game::ElapsedTime + Settings::Editor.AutosaveMinutes * 60;
+        _nextAutosave = Game::Time + Settings::Editor.AutosaveMinutes * 60;
     }
 
     void WritePlaytestLevel(const filesystem::path& missionFolder, Level& level, HogFile* mission = nullptr) {
@@ -466,7 +466,7 @@ namespace Inferno::Editor {
     }
 
     void CheckForAutosave() {
-        if (Game::ElapsedTime > _nextAutosave) {
+        if (Game::Time > _nextAutosave) {
             try {
                 auto& path = Game::Mission ? Game::Mission->Path : Game::Level.Path;
                 wstring backupPath = path.wstring() + L".sav";

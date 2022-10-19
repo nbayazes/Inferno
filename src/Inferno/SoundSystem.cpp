@@ -423,7 +423,7 @@ namespace Inferno::Sound {
             for (auto& instance : SoundInstances) {
                 if (instance.Source == sound.Source &&
                     instance.Resource.GetID() == sound.Resource.GetID() &&
-                    instance.StartTime + MERGE_WINDOW > Game::ElapsedTime &&
+                    instance.StartTime + MERGE_WINDOW > Game::Time &&
                     !instance.Looped) {
 
                     if (instance.AttachToSource && sound.AttachToSource)
@@ -440,7 +440,7 @@ namespace Inferno::Sound {
             auto& s = SoundInstances.emplace_back(sound);
             s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
             s.Instance->SetVolume(sound.Volume);
-            s.Instance->SetPitch(sound.Pitch);
+            s.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
             auto addr = (void*)&s.Instance;
 
             //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
@@ -455,7 +455,7 @@ namespace Inferno::Sound {
             s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
             s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
 
-            s.StartTime = Game::ElapsedTime;
+            s.StartTime = Game::Time;
         }
     }
 

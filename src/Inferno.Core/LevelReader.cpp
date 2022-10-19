@@ -216,7 +216,7 @@ namespace Inferno {
             obj.Type = (ObjectType)_reader.ReadByte();
             obj.ID = _reader.ReadByte();
             obj.Control.Type = (ControlType)_reader.ReadByte();
-            obj.Movement.Type = (MovementType)_reader.ReadByte();
+            obj.Movement = (MovementType)_reader.ReadByte();
             obj.Render.Type = (RenderType)_reader.ReadByte();
             obj.Flags = (ObjectFlag)_reader.ReadByte();
 
@@ -231,10 +231,10 @@ namespace Inferno {
             obj.Contains.ID = _reader.ReadByte();
             obj.Contains.Count = _reader.ReadByte();
 
-            switch (obj.Movement.Type) {
+            switch (obj.Movement) {
                 case MovementType::Physics:
                 {
-                    auto& phys = obj.Movement.Physics;
+                    auto& phys = obj.Physics;
                     phys.Velocity = _reader.ReadVector();
                     phys.Thrust = _reader.ReadVector();
 
@@ -251,7 +251,7 @@ namespace Inferno {
                 }
 
                 case MovementType::Spinning:
-                    obj.Movement.SpinRate = _reader.ReadVector();
+                    obj.Physics.SpinRate = _reader.ReadVector();
                     break;
 
                 case MovementType::None:

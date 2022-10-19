@@ -236,10 +236,10 @@ namespace Inferno::Editor {
 
     void CreateMatcenEffects(const Level& level) {
         static float nextMatcenTime = 0;
-        if (nextMatcenTime > Game::ElapsedTime) return;
+        if (nextMatcenTime > Game::Time) return;
 
         auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
-        nextMatcenTime = (float)Game::ElapsedTime + vclip.PlayTime;
+        nextMatcenTime = (float)Game::Time + vclip.PlayTime;
 
         for (auto& seg : level.Segments) {
             if (seg.Type == SegmentType::Matcen) {
@@ -427,7 +427,7 @@ namespace Inferno::Editor {
             }
 
             if (obj.Type == ObjectType::Robot) {
-                auto& physics = obj.Movement.Physics;
+                auto& physics = obj.Physics;
                 auto& robot = Resources::GameData.Robots[obj.ID];
                 physics.Mass = robot.Mass;
                 physics.Drag = robot.Drag;

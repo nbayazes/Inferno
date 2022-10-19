@@ -11,7 +11,7 @@ namespace Inferno::Editor {
     protected:
         void OnUpdate() override {
             ImGui::SetWindowFontScale(1.75);
-            auto mult = float(std::sin(Game::ElapsedTime * 1.5) + 1) * 0.5f;
+            auto mult = float(std::sin(Game::Time * 1.5) + 1) * 0.5f;
             ImVec4 color = { 1, 0.3f * mult, 0.3f * mult, 1 };
             auto pos = ImGui::GetCursorPos();
             ImGui::SetCursorPos({ pos.x + 1, pos.y /*+ 1 */});

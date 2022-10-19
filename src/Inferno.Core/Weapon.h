@@ -66,6 +66,9 @@ namespace Inferno {
         ProxMine = 16,
         Smart = 17,
         Mega = 18,
+        
+        PlayerSmartBlob = 19,
+        RobotSmartBlob = 29,
 
         Laser5 = 30,
         Laser6 = 31,

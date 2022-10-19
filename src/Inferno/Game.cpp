@@ -129,117 +129,6 @@ namespace Inferno::Game {
         }
     }
 
-    Vector3 GetGunpointOffset(const Object& obj, int gun) {
-        //Vector3 offset = Vector3::Zero;
-        gun = std::clamp(gun, 0, 8);
-
-        if (obj.Type == ObjectType::Robot) {
-            auto& robot = Resources::GetRobotInfo(obj.ID);
-            return robot.GunPoints[gun] * Vector3(1, 1, -1);
-        }
-        else if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
-            return Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);;
-            //offset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
-        }
-        else if (obj.Type == ObjectType::Reactor) {
-            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return Vector3::Zero;
-            auto& reactor = Resources::GameData.Reactors[obj.ID];
-            return reactor.GunPoints[gun];
-            //if (!Seq::inRange(reactor.GunPoints, gun));
-        }
-
-        return Vector3::Zero;
-    }
-
-    void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash, const Vector2& spread) {
-        auto& level = Level;
-        auto& obj = level.Objects[(int)objId];
-        auto gunOffset = GetGunpointOffset(obj, gun);
-        auto point = Vector3::Transform(gunOffset, obj.GetTransform());
-        auto& weapon = Resources::GameData.Weapons[(int)id];
-
-        Object bullet{};
-        bullet.Position = bullet.LastPosition = point;
-        bullet.Rotation = bullet.LastRotation = obj.Rotation;
-        auto direction = obj.Rotation.Forward();
-
-        if (spread != Vector2::Zero) {
-            direction += obj.Rotation.Right() * spread.x;
-            direction += obj.Rotation.Up() * spread.y;
-        }
-
-        bullet.Movement.Type = MovementType::Physics;
-        bullet.Movement.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
-        bullet.Movement.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
-        bullet.Movement.Physics.Drag = weapon.Drag;
-        bullet.Movement.Physics.Mass = weapon.Mass;
-
-        if (weapon.RenderType == WeaponRenderType::Blob) {
-            bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
-            bullet.Radius = weapon.BlobSize;
-            Render::LoadTextureDynamic(weapon.BlobBitmap);
-        }
-        else if (weapon.RenderType == WeaponRenderType::VClip) {
-            bullet.Render.Type = RenderType::WeaponVClip;
-            bullet.Render.VClip.ID = weapon.WeaponVClip;
-            bullet.Radius = weapon.BlobSize;
-            Render::LoadTextureDynamic(weapon.WeaponVClip);
-        }
-        else if (weapon.RenderType == WeaponRenderType::Model) {
-            bullet.Render.Type = RenderType::Model;
-            bullet.Render.Model.ID = weapon.Model;
-            auto& model = Resources::GetModel(weapon.Model);
-            bullet.Radius = model.Radius / weapon.ModelSizeRatio;
-            //auto length = model.Radius * 2;
-            Render::LoadModelDynamic(weapon.Model);
-            Render::LoadModelDynamic(weapon.ModelInner);
-        }
-
-        bullet.Render.Rotation = Random() * DirectX::XM_2PI;
-
-        bullet.Lifespan = weapon.Lifetime;
-        //bullet.Lifespan = 3; // for testing fade-out
-        bullet.Type = ObjectType::Weapon;
-        bullet.ID = (int8)id;
-        bullet.Parent = ObjID(0);
-
-        if (id == WeaponID::Laser5)
-            bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f };
-        else
-            bullet.Render.Emissive = { 0.1f, 0.1f, 0.1f };
-
-        //auto pitch = -Random() * 0.2f;
-        //Sound::Sound3D sound(point, obj.Segment);
-
-        if (showFlash) {
-            Sound3D sound(ObjID(0));
-            sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-            sound.Volume = 0.55f;
-            sound.AttachToSource = true;
-            sound.AttachOffset = gunOffset;
-            sound.FromPlayer = true;
-            Sound::Play(sound);
-
-            Render::Particle p{};
-            p.Clip = weapon.FlashVClip;
-            p.Position = point;
-            p.Radius = weapon.FlashSize;
-            p.Parent = ObjID(0);
-            p.ParentOffset = gunOffset;
-            p.FadeTime = 0.175f;
-            Render::AddParticle(p);
-        }
-
-        for (auto& o : level.Objects) {
-            if (o.Lifespan <= 0) {
-                o = bullet;
-                return; // found a dead object to reuse!
-            }
-        }
-
-        level.Objects.push_back(bullet); // insert a new object
-    }
-
     Object& AllocObject() {
         for (auto& obj : Level.Objects) {
             if (!obj.IsAlive()) {
@@ -251,6 +140,8 @@ namespace Inferno::Game {
         return Level.Objects.emplace_back();
     }
 
+    // Objects to be added at the end of this tick.
+    // Exists to prevent modifying object list size mid-update.
     List<Object> PendingNewObjects;
 
     void DropContainedItems(const Object& obj) {
@@ -270,11 +161,11 @@ namespace Inferno::Game {
                     powerup.Render.VClip.Frame = 0;
                     powerup.Render.VClip.FrameTime = Resources::GetVideoClip(vclip).FrameTime;
 
-                    powerup.Movement.Type = MovementType::Physics;
-                    powerup.Movement.Physics.Velocity = RandomVector(32);
-                    powerup.Movement.Physics.Mass = 1;
-                    powerup.Movement.Physics.Drag = 0.01f;
-                    powerup.Movement.Physics.Flags = PhysicsFlag::Bounce;
+                    powerup.Movement = MovementType::Physics;
+                    powerup.Physics.Velocity = RandomVector(32);
+                    powerup.Physics.Mass = 1;
+                    powerup.Physics.Drag = 0.01f;
+                    powerup.Physics.Flags = PhysicsFlag::Bounce;
 
                     // game originally times-out conc missiles, shields and energy after about 3 minutes
                     PendingNewObjects.push_back(powerup);
@@ -293,7 +184,7 @@ namespace Inferno::Game {
     }
 
     void DestroyObject(Object& obj) {
-        if (obj.Lifespan < 0) return; // already dead
+        if (obj.Lifespan < 0 && obj.HitPoints < 0) return; // already dead
 
         switch (obj.Type) {
             case ObjectType::Fireball:
@@ -345,7 +236,7 @@ namespace Inferno::Game {
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
                     debris.Velocity = i == 0 ? hitForce
                         : explosionVec * 25 + RandomVector(10) + hitForce;
-                    debris.Velocity += obj.Movement.Physics.Velocity;
+                    debris.Velocity += obj.Physics.Velocity;
                     debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
@@ -373,6 +264,15 @@ namespace Inferno::Game {
                 break;
             }
 
+            case ObjectType::Weapon:
+            {
+                if (obj.ID == (int)WeaponID::ProxMine) {
+                    auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+                    ExplodeBomb(weapon, obj);
+                }
+                break;
+            }
+
             default:
                 // VCLIP_SMALL_EXPLOSION = 2
                 break;
@@ -380,45 +280,76 @@ namespace Inferno::Game {
 
 
         obj.Lifespan = -1;
+        obj.HitPoints = -1;
+    }
+
+    Tuple<ObjID, float> FindNearestObject(const Object& src) {
+        ObjID id = ObjID::None;
+        //auto& srcObj = Level.GetObject(src);
+        float dist = FLT_MAX;
+
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+            if (&obj == &src) continue;
+            auto d = Vector3::Distance(obj.Position, src.Position);
+            if (d < dist) {
+                id = (ObjID)i;
+                dist = d;
+            }
+        }
+
+        return { id, dist };
+    }
+
+    void UpdatePlayerFireState(Inferno::Player& player) {
+        // must check held keys inside of fixed updates so events aren't missed due to the state changing
+        // on a frame that doesn't have a game tick
+        if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
+            (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
+            if (player.PrimaryState == FireState::None)
+                player.PrimaryState = FireState::Press;
+            else if (player.PrimaryState == FireState::Press)
+                player.PrimaryState = FireState::Hold;
+        }
+        else {
+            if (player.PrimaryState == FireState::Release)
+                player.PrimaryState = FireState::None;
+            else if (player.PrimaryState != FireState::None)
+                player.PrimaryState = FireState::Release;
+        }
+
+        if ((Game::State != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD)) {
+            if (player.SecondaryState == FireState::None)
+                player.SecondaryState = FireState::Press;
+            else if (player.SecondaryState == FireState::Press)
+                player.SecondaryState = FireState::Hold;
+        }
+        else {
+            if (player.SecondaryState == FireState::Release)
+                player.SecondaryState = FireState::None;
+            else if (player.SecondaryState != FireState::None)
+                player.SecondaryState = FireState::Release;
+        }
     }
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
+        UpdatePlayerFireState(Player);
         Player.Update(dt);
-
-        // must check held keys inside of fixed updates so events aren't missed
-        if ((Game::State == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
-            (Game::State != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
-            if (Player.PrimaryState == FireState::None)
-                Player.PrimaryState = FireState::Press;
-            else if (Player.PrimaryState == FireState::Press)
-                Player.PrimaryState = FireState::Hold;
-        }
-        else {
-            if (Player.PrimaryState == FireState::Release)
-                Player.PrimaryState = FireState::None;
-            else if (Player.PrimaryState != FireState::None)
-                Player.PrimaryState = FireState::Release;
-        }
-
-        if ((Game::State != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD)) {
-            if (Player.SecondaryState == FireState::None)
-                Player.SecondaryState = FireState::Press;
-            else if (Player.SecondaryState == FireState::Press)
-                Player.SecondaryState = FireState::Hold;
-        }
-        else {
-            if (Player.SecondaryState == FireState::Release)
-                Player.SecondaryState = FireState::None;
-            else if (Player.SecondaryState != FireState::None)
-                Player.SecondaryState = FireState::Release;
-        }
 
         UpdateAmbientSounds();
         Render::UpdateDebris(dt);
 
-        for (auto& obj : Level.Objects) {
-            if (obj.HitPoints < 0) DestroyObject(obj);
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+
+            if (obj.HitPoints < 0 || obj.Lifespan < 0) {
+                DestroyObject(obj);
+                continue;
+            }
+
+            if (obj.Type == ObjectType::Weapon)
+                UpdateWeapon(obj, dt);
         }
 
         for (auto& obj : PendingNewObjects) {
@@ -439,7 +370,7 @@ namespace Inferno::Game {
         accumulator = std::min(accumulator, 2.0);
 
         if (!Level.Objects.empty()) {
-            auto& physics = Level.Objects[0].Movement.Physics;
+            auto& physics = Level.Objects[0].Physics; // player
             physics.Thrust = Vector3::Zero;
             physics.AngularThrust = Vector3::Zero;
 
