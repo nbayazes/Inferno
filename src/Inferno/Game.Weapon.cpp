@@ -152,7 +152,7 @@ namespace Inferno::Game {
     }
 
 
-    ObjID FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash, const Vector2& spread) {
+    void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash, const Vector2& spread) {
         auto& level = Game::Level;
         auto& obj = level.Objects[(int)objId];
         auto gunOffset = GetGunpointOffset(obj, gun);
@@ -205,7 +205,8 @@ namespace Inferno::Game {
         //bullet.Lifespan = 3; // for testing fade-out
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
-        bullet.Parent = ObjID(0);
+        bullet.Parent = objId;
+        bullet.Segment = obj.Segment;
 
         if (id == WeaponID::Laser5)
             bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f };
@@ -218,7 +219,7 @@ namespace Inferno::Game {
         }
 
         if (showFlash) {
-            Sound3D sound(ObjID(0));
+            Sound3D sound(objId);
             sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
             sound.Volume = 0.55f;
             sound.AttachToSource = true;
@@ -230,22 +231,80 @@ namespace Inferno::Game {
             p.Clip = weapon.FlashVClip;
             p.Position = point;
             p.Radius = weapon.FlashSize;
-            p.Parent = ObjID(0);
+            p.Parent = objId;
             p.ParentOffset = gunOffset;
             p.FadeTime = 0.175f;
             Render::AddParticle(p);
         }
 
-        for (int i = 0; i < level.Objects.size(); i++) {
-            auto& o = level.Objects[i];
-            if (o.Lifespan <= 0) {
-                o = bullet;
-                return (ObjID)i; // found a dead object to reuse!
-            }
+        AddObject(bullet);
+    }
+
+    // onFire: "spreadfire"
+    void SpreadfireBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+        constexpr float SPREAD_ANGLE = 1 / 16.0f;
+        if (player.SpreadfireToggle) { // Vertical
+            FireWeapon(player.ID, gun, wid);
+            FireWeapon(player.ID, gun, wid, false, { 0, -SPREAD_ANGLE });
+            FireWeapon(player.ID, gun, wid, false, { 0, SPREAD_ANGLE });
+        }
+        else { // Horizontal
+            FireWeapon(player.ID, gun, wid);
+            FireWeapon(player.ID, gun, wid, false, { -SPREAD_ANGLE, 0 });
+            FireWeapon(player.ID, gun, wid, false, { SPREAD_ANGLE, 0 });
         }
 
-        level.Objects.emplace_back(bullet); // insert a new object
-        return (ObjID)(level.Objects.size() - 1);
+        player.SpreadfireToggle = !player.SpreadfireToggle;
+    }
+
+    constexpr Vector2 GetHelixOffset(int index) {
+        switch (index) {
+            default:
+            case 0: return { 1 / 16.0f, 0 };
+            case 1: return { 1 / 17.0f, 1 / 42.0f };
+            case 2: return { 1 / 22.0f, 1 / 22.0f };
+            case 3: return { 1 / 42.0f, 1 / 17.0f };
+            case 4: return { 0, 1 / 16.0f };
+            case 5: return { -1 / 42.0f, 1 / 17.0f };
+            case 6: return { -1 / 22.0f, 1 / 22.0f };
+            case 7: return { -1 / 17.0f, 1 / 42.0f };
+        }
+    }
+
+    void HelixBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+        player.HelixOrientation = (player.HelixOrientation + 1) % 8;
+        auto offset = GetHelixOffset(player.HelixOrientation);
+        FireWeapon(player.ID, gun, wid);
+        FireWeapon(player.ID, gun, wid, false, offset);
+        FireWeapon(player.ID, gun, wid, false, offset * 2);
+        FireWeapon(player.ID, gun, wid, false, -offset);
+        FireWeapon(player.ID, gun, wid, false, -offset * 2);
+    }
+
+    void VulcanBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+        constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
+        Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
+        FireWeapon(player.ID, gun, wid, true, spread);
+    }
+
+    // default weapon firing behavior
+    void DefaultBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+        FireWeapon(player.ID, gun, wid);
+    }
+
+    Dictionary<string, WeaponBehavior> WeaponFireBehaviors = {
+        { "default", DefaultBehavior },
+        { "vulcan", VulcanBehavior },
+        { "helix", HelixBehavior },
+        { "spreadfire", SpreadfireBehavior }
+    };
+
+    WeaponBehavior& GetWeaponBehavior(string name) {
+        for (auto& [key, value] : WeaponFireBehaviors) {
+            if (name == key) return value;
+        }
+
+        return WeaponFireBehaviors["default"];
     }
 
     void UpdateWeapon(Object& obj, float dt) {

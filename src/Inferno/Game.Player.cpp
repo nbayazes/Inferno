@@ -110,98 +110,123 @@ namespace Inferno {
         auto id = GetPrimaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
         PrimaryDelay = weapon.FireDelay;
-        switch (Primary) {
-            //case PrimaryWeaponIndex::Laser:
-            //case PrimaryWeaponIndex::SuperLaser:
-            //case PrimaryWeaponIndex::Plasma:
-            //    break;
 
-            case PrimaryWeaponIndex::Vulcan:
-            case PrimaryWeaponIndex::Gauss:
-                if (Primary == PrimaryWeaponIndex::Vulcan) {
-                    constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
-                    Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
-                    Game::FireWeapon(ID, 6, id, true, spread);
-                }
-                else {
-                    Game::FireWeapon(ID, 6, id);
-                }
-                PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
-                break;
+        auto& sequence = ship.Weapons[(int)Primary].Firing;
+        if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
-            case PrimaryWeaponIndex::Spreadfire:
-            {
-                constexpr float SPREAD_ANGLE = 1 / 16.0f;
-                if (SpreadfireToggle) { // Vertical
-                    Game::FireWeapon(ID, 6, id);
-                    Game::FireWeapon(ID, 6, id, false, { 0, -SPREAD_ANGLE });
-                    Game::FireWeapon(ID, 6, id, false, { 0, SPREAD_ANGLE });
-                }
-                else { // Horizontal
-                    Game::FireWeapon(ID, 6, id);
-                    Game::FireWeapon(ID, 6, id, false, { -SPREAD_ANGLE, 0 });
-                    Game::FireWeapon(ID, 6, id, false, { SPREAD_ANGLE, 0 });
-                }
-
-                SpreadfireToggle = !SpreadfireToggle;
-                break;
+        for (int i = 0; i < 8; i++) {
+            if (sequence[FiringIndex].Gunpoints[i]) {
+                auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
+                behavior(Game::Player, i, id);
             }
-            case PrimaryWeaponIndex::Helix:
-            {
-                HelixOrientation = (HelixOrientation + 1) % 8;
-                auto offset = GetHelixOffset(HelixOrientation);
-                Game::FireWeapon(ID, 6, id);
-                Game::FireWeapon(ID, 6, id, false, offset);
-                Game::FireWeapon(ID, 6, id, false, offset * 2);
-                Game::FireWeapon(ID, 6, id, false, -offset);
-                Game::FireWeapon(ID, 6, id, false, -offset * 2);
-                break;
-            }
-
-            //case PrimaryWeaponIndex::Fusion:
-            //    WeaponCharge += Game::TICK_RATE;
-            //    break;
-            //case PrimaryWeaponIndex::Phoenix:
-                //break;
-            //case PrimaryWeaponIndex::Omega:
-                //break;
-            default:
-                //if (weapon.Extended.Chargable) {
-                //    //WeaponCharge += Game::TICK_RATE;
-
-                //    Sound3D sound(ID);
-                //    sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
-                //    sound.FromPlayer = true;
-                //    Sound::Play(sound);
-                //}
-                //else {
-                auto& sequence = ship.Weapons[(int)Primary].Firing;
-                if (FiringIndex >= sequence.size()) FiringIndex = 0;
-
-                for (int i = 0; i < 8; i++) {
-                    if (sequence[FiringIndex].Gunpoints[i])
-                        Game::FireWeapon(ID, i, id);
-                }
-
-                if (HasPowerup(PowerupFlag::QuadLasers)) {
-                    for (int i = 0; i < 8; i++) {
-                        if (ship.Weapons[(int)Primary].QuadGunpoints[i])
-                            Game::FireWeapon(ID, i, id);
-                    }
-                }
-
-                FiringIndex = (FiringIndex + 1) % sequence.size();
-
-                /*Game::FireWeapon(ID, 0, id);
-                Game::FireWeapon(ID, 1, id);
-
-                if (HasPowerup(PowerupFlag::QuadLasers) && Primary == PrimaryWeaponIndex::Laser) {
-                    Game::FireWeapon(ID, 2, id);
-                    Game::FireWeapon(ID, 3, id);
-                }*/
-                //}
-                break;
         }
+
+        if (HasPowerup(PowerupFlag::QuadLasers)) {
+            for (int i = 0; i < 8; i++) {
+                if (ship.Weapons[(int)Primary].QuadGunpoints[i]) {
+                    auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
+                    behavior(Game::Player, i, id);
+                }
+            }
+        }
+
+        FiringIndex = (FiringIndex + 1) % sequence.size();
+
+
+        //switch (Primary) {
+        //    //case PrimaryWeaponIndex::Laser:
+        //    //case PrimaryWeaponIndex::SuperLaser:
+        //    //case PrimaryWeaponIndex::Plasma:
+        //    //    break;
+
+        //    case PrimaryWeaponIndex::Vulcan:
+        //    case PrimaryWeaponIndex::Gauss:
+        //        if (Primary == PrimaryWeaponIndex::Vulcan) {
+        //            constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
+        //            Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
+        //            Game::FireWeapon(ID, 6, id, true, spread);
+        //        }
+        //        else {
+        //            Game::FireWeapon(ID, 6, id);
+        //        }
+        //        PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
+        //        break;
+
+        //    case PrimaryWeaponIndex::Spreadfire:
+        //    {
+        //        constexpr float SPREAD_ANGLE = 1 / 16.0f;
+        //        if (SpreadfireToggle) { // Vertical
+        //            Game::FireWeapon(ID, 6, id);
+        //            Game::FireWeapon(ID, 6, id, false, { 0, -SPREAD_ANGLE });
+        //            Game::FireWeapon(ID, 6, id, false, { 0, SPREAD_ANGLE });
+        //        }
+        //        else { // Horizontal
+        //            Game::FireWeapon(ID, 6, id);
+        //            Game::FireWeapon(ID, 6, id, false, { -SPREAD_ANGLE, 0 });
+        //            Game::FireWeapon(ID, 6, id, false, { SPREAD_ANGLE, 0 });
+        //        }
+
+        //        SpreadfireToggle = !SpreadfireToggle;
+        //        break;
+        //    }
+        //    case PrimaryWeaponIndex::Helix:
+        //    {
+        //        HelixOrientation = (HelixOrientation + 1) % 8;
+        //        auto offset = GetHelixOffset(HelixOrientation);
+        //        Game::FireWeapon(ID, 6, id);
+        //        Game::FireWeapon(ID, 6, id, false, offset);
+        //        Game::FireWeapon(ID, 6, id, false, offset * 2);
+        //        Game::FireWeapon(ID, 6, id, false, -offset);
+        //        Game::FireWeapon(ID, 6, id, false, -offset * 2);
+        //        break;
+        //    }
+
+        //    //case PrimaryWeaponIndex::Fusion:
+        //    //    WeaponCharge += Game::TICK_RATE;
+        //    //    break;
+        //    //case PrimaryWeaponIndex::Phoenix:
+        //        //break;
+        //    //case PrimaryWeaponIndex::Omega:
+        //        //break;
+        //    default:
+        //        //if (weapon.Extended.Chargable) {
+        //        //    //WeaponCharge += Game::TICK_RATE;
+
+        //        //    Sound3D sound(ID);
+        //        //    sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
+        //        //    sound.FromPlayer = true;
+        //        //    Sound::Play(sound);
+        //        //}
+        //        //else {
+        //        auto& sequence = ship.Weapons[(int)Primary].Firing;
+        //        if (FiringIndex >= sequence.size()) FiringIndex = 0;
+
+        //        for (int i = 0; i < 8; i++) {
+        //            if (sequence[FiringIndex].Gunpoints[i]) {
+        //                // todo: call weapon behavior
+        //                Game::FireWeapon(ID, i, id);
+        //            }
+        //        }
+
+        //        if (HasPowerup(PowerupFlag::QuadLasers)) {
+        //            for (int i = 0; i < 8; i++) {
+        //                if (ship.Weapons[(int)Primary].QuadGunpoints[i])
+        //                    Game::FireWeapon(ID, i, id);
+        //            }
+        //        }
+
+        //        FiringIndex = (FiringIndex + 1) % sequence.size();
+
+        //        /*Game::FireWeapon(ID, 0, id);
+        //        Game::FireWeapon(ID, 1, id);
+
+        //        if (HasPowerup(PowerupFlag::QuadLasers) && Primary == PrimaryWeaponIndex::Laser) {
+        //            Game::FireWeapon(ID, 2, id);
+        //            Game::FireWeapon(ID, 3, id);
+        //        }*/
+        //        //}
+        //        break;
+        //}
 
         // Swap to different weapon if ammo or energy == 0
     }

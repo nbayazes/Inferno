@@ -42,7 +42,7 @@ namespace Inferno::Game {
     inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
-    ObjID FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
+    void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
     void ExplodeBomb(const Weapon& weapon, Object& bomb);
 
     void Update(float dt);
@@ -56,6 +56,9 @@ namespace Inferno::Game {
 
     inline bool SecretLevelDestroyed = false;
 
+    // Schedules an object to be added at end of update
+    void AddObject(const Object&);
+
     /*inline bool ObjShouldThink(const Object& obj) {
         return obj.NextThinkTime <= Time && obj.NextThinkTime != -1;
     }*/
@@ -64,4 +67,8 @@ namespace Inferno::Game {
     inline bool TimeHasElapsed(float time) {
         return time <= Time && time != -1;
     }
+
+    using GunIndex = int;
+    using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
+    WeaponBehavior& GetWeaponBehavior(string name);
 }

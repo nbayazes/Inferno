@@ -1267,8 +1267,9 @@ namespace Inferno {
                 //obj.Movement.Physics.Velocity = frameVec / dt;
                 obj.LastHitForce *= 0.80f; // decay every update
 
-                UpdateObjectSegment(level, obj);
             }
+
+            UpdateObjectSegment(level, obj);
 
             //if (obj.LastPosition != obj.Position)
             //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });

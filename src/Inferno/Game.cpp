@@ -168,7 +168,7 @@ namespace Inferno::Game {
                     powerup.Physics.Flags = PhysicsFlag::Bounce;
 
                     // game originally times-out conc missiles, shields and energy after about 3 minutes
-                    PendingNewObjects.push_back(powerup);
+                    AddObject(powerup);
                 }
                 break;
             }
@@ -181,6 +181,10 @@ namespace Inferno::Game {
                 break;
         }
 
+    }
+
+    void AddObject(const Object& obj) {
+        PendingNewObjects.push_back(obj);
     }
 
     void DestroyObject(Object& obj) {
@@ -332,6 +336,27 @@ namespace Inferno::Game {
         }
     }
 
+    void AddPendingObjects() {
+        for (auto& obj : PendingNewObjects) {
+            obj.LastPosition = obj.Position;
+            obj.LastRotation = obj.Rotation;
+
+            bool foundExisting = false;
+            //for (int i = 0; i < Level.Objects.size(); i++) {
+            //    auto& o = Level.Objects[i];
+            //    if (!o.IsAlive()) {
+            //        o = obj;
+            //        foundExisting = true;
+            //    }
+            //}
+
+            if (!foundExisting)
+                Level.Objects.push_back(obj);
+        }
+
+        PendingNewObjects.clear();
+    }
+
     // Updates on each game tick
     void FixedUpdate(float dt) {
         UpdatePlayerFireState(Player);
@@ -352,13 +377,7 @@ namespace Inferno::Game {
                 UpdateWeapon(obj, dt);
         }
 
-        for (auto& obj : PendingNewObjects) {
-            obj.LastPosition = obj.Position;
-            obj.LastRotation = obj.Rotation;
-            Level.Objects.push_back(obj); // todo: search for dead object instead
-        }
-
-        PendingNewObjects.clear();
+        AddPendingObjects();
     }
 
     // Returns the lerp amount for the current tick
