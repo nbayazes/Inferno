@@ -561,7 +561,8 @@ namespace Inferno::Editor {
     void PropertyEditor::ObjectProperties() {
         DisableControls disable(!Resources::HasGameData());
 
-        ImGui::TableRowLabel("Object");
+        auto label = fmt::format("Object {}", (int)Editor::Selection.Object);
+        ImGui::TableRowLabel(label.c_str());
         if (ObjectDropdown(Game::Level, Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
 

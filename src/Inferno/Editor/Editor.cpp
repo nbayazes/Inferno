@@ -74,15 +74,21 @@ namespace Inferno::Editor {
         switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Object:
             {
+                auto newSelection = Selection.Object;
                 auto objs = Seq::ofSet(Editor::Marked.Objects);
-                objs.push_back(Selection.Object);
-                Seq::sortDescending(objs);
-                for (auto& obj : objs)
-                    DeleteObject(Game::Level, obj);
+                if (objs.empty())
+                    objs.push_back(Selection.Object);
 
-                Selection.SetSelection(ObjID(0));
+                Seq::sortDescending(objs);
+                for (auto& obj : objs) {
+                    if (obj < Selection.Object) newSelection--;
+                    DeleteObject(Game::Level, obj);
+                }
+
+                Selection.SetSelection(newSelection);
                 Editor::Marked.Objects.clear();
-                Editor::History.SnapshotLevel("Delete Object");
+                Editor::History.SnapshotLevel("Delete Object(s)");
+                Editor::History.SnapshotSelection();
                 SetStatusMessage("Deleted {} object(s)", objs.size());
             }
             break;
@@ -95,6 +101,7 @@ namespace Inferno::Editor {
 
                 Editor::Marked.Segments.clear();
                 Editor::History.SnapshotLevel("Delete Segments");
+                Editor::History.SnapshotSelection();
                 SetStatusMessage("Deleted {} segments", segs.size());
             }
             break;
@@ -104,6 +111,7 @@ namespace Inferno::Editor {
                     Selection.SetSelection(newSelection);
                     PruneVertices(Game::Level);
                     Editor::History.SnapshotLevel("Delete Segment");
+                    Editor::History.SnapshotSelection();
                 }
                 break;
         }

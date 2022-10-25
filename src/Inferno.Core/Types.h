@@ -289,6 +289,9 @@ namespace Inferno {
     constexpr WallID operator++(WallID& id, int) { auto temp = id; ++id; return temp; }
     constexpr WallID operator--(WallID& id, int) { auto temp = id; --id; return temp; }
 
+    constexpr ObjID operator++(ObjID& id, int) { auto temp = id; id = ObjID((int)id + 1); return temp; }
+    constexpr ObjID operator--(ObjID& id, int) { auto temp = id; id = ObjID((int)id - 1); return temp; }
+
     constexpr TriggerID operator++(TriggerID& id, int) { auto temp = id; id = TriggerID((int)id + 1); return temp; }
     constexpr TriggerID operator--(TriggerID& id, int) { auto temp = id; id = TriggerID((int)id - 1); return temp; }
 
