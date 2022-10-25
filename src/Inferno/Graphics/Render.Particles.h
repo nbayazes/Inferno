@@ -88,7 +88,6 @@ namespace Inferno::Render {
 
     void UpdateParticles(Level&, float dt);
     void QueueParticles();
-    void DrawParticles(Graphics::GraphicsContext& ctx);
 
     // Remains of a destroyed robot
     struct Debris {
@@ -132,4 +131,42 @@ namespace Inferno::Render {
 
     void CreateExplosion(ExplosionInfo&);
     void UpdateExplosions(float dt);
+
+    //enum class BeamFlag {
+    //    SineNoise, RandomEnd
+    //};
+
+    struct BeamInfo {
+        Vector3 Start;
+        Vector3 End;
+        ObjID StartObj = ObjID::None; // NYI: attaches beam to this object
+        ObjID EndObj = ObjID::None; // NYI: attaches beam to this object
+        float Radius = 0; // If End is none, randomly strike targets within this radius
+        float Width = 2.0f;
+        float Life = 0;
+        Color Color = { 1, 1, 1 };
+        float Noise = 0;
+        string Texture;
+        float ScrollSpeed = 0; // Texture scroll speed
+        float Frequency = 1 / 60.0f; // How often in seconds to recalculate noise
+        SegID Segment;
+        float Scale = 1; // Scale for texture vs beam width
+        bool SineNoise = false; // Sine noise when true, Fractal noise when false
+        bool RandomEnd = false; // Uses a random end point
+        float Time = 0; // animates noise and determines the phase
+        float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
+
+        struct {
+            float Length;
+            int Segments;
+            List<float> Noise;
+            float NextUpdate;
+        } Runtime{};
+
+        static bool IsAlive(const BeamInfo& info) { return info.Life > 0; }
+    };
+
+    void AddBeam(BeamInfo&);
+    void DrawBeams(Graphics::GraphicsContext& ctx);
+
 }

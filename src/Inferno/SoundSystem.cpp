@@ -465,7 +465,7 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Clearing audio cache");
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Stop3DSounds();
-        SoundInstances.clear();
+        //SoundInstances.clear();
         Engine->TrimVoicePool();
 
         //for (auto& sound : Sounds)

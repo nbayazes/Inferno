@@ -151,6 +151,13 @@ namespace Inferno::Game {
         }
     }
 
+    // Returns a random point inside of a circle
+    Vector2 RandomPointInCircle(float radius) {
+        auto t = Random() * DirectX::XM_2PI;
+        auto x = std::cos(t) * radius * RandomN11();
+        auto y = std::sin(t) * radius * RandomN11();
+        return { x, y };
+    }
 
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash, const Vector2& spread) {
         auto& level = Game::Level;
@@ -240,7 +247,6 @@ namespace Inferno::Game {
         AddObject(bullet);
     }
 
-    // onFire: "spreadfire"
     void SpreadfireBehavior(Inferno::Player& player, int gun, WeaponID wid) {
         constexpr float SPREAD_ANGLE = 1 / 16.0f;
         if (player.SpreadfireToggle) { // Vertical
@@ -283,8 +289,128 @@ namespace Inferno::Game {
 
     void VulcanBehavior(Inferno::Player& player, int gun, WeaponID wid) {
         constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
-        Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
+        //Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
+        Vector2 spread = RandomPointInCircle(SPREAD_ANGLE);
         FireWeapon(player.ID, gun, wid, true, spread);
+    }
+
+    // FOV in 0 to PI
+    bool ObjectIsInFOV(const Ray& ray, const Object& other, float fov) {
+        auto vec = other.Position - ray.position;
+        vec.Normalize();
+        auto angle = AngleBetweenVectors(ray.direction, vec);
+        return angle <= fov;
+    }
+
+    // Used for omega and homing weapons
+    Object* GetClosestObjectInFOV(Object& src, float fov, float dist, int mask) {
+        Object* result = nullptr;
+        float minDist = FLT_MAX;
+
+        // todo: don't scan all objects, only nearby ones
+        for (auto& obj : Game::Level.Objects) {
+            // todo: filter object types based on mask
+            auto odist = obj.Distance(src);
+            if (odist > dist || odist >= minDist) continue;
+
+            if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov)) {
+                minDist = odist;
+                result = &obj;
+            }
+        }
+
+        return result;
+    }
+
+    // Returns the object closest object within a distance to a point
+    Object* GetClosestObject(const Vector3& pos, float dist) {
+        Object* result = nullptr;
+        float minDist = FLT_MAX;
+
+        for (auto& obj : Game::Level.Objects) {
+            auto d = Vector3::Distance(obj.Position, pos);
+            if (d <= dist && d < minDist) {
+                minDist = d;
+                result = &obj;
+            }
+        }
+
+        return result;
+    }
+
+    void OmegaBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+        constexpr auto FOV = 12.5f * DegToRad;
+        constexpr auto MAX_DIST = 100;
+        constexpr auto MAX_TARGETS = 3;
+        constexpr auto MAX_CHAIN_DIST = 50;
+        constexpr auto NO_TARGET_RADIUS = 0.25f;
+
+        Object* targets[MAX_TARGETS]{};
+        const auto& weapon = Resources::GetWeapon(wid);
+
+        auto& playerObj = Game::Level.GetObject(player.ID);
+        auto gunOffset = GetGunpointOffset(playerObj, gun);
+        auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
+
+        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, 0);
+        if (initialTarget) {
+            targets[0] = initialTarget;
+
+            for (int i = 0; i < MAX_TARGETS - 1; i++) {
+                auto src = targets[i];
+                if (!src) break;
+
+                if (auto next = GetClosestObject(src->Position, MAX_CHAIN_DIST)) {
+                    targets[i + 1] = next;
+                }
+            }
+
+            // Apply damage to each target
+            for (auto& target : targets) {
+                //if (target)
+                //    target->HitPoints -= weapon.Damage[Difficulty];
+            }
+        }
+        else {
+            // no target: pick a random point within FOV
+            auto offset = RandomPointInCircle(NO_TARGET_RADIUS);
+            auto dir = playerObj.Rotation.Forward();
+            dir += playerObj.Rotation.Right() * offset.x;
+            dir += playerObj.Rotation.Up() * offset.y;
+            dir.Normalize();
+
+            Vector3 end;
+            LevelHit hit;
+            if (IntersectLevel(Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, hit)) {
+                end = hit.Point;
+                // create explosion / sound
+            }
+            else {
+                end = start + dir * MAX_DIST;
+            }
+
+            Render::BeamInfo beam{
+                .Start = start,
+                .End = end,
+                //.Radius = 20,
+                .Width = 0.35f,
+                .Life = 1.5f,
+                .Color = { 3.00f, 1.0f, 2.0f },
+                .Texture = "Lightning1",
+                //.Scale = 0.25f,
+                //.SineNoise = true,
+                .Frequency = 1000,
+                .Amplitude = 2.25f,
+            };
+            Render::AddBeam(beam);
+        }
+
+        // Create vfx between each object, along with random arcs at each
+
+
+        // Find a target within a certain range and FOV, otherwise project straight ahead randomly
+
+        // If found a valid target, chain to up to x more within range (or randomly arc)
     }
 
     // default weapon firing behavior
@@ -296,7 +422,8 @@ namespace Inferno::Game {
         { "default", DefaultBehavior },
         { "vulcan", VulcanBehavior },
         { "helix", HelixBehavior },
-        { "spreadfire", SpreadfireBehavior }
+        { "spreadfire", SpreadfireBehavior },
+        { "omega", OmegaBehavior }
     };
 
     WeaponBehavior& GetWeaponBehavior(string name) {

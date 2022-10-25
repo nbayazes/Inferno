@@ -344,9 +344,12 @@ namespace Inferno::Resources {
         if (GameData.Weapons.size() < 32) return;
         GameData.Weapons[(int)WeaponID::Fusion].Extended.Chargable = true;
         GameData.Weapons[(int)WeaponID::Laser1].Extended.Behavior = "spreadfire";
-        GameData.Weapons[(int)WeaponID::Helix].Extended.Behavior = "helix";
         GameData.Weapons[(int)WeaponID::Spreadfire].Extended.Behavior = "spreadfire";
         GameData.Weapons[(int)WeaponID::Vulcan].Extended.Behavior = "vulcan";
+
+        if (GameData.Weapons.size() < 35) return;
+        GameData.Weapons[(int)WeaponID::Helix].Extended.Behavior = "helix";
+        GameData.Weapons[(int)WeaponID::Omega].Extended.Behavior = "omega";
     }
 
     // Some levels don't have the D1 reactor model set

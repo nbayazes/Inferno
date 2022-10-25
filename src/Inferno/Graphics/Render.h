@@ -74,7 +74,7 @@ namespace Inferno::Render {
     inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
 
     enum class RenderCommandType {
-        LevelMesh, Object, Particle, Emitter, Debris
+        LevelMesh, Object, Particle, Emitter, Debris, Beam
     };
 
     struct RenderCommand {
@@ -86,6 +86,7 @@ namespace Inferno::Render {
             ParticleEmitter* Emitter;
             Particle* Particle;
             struct Debris* Debris;
+            BeamInfo* Beam;
         } Data;
 
         RenderCommand(Object* obj, float depth)
@@ -112,7 +113,19 @@ namespace Inferno::Render {
             : Depth(depth), Type(RenderCommandType::Debris) {
             Data.Debris = debris;
         }
+
+        RenderCommand(BeamInfo* beam, float depth)
+            : Depth(depth), Type(RenderCommandType::Beam) {
+            Data.Beam = beam;
+        }
     };
+
+    // Returns the squared distance of an object to the camera
+    inline float GetRenderDepth(const Vector3& pos) {
+        // Shift depth closer to camera to draw objects after walls.
+        // Flat value is for nearby objects and multiplier is for distant ones.
+        return Vector3::DistanceSquared(Render::Camera.Position, pos) * 0.98f - 100;
+    }
 
     void QueueTransparent(RenderCommand&);
     void QueueOpaque(RenderCommand&);

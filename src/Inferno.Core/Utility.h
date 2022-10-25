@@ -22,18 +22,20 @@ namespace Inferno {
     //    return cc;
     //}
 
-    // Returns a random value between 0 and 1. Equiv to P_Rand()
-    inline float Random() {
-        return (float)rand() / RAND_MAX;
-    }
+    // Returns a random value between 0 and 1
+    float Random();
 
     // Returns a random value between -1 and 1
     inline float RandomN11() {
         return Random() - Random();
     }
 
-    inline Vector3 RandomVector(float scale) {
-        return Vector3(RandomN11(), RandomN11(), RandomN11()) * scale;
+    // Returns a random unit vector. Optionally scaled by a value.
+    inline Vector3 RandomVector(float scale = 1) {
+        Vector3 v(RandomN11(), RandomN11(), RandomN11());
+        if (v == Vector3::Zero) v = Vector3::Up;
+        v.Normalize();
+        return v * scale;
     }
 
     // defined in C++23
@@ -69,6 +71,15 @@ namespace Inferno {
     inline T operator ~ (T value) {
         return value = T(~((std::underlying_type_t<T>)value));
     }
+
+    template<class T>
+    void SetFlag(T& flags, T flag) { flags |= flag; }
+
+    template<class T>
+    bool HasFlag(const T& flags, T flag) { return bool(flags & flag); }
+
+    template<class T>
+    void ClearFlag(const T& flags, T flag) { flags &= ~flag; }
 
     //template <class T>
     //concept IsEnum = is_scoped_enum_v<T>;

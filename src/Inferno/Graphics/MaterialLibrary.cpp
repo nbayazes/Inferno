@@ -420,12 +420,22 @@ namespace Inferno::Render {
         List<Material2D> uploads;
         auto batch = BeginTextureUpload();
 
-
         for (auto& name : names) {
             if (_outrageMaterials.contains(name)) continue; // skip loaded
 
-            if (auto material = UploadBitmap(batch, name, _black))
-                uploads.emplace_back(std::move(material.value()));
+            if (FileSystem::TryFindFile(name + ".dds")) {
+                if (auto material = UploadBitmap(batch, name, _black))
+                    uploads.emplace_back(std::move(material.value()));
+            }
+            else {
+                // Try loading named file from D3 data
+                if (auto bitmap = Resources::ReadOutrageBitmap(name + ".ogf")) {
+                    if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
+                        material->Name = name;
+                        uploads.emplace_back(std::move(material.value()));
+                    }
+                }
+            }
         }
 
         EndTextureUpload(batch);
@@ -443,12 +453,12 @@ namespace Inferno::Render {
         for (auto& texture : model.Textures) {
             if (_outrageMaterials.contains(texture)) continue; // skip loaded
 
-            MaterialUpload upload;
-            if (auto bitmap = Resources::ReadOutrageBitmap(texture))
+            if (auto bitmap = Resources::ReadOutrageBitmap(texture)) {
                 if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
                     material->Name = texture; // Name in the model can be different than file name
                     uploads.emplace_back(std::move(material.value()));
                 }
+            }
         }
 
         EndTextureUpload(batch);

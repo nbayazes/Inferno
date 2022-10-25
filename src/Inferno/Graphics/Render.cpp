@@ -769,7 +769,7 @@ namespace Inferno::Render {
         auto& shader = Shaders->DepthObject;
 
         if (object.Control.Type == ControlType::Weapon) {
-            auto r = Matrix::CreateFromYawPitchRoll(object.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
+            auto r = Matrix::CreateFromYawPitchRoll(object.Physics.AngularVelocity * (float)ElapsedTime * XM_2PI);
             auto translation = transform.Translation();
             transform *= Matrix::CreateTranslation(translation);
             transform = r * transform;
@@ -930,9 +930,7 @@ namespace Inferno::Render {
             position = seg->Center + vec; // Shift slightly away from center so objects within seg are sorted correctly
         }
 
-        // shift depth closer to camera to draw them after walls.
-        // Flat value is for nearby objects and multiplier is for distant ones
-        float depth = (position - Camera.Position).LengthSquared() * 0.98f - 100;
+        float depth = GetRenderDepth(position - Camera.Position);
 
         if (depth > distSquared)
             DrawObjectOutline(obj);
@@ -1165,7 +1163,7 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            //DrawParticles(ctx);
+            DrawBeams(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::Inferno.ScreenshotMode && Game::State == GameState::Editor) {

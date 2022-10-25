@@ -151,6 +151,7 @@
     <ClCompile Include="Polymodel.cpp" />
     <ClCompile Include="Segment.cpp" />
     <ClCompile Include="Sound.cpp" />
+    <ClCompile Include="Utility.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
