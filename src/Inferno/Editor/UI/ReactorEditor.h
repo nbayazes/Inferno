@@ -50,7 +50,7 @@ namespace Inferno::Editor {
         void ReactorTriggers() {
             ImGui::TableRowLabelEx("Targets to open\nwhen destroyed", "Only doors or destroyable walls are valid targets");
 
-            ImGui::BeginChild("##cctriggers", { -1, 200 }, true);
+            ImGui::BeginChild("##cctriggers", { -1, 200 * Shell::DpiScale }, true);
 
             static int selection = 0;
             for (int i = 0; i < Game::Level.ReactorTriggers.Count(); i++) {
@@ -66,7 +66,9 @@ namespace Inferno::Editor {
 
             ImGui::EndChild();
 
-            if (ImGui::Button("Add##ReactorTriggerTarget", { 100, 0 })) {
+            ImVec2 btnSize = { 100 * Shell::DpiScale, 0 };
+
+            if (ImGui::Button("Add##ReactorTriggerTarget", btnSize)) {
                 auto marked = GetSelectedFaces();
 
                 bool failed = false;
@@ -87,8 +89,13 @@ namespace Inferno::Editor {
                 else
                     Editor::History.SnapshotLevel("Add reactor trigger");
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Delete##ReactorTriggerTarget", { 100, 0 })) {
+
+            float contentWidth = ImGui::GetWindowContentRegionMax().x;
+
+            if (ImGui::GetCursorPosX() + btnSize.x * 2 + 5 < contentWidth)
+                ImGui::SameLine();
+
+            if (ImGui::Button("Delete##ReactorTriggerTarget", btnSize)) {
                 if (Game::Level.ReactorTriggers.Remove(selection))
                     Editor::History.SnapshotLevel("Remove reactor trigger");
 

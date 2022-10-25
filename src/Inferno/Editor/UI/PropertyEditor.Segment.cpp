@@ -51,7 +51,9 @@ namespace Inferno::Editor {
 
         ImGui::EndChild();
 
-        if (ImGui::Button("Add##TriggerTarget", { 100 * Shell::DpiScale, 0 })) {
+        ImVec2 btnSize = { 100 * Shell::DpiScale, 0 };
+
+        if (ImGui::Button("Add##TriggerTarget", btnSize)) {
             if (Editor::Marked.Faces.empty())
                 ShowWarningMessage(L"Please mark faces to add as targets.");
 
@@ -61,8 +63,12 @@ namespace Inferno::Editor {
             }
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button("Remove##TriggerTarget", { 100 * Shell::DpiScale, 0 })) {
+        float contentWidth = ImGui::GetWindowContentRegionMax().x;
+
+        if (ImGui::GetCursorPosX() + btnSize.x * 2 + 5 < contentWidth )
+            ImGui::SameLine();
+
+        if (ImGui::Button("Remove##TriggerTarget", btnSize)) {
             RemoveTriggerTarget(level, tid, selectedIndex);
             if (selectedIndex > trigger.Targets.Count()) selectedIndex--;
             changed = true;
