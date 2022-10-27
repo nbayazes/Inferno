@@ -19,6 +19,12 @@
 using namespace DirectX;
 
 namespace Inferno::Game {
+    uint16 ObjSigIndex = 0;
+
+    ObjSig GetObjectSig() {
+        return ObjSig(ObjSigIndex++);
+    }
+
     void LoadLevel(Inferno::Level&& level) {
         Inferno::Level backup = Level;
 
@@ -36,6 +42,11 @@ namespace Inferno::Game {
 
             Level = std::move(level); // Move to global so resource loading works properly
             Resources::LoadLevel(Level);
+
+            ObjSigIndex = 0;
+            for (auto& obj : Level.Objects) {
+                obj.Signature = GetObjectSig();
+            }
 
             if (forceReload || Resources::HasCustomTextures()) // Check for custom textures before or after load
                 Render::Materials->Unload();
@@ -340,18 +351,55 @@ namespace Inferno::Game {
         for (auto& obj : PendingNewObjects) {
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
+            obj.Signature = GetObjectSig();
 
             bool foundExisting = false;
-            //for (int i = 0; i < Level.Objects.size(); i++) {
-            //    auto& o = Level.Objects[i];
-            //    if (!o.IsAlive()) {
-            //        o = obj;
-            //        foundExisting = true;
-            //    }
-            //}
+            ObjID id = ObjID::None;
 
-            if (!foundExisting)
+            for (int i = 0; i < Level.Objects.size(); i++) {
+                auto& o = Level.Objects[i];
+                if (!o.IsAlive()) {
+                    o = obj;
+                    foundExisting = true;
+                    id = ObjID(i);
+                    break;
+                }
+            }
+
+            if (!foundExisting) {
+                id = ObjID(Level.Objects.size());
                 Level.Objects.push_back(obj);
+            }
+
+            // Hack to insert tracers due to not having the object ID in firing code
+            if (obj.Type == ObjectType::Weapon) {
+                
+                if ((WeaponID)obj.ID == WeaponID::Vulcan) {
+                    Render::TracerInfo tracer{
+                        .Parent = id,
+                        .Length = 30.0f,
+                        .Width = 0.35f,
+                        .Texture = "vausstracer",
+                        .BlobTexture = "Tracerblob",
+                        .Color = { 2, 2, 2 },
+                        .FadeSpeed = 0.10f,
+                    };
+                    Render::AddTracer(tracer);
+                }
+
+                if ((WeaponID)obj.ID == WeaponID::Gauss) {
+                    Render::TracerInfo tracer{
+                        .Parent = id,
+                        .Length = 30.0f,
+                        .Width = 0.55f,
+                        .Texture = "MassDriverTracer",
+                        .BlobTexture = "MassTracerblob",
+                        .Color = { 2, 2, 2 },
+                        .FadeSpeed = 0.10f,
+                    };
+                    Render::AddTracer(tracer);
+                }
+            }
         }
 
         PendingNewObjects.clear();
@@ -362,8 +410,9 @@ namespace Inferno::Game {
         UpdatePlayerFireState(Player);
         Player.Update(dt);
 
-        UpdateAmbientSounds();
         Render::UpdateDebris(dt);
+        Render::UpdateExplosions(dt);
+        UpdateAmbientSounds();
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
@@ -413,7 +462,6 @@ namespace Inferno::Game {
         while (accumulator >= TICK_RATE) {
             UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
             FixedUpdate(TICK_RATE);
-            Render::UpdateExplosions(TICK_RATE);
             accumulator -= TICK_RATE;
             t += TICK_RATE;
             Game::DeltaTime += TICK_RATE;

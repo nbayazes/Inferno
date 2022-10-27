@@ -276,6 +276,7 @@ namespace Inferno {
 
     enum class ModelID : int32 { 
         None = -1,
+        D1Reactor = 39,
         D1Player = 43,
         D1Coop = 44,
         D2Player = 108, // Also used for co-op

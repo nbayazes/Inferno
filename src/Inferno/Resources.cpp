@@ -341,15 +341,18 @@ namespace Inferno::Resources {
     }
 
     void LoadExtendedWeaponInfo() {
-        if (GameData.Weapons.size() < 32) return;
+        if (GameData.Weapons.size() < 32) return; // Missing D1 weapons??
         GameData.Weapons[(int)WeaponID::Fusion].Extended.Chargable = true;
-        GameData.Weapons[(int)WeaponID::Laser1].Extended.Behavior = "spreadfire";
         GameData.Weapons[(int)WeaponID::Spreadfire].Extended.Behavior = "spreadfire";
         GameData.Weapons[(int)WeaponID::Vulcan].Extended.Behavior = "vulcan";
 
-        if (GameData.Weapons.size() < 35) return;
+        if (GameData.Weapons.size() < 35) return; // No D2 data, probably D1.
         GameData.Weapons[(int)WeaponID::Helix].Extended.Behavior = "helix";
         GameData.Weapons[(int)WeaponID::Omega].Extended.Behavior = "omega";
+
+        auto& gauss = GameData.Weapons[(int)WeaponID::Gauss];
+        gauss.Model = ModelID::None;
+        gauss.RenderType = WeaponRenderType::None;
     }
 
     // Some levels don't have the D1 reactor model set
@@ -357,7 +360,7 @@ namespace Inferno::Resources {
         for (auto& obj : level.Objects) {
             if (obj.Type == ObjectType::Reactor) {
                 obj.ID = 0;
-                obj.Render.Model.ID = ModelID(39);
+                obj.Render.Model.ID = ModelID::D1Reactor;
             }
         }
     }

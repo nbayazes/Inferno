@@ -932,10 +932,10 @@ namespace Inferno::Render {
 
         float depth = GetRenderDepth(position - Camera.Position);
 
-        if (depth > distSquared)
+        if (depth > distSquared && Game::State == GameState::Editor)
             DrawObjectOutline(obj);
 
-        else if (obj.Render.Type == RenderType::Model) {
+        else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             _opaqueQueue.push_back({ &obj, depth });
 
             auto& mesh = _meshBuffer->GetHandle(obj.Render.Model.ID);
@@ -1164,6 +1164,7 @@ namespace Inferno::Render {
             //    _levelResources->Volumes.Draw(cmdList);
 
             DrawBeams(ctx);
+            DrawTracers(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::Inferno.ScreenshotMode && Game::State == GameState::Editor) {

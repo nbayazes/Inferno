@@ -240,7 +240,7 @@ namespace Inferno::Render {
     };
 
     // Fractal noise generator, power of 2 wavelength
-    void FracNoise(span<float> noise) {
+    void FractalNoise(span<float> noise) {
         if (noise.size() < 2) return;
         int div2 = noise.size() >> 1;
 
@@ -248,8 +248,8 @@ namespace Inferno::Render {
         noise[div2] = (noise.front() + noise.back()) * 0.5f + noise.size() * RandomN11() * 0.125f;
 
         if (div2 > 1) {
-            FracNoise(noise.subspan(0, div2 + 1)); // -1 ?
-            FracNoise(noise.subspan(div2));
+            FractalNoise(noise.subspan(0, div2 + 1)); // -1 ?
+            FractalNoise(noise.subspan(div2));
         }
     }
 
@@ -263,55 +263,12 @@ namespace Inferno::Render {
         }
     }
 
-    void UpdateBeams(float dt) {
-        for (auto& beam : Beams) {
-            int step = beam.Life / 0.1f;
-            // seed random based on step? cache mesh?
-        }
-    }
-
-
-    //void DrawBeamOriginal(BeamInfo& beam) {
-    //    auto& material = Render::Materials->GetOutrageMaterial(beam.Texture);
-    //    effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
-
-    //    // create a path between start and end, then apply noise
-    //    auto start = beam.Start;
-    //    auto& end = beam.End.value();
-    //    auto delta = start - end;
-    //    auto length = delta.Length();
-    //    //delta.Normalize();
-
-    //    DrawCalls++;
-    //    g_SpriteBatch->Begin(ctx.CommandList());
-
-    //    auto h = beam.Width / 2;
-
-    //    auto normal = GetBeamNormal(start, end); // todo: average with previous segment
-    //    auto up = normal * h;
-    //    ObjectVertex v0{ start + up, { 0, 0 }, beam.Color };
-    //    ObjectVertex v1{ start - up, { 1, 0 }, beam.Color };
-    //    ObjectVertex v2{ end - up, { 1, 1 * vScale}, beam.Color };
-    //    ObjectVertex v3{ end + up, { 0, 1 * vScale}, beam.Color };
-
-    //    g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
-    //}
-
     Vector3 GetBeamPerpendicular(const Vector3 delta) {
         Vector3 dir;
         delta.Normalize(dir);
         auto perp = Camera.GetForward().Cross(dir);
         perp.Normalize();
         return perp;
-
-        //auto invLen = delta.Length();
-        //if (invLen == 0) return {};
-
-        //invLen = 1.0f / invLen;
-        //auto center = delta * invLen;
-        //auto perp = Camera.GetForward().Cross(center);
-        //perp.Normalize();
-        //return perp;
     }
 
     void DrawBeams(Graphics::GraphicsContext& ctx) {
@@ -319,7 +276,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(ctx.CommandList(), Render::GetTextureSampler());
+        effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicWrap());
 
         for (auto& beam : Beams) {
             //beam.Life -= dt;
@@ -363,12 +320,11 @@ namespace Inferno::Render {
                 if (beam.SineNoise)
                     SineNoise(noise);
                 else
-                    FracNoise(noise);
+                    FractalNoise(noise);
 
                 beam.Runtime.NextUpdate = Render::ElapsedTime + beam.Frequency;
             }
 
-            //auto noiseStep = (int)((float)(beam.Runtime.Noise.size() - 1) * div * 65536.0f);
             int noiseIndex = 0;
 
             auto perp1 = GetBeamPerpendicular(delta);
@@ -383,7 +339,6 @@ namespace Inferno::Render {
             struct BeamSeg {
                 Vector3 pos;
                 float texcoord;
-                float width;
             };
 
             BeamSeg curSeg{};
@@ -423,7 +378,6 @@ namespace Inferno::Render {
                     }
                 }
 
-                //nextSeg.width = beam.Width * 2.0f;
                 nextSeg.texcoord = vLast;
 
                 if (i > 0) {
@@ -441,11 +395,6 @@ namespace Inferno::Render {
 
                     prevNormal = normal;
 
-                    // VectorMA: d = a + c * b
-                    // VectorMA( source, fraction, delta, nextSeg.pos );
-
-                    auto h = beam.Width / 2;
-
                     // draw rectangular segment
                     auto start = curSeg.pos;
                     auto end = nextSeg.pos;
@@ -462,53 +411,129 @@ namespace Inferno::Render {
                 }
 
                 curSeg = nextSeg;
-                //segsDrawn++;
-
-                //if (i == segments - 1) {
-                //    // draw last segment
-                //}
-
                 vLast += vStep; // next segment tex V coord
-                //noiseIndex += noiseStep;
-
-
-
-
-                // create a path between start and end, then apply noise
-                //auto start = beam.Start;
-                //auto& end = beam.End.value();
-                //auto delta = start - end;
-                //auto length = delta.Length();
-                //delta.Normalize();
-
-
-
-
-                //if (beam.Noise == 0) {
-                //}
-                //else {
-
-                //    // generate mesh based on noise
-
-                //    auto up = Render::Camera.Up * (beam.Width / 2);
-                //    ObjectVertex v0{ start + up, { 0, 0 }, beam.Color };
-                //    ObjectVertex v1{ start - up, { 0, 1 }, beam.Color };
-                //    ObjectVertex v2{ end + up, { 1, 0 }, beam.Color };
-                //    ObjectVertex v3{ end + up, { 1, 1 }, beam.Color };
-
-                //    g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
-                //}
             }
 
             g_SpriteBatch->End();
         }
+    }
 
-        //void QueueBeams() {
-        //    for (auto& beam : Beams) {
-        //        auto depth = GetRenderDepth(beam.Start);
-        //        RenderCommand cmd(&beam, depth);
-        //        QueueTransparent(cmd);
-        //    }
-        //}
+    //void QueueBeams() {
+    //    for (auto& beam : Beams) {
+    //        auto depth = GetRenderDepth(beam.Start);
+    //        RenderCommand cmd(&beam, depth);
+    //        QueueTransparent(cmd);
+    //    }
+    //}
+
+    DataPool<TracerInfo> Tracers(TracerInfo::IsAlive, 50);
+
+    void AddTracer(TracerInfo& tracer) {
+        std::array tex = { tracer.Texture, tracer.BlobTexture };
+        Render::Materials->LoadTextures(tex);
+
+        assert(tracer.Parent != ObjID::None);
+
+        if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
+            tracer.Start = obj->Position;
+            tracer.Signature = obj->Signature;
+        }
+
+        tracer.Life = 1;
+        Tracers.Add(tracer);
+    }
+
+    void DrawTracers(Graphics::GraphicsContext& ctx) {
+        auto& effect = Effects->SpriteAdditive;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
+
+        for (auto& tracer : Tracers) {
+            tracer.Life -= Render::FrameTime;
+            if (!TracerInfo::IsAlive(tracer)) continue;
+
+            auto parentWasLive = tracer.ParentIsLive;
+
+            const auto obj = Game::Level.TryGetObject(tracer.Parent);
+
+            if (obj && obj->Signature == tracer.Signature) {
+                tracer.ParentIsLive = obj->IsAlive();
+                tracer.End = obj->Position;
+                if (tracer.ParentIsLive)
+                    tracer.Life = 1;
+            }
+            else {
+                tracer.ParentIsLive = false;
+            }
+
+            parentWasLive = parentWasLive && !tracer.ParentIsLive;
+            if (parentWasLive)
+                tracer.Life = tracer.FadeSpeed;
+
+            const auto delta = tracer.Start - tracer.End;
+            const auto dist = delta.Length();
+
+            if (dist < tracer.Length)
+                continue; // don't draw tracers that are too short
+
+            // Fade tracer in or out based on parent being alive
+            auto fadeSpeed = tracer.FadeSpeed > 0 ? Render::FrameTime / tracer.FadeSpeed : 1;
+            if (tracer.ParentIsLive)
+                tracer.Fade += fadeSpeed;
+            else
+                tracer.Fade -= fadeSpeed;
+
+            tracer.Fade = std::clamp(tracer.Fade, 0.0f, 1.0f);
+
+            Vector3 dir;
+            delta.Normalize(dir);
+
+            const auto lenMult = tracer.ParentIsLive ? 1 : tracer.Fade;
+            auto start = tracer.End + dir * tracer.Length * lenMult;
+            const auto end = tracer.End;
+
+            const auto normal = GetBeamNormal(start, tracer.End);
+
+            // draw rectangular segment
+            const auto halfWidth = tracer.Width * 0.5f;
+            auto up = normal * halfWidth;
+            Color fade(1, 1, 1, tracer.Fade);
+            auto color = tracer.Color * fade;
+
+            if (!tracer.Texture.empty()) {
+                auto& material = Render::Materials->GetOutrageMaterial(tracer.Texture);
+                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+                g_SpriteBatch->Begin(ctx.CommandList());
+
+                ObjectVertex v0{ start + up, { 0, 0 }, color };
+                ObjectVertex v1{ start - up, { 1, 0 }, color };
+                ObjectVertex v2{ end - up, { 1, 1 }, color };
+                ObjectVertex v3{ end + up, { 0, 1 }, color };
+                g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+                g_SpriteBatch->End();
+                DrawCalls++;
+            }
+
+            if (!tracer.BlobTexture.empty()) {
+                auto& material = Render::Materials->GetOutrageMaterial(tracer.BlobTexture);
+                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+                g_SpriteBatch->Begin(ctx.CommandList());
+
+                auto right = Render::Camera.GetRight() * halfWidth;
+                up = Render::Camera.Up * halfWidth;
+                constexpr float BLOB_OFFSET = 0.25f; // tracer textures are thickest about a quarter from the end
+                auto blob = tracer.End + dir * tracer.Length * BLOB_OFFSET * lenMult;
+
+                ObjectVertex v0{ blob + up - right, { 0, 0 }, color };
+                ObjectVertex v1{ blob - up - right, { 1, 0 }, color };
+                ObjectVertex v2{ blob - up + right, { 1, 1 }, color };
+                ObjectVertex v3{ blob + up + right, { 0, 1 }, color };
+                g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+                g_SpriteBatch->End();
+                DrawCalls++;
+            }
+        }
     }
 }

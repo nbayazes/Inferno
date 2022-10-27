@@ -169,4 +169,26 @@ namespace Inferno::Render {
     void AddBeam(BeamInfo&);
     void DrawBeams(Graphics::GraphicsContext& ctx);
 
+    struct TracerInfo {
+        ObjID Parent = ObjID::None; // Object the tracer is attached to. Normally a weapon projectile.
+        ObjSig Signature = {};
+        float Length = 20; // How long the tracer is
+        float Width = 2;
+        string Texture, BlobTexture;
+        Color Color = { 1, 1, 1 };
+        float FadeSpeed = 0.125f; // How quickly the tracer fades in and out
+
+        // Runtime vars
+        Vector3 Start;
+        Vector3 End; // Updated in realtime. Used to fade out tracer after object dies.
+        float Fade = 0; // For fading the tracer in and out
+        bool ParentIsLive = false;
+        float Life = 0;
+        static bool IsAlive(const TracerInfo& info) { return info.Life > 0; }
+    };
+
+    // Adds a tracer effect attached to an object that is removed when the object dies.
+    // Tracers are only drawn when the minimum length is reached
+    void AddTracer(TracerInfo&);
+    void DrawTracers(Graphics::GraphicsContext& ctx);
 }

@@ -178,6 +178,7 @@ namespace Inferno::Game {
 
         bullet.Movement = MovementType::Physics;
         bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
+        //bullet.Physics.Velocity = direction * 10;
         bullet.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
         bullet.Physics.Drag = weapon.Drag;
         bullet.Physics.Mass = weapon.Mass;

@@ -287,7 +287,7 @@ namespace Inferno {
     constexpr float NEVER_THINK = -1;
 
     struct Object {
-        ObjSig Signature{};     // Every object ever has a unique signature
+        ObjSig Signature{};     // Unique signature for each object
         ObjectType Type{};
         int8 ID{};              // Index in powerups, robots, etc. Also used for player and co-op IDs.
         ObjectFlag Flags{};

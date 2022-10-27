@@ -8,6 +8,7 @@ namespace Inferno {
     };
 
     enum class WeaponRenderType : sbyte {
+        None = -1,
         Laser = 0,
         Blob = 1,
         Model = 2,

@@ -415,6 +415,15 @@ namespace Inferno::Render {
     }
 
     void MaterialLibrary::LoadTextures(span<string> names) {
+        bool hasUnloaded = false;
+        for (auto& name : names) {
+            if (!name.empty() && !_outrageMaterials.contains(name)) {
+                hasUnloaded = true;
+                break;
+            }
+        }
+
+        if (!hasUnloaded) return;
         Render::Adapter->WaitForGpu();
 
         List<Material2D> uploads;

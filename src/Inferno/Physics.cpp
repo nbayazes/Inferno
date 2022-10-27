@@ -1097,10 +1097,10 @@ namespace Inferno {
             e.Sound = soundId;
             //if (source.Radius < 0.5f)
             //e.Position = source.LastPosition + dir * hit.Distance - dir * (weapon.ImpactSize /** 0.5f*/); // move explosion out of wall
-            e.Position = source.LastPosition + dir * hit.Distance; // move explosion out of wall
+            //e.Position = source.LastPosition + dir * hit.Distance; // move explosion out of wall
             //e.Position = source.LastPosition; // move explosion out of wall
             //else
-                //e.Position = source.Position; // it looks weird if large objects have their explosion at the contact point
+            e.Position = hit.Point; // it looks weird if large objects have their explosion at the contact point
 
             e.Color = { 1, 1, 1 };
             e.FadeTime = 0.1f;
