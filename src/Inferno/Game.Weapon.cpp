@@ -61,7 +61,7 @@ namespace Inferno::Game {
         auto& cw = obj.Control.Weapon;
 
         if (TimeHasElapsed(obj.NextThinkTime)) {
-            obj.NextThinkTime = Game::Time + 0.25f;
+            obj.NextThinkTime = (float)Game::Time + 0.25f;
 
             // Try to find a nearby target
             if (cw.TrackingTarget == ObjID::None) {
@@ -235,14 +235,17 @@ namespace Inferno::Game {
             sound.FromPlayer = true;
             Sound::Play(sound);
 
-            Render::Particle p{};
-            p.Clip = weapon.FlashVClip;
-            p.Position = point;
-            p.Radius = weapon.FlashSize;
-            p.Parent = objId;
-            p.ParentOffset = gunOffset;
-            p.FadeTime = 0.175f;
-            Render::AddParticle(p);
+            // Hide flashes in first person for gunpoints under the ship
+            if (gun < 6) {
+                Render::Particle p{};
+                p.Clip = weapon.FlashVClip;
+                p.Position = point;
+                p.Radius = weapon.FlashSize;
+                p.Parent = objId;
+                p.ParentOffset = gunOffset;
+                p.FadeTime = 0.175f;
+                Render::AddParticle(p);
+            }
         }
 
         AddObject(bullet);

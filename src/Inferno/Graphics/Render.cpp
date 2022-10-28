@@ -1150,12 +1150,14 @@ namespace Inferno::Render {
                 ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Walls);
             ctx.EndEvent();
 
+            DrawDecals(ctx);
+
             ctx.BeginEvent(L"Transparent queue");
             for (auto& cmd : _transparentQueue)
                 ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Transparent);
             ctx.EndEvent();
 
-            ctx.EndEvent();
+            ctx.EndEvent(); // level
 
             //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
             //    ExecuteRenderCommand(cmdList, cmd, true);

@@ -292,6 +292,49 @@ namespace Inferno {
         return c3;
     }
 
+    // Returns the distance to the nearest edge
+    //float TriangleEdgeDistance(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point) {
+    //    auto c1 = ClosestPointOnLine(p0, p1, point);
+    //    auto c2 = ClosestPointOnLine(p1, p2, point);
+    //    auto c3 = ClosestPointOnLine(p2, p0, point);
+
+    //    auto mag1 = (point - c1).Length();
+    //    auto mag2 = (point - c2).Length();
+    //    auto mag3 = (point - c3).Length();
+
+    //    return std::min(std::min(mag1, mag2), mag3);
+    //}
+
+    // Returns the nearest distance to the face edge and a point. Skips the internal split.
+    float FaceEdgeDistance(const Face& face, const Vector3& point) {
+        // Check the four outside edges of the face
+        Vector3 c1, c2, c3, c4;
+
+        if (face.Side.Type == SideSplitType::Tri13) {
+            c1 = ClosestPointOnLine(face[0], face[1], point);
+            c2 = ClosestPointOnLine(face[3], face[0], point);
+            c3 = ClosestPointOnLine(face[1], face[2], point);
+            c4 = ClosestPointOnLine(face[2], face[3], point);
+        }
+        else {
+            // 0-2 split
+            c1 = ClosestPointOnLine(face[0], face[1], point);
+            c2 = ClosestPointOnLine(face[1], face[2], point);
+            c3 = ClosestPointOnLine(face[2], face[3], point);
+            c4 = ClosestPointOnLine(face[3], face[0], point);
+        }
+
+        auto mag1 = (point - c1).Length();
+        auto mag2 = (point - c2).Length();
+        auto mag3 = (point - c3).Length();
+        auto mag4 = (point - c4).Length();
+        return std::min(std::min(std::min(mag1, mag2), mag3), mag4);
+
+        /*auto i = face.Side.GetRenderIndices();
+        if (tri > 1) tri = 1;
+        auto idx = tri * 3;
+        return TriangleEdgeDistance(face[i[idx]], face[i[idx + 1]], face[i[idx + 2]], point);*/
+    }
 
     Vector3 GetTriangleNormal(const Vector3& a, const Vector3& b, const Vector3& c) {
         auto v1 = b - a;
@@ -508,7 +551,7 @@ namespace Inferno {
         auto [point, idist] = IntersectTriangleSphere(p0, p1, p2, sphere);
         refPoint = point;
 
-        normal = center - point;
+        normal = idist == 0 ? faceNormal : center - point;
         normal.Normalize();
         dist = idist;
         return idist < Radius;
@@ -699,13 +742,16 @@ namespace Inferno {
                 auto face = Face::FromSide(level, seg, side);
 
                 float dist{};
-                if (face.Intersects(ray, dist) && dist < hit.Distance) {
+                auto tri = face.Intersects(ray, dist);
+                if (tri && dist < hit.Distance) {
                     if (dist > maxDist) return {}; // hit is too far
 
                     if (seg.SideIsSolid(side, level)) {
                         hit.Tag = { segId, side };
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
+                        hit.Tangent = face.Side.Tangents[tri - 1];
+                        hit.EdgeDistance = FaceEdgeDistance(face, hit.Point); // bug: is hit.point set?
                         return true;
                     }
                     else {
@@ -748,35 +794,25 @@ namespace Inferno {
 
             Vector3 refPoint, normal;
             float dist{};
-            if (capsule.Intersects(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, normal, dist)) {
-                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                    hit.Normal = normal;
-                    hit.Point = refPoint;
-                    hit.Distance = dist;
-                    hit.Tag = { segId, side };
-                }
-                else {
-                    // scan touching seg
-                    auto conn = seg.GetConnection(side);
-                    if (conn > SegID::None && !hit.Visited.contains(conn))
-                        IntersectLevel(level, capsule, conn, object, hit);
-                }
-            }
 
-            if (capsule.Intersects(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint, normal, dist)) {
-                if (seg.SideIsSolid(side, level)) {
-                    if (dist < hit.Distance) {
-                        hit.Normal = normal;
+            for (int tri = 0; tri < 2; tri++) {
+                if (capsule.Intersects(face[i[tri * 3]], face[i[tri * 3 + 1]], face[i[tri * 3 + 2]],
+                                       face.Side.Normals[tri], refPoint, normal, dist)) {
+                    if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
+                        //hit.Normal = normal;
+                        hit.Normal = face.Side.Normals[tri];
                         hit.Point = refPoint;
                         hit.Distance = dist;
+                        hit.Tangent = face.Side.Tangents[tri];
+                        hit.EdgeDistance = FaceEdgeDistance(face, hit.Point);
                         hit.Tag = { segId, side };
                     }
-                }
-                else {
-                    // scan touching seg
-                    auto conn = seg.GetConnection(side);
-                    if (conn > SegID::None && !hit.Visited.contains(conn))
-                        IntersectLevel(level, capsule, conn, object, hit);
+                    else {
+                        // scan touching seg
+                        auto conn = seg.GetConnection(side);
+                        if (conn > SegID::None && !hit.Visited.contains(conn))
+                            IntersectLevel(level, capsule, conn, object, hit);
+                    }
                 }
             }
         }
@@ -1070,11 +1106,14 @@ namespace Inferno {
             SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
             VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
+            bool addDecal = !weapon.Extended.ScorchTexture.empty();
+
             if (auto side = level.TryGetSide(hit.Tag)) {
                 auto& ti = Resources::GetLevelTextureInfo(side->TMap);
                 if (ti.HasFlag(TextureFlag::Volatile)) {
                     vclip = VClipID::HitLava;
                     soundId = SoundID::HitLava;
+                    addDecal = false;
                 }
                 else if (ti.HasFlag(TextureFlag::Water)) {
                     if (source.ID == (int)WeaponID::Concussion)
@@ -1084,6 +1123,7 @@ namespace Inferno {
 
                     vclip = VClipID::HitWater;
                     splashRadius = 0; // Cancel explosions when hitting water
+                    addDecal = false;
                 }
             }
 
@@ -1095,12 +1135,13 @@ namespace Inferno {
             e.MaxRadius = weapon.ImpactSize * 1.1f;
             e.Clip = vclip;
             e.Sound = soundId;
-            //if (source.Radius < 0.5f)
-            //e.Position = source.LastPosition + dir * hit.Distance - dir * (weapon.ImpactSize /** 0.5f*/); // move explosion out of wall
-            //e.Position = source.LastPosition + dir * hit.Distance; // move explosion out of wall
-            //e.Position = source.LastPosition; // move explosion out of wall
-            //else
-            e.Position = hit.Point; // it looks weird if large objects have their explosion at the contact point
+
+            //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
+            if (weapon.ImpactSize < 5)
+                e.Position = hit.Point + hit.Normal * 0.15f;
+            else
+                // this doesn't work properly with fast moving projectiles
+                e.Position = source.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
 
             e.Color = { 1, 1, 1 };
             e.FadeTime = 0.1f;
@@ -1110,6 +1151,32 @@ namespace Inferno {
                 e.MinDelay = e.MaxDelay = 0;
             }
             Render::CreateExplosion(e);
+
+            {
+                // Make explosive weapons have larger scorch marks
+                auto decalSize = splashRadius > 0 ? weapon.ImpactSize / 2 : weapon.ImpactSize / 4;
+
+                if (hit.EdgeDistance >= decalSize && addDecal) { // check that decal isn't too close to edge due to lack of clipping
+                    Render::DecalInfo decal{};
+                    auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
+                    decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
+                    decal.Bitangent = decal.Tangent.Cross(hit.Normal);
+                    decal.Size = decalSize;
+                    decal.Position = hit.Point;
+                    decal.Wall = Game::Level.GetWallID(hit.Tag);
+                    decal.Texture = weapon.Extended.ScorchTexture;
+
+                    if (auto wall = Game::Level.TryGetWall(decal.Wall)) {
+                        if (Game::PlayerCanOpenDoor(*wall))
+                            addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
+                        else if (wall->Type != WallType::WallTrigger)
+                            addDecal = wall->State == WallState::Closed; // Only allow decals on closed walls
+                    }
+
+                    if (addDecal)
+                        Render::AddDecal(decal);
+                }
+            }
         }
 
         if (splashRadius > 0) {
@@ -1140,6 +1207,22 @@ namespace Inferno {
                 }
             }
         }
+    }
+
+    void HitDoorMessage(Wall& door) {
+        string msg;
+
+        if (bool(door.Keys & WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
+            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Red), Resources::GetString(StringTableEntry::AccessDenied));
+        else if (bool(door.Keys & WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
+            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Blue), Resources::GetString(StringTableEntry::AccessDenied));
+        else if (bool(door.Keys & WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
+            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Yellow), Resources::GetString(StringTableEntry::AccessDenied));
+        else if (door.HasFlag(WallFlag::DoorLocked))
+            msg = Resources::GetString(StringTableEntry::CantOpenDoor);
+
+        if (!msg.empty())
+            PrintHudMessage(msg);
     }
 
     void UpdatePhysics(Level& level, double t, float dt) {
@@ -1213,17 +1296,17 @@ namespace Inferno {
                     // todo: only open doors for certain robot behaviors and player weapons
 
                     if (wall->Type == WallType::Door) {
-                        if (wall->HasFlag(WallFlag::DoorLocked)) {
+                        if (!Game::PlayerCanOpenDoor(*wall)) {
                             // Can't open door
                             if (obj.Type == ObjectType::Weapon) {
-                                // todo: only play sound and message if door is in front of the player
+                                // todo: only play message if door is in front of the player and the player owns the weapon
                                 Sound3D sound(hit.Point, hit.Tag.Segment);
                                 sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
                                 sound.Source = obj.Parent;
                                 sound.FromPlayer = true;
                                 Sound::Play(sound);
 
-                                PrintHudMessage(Resources::GetString(StringTableEntry::CantOpenDoor));
+                                HitDoorMessage(*wall);
                             }
                         }
                         else if (wall->State != WallState::DoorOpening) {

@@ -5,8 +5,14 @@
 namespace Inferno {
     // todo: D1 and D2 have different table entries...
     enum class StringTableEntry {
-        Score = 52,
+        Blue = 12,
+        Red = 13,
+        Yellow = 14,
+        AccessDenied = 15,
+        AccessGranted = 16,
+        BoostedTo = 17,
 
+        Score = 52,
         Laser = 104,
         Vulcan = 105,
         Spreadfire = 106,

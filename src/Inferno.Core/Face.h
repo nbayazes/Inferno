@@ -36,17 +36,18 @@ namespace Inferno {
             return Face(v0, v1, v2, v3, seg.GetSide(side), seg.GetVertexIndices(side));
         }
 
-        bool Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
+        // Returns 0 if no hit, 1 if hit tri 0, 2 if hit tri 1
+        int Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
             auto i = Side.GetRenderIndices();
             bool hitTri0 = hitBackface || Side.Normals[0].Dot(ray.direction) < 0;
             bool hitTri1 = hitBackface || Side.Normals[1].Dot(ray.direction) < 0;
             if (hitTri0 && ray.Intersects(GetPoint(i[0]), GetPoint(i[1]), GetPoint(i[2]), dist))
-                return true;
+                return 1;
 
             if (hitTri1 && ray.Intersects(GetPoint(i[3]), GetPoint(i[4]), GetPoint(i[5]), dist))
-                return true;
+                return 2;
 
-            return false;
+            return 0;
         }
 
         Array<Vector3, 4> CopyPoints() const {
@@ -108,12 +109,6 @@ namespace Inferno {
             Plane p(Side.CenterForEdge(edge), Side.NormalForEdge(edge));
             return p.DotCoordinate(point);
         }
-
-        //Vector3 Tangent() const {
-        //    auto tangent = Vector3(P2.x, P2.y, P2.z) - Vector3(P1.x, P1.y, P1.z);
-        //    tangent.Normalize();
-        //    return tangent;
-        //}
 
         Vector3 Center() const {
             return Side.Center;
@@ -248,6 +243,7 @@ namespace Inferno {
             return points;
         }
 
+        // Insets each edge using tangent vectors. Maintains an exact distance from each side.
         Array<Vector3, 4> InsetTangent(float distance, float height) const {
             Array<Vector3, 4> points = CopyPoints();
             for (int i = 0; i < points.size(); i++) {

@@ -28,6 +28,46 @@ namespace Inferno {
         }
     }
 
+    // Orgb = srgb * Srgb + drgb * Drgb
+    const D3D12_RENDER_TARGET_BLEND_DESC BlendDescMultiplyRt = {
+        .BlendEnable = true,
+        .LogicOpEnable = false,
+        .SrcBlend = D3D12_BLEND_DEST_COLOR, // O = S * D
+        .DestBlend = D3D12_BLEND_ZERO, // Zero out additive term
+        .BlendOp = D3D12_BLEND_OP_ADD,
+        .SrcBlendAlpha = D3D12_BLEND_ONE,
+        .DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA,
+        .BlendOpAlpha = D3D12_BLEND_OP_ADD,
+        .LogicOp = D3D12_LOGIC_OP_NOOP,
+        .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL
+    };
+
+    const D3D12_BLEND_DESC BlendDescMultiply = {
+        .RenderTarget = { BlendDescMultiplyRt }
+    };
+
+    const D3D12_DEPTH_STENCIL_DESC DepthEqual =
+    {
+        TRUE, // DepthEnable
+        D3D12_DEPTH_WRITE_MASK_ZERO,
+        D3D12_COMPARISON_FUNC_EQUAL, // DepthFunc
+        FALSE, // StencilEnable
+        D3D12_DEFAULT_STENCIL_READ_MASK,
+        D3D12_DEFAULT_STENCIL_WRITE_MASK,
+        {
+            D3D12_STENCIL_OP_KEEP, // StencilFailOp
+            D3D12_STENCIL_OP_KEEP, // StencilDepthFailOp
+            D3D12_STENCIL_OP_KEEP, // StencilPassOp
+            D3D12_COMPARISON_FUNC_ALWAYS // StencilFunc
+        }, // FrontFace
+        {
+            D3D12_STENCIL_OP_KEEP, // StencilFailOp
+            D3D12_STENCIL_OP_KEEP, // StencilDepthFailOp
+            D3D12_STENCIL_OP_KEEP, // StencilPassOp
+            D3D12_COMPARISON_FUNC_ALWAYS // StencilFunc
+        } // BackFace
+    };
+
     D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets) {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
         if (!shader->RootSignature || !shader->VertexShader || !shader->PixelShader)
@@ -47,12 +87,12 @@ namespace Inferno {
         }();
 
         psoDesc.BlendState = [&effect] {
-            // todo: Multiply blend mode?
             switch (effect.Blend) {
                 case BlendMode::Alpha: return CommonStates::AlphaBlend;
                 case BlendMode::StraightAlpha: return CommonStates::NonPremultiplied;
                 case BlendMode::Additive: return CommonStates::Additive;
                 case BlendMode::Opaque: default: return CommonStates::Opaque;
+                case BlendMode::Multiply: return BlendDescMultiply;
             }
         }();
 
@@ -60,14 +100,23 @@ namespace Inferno {
         psoDesc.DepthStencilState = [&effect] {
             switch (effect.Depth) {
                 case DepthMode::None: return CommonStates::DepthNone;
-                case DepthMode::Default: return CommonStates::DepthDefault;
+                case DepthMode::ReadWrite: return CommonStates::DepthDefault;
                 case DepthMode::Read: default: return CommonStates::DepthRead;
+                //case DepthMode::ReadEqual: return DepthEqual;
             };
         }();
         
         psoDesc.SampleMask = UINT_MAX;
         psoDesc.PrimitiveTopologyType = effect.TopologyType;
         psoDesc.NumRenderTargets = renderTargets;
+
+        if (effect.Depth == DepthMode::ReadEqual) {
+            // Biases for decals
+            psoDesc.RasterizerState.DepthBias = -20;
+            psoDesc.RasterizerState.SlopeScaledDepthBias = -2.0f;
+            psoDesc.RasterizerState.DepthBiasClamp = -200;
+        }
+
         for (uint i = 0; i < renderTargets; i++)
             psoDesc.RTVFormats[i] = shader->Format;
 

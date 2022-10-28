@@ -335,24 +335,33 @@ namespace Inferno::Resources {
         }
     }
 
-    string_view GetString(StringTableEntry i) {
+    const string& GetString(StringTableEntry i) {
         if (!Seq::inRange(StringTable, (int)i)) return "???";
         return StringTable[(int)i];
     }
 
     void LoadExtendedWeaponInfo() {
-        if (GameData.Weapons.size() < 32) return; // Missing D1 weapons??
-        GameData.Weapons[(int)WeaponID::Fusion].Extended.Chargable = true;
-        GameData.Weapons[(int)WeaponID::Spreadfire].Extended.Behavior = "spreadfire";
-        GameData.Weapons[(int)WeaponID::Vulcan].Extended.Behavior = "vulcan";
+        if (GameData.Weapons.size() < 32) return; // No D1 data
+        auto GetWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
+        auto& fusion = GameData.Weapons[(int)WeaponID::Fusion].Extended;
+        fusion.Chargable = true;
+        fusion.ScorchTexture = "scorchC";
 
-        if (GameData.Weapons.size() < 35) return; // No D2 data, probably D1.
-        GameData.Weapons[(int)WeaponID::Helix].Extended.Behavior = "helix";
-        GameData.Weapons[(int)WeaponID::Omega].Extended.Behavior = "omega";
+        GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
+        GetWeapon(WeaponID::Vulcan).Extended.Behavior = "vulcan";
+        GetWeapon(WeaponID::Vulcan).Extended.ScorchTexture = "BulletHole01";
+        GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
+        GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
 
-        auto& gauss = GameData.Weapons[(int)WeaponID::Gauss];
+        if (GameData.Weapons.size() < 35) return; // No D2 data
+        GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
+        GetWeapon(WeaponID::Omega).Extended.Behavior = "omega";
+        GetWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";
+
+        auto& gauss = GetWeapon(WeaponID::Gauss);
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
+        gauss.Extended.ScorchTexture = "BulletHole02";
     }
 
     // Some levels don't have the D1 reactor model set

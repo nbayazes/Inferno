@@ -45,6 +45,8 @@ namespace Inferno::Game {
 
             ObjSigIndex = 0;
             for (auto& obj : Level.Objects) {
+                obj.LastPosition = obj.Position;
+                obj.LastRotation = obj.Rotation;
                 obj.Signature = GetObjectSig();
             }
 
@@ -373,12 +375,13 @@ namespace Inferno::Game {
 
             // Hack to insert tracers due to not having the object ID in firing code
             if (obj.Type == ObjectType::Weapon) {
-                
+                auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+
                 if ((WeaponID)obj.ID == WeaponID::Vulcan) {
                     Render::TracerInfo tracer{
                         .Parent = id,
                         .Length = 30.0f,
-                        .Width = 0.35f,
+                        .Width = 0.30f,
                         .Texture = "vausstracer",
                         .BlobTexture = "Tracerblob",
                         .Color = { 2, 2, 2 },
@@ -391,11 +394,11 @@ namespace Inferno::Game {
                     Render::TracerInfo tracer{
                         .Parent = id,
                         .Length = 30.0f,
-                        .Width = 0.55f,
+                        .Width = 0.60f,
                         .Texture = "MassDriverTracer",
                         .BlobTexture = "MassTracerblob",
                         .Color = { 2, 2, 2 },
-                        .FadeSpeed = 0.10f,
+                        .FadeSpeed = 0.20f,
                     };
                     Render::AddTracer(tracer);
                 }
@@ -692,5 +695,22 @@ namespace Inferno::Game {
             //    TexID(30), TexID(11), TexID(
             //};
         }
+    }
+
+    bool PlayerCanOpenDoor(const Wall& wall) {
+        if (wall.Type != WallType::Door) return false;
+
+        if (wall.HasFlag(WallFlag::DoorLocked)) return false;
+
+        if (bool(wall.Keys & WallKey::Red) && !Player.HasPowerup(PowerupFlag::RedKey))
+            return false;
+
+        if (bool(wall.Keys & WallKey::Blue) && !Player.HasPowerup(PowerupFlag::BlueKey))
+            return false;
+
+        if (bool(wall.Keys & WallKey::Gold) && !Player.HasPowerup(PowerupFlag::GoldKey))
+            return false;
+
+        return true;
     }
 }

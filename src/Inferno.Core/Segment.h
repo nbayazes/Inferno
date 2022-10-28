@@ -15,6 +15,7 @@ namespace Inferno {
         SideSplitType Type = SideSplitType::Quad;
         WallID Wall = WallID::None;
         Array<Vector3, 2> Normals;
+        Array<Vector3, 2> Tangents;
         Array<Vector3, 2> Centers;
         Vector3 AverageNormal;
         Vector3 Center;

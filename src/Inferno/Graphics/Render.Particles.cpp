@@ -536,4 +536,55 @@ namespace Inferno::Render {
             }
         }
     }
+
+    Array<DecalInfo, 100> Decals;
+    uint DecalIndex = 0;
+
+    void AddDecal(DecalInfo& decal) {
+        std::array tex = { decal.Texture };
+        Render::Materials->LoadTextures(tex);
+
+        decal.Life = FLT_MAX;
+        Decals[DecalIndex++] = decal;
+
+        if (DecalIndex >= Decals.size())
+            DecalIndex = 0;
+    }
+
+    void DrawDecals(Graphics::GraphicsContext& ctx) {
+        auto& effect = Effects->SpriteMultiply;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
+
+        for (auto& decal : Decals) {
+            decal.Life -= Render::FrameTime;
+            if (decal.Life <= 0) continue;
+
+            const auto& pos = decal.Position;
+            const auto up = decal.Bitangent * decal.Size;
+            const auto right = decal.Tangent * decal.Size;
+
+            auto& material = Render::Materials->GetOutrageMaterial(decal.Texture);
+            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+            g_SpriteBatch->Begin(ctx.CommandList());
+
+            ObjectVertex v0{ pos + up - right, { 0, 0 }, decal.Color };
+            ObjectVertex v1{ pos - up - right, { 1, 0 }, decal.Color };
+            ObjectVertex v2{ pos - up + right, { 1, 1 }, decal.Color };
+            ObjectVertex v3{ pos + up + right, { 0, 1 }, decal.Color };
+            g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+            g_SpriteBatch->End();
+            DrawCalls++;
+        }
+    }
+
+    void RemoveDecals(WallID front, WallID back) {
+        for (auto& decal : Decals) {
+            if ((front != WallID::None && decal.Wall == front) ||
+                (back != WallID::None && decal.Wall == back))
+                decal.Life = 0;
+        }
+    }
 }

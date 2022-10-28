@@ -674,7 +674,7 @@ namespace Inferno::Editor {
     // Returns true if any wall properties changed
     void WallProperties(Level& level, WallID id) {
         auto wall = level.TryGetWall(id);
-        auto other = level.TryGetWall(level.GetConnectedWall(Editor::Selection.Tag()));
+        auto other = level.TryGetConnectedWall(Editor::Selection.Tag());
         bool open = ImGui::TableBeginTreeNode("Wall type");
 
         auto wallType = wall ? wall->Type : WallType::None;

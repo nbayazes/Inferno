@@ -90,6 +90,7 @@ namespace Inferno {
         auto& cwall = level.GetWall(cside.Wall);
 
         // todo: remove objects stuck on door
+        Render::RemoveDecals(door.Front, door.Back);
 
         door.Time += dt;
 
@@ -193,7 +194,7 @@ namespace Inferno {
         if (!wall) throw Exception("Tried to open door on side that has no wall");
 
         auto conn = level.GetConnectedSide(tag);
-        auto cwallId = level.TryGetWallID(conn);
+        auto cwallId = level.GetWallID(conn);
         auto cwall = level.TryGetWall(cwallId);
 
         if (wall->State == WallState::DoorOpening ||
@@ -256,8 +257,6 @@ namespace Inferno {
             wall->State == WallState::DoorWaiting ||
             wall->State == WallState::Closed)
             return;
-
-
     }
 
     void UpdateDoors(Level& level, float dt) {
@@ -341,6 +340,9 @@ namespace Inferno {
         if (cwall) cwall->HitPoints = -1;
 
         // todo: remove objects stuck on side (flares, decals)
+        auto front = level.GetWallID(tag);
+        auto back = level.GetConnectedWallID(tag);
+        Render::RemoveDecals(front, back);
 
         auto& wclip = Resources::GetWallClip(wall->Clip);
         if (wclip.HasFlag(WallClipFlag::Explodes)) {

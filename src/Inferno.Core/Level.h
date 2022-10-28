@@ -229,7 +229,7 @@ namespace Inferno {
             return { wall, cwall };
         }
 
-        constexpr WallID TryGetWallID(Tag tag) const {
+        constexpr WallID GetWallID(Tag tag) const {
             if (!tag) return WallID::None;
             if (auto seg = TryGetSegment(tag))
                 return seg->GetSide(tag.Side).Wall;
@@ -297,17 +297,17 @@ namespace Inferno {
         }
 
         // Gets the wall connected to the other side of a wall (if present)
-        WallID GetConnectedWall(WallID wallId) {
+        WallID GetConnectedWallID(WallID wallId) {
             auto wall = TryGetWall(wallId);
             if (!wall) return WallID::None;
             auto other = GetConnectedSide(wall->Tag);
-            return TryGetWallID(other);
+            return GetWallID(other);
         }
 
         // Gets the wall connected to the other side of a wall (if present)
-        WallID GetConnectedWall(Tag tag) {
+        WallID GetConnectedWallID(Tag tag) {
             auto other = GetConnectedSide(tag);
-            return TryGetWallID(other);
+            return GetWallID(other);
         }
 
         bool SegmentExists(SegID id) const {

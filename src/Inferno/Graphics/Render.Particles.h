@@ -191,4 +191,21 @@ namespace Inferno::Render {
     // Tracers are only drawn when the minimum length is reached
     void AddTracer(TracerInfo&);
     void DrawTracers(Graphics::GraphicsContext& ctx);
+
+    struct DecalInfo {
+        Vector3 Position;
+        Vector3 Tangent, Bitangent;
+        string Texture = "scorchB";
+
+        float Size = 2;
+        Color Color = { 1, 1, 1 };
+        float Life = 0;
+        WallID Wall = WallID::None; // For decals placed on walls
+    };
+
+    void AddDecal(DecalInfo& decal);
+    void DrawDecals(Graphics::GraphicsContext& ctx);
+
+    // Removes decals attached to a wall
+    void RemoveDecals(WallID front, WallID back);
 }

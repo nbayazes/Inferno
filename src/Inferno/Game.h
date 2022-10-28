@@ -71,4 +71,6 @@ namespace Inferno::Game {
     using GunIndex = int;
     using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
     WeaponBehavior& GetWeaponBehavior(string name);
+
+    bool PlayerCanOpenDoor(const Wall& wall);
 }

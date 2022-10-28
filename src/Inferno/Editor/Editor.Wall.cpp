@@ -42,7 +42,7 @@ namespace Inferno::Editor {
 
         if (auto other = level.GetConnectedSide(tag)) {
             Editor::AddWall(level, other, type, tmap1, tmap2, flags);
-            if (level.GetConnectedWall(id) != WallID::None) {
+            if (level.GetConnectedWallID(id) != WallID::None) {
                 auto pairedEdge = GetPairedEdge(level, tag, Editor::Selection.Point);
                 ResetUVs(level, other, pairedEdge);
             }

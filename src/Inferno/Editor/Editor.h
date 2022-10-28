@@ -118,7 +118,7 @@ namespace Inferno::Editor {
     inline List<WallID> GetSelectedWalls() {
         List<WallID> walls;
         for (auto& id : GetSelectedFaces()) {
-            auto wall = Game::Level.TryGetWallID(id);
+            auto wall = Game::Level.GetWallID(id);
             if (wall != WallID::None)
                 walls.push_back(wall);
         }

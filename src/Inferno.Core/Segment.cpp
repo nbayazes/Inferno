@@ -22,6 +22,12 @@ namespace Inferno {
         return normal;
     }
 
+    Vector3 CreateTangent(const Vector3& v0, const Vector3& v1) {
+        auto delta = v1 - v0;
+        delta.Normalize();
+        return delta;
+    }
+
     void Segment::UpdateGeometricProps(Level& level) {
         for (auto& s : SideIDs) {
             auto& side = GetSide(s);
@@ -37,14 +43,18 @@ namespace Inferno {
             side.Type = dot >= 0 ? SideSplitType::Tri02 : SideSplitType::Tri13;
 
             if (side.Type == SideSplitType::Tri02) {
-                side.Normals[0] = CreateNormal(v0, v1, v2); // 0-2
-                side.Normals[1] = CreateNormal(v0, v2, v3); // 0-2
+                side.Normals[0] = CreateNormal(v0, v1, v2); // 0-2 split
+                side.Normals[1] = CreateNormal(v0, v2, v3); // 0-2 split
+                side.Tangents[0] = CreateTangent(v0, v1);
+                side.Tangents[1] = CreateTangent(v2, v3);
                 side.Centers[0] = (v0 + v1 + v2) / 3;
                 side.Centers[1] = (v0 + v2 + v3) / 3;
             }
             else {
-                side.Normals[0] = CreateNormal(v0, v1, v3); // 1-3
-                side.Normals[1] = CreateNormal(v1, v2, v3); // 1-3
+                side.Normals[0] = CreateNormal(v0, v1, v3); // 1-3 split
+                side.Normals[1] = CreateNormal(v1, v2, v3); // 1-3 split
+                side.Tangents[0] = CreateTangent(v0, v1);
+                side.Tangents[1] = CreateTangent(v2, v3);
                 side.Centers[0] = (v0 + v1 + v3) / 3;
                 side.Centers[1] = (v1 + v2 + v3) / 3;
             }

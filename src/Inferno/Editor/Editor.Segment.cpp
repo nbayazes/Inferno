@@ -289,7 +289,7 @@ namespace Inferno::Editor {
             // Also remove any connected walls
             for (auto& sideId : SideIDs) {
                 auto conn = level.GetConnectedSide({ segId, sideId });
-                auto cwall = level.TryGetWallID(conn);
+                auto cwall = level.GetWallID(conn);
                 if (cwall != WallID::None)
                     walls.push_back(cwall);
             }
@@ -750,7 +750,7 @@ namespace Inferno::Editor {
         }
 
         // Wall should exist at the original selection now
-        auto wall = level.TryGetWallID(tag);
+        auto wall = level.GetWallID(tag);
 
         if (level.IsDescent2()) {
             Editor::AddTrigger(level, wall, TriggerType::SecretExit);

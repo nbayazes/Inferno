@@ -29,10 +29,10 @@ namespace Inferno::Editor {
     namespace Commands {
         inline Command RemoveWall{
             .SnapshotAction = [] {
-                auto wall = Game::Level.TryGetWallID(Editor::Selection.Tag());
+                auto wall = Game::Level.GetWallID(Editor::Selection.Tag());
                 if (Editor::RemoveWall(Game::Level, wall)) {
                     if (Settings::Editor.EditBothWallSides) {
-                        auto other = Game::Level.GetConnectedWall(Editor::Selection.Tag());
+                        auto other = Game::Level.GetConnectedWallID(Editor::Selection.Tag());
                         Editor::RemoveWall(Game::Level, other);
                     }
 

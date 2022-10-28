@@ -95,6 +95,7 @@ namespace Inferno {
         string Name; // Name in fullscreen HUD
         string ShortName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
+        string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
 
         int PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.

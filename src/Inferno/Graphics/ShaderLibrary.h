@@ -388,14 +388,14 @@ namespace Inferno {
         }
     };
 
-    enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive };
+    enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply };
     enum class CullMode { None, CounterClockwise, Clockwise };
-    enum class DepthMode { Default, Read, None };
+    enum class DepthMode { ReadWrite, Read, ReadEqual, None };
 
     struct EffectSettings {
         BlendMode Blend = BlendMode::Opaque;
         CullMode Culling = CullMode::CounterClockwise;
-        DepthMode Depth = DepthMode::Default;
+        DepthMode Depth = DepthMode::ReadWrite;
         D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         bool EnableMultisample = true;
     };
@@ -462,6 +462,7 @@ namespace Inferno {
        
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::None, DepthMode::ReadEqual } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             auto Reset = [](IShader& shader) {
@@ -507,6 +508,7 @@ namespace Inferno {
             Compile(ObjectGlow);
             Compile(Sprite);
             Compile(SpriteAdditive);
+            Compile(SpriteMultiply);
 
             Compile(Flat);
             Compile(FlatAdditive);
