@@ -728,7 +728,7 @@ namespace Inferno {
     }
 
     // intersects a ray with the level, returning hit information
-    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, LevelHit& hit) {
+    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, LevelHit& hit) {
         if (maxDist <= 0.01f) return false;
         SegID next = start;
 
@@ -740,6 +740,9 @@ namespace Inferno {
 
             for (auto& side : SideIDs) {
                 auto face = Face::FromSide(level, seg, side);
+
+                if (passTransparent && WallIsTransparent(level, { segId, side }))
+                    continue; // skip transparent walls if flag is set
 
                 float dist{};
                 auto tri = face.Intersects(ray, dist);
@@ -826,7 +829,7 @@ namespace Inferno {
         dir.Normalize();
         Ray ray(a.Position, dir);
         LevelHit hit;
-        return IntersectLevel(Game::Level, ray, a.Segment, dist, hit);
+        return IntersectLevel(Game::Level, ray, a.Segment, dist, true, hit);
     }
 
     void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
@@ -857,7 +860,7 @@ namespace Inferno {
         bool isHit = false;
 
         LevelHit hit;
-        IntersectLevel(level, ray, segId, expectedDistance, hit);
+        IntersectLevel(level, ray, segId, expectedDistance, false, hit);
         if (hit.HitObj) {
             // hit an object
             obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
@@ -980,7 +983,8 @@ namespace Inferno {
             dir.Normalize();
             Ray ray(explosion.Position, dir);
             LevelHit hit;
-            if (IntersectLevel(level, ray, explosion.Segment, dist, hit)) continue;
+            if (IntersectLevel(level, ray, explosion.Segment, dist, true, hit))
+                continue; // 
 
             float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
             float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;

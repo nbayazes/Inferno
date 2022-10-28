@@ -86,16 +86,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
+    //float4 specular = Specular(-viewDir, viewDir, input.normal);
     float4 lighting = lerp(1, max(0, input.col), LightingScale);
-    float4 specular = Specular(-viewDir, viewDir, input.normal);
-    //float4 base;
 
     float4 base = Diffuse.Sample(Sampler, input.uv);
     float4 emissive = Emissive.Sample(Sampler, input.uv) * base;
     emissive.a = 0;
-
     
-
     if (HasOverlay) {
         // Apply supertransparency mask
         float mask = StMask.Sample(Sampler, input.uv2).r; // only need a single channel

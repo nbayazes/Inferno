@@ -196,7 +196,7 @@ namespace Inferno::Render {
         auto dir = RandomVector(1);
         dir.Normalize();
 
-        if (IntersectLevel(Game::Level, { pos, dir }, seg, radius, hit))
+        if (IntersectLevel(Game::Level, { pos, dir }, seg, radius, false, hit))
             return hit.Point;
         else
             return pos + dir * radius;
@@ -475,7 +475,7 @@ namespace Inferno::Render {
             const auto delta = tracer.Start - tracer.End;
             const auto dist = delta.Length();
 
-            if (dist < tracer.Length)
+            if (dist < tracer.Length + 2)
                 continue; // don't draw tracers that are too short
 
             // Fade tracer in or out based on parent being alive
@@ -491,7 +491,8 @@ namespace Inferno::Render {
             delta.Normalize(dir);
 
             const auto lenMult = tracer.ParentIsLive ? 1 : tracer.Fade;
-            auto start = tracer.End + dir * tracer.Length * lenMult;
+            const auto len = std::min(dist, tracer.Length);
+            const auto start = tracer.End + dir * len * lenMult;
             const auto end = tracer.End;
 
             const auto normal = GetBeamNormal(start, tracer.End);
@@ -499,8 +500,8 @@ namespace Inferno::Render {
             // draw rectangular segment
             const auto halfWidth = tracer.Width * 0.5f;
             auto up = normal * halfWidth;
-            Color fade(1, 1, 1, tracer.Fade);
-            auto color = tracer.Color * fade;
+            auto color = tracer.Color;
+            color.w *= tracer.Fade;
 
             if (!tracer.Texture.empty()) {
                 auto& material = Render::Materials->GetOutrageMaterial(tracer.Texture);
@@ -516,7 +517,7 @@ namespace Inferno::Render {
                 DrawCalls++;
             }
 
-            if (!tracer.BlobTexture.empty()) {
+            if (!tracer.BlobTexture.empty() && dist > tracer.Length) {
                 auto& material = Render::Materials->GetOutrageMaterial(tracer.BlobTexture);
                 effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
                 g_SpriteBatch->Begin(ctx.CommandList());

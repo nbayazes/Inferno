@@ -503,4 +503,23 @@ namespace Inferno {
         }
     }
 
+    bool WallIsTransparent(Level& level, Tag tag) {
+        auto side = level.TryGetSide(tag);
+        auto wall = level.TryGetWall(tag);
+
+        if (!side || !wall) return false;
+
+        if (wall->Type == WallType::WallTrigger)
+            return false;
+
+        auto& tmap1 = Resources::GetTextureInfo(side->TMap);
+        if (tmap1.Transparent) return true;
+
+        if (side->TMap > LevelTexID::Unset) {
+            auto& tmap2 = Resources::GetTextureInfo(side->TMap);
+            if (tmap2.SuperTransparent) return true;
+        }
+
+        return false;
+    }
 }

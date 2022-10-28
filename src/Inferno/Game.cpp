@@ -377,15 +377,18 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Weapon) {
                 auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
 
+                constexpr auto TRACER_FADE_SPEED = 0.2f;
+                constexpr auto TRACER_LENGTH = 30.0f;
+
                 if ((WeaponID)obj.ID == WeaponID::Vulcan) {
                     Render::TracerInfo tracer{
                         .Parent = id,
-                        .Length = 30.0f,
+                        .Length = TRACER_LENGTH,
                         .Width = 0.30f,
                         .Texture = "vausstracer",
                         .BlobTexture = "Tracerblob",
                         .Color = { 2, 2, 2 },
-                        .FadeSpeed = 0.10f,
+                        .FadeSpeed = TRACER_FADE_SPEED,
                     };
                     Render::AddTracer(tracer);
                 }
@@ -393,12 +396,12 @@ namespace Inferno::Game {
                 if ((WeaponID)obj.ID == WeaponID::Gauss) {
                     Render::TracerInfo tracer{
                         .Parent = id,
-                        .Length = 30.0f,
-                        .Width = 0.60f,
+                        .Length = 25.0f,
+                        .Width = 0.90f,
                         .Texture = "MassDriverTracer",
                         .BlobTexture = "MassTracerblob",
                         .Color = { 2, 2, 2 },
-                        .FadeSpeed = 0.20f,
+                        .FadeSpeed = TRACER_FADE_SPEED,
                     };
                     Render::AddTracer(tracer);
                 }
@@ -627,6 +630,7 @@ namespace Inferno::Game {
         else if (State == GameState::Editor) {
             if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
                 Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
+                Gravity = Level.Objects[0].Rotation.Up() * -10;
             }
             else {
                 SPDLOG_ERROR("No player start at object 0!");

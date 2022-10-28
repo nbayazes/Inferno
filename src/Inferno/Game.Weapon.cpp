@@ -385,7 +385,7 @@ namespace Inferno::Game {
 
             Vector3 end;
             LevelHit hit;
-            if (IntersectLevel(Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, hit)) {
+            if (IntersectLevel(Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, true, hit)) {
                 end = hit.Point;
                 // create explosion / sound
             }

@@ -16,4 +16,6 @@ namespace Inferno {
 
     void ActivateTriggerD1(Level& level, Trigger& trigger);
     void ActivateTriggerD2(Level& level, Trigger& trigger);
+
+    bool WallIsTransparent(Level& level, Tag tag);
 }

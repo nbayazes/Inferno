@@ -14,6 +14,7 @@ namespace Inferno::Game {
     inline int Difficulty = 0; // 0 to 4 for trainee to insane
 
     inline GameState State = GameState::Editor;
+    inline Vector3 Gravity = { 0, -10, 0 };
 
     // The loaded level. Only one level can be active at a time.
     inline Inferno::Level Level;
