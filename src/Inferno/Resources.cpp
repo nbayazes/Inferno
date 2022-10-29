@@ -335,8 +335,10 @@ namespace Inferno::Resources {
         }
     }
 
+    const string UnknownString = "???";
+
     const string& GetString(StringTableEntry i) {
-        if (!Seq::inRange(StringTable, (int)i)) return "???";
+        if (!Seq::inRange(StringTable, (int)i)) return UnknownString;
         return StringTable[(int)i];
     }
 

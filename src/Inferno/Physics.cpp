@@ -823,13 +823,13 @@ namespace Inferno {
         return hit;
     }
 
-    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool transparent) {
+    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent) {
         auto dir = b.Position - a.Position;
         auto dist = dir.Length();
         dir.Normalize();
         Ray ray(a.Position, dir);
         LevelHit hit;
-        return IntersectLevel(Game::Level, ray, a.Segment, dist, true, hit);
+        return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, hit);
     }
 
     void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
@@ -955,9 +955,9 @@ namespace Inferno {
     }
 
     // Creates an explosion that can cause damage or knockback
-    void CreateExplosion(Level& level, const Object& source, const GameExplosion& explosion) {
+    void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion) {
         for (auto& obj : level.Objects) {
-            if (&obj == &source) continue;
+            if (&obj == source) continue;
             if (!obj.IsAlive()) continue;
 
             if (obj.Type == ObjectType::Weapon && (obj.ID != (int)WeaponID::ProxMine && obj.ID != (int)WeaponID::SmartMine && obj.ID != (int)WeaponID::LevelMine))
@@ -1048,7 +1048,7 @@ namespace Inferno {
         }
     }
 
-    void ApplyWeaponHit(const LevelHit& hit, const Object& source, const Vector3& hitVelocity, Level& level) {
+    void ApplyWeaponHit(const LevelHit& hit, const Object& source, Level& level) {
         auto& weapon = Resources::GameData.Weapons[source.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
@@ -1167,10 +1167,10 @@ namespace Inferno {
                     decal.Bitangent = decal.Tangent.Cross(hit.Normal);
                     decal.Size = decalSize;
                     decal.Position = hit.Point;
-                    decal.Wall = Game::Level.GetWallID(hit.Tag);
+                    decal.Tag = hit.Tag;
                     decal.Texture = weapon.Extended.ScorchTexture;
 
-                    if (auto wall = Game::Level.TryGetWall(decal.Wall)) {
+                    if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
                         if (Game::PlayerCanOpenDoor(*wall))
                             addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
                         else if (wall->Type != WallType::WallTrigger)
@@ -1190,7 +1190,7 @@ namespace Inferno {
             ge.Radius = splashRadius;
             ge.Segment = hit.Tag.Segment;
             ge.Position = hit.Point;
-            CreateExplosion(level, source, ge);
+            CreateExplosion(level, &source, ge);
         }
     }
 
@@ -1198,7 +1198,7 @@ namespace Inferno {
         auto prevSegId = obj.Segment;
         Editor::UpdateObjectSegment(level, obj);
         if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
-            auto& prevSeg = level.GetSegment(prevSegId);
+            //auto& prevSeg = level.GetSegment(prevSegId);
 
             auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
             if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
@@ -1213,20 +1213,48 @@ namespace Inferno {
         }
     }
 
-    void HitDoorMessage(Wall& door) {
-        string msg;
+    void HitWall(Level& level, const LevelHit& hit, const Object& obj, const Wall& wall) {
+        auto parent = level.TryGetObject(obj.Parent);
 
-        if (bool(door.Keys & WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
-            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Red), Resources::GetString(StringTableEntry::AccessDenied));
-        else if (bool(door.Keys & WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
-            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Blue), Resources::GetString(StringTableEntry::AccessDenied));
-        else if (bool(door.Keys & WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
-            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Yellow), Resources::GetString(StringTableEntry::AccessDenied));
-        else if (door.HasFlag(WallFlag::DoorLocked))
-            msg = Resources::GetString(StringTableEntry::CantOpenDoor);
+        bool isPlayerSource = obj.Type == ObjectType::Player || (parent && parent->Type == ObjectType::Player);
 
-        if (!msg.empty())
-            PrintHudMessage(msg);
+        if (wall.Type == WallType::Destroyable && isPlayerSource && obj.Type == ObjectType::Weapon) {
+            auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+            DamageWall(level, hit.Tag, weapon.Damage[Game::Difficulty]);
+        }
+        else if (wall.Type == WallType::Door) {
+            if ((isPlayerSource && Game::PlayerCanOpenDoor(wall)) ||
+                (obj.Type == ObjectType::Robot && obj.Control.AI.Behavior == AIBehavior::Snipe)) {
+                if (wall.State != WallState::DoorOpening)
+                    OpenDoor(level, hit.Tag);
+            }
+            else {
+                // Can't open door
+                if (obj.Type == ObjectType::Weapon) {
+                    // todo: only play message if door is in front of the player and the player owns the weapon
+                    Sound3D sound(hit.Point, hit.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
+                    sound.Source = obj.Parent;
+                    sound.FromPlayer = true;
+                    Sound::Play(sound);
+
+                    if (isPlayerSource) {
+                        string msg;
+                        if (bool(wall.Keys & WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
+                            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Red), Resources::GetString(StringTableEntry::AccessDenied));
+                        else if (bool(wall.Keys & WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
+                            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Blue), Resources::GetString(StringTableEntry::AccessDenied));
+                        else if (bool(wall.Keys & WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
+                            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Yellow), Resources::GetString(StringTableEntry::AccessDenied));
+                        else if (wall.HasFlag(WallFlag::DoorLocked))
+                            msg = Resources::GetString(StringTableEntry::CantOpenDoor);
+
+                        if (!msg.empty())
+                            PrintHudMessage(msg);
+                    }
+                }
+            }
+        }
     }
 
     void UpdatePhysics(Level& level, double t, float dt) {
@@ -1291,32 +1319,13 @@ namespace Inferno {
                 if (obj.Type == ObjectType::Weapon) {
                     if (!obj.Physics.HasFlag(PhysicsFlag::Bounce)) {
                         //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
-                        ApplyWeaponHit(hit, obj, obj.Physics.Velocity, level);
+                        ApplyWeaponHit(hit, obj, level);
                         obj.Lifespan = -1; // destroy weapon projectiles on hit
                     }
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {
-                    // todo: only open doors for certain robot behaviors and player weapons
-
-                    if (wall->Type == WallType::Door) {
-                        if (!Game::PlayerCanOpenDoor(*wall)) {
-                            // Can't open door
-                            if (obj.Type == ObjectType::Weapon) {
-                                // todo: only play message if door is in front of the player and the player owns the weapon
-                                Sound3D sound(hit.Point, hit.Tag.Segment);
-                                sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
-                                sound.Source = obj.Parent;
-                                sound.FromPlayer = true;
-                                Sound::Play(sound);
-
-                                HitDoorMessage(*wall);
-                            }
-                        }
-                        else if (wall->State != WallState::DoorOpening) {
-                            OpenDoor(level, hit.Tag);
-                        }
-                    }
+                    HitWall(level, hit, obj, *wall);
                 }
 
                 if (obj.Type == ObjectType::Player) {

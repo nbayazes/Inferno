@@ -15,6 +15,7 @@
 #include "Game.Input.h"
 #include "DebugOverlay.h"
 #include "HUD.h"
+#include "Game.Wall.h"
 
 using namespace DirectX;
 
@@ -419,6 +420,7 @@ namespace Inferno::Game {
         Render::UpdateDebris(dt);
         Render::UpdateExplosions(dt);
         UpdateAmbientSounds();
+        UpdateExplodingWalls(Game::Level, dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];

@@ -93,7 +93,7 @@ namespace Inferno::Sound {
             Muffle += std::min(abs(diff), dt * 3) * sign; // Take 1/3 a second to reach muffle target
 
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
-            auto falloff = 1 - ratio; // linear falloff
+            //auto falloff = 1 - ratio; // linear falloff
             //auto falloff = 1 - (ratio * ratio); // square falloff
             //Instance->SetVolume(Volume * falloff * Muffle * MAX_SFX_VOLUME);
 
@@ -441,7 +441,6 @@ namespace Inferno::Sound {
             s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
             s.Instance->SetVolume(sound.Volume);
             s.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
-            auto addr = (void*)&s.Instance;
 
             //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
             //s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;

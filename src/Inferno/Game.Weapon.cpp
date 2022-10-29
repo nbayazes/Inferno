@@ -48,13 +48,13 @@ namespace Inferno::Game {
             ge.Radius = weapon.SplashRadius;
             ge.Segment = bomb.Segment;
             ge.Position = bomb.Position;
-            CreateExplosion(Game::Level, bomb, ge);
+            CreateExplosion(Game::Level, &bomb, ge);
         }
 
         bomb.HitPoints = 0;
     }
 
-    void ProxMineBehavior(float dt, Object& obj) {
+    void ProxMineBehavior(Object& obj) {
         constexpr auto PROX_WAKE_RANGE = 60;
         constexpr auto PROX_ACTIVATE_RANGE = 30;
 
@@ -89,7 +89,7 @@ namespace Inferno::Game {
                 //sound.Pitch = 0.25f - (lerp - 1.25);
                 sound.Resource = Resources::GetSoundResource(SoundID::HomingWarning);
                 Sound::Play(sound);
-                cw.SoundDelay = Game::Time + lerp;
+                cw.SoundDelay = (float)Game::Time + lerp;
             }
 
             if (dist <= PROX_ACTIVATE_RANGE && !cw.DetonateMine) {
@@ -291,7 +291,7 @@ namespace Inferno::Game {
         FireWeapon(player.ID, gun, wid, false, -offset * 2);
     }
 
-    void VulcanBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+    void VulcanBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
         constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
         //Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
         Vector2 spread = RandomPointInCircle(SPREAD_ANGLE);
@@ -342,7 +342,7 @@ namespace Inferno::Game {
         return result;
     }
 
-    void OmegaBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+    void OmegaBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
         constexpr auto FOV = 12.5f * DegToRad;
         constexpr auto MAX_DIST = 100;
         constexpr auto MAX_TARGETS = 3;
@@ -418,7 +418,7 @@ namespace Inferno::Game {
     }
 
     // default weapon firing behavior
-    void DefaultBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+    void DefaultBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
         FireWeapon(player.ID, gun, wid);
     }
 
@@ -441,6 +441,6 @@ namespace Inferno::Game {
     void UpdateWeapon(Object& obj, float dt) {
         obj.Control.Weapon.AliveTime += dt;
         if (obj.ID == (int)WeaponID::ProxMine)
-            ProxMineBehavior(dt, obj);
+            ProxMineBehavior(obj);
     }
 }

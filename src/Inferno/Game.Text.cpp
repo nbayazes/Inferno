@@ -51,11 +51,11 @@ namespace Inferno {
         List<Palette::Color> buffer(Atlas.Width() * Atlas.Height());
         std::fill(buffer.begin(), buffer.end(), Palette::Color{ 0, 0, 0, 0 });
 
-        for (auto& [f, sz] : fonts) {
+        for (auto& [f, size] : fonts) {
             if (!hog.Exists(f)) continue;
             auto data = hog.ReadEntry(f);
             auto font = Font::Read(data);
-            Atlas.AddFont(buffer, font, sz, 2);
+            Atlas.AddFont(buffer, font, size, 2);
         }
 
         auto batch = Render::BeginTextureUpload();

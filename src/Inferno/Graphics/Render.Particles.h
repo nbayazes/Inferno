@@ -200,12 +200,12 @@ namespace Inferno::Render {
         float Size = 2;
         Color Color = { 1, 1, 1 };
         float Life = 0;
-        WallID Wall = WallID::None; // For decals placed on walls
+        Tag Tag{}; // For decals placed on walls
     };
 
     void AddDecal(DecalInfo& decal);
     void DrawDecals(Graphics::GraphicsContext& ctx);
 
-    // Removes decals attached to a wall
-    void RemoveDecals(WallID front, WallID back);
+    // Removes decals on a side
+    void RemoveDecals(Tag);
 }

@@ -62,7 +62,7 @@ namespace Inferno {
         //int VClip;
     };
 
-    void CreateExplosion(Level& level, const Object& source, const GameExplosion& explosion);
+    void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion);
 
     //Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p);
     //HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);

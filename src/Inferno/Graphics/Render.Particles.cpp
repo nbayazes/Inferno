@@ -242,7 +242,7 @@ namespace Inferno::Render {
     // Fractal noise generator, power of 2 wavelength
     void FractalNoise(span<float> noise) {
         if (noise.size() < 2) return;
-        int div2 = noise.size() >> 1;
+        int div2 = (int)noise.size() >> 1;
 
         // noise is normalized to +/- scale
         noise[div2] = (noise.front() + noise.back()) * 0.5f + noise.size() * RandomN11() * 0.125f;
@@ -293,7 +293,7 @@ namespace Inferno::Render {
             // todo: if start or end object are set, update endpoints
 
             // DrawSegs()
-            auto vScale = length / beam.Width * beam.Scale;
+            //auto vScale = length / beam.Width * beam.Scale;
             auto scale = beam.Amplitude;
 
             int segments = (int)(length / (beam.Width * 0.5 * 1.414)) + 1;
@@ -316,16 +316,14 @@ namespace Inferno::Render {
 
             noise.resize(segments);
 
-            if (beam.Amplitude > 0 && Render::ElapsedTime > beam.Runtime.NextUpdate) {
+            if (beam.Amplitude > 0 && (float)Render::ElapsedTime > beam.Runtime.NextUpdate) {
                 if (beam.SineNoise)
                     SineNoise(noise);
                 else
                     FractalNoise(noise);
 
-                beam.Runtime.NextUpdate = Render::ElapsedTime + beam.Frequency;
+                beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
             }
-
-            int noiseIndex = 0;
 
             auto perp1 = GetBeamPerpendicular(delta);
             auto center = (beam.End + beam.Start) / 2;
@@ -581,10 +579,12 @@ namespace Inferno::Render {
         }
     }
 
-    void RemoveDecals(WallID front, WallID back) {
+    void RemoveDecals(Tag tag) {
+        if (!tag) return;
+        auto cside = Game::Level.GetConnectedSide(tag);
+
         for (auto& decal : Decals) {
-            if ((front != WallID::None && decal.Wall == front) ||
-                (back != WallID::None && decal.Wall == back))
+            if (decal.Tag == tag || (cside && decal.Tag == cside))
                 decal.Life = 0;
         }
     }

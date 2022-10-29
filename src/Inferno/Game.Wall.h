@@ -18,4 +18,7 @@ namespace Inferno {
     void ActivateTriggerD2(Level& level, Trigger& trigger);
 
     bool WallIsTransparent(Level& level, Tag tag);
+    void DamageWall(Level& level, Tag tag, float damage);
+
+    void UpdateExplodingWalls(Level& level, float dt);
 }

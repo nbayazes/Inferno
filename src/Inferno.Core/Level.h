@@ -378,7 +378,6 @@ namespace Inferno {
             return true;
         }
 
-#undef GetObject
         const Object& GetObject(ObjID id) const { return Objects[(int)id]; }
         Object& GetObject(ObjID id) { return Objects[(int)id]; }
         Object* TryGetObject(ObjID id) {

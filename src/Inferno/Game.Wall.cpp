@@ -64,11 +64,10 @@ namespace Inferno {
     }
 
     void SetWallTMap(SegmentSide& side1, SegmentSide& side2, const WallClip& clip, int frame) {
-        frame = std::clamp(frame, 0, (int)clip.NumFrames);
-
+        frame = std::clamp(frame, 0, (int)clip.NumFrames - 1);
         auto tmap = clip.Frames[frame];
-
         bool changed = false;
+
         if (clip.UsesTMap1()) {
             changed = side1.TMap != tmap || side2.TMap != tmap;
             side1.TMap = side2.TMap = tmap;
@@ -82,15 +81,19 @@ namespace Inferno {
         if (changed) Editor::Events::LevelChanged();
     }
 
+    void SetWallTMap(Level& level, Tag tag, const WallClip& clip, int frame) {
+        auto conn = level.GetConnectedSide(tag);
+        auto& side = level.GetSide(tag);
+        auto& cside = level.GetSide(conn);
+        SetWallTMap(side, cside, clip, frame);
+    }
+
     void DoOpenDoor(Level& level, ActiveDoor& door, float dt) {
         auto& wall = level.GetWall(door.Front);
-        auto conn = level.GetConnectedSide(wall.Tag);
-        auto& side = level.GetSide(wall.Tag);
-        auto& cside = level.GetSide(conn);
-        auto& cwall = level.GetWall(cside.Wall);
+        auto cwall = level.TryGetConnectedWall(wall.Tag);
 
         // todo: remove objects stuck on door
-        Render::RemoveDecals(door.Front, door.Back);
+        Render::RemoveDecals(wall.Tag);
 
         door.Time += dt;
 
@@ -99,16 +102,16 @@ namespace Inferno {
         auto i = int(door.Time / frameTime);
 
         if (i < clip.NumFrames) {
-            SetWallTMap(side, cside, clip, i);
+            SetWallTMap(level, wall.Tag, clip, i);
         }
 
         if (i > clip.NumFrames / 2) { // half way open
             wall.SetFlag(WallFlag::DoorOpened);
-            cwall.SetFlag(WallFlag::DoorOpened);
+            if (cwall) cwall->SetFlag(WallFlag::DoorOpened);
         }
 
         if (i >= clip.NumFrames - 1) {
-            SetWallTMap(side, cside, clip, i - 1);
+            SetWallTMap(level, wall.Tag, clip, i - 1);
 
             if (!wall.HasFlag(WallFlag::DoorAuto)) {
                 door = {}; // free door slot because it won't close
@@ -116,7 +119,7 @@ namespace Inferno {
             else {
                 fmt::print("Waiting door\n");
                 wall.State = WallState::DoorWaiting;
-                cwall.State = WallState::DoorWaiting;
+                if (cwall) cwall->State = WallState::DoorWaiting;
                 door.Time = 0;
             }
         }
@@ -326,10 +329,80 @@ namespace Inferno {
         return {};
     }
 
-    void ExplodeWall(Tag tag) {
+    struct ExplodingWall {
+        Tag Tag;
+        float Time = 0;
+        static bool IsAlive(const ExplodingWall& w) { return w.Tag.HasValue(); }
+    };
+
+    DataPool<ExplodingWall> ExplodingWalls(ExplodingWall::IsAlive, 10);
+
+    void UpdateExplodingWalls(Level& level, float dt) {
+        constexpr float EXPLODE_TIME = 1.0f;
+        constexpr int TOTAL_FIREBALLS = 32;
+
+        for (auto& wall : ExplodingWalls) {
+            if (!ExplodingWall::IsAlive(wall)) continue;
+
+            auto prevFrac = wall.Time / EXPLODE_TIME;
+            wall.Time += dt;
+
+            if (wall.Time > EXPLODE_TIME) wall.Time = EXPLODE_TIME;
+
+            if (wall.Time > EXPLODE_TIME * 0.75f) {
+                if (auto w = level.TryGetWall(wall.Tag)) {
+                    // todo: remove objects stuck on side (flares)
+                    Render::RemoveDecals(wall.Tag);
+                    auto& clip = Resources::GetWallClip(w->Clip);
+                    SetWallTMap(level, wall.Tag, clip, clip.NumFrames - 1);
+                }
+            }
+
+            auto frac = wall.Time / EXPLODE_TIME;
+            auto oldCount = int(TOTAL_FIREBALLS * prevFrac * prevFrac);
+            auto count = int(TOTAL_FIREBALLS * frac * frac);
+
+            for (int e = oldCount; e < count; e++) {
+                auto verts = level.VerticesForSide(wall.Tag);
+                auto pos = verts[1] + (verts[0] - verts[1]) * Random();
+                pos += (verts[2] - verts[1]) * Random();
+
+                constexpr float FIREBALL_SIZE = 4.5f;
+                auto size = FIREBALL_SIZE + (2 * FIREBALL_SIZE * e / TOTAL_FIREBALLS);
+
+                // fireballs start away from door then move closer
+                auto& side = level.GetSide(wall.Tag);
+                pos += side.AverageNormal * size * (TOTAL_FIREBALLS - e) / TOTAL_FIREBALLS;
+
+                if (!(e & 3)) {
+                    // Create a damaging explosion 1/4th of the time
+                    GameExplosion expl{};
+                    expl.Damage = 4;
+                    expl.Radius = 20;
+                    expl.Force = 50;
+                    CreateExplosion(level, nullptr, expl);
+                }
+
+                Render::Particle p{};
+                p.Clip = VClipID::SmallExplosion;
+                p.Position = pos;
+                p.Radius = size / 2;
+                Render::AddParticle(p);
+            }
+
+            if (wall.Time >= EXPLODE_TIME)
+                wall.Tag = {}; // Free the slot
+        }
+    };
+
+    void ExplodeWall(Level& level, Tag tag) {
         // create small explosions on the face
-        //SoundID::ExplodingWall = 31;
-        // do_exploding_wall_frame()
+        auto& side = level.GetSide(tag);
+        Sound3D sound(side.Center, tag.Segment);
+        sound.Resource = Resources::GetSoundResource(SoundID::ExplodingWall);
+        Sound::Play(sound);
+
+        ExplodingWalls.Add({ tag });
     }
 
     void DestroyWall(Level& level, Tag tag) {
@@ -339,21 +412,53 @@ namespace Inferno {
         wall->HitPoints = -1;
         if (cwall) cwall->HitPoints = -1;
 
-        // todo: remove objects stuck on side (flares, decals)
-        auto front = level.GetWallID(tag);
-        auto back = level.GetConnectedWallID(tag);
-        Render::RemoveDecals(front, back);
-
         auto& wclip = Resources::GetWallClip(wall->Clip);
-        if (wclip.HasFlag(WallClipFlag::Explodes)) {
-            ExplodeWall(wall->Tag);
+        if (wclip.HasFlag(WallClipFlag::Explodes))
+            ExplodeWall(level, wall->Tag);
+
+        wall->SetFlag(WallFlag::Destroyed);
+        if (cwall) cwall->SetFlag(WallFlag::Destroyed);
+    }
+
+    void DamageWall(Level& level, Tag tag, float damage) {
+        auto wall = level.TryGetWall(tag);
+        if (!wall) return;
+
+        if (wall->Type != WallType::Destroyable ||
+            wall->HasFlag(WallFlag::Destroyed)) return;
+
+        wall->HitPoints -= damage;
+        auto cwall = level.TryGetConnectedWall(tag);
+        if (cwall) cwall->HitPoints -= damage;
+
+        //a = Walls[seg->sides[side].wall_num].clip_num;
+        auto& clip = Resources::GetWallClip(wall->Clip);
+
+        //if (Walls[seg->sides[side].wall_num].hps < WALL_HPS * 1 / n)
+        if (wall->HitPoints < 100.0f / clip.NumFrames) {
+            DestroyWall(level, tag);
         }
-        else {
-            // if not exploding, set final frame and open
-            wclip.NumFrames;
-            wall->SetFlag(WallFlag::Blasted);
-            if (cwall)
-                cwall->SetFlag(WallFlag::Blasted);
+        else if (wall->HitPoints < 100) {
+            int frame = clip.NumFrames - std::ceil(wall->HitPoints / 100 * clip.NumFrames);
+
+            auto& side = level.GetSide(tag);
+            auto cside = level.TryGetConnectedSide(tag);
+            assert(cside); // a door must be on a connected side
+            SetWallTMap(side, *cside, clip, frame);
+
+            // 10 - (100 - 0) / 10) -> 0;
+            // 10 - (100 - 50) / 10) -> 5
+            //auto frame = (int)(100.0f * (clip.NumFrames - i) / clip.NumFrames);
+
+            //for (int i = 0; i < clip.NumFrames; i++) {
+            //    if (wall->HitPoints < 100.0f * (clip.NumFrames - i) / clip.NumFrames) {
+            //        SetWallTMap(side, cside, clip, i);
+            //        //wall_set_tmap_num(seg, side, csegp, Connectside, a, i);
+            //    }
+            //}
+
+            //if (frame == clip.NumFrames - 1) // final frame is destroyed state
+            //    DestroyWall(level, tag);
         }
     }
 

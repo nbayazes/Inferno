@@ -6,7 +6,7 @@
 namespace Inferno {
     enum class WallFlag : uint8 {
         None,
-        Blasted = BIT(0), // Converts a blastable wall to an illusionary wall
+        Destroyed = BIT(0), // Converts a blastable wall to an illusionary wall
         DoorOpened = BIT(1), // Door is opened and no longer has collision
         DoorLocked = BIT(3), // Door cannot be opened
         DoorAuto = BIT(4), // Door closes automatically
@@ -67,7 +67,7 @@ namespace Inferno {
         bool IsSolid() {
             if (Type == WallType::Illusion) return false;
             if (Type == WallType::Door && HasFlag(WallFlag::DoorOpened)) return false;
-            if (Type == WallType::Destroyable && HasFlag(WallFlag::Blasted)) return false;
+            if (Type == WallType::Destroyable && HasFlag(WallFlag::Destroyed)) return false;
             if (Type == WallType::FlyThroughTrigger) return false;
             return true;
         }
