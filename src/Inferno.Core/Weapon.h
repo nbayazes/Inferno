@@ -96,6 +96,7 @@ namespace Inferno {
         string ShortName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
         string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
+        float ScorchRadius = 0; // Radius of scorch marks. 0 uses a ratio of impact size.
 
         int PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
@@ -173,7 +174,7 @@ namespace Inferno {
         float BlobSize;  // Size of blob if blob type, used for collision
 
         float FlashSize; // Muzzle flash radius
-        float ImpactSize;
+        float ImpactSize; // Radius of effect when hitting something
         float Damage[5];
         float Speed[5];
         float Mass;

@@ -112,9 +112,9 @@ namespace Inferno {
 
         if (effect.Depth == DepthMode::ReadEqual) {
             // Biases for decals
-            psoDesc.RasterizerState.DepthBias = -20;
-            psoDesc.RasterizerState.SlopeScaledDepthBias = -2.0f;
-            psoDesc.RasterizerState.DepthBiasClamp = -200;
+            psoDesc.RasterizerState.DepthBias = -10000;
+            psoDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;
+            psoDesc.RasterizerState.DepthBiasClamp = -100000;
         }
 
         for (uint i = 0; i < renderTargets; i++)

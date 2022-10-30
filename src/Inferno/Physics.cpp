@@ -292,48 +292,31 @@ namespace Inferno {
         return c3;
     }
 
-    // Returns the distance to the nearest edge
-    //float TriangleEdgeDistance(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point) {
-    //    auto c1 = ClosestPointOnLine(p0, p1, point);
-    //    auto c2 = ClosestPointOnLine(p1, p2, point);
-    //    auto c3 = ClosestPointOnLine(p2, p0, point);
-
-    //    auto mag1 = (point - c1).Length();
-    //    auto mag2 = (point - c2).Length();
-    //    auto mag3 = (point - c3).Length();
-
-    //    return std::min(std::min(mag1, mag2), mag3);
-    //}
-
     // Returns the nearest distance to the face edge and a point. Skips the internal split.
-    float FaceEdgeDistance(const Face& face, const Vector3& point) {
+    float FaceEdgeDistance(Segment& seg, SideID side, const Face& face, const Vector3& point) {
         // Check the four outside edges of the face
-        Vector3 c1, c2, c3, c4;
+        float mag1, mag2, mag3, mag4;
+        mag1 = mag2 = mag3 = mag4 = FLT_MAX;
 
-        if (face.Side.Type == SideSplitType::Tri13) {
-            c1 = ClosestPointOnLine(face[0], face[1], point);
-            c2 = ClosestPointOnLine(face[3], face[0], point);
-            c3 = ClosestPointOnLine(face[1], face[2], point);
-            c4 = ClosestPointOnLine(face[2], face[3], point);
+        // If the edge doesn't have a connection it's safe to put a decal on it
+        if (seg.SideHasConnection(GetAdjacentSide(side, 0))) {
+            auto c = ClosestPointOnLine(face[0], face[1], point);
+            mag1 = (point - c).Length();
         }
-        else {
-            // 0-2 split
-            c1 = ClosestPointOnLine(face[0], face[1], point);
-            c2 = ClosestPointOnLine(face[1], face[2], point);
-            c3 = ClosestPointOnLine(face[2], face[3], point);
-            c4 = ClosestPointOnLine(face[3], face[0], point);
+        if (seg.SideHasConnection(GetAdjacentSide(side, 1))) {
+            auto c = ClosestPointOnLine(face[1], face[2], point);
+            mag2 = (point - c).Length();
+        }
+        if (seg.SideHasConnection(GetAdjacentSide(side, 2))) {
+            auto c = ClosestPointOnLine(face[2], face[3], point);
+            mag3 = (point - c).Length();
+        }
+        if (seg.SideHasConnection(GetAdjacentSide(side, 3))) {
+            auto c = ClosestPointOnLine(face[3], face[0], point);
+            mag4 = (point - c).Length();
         }
 
-        auto mag1 = (point - c1).Length();
-        auto mag2 = (point - c2).Length();
-        auto mag3 = (point - c3).Length();
-        auto mag4 = (point - c4).Length();
         return std::min(std::min(std::min(mag1, mag2), mag3), mag4);
-
-        /*auto i = face.Side.GetRenderIndices();
-        if (tri > 1) tri = 1;
-        auto idx = tri * 3;
-        return TriangleEdgeDistance(face[i[idx]], face[i[idx + 1]], face[i[idx + 2]], point);*/
     }
 
     Vector3 GetTriangleNormal(const Vector3& a, const Vector3& b, const Vector3& c) {
@@ -754,7 +737,7 @@ namespace Inferno {
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
                         hit.Tangent = face.Side.Tangents[tri - 1];
-                        hit.EdgeDistance = FaceEdgeDistance(face, hit.Point); // bug: is hit.point set?
+                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point); // bug: is hit.point set?
                         return true;
                     }
                     else {
@@ -807,7 +790,7 @@ namespace Inferno {
                         hit.Point = refPoint;
                         hit.Distance = dist;
                         hit.Tangent = face.Side.Tangents[tri];
-                        hit.EdgeDistance = FaceEdgeDistance(face, hit.Point);
+                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         hit.Tag = { segId, side };
                     }
                     else {
@@ -1157,15 +1140,14 @@ namespace Inferno {
             Render::CreateExplosion(e);
 
             {
-                // Make explosive weapons have larger scorch marks
-                auto decalSize = splashRadius > 0 ? weapon.ImpactSize / 2 : weapon.ImpactSize / 4;
+                auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
 
-                if (hit.EdgeDistance >= decalSize && addDecal) { // check that decal isn't too close to edge due to lack of clipping
+                if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) { // check that decal isn't too close to edge due to lack of clipping
                     Render::DecalInfo decal{};
                     auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
                     decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
                     decal.Bitangent = decal.Tangent.Cross(hit.Normal);
-                    decal.Size = decalSize;
+                    decal.Radius = decalSize;
                     decal.Position = hit.Point;
                     decal.Tag = hit.Tag;
                     decal.Texture = weapon.Extended.ScorchTexture;

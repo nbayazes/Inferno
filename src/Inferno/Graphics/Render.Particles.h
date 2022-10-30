@@ -197,7 +197,7 @@ namespace Inferno::Render {
         Vector3 Tangent, Bitangent;
         string Texture = "scorchB";
 
-        float Size = 2;
+        float Radius = 2;
         Color Color = { 1, 1, 1 };
         float Life = 0;
         Tag Tag{}; // For decals placed on walls

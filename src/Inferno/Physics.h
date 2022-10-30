@@ -25,7 +25,7 @@ namespace Inferno {
         Tag Tag;
         Object* HitObj = nullptr;
         float Distance = FLT_MAX;
-        float EdgeDistance = 0; // Barycentric distance from the face edge. Used for decal culling.
+        float EdgeDistance = 0; // Impact distance from the face edge. Used for decal culling.
         Vector3 Point, Normal, Tangent;
         Set<SegID> Visited; // visited segments
 

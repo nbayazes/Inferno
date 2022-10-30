@@ -562,17 +562,17 @@ namespace Inferno::Render {
             if (decal.Life <= 0) continue;
 
             const auto& pos = decal.Position;
-            const auto up = decal.Bitangent * decal.Size;
-            const auto right = decal.Tangent * decal.Size;
+            const auto up = decal.Bitangent * decal.Radius;
+            const auto right = decal.Tangent * decal.Radius;
 
             auto& material = Render::Materials->GetOutrageMaterial(decal.Texture);
             effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
             g_SpriteBatch->Begin(ctx.CommandList());
 
-            ObjectVertex v0{ pos + up - right, { 0, 0 }, decal.Color };
-            ObjectVertex v1{ pos - up - right, { 1, 0 }, decal.Color };
-            ObjectVertex v2{ pos - up + right, { 1, 1 }, decal.Color };
-            ObjectVertex v3{ pos + up + right, { 0, 1 }, decal.Color };
+            ObjectVertex v0{ pos - up, { 0, 1 }, decal.Color };
+            ObjectVertex v1{ pos - right, { 1, 1 }, decal.Color };
+            ObjectVertex v2{ pos + up, { 1, 0 }, decal.Color };
+            ObjectVertex v3{ pos + right, { 0, 0 }, decal.Color };
             g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
             g_SpriteBatch->End();
             DrawCalls++;

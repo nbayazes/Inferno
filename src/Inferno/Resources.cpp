@@ -345,15 +345,20 @@ namespace Inferno::Resources {
     void LoadExtendedWeaponInfo() {
         if (GameData.Weapons.size() < 32) return; // No D1 data
         auto GetWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
-        auto& fusion = GameData.Weapons[(int)WeaponID::Fusion].Extended;
+        auto& fusion = GetWeapon(WeaponID::Fusion).Extended;
         fusion.Chargable = true;
         fusion.ScorchTexture = "scorchC";
+        fusion.ScorchRadius = 3.0f;
 
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
         GetWeapon(WeaponID::Vulcan).Extended.Behavior = "vulcan";
         GetWeapon(WeaponID::Vulcan).Extended.ScorchTexture = "BulletHole01";
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
+
+        auto& mega = GetWeapon(WeaponID::Mega).Extended;
+        mega.ScorchTexture = "scorchC";
+        mega.ScorchRadius = 8.0f;
 
         if (GameData.Weapons.size() < 35) return; // No D2 data
         GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
@@ -364,6 +369,11 @@ namespace Inferno::Resources {
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
         gauss.Extended.ScorchTexture = "BulletHole02";
+
+        auto& shaker = GetWeapon(WeaponID::Shaker).Extended;
+        shaker.ScorchTexture = "scorchC";
+        shaker.ScorchRadius = 8.0f;
+
     }
 
     // Some levels don't have the D1 reactor model set
