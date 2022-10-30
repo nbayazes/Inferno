@@ -141,7 +141,7 @@ namespace Inferno {
     };
 
     enum class MovementType : uint8 {
-        None = 0,
+        None = 0, // No physics or movement
         Physics = 1,  // Affected by physics
         Spinning = 3, // Spins in place
     };
@@ -304,7 +304,7 @@ namespace Inferno {
         RenderData Render;
         ControlData Control;
 
-        Vector3 LastHitForce;
+        Vector3 LastHitForce; // Tracks the force applies by recent hits
 
         Vector3 Position; // The current "real" position
         Matrix3x3 Rotation; // The current "real" rotation
@@ -330,10 +330,12 @@ namespace Inferno {
             Position = m.Translation();
         }
 
+        // Gets the render position
         Vector3 GetPosition(float lerp) const {
             return Vector3::Lerp(LastPosition, Position, lerp);
         }
 
+        // Gets the render rotation
         Matrix GetRotation(float lerp) const {
             return Matrix::Lerp(LastRotation, Rotation, lerp);
         }

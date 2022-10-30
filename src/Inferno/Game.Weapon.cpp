@@ -202,6 +202,12 @@ namespace Inferno::Game {
             bullet.Render.Model.ID = weapon.Model;
             auto& model = Resources::GetModel(weapon.Model);
             bullet.Radius = model.Radius / weapon.ModelSizeRatio;
+            
+            // Randomize the rotation of models
+            auto rotation = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), Random() * DirectX::XM_2PI);
+            bullet.Rotation *= rotation;
+            bullet.LastRotation = bullet.Rotation;
+
             //auto length = model.Radius * 2;
             Render::LoadModelDynamic(weapon.Model);
             Render::LoadModelDynamic(weapon.ModelInner);

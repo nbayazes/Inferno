@@ -345,10 +345,11 @@ namespace Inferno::Resources {
     void LoadExtendedWeaponInfo() {
         if (GameData.Weapons.size() < 32) return; // No D1 data
         auto GetWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
-        auto& fusion = GetWeapon(WeaponID::Fusion).Extended;
-        fusion.Chargable = true;
-        fusion.ScorchTexture = "scorchC";
-        fusion.ScorchRadius = 3.0f;
+        auto& fusion = GetWeapon(WeaponID::Fusion);
+        fusion.Extended.Chargable = true;
+        fusion.Extended.ScorchTexture = "scorchC";
+        fusion.Extended.ScorchRadius = 3.25f;
+        fusion.ModelSizeRatio = 2.5f;
 
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
         GetWeapon(WeaponID::Vulcan).Extended.Behavior = "vulcan";
