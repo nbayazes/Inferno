@@ -926,11 +926,10 @@ namespace Inferno::Render {
 
         if (auto seg = level.TryGetSegment(obj.Segment)) {
             auto vec = position - seg->Center;
-            vec.Normalize();
             position = seg->Center + vec; // Shift slightly away from center so objects within seg are sorted correctly
         }
 
-        float depth = GetRenderDepth(position - Camera.Position);
+        float depth = GetRenderDepth(position);
 
         if (depth > distSquared && Game::State == GameState::Editor)
             DrawObjectOutline(obj);
