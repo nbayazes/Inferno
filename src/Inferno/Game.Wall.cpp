@@ -380,6 +380,7 @@ namespace Inferno {
                     expl.Damage = 4;
                     expl.Radius = 20;
                     expl.Force = 50;
+                    expl.Position = pos;
                     CreateExplosion(level, nullptr, expl);
                 }
 
@@ -431,11 +432,9 @@ namespace Inferno {
         auto cwall = level.TryGetConnectedWall(tag);
         if (cwall) cwall->HitPoints -= damage;
 
-        //a = Walls[seg->sides[side].wall_num].clip_num;
         auto& clip = Resources::GetWallClip(wall->Clip);
 
-        //if (Walls[seg->sides[side].wall_num].hps < WALL_HPS * 1 / n)
-        if (wall->HitPoints < 100.0f / clip.NumFrames) {
+        if (wall->HitPoints < 100.0f / clip.NumFrames + 1) {
             DestroyWall(level, tag);
         }
         else if (wall->HitPoints < 100) {
@@ -445,20 +444,6 @@ namespace Inferno {
             auto cside = level.TryGetConnectedSide(tag);
             assert(cside); // a door must be on a connected side
             SetWallTMap(side, *cside, clip, frame);
-
-            // 10 - (100 - 0) / 10) -> 0;
-            // 10 - (100 - 50) / 10) -> 5
-            //auto frame = (int)(100.0f * (clip.NumFrames - i) / clip.NumFrames);
-
-            //for (int i = 0; i < clip.NumFrames; i++) {
-            //    if (wall->HitPoints < 100.0f * (clip.NumFrames - i) / clip.NumFrames) {
-            //        SetWallTMap(side, cside, clip, i);
-            //        //wall_set_tmap_num(seg, side, csegp, Connectside, a, i);
-            //    }
-            //}
-
-            //if (frame == clip.NumFrames - 1) // final frame is destroyed state
-            //    DestroyWall(level, tag);
         }
     }
 
