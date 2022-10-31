@@ -60,6 +60,10 @@ PS_INPUT vsmain(LevelVertex input) {
     output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
+    
+    float3 viewDir = normalize(input.pos - Eye);
+    float d = dot(input.normal, viewDir);
+    output.col.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
     output.col.a = clamp(output.col.a, 0, 1);
     output.uv = input.uv + Scroll * Time * 200;
     output.uv2 = input.uv2 + Scroll2 * Time * 200;
@@ -91,6 +95,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     float4 base = Diffuse.Sample(Sampler, input.uv);
     float4 emissive = Emissive.Sample(Sampler, input.uv) * base;
+    //float d = dot(input.normal, viewDir);
+    //if (d > -0.001)
+    //    lighting = 0;
+    //return base * lighting;
     emissive.a = 0;
     
     if (HasOverlay) {
