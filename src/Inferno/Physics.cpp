@@ -1223,13 +1223,13 @@ namespace Inferno {
                     if (isPlayerSource) {
                         string msg;
                         if (bool(wall.Keys & WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
-                            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Red), Resources::GetString(StringTableEntry::AccessDenied));
+                            msg = fmt::format("{} {}", Resources::GetString(GameString::Red), Resources::GetString(GameString::AccessDenied));
                         else if (bool(wall.Keys & WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
-                            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Blue), Resources::GetString(StringTableEntry::AccessDenied));
+                            msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), Resources::GetString(GameString::AccessDenied));
                         else if (bool(wall.Keys & WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
-                            msg = fmt::format("{} {}", Resources::GetString(StringTableEntry::Yellow), Resources::GetString(StringTableEntry::AccessDenied));
+                            msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), Resources::GetString(GameString::AccessDenied));
                         else if (wall.HasFlag(WallFlag::DoorLocked))
-                            msg = Resources::GetString(StringTableEntry::CantOpenDoor);
+                            msg = Resources::GetString(GameString::CantOpenDoor);
 
                         if (!msg.empty())
                             PrintHudMessage(msg);
@@ -1310,31 +1310,32 @@ namespace Inferno {
                     HitWall(level, hit, obj, *wall);
                 }
 
-                if (obj.Type == ObjectType::Player) {
-                    if (hit.HitObj && hit.HitObj->Type == ObjectType::Powerup) {
-                        hit.HitObj->Lifespan = -1;
+                if (obj.Type == ObjectType::Player && hit.HitObj) {
+                    Game::Player.TouchObject(*hit.HitObj);
+                    //if (hit.HitObj && hit.HitObj->Type == ObjectType::Powerup) {
+                    //    hit.HitObj->Lifespan = -1;
 
-                        auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
-                        Sound3D sound(hit.Point, hit.Tag.Segment);
-                        sound.Resource = Resources::GetSoundResource(powerup.HitSound);
-                        sound.Source = obj.Parent;
-                        sound.FromPlayer = true;
-                        Sound::Play(sound);
+                    //    auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
+                    //    Sound3D sound(hit.Point, hit.Tag.Segment);
+                    //    sound.Resource = Resources::GetSoundResource(powerup.HitSound);
+                    //    sound.Source = ObjID(0);
+                    //    sound.FromPlayer = true;
+                    //    Sound::Play(sound);
 
-                        // todo: do the powerup effects
-                    }
+                    //    // todo: do the powerup effects
+                    //}
 
-                    if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
-                        hit.HitObj->Lifespan = -1;
+                    //if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
+                    //    hit.HitObj->Lifespan = -1;
 
-                        Sound3D sound(hit.Point, hit.Tag.Segment);
-                        sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
-                        sound.Source = obj.Parent;
-                        sound.FromPlayer = true;
-                        Sound::Play(sound);
+                    //    Sound3D sound(hit.Point, hit.Tag.Segment);
+                    //    sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
+                    //    sound.Source = ObjID(0);
+                    //    sound.FromPlayer = true;
+                    //    Sound::Play(sound);
 
-                        // todo: pickup hostage
-                    }
+                    //    // todo: pickup hostage
+                    //}
                 }
 
                 //CollideTriangles(level, obj, dt, 0);

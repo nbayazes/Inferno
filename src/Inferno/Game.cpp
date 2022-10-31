@@ -652,6 +652,11 @@ namespace Inferno::Game {
                     auto& ri = Resources::GetRobotInfo(obj.ID);
                     obj.HitPoints = ri.HitPoints;
                 }
+
+                if (obj.Type == ObjectType::Weapon && 
+                    (obj.ID == (int)WeaponID::Gauss || obj.ID == (int)WeaponID::Vulcan)) {
+                    obj.Control.Powerup.Count = 2500;
+                }
             }
 
             Sound::Reset();

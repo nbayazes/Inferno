@@ -31,8 +31,7 @@ namespace Inferno {
         }
 
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            auto dontHave = Resources::GetString(StringTableEntry::DontHave);
-            auto msg = fmt::format("{} {}!", dontHave, Resources::GetPrimaryName(index));
+            auto msg = fmt::format("{} {}!", Resources::GetString(GameString::DontHave), Resources::GetPrimaryName(index));
             PrintHudMessage(msg);
             Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
             return;
@@ -70,9 +69,10 @@ namespace Inferno {
         }
 
         if (!HasWeapon((SecondaryWeaponIndex)weapon)) {
-            auto haveNo = Resources::GetString(StringTableEntry::HaveNo);
-            auto sx = Resources::GetString(StringTableEntry::Sx);
-            auto msg = fmt::format("{} {}{}!", haveNo, Resources::GetSecondaryName(index), sx);
+            auto msg = fmt::format("{} {}{}!",
+                                   Resources::GetString(GameString::HaveNo),
+                                   Resources::GetSecondaryName(index),
+                                   Resources::GetString(GameString::Sx));
             PrintHudMessage(msg);
             Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
             return;
@@ -106,10 +106,13 @@ namespace Inferno {
 
         auto& ship = PyroGX;
 
-        auto& player = Game::Level.GetObject(ID);
+        //auto& player = Game::Level.GetObject(ID);
         auto id = GetPrimaryWeaponID();
         auto& weapon = Resources::GameData.Weapons[(int)id];
         PrimaryDelay = weapon.FireDelay;
+
+        Energy -= weapon.EnergyUsage;
+        PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
 
         auto& sequence = ship.Weapons[(int)Primary].Firing;
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
@@ -117,7 +120,7 @@ namespace Inferno {
         for (int i = 0; i < 8; i++) {
             if (sequence[FiringIndex].Gunpoints[i]) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
-                behavior(Game::Player, i, id);
+                behavior(*this, i, id);
             }
         }
 
@@ -125,110 +128,14 @@ namespace Inferno {
             for (int i = 0; i < 8; i++) {
                 if (ship.Weapons[(int)Primary].QuadGunpoints[i]) {
                     auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
-                    behavior(Game::Player, i, id);
+                    behavior(*this, i, id);
                 }
             }
         }
 
         FiringIndex = (FiringIndex + 1) % sequence.size();
 
-
-        //switch (Primary) {
-        //    //case PrimaryWeaponIndex::Laser:
-        //    //case PrimaryWeaponIndex::SuperLaser:
-        //    //case PrimaryWeaponIndex::Plasma:
-        //    //    break;
-
-        //    case PrimaryWeaponIndex::Vulcan:
-        //    case PrimaryWeaponIndex::Gauss:
-        //        if (Primary == PrimaryWeaponIndex::Vulcan) {
-        //            constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
-        //            Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
-        //            Game::FireWeapon(ID, 6, id, true, spread);
-        //        }
-        //        else {
-        //            Game::FireWeapon(ID, 6, id);
-        //        }
-        //        PrimaryAmmo[1] -= weapon.AmmoUsage * 13; // Not exact usage compared to original
-        //        break;
-
-        //    case PrimaryWeaponIndex::Spreadfire:
-        //    {
-        //        constexpr float SPREAD_ANGLE = 1 / 16.0f;
-        //        if (SpreadfireToggle) { // Vertical
-        //            Game::FireWeapon(ID, 6, id);
-        //            Game::FireWeapon(ID, 6, id, false, { 0, -SPREAD_ANGLE });
-        //            Game::FireWeapon(ID, 6, id, false, { 0, SPREAD_ANGLE });
-        //        }
-        //        else { // Horizontal
-        //            Game::FireWeapon(ID, 6, id);
-        //            Game::FireWeapon(ID, 6, id, false, { -SPREAD_ANGLE, 0 });
-        //            Game::FireWeapon(ID, 6, id, false, { SPREAD_ANGLE, 0 });
-        //        }
-
-        //        SpreadfireToggle = !SpreadfireToggle;
-        //        break;
-        //    }
-        //    case PrimaryWeaponIndex::Helix:
-        //    {
-        //        HelixOrientation = (HelixOrientation + 1) % 8;
-        //        auto offset = GetHelixOffset(HelixOrientation);
-        //        Game::FireWeapon(ID, 6, id);
-        //        Game::FireWeapon(ID, 6, id, false, offset);
-        //        Game::FireWeapon(ID, 6, id, false, offset * 2);
-        //        Game::FireWeapon(ID, 6, id, false, -offset);
-        //        Game::FireWeapon(ID, 6, id, false, -offset * 2);
-        //        break;
-        //    }
-
-        //    //case PrimaryWeaponIndex::Fusion:
-        //    //    WeaponCharge += Game::TICK_RATE;
-        //    //    break;
-        //    //case PrimaryWeaponIndex::Phoenix:
-        //        //break;
-        //    //case PrimaryWeaponIndex::Omega:
-        //        //break;
-        //    default:
-        //        //if (weapon.Extended.Chargable) {
-        //        //    //WeaponCharge += Game::TICK_RATE;
-
-        //        //    Sound3D sound(ID);
-        //        //    sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
-        //        //    sound.FromPlayer = true;
-        //        //    Sound::Play(sound);
-        //        //}
-        //        //else {
-        //        auto& sequence = ship.Weapons[(int)Primary].Firing;
-        //        if (FiringIndex >= sequence.size()) FiringIndex = 0;
-
-        //        for (int i = 0; i < 8; i++) {
-        //            if (sequence[FiringIndex].Gunpoints[i]) {
-        //                // todo: call weapon behavior
-        //                Game::FireWeapon(ID, i, id);
-        //            }
-        //        }
-
-        //        if (HasPowerup(PowerupFlag::QuadLasers)) {
-        //            for (int i = 0; i < 8; i++) {
-        //                if (ship.Weapons[(int)Primary].QuadGunpoints[i])
-        //                    Game::FireWeapon(ID, i, id);
-        //            }
-        //        }
-
-        //        FiringIndex = (FiringIndex + 1) % sequence.size();
-
-        //        /*Game::FireWeapon(ID, 0, id);
-        //        Game::FireWeapon(ID, 1, id);
-
-        //        if (HasPowerup(PowerupFlag::QuadLasers) && Primary == PrimaryWeaponIndex::Laser) {
-        //            Game::FireWeapon(ID, 2, id);
-        //            Game::FireWeapon(ID, 3, id);
-        //        }*/
-        //        //}
-        //        break;
-        //}
-
-        // Swap to different weapon if ammo or energy == 0
+        // todo: Swap to different weapon if ammo or energy == 0
     }
 
     void Player::HoldPrimary() {
@@ -236,13 +143,13 @@ namespace Inferno {
     }
 
     void Player::ReleasePrimary() {
-        auto id = GetPrimaryWeaponID();
-        auto& weapon = Resources::GameData.Weapons[(int)id];
+        //auto id = GetPrimaryWeaponID();
+        //auto& weapon = Resources::GameData.Weapons[(int)id];
 
-        if (weapon.Extended.Chargable && WeaponCharge > 0) {
-            Game::FireWeapon(ID, 0, id);
-            Game::FireWeapon(ID, 1, id);
-        }
+        //if (weapon.Extended.Chargable && WeaponCharge > 0) {
+        //    Game::FireWeapon(ID, 0, id);
+        //    Game::FireWeapon(ID, 1, id);
+        //}
     }
 
     void Player::FireSecondary() {
@@ -264,5 +171,440 @@ namespace Inferno {
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= weapon.AmmoUsage;
         // Swap to different weapon if ammo == 0
+    }
+
+    void ScreenFlash(const Color& color) {
+        // Tint the screen
+    }
+
+    bool Player::PickUpEnergy() {
+        constexpr float MAX_ENERGY = 200;
+        if (Energy < MAX_ENERGY) {
+            Energy += 3 + 3 * (5 - Game::Difficulty);
+            if (Energy > MAX_ENERGY) Energy = MAX_ENERGY;
+
+            ScreenFlash({ 15, 15, 7 });
+            auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Energy), Resources::GetString(GameString::BoostedTo), int(Energy));
+            PrintHudMessage(msg);
+            return true;
+        }
+        else {
+            PrintHudMessage("your energy is maxed out!");
+            return false;
+        }
+    }
+
+    void AutoselectPrimary() {}
+
+    int Player::PickUpAmmo(PrimaryWeaponIndex index, uint amount) {
+        if (amount == 0) return amount;
+
+        auto max = PyroGX.Weapons[(int)index].MaxAmmo;
+        if (HasPowerup(PowerupFlag::AmmoRack))
+            max *= 2;
+
+        auto& ammo = PrimaryAmmo[(int)index];
+        if (ammo >= max)
+            return 0;
+
+        auto prevAmmo = ammo;
+        ammo += amount;
+
+        if (ammo > max) {
+            amount += (max - ammo);
+            ammo = max;
+        }
+
+        if (prevAmmo == 0)
+            AutoselectPrimary();
+
+        return amount;
+    }
+
+    void Player::TouchPowerup(Object& obj) {
+        if (Shields < 0) return; // Player is dead!
+
+        assert(obj.Type == ObjectType::Powerup);
+
+        auto id = PowerupID(obj.ID);
+        auto& powerup = Resources::GameData.Powerups[obj.ID];
+
+        bool used = false, ammoPickedUp = false;
+        constexpr int MAX_LASER_LEVEL = 3;
+
+        auto PickUpAccesory = [this](PowerupFlag powerup, string_view name) {
+            if (HasPowerup(powerup)) {
+                auto msg = fmt::format("{} the {}!", Resources::GetString(GameString::AlreadyHave), name);
+                PrintHudMessage(msg);
+                return PickUpEnergy();
+            }
+            else {
+                GivePowerup(powerup);
+                ScreenFlash({ 15, 0, 15 });
+                PrintHudMessage(fmt::format("{}!", name));
+                return true;
+            }
+        };
+
+        auto TryPickUpPrimary = [this](PrimaryWeaponIndex weapon) {
+            auto pickedUp = PickUpPrimary(weapon);
+            if (!pickedUp)
+                pickedUp = PickUpEnergy();
+            return pickedUp;
+        };
+
+        switch (id) {
+            case PowerupID::ExtraLife:
+                Lives++;
+                ScreenFlash({ 15, 15, 15 });
+                used = true;
+                break;
+
+            case PowerupID::Energy:
+                used = PickUpEnergy();
+                break;
+
+            case PowerupID::ShieldBoost:
+            {
+                constexpr float MAX_SHIELDS = 200;
+                if (Shields < MAX_SHIELDS) {
+                    Shields += 3 + 3 * (5 - Game::Difficulty);
+                    if (Shields > MAX_SHIELDS) Shields = MAX_SHIELDS;
+
+                    ScreenFlash({ 0, 0, 15 });
+                    auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Shield), Resources::GetString(GameString::BoostedTo), int(Shields));
+                    PrintHudMessage(msg);
+                    used = true;
+                }
+                else {
+                    PrintHudMessage("your shield is maxed out!");
+                }
+
+                break;
+            }
+
+            case PowerupID::Laser:
+                if (LaserLevel >= MAX_LASER_LEVEL) {
+                    auto msg = fmt::format("{} {}", Resources::GetString(GameString::MaxedOut), Resources::GetString(GameString::Laser));
+                    PrintHudMessage(msg);
+                    used = PickUpEnergy();
+                }
+                else {
+                    LaserLevel++;
+                    ScreenFlash({ 10, 0, 10 });
+                    auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Laser), Resources::GetString(GameString::BoostedTo), LaserLevel + 1);
+                    PrintHudMessage(msg);
+                    PickUpPrimary(PrimaryWeaponIndex::Laser);
+                    used = true;
+                }
+                break;
+
+            case PowerupID::KeyBlue:
+            {
+                if (HasPowerup(PowerupFlag::BlueKey))
+                    break;
+
+                GivePowerup(PowerupFlag::BlueKey);
+                Sound::Play(Resources::GetSoundResource(Resources::GameData.Powerups[obj.ID].HitSound));
+                ScreenFlash({ 0, 0, 15 });
+
+                auto msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), Resources::GetString(GameString::AccessGranted));
+                PrintHudMessage(msg);
+                used = true;
+                break;
+            }
+
+            case PowerupID::KeyRed:
+            {
+                if (HasPowerup(PowerupFlag::RedKey))
+                    break;
+
+                GivePowerup(PowerupFlag::RedKey);
+                Sound::Play(Resources::GetSoundResource(Resources::GameData.Powerups[obj.ID].HitSound));
+                ScreenFlash({ 15, 0, 0 });
+
+                auto msg = fmt::format("{} {}", Resources::GetString(GameString::Red), Resources::GetString(GameString::AccessGranted));
+                PrintHudMessage(msg);
+                used = true;
+                break;
+            }
+
+            case PowerupID::KeyGold:
+            {
+                if (HasPowerup(PowerupFlag::GoldKey))
+                    break;
+
+                GivePowerup(PowerupFlag::GoldKey);
+                Sound::Play(Resources::GetSoundResource(Resources::GameData.Powerups[obj.ID].HitSound));
+                ScreenFlash({ 15, 15, 7 });
+
+                auto msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), Resources::GetString(GameString::AccessGranted));
+                PrintHudMessage(msg);
+                used = true;
+                break;
+            }
+
+            case PowerupID::Vulcan:
+            case PowerupID::Gauss:
+            {
+                used = PickUpPrimary(obj.ID == (int)PowerupID::Vulcan ? PrimaryWeaponIndex::Vulcan : PrimaryWeaponIndex::Gauss);
+
+                auto& ammo = obj.Control.Powerup.Count; // remaining ammo on the weapon
+
+                if (ammo > 0) {
+                    auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, ammo);
+                    ammo -= amount;
+                    if (!used && amount > 0) {
+                        ScreenFlash({ 7, 14, 21 });
+                        PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::VulcanAmmo)));
+                        ammoPickedUp = true;
+                        if (ammo == 0)
+                            used = true; // remove object if all ammo was taken
+                    }
+                }
+
+                break;
+            }
+
+            case PowerupID::Spreadfire:
+                used = TryPickUpPrimary(PrimaryWeaponIndex::Spreadfire);
+                break;
+
+            case PowerupID::Plasma:
+                used = TryPickUpPrimary(PrimaryWeaponIndex::Plasma);
+                break;
+
+            case PowerupID::Fusion:
+                used = TryPickUpPrimary(PrimaryWeaponIndex::Spreadfire);
+                break;
+
+            case PowerupID::SuperLaser:
+            {
+                constexpr int MAX_SUPER_LASER_LEVEL = 5;
+
+                if (LaserLevel >= MAX_SUPER_LASER_LEVEL) {
+                    LaserLevel = MAX_SUPER_LASER_LEVEL;
+                    PrintHudMessage("super laser maxed out!");
+                }
+                else {
+                    auto oldLevel = LaserLevel;
+                    if (LaserLevel <= MAX_LASER_LEVEL)
+                        LaserLevel = MAX_LASER_LEVEL;
+
+                    LaserLevel++;
+                    ScreenFlash({ 10, 0, 10 });
+                    PrintHudMessage(fmt::format("super boost to laser level {}", LaserLevel + 1));
+                    // todo: autoswap
+                }
+                break;
+            }
+
+            case PowerupID::Phoenix:
+                used = TryPickUpPrimary(PrimaryWeaponIndex::Phoenix);
+                break;
+
+            case PowerupID::Omega:
+                used = TryPickUpPrimary(PrimaryWeaponIndex::Omega);
+                break;
+
+            case PowerupID::Concussion1:
+                used = PickUpSecondary(SecondaryWeaponIndex::Concussion);
+                break;
+
+            case PowerupID::Concussion4:
+                used = PickUpSecondary(SecondaryWeaponIndex::Concussion, 4);
+                break;
+
+            case PowerupID::Homing1:
+                used = PickUpSecondary(SecondaryWeaponIndex::Homing);
+                break;
+
+            case PowerupID::Homing4:
+                used = PickUpSecondary(SecondaryWeaponIndex::Homing, 4);
+                break;
+
+            case PowerupID::ProximityBomb:
+                used = PickUpSecondary(SecondaryWeaponIndex::Proximity, 4);
+                break;
+
+            case PowerupID::SmartMissile:
+                used = PickUpSecondary(SecondaryWeaponIndex::Smart);
+                break;
+
+            case PowerupID::Mega:
+                used = PickUpSecondary(SecondaryWeaponIndex::Mega);
+                break;
+
+            case PowerupID::FlashMissile1:
+                used = PickUpSecondary(SecondaryWeaponIndex::Flash);
+                break;
+
+            case PowerupID::FlashMissile4:
+                used = PickUpSecondary(SecondaryWeaponIndex::Flash, 4);
+                break;
+
+            case PowerupID::GuidedMissile1:
+                used = PickUpSecondary(SecondaryWeaponIndex::Guided);
+                break;
+
+            case PowerupID::GuidedMissile4:
+                used = PickUpSecondary(SecondaryWeaponIndex::Guided, 4);
+                break;
+
+            case PowerupID::SmartBomb:
+                used = PickUpSecondary(SecondaryWeaponIndex::SmartMine, 4);
+                break;
+
+            case PowerupID::MercuryMissile1:
+                used = PickUpSecondary(SecondaryWeaponIndex::Mercury);
+                break;
+
+            case PowerupID::MercuryMissile4:
+                used = PickUpSecondary(SecondaryWeaponIndex::Mercury, 4);
+                break;
+
+            case PowerupID::EarthshakerMissile:
+                used = PickUpSecondary(SecondaryWeaponIndex::Shaker);
+                break;
+
+            case PowerupID::VulcanAmmo:
+                if (PickUpAmmo(PrimaryWeaponIndex::Vulcan, 2500)) {
+                    ScreenFlash({ 7, 14, 21 });
+                    PrintHudMessage("vulcan ammo!");
+                    used = true;
+                }
+                else {
+                    PrintHudMessage(fmt::format("you already have {} vulcan rounds!", PrimaryAmmo[1]));
+                }
+                break;
+
+            case PowerupID::Cloak:
+            {
+                if (HasPowerup(PowerupFlag::Cloaked)) {
+                    auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Cloaked));
+                    PrintHudMessage(msg);
+                }
+                else {
+                    GivePowerup(PowerupFlag::Cloaked);
+
+                }
+                // if already cloaked, show msg
+                // 
+                // do cloak stuff
+                break;
+            };
+
+            case PowerupID::Invulnerability:
+                break;
+
+            case PowerupID::QuadFire:
+                used = PickUpAccesory(PowerupFlag::QuadLasers, Resources::GetString(GameString::QuadLasers));
+                break;
+
+            case PowerupID::FullMap:
+                used = PickUpAccesory(PowerupFlag::FullMap, "full map");
+                break;
+
+            case PowerupID::Converter:
+                used = PickUpAccesory(PowerupFlag::Converter, "energy to shield converter");
+                break;
+
+            case PowerupID::AmmoRack:
+                used = PickUpAccesory(PowerupFlag::AmmoRack, "ammo rack");
+                break;
+
+            case PowerupID::Afterburner:
+                used = PickUpAccesory(PowerupFlag::Afterburner, "afterburner");
+                break;
+
+            case PowerupID::Headlight:
+                used = PickUpAccesory(PowerupFlag::Headlight, "headlight");
+                break;
+        }
+
+        if (used || ammoPickedUp) {
+            obj.Lifespan = -1;
+
+            Sound3D sound(ObjID(0));
+            sound.Resource = Resources::GetSoundResource(powerup.HitSound);
+            sound.FromPlayer = true;
+            Sound::Play(sound);
+        }
+    }
+
+    void Player::TouchObject(Object& obj) {
+        if (obj.Type == ObjectType::Powerup) {
+            TouchPowerup(obj);
+        }
+
+        if (obj.Type == ObjectType::Hostage) {
+            obj.Lifespan = -1;
+            Score += 1000;
+            HostagesOnShip++;
+            PrintHudMessage("hostage rescued!");
+            ScreenFlash({ 0, 0, 25 });
+
+            Sound3D sound(ObjID(0));
+            sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
+            sound.FromPlayer = true;
+            Sound::Play(sound);
+        }
+    }
+
+    bool Player::PickUpPrimary(PrimaryWeaponIndex index) {
+        uint16 flag = 1 << (int)index;
+        auto name = Resources::GetString(GameString(104 + (int)index)); // this changes in d1
+
+        if (index != PrimaryWeaponIndex::Laser && PrimaryWeapons & flag) {
+            PrintHudMessage(fmt::format("you already have the {}", name));
+            return false;
+        }
+
+        PrimaryWeapons |= flag;
+        AutoselectPrimary();
+        ScreenFlash({ 7, 14, 21 });
+
+        if (index != PrimaryWeaponIndex::Laser)
+            PrintHudMessage(fmt::format("{}!", name));
+
+        return true;
+    }
+
+    bool Player::PickUpSecondary(SecondaryWeaponIndex index, int count) {
+        auto max = PyroGX.Weapons[10 + (int)index].MaxAmmo;
+        if (HasPowerup(PowerupFlag::AmmoRack))
+            max *= 2;
+
+        auto& ammo = SecondaryAmmo[(int)index];
+        auto name = Resources::GetString(GameString(114 + (int)index)); // this changes in d1
+
+        if (ammo >= max) {
+            auto msg = fmt::format("{} {} {}s!", Resources::GetString(GameString::AlreadyHave), ammo, name);
+            PrintHudMessage(msg);
+            return false;
+        }
+
+        int pickedUp = count;
+        ammo += count;
+
+        if (ammo > max) {
+            pickedUp = count - (ammo - max);
+            ammo = max;
+        }
+
+        // todo: autoselect stuff, set ownership flag
+
+        if (pickedUp > 1) {
+            ScreenFlash({ 15, 15, 15 });
+            auto msg = fmt::format("{} {}{}!", pickedUp, name, Resources::GetString(GameString::Sx));
+            PrintHudMessage(msg);
+        }
+        else {
+            ScreenFlash({ 10, 10, 10 });
+            PrintHudMessage(fmt::format("{}!", name));
+        }
+
+        // todo: spawn individual missiles if count > 1 and full
+        return true;
     }
 }

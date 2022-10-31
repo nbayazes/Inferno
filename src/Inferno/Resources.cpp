@@ -337,7 +337,7 @@ namespace Inferno::Resources {
 
     const string UnknownString = "???";
 
-    const string& GetString(StringTableEntry i) {
+    const string_view GetString(GameString i) {
         if (!Seq::inRange(StringTable, (int)i)) return UnknownString;
         return StringTable[(int)i];
     }
@@ -352,8 +352,11 @@ namespace Inferno::Resources {
         fusion.ModelSizeRatio = 2.5f;
 
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
+        
         GetWeapon(WeaponID::Vulcan).Extended.Behavior = "vulcan";
         GetWeapon(WeaponID::Vulcan).Extended.ScorchTexture = "BulletHole01";
+        GetWeapon(WeaponID::Vulcan).AmmoUsage = 13;
+
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
 
@@ -367,6 +370,7 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";
 
         auto& gauss = GetWeapon(WeaponID::Gauss);
+        gauss.AmmoUsage = 26;
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
         gauss.Extended.ScorchTexture = "BulletHole02";
@@ -374,7 +378,6 @@ namespace Inferno::Resources {
         auto& shaker = GetWeapon(WeaponID::Shaker).Extended;
         shaker.ScorchTexture = "scorchC";
         shaker.ScorchRadius = 8.0f;
-
     }
 
     // Some levels don't have the D1 reactor model set

@@ -4,13 +4,22 @@
 
 namespace Inferno {
     // todo: D1 and D2 have different table entries...
-    enum class StringTableEntry {
+    enum class GameString {
         Blue = 12,
         Red = 13,
         Yellow = 14,
         AccessDenied = 15,
         AccessGranted = 16,
         BoostedTo = 17,
+        Energy = 18,
+        Shield = 19,
+
+        MaxedOut = 21,
+        QuadLasers = 22,
+        AlreadyHave = 23,
+        VulcanAmmo = 24,
+        AlreadyAre = 26,
+        Cloaked = 27,
 
         Score = 52,
         Laser = 104,
@@ -36,5 +45,7 @@ namespace Inferno {
 
         Lvl = 329, // Laser lvl
         Quad = 330,
+
+        HostageRescued = 465
     };
 }

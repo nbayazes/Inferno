@@ -300,7 +300,7 @@ namespace Inferno::Render {
             segments = std::clamp(segments, 2, 64);
             auto div = 1.0f / (segments - 1);
 
-            auto vLast = std::fmod(beam.Time * beam.ScrollSpeed, 1);
+            auto vLast = std::fmodf(beam.Time * beam.ScrollSpeed, 1);
             if (beam.SineNoise) {
                 if (segments < 16) {
                     segments = 16;

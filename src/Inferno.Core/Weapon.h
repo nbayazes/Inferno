@@ -34,11 +34,11 @@ namespace Inferno {
         Proximity = 2,
         Smart = 3,
         Mega = 4,
-        Smissile1 = 5,
+        Flash = 5,
         Guided = 6,
         SmartMine = 7,
-        Smissile4 = 8,
-        Smissile5 = 9
+        Mercury = 8,
+        Shaker = 9
     };
 
     enum class LaserLevel : uint8 {
@@ -90,6 +90,8 @@ namespace Inferno {
     static inline WeaponID PrimaryToWeaponID[10] = { WeaponID::Laser1, WeaponID::Vulcan, WeaponID::Spreadfire, WeaponID::Plasma, WeaponID::Fusion, WeaponID::Laser5, WeaponID::Gauss, WeaponID::Helix, WeaponID::Phoenix, WeaponID::Omega };
     static inline WeaponID SecondaryToWeaponID[10] = { WeaponID::Concussion, WeaponID::Homing, WeaponID::ProxMine, WeaponID::Smart, WeaponID::Mega, WeaponID::Flash, WeaponID::Guided, WeaponID::SmartMine, WeaponID::Mercury, WeaponID::Shaker };
 
+    enum class PowerupID : uint8;
+
     struct WeaponExtended {
         WeaponID ID; // Associate with this existing weapon ID in the HAM
         string Name; // Name in fullscreen HUD
@@ -98,7 +100,7 @@ namespace Inferno {
         string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
         float ScorchRadius = 0; // Radius of scorch marks. 0 uses a ratio of impact size.
 
-        int PowerupType; // Powerup when dropped
+        PowerupID PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
         int AmmoType; // Vulcan and gauss share ammo types
         bool Zooms; // Zooms in when fire is held
@@ -192,18 +194,18 @@ namespace Inferno {
     struct ShipInfo {
         float DamageMultiplier = 1.0f; // Multiplier on damage taken
 
-        struct PrimaryAmmo {
-            int Max = 10000;
-            float DisplayMultiplier = 1;
-        };
+        //struct PrimaryAmmo {
+        //    int Max = 10000;
+        //    float DisplayMultiplier = 1;
+        //};
 
         // Ammo used by primary weapons. Vulcan and Gauss share. Could add Napalm fuel.
-        List<PrimaryAmmo> PrimaryAmmoTypes;
+        //List<PrimaryAmmo> PrimaryAmmoTypes;
 
         struct WeaponBattery {
             //float EnergyUsage = 0; // Energy per shot
             //float AmmoUsage = 0; // Ammo per shot
-            int AmmoType = -1;
+            //int AmmoType = -1;
             //int GunpointWeapons[8]{}; // Weapon IDs to use for each gunpoint
             WeaponID Weapon;
             //bool Gunpoints[8]{};
@@ -217,6 +219,7 @@ namespace Inferno {
             List<FiringInfo> Firing; // Cycles through each entry after firing.
 
             bool QuadGunpoints[8]{}; // Gunpoints to use with quad upgrade
+            int MaxAmmo = 0;
         };
 
         WeaponBattery Weapons[20]; // 10 primaries, 10 secondaries
@@ -236,7 +239,8 @@ namespace Inferno {
                     .Weapon = WeaponID::Vulcan,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint 
-                    }
+                    },
+                    .MaxAmmo = 20000 // 10000 in D1
                 }
             },
             {
@@ -301,7 +305,8 @@ namespace Inferno {
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 1 } },
                         {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    }
+                    },
+                    .MaxAmmo = 20
                 }
             },
             {
@@ -310,7 +315,8 @@ namespace Inferno {
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 1 } },
                         {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    }
+                    },
+                    .MaxAmmo = 10
                 }
             },
             {
@@ -318,7 +324,8 @@ namespace Inferno {
                     .Weapon = WeaponID::ProxMine,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
-                    }
+                    },
+                    .MaxAmmo = 20
                 }
             },
             {
@@ -326,7 +333,8 @@ namespace Inferno {
                     .Weapon = WeaponID::Smart,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
-                    }
+                    },
+                    .MaxAmmo = 5
                 }
             },
             {
@@ -334,25 +342,28 @@ namespace Inferno {
                     .Weapon = WeaponID::Mega,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
-                    }
+                    },
+                    .MaxAmmo = 5
                 }
             },
-                {
+            {
                 ShipInfo::WeaponBattery {
                     .Weapon = WeaponID::Flash,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 1 } },
                         {.Gunpoints = { 0, 0, 0, 0, 0, 1 }  }
-                    }
+                    },
+                    .MaxAmmo = 20
                 }
-                },
+            },
             {
                 ShipInfo::WeaponBattery {
                     .Weapon = WeaponID::Guided,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 1 } },
                         {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    }
+                    },
+                    .MaxAmmo = 20
                 }
             },
             {
@@ -360,7 +371,8 @@ namespace Inferno {
                     .Weapon = WeaponID::SmartMine,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
-                    }
+                    },
+                    .MaxAmmo = 15
                 }
             },
             {
@@ -369,7 +381,8 @@ namespace Inferno {
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 1 } },
                         {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
-                    }
+                    },
+                    .MaxAmmo = 10
                 }
             },
             {
@@ -377,7 +390,8 @@ namespace Inferno {
                     .Weapon = WeaponID::Shaker,
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 1 } } // 6 is center gunpoint
-                    }
+                    },
+                    .MaxAmmo = 10 // Really?
                 }
             },
         }

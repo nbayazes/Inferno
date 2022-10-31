@@ -229,7 +229,7 @@ namespace Inferno::Game {
 
         if (id == WeaponID::ProxMine || id == WeaponID::SmartMine) {
             constexpr float MINE_ARM_TIME = 2.0f;
-            bullet.NextThinkTime = Game::Time + MINE_ARM_TIME;
+            bullet.NextThinkTime = (float)Game::Time + MINE_ARM_TIME;
         }
 
         if (showFlash) {
@@ -377,8 +377,8 @@ namespace Inferno::Game {
 
             // Apply damage to each target
             for (auto& target : targets) {
-                //if (target)
-                //    target->HitPoints -= weapon.Damage[Difficulty];
+                if (target)
+                    target->HitPoints -= weapon.Damage[Difficulty];
             }
         }
         else {

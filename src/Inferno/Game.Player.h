@@ -74,11 +74,21 @@ namespace Inferno {
             Powerups = (PowerupFlag)((uint32)Powerups | (uint32)powerup);
         }
 
-        bool HasPowerup(PowerupFlag powerup) {
+        bool HasPowerup(PowerupFlag powerup) const {
             return (bool)((uint32)Powerups & (uint32)powerup);
         }
 
-        WeaponID GetPrimaryWeaponID() {
+        void TouchPowerup(Object& obj);
+        void TouchObject(Object& obj);
+
+        // Gives energy and returns true if able to pick up a powerup
+        bool PickUpEnergy();
+        bool PickUpPrimary(PrimaryWeaponIndex);
+        bool PickUpSecondary(SecondaryWeaponIndex, int count = 1);
+        // Returns the amount of ammo picked up
+        int PickUpAmmo(PrimaryWeaponIndex, uint amount);
+
+        WeaponID GetPrimaryWeaponID() const {
             if (Primary == PrimaryWeaponIndex::Laser) {
                 if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };
                 if (LaserLevel == 4) return WeaponID::Laser5;
@@ -88,11 +98,11 @@ namespace Inferno {
             return PrimaryToWeaponID[(int)Primary];
         }
 
-        WeaponID GetSecondaryWeaponID() {
+        WeaponID GetSecondaryWeaponID() const {
             return SecondaryToWeaponID[(int)Secondary];
         }
 
-        bool CanFirePrimary() {
+        bool CanFirePrimary() const {
             auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
             auto index = Primary;
             if (!HasWeapon(index)) return false;
@@ -111,7 +121,7 @@ namespace Inferno {
             return canFire;
         }
 
-        bool CanFireSecondary() {
+        bool CanFireSecondary() const {
             auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID());
             auto index = Secondary;
             if (!HasWeapon(index)) return false;

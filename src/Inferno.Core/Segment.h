@@ -225,7 +225,6 @@ namespace Inferno {
 
     inline SideID GetAdjacentSide(SideID side, int edge) {
         if (side > SideID(5) && side < SideID(0)) return SideID::None;
-        edge = edge % 4;
 
         // For each side, returns the adjacent side for each edge
         static constexpr Array<Array<SideID, 4>, 6> AdjacentFaceTable = {
@@ -237,6 +236,6 @@ namespace Inferno {
             Array<SideID, 4>{ SideID(0), SideID(3), SideID(2), SideID(1) }, // Side 5
         };
 
-        return AdjacentFaceTable[(int)side][edge];
+        return AdjacentFaceTable[(int)side][edge % 4];
     }
 }

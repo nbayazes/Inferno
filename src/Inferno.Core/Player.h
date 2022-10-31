@@ -66,12 +66,12 @@ namespace Inferno {
             short TotalKills;       // Total kills across all levels. Used for scoring
             short Robots;           // Number of initial robots this level. Used to prevent matcens from spawning too many robots. Why is this here?
             short TotalRobots;      // Number of robots total. Used for final score ratio.
-            uint16 TotalRescuedHostages; // Total hostages rescued by the player.
             uint16 TotalHostages;   // Total hostages in all levels. Used for final score ratio
-            uint8 HostagesOnShip;   // How many poor sods get killed when ship is lost
-            uint8 HostageOnLevel;   // Why is this here?
+            uint8 HostagesOnLevel;   // Why is this here?
         } Stats;
 
+        uint16 HostagesRescued; // Hostages rescued by the player on the current level.
+        uint8 HostagesOnShip;   // How many poor souls get killed when ship is lost
         float HomingObjectDist; // Distance of nearest homing object. Used for lock indicators.
     };
 

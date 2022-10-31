@@ -59,7 +59,7 @@ namespace Inferno {
         BouncesTwice = 0x200,   // This weapon bounces twice, then dies
     };
 
-    enum class PowerupType : uint8 {
+    enum class PowerupID : uint8 {
         ExtraLife = 0,
         Energy = 1,
         ShieldBoost = 2,
@@ -71,8 +71,8 @@ namespace Inferno {
 
         HoardOrb = 7,
 
-        Missile1 = 10,
-        Missile4 = 11,
+        Concussion1 = 10,
+        Concussion4 = 11,
 
         QuadFire = 12,
 

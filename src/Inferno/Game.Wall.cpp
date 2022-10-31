@@ -368,11 +368,11 @@ namespace Inferno {
                 pos += (verts[2] - verts[1]) * Random();
 
                 constexpr float FIREBALL_SIZE = 4.5f;
-                auto size = FIREBALL_SIZE + (2 * FIREBALL_SIZE * e / TOTAL_FIREBALLS);
+                auto size = FIREBALL_SIZE + (2.0f * FIREBALL_SIZE * e / TOTAL_FIREBALLS);
 
                 // fireballs start away from door then move closer
                 auto& side = level.GetSide(wall.Tag);
-                pos += side.AverageNormal * size * (TOTAL_FIREBALLS - e) / TOTAL_FIREBALLS;
+                pos += side.AverageNormal * size * float(TOTAL_FIREBALLS - e) / TOTAL_FIREBALLS;
 
                 if (!(e & 3)) {
                     // Create a damaging explosion 1/4th of the time
@@ -439,7 +439,7 @@ namespace Inferno {
             DestroyWall(level, tag);
         }
         else if (wall->HitPoints < 100) {
-            int frame = clip.NumFrames - std::ceil(wall->HitPoints / 100 * clip.NumFrames);
+            int frame = clip.NumFrames - (int)std::ceil(wall->HitPoints / 100.0f * clip.NumFrames);
 
             auto& side = level.GetSide(tag);
             auto cside = level.TryGetConnectedSide(tag);

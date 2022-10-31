@@ -252,10 +252,10 @@ namespace Inferno {
         //Render::HudCanvas->DrawBitmap(info);
     }
 
-    // convert '1' characters to special wide ones (fixed width?)
+    // convert '1' characters to a special fixed width version. Only works with small font.
     void UseWide1Char(string& s) {
         for (auto& c : s)
-            if (c == '1') c = 132;
+            if (c == '1') c = static_cast<char>(132);
     }
 
     void DrawLeftMonitor(float x, const MonitorState& state) {
@@ -272,16 +272,16 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
-            auto weaponName = Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex);
+            auto& weaponName = Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex);
             string label = string(weaponName), ammo;
 
             switch ((PrimaryWeaponIndex)state.WeaponIndex) {
                 case PrimaryWeaponIndex::Laser:
                 case PrimaryWeaponIndex::SuperLaser:
                 {
-                    auto lvl = Resources::GetString(StringTableEntry::Lvl);
+                    auto& lvl = Resources::GetString(GameString::Lvl);
                     if (Game::Player.HasPowerup(PowerupFlag::QuadLasers))
-                        label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, Game::Player.LaserLevel + 1, Resources::GetString(StringTableEntry::Quad));
+                        label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, Game::Player.LaserLevel + 1, Resources::GetString(GameString::Quad));
                     else
                         label = fmt::format("{}\n{}: {}", weaponName, lvl, Game::Player.LaserLevel + 1);
                     break;
@@ -321,7 +321,7 @@ namespace Inferno {
         DrawAdditiveBitmap({ x - 151, -38 }, AlignH::CenterLeft, "gauge02b", 1);
     }
 
-    void DrawRightMonitor(float x, const MonitorState& state) {
+    void DrawRightMonitor(float x, const MonitorState& state, const Player& player) {
         DrawOpaqueBitmap({ x, 0 }, AlignH::CenterRight, "cockpit-right");
 
         auto scale = Render::HudCanvas->GetScale();
@@ -363,12 +363,16 @@ namespace Inferno {
         info.Scanline = 0.5f;
         DrawMonitorText("B:04", info);
 
-
         // Draw Keys
         float keyScanline = 0.0f;
-        DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline);
-        DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, keyScanline);
-        DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, keyScanline);
+        if (player.HasPowerup(PowerupFlag::BlueKey))
+            DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline);
+
+        if (player.HasPowerup(PowerupFlag::GoldKey))
+            DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, resScale, keyScanline);
+
+        if (player.HasPowerup(PowerupFlag::RedKey))
+            DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, resScale, keyScanline);
     }
 
     void DrawCenterMonitor(const Player& player) {
@@ -477,7 +481,8 @@ namespace Inferno {
     }
 
     void PrintHudMessage(string_view msg) {
-        if (msg == HudMessages[0]) return; // duplicated
+        if (HudMessageCount > 0 && msg == HudMessages[HudMessageCount - 1])
+            return; // duplicated
 
         if (HudMessageCount >= std::size(HudMessages)) {
             ShiftHudMessages();
@@ -523,7 +528,7 @@ namespace Inferno {
             RightMonitor.Update(dt, player, (int)player.Secondary);
 
             DrawLeftMonitor(-spacing, LeftMonitor);
-            DrawRightMonitor(spacing, RightMonitor);
+            DrawRightMonitor(spacing, RightMonitor, player);
             DrawCenterMonitor(player);
 
             DrawReticle();
@@ -566,7 +571,8 @@ namespace Inferno {
                 info.HorizontalAlign = AlignH::Right;
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;
-                auto score = fmt::format("{}: {:7}", Resources::GetString(StringTableEntry::Score), player.Score);
+                auto score = fmt::format("{}: {:7}", Resources::GetString(GameString::Score), player.Score);
+                UseWide1Char(score);
                 Render::HudCanvas->DrawGameText(score, info);
             }
 

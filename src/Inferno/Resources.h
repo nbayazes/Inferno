@@ -91,20 +91,20 @@ namespace Inferno::Resources {
     // Loads D1 and D2 sounds
     void LoadSounds();
 
-    const string& GetString(StringTableEntry);
-    inline const string& GetPrimaryName(PrimaryWeaponIndex id) {
-        return GetString(StringTableEntry{ (int)StringTableEntry::Laser + (int)id });
+    const string_view GetString(GameString);
+    inline const string_view GetPrimaryName(PrimaryWeaponIndex id) {
+        return GetString(GameString{ (int)GameString::Laser + (int)id });
     }
 
-    inline const string& GetSecondaryName(SecondaryWeaponIndex id) {
-        return GetString(StringTableEntry{ (int)StringTableEntry::Concussion + (int)id });
+    inline const string_view GetSecondaryName(SecondaryWeaponIndex id) {
+        return GetString(GameString{ (int)GameString::Concussion + (int)id });
     }
 
-    inline const string& GetPrimaryNameShort(PrimaryWeaponIndex id) {
-        return GetString(StringTableEntry{ (int)StringTableEntry::LaserShort + (int)id });
+    inline const string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
+        return GetString(GameString{ (int)GameString::LaserShort + (int)id });
     }
 
-    inline const string& GetSecondaryNameShort(SecondaryWeaponIndex id) {
-        return GetString(StringTableEntry{ (int)StringTableEntry::ConcussionShort + (int)id });
+    inline const string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
+        return GetString(GameString{ (int)GameString::ConcussionShort + (int)id });
     }
 }
