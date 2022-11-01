@@ -996,7 +996,7 @@ namespace Inferno {
                 case ObjectType::Robot:
                 {
                     ApplyForce(obj, forceVec);
-                    obj.HitPoints -= damage;
+                    obj.ApplyDamage(damage);
                     obj.LastHitForce += forceVec;
                     fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 
@@ -1060,7 +1060,7 @@ namespace Inferno {
             targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
             if (hit.HitObj->Type == ObjectType::Robot || hit.HitObj->Type == ObjectType::Reactor) {
-                hit.HitObj->HitPoints -= damage;
+                hit.HitObj->ApplyDamage(damage);
                 //fmt::print("applied {} damage\n", damage);
 
                 auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
@@ -1302,7 +1302,7 @@ namespace Inferno {
                     if (!obj.Physics.HasFlag(PhysicsFlag::Bounce)) {
                         //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
                         ApplyWeaponHit(hit, obj, level);
-                        obj.Lifespan = -1; // destroy weapon projectiles on hit
+                        obj.Destroy(); // destroy weapon projectiles on hit
                     }
                 }
 

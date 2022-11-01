@@ -42,10 +42,11 @@ float SaturateSoft(float depth, float contrast) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     float4 diffuse = Diffuse.Sample(Sampler, input.uv);
+    diffuse *= input.col;
+    diffuse.a = clamp(diffuse.a, 0, 1);
     if (diffuse.a <= 0.0)
         discard;
     
-    diffuse.rgb *= input.col.rgb;
     
     // (1 - (1-2*(Target-0.5)) * (1-Blend))
     //if (length(input.col.rgb) > 1 && length(diffuse.rgb) > 0.75)

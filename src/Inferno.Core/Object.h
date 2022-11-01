@@ -24,7 +24,7 @@ namespace Inferno {
     };
 
     enum class RenderType : uint8 {
-        None = 0,
+        None = 0,           // Invisible
         Model = 1,          // Object model  
         Fireball = 2,       // Animated effect
         Laser = 3,          // Weapon using a model?
@@ -349,6 +349,14 @@ namespace Inferno {
         static bool IsAliveFn(const Object& obj) {
             return obj.Lifespan >= 0 && obj.HitPoints >= 0;
         }
+
+        void ApplyDamage(float damage) {
+            HitPoints -= damage;
+            if (HitPoints < 0)
+                Destroy();
+        }
+
+        void Destroy() { Flags |= ObjectFlag::Destroyed; }
 
         bool IsAlive() const { return IsAliveFn(*this); }
 

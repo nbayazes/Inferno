@@ -159,6 +159,7 @@ namespace Inferno::Game {
     List<Object> PendingNewObjects;
 
     void DropContainedItems(const Object& obj) {
+        // todo: drop random chance powerups / robots
         switch (obj.Contains.Type) {
             case ObjectType::Powerup:
             {
@@ -181,14 +182,13 @@ namespace Inferno::Game {
                     powerup.Physics.Drag = 0.01f;
                     powerup.Physics.Flags = PhysicsFlag::Bounce;
 
-                    // game originally times-out conc missiles, shields and energy after about 3 minutes
                     AddObject(powerup);
                 }
                 break;
             }
             case ObjectType::Robot:
             {
-
+                // todo: spawn robots
                 break;
             }
             default:
@@ -231,6 +231,8 @@ namespace Inferno::Game {
                 expl.Variance = obj.Radius * 0.5f;
                 expl.Instances = 1;
                 Render::CreateExplosion(expl);
+
+                Player.Score += robot.Score;
 
                 auto& model = Resources::GetModel(robot.Model);
                 for (int i = 0; i < model.Submodels.size(); i++) {
@@ -425,7 +427,7 @@ namespace Inferno::Game {
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
 
-            if (obj.HitPoints < 0 || obj.Lifespan < 0) {
+            if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
                 DestroyObject(obj);
                 continue;
             }
@@ -659,7 +661,7 @@ namespace Inferno::Game {
                 }
             }
 
-            Sound::Reset();
+            //Sound::Reset();
             MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
             MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
             AddSoundSources();

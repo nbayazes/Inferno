@@ -445,7 +445,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::Fusion:
-                used = TryPickUpPrimary(PrimaryWeaponIndex::Spreadfire);
+                used = TryPickUpPrimary(PrimaryWeaponIndex::Fusion);
                 break;
 
             case PowerupID::SuperLaser:
@@ -666,7 +666,7 @@ namespace Inferno {
 
         if (pickedUp > 1) {
             ScreenFlash({ 15, 15, 15 });
-            auto msg = fmt::format("{} {}{}!", pickedUp, name, Resources::GetString(GameString::Sx));
+            auto msg = fmt::format("{} {}{}", pickedUp, name, Resources::GetString(GameString::Sx));
             PrintHudMessage(msg);
         }
         else {

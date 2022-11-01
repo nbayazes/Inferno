@@ -60,6 +60,8 @@ namespace Inferno {
                 }
                 ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
             }
+
+            ImGui::Text("Live objects: %d", Game::Level.Objects.size());
         }
         ImGui::End();
 

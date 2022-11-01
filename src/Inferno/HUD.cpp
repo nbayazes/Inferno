@@ -591,13 +591,19 @@ namespace Inferno {
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
                 info.Color = MonitorGreenText;
-                info.Position = Vector2(-5, 5) * scale;
                 info.HorizontalAlign = AlignH::Right;
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;
-                auto score = fmt::format("{}: {:7}", Resources::GetString(GameString::Score), player.Score);
+                info.Position = Vector2(-5, 5) * scale;
+                auto score = fmt::format("{}: {:5}", Resources::GetString(GameString::Score), player.Score);
                 UseWide1Char(score);
                 Render::HudCanvas->DrawGameText(score, info);
+
+                /*info.Position = Vector2(-80, 5) * scale;
+                Render::HudCanvas->DrawGameText("Score:", info);
+
+                info.Position = Vector2(0, 5) * scale;
+                Render::HudCanvas->DrawGameText(score, info);*/
             }
 
             {
