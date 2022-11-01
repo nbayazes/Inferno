@@ -34,6 +34,7 @@ namespace Inferno {
         uint8 FiringIndex = 0, MissileFiringIndex;
 
         FireState PrimaryState, SecondaryState;
+        float RefuelSoundTime = 0;
 
         bool Gunpoints[20][8] = {
             { true, true }, // Laser
@@ -136,63 +137,7 @@ namespace Inferno {
 
         void ArmSecondary(SecondaryWeaponIndex index);
 
-        void Update(float dt) {
-            PrimaryDelay -= dt;
-            SecondaryDelay -= dt;
-            if (CloakTime > 0) CloakTime -= dt;
-            if (InvulnerableTime > 0) InvulnerableTime -= dt;
-
-            auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
-
-            if (weapon.Extended.Chargable) {
-                if (PrimaryState == FireState::Press) {
-                    WeaponCharge = 0;
-                    FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
-                }
-                else if (PrimaryState == FireState::Hold && CanFirePrimary()) {
-                    Energy -= dt;
-                    WeaponCharge += dt;
-                    if (Energy <= 0) {
-                        Energy = 0;
-                        //ForceFire = true;
-                    }
-
-                    FusionNextSoundDelay -= dt;
-                    if (FusionNextSoundDelay < 0) {
-                        if (WeaponCharge > weapon.Extended.MaxCharge) {
-                            // Self damage
-                            Sound3D sound(ID);
-                            sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
-                            sound.FromPlayer = true;
-                            Sound::Play(sound);
-                            constexpr float OVERCHARGE_DAMAGE = 3.0f;
-                            Shields -= Random() * OVERCHARGE_DAMAGE;
-                        }
-                        else {
-                            // increase robot awareness
-                            Sound3D sound(ID);
-                            sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
-                            sound.FromPlayer = true;
-                            Sound::Play(sound);
-                        }
-
-                        FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
-                    }
-                }
-                else if (PrimaryState == FireState::Release) {
-                    FirePrimary();
-                    //WeaponCharge = 0;
-                    //FusionNextSoundDelay = 0;
-                }
-            }
-            else if (PrimaryState == FireState::Hold) {
-                FirePrimary();
-            }
-
-            if (SecondaryState == FireState::Hold || SecondaryState == FireState::Press) {
-                FireSecondary();
-            }
-        }
+        void Update(float dt);
 
         void FirePrimary();
         void HoldPrimary();

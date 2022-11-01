@@ -84,6 +84,79 @@ namespace Inferno {
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
     }
 
+    void Player::Update(float dt) {
+        PrimaryDelay -= dt;
+        SecondaryDelay -= dt;
+        if (CloakTime > 0) CloakTime -= dt;
+        if (InvulnerableTime > 0) InvulnerableTime -= dt;
+
+        if (auto player = Game::Level.TryGetObject(ID)) {
+            if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
+                if (seg->Type == SegmentType::Energy && Energy < 100) {
+                    constexpr float ENERGY_PER_SECOND = 25.0f;
+                    Energy += ENERGY_PER_SECOND * dt;
+
+                    if (RefuelSoundTime <= Game::Time) {
+                        Sound::Play(Resources::GetSoundResource(SoundID::Refuel), 0.5f);
+                        constexpr float REFUEL_SOUND_DELAY = 0.25f;
+                        RefuelSoundTime = (float)Game::Time + REFUEL_SOUND_DELAY;
+                    }
+                }
+            }
+        }
+
+        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
+
+        if (weapon.Extended.Chargable) {
+            if (PrimaryState == FireState::Press) {
+                WeaponCharge = 0;
+                FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
+            }
+            else if (PrimaryState == FireState::Hold && CanFirePrimary()) {
+                Energy -= dt;
+                WeaponCharge += dt;
+                if (Energy <= 0) {
+                    Energy = 0;
+                    //ForceFire = true;
+                }
+
+                FusionNextSoundDelay -= dt;
+                if (FusionNextSoundDelay < 0) {
+                    if (WeaponCharge > weapon.Extended.MaxCharge) {
+                        // Self damage
+                        Sound3D sound(ID);
+                        sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
+                        sound.FromPlayer = true;
+                        Sound::Play(sound);
+                        constexpr float OVERCHARGE_DAMAGE = 3.0f;
+                        Shields -= Random() * OVERCHARGE_DAMAGE;
+                    }
+                    else {
+                        // increase robot awareness
+                        Sound3D sound(ID);
+                        sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
+                        sound.FromPlayer = true;
+                        Sound::Play(sound);
+                    }
+
+                    FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
+                }
+            }
+            else if (PrimaryState == FireState::Release) {
+                FirePrimary();
+                //WeaponCharge = 0;
+                //FusionNextSoundDelay = 0;
+            }
+        }
+        else if (PrimaryState == FireState::Hold) {
+            FirePrimary();
+        }
+
+        if (SecondaryState == FireState::Hold || SecondaryState == FireState::Press) {
+            FireSecondary();
+        }
+    }
+
     Vector2 GetHelixOffset(int index) {
         switch (index) {
             default:
@@ -104,16 +177,14 @@ namespace Inferno {
             return;
         }
 
-        auto& ship = PyroGX;
-
-        //auto& player = Game::Level.GetObject(ID);
         auto id = GetPrimaryWeaponID();
-        auto& weapon = Resources::GameData.Weapons[(int)id];
+        auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = weapon.FireDelay;
 
         Energy -= weapon.EnergyUsage;
         PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
 
+        auto& ship = PyroGX;
         auto& sequence = ship.Weapons[(int)Primary].Firing;
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
