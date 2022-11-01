@@ -99,7 +99,7 @@ namespace Inferno::PostFx {
     public:
         BloomExtractDownsampleCS() : ComputeShader(8, 8) { }
 
-        float BloomThreshold = 1.90f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
+        float BloomThreshold = 1.35f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
         float Exposure = 1.4f; // exposure adjustment on source image for bloom sampling
         const float InitialMinLog = -12.0f;
         const float InitialMaxLog = 4.0f;

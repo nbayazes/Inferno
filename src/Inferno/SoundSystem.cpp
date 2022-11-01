@@ -492,10 +492,10 @@ namespace Inferno::Sound {
     void Stop3DSounds() {
         if (!Alive) return;
 
-        std::scoped_lock lock(SoundInstancesMutex);
-        for (auto& sound : SoundInstances) {
-            sound.Instance->Stop();
-        }
+        //std::scoped_lock lock(SoundInstancesMutex);
+        //for (auto& sound : SoundInstances) {
+        //    sound.Instance->Stop();
+        //}
     }
 
     void Stop2DSounds() {

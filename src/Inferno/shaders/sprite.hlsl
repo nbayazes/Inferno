@@ -45,16 +45,24 @@ float4 psmain(PS_INPUT input) : SV_Target {
     if (diffuse.a <= 0.0)
         discard;
     
+    diffuse.rgb *= input.col.rgb;
+    
+    // (1 - (1-2*(Target-0.5)) * (1-Blend))
+    //if (length(input.col.rgb) > 1 && length(diffuse.rgb) > 0.75)
+    //    diffuse.rgb *= input.col.rgb;
+        //(1 - (1 - 2 * target - 0.5)) * (1 - blend)
+    //diffuse.rgb += clamp(diffuse.rgb - 0.5, 0, 1) * clamp(diffuse.rgb - 0.5, 0, 1);
+    
     float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
     if (sceneDepth <= 0.0f)
-        return diffuse * input.col; // don't apply softening to particles against the background
+        return diffuse; // don't apply softening to particles against the background
     
     float pixelDepth = LinearizeDepth(NearClip, FarClip, input.pos.z);
     const float DEPTH_SCALE = 0.85; // larger explosions want a smaller scale to blend into the surroundings better (0.85)
     const float DEPTH_EXPONENT = 1.5;
     float d = saturate((sceneDepth - pixelDepth) * 1000);
     //float d = SaturateSoft((sceneDepth - pixelDepth) * FarClip * DEPTH_SCALE, DEPTH_EXPONENT);
-    return diffuse * input.col;
+    return diffuse;
     
     // highlights on sprites
     //float4 color = diffuse * input.col;

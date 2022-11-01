@@ -51,13 +51,10 @@ namespace Inferno {
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
         if (ImGui::Begin("Game Debug Overlay", nullptr, flags)) {
             if (auto player = Game::Level.TryGetObject(ObjID(0))) {
-                auto st = SegmentType::None;
                 if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
-                    st = seg->Type;
-
                     bool hasLava = bool(seg->AmbientSound & SoundFlag::AmbientLava);
                     bool hasWater = bool(seg->AmbientSound & SoundFlag::AmbientWater);
-                    ImGui::Text("Segment: %d Type: %d", player->Segment, st);
+                    ImGui::Text("Segment: %d Type: %d", player->Segment, seg->Type);
                     string type = hasLava ? "Lava" : hasWater ? "Water" : "Normal";
                     ImGui::Text("Room type: %s", type.c_str());
                 }

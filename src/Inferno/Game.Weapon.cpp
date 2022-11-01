@@ -222,10 +222,7 @@ namespace Inferno::Game {
         bullet.Parent = objId;
         bullet.Segment = obj.Segment;
 
-        if (id == WeaponID::Laser5)
-            bullet.Render.Emissive = { 0.8f, 0.4f, 0.1f };
-        else
-            bullet.Render.Emissive = { 0.1f, 0.1f, 0.1f };
+        bullet.Render.Emissive = weapon.Extended.Glow;
 
         if (id == WeaponID::ProxMine || id == WeaponID::SmartMine) {
             constexpr float MINE_ARM_TIME = 2.0f;

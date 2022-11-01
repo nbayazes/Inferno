@@ -444,6 +444,8 @@ namespace Inferno::Render {
     // When up is provided, it constrains the sprite to that axis
     void DrawSprite(GraphicsContext& ctx, const Object& object, bool additive, float lerp, const Vector3* up = nullptr, bool lit = false) {
         Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
+        color += object.Render.Emissive;
+
         auto pos = object.GetPosition(lerp);
 
         if (object.Render.Type == RenderType::WeaponVClip ||
