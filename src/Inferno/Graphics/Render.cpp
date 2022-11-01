@@ -255,14 +255,6 @@ namespace Inferno::Render {
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        if (object.Control.Type == ControlType::Weapon) { // Mines. todo: move to game update
-            auto r = Matrix::CreateFromYawPitchRoll(object.Physics.AngularVelocity * (float)ElapsedTime * 6.28f);
-            auto translation = transform.Translation();
-            transform *= Matrix::CreateTranslation(translation);
-            transform = r * transform;
-            transform *= Matrix::CreateTranslation(-translation);
-        }
-
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             // accumulate the offsets for each submodel
             auto submodelOffset = model.GetSubmodelOffset(submodel);
@@ -769,14 +761,6 @@ namespace Inferno::Render {
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto& shader = Shaders->DepthObject;
-
-        if (object.Control.Type == ControlType::Weapon) {
-            auto r = Matrix::CreateFromYawPitchRoll(object.Physics.AngularVelocity * (float)ElapsedTime * XM_2PI);
-            auto translation = transform.Translation();
-            transform *= Matrix::CreateTranslation(translation);
-            transform = r * transform;
-            transform *= Matrix::CreateTranslation(-translation);
-        }
 
         int submodelIndex = 0;
         for (auto& submodel : model.Submodels) {

@@ -1255,7 +1255,6 @@ namespace Inferno {
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
             if (!obj.IsAlive()) continue;
-
             if (obj.Movement != MovementType::Physics) continue;
 
             obj.LastPosition = obj.Position;
