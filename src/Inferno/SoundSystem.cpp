@@ -21,6 +21,8 @@ namespace Inferno::Sound {
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
     constexpr float MERGE_WINDOW = 1 / 10.0f; // Merge the same sound being played by a source within a window
 
+    std::atomic<bool> RequestStopSounds = false;
+
     struct Sound3DInstance : public Sound3D {
         float Muffle = 1, TargetMuffle = 1;
         bool Started = false;
@@ -52,13 +54,13 @@ namespace Inferno::Sound {
             delta.Normalize(dir);
             auto dist = delta.Length();
 
-            auto ratio = std::min(dist / Radius, 1.0f);
+            //auto ratio = std::min(dist / Radius, 1.0f);
             // 1 / (0.97 + 3x)^2 - 0.065 inverse square that crosses at 0,1 and 1,0
             //auto volume = 1 / std::powf(0.97 + 3*ratio, 2) - 0.065f;
 
             TargetMuffle = 1; // don't hit test very close sounds
 
-            if (dist < Radius) { // only hit test if sound is actually within range
+            if (dist < Radius && !RequestStopSounds) { // only hit test if sound is actually within range
                 if (Looped && !Instance->GetState() == SoundState::PLAYING) {
                     //fmt::print("Starting looped sound\n");
                     Instance->Play(true);
@@ -82,7 +84,7 @@ namespace Inferno::Sound {
             }
             else {
                 // stop looped sounds when going out of range
-                if (Looped && Instance->GetState() == SoundState::PLAYING) {
+                if ((Looped && Instance->GetState() == SoundState::PLAYING) || RequestStopSounds) {
                     //fmt::print("Stopping out of range looped sound\n");
                     Instance->Stop();
                 }
@@ -190,6 +192,12 @@ namespace Inferno::Sound {
                     while (sound != SoundInstances.end()) {
                         auto state = sound->Instance->GetState();
 
+                        if (RequestStopSounds) {
+                            sound->Instance->Stop();
+                            SoundInstances.erase(sound++);
+                            continue;
+                        }
+
                         if (!sound->Looped) {
                             if (state == SoundState::STOPPED && sound->Started) {
                                 //SPDLOG_INFO("Removing object sound instance");
@@ -203,9 +211,6 @@ namespace Inferno::Sound {
                                 sound->Started = true;
                             }
                         }
-                        //else {
-
-                        //}
 
                         sound->UpdateEmitter(Render::Camera.Position, dt);
                         // Hack to force sounds caused by the player to be exactly on top of the listener.
@@ -214,42 +219,10 @@ namespace Inferno::Sound {
                             sound->Emitter.Position = Listener.Position;
 
                         sound->Instance->Apply3D(Listener, sound->Emitter, false);
-                        //DWORD flags = X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER
-                        //    | X3DAUDIO_CALCULATE_LPF_DIRECT | X3DAUDIO_CALCULATE_LPF_REVERB
-                        //    | X3DAUDIO_CALCULATE_REVERB;
-
-                        //{
-                        //    float matrix[XAUDIO2_MAX_AUDIO_CHANNELS * 8] = {};
-                        //    X3DAUDIO_DSP_SETTINGS dspSettings{};
-                        //    dspSettings.SrcChannelCount = 1;
-                        //    dspSettings.DstChannelCount = 2;
-                        //    dspSettings.pMatrixCoefficients = matrix;
-
-                        //    X3DAUDIO_EMITTER emitter;
-                        //    memcpy(&emitter, &sound->Emitter, sizeof(X3DAUDIO_EMITTER));
-                        //    //emitter.OrientTop = {};
-                        //    //emitter.OrientFront = {};
-                        //    emitter.OrientTop.y = emitter.OrientFront.z = 1.0f;
-
-                        //    X3DAUDIO_LISTENER listener;
-                        //    memcpy(&listener, &Listener, sizeof(X3DAUDIO_LISTENER));
-                        //    //listener.OrientTop = {};
-                        //    listener.OrientFront = {};
-                        //    //listener.OrientTop.y = -1.0f;
-                        //    listener.OrientFront.z = 1.0f;
-                        //    //Vector3 top = listener.OrientTop;
-                        //    //top.Normalize();
-                        //    //listener.OrientTop = top;
-
-                        //    //if (listener.OrientTop.y > 0.8f) 
-                        //      //listener.OrientTop = { 0.00001f, 0.99f, 0 };
-
-                        //    auto handle = Engine->Get3DHandle();
-                        //    X3DAudioCalculate(handle, &listener, &emitter, flags, &dspSettings);
-                        //    SPDLOG_INFO("XY: {:.2f} {:.2f}  LR: {:.2f}, {:.2f}", listener.OrientTop.x, listener.OrientTop.y, matrix[0], matrix[1]);
-                        //}
                         sound++;
                     }
+
+                    RequestStopSounds = false;
                 }
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
@@ -492,6 +465,7 @@ namespace Inferno::Sound {
     void Stop3DSounds() {
         if (!Alive) return;
 
+        RequestStopSounds = true;
         //std::scoped_lock lock(SoundInstancesMutex);
         //for (auto& sound : SoundInstances) {
         //    sound.Instance->Stop();
