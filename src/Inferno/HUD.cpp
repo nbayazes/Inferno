@@ -227,29 +227,53 @@ namespace Inferno {
         //Render::Canvas->DrawBitmap(id, pos, scaledSize);
     }
 
-    void DrawEnergyBar(float spacing, bool flipX) {
+    void DrawEnergyBar(float spacing, bool flipX, float energy) {
         constexpr float ENERGY_HEIGHT = -125;
         constexpr float ENERGY_SPACING = -9;
+        auto percent = std::lerp(0.120f, 1.0f, energy / 100);
 
         auto& material = Render::Materials->GetOutrageMaterial("gauge03b");
         auto scale = Render::HudCanvas->GetScale();
-        Render::CanvasBitmapInfo info;
-        info.Position = Vector2(spacing + (flipX ? ENERGY_SPACING : -ENERGY_SPACING), ENERGY_HEIGHT) * scale;
-        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
-        info.Size *= scale;
-        info.Texture = material.Handles[0];
-        info.Scanline = 1.0f;
-        if (flipX) {
-            info.UV1.x = 0;
-            info.UV0.x = 1;
-        }
-        info.HorizontalAlign = flipX ? AlignH::CenterRight : AlignH::CenterLeft;
-        info.VerticalAlign = AlignV::Bottom;
-        //info.Color.w = 0.5f;
+        Vector2 pos = Vector2(spacing + (flipX ? ENERGY_SPACING : -ENERGY_SPACING), ENERGY_HEIGHT) * scale;
+        Vector2 size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        size *= scale;
 
-        Render::HudGlowCanvas->DrawBitmap(info);
-        //info.Color *= 0.5f;
-        //Render::HudCanvas->DrawBitmap(info);
+        auto halign = flipX ? AlignH::CenterRight : AlignH::CenterLeft;
+        auto alignment = Render::GetAlignment(size, halign, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
+        auto hex = Color(1, 1, 1).RGBA().v;
+
+        // Adjust for percentage
+        auto offset = size.x * (1 - percent);
+        auto v0 = Vector2{ pos.x + offset, pos.y + size.y } + alignment;
+        auto v1 = Vector2{ pos.x + size.x, pos.y + size.y } + alignment;
+        auto v2 = Vector2{ pos.x + size.x, pos.y } + alignment;
+        auto v3 = Vector2{ pos.x + offset + size.y, pos.y } + alignment;
+
+        auto angleRatio = size.y / size.x; // for 45 degree angle
+        Vector2 uv0 = { 1.0f - percent, 1 };
+        Vector2 uv1 = { 1, 1 };
+        Vector2 uv2 = { 1, 0 };
+        Vector2 uv3 = { 1.0f - percent + angleRatio, 0 };
+
+        if (flipX) {
+            auto off = v2.x;
+            auto Flip = [&](float& x) { x = -(x - off) + off - size.x; };
+            Flip(v0.x);
+            Flip(v1.x);
+            Flip(v2.x);
+            Flip(v3.x);
+        }
+
+        Render::CanvasPayload payload{};
+        payload.V0 = { v0, uv0, hex }; // bottom left
+        payload.V1 = { v1, uv1, hex }; // bottom right
+        payload.V2 = { v2, uv2, hex }; // top right
+        payload.V3 = { v3, uv3, hex }; // top left
+        payload.Texture = material.Handles[0];
+        payload.Scanline = 1.0f;
+
+        Render::HudGlowCanvas->Draw(payload);
+        Render::HudGlowCanvas->Draw(payload);
     }
 
     // convert '1' characters to a special fixed width version. Only works with small font.
@@ -258,7 +282,7 @@ namespace Inferno {
             if (c == '1') c = static_cast<char>(132);
     }
 
-    void DrawLeftMonitor(float x, const MonitorState& state) {
+    void DrawLeftMonitor(float x, const MonitorState& state, const Player& player) {
         DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left");
 
         auto scale = Render::HudCanvas->GetScale();
@@ -272,14 +296,14 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
-            auto& weaponName = Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex);
+            auto weaponName = Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex);
             string label = string(weaponName), ammo;
 
             switch ((PrimaryWeaponIndex)state.WeaponIndex) {
                 case PrimaryWeaponIndex::Laser:
                 case PrimaryWeaponIndex::SuperLaser:
                 {
-                    auto& lvl = Resources::GetString(GameString::Lvl);
+                    auto lvl = Resources::GetString(GameString::Lvl);
                     if (Game::Player.HasPowerup(PowerupFlag::QuadLasers))
                         label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, Game::Player.LaserLevel + 1, Resources::GetString(GameString::Quad));
                     else
@@ -316,9 +340,10 @@ namespace Inferno {
             DrawWeaponBitmap({ x + WEAPON_BMP_X_OFFSET, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
         }
 
-        DrawEnergyBar(x, false);
+        DrawEnergyBar(x, false, player.Energy);
 
-        DrawAdditiveBitmap({ x - 151, -38 }, AlignH::CenterLeft, "gauge02b", 1);
+        // Afterburner
+        DrawAdditiveBitmap({ x - 151, -37 }, AlignH::CenterLeft, "gauge02b", 1);
     }
 
     void DrawRightMonitor(float x, const MonitorState& state, const Player& player) {
@@ -342,7 +367,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        auto ammo = fmt::format("{:03}", Game::Player.SecondaryAmmo[state.WeaponIndex]);
+        auto ammo = fmt::format("{:03}", player.SecondaryAmmo[state.WeaponIndex]);
         UseWide1Char(ammo);
         DrawMonitorText(ammo, info, 0.6f * state.Opacity);
 
@@ -352,8 +377,7 @@ namespace Inferno {
             DrawWeaponBitmap({ x + 75, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
         }
 
-        DrawEnergyBar(x, true);
-
+        DrawEnergyBar(x, true, player.Energy);
 
         // Bomb counter
         info.Color = MonitorRedText;
@@ -361,7 +385,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.5f;
-        DrawMonitorText("B:04", info);
+        DrawMonitorText(fmt::format("B:{:02}", player.SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity]), info);
 
         // Draw Keys
         float keyScanline = 0.0f;
@@ -527,7 +551,7 @@ namespace Inferno {
             LeftMonitor.Update(dt, player, (int)player.Primary);
             RightMonitor.Update(dt, player, (int)player.Secondary);
 
-            DrawLeftMonitor(-spacing, LeftMonitor);
+            DrawLeftMonitor(-spacing, LeftMonitor, player);
             DrawRightMonitor(spacing, RightMonitor, player);
             DrawCenterMonitor(player);
 

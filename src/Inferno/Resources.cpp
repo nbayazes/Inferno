@@ -355,7 +355,7 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Laser2).Extended.Glow = { 0.7f, 0.25f, 0.25f };
         GetWeapon(WeaponID::Laser3).Extended.Glow = { 0.55f, 0.55f, 0.75f };
         GetWeapon(WeaponID::Laser4).Extended.Glow = { 0.1f, 0.7f, 0.1f };
-        GetWeapon(WeaponID::Laser5).Extended.Glow = { 0.8f, 0.4f, 0.1f };
+        GetWeapon(WeaponID::Laser5).Extended.Glow = { 0.7f, 0.4f, 0.1f };
         GetWeapon(WeaponID::Laser6).Extended.Glow = { 0.65f, 0.65f, 0.65f };
         GetWeapon(WeaponID::Spreadfire).Extended.Glow = { 0.4f, 0.4f, 0.6f };
         GetWeapon(WeaponID::Helix).Extended.Glow = { 0.4f, 0.5f, 0.4f };

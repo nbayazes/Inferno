@@ -356,8 +356,7 @@ namespace Inferno {
 
             case PowerupID::Laser:
                 if (LaserLevel >= MAX_LASER_LEVEL) {
-                    auto msg = fmt::format("{} {}", Resources::GetString(GameString::MaxedOut), Resources::GetString(GameString::Laser));
-                    PrintHudMessage(msg);
+                    PrintHudMessage("your laser cannon is maxed out!");
                     used = PickUpEnergy();
                 }
                 else {
