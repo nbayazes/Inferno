@@ -541,6 +541,13 @@ namespace Inferno {
     }
 
     bool ObjectCanHitTarget(const Object& src, const Object& target) {
+        if (!target.IsAlive()) return false;
+        if (src.Signature == target.Signature) return false; // don't hit yourself!
+
+        //if ((src.Parent != ObjID::None && target.Parent != ObjID::None) && src.Parent == target.Parent)
+        //    return false; // Don't hit your siblings!
+        constexpr float MINE_ARM_TIME = 2.0f;
+
         switch (src.Type) {
             case ObjectType::Robot:
                 switch (target.Type) {
@@ -557,9 +564,20 @@ namespace Inferno {
             case ObjectType::Coop:
             case ObjectType::Player:
                 switch (target.Type) {
+                    case ObjectType::Weapon:
+                    {
+                        const auto& weapon = Resources::GetWeapon((WeaponID)target.ID);
+
+                        // Player can't hit their own mines until they arm
+                        if ((target.ID == (int)WeaponID::ProxMine || target.ID == (int)WeaponID::SmartMine)
+                            && target.Control.Weapon.AliveTime < MINE_ARM_TIME)
+                            return false;
+
+                        return target.ID == (int)WeaponID::LevelMine;
+                    }
+
                     case ObjectType::Wall:
                     case ObjectType::Robot:
-                        //case ObjectType::Weapon:
                     case ObjectType::Powerup:
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
@@ -577,14 +595,27 @@ namespace Inferno {
                     case ObjectType::Robot:
                     {
                         auto& ri = Resources::GetRobotInfo(target.ID);
-                        if (ri.IsCompanion) 
+                        if (ri.IsCompanion)
                             return false; // weapons can't directly hit guidebots
 
                         return true;
                     }
-                    //case ObjectType::Player:
+                    case ObjectType::Player:
+                    {
+                        // Mines can't hit the player until they arm
+                        if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < MINE_ARM_TIME)
+                            return false;
+
+                        return true;
+                    }
+
                     //case ObjectType::Coop:
-                    //case ObjectType::Weapon:
+                    case ObjectType::Weapon:
+                        if (WeaponIsMine((WeaponID)src.ID))
+                            return false; // mines can't hit other mines
+
+                        return WeaponIsMine((WeaponID)target.ID);
+
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
                         return true;
@@ -619,9 +650,8 @@ namespace Inferno {
         // Did we hit any objects in this segment?
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& other = level.Objects[i];
-            if (!other.IsAlive() || other.Segment != segId) continue;
+            if (other.Segment != segId) continue;
             if (oid == (ObjID)i) continue; // don't hit yourself!
-            if (obj.Parent == other.Parent) continue; // Don't hit your siblings!
             if (oid == other.Parent) continue; // Don't hit your children!
 
             if (!ObjectCanHitTarget(obj, other)) continue;
@@ -664,7 +694,6 @@ namespace Inferno {
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& other = level.Objects[i];
             if (!other.IsAlive() || other.Segment != segId) continue;
-
             if (other.Type != ObjectType::Player && other.Type != ObjectType::Robot && other.Type != ObjectType::Reactor)
                 continue;
             //if (!ObjectCanHitTarget(obj.Type, other.Type)) continue;
@@ -768,9 +797,8 @@ namespace Inferno {
         // Did we hit any objects in this segment?
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& target = level.Objects[i];
-            if (!target.IsAlive() || target.Segment != segId) continue;
-            if (object.Parent == (ObjID)i || &target == &object) continue; // don't hit yourself!
-            if ((object.Parent != ObjID::None && target.Parent != ObjID::None) && object.Parent == target.Parent) continue; // Don't hit your siblings!
+            if (target.Segment != segId) continue;
+            if (object.Parent == (ObjID)i) continue; // don't hit yourself!
             if (!ObjectCanHitTarget(object, target)) continue;
 
             BoundingSphere sphere(target.Position, target.Radius);
@@ -1055,7 +1083,7 @@ namespace Inferno {
             // apply forces from projectile to object
             auto force = src.Velocity * srcMass / targetMass;
             targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
-            hit.HitObj->LastHitForce += force;
+            target.LastHitForce += force;
 
             Matrix basis(target.Rotation);
             basis = basis.Invert();
@@ -1066,33 +1094,34 @@ namespace Inferno {
             auto accel = torque / inertia;
             targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
-            if (hit.HitObj->Type == ObjectType::Robot || hit.HitObj->Type == ObjectType::Reactor) {
-                hit.HitObj->ApplyDamage(damage);
+            if (target.Type == ObjectType::Weapon) {
+                Game::ExplodeWeapon(target);
+            }
+            else if (target.Type == ObjectType::Robot || target.Type == ObjectType::Reactor) {
+                target.ApplyDamage(damage);
                 //fmt::print("applied {} damage\n", damage);
+                VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
 
-                auto& ri = Resources::GetRobotInfo(hit.HitObj->ID);
-                if (ri.ExplosionClip1 > VClipID::None) {
-                    Render::ExplosionInfo expl;
-                    expl.Sound = weapon.RobotHitSound;
-                    expl.Segment = hit.Tag.Segment;
-                    expl.Position = hit.Point;
-                    expl.Parent = source.Parent;
+                Render::ExplosionInfo expl;
+                expl.Sound = weapon.RobotHitSound;
+                expl.Segment = hit.Tag.Segment;
+                expl.Position = hit.Point;
+                expl.Parent = source.Parent;
 
-                    expl.Clip = ri.ExplosionClip1;
-                    expl.MinRadius = weapon.ImpactSize * 0.85f;
-                    expl.MaxRadius = weapon.ImpactSize * 1.15f;
-                    expl.Color = { 1.15f, 1.15f, 1.15f };
-                    expl.FadeTime = 0.1f;
+                expl.Clip = vclip;
+                expl.MinRadius = weapon.ImpactSize * 0.85f;
+                expl.MaxRadius = weapon.ImpactSize * 1.15f;
+                expl.Color = { 1.15f, 1.15f, 1.15f };
+                expl.FadeTime = 0.1f;
 
-                    if (source.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
-                        expl.Instances = 3;
-                        expl.MinDelay = expl.MaxDelay = 0;
-                        expl.Clip = weapon.RobotHitVClip;
-                        expl.Color = { 1, 1, 1 };
-                    }
-
-                    Render::CreateExplosion(expl);
+                if (source.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
+                    expl.Instances = 3;
+                    expl.MinDelay = expl.MaxDelay = 0;
+                    expl.Clip = weapon.RobotHitVClip;
+                    expl.Color = { 1, 1, 1 };
                 }
+
+                Render::CreateExplosion(expl);
             }
         }
         else { // Hit a wall
@@ -1305,7 +1334,7 @@ namespace Inferno {
                 }
 
                 if (obj.Type == ObjectType::Weapon) {
-                    if (!obj.Physics.HasFlag(PhysicsFlag::Bounce)) {
+                    if (!obj.Physics.HasFlag(PhysicsFlag::Bounce) || hit.HitObj) {
                         //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
                         ApplyWeaponHit(hit, obj, level);
                         obj.Destroy(); // destroy weapon projectiles on hit

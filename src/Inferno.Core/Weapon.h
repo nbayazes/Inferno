@@ -87,6 +87,10 @@ namespace Inferno {
         LevelMine = 51, // Placeable level mine
     };
 
+    constexpr bool WeaponIsMine(WeaponID id) {
+        return id == WeaponID::LevelMine || id == WeaponID::ProxMine || id == WeaponID::SmartMine;
+    }
+
     static inline WeaponID PrimaryToWeaponID[10] = { WeaponID::Laser1, WeaponID::Vulcan, WeaponID::Spreadfire, WeaponID::Plasma, WeaponID::Fusion, WeaponID::Laser5, WeaponID::Gauss, WeaponID::Helix, WeaponID::Phoenix, WeaponID::Omega };
     static inline WeaponID SecondaryToWeaponID[10] = { WeaponID::Concussion, WeaponID::Homing, WeaponID::ProxMine, WeaponID::Smart, WeaponID::Mega, WeaponID::Flash, WeaponID::Guided, WeaponID::SmartMine, WeaponID::Mercury, WeaponID::Shaker };
 

@@ -286,10 +286,6 @@ namespace Inferno::Game {
 
             case ObjectType::Weapon:
             {
-                if (obj.ID == (int)WeaponID::ProxMine) {
-                    auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
-                    ExplodeBomb(weapon, obj);
-                }
                 break;
             }
 
@@ -310,7 +306,7 @@ namespace Inferno::Game {
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
-            if (&obj == &src) continue;
+            if (!obj.IsAlive() || obj.Signature == src.Signature) continue;
             auto d = Vector3::Distance(obj.Position, src.Position);
             if (d < dist) {
                 id = (ObjID)i;
@@ -430,6 +426,10 @@ namespace Inferno::Game {
             if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
                 DestroyObject(obj);
                 continue;
+            }
+            else if (obj.Lifespan <= 0 && obj.Type == ObjectType::Weapon) {
+                // life expired, detonate weapon
+                ExplodeWeapon(obj);
             }
 
             if (obj.Type == ObjectType::Weapon)
@@ -655,7 +655,7 @@ namespace Inferno::Game {
                     obj.HitPoints = ri.HitPoints;
                 }
 
-                if (obj.Type == ObjectType::Weapon && 
+                if (obj.Type == ObjectType::Weapon &&
                     (obj.ID == (int)WeaponID::Gauss || obj.ID == (int)WeaponID::Vulcan)) {
                     obj.Control.Powerup.Count = 2500;
                 }

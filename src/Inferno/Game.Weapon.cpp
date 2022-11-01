@@ -26,7 +26,10 @@ namespace Inferno::Game {
         return Vector3::Zero;
     }
 
-    void ExplodeBomb(const Weapon& weapon, Object& bomb) {
+    void ExplodeWeapon(Object& obj) {
+        if (obj.Type != ObjectType::Weapon) return;
+        const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+
         SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
         VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
         float damage = weapon.Damage[Game::Difficulty];
@@ -36,7 +39,7 @@ namespace Inferno::Game {
         e.MaxRadius = weapon.ImpactSize * 1.1f;
         e.Clip = vclip;
         e.Sound = soundId;
-        e.Position = bomb.Position; // move explosion out of wall
+        e.Position = obj.Position;
         e.Color = { 1, 1, 1 };
         e.FadeTime = 0.1f;
         Render::CreateExplosion(e);
@@ -46,12 +49,13 @@ namespace Inferno::Game {
             ge.Damage = damage;
             ge.Force = damage; // force = damage, really?
             ge.Radius = weapon.SplashRadius;
-            ge.Segment = bomb.Segment;
-            ge.Position = bomb.Position;
-            CreateExplosion(Game::Level, &bomb, ge);
+            ge.Segment = obj.Segment;
+            ge.Position = obj.Position;
+            CreateExplosion(Game::Level, &obj, ge);
         }
 
-        bomb.HitPoints = 0;
+        obj.HitPoints = 0;
+        obj.Destroy();
     }
 
     void ProxMineBehavior(Object& obj) {
@@ -65,6 +69,7 @@ namespace Inferno::Game {
 
             // Try to find a nearby target
             if (cw.TrackingTarget == ObjID::None) {
+                // todo: filter targets based on if mine owner is a player
                 auto [id, dist] = Game::FindNearestObject(obj);
                 if (id != ObjID::None && dist <= PROX_WAKE_RANGE)
                     cw.TrackingTarget = id; // New target!
@@ -84,19 +89,19 @@ namespace Inferno::Game {
             auto lerp = std::lerp(1.00f, 2.00f, (dist - PROX_ACTIVATE_RANGE) / (PROX_WAKE_RANGE - PROX_ACTIVATE_RANGE));
             //lerp = std::clamp(lerp, 1.0f, 2.0f);
 
-            if (TimeHasElapsed(cw.SoundDelay)) {
-                Sound3D sound(obj.Position, obj.Segment);
-                //sound.Pitch = 0.25f - (lerp - 1.25);
-                sound.Resource = Resources::GetSoundResource(SoundID::HomingWarning);
-                Sound::Play(sound);
-                cw.SoundDelay = (float)Game::Time + lerp;
-            }
+            //if (TimeHasElapsed(cw.SoundDelay)) {
+            //    Sound3D sound(obj.Position, obj.Segment);
+            //    //sound.Pitch = 0.25f - (lerp - 1.25);
+            //    sound.Resource = Resources::GetSoundResource(SoundID::HomingWarning);
+            //    Sound::Play(sound);
+            //    cw.SoundDelay = (float)Game::Time + lerp;
+            //}
 
             if (dist <= PROX_ACTIVATE_RANGE && !cw.DetonateMine) {
                 // Commit to the target
                 cw.DetonateMine = true;
                 obj.Lifespan = 2;
-                obj.Physics.ClearFlag(PhysicsFlag::Wiggle); // explode on contacting walls
+                obj.Physics.ClearFlag(PhysicsFlag::Bounce); // explode on contacting walls
 
                 if (target) {
                     auto delta = target->Position - obj.Position;
@@ -178,6 +183,9 @@ namespace Inferno::Game {
 
         bullet.Movement = MovementType::Physics;
         bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
+        if (WeaponIsMine(id))
+            bullet.Physics.Velocity += obj.Physics.Velocity; // inherit velocity when placing mines
+
         //bullet.Physics.Velocity = direction * 10;
         bullet.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
         bullet.Physics.Drag = weapon.Drag;
@@ -202,7 +210,7 @@ namespace Inferno::Game {
             bullet.Render.Model.ID = weapon.Model;
             auto& model = Resources::GetModel(weapon.Model);
             bullet.Radius = model.Radius / weapon.ModelSizeRatio;
-            
+
             // Randomize the rotation of models
             auto rotation = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), Random() * DirectX::XM_2PI);
             bullet.Rotation *= rotation;
