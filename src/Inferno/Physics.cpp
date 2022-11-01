@@ -540,10 +540,10 @@ namespace Inferno {
         return idist < Radius;
     }
 
-    bool ObjectCanHitTarget(ObjectType src, ObjectType target) {
-        switch (src) {
+    bool ObjectCanHitTarget(const Object& src, const Object& target) {
+        switch (src.Type) {
             case ObjectType::Robot:
-                switch (target) {
+                switch (target.Type) {
                     case ObjectType::Wall:
                         //case ObjectType::Robot:
                     case ObjectType::Player:
@@ -556,7 +556,7 @@ namespace Inferno {
 
             case ObjectType::Coop:
             case ObjectType::Player:
-                switch (target) {
+                switch (target.Type) {
                     case ObjectType::Wall:
                     case ObjectType::Robot:
                         //case ObjectType::Weapon:
@@ -572,12 +572,19 @@ namespace Inferno {
                 break;
 
             case ObjectType::Weapon:
-                switch (target) {
+                switch (target.Type) {
                     case ObjectType::Wall:
                     case ObjectType::Robot:
-                        //case ObjectType::Player:
-                        //case ObjectType::Coop:
-                        //case ObjectType::Weapon:
+                    {
+                        auto& ri = Resources::GetRobotInfo(target.ID);
+                        if (ri.IsCompanion) 
+                            return false; // weapons can't directly hit guidebots
+
+                        return true;
+                    }
+                    //case ObjectType::Player:
+                    //case ObjectType::Coop:
+                    //case ObjectType::Weapon:
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
                         return true;
@@ -585,7 +592,7 @@ namespace Inferno {
                 break;
 
             case ObjectType::Reactor:
-                switch (target) {
+                switch (target.Type) {
                     case ObjectType::Wall:
                         //case ObjectType::Robot:
                     case ObjectType::Player:
@@ -617,7 +624,7 @@ namespace Inferno {
             if (obj.Parent == other.Parent) continue; // Don't hit your siblings!
             if (oid == other.Parent) continue; // Don't hit your children!
 
-            if (!ObjectCanHitTarget(obj.Type, other.Type)) continue;
+            if (!ObjectCanHitTarget(obj, other)) continue;
 
             BoundingSphere objSphere(other.Position, other.Radius);
             if (auto info = IntersectSphereSphere(sphere, objSphere)) {
@@ -764,7 +771,7 @@ namespace Inferno {
             if (!target.IsAlive() || target.Segment != segId) continue;
             if (object.Parent == (ObjID)i || &target == &object) continue; // don't hit yourself!
             if ((object.Parent != ObjID::None && target.Parent != ObjID::None) && object.Parent == target.Parent) continue; // Don't hit your siblings!
-            if (!ObjectCanHitTarget(object.Type, target.Type)) continue;
+            if (!ObjectCanHitTarget(object, target)) continue;
 
             BoundingSphere sphere(target.Position, target.Radius);
             if (auto info = capsule.Intersects(sphere)) {
