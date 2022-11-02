@@ -74,4 +74,6 @@ namespace Inferno::Game {
     WeaponBehavior& GetWeaponBehavior(string name);
 
     bool PlayerCanOpenDoor(const Wall& wall);
+
+    constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
 }

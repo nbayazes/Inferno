@@ -110,7 +110,7 @@ namespace Inferno::Sound {
         Dictionary<string, Ptr<SoundEffect>> SoundsD3;
 
         std::atomic<bool> Alive = false;
-        std::thread WorkerThread;
+        std::jthread WorkerThread;
         std::list<Sound3DInstance> SoundInstances;
         std::mutex ResetMutex, SoundInstancesMutex;
 
@@ -292,7 +292,7 @@ namespace Inferno::Sound {
 
     void Init(HWND, float volume, milliseconds pollRate) {
         // HWND is not used, but indicates the sound system requires a window
-        WorkerThread = std::thread(SoundWorker, volume, pollRate);
+        WorkerThread = std::jthread(SoundWorker, volume, pollRate);
 
         //DWORD channelMask{};
         //Engine->GetMasterVoice()->GetChannelMask(&channelMask);

@@ -23,4 +23,5 @@ namespace Inferno::Editor {
 
     List<SegmentDiagnostic> CheckObjects(Level& level);
     List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors);
+    void SetPlayerStartIDs(Level& level);
 }

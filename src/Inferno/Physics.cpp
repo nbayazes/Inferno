@@ -543,10 +543,10 @@ namespace Inferno {
     bool ObjectCanHitTarget(const Object& src, const Object& target) {
         if (!target.IsAlive()) return false;
         if (src.Signature == target.Signature) return false; // don't hit yourself!
+        //if (src.Parent == target.Parent && src.Parent != ObjID::None) return false; // don't hit your siblings!
 
         //if ((src.Parent != ObjID::None && target.Parent != ObjID::None) && src.Parent == target.Parent)
         //    return false; // Don't hit your siblings!
-        constexpr float MINE_ARM_TIME = 2.0f;
 
         switch (src.Type) {
             case ObjectType::Robot:
@@ -570,7 +570,7 @@ namespace Inferno {
 
                         // Player can't hit their own mines until they arm
                         if ((target.ID == (int)WeaponID::ProxMine || target.ID == (int)WeaponID::SmartMine)
-                            && target.Control.Weapon.AliveTime < MINE_ARM_TIME)
+                            && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
                             return false;
 
                         return target.ID == (int)WeaponID::LevelMine;
@@ -602,8 +602,10 @@ namespace Inferno {
                     }
                     case ObjectType::Player:
                     {
+                        if (target.ID > 0) return false; // Only hit player 0 in singleplayer
+
                         // Mines can't hit the player until they arm
-                        if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < MINE_ARM_TIME)
+                        if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
                             return false;
 
                         return true;

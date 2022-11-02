@@ -233,7 +233,6 @@ namespace Inferno::Game {
         bullet.Render.Emissive = weapon.Extended.Glow;
 
         if (id == WeaponID::ProxMine || id == WeaponID::SmartMine) {
-            constexpr float MINE_ARM_TIME = 2.0f;
             bullet.NextThinkTime = (float)Game::Time + MINE_ARM_TIME;
         }
 

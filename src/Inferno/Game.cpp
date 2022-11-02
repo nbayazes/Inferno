@@ -641,6 +641,8 @@ namespace Inferno::Game {
                 return; // no player start!
             }
 
+            Editor::SetPlayerStartIDs(Level);
+
             // Activate game mode
             Editor::History.SnapshotLevel("Playtest");
 

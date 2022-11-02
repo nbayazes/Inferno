@@ -230,7 +230,7 @@ namespace Inferno {
     void DrawEnergyBar(float spacing, bool flipX, float energy) {
         constexpr float ENERGY_HEIGHT = -125;
         constexpr float ENERGY_SPACING = -9;
-        auto percent = std::lerp(0.120f, 1.0f, energy / 100);
+        auto percent = std::lerp(0.115f, 1.0f, energy / 100);
 
         auto& material = Render::Materials->GetOutrageMaterial("gauge03b");
         auto scale = Render::HudCanvas->GetScale();
@@ -412,7 +412,7 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::Center;
             info.VerticalAlign = AlignV::Bottom;
             info.Scanline = 0.5f;
-            auto shields = fmt::format("{:.0f}", player.Shields < 0 ? 0 : player.Shields);
+            auto shields = fmt::format("{:.0f}", player.Shields < 0 ? 0 : std::floor(player.Shields));
             DrawMonitorText(shields, info, 0.5f);
             //info.Scanline = 0.0f;
             //info.Color *= 0.1;
@@ -421,7 +421,7 @@ namespace Inferno {
             info.Color = { 0.78f, 0.56f, 0.18f };
             info.Position = Vector2(2, -150) * scale;
             info.Scanline = 0.5f;
-            auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : player.Energy);
+            auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));
             DrawMonitorText(energy, info, 0.5f);
         }
 
