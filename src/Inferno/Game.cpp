@@ -663,7 +663,7 @@ namespace Inferno::Game {
                 }
             }
 
-            //Sound::Reset();
+            Sound::Reset();
             MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
             MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
             AddSoundSources();

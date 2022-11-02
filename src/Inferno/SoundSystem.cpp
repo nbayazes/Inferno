@@ -222,15 +222,17 @@ namespace Inferno::Sound {
                         sound++;
                     }
 
-                    RequestStopSounds = false;
                 }
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
                 }
 
+                RequestStopSounds = false;
                 std::this_thread::sleep_for(pollRate);
             }
             else {
+                RequestStopSounds = false;
+
                 // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
                 if (!Engine->IsAudioDevicePresent()) {
                 }
@@ -437,11 +439,12 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Clearing audio cache");
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Stop3DSounds();
-        //SoundInstances.clear();
-        Engine->TrimVoicePool();
+        
+        // Sleep caller while the worker thread finishes cleaning up
+        while (RequestStopSounds)
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
-        //for (auto& sound : Sounds)
-        //    sound.release(); // unknown if effects must be stopped before releasing
+        Engine->TrimVoicePool();
     }
 
     void PrintStatistics() {
