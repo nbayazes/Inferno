@@ -1068,22 +1068,21 @@ namespace Inferno {
         }
     }
 
-    void ApplyWeaponHit(const LevelHit& hit, const Object& source, Level& level) {
-        auto& weapon = Resources::GameData.Weapons[source.ID];
+    void ApplyWeaponHit(const LevelHit& hit, Object& obj, Level& level) {
+        auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
 
         if (hit.HitObj) {
             auto& target = *hit.HitObj;
-            auto& src = source.Physics;
             //auto p = src.Mass * src.InputVelocity;
 
             auto& targetPhys = target.Physics;
-            auto srcMass = src.Mass == 0 ? 0.01f : src.Mass;
+            auto srcMass = obj.Physics.Mass == 0 ? 0.01f : obj.Physics.Mass;
             auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
 
             // apply forces from projectile to object
-            auto force = src.Velocity * srcMass / targetMass;
+            auto force = obj.Physics.Velocity * srcMass / targetMass;
             targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
             target.LastHitForce += force;
 
@@ -1108,7 +1107,7 @@ namespace Inferno {
                 expl.Sound = weapon.RobotHitSound;
                 expl.Segment = hit.Tag.Segment;
                 expl.Position = hit.Point;
-                expl.Parent = source.Parent;
+                expl.Parent = obj.Parent;
 
                 expl.Clip = vclip;
                 expl.MinRadius = weapon.ImpactSize * 0.85f;
@@ -1116,7 +1115,7 @@ namespace Inferno {
                 expl.Color = { 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
 
-                if (source.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
+                if (obj.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
                     expl.Instances = 3;
                     expl.MinDelay = expl.MaxDelay = 0;
                     expl.Clip = weapon.RobotHitVClip;
@@ -1132,6 +1131,7 @@ namespace Inferno {
             VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
             bool addDecal = !weapon.Extended.ScorchTexture.empty();
+            bool hitLiquid = false;
 
             if (auto side = level.TryGetSide(hit.Tag)) {
                 auto& ti = Resources::GetLevelTextureInfo(side->TMap);
@@ -1139,9 +1139,10 @@ namespace Inferno {
                     vclip = VClipID::HitLava;
                     soundId = SoundID::HitLava;
                     addDecal = false;
+                    hitLiquid = true;
                 }
                 else if (ti.HasFlag(TextureFlag::Water)) {
-                    if (source.ID == (int)WeaponID::Concussion)
+                    if (obj.ID == (int)WeaponID::Concussion)
                         soundId = SoundID::MissileHitWater;
                     else
                         soundId = SoundID::HitWater;
@@ -1149,10 +1150,14 @@ namespace Inferno {
                     vclip = VClipID::HitWater;
                     splashRadius = 0; // Cancel explosions when hitting water
                     addDecal = false;
+                    hitLiquid = true;
                 }
             }
 
-            auto dir = source.Physics.Velocity;
+            if (obj.Physics.HasFlag(PhysicsFlag::Bounce) && !hitLiquid)
+                return; // don't do anything when a bouncing weapon hits a wall
+
+            auto dir = obj.Physics.Velocity;
             dir.Normalize();
 
             Render::ExplosionInfo e;
@@ -1166,12 +1171,12 @@ namespace Inferno {
                 e.Position = hit.Point + hit.Normal * 0.15f;
             else
                 // this doesn't work properly with fast moving projectiles
-                e.Position = source.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
+                e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
 
             e.Color = { 1, 1, 1 };
             e.FadeTime = 0.1f;
 
-            if (source.ID == (int)WeaponID::Concussion) {
+            if (obj.ID == (int)WeaponID::Concussion) {
                 e.Instances = 3;
                 e.MinDelay = e.MaxDelay = 0;
             }
@@ -1210,8 +1215,10 @@ namespace Inferno {
             ge.Radius = splashRadius;
             ge.Segment = hit.Tag.Segment;
             ge.Position = hit.Point;
-            CreateExplosion(level, &source, ge);
+            CreateExplosion(level, &obj, ge);
         }
+
+        obj.Destroy(); // destroy weapon after hitting something
     }
 
     void UpdateObjectSegment(Level& level, Object& obj) {
@@ -1336,11 +1343,7 @@ namespace Inferno {
                 }
 
                 if (obj.Type == ObjectType::Weapon) {
-                    if (!obj.Physics.HasFlag(PhysicsFlag::Bounce) || hit.HitObj) {
-                        //obj.Movement.Physics.Velocity = Vector3::Reflect(obj.Movement.Physics.Velocity, hit.Normal);
-                        ApplyWeaponHit(hit, obj, level);
-                        obj.Destroy(); // destroy weapon projectiles on hit
-                    }
+                    ApplyWeaponHit(hit, obj, level);
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {
