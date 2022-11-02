@@ -211,22 +211,21 @@ namespace Inferno {
 
         float AliveTime = 0; // How long the weapon has been alive
         bool SineMovement = false;
-        /* hitobj_pos specifies the next position to which a value should be
-         * written. That position may have a defined value if the array has
-         * wrapped, but should be treated as write-only in the general case.
-         *
-         * hitobj_count tells how many elements in hitobj_values[] are
-         * valid.  Its valid values are [0, hitobj_values.size()].  When
-         * hitobj_count == hitobj_values.size(), hitobj_pos wraps around and
-         * begins erasing the oldest elements first.
-         */
-        uint8 hitobj_pos{}, hitobj_count{};
-        Array<ObjID, 83> hitobj_values{};
+
         ObjID TrackingTarget = ObjID::None; // Object this object is tracking.
         float Multiplier{}; // Power if this is a fusion bolt
         float SoundDelay = 0;
         bool DetonateMine = false;
-        fix64 last_afterburner_time{}; // Time at which this object last created afterburner blobs.
+
+        uint8 HitIndex = 0;
+        Array<ObjSig, 10> RecentHits{}; // to prevent piercing weapons from hitting the same obj multiple times
+
+        void AddRecentHit(ObjSig id) {
+            if (HitIndex >= RecentHits.size())
+                HitIndex = 0;
+
+            RecentHits[HitIndex++] = id;
+        }
     };
 
     struct ExplosionObjectInfo {

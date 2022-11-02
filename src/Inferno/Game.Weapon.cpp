@@ -86,7 +86,7 @@ namespace Inferno::Game {
             cw.TrackingTarget = ObjID::None; // Went out of range
         }
         else {
-            auto lerp = std::lerp(1.00f, 2.00f, (dist - PROX_ACTIVATE_RANGE) / (PROX_WAKE_RANGE - PROX_ACTIVATE_RANGE));
+            //auto lerp = std::lerp(1.00f, 2.00f, (dist - PROX_ACTIVATE_RANGE) / (PROX_WAKE_RANGE - PROX_ACTIVATE_RANGE));
             //lerp = std::clamp(lerp, 1.0f, 2.0f);
 
             //if (TimeHasElapsed(cw.SoundDelay)) {
@@ -317,7 +317,7 @@ namespace Inferno::Game {
     }
 
     // Used for omega and homing weapons
-    Object* GetClosestObjectInFOV(Object& src, float fov, float dist, int mask) {
+    Object* GetClosestObjectInFOV(const Object& src, float fov, float dist, int mask) {
         Object* result = nullptr;
         float minDist = FLT_MAX;
 

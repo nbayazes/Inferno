@@ -20,7 +20,7 @@
 using namespace DirectX;
 
 namespace Inferno::Game {
-    uint16 ObjSigIndex = 0;
+    uint16 ObjSigIndex = 1;
 
     ObjSig GetObjectSig() {
         return ObjSig(ObjSigIndex++);
@@ -44,7 +44,7 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             Resources::LoadLevel(Level);
 
-            ObjSigIndex = 0;
+            ObjSigIndex = 1;
             for (auto& obj : Level.Objects) {
                 obj.LastPosition = obj.Position;
                 obj.LastRotation = obj.Rotation;
@@ -374,7 +374,7 @@ namespace Inferno::Game {
 
             // Hack to insert tracers due to not having the object ID in firing code
             if (obj.Type == ObjectType::Weapon) {
-                auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+                //auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
 
                 constexpr auto TRACER_FADE_SPEED = 0.2f;
                 constexpr auto TRACER_LENGTH = 30.0f;

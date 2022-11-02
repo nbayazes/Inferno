@@ -267,7 +267,7 @@ namespace Inferno {
 
     void AutoselectPrimary() {}
 
-    int Player::PickUpAmmo(PrimaryWeaponIndex index, uint amount) {
+    int Player::PickUpAmmo(PrimaryWeaponIndex index, int amount) {
         if (amount == 0) return amount;
 
         auto max = PyroGX.Weapons[(int)index].MaxAmmo;
@@ -457,7 +457,7 @@ namespace Inferno {
                     PrintHudMessage("super laser maxed out!");
                 }
                 else {
-                    auto oldLevel = LaserLevel;
+                    //auto oldLevel = LaserLevel;
                     if (LaserLevel <= MAX_LASER_LEVEL)
                         LaserLevel = MAX_LASER_LEVEL;
 

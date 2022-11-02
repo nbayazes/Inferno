@@ -224,7 +224,7 @@ namespace Inferno {
             List<FiringInfo> Firing; // Cycles through each entry after firing.
 
             bool QuadGunpoints[8]{}; // Gunpoints to use with quad upgrade
-            int MaxAmmo = 0;
+            uint16 MaxAmmo = 0;
         };
 
         WeaponBattery Weapons[20]; // 10 primaries, 10 secondaries

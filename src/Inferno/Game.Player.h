@@ -87,7 +87,7 @@ namespace Inferno {
         bool PickUpPrimary(PrimaryWeaponIndex);
         bool PickUpSecondary(SecondaryWeaponIndex, int count = 1);
         // Returns the amount of ammo picked up
-        int PickUpAmmo(PrimaryWeaponIndex, uint amount);
+        int PickUpAmmo(PrimaryWeaponIndex, int amount);
 
         WeaponID GetPrimaryWeaponID() const {
             if (Primary == PrimaryWeaponIndex::Laser) {

@@ -293,7 +293,7 @@ namespace Inferno {
     }
 
     // Returns the nearest distance to the face edge and a point. Skips the internal split.
-    float FaceEdgeDistance(Segment& seg, SideID side, const Face& face, const Vector3& point) {
+    float FaceEdgeDistance(const Segment& seg, SideID side, const Face& face, const Vector3& point) {
         // Check the four outside edges of the face
         float mag1, mag2, mag3, mag4;
         mag1 = mag2 = mag3 = mag4 = FLT_MAX;
@@ -566,8 +566,6 @@ namespace Inferno {
                 switch (target.Type) {
                     case ObjectType::Weapon:
                     {
-                        const auto& weapon = Resources::GetWeapon((WeaponID)target.ID);
-
                         // Player can't hit their own mines until they arm
                         if ((target.ID == (int)WeaponID::ProxMine || target.ID == (int)WeaponID::SmartMine)
                             && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
@@ -590,6 +588,9 @@ namespace Inferno {
                 break;
 
             case ObjectType::Weapon:
+                if (Seq::contains(src.Control.Weapon.RecentHits, target.Signature))
+                    return false; // Don't hit objects recently hit by this weapon (for piercing)
+
                 switch (target.Type) {
                     case ObjectType::Wall:
                     case ObjectType::Robot:
@@ -604,9 +605,8 @@ namespace Inferno {
                     {
                         if (target.ID > 0) return false; // Only hit player 0 in singleplayer
 
-                        // Mines can't hit the player until they arm
                         if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
-                            return false;
+                            return false; // Mines can't hit the player until they arm
 
                         return true;
                     }
@@ -1096,10 +1096,12 @@ namespace Inferno {
             targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
             if (target.Type == ObjectType::Weapon) {
-                Game::ExplodeWeapon(target);
+                Game::ExplodeWeapon(target); // Destroy the weapon that was hit (usually a mine)
             }
-            else if (target.Type == ObjectType::Robot || target.Type == ObjectType::Reactor) {
-                target.ApplyDamage(damage);
+            else {
+                if (target.Type != ObjectType::Player) // player shields are handled differently
+                    target.ApplyDamage(damage);
+
                 //fmt::print("applied {} damage\n", damage);
                 VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
 
@@ -1124,6 +1126,11 @@ namespace Inferno {
 
                 Render::CreateExplosion(expl);
             }
+
+            obj.Control.Weapon.AddRecentHit(target.Signature);
+
+            if (!weapon.Piercing)
+                obj.Destroy(); // destroy weapon after hitting an enemy
         }
         else { // Hit a wall
             // weapons with splash damage (explosions) always use robot hit effects
@@ -1206,6 +1213,8 @@ namespace Inferno {
                         Render::AddDecal(decal);
                 }
             }
+
+            obj.Destroy(); // destroy weapon after hitting a wall
         }
 
         if (splashRadius > 0) {
@@ -1218,7 +1227,6 @@ namespace Inferno {
             CreateExplosion(level, &obj, ge);
         }
 
-        obj.Destroy(); // destroy weapon after hitting something
     }
 
     void UpdateObjectSegment(Level& level, Object& obj) {
@@ -1303,8 +1311,6 @@ namespace Inferno {
             if (obj.Physics.HasFlag(PhysicsFlag::Wiggle))
                 WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
-            //SineWeapon(obj, dt, 1, 25);
-
             obj.Physics.InputVelocity = obj.Physics.Velocity;
             obj.Position += obj.Physics.Velocity * dt;
 
@@ -1352,30 +1358,6 @@ namespace Inferno {
 
                 if (obj.Type == ObjectType::Player && hit.HitObj) {
                     Game::Player.TouchObject(*hit.HitObj);
-                    //if (hit.HitObj && hit.HitObj->Type == ObjectType::Powerup) {
-                    //    hit.HitObj->Lifespan = -1;
-
-                    //    auto& powerup = Resources::GameData.Powerups[hit.HitObj->ID];
-                    //    Sound3D sound(hit.Point, hit.Tag.Segment);
-                    //    sound.Resource = Resources::GetSoundResource(powerup.HitSound);
-                    //    sound.Source = ObjID(0);
-                    //    sound.FromPlayer = true;
-                    //    Sound::Play(sound);
-
-                    //    // todo: do the powerup effects
-                    //}
-
-                    //if (hit.HitObj && hit.HitObj->Type == ObjectType::Hostage) {
-                    //    hit.HitObj->Lifespan = -1;
-
-                    //    Sound3D sound(hit.Point, hit.Tag.Segment);
-                    //    sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
-                    //    sound.Source = ObjID(0);
-                    //    sound.FromPlayer = true;
-                    //    Sound::Play(sound);
-
-                    //    // todo: pickup hostage
-                    //}
                 }
 
                 //CollideTriangles(level, obj, dt, 0);
@@ -1385,7 +1367,6 @@ namespace Inferno {
                 //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
                 //obj.Movement.Physics.Velocity = frameVec / dt;
                 obj.LastHitForce *= 0.80f; // decay every update
-
             }
 
             UpdateObjectSegment(level, obj);
