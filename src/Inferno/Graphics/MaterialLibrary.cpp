@@ -185,7 +185,6 @@ namespace Inferno::Render {
         }
 
         if (!loadedDiffuse) {
-
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
         }
 

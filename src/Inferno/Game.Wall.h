@@ -17,6 +17,7 @@ namespace Inferno {
     void ActivateTriggerD1(Level& level, Trigger& trigger);
     void ActivateTriggerD2(Level& level, Trigger& trigger);
 
+    // Returns if the wall has transparent or supertransparent textures
     bool WallIsTransparent(Level& level, Tag tag);
     void DamageWall(Level& level, Tag tag, float damage);
 

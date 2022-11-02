@@ -20,6 +20,137 @@ namespace Inferno {
     constexpr auto PlayerTurnRollScale = FixToFloat(0x4ec4 / 2) * XM_2PI;
     constexpr auto PlayerTurnRollRate = FixToFloat(0x2000) * XM_2PI;
 
+    // Wraps a UV value to 0-1
+    void WrapUV(Vector2& uv) {
+        float rmx{};
+        if (uv.x < 0)
+            uv.x = std::abs(std::modf(uv.x, &rmx));
+
+        uv.x = std::fmod(uv.x, 1);
+
+        if (uv.y < 0)
+            uv.y = std::abs(std::modf(uv.y, &rmx));
+
+        uv.y = std::fmod(uv.y, 1);
+    }
+
+    Vector2 IntersectFaceUVs(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
+        auto indices = seg.GetSide(tag.Side).GetRenderIndices();
+        //const auto& n = seg.GetSide(tag.Side).Normals[tri % 2];
+        //float* normal = (float*)&n; // { n.x, n.y, n.z };
+
+        //1. find what plane to project this wall onto to make it a 2d case
+        //int biggest = 0;
+        //if (std::abs(n.y) > std::abs(n.x)) biggest = 1;
+        //if (std::abs(n.z) > std::abs(normal[biggest])) biggest = 2;
+
+        //int ii = (biggest == 0) ? 1 : 0;
+        //int jj = (biggest == 2) ? 1 : 2;
+
+        //2. compute u,v of intersection point
+
+        // vec from 1 to 0
+        //auto points = (float*)&face[indices[tri * 3 + 1]];
+        //Vector2 p1 = { points[ii], points[jj] };
+
+        //points = (float*)&face[indices[tri * 3 + 0]];
+        //Vector2 vec0 = Vector2(points[ii], points[jj]) - p1;
+
+        ////vec from 1 -> 2
+        //points = (float*)&face[indices[tri * 3 + 2]];
+        //Vector2 vec1 = Vector2(points[ii], points[jj]) - p1;
+
+        ////vec from 1 -> checkpoint
+        //points = (float*)&pnt;
+        //Vector2 checkp(points[ii], points[jj]);
+
+        // If (f>=0 && g>=0 && 1-f-g>=0), the point is inside the triangle Position0>Position1>Position2>.
+        // 1 - f - g >= 0; 1 - 0.5 - 0.5;
+        //auto bary = Vector3::Barycentric(
+        //    face[indices[tri * 3 + 0]],
+        //    face[indices[tri * 3 + 1]],
+        //    face[indices[tri * 3 + 2]], 0.5f, 0.5f);
+
+        auto face = Face::FromSide(level, seg, tag.Side);
+        auto& v0 = face[indices[tri * 3 + 0]];
+        auto& v1 = face[indices[tri * 3 + 1]];
+        auto& v2 = face[indices[tri * 3 + 2]];
+
+        Vector2 uvs[3]{};
+        for (int i = 0; i < 3; i++)
+            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
+
+        // Project triangle to 2D
+        auto xAxis = v1 - v0;
+        xAxis.Normalize();
+        auto zAxis = xAxis.Cross(v2 - v0);
+        zAxis.Normalize();
+        auto yAxis = xAxis.Cross(zAxis);
+
+        Vector2 z0(0, 0);
+        Vector2 z1((v1 - v0).Length(), 0);
+        Vector2 z2((v2 - v0).Dot(xAxis), (v2 - v0).Dot(yAxis));
+        Vector2 hit((pnt - v0).Dot(xAxis), (pnt - v0).Dot(yAxis));
+
+        // barycentric coords of hit
+        auto bx = (z1 - z0).Cross(hit - z0).x;
+        auto by = (z2 - z1).Cross(hit - z1).x;
+        auto bz = (z0 - z2).Cross(hit - z2).x;
+        auto ba = Vector3(bx, by, bz) / (bx + by + bz);
+
+        return Vector2::Barycentric(uvs[1], uvs[2], uvs[0], ba.x, ba.y);
+
+        // vec2  uv = ba.x*u0 + ba.y*u1 + ba.z*u2;
+        //auto bay = diy / len;
+
+        //auto a = Vector3::Distance(v2, v1);
+        //auto b = Vector3::Distance(v1, v0);
+        //auto c = Vector3::Distance(v0, v2);
+
+        //v2 - v0;
+        //v1 - v0;
+        //
+        //auto U = v1 / v1.Length();
+        //Vector3 U2; v1.Normalize(U2);
+
+        //auto w = v1.Cross(v2);
+        //w.Normalize();
+
+        //auto V = U.Cross(w);
+        // yc = sqrt((a + b - c) (a - b + c) (-a + b + c) (a + b + c)) / (2 a)
+        // xc = sqrt(c^2 - yc^2)
+
+
+        //// fixmul( (v0)->i, (v1)->j ) - fixmul((v0)->j,(v1)->i)
+        //// (v0.x * v1.y) - (v0.y * v1.x)
+        //// V1.x*V2.y - V1.y*V2.x, V1.x*V2.y - V1.y*V2.x 
+        //auto k1 = ((checkp.Cross(vec0) + vec0.Cross(p1)) / vec0.Cross(vec1));
+        //assert(vec0.x || vec0.y);
+        //auto k0 = vec0.x ?
+        //    ((-k1.x * vec1.x) + checkp.x - p1.x) / vec0.x :
+        //    ((-k1.x * vec1.y) + checkp.y - p1.y) / vec0.y;
+
+
+
+        //// uvls[1].u + fixmul(k0, uvls[0].u - uvls[1].u) + fixmul(k1, uvls[2].u - uvls[1].u);
+        //auto uv = uvls[1] + (k0 * (uvls[0] - uvls[1])) + (k1 * (uvls[2] - uvls[1]));
+        ////assert(uv.x <= 1 && uv.y <= 1);
+        //return { std::fmod(uv.x, 1.0f), fmod(uv.y, 1.0f) };
+        ////float u = uvls[1].x + (k0 * (uvls[0].x - uvls[1].x)) + (k1 * (uvls[2].x - uvls[1].x));
+        ////float v = uvls[1].y + (k0 * (uvls[0].y - uvls[1].y)) + (k1 * (uvls[2].y - uvls[1].y));
+        ////return { u, v };
+    }
+
+    bool CheckTransparentWall(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
+        auto uv = IntersectFaceUVs(level, pnt, seg, tag, tri);
+        auto& side = seg.GetSide(tag.Side);
+        auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
+        auto& bitmap = Resources::ReadBitmap(Resources::LookupLevelTexID(tmap));
+        auto bmx = uint(uv.x * bitmap.Width) % bitmap.Width;
+        auto bmy = uint(uv.y * bitmap.Height) % bitmap.Height;
+        return bitmap.Data[bmy * bitmap.Width + bmx].a == 0;
+    }
+
     // Rolls the object when turning
     void TurnRoll(Object& obj, float rollScale, float rollRate) {
         auto& pd = obj.Physics;
@@ -822,7 +953,12 @@ namespace Inferno {
                 if (capsule.Intersects(face[i[tri * 3]], face[i[tri * 3 + 1]], face[i[tri * 3 + 2]],
                                        face.Side.Normals[tri], refPoint, normal, dist)) {
                     if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                        //hit.Normal = normal;
+                        Tag tag(segId, side);
+                        if (object.Type == ObjectType::Weapon && WallIsTransparent(level, tag)) {
+                            if (CheckTransparentWall(level, refPoint, seg, tag, tri))
+                                continue; // skip projectiles that hit transparent part of a wall
+                        }
+
                         hit.Normal = face.Side.Normals[tri];
                         hit.Point = refPoint;
                         hit.Distance = dist;
@@ -1301,6 +1437,7 @@ namespace Inferno {
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
             if (!obj.IsAlive()) continue;
+            if (obj.Type == ObjectType::Player && obj.ID > 0) continue;
             if (obj.Movement != MovementType::Physics) continue;
 
             obj.LastPosition = obj.Position;
