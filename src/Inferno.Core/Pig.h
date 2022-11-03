@@ -7,7 +7,14 @@ namespace Inferno {
     struct Palette {
         struct Color {
             ubyte r = 0, g = 0, b = 0, a = 255;
+            bool operator == (const Color& rhs) const {
+                return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; 
+            }
         };
+
+        // Value for supertransparent values in the mask
+        static constexpr Color SUPER_MASK = { 255, 255, 255, 255 };
+        static constexpr Color TRANSPARENT_MASK = { 0, 0, 0, 255 };
 
         Color SuperTransparent;
         List<ubyte> FadeTables;

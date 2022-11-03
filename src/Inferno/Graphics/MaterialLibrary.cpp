@@ -188,7 +188,6 @@ namespace Inferno::Render {
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
         }
 
-        // todo: optimize by putting all materials into a dictionary or some other way of not reloading special maps
         if (!loadedST && upload.SuperTransparent)
             material.Textures[Material2D::SuperTransparency].Load(batch, upload.Bitmap->Mask.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
 

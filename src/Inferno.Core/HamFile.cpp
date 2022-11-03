@@ -59,8 +59,7 @@ namespace Inferno {
         ec.DestroyedEClip = (EClipID)r.ReadInt32();
         ec.ExplosionSize = r.ReadFix();
         ec.Sound = (SoundID)r.ReadInt32();
-        ec.Segment = r.ReadInt32();
-        ec.Side = r.ReadInt32();
+        ec.OneShotTag = { (SegID)r.ReadInt32(), (SideID)r.ReadInt32() };
         return ec;
     }
 

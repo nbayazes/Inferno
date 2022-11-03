@@ -28,6 +28,7 @@ namespace Inferno {
         float EdgeDistance = 0; // Impact distance from the face edge. Used for decal culling.
         Vector3 Point, Normal, Tangent;
         Set<SegID> Visited; // visited segments
+        int Tri = -1; // Triangle of the face hit. -1, 0 or 1
 
         void Update(const HitInfo& hit, Object* obj) {
             if (!obj || hit.Distance > Distance) return;

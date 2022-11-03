@@ -605,8 +605,8 @@ namespace Inferno {
         auto& tmap1 = Resources::GetTextureInfo(side->TMap);
         if (tmap1.Transparent) return true;
 
-        if (side->TMap > LevelTexID::Unset) {
-            auto& tmap2 = Resources::GetTextureInfo(side->TMap);
+        if (side->TMap2 > LevelTexID::Unset) {
+            auto& tmap2 = Resources::GetTextureInfo(side->TMap2);
             if (tmap2.SuperTransparent) return true;
         }
 

@@ -13,6 +13,7 @@
 #include "Graphics/Render.Particles.h"
 #include "Game.Wall.h"
 #include "HUD.h"
+#include "Game.Segment.h"
 
 using namespace DirectX;
 
@@ -36,41 +37,6 @@ namespace Inferno {
 
     Vector2 IntersectFaceUVs(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
         auto indices = seg.GetSide(tag.Side).GetRenderIndices();
-        //const auto& n = seg.GetSide(tag.Side).Normals[tri % 2];
-        //float* normal = (float*)&n; // { n.x, n.y, n.z };
-
-        //1. find what plane to project this wall onto to make it a 2d case
-        //int biggest = 0;
-        //if (std::abs(n.y) > std::abs(n.x)) biggest = 1;
-        //if (std::abs(n.z) > std::abs(normal[biggest])) biggest = 2;
-
-        //int ii = (biggest == 0) ? 1 : 0;
-        //int jj = (biggest == 2) ? 1 : 2;
-
-        //2. compute u,v of intersection point
-
-        // vec from 1 to 0
-        //auto points = (float*)&face[indices[tri * 3 + 1]];
-        //Vector2 p1 = { points[ii], points[jj] };
-
-        //points = (float*)&face[indices[tri * 3 + 0]];
-        //Vector2 vec0 = Vector2(points[ii], points[jj]) - p1;
-
-        ////vec from 1 -> 2
-        //points = (float*)&face[indices[tri * 3 + 2]];
-        //Vector2 vec1 = Vector2(points[ii], points[jj]) - p1;
-
-        ////vec from 1 -> checkpoint
-        //points = (float*)&pnt;
-        //Vector2 checkp(points[ii], points[jj]);
-
-        // If (f>=0 && g>=0 && 1-f-g>=0), the point is inside the triangle Position0>Position1>Position2>.
-        // 1 - f - g >= 0; 1 - 0.5 - 0.5;
-        //auto bary = Vector3::Barycentric(
-        //    face[indices[tri * 3 + 0]],
-        //    face[indices[tri * 3 + 1]],
-        //    face[indices[tri * 3 + 2]], 0.5f, 0.5f);
-
         auto face = Face::FromSide(level, seg, tag.Side);
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
@@ -99,56 +65,88 @@ namespace Inferno {
         auto ba = Vector3(bx, by, bz) / (bx + by + bz);
 
         return Vector2::Barycentric(uvs[1], uvs[2], uvs[0], ba.x, ba.y);
-
-        // vec2  uv = ba.x*u0 + ba.y*u1 + ba.z*u2;
-        //auto bay = diy / len;
-
-        //auto a = Vector3::Distance(v2, v1);
-        //auto b = Vector3::Distance(v1, v0);
-        //auto c = Vector3::Distance(v0, v2);
-
-        //v2 - v0;
-        //v1 - v0;
-        //
-        //auto U = v1 / v1.Length();
-        //Vector3 U2; v1.Normalize(U2);
-
-        //auto w = v1.Cross(v2);
-        //w.Normalize();
-
-        //auto V = U.Cross(w);
-        // yc = sqrt((a + b - c) (a - b + c) (-a + b + c) (a + b + c)) / (2 a)
-        // xc = sqrt(c^2 - yc^2)
-
-
-        //// fixmul( (v0)->i, (v1)->j ) - fixmul((v0)->j,(v1)->i)
-        //// (v0.x * v1.y) - (v0.y * v1.x)
-        //// V1.x*V2.y - V1.y*V2.x, V1.x*V2.y - V1.y*V2.x 
-        //auto k1 = ((checkp.Cross(vec0) + vec0.Cross(p1)) / vec0.Cross(vec1));
-        //assert(vec0.x || vec0.y);
-        //auto k0 = vec0.x ?
-        //    ((-k1.x * vec1.x) + checkp.x - p1.x) / vec0.x :
-        //    ((-k1.x * vec1.y) + checkp.y - p1.y) / vec0.y;
-
-
-
-        //// uvls[1].u + fixmul(k0, uvls[0].u - uvls[1].u) + fixmul(k1, uvls[2].u - uvls[1].u);
-        //auto uv = uvls[1] + (k0 * (uvls[0] - uvls[1])) + (k1 * (uvls[2] - uvls[1]));
-        ////assert(uv.x <= 1 && uv.y <= 1);
-        //return { std::fmod(uv.x, 1.0f), fmod(uv.y, 1.0f) };
-        ////float u = uvls[1].x + (k0 * (uvls[0].x - uvls[1].x)) + (k1 * (uvls[2].x - uvls[1].x));
-        ////float v = uvls[1].y + (k0 * (uvls[0].y - uvls[1].y)) + (k1 * (uvls[2].y - uvls[1].y));
-        ////return { u, v };
     }
 
+    // Returns true if the point was transparent
     bool CheckTransparentWall(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
+        if (!WallIsTransparent(level, tag))
+            return false; // only hit test walls with transparent textures
+
         auto uv = IntersectFaceUVs(level, pnt, seg, tag, tri);
         auto& side = seg.GetSide(tag.Side);
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::ReadBitmap(Resources::LookupLevelTexID(tmap));
-        auto bmx = uint(uv.x * bitmap.Width) % bitmap.Width;
-        auto bmy = uint(uv.y * bitmap.Height) % bitmap.Height;
-        return bitmap.Data[bmy * bitmap.Width + bmx].a == 0;
+        auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
+        auto y = uint(uv.y * bitmap.Height) % bitmap.Height;
+
+        // for overlay textures, check the supertransparent mask
+        if (side.TMap2 > LevelTexID::Unset) {
+            auto xbase = x, ybase = y;
+            int t = 0;
+
+            switch (side.OverlayRotation) // adjust for overlay rotation
+            {
+                case OverlayRotation::Rotate0: break;
+                case OverlayRotation::Rotate90: t = y; y = x; x = bitmap.Width - t - 1; break;
+                case OverlayRotation::Rotate180: y = bitmap.Height - y - 1; x = bitmap.Width - x - 1; break;
+                case OverlayRotation::Rotate270: t = x; x = y; y = bitmap.Height - t - 1; break;
+            }
+
+            auto& data = bitmap.Mask.empty() ? bitmap.Data : bitmap.Mask;
+
+            if (!bitmap.Mask.empty() && bitmap.Mask[y * bitmap.Width + x] == Palette::SUPER_MASK)
+                return true; // supertransparent overlay
+
+            if (bitmap.Data[y * bitmap.Width + x].a != 0)
+                return false; // overlay wasn't transparent
+
+            // Check the base texture
+            auto& tmap1 = Resources::ReadBitmap(Resources::LookupLevelTexID(side.TMap));
+            x = uint(uv.x * tmap1.Width) % tmap1.Width;
+            y = uint(uv.y * tmap1.Height) % tmap1.Height;
+            return tmap1.Data[y * bitmap.Width + x].a == 0;
+        }
+        else {
+            return bitmap.Data[y * bitmap.Width + x].a == 0;
+        }
+    }
+
+    bool CheckDestroyableTexture(Level& level, const Vector3& pnt, Tag tag, int tri) {
+        tri = std::clamp(tri, 0, 1);
+
+        auto seg = level.TryGetSegment(tag);
+        if (!seg) return false;
+        auto& side = seg->GetSide(tag.Side);
+        if (side.TMap2 <= LevelTexID::Unset) return false;
+        auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
+        if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None) return false;
+        auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
+        bool hasEClip = eclip.DestroyedTexture != LevelTexID::None;
+
+        //if (HasFlag(eclip.Flags, EClipFlag::OneShot))
+        //    return false;
+
+        if (!CheckTransparentWall(level, pnt, *seg, tag, tri))
+            return false;
+
+        Inferno::SubtractLight(level, tag, *seg);
+
+        {
+            Render::ExplosionInfo ei;
+            ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
+            ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
+            ei.FadeTime = 0.25f;
+            ei.Position = pnt;
+            ei.Segment = tag.Segment;
+            ei.Sound = eclip.Sound != SoundID::None ? eclip.Sound : SoundID::LightDestroyed;
+
+            Render::CreateExplosion(ei);
+        }
+
+        side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
+        Render::LoadTextureDynamic(side.TMap2);
+        Editor::Events::LevelChanged();
+        return true; // was destroyed!
     }
 
     // Rolls the object when turning
@@ -954,7 +952,7 @@ namespace Inferno {
                                        face.Side.Normals[tri], refPoint, normal, dist)) {
                     if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
                         Tag tag(segId, side);
-                        if (object.Type == ObjectType::Weapon && WallIsTransparent(level, tag)) {
+                        if (object.Type == ObjectType::Weapon) {
                             if (CheckTransparentWall(level, refPoint, seg, tag, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
                         }
@@ -965,6 +963,7 @@ namespace Inferno {
                         hit.Tangent = face.Side.Tangents[tri];
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         hit.Tag = { segId, side };
+                        hit.Tri = tri;
                     }
                     else {
                         // scan touching seg
@@ -1487,6 +1486,9 @@ namespace Inferno {
 
                 if (obj.Type == ObjectType::Weapon) {
                     ApplyWeaponHit(hit, obj, level);
+                    if (CheckDestroyableTexture(level, hit.Point, hit.Tag, hit.Tri)) {
+                        // trigger events
+                    }
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {

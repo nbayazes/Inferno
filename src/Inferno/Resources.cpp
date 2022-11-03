@@ -92,7 +92,10 @@ namespace Inferno::Resources {
         return WClipID::None;
     }
 
+    EffectClip DefaultEffectClip{};
+
     const EffectClip& GetEffectClip(EClipID id) {
+        if (!Seq::inRange(GameData.Effects, (int)id)) return DefaultEffectClip;
         return GameData.Effects[(int)id];
     }
 

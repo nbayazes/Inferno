@@ -45,16 +45,16 @@ namespace Inferno {
         VClip VClip;    // embedded vclip
         float TimeLeft{};   // for sequencing
         int FrameCount{}; // for sequencing
-        LevelTexID ChangingWallTexture{}; //Which element of Textures array to replace.
+        LevelTexID ChangingWallTexture = LevelTexID::None; //Which element of Textures array to replace.
         short ChangingObjectTexture{}; //Which element of ObjBitmapPtrs array to replace.
         EClipFlag Flags{};
         int CritClip{};  //use this clip instead of above one when mine critical
-        LevelTexID DestroyedTexture{}; //use this bitmap when monitor destroyed
-        VClipID DestroyedVClip{};  //what vclip to play when exploding
-        EClipID DestroyedEClip{};  //what eclip to play when exploding
+        LevelTexID DestroyedTexture = LevelTexID::None; //use this bitmap when monitor destroyed
+        VClipID DestroyedVClip = VClipID::None;  //what vclip to play when exploding
+        EClipID DestroyedEClip = EClipID::None;  //what eclip to play when exploding
         float ExplosionSize{};  //3d size of explosion
-        SoundID Sound{}; //what sound this makes
-        int Segment{}, Side{}; //what seg & side, for one-shot clips. Probably unused
+        SoundID Sound = SoundID::None; //what sound this makes
+        Tag OneShotTag; //what seg & side, for one-shot clips. Probably unused
     };
 
     enum class WallClipFlag : int16 {

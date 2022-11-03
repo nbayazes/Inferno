@@ -200,6 +200,7 @@ namespace Inferno {
         None = -1,
         HitPlayer = 1,
         SmallExplosion = 2,
+        LightExplosion = 3, // A light or monitor exploding
         HitLava = 5,
         Matcen = 10,
         PlayerSpawn = 61,

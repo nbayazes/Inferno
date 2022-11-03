@@ -180,11 +180,11 @@ namespace Inferno {
 
         for (size_t i = 0; i < size; i++) {
             if (bmp.Data[i].a == SUPER_ALPHA) {
-                bmp.Mask[i] = { 255, 255, 255, 255 };
+                bmp.Mask[i] = Palette::SUPER_MASK;
                 bmp.Data[i] = { 0, 0, 0, 0 }; // clear the source pixel
             }
             else {
-                bmp.Mask[i] = { 0, 0, 0, 255 };
+                bmp.Mask[i] = Palette::TRANSPARENT_MASK;
             }
         }
     }
