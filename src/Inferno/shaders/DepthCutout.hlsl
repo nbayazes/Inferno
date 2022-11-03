@@ -3,10 +3,12 @@
     "RootConstants(b1, num32BitConstants = 6),"\
     "DescriptorTable(SRV(t0, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t1, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
+    "DescriptorTable(SRV(t2, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 Texture2D Diffuse : register(t0);
-Texture2D StMask : register(t1);
+Texture2D Overlay : register(t1);
+Texture2D StMask : register(t2);
 SamplerState Sampler : register(s0);
 
 #include "FrameConstants.hlsli"
@@ -49,8 +51,11 @@ float psmain(PS_INPUT input) : SV_Target {
     float alpha = Diffuse.Sample(Sampler, input.uv).a;
     
     if (HasOverlay) {
-        float mask = StMask.Sample(Sampler, input.uv2).r;
-        alpha *= (1 - mask);
+        float mask = StMask.Sample(Sampler, input.uv2).r; // only need a single channel
+        alpha *= mask.r > 0 ? (1 - mask.r) : 1;
+        
+        float4 src = Overlay.Sample(Sampler, input.uv2);
+        alpha = src.a + alpha * (1 - src.a); // Add overlay texture
     }
     
     if (alpha <= 0.01) /*Threshold*/

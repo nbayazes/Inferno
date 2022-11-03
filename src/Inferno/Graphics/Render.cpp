@@ -818,7 +818,7 @@ namespace Inferno::Render {
 
         if (chunk.TMap2 > LevelTexID::Unset) {
             consts.HasOverlay = true;
-
+            
             auto& map2 = chunk.EffectClip2 == EClipID::None ?
                 Materials->Get(chunk.TMap2) :
                 Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
