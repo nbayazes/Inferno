@@ -197,10 +197,10 @@ namespace Inferno {
         auto pdDrag = pd.Drag ? pd.Drag : 1;
         const auto drag = pdDrag * 5 / 2;
 
-        if (pd.HasFlag(PhysicsFlag::UseThrust) && pd.Mass > 0)
+        if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
             pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
 
-        if (!pd.HasFlag(PhysicsFlag::FreeSpinning))
+        if (!HasFlag(pd.Flags, PhysicsFlag::FreeSpinning))
             pd.AngularVelocity *= 1 - drag;
 
         if (pd.TurnRoll) // unrotate object for bank caused by turn
@@ -208,7 +208,7 @@ namespace Inferno {
 
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
-        if (pd.HasFlag(PhysicsFlag::TurnRoll))
+        if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll))
             TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate * dt);
 
         if (pd.TurnRoll) // re-rotate object for bank caused by turn
@@ -949,7 +949,7 @@ namespace Inferno {
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& target = level.Objects[i];
             if (target.Segment != segId) continue;
-            if (object.Parent == (ObjID)i) continue; // don't hit yourself!
+            if (object.Parent == (ObjID)i) continue; // don't hit your parent!
             if (!ObjectCanHitTarget(object, target)) continue;
 
             BoundingSphere sphere(target.Position, target.Radius);
@@ -1316,7 +1316,7 @@ namespace Inferno {
                 }
             }
 
-            if (obj.Physics.HasFlag(PhysicsFlag::Bounce) && !hitLiquid)
+            if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) && !hitLiquid)
                 return; // don't do anything when a bouncing weapon hits a wall
 
             auto dir = obj.Physics.Velocity;
@@ -1459,7 +1459,7 @@ namespace Inferno {
 
             FixedPhysics(obj, dt);
 
-            if (obj.Physics.HasFlag(PhysicsFlag::Wiggle))
+            if (HasFlag(obj.Physics.Flags, PhysicsFlag::Wiggle))
                 WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
 
             obj.Physics.InputVelocity = obj.Physics.Velocity;
@@ -1491,7 +1491,7 @@ namespace Inferno {
             }
 
             if (hit) {
-                if (obj.Physics.HasFlag(PhysicsFlag::Bounce)) {
+                if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce)) {
                     obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
                 }
 

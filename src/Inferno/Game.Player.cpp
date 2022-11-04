@@ -268,7 +268,7 @@ namespace Inferno {
 
     void AutoselectPrimary() {}
 
-    int Player::PickUpAmmo(PrimaryWeaponIndex index, int amount) {
+    int Player::PickUpAmmo(PrimaryWeaponIndex index, uint16 amount) {
         if (amount == 0) return amount;
 
         auto max = PyroGX.Weapons[(int)index].MaxAmmo;
@@ -283,7 +283,7 @@ namespace Inferno {
         ammo += amount;
 
         if (ammo > max) {
-            amount += (max - ammo);
+            amount += max - ammo;
             ammo = max;
         }
 
@@ -423,7 +423,7 @@ namespace Inferno {
                 auto& ammo = obj.Control.Powerup.Count; // remaining ammo on the weapon
 
                 if (ammo > 0) {
-                    auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, ammo);
+                    auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, (uint16)ammo);
                     ammo -= amount;
                     if (!used && amount > 0) {
                         ScreenFlash({ 7, 14, 21 });
@@ -456,6 +456,7 @@ namespace Inferno {
                 if (LaserLevel >= MAX_SUPER_LASER_LEVEL) {
                     LaserLevel = MAX_SUPER_LASER_LEVEL;
                     PrintHudMessage("super laser maxed out!");
+                    used = PickUpEnergy();
                 }
                 else {
                     //auto oldLevel = LaserLevel;
@@ -465,6 +466,7 @@ namespace Inferno {
                     LaserLevel++;
                     ScreenFlash({ 10, 0, 10 });
                     PrintHudMessage(fmt::format("super boost to laser level {}", LaserLevel + 1));
+                    used = true;
                     // todo: autoswap
                 }
                 break;
@@ -557,7 +559,6 @@ namespace Inferno {
                 }
                 else {
                     GivePowerup(PowerupFlag::Cloaked);
-
                 }
                 // if already cloaked, show msg
                 // 
@@ -641,7 +642,7 @@ namespace Inferno {
         return true;
     }
 
-    bool Player::PickUpSecondary(SecondaryWeaponIndex index, int count) {
+    bool Player::PickUpSecondary(SecondaryWeaponIndex index, uint16 count) {
         auto max = PyroGX.Weapons[10 + (int)index].MaxAmmo;
         if (HasPowerup(PowerupFlag::AmmoRack))
             max *= 2;

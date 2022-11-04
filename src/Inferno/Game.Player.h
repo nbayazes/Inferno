@@ -84,9 +84,9 @@ namespace Inferno {
         // Gives energy and returns true if able to pick up a powerup
         bool PickUpEnergy();
         bool PickUpPrimary(PrimaryWeaponIndex);
-        bool PickUpSecondary(SecondaryWeaponIndex, int count = 1);
+        bool PickUpSecondary(SecondaryWeaponIndex, uint16 count = 1);
         // Returns the amount of ammo picked up
-        int PickUpAmmo(PrimaryWeaponIndex, int amount);
+        int PickUpAmmo(PrimaryWeaponIndex, uint16 amount);
 
         WeaponID GetPrimaryWeaponID() const {
             if (Primary == PrimaryWeaponIndex::Laser) {

@@ -105,7 +105,7 @@ namespace Inferno::Game {
                 // Commit to the target
                 cw.DetonateMine = true;
                 obj.Lifespan = 2;
-                obj.Physics.ClearFlag(PhysicsFlag::Bounce); // explode on contacting walls
+                ClearFlag(obj.Physics.Flags, PhysicsFlag::Bounce); // explode on contacting walls
 
                 if (target) {
                     auto delta = target->Position - obj.Position;

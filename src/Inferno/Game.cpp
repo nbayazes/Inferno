@@ -649,6 +649,10 @@ namespace Inferno::Game {
             for (auto& obj : Level.Objects) {
                 obj.LastPosition = obj.Position;
                 obj.LastRotation = obj.Rotation;
+                obj.Signature = GetObjectSig();
+
+                if ((obj.Type == ObjectType::Player && obj.ID != 0) || obj.Type == ObjectType::Coop)
+                    obj.Destroy(); // Remove non-player 0 starts (no multiplayer)
 
                 if (obj.Type == ObjectType::Robot) {
                     auto& ri = Resources::GetRobotInfo(obj.ID);
