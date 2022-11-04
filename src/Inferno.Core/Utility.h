@@ -22,6 +22,8 @@ namespace Inferno {
     //    return cc;
     //}
 
+    void InitRandom();
+
     // Returns a random value between 0 and 1
     float Random();
 
@@ -53,7 +55,7 @@ namespace Inferno {
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T& operator |= (T& lhs, T rhs) {
+    T& operator |= (T& lhs, T rhs) {
         return lhs = lhs | rhs;
     }
 
@@ -63,12 +65,12 @@ namespace Inferno {
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T& operator &= (T& lhs, T rhs) {
+    T& operator &= (T& lhs, T rhs) {
         return lhs = lhs & rhs;
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T operator ~ (T value) {
+    T operator ~ (T value) {
         return value = T(~((std::underlying_type_t<T>)value));
     }
 
@@ -79,7 +81,7 @@ namespace Inferno {
     bool HasFlag(const T& flags, T flag) { return bool(flags & flag); }
 
     template<class T>
-    void ClearFlag(const T& flags, T flag) { flags &= ~flag; }
+    void ClearFlag(T& flags, T flag) { flags &= ~flag; }
 
     //template <class T>
     //concept IsEnum = is_scoped_enum_v<T>;
@@ -116,8 +118,10 @@ namespace Inferno {
 
     // Executes a function on a new thread asynchronously
     void StartAsync(auto&& fun) {
+        // Calls a fire-and-forget function
         auto future = std::make_shared<std::future<void>>();
-        *future = std::async(std::launch::async, [future, fun]() {
+        // capturing future adds +1 ref count which will be released when fn completes
+        *future = std::async(std::launch::async, [future, fun] {
             fun();
         }); // future disposes itself on exit
     }
@@ -148,7 +152,7 @@ namespace Inferno {
     }
 
     constexpr Color ColorFromRGB(uint8 r, uint8 g, uint8 b, uint8 a = 255) {
-        return Color((float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, float(a) / 255.0f);
+        return { (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, float(a) / 255.0f };
     }
 
     inline Vector3 AverageVectors(span<Vector3> verts) {
@@ -181,7 +185,7 @@ namespace Inferno {
         return Color(average);
     }
 
-    const DirectX::XMVECTORF32 g_UnitVectorEpsilon = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
+    constexpr DirectX::XMVECTORF32 g_UnitVectorEpsilon = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
 
     inline bool IsNormalized(const Vector3& v) {
         using namespace DirectX;
@@ -309,15 +313,6 @@ namespace Inferno {
         return (fix)(f * (1 << 16));
     }
 
-    // Calls a fire-and-forget function
-    void CallAsync(auto&& fn) {
-        auto future = std::make_shared<std::future<void>>();
-        // capturing future adds +1 ref count which will be released when fn completes
-        *future = std::async(std::launch::async, [future, fn]() {
-            fn();
-        });
-    }
-
     namespace String {
         constexpr bool Contains(const std::string_view str, const std::string_view value) {
             return str.find(value) != string::npos;
@@ -363,19 +358,19 @@ namespace Inferno {
         const std::string Whitespace = " \n\r\t\f\v";
 
         // Remove whitespace from the beginning
-        inline string TrimStart(string s) {
+        inline string TrimStart(const string& s) {
             auto start = s.find_first_not_of(Whitespace);
             return start == std::string::npos ? "" : s.substr(start);
         }
 
         // Remove whitespace from the end
-        inline string TrimEnd(string s) {
+        inline string TrimEnd(const string& s) {
             auto end = s.find_last_not_of(Whitespace);
             return end == std::string::npos ? "" : s.substr(0, end + 1);
         }
 
         // Remove whitespace from both ends
-        inline string Trim(string s) {
+        inline string Trim(const string& s) {
             return TrimStart(TrimEnd(s));
         }
 
@@ -435,7 +430,7 @@ namespace Inferno {
         }
 
         constexpr bool inRange(auto&& xs, size_t index) {
-            return index >= 0 && index < xs.size();
+            return index < xs.size();
         }
 
         template<class T>
@@ -593,7 +588,7 @@ namespace Inferno {
         return String::TrimEnd(string(name)) + String::TrimEnd(string(ext));
     }
 
-    inline bool ExtensionEquals(std::filesystem::path path, wstring ext) {
+    inline bool ExtensionEquals(const std::filesystem::path& path, wstring ext) {
         if (!path.has_extension()) return false;
         if (!ext.starts_with('.')) ext.insert(0, L".");
 
