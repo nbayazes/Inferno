@@ -192,9 +192,9 @@ namespace Inferno {
     }
 
     void DrawReticle() {
-        const Vector2 crossOffset(0/*-8*/, -5);
-        const Vector2 primaryOffset(0/*-30*/, 14);
-        const Vector2 secondaryOffset(0/*-24*/, 2);
+        constexpr Vector2 crossOffset(0/*-8*/, -5);
+        constexpr Vector2 primaryOffset(0/*-30*/, 14);
+        constexpr Vector2 secondaryOffset(0/*-24*/, 2);
 
         bool primaryReady = Game::Player.CanFirePrimary();
         bool secondaryReady = Game::Player.CanFireSecondary();
@@ -408,6 +408,7 @@ namespace Inferno {
             Render::DrawTextInfo info;
             info.Font = FontSize::Small;
             info.Color = { 0.54f, 0.54f, 0.71f };
+
             info.Position = Vector2(2, -120) * scale;
             info.HorizontalAlign = AlignH::Center;
             info.VerticalAlign = AlignV::Bottom;
@@ -471,18 +472,18 @@ namespace Inferno {
 
             float x0 = -cos((steps - i) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
             float x1 = -cos((steps - i - 1) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
-            float y0 = yOffset + yStep * i;
-            float y1 = yOffset + yStep * (i + 1);
+            float y0 = yOffset + yStep * float(i);
+            float y1 = yOffset + yStep * float(i + 1);
 
             Vector2 v0 = { x0, y0 };
-            Vector2 v1 = { x0 + (width * 2), y0 };
-            Vector2 v2 = { x1 + (width * 2), y1 };
+            Vector2 v1 = { x0 + width * 2, y0 };
+            Vector2 v2 = { x1 + width * 2, y1 };
             Vector2 v3 = { x1, y1 };
 
-            payload.V0 = CanvasVertex{ v0, { 1 - vStep * i      , 0 }, color.RGBA().v }; // bottom left
-            payload.V1 = CanvasVertex{ v1, { 1 - vStep * i      , 1 }, color.RGBA().v }; // bottom right
-            payload.V2 = CanvasVertex{ v2, { 1 - vStep * (i + 1), 1 }, color.RGBA().v }; // top right
-            payload.V3 = CanvasVertex{ v3, { 1 - vStep * (i + 1), 0 }, color.RGBA().v }; // top left
+            payload.V0 = CanvasVertex{ v0, { 1 - vStep * float(i)    , 0 }, color.RGBA().v }; // bottom left
+            payload.V1 = CanvasVertex{ v1, { 1 - vStep * float(i)    , 1 }, color.RGBA().v }; // bottom right
+            payload.V2 = CanvasVertex{ v2, { 1 - vStep * float(i + 1), 1 }, color.RGBA().v }; // top right
+            payload.V3 = CanvasVertex{ v3, { 1 - vStep * float(i + 1), 0 }, color.RGBA().v }; // top left
             Render::HudGlowCanvas->Draw(payload);
         }
     }

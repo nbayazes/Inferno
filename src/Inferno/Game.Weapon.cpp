@@ -2,6 +2,8 @@
 #include "Object.h"
 #include "Game.h"
 #include "Physics.h"
+#include "Graphics/Render.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
     Vector3 GetGunpointOffset(const Object& obj, int gun) {
@@ -12,11 +14,13 @@ namespace Inferno::Game {
             auto& robot = Resources::GetRobotInfo(obj.ID);
             return robot.GunPoints[gun] * Vector3(1, 1, -1);
         }
-        else if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
+
+        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
             return Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);;
             //offset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
         }
-        else if (obj.Type == ObjectType::Reactor) {
+
+        if (obj.Type == ObjectType::Reactor) {
             if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return Vector3::Zero;
             auto& reactor = Resources::GameData.Reactors[obj.ID];
             return reactor.GunPoints[gun];
@@ -40,7 +44,7 @@ namespace Inferno::Game {
         e.Clip = vclip;
         e.Sound = soundId;
         e.Position = obj.Position;
-        e.Color = { 1, 1, 1 };
+        e.Color = Color{ 1, 1, 1 };
         e.FadeTime = 0.1f;
         Render::CreateExplosion(e);
 
@@ -122,7 +126,7 @@ namespace Inferno::Game {
 
         for (int i = 0; i < Game::Level.Objects.size(); i++) {
             auto& other = Game::Level.Objects[i];
-            auto validTarget = (other.Type == ObjectType::Robot && !other.Control.AI.IsCloaked()) || other.Type == ObjectType::Player;
+            auto validTarget = other.Type == ObjectType::Robot && !other.Control.AI.IsCloaked() || other.Type == ObjectType::Player;
 
             if (!validTarget || (ObjID)i == other.Control.Weapon.Parent)
                 continue; // Don't target cloaked robots (todo: or players?) or the owner
@@ -183,8 +187,16 @@ namespace Inferno::Game {
 
         bullet.Movement = MovementType::Physics;
         bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
-        if (WeaponIsMine(id))
+        if (WeaponIsMine(id)) {
             bullet.Physics.Velocity += obj.Physics.Velocity; // inherit velocity when placing mines
+        }
+        else {
+            // Inherit forward velocity
+            auto vec = obj.Physics.Velocity;
+            vec.Normalize();
+            auto dot = std::abs(vec.Dot(obj.Rotation.Forward()));
+            bullet.Physics.Velocity += dot * obj.Physics.Velocity;
+        }
 
         //bullet.Physics.Velocity = direction * 10;
         bullet.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
@@ -440,7 +452,7 @@ namespace Inferno::Game {
         { "omega", OmegaBehavior }
     };
 
-    WeaponBehavior& GetWeaponBehavior(string name) {
+    WeaponBehavior& GetWeaponBehavior(const string& name) {
         for (auto& [key, value] : WeaponFireBehaviors) {
             if (name == key) return value;
         }

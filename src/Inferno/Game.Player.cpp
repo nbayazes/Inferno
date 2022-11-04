@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Game.Player.h"
 #include "Game.h"
+#include "HUD.h"
 
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;

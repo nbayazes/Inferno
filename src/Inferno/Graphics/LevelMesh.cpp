@@ -234,8 +234,8 @@ namespace Inferno {
                 auto wall = level.TryGetWall(side.Wall);
                 WallType wallType = wall ? wall->Type : WallType::None;
 
-                // Do not render fly-through walls
-                if (isWall && wallType == WallType::FlyThroughTrigger)
+                // Do not render open walls
+                if (isWall && wallType == WallType::Open)
                     continue;
 
                 if (wallType == WallType::WallTrigger)

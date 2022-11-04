@@ -252,9 +252,10 @@ namespace Inferno {
         SelectFail = 156,
         AlreadySelected = 155,
 
-        CloseWall = 160,
-        OpenWall = 246,
+        CloakOn = 160,
         CloakOff = 161,
+
+        OpenWall = 246,
 
         Cheater = 200,
 
@@ -451,7 +452,7 @@ namespace Inferno {
         }
 
         // Number of active elements. Not to be confused with capacity.
-        size_t Count() const { return _count; }
+        [[nodiscard]] size_t Count() const { return _count; }
 
         // Sets the count, only use when reading raw data
         void Count(size_t count) { _count = std::clamp(count, (size_t)0, Capacity); }
@@ -469,7 +470,7 @@ namespace Inferno {
         auto& data() { return _data; }
         const auto& data() const { return _data; }
 
-        bool InRange(size_t index) const { return index >= 0 && index < _count; }
+        [[nodiscard]] bool InRange(size_t index) const { return index < _count; }
         auto at(size_t index) { return _data.at(index); }
         auto begin() { return _data.begin(); }
         auto end() { return _data.begin() + _count; }
@@ -478,11 +479,9 @@ namespace Inferno {
     };
 }
 
-namespace std {
-    template <>
-    struct hash<Inferno::Tag> {
-        std::size_t operator()(const Inferno::Tag& t) const {
-            return std::hash<Inferno::SegID>()(t.Segment) ^ (std::hash<Inferno::SideID>()(t.Side) << 1);
-        }
-    };
-}
+template <>
+struct std::hash<Inferno::Tag> {
+    std::size_t operator()(const Inferno::Tag& t) const noexcept {
+        return std::hash<Inferno::SegID>()(t.Segment) ^ (std::hash<Inferno::SideID>()(t.Side) << 1);
+    }
+};

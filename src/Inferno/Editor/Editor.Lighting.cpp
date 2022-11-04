@@ -200,7 +200,7 @@ namespace Inferno::Editor {
 
         switch (wall.Type) {
             case WallType::Cloaked:
-            case WallType::FlyThroughTrigger:
+            case WallType::Open:
                 return true;
 
             case WallType::Door:
@@ -238,7 +238,7 @@ namespace Inferno::Editor {
 
         auto& wall = level.GetWall(side.Wall);
         switch (wall.Type) {
-            case WallType::FlyThroughTrigger:
+            case WallType::Open:
             case WallType::None:
                 return false;
             default:

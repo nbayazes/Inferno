@@ -34,13 +34,13 @@ namespace Inferno {
 
     enum class WallType : uint8 {
         None = 0,
-        Destroyable = 1, // Hostage and guidebot doors
-        Door = 2,      // Solid wall. Opens when triggered.
-        Illusion = 3,  // Wall with no collision
-        FlyThroughTrigger = 4, // Fly-through invisible trigger
-        Closed = 5,    // Solid wall. Fades in or out when triggered.
-        WallTrigger = 6,   // For shootable triggers on a segment side
-        Cloaked = 7,   // Solid, transparent wall that fades in or out when triggered. Similar to Closed but untextured.
+        Destroyable = 1,// Hostage and guidebot doors
+        Door = 2,       // Solid wall. Opens when triggered.
+        Illusion = 3,   // Wall with no collision
+        Open = 4,       // Invisible wall with no collision
+        Closed = 5,     // Solid wall. Fades in or out when triggered.
+        WallTrigger = 6,// For shootable triggers on a segment side
+        Cloaked = 7,    // Solid, transparent wall that fades in or out when triggered. Similar to Closed but untextured.
     };
 
     struct Wall {
@@ -68,7 +68,7 @@ namespace Inferno {
             if (Type == WallType::Illusion) return false;
             if (Type == WallType::Door && HasFlag(WallFlag::DoorOpened)) return false;
             if (Type == WallType::Destroyable && HasFlag(WallFlag::Destroyed)) return false;
-            if (Type == WallType::FlyThroughTrigger) return false;
+            if (Type == WallType::Open) return false;
             return true;
         }
 

@@ -321,7 +321,7 @@ namespace Inferno::Editor {
 
                 auto& side = seg->GetSide(tag.Side);
                 if (!side.HasWall())
-                    Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
+                    Editor::AddWall(level, tag, WallType::Open, {}, {});
 
                 if (!side.HasWall()) return ""; // failed to add a wall
 

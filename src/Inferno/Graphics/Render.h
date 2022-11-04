@@ -127,8 +127,8 @@ namespace Inferno::Render {
         return Vector3::DistanceSquared(Render::Camera.Position, pos) * 0.98f - 100;
     }
 
-    void QueueTransparent(RenderCommand&);
-    void QueueOpaque(RenderCommand&);
+    void QueueTransparent(const RenderCommand&);
+    void QueueOpaque(const RenderCommand&);
 
     void DrawBillboard(Graphics::GraphicsContext& ctx, TexID tid, const Vector3& position, float radius, const Color& color, bool additive, float rotation, const Vector3* up);
     extern bool LevelChanged;

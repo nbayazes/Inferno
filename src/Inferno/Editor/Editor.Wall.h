@@ -150,7 +150,7 @@ namespace Inferno::Editor {
                 case WallType::Destroyable: AddHostageDoor(); break;
                 case WallType::Door: AddDoor(); break;
                 case WallType::Illusion: AddEnergyWall(); break;
-                case WallType::FlyThroughTrigger: AddFlythroughTrigger(); break;
+                case WallType::Open: AddFlythroughTrigger(); break;
                 case WallType::Closed: AddGrate(); break;
                 case WallType::WallTrigger: AddWallTrigger(); break;
                 case WallType::Cloaked: AddCloaked(); break;

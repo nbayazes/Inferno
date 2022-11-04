@@ -46,8 +46,8 @@ namespace Inferno::Render {
         int _indexBufferSize;
         int _vertexBufferSize;
         bool _inBatch = false;
-        void* _pVertexBuffer;
-        void* _pIndexBuffer;
+        void* _pVertexBuffer = nullptr;
+        void* _pIndexBuffer = nullptr;
         //int _requestedIndexBufferSize = _indexBufferSize;
         //int _requestedVertexBufferSize = _vertexBufferSize;
 
@@ -140,11 +140,11 @@ namespace Inferno::Render {
     List<RenderCommand> _opaqueQueue;
     List<RenderCommand> _transparentQueue;
 
-    void QueueTransparent(RenderCommand& command) {
+    void QueueTransparent(const RenderCommand& command) {
         _transparentQueue.push_back(command);
     }
 
-    void QueueOpaque(RenderCommand& command) {
+    void QueueOpaque(const RenderCommand& command) {
         _opaqueQueue.push_back(command);
     }
 
@@ -335,8 +335,8 @@ namespace Inferno::Render {
             using namespace Outrage;
 
             if (submodel.HasFlag(SubmodelFlag::Facing)) {
-                auto smPos = Vector3::Transform(Vector3::Zero, world);
-                auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
+                //auto smPos = Vector3::Transform(Vector3::Zero, world);
+                //auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
                 constants.World = world;
                 //constants.Projection = billboard * ViewProjection;
             }
@@ -751,7 +751,7 @@ namespace Inferno::Render {
 
     IEffect* _activeEffect;
 
-    void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, Object& object, ModelID modelId, float lerp) {
+    void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, ModelID modelId, float lerp) {
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = _meshBuffer->GetHandle(modelId);
         auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
@@ -818,7 +818,7 @@ namespace Inferno::Render {
 
         if (chunk.TMap2 > LevelTexID::Unset) {
             consts.HasOverlay = true;
-            
+
             auto& map2 = chunk.EffectClip2 == EClipID::None ?
                 Materials->Get(chunk.TMap2) :
                 Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));

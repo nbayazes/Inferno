@@ -1,8 +1,6 @@
 #pragma once
 
 #include "AI.h"
-#include "Weapon.h"
-#include "Player.h"
 
 namespace Inferno {
     // Control types - what tells this object what do do
@@ -174,9 +172,9 @@ namespace Inferno {
     };
 
     struct ModelData {
-        ModelID ID;
-        Array<Vector3, MAX_SUBMODELS> Angles; // angles for each subobject
-        int subobj_flags; // specify which subobjs to draw
+        ModelID ID = ModelID::None;
+        Array<Vector3, MAX_SUBMODELS> Angles{}; // angles for each subobject
+        int subobj_flags = 0; // specify which subobjs to draw
         LevelTexID TextureOverride = LevelTexID::None; // If set, draw all faces using this texture
         int alt_textures = -1; // Used for multiplayer ship colors
     };
@@ -199,9 +197,9 @@ namespace Inferno {
             else Flags[4] &= ~0x02;
         }
 
-        bool SmartMineFlag() { return Flags[4] & 0x02; }
+        bool SmartMineFlag() const { return Flags[4] & 0x02; }
 
-        bool IsCloaked() { return Flags[6]; }
+        bool IsCloaked() const { return Flags[6]; }
     };
 
     struct WeaponData {
@@ -250,17 +248,17 @@ namespace Inferno {
     // Descent 2
     struct ReactorControlInfo {
         // Orientation and position of guns
-        Array<Vector3, 8> GunPoints, GunDirs;
+        Array<Vector3, 8> GunPoints{}, GunDirs{};
     };
 
     struct ControlData {
         ControlType Type = ControlType::None;
         union {
-            struct ExplosionObjectInfo Explosion; //debris also uses this
-            struct LightInfo Light;
-            struct PowerupControlInfo Powerup;
-            struct RobotAI AI {}; // be sure to init using the largest struct
-            struct WeaponData Weapon;
+            ExplosionObjectInfo Explosion; //debris also uses this
+            LightInfo Light;
+            PowerupControlInfo Powerup;
+            RobotAI AI{}; // be sure to init using the largest struct
+            WeaponData Weapon;
             //struct ReactorControlInfo Reactor; // Not in original data
         };
     };
@@ -272,8 +270,8 @@ namespace Inferno {
         Color Emissive;
         float Rotation = 0;
         union {
-            struct ModelData Model {}; // polygon model
-            struct VClipData VClip;   // vclip
+            ModelData Model{}; // polygon model
+            VClipData VClip;   // vclip
         };
     };
 
@@ -359,7 +357,7 @@ namespace Inferno {
 
         bool IsAlive() const { return IsAliveFn(*this); }
 
-        float Distance(const Object& obj) {
+        float Distance(const Object& obj) const {
             return Vector3::Distance(Position, obj.Position);
         }
     };

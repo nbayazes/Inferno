@@ -8,6 +8,9 @@
 #include "Game.h"
 #include "Graphics/Render.Particles.h"
 #include "HUD.h"
+#include "DataPool.h"
+#include "Resources.h"
+#include "Editor/Events.h"
 
 namespace Inferno {
     //template<class TData, class TKey = int>
@@ -53,7 +56,12 @@ namespace Inferno {
     //    [[nodiscard]] const auto end() const { return _data.end(); }
     //};
 
-    constexpr float DOOR_WAIT_TIME = 2;
+
+    // Removes all effects and objects stuck to a wall
+    void RemoveAttachments(Tag tag) {
+        // todo: remove objects stuck on wall (flares)
+        Render::RemoveDecals(tag);
+    }
 
     ActiveDoor* FindDoor(Level& level, WallID id) {
         for (auto& door : level.ActiveDoors) {
@@ -88,12 +96,12 @@ namespace Inferno {
         SetWallTMap(side, cside, clip, frame);
     }
 
+
     void DoOpenDoor(Level& level, ActiveDoor& door, float dt) {
         auto& wall = level.GetWall(door.Front);
         auto cwall = level.TryGetConnectedWall(wall.Tag);
 
-        // todo: remove objects stuck on door
-        Render::RemoveDecals(wall.Tag);
+        RemoveAttachments(wall.Tag);
 
         door.Time += dt;
 
@@ -275,7 +283,7 @@ namespace Inferno {
             }
             else if (wall->State == WallState::DoorWaiting) {
                 door.Time += dt;
-                if (door.Time > DOOR_WAIT_TIME) {
+                if (door.Time > Game::DOOR_WAIT_TIME) {
                     fmt::print("Closing door {}\n", door.Front);
                     wall->State = WallState::DoorClosing;
                     door.Time = 0;
@@ -296,16 +304,84 @@ namespace Inferno {
 
     bool WallIsForcefield(Level& level, Trigger& trigger) {
         for (auto& tag : trigger.Targets) {
-            if (auto seg = level.TryGetSide(tag)) {
-                if (Resources::GetLevelTextureInfo(seg->TMap).HasFlag(TextureFlag::ForceField))
+            if (auto side = level.TryGetSide(tag)) {
+                if (Resources::GetLevelTextureInfo(side->TMap).HasFlag(TextureFlag::ForceField))
                     return true;
             }
         }
         return false;
     }
 
-    bool ChangeWalls(Trigger& trigger) {
+    void ChangeWall(Level& level, Wall& wall, TriggerType type, WallType wallType) {
+        if (wall.Type == wallType) return; // already the right type
+
+        auto wside = level.TryGetSide(wall.Tag);
+        if (!wside) return;
+
+        switch (type) {
+            case TriggerType::OpenWall:
+                if (Resources::GetLevelTextureInfo(wside->TMap).HasFlag(TextureFlag::ForceField)) {
+                    Sound3D sound(wside->Center, wall.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::ForcefieldOff);
+                    Sound::Play(sound);
+                    Sound::Stop(wall.Tag); // stop the humming sound
+                    wall.Type = wallType;
+                }
+                else {
+                    // do wall uncloak
+                    Sound3D sound(wside->Center, wall.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::CloakOff);
+                    Sound::Play(sound);
+                    wall.Type = wallType; // would be delayed by animation
+                }
+                break;
+
+            case TriggerType::CloseWall:
+                if (Resources::GetLevelTextureInfo(wside->TMap).HasFlag(TextureFlag::ForceField)) {
+                    Sound3D sound(wside->Center, wall.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::ForcefieldHum);
+                    sound.Looped = true;
+                    sound.Volume = 0.5f;
+                    Sound::Play(sound);
+                    wall.Type = wallType;
+                }
+                else {
+                    // do wall cloak
+                    Sound3D sound(wside->Center, wall.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::CloakOn);
+                    Sound::Play(sound);
+                    wall.Type = wallType; // would be delayed by animation
+                }
+                break;
+
+            case TriggerType::IllusoryWall:
+                wall.Type = wallType;
+                break;
+        }
+
+        RemoveAttachments(wall.Tag);
+        Editor::Events::LevelChanged();
+    }
+
+    bool ChangeWalls(Level& level, Trigger& trigger) {
         bool changed = false;
+
+        for (auto& target : trigger.Targets) {
+            auto wallType = [&trigger] {
+                switch (trigger.Type) {
+                    default:
+                    case TriggerType::OpenWall: return WallType::Open;
+                    case TriggerType::CloseWall: return WallType::Closed;
+                    case TriggerType::IllusoryWall: return WallType::Illusion;
+                }
+            }();
+
+            if (auto wall = level.TryGetWall(target))
+                ChangeWall(level, *wall, trigger.Type, wallType);
+
+            if (auto wall = level.TryGetConnectedWall(target))
+                ChangeWall(level, *wall, trigger.Type, wallType);
+        }
 
         return changed;
     }
@@ -351,8 +427,7 @@ namespace Inferno {
 
             if (wall.Time > EXPLODE_TIME * 0.75f) {
                 if (auto w = level.TryGetWall(wall.Tag)) {
-                    // todo: remove objects stuck on side (flares)
-                    Render::RemoveDecals(wall.Tag);
+                    RemoveAttachments(wall.Tag);
                     auto& clip = Resources::GetWallClip(w->Clip);
                     SetWallTMap(level, wall.Tag, clip, clip.NumFrames - 1);
                 }
@@ -532,25 +607,25 @@ namespace Inferno {
                 break;
 
             case TriggerType::CloseWall:
-                if (ChangeWalls(trigger)) {
+                if (ChangeWalls(level, trigger)) {
                     if (WallIsForcefield(level, trigger))
                         PrintTriggerMessage(trigger, "Force field{} deactivated!");
-                    else
-                        PrintTriggerMessage(trigger, "Wall{} opened!");
-                }
-                break;
-
-            case TriggerType::OpenWall:
-                if (ChangeWalls(trigger)) {
-                    if (WallIsForcefield(level, trigger))
-                        PrintTriggerMessage(trigger, "Force field{} activated!");
                     else
                         PrintTriggerMessage(trigger, "Wall{} closed!");
                 }
                 break;
 
+            case TriggerType::OpenWall:
+                if (ChangeWalls(level, trigger)) {
+                    if (WallIsForcefield(level, trigger))
+                        PrintTriggerMessage(trigger, "Force field{} activated!");
+                    else
+                        PrintTriggerMessage(trigger, "Wall{} opened!");
+                }
+                break;
+
             case TriggerType::IllusoryWall:
-                ChangeWalls(trigger); // not sure what message to print
+                ChangeWalls(level, trigger); // not sure what message to print
                 break;
 
             case TriggerType::IllusionOn:
@@ -593,6 +668,13 @@ namespace Inferno {
         }
     }
 
+    void ActivateTrigger(Level& level, Trigger& trigger) {
+        if (level.IsDescent1())
+            ActivateTriggerD1(level, trigger);
+        else
+            ActivateTriggerD2(level, trigger);
+    }
+
     bool WallIsTransparent(Level& level, Tag tag) {
         auto side = level.TryGetSide(tag);
         auto wall = level.TryGetWall(tag);
@@ -613,3 +695,4 @@ namespace Inferno {
         return false;
     }
 }
+

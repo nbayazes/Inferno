@@ -295,7 +295,7 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    string GetMatcenRobotLabel(Level& level, const Matcen& matcen) {
+    string GetMatcenRobotLabel(const Level& level, const Matcen& matcen) {
         string label;
 
         const uint maxRobots = level.IsDescent1() ? 25 : 64;
@@ -535,7 +535,7 @@ namespace Inferno::Editor {
 
     bool WallTypeDropdown(Level& level, const char* label, WallType& value) {
         static const char* WallTypeLabels[] = {
-            "None", "Destroyable", "Door", "Illusion", "Fly-Through", "Closed", "Wall Trigger", "Cloaked"
+            "None", "Destroyable", "Door", "Illusion", "Open", "Closed", "Wall Trigger", "Cloaked"
         };
 
         auto& seg = level.GetSegment(Editor::Selection.Tag());
@@ -554,7 +554,7 @@ namespace Inferno::Editor {
                 if (ImGui::Selectable(WallTypeLabels[i], isSelected)) {
                     value = (WallType)i;
                     changed = true;
-                    Events::LevelChanged(); // Fly-through can affect rendering
+                    Events::LevelChanged();
                 }
 
                 if (isSelected)
@@ -569,7 +569,7 @@ namespace Inferno::Editor {
 
     bool KeyDropdown(WallKey& value) {
         static const char* KeyLabels[] = { "None", "Blue", "Gold", "Red" };
-        static const WallKey KeyValues[] = { WallKey::None, WallKey::Blue, WallKey::Gold, WallKey::Red };
+        static constexpr WallKey KeyValues[] = { WallKey::None, WallKey::Blue, WallKey::Gold, WallKey::Red };
 
         int selection = [&value] {
             if ((int)value & (int)WallKey::Blue) return 1;
@@ -848,8 +848,8 @@ namespace Inferno::Editor {
         if ((int)flags == 0) return "None";
 
         string str;
-        auto AppendFlag = [&](TextureFlag flag, string name) {
-            if (bool((ubyte)flags & (ubyte)flag)) {
+        auto AppendFlag = [&](TextureFlag flag, const string& name) {
+            if (HasFlag(flags, flag)) {
                 if (str.empty()) str = name;
                 else str += ", " + name;
             }
@@ -959,7 +959,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void TransformPosition(Level& level, Segment& seg, Editor::SelectionMode mode) {
+    void TransformPosition(Level& level, const Segment& seg, Editor::SelectionMode mode) {
         bool changed = false;
         bool finishedEdit = false;
         auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
@@ -985,7 +985,6 @@ namespace Inferno::Editor {
 
                 if (changed) {
                     auto delta = center - original;
-                    auto verts = seg.GetVertices(level);
 
                     for (int i = 0; i < 8; i++)
                         level.Vertices[seg.Indices[i]] += delta;

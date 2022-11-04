@@ -227,7 +227,7 @@ namespace Inferno::Render {
             color.A(alpha);
             Debug::DrawWallMarker(face, color);
 
-            if (wall.Type == WallType::FlyThroughTrigger)
+            if (wall.Type == WallType::Open)
                 Debug::DrawArrow(center, center - face.AverageNormal() * 5, color);
         }
     }

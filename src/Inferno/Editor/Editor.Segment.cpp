@@ -141,7 +141,7 @@ namespace Inferno::Editor {
     }
 
     // Creates a 20x20 face aligned to the selected edge and centered to the source face
-    void CreateOrthoSegmentFace(Level& level, Tag src, int point, Array<uint16, 4>& srcIndices, const Vector3& offset) {
+    void CreateOrthoSegmentFace(Level& level, Tag src, int point, const Array<uint16, 4>& srcIndices, const Vector3& offset) {
         // Project the existing points
         Vector3 points[4] = {
             level.Vertices[srcIndices[0]] - offset,
@@ -1022,8 +1022,6 @@ namespace Inferno::Editor {
 
         auto src = Editor::Selection.Tag();
         Tag dest = *Editor::Marked.Faces.begin();
-        auto srcFace = Face::FromSide(Game::Level, src);
-        auto destFace = Face::FromSide(Game::Level, dest);
         if (!JoinSides(Game::Level, src, dest)) {
             SetStatusMessage("Unable to join sides");
             return {};
@@ -1050,8 +1048,6 @@ namespace Inferno::Editor {
         // move verts on top of the connected opposite side
         auto endFace = Face::FromSide(level, opposite);
         auto selFace = Face::FromSide(level, tag);
-        auto startFaceSide = GetOppositeSide(tag.Side);
-        auto startFace = Face::FromSide(level, tag.Segment, startFaceSide);
 
         static const std::array forward = { 0, 1, 2, 3 };
         static const std::array reverse = { 3, 2, 1, 0 };
@@ -1224,8 +1220,6 @@ namespace Inferno::Editor {
         Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
         auto srcFace = Face::FromSide(level, tag);
         auto oppFace = Face::FromSide(level, opposite);
-        auto srcCenter = srcFace.Center();
-        auto oppCenter = oppFace.Center();
         auto& srcSeg = level.GetSegment(tag);
 
         // inset vertices on each face towards center

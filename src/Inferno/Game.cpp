@@ -69,7 +69,7 @@ namespace Inferno::Game {
         }
     }
 
-    void LoadMission(filesystem::path file) {
+    void LoadMission(const filesystem::path& file) {
         Mission = HogFile::Read(FileSystem::FindFile(file));
     }
 
@@ -546,10 +546,8 @@ namespace Inferno::Game {
 
     // Adds sound sources from eclips such as lava and forcefields
     void AddSoundSources() {
-        // todo: clear sounds
-
         for (int i = 0; i < Level.Segments.size(); i++) {
-            SegID segid = SegID(i);
+            auto segid = SegID(i);
             auto& seg = Level.GetSegment(segid);
             for (auto& sid : SideIDs) {
                 if (!seg.SideIsSolid(sid, Level)) continue;
@@ -564,13 +562,13 @@ namespace Inferno::Game {
                         continue; // skip sound on lower numbered segment
                 }
 
-                // Place the sound behind the wall to reduce the doppler effect of flying by it
-                Sound3D s(side.Center - side.AverageNormal * 15, segid);
+                Sound3D s(side.Center - side.AverageNormal * 10, segid);
                 s.Looped = true;
                 s.Radius = 150;
                 s.Resource = Resources::GetSoundResource(sound);
-                s.Volume = 0.55f;
+                s.Volume = 0.50f;
                 s.Occlusion = false;
+                s.Side = sid;
                 Sound::Play(s);
             }
         }

@@ -30,7 +30,7 @@ namespace Inferno::Game {
 
     void LoadLevel(Inferno::Level&&);
 
-    void LoadMission(filesystem::path file);
+    void LoadMission(const filesystem::path& file);
 
     inline void UnloadMission() {
         Mission = {};
@@ -71,9 +71,10 @@ namespace Inferno::Game {
 
     using GunIndex = int;
     using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
-    WeaponBehavior& GetWeaponBehavior(string name);
+    WeaponBehavior& GetWeaponBehavior(const string& name);
 
     bool PlayerCanOpenDoor(const Wall& wall);
 
+    constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open
     constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
 }

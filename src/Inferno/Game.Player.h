@@ -2,13 +2,12 @@
 
 #include "Player.h"
 #include "Resources.h"
-#include "HUD.h"
 
 namespace Inferno {
     enum class FireState { None, Press, Hold, Release };
 
     // Extracted player state that was scattered across methods or globals as static variables
-    struct Player : public PlayerInfo {
+    struct Player : PlayerInfo {
         float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
 
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::Laser;

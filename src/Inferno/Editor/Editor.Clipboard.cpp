@@ -66,7 +66,7 @@ namespace Inferno::Editor {
             for (auto& sid : SideIDs) {
                 auto& side = seg.GetSide(sid);
                 if (auto wall = level.TryGetWall(side.Wall)) {
-                    if (wall->Type == WallType::WallTrigger || wall->Type == WallType::FlyThroughTrigger) {
+                    if (wall->Type == WallType::WallTrigger || wall->Type == WallType::Open) {
                         side.Wall = WallID::None;
                         continue; // Don't copy triggers, they need to be set up again by hand
                     }

@@ -1,6 +1,5 @@
 #include "pch.h"
 #define NOMINMAX
-#include <iostream>
 #include "Physics.h"
 #include "Resources.h"
 #include "Game.h"
@@ -27,12 +26,12 @@ namespace Inferno {
         if (uv.x < 0)
             uv.x = std::abs(std::modf(uv.x, &rmx));
 
-        uv.x = std::fmod(uv.x, 1);
+        uv.x = std::fmodf(uv.x, 1);
 
         if (uv.y < 0)
             uv.y = std::abs(std::modf(uv.y, &rmx));
 
-        uv.y = std::fmod(uv.y, 1);
+        uv.y = std::fmodf(uv.y, 1);
     }
 
     Vector2 IntersectFaceUVs(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
@@ -67,6 +66,18 @@ namespace Inferno {
         return Vector2::Barycentric(uvs[1], uvs[2], uvs[0], ba.x, ba.y);
     }
 
+    void FixOverlayRotation(uint& x, uint& y, int width, int height, OverlayRotation rotation) {
+        int t = 0;
+
+        switch (rotation) // adjust for overlay rotation
+        {
+            case OverlayRotation::Rotate0: break;
+            case OverlayRotation::Rotate90: t = y; y = x; x = width - t - 1; break;
+            case OverlayRotation::Rotate180: y = height - y - 1; x = width - x - 1; break;
+            case OverlayRotation::Rotate270: t = x; x = y; y = height - t - 1; break;
+        }
+    }
+
     // Returns true if the point was transparent
     bool CheckTransparentWall(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
         if (!WallIsTransparent(level, tag))
@@ -81,18 +92,7 @@ namespace Inferno {
 
         // for overlay textures, check the supertransparent mask
         if (side.TMap2 > LevelTexID::Unset) {
-            auto xbase = x, ybase = y;
-            int t = 0;
-
-            switch (side.OverlayRotation) // adjust for overlay rotation
-            {
-                case OverlayRotation::Rotate0: break;
-                case OverlayRotation::Rotate90: t = y; y = x; x = bitmap.Width - t - 1; break;
-                case OverlayRotation::Rotate180: y = bitmap.Height - y - 1; x = bitmap.Width - x - 1; break;
-                case OverlayRotation::Rotate270: t = x; x = y; y = bitmap.Height - t - 1; break;
-            }
-
-            auto& data = bitmap.Mask.empty() ? bitmap.Data : bitmap.Mask;
+            FixOverlayRotation(x, y, bitmap.Width, bitmap.Height, side.OverlayRotation);
 
             if (!bitmap.Mask.empty() && bitmap.Mask[y * bitmap.Width + x] == Palette::SUPER_MASK)
                 return true; // supertransparent overlay
@@ -111,6 +111,7 @@ namespace Inferno {
         }
     }
 
+    // returns true if overlay was destroyed
     bool CheckDestroyableTexture(Level& level, const Vector3& pnt, Tag tag, int tri) {
         tri = std::clamp(tri, 0, 1);
 
@@ -121,15 +122,26 @@ namespace Inferno {
         auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
         if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None) return false;
         auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
+        if (eclip.DestroyedTexture == LevelTexID::None && tmi.DestroyedTexture == LevelTexID::None) return false;
         bool hasEClip = eclip.DestroyedTexture != LevelTexID::None;
-
         //if (HasFlag(eclip.Flags, EClipFlag::OneShot))
         //    return false;
 
-        if (!CheckTransparentWall(level, pnt, *seg, tag, tri))
-            return false;
+        auto uv = IntersectFaceUVs(level, pnt, *seg, tag, tri);
 
-        Inferno::SubtractLight(level, tag, *seg);
+        auto& bitmap = Resources::ReadBitmap(Resources::LookupLevelTexID(side.TMap2));
+        auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
+        auto y = uint(uv.y * bitmap.Height) % bitmap.Height;
+        FixOverlayRotation(x, y, bitmap.Width, bitmap.Height, side.OverlayRotation);
+
+        if (!bitmap.Mask.empty() && bitmap.Mask[y * bitmap.Width + x] == Palette::SUPER_MASK)
+            return false; // portion hit was supertransparent
+
+        if (bitmap.Data[y * bitmap.Width + x].a == 0)
+            return false; // portion hit was transparent
+
+        // Hit opaque overlay!
+        //Inferno::SubtractLight(level, tag, *seg);
 
         {
             Render::ExplosionInfo ei;
@@ -141,6 +153,10 @@ namespace Inferno {
             ei.Sound = eclip.Sound != SoundID::None ? eclip.Sound : SoundID::LightDestroyed;
 
             Render::CreateExplosion(ei);
+        }
+
+        if (auto trigger = level.TryGetTrigger(side.Wall)) {
+            ActivateTrigger(level, *trigger);
         }
 
         side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
@@ -457,6 +473,7 @@ namespace Inferno {
     }
 
     // Untested
+    /*
     Option<Vector3> NearestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, const BoundingSphere& sphere) {
         auto N = GetTriangleNormal(p0, p1, p2);
         float dist = (sphere.Center - p0).Dot(N); // signed distance between sphere and plane
@@ -516,7 +533,7 @@ namespace Inferno {
                 }
             }
 
-            auto len = intersection_vec.Length();  // vector3 length calculation: 
+            auto len = intersection_vec.Length();  // vector3 length calculation:
             auto penetration_normal = intersection_vec / len;  // normalize
             float penetration_depth = sphere.Radius - len; //
             return sphere.Center + penetration_normal * penetration_depth; // intersection success
@@ -524,6 +541,7 @@ namespace Inferno {
 
         return {};
     }
+    */
 
     // Intersects sphere a with b. Surface normal points towards a.
     HitInfo IntersectSphereSphere(const BoundingSphere& a, const BoundingSphere& b) {
@@ -575,7 +593,6 @@ namespace Inferno {
 
         if (sphere.Intersects(face[i[0]], face[i[1]], face[i[2]])) {
             auto p = ClosestPointOnTriangle(face[i[0]], face[i[1]], face[i[2]], sphere.Center);
-            auto vec = p - sphere.Center;
             auto dist = (p - sphere.Center).Length();
             if (dist < hit.Distance) {
                 hit.Point = p;
@@ -604,7 +621,6 @@ namespace Inferno {
     Tuple<Vector3, float> IntersectTriangleSphere(const Vector3& p0, const Vector3& p1, const Vector3& p2, const BoundingSphere& sphere) {
         if (sphere.Intersects(p0, p1, p2)) {
             auto p = ClosestPointOnTriangle(p0, p1, p2, sphere.Center);
-            auto vec = p - sphere.Center;
             auto dist = (p - sphere.Center).Length();
             return { p, dist };
         }
@@ -614,7 +630,6 @@ namespace Inferno {
 
 
     HitInfo BoundingCapsule::Intersects(const DirectX::BoundingSphere& sphere) const {
-        HitInfo hit{};
         auto p = ClosestPointOnLine(B, A, sphere.Center);
         DirectX::BoundingSphere cap(p, Radius);
         return IntersectSphereSphere(cap, sphere);
@@ -636,9 +651,9 @@ namespace Inferno {
         if (capsuleNormal.Dot(faceNormal) > 0)
             return false; // skip backfacing. This might be undesireable for some capsule tests.
 
-        auto offset = capsuleNormal * Radius; // line end offset
-        auto a = base + offset; // base
-        auto b = tip - offset; // tip
+        //auto offset = capsuleNormal * Radius; // line end offset
+        //auto a = base + offset; // base
+        //auto b = tip - offset; // tip
 
         //Render::Debug::DrawLine(a, b, { 1, 0, 0 });
 
@@ -687,8 +702,9 @@ namespace Inferno {
                         //case ObjectType::Weapon:
                     case ObjectType::Clutter:
                         return true;
+                    default:
+                        return false;
                 }
-                break;
 
             case ObjectType::Coop:
             case ObjectType::Player:
@@ -713,8 +729,9 @@ namespace Inferno {
                         //case ObjectType::Coop:
                     case ObjectType::Marker:
                         return true;
+                    default:
+                        return false;
                 }
-                break;
 
             case ObjectType::Weapon:
                 if (Seq::contains(src.Control.Weapon.RecentHits, target.Signature))
@@ -750,8 +767,9 @@ namespace Inferno {
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
                         return true;
+                    default:
+                        return false;
                 }
-                break;
 
             case ObjectType::Reactor:
                 switch (target.Type) {
@@ -761,14 +779,16 @@ namespace Inferno {
                     case ObjectType::Clutter:
                     case ObjectType::Coop:
                         return true;
+                    default:
+                        return false;
                 }
-                break;
 
             case ObjectType::Clutter:
                 return false; // not implemented
-        }
 
-        return false;
+            default:
+                return false;
+        }
     }
 
     // Finds the nearest sphere-level intersection
@@ -987,106 +1007,106 @@ namespace Inferno {
         return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, hit);
     }
 
-    void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
-        //if (obj.Type == ObjectType::Player) return;
+    //void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
+    //    //if (obj.Type == ObjectType::Player) return;
 
-        Plane plane(t.Points[0], t.Points[1], t.Points[2]);
-        auto& pd = obj.Physics;
+    //    Plane plane(t.Points[0], t.Points[1], t.Points[2]);
+    //    auto& pd = obj.Physics;
 
-        if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
-        auto delta = obj.Position - obj.LastPosition;
-        auto expectedDistance = delta.Length();
-        if (expectedDistance < 0.001f) return;
-        Vector3 dir;
-        delta.Normalize(dir);
-        //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
+    //    if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
+    //    auto delta = obj.Position - obj.LastPosition;
+    //    auto expectedDistance = delta.Length();
+    //    if (expectedDistance < 0.001f) return;
+    //    Vector3 dir;
+    //    delta.Normalize(dir);
+    //    //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
 
-        float hitDistance{};
-        Ray ray(obj.LastPosition, dir);
-        //bool hit = false;
+    //    float hitDistance{};
+    //    Ray ray(obj.LastPosition, dir);
+    //    //bool hit = false;
 
-        //if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
-        //    hit = hitDistance < expectedDistance - obj.Radius;
-        //    //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
-        //    if (hit)
-        //        obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
-        //}
+    //    //if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
+    //    //    hit = hitDistance < expectedDistance - obj.Radius;
+    //    //    //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
+    //    //    if (hit)
+    //    //        obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
+    //    //}
 
-        bool isHit = false;
+    //    bool isHit = false;
 
-        LevelHit hit;
-        IntersectLevel(level, ray, segId, expectedDistance, false, hit);
-        if (hit.HitObj) {
-            // hit an object
-            obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
-            hitDistance = hit.Distance;
-            isHit = true;
-        }
-        else if (hit.Tag) {
-            // hit a wall
-            obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
-            hitDistance = hit.Distance;
-            isHit = true;
-        }
-        else {
-            // ray cast didn't hit anything, try the sphere test
-            // note that this is not a sweep and will miss points between the begin and end.
-            // Fortunately, most fast-moving objects are projectiles and have small radii.
-            BoundingSphere sphere(obj.Position, obj.Radius);
-            isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
+    //    LevelHit hit;
+    //    IntersectLevel(level, ray, segId, expectedDistance, false, hit);
+    //    if (hit.HitObj) {
+    //        // hit an object
+    //        obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
+    //        hitDistance = hit.Distance;
+    //        isHit = true;
+    //    }
+    //    else if (hit.Tag) {
+    //        // hit a wall
+    //        obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
+    //        hitDistance = hit.Distance;
+    //        isHit = true;
+    //    }
+    //    else {
+    //        // ray cast didn't hit anything, try the sphere test
+    //        // note that this is not a sweep and will miss points between the begin and end.
+    //        // Fortunately, most fast-moving objects are projectiles and have small radii.
+    //        BoundingSphere sphere(obj.Position, obj.Radius);
+    //        isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
 
-            float planeDist;
-            ray.Intersects(plane, planeDist);
-            if (!isHit && planeDist <= expectedDistance) {
-                // Last, test if the object sphere collides with the intersection of the triangle's plane
-                sphere = BoundingSphere(obj.LastPosition + dir * planeDist, obj.Radius * 1.1f);
-                //BoundingSphere sphere(obj.Position(), obj.Radius);
-                isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
-            }
-        }
+    //        float planeDist;
+    //        ray.Intersects(plane, planeDist);
+    //        if (!isHit && planeDist <= expectedDistance) {
+    //            // Last, test if the object sphere collides with the intersection of the triangle's plane
+    //            sphere = BoundingSphere(obj.LastPosition + dir * planeDist, obj.Radius * 1.1f);
+    //            //BoundingSphere sphere(obj.Position(), obj.Radius);
+    //            isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
+    //        }
+    //    }
 
-        if (!isHit) return;
+    //    if (!isHit) return;
 
-        bool tryAgain = false;
+    //    bool tryAgain = false;
 
-        auto closestPoint = ClosestPointOnTriangle(t[0], t[1], t[2], obj.Position);
-        Debug::ClosestPoints.push_back(closestPoint);
-        auto closestNormal = obj.Position - closestPoint;
-        closestNormal.Normalize();
+    //    auto closestPoint = ClosestPointOnTriangle(t[0], t[1], t[2], obj.Position);
+    //    Debug::ClosestPoints.push_back(closestPoint);
+    //    auto closestNormal = obj.Position - closestPoint;
+    //    closestNormal.Normalize();
 
-        // Adjust velocity
-        if (pd.HasFlag(PhysicsFlag::Stick)) {
+    //    // Adjust velocity
+    //    if (pd.HasFlag(PhysicsFlag::Stick)) {
 
-        }
-        else {
-            // We're constrained by wall, so subtract wall part from velocity
-            auto wallPart = closestNormal.Dot(pd.Velocity);
+    //    }
+    //    else {
+    //        // We're constrained by wall, so subtract wall part from velocity
+    //        auto wallPart = closestNormal.Dot(pd.Velocity);
 
-            if (pd.HasFlag(PhysicsFlag::Bounce))
-                wallPart *= 2; //Subtract out wall part twice to achieve bounce
+    //        if (pd.HasFlag(PhysicsFlag::Bounce))
+    //            wallPart *= 2; //Subtract out wall part twice to achieve bounce
 
-            pd.Velocity -= closestNormal * wallPart;
-            tryAgain = true;
+    //        pd.Velocity -= closestNormal * wallPart;
+    //        tryAgain = true;
 
-            //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
-        }
+    //        //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
+    //    }
 
-        // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
-        if (pass > 0 && !pd.HasFlag(PhysicsFlag::Bounce)) {
-            auto depth = obj.Radius - (obj.Position - closestPoint).Length();
-            if (depth > 0.075f) {
-                auto strength = depth / 0.15f;
-                pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
-                //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
+    //    // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
+    //    if (pass > 0 && !pd.HasFlag(PhysicsFlag::Bounce)) {
+    //        auto depth = obj.Radius - (obj.Position - closestPoint).Length();
+    //        if (depth > 0.075f) {
+    //            auto strength = depth / 0.15f;
+    //            pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
+    //            //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
 
-                // Counter the input velocity
-                pd.Velocity -= obj.Physics.InputVelocity * strength * dt;
-            }
-        }
+    //            // Counter the input velocity
+    //            pd.Velocity -= obj.Physics.InputVelocity * strength * dt;
+    //        }
+    //    }
 
-        // Move the object to the surface of the triangle
-        obj.Position = closestPoint + closestNormal * obj.Radius;
-    }
+    //    // Move the object to the surface of the triangle
+    //    obj.Position = closestPoint + closestNormal * obj.Radius;
+    //}
 
 
     void UpdateGame(Level& level, float dt) {
@@ -1249,14 +1269,14 @@ namespace Inferno {
                 expl.Clip = vclip;
                 expl.MinRadius = weapon.ImpactSize * 0.85f;
                 expl.MaxRadius = weapon.ImpactSize * 1.15f;
-                expl.Color = { 1.15f, 1.15f, 1.15f };
+                expl.Color = Color{ 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
 
                 if (obj.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
                     expl.Instances = 3;
                     expl.MinDelay = expl.MaxDelay = 0;
                     expl.Clip = weapon.RobotHitVClip;
-                    expl.Color = { 1, 1, 1 };
+                    expl.Color = Color{ 1, 1, 1 };
                 }
 
                 Render::CreateExplosion(expl);
@@ -1315,7 +1335,7 @@ namespace Inferno {
                 // this doesn't work properly with fast moving projectiles
                 e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
 
-            e.Color = { 1, 1, 1 };
+            e.Color = Color{ 1, 1, 1 };
             e.FadeTime = 0.1f;
 
             if (obj.ID == (int)WeaponID::Concussion) {
@@ -1364,20 +1384,15 @@ namespace Inferno {
 
     }
 
+    // Updates the segment the object is in an activates triggers
     void UpdateObjectSegment(Level& level, Object& obj) {
         auto prevSegId = obj.Segment;
         Editor::UpdateObjectSegment(level, obj);
         if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
-            //auto& prevSeg = level.GetSegment(prevSegId);
-
             auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
             if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
                 if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
-                    if (level.IsDescent1())
-                        ActivateTriggerD1(level, *trigger);
-
-                    else if (level.IsDescent2())
-                        ActivateTriggerD2(level, *trigger);
+                    ActivateTrigger(level, *trigger);
                 }
             }
         }
@@ -1466,10 +1481,6 @@ namespace Inferno {
             else {
                 Vector3 dir;
                 delta.Normalize(dir);
-                //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
-
-                Ray ray(obj.LastPosition, dir);
-
                 BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
 
                 if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
