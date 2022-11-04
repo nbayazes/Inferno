@@ -21,9 +21,10 @@ namespace Inferno::Sound {
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
     constexpr float MERGE_WINDOW = 1 / 10.0f; // Merge the same sound being played by a source within a window
 
-    std::atomic<bool> RequestStopSounds = false;
+    std::atomic RequestStopSounds = false;
+    List<Tag> StopSoundTags;
 
-    struct Sound3DInstance : public Sound3D {
+    struct Sound3DInstance : Sound3D {
         float Muffle = 1, TargetMuffle = 1;
         bool Started = false;
         Ptr<SoundEffectInstance> Instance;
@@ -109,7 +110,7 @@ namespace Inferno::Sound {
         List<Ptr<SoundEffect>> SoundsD1, SoundsD2;
         Dictionary<string, Ptr<SoundEffect>> SoundsD3;
 
-        std::atomic<bool> Alive = false;
+        std::atomic Alive = false;
         std::jthread WorkerThread;
         std::list<Sound3DInstance> SoundInstances;
         std::mutex ResetMutex, SoundInstancesMutex;
@@ -192,24 +193,30 @@ namespace Inferno::Sound {
                     while (sound != SoundInstances.end()) {
                         auto state = sound->Instance->GetState();
 
-                        if (RequestStopSounds) {
-                            sound->Instance->Stop();
-                            SoundInstances.erase(sound++);
-                            continue;
+                        bool dispose = false;
+
+                        for (auto& tag : StopSoundTags) {
+                            if (sound->Segment == tag.Segment && sound->Side == tag.Side)
+                                dispose = true;
                         }
 
-                        if (!sound->Looped) {
-                            if (state == SoundState::STOPPED && sound->Started) {
-                                //SPDLOG_INFO("Removing object sound instance");
-                                SoundInstances.erase(sound++);
-                                continue;
+                        if (RequestStopSounds) {
+                            dispose = true;
+                        }
+                        else if (!sound->Looped && state == SoundState::STOPPED) {
+                            if (sound->Started) {
+                                dispose = true; // a one-shot sound finished playing
                             }
-
-                            if (state == SoundState::STOPPED && !sound->Started) {
+                            else {
                                 // New sound
                                 sound->Instance->Play();
                                 sound->Started = true;
                             }
+                        }
+
+                        if (dispose) {
+                            SoundInstances.erase(sound++);
+                            continue;
                         }
 
                         sound->UpdateEmitter(Render::Camera.Position, dt);
@@ -221,7 +228,6 @@ namespace Inferno::Sound {
                         sound->Instance->Apply3D(Listener, sound->Emitter, false);
                         sound++;
                     }
-
                 }
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
@@ -439,7 +445,7 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Clearing audio cache");
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
         Stop3DSounds();
-        
+
         // Sleep caller while the worker thread finishes cleaning up
         while (RequestStopSounds)
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -479,5 +485,11 @@ namespace Inferno::Sound {
         //for (auto& effect : SoundEffects) {
 
         //}
+    }
+
+    void Stop(Tag tag) {
+        if (!Alive) return;
+        std::scoped_lock lock(SoundInstancesMutex);
+        StopSoundTags.push_back(tag);
     }
 }
