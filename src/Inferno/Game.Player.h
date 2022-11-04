@@ -30,9 +30,9 @@ namespace Inferno {
         bool SpreadfireToggle = false; // horizontal / vertical
         uint8 HelixOrientation = 0; // increments in 22.5 degrees
         float FusionNextSoundDelay = 0;
-        uint8 FiringIndex = 0, MissileFiringIndex;
+        uint8 FiringIndex = 0, MissileFiringIndex = 0;
 
-        FireState PrimaryState, SecondaryState;
+        FireState PrimaryState{}, SecondaryState{};
         float RefuelSoundTime = 0;
 
         bool Gunpoints[20][8] = {

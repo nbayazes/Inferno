@@ -1227,6 +1227,7 @@ namespace Inferno {
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
+        bool hitVolatile = false;
 
         if (hit.HitObj) {
             auto& target = *hit.HitObj;
@@ -1302,6 +1303,7 @@ namespace Inferno {
                     soundId = SoundID::HitLava;
                     addDecal = false;
                     hitLiquid = true;
+                    hitVolatile = true;
                 }
                 else if (ti.HasFlag(TextureFlag::Water)) {
                     if (obj.ID == (int)WeaponID::Concussion)
@@ -1369,16 +1371,32 @@ namespace Inferno {
                 }
             }
 
+            // todo: flares don't stick to forcefields or lava
+            // todo: this won't work for flares
             obj.Destroy(); // destroy weapon after hitting a wall
         }
 
-        if (splashRadius > 0) {
+        if (splashRadius > 0 || hitVolatile) {
             GameExplosion ge{};
-            ge.Damage = damage;
-            ge.Force = damage; // force = damage, really?
-            ge.Radius = splashRadius;
             ge.Segment = hit.Tag.Segment;
             ge.Position = hit.Point;
+            constexpr float VOLATILE_DAMAGE_RADIUS = 30;
+
+            if (hitVolatile && splashRadius < VOLATILE_DAMAGE_RADIUS / 2) {
+                // don't use volatile hits on large explosions like megas
+                constexpr float VOLATILE_DAMAGE = 10;
+                constexpr float VOLATILE_FORCE = 5;
+
+                ge.Damage = weapon.Damage[Game::Difficulty] / 4 + VOLATILE_DAMAGE;
+                ge.Radius = weapon.SplashRadius + VOLATILE_DAMAGE_RADIUS;
+                ge.Force = weapon.Damage[Game::Difficulty] / 2 + VOLATILE_FORCE;
+            }
+            else {
+                ge.Damage = damage;
+                ge.Force = damage; // force = damage, really?
+                ge.Radius = splashRadius;
+            }
+
             CreateExplosion(level, &obj, ge);
         }
 
