@@ -112,7 +112,7 @@ namespace Inferno {
     }
 
     // returns true if overlay was destroyed
-    bool CheckDestroyableTexture(Level& level, const Vector3& pnt, Tag tag, int tri) {
+    bool CheckDestroyableTexture(Level& level, const Vector3& point, Tag tag, int tri) {
         tri = std::clamp(tri, 0, 1);
 
         auto seg = level.TryGetSegment(tag);
@@ -127,7 +127,7 @@ namespace Inferno {
         //if (HasFlag(eclip.Flags, EClipFlag::OneShot))
         //    return false;
 
-        auto uv = IntersectFaceUVs(level, pnt, *seg, tag, tri);
+        auto uv = IntersectFaceUVs(level, point, *seg, tag, tri);
 
         auto& bitmap = Resources::ReadBitmap(Resources::LookupLevelTexID(side.TMap2));
         auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
@@ -144,15 +144,22 @@ namespace Inferno {
         //Inferno::SubtractLight(level, tag, *seg);
 
         {
+            auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
+
+            if (hasEClip) {
             Render::ExplosionInfo ei;
             ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
             ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
             ei.FadeTime = 0.25f;
-            ei.Position = pnt;
+                ei.Position = point;
             ei.Segment = tag.Segment;
-            ei.Sound = eclip.Sound != SoundID::None ? eclip.Sound : SoundID::LightDestroyed;
-
             Render::CreateExplosion(ei);
+        }
+
+            auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
+            Sound3D sound(point, tag.Segment);
+            sound.Resource = Resources::GetSoundResource(soundId);
+            Sound::Play(sound);
         }
 
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
