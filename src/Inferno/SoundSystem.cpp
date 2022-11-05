@@ -200,6 +200,8 @@ namespace Inferno::Sound {
                                 dispose = true;
                         }
 
+                        StopSoundTags.clear();
+
                         if (RequestStopSounds) {
                             dispose = true;
                         }
