@@ -376,7 +376,6 @@ namespace Inferno {
                     break;
 
                 GivePowerup(PowerupFlag::BlueKey);
-                Sound::Play(Resources::GetSoundResource(Resources::GameData.Powerups[obj.ID].HitSound));
                 ScreenFlash({ 0, 0, 15 });
 
                 auto msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), Resources::GetString(GameString::AccessGranted));
@@ -391,7 +390,6 @@ namespace Inferno {
                     break;
 
                 GivePowerup(PowerupFlag::RedKey);
-                Sound::Play(Resources::GetSoundResource(Resources::GameData.Powerups[obj.ID].HitSound));
                 ScreenFlash({ 15, 0, 0 });
 
                 auto msg = fmt::format("{} {}", Resources::GetString(GameString::Red), Resources::GetString(GameString::AccessGranted));
@@ -406,7 +404,6 @@ namespace Inferno {
                     break;
 
                 GivePowerup(PowerupFlag::GoldKey);
-                Sound::Play(Resources::GetSoundResource(Resources::GameData.Powerups[obj.ID].HitSound));
                 ScreenFlash({ 15, 15, 7 });
 
                 auto msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), Resources::GetString(GameString::AccessGranted));
