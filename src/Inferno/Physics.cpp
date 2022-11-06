@@ -150,7 +150,7 @@ namespace Inferno {
             ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
             ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
             ei.FadeTime = 0.25f;
-                ei.Position = point;
+            ei.Position = point;
             ei.Segment = tag.Segment;
             Render::CreateExplosion(ei);
 
@@ -1416,50 +1416,6 @@ namespace Inferno {
             if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
                 if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
                     ActivateTrigger(level, *trigger);
-                }
-            }
-        }
-    }
-
-    void HitWall(Level& level, const LevelHit& hit, const Object& obj, const Wall& wall) {
-        auto parent = level.TryGetObject(obj.Parent);
-
-        bool isPlayerSource = obj.Type == ObjectType::Player || (parent && parent->Type == ObjectType::Player);
-
-        if (wall.Type == WallType::Destroyable && isPlayerSource && obj.Type == ObjectType::Weapon) {
-            auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
-            DamageWall(level, hit.Tag, weapon.Damage[Game::Difficulty]);
-        }
-        else if (wall.Type == WallType::Door) {
-            if ((isPlayerSource && Game::PlayerCanOpenDoor(wall)) ||
-                (obj.Type == ObjectType::Robot && obj.Control.AI.Behavior == AIBehavior::Snipe)) {
-                if (wall.State != WallState::DoorOpening)
-                    OpenDoor(level, hit.Tag);
-            }
-            else {
-                // Can't open door
-                if (obj.Type == ObjectType::Weapon) {
-                    // todo: only play message if door is in front of the player and the player owns the weapon
-                    Sound3D sound(hit.Point, hit.Tag.Segment);
-                    sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
-                    sound.Source = obj.Parent;
-                    sound.FromPlayer = true;
-                    Sound::Play(sound);
-
-                    if (isPlayerSource) {
-                        string msg;
-                        if (bool(wall.Keys & WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
-                            msg = fmt::format("{} {}", Resources::GetString(GameString::Red), Resources::GetString(GameString::AccessDenied));
-                        else if (bool(wall.Keys & WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
-                            msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), Resources::GetString(GameString::AccessDenied));
-                        else if (bool(wall.Keys & WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
-                            msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), Resources::GetString(GameString::AccessDenied));
-                        else if (wall.HasFlag(WallFlag::DoorLocked))
-                            msg = Resources::GetString(GameString::CantOpenDoor);
-
-                        if (!msg.empty())
-                            PrintHudMessage(msg);
-                    }
                 }
             }
         }

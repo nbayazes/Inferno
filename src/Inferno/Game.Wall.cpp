@@ -71,31 +71,30 @@ namespace Inferno {
         return nullptr;
     }
 
-    void SetWallTMap(SegmentSide& side1, SegmentSide& side2, const WallClip& clip, int frame) {
+    void SetSideClip(SegmentSide& side, const WallClip& clip, int frame) {
         frame = std::clamp(frame, 0, (int)clip.NumFrames - 1);
         auto tmap = clip.Frames[frame];
         bool changed = false;
 
         if (clip.UsesTMap1()) {
-            changed = side1.TMap != tmap || side2.TMap != tmap;
-            side1.TMap = side2.TMap = tmap;
+            changed = side.TMap != tmap;
+            side.TMap = tmap;
         }
         else {
             // assert side.tmap1 && tmap2 != 0
-            changed = side1.TMap2 != tmap || side2.TMap2 != tmap;
-            side1.TMap2 = side2.TMap2 = tmap;
+            changed = side.TMap2 != tmap;
+            side.TMap2 = tmap;
         }
-
-        if (changed) Editor::Events::LevelChanged();
+        if (changed) Render::LevelChanged = true;
     }
 
-    void SetWallTMap(Level& level, Tag tag, const WallClip& clip, int frame) {
+    void SetWallClip(Level& level, Tag tag, const WallClip& clip, int frame) {
         auto conn = level.GetConnectedSide(tag);
         auto& side = level.GetSide(tag);
-        auto& cside = level.GetSide(conn);
-        SetWallTMap(side, cside, clip, frame);
+        SetSideClip(side, clip, frame);
+        if (auto cside = level.TryGetSide(conn))
+            SetSideClip(*cside, clip, frame);
     }
-
 
     void DoOpenDoor(Level& level, ActiveDoor& door, float dt) {
         auto& wall = level.GetWall(door.Front);
@@ -110,7 +109,7 @@ namespace Inferno {
         auto i = int(door.Time / frameTime);
 
         if (i < clip.NumFrames) {
-            SetWallTMap(level, wall.Tag, clip, i);
+            SetWallClip(level, wall.Tag, clip, i);
         }
 
         if (i > clip.NumFrames / 2) { // half way open
@@ -119,7 +118,7 @@ namespace Inferno {
         }
 
         if (i >= clip.NumFrames - 1) {
-            SetWallTMap(level, wall.Tag, clip, i - 1);
+            SetWallClip(level, wall.Tag, clip, i - 1);
 
             if (!wall.HasFlag(WallFlag::DoorAuto)) {
                 door = {}; // free door slot because it won't close
@@ -153,9 +152,7 @@ namespace Inferno {
         auto front = level.TryGetWall(door.Front);
         auto back = level.TryGetWall(door.Back);
 
-        auto conn = level.GetConnectedSide(wall.Tag);
         auto& side = level.GetSide(wall.Tag);
-        auto& cside = level.GetSide(conn);
 
         if (wall.HasFlag(WallFlag::DoorAuto)) {
             if (DoorIsObstructed(level, wall.Tag)) return;
@@ -181,7 +178,7 @@ namespace Inferno {
         }
 
         if (i > 0) {
-            SetWallTMap(side, cside, clip, i);
+            SetWallClip(level, wall.Tag, clip, i);
             //fmt::print("{}:{} Set wall state to closing\n", wall.Tag.Segment, wall.Tag.Side);
             front->State = WallState::DoorClosing;
             if (back) back->State = WallState::DoorClosing;
@@ -189,10 +186,10 @@ namespace Inferno {
         }
         else {
             // CloseDoor()
-            fmt::print("{}:{} Set wall state to closed\n", wall.Tag.Segment, wall.Tag.Side);
+            // SetWallClip(level, wall.Tag, clip, 0);
+            //fmt::print("{}:{} Set wall state to closed\n", wall.Tag.Segment, wall.Tag.Side);
             front->State = WallState::Closed;
             if (back) back->State = WallState::Closed;
-            SetWallTMap(side, cside, clip, 0);
             door = {};
         }
     }
@@ -233,7 +230,7 @@ namespace Inferno {
 
         if (cwall) {
             door->Back = cwallId;
-            cwall->State = cwall->State = WallState::DoorOpening;
+            cwall->State = WallState::DoorOpening;
         }
 
         if (clip.OpenSound != SoundID::None) {
@@ -241,22 +238,6 @@ namespace Inferno {
             sound.Resource = Resources::GetSoundResource(clip.OpenSound);
             Sound::Play(sound);
         }
-
-        //if (wall->LinkedWall == WallID::None) {
-        //    door->Parts = 1;
-        //}
-        //else {
-        //    auto lwall = level.TryGetWall(wall->LinkedWall);
-        //    auto& seg2 = level.GetSegment(lwall->Tag);
-
-        //    assert(lwall->LinkedWall == seg.GetSide(tag.Side).Wall);
-        //    lwall->State = WallState::DoorOpening;
-
-        //    auto& csegp = level.GetSegment(seg2.GetConnection(lwall->Tag.Side));
-
-        //    door->Parts = 2;
-
-        //}
     }
 
     // Commands a door to close
@@ -291,7 +272,6 @@ namespace Inferno {
             }
         }
     }
-
 
     void PrintTriggerMessage(const Trigger& trigger, string message) {
         if (trigger.HasFlag(TriggerFlag::NoMessage)) return;
@@ -429,7 +409,7 @@ namespace Inferno {
                 if (auto w = level.TryGetWall(wall.Tag)) {
                     RemoveAttachments(wall.Tag);
                     auto& clip = Resources::GetWallClip(w->Clip);
-                    SetWallTMap(level, wall.Tag, clip, clip.NumFrames - 1);
+                    SetWallClip(level, wall.Tag, clip, clip.NumFrames - 1);
                 }
             }
 
@@ -469,7 +449,7 @@ namespace Inferno {
             if (wall.Time >= EXPLODE_TIME)
                 wall.Tag = {}; // Free the slot
         }
-    };
+    }
 
     void ExplodeWall(Level& level, Tag tag) {
         // create small explosions on the face
@@ -514,11 +494,78 @@ namespace Inferno {
         }
         else if (wall->HitPoints < 100) {
             int frame = clip.NumFrames - (int)std::ceil(wall->HitPoints / 100.0f * clip.NumFrames);
+            SetWallClip(level, tag, clip, frame);
+        }
+    }
 
-            auto& side = level.GetSide(tag);
-            auto cside = level.TryGetConnectedSide(tag);
-            assert(cside); // a door must be on a connected side
-            SetWallTMap(side, *cside, clip, frame);
+    void DestroyWall(Level& level, Wall& wall) {
+        wall.HitPoints = -1;
+
+        auto& wclip = Resources::GetWallClip(wall.Clip);
+        if (wclip.HasFlag(WallClipFlag::Explodes))
+            ExplodeWall(level, wall.Tag);
+
+        wall.SetFlag(WallFlag::Destroyed);
+    }
+
+    void DamageWall(Level& level, Wall& wall, float damage) {
+        if (wall.Type != WallType::Destroyable ||
+            wall.HasFlag(WallFlag::Destroyed)) return;
+
+        wall.HitPoints -= damage;
+
+        auto& clip = Resources::GetWallClip(wall.Clip);
+
+        if (wall.HitPoints < 100.0f / (float)clip.NumFrames + 1) {
+            DestroyWall(level, wall);
+        }
+        else if (wall.HitPoints < 100) {
+            int frame = clip.NumFrames - (int)std::ceil(wall.HitPoints / 100.0f * (float)clip.NumFrames);
+            SetWallClip(level, wall.Tag, clip, frame);
+        }
+    }
+
+    void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall) {
+        auto parent = level.TryGetObject(src.Parent);
+
+        bool isPlayerSource = src.Type == ObjectType::Player || (parent && parent->Type == ObjectType::Player);
+
+        if (wall.Type == WallType::Destroyable && isPlayerSource && src.Type == ObjectType::Weapon) {
+            auto& weapon = Resources::GetWeapon((WeaponID)src.ID);
+            DamageWall(level, wall.Tag, weapon.Damage[Game::Difficulty]);
+        }
+        else if (wall.Type == WallType::Door) {
+            if ((isPlayerSource && Game::Player.CanOpenDoor(wall)) ||
+                (src.Type == ObjectType::Robot && src.Control.AI.Behavior == AIBehavior::Snipe)) {
+                if (wall.State != WallState::DoorOpening)
+                    OpenDoor(level, wall.Tag);
+            }
+            else {
+                // Can't open door
+                if (src.Type == ObjectType::Weapon) {
+                    Sound3D sound(point, wall.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
+                    sound.Source = src.Parent;
+                    sound.FromPlayer = true;
+                    Sound::Play(sound);
+
+                    if (isPlayerSource) {
+                        string msg;
+                        const auto accessDenied = Resources::GetString(GameString::AccessDenied);
+                        if (HasFlag(wall.Keys, WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
+                            msg = fmt::format("{} {}", Resources::GetString(GameString::Red), accessDenied);
+                        else if (HasFlag(wall.Keys, WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
+                            msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), accessDenied);
+                        else if (HasFlag(wall.Keys, WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
+                            msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), accessDenied);
+                        else if (wall.HasFlag(WallFlag::DoorLocked))
+                            msg = Resources::GetString(GameString::CantOpenDoor);
+
+                        if (!msg.empty())
+                            PrintHudMessage(msg);
+                    }
+                }
+            }
         }
     }
 
@@ -528,7 +575,7 @@ namespace Inferno {
             //ToggleWall(target);
             if (auto wall = level.TryGetWall(target)) {
                 if (wall->Type == WallType::Destroyable)
-                    DestroyWall(level, target);
+                    DestroyWall(level, *wall);
 
                 if (wall->Type == WallType::Door || wall->Type == WallType::Closed)
                     OpenDoor(level, target);
