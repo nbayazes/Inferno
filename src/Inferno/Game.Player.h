@@ -143,5 +143,7 @@ namespace Inferno {
         void ReleasePrimary();
 
         void FireSecondary();
+
+        bool CanOpenDoor(const Wall& wall) const;
     };
 }

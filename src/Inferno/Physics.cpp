@@ -146,7 +146,6 @@ namespace Inferno {
         {
             auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
 
-            if (hasEClip) {
             Render::ExplosionInfo ei;
             ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
             ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
@@ -154,7 +153,6 @@ namespace Inferno {
                 ei.Position = point;
             ei.Segment = tag.Segment;
             Render::CreateExplosion(ei);
-        }
 
             auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
             Sound3D sound(point, tag.Segment);
@@ -1367,7 +1365,7 @@ namespace Inferno {
                     decal.Texture = weapon.Extended.ScorchTexture;
 
                     if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
-                        if (Game::PlayerCanOpenDoor(*wall))
+                        if (Game::Player.CanOpenDoor(*wall))
                             addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
                         else if (wall->Type != WallType::WallTrigger)
                             addDecal = wall->State == WallState::Closed; // Only allow decals on closed walls
@@ -1528,7 +1526,7 @@ namespace Inferno {
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {
-                    HitWall(level, hit, obj, *wall);
+                    HitWall(level, hit.Point, obj, *wall);
                 }
 
                 if (obj.Type == ObjectType::Player && hit.HitObj) {

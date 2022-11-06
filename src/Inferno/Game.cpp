@@ -663,6 +663,11 @@ namespace Inferno::Game {
                     (obj.ID == (int)WeaponID::Gauss || obj.ID == (int)WeaponID::Vulcan)) {
                     obj.Control.Powerup.Count = 2500;
                 }
+
+                if (obj.Type == ObjectType::Powerup &&
+                    (obj.ID == (int)PowerupID::FlagBlue || obj.ID == (int)PowerupID::FlagRed)) {
+                    obj.Destroy(); // Remove CTF flags (no multiplayer)
+                }
             }
 
             Sound::Reset();
@@ -712,22 +717,5 @@ namespace Inferno::Game {
             //    TexID(30), TexID(11), TexID(
             //};
         }
-    }
-
-    bool PlayerCanOpenDoor(const Wall& wall) {
-        if (wall.Type != WallType::Door) return false;
-
-        if (wall.HasFlag(WallFlag::DoorLocked)) return false;
-
-        if (bool(wall.Keys & WallKey::Red) && !Player.HasPowerup(PowerupFlag::RedKey))
-            return false;
-
-        if (bool(wall.Keys & WallKey::Blue) && !Player.HasPowerup(PowerupFlag::BlueKey))
-            return false;
-
-        if (bool(wall.Keys & WallKey::Gold) && !Player.HasPowerup(PowerupFlag::GoldKey))
-            return false;
-
-        return true;
     }
 }

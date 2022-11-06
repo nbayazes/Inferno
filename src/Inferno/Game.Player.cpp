@@ -245,6 +245,22 @@ namespace Inferno {
         // Swap to different weapon if ammo == 0
     }
 
+    bool Player::CanOpenDoor(const Wall& wall) const {
+        if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
+            return false;
+
+        if (HasFlag(wall.Keys, WallKey::Red) && !HasPowerup(PowerupFlag::RedKey))
+            return false;
+
+        if (HasFlag(wall.Keys, WallKey::Blue) && !HasPowerup(PowerupFlag::BlueKey))
+            return false;
+
+        if (HasFlag(wall.Keys, WallKey::Gold) && !HasPowerup(PowerupFlag::GoldKey))
+            return false;
+
+        return true;
+    }
+
     void ScreenFlash(const Color& color) {
         // Tint the screen
     }

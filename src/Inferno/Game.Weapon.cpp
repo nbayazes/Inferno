@@ -188,14 +188,15 @@ namespace Inferno::Game {
         bullet.Movement = MovementType::Physics;
         bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
         if (WeaponIsMine(id)) {
+            // todo: add flag to inherit velocity (mines, mortar)
             bullet.Physics.Velocity += obj.Physics.Velocity; // inherit velocity when placing mines
         }
         else {
             // Inherit forward velocity
-            auto vec = obj.Physics.Velocity;
-            vec.Normalize();
-            auto dot = std::abs(vec.Dot(obj.Rotation.Forward()));
-            bullet.Physics.Velocity += dot * obj.Physics.Velocity;
+            //auto vec = obj.Physics.Velocity;
+            //vec.Normalize();
+            //auto dot = std::abs(vec.Dot(obj.Rotation.Forward()));
+            //bullet.Physics.Velocity += dot * obj.Physics.Velocity;
         }
 
         //bullet.Physics.Velocity = direction * 10;
@@ -329,12 +330,14 @@ namespace Inferno::Game {
     }
 
     // Used for omega and homing weapons
-    Object* GetClosestObjectInFOV(const Object& src, float fov, float dist, int mask) {
+    Object* GetClosestObjectInFOV(const Object& src, float fov, float dist, ObjectMask mask) {
         Object* result = nullptr;
         float minDist = FLT_MAX;
 
         // todo: don't scan all objects, only nearby ones
         for (auto& obj : Game::Level.Objects) {
+            if (!obj.PassesMask(mask)) continue;
+
             // todo: filter object types based on mask
             auto odist = obj.Distance(src);
             if (odist > dist || odist >= minDist) continue;
@@ -349,11 +352,13 @@ namespace Inferno::Game {
     }
 
     // Returns the object closest object within a distance to a point
-    Object* GetClosestObject(const Vector3& pos, float dist) {
+    Object* GetClosestObject(const Vector3& pos, float dist, ObjectMask mask) {
+        // todo: add object type mask
         Object* result = nullptr;
         float minDist = FLT_MAX;
 
         for (auto& obj : Game::Level.Objects) {
+            if (!obj.PassesMask(mask)) continue;
             auto d = Vector3::Distance(obj.Position, pos);
             if (d <= dist && d < minDist) {
                 minDist = d;
@@ -378,7 +383,7 @@ namespace Inferno::Game {
         auto gunOffset = GetGunpointOffset(playerObj, gun);
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
 
-        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, 0);
+        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
         if (initialTarget) {
             targets[0] = initialTarget;
 
@@ -386,7 +391,7 @@ namespace Inferno::Game {
                 auto src = targets[i];
                 if (!src) break;
 
-                if (auto next = GetClosestObject(src->Position, MAX_CHAIN_DIST)) {
+                if (auto next = GetClosestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy)) {
                     targets[i + 1] = next;
                 }
             }

@@ -358,7 +358,7 @@ namespace Inferno::Editor {
         }
     }
 
-    Tuple<LevelTexID, LevelTexID> EditorSelection::GetTextures() {
+    Tuple<LevelTexID, LevelTexID> EditorSelection::GetTextures() const {
         if (!Game::Level.SegmentExists(Segment)) return { LevelTexID::None, LevelTexID(0) };
 
         const auto& seg = Game::Level.GetSegment(Segment);

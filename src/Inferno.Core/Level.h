@@ -3,7 +3,6 @@
 #include "Types.h"
 #include "Utility.h"
 #include "Object.h"
-#include "EffectClip.h"
 #include "Streams.h"
 #include "Wall.h"
 #include "DataPool.h"
@@ -196,7 +195,7 @@ namespace Inferno {
             return true;
         }
 
-        int GetSegmentCount(SegmentType type) {
+        int GetSegmentCount(SegmentType type) const {
             int count = 0;
             for (auto& seg : Segments)
                 if (seg.Type == type) count++;
@@ -305,7 +304,7 @@ namespace Inferno {
         }
 
         // Gets the wall connected to the other side of a wall (if present)
-        WallID GetConnectedWallID(Tag tag) {
+        WallID GetConnectedWallID(Tag tag) const {
             auto other = GetConnectedSide(tag);
             return GetWallID(other);
         }
@@ -456,7 +455,7 @@ namespace Inferno {
             }
         }
 
-        bool CanAddMatcen() { return Matcens.size() < Limits.Matcens; }
+        bool CanAddMatcen() const { return Matcens.size() < Limits.Matcens; }
 
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);

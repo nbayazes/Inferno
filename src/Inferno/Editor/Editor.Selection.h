@@ -96,7 +96,7 @@ namespace Inferno::Editor {
         Vector3 GetOrigin(SelectionMode) const;
 
         List<PointID> GetVertexHandles(Level&);
-        Tuple<LevelTexID, LevelTexID> GetTextures();
+        Tuple<LevelTexID, LevelTexID> GetTextures() const;
 
         void SelectByTexture(LevelTexID);
         void Reset() {

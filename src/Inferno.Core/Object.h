@@ -279,6 +279,13 @@ namespace Inferno {
 
     constexpr float NEVER_THINK = -1;
 
+    enum class ObjectMask {
+        Any = 0, // No masking
+        Enemy = 1 >> 1, // Reactor or robot
+        Player = 1 >> 2, // Player or Coop
+        Powerup = 1 >> 3 // Powerup or hostage
+    };
+
     struct Object {
         ObjSig Signature{};     // Unique signature for each object
         ObjectType Type{};
@@ -355,6 +362,27 @@ namespace Inferno {
 
         float Distance(const Object& obj) const {
             return Vector3::Distance(Position, obj.Position);
+        }
+
+        bool PassesMask(ObjectMask mask) const {
+            if (mask == ObjectMask::Any) return true;
+
+            switch (Type) {
+                case ObjectType::Reactor:
+                case ObjectType::Robot:
+                    return HasFlag(mask, ObjectMask::Enemy);
+
+                case ObjectType::Player:
+                case ObjectType::Coop:
+                    return HasFlag(mask, ObjectMask::Player);
+
+                case ObjectType::Powerup:
+                case ObjectType::Hostage:
+                    return HasFlag(mask, ObjectMask::Powerup);
+
+                default:
+                    return false;
+            }
         }
     };
 }

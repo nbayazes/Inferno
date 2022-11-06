@@ -26,7 +26,7 @@ namespace Inferno::Game {
     inline struct Player Player = {};
 
     // is the game level loading?
-    inline std::atomic<bool> IsLoading = false;
+    inline std::atomic IsLoading = false;
 
     void LoadLevel(Inferno::Level&&);
 
@@ -72,8 +72,6 @@ namespace Inferno::Game {
     using GunIndex = int;
     using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
     WeaponBehavior& GetWeaponBehavior(const string& name);
-
-    bool PlayerCanOpenDoor(const Wall& wall);
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open
     constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines

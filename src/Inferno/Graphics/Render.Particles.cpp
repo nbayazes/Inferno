@@ -165,7 +165,7 @@ namespace Inferno::Render {
             if (expl.InitialDelay > 0) continue;
 
             if (expl.Sound != SoundID::None) {
-                fmt::print("playing expl sound\n");
+                //fmt::print("playing expl sound\n");
                 Sound3D sound(expl.Position, expl.Segment);
                 sound.Resource = Resources::GetSoundResource(expl.Sound);
                 //sound.Source = expl.Parent; // no parent so all nearby explosions merge
