@@ -10,7 +10,7 @@ namespace Inferno {
         return Seq::contains(tids, (int)id);
     }
 
-    bool SegHasLava(Segment& seg) {
+    bool SegHasLava(const Segment& seg) {
         for (auto& side : seg.Sides) {
             if (TMapIsLava(side.TMap)) return true;
         }
@@ -104,9 +104,9 @@ namespace Inferno {
         return Vector2::Transform(uv, Matrix::CreateRotationZ(overlayAngle));
     }
 
-    void AddPolygon(Array<Vector3, 4>& verts,
-                    Array<Vector2, 4>& uv,
-                    Array<Color, 4>& lt,
+    void AddPolygon(const Array<Vector3, 4>& verts,
+                    const Array<Vector2, 4>& uv,
+                    const Array<Color, 4>& lt,
                     LevelGeometry& geo,
                     LevelChunk& chunk,
                     SegmentSide& side) {
@@ -118,8 +118,19 @@ namespace Inferno {
             Vector3 pos = verts[i];
             chunk.Center += pos;
 
-            // todo: pick normal 0 or 1 based on side split type
-            auto& normal = side.AverageNormal;
+            Vector3 normal;
+            if (side.Type == SideSplitType::Tri02) {
+                if (i == 0 || i == 2) normal = side.AverageNormal;
+                if (i == 1) normal = side.Normals[0];
+                if (i == 3) normal = side.Normals[1];
+            }
+            else {
+                // 1-3 split
+                if (i == 1 || i == 3) normal = side.AverageNormal;
+                if (i == 0) normal = side.Normals[0];
+                if (i == 2) normal = side.Normals[1];
+            }
+
             Vector2 uv2 = side.HasOverlay() ? GetOverlayRotation(side, uv[i]) : Vector2();
             LevelVertex vertex = { pos, uv[i], lt[i], uv2, normal };
             geo.Vertices.push_back(vertex);
@@ -261,7 +272,7 @@ namespace Inferno {
                     chunk.EffectClip2 = Resources::GetEffectClip(side.TMap2);
 
                 Array<Color, 4> lt = side.Light;
-                
+
                 if (isWall && wall) {
                     chunk.Blend = GetWallBlendMode(level, side.TMap);
                     if (wall->Type == WallType::Cloaked) {
