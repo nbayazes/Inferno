@@ -211,7 +211,7 @@ namespace Inferno {
         }
 
         // Updates the normals and centers
-        void UpdateGeometricProps(Level&);
+        void UpdateGeometricProps(const Level&);
         float GetEstimatedVolume(Level&);
         bool IsZeroVolume(Level&);
 

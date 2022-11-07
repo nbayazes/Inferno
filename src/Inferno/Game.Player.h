@@ -7,8 +7,8 @@ namespace Inferno {
     enum class FireState { None, Press, Hold, Release };
 
     // Extracted player state that was scattered across methods or globals as static variables
-    struct Player : PlayerInfo {
-        float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
+    struct Player : PlayerData {
+        const float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
 
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::Laser;
         SecondaryWeaponIndex Secondary = SecondaryWeaponIndex::Concussion;
@@ -34,6 +34,7 @@ namespace Inferno {
 
         FireState PrimaryState{}, SecondaryState{};
         float RefuelSoundTime = 0;
+        //bool UpgradingSuperLaser = false; // Indicates player picked up a super laser and should play the hud switch effect
 
         bool Gunpoints[20][8] = {
             { true, true }, // Laser

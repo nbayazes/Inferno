@@ -26,36 +26,52 @@ namespace Inferno {
     class MonitorState {
         enum FadeState { FadeNone, FadeIn, FadeOut };
         FadeState State{};
-        int Requested = -1; // The requested weapon
+        int _requested = -1; // The requested weapon
+        int _requestedLaserLevel = -1;
 
     public:
         int WeaponIndex = -1; // The visible weapon
+        int LaserLevel = -1; // The visible laser level
         float Opacity{}; // Fade out/in based on rearm time / 2
 
-        void Update(float dt, const Player& player, int weapon) {
-            if (Requested != weapon) {
+        void Update(float dt, const Player& player, int weapon, bool primary) {
+            // Laser tier can be downgraded if thief steals the super laser
+
+            bool laserTierChanged = primary && (
+                (player.LaserLevel > MAX_LASER_LEVEL && LaserLevel <= MAX_LASER_LEVEL) ||
+                (player.LaserLevel <= MAX_LASER_LEVEL && LaserLevel > MAX_LASER_LEVEL));
+
+            if (_requested != weapon || laserTierChanged) {
                 State = FadeOut;
                 //Opacity = player.RearmTime;
-                Requested = weapon;
+                _requested = weapon;
+                _requestedLaserLevel = player.LaserLevel;
             }
+
+            if (!laserTierChanged)
+                LaserLevel = _requestedLaserLevel = player.LaserLevel; // keep laser immediately in sync unless tier changes
 
             if (WeaponIndex == -1) {
                 // initial load, draw current weapon
-                WeaponIndex = Requested = weapon;
+                WeaponIndex = _requested = weapon;
+                LaserLevel = _requestedLaserLevel = player.LaserLevel;
                 Opacity = 1;
                 State = FadeNone;
             }
 
             if (State == FadeOut) {
+                //player.UpgradingSuperLaser = false;
+
                 Opacity -= dt * player.RearmTime * 2;
                 if (Opacity <= 0) {
                     Opacity = 0;
                     State = FadeIn;
-                    WeaponIndex = Requested; // start showing the requested weapon
+                    WeaponIndex = _requested; // start showing the requested weapon
+                    LaserLevel = _requestedLaserLevel; // show the requested laser
                 }
             }
             else if (State == FadeIn) {
-                if (Requested != weapon) {
+                if (_requested != weapon) {
                     State = FadeOut; // weapon was changed while swapping
                 }
                 else {
@@ -89,14 +105,14 @@ namespace Inferno {
         Render::HudGlowCanvas->DrawBitmap(info);
 
         info.Scanline = 0.0f;
-        info.Color = { 0, 0, 0, shadow };
+        info.Color = Color{ 0, 0, 0, shadow };
         Render::HudCanvas->DrawBitmap(info);
     }
 
     // Draws text with a dark background, easier to read
     void DrawMonitorText(string_view text, Render::DrawTextInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawGameText(text, info);
-        info.Color = { 0, 0, 0, shadow };
+        info.Color = Color{ 0, 0, 0, shadow };
         info.Scanline = 0.0f;
         Render::HudCanvas->DrawGameText(text, info);
     }
@@ -108,7 +124,7 @@ namespace Inferno {
 
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
         info.Size *= scale;
         info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = AlignH::Center;
@@ -125,7 +141,7 @@ namespace Inferno {
 
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
         info.Size *= scale * sizeScale;
         info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = AlignH::Center;
@@ -138,7 +154,7 @@ namespace Inferno {
         auto scale = Render::HudCanvas->GetScale();
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
         info.Size *= scale;
         info.Texture = material.Handles[0];
         info.HorizontalAlign = align;
@@ -155,7 +171,7 @@ namespace Inferno {
         float scale = Render::HudCanvas->GetScale();
         Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
         info.Size *= scale * sizeScale;
         info.Texture = material.Handles[Material2D::Diffuse];
         info.HorizontalAlign = align;
@@ -286,6 +302,9 @@ namespace Inferno {
         DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left");
 
         auto scale = Render::HudCanvas->GetScale();
+        auto weaponIndex = (PrimaryWeaponIndex)state.WeaponIndex;
+        if (weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4)
+            weaponIndex = PrimaryWeaponIndex::SuperLaser;
 
         {
             Render::DrawTextInfo info;
@@ -296,24 +315,24 @@ namespace Inferno {
             info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
-            auto weaponName = Resources::GetPrimaryNameShort((PrimaryWeaponIndex)state.WeaponIndex);
+            auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
             string label = string(weaponName), ammo;
 
-            switch ((PrimaryWeaponIndex)state.WeaponIndex) {
+            switch (weaponIndex) {
                 case PrimaryWeaponIndex::Laser:
                 case PrimaryWeaponIndex::SuperLaser:
                 {
                     auto lvl = Resources::GetString(GameString::Lvl);
-                    if (Game::Player.HasPowerup(PowerupFlag::QuadLasers))
-                        label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, Game::Player.LaserLevel + 1, Resources::GetString(GameString::Quad));
+                    if (player.HasPowerup(PowerupFlag::QuadLasers))
+                        label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, state.LaserLevel + 1, Resources::GetString(GameString::Quad));
                     else
-                        label = fmt::format("{}\n{}: {}", weaponName, lvl, Game::Player.LaserLevel + 1);
+                        label = fmt::format("{}\n{}: {}", weaponName, lvl, state.LaserLevel + 1);
                     break;
                 }
 
                 case PrimaryWeaponIndex::Vulcan:
                 case PrimaryWeaponIndex::Gauss:
-                    ammo = fmt::format("{:05}", Game::Player.PrimaryAmmo[1]);
+                    ammo = fmt::format("{:05}", player.PrimaryAmmo[1]);
                     break;
             }
 
@@ -336,7 +355,7 @@ namespace Inferno {
 
         {
             float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
-            auto texId = GetWeaponTexID(Resources::GetWeapon(PrimaryToWeaponID[state.WeaponIndex]));
+            auto texId = GetWeaponTexID(Resources::GetWeapon(PrimaryToWeaponID[(int)weaponIndex]));
             DrawWeaponBitmap({ x + WEAPON_BMP_X_OFFSET, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
         }
 
@@ -407,7 +426,7 @@ namespace Inferno {
             auto scale = Render::HudCanvas->GetScale();
             Render::DrawTextInfo info;
             info.Font = FontSize::Small;
-            info.Color = { 0.54f, 0.54f, 0.71f };
+            info.Color = Color{ 0.54f, 0.54f, 0.71f };
 
             info.Position = Vector2(2, -120) * scale;
             info.HorizontalAlign = AlignH::Center;
@@ -419,7 +438,7 @@ namespace Inferno {
             //info.Color *= 0.1;
             //info.Color.z = 0.8f;
 
-            info.Color = { 0.78f, 0.56f, 0.18f };
+            info.Color = Color{ 0.78f, 0.56f, 0.18f };
             info.Position = Vector2(2, -150) * scale;
             info.Scanline = 0.5f;
             auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));
@@ -547,10 +566,10 @@ namespace Inferno {
 
         // cloak fade
     public:
-        void Draw(float dt, const Player& player) {
+        void Draw(float dt, Player& player) {
             float spacing = 100;
-            LeftMonitor.Update(dt, player, (int)player.Primary);
-            RightMonitor.Update(dt, player, (int)player.Secondary);
+            LeftMonitor.Update(dt, player, (int)player.Primary, true);
+            RightMonitor.Update(dt, player, (int)player.Secondary, false);
 
             DrawLeftMonitor(-spacing, LeftMonitor, player);
             DrawRightMonitor(spacing, RightMonitor, player);
@@ -578,7 +597,7 @@ namespace Inferno {
                 Inferno::Render::CanvasBitmapInfo info;
                 info.Position = Vector2(5, 5) * scale;
                 auto& material = Render::Materials->Get(GetGaugeTexID(Gauges::Lives));
-                info.Size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+                info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
                 info.Size *= scale;
                 info.Texture = material.Handles[0];
                 info.HorizontalAlign = AlignH::Left;

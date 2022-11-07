@@ -186,7 +186,7 @@ namespace Inferno {
         }
         else {
             // CloseDoor()
-            // SetWallClip(level, wall.Tag, clip, 0);
+            SetWallClip(level, wall.Tag, clip, 0);
             //fmt::print("{}:{} Set wall state to closed\n", wall.Tag.Segment, wall.Tag.Side);
             front->State = WallState::Closed;
             if (back) back->State = WallState::Closed;
@@ -310,7 +310,7 @@ namespace Inferno {
                 else {
                     // do wall uncloak
                     Sound3D sound(wside->Center, wall.Tag.Segment);
-                    sound.Resource = Resources::GetSoundResource(SoundID::CloakOff);
+                    sound.Resource = Resources::GetSoundResource(SoundID::CloakOn);
                     Sound::Play(sound);
                     wall.Type = wallType; // would be delayed by animation
                 }
@@ -328,7 +328,7 @@ namespace Inferno {
                 else {
                     // do wall cloak
                     Sound3D sound(wside->Center, wall.Tag.Segment);
-                    sound.Resource = Resources::GetSoundResource(SoundID::CloakOn);
+                    sound.Resource = Resources::GetSoundResource(SoundID::CloakOff);
                     Sound::Play(sound);
                     wall.Type = wallType; // would be delayed by animation
                 }

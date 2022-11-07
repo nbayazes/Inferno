@@ -50,6 +50,9 @@ namespace Inferno {
         Level6,
     };
 
+    constexpr int MAX_LASER_LEVEL = (int)LaserLevel::Level4;
+    constexpr int MAX_SUPER_LASER_LEVEL = (int)LaserLevel::Level6;
+
     // HAM IDs for each weapon
     enum class WeaponID : sbyte {
         None = -1,

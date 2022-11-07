@@ -7,8 +7,8 @@ namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;
 
     void Player::ArmPrimary(PrimaryWeaponIndex index) {
-        const uint8 requestedWeapon = (uint8)index;
-        uint8 weapon = (uint8)index;
+        const auto requestedWeapon = (uint8)index;
+        auto weapon = (uint8)index;
 
         if (index == Primary && Game::Level.IsDescent1()) {
             Sound::Play(Resources::GetSoundResource(SoundID::AlreadySelected));
@@ -318,7 +318,6 @@ namespace Inferno {
         auto& powerup = Resources::GameData.Powerups[obj.ID];
 
         bool used = false, ammoPickedUp = false;
-        constexpr int MAX_LASER_LEVEL = 3;
 
         auto PickUpAccesory = [this](PowerupFlag powerup, string_view name) {
             if (HasPowerup(powerup)) {
@@ -464,8 +463,6 @@ namespace Inferno {
 
             case PowerupID::SuperLaser:
             {
-                constexpr int MAX_SUPER_LASER_LEVEL = 5;
-
                 if (LaserLevel >= MAX_SUPER_LASER_LEVEL) {
                     LaserLevel = MAX_SUPER_LASER_LEVEL;
                     PrintHudMessage("super laser maxed out!");
@@ -473,8 +470,15 @@ namespace Inferno {
                 }
                 else {
                     //auto oldLevel = LaserLevel;
-                    if (LaserLevel <= MAX_LASER_LEVEL)
+                    if (LaserLevel <= MAX_LASER_LEVEL) {
                         LaserLevel = MAX_LASER_LEVEL;
+
+                        if (Primary == PrimaryWeaponIndex::Laser) {
+                            Sound::Play(Resources::GetSoundResource(SoundID::SelectPrimary));
+                            PrimaryDelay = RearmTime;
+                            //UpgradingSuperLaser = true;
+                        }
+                    }
 
                     LaserLevel++;
                     ScreenFlash({ 10, 0, 10 });

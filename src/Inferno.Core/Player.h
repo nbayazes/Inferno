@@ -23,7 +23,7 @@ namespace Inferno {
     };
 
     // Serialized player info
-    struct PlayerInfo {
+    struct PlayerData {
         static constexpr int MAX_PRIMARY_WEAPONS = 10;
         static constexpr int MAX_SECONDARY_WEAPONS = 10;
         static constexpr int CALLSIGN_LEN = 8; // so can be used as a 8.3 file name
