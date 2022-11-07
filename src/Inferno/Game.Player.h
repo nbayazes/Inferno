@@ -72,11 +72,15 @@ namespace Inferno {
         }
 
         void GivePowerup(PowerupFlag powerup) {
-            Powerups = (PowerupFlag)((uint32)Powerups | (uint32)powerup);
+            SetFlag(Powerups, powerup);
         }
 
         bool HasPowerup(PowerupFlag powerup) const {
-            return (bool)((uint32)Powerups & (uint32)powerup);
+            return HasFlag(Powerups, powerup);
+        }
+
+        void RemovePowerup(PowerupFlag powerup) {
+            ClearFlag(Powerups, powerup);
         }
 
         void TouchPowerup(Object& obj);

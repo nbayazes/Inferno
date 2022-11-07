@@ -117,6 +117,9 @@ namespace Inferno {
         FlagRed = 47,
     };
 
+    constexpr float CLOAK_TIME = 10.0f;
+    constexpr float INVULN_TIME = 30.0f;
+
     // Object types
     enum class ObjectType : uint8 {
         None = 255,     // unused object

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Types.h"
-#include "Weapon.h"
 
 namespace Inferno {
     enum class PowerupFlag : uint32 {
@@ -16,7 +15,7 @@ namespace Inferno {
         Converter = 1 << 8, // Energy to shield converter
         FullMapCheat = 1 << 9, // Same as full map, except unexplored areas aren't blue
         QuadLasers = 1 << 10,
-        Cloaked = 1 << 11,
+        Cloak = 1 << 11,
         Afterburner = 1 << 12,
         Headlight = 1 << 13,
         HeadlightOn = 1 << 14
@@ -58,8 +57,8 @@ namespace Inferno {
         int Score;
         int64 LevelTime, TotalTime;
 
-        float CloakTime; // Amount of cloak remaining
-        float InvulnerableTime; // Amount of invulnerability remaining
+        float CloakTime; // When cloak was picked up
+        float InvulnerableTime; // When invuln was picked up
 
         struct {
             short Kills;            // Robots killed this level. Used to prevent matcens from spawning too many robots.

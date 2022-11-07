@@ -88,8 +88,11 @@ namespace Inferno {
     void Player::Update(float dt) {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
-        if (CloakTime > 0) CloakTime -= dt;
-        if (InvulnerableTime > 0) InvulnerableTime -= dt;
+
+        if (HasPowerup(PowerupFlag::Cloak) && Game::Time > CloakTime + CLOAK_TIME) {
+            Sound::Play(Resources::GetSoundResource(SoundID::CloakOff));
+            RemovePowerup(PowerupFlag::Cloak);
+        }
 
         if (auto player = Game::Level.TryGetObject(ID)) {
             if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
@@ -570,16 +573,16 @@ namespace Inferno {
 
             case PowerupID::Cloak:
             {
-                if (HasPowerup(PowerupFlag::Cloaked)) {
+                if (HasPowerup(PowerupFlag::Cloak)) {
                     auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Cloaked));
                     PrintHudMessage(msg);
                 }
                 else {
-                    GivePowerup(PowerupFlag::Cloaked);
+                    GivePowerup(PowerupFlag::Cloak);
+                    CloakTime = (float)Game::Time;
+                    PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
+                    used = true;
                 }
-                // if already cloaked, show msg
-                // 
-                // do cloak stuff
                 break;
             };
 

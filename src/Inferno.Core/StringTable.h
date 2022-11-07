@@ -20,6 +20,7 @@ namespace Inferno {
         VulcanAmmo = 24,
         AlreadyAre = 26,
         Cloaked = 27,
+        CloakingDevice = 28,
 
         Score = 52,
         Laser = 104,
