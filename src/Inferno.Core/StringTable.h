@@ -21,6 +21,8 @@ namespace Inferno {
         AlreadyAre = 26,
         Cloaked = 27,
         CloakingDevice = 28,
+        Invulnerable = 29,
+        Invulnerability = 30,
 
         Score = 52,
         Laser = 104,

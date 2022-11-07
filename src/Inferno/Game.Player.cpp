@@ -94,6 +94,11 @@ namespace Inferno {
             RemovePowerup(PowerupFlag::Cloak);
         }
 
+        if (HasPowerup(PowerupFlag::Invulnerable) && Game::Time > InvulnerableTime + INVULN_TIME) {
+            Sound::Play(Resources::GetSoundResource(SoundID::InvulnOff));
+            RemovePowerup(PowerupFlag::Invulnerable);
+        }
+
         if (auto player = Game::Level.TryGetObject(ID)) {
             if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
                 if (seg->Type == SegmentType::Energy && Energy < 100) {
@@ -587,6 +592,16 @@ namespace Inferno {
             };
 
             case PowerupID::Invulnerability:
+                if (HasPowerup(PowerupFlag::Invulnerable)) {
+                    auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Invulnerable));
+                    PrintHudMessage(msg);
+                }
+                else {
+                    GivePowerup(PowerupFlag::Invulnerable);
+                    InvulnerableTime = (float)Game::Time;
+                    PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
+                    used = true;
+                }
                 break;
 
             case PowerupID::QuadFire:

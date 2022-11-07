@@ -500,12 +500,98 @@ namespace Inferno {
         }
     }
 
+    float GetCloakAlpha(const Player& player) {
+        if (!player.HasPowerup(PowerupFlag::Cloak)) return 1;
+
+        auto remaining = player.CloakTime + CLOAK_TIME - (float)Game::Time;
+
+        if (remaining > CLOAK_TIME - 0.5f) {
+            // Cloak just picked up, fade out
+            return 1 - ((float)Game::Time - player.CloakTime) / 0.5f;
+        }
+        else if (remaining < 2.5f) {
+            // Cloak close to expiring, fade in/out every 0.5 seconds for 2.5 seconds
+            constexpr float p = 1; // period
+            return 2 * std::abs((remaining + 0.5f) / p - std::floor((remaining + 0.5f) / p + 0.5f));
+        }
+        else {
+            return 0;
+        }
+    }
+
+    void DrawShipBitmap(const Vector2& offset, const Material2D& material, float sizeScale, float alpha) {
+        auto scale = Render::HudCanvas->GetScale();
+
+        Inferno::Render::CanvasBitmapInfo info;
+        info.Position = offset * scale;
+        info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+        info.Size *= scale * sizeScale;
+        info.Texture = material.Handles[Material2D::Diffuse];
+        info.HorizontalAlign = AlignH::Center;
+        info.VerticalAlign = AlignV::Bottom;
+        info.Scanline = 0.75f;
+        info.Color = Color(1, 1, 1, alpha);
+        Render::HudGlowCanvas->DrawBitmap(info);
+
+        //DrawMonitorBitmap(info, 0.90f);
+    }
+
+    void DrawCenterMonitor(const Player& player) {
+        DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr");
+        // Draw shields, invuln state, shield / energy count
+
+        {
+            auto scale = Render::HudCanvas->GetScale();
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Small;
+            info.Color = Color{ 0.54f, 0.54f, 0.71f };
+
+            info.Position = Vector2(2, -120) * scale;
+            info.HorizontalAlign = AlignH::Center;
+            info.VerticalAlign = AlignV::Bottom;
+            info.Scanline = 0.5f;
+            auto shields = fmt::format("{:.0f}", player.Shields < 0 ? 0 : std::floor(player.Shields));
+            DrawMonitorText(shields, info, 0.5f);
+            //info.Scanline = 0.0f;
+            //info.Color *= 0.1;
+            //info.Color.z = 0.8f;
+
+            info.Color = Color{ 0.78f, 0.56f, 0.18f };
+            info.Position = Vector2(2, -150) * scale;
+            info.Scanline = 0.5f;
+            auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));
+            DrawMonitorText(energy, info, 0.5f);
+        }
+
+        {
+            auto alpha = GetCloakAlpha(player);
+            TexID ship = GetGaugeTexID(Gauges::Ship);
+            if (Game::Level.IsDescent1())
+                DrawShipBitmap({ 0, -46 }, Render::Materials->Get(ship), 2, alpha);
+            else
+                DrawShipBitmap({ 0, -40 }, Render::Materials->Get(ship), 1, alpha);
+
+            int frame = std::clamp((int)((100 - player.Shields) / 10), 0, 9);
+
+            if (player.HasPowerup(PowerupFlag::Invulnerable)) {
+                auto remaining = player.InvulnerableTime + INVULN_TIME - (float)Game::Time;
+                int invFrame = 10 + (int)(remaining * 5) % 10; // frames 10 to 19, 5 fps
+
+                if (remaining > 4.0f || std::fmod(remaining, 1.0f) < 0.5f) {
+                    // check if near expiring, flicker off/on every 3.5 seconds
+                    frame = invFrame;
+                }
+            }
+            
+            if (frame != 9) { // Frame 9 is 'missing' - no shields
+                auto shieldGfx = fmt::format("gauge01b#{}", frame);
+                DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial(shieldGfx), 1, 1);
+            }
+        }
+    }
+
     class Hud {
         MonitorState _leftMonitor = { true }, _rightMonitor = { false };
-        float _cloakStart = 0;
-        float _cloak = 0;
-
-        // cloak fade
     public:
         void Draw(float dt, Player& player) {
             float spacing = 100;
@@ -600,94 +686,6 @@ namespace Inferno {
             //}
 
             DrawHudMessages(dt);
-        }
-
-    private:
-        static float GetCloakAlpha(const Player& player) {
-            if (!player.HasPowerup(PowerupFlag::Cloak)) return 1;
-
-            auto remaining = player.CloakTime + CLOAK_TIME - (float)Game::Time;
-
-            if (remaining > CLOAK_TIME - 0.5f) {
-                // Cloak just picked up, fade out
-                return 1 - ((float)Game::Time - player.CloakTime) / 0.5f;
-            }
-            else if (remaining < 2.5f) {
-                // Cloak close to expiring, fade in/out every 0.5 seconds for 2.5 seconds
-                constexpr float p = 1; // period
-                return 2 * std::abs((remaining + 0.5f) / p - std::floor((remaining + 0.5f) / p + 0.5f));
-            }
-            else {
-                return 0;
-            }
-        }
-
-        void DrawShipBitmap(const Vector2& offset, const Material2D& material, float sizeScale, float alpha) {
-            auto scale = Render::HudCanvas->GetScale();
-
-            Inferno::Render::CanvasBitmapInfo info;
-            info.Position = offset * scale;
-            info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
-            info.Size *= scale * sizeScale;
-            info.Texture = material.Handles[Material2D::Diffuse];
-            info.HorizontalAlign = AlignH::Center;
-            info.VerticalAlign = AlignV::Bottom;
-            info.Scanline = 0.75f;
-            info.Color = Color(1, 1, 1, alpha);
-            Render::HudCanvas->DrawBitmap(info);
-
-            //DrawMonitorBitmap(info, 0.90f);
-        }
-
-        void DrawCenterMonitor(const Player& player) {
-            DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr");
-            // Draw shields, invuln state, shield / energy count
-
-            {
-                auto scale = Render::HudCanvas->GetScale();
-                Render::DrawTextInfo info;
-                info.Font = FontSize::Small;
-                info.Color = Color{ 0.54f, 0.54f, 0.71f };
-
-                info.Position = Vector2(2, -120) * scale;
-                info.HorizontalAlign = AlignH::Center;
-                info.VerticalAlign = AlignV::Bottom;
-                info.Scanline = 0.5f;
-                auto shields = fmt::format("{:.0f}", player.Shields < 0 ? 0 : std::floor(player.Shields));
-                DrawMonitorText(shields, info, 0.5f);
-                //info.Scanline = 0.0f;
-                //info.Color *= 0.1;
-                //info.Color.z = 0.8f;
-
-                info.Color = Color{ 0.78f, 0.56f, 0.18f };
-                info.Position = Vector2(2, -150) * scale;
-                info.Scanline = 0.5f;
-                auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));
-                DrawMonitorText(energy, info, 0.5f);
-            }
-
-            {
-                auto alpha = GetCloakAlpha(player);
-                TexID ship = GetGaugeTexID(Gauges::Ship);
-                if (Game::Level.IsDescent1())
-                    DrawShipBitmap({ 0, -46 }, Render::Materials->Get(ship), 2, alpha);
-                else
-                    DrawShipBitmap({ 0, -40 }, Render::Materials->Get(ship), 1, alpha);
-
-                // flicker effect invuln effect every half second when < 4 seconds remaining
-                if (player.InvulnerableTime > 0) {
-                    // todo: invuln animation
-                    int frame = 10 + (int)(player.InvulnerableTime * 5) % 10; // frames 10 to 19, 5 fps
-                    auto shieldGfx = fmt::format("gauge01b#{}", frame);
-                }
-                else {
-                    int frame = std::clamp((int)((100 - player.Shields) / 10), 0, 9);
-                    if (frame < 9) {
-                        auto shieldGfx = fmt::format("gauge01b#{}", frame);
-                        DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial(shieldGfx), 1, 1);
-                    }
-                }
-            }
         }
 
     } Hud;

@@ -255,6 +255,8 @@ namespace Inferno {
         CloakOn = 160,
         CloakOff = 161,
 
+        InvulnOff = 163,
+
         OpenWall = 246,
 
         Cheater = 200,
