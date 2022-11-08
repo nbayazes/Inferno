@@ -48,6 +48,7 @@ namespace Inferno {
                 sound.LoopEnd = 48452;
                 sound.Looped = true;
                 _afterburnerSoundSig = Sound::Play(sound);
+                //Render::Camera.Shake(2.0f);
             }
             else if (_prevAfterburnerCharge != AfterburnerCharge) {
                 Sound::Stop(_afterburnerSoundSig);

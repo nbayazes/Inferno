@@ -19,7 +19,6 @@ namespace OpenSimplexNoise
     , m_norm2d(47)
     , m_norm3d(103)
     , m_norm4d(30)
-    , m_defaultSeed(0)
     , m_perm{0}
     , m_permGradIndex3d{0}
     , m_gradients2d{ 5,  2,    2,  5,

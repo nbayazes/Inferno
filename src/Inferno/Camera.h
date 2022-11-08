@@ -2,6 +2,7 @@
 
 #include <DirectXMath.h>
 #include "Settings.h"
+#include "OpenSimplexNoise.h"
 
 namespace Inferno {
     using DirectX::SimpleMath::Viewport;
@@ -10,7 +11,9 @@ namespace Inferno {
     // Descent uses LH coordinate system
     class Camera {
         Vector3 _lerpStart, _lerpEnd;
-        float _lerpTime{}, _lerpDuration;
+        float _lerpTime{}, _lerpDuration{};
+        float _shake = 0;
+        float _pendingShake = 0;
 
     public:
         Matrix View;
@@ -30,8 +33,27 @@ namespace Inferno {
             Viewport = { 0, 0, width, height, NearClip, FarClip };
         }
 
-        void LookAtPerspective(float fovDeg) {
-            View = DirectX::XMMatrixLookAtLH(Position, Target, Up);
+        void LookAtPerspective(float fovDeg, double t) {
+            const float maxShakeAngle = DirectX::XM_PI / 128 * _shake;
+
+            constexpr float period = 15;
+
+            Vector3 shakeOffset(
+                _shake * (float)SimplexNoise.eval(t * period, 0.0),
+                _shake * (float)SimplexNoise.eval(t * period, t),
+                _shake * (float)SimplexNoise.eval(t * period, -t)
+            );
+
+            Vector3 rot(
+                maxShakeAngle * (float)SimplexNoise.eval(t * period, 0.0),
+                maxShakeAngle * (float)SimplexNoise.eval(t * period, t),
+                maxShakeAngle * (float)SimplexNoise.eval(t * period, -t)
+            );
+
+            auto up = Up + rot;
+            up.Normalize();
+
+            View = DirectX::XMMatrixLookAtLH(Position + shakeOffset, Target + shakeOffset, up);
             Projection = DirectX::XMMatrixPerspectiveFovLH(fovDeg * DegToRad, Viewport.AspectRatio(), Viewport.minDepth, Viewport.maxDepth);
         }
 
@@ -204,12 +226,24 @@ namespace Inferno {
         }
 
         void Update(float dt) {
+            float shake = _pendingShake * dt * 4;
+            _pendingShake -= shake;
+            if(_pendingShake < 0) _pendingShake = 0;
+
+            constexpr float DECAY_SPEED = 5;
+            _shake += shake - DECAY_SPEED * dt;
+            if (_shake < 0) _shake = 0;
+
             if (_lerpTime < _lerpDuration) {
                 _lerpTime += dt;
                 auto t = _lerpTime / _lerpDuration;
                 auto lerp = Vector3::Lerp(_lerpStart, _lerpEnd, t);
                 MoveTo(lerp);
             }
+        }
+
+        void Shake(float amount) {
+            _pendingShake += amount;
         }
     };
 }

@@ -1239,8 +1239,9 @@ namespace Inferno::Render {
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
 
         auto output = Adapter->GetOutputSize();
+        Camera.Update(FrameTime);
         Camera.SetViewport(output.x, output.y);
-        Camera.LookAtPerspective(Settings::Editor.FieldOfView);
+        Camera.LookAtPerspective(Settings::Editor.FieldOfView, Game::Time);
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
 

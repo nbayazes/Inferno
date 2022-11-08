@@ -293,8 +293,6 @@ namespace Inferno::Editor {
             Editor::Gizmo.State == GizmoState::Dragging && io.MouseDown[1])
             Editor::Gizmo.CancelDrag();
 
-        Render::Camera.Update(Render::FrameTime); // for interpolation
-
         // only update mouse functionality if mouse not over imgui and not in mouselook
         if (ImGui::GetCurrentContext()->HoveredWindow && !Input::GetMouselook()) return;
 

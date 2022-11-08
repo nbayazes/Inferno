@@ -209,6 +209,7 @@
     <ClCompile Include="Shell.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\vendor\OpenSimplexNoise.h" />
     <ClInclude Include="Audio\Audio.h" />
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
