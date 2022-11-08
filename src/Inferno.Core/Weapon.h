@@ -120,6 +120,7 @@ namespace Inferno {
         bool SilentSelectFail = false; // Hide HUD errors when selecting
         Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
         Color Glow = {}; // For emissive glows
+        int Bounces = 0;
 
         //struct FiringPattern {
         //    string Crosshair;

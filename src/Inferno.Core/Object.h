@@ -168,6 +168,7 @@ namespace Inferno {
         float TurnRoll;   // Rotation caused by turn banking
         PhysicsFlag Flags;
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
+        int Bounces = 0; // Number of remaining bounces
     };
 
     struct ModelData {

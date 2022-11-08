@@ -112,7 +112,7 @@ namespace Inferno {
     }
 
     // returns true if overlay was destroyed
-    bool CheckDestroyableTexture(Level& level, const Vector3& point, Tag tag, int tri) {
+    bool CheckDestroyableTexture(Level& level, const Vector3& point, Tag tag, int tri, const Object& source) {
         tri = std::clamp(tri, 0, 1);
 
         auto seg = level.TryGetSegment(tag);
@@ -126,6 +126,14 @@ namespace Inferno {
         bool hasEClip = eclip.DestroyedTexture != LevelTexID::None;
         //if (HasFlag(eclip.Flags, EClipFlag::OneShot))
         //    return false;
+
+        // Don't allow non-players to destroy triggers
+        if (source.Control.Weapon.ParentType != ObjectType::Player) {
+            if (auto wall = level.TryGetWall(tag)) {
+                if (wall->Trigger != TriggerID::None)
+                    return false;
+            }
+        }
 
         auto uv = IntersectFaceUVs(level, point, *seg, tag, tri);
 
@@ -265,7 +273,7 @@ namespace Inferno {
     // Moves a projectile in a sine pattern
     void SineWeapon(Object& obj, float dt, float speed, float amplitude) {
         if (obj.Control.Type != ControlType::Weapon || !obj.Control.Weapon.SineMovement) return;
-        auto offset = std::sin((float)obj.Control.Weapon.AliveTime * XM_2PI * speed + dt) - std::sin((float)obj.Control.Weapon.AliveTime * XM_2PI * speed);
+        auto offset = std::sin(obj.Control.Weapon.AliveTime * XM_2PI * speed + dt) - std::sin(obj.Control.Weapon.AliveTime * XM_2PI * speed);
         obj.Position += obj.Rotation.Up() * offset * amplitude;
     }
 
@@ -1227,7 +1235,7 @@ namespace Inferno {
         }
     }
 
-    void ApplyWeaponHit(const LevelHit& hit, Object& obj, Level& level) {
+    void OnWeaponHit(const LevelHit& hit, Object& obj, Level& level) {
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
@@ -1278,7 +1286,7 @@ namespace Inferno {
                 expl.FadeTime = 0.1f;
 
                 if (obj.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
-                    expl.Instances = 3;
+                    expl.Instances = 2;
                     expl.MinDelay = expl.MaxDelay = 0;
                     expl.Clip = weapon.RobotHitVClip;
                     expl.Color = Color{ 1, 1, 1 };
@@ -1302,6 +1310,21 @@ namespace Inferno {
 
             if (auto side = level.TryGetSide(hit.Tag)) {
                 auto& ti = Resources::GetLevelTextureInfo(side->TMap);
+
+                if (ti.HasFlag(TextureFlag::ForceField)) {
+                    addDecal = false;
+
+                    if (!weapon.IsMatter) { // Bounce energy weapons
+                        obj.Physics.Bounces++;
+                        obj.Parent = ObjID::None; // Make hostile to owner!
+                        obj.Rotation = obj.Rotation.Reflect(obj.Physics.Velocity, obj.Rotation.Up());
+
+                        Sound3D sound(hit.Point, hit.Tag.Segment);
+                        sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
+                        Sound::Play(sound);
+                    }
+                }
+
                 if (ti.HasFlag(TextureFlag::Volatile)) {
                     vclip = VClipID::HitLava;
                     soundId = SoundID::HitLava;
@@ -1322,38 +1345,39 @@ namespace Inferno {
                 }
             }
 
-            if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) && !hitLiquid)
-                return; // don't do anything when a bouncing weapon hits a wall
+            if (obj.Physics.Bounces <= 0 || hitLiquid) {
+                // Only create explosions when out of bounces or hitting a liquid
+                auto dir = obj.Physics.Velocity;
+                dir.Normalize();
 
-            auto dir = obj.Physics.Velocity;
-            dir.Normalize();
+                Render::ExplosionInfo e;
+                e.MinRadius = weapon.ImpactSize * 0.9f;
+                e.MaxRadius = weapon.ImpactSize * 1.1f;
+                e.Clip = vclip;
+                e.Sound = soundId;
 
-            Render::ExplosionInfo e;
-            e.MinRadius = weapon.ImpactSize * 0.9f;
-            e.MaxRadius = weapon.ImpactSize * 1.1f;
-            e.Clip = vclip;
-            e.Sound = soundId;
+                //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
+                if (weapon.ImpactSize < 5)
+                    e.Position = hit.Point + hit.Normal * 0.15f;
+                else
+                    // this doesn't work properly with fast moving projectiles
+                    e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
 
-            //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
-            if (weapon.ImpactSize < 5)
-                e.Position = hit.Point + hit.Normal * 0.15f;
-            else
-                // this doesn't work properly with fast moving projectiles
-                e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
+                e.Color = Color{ 1, 1, 1 };
+                e.FadeTime = 0.1f;
 
-            e.Color = Color{ 1, 1, 1 };
-            e.FadeTime = 0.1f;
-
-            if (obj.ID == (int)WeaponID::Concussion) {
-                e.Instances = 3;
-                e.MinDelay = e.MaxDelay = 0;
+                if (obj.ID == (int)WeaponID::Concussion) {
+                    e.Instances = 3;
+                    e.MinDelay = e.MaxDelay = 0;
+                }
+                Render::CreateExplosion(e);
             }
-            Render::CreateExplosion(e);
 
-            {
+            if (addDecal) {
                 auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
 
-                if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) { // check that decal isn't too close to edge due to lack of clipping
+                // check that decal isn't too close to edge due to lack of clipping
+                if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) {
                     Render::DecalInfo decal{};
                     auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
                     decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
@@ -1376,8 +1400,9 @@ namespace Inferno {
             }
 
             // todo: flares don't stick to forcefields or lava
-            // todo: this won't work for flares
-            obj.Destroy(); // destroy weapon after hitting a wall
+
+            if (obj.Physics.Bounces <= 0)
+                obj.Destroy(); // destroy weapon after hitting a wall
         }
 
         if (splashRadius > 0 || hitVolatile) {
@@ -1405,6 +1430,7 @@ namespace Inferno {
         }
 
     }
+
 
     // Updates the segment the object is in an activates triggers
     void UpdateObjectSegment(Level& level, Object& obj) {
@@ -1469,15 +1495,9 @@ namespace Inferno {
             }
 
             if (hit) {
-                if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce)) {
-                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
-                }
-
                 if (obj.Type == ObjectType::Weapon) {
-                    ApplyWeaponHit(hit, obj, level);
-                    if (CheckDestroyableTexture(level, hit.Point, hit.Tag, hit.Tri)) {
-                        // trigger events
-                    }
+                    CheckDestroyableTexture(level, hit.Point, hit.Tag, hit.Tri, obj);
+                    OnWeaponHit(hit, obj, level);
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {
@@ -1488,6 +1508,11 @@ namespace Inferno {
                     Game::Player.TouchObject(*hit.HitObj);
                 }
 
+                if (/*HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) ||*/ obj.Physics.Bounces > 0) {
+                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
+                    obj.Physics.Bounces--;
+                }
+
                 //CollideTriangles(level, obj, dt, 0);
                 //CollideTriangles(level, obj, dt, 1); // Doing two passes makes the result more stable
                 //CollideTriangles(level, obj, dt, 2); // Doing two passes makes the result more stable
@@ -1495,9 +1520,15 @@ namespace Inferno {
                 //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
                 //obj.Movement.Physics.Velocity = frameVec / dt;
                 obj.LastHitForce *= 0.80f; // decay every update
-            }
 
-            UpdateObjectSegment(level, obj);
+                // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
+                if (obj.Type != ObjectType::Weapon) {
+                    UpdateObjectSegment(level, obj);
+                }
+            }
+            else {
+                UpdateObjectSegment(level, obj);
+            }
 
             //if (obj.LastPosition != obj.Position)
             //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });

@@ -11,24 +11,21 @@
 #include <ranges>
 
 namespace DirectX::SimpleMath {
-    struct Matrix3x3 : public XMFLOAT3X3 {
+    struct Matrix3x3 : XMFLOAT3X3 {
         Matrix3x3() noexcept
             : XMFLOAT3X3(1.f, 0, 0,
                          0, 1.f, 0,
-                         0, 0, 1.f) {
-        }
+                         0, 0, 1.f) {}
 
         explicit Matrix3x3(const Vector3& r0, const Vector3& r1, const Vector3& r2) noexcept
             : XMFLOAT3X3(r0.x, r0.y, r0.z,
                          r1.x, r1.y, r1.z,
-                         r2.x, r2.y, r2.z) {
-        }
+                         r2.x, r2.y, r2.z) {}
 
-        explicit Matrix3x3(const Matrix& M) noexcept {
-            _11 = M._11; _12 = M._12; _13 = M._13;
-            _21 = M._21; _22 = M._22; _23 = M._23;
-            _31 = M._31; _32 = M._32; _33 = M._33;
-        }
+        explicit Matrix3x3(const Matrix& m) noexcept
+            : XMFLOAT3X3(m._11, m._12, m._13,
+                         m._21, m._22, m._23,
+                         m._31, m._32, m._33) {}
 
         Vector3 Up() const noexcept { return Vector3(_21, _22, _23); }
         void Up(const Vector3& v) noexcept { _21 = v.x; _22 = v.y; _23 = v.z; }
@@ -47,6 +44,19 @@ namespace DirectX::SimpleMath {
 
         Vector3 Backward() const noexcept { return Vector3(_31, _32, _33); }
         void Backward(const Vector3& v) noexcept { _31 = v.x; _32 = v.y; _33 = v.z; }
+
+        // Reflects a rotation matrix along a vector. Use lhs = true to correct for model rotations.
+        Matrix3x3 Reflect(const Vector3& forward, const Vector3& up, bool lhs = true) const {
+            //vm_vector_2_matrix(&obj->orient, &obj->mtype.phys_info.velocity, &obj->orient.uvec, NULL);
+            Vector3 xVec = Right(), yVec = Up(), zVec = lhs ? -Forward() : Forward();
+            forward.Normalize(zVec);
+            up.Normalize(yVec);
+
+            xVec = yVec.Cross(zVec);
+            xVec.Normalize();
+            yVec = zVec.Cross(xVec); // recalculate just in case not normalized
+            return Matrix3x3(lhs ? -xVec : xVec, yVec, zVec);
+        }
 
         Matrix3x3& operator *= (const Matrix& matrix) {
             DirectX::XMStoreFloat3x3(this, Matrix(*this) * matrix);
@@ -196,7 +206,7 @@ namespace Inferno {
     enum class MatcenID : uint8 { None = 255 };
     enum class TriggerID : uint8 { None = 255 };
 
-    enum class VClipID : int32 { 
+    enum class VClipID : int32 {
         None = -1,
         HitPlayer = 1,
         SmallExplosion = 2,
@@ -209,7 +219,7 @@ namespace Inferno {
         AfterburnerBlob = 95,
     };
 
-    enum class SoundID : int16 { 
+    enum class SoundID : int16 {
         None = -1,
 
         Explosion = 11,
@@ -224,8 +234,8 @@ namespace Inferno {
         MineBlewUp = 33,
         FusionWarmup = 34,
         DropWeapon = 39, // D2
-        ForcefieldBouncePlayer = 40,
-        HitForcefield = 41,
+        PlayerHitForcefield = 40,
+        WeaponHitForcefield = 41,
         ForcefieldHum = 42,
         ForcefieldOff = 43,
         TouchMarker = 50,
@@ -278,7 +288,7 @@ namespace Inferno {
         SecretExit = 249,
     };
 
-    enum class ModelID : int32 { 
+    enum class ModelID : int32 {
         None = -1,
         D1Reactor = 39,
         D1Player = 43,

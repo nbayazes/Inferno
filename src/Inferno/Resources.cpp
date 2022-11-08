@@ -364,6 +364,9 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Helix).Extended.Glow = { 0.4f, 0.5f, 0.4f };
         GetWeapon(WeaponID::Plasma).Extended.Glow = { 0.4f, 0.5f, 0.4f };
         GetWeapon(WeaponID::Phoenix).Extended.Glow = { 0.7f, 0.3f, 0.1f };
+        GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
+        GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
+
         GetWeapon(WeaponID::Fusion).Extended.Glow = { 0.7f, 0.7f, 0.7f };
 
         GetWeapon(WeaponID::Laser1).Mass =

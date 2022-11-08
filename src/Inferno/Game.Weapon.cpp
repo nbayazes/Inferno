@@ -199,13 +199,14 @@ namespace Inferno::Game {
             //bullet.Physics.Velocity += dot * obj.Physics.Velocity;
         }
 
-        //bullet.Physics.Velocity = direction * 10;
         bullet.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
         bullet.Physics.Drag = weapon.Drag;
         bullet.Physics.Mass = weapon.Mass;
+        bullet.Physics.Bounces = weapon.Extended.Bounces;
 
         bullet.Control.Type = ControlType::Weapon;
         bullet.Control.Weapon = {};
+        bullet.Control.Weapon.ParentType = obj.Type;
 
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path

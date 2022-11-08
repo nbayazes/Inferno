@@ -475,6 +475,8 @@ namespace Inferno::Sound {
         while (RequestStopSounds)
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
+        StopSoundTags.clear();
+        StopSoundUIDs.clear();
         Engine->TrimVoicePool();
     }
 
