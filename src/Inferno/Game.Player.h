@@ -152,5 +152,8 @@ namespace Inferno {
         void FireSecondary();
 
         bool CanOpenDoor(const Wall& wall) const;
+
+    private:
+        SoundUID _afterburnerSoundSig = 0;
     };
 }

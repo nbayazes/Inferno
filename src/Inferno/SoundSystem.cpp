@@ -24,6 +24,7 @@ namespace Inferno::Sound {
 
     std::atomic RequestStopSounds = false;
     List<Tag> StopSoundTags;
+    List<SoundUID> StopSoundUIDs;
 
     struct Sound3DInstance : Sound3D {
         float Muffle = 1, TargetMuffle = 1;
@@ -201,7 +202,10 @@ namespace Inferno::Sound {
                                 dispose = true;
                         }
 
-                        StopSoundTags.clear();
+                        for (auto& id : StopSoundUIDs) {
+                            if (sound->ID == id)
+                                dispose = true;
+                        }
 
                         if (RequestStopSounds) {
                             dispose = true;
@@ -231,6 +235,8 @@ namespace Inferno::Sound {
                         sound->Instance->Apply3D(Listener, sound->Emitter, false);
                         sound++;
                     }
+
+                    StopSoundUIDs.clear();
                 }
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
@@ -380,6 +386,13 @@ namespace Inferno::Sound {
         return sound;
     }
 
+    SoundUID SoundUIDIndex = 1;
+
+    SoundUID GetSoundUID() {
+        if (SoundUIDIndex == 0) SoundUIDIndex++;
+        return SoundUIDIndex++;
+    }
+
     void Play(const SoundResource& resource, float volume, float pan, float pitch) {
         auto sound = LoadSound(resource);
         if (!sound) return;
@@ -394,52 +407,52 @@ namespace Inferno::Sound {
     static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_Reverb_CurvePoints[3] = { 0.0f, 0.5f, 0.75f, 1.0f, 1.0f, 0.0f };
     static const X3DAUDIO_DISTANCE_CURVE       Emitter_Reverb_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_Reverb_CurvePoints[0], 3 };
 
-    void Play(const Sound3D& sound) {
+    SoundUID Play(const Sound3D& sound) {
         auto sfx = LoadSound(sound.Resource);
-        if (!sfx) return;
+        if (!sfx) return 0;
 
         auto position = sound.Position * AUDIO_SCALE;
 
-        {
-            std::scoped_lock lock(SoundInstancesMutex);
+        std::scoped_lock lock(SoundInstancesMutex);
 
-            // Check if any emitters are already playing this sound from this source
-            for (auto& instance : SoundInstances) {
-                if (instance.Source == sound.Source &&
-                    instance.Resource.GetID() == sound.Resource.GetID() &&
-                    instance.StartTime + MERGE_WINDOW > Game::Time &&
-                    !instance.Looped) {
+        // Check if any emitters are already playing this sound from this source
+        for (auto& instance : SoundInstances) {
+            if (instance.Source == sound.Source &&
+                instance.Resource.GetID() == sound.Resource.GetID() &&
+                instance.StartTime + MERGE_WINDOW > Game::Time &&
+                !instance.Looped) {
 
-                    if (instance.AttachToSource && sound.AttachToSource)
-                        instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
+                if (instance.AttachToSource && sound.AttachToSource)
+                    instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 
-                    instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                    // only use a portion of the duplicate sound to increase volume
-                    instance.Volume = std::max(instance.Volume, sound.Volume) * 1.15f;
-                    fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
-                    return; // Don't play sounds within the merge window
-                }
+                instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
+                // only use a portion of the duplicate sound to increase volume
+                instance.Volume = std::max(instance.Volume, sound.Volume) * 1.15f;
+                fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
+                return instance.ID; // Don't play sounds within the merge window
             }
-
-            auto& s = SoundInstances.emplace_back(sound);
-            s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-            s.Instance->SetVolume(sound.Volume);
-            s.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
-
-            //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
-            //s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
-            s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
-            s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
-            s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
-            s.Emitter.CurveDistanceScaler = sound.Radius;
-            s.Emitter.Position = position;
-            s.Emitter.DopplerScaler = 1.0f;
-            s.Emitter.InnerRadius = sound.Radius / 6;
-            s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
-            s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
-
-            s.StartTime = Game::Time;
         }
+
+        auto& s = SoundInstances.emplace_back(sound);
+        s.ID = GetSoundUID();
+        s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
+        s.Instance->SetVolume(sound.Volume);
+        s.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
+
+        //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
+        //s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
+        s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
+        s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
+        s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
+        s.Emitter.CurveDistanceScaler = sound.Radius;
+        s.Emitter.Position = position;
+        s.Emitter.DopplerScaler = 1.0f;
+        s.Emitter.InnerRadius = sound.Radius / 6;
+        s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
+        s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
+
+        s.StartTime = Game::Time;
+        return s.ID;
     }
 
     void Reset() {
@@ -478,10 +491,6 @@ namespace Inferno::Sound {
         if (!Alive) return;
 
         RequestStopSounds = true;
-        //std::scoped_lock lock(SoundInstancesMutex);
-        //for (auto& sound : SoundInstances) {
-        //    sound.Instance->Stop();
-        //}
     }
 
     void Stop2DSounds() {
@@ -491,8 +500,14 @@ namespace Inferno::Sound {
     }
 
     void Stop(Tag tag) {
-        if (!Alive) return;
+        if (!Alive || !tag) return;
         std::scoped_lock lock(SoundInstancesMutex);
         StopSoundTags.push_back(tag);
+    }
+
+    void Stop(SoundUID id) {
+        if (!Alive || id == 0) return;
+        std::scoped_lock lock(SoundInstancesMutex);
+        StopSoundUIDs.push_back(id);
     }
 }

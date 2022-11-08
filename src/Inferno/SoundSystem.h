@@ -5,6 +5,8 @@
 #include "Camera.h"
 
 namespace Inferno {
+    using SoundUID = unsigned int; // ID used to cancel a playing sound
+
     // Sound source priority: D3, D1, D2
     // D1 has higher priority than D2
     struct SoundResource {
@@ -43,15 +45,16 @@ namespace Inferno {
         bool AttachToSource = false; // The sound moves with the Source object
         Vector3 AttachOffset; // The offset from the Source when attached
         bool FromPlayer = false; // For the player's firing sounds, afterburner, etc
+        SoundUID ID = 0;
     };
 }
 
 namespace Inferno::Sound {
-
     void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
     void Shutdown();
+    
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
-    void Play(const Sound3D& sound);
+    SoundUID Play(const Sound3D& sound);
     void UpdateEmitterPositions(float dt);
 
     // Resets any cached sounds after loading a level
@@ -87,6 +90,7 @@ namespace Inferno::Sound {
     void Stop3DSounds();
     void Stop2DSounds();
     void Stop(Tag);
+    void Stop(SoundUID);
 
     namespace Debug {
         inline List<Vector3> Emitters;

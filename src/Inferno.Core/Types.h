@@ -408,7 +408,7 @@ namespace Inferno {
     };
 
     // Tags a point on a segment side
-    struct PointTag : public Tag { uint16 Point; };
+    struct PointTag : Tag { uint16 Point; };
 
     constexpr Tag GetOppositeSide(Tag tag) {
         tag.Side = GetOppositeSide(tag.Side);

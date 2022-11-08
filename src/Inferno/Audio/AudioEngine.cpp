@@ -11,7 +11,7 @@
 #include "pch.h"
 #include "Audio.h"
 #include "SoundCommon.h"
-
+#include <wrl/client.h>
 #include <unordered_map>
 
 using namespace Inferno;
@@ -25,7 +25,7 @@ using Microsoft::WRL::ComPtr;
 
 namespace
 {
-    struct EngineCallback : public IXAudio2EngineCallback
+    struct EngineCallback : IXAudio2EngineCallback
     {
         EngineCallback() noexcept(false)
         {
@@ -59,7 +59,7 @@ namespace
         ScopedHandle mCriticalError;
     };
 
-    struct VoiceCallback : public IXAudio2VoiceCallback
+    struct VoiceCallback : IXAudio2VoiceCallback
     {
         VoiceCallback() noexcept(false)
         {
@@ -101,7 +101,7 @@ namespace
         ScopedHandle mBufferEnd;
     };
 
-    static const XAUDIO2FX_REVERB_I3DL2_PARAMETERS gReverbPresets[] =
+    constexpr XAUDIO2FX_REVERB_I3DL2_PARAMETERS gReverbPresets[] =
     {
         XAUDIO2FX_I3DL2_PRESET_DEFAULT,             // Reverb_Off
         XAUDIO2FX_I3DL2_PRESET_DEFAULT,             // Reverb_Default
@@ -136,7 +136,7 @@ namespace
         XAUDIO2FX_I3DL2_PRESET_PLATE,               // Reverb_Plate
     };
 
-    inline unsigned int makeVoiceKey(_In_ const WAVEFORMATEX* wfx) noexcept
+    unsigned int makeVoiceKey(_In_ const WAVEFORMATEX* wfx) noexcept
     {
         assert(IsValid(wfx));
 

@@ -18,9 +18,10 @@ namespace Inferno {
                 sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
                 sound.FromPlayer = true;
                 sound.Radius = 125;
-                Sound::Play(sound);
+                _afterburnerSoundSig = Sound::Play(sound);
             }
             else {
+                Sound::Stop(_afterburnerSoundSig);
                 Sound3D sound(ID);
                 sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
                 sound.FromPlayer = true;
@@ -318,7 +319,7 @@ namespace Inferno {
         return true;
     }
 
-    void ScreenFlash(const Color& color) {
+    void ScreenFlash(const Color& /*color*/) {
         // Tint the screen
     }
 
