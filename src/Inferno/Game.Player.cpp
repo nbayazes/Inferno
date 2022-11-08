@@ -9,32 +9,10 @@ namespace Inferno {
     float Player::UpdateAfterburner(float dt, bool active) {
         if (!HasPowerup(PowerupFlag::Afterburner)) return 0;
 
-        if (active != AfterburnerActive) {
-            if (AfterburnerCharge > 0 && active) {
-                // play looping sound
-                //constexpr int loopStart = 32027;
-                //constexpr int loopEnd = 48452;
-                Sound3D sound(ID);
-                sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
-                sound.FromPlayer = true;
-                sound.Radius = 125;
-                sound.LoopStart = 32027;
-                sound.LoopEnd = 48452;
-                sound.Looped = true;
-                _afterburnerSoundSig = Sound::Play(sound);
-            }
-            else {
-                Sound::Stop(_afterburnerSoundSig);
-                Sound3D sound(ID);
-                sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
-                sound.FromPlayer = true;
-                sound.Radius = 125;
-                Sound::Play(sound);
-            }
-        }
+        float thrust = 0;
 
-        AfterburnerActive = active;
-
+        // AB keeps draining energy if button is held when empty even though it doesn't do anything.
+        // This is the original behavior.
         if (active) {
             constexpr float AFTERBURNER_USE_SECS = 3;
             constexpr float USE_SPEED = 1 / 15.0f / AFTERBURNER_USE_SECS;
@@ -46,7 +24,7 @@ namespace Inferno {
             float count = AfterburnerCharge / USE_SPEED;
 
             if (oldCount != count) {} // drop blobs
-            return 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
+            thrust = 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
         }
         else {
             float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
@@ -56,7 +34,34 @@ namespace Inferno {
             Energy -= chargeUp * 100 / 10; // full charge uses 10% energy
         }
 
-        return 0;
+        if (AfterburnerCharge <= 0 && active)
+            active = false; // ran out of charge
+
+        // activated / released with charge, or ran out of charge
+        if (active != AfterburnerActive) {
+            if (AfterburnerCharge > 0 && active) {
+                Sound3D sound(ID);
+                sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
+                sound.FromPlayer = true;
+                sound.Radius = 125;
+                sound.LoopStart = 32027;
+                sound.LoopEnd = 48452;
+                sound.Looped = true;
+                _afterburnerSoundSig = Sound::Play(sound);
+            }
+            else if (_prevAfterburnerCharge != AfterburnerCharge) {
+                Sound::Stop(_afterburnerSoundSig);
+                Sound3D sound(ID);
+                sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
+                sound.FromPlayer = true;
+                sound.Radius = 125;
+                Sound::Play(sound);
+            }
+        }
+
+        AfterburnerActive = active;
+        _prevAfterburnerCharge = AfterburnerCharge;
+        return thrust;
     }
 
     void Player::ArmPrimary(PrimaryWeaponIndex index) {

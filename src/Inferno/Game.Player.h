@@ -155,5 +155,6 @@ namespace Inferno {
 
     private:
         SoundUID _afterburnerSoundSig = 0;
+        float _prevAfterburnerCharge = 0;
     };
 }
