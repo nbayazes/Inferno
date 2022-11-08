@@ -53,7 +53,7 @@ public:
         }
     }
 
-    void Play(bool loop);
+    void Play(SoundLoopInfo* loop);
 
     // IVoiceNotify
     void __cdecl OnBufferEnd() override
@@ -108,7 +108,7 @@ public:
 };
 
 
-void SoundEffectInstance::Impl::Play(bool loop)
+void SoundEffectInstance::Impl::Play(SoundLoopInfo* loop)
 {
     if (!mBase.voice)
     {
@@ -165,7 +165,9 @@ void SoundEffectInstance::Impl::Play(bool loop)
     if (loop)
     {
         mLooped = true;
-        buffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+        buffer.LoopCount = loop->LoopCount;
+        buffer.LoopBegin = loop->LoopBegin;
+        buffer.LoopLength = loop->LoopLength;
     }
     else
     {
@@ -244,7 +246,7 @@ SoundEffectInstance::~SoundEffectInstance()
 
 
 // Public methods.
-void SoundEffectInstance::Play(bool loop)
+void SoundEffectInstance::Play(SoundLoopInfo* loop)
 {
     pImpl->Play(loop);
 }

@@ -18,6 +18,9 @@ namespace Inferno {
                 sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
                 sound.FromPlayer = true;
                 sound.Radius = 125;
+                sound.LoopStart = 32027;
+                sound.LoopEnd = 48452;
+                sound.Looped = true;
                 _afterburnerSoundSig = Sound::Play(sound);
             }
             else {

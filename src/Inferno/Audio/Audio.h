@@ -83,6 +83,12 @@ namespace Inferno
     class SoundEffectInstance;
     class SoundStreamInstance;
 
+    struct SoundLoopInfo {
+        uint32_t LoopBegin = 0;
+        uint32_t LoopLength = 0; // 0 loops the entire sample
+        uint32_t LoopCount = XAUDIO2_LOOP_INFINITE;
+    };
+
     //----------------------------------------------------------------------------------
     struct AudioStatistics
     {
@@ -658,7 +664,7 @@ namespace Inferno
 
         virtual ~SoundEffectInstance();
 
-        void __cdecl Play(bool loop = false);
+        void __cdecl Play(SoundLoopInfo* loop = nullptr);
         void __cdecl Stop(bool immediate = true) noexcept;
         void __cdecl Pause() noexcept;
         void __cdecl Resume();

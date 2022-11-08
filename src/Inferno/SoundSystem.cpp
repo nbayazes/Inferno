@@ -66,7 +66,13 @@ namespace Inferno::Sound {
             if (dist < Radius && !RequestStopSounds) { // only hit test if sound is actually within range
                 if (Looped && !Instance->GetState() == SoundState::PLAYING) {
                     //fmt::print("Starting looped sound\n");
-                    Instance->Play(true);
+                    SoundLoopInfo info{
+                        .LoopBegin = LoopStart,
+                        .LoopLength = LoopEnd - LoopStart,
+                        .LoopCount = LoopCount <= 0 ? XAUDIO2_LOOP_INFINITE : std::clamp(LoopCount, 1u, (uint)XAUDIO2_MAX_LOOP_COUNT)
+                    };
+
+                    Instance->Play(&info);
                 }
 
                 if (Occlusion) {
@@ -307,8 +313,8 @@ namespace Inferno::Sound {
         WorkerThread.join();
     }
 
+    // HWND is not used directly, but indicates the sound system requires a window
     void Init(HWND, float volume, milliseconds pollRate) {
-        // HWND is not used, but indicates the sound system requires a window
         WorkerThread = std::jthread(SoundWorker, volume, pollRate);
 
         //DWORD channelMask{};
@@ -411,6 +417,9 @@ namespace Inferno::Sound {
         auto sfx = LoadSound(sound.Resource);
         if (!sfx) return 0;
 
+        if (sound.Looped && sound.LoopStart > sound.LoopEnd)
+            throw Exception("Loop start must be <= loop end");
+
         auto position = sound.Position * AUDIO_SCALE;
 
         std::scoped_lock lock(SoundInstancesMutex);
@@ -450,8 +459,8 @@ namespace Inferno::Sound {
         s.Emitter.InnerRadius = sound.Radius / 6;
         s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
         s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
-
         s.StartTime = Game::Time;
+
         return s.ID;
     }
 
