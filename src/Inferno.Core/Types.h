@@ -272,8 +272,8 @@ namespace Inferno {
         LightDestroyed = 157,
 
         SeismicStart = 251,
-        AfterburnerStart = 247,
-        AfterburnerLoop = 248,
+        AfterburnerIgnite = 247,
+        AfterburnerStop = 248,
 
         SecretExit = 249,
     };

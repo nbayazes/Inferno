@@ -187,7 +187,7 @@ namespace Inferno {
 
         Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
-        info.Size = Vector2((float)ti.Width, (float)ti.Height) * scale * sizeScale;
+        info.Size = Vector2(ti.Width, ti.Height) * scale * sizeScale;
         info.Texture = Render::Materials->Get(id).Handles[Material2D::Diffuse];
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
@@ -281,6 +281,35 @@ namespace Inferno {
         Render::HudGlowCanvas->Draw(payload);
     }
 
+    constexpr float DEFAULT_SCANLINE = 0.75f;
+
+    void DrawAfterburnerBar(float x, const Player& player) {
+        if (!player.HasPowerup(PowerupFlag::Afterburner))
+            return;
+
+        float percent = player.AfterburnerCharge;
+        auto scale = Render::HudCanvas->GetScale();
+        auto hex = Color(1, 1, 1).RGBA().v;
+        auto pos = Vector2{ x - 151, -37 } * scale;
+        auto& material = Render::Materials->GetOutrageMaterial("gauge02b");
+        Vector2 size = {
+            (float)material.Textures[0].GetWidth() * scale,
+            (float)material.Textures[0].GetHeight() * percent * scale 
+        };
+
+        auto alignment = Render::GetAlignment(size, AlignH::CenterLeft, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
+        float uvTop = 1 - percent;
+
+        Render::CanvasPayload info{};
+        info.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { 0, 1 }, hex }; // bottom left
+        info.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, { 1, 1 }, hex }; // bottom right
+        info.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { 1, uvTop }, hex }; // top right
+        info.V3 = { Vector2{ pos.x, pos.y } + alignment, { 0, uvTop }, hex }; // top left
+        info.Texture = material.Handles[0];
+        info.Scanline = DEFAULT_SCANLINE;
+        Render::HudGlowCanvas->Draw(info);
+    }
+
     // convert '1' characters to a special fixed width version. Only works with small font.
     void UseWide1Char(string& s) {
         for (auto& c : s)
@@ -349,9 +378,7 @@ namespace Inferno {
         }
 
         DrawEnergyBar(x, false, player.Energy);
-
-        // Afterburner
-        DrawAdditiveBitmap({ x - 151, -37 }, AlignH::CenterLeft, "gauge02b", 1);
+        DrawAfterburnerBar(x, player);
     }
 
     void DrawRightMonitor(float x, const MonitorState& state, const Player& player) {
@@ -582,7 +609,7 @@ namespace Inferno {
                     frame = invFrame;
                 }
             }
-            
+
             if (frame != 9) { // Frame 9 is 'missing' - no shields
                 auto shieldGfx = fmt::format("gauge01b#{}", frame);
                 DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial(shieldGfx), 1, 1);

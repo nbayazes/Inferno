@@ -58,7 +58,8 @@ namespace Inferno {
                     string type = hasLava ? "Lava" : hasWater ? "Water" : "Normal";
                     ImGui::Text("Room type: %s", type.c_str());
                 }
-                ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
+                ImGui::Text("Ship vel: %.2f", Debug::ShipVelocity.Length());
+                ImGui::Text("Ship thrust: %.2f", Debug::ShipThrust.Length());
             }
 
             ImGui::Text("Live objects: %d", Game::Level.Objects.size());

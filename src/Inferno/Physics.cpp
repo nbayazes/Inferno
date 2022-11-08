@@ -199,7 +199,7 @@ namespace Inferno {
         if (IsZero(pd.AngularVelocity) && IsZero(pd.AngularThrust))
             return;
 
-        auto pdDrag = pd.Drag ? pd.Drag : 1;
+        auto pdDrag = pd.Drag > 0 ? pd.Drag : 1;
         const auto drag = pdDrag * 5 / 2;
 
         if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
@@ -208,7 +208,7 @@ namespace Inferno {
         if (!HasFlag(pd.Flags, PhysicsFlag::FreeSpinning))
             pd.AngularVelocity *= 1 - drag;
 
-        if (pd.TurnRoll) // unrotate object for bank caused by turn
+        if (pd.TurnRoll > 0) // unrotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(pd.TurnRoll) * obj.Rotation);
 
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
@@ -216,7 +216,7 @@ namespace Inferno {
         if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll))
             TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate * dt);
 
-        if (pd.TurnRoll) // re-rotate object for bank caused by turn
+        if (pd.TurnRoll > 0) // re-rotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
     }
 
@@ -278,9 +278,8 @@ namespace Inferno {
             //physics.Thrust *= ship.MaxThrust / dt;
             //physics.AngularThrust *= ship.MaxRotationalThrust / dt;
 
-            Debug::ShipThrust = physics.AngularThrust;
+            Debug::ShipThrust = physics.Thrust;
             Debug::ShipAcceleration = Vector3::Zero;
-
         }
 
         AngularPhysics(obj, dt);

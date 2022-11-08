@@ -96,20 +96,37 @@ namespace Inferno {
         //auto ht0 = GetHoldTime(true, 0, frameTime);
         //auto ht1 = GetHoldTime(true, 1, frameTime);
 
-        auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
-        auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
+        const auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
+        const auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
+
+        float forwardThrust = 0;
+        float lateralThrust = 0;
+        float verticalThrust = 0;
 
         if (Input::IsKeyDown(Keys::W))
-            physics.Thrust += player.Rotation.Forward() * maxThrust;
+            forwardThrust += maxThrust;
 
         if (Input::IsKeyDown(Keys::S))
-            physics.Thrust += player.Rotation.Backward() * maxThrust;
+            forwardThrust -= maxThrust;
 
         if (Input::IsKeyDown(Keys::A))
-            physics.Thrust += player.Rotation.Left() * maxThrust;
+            lateralThrust -= maxThrust;
 
         if (Input::IsKeyDown(Keys::D))
-            physics.Thrust += player.Rotation.Right() * maxThrust;
+            lateralThrust += maxThrust;
+
+        float afterburnerThrust = Game::Player.UpdateAfterburner(dt, Input::IsKeyDown(Keys::LeftControl));
+        if (afterburnerThrust > 1) 
+            forwardThrust = maxThrust * afterburnerThrust;
+
+        forwardThrust = std::clamp(forwardThrust, -maxThrust, afterburnerThrust > 1 ? maxThrust * 2 : maxThrust);
+        lateralThrust = std::clamp(lateralThrust, -maxThrust, maxThrust);
+        verticalThrust = std::clamp(verticalThrust, -maxThrust, maxThrust);
+
+        // Clamp linear speeds
+        physics.Thrust += player.Rotation.Forward() * forwardThrust;
+        physics.Thrust += player.Rotation.Right() * lateralThrust;
+        physics.Thrust += player.Rotation.Up() * verticalThrust;
 
         // roll
         if (Input::IsKeyDown(Keys::Q))
@@ -122,5 +139,9 @@ namespace Inferno {
         float scale = 1 / (sensitivity * dt / Game::TICK_RATE);
         physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
         physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
+
+        // Clamp angular speeds
+        Vector3 maxAngVec(Settings::Inferno.LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);
+        physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
     }
 }

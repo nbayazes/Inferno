@@ -459,14 +459,6 @@ namespace Inferno::Game {
             else {
                 HandleInput(dt);
             }
-
-            // Clamp max input speeds
-            auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
-            auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
-            Vector3 maxAngVec(Settings::Inferno.LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);
-            physics.AngularThrust.Clamp(-maxAngVec, maxAngVec);
-            Vector3 maxThrustVec(maxThrust, maxThrust, maxThrust);
-            physics.Thrust.Clamp(-maxThrustVec, maxThrustVec);
         }
 
         while (accumulator >= TICK_RATE) {
@@ -717,6 +709,8 @@ namespace Inferno::Game {
             Player.GiveWeapon(PrimaryWeaponIndex::Helix);
             Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
             Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
+            Player.GivePowerup(PowerupFlag::Afterburner);
+
             uint16 VULCAN_AMMO_MAX = Level.IsDescent1() ? 10000 : 20000;
             Player.PrimaryWeapons = 0xffff;
             Player.SecondaryWeapons = 0xffff;
