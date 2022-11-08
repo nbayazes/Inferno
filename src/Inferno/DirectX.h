@@ -23,7 +23,7 @@ using Microsoft::WRL::ComPtr;
 #include <DirectXTK12/GeometricPrimitive.h>
 #include <DirectXTK12/DirectXHelpers.h>
 
-#include <vendor/PlatformHelpers.h>
+#include <PlatformHelpers.h>
 
 // To use graphics and CPU markup events with the latest version of PIX, change this to include <pix3.h>
 // then add the NuGet package WinPixEventRuntime to the project.
@@ -33,7 +33,7 @@ using Microsoft::WRL::ComPtr;
 #include <dxgidebug.h>
 #endif
 
-#include <vendor/d3dx12.h>
+#include <d3dx12.h>
 
 constexpr D3D12_GPU_VIRTUAL_ADDRESS D3D12_GPU_VIRTUAL_ADDRESS_NULL = 0;
 constexpr auto D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN = D3D12_GPU_VIRTUAL_ADDRESS(-1);

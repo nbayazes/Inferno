@@ -19,7 +19,7 @@
 #include <mmreg.h>
 
 
-namespace DirectX
+namespace Inferno
 {
     HRESULT LoadWAVAudioInMemory(
         _In_reads_bytes_(wavDataSize) const uint8_t* wavData,

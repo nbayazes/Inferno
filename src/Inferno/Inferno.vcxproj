@@ -70,7 +70,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\vendor;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalOptions>/Zc:__cplusplus /we4715 %(AdditionalOptions)</AdditionalOptions>
@@ -109,7 +109,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)src\Inferno.Core;$(SolutionDir)src\vendor;$(SolutionDir)src\Imgui;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/Zc:__cplusplus /we4715 %(AdditionalOptions)</AdditionalOptions>
       <EnableModules>
@@ -148,8 +148,13 @@
       <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </DisableSpecificWarnings>
     </ClCompile>
-    <ClCompile Include="..\vendor\WAVFileReader.cpp" />
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Audio\AudioEngine.cpp" />
+    <ClCompile Include="Audio\DynamicSoundEffectInstance.cpp" />
+    <ClCompile Include="Audio\SoundCommon.cpp" />
+    <ClCompile Include="Audio\SoundEffect.cpp" />
+    <ClCompile Include="Audio\SoundEffectInstance.cpp" />
+    <ClCompile Include="Audio\WAVFileReader.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Game.Input.cpp" />
@@ -204,7 +209,9 @@
     <ClCompile Include="Shell.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\vendor\WAVFileReader.h" />
+    <ClInclude Include="Audio\Audio.h" />
+    <ClInclude Include="Audio\SoundCommon.h" />
+    <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Editor\Command.h" />

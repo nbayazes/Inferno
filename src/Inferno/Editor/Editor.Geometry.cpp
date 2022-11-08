@@ -7,7 +7,7 @@
 #include "Editor.Segment.h"
 #include "Editor.Object.h"
 
-#include "vendor/OpenSimplexNoise.h"
+#include "OpenSimplexNoise.h"
 #include <random>
 
 namespace Inferno::Editor {

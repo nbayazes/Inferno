@@ -8,9 +8,10 @@
 #include "logging.h"
 #include "Graphics/Render.h"
 #include "Physics.h"
-#include <vendor/WAVFileReader.h>
+#include "Audio/WAVFileReader.h"
+#include "Audio/Audio.h"
 
-using namespace DirectX;
+//using namespace DirectX;
 using namespace DirectX::SimpleMath;
 using namespace std::chrono;
 
@@ -279,8 +280,8 @@ namespace Inferno::Sound {
     }
 
     SoundEffect CreateSoundEffectWav(AudioEngine& engine, span<ubyte> raw) {
-        DirectX::WAVData result{};
-        DirectX::LoadWAVAudioInMemoryEx(raw.data(), raw.size(), result);
+        WAVData result{};
+        LoadWAVAudioInMemoryEx(raw.data(), raw.size(), result);
 
         // create a buffer and store wfx at the beginning.
         auto wavData = MakePtr<uint8[]>(result.audioBytes + sizeof(WAVEFORMATEX));

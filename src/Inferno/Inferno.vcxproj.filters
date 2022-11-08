@@ -155,9 +155,6 @@
     <ClCompile Include="Game.Wall.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\vendor\WAVFileReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Game.Segment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -177,6 +174,24 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game.Weapon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\WAVFileReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\DynamicSoundEffectInstance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\AudioEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\SoundCommon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\SoundEffect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\SoundEffectInstance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -424,9 +439,6 @@
     <ClInclude Include="Game.Wall.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\vendor\WAVFileReader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Editor\UI\BriefingEditor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -455,6 +467,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game.Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\WAVFileReader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\Audio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\SoundCommon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

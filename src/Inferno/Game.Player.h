@@ -144,8 +144,8 @@ namespace Inferno {
             if (active != AfterburnerActive) {
                 if (AfterburnerCharge > 0 && active) {
                     // play looping sound
-                    constexpr int loopStart = 32027;
-                    constexpr int loopEnd = 48452;
+                    //constexpr int loopStart = 32027;
+                    //constexpr int loopEnd = 48452;
                     Sound3D sound(ID);
                     sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
                     sound.FromPlayer = true;
