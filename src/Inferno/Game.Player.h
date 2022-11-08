@@ -138,93 +138,9 @@ namespace Inferno {
         }
 
         // returns the forward thrust multiplier
-        float UpdateAfterburner(float dt, bool active) {
-            if (!HasPowerup(PowerupFlag::Afterburner)) return 0;
-
-            if (active != AfterburnerActive) {
-                if (AfterburnerCharge > 0 && active) {
-                    // play looping sound
-                    //constexpr int loopStart = 32027;
-                    //constexpr int loopEnd = 48452;
-                    Sound3D sound(ID);
-                    sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
-                    sound.FromPlayer = true;
-                    sound.Radius = 125;
-                    Sound::Play(sound);
-                }
-                else {
-                    Sound3D sound(ID);
-                    sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
-                    sound.FromPlayer = true;
-                    sound.Radius = 125;
-                    Sound::Play(sound);
-                }
-            }
-
-            AfterburnerActive = active;
-
-            if (active) {
-                constexpr float AFTERBURNER_USE_SECS = 3;
-                constexpr float USE_SPEED = 1 / 15.0f / AFTERBURNER_USE_SECS;
-
-                float oldCount = AfterburnerCharge / USE_SPEED;
-                AfterburnerCharge -= dt / AFTERBURNER_USE_SECS;
-
-                if (AfterburnerCharge < 0) AfterburnerCharge = 0;
-                float count = AfterburnerCharge / USE_SPEED;
-
-                if (oldCount != count) {} // drop blobs
-                return 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 1 to 0.5 under 50% charge
-            }
-            else {
-                float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
-                float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
-                chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
-                AfterburnerCharge += chargeUp;
-                Energy -= chargeUp * 100 / 10; // full charge uses 10% energy
-            }
-
-            return 0;
-        }
-
-        //if (Input::IsKeyDown(Keys::LeftControl)) {
-        //    forwardThrust = maxThrust * Game::Player.UseAfterburner(dt);
-        //}
-        //else {
-        //    Game::Player.RechargeAfterburner(dt);
-        //}
-
-        //Game::Player.UpdateAfterburner(Input::IsKeyDown(Keys::LeftControl));
-
-        // returns the forward thrust multiplier
-        float UseAfterburner(float dt) {
-            if (!HasPowerup(PowerupFlag::Afterburner)) return 0;
-
-            constexpr float AFTERBURNER_USE_SECS = 3;
-            constexpr float USE_SPEED = 1 / 15.0f / AFTERBURNER_USE_SECS;
-
-            float oldCount = AfterburnerCharge / USE_SPEED;
-            AfterburnerCharge -= dt / AFTERBURNER_USE_SECS;
-
-            if (AfterburnerCharge < 0) AfterburnerCharge = 0;
-            float count = AfterburnerCharge / USE_SPEED;
-
-            if (oldCount != count) {} // drop blobs
-            return 1 + std::min(0.5f, AfterburnerCharge) * 2;
-        }
-
-        void RechargeAfterburner(float dt) {
-            if (!HasPowerup(PowerupFlag::Afterburner)) return;
-
-            float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
-            float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
-            chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
-            AfterburnerCharge += chargeUp;
-            Energy -= chargeUp * 100 / 10; // full charge uses 10% energy
-        }
+        float UpdateAfterburner(float dt, bool active);
 
         void ArmPrimary(PrimaryWeaponIndex index);
-
         void ArmSecondary(SecondaryWeaponIndex index);
 
         void Update(float dt);

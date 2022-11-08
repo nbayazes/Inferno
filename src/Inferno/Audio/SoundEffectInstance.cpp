@@ -36,23 +36,6 @@ public:
         mBase.Initialize(engine, effect->GetFormat(), flags);
     }
 
-    Impl(_In_ AudioEngine* engine, _In_ WaveBank* waveBank, uint32_t index, SOUND_EFFECT_INSTANCE_FLAGS flags) :
-        mBase(),
-        mEffect(nullptr),
-        mWaveBank(waveBank),
-        mIndex(index),
-        mLooped(false)
-    {
-        assert(false); // not supported
-        //assert(engine != nullptr);
-        //engine->RegisterNotify(this, false);
-
-        //char buff[64] = {};
-        //auto wfx = reinterpret_cast<WAVEFORMATEX*>(buff);
-        //assert(mWaveBank != nullptr);
-        //mBase.Initialize(engine, mWaveBank->GetFormat(index, wfx, sizeof(buff)), flags);
-    }
-
     Impl(Impl&&) = default;
     Impl& operator= (Impl&&) = default;
 
@@ -233,13 +216,6 @@ SoundEffectInstance::SoundEffectInstance(AudioEngine* engine, SoundEffect* effec
     pImpl(std::make_unique<Impl>(engine, effect, flags))
 {
 }
-
-_Use_decl_annotations_
-SoundEffectInstance::SoundEffectInstance(AudioEngine* engine, WaveBank* waveBank, unsigned int index, SOUND_EFFECT_INSTANCE_FLAGS flags) :
-    pImpl(std::make_unique<Impl>(engine, waveBank, index, flags))
-{
-}
-
 
 // Move ctor/operator.
 SoundEffectInstance::SoundEffectInstance(SoundEffectInstance&&) noexcept = default;
