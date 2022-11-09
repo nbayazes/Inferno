@@ -459,7 +459,6 @@ namespace Inferno::Render {
         }
         else {
             DrawObjectOutline(object);
-            return;
         }
     }
 

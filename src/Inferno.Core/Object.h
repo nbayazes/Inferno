@@ -34,6 +34,7 @@ namespace Inferno {
 
     // misc object flags
     enum class ObjectFlag : uint8 {
+        None = 0,
         Exploding = 1,
         ShouldBeDead = 2,   // Scheduled for deletion
         Destroyed = 4,      // this has been killed, and is showing the dead version
@@ -290,6 +291,8 @@ namespace Inferno {
         Powerup = 1 >> 3 // Powerup or hostage
     };
 
+    constexpr float WEAPON_FADE_TIME = 0.25f;
+
     struct Object {
         ObjSig Signature{};     // Unique signature for each object
         ObjectType Type{};
@@ -361,6 +364,10 @@ namespace Inferno {
         }
 
         void Destroy() { Flags |= ObjectFlag::Destroyed; }
+        void ShouldBeDead() {
+            Flags |= ObjectFlag::ShouldBeDead;
+            Lifespan = WEAPON_FADE_TIME;
+        }
 
         bool IsAlive() const { return IsAliveFn(*this); }
 

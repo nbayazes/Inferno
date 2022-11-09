@@ -44,7 +44,7 @@ namespace Inferno {
                 (player.LaserLevel > MAX_LASER_LEVEL && LaserLevel <= MAX_LASER_LEVEL) ||
                 (player.LaserLevel <= MAX_LASER_LEVEL && LaserLevel > MAX_LASER_LEVEL));
 
-            if (_requested != weapon || laserTierChanged) {
+            if (_requested != weapon || (laserTierChanged && weapon == (int)PrimaryWeaponIndex::Laser)) {
                 State = FadeOut;
                 //Opacity = player.RearmTime;
                 _requested = weapon;
