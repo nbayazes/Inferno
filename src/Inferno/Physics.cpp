@@ -112,7 +112,7 @@ namespace Inferno {
     }
 
     // returns true if overlay was destroyed
-    bool CheckDestroyableTexture(Level& level, const Vector3& point, Tag tag, int tri, const Object& source) {
+    bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, const Object& source) {
         tri = std::clamp(tri, 0, 1);
 
         auto seg = level.TryGetSegment(tag);
@@ -1235,175 +1235,188 @@ namespace Inferno {
         }
     }
 
-    void OnWeaponHit(const LevelHit& hit, Object& obj, Level& level) {
+    void WeaponHitObject(const LevelHit& hit, Object& obj, Level& level) {
+        auto& weapon = Resources::GameData.Weapons[obj.ID];
+        float damage = weapon.Damage[Game::Difficulty];
+
+        auto& target = *hit.HitObj;
+        //auto p = src.Mass * src.InputVelocity;
+
+        auto& targetPhys = target.Physics;
+        auto srcMass = obj.Physics.Mass == 0 ? 0.01f : obj.Physics.Mass;
+        auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
+
+        // apply forces from projectile to object
+        auto force = obj.Physics.Velocity * srcMass / targetMass;
+        targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
+        target.LastHitForce += force;
+
+        Matrix basis(target.Rotation);
+        basis = basis.Invert();
+        force = Vector3::Transform(force, basis); // transform forces to basis of object
+        auto arm = Vector3::Transform(hit.Point - target.Position, basis);
+        auto torque = force.Cross(arm);
+        auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
+        auto accel = torque / inertia;
+        targetPhys.AngularVelocity += accel; // should we multiply by dt here?
+
+        if (target.Type == ObjectType::Weapon) {
+            Game::ExplodeWeapon(target); // Destroy the weapon that was hit (usually a mine)
+        }
+        else {
+            if (target.Type != ObjectType::Player) // player shields are handled differently
+                target.ApplyDamage(damage);
+
+            //fmt::print("applied {} damage\n", damage);
+            VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
+
+            Render::ExplosionInfo expl;
+            expl.Sound = weapon.RobotHitSound;
+            expl.Segment = hit.Tag.Segment;
+            expl.Position = hit.Point;
+            expl.Parent = obj.Parent;
+
+            expl.Clip = vclip;
+            expl.MinRadius = weapon.ImpactSize * 0.85f;
+            expl.MaxRadius = weapon.ImpactSize * 1.15f;
+            expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+            expl.FadeTime = 0.1f;
+
+            if (obj.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
+                expl.Instances = 2;
+                expl.MinDelay = expl.MaxDelay = 0;
+                expl.Clip = weapon.RobotHitVClip;
+                expl.Color = Color{ 1, 1, 1 };
+            }
+
+            Render::CreateExplosion(expl);
+        }
+
+        obj.Control.Weapon.AddRecentHit(target.Signature);
+
+        if (!weapon.Piercing)
+            obj.Destroy(); // destroy weapon after hitting an enemy
+
+        if (weapon.SplashRadius > 0) {
+            GameExplosion ge{};
+            ge.Segment = hit.Tag.Segment;
+            ge.Position = hit.Point;
+            ge.Damage = damage;
+            ge.Force = damage; // force = damage, really?
+            ge.Radius = weapon.SplashRadius;
+
+            CreateExplosion(level, &obj, ge);
+        }
+    }
+
+    void WeaponHitWall(const LevelHit& hit, Object& obj, Level& level) {
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
         bool hitVolatile = false;
 
-        if (hit.HitObj) {
-            auto& target = *hit.HitObj;
-            //auto p = src.Mass * src.InputVelocity;
+        // weapons with splash damage (explosions) always use robot hit effects
+        SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
+        VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
-            auto& targetPhys = target.Physics;
-            auto srcMass = obj.Physics.Mass == 0 ? 0.01f : obj.Physics.Mass;
-            auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
+        bool addDecal = !weapon.Extended.ScorchTexture.empty();
+        bool hitLiquid = false;
 
-            // apply forces from projectile to object
-            auto force = obj.Physics.Velocity * srcMass / targetMass;
-            targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
-            target.LastHitForce += force;
+        if (auto side = level.TryGetSide(hit.Tag)) {
+            auto& ti = Resources::GetLevelTextureInfo(side->TMap);
 
-            Matrix basis(target.Rotation);
-            basis = basis.Invert();
-            force = Vector3::Transform(force, basis); // transform forces to basis of object
-            auto arm = Vector3::Transform(hit.Point - target.Position, basis);
-            auto torque = force.Cross(arm);
-            auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
-            auto accel = torque / inertia;
-            targetPhys.AngularVelocity += accel; // should we multiply by dt here?
+            if (ti.HasFlag(TextureFlag::ForceField)) {
+                addDecal = false;
 
-            if (target.Type == ObjectType::Weapon) {
-                Game::ExplodeWeapon(target); // Destroy the weapon that was hit (usually a mine)
-            }
-            else {
-                if (target.Type != ObjectType::Player) // player shields are handled differently
-                    target.ApplyDamage(damage);
+                if (!weapon.IsMatter) { // Bounce energy weapons
+                    obj.Physics.Bounces++;
+                    obj.Parent = ObjID::None; // Make hostile to owner!
+                    obj.Rotation = obj.Rotation.Reflect(obj.Physics.Velocity, obj.Rotation.Up());
 
-                //fmt::print("applied {} damage\n", damage);
-                VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
-
-                Render::ExplosionInfo expl;
-                expl.Sound = weapon.RobotHitSound;
-                expl.Segment = hit.Tag.Segment;
-                expl.Position = hit.Point;
-                expl.Parent = obj.Parent;
-
-                expl.Clip = vclip;
-                expl.MinRadius = weapon.ImpactSize * 0.85f;
-                expl.MaxRadius = weapon.ImpactSize * 1.15f;
-                expl.Color = Color{ 1.15f, 1.15f, 1.15f };
-                expl.FadeTime = 0.1f;
-
-                if (obj.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
-                    expl.Instances = 2;
-                    expl.MinDelay = expl.MaxDelay = 0;
-                    expl.Clip = weapon.RobotHitVClip;
-                    expl.Color = Color{ 1, 1, 1 };
-                }
-
-                Render::CreateExplosion(expl);
-            }
-
-            obj.Control.Weapon.AddRecentHit(target.Signature);
-
-            if (!weapon.Piercing)
-                obj.Destroy(); // destroy weapon after hitting an enemy
-        }
-        else { // Hit a wall
-            // weapons with splash damage (explosions) always use robot hit effects
-            SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
-            VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
-
-            bool addDecal = !weapon.Extended.ScorchTexture.empty();
-            bool hitLiquid = false;
-
-            if (auto side = level.TryGetSide(hit.Tag)) {
-                auto& ti = Resources::GetLevelTextureInfo(side->TMap);
-
-                if (ti.HasFlag(TextureFlag::ForceField)) {
-                    addDecal = false;
-
-                    if (!weapon.IsMatter) { // Bounce energy weapons
-                        obj.Physics.Bounces++;
-                        obj.Parent = ObjID::None; // Make hostile to owner!
-                        obj.Rotation = obj.Rotation.Reflect(obj.Physics.Velocity, obj.Rotation.Up());
-
-                        Sound3D sound(hit.Point, hit.Tag.Segment);
-                        sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
-                        Sound::Play(sound);
-                    }
-                }
-
-                if (ti.HasFlag(TextureFlag::Volatile)) {
-                    vclip = VClipID::HitLava;
-                    soundId = SoundID::HitLava;
-                    addDecal = false;
-                    hitLiquid = true;
-                    hitVolatile = true;
-                }
-                else if (ti.HasFlag(TextureFlag::Water)) {
-                    if (obj.ID == (int)WeaponID::Concussion)
-                        soundId = SoundID::MissileHitWater;
-                    else
-                        soundId = SoundID::HitWater;
-
-                    vclip = VClipID::HitWater;
-                    splashRadius = 0; // Cancel explosions when hitting water
-                    addDecal = false;
-                    hitLiquid = true;
+                    Sound3D sound(hit.Point, hit.Tag.Segment);
+                    sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
+                    Sound::Play(sound);
                 }
             }
 
-            if (obj.Physics.Bounces <= 0 || hitLiquid) {
-                // Only create explosions when out of bounces or hitting a liquid
-                auto dir = obj.Physics.Velocity;
-                dir.Normalize();
-
-                Render::ExplosionInfo e;
-                e.MinRadius = weapon.ImpactSize * 0.9f;
-                e.MaxRadius = weapon.ImpactSize * 1.1f;
-                e.Clip = vclip;
-                e.Sound = soundId;
-
-                //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
-                if (weapon.ImpactSize < 5)
-                    e.Position = hit.Point + hit.Normal * 0.15f;
+            if (ti.HasFlag(TextureFlag::Volatile)) {
+                vclip = VClipID::HitLava;
+                soundId = SoundID::HitLava;
+                addDecal = false;
+                hitLiquid = true;
+                hitVolatile = true;
+            }
+            else if (ti.HasFlag(TextureFlag::Water)) {
+                if (obj.ID == (int)WeaponID::Concussion)
+                    soundId = SoundID::MissileHitWater;
                 else
-                    // this doesn't work properly with fast moving projectiles
-                    e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
+                    soundId = SoundID::HitWater;
 
-                e.Color = Color{ 1, 1, 1 };
-                e.FadeTime = 0.1f;
-
-                if (obj.ID == (int)WeaponID::Concussion) {
-                    e.Instances = 3;
-                    e.MinDelay = e.MaxDelay = 0;
-                }
-                Render::CreateExplosion(e);
+                vclip = VClipID::HitWater;
+                splashRadius = 0; // Cancel explosions when hitting water
+                addDecal = false;
+                hitLiquid = true;
             }
-
-            if (addDecal) {
-                auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
-
-                // check that decal isn't too close to edge due to lack of clipping
-                if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) {
-                    Render::DecalInfo decal{};
-                    auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
-                    decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
-                    decal.Bitangent = decal.Tangent.Cross(hit.Normal);
-                    decal.Radius = decalSize;
-                    decal.Position = hit.Point;
-                    decal.Tag = hit.Tag;
-                    decal.Texture = weapon.Extended.ScorchTexture;
-
-                    if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
-                        if (Game::Player.CanOpenDoor(*wall))
-                            addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
-                        else if (wall->Type != WallType::WallTrigger)
-                            addDecal = wall->State == WallState::Closed; // Only allow decals on closed walls
-                    }
-
-                    if (addDecal)
-                        Render::AddDecal(decal);
-                }
-            }
-
-            // todo: flares don't stick to forcefields or lava
-
-            if (obj.Physics.Bounces <= 0)
-                obj.Destroy(); // destroy weapon after hitting a wall
         }
+
+        if (obj.Physics.Bounces <= 0 || hitLiquid) {
+            // Only create explosions when out of bounces or hitting a liquid
+            auto dir = obj.Physics.Velocity;
+            dir.Normalize();
+
+            Render::ExplosionInfo e;
+            e.MinRadius = weapon.ImpactSize * 0.9f;
+            e.MaxRadius = weapon.ImpactSize * 1.1f;
+            e.Clip = vclip;
+            e.Sound = soundId;
+
+            //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
+            if (weapon.ImpactSize < 5)
+                e.Position = hit.Point + hit.Normal * 0.15f;
+            else
+                // this doesn't work properly with fast moving projectiles
+                e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
+
+            e.Color = Color{ 1, 1, 1 };
+            e.FadeTime = 0.1f;
+
+            if (obj.ID == (int)WeaponID::Concussion) {
+                e.Instances = 3;
+                e.MinDelay = e.MaxDelay = 0;
+            }
+            Render::CreateExplosion(e);
+        }
+
+        if (addDecal) {
+            auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
+
+            // check that decal isn't too close to edge due to lack of clipping
+            if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) {
+                Render::DecalInfo decal{};
+                auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
+                decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
+                decal.Bitangent = decal.Tangent.Cross(hit.Normal);
+                decal.Radius = decalSize;
+                decal.Position = hit.Point;
+                decal.Tag = hit.Tag;
+                decal.Texture = weapon.Extended.ScorchTexture;
+
+                if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
+                    if (Game::Player.CanOpenDoor(*wall))
+                        addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
+                    else if (wall->Type != WallType::WallTrigger)
+                        addDecal = wall->State == WallState::Closed; // Only allow decals on closed walls
+                }
+
+                if (addDecal)
+                    Render::AddDecal(decal);
+            }
+        }
+
+        // todo: flares don't stick to forcefields or lava
+
+        if (obj.Physics.Bounces <= 0)
+            obj.Destroy(); // destroy weapon after hitting a wall
 
         if (splashRadius > 0 || hitVolatile) {
             GameExplosion ge{};
@@ -1428,9 +1441,7 @@ namespace Inferno {
 
             CreateExplosion(level, &obj, ge);
         }
-
     }
-
 
     // Updates the segment the object is in an activates triggers
     void UpdateObjectSegment(Level& level, Object& obj) {
@@ -1496,8 +1507,12 @@ namespace Inferno {
 
             if (hit) {
                 if (obj.Type == ObjectType::Weapon) {
-                    CheckDestroyableTexture(level, hit.Point, hit.Tag, hit.Tri, obj);
-                    OnWeaponHit(hit, obj, level);
+                    CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
+
+                    if (hit.HitObj)
+                        WeaponHitObject(hit, obj, level);
+                    else
+                        WeaponHitWall(hit, obj, level);
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {
