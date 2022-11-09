@@ -410,6 +410,7 @@ namespace Inferno {
         switch (id) {
             case PowerupID::ExtraLife:
                 Lives++;
+                PrintHudMessage("extra life!");
                 ScreenFlash({ 15, 15, 15 });
                 used = true;
                 break;

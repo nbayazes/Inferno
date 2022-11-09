@@ -65,7 +65,7 @@ namespace Inferno::Render {
         DataPool<Particle> _particles;
         ParticleEmitterInfo _info;
     public:
-        ParticleEmitter(ParticleEmitterInfo& info, size_t capacity)
+        ParticleEmitter(const ParticleEmitterInfo& info, size_t capacity)
             : _info(info), _particles(Particle::IsAlive, capacity) {
             _startDelay = info.StartDelay;
             Position = info.Position;
@@ -208,4 +208,6 @@ namespace Inferno::Render {
 
     // Removes decals on a side
     void RemoveDecals(Tag);
+
+    void ResetParticles();
 }

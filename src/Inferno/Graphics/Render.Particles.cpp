@@ -9,6 +9,10 @@
 namespace Inferno::Render {
     DataPool<Particle> Particles(Particle::IsAlive, 100);
     DataPool<ParticleEmitter> ParticleEmitters(ParticleEmitter::IsAlive, 20);
+    DataPool<Debris> DebrisPool(Debris::IsAlive, 100);
+    DataPool<TracerInfo> Tracers(TracerInfo::IsAlive, 50);
+    Array<DecalInfo, 100> Decals;
+    uint DecalIndex = 0;
 
     void AddParticle(Particle& p, bool randomRotation) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
@@ -87,8 +91,6 @@ namespace Inferno::Render {
             QueueTransparent(cmd);
         }
     }
-
-    DataPool<Debris> DebrisPool(Debris::IsAlive, 100);
 
     void AddDebris(Debris& debris) {
         DebrisPool.Add(debris);
@@ -424,8 +426,6 @@ namespace Inferno::Render {
     //    }
     //}
 
-    DataPool<TracerInfo> Tracers(TracerInfo::IsAlive, 50);
-
     void AddTracer(TracerInfo& tracer) {
         std::array tex = { tracer.Texture, tracer.BlobTexture };
         Render::Materials->LoadTextures(tex);
@@ -536,9 +536,6 @@ namespace Inferno::Render {
         }
     }
 
-    Array<DecalInfo, 100> Decals;
-    uint DecalIndex = 0;
-
     void AddDecal(DecalInfo& decal) {
         std::array tex = { decal.Texture };
         Render::Materials->LoadTextures(tex);
@@ -587,5 +584,14 @@ namespace Inferno::Render {
             if (decal.Tag == tag || (cside && decal.Tag == cside))
                 decal.Life = 0;
         }
+    }
+
+    void ResetParticles() {
+        Particles.Clear();
+        ParticleEmitters.Clear();
+        Beams.Clear();
+
+        for (auto& decal : Decals)
+            decal.Life = 0;
     }
 }

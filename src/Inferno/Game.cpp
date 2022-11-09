@@ -619,6 +619,7 @@ namespace Inferno::Game {
             Render::Camera = EditorCameraSnapshot;
             Input::SetMouselook(false);
             Sound::Reset();
+            Render::ResetParticles();
             LerpAmount = 1;
         }
         else if (State == GameState::Editor) {
@@ -662,6 +663,7 @@ namespace Inferno::Game {
                 }
             }
 
+            Render::ResetParticles();
             Sound::Reset();
             MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
             MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
