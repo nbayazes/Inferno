@@ -254,6 +254,7 @@ namespace Inferno::Render {
 
         Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+        const float vclipOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             // accumulate the offsets for each submodel
@@ -271,7 +272,7 @@ namespace Inferno::Render {
 
                 TexID tid = texOverride;
                 if (texOverride == TexID::None)
-                    tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
+                    tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime + vclipOffset);
 
                 auto& ti = Resources::GetTextureInfo(tid);
                 if (ti.Transparent && pass != RenderPass::Transparent) continue;

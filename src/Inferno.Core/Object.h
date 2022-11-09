@@ -292,6 +292,7 @@ namespace Inferno {
     };
 
     constexpr float WEAPON_FADE_TIME = 0.25f;
+    constexpr float OBJECT_LIFE = 3600 * 100; // 100 hours
 
     struct Object {
         ObjSig Signature{};     // Unique signature for each object
@@ -303,7 +304,7 @@ namespace Inferno {
         float HitPoints = 100;
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
-        float Lifespan = FLT_MAX; // how long before despawning
+        float Lifespan = OBJECT_LIFE; // how long before despawning
         ObjID Parent = ObjID::None; // Parent for projectiles, maybe attached objects
 
         MovementType Movement;

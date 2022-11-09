@@ -186,7 +186,7 @@ namespace Inferno::Game {
         }
 
         bullet.Movement = MovementType::Physics;
-        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty] * 0.25;
+        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
         if (weapon.Extended.InheritParentVelocity)
             bullet.Physics.Velocity += obj.Physics.Velocity;
 
