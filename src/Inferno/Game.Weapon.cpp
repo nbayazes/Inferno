@@ -186,20 +186,12 @@ namespace Inferno::Game {
         }
 
         bullet.Movement = MovementType::Physics;
-        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
-        if (WeaponIsMine(id)) {
-            // todo: add flag to inherit velocity (mines, mortar)
-            bullet.Physics.Velocity += obj.Physics.Velocity; // inherit velocity when placing mines
-        }
-        else {
-            // Inherit forward velocity
-            //auto vec = obj.Physics.Velocity;
-            //vec.Normalize();
-            //auto dot = std::abs(vec.Dot(obj.Rotation.Forward()));
-            //bullet.Physics.Velocity += dot * obj.Physics.Velocity;
-        }
+        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty] * 0.25;
+        if (weapon.Extended.InheritParentVelocity)
+            bullet.Physics.Velocity += obj.Physics.Velocity;
 
-        bullet.Physics.Flags = weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
+        bullet.Physics.Flags |= weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
+        if (weapon.Extended.Sticky) bullet.Physics.Flags |= PhysicsFlag::Stick;
         bullet.Physics.Drag = weapon.Drag;
         bullet.Physics.Mass = weapon.Mass;
         bullet.Physics.Bounces = weapon.Extended.Bounces;

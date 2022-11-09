@@ -225,6 +225,16 @@ namespace Inferno {
         }
     }
 
+    float _nextFlareFireTime = 0;
+    constexpr float FLARE_FIRE_DELAY = 0.25f;
+
+    void Player::FireFlare() {
+        if (_nextFlareFireTime > Game::Time) return;
+        Game::FireWeapon(ID, 6, WeaponID::Flare);
+        auto& weapon = Resources::GetWeapon(WeaponID::Flare);
+        _nextFlareFireTime = Game::Time + weapon.FireDelay;
+    }
+
     Vector2 GetHelixOffset(int index) {
         switch (index) {
             default:
@@ -284,11 +294,6 @@ namespace Inferno {
     void Player::ReleasePrimary() {
         //auto id = GetPrimaryWeaponID();
         //auto& weapon = Resources::GameData.Weapons[(int)id];
-
-        //if (weapon.Extended.Chargable && WeaponCharge > 0) {
-        //    Game::FireWeapon(ID, 0, id);
-        //    Game::FireWeapon(ID, 1, id);
-        //}
     }
 
     void Player::FireSecondary() {

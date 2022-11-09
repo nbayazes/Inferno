@@ -121,6 +121,8 @@ namespace Inferno {
         Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
         Color Glow = {}; // For emissive glows
         int Bounces = 0;
+        bool Sticky = false; // Sticks to surfaces once Bounces = 0
+        bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing
 
         //struct FiringPattern {
         //    string Crosshair;

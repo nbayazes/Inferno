@@ -381,9 +381,14 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Vulcan).Extended.Behavior = "vulcan";
         GetWeapon(WeaponID::Vulcan).Extended.ScorchTexture = "BulletHole01";
         GetWeapon(WeaponID::Vulcan).AmmoUsage = 13;
-
+        GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
+        GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
+        
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
+        GetWeapon(WeaponID::Flare).Extended.Sticky = true;
+        GetWeapon(WeaponID::Flare).FireDelay = 0.5f;
+        GetWeapon(WeaponID::Flare).Lifetime = 30.0f;
 
         auto& mega = GetWeapon(WeaponID::Mega).Extended;
         mega.ScorchTexture = "scorchC";

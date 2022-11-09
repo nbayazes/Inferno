@@ -27,6 +27,17 @@ namespace DirectX::SimpleMath {
                          m._21, m._22, m._23,
                          m._31, m._32, m._33) {}
 
+        // Constructs a rotation matrix from a forward and up vector
+        explicit Matrix3x3(Vector3 forward, Vector3 up) noexcept
+            : XMFLOAT3X3() {
+            forward.Normalize();
+            up.Normalize();
+            auto right = up.Cross(forward);
+            Right(right);
+            Up(forward.Cross(right));
+            Forward(forward);
+        }
+
         Vector3 Up() const noexcept { return Vector3(_21, _22, _23); }
         void Up(const Vector3& v) noexcept { _21 = v.x; _22 = v.y; _23 = v.z; }
 
@@ -44,19 +55,6 @@ namespace DirectX::SimpleMath {
 
         Vector3 Backward() const noexcept { return Vector3(_31, _32, _33); }
         void Backward(const Vector3& v) noexcept { _31 = v.x; _32 = v.y; _33 = v.z; }
-
-        // Reflects a rotation matrix along a vector. Use lhs = true to correct for model rotations.
-        Matrix3x3 Reflect(const Vector3& forward, const Vector3& up, bool lhs = true) const {
-            //vm_vector_2_matrix(&obj->orient, &obj->mtype.phys_info.velocity, &obj->orient.uvec, NULL);
-            Vector3 xVec = Right(), yVec = Up(), zVec = lhs ? -Forward() : Forward();
-            forward.Normalize(zVec);
-            up.Normalize(yVec);
-
-            xVec = yVec.Cross(zVec);
-            xVec.Normalize();
-            yVec = zVec.Cross(xVec); // recalculate just in case not normalized
-            return Matrix3x3(lhs ? -xVec : xVec, yVec, zVec);
-        }
 
         Matrix3x3& operator *= (const Matrix& matrix) {
             DirectX::XMStoreFloat3x3(this, Matrix(*this) * matrix);

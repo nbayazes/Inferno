@@ -145,6 +145,7 @@ namespace Inferno {
 
         void Update(float dt);
 
+        void FireFlare();
         void FirePrimary();
         void HoldPrimary();
         void ReleasePrimary();

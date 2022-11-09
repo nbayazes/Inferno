@@ -85,6 +85,9 @@ namespace Inferno {
         if (Input::IsKeyPressed(Keys::D0)) {
             Game::Player.ArmSecondary(SecondaryWeaponIndex::Mega);
         }
+
+        if (Input::IsKeyPressed(Keys::F))
+            Game::Player.FireFlare();
     }
 
     void HandleInput(float dt) {

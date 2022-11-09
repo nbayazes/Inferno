@@ -1321,17 +1321,18 @@ namespace Inferno {
 
         bool addDecal = !weapon.Extended.ScorchTexture.empty();
         bool hitLiquid = false;
+        bool hitForcefield = false;
 
         if (auto side = level.TryGetSide(hit.Tag)) {
             auto& ti = Resources::GetLevelTextureInfo(side->TMap);
 
-            if (ti.HasFlag(TextureFlag::ForceField)) {
+            hitForcefield = ti.HasFlag(TextureFlag::ForceField);
+            if (hitForcefield) {
                 addDecal = false;
 
                 if (!weapon.IsMatter) { // Bounce energy weapons
                     obj.Physics.Bounces++;
                     obj.Parent = ObjID::None; // Make hostile to owner!
-                    obj.Rotation = obj.Rotation.Reflect(obj.Physics.Velocity, obj.Rotation.Up());
 
                     Sound3D sound(hit.Point, hit.Tag.Segment);
                     sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
@@ -1413,10 +1414,15 @@ namespace Inferno {
             }
         }
 
-        // todo: flares don't stick to forcefields or lava
-
-        if (obj.Physics.Bounces <= 0)
+        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLiquid && !hitForcefield) {
+            // todo: track stuck objects
+            obj.Physics.Velocity = Vector3::Zero;
+            obj.Movement = MovementType::None;
+            obj.LastPosition = obj.Position;
+        }
+        else if (obj.Physics.Bounces <= 0) {
             obj.Destroy(); // destroy weapon after hitting a wall
+        }
 
         if (splashRadius > 0 || hitVolatile) {
             GameExplosion ge{};
@@ -1435,7 +1441,7 @@ namespace Inferno {
             }
             else {
                 ge.Damage = damage;
-                ge.Force = damage; // force = damage, really?
+                ge.Force = damage;
                 ge.Radius = splashRadius;
             }
 
@@ -1525,6 +1531,7 @@ namespace Inferno {
 
                 if (/*HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) ||*/ obj.Physics.Bounces > 0) {
                     obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
+                    obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
                     obj.Physics.Bounces--;
                 }
 
