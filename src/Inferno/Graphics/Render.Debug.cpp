@@ -3,7 +3,6 @@
 #include "Render.h"
 #include "ShaderLibrary.h"
 #include "Buffers.h"
-#include "Utility.h"
 
 namespace Inferno::Render::Debug {
     using namespace DirectX;
@@ -205,11 +204,11 @@ namespace Inferno::Render::Debug {
         Resources->PolygonBatch.DrawTriangle({ v2, color }, { v3, color }, { v0, color });
     }
 
-    void DrawTriangle(const Vector3 v0, const Vector3 v1, const Vector3 v2, const Color& color) {
+    void DrawTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Color& color) {
         Resources->PolygonBatch.DrawTriangle({ v0, color }, { v1, color }, { v2, color });
     }
 
-    void DrawAdditiveTriangle(const Vector3 v0, const Vector3 v1, const Vector3 v2, const Color& color) {
+    void DrawAdditiveTriangle(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Color& color) {
         Resources->AdditivePolygonBatch.DrawTriangle({ v0, color }, { v1, color }, { v2, color });
     }
 

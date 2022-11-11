@@ -4,6 +4,7 @@
 #include "Render.h"
 #include "Game.h"
 #include "Physics.h"
+#include "Render.Queue.h"
 #include "Editor/Editor.Segment.h"
 
 namespace Inferno::Render {
@@ -50,7 +51,7 @@ namespace Inferno::Render {
             auto depth = GetRenderDepth(p.Position);
             if (p.Delay > 0) continue;
             RenderCommand cmd(&p, depth);
-            QueueTransparent(cmd);
+            //QueueTransparent(cmd);
         }
     }
 
@@ -88,7 +89,7 @@ namespace Inferno::Render {
 
             auto depth = GetRenderDepth(emitter.Position);
             RenderCommand cmd(&emitter, depth);
-            QueueTransparent(cmd);
+            //QueueTransparent(cmd);
         }
     }
 
@@ -148,7 +149,7 @@ namespace Inferno::Render {
             if (!Debris::IsAlive(debris)) continue;
             auto depth = GetRenderDepth(debris.Transform.Translation());
             RenderCommand cmd(&debris, depth);
-            QueueOpaque(cmd);
+            //QueueOpaque(cmd);
         }
     }
 

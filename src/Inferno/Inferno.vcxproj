@@ -187,6 +187,7 @@
     <ClCompile Include="HUD.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="Graphics\Render.Queue.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -254,6 +255,7 @@
     <ClInclude Include="Graphics\Render.Canvas.h" />
     <ClInclude Include="Graphics\Render.Commands.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
+    <ClInclude Include="Graphics\Render.Queue.h" />
     <ClInclude Include="HUD.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="Physics.h" />
