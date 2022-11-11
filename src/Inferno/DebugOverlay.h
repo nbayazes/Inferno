@@ -33,7 +33,7 @@ namespace Inferno {
                     average += values[n];
 
                 if (usedValues > 0) average /= (float)usedValues;
-                auto overlay = fmt::format("FPS {:.1f} ({:.2f} ms)  Calls: {:d}", 1 / average, average * 1000, Render::DrawCalls);
+                auto overlay = fmt::format("FPS {:.1f} ({:.2f} ms)  Calls: {:d}", 1 / average, average * 1000, Render::Stats::DrawCalls);
                 ImGui::PlotLines("##FrameTime", values.data(), (int)values.size(), values_offset, overlay.c_str(), 0, 1 / 20.0f, ImVec2(0, 120.0f));
             }
         }
@@ -63,6 +63,7 @@ namespace Inferno {
             }
 
             ImGui::Text("Live objects: %d", Game::Level.Objects.size());
+            ImGui::Text("Seg count: %d", Render::Stats::VisitedSegments);
         }
         ImGui::End();
 

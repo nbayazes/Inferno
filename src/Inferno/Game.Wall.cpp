@@ -723,23 +723,31 @@ namespace Inferno {
     }
 
     bool WallIsTransparent(Level& level, Tag tag) {
-        auto side = level.TryGetSide(tag);
-        auto wall = level.TryGetWall(tag);
+        auto seg = level.TryGetSegment(tag);
+        if (!seg) return false;
+        auto& side = seg->GetSide(tag.Side);
 
-        if (!side || !wall) return false;
+        if (auto wall = level.TryGetWall(tag)) {
+            if (wall->Type == WallType::WallTrigger)
+                return false;
 
-        if (wall->Type == WallType::WallTrigger)
+            if (wall->Type == WallType::Open)
+                return true;
+
+            auto& tmap1 = Resources::GetTextureInfo(side.TMap);
+            if (tmap1.Transparent) return true;
+
+            if (side.TMap2 > LevelTexID::Unset) {
+                auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
+                if (tmap2.SuperTransparent) return true;
+            }
+
             return false;
-
-        auto& tmap1 = Resources::GetTextureInfo(side->TMap);
-        if (tmap1.Transparent) return true;
-
-        if (side->TMap2 > LevelTexID::Unset) {
-            auto& tmap2 = Resources::GetTextureInfo(side->TMap2);
-            if (tmap2.SuperTransparent) return true;
         }
-
-        return false;
+        else {
+            // No wall on this side, test if it's open
+            return seg->SideHasConnection(tag.Side);
+        }
     }
 }
 

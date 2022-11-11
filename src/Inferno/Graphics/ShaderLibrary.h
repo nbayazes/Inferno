@@ -467,12 +467,6 @@ namespace Inferno {
         Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadEqual } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
-            auto Reset = [](IShader& shader) {
-                shader.PixelShader.Reset();
-                shader.VertexShader.Reset();
-                shader.RootSignature.Reset();
-            };
-
             CompileShader(&_shaders->Flat);
             CompileShader(&_shaders->Level);
             CompileShader(&_shaders->LevelFlat);

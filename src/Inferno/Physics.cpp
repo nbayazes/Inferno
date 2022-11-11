@@ -13,6 +13,7 @@
 #include "Game.Wall.h"
 #include "HUD.h"
 #include "Game.Segment.h"
+#include "Editor/Editor.Segment.h"
 
 using namespace DirectX;
 
@@ -1450,9 +1451,29 @@ namespace Inferno {
     }
 
     // Updates the segment the object is in an activates triggers
-    void UpdateObjectSegment(Level& level, Object& obj) {
+    void UpdateObjectSegment(Level& level, ObjID objId) {
+        auto& obj = level.Objects[(int)objId];
         auto prevSegId = obj.Segment;
-        Editor::UpdateObjectSegment(level, obj);
+
+        if (Editor::PointInSegment(level, obj.Segment, obj.Position))
+            return; // already in the right segment
+
+        if (obj.Segment == SegID::None)
+            return; // Object was outside of world
+
+        auto& seg = level.GetSegment(obj.Segment);
+        for (auto& cid : seg.Connections) {
+            if (Editor::PointInSegment(level, cid, obj.Position)) {
+                obj.Segment = cid;
+                // update the segment object lists
+                Seq::remove(seg.Objects, objId);
+                auto& cseg = level.GetSegment(cid);
+                cseg.Objects.push_back(objId);
+                break;
+            }
+        }
+
+        // Activate any triggers on the side passed through
         if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
             auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
             if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
@@ -1545,11 +1566,11 @@ namespace Inferno {
 
                 // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
                 if (obj.Type != ObjectType::Weapon) {
-                    UpdateObjectSegment(level, obj);
+                    UpdateObjectSegment(level, (ObjID)id);
                 }
             }
             else {
-                UpdateObjectSegment(level, obj);
+                UpdateObjectSegment(level, (ObjID)id);
             }
 
             //if (obj.LastPosition != obj.Position)

@@ -324,7 +324,7 @@ namespace Inferno::Editor {
             if (level.Objects[i].Type == ObjectType::SecretExitReturn) break;
         }
 
-        DeleteObject(Game::Level, ObjID(i));
+        DeleteObject(level, ObjID(i));
     }
 
     void UpdateSecretLevelReturnMarker() {
@@ -342,7 +342,10 @@ namespace Inferno::Editor {
         if (!PointInSegment(level, obj.Segment, obj.Position)) {
             auto id = FindContainingSegment(level, obj.Position);
             // Leave the last good ID if nothing contains the object
-            if (id != SegID::None) obj.Segment = id;
+            if (id != SegID::None) {
+                obj.Segment = id;
+                auto& seg = level.GetSegment(id);
+            }
         }
     }
 

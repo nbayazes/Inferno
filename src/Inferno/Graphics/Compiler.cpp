@@ -36,7 +36,7 @@ std::filesystem::path GetBinaryPath(std::filesystem::path file, std::string ext)
     return file.parent_path() / "bin" / name;
 }
 
-ComPtr<ID3DBlob> Inferno::LoadComputeShader(filesystem::path file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, string entryPoint) {
+ComPtr<ID3DBlob> Inferno::LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, string entryPoint) {
     ComPtr<ID3DBlob> shader, error;
     try {
         auto binaryPath = GetBinaryPath(file, ".bin");
@@ -77,7 +77,7 @@ ComPtr<ID3DBlob> Inferno::LoadComputeShader(filesystem::path file, ComPtr<ID3D12
     return shader;
 }
 
-ComPtr<ID3DBlob> Inferno::LoadVertexShader(filesystem::path file, ComPtr<ID3D12RootSignature>& rootSignature, string entryPoint) {
+ComPtr<ID3DBlob> Inferno::LoadVertexShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, string entryPoint) {
     ComPtr<ID3DBlob> shader, error;
     try {
         auto binaryPath = GetBinaryPath(file, ".vs.bin");
@@ -113,7 +113,7 @@ ComPtr<ID3DBlob> Inferno::LoadVertexShader(filesystem::path file, ComPtr<ID3D12R
     return shader;
 }
 
-ComPtr<ID3DBlob> Inferno::LoadPixelShader(filesystem::path file, string entryPoint) {
+ComPtr<ID3DBlob> Inferno::LoadPixelShader(const filesystem::path& file, string entryPoint) {
     ComPtr<ID3DBlob> shader, error;
     try {
         auto binaryPath = GetBinaryPath(file, ".ps.bin");

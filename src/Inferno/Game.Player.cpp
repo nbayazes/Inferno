@@ -228,11 +228,11 @@ namespace Inferno {
     float _nextFlareFireTime = 0;
     constexpr float FLARE_FIRE_DELAY = 0.25f;
 
-    void Player::FireFlare() {
+    void Player::FireFlare() const {
         if (_nextFlareFireTime > Game::Time) return;
         Game::FireWeapon(ID, 6, WeaponID::Flare);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
-        _nextFlareFireTime = Game::Time + weapon.FireDelay;
+        _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
     }
 
     Vector2 GetHelixOffset(int index) {

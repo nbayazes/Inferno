@@ -17,6 +17,7 @@
 #include "Render.Particles.h"
 #include "Game.Segment.h"
 #include "Game.Text.h"
+#include "Game.Wall.h"
 #include "Editor/UI/BriefingEditor.h"
 #include "HUD.h"
 
@@ -128,8 +129,8 @@ namespace Inferno::Render {
     // Applies an effect that uses the frame constants
     template<class T>
     void ApplyEffect(GraphicsContext& ctx, const Effect<T>& effect) {
-        if (ActiveEffect == &effect) return;
-        ActiveEffect = (void*)&effect;
+        //if (ActiveEffect == &effect) return;
+        //ActiveEffect = (void*)&effect;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
     }
@@ -177,7 +178,7 @@ namespace Inferno::Render {
             cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
             cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
             cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-            DrawCalls++;
+            Stats::DrawCalls++;
         }
     }
 
@@ -220,7 +221,7 @@ namespace Inferno::Render {
             cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
             cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
             cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-            DrawCalls++;
+            Stats::DrawCalls++;
         }
     }
 
@@ -284,7 +285,7 @@ namespace Inferno::Render {
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
                 cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                DrawCalls++;
+                Stats::DrawCalls++;
             }
         }
     }
@@ -299,7 +300,7 @@ namespace Inferno::Render {
         ObjectVertex v3({ -r, -r, 0 }, { 0, 1 }, color);
 
         // Horrible immediate mode nonsense
-        DrawCalls++;
+        Stats::DrawCalls++;
         g_SpriteBatch->Begin(cmd);
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
@@ -384,7 +385,7 @@ namespace Inferno::Render {
                     cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                     cmd->IASetIndexBuffer(&mesh->IndexBuffer);
                     cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                    DrawCalls++;
+                    Stats::DrawCalls++;
                 }
             }
         }
@@ -428,7 +429,7 @@ namespace Inferno::Render {
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(ctx.CommandList(), sampler);
 
-        DrawCalls++;
+        Stats::DrawCalls++;
         g_SpriteBatch->Begin(ctx.CommandList());
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
@@ -505,7 +506,7 @@ namespace Inferno::Render {
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         mesh.Draw(cmdList);
-        DrawCalls++;
+        Stats::DrawCalls++;
     }
 
 
@@ -789,7 +790,7 @@ namespace Inferno::Render {
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
                 cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                DrawCalls++;
+                Stats::DrawCalls++;
             }
         }
     }
@@ -832,7 +833,7 @@ namespace Inferno::Render {
         effect.Shader->SetConstants(cmdList, consts);
 
         mesh.Draw(cmdList);
-        DrawCalls++;
+        Stats::DrawCalls++;
     }
 
     void DrawParticle(GraphicsContext& ctx, const Particle& p) {
@@ -865,7 +866,7 @@ namespace Inferno::Render {
                     }
 
                     cmd.Data.LevelMesh->Draw(ctx.CommandList());
-                    DrawCalls++;
+                    Stats::DrawCalls++;
                 }
                 else {
                     if (mesh.Chunk->Blend == BlendMode::Alpha) {
@@ -903,21 +904,23 @@ namespace Inferno::Render {
         }
     }
 
-    void QueueObject(Level& level, Object& obj, float distSquared, float lerp) {
+    void QueueObject(Level& level, Object& obj, float lerp) {
         auto position = obj.GetPosition(lerp);
 
         BoundingSphere bounds(position, obj.Radius); // might should use GetBoundingSphere
         if (!CameraFrustum.Contains(bounds))
             return;
 
+        float depth = 100;
+
         if (auto seg = level.TryGetSegment(obj.Segment)) {
-            auto vec = position - seg->Center;
-            position = seg->Center + vec; // Shift slightly away from center so objects within seg are sorted correctly
+            //depth = GetRenderDepth(position, seg->Center);
+            depth = GetRenderDepth(position);
         }
 
-        float depth = GetRenderDepth(position);
+        const float maxDistSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
 
-        if (depth > distSquared && Game::State == GameState::Editor)
+        if (depth > maxDistSquared && Game::State == GameState::Editor)
             DrawObjectOutline(obj);
 
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
@@ -1013,7 +1016,7 @@ namespace Inferno::Render {
                 case RenderCommandType::LevelMesh:
                     ApplyEffect(ctx, Effects->Depth);
                     cmd.Data.LevelMesh->Draw(cmdList);
-                    DrawCalls++;
+                    Stats::DrawCalls++;
                     break;
 
                 case RenderCommandType::Object:
@@ -1069,8 +1072,120 @@ namespace Inferno::Render {
 
     bool ShouldDrawObject(const Object& obj) {
         if (!obj.IsAlive()) return false;
-        if (Game::State == GameState::Editor) return true;
-        return obj.Type != ObjectType::Player && obj.Type != ObjectType::Coop;
+        bool gameModeHidden = obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop;
+        if (Game::State != GameState::Editor && gameModeHidden) return false;
+        BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);
+        return CameraFrustum.Contains(bounds);
+    }
+
+    void SortTransparentQueue() {
+        Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
+            return l.Depth > r.Depth;
+        });
+    }
+
+    void TraverseLevel(SegID startId, Level& level) {
+        ScopedTimer levelTimer(&Metrics::QueueLevel);
+
+        static Set<SegID> visited;
+        static std::queue<SegID> search;
+        visited.clear();
+        search.push(startId);
+
+        struct ObjDepth { Object* Obj = nullptr; float Depth = 0; };
+        List<ObjDepth> objects;
+
+        while (!search.empty()) {
+            auto id = search.front();
+            search.pop();
+
+            // must check if visited because multiple segs can connect to the same seg before being it is visited
+            if (visited.contains(id)) continue;
+            visited.insert(id);
+            auto* seg = &level.GetSegment(id);
+
+            struct SegDepth { SegID Seg = SegID::None; float Depth = 0; };
+            Array<SegDepth, 6> children{};
+
+            // Find open sides
+            for (auto& sideId : SideIDs) {
+                if (!WallIsTransparent(level, { id, sideId }))
+                    continue; // Can't see through wall
+
+                if (id != startId) { // always add nearby segments
+                    auto vec = seg->Sides[(int)sideId].Center - Camera.Position;
+                    vec.Normalize();
+                    if (vec.Dot(seg->Sides[(int)sideId].AverageNormal) >= 0)
+                        continue; // Cull backfaces
+                }
+
+                auto cid = seg->GetConnection(sideId);
+                auto cseg = level.TryGetSegment(cid);
+                if (cseg && !visited.contains(cid) /*&& CameraFrustum.Contains(cseg->Center)*/) {
+                    children[(int)sideId] = {
+                        .Seg = cid,
+                        .Depth = Vector3::DistanceSquared(cseg->Center, Camera.Position)
+                    };
+                }
+            }
+
+            // Sort connected segments by depth
+            Seq::sortBy(children, [](const SegDepth& a, const SegDepth& b) {
+                if (a.Seg == SegID::None) return false;
+            if (b.Seg == SegID::None) return true;
+            return a.Depth < b.Depth;
+            });
+
+            for (auto& c : children) {
+                if (c.Seg != SegID::None)
+                    search.push(c.Seg);
+            }
+
+            // queue contained objects
+            objects.clear();
+
+            // queue objects in segment
+            for (auto oid : seg->Objects) {
+                if (auto obj = level.TryGetObject(oid)) {
+                    if (!ShouldDrawObject(*obj)) continue;
+
+                    BoundingSphere bounds(obj->Position, obj->Radius);
+                    if (CameraFrustum.Contains(bounds))
+                        objects.push_back({ obj, GetRenderDepth(obj->Position) });
+                        //return;
+                }
+            }
+
+            // Sort objects in segment by depth
+            Seq::sortBy(objects, [](const ObjDepth& a, const ObjDepth& b) {
+                return a.Depth < b.Depth;
+            });
+
+            // Queue objects in seg
+            for (auto& obj : objects) {
+                if (obj.Obj->Render.Type == RenderType::Model &&
+                    obj.Obj->Render.Model.ID != ModelID::None) {
+                    _opaqueQueue.push_back({ obj.Obj, 0 });
+
+                    auto& mesh = _meshBuffer->GetHandle(obj.Obj->Render.Model.ID);
+                    if (mesh.HasTransparentTexture)
+                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                }
+                else {
+                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                }
+            }
+
+            // queue visible walls
+            for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
+                if (mesh.Chunk->Tag.Segment == id) {
+                    _transparentQueue.push_back({ &mesh, 0 });
+                }
+            }
+        }
+
+
+        Stats::VisitedSegments = visited.size();
     }
 
     void DrawLevel(GraphicsContext& ctx, float lerp) {
@@ -1085,32 +1200,35 @@ namespace Inferno::Render {
             LevelChanged = false;
         }
 
-        ScopedTimer levelTimer(&Metrics::QueueLevel);
         if (Settings::Editor.RenderMode != RenderMode::None) {
             // Queue commands for level meshes
             for (auto& mesh : _levelMeshBuilder.GetMeshes())
                 _opaqueQueue.push_back({ &mesh, 0 });
 
-            for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
-                float depth = (mesh.Chunk->Center - Camera.Position).LengthSquared();
-                _transparentQueue.push_back({ &mesh, depth });
+            if (Game::State == GameState::Editor || Game::Level.Objects.empty()) {
+                for (auto& mesh : _levelMeshBuilder.GetWallMeshes()) {
+                    float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
+                    _transparentQueue.push_back({ &mesh, depth });
+                }
+
+                if (Settings::Editor.ShowObjects) {
+                    for (auto& obj : Game::Level.Objects) {
+                        if (!ShouldDrawObject(obj)) continue;
+                        QueueObject(Game::Level, obj, lerp);
+                    }
+                }
+
+                QueueParticles();
+                QueueDebris();
+                SortTransparentQueue();
+            }
+            else {
+                TraverseLevel(Game::Level.Objects[0].Segment, Game::Level);
+                // todo: remove calls away after merging into traverse level
+                QueueParticles();
+                QueueDebris();
             }
         }
-
-        QueueParticles();
-        QueueDebris();
-
-        if (Settings::Editor.ShowObjects) {
-            auto distSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
-            for (auto& obj : Game::Level.Objects) {
-                if (!ShouldDrawObject(obj)) continue;
-                QueueObject(Game::Level, obj, distSquared, lerp);
-            }
-        }
-
-        Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
-            return l.Depth > r.Depth;
-        });
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -1131,14 +1249,14 @@ namespace Inferno::Render {
             ctx.EndEvent();
 
             ctx.BeginEvent(L"Wall queue");
-            for (auto& cmd : _transparentQueue)
+            for (auto& cmd : _transparentQueue | views::reverse)
                 ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Walls);
             ctx.EndEvent();
 
             DrawDecals(ctx);
 
             ctx.BeginEvent(L"Transparent queue");
-            for (auto& cmd : _transparentQueue)
+            for (auto& cmd : _transparentQueue | views::reverse)
                 ExecuteRenderCommand(ctx, cmd, lerp, RenderPass::Transparent);
             ctx.EndEvent();
 
@@ -1228,8 +1346,8 @@ namespace Inferno::Render {
     void Present(float lerp) {
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
-        DrawCalls = 0;
-        PolygonCount = 0;
+        Stats::DrawCalls = 0;
+        Stats::PolygonCount = 0;
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();

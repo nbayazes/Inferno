@@ -94,7 +94,7 @@ namespace Inferno::Editor {
 
         void UpdateMaxValueFromPass(float reflectance) {
             Color max;
-            for (auto& [_, colors] : Pass)
+            for (auto& colors : Pass | views::values)
                 for (auto& color : colors)
                     if (max.ToVector3().Length() < color.ToVector3().Length())
                         max = color;

@@ -258,6 +258,7 @@
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Physics.Math.h" />
+    <ClInclude Include="Room.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />
     <ClInclude Include="Editor\Gizmo.h" />

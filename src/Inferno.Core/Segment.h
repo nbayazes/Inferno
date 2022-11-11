@@ -137,7 +137,7 @@ namespace Inferno {
         ubyte Value{}; // related to fuel center numbers, unused
         SoundFlag AmbientSound{};
 
-        ObjID Objects = ObjID::None; // pointer to objects in this segment.
+        List<ObjID> Objects;
         // If bit n (1 << n) is set, then side #n in segment has had light subtracted from original (editor-computed) value.
         uint8 LightSubtracted;
         //uint8 SlideTextures;
@@ -200,7 +200,7 @@ namespace Inferno {
             };
         }
 
-        PointID GetVertexIndex(SideID side, uint16 point) {
+        PointID GetVertexIndex(SideID side, uint16 point) const {
             auto& indices = Inferno::SideIndices[(int)side];
             return Indices[indices[point % 4]];
         }
@@ -218,9 +218,7 @@ namespace Inferno {
         // Returns the vertices of the segment
         Array<const Vector3*, 8> GetVertices(const Level&) const;
 
-        Array<Vector3, 4> GetVertices(const Level&, SideID) const;
-
-        Array<Vector3, 8> CopyVertices(const Level&);
+        Array<Vector3, 8> CopyVertices(const Level&) const;
     };
 
     inline SideID GetAdjacentSide(SideID side, int edge) {

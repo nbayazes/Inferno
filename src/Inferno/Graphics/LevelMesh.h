@@ -15,8 +15,9 @@ namespace Inferno {
         EClipID EffectClip2 = EClipID::None;
         Vector2 OverlaySlide; // UV sliding corrected for overlay rotation
 
-        // Geometric center, used for wall depth sorting
+        // Geometric center used for wall depth sorting
         Vector3 Center;
+        Tag Tag{}; // Only valid for walls
         BlendMode Blend = BlendMode::Opaque;
         bool Cloaked = false;
 

@@ -29,7 +29,7 @@ namespace Inferno::Editor {
 
             ImGui::PlotLines("##vel", Debug::ShipVelocities.data(), (int)Debug::ShipVelocities.size(), 0, nullptr, 0, 60, ImVec2(0, 120.0f));
 
-            ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::DrawCalls);
+            ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::Stats::DrawCalls);
 
             ImGui::Text("Present Total: %.2f", Render::Metrics::Present / 1000.0f);
             ImGui::Text("Present(): %.2f", Render::Metrics::PresentCall / 1000.0f);

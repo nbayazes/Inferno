@@ -201,8 +201,8 @@ namespace Inferno::Game {
         PendingNewObjects.push_back(obj);
     }
 
-    void DestroyObject(Object& obj) {
-        if (obj.Lifespan < 0 && obj.HitPoints < 0) return; // already dead
+    bool DestroyObject(Object& obj) {
+        if (obj.Lifespan < 0 && obj.HitPoints < 0) return false; // already dead
 
         switch (obj.Type) {
             case ObjectType::Fireball:
@@ -294,9 +294,9 @@ namespace Inferno::Game {
                 break;
         }
 
-
         obj.Lifespan = -1;
         obj.HitPoints = -1;
+        return true;
     }
 
     Tuple<ObjID, float> FindNearestObject(const Object& src) {
@@ -355,7 +355,7 @@ namespace Inferno::Game {
             obj.Signature = GetObjectSig();
 
             bool foundExisting = false;
-            ObjID id = ObjID::None;
+            auto id = ObjID::None;
 
             for (int i = 0; i < Level.Objects.size(); i++) {
                 auto& o = Level.Objects[i];
@@ -372,7 +372,9 @@ namespace Inferno::Game {
                 Level.Objects.push_back(obj);
             }
 
-            // Hack to insert tracers due to not having the object ID in firing code
+            Level.GetSegment(obj.Segment).Objects.push_back(id);
+
+            // Hack to attach tracers due to not having the object ID in firing code
             if (obj.Type == ObjectType::Weapon) {
                 //auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
 
@@ -424,7 +426,10 @@ namespace Inferno::Game {
             auto& obj = Level.Objects[i];
 
             if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
-                DestroyObject(obj);
+                if (DestroyObject(obj)) {
+                    if (auto seg = Level.TryGetSegment(obj.Segment))
+                        Seq::remove(seg->Objects, (ObjID)i);
+                }
                 continue;
             }
             else if (obj.Lifespan <= 0 && obj.Type == ObjectType::Weapon) {
@@ -471,8 +476,9 @@ namespace Inferno::Game {
 
         if (Game::ShowDebugOverlay) {
             auto vp = ImGui::GetMainViewport();
-            DrawDebugOverlay({ vp->Size.x, 0 }, { 1, 0 });
-            DrawGameDebugOverlay({ 10, 10 }, { 0, 0 });
+            constexpr float topOffset = 50;
+            DrawDebugOverlay({ vp->Size.x, topOffset }, { 1, 0 });
+            DrawGameDebugOverlay({ 10, topOffset }, { 0, 0 });
         }
 
         return float(accumulator / TICK_RATE);
@@ -639,7 +645,12 @@ namespace Inferno::Game {
 
             State = GameState::Game;
 
-            for (auto& obj : Level.Objects) {
+            for (auto& seg : Level.Segments) {
+                seg.Objects.clear();
+            }
+
+            for (int id = 0; id < Level.Objects.size(); id++) {
+                auto& obj = Level.Objects[id];
                 obj.LastPosition = obj.Position;
                 obj.LastRotation = obj.Rotation;
                 obj.Signature = GetObjectSig();
@@ -661,7 +672,14 @@ namespace Inferno::Game {
                     (obj.ID == (int)PowerupID::FlagBlue || obj.ID == (int)PowerupID::FlagRed)) {
                     obj.Destroy(); // Remove CTF flags (no multiplayer)
                 }
+
+                Editor::UpdateObjectSegment(Level, obj);
+                if (auto seg = Level.TryGetSegment(obj.Segment)) {
+                    seg->Objects.push_back((ObjID)id);
+                }
             }
+
+
 
             Render::ResetParticles();
             Sound::Reset();
@@ -712,6 +730,10 @@ namespace Inferno::Game {
             Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
             Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
             Player.GivePowerup(PowerupFlag::Afterburner);
+
+            // Reset shields and energy to at least 100 on level start
+            Player.Shields = std::max(Player.Shields, 100.0f);
+            Player.Energy = std::max(Player.Energy, 100.0f);
 
             uint16 VULCAN_AMMO_MAX = Level.IsDescent1() ? 10000 : 20000;
             Player.PrimaryWeapons = 0xffff;

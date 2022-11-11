@@ -95,7 +95,7 @@ namespace Inferno::Editor {
         // returns the transform origin of the selection
         Vector3 GetOrigin(SelectionMode) const;
 
-        List<PointID> GetVertexHandles(Level&);
+        List<PointID> GetVertexHandles(Level&) const;
         Tuple<LevelTexID, LevelTexID> GetTextures() const;
 
         void SelectByTexture(LevelTexID);
@@ -124,7 +124,7 @@ namespace Inferno::Editor {
 
         List<PointID> GetVertexHandles(Level&);
 
-        List<SegID> GetSegments(Level&);
+        List<SegID> GetSegments(const Level&) const;
 
         Set<Tag> Faces;
         Set<SegID> Segments;

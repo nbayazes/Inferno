@@ -347,7 +347,7 @@ namespace Inferno::Render {
 
             auto& material = Render::Materials->GetOutrageMaterial(beam.Texture);
             effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
-            DrawCalls++;
+            Stats::DrawCalls++;
             g_SpriteBatch->Begin(ctx.CommandList());
 
             Vector3 prevNormal;
@@ -512,7 +512,7 @@ namespace Inferno::Render {
                 ObjectVertex v3{ end + up, { 0, 1 }, color };
                 g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
                 g_SpriteBatch->End();
-                DrawCalls++;
+                Stats::DrawCalls++;
             }
 
             if (!tracer.BlobTexture.empty() && dist > tracer.Length) {
@@ -531,7 +531,7 @@ namespace Inferno::Render {
                 ObjectVertex v3{ blob + up + right, { 0, 1 }, color };
                 g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
                 g_SpriteBatch->End();
-                DrawCalls++;
+                Stats::DrawCalls++;
             }
         }
     }
@@ -572,7 +572,7 @@ namespace Inferno::Render {
             ObjectVertex v3{ pos + right, { 0, 0 }, decal.Color };
             g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
             g_SpriteBatch->End();
-            DrawCalls++;
+            Stats::DrawCalls++;
         }
     }
 

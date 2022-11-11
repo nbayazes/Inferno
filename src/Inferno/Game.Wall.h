@@ -13,7 +13,7 @@ namespace Inferno {
 
     void ActivateTrigger(Level& level, Trigger& trigger);
 
-    // Returns if the wall has transparent or supertransparent textures
+    // Returns true if the wall has transparent or supertransparent textures, or is an open side.
     bool WallIsTransparent(Level& level, Tag tag);
     void UpdateExplodingWalls(Level& level, float dt);
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall);

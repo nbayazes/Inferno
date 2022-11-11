@@ -56,7 +56,7 @@ namespace Inferno::Editor {
         return hits;
     }
 
-    List<SelectionHit> HitTestObjects(Level& level, const Ray& ray) {
+    List<SelectionHit> HitTestObjects(const Level& level, const Ray& ray) {
         List<SelectionHit> hits;
 
         for (int id = 0; id < level.Objects.size(); id++) {
@@ -92,7 +92,7 @@ namespace Inferno::Editor {
 
             _selection = hits[_cycleDepth];
 
-            auto intersectPoint = ray.position + _selection.Distance * ray.direction;
+            //auto intersectPoint = ray.position + _selection.Distance * ray.direction;
 
             if (_selection.Tag.HasValue()) {
                 Point = _selection.Edge;
@@ -145,7 +145,7 @@ namespace Inferno::Editor {
     }
 
     // Gets the vertices of the selection
-    List<PointID> EditorSelection::GetVertexHandles(Level& level) {
+    List<PointID> EditorSelection::GetVertexHandles(Level& level) const {
         List<PointID> points;
         if (!Game::Level.SegmentExists(Segment)) return points;
         auto& segment = level.GetSegment(Segment);
@@ -153,7 +153,6 @@ namespace Inferno::Editor {
         switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
-                auto segVerts = segment.GetVertices(level);
                 auto front = segment.GetVertexIndices(SideID::Front);
                 auto back = segment.GetVertexIndices(SideID::Back);
                 for (auto& i : front) points.push_back(i);
@@ -219,7 +218,7 @@ namespace Inferno::Editor {
         return { points.begin(), points.end() };
     }
 
-    List<SegID> MultiSelection::GetSegments(Level& level) {
+    List<SegID> MultiSelection::GetSegments(const Level& level) const {
         Set<SegID> segs;
 
         switch (Settings::Editor.SelectionMode) {
@@ -238,10 +237,8 @@ namespace Inferno::Editor {
             case SelectionMode::Face:
             {
                 for (auto& tag : Faces) {
-                    if (const auto seg = level.TryGetSegment(tag.Segment)) {
-                        if (level.SegmentExists(tag.Segment))
-                            segs.insert(tag.Segment);
-                    }
+                    if (level.SegmentExists(tag.Segment))
+                        segs.insert(tag.Segment);
                 }
             }
             break;
@@ -386,7 +383,7 @@ namespace Inferno::Editor {
         if (!Game::Level.SegmentExists(tag))
             tag = { SegID(0) };
 
-        if (tag.Side == SideID::None) 
+        if (tag.Side == SideID::None)
             tag.Side = SideID::Left;
 
         Segment = tag.Segment;
@@ -758,12 +755,10 @@ namespace Inferno::Editor {
 
         int16 destEdge = 0, srcEdge = 0;
         for (srcEdge = 0; srcEdge < 4; srcEdge++) {
-            auto srcIndices = srcSeg.GetVertexIndices(src.Side);
             auto src0 = srcSeg.GetVertexIndex(src.Side, srcEdge);
             auto src1 = srcSeg.GetVertexIndex(src.Side, srcEdge + 1);
 
             for (destEdge = 0; destEdge < 4; destEdge++) {
-                auto destIndices = destSeg.GetVertexIndices(dest.Side);
                 auto dest0 = destSeg.GetVertexIndex(dest.Side, destEdge);
                 auto dest1 = destSeg.GetVertexIndex(dest.Side, destEdge + 1);
 

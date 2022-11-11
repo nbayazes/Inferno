@@ -48,7 +48,7 @@ namespace Inferno::Render {
         void Shutdown();
         Material2D White, Black;
 
-        void LoadMaterials(span<const TexID> ids, bool forceLoad);
+        void LoadMaterials(span<const TexID> tids, bool forceLoad);
         void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false);
         void Dispatch();
 

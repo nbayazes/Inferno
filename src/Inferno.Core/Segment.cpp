@@ -113,11 +113,7 @@ namespace Inferno {
         return verts;
     }
 
-    Array<Vector3, 4> Segment::GetVertices(const Level&, SideID) const {
-        return Array<Vector3, 4>();
-    }
-
-    Array<Vector3, 8> Segment::CopyVertices(const Level& level) {
+    Array<Vector3, 8> Segment::CopyVertices(const Level& level) const {
         auto front = GetVertexIndices(SideID::Front);
         auto back = GetVertexIndices(SideID::Back);
 

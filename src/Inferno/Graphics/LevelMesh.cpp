@@ -292,9 +292,7 @@ namespace Inferno {
 
                 if (isWall) {
                     // Adjust wall positions to the center of the segment so objects and walls of a segment can be sorted correctly
-                    auto vec = chunk.Center - seg.Center;
-                    vec.Normalize();
-                    chunk.Center = seg.Center;
+                    chunk.Tag = { (SegID)id, sideId };
                     geo.Walls.push_back(chunk);
                 }
             }
