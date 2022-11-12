@@ -8,6 +8,7 @@
 #include "MaterialLibrary.h"
 #include "LevelMesh.h"
 #include "BitmapCache.h"
+#include "Mesh.h"
 #include "Render.Canvas.h"
 #include "Graphics/CommandContext.h"
 
@@ -37,12 +38,18 @@ namespace Inferno::Render {
         return Settings::Graphics.HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
 
+    enum class RenderPass {
+        Opaque, // Solid level geometry or objects
+        Walls, // Level walls, might be transparent
+        Transparent // Sprites, transparent portions of models
+    };
+
     //void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);
 
     void Initialize(HWND hwnd, int width, int height);
     void Resize(int width, int height);
     void Shutdown();
-    void Present(float lerp);
+    void Present();
 
     //void ReloadShaders();
     void ReloadTextures();
@@ -52,7 +59,10 @@ namespace Inferno::Render {
     void LoadTextureDynamic(TexID);
     void LoadHUDTextures();
     void LoadTextureDynamic(VClipID);
-    void LoadLevel(Inferno::Level&);
+    void LoadLevel(const Inferno::Level&);
+
+    MeshIndex& GetMeshHandle(ModelID);
+    MeshIndex& GetOutrageMeshHandle(int id);
 
     inline ID3D12Device* Device;
 
@@ -76,11 +86,15 @@ namespace Inferno::Render {
 
     void DrawBillboard(Graphics::GraphicsContext& ctx, TexID tid, const Vector3& position, float radius, const Color& color, bool additive, float rotation, const Vector3* up);
     extern bool LevelChanged;
+    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
+    PackedBuffer* GetLevelMeshBuffer();
+
+    //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test
+    const string TEST_MODEL = "gyro.OOF";
 
     namespace Stats {
         inline uint16 VisitedSegments = 0;
         inline uint16 DrawCalls = 0;
         inline uint16 PolygonCount = 0;
     }
-
 }

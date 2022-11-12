@@ -3,7 +3,6 @@
 
 #include "Game.h"
 #include "Game.Wall.h"
-#include "Mesh.h"
 #include "Render.Debug.h"
 #include "Render.Editor.h"
 #include "Render.Particles.h"
@@ -22,7 +21,6 @@ namespace Inferno::Render {
     void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes) {
         _transparentQueue.clear();
         _opaqueQueue.clear();
-        if (!_meshBuffer) return;
 
         if (Settings::Editor.RenderMode != RenderMode::None) {
             // Queue commands for level meshes
@@ -73,7 +71,7 @@ namespace Inferno::Render {
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             _opaqueQueue.push_back({ &obj, depth });
 
-            auto& mesh = _meshBuffer->GetHandle(obj.Render.Model.ID);
+            auto& mesh = GetMeshHandle(obj.Render.Model.ID);
             if (mesh.HasTransparentTexture)
                 _transparentQueue.push_back({ &obj, depth });
         }
@@ -161,7 +159,7 @@ namespace Inferno::Render {
                     obj.Obj->Render.Model.ID != ModelID::None) {
                     _opaqueQueue.push_back({ obj.Obj, 0 });
 
-                    auto& mesh = _meshBuffer->GetHandle(obj.Obj->Render.Model.ID);
+                    auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
                     if (mesh.HasTransparentTexture)
                         _transparentQueue.push_back({ obj.Obj, obj.Depth });
                 }

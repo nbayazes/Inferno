@@ -55,12 +55,9 @@ namespace Inferno::Render {
     class RenderQueue {
         List<RenderCommand> _opaqueQueue;
         List<RenderCommand> _transparentQueue;
-        MeshBuffer* _meshBuffer;
         Set<SegID> _visited;
         std::queue<SegID> _search;
     public:
-        RenderQueue(MeshBuffer* meshBuffer) : _meshBuffer(meshBuffer) {}
-
         void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }

@@ -525,7 +525,7 @@ namespace Inferno::Game {
         }
 
         g_ImGuiBatch->EndFrame();
-        Render::Present(LerpAmount);
+        Render::Present();
     }
 
     Camera EditorCameraSnapshot;

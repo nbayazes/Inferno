@@ -197,6 +197,12 @@
     <ClCompile Include="Graphics\Render.Queue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\Render.Level.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Render.Object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -488,6 +494,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Render.Queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Render.Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Render.Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

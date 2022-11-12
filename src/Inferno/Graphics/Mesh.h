@@ -17,17 +17,18 @@ namespace Inferno::Render {
         bool HasTransparentTexture = false;
     };
 
+    // Pointers to individual meshes in a polymodel
+    struct MeshIndex {
+        // A lookup of meshes based on submodel and then texture
+        Dictionary<int, Dictionary<int, Mesh*>> Meshes;
+        bool Loaded = false;
+        bool HasTransparentTexture = false;
+    };
+
     class MeshBuffer {
         List<Mesh> _meshes; // Buffer stores multiple meshes
         PackedBuffer _buffer{ 1024 * 1024 * 10 };
 
-        // Pointers to individual meshes in a polymodel
-        struct MeshIndex {
-            // A lookup of meshes based on submodel and then texture
-            Dictionary<int, Dictionary<int, Mesh*>> Meshes;
-            bool Loaded = false;
-            bool HasTransparentTexture = false;
-        };
 
         List<MeshIndex> _handles;
         size_t _capacity;

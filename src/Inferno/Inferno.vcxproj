@@ -183,6 +183,8 @@
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
     <ClCompile Include="Graphics\Render.Canvas.cpp" />
+    <ClCompile Include="Graphics\Render.Level.cpp" />
+    <ClCompile Include="Graphics\Render.Object.cpp" />
     <ClCompile Include="Graphics\Render.Particles.cpp" />
     <ClCompile Include="HUD.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
@@ -254,6 +256,8 @@
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
     <ClInclude Include="Graphics\Render.Canvas.h" />
     <ClInclude Include="Graphics\Render.Commands.h" />
+    <ClInclude Include="Graphics\Render.Level.h" />
+    <ClInclude Include="Graphics\Render.Object.h" />
     <ClInclude Include="Graphics\Render.Particles.h" />
     <ClInclude Include="Graphics\Render.Queue.h" />
     <ClInclude Include="HUD.h" />
