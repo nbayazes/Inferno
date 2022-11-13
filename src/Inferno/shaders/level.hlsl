@@ -4,7 +4,12 @@
     "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t8, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "StaticSampler(s1," \
+        "addressU = TEXTURE_ADDRESS_WRAP," \
+        "addressV = TEXTURE_ADDRESS_WRAP," \
+        "addressW = TEXTURE_ADDRESS_WRAP," \
+        "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used
@@ -18,6 +23,7 @@ Texture2D Specular2 : register(t7);
 Texture2D Depth : register(t8);
 
 SamplerState Sampler : register(s0);
+SamplerState LinearSampler : register(s1);
 
 static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
@@ -82,6 +88,20 @@ float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 f
     return f * pixel + (1 - f) * fogColor;
 }
 
+// Samples a texture with anti-aliasing. Intended for low resolution textures.
+float4 Sample2DAA(Texture2D tex, float2 uv) {
+    // if (disabled)
+    // return tex.Sample(Sampler, uv);
+    float width, height;
+    tex.GetDimensions(width, height);
+    float2 texsize = float2(width, height);
+    float2 uv_texspace = uv * texsize;
+    float2 seam = floor(uv_texspace + .5);
+    uv_texspace = (uv_texspace - seam) / fwidth(uv_texspace) + seam;
+    uv_texspace = clamp(uv_texspace, seam - .5, seam + .5);
+    return tex.Sample(LinearSampler, uv_texspace / texsize);
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
@@ -92,8 +112,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
     lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
     //return float4((input.normal + 1) / 2, 1);
 
-    float4 base = Diffuse.Sample(Sampler, input.uv);
-    float4 emissive = Emissive.Sample(Sampler, input.uv) * base;
+    //float4 base = Diffuse.Sample(Sampler, input.uv);
+    //float4 emissive = Emissive.Sample(Sampler, input.uv) * base;
+    float4 base = Sample2DAA(Diffuse, input.uv);
+    float4 emissive = Sample2DAA(Emissive, input.uv) * base;
     //float d = dot(input.normal, viewDir);
     //if (d > -0.001)
     //    lighting = 0;
@@ -102,10 +124,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
     
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = StMask.Sample(Sampler, input.uv2).r; // only need a single channel
+        float mask = Sample2DAA(StMask, input.uv2).r; // only need a single channel
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
-        float4 src = Diffuse2.Sample(Sampler, input.uv2);
+        //float4 src = Diffuse2.Sample(Sampler, input.uv2);
+        float4 src = Sample2DAA(Diffuse2, input.uv2);
         
         float out_a = src.a + base.a * (1 - src.a);
         float3 out_rgb = src.a * src.rgb + (1 - src.a) * base.rgb;
@@ -115,7 +138,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             discard;
         
         // layer the emissive over the base emissive
-        float4 emissive2 = Emissive2.Sample(Sampler, input.uv2) * diffuse;
+        float4 emissive2 = Sample2DAA(Emissive2, input.uv2) * diffuse;
         emissive2.a = 0;
         emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
 
