@@ -5,21 +5,53 @@
 #include "Graphics/CommandContext.h"
 
 namespace Inferno::Render {
-    struct Particle {
-        VClipID Clip = VClipID::None;
+    struct RenderCommand;
+    float GetRenderDepth(const Vector3& pos);
+
+    //enum class EffectType {
+    //    None, Particle, Emitter, Debris, Tracer
+    //};
+
+    struct EffectBase {
+        SegID Segment = SegID::None;
         Vector3 Position;
+        float Life = 0;
+        bool IsTransparent = true;
+
+        virtual bool IsAlive() { return Life > 0; }
+        static bool IsAliveFn(const EffectBase& e) { return e.Life > 0; }
+
+        virtual void Update(float dt) { Life -= dt; }
+        virtual void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue);
+        virtual void Draw(Graphics::GraphicsContext&) {}
+        virtual void DepthPrepass(Graphics::GraphicsContext&) {
+            assert(IsTransparent); // must provide a depth prepass if not transparent
+        }
+
+        EffectBase() = default;
+        virtual ~EffectBase() = default;
+        EffectBase(const EffectBase&) = default;
+        EffectBase(EffectBase&&) = default;
+        EffectBase& operator=(const EffectBase&) = default;
+        EffectBase& operator=(EffectBase&&) = default;
+    };
+
+    struct Particle : EffectBase {
+        VClipID Clip = VClipID::None;
         Vector3 Up = Vector3::Zero;
         Color Color = { 1, 1, 1 };
         float Radius = 1;
         float Rotation = 0;
-        float Life = 0;
         float FadeTime = 0; // How long it takes to fade the particle out
         float Delay = 0;
+        bool RandomRotation = true;
         //float FadeDuration = 0;
         ObjID Parent = ObjID::None;
         Vector3 ParentOffset;
 
-        static bool IsAlive(const Particle& p) { return p.Life > 0; }
+        void Update(float dt) override;
+        void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue) override;
+        void Draw(Graphics::GraphicsContext&) override;
     };
 
     struct ParticleEmitterInfo {
@@ -39,7 +71,7 @@ namespace Inferno::Render {
         float MinDelay = 0, MaxDelay = 0; // How often to spawn a particle
         float MinRadius = 1, MaxRadius = 2;
 
-        Particle CreateParticle() {
+        Particle CreateParticle() const {
             auto& vclip = Resources::GetVideoClip(Clip);
 
             Particle p;
@@ -58,43 +90,35 @@ namespace Inferno::Render {
         }
     };
 
-    class ParticleEmitter {
+    class ParticleEmitter : public EffectBase {
         float _spawnTimer = 0; // internal timer for when to create a particle
-        float _life = 0;
         float _startDelay = 0;
-        DataPool<Particle> _particles;
         ParticleEmitterInfo _info;
+        DataPool<Particle> _particles;
     public:
         ParticleEmitter(const ParticleEmitterInfo& info, size_t capacity)
-            : _info(info), _particles(Particle::IsAlive, capacity) {
+            : _info(info), _particles([](auto& p) { return p.Life > 0; }, capacity) {
             _startDelay = info.StartDelay;
             Position = info.Position;
         }
 
-        Vector3 Position;
-
-        span<const Particle> GetParticles() const { return _particles.GetLiveData(); }
-        void AddParticle() {
-            _particles.Add(_info.CreateParticle());
-        }
+        //span<const Particle> GetParticles() const { return _particles.GetLiveData(); }
+        //void AddParticle() {
+        //    _particles.Add(_info.CreateParticle());
+        //}
 
         void Update(float dt);
-
-        static bool IsAlive(const ParticleEmitter& p) { return p._life > 0; }
+        static bool IsAlive(const ParticleEmitter& p) { return p.Life > 0; }
     };
 
-    void AddEmitter(ParticleEmitter& emitter, size_t capacity);
-    void AddParticle(Particle&, bool randomRotation = true);
-
-    void UpdateParticles(Level&, float dt);
-    void QueueParticles();
+    //void AddEmitter(ParticleEmitter& emitter, size_t capacity);
+    void AddParticle(Particle&, SegID);
 
     // Remains of a destroyed robot
-    struct Debris {
-        float Life = 0;
+    struct Debris : EffectBase {
+        Debris() { IsTransparent = false; }
+
         Matrix Transform, PrevTransform;
-        //Vector3 Position, LastPosition;
-        //Matrix3x3 Rotation, LastRotation;
         Vector3 Velocity;
         Vector3 AngularVelocity;
         float Mass = 1;
@@ -102,19 +126,18 @@ namespace Inferno::Render {
         float Radius = 1;
         ModelID Model = ModelID::None;
         int Submodel = 0;
-        SegID Segment;
         TexID TexOverride = TexID::None;
 
-        static bool IsAlive(const Debris& d) { return d.Life > 0; }
+        void Draw(Graphics::GraphicsContext&) override;
+        void DepthPrepass(Graphics::GraphicsContext&) override;
+        void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue) override;
+        void Update(float dt) override;
     };
 
-    void AddDebris(Debris& debris);
-    void UpdateDebris(float dt);
-    void QueueDebris();
+    void AddDebris(Debris&, SegID);
 
     struct ExplosionInfo {
         ObjID Parent = ObjID::None;
-        SegID Segment = SegID::None;
         VClipID Clip = VClipID::SmallExplosion; // Default explosion
         SoundID Sound = SoundID::None;
         float MinRadius = 2.5f, MaxRadius = 2.5f;
@@ -123,14 +146,17 @@ namespace Inferno::Render {
         float MinDelay = 0.25f, MaxDelay = 0.75f; // how long to wait before creating the next explosion instance
         float InitialDelay = -1; // how long to wait before creating any explosions
         Color Color = { 2, 2, 2 }; // Particle color
-        Vector3 Position;
         float FadeTime = 0; // How long it takes to fade the particles out
+        SegID Segment = SegID::None;
+        Vector3 Position;
 
-        static bool IsAlive(const ExplosionInfo& info) { return info.InitialDelay >= 0; }
+        static bool IsAlive(const ExplosionInfo& info) {
+            return info.InitialDelay >= 0;
+        }
     };
 
     void CreateExplosion(ExplosionInfo&);
-    void UpdateExplosions(float dt);
+    //void UpdateExplosions(float dt);
 
     //enum class BeamFlag {
     //    SineNoise, RandomEnd
@@ -169,7 +195,7 @@ namespace Inferno::Render {
     void AddBeam(BeamInfo&);
     void DrawBeams(Graphics::GraphicsContext& ctx);
 
-    struct TracerInfo {
+    struct TracerInfo : EffectBase {
         ObjID Parent = ObjID::None; // Object the tracer is attached to. Normally a weapon projectile.
         ObjSig Signature = {};
         float Length = 20; // How long the tracer is
@@ -179,28 +205,27 @@ namespace Inferno::Render {
         float FadeSpeed = 0.125f; // How quickly the tracer fades in and out
 
         // Runtime vars
-        Vector3 Start;
         Vector3 End; // Updated in realtime. Used to fade out tracer after object dies.
         float Fade = 0; // For fading the tracer in and out
         bool ParentIsLive = false;
-        float Life = 0;
         static bool IsAlive(const TracerInfo& info) { return info.Life > 0; }
+
+        void Update(float dt) override;
+        void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue) override;
+        void Draw(Graphics::GraphicsContext&) override;
     };
 
     // Adds a tracer effect attached to an object that is removed when the object dies.
     // Tracers are only drawn when the minimum length is reached
-    void AddTracer(TracerInfo&);
-    void DrawTracers(Graphics::GraphicsContext& ctx);
+    void AddTracer(TracerInfo&, SegID);
 
-    struct DecalInfo {
-        Vector3 Position;
+    struct DecalInfo : EffectBase {
         Vector3 Tangent, Bitangent;
         string Texture = "scorchB";
 
         float Radius = 2;
         Color Color = { 1, 1, 1 };
-        float Life = 0;
-        Tag Tag{}; // For decals placed on walls
+        SideID Side;
     };
 
     void AddDecal(DecalInfo& decal);
@@ -210,4 +235,13 @@ namespace Inferno::Render {
     void RemoveDecals(Tag);
 
     void ResetParticles();
+
+    span<Ptr<EffectBase>> GetEffectsInSegment(SegID);
+
+    void InitEffects(const Level& level);
+    void UpdateEffects(float dt);
+
+    namespace Stats {
+        inline uint EffectDraws = 0;
+    }
 }

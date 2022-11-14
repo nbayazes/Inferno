@@ -46,6 +46,7 @@ namespace Inferno::Game {
         e.Position = obj.Position;
         e.Color = Color{ 1, 1, 1 };
         e.FadeTime = 0.1f;
+        e.Segment = obj.Segment;
         Render::CreateExplosion(e);
 
         if (weapon.SplashRadius > 0) {
@@ -260,7 +261,7 @@ namespace Inferno::Game {
                 p.Parent = objId;
                 p.ParentOffset = gunOffset;
                 p.FadeTime = 0.175f;
-                Render::AddParticle(p);
+                Render::AddParticle(p, obj.Segment);
             }
         }
 

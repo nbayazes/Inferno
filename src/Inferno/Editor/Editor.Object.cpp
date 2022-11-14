@@ -344,7 +344,7 @@ namespace Inferno::Editor {
             // Leave the last good ID if nothing contains the object
             if (id != SegID::None) {
                 obj.Segment = id;
-                auto& seg = level.GetSegment(id);
+                //auto& seg = level.GetSegment(id);
             }
         }
     }

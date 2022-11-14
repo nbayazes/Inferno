@@ -6,7 +6,7 @@
 
 namespace Inferno::Render {
     enum class RenderCommandType {
-        LevelMesh, Object, Particle, Emitter, Debris, Beam
+        LevelMesh, Object, Effect
     };
 
     struct RenderCommand {
@@ -15,10 +15,7 @@ namespace Inferno::Render {
         union Data {
             struct Object* Object;
             Inferno::LevelMesh* LevelMesh;
-            ParticleEmitter* Emitter;
-            Particle* Particle;
-            struct Debris* Debris;
-            BeamInfo* Beam;
+            EffectBase* Effect;
         } Data{};
 
         RenderCommand(Object* obj, float depth)
@@ -31,24 +28,9 @@ namespace Inferno::Render {
             Data.LevelMesh = mesh;
         }
 
-        RenderCommand(Particle* particle, float depth)
-            : Depth(depth), Type(RenderCommandType::Particle) {
-            Data.Particle = particle;
-        }
-
-        RenderCommand(ParticleEmitter* emitter, float depth)
-            : Depth(depth), Type(RenderCommandType::Emitter) {
-            Data.Emitter = emitter;
-        }
-
-        RenderCommand(Debris* debris, float depth)
-            : Depth(depth), Type(RenderCommandType::Debris) {
-            Data.Debris = debris;
-        }
-
-        RenderCommand(BeamInfo* beam, float depth)
-            : Depth(depth), Type(RenderCommandType::Beam) {
-            Data.Beam = beam;
+        RenderCommand(EffectBase* effect, float depth)
+            : Depth(depth), Type(RenderCommandType::Effect) {
+            Data.Effect = effect;
         }
     };
 

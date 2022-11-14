@@ -1273,7 +1273,7 @@ namespace Inferno {
 
             Render::ExplosionInfo expl;
             expl.Sound = weapon.RobotHitSound;
-            expl.Segment = hit.Tag.Segment;
+            expl.Segment = hit.HitObj->Segment;
             expl.Position = hit.Point;
             expl.Parent = obj.Parent;
 
@@ -1371,6 +1371,7 @@ namespace Inferno {
             e.MaxRadius = weapon.ImpactSize * 1.1f;
             e.Clip = vclip;
             e.Sound = soundId;
+            e.Segment = hit.Tag.Segment;
 
             //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
             if (weapon.ImpactSize < 5)
@@ -1400,7 +1401,8 @@ namespace Inferno {
                 decal.Bitangent = decal.Tangent.Cross(hit.Normal);
                 decal.Radius = decalSize;
                 decal.Position = hit.Point;
-                decal.Tag = hit.Tag;
+                decal.Segment = hit.Tag.Segment;
+                decal.Side = hit.Tag.Side;
                 decal.Texture = weapon.Extended.ScorchTexture;
 
                 if (auto wall = Game::Level.TryGetWall(hit.Tag)) {

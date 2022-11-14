@@ -23,6 +23,8 @@ namespace Inferno {
             return _data[(int64)key];
         }
 
+        size_t Count() const { return _liveItems; }
+
         // Adds an element to the container
         TKey Add(const TData& data) {
             for (size_t i = 0; i < _data.size(); i++) {
@@ -40,14 +42,6 @@ namespace Inferno {
         // Allocates an element
         [[nodiscard]] TData& Alloc() {
             return Get(Add({}));
-            /*for (auto& v : _data) {
-                if (!_aliveFn(v)) {
-                    return v;
-                }
-            }
-
-            _liveItems++;
-            return _data.emplace_back();*/
         }
 
         void Clear() {
@@ -57,14 +51,16 @@ namespace Inferno {
 
         // Updates the live item count
         void Prune() {
+            _liveItems = 0;
+
             for (size_t i = 0; i < _data.size(); i++) {
                 if (_aliveFn(_data[i]))
-                    _liveItems = i;
+                    _liveItems = i + 1;
             }
-        }
 
-        // Removes gaps in data
-        void Compact() {}
+            _data.resize(_liveItems);
+            _data.shrink_to_fit();
+        }
 
         bool InRange(TKey index) const { return index >= (TKey)0 && index < (TKey)_data.size(); }
 

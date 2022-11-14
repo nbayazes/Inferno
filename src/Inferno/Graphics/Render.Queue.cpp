@@ -40,17 +40,14 @@ namespace Inferno::Render {
                     }
                 }
 
-                QueueParticles();
-                QueueDebris();
-                Seq::sortBy(_transparentQueue, [](const RenderCommand & l, const RenderCommand & r) {
+                //QueueParticles();
+                //QueueDebris();
+                Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
                     return l.Depth < r.Depth; // front to back, because the draw call flips it
                 });
             }
             else {
                 TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
-                // todo: remove calls after merging into traverse level
-                QueueParticles();
-                QueueDebris();
             }
         }
     }
@@ -85,8 +82,13 @@ namespace Inferno::Render {
 
         _visited.clear();
         _search.push(startId);
+        Stats::EffectDraws = 0;
 
-        struct ObjDepth { Object* Obj = nullptr; float Depth = 0; };
+        struct ObjDepth {
+            Object* Obj = nullptr;
+            float Depth = 0;
+            EffectBase* Effect;
+        };
         List<ObjDepth> objects;
 
         while (!_search.empty()) {
@@ -118,7 +120,7 @@ namespace Inferno::Render {
                 if (cseg && !_visited.contains(cid) /*&& CameraFrustum.Contains(cseg->Center)*/) {
                     children[(int)sideId] = {
                         .Seg = cid,
-                        .Depth = Vector3::DistanceSquared(cseg->Center, Camera.Position)
+                        .Depth = GetRenderDepth(cseg->Center)
                     };
                 }
             }
@@ -142,9 +144,16 @@ namespace Inferno::Render {
                 if (auto obj = level.TryGetObject(oid)) {
                     if (!ShouldDrawObject(*obj)) continue;
 
-                    DirectX::BoundingSphere bounds(obj->Position, obj->Radius);
-                    if (CameraFrustum.Contains(bounds))
-                        objects.push_back({ obj, GetRenderDepth(obj->Position) });
+                    //DirectX::BoundingSphere bounds(obj->Position, obj->Radius);
+                    //if (CameraFrustum.Contains(bounds))
+                    objects.push_back({ obj, GetRenderDepth(obj->Position) });
+                }
+            }
+
+            for (auto& effect : GetEffectsInSegment(id)) {
+                if (effect && effect->IsAlive()) {
+                    Stats::EffectDraws++;
+                    objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect.get() });
                 }
             }
 
@@ -155,16 +164,21 @@ namespace Inferno::Render {
 
             // Queue objects in seg
             for (auto& obj : objects) {
-                if (obj.Obj->Render.Type == RenderType::Model &&
-                    obj.Obj->Render.Model.ID != ModelID::None) {
-                    _opaqueQueue.push_back({ obj.Obj, 0 });
+                if (obj.Obj) {
+                    if (obj.Obj->Render.Type == RenderType::Model &&
+                        obj.Obj->Render.Model.ID != ModelID::None) {
+                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
 
-                    auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                    if (mesh.HasTransparentTexture)
+                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+                        if (mesh.HasTransparentTexture)
+                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
+                    else {
                         _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
                 }
                 else {
-                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    obj.Effect->Queue(_opaqueQueue, _transparentQueue);
                 }
             }
 

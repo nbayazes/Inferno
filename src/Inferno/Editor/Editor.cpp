@@ -241,7 +241,8 @@ namespace Inferno::Editor {
         auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
         nextMatcenTime = (float)Game::Time + vclip.PlayTime;
 
-        for (auto& seg : level.Segments) {
+        for (int id = 0; id < level.Segments.size(); id++) {
+            auto& seg = level.Segments[id];
             if (seg.Type == SegmentType::Matcen) {
                 const auto& top = seg.GetSide(SideID::Top).Center;
                 const auto& bottom = seg.GetSide(SideID::Bottom).Center;
@@ -253,7 +254,8 @@ namespace Inferno::Editor {
                 up.Normalize(p.Up);
                 p.Life = vclip.PlayTime;
                 p.Position = seg.Center;
-                Render::AddParticle(p, false);
+                p.RandomRotation = false;
+                Render::AddParticle(p, (SegID)id);
             }
         }
     }

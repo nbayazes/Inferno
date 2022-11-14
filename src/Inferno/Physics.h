@@ -17,7 +17,7 @@ namespace Inferno {
     struct HitInfo {
         float Distance = FLT_MAX;
         Vector3 Point, Normal;
-        operator bool() { return Distance != FLT_MAX; }
+        operator bool() const { return Distance != FLT_MAX; }
     };
 
     struct LevelHit {

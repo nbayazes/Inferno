@@ -3,6 +3,7 @@
 #include "imgui_local.h"
 #include "Game.h"
 #include "Graphics/Render.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
     // Performance overlay
@@ -55,15 +56,16 @@ namespace Inferno {
                     bool hasLava = bool(seg->AmbientSound & SoundFlag::AmbientLava);
                     bool hasWater = bool(seg->AmbientSound & SoundFlag::AmbientWater);
                     ImGui::Text("Segment: %d Type: %d", player->Segment, seg->Type);
-                    string type = hasLava ? "Lava" : hasWater ? "Water" : "Normal";
+                    string type = hasLava ? "Lava" : (hasWater ? "Water" : "Normal");
                     ImGui::Text("Room type: %s", type.c_str());
                 }
                 ImGui::Text("Ship vel: %.2f", Debug::ShipVelocity.Length());
                 ImGui::Text("Ship thrust: %.2f", Debug::ShipThrust.Length());
             }
 
-            ImGui::Text("Live objects: %d", Game::Level.Objects.size());
-            ImGui::Text("Seg count: %d", Render::Stats::VisitedSegments);
+            ImGui::Text("Objects: %d", Game::Level.Objects.size());
+            ImGui::Text("Segments: %d", Render::Stats::VisitedSegments);
+            ImGui::Text("Effects: %d", Render::Stats::EffectDraws);
         }
         ImGui::End();
 

@@ -163,9 +163,9 @@ namespace Inferno::Render {
                     break;
                 }
 
-                case RenderCommandType::Debris:
+                case RenderCommandType::Effect:
                 {
-                    //DrawDebrisPrepass(ctx, *cmd.Data.Debris, Game::LerpAmount);
+                    cmd.Data.Effect->DepthPrepass(ctx);
                     break;
                 }
 
@@ -287,14 +287,10 @@ namespace Inferno::Render {
                 DrawObject(ctx, *cmd.Data.Object, pass);
                 break;
 
-            case RenderCommandType::Particle:
-                if (pass != RenderPass::Transparent) return;
-                //DrawParticle(ctx, *cmd.Data.Particle);
-                break;
-
-            case RenderCommandType::Debris:
-                if (pass != RenderPass::Opaque) return;
-                //DrawDebris(ctx, *cmd.Data.Debris);
+            case RenderCommandType::Effect:
+                if ((pass == RenderPass::Opaque && !cmd.Data.Effect->IsTransparent) ||
+                    (pass == RenderPass::Transparent && cmd.Data.Effect->IsTransparent))
+                    cmd.Data.Effect->Draw(ctx);
                 break;
         }
     }
@@ -364,8 +360,8 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            DrawBeams(ctx);
-            DrawTracers(ctx);
+            //DrawBeams(ctx);
+            //DrawTracers(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::Inferno.ScreenshotMode && Game::State == GameState::Editor) {

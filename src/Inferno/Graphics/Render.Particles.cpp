@@ -8,152 +8,251 @@
 #include "Editor/Editor.Segment.h"
 
 namespace Inferno::Render {
-    DataPool<Particle> Particles(Particle::IsAlive, 100);
-    DataPool<ParticleEmitter> ParticleEmitters(ParticleEmitter::IsAlive, 20);
-    DataPool<Debris> DebrisPool(Debris::IsAlive, 100);
-    DataPool<TracerInfo> Tracers(TracerInfo::IsAlive, 50);
-    Array<DecalInfo, 100> Decals;
-    uint DecalIndex = 0;
+    using Graphics::GraphicsContext;
 
-    void AddParticle(Particle& p, bool randomRotation) {
+    namespace {
+        DataPool<BeamInfo> Beams(BeamInfo::IsAlive, 50);
+        Array<DecalInfo, 100> Decals;
+        DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
+        DataPool<ParticleEmitter> ParticleEmitters(ParticleEmitter::IsAlive, 10);
+        uint16 DecalIndex = 0;
+        List<List<Ptr<EffectBase>>> SegmentEffects; // equals segment count
+    }
+
+    span<Ptr<EffectBase>> GetEffectsInSegment(SegID id) {
+        return SegmentEffects[(int)id];
+    }
+
+    void AddEffect(Ptr<EffectBase> e) {
+        assert(e->Segment > SegID::None);
+        auto seg = (int)e->Segment;
+
+        for (auto& effect : SegmentEffects[seg]) {
+            if (!effect || !effect->IsAlive()) {
+                effect = std::move(e);
+                return;
+            }
+        }
+
+        SegmentEffects[seg].push_back(std::move(e));
+    }
+
+    void AddParticle(Particle& p, SegID seg) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
         p.Life = vclip.PlayTime;
-        if (randomRotation)
+        p.Segment = seg;
+        if (p.RandomRotation)
             p.Rotation = Random() * DirectX::XM_2PI;
 
         Render::LoadTextureDynamic(p.Clip);
-        Particles.Add(p);
+        AddEffect(MakePtr<Particle>(p));
     }
 
-    void UpdateParticles(Level& level, float dt) {
-        for (auto& p : Particles) {
-            if (!Particle::IsAlive(p)) continue;
-            if ((p.Delay -= dt) > 0) continue;
-            p.Life -= dt;
-
-            if (auto parent = level.TryGetObject(p.Parent)) {
-                auto pos = parent->GetPosition(Game::LerpAmount);
-                if (p.ParentOffset != Vector3::Zero) {
-                    pos += Vector3::Transform(p.ParentOffset, parent->GetRotation(Game::LerpAmount));
-                }
-
-                p.Position = pos;
-            }
-
-            if (!Particle::IsAlive(p))
-                p = {};
-        }
-    }
-
-    void QueueParticles() {
-        for (auto& p : Particles) {
-            if (!Particle::IsAlive(p)) continue;
-            auto depth = GetRenderDepth(p.Position);
-            if (p.Delay > 0) continue;
-            RenderCommand cmd(&p, depth);
-            //QueueTransparent(cmd);
-        }
-    }
-
-    void AddEmitter(ParticleEmitterInfo& info, size_t capacity) {
+    void AddEmitter(const ParticleEmitterInfo& info, SegID) {
+        //info.Segment = seg;
         Render::LoadTextureDynamic(info.Clip);
-        ParticleEmitter emitter(info, capacity);
+        ParticleEmitter emitter(info, 100);
         ParticleEmitters.Add(emitter);
+    }
+
+    void EffectBase::Queue(List<RenderCommand>& /*opaqueQueue*/, List<RenderCommand>& transparentQueue) {
+        auto depth = GetRenderDepth(Position);
+        transparentQueue.push_back(RenderCommand{ this, depth });
+    }
+
+    void Particle::Update(float dt) {
+        if ((Delay -= dt) > 0) return;
+        Life -= dt;
+
+        if (auto parent = Game::Level.TryGetObject(Parent)) {
+            auto pos = parent->GetPosition(Game::LerpAmount);
+            if (ParentOffset != Vector3::Zero)
+                pos += Vector3::Transform(ParentOffset, parent->GetRotation(Game::LerpAmount));
+
+            Position = pos;
+        }
+    }
+
+    void Particle::Queue(List<RenderCommand>& /*opaqueQueue*/, List<RenderCommand>& transparentQueue) {
+        if (Delay > 0) return;
+        auto depth = GetRenderDepth(Position);
+        transparentQueue.push_back({ this, depth });
+    }
+
+    void Particle::Draw(Graphics::GraphicsContext& ctx) {
+        auto& vclip = Resources::GetVideoClip(Clip);
+        auto elapsed = vclip.PlayTime - Life;
+
+        auto* up = Up == Vector3::Zero ? nullptr : &Up;
+        auto color = Color;
+        if (FadeTime != 0 && Life <= FadeTime) {
+            color.w = 1 - std::clamp((FadeTime - Life) / FadeTime, 0.0f, 1.0f);
+        }
+        auto tid = vclip.GetFrame(elapsed);
+        DrawBillboard(ctx, tid, Position, Radius, color, true, Rotation, up);
     }
 
     void ParticleEmitter::Update(float dt) {
         if (!ParticleEmitter::IsAlive(*this)) return;
         if ((_startDelay -= dt) > 0) return;
 
-        _life -= dt;
+        Life -= dt;
 
         if ((_info.MaxDelay == 0 && _info.MinDelay == 0) && _info.ParticlesToSpawn > 0) {
             // Create all particles at once if delay is zero
             while (_info.ParticlesToSpawn-- > 0) {
-                AddParticle();
+                _particles.Add(_info.CreateParticle());
             }
         }
         else {
             _spawnTimer -= dt;
             if (_spawnTimer < 0) {
-                AddParticle();
+                _particles.Add(_info.CreateParticle());
                 _spawnTimer = _info.MinDelay + Random() * (_info.MaxDelay - _info.MinDelay);
             }
         }
     }
 
-    void UpdateEmitters(float dt) {
-        for (auto& emitter : ParticleEmitters) {
-            if (!ParticleEmitter::IsAlive(emitter)) continue;
-            emitter.Update(dt);
+    //void UpdateEmitters(float dt) {
+    //    for (auto& emitter : ParticleEmitters) {
+    //        if (!ParticleEmitter::IsAlive(emitter)) continue;
+    //        emitter.Update(dt);
 
-            auto depth = GetRenderDepth(emitter.Position);
-            RenderCommand cmd(&emitter, depth);
-            //QueueTransparent(cmd);
+    //        auto depth = GetRenderDepth(emitter.Position);
+    //        RenderCommand cmd(&emitter, depth);
+    //        //QueueTransparent(cmd);
+    //    }
+    //}
+
+    void Debris::Draw(Graphics::GraphicsContext& ctx) {
+        auto& model = Resources::GetModel(Model);
+        if (model.DataSize == 0) return;
+        if (!Seq::inRange(model.Submodels, Submodel)) return;
+        auto& meshHandle = GetMeshHandle(Model);
+
+        auto& effect = Effects->Object;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        auto cmdList = ctx.CommandList();
+
+        effect.Shader->SetSampler(cmdList, GetTextureSampler());
+        auto& seg = Game::Level.GetSegment(Segment);
+        ObjectShader::Constants constants = {};
+        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        constants.EmissiveLight = Vector4::Zero;
+
+        Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
+        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+        constants.World = transform;
+        effect.Shader->SetConstants(cmdList, constants);
+
+        // get the mesh associated with the submodel
+        auto& subMesh = meshHandle.Meshes[Submodel];
+
+        for (int i = 0; i < subMesh.size(); i++) {
+            auto mesh = subMesh[i];
+            if (!mesh) continue;
+
+            TexID tid = TexOverride;
+            if (tid == TexID::None)
+                tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
+
+            const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+            effect.Shader->SetMaterial(cmdList, material);
+
+            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+            Stats::DrawCalls++;
+        }
+
+    }
+
+    void Debris::DepthPrepass(Graphics::GraphicsContext& ctx) {
+        auto& model = Resources::GetModel(Model);
+        if (model.DataSize == 0) return;
+        if (!Seq::inRange(model.Submodels, Submodel)) return;
+        auto& meshHandle = GetMeshHandle(Model);
+        auto& effect = Effects->DepthObject;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        auto cmdList = ctx.CommandList();
+
+        Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
+        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        ObjectDepthShader::Constants constants = {};
+        constants.World = transform;
+
+        effect.Shader->SetConstants(cmdList, constants);
+
+        // get the mesh associated with the submodel
+        auto& subMesh = meshHandle.Meshes[Submodel];
+
+        for (int i = 0; i < subMesh.size(); i++) {
+            auto mesh = subMesh[i];
+            if (!mesh) continue;
+
+            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+            Stats::DrawCalls++;
         }
     }
 
-    void AddDebris(Debris& debris) {
-        DebrisPool.Add(debris);
+    void Debris::Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& /*transparentQueue*/) {
+        auto depth = GetRenderDepth(Transform.Translation());
+        opaqueQueue.push_back({ this, depth });
     }
 
-    void UpdateDebris(float dt) {
-        for (auto& debris : DebrisPool) {
-            if (!Debris::IsAlive(debris)) continue;
-            debris.Velocity *= 1 - debris.Drag;
-            debris.Life -= dt;
-            debris.PrevTransform = debris.Transform;
-            auto position = debris.Transform.Translation() + debris.Velocity * dt;
-            //debris.Transform.Translation(debris.Transform.Translation() + debris.Velocity * dt);
+    void Debris::Update(float dt) {
+        Velocity *= 1 - Drag;
+        Life -= dt;
+        PrevTransform = Transform;
+        auto position = Transform.Translation() + Velocity * dt;
+        //Transform.Translation(Transform.Translation() + Velocity * dt);
 
-            const auto drag = debris.Drag * 5 / 2;
-            debris.AngularVelocity *= 1 - drag;
-            debris.Transform.Translation(Vector3::Zero);
-            debris.Transform = Matrix::CreateFromYawPitchRoll(-debris.AngularVelocity * dt * DirectX::XM_2PI) * debris.Transform;
-            debris.Transform.Translation(position);
+        const auto drag = Drag * 5 / 2;
+        AngularVelocity *= 1 - drag;
+        Transform.Translation(Vector3::Zero);
+        Transform = Matrix::CreateFromYawPitchRoll(-AngularVelocity * dt * DirectX::XM_2PI) * Transform;
+        Transform.Translation(position);
 
-            LevelHit hit;
-            BoundingCapsule capsule = {
-                .A = debris.PrevTransform.Translation(),
-                .B = debris.Transform.Translation(),
-                .Radius = debris.Radius / 2
-            };
+        LevelHit hit;
+        BoundingCapsule capsule = {
+            .A = PrevTransform.Translation(),
+            .B = Transform.Translation(),
+            .Radius = Radius / 2
+        };
 
-            if (IntersectLevelDebris(Game::Level, capsule, debris.Segment, hit)) {
-                debris.Life = -1; // destroy on contact
-                // scorch marks on walls?
-            }
+        if (IntersectLevelDebris(Game::Level, capsule, Segment, hit)) {
+            Life = -1; // destroy on contact
+            // scorch marks on walls?
+        }
 
-            if (!Editor::PointInSegment(Game::Level, debris.Segment, position)) {
-                auto id = Editor::FindContainingSegment(Game::Level, position);
-                if (id != SegID::None) debris.Segment = id;
-            }
+        if (!Editor::PointInSegment(Game::Level, Segment, position)) {
+            auto id = Editor::FindContainingSegment(Game::Level, position);
+            if (id != SegID::None) Segment = id;
+        }
 
-            if (debris.Life < 0) {
-                ExplosionInfo e;
-                e.MinRadius = debris.Radius * 1.0f;
-                e.MaxRadius = debris.Radius * 1.45f;
-                e.Position = debris.PrevTransform.Translation();
-                e.Variance = debris.Radius * 1.0f;
-                e.Instances = 2;
-                e.Segment = debris.Segment;
-                e.MinDelay = 0.15f;
-                e.MaxDelay = 0.3f;
-                CreateExplosion(e);
-            }
+        if (Life < 0) {
+            ExplosionInfo e;
+            e.MinRadius = Radius * 1.0f;
+            e.MaxRadius = Radius * 1.45f;
+            e.Position = PrevTransform.Translation();
+            e.Variance = Radius * 1.0f;
+            e.Instances = 2;
+            e.Segment = Segment;
+            e.MinDelay = 0.15f;
+            e.MaxDelay = 0.3f;
+            CreateExplosion(e);
         }
     }
 
-    void QueueDebris() {
-        for (auto& debris : DebrisPool) {
-            if (!Debris::IsAlive(debris)) continue;
-            auto depth = GetRenderDepth(debris.Transform.Translation());
-            RenderCommand cmd(&debris, depth);
-            //QueueOpaque(cmd);
-        }
+    void AddDebris(Debris& debris, SegID seg) {
+        debris.Segment = seg;
+        AddEffect(MakePtr<Debris>(debris));
     }
-
-    DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
 
     void CreateExplosion(ExplosionInfo& e) {
         if (e.InitialDelay < 0) e.InitialDelay = 0;
@@ -185,9 +284,11 @@ namespace Inferno::Render {
                 p.Clip = expl.Clip;
                 p.Color = expl.Color;
                 p.FadeTime = expl.FadeTime;
+
                 if (expl.Instances > 1 && i > 0)
                     p.Delay = expl.MinDelay + Random() * (expl.MaxDelay - expl.MinDelay);
-                Render::AddParticle(p);
+
+                Render::AddParticle(p, expl.Segment);
             }
         }
     }
@@ -208,13 +309,11 @@ namespace Inferno::Render {
     // Beam code based on xash3d-fwgs gl_beams.c
 
     struct Beam {
-        SegID Segment;
-        List<ObjectVertex> Mesh;
+        SegID Segment = SegID::None;
+        List<ObjectVertex> Mesh{};
         float NextUpdate = 0;
         BeamInfo Info;
     };
-
-    DataPool<BeamInfo> Beams(BeamInfo::IsAlive, 50);
 
     void AddBeam(BeamInfo& beam) {
         beam.Segment = Editor::FindContainingSegment(Game::Level, beam.Start);
@@ -225,10 +324,8 @@ namespace Inferno::Render {
             beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius);
 
         beam.Runtime.Length = (beam.Start - beam.End).Length();
-        Beams.Add(beam);
+        //Beams.Add(beam);
     }
-
-
 
     Vector3 GetBeamNormal(const Vector3& start, const Vector3 end) {
         auto tangent = start - end;
@@ -273,6 +370,7 @@ namespace Inferno::Render {
         perp.Normalize();
         return perp;
     }
+
 
     void DrawBeams(Graphics::GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
@@ -328,12 +426,12 @@ namespace Inferno::Render {
                 beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
             }
 
-            auto perp1 = GetBeamPerpendicular(delta);
-            auto center = (beam.End + beam.Start) / 2;
-            Vector3 dir;
-            delta.Normalize(dir);
-            auto billboard = Matrix::CreateConstrainedBillboard(center, Camera.Position, dir);
-            perp1 = billboard.Up();
+            //auto perp1 = GetBeamPerpendicular(delta);
+            //auto center = (beam.End + beam.Start) / 2;
+            //Vector3 dir;
+            //delta.Normalize(dir);
+            //auto billboard = Matrix::CreateConstrainedBillboard(center, Camera.Position, dir);
+            //auto perp1 = billboard.Up();
 
             // if (flags.FadeIn) alpha = 0;
 
@@ -427,114 +525,118 @@ namespace Inferno::Render {
     //    }
     //}
 
-    void AddTracer(TracerInfo& tracer) {
-        std::array tex = { tracer.Texture, tracer.BlobTexture };
-        Render::Materials->LoadTextures(tex);
+    void TracerInfo::Update(float dt) {
+        Life -= dt;
+        auto parentWasLive = ParentIsLive;
 
-        assert(tracer.Parent != ObjID::None);
+        const auto obj = Game::Level.TryGetObject(Parent);
 
-        if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
-            tracer.Start = obj->Position;
-            tracer.Signature = obj->Signature;
+        if (obj && obj->Signature == Signature) {
+            ParentIsLive = obj->IsAlive();
+            End = obj->Position;
+            if (ParentIsLive)
+                Life = 1;
+        }
+        else {
+            ParentIsLive = false;
         }
 
-        tracer.Life = 1;
-        Tracers.Add(tracer);
+        parentWasLive = parentWasLive && !ParentIsLive;
+        if (parentWasLive)
+            Life = FadeSpeed;
     }
 
-    void DrawTracers(Graphics::GraphicsContext& ctx) {
+    void TracerInfo::Queue(List<RenderCommand>& /*opaqueQueue*/, List<RenderCommand>& transparentQueue) {
+        auto depth = GetRenderDepth(Position);
+        transparentQueue.push_back(RenderCommand{ this, depth });
+    }
+
+    void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
 
-        for (auto& tracer : Tracers) {
-            tracer.Life -= Render::FrameTime;
-            if (!TracerInfo::IsAlive(tracer)) continue;
+        const auto delta = Position - End;
+        const auto dist = delta.Length();
 
-            auto parentWasLive = tracer.ParentIsLive;
+        if (dist < Length + 2)
+            return; // don't draw tracers that are too short
 
-            const auto obj = Game::Level.TryGetObject(tracer.Parent);
+        // Fade tracer in or out based on parent being alive
+        auto fadeSpeed = FadeSpeed > 0 ? Render::FrameTime / FadeSpeed : 1;
+        if (ParentIsLive)
+            Fade += fadeSpeed;
+        else
+            Fade -= fadeSpeed;
 
-            if (obj && obj->Signature == tracer.Signature) {
-                tracer.ParentIsLive = obj->IsAlive();
-                tracer.End = obj->Position;
-                if (tracer.ParentIsLive)
-                    tracer.Life = 1;
-            }
-            else {
-                tracer.ParentIsLive = false;
-            }
+        Fade = std::clamp(Fade, 0.0f, 1.0f);
 
-            parentWasLive = parentWasLive && !tracer.ParentIsLive;
-            if (parentWasLive)
-                tracer.Life = tracer.FadeSpeed;
+        Vector3 dir;
+        delta.Normalize(dir);
 
-            const auto delta = tracer.Start - tracer.End;
-            const auto dist = delta.Length();
+        const auto lenMult = ParentIsLive ? 1 : Fade;
+        const auto len = std::min(dist, Length);
+        const auto start = End + dir * len * lenMult;
+        const auto end = End;
 
-            if (dist < tracer.Length + 2)
-                continue; // don't draw tracers that are too short
+        const auto normal = GetBeamNormal(start, End);
 
-            // Fade tracer in or out based on parent being alive
-            auto fadeSpeed = tracer.FadeSpeed > 0 ? Render::FrameTime / tracer.FadeSpeed : 1;
-            if (tracer.ParentIsLive)
-                tracer.Fade += fadeSpeed;
-            else
-                tracer.Fade -= fadeSpeed;
+        // draw rectangular segment
+        const auto halfWidth = Width * 0.5f;
+        auto up = normal * halfWidth;
+        auto color = Color;
+        color.w *= Fade;
 
-            tracer.Fade = std::clamp(tracer.Fade, 0.0f, 1.0f);
+        if (!Texture.empty()) {
+            auto& material = Render::Materials->GetOutrageMaterial(Texture);
+            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+            g_SpriteBatch->Begin(ctx.CommandList());
 
-            Vector3 dir;
-            delta.Normalize(dir);
-
-            const auto lenMult = tracer.ParentIsLive ? 1 : tracer.Fade;
-            const auto len = std::min(dist, tracer.Length);
-            const auto start = tracer.End + dir * len * lenMult;
-            const auto end = tracer.End;
-
-            const auto normal = GetBeamNormal(start, tracer.End);
-
-            // draw rectangular segment
-            const auto halfWidth = tracer.Width * 0.5f;
-            auto up = normal * halfWidth;
-            auto color = tracer.Color;
-            color.w *= tracer.Fade;
-
-            if (!tracer.Texture.empty()) {
-                auto& material = Render::Materials->GetOutrageMaterial(tracer.Texture);
-                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
-                g_SpriteBatch->Begin(ctx.CommandList());
-
-                ObjectVertex v0{ start + up, { 0, 0 }, color };
-                ObjectVertex v1{ start - up, { 1, 0 }, color };
-                ObjectVertex v2{ end - up, { 1, 1 }, color };
-                ObjectVertex v3{ end + up, { 0, 1 }, color };
-                g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
-                g_SpriteBatch->End();
-                Stats::DrawCalls++;
-            }
-
-            if (!tracer.BlobTexture.empty() && dist > tracer.Length) {
-                auto& material = Render::Materials->GetOutrageMaterial(tracer.BlobTexture);
-                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
-                g_SpriteBatch->Begin(ctx.CommandList());
-
-                auto right = Render::Camera.GetRight() * halfWidth;
-                up = Render::Camera.Up * halfWidth;
-                constexpr float BLOB_OFFSET = 0.25f; // tracer textures are thickest about a quarter from the end
-                auto blob = tracer.End + dir * tracer.Length * BLOB_OFFSET * lenMult;
-
-                ObjectVertex v0{ blob + up - right, { 0, 0 }, color };
-                ObjectVertex v1{ blob - up - right, { 1, 0 }, color };
-                ObjectVertex v2{ blob - up + right, { 1, 1 }, color };
-                ObjectVertex v3{ blob + up + right, { 0, 1 }, color };
-                g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
-                g_SpriteBatch->End();
-                Stats::DrawCalls++;
-            }
+            ObjectVertex v0{ start + up, { 0, 0 }, color };
+            ObjectVertex v1{ start - up, { 1, 0 }, color };
+            ObjectVertex v2{ end - up, { 1, 1 }, color };
+            ObjectVertex v3{ end + up, { 0, 1 }, color };
+            g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+            g_SpriteBatch->End();
+            Stats::DrawCalls++;
         }
+
+        if (!BlobTexture.empty() && dist > Length) {
+            auto& material = Render::Materials->GetOutrageMaterial(BlobTexture);
+            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+            g_SpriteBatch->Begin(ctx.CommandList());
+
+            auto right = Render::Camera.GetRight() * halfWidth;
+            up = Render::Camera.Up * halfWidth;
+            constexpr float BLOB_OFFSET = 0.25f; // tracer textures are thickest about a quarter from the end
+            auto blob = End + dir * Length * BLOB_OFFSET * lenMult;
+
+            ObjectVertex v0{ blob + up - right, { 0, 0 }, color };
+            ObjectVertex v1{ blob - up - right, { 1, 0 }, color };
+            ObjectVertex v2{ blob - up + right, { 1, 1 }, color };
+            ObjectVertex v3{ blob + up + right, { 0, 1 }, color };
+            g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+            g_SpriteBatch->End();
+            Stats::DrawCalls++;
+        }
+    }
+
+    void AddTracer(TracerInfo& tracer, SegID seg) {
+        std::array tex = { tracer.Texture, tracer.BlobTexture };
+        Render::Materials->LoadTextures(tex);
+        tracer.Segment = seg;
+
+        assert(tracer.Parent != ObjID::None);
+
+        if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
+            tracer.Position = obj->Position;
+            tracer.Signature = obj->Signature;
+        }
+
+        tracer.Life = 1;
+        AddEffect(MakePtr<TracerInfo>(tracer));
     }
 
     void AddDecal(DecalInfo& decal) {
@@ -582,17 +684,36 @@ namespace Inferno::Render {
         auto cside = Game::Level.GetConnectedSide(tag);
 
         for (auto& decal : Decals) {
-            if (decal.Tag == tag || (cside && decal.Tag == cside))
+            Tag decalTag = { decal.Segment, decal.Side };
+            if (decalTag == tag || (cside && decalTag == cside))
                 decal.Life = 0;
         }
     }
 
     void ResetParticles() {
-        Particles.Clear();
         ParticleEmitters.Clear();
         Beams.Clear();
+        Explosions.Clear();
 
         for (auto& decal : Decals)
             decal.Life = 0;
+    }
+
+    void UpdateEffects(float dt) {
+        UpdateExplosions(dt);
+
+        for (auto& effects : SegmentEffects) {
+            int i = 0;
+            for (auto&& effect : effects) {
+                if (effect && effect->IsAlive())
+                    effect->Update(dt);
+                i++;
+            }
+        }
+    }
+
+    void InitEffects(const Level& level) {
+        SegmentEffects.clear();
+        SegmentEffects.resize(level.Segments.size());
     }
 }

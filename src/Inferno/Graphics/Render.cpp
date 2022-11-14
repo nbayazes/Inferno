@@ -45,88 +45,9 @@ namespace Inferno::Render {
     // Applies an effect that uses the frame constants
     template<class T>
     void ApplyEffect(GraphicsContext& ctx, const Effect<T>& effect) {
-        //if (ActiveEffect == &effect) return;
-        //ActiveEffect = (void*)&effect;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
     }
-
-    void DrawDebrisPrepass(GraphicsContext& ctx, const Debris& debris, float lerp) {
-        auto& model = Resources::GetModel(debris.Model);
-        if (model.DataSize == 0) return;
-        if (!Seq::inRange(model.Submodels, debris.Submodel)) return;
-        auto& meshHandle = _meshBuffer->GetHandle(debris.Model);
-
-        auto& effect = Effects->DepthObject;
-        ApplyEffect(ctx, effect);
-        auto cmdList = ctx.CommandList();
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-
-        Matrix transform = Matrix::Lerp(debris.PrevTransform, debris.Transform, lerp);
-        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-
-        ObjectDepthShader::Constants constants = {};
-        constants.World = transform;
-
-        effect.Shader->SetConstants(cmdList, constants);
-
-        // get the mesh associated with the submodel
-        auto& subMesh = meshHandle.Meshes[debris.Submodel];
-
-        for (int i = 0; i < subMesh.size(); i++) {
-            auto mesh = subMesh[i];
-            if (!mesh) continue;
-
-            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
-            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-            Stats::DrawCalls++;
-        }
-    }
-
-    void DrawDebris(GraphicsContext& ctx, const Debris& debris, float lerp) {
-        auto& model = Resources::GetModel(debris.Model);
-        if (model.DataSize == 0) return;
-        if (!Seq::inRange(model.Submodels, debris.Submodel)) return;
-        auto& meshHandle = _meshBuffer->GetHandle(debris.Model);
-
-        auto& effect = Effects->Object;
-        ApplyEffect(ctx, effect);
-        auto cmdList = ctx.CommandList();
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-
-        effect.Shader->SetSampler(cmdList, GetTextureSampler());
-        auto& seg = Game::Level.GetSegment(debris.Segment);
-        ObjectShader::Constants constants = {};
-        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
-        constants.EmissiveLight = Vector4::Zero;
-
-        Matrix transform = Matrix::Lerp(debris.PrevTransform, debris.Transform, lerp);
-        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-        constants.World = transform;
-        effect.Shader->SetConstants(cmdList, constants);
-
-        // get the mesh associated with the submodel
-        auto& subMesh = meshHandle.Meshes[debris.Submodel];
-
-        for (int i = 0; i < subMesh.size(); i++) {
-            auto mesh = subMesh[i];
-            if (!mesh) continue;
-
-            TexID tid = debris.TexOverride;
-            if (tid == TexID::None)
-                tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
-
-            const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
-            effect.Shader->SetMaterial(cmdList, material);
-
-            cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-            cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
-            cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-            Stats::DrawCalls++;
-        }
-    }
-
     
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
@@ -332,6 +253,7 @@ namespace Inferno::Render {
             NewTextureCache->MakeResident();
         }
 
+        InitEffects(level);
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
@@ -342,19 +264,6 @@ namespace Inferno::Render {
 
     MeshIndex& GetOutrageMeshHandle(int id) {
         return _meshBuffer->GetOutrageHandle(id);
-    }
-
-    void DrawParticle(GraphicsContext& ctx, const Particle& p) {
-        auto& vclip = Resources::GetVideoClip(p.Clip);
-        auto elapsed = vclip.PlayTime - p.Life;
-
-        auto* up = p.Up == Vector3::Zero ? nullptr : &p.Up;
-        auto color = p.Color;
-        if (p.FadeTime != 0 && p.Life <= p.FadeTime) {
-            color.w = 1 - std::clamp((p.FadeTime - p.Life) / p.FadeTime, 0.0f, 1.0f);
-        }
-        auto tid = vclip.GetFrame(elapsed);
-        DrawBillboard(ctx, tid, p.Position, p.Radius, color, true, p.Rotation, up);
     }
 
     void ClearMainRenderTarget(const GraphicsContext& ctx) {
@@ -430,6 +339,8 @@ namespace Inferno::Render {
         ScopedTimer presentTimer(&Metrics::Present);
         Stats::DrawCalls = 0;
         Stats::PolygonCount = 0;
+
+        UpdateEffects(FrameTime);
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();

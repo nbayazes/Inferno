@@ -265,13 +265,12 @@ namespace Inferno::Game {
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
                     debris.Life = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
-                    debris.Segment = obj.Segment;
                     debris.Radius = model.Submodels[i].Radius;
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
                     debris.Model = robot.Model;
                     debris.Submodel = i;
                     debris.TexOverride = Resources::LookupLevelTexID(obj.Render.Model.TextureOverride);
-                    Render::AddDebris(debris);
+                    AddDebris(debris, obj.Segment);
                 }
 
                 DropContainedItems(obj);
@@ -382,29 +381,27 @@ namespace Inferno::Game {
                 constexpr auto TRACER_LENGTH = 30.0f;
 
                 if ((WeaponID)obj.ID == WeaponID::Vulcan) {
-                    Render::TracerInfo tracer{
-                        .Parent = id,
-                        .Length = TRACER_LENGTH,
-                        .Width = 0.30f,
-                        .Texture = "vausstracer",
-                        .BlobTexture = "Tracerblob",
-                        .Color = { 2, 2, 2 },
-                        .FadeSpeed = TRACER_FADE_SPEED,
-                    };
-                    Render::AddTracer(tracer);
+                    Render::TracerInfo tracer;
+                    tracer.Parent = id;
+                    tracer.Length = TRACER_LENGTH;
+                    tracer.Width = 0.30f;
+                    tracer.Texture = "vausstracer";
+                    tracer.BlobTexture = "Tracerblob";
+                    tracer.Color = Color{ 2, 2, 2 };
+                    tracer.FadeSpeed = TRACER_FADE_SPEED;
+                    Render::AddTracer(tracer, obj.Segment);
                 }
 
                 if ((WeaponID)obj.ID == WeaponID::Gauss) {
-                    Render::TracerInfo tracer{
-                        .Parent = id,
-                        .Length = 25.0f,
-                        .Width = 0.90f,
-                        .Texture = "MassDriverTracer",
-                        .BlobTexture = "MassTracerblob",
-                        .Color = { 2, 2, 2 },
-                        .FadeSpeed = TRACER_FADE_SPEED,
-                    };
-                    Render::AddTracer(tracer);
+                    Render::TracerInfo tracer;
+                    tracer.Parent = id;
+                    tracer.Length = 25.0f;
+                    tracer.Width = 0.90f;
+                    tracer.Texture = "MassDriverTracer";
+                    tracer.BlobTexture = "MassTracerblob";
+                    tracer.Color = Color{ 2, 2, 2 };
+                    tracer.FadeSpeed = TRACER_FADE_SPEED;
+                    Render::AddTracer(tracer, obj.Segment);
                 }
             }
         }
@@ -417,8 +414,7 @@ namespace Inferno::Game {
         UpdatePlayerFireState(Player);
         Player.Update(dt);
 
-        Render::UpdateDebris(dt);
-        Render::UpdateExplosions(dt);
+        //Render::UpdateExplosions(dt);
         UpdateAmbientSounds();
         UpdateExplodingWalls(Game::Level, dt);
 
@@ -506,7 +502,6 @@ namespace Inferno::Game {
                 if (!Level.Objects.empty())
                     MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
 
-                Render::UpdateParticles(Level, dt);
                 break;
             case GameState::Editor:
                 if (Settings::Editor.EnablePhysics) {
@@ -516,7 +511,6 @@ namespace Inferno::Game {
                     LerpAmount = 1;
                 }
 
-                Render::UpdateParticles(Level, dt);
                 Editor::Update();
                 if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;

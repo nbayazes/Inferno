@@ -443,7 +443,7 @@ namespace Inferno {
                 p.Clip = VClipID::SmallExplosion;
                 p.Position = pos;
                 p.Radius = size / 2;
-                Render::AddParticle(p);
+                Render::AddParticle(p, wall.Tag.Segment);
             }
 
             if (wall.Time >= EXPLODE_TIME)
