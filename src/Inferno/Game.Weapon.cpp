@@ -227,6 +227,9 @@ namespace Inferno::Game {
             Render::LoadModelDynamic(weapon.Model);
             Render::LoadModelDynamic(weapon.ModelInner);
         }
+        else if (weapon.RenderType == WeaponRenderType::None) {
+            bullet.Radius = 0.1f; // original game used a value of 1
+        }
 
         bullet.Render.Rotation = Random() * DirectX::XM_2PI;
 

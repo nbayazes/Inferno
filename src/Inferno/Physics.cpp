@@ -1463,6 +1463,11 @@ namespace Inferno {
         if (obj.Segment == SegID::None)
             return; // Object was outside of world
 
+        // fast moving objects can cross multiple segments in one update
+        // in practice this tends to affect gauss the most
+        bool foundTouchingSeg = false;
+
+        // Check if the new position is in a touching segment
         auto& seg = level.GetSegment(obj.Segment);
         for (auto& cid : seg.Connections) {
             if (Editor::PointInSegment(level, cid, obj.Position)) {
@@ -1471,18 +1476,35 @@ namespace Inferno {
                 Seq::remove(seg.Objects, objId);
                 auto& cseg = level.GetSegment(cid);
                 cseg.Objects.push_back(objId);
+                foundTouchingSeg = true;
                 break;
             }
         }
 
-        // Activate any triggers on the side passed through
-        if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
-            auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
-            if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
-                if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
-                    ActivateTrigger(level, *trigger);
+        if (foundTouchingSeg) {
+            // Activate any triggers on the side passed through
+            if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
+                auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
+                if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
+                    if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
+                        ActivateTrigger(level, *trigger);
+                    }
                 }
             }
+        }
+        else {
+            // object crossed multiple segments in a single update.
+            // usually caused by fast moving projectiles, but can also happen if object is outside world.
+            auto prevSeg = obj.Segment;
+            Editor::UpdateObjectSegment(level, obj);
+            if (obj.Type == ObjectType::Player && prevSeg != obj.Segment) {
+                SPDLOG_WARN("Player {} warped from {} to segment {}. Any fly-through triggers did not activate!", objId, prevSeg, obj.Segment);
+            }
+
+            // Update object pointers
+            Seq::remove(seg.Objects, objId);
+            auto& cseg = level.GetSegment(obj.Segment);
+            cseg.Objects.push_back(objId);
         }
     }
 

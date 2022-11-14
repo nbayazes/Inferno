@@ -378,9 +378,11 @@ namespace Inferno::Resources {
 
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
 
-        GetWeapon(WeaponID::Vulcan).Extended.Behavior = "vulcan";
-        GetWeapon(WeaponID::Vulcan).Extended.ScorchTexture = "BulletHole01";
-        GetWeapon(WeaponID::Vulcan).AmmoUsage = 13;
+        auto& vulcan = GetWeapon(WeaponID::Vulcan);
+        vulcan.Extended.Behavior = "vulcan";
+        vulcan.Extended.ScorchTexture = "BulletHole01";
+        vulcan.AmmoUsage = 13;
+
         GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
         GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
         
@@ -394,7 +396,9 @@ namespace Inferno::Resources {
         mega.ScorchTexture = "scorchC";
         mega.ScorchRadius = 8.0f;
 
-        if (GameData.Weapons.size() < 35) return; // No D2 data
+        if (GameData.Weapons.size() < 35) return;
+        // D2 WEAPONS BELOW!
+
         GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
         GetWeapon(WeaponID::Omega).Extended.Behavior = "omega";
         GetWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";

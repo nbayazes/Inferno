@@ -436,8 +436,8 @@ namespace Inferno::Sound {
 
                 instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
                 // only use a portion of the duplicate sound to increase volume
-                instance.Volume = std::max(instance.Volume, sound.Volume) * 1.15f;
-                fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
+                instance.Volume = std::max(instance.Volume, sound.Volume) * 1.25f;
+                //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                 return instance.ID; // Don't play sounds within the merge window
             }
         }

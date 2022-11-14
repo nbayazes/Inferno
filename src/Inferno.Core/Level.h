@@ -207,7 +207,7 @@ namespace Inferno {
         constexpr Wall& GetWall(WallID id) { return Walls[(int)id]; }
 
         constexpr Wall* TryGetWall(Tag tag) {
-            if (tag.Segment == SegID::None || tag.Side == SideID::None)
+            if (!tag)
                 return nullptr;
 
             if (auto seg = TryGetSegment(tag)) {
@@ -220,7 +220,7 @@ namespace Inferno {
         }
 
         constexpr Tuple<Wall*, Wall*> TryGetWalls(Tag tag) {
-            if (tag.Segment == SegID::None || tag.Side == SideID::None)
+            if (!tag)
                 return { nullptr, nullptr };
 
             auto wall = TryGetWall(tag);
