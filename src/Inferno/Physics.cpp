@@ -170,6 +170,7 @@ namespace Inferno {
         }
 
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
+            fmt::print("Activating switch {}:{}\n", tag.Segment, tag.Side);
             ActivateTrigger(level, *trigger);
         }
 
@@ -1487,6 +1488,7 @@ namespace Inferno {
                 auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
                 if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
                     if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
+                        fmt::print("Activating fly through trigger {}:{}\n", obj.Segment, prevSegId);
                         ActivateTrigger(level, *trigger);
                     }
                 }

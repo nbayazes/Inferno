@@ -292,11 +292,11 @@ namespace Inferno {
         return false;
     }
 
-    void ChangeWall(Level& level, Wall& wall, TriggerType type, WallType wallType) {
-        if (wall.Type == wallType) return; // already the right type
+    bool ChangeWall(Level& level, Wall& wall, TriggerType type, WallType wallType) {
+        if (wall.Type == wallType) return false; // already the right type
 
         auto wside = level.TryGetSide(wall.Tag);
-        if (!wside) return;
+        if (!wside) return false;
 
         switch (type) {
             case TriggerType::OpenWall:
@@ -306,6 +306,7 @@ namespace Inferno {
                     Sound::Play(sound);
                     Sound::Stop(wall.Tag); // stop the humming sound
                     wall.Type = wallType;
+                    fmt::print("Turned off forcefield {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
                 else {
                     // do wall uncloak
@@ -313,6 +314,7 @@ namespace Inferno {
                     sound.Resource = Resources::GetSoundResource(SoundID::CloakOn);
                     Sound::Play(sound);
                     wall.Type = wallType; // would be delayed by animation
+                    fmt::print("Opened wall {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
                 break;
 
@@ -324,6 +326,7 @@ namespace Inferno {
                     sound.Volume = 0.5f;
                     Sound::Play(sound);
                     wall.Type = wallType;
+                    fmt::print("Activated forcefield {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
                 else {
                     // do wall cloak
@@ -331,6 +334,7 @@ namespace Inferno {
                     sound.Resource = Resources::GetSoundResource(SoundID::CloakOff);
                     Sound::Play(sound);
                     wall.Type = wallType; // would be delayed by animation
+                    fmt::print("Closed wall {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
                 break;
 
@@ -341,6 +345,7 @@ namespace Inferno {
 
         RemoveAttachments(wall.Tag);
         Editor::Events::LevelChanged();
+        return true;
     }
 
     bool ChangeWalls(Level& level, Trigger& trigger) {
@@ -357,10 +362,10 @@ namespace Inferno {
             }();
 
             if (auto wall = level.TryGetWall(target))
-                ChangeWall(level, *wall, trigger.Type, wallType);
+                changed |= ChangeWall(level, *wall, trigger.Type, wallType);
 
             if (auto wall = level.TryGetConnectedWall(target))
-                ChangeWall(level, *wall, trigger.Type, wallType);
+                changed |= ChangeWall(level, *wall, trigger.Type, wallType);
         }
 
         return changed;
@@ -591,12 +596,24 @@ namespace Inferno {
         auto [wall, cwall] = level.TryGetWalls(tag);
         if (wall) wall->SetFlag(WallFlag::IllusionOff);
         if (cwall) wall->SetFlag(WallFlag::IllusionOff);
+
+        if (auto side = level.TryGetSide(tag)) {
+            Sound3D sound(side->Center, tag.Segment);
+            sound.Resource = Resources::GetSoundResource(SoundID::CloakOff);
+            Sound::Play(sound);
+        }
     }
 
     void IllusionOff(Level& level, Tag tag) {
         auto [wall, cwall] = level.TryGetWalls(tag);
         if (wall) wall->ClearFlag(WallFlag::IllusionOff);
         if (cwall) wall->ClearFlag(WallFlag::IllusionOff);
+
+        if (auto side = level.TryGetSide(tag)) {
+            Sound3D sound(side->Center, tag.Segment);
+            sound.Resource = Resources::GetSoundResource(SoundID::CloakOn);
+            Sound::Play(sound);
+        }
     }
 
     void ActivateTriggerD2(Level& level, Trigger& trigger) {
@@ -683,10 +700,8 @@ namespace Inferno {
 
             case TriggerType::IllusionOff:
                 PrintTriggerMessage(trigger, "Illusion{} off!");
-                for (auto& tag : trigger.Targets) {
-                    // todo: play SOUND::WallRemoved
+                for (auto& tag : trigger.Targets)
                     IllusionOff(level, tag);
-                }
                 break;
 
             case TriggerType::LightOff:
