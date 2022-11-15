@@ -238,7 +238,9 @@ namespace Inferno::Sound {
                         if (Game::State == GameState::Game && sound->FromPlayer)
                             sound->Emitter.Position = Listener.Position;
 
-                        sound->Instance->Apply3D(Listener, sound->Emitter, false);
+                        if (sound->Instance)
+                            sound->Instance->Apply3D(Listener, sound->Emitter, false);
+
                         sound++;
                     }
 
@@ -340,7 +342,7 @@ namespace Inferno::Sound {
 
     constexpr int FREQUENCY_11KHZ = 11025;
     constexpr int FREQUENCY_22KHZ = 22050;
-    
+
     SoundEffect* LoadSoundD1(int id) {
         if (!Seq::inRange(SoundsD1, id)) return nullptr;
         if (SoundsD1[id]) return SoundsD1[int(id)].get();
@@ -468,7 +470,7 @@ namespace Inferno::Sound {
     }
 
     void Reset() {
-        if (!Engine) return;
+        if (!Engine || !Alive) return;
         std::scoped_lock lock(ResetMutex);
         SPDLOG_INFO("Clearing audio cache");
         //SoundsD1.clear(); // unknown if effects must be stopped before releasing
@@ -484,7 +486,7 @@ namespace Inferno::Sound {
     }
 
     void PrintStatistics() {
-        if (!Engine) return;
+        if (!Engine || !Alive) return;
         auto stats = Engine->GetStatistics();
 
         SPDLOG_INFO("Audio stats:\nPlaying: {} / {}\nInstances: {}\nVoices {} / {} / {} / {}\n{} audio bytes",

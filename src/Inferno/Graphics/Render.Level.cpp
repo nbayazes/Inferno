@@ -29,7 +29,7 @@ namespace Inferno::Render {
         auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
 
         ObjectDepthShader::Constants constants = {};
-        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto& shader = Shaders->DepthObject;
@@ -146,20 +146,28 @@ namespace Inferno::Render {
                     auto& object = *cmd.Data.Object;
                     if (object.Render.Type != RenderType::Model) continue;
                     auto model = object.Render.Model.ID;
-                    if (cmd.Data.Object->Type == ObjectType::Robot)
-                        model = Resources::GetRobotInfo(object.ID).Model;
 
-                    if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
-                        // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
-                        ctx.ApplyEffect(Effects->DepthObjectFlipped);
+                    if (object.Render.Model.Outrage) {
+                        ctx.ApplyEffect(Effects->DepthObject);
+                        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                        OutrageModelDepthPrepass(ctx, object);
                     }
                     else {
-                        ctx.ApplyEffect(Effects->DepthObject);
+                        if (cmd.Data.Object->Type == ObjectType::Robot)
+                            model = Resources::GetRobotInfo(object.ID).Model;
+
+                        if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
+                            // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
+                            ctx.ApplyEffect(Effects->DepthObjectFlipped);
+                        }
+                        else {
+                            ctx.ApplyEffect(Effects->DepthObject);
+                        }
+
+                        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                        ModelDepthPrepass(cmdList, object, model, Game::LerpAmount);
                     }
 
-                    ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-
-                    ModelDepthPrepass(cmdList, object, model, Game::LerpAmount);
                     break;
                 }
 

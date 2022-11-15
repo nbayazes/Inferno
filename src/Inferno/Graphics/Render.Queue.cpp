@@ -168,9 +168,15 @@ namespace Inferno::Render {
                 if (obj.Obj) {
                     if (obj.Obj->Render.Type == RenderType::Model &&
                         obj.Obj->Render.Model.ID != ModelID::None) {
+
+                        // always submit objects to opaque queue, as the renderer will skip
+                        // non-transparent submeshes
                         _opaqueQueue.push_back({ obj.Obj, obj.Depth });
 
                         if (obj.Obj->Render.Model.Outrage) {
+                            //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
+                            //if (mesh.HasTransparentTexture)
+                            // outrage models do not setting transparent texture flag, but many are
                             _transparentQueue.push_back({ obj.Obj, obj.Depth });
                         }
                         else {

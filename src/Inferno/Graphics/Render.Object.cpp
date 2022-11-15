@@ -59,6 +59,63 @@ namespace Inferno::Render {
 
     //TexID texOverride = TexID::None
 
+    void OutrageModelDepthPrepass(GraphicsContext& ctx, const Object& object) {
+        assert(object.Render.Type == RenderType::Model);
+        auto& meshHandle = GetOutrageMeshHandle(object.Render.Model.ID);
+
+        auto model = Resources::GetOutrageModel(object.Render.Model.ID);
+        if (model == nullptr) return;
+
+        ObjectDepthShader::Constants constants = {};
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        auto cmd = ctx.CommandList();
+        auto& shader = Shaders->DepthObject;
+
+        for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
+            auto& submodel = model->Submodels[submodelIndex];
+            auto& submesh = meshHandle.Meshes[submodelIndex];
+
+            // accumulate the offsets for each submodel
+            auto submodelOffset = Vector3::Zero;
+            auto* smc = &submodel;
+            while (smc->Parent != -1) {
+                submodelOffset += smc->Offset;
+                smc = &model->Submodels[smc->Parent];
+            }
+
+            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+
+            using namespace Outrage;
+
+            if (submodel.HasFlag(SubmodelFlag::Facing)) {
+                continue;
+            }
+            else {
+                if (submodel.HasFlag(SubmodelFlag::Rotate))
+                    world = Matrix::CreateFromAxisAngle(submodel.Keyframes[1].Axis, DirectX::XM_2PI * submodel.Rotation * (float)Render::ElapsedTime) * world;
+
+                constants.World = world;
+            }
+
+            // get the mesh associated with the submodel
+            for (auto& [i, mesh] : submesh) {
+                if (i == -1) continue; // flat rendering? invisible mesh?
+                auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
+                bool transparent = material.Saturate() || material.Alpha();
+                if (transparent) continue; // skip transparent textures in depth prepass
+
+                //constants.Colors[1] = material.Color; // color 1 is used for texture alpha
+                shader.SetConstants(cmd, constants);
+                cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmd->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
+
     void DrawOutrageModel(GraphicsContext& ctx,
                           const Object& object,
                           RenderPass pass) {

@@ -106,20 +106,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
-    //float4 specular = Specular(-viewDir, viewDir, input.normal);
+    float4 specular = Specular(-viewDir, viewDir, input.normal);
     float4 lighting = lerp(1, max(0, input.col), LightingScale);
-    float d = dot(input.normal, viewDir);
-    lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
+    //float d = dot(input.normal, viewDir);
+    //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
     //return float4((input.normal + 1) / 2, 1);
 
-    //float4 base = Diffuse.Sample(Sampler, input.uv);
-    //float4 emissive = Emissive.Sample(Sampler, input.uv) * base;
     float4 base = Sample2DAA(Diffuse, input.uv);
     float4 emissive = Sample2DAA(Emissive, input.uv) * base;
-    //float d = dot(input.normal, viewDir);
-    //if (d > -0.001)
-    //    lighting = 0;
-    //return base * lighting;
     emissive.a = 0;
     
     if (HasOverlay) {
@@ -127,7 +121,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         float mask = Sample2DAA(StMask, input.uv2).r; // only need a single channel
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
-        //float4 src = Diffuse2.Sample(Sampler, input.uv2);
         float4 src = Sample2DAA(Diffuse2, input.uv2);
         
         float out_a = src.a + base.a * (1 - src.a);
@@ -142,7 +135,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         emissive2.a = 0;
         emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
 
-        //lighting += specular * src.a * 0.125; // reduce specularity until specular maps are in
+        lighting += diffuse * specular * src.a * 1.5;
         //lighting = max(lighting, emissive); // lighting should always be at least as bright as the emissive texture
         lighting += emissive2 * 3;
         // Boost the intensity of single channel colors
