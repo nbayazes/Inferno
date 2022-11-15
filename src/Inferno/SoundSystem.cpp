@@ -20,7 +20,7 @@ namespace Inferno::Sound {
     // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
     constexpr float AUDIO_SCALE = 1;
     constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
-    constexpr float MERGE_WINDOW = 1 / 10.0f; // Merge the same sound being played by a source within a window
+    constexpr float MERGE_WINDOW = 1 / 12.0f; // Merge the same sound being played by a source within a window
 
     std::atomic RequestStopSounds = false;
     List<Tag> StopSoundTags;
@@ -273,7 +273,7 @@ namespace Inferno::Sound {
     // Creates a mono PCM sound effect
     SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0) {
         // create a buffer and store wfx at the beginning.
-        int trim = int(frequency * trimStart);
+        int trim = int((float)frequency * trimStart);
         auto wavData = MakePtr<uint8[]>(raw.size() + sizeof(WAVEFORMATEX) - trim);
         auto startAudio = wavData.get() + sizeof(WAVEFORMATEX);
         memcpy(startAudio, raw.data() + trim, raw.size() - trim);
@@ -338,19 +338,21 @@ namespace Inferno::Sound {
         Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
 
+    constexpr int FREQUENCY_11KHZ = 11025;
+    constexpr int FREQUENCY_22KHZ = 22050;
+    
     SoundEffect* LoadSoundD1(int id) {
         if (!Seq::inRange(SoundsD1, id)) return nullptr;
         if (SoundsD1[id]) return SoundsD1[int(id)].get();
 
         std::scoped_lock lock(ResetMutex);
-        int frequency = 11025;
         float trimStart = 0;
         if (id == 47)
             trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
 
         auto data = Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;
-        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency, trimStart))).get();
+        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, FREQUENCY_11KHZ, trimStart))).get();
     }
 
     SoundEffect* LoadSoundD2(int id) {
@@ -358,24 +360,25 @@ namespace Inferno::Sound {
         if (SoundsD2[id]) return SoundsD2[int(id)].get();
 
         std::scoped_lock lock(ResetMutex);
-        int frequency = 22050;
+        int frequency = FREQUENCY_22KHZ;
 
         // The Class 1 driller sound was not resampled for D2 and should be a lower frequency
         if (id == 127)
-            frequency = 11025;
+            frequency = FREQUENCY_11KHZ;
 
         auto data = Resources::SoundsD2.Read(id);
         if (data.empty()) return nullptr;
         return (SoundsD2[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, frequency))).get();
     }
 
-    SoundEffect* LoadSoundD3(string fileName) {
+    SoundEffect* LoadSoundD3(const string& fileName) {
         if (fileName.empty()) return nullptr;
         if (SoundsD3[fileName]) return SoundsD3[fileName].get();
 
         std::scoped_lock lock(ResetMutex);
+        auto info = Resources::ReadOutrageSoundInfo(fileName);
 
-        if (auto data = Resources::Descent3Hog.ReadEntry(fileName)) {
+        if (auto data = Resources::Descent3Hog.ReadEntry(info->FileName)) {
             return (SoundsD3[fileName] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, *data))).get();
         }
         else {
@@ -427,7 +430,7 @@ namespace Inferno::Sound {
         // Check if any emitters are already playing this sound from this source
         for (auto& instance : SoundInstances) {
             if (instance.Source == sound.Source &&
-                instance.Resource.GetID() == sound.Resource.GetID() &&
+                instance.Resource == sound.Resource &&
                 instance.StartTime + MERGE_WINDOW > Game::Time &&
                 !instance.Looped) {
 
@@ -435,7 +438,7 @@ namespace Inferno::Sound {
                     instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 
                 instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                // only use a portion of the duplicate sound to increase volume
+                // only use a portion of the duplicate sound to increase volume (should use log scaling)
                 instance.Volume = std::max(instance.Volume, sound.Volume) * 1.25f;
                 //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                 return instance.ID; // Don't play sounds within the merge window

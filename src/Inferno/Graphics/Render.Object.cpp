@@ -57,23 +57,35 @@ namespace Inferno::Render {
         g_SpriteBatch->End();
     }
 
+    //TexID texOverride = TexID::None
 
-    void DrawOutrageModel(const Object& object,
-                          ID3D12GraphicsCommandList* cmd,
-                          int index,
-                          bool transparentPass) {
-        auto& meshHandle = GetOutrageMeshHandle(index);
+    void DrawOutrageModel(GraphicsContext& ctx,
+                          const Object& object,
+                          RenderPass pass) {
+        assert(object.Render.Type == RenderType::Model);
+        auto& meshHandle = GetOutrageMeshHandle(object.Render.Model.ID);
 
         ObjectShader::Constants constants = {};
         auto& seg = Game::Level.GetSegment(object.Segment);
-        constants.EmissiveLight = object.Render.Emissive;
-        constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        //constants.EmissiveLight = object.Render.Emissive;
+        //constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+        if (object.Render.Emissive != Color(0, 0, 0)) {
+            // Change the ambient color to white if object has any emissivity
+            constants.Ambient = Color(1, 1, 1);
+            constants.EmissiveLight = object.Render.Emissive;
+        }
+        else {
+            constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+            constants.EmissiveLight = Color(0, 0, 0);
+        }
 
-        Matrix transform = object.GetTransform();
+        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        auto model = Resources::GetOutrageModel(TEST_MODEL);
+        auto model = Resources::GetOutrageModel(object.Render.Model.ID);
         if (model == nullptr) return;
+
+        auto cmd = ctx.CommandList();
 
         for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
             auto& submodel = model->Submodels[submodelIndex];
@@ -92,9 +104,9 @@ namespace Inferno::Render {
             using namespace Outrage;
 
             if (submodel.HasFlag(SubmodelFlag::Facing)) {
-                //auto smPos = Vector3::Transform(Vector3::Zero, world);
-                //auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
-                constants.World = world;
+                auto smPos = Vector3::Transform(Vector3::Zero, world);
+                auto billboard = Matrix::CreateBillboard(smPos, Camera.Position, Camera.Up);
+                constants.World = billboard;
                 //constants.Projection = billboard * ViewProjection;
             }
             else {
@@ -109,10 +121,10 @@ namespace Inferno::Render {
 
             // get the mesh associated with the submodel
             for (auto& [i, mesh] : submesh) {
-
+                if (i == -1) continue; // flat rendering? invisible mesh?
                 auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
                 bool transparent = material.Saturate() || material.Alpha();
-
+                bool transparentPass = pass == RenderPass::Transparent;
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
                     continue; // skip saturate textures unless on glow pass
 
@@ -123,7 +135,7 @@ namespace Inferno::Render {
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
-                effect.Apply(cmd);
+                ctx.ApplyEffect(effect);
                 effect.Shader->SetSampler(cmd, GetTextureSampler());
                 effect.Shader->SetMaterial(cmd, handle);
 
@@ -146,10 +158,10 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawModel(GraphicsContext& ctx, 
-                   const Object& object, 
-                   ModelID modelId, 
-                   RenderPass pass, 
+    void DrawModel(GraphicsContext& ctx,
+                   const Object& object,
+                   ModelID modelId,
+                   RenderPass pass,
                    TexID texOverride = TexID::None) {
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
@@ -251,9 +263,15 @@ namespace Inferno::Render {
                 }
                 else if (object.Render.Type == RenderType::Model) {
                     auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
-                    DrawModel(ctx, object, object.Render.Model.ID, pass, texOverride);
-                    if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
-                        DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass, texOverride);
+
+                    if (object.Render.Model.Outrage) {
+                        DrawOutrageModel(ctx, object, pass);
+                    }
+                    else {
+                        DrawModel(ctx, object, object.Render.Model.ID, pass, texOverride);
+                        if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
+                            DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass, texOverride);
+                        }
                     }
                 }
                 else {
@@ -286,8 +304,6 @@ namespace Inferno::Render {
             case ObjectType::Debris:
                 break;
             case ObjectType::Clutter:
-                break;
-            default:
                 break;
         }
     }

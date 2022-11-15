@@ -33,6 +33,7 @@ namespace Inferno::Game {
     void ExplodeWeapon(Object& obj) {
         if (obj.Type != ObjectType::Weapon) return;
         const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+        if (weapon.SplashRadius <= 0) return; // don't explode weapons without a splash radius
 
         SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
         VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
@@ -52,7 +53,7 @@ namespace Inferno::Game {
         if (weapon.SplashRadius > 0) {
             GameExplosion ge{};
             ge.Damage = damage;
-            ge.Force = damage; // force = damage, really?
+            ge.Force = damage;
             ge.Radius = weapon.SplashRadius;
             ge.Segment = obj.Segment;
             ge.Position = obj.Position;
@@ -187,11 +188,14 @@ namespace Inferno::Game {
         }
 
         bullet.Movement = MovementType::Physics;
-        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty];
+        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty]/* * 0.01f*/;
         if (weapon.Extended.InheritParentVelocity)
             bullet.Physics.Velocity += obj.Physics.Velocity;
 
         bullet.Physics.Flags |= weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
+        bullet.Physics.AngularVelocity = weapon.Extended.RotationalVelocity;
+        bullet.Physics.Flags |= PhysicsFlag::FixedAngVel; // HACK
+
         if (weapon.Extended.Sticky) bullet.Physics.Flags |= PhysicsFlag::Stick;
         bullet.Physics.Drag = weapon.Drag;
         bullet.Physics.Mass = weapon.Mass;
@@ -214,9 +218,17 @@ namespace Inferno::Game {
         }
         else if (weapon.RenderType == WeaponRenderType::Model) {
             bullet.Render.Type = RenderType::Model;
-            bullet.Render.Model.ID = weapon.Model;
-            auto& model = Resources::GetModel(weapon.Model);
-            bullet.Radius = model.Radius / weapon.ModelSizeRatio;
+
+            if (!weapon.Extended.ModelPath.empty()) {
+                bullet.Radius = weapon.Extended.Size; // if D3 model is present, use the defined radius
+                bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.ModelPath);
+                bullet.Render.Model.Outrage = true;
+            }
+            else {
+                auto& model = Resources::GetModel(weapon.Model);
+                bullet.Radius = model.Radius / weapon.ModelSizeRatio;
+                bullet.Render.Model.ID = weapon.Model;
+            }
 
             // Randomize the rotation of models
             auto rotation = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), Random() * DirectX::XM_2PI);

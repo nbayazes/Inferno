@@ -71,6 +71,16 @@ namespace Inferno {
     }
 
     void TextureGpuCache::LoadTextures(span<RuntimeTextureInfo> textures, bool reload) {
+        bool loaded = true;
+        for (auto& texture : textures) {
+            if (!_textures.contains(texture.FileName)) {
+                loaded = false;
+                break;
+            }
+        }
+
+        if (loaded) return;
+
         auto batch = BeginUpload();
 
         for (auto& tex : textures) {

@@ -199,9 +199,9 @@ namespace Inferno {
     }
 
     PigBitmap ReadRLE(StreamReader& reader,
-                       size_t dataStart,
-                       const Palette& palette,
-                       const PigEntry& entry) {
+                      size_t dataStart,
+                      const Palette& palette,
+                      const PigEntry& entry) {
         reader.Seek(dataStart + entry.DataOffset);
         /*auto size = */reader.ReadInt32();
 

@@ -105,9 +105,8 @@ namespace Inferno::Outrage {
         float GlowSize;
     };
 
+    // Descent 3 Outrage Object Format (OOF)
     struct Model {
-
-
         int Version; // equals major * 100 + minor
         int MajorVersion;
         float Radius;

@@ -54,7 +54,7 @@ namespace Inferno {
         Piercing = 0x20,        // object keeps going even after it hits another object
         UseThrust = 0x40,       // this object uses its thrust
         BouncedOnce = 0x80,     // Weapon has bounced once
-        FreeSpinning = 0x100,   // Drag does not apply to rotation of this object
+        FixedAngVel = 0x100,    // Drag does not apply to rotation of this object
         BouncesTwice = 0x200,   // This weapon bounces twice, then dies
     };
 
@@ -174,6 +174,7 @@ namespace Inferno {
 
     struct ModelData {
         ModelID ID = ModelID::None;
+        bool Outrage = false;
         Array<Vector3, MAX_SUBMODELS> Angles{}; // angles for each subobject
         int subobj_flags = 0; // specify which subobjs to draw
         LevelTexID TextureOverride = LevelTexID::None; // If set, draw all faces using this texture

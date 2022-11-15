@@ -3,24 +3,11 @@
 #include "Types.h"
 #include "Streams.h"
 
-// Descent 3 HOG2 file
 namespace Inferno {
-    struct Hog2Entry {
-        string name;
-        uint flags;
-        uint len;
-        uint timestamp;
-        int64 offset;
-    };
-
+    // Descent 3 HOG2 file
     class Hog2 {
-        static constexpr int PSFILENAME_LEN = 35;
-        static constexpr int HOG_HDR_SIZE = 64;
-
         Dictionary<string, int> _lookup;
     public:
-        filesystem::path Path;
-
         struct Entry {
             string name;
             uint flags;
@@ -29,7 +16,10 @@ namespace Inferno {
             int64 offset;
         };
 
-        static Hog2 Read(filesystem::path path) {
+        filesystem::path Path;
+        List<Entry> Entries;
+
+        static Hog2 Read(const filesystem::path& path) {
             Hog2 hog;
             hog.Path = path;
 
@@ -42,6 +32,9 @@ namespace Inferno {
             long file_data_offset = r.ReadUInt32();
 
             hog.Entries.reserve(nfiles);
+
+            constexpr int PSFILENAME_LEN = 35;
+            constexpr int HOG_HDR_SIZE = 64;
 
             r.Seek(4 + HOG_HDR_SIZE);
             long offset = file_data_offset;
@@ -59,8 +52,6 @@ namespace Inferno {
 
             return hog;
         }
-
-        List<Entry> Entries;
 
         List<ubyte> ReadEntry(int index) {
             if (!Seq::inRange(Entries, index))

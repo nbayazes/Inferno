@@ -228,7 +228,7 @@ namespace Inferno::Editor {
                 obj.Physics.Mass = FixToFloat(65536);
                 obj.Physics.Drag = FixToFloat(2162);
                 obj.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
-                obj.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FreeSpinning;
+                obj.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FixedAngVel;
 
                 obj.ID = 51;
                 obj.Render.Type = RenderType::Model;

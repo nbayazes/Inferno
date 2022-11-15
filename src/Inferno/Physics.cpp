@@ -215,7 +215,7 @@ namespace Inferno {
         if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
             pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
 
-        if (!HasFlag(pd.Flags, PhysicsFlag::FreeSpinning))
+        if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel))
             pd.AngularVelocity *= 1 - drag;
 
         if (pd.TurnRoll > 0) // unrotate object for bank caused by turn

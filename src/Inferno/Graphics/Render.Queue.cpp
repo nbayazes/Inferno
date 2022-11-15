@@ -14,8 +14,7 @@ namespace Inferno::Render {
         if (!obj.IsAlive()) return false;
         bool gameModeHidden = obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop;
         if (Game::State != GameState::Editor && gameModeHidden) return false;
-        DirectX::BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);
-        return CameraFrustum.Contains(bounds);
+        return true;
     }
 
     void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes) {
@@ -36,7 +35,9 @@ namespace Inferno::Render {
                 if (Settings::Editor.ShowObjects) {
                     for (auto& obj : level.Objects) {
                         if (!ShouldDrawObject(obj)) continue;
-                        QueueEditorObject(obj, Game::LerpAmount);
+                        DirectX::BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);
+                        if (CameraFrustum.Contains(bounds))
+                            QueueEditorObject(obj, Game::LerpAmount);
                     }
                 }
 
@@ -169,9 +170,14 @@ namespace Inferno::Render {
                         obj.Obj->Render.Model.ID != ModelID::None) {
                         _opaqueQueue.push_back({ obj.Obj, obj.Depth });
 
-                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                        if (mesh.HasTransparentTexture)
+                        if (obj.Obj->Render.Model.Outrage) {
                             _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        }
+                        else {
+                            auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+                            if (mesh.HasTransparentTexture)
+                                _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        }
                     }
                     else {
                         _transparentQueue.push_back({ obj.Obj, obj.Depth });

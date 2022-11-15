@@ -379,10 +379,10 @@ namespace Inferno::Render {
             {
                 PendingCopies.ForEach([this, &trash](Material2D& pending) {
                     int id = (int)pending.ID;
-                    if (_materials[id].ID > TexID::Invalid)
-                        trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
+                if (_materials[id].ID > TexID::Invalid)
+                    trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
 
-                    _materials[id] = std::move(pending);
+                _materials[id] = std::move(pending);
                 });
 
                 PendingCopies.Clear();
@@ -452,6 +452,16 @@ namespace Inferno::Render {
     }
 
     void MaterialLibrary::LoadOutrageModel(const Outrage::Model& model) {
+        bool hasUnloaded = false;
+        for (auto& texture : model.Textures) {
+            if (!_outrageMaterials.contains(texture)) {
+                hasUnloaded = true;
+                break;
+            }
+        }
+
+        if (!hasUnloaded) return;
+
         Render::Adapter->WaitForGpu();
 
         List<Material2D> uploads;
@@ -479,7 +489,7 @@ namespace Inferno::Render {
 
         _materials.ForEach([&ids](auto& material) {
             if (material.ID > TexID::Invalid)
-                ids.push_back(material.ID);
+            ids.push_back(material.ID);
         });
 
         LoadMaterialsAsync(ids, true);
@@ -494,8 +504,8 @@ namespace Inferno::Render {
 
         _materials.ForEach([&trash, &ids](auto& material) {
             if (material.ID <= TexID::Invalid || ids.contains(material.ID)) return;
-            trash.emplace_back(std::move(material));
-            material = {}; // mark the material as unused
+        trash.emplace_back(std::move(material));
+        material = {}; // mark the material as unused
         });
 
         TrashTextures(std::move(trash));
@@ -508,8 +518,8 @@ namespace Inferno::Render {
         List<Material2D> trash;
         _materials.ForEach([&trash](auto& material) {
             if (material.ID <= TexID::Invalid) return;
-            trash.emplace_back(std::move(material));
-            material = {}; // mark the material as unused
+        trash.emplace_back(std::move(material));
+        material = {}; // mark the material as unused
         });
 
         TrashTextures(std::move(trash));

@@ -44,6 +44,8 @@ namespace Inferno::Game {
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
+
+    // Detonates a weapon with a splash radius
     void ExplodeWeapon(Object&);
 
     void Update(float dt);

@@ -12,10 +12,9 @@ namespace Inferno::Outrage {
         string Name;
         
         static Bitmap Read(StreamReader& r); // Read OGF
-        static Bitmap ReadPig(StreamReader& r);
     };
 
-    // Descent 3 VClips are bitmaps with an extra header (OAF)
+    // Descent 3 Outrage Animation File (OAF). VClips are OGFs with an extra header.
     struct VClip {
         List<Bitmap> Frames;
         float FrameTime{};

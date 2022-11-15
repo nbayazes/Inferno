@@ -106,6 +106,7 @@ namespace Inferno {
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
         string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
         float ScorchRadius = 0; // Radius of scorch marks. 0 uses a ratio of impact size.
+        string ModelPath;
 
         PowerupID PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
@@ -123,6 +124,8 @@ namespace Inferno {
         int Bounces = 0;
         bool Sticky = false; // Sticks to surfaces once Bounces = 0
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing
+        Vector3 RotationalVelocity; // Initial rotational velocity
+        float Size = 1; // Overrides Blob Size and Model Size
 
         //struct FiringPattern {
         //    string Crosshair;

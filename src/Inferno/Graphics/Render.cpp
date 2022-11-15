@@ -232,26 +232,33 @@ namespace Inferno::Render {
         Materials->LoadMaterials(vclip.GetFrames(), false);
     }
 
+    ModelID LoadOutrageModel(const string& path) {
+        auto id = Resources::LoadOutrageModel(path);
+        if (auto model = Resources::GetOutrageModel(id)) {
+            _meshBuffer->LoadOutrageModel(*model, id);
+            Materials->LoadOutrageModel(*model);
+            NewTextureCache->MakeResident();
+        }
+
+        return id;
+    }
+
     void LoadLevel(const Level& level) {
         Adapter->WaitForGpu();
 
         SPDLOG_INFO("Load models");
         // Load models for objects in the level
-        _meshBuffer = MakePtr<MeshBuffer>(Resources::GameData.Models.size());
+        constexpr int DESCENT3_MODEL_COUNT = 200;
+        _meshBuffer = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
 
         List<ModelID> modelIds;
         for (auto& obj : level.Objects)
             if (obj.Render.Type == RenderType::Model)
                 _meshBuffer->LoadModel(obj.Render.Model.ID);
 
-        {
-            if (auto model = Resources::GetOutrageModel(TEST_MODEL)) {
-                _meshBuffer->LoadOutrageModel(*model, 0);
-                Materials->LoadOutrageModel(*model);
-            }
-
-            NewTextureCache->MakeResident();
-        }
+        //{
+        //    LoadOutrageModel(TEST_MODEL);
+        //}
 
         InitEffects(level);
         LevelChanged = true;
@@ -262,7 +269,7 @@ namespace Inferno::Render {
         return _meshBuffer->GetHandle(id);
     }
 
-    MeshIndex& GetOutrageMeshHandle(int id) {
+    MeshIndex& GetOutrageMeshHandle(ModelID id) {
         return _meshBuffer->GetOutrageHandle(id);
     }
 

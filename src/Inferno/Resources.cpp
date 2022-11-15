@@ -352,7 +352,14 @@ namespace Inferno::Resources {
         fusion.Extended.Chargable = true;
         fusion.Extended.ScorchTexture = "scorchC";
         fusion.Extended.ScorchRadius = 3.25f;
+        fusion.Extended.Glow = { 0.25f, 0.0f, 0.50f };
+        fusion.EnergyUsage = 2.0f; // 2.0 matches original behavior
+        fusion.Extended.ModelPath = "FusionBlobNewJ.OOF";
+        fusion.Extended.RotationalVelocity = { 0, 0, DirectX::XM_PIDIV2 };
+        //fusion.Flags |= WeaponFlag::FixedRotationalVelocity
         fusion.ModelSizeRatio = 2.5f;
+        fusion.Extended.Size = 2.1f;
+        // fusion.HitEffect = "FusionHit1"
 
         GetWeapon(WeaponID::Laser1).Extended.Glow = { 0.75f, 0.3f, 0.3f };
         GetWeapon(WeaponID::Laser2).Extended.Glow = { 0.7f, 0.25f, 0.25f };
@@ -360,14 +367,20 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Laser4).Extended.Glow = { 0.1f, 0.7f, 0.1f };
         GetWeapon(WeaponID::Laser5).Extended.Glow = { 0.7f, 0.4f, 0.1f };
         GetWeapon(WeaponID::Laser6).Extended.Glow = { 0.65f, 0.65f, 0.65f };
+
+        GetWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
+        GetWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
+        GetWeapon(WeaponID::Laser3).Extended.ModelPath = "PurpleLaser.OOF";
+        GetWeapon(WeaponID::Laser4).Extended.ModelPath = "GreenLaser.OOF";
+        GetWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
+        GetWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
+
         GetWeapon(WeaponID::Spreadfire).Extended.Glow = { 0.4f, 0.4f, 0.6f };
         GetWeapon(WeaponID::Helix).Extended.Glow = { 0.4f, 0.5f, 0.4f };
         GetWeapon(WeaponID::Plasma).Extended.Glow = { 0.4f, 0.5f, 0.4f };
         GetWeapon(WeaponID::Phoenix).Extended.Glow = { 0.7f, 0.3f, 0.1f };
         GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
         GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
-
-        GetWeapon(WeaponID::Fusion).Extended.Glow = { 0.7f, 0.7f, 0.7f };
 
         GetWeapon(WeaponID::Laser1).Mass =
             GetWeapon(WeaponID::Laser2).Mass =
@@ -385,7 +398,7 @@ namespace Inferno::Resources {
 
         GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
         GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
-        
+
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
         GetWeapon(WeaponID::Flare).Extended.Sticky = true;
@@ -652,27 +665,70 @@ namespace Inferno::Resources {
         return {};
     }
 
-    Option<Outrage::Model> ReadOutrageModel(const string& name) {
+    Option<Outrage::Model> TryReadOutrageModel(const string& name) {
         if (auto r = OpenFile(name))
             return Outrage::Model::Read(*r);
 
         return {};
     }
 
-    Dictionary<string, Outrage::Model> OutrageModels;
+    Option<Outrage::SoundInfo> ReadOutrageSoundInfo(const string& name) {
+        for (auto& sound : GameTable.Sounds) {
+            if (sound.Name == name || sound.FileName == name)
+                return sound;
+        }
 
-    Outrage::Model const* GetOutrageModel(const string& name) {
-        if (OutrageModels.contains(name))
-            return &OutrageModels[name];
+        return {};
+    }
 
-        if (auto model = ReadOutrageModel(name)) {
+    //Dictionary<string, Outrage::Model> OutrageModels;
+
+    struct ModelEntry { string Name; Outrage::Model Model; };
+    static List<ModelEntry> OutrageModels2;
+
+    ModelID LoadOutrageModel(const string& name) {
+        if (name.empty()) return ModelID::None;
+
+        for (int i = 0; i < OutrageModels2.size(); i++) {
+            if (OutrageModels2[i].Name == name)
+                return ModelID(i);
+        }
+
+        if (auto model = TryReadOutrageModel(name)) {
             for (auto& texture : model->Textures) {
                 model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
             }
-            OutrageModels[name] = std::move(*model);
-            return &OutrageModels[name];
+
+            OutrageModels2.push_back({ name, std::move(*model) });
+            return ModelID(OutrageModels2.size() - 1);
         }
+
+        return ModelID::None;
+    }
+
+    Outrage::Model const* GetOutrageModel(ModelID id) {
+        auto i = (int)id;
+        if (Seq::inRange(OutrageModels2, i))
+            return &OutrageModels2[i].Model;
 
         return nullptr;
     }
+
+    //const Outrage::Model* ReadOutrageModel(const string& name) {
+    //    // name -> index -> 500 + model ID
+    //    if (name.empty()) return nullptr;
+
+    //    if (OutrageModels.contains(name))
+    //        return &OutrageModels[name];
+
+    //    if (auto model = TryReadOutrageModel(name)) {
+    //        for (auto& texture : model->Textures) {
+    //            model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
+    //        }
+    //        OutrageModels[name] = std::move(*model);
+    //        return &OutrageModels[name];
+    //    }
+
+    //    return nullptr;
+    //}
 };

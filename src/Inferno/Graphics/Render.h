@@ -62,7 +62,10 @@ namespace Inferno::Render {
     void LoadLevel(const Inferno::Level&);
 
     MeshIndex& GetMeshHandle(ModelID);
-    MeshIndex& GetOutrageMeshHandle(int id);
+    MeshIndex& GetOutrageMeshHandle(ModelID);
+
+    // Locates and loads an OOF by path. Returns -1 if not found.
+    ModelID LoadOutrageModel(const string& path);
 
     inline ID3D12Device* Device;
 

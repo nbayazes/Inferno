@@ -295,6 +295,23 @@ namespace Inferno {
         Mine = 159, // D2 editor placeable mine
     };
 
+    // ModelIDs over this value are treated as Outage models
+    //constexpr int32 OUTRAGE_MODEL_START = 500;
+
+    // A model can be loaded from D1/D2 data, or a path
+    struct ModelResource {
+        ModelID D1 = ModelID::None;
+        ModelID D2 = ModelID::None;
+        string Path; // D3 hog file entry or system path
+
+        // Priority is D3, D1, D2
+        bool operator== (const ModelResource& rhs) const {
+            if (!Path.empty() && !rhs.Path.empty() && Path == rhs.Path) return true;
+            if (D1 == rhs.D1) return true;
+            return D2 == rhs.D2;
+        }
+    };
+
     enum class SideID : int16 {
         None = -1,
         Left = 0,

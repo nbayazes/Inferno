@@ -7,18 +7,17 @@
 namespace Inferno {
     using SoundUID = unsigned int; // ID used to cancel a playing sound
 
-    // Sound source priority: D3, D1, D2
-    // D1 has higher priority than D2
+    // Handle to a sound resource
     struct SoundResource {
         int D1 = -1; // Index to PIG data
         int D2 = -1; // Index to S22 data
         string D3; // D3 file name or system path
 
-        size_t GetID() const {
-            if (!D3.empty()) return std::hash<string>{}(D3);
-            else if (D1 != -1) return D1;
-            else if (D2 != -1) return 1000 + D2;
-            return 0;
+        // Priority is D3, D1, D2
+        bool operator== (const SoundResource& rhs) const {
+            if (!D3.empty() && !rhs.D3.empty() && D3 == rhs.D3) return true;
+            if (D1 != -1 && D2 != -1 && D1 == rhs.D1) return true;
+            return D2 == rhs.D2;
         }
     };
 
@@ -55,7 +54,7 @@ namespace Inferno {
 namespace Inferno::Sound {
     void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
     void Shutdown();
-    
+
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
     SoundUID Play(const Sound3D& sound);
     void UpdateEmitterPositions(float dt);

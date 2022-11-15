@@ -84,9 +84,12 @@ namespace Inferno::Resources {
     Option<StreamReader> OpenFile(const string& name);
 
     Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name);
-    Option<Outrage::Model> ReadOutrageModel(const string& name);
+    Option<Outrage::SoundInfo> ReadOutrageSoundInfo(const string& name);
 
-    Outrage::Model const* GetOutrageModel(const string& name);
+    // Loads an outrage model by name and returns the ID
+    ModelID LoadOutrageModel(const string& name);
+    // Returns a previously loaded model by LoadOutrageModel()
+    const Outrage::Model* GetOutrageModel(ModelID);
 
     // Loads D1 and D2 sounds
     void LoadSounds();

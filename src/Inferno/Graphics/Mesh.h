@@ -28,19 +28,19 @@ namespace Inferno::Render {
     class MeshBuffer {
         List<Mesh> _meshes; // Buffer stores multiple meshes
         PackedBuffer _buffer{ 1024 * 1024 * 10 };
-
-
         List<MeshIndex> _handles;
-        size_t _capacity;
+        size_t _capacity, _capacityD3;
     public:
-        MeshBuffer(size_t capacity) : _capacity(capacity) {
+        MeshBuffer(size_t capacity, size_t capacityD3)
+            : _capacity(capacity), _capacityD3(capacityD3) {
             SPDLOG_INFO("Created mesh buffer with capacity {}", capacity);
             constexpr int AVG_TEXTURES_PER_MESH = 3;
-            auto size = MAX_SUBMODELS * capacity * AVG_TEXTURES_PER_MESH;
+            auto size = MAX_SUBMODELS * (capacity + capacityD3) * AVG_TEXTURES_PER_MESH;
             _meshes.reserve(size);
-            _handles.resize(capacity + 100);
+            _handles.resize(capacity + capacityD3);
         }
 
+        // Loads a D1/D2 model
         void LoadModel(ModelID id) {
             if ((int)id >= _handles.size()) return;
             auto& handle = _handles[(int)id];
@@ -99,10 +99,10 @@ namespace Inferno::Render {
             handle.Loaded = true;
         }
 
-        void LoadOutrageModel(const Outrage::Model& model, int id) {
-            auto& handle = _handles[_capacity + id]; // shift past the end
+        // Loads a D3 model
+        void LoadOutrageModel(const Outrage::Model& model, ModelID id) {
+            auto& handle = _handles[_capacity + (int)id];
             if (handle.Loaded) return;
-
 
             for (int smIndex = 0; auto & submodel : model.Submodels) {
                 struct SubmodelMesh {
@@ -159,14 +159,16 @@ namespace Inferno::Render {
 
                 smIndex++;
             }
+
+            handle.Loaded = true;
         }
 
         MeshIndex& GetHandle(ModelID id) {
             return _handles[(int)id];
         }
 
-        MeshIndex& GetOutrageHandle(int id) {
-            return _handles[_capacity + id];
+        MeshIndex& GetOutrageHandle(ModelID id) {
+            return _handles[_capacity + (int)id];
         }
     };
 }

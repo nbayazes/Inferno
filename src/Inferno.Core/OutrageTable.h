@@ -4,7 +4,7 @@
 #include "Streams.h"
 
 namespace Inferno::Outrage {
-    enum class TextureFlag {
+    enum class TextureFlag : int32 {
         Volatile = 1,
         Water = (1 << 1),
         Metal = (1 << 2), // Editor sorting
@@ -99,6 +99,7 @@ namespace Inferno::Outrage {
         float ImportVolume;
     };
 
+    // Descent 3 Game Table (GAM). Contains metadata for game assets.
     struct GameTable {
         enum {
             TABLE_FILE_BASE = 0,
