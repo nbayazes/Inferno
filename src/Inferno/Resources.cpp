@@ -352,7 +352,7 @@ namespace Inferno::Resources {
         fusion.Extended.Chargable = true;
         fusion.Extended.ScorchTexture = "scorchC";
         fusion.Extended.ScorchRadius = 3.25f;
-        fusion.Extended.Glow = { 0.25f, 0.0f, 0.50f };
+        fusion.Extended.Glow = { 0.20f, 0.0f, 0.45f };
         fusion.EnergyUsage = 2.0f; // 2.0 matches original behavior
         fusion.Extended.ModelPath = "FusionBlobNewJ.OOF";
         fusion.Extended.RotationalVelocity = { 0, 0, DirectX::XM_PIDIV2 };
@@ -361,7 +361,7 @@ namespace Inferno::Resources {
         fusion.Extended.Size = 2.1f;
         // fusion.HitEffect = "FusionHit1"
 
-        GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.13f, 0.13f) * 0.55;
+        GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.55;
         GetWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.35;
         GetWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.35;
         GetWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.35;

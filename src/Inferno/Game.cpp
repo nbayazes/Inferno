@@ -727,6 +727,7 @@ namespace Inferno::Game {
             // Reset shields and energy to at least 100 on level start
             Player.Shields = std::max(Player.Shields, 100.0f);
             Player.Energy = std::max(Player.Energy, 100.0f);
+            Player.Energy = 5;
 
             uint16 VULCAN_AMMO_MAX = Level.IsDescent1() ? 10000 : 20000;
             Player.PrimaryWeapons = 0xffff;

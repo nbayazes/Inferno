@@ -60,6 +60,11 @@ namespace Inferno {
         float CloakTime; // When cloak was picked up
         float InvulnerableTime; // When invuln was picked up
 
+        void SubtractEnergy(float energy) {
+            Energy -= energy;
+            if (Energy < 0) Energy = 0;
+        }
+
         struct {
             short Kills;            // Robots killed this level. Used to prevent matcens from spawning too many robots.
             short TotalKills;       // Total kills across all levels. Used for scoring

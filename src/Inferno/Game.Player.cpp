@@ -101,6 +101,8 @@ namespace Inferno {
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
+
+        WeaponCharge = 0; // failsafe
     }
 
     void Player::ArmSecondary(SecondaryWeaponIndex index) {
@@ -176,16 +178,19 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
 
         if (weapon.Extended.Chargable) {
-            if (PrimaryState == FireState::Press) {
-                WeaponCharge = 0;
-                FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
+            if (PrimaryState == FireState::Hold && WeaponCharge <= 0) {
+                if (CanFirePrimary()) {
+                    WeaponCharge = 0.001f;
+                    FusionNextSoundDelay = 0.25f;
+                    SubtractEnergy(weapon.EnergyUsage);
+                }
+
             }
-            else if (PrimaryState == FireState::Hold && CanFirePrimary()) {
-                Energy -= dt;
+            else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
+                SubtractEnergy(dt);
                 WeaponCharge += dt;
                 if (Energy <= 0) {
                     Energy = 0;
-                    //ForceFire = true;
                 }
 
                 FusionNextSoundDelay -= dt;
@@ -207,13 +212,13 @@ namespace Inferno {
                         Sound::Play(sound);
                     }
 
-                    FusionNextSoundDelay = 1.0f / 6 + Random() / 4;
+                    FusionNextSoundDelay = 0.125f + Random() / 8;
                 }
             }
-            else if (PrimaryState == FireState::Release) {
-                FirePrimary();
-                //WeaponCharge = 0;
-                //FusionNextSoundDelay = 0;
+            else if (PrimaryState == FireState::Release || Energy <= 0) {
+                if (WeaponCharge > 0) {
+                    FirePrimary();
+                }
             }
         }
         else if (PrimaryState == FireState::Hold) {
@@ -250,7 +255,7 @@ namespace Inferno {
     }
 
     void Player::FirePrimary() {
-        if (!CanFirePrimary()) {
+        if (!CanFirePrimary() && WeaponCharge <= 0) {
             // Arm different weapon
             return;
         }
@@ -259,8 +264,10 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = weapon.FireDelay;
 
-        Energy -= weapon.EnergyUsage;
-        PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
+        if (!weapon.Extended.Chargable) { // Charged weapons drain energy on button down
+            Energy -= weapon.EnergyUsage;
+            PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
+        }
 
         auto& ship = PyroGX;
         auto& sequence = ship.Weapons[(int)Primary].Firing;
@@ -283,6 +290,7 @@ namespace Inferno {
         }
 
         FiringIndex = (FiringIndex + 1) % sequence.size();
+        WeaponCharge = 0;
 
         // todo: Swap to different weapon if ammo or energy == 0
     }
