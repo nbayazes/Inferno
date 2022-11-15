@@ -65,6 +65,9 @@ namespace Inferno::Render {
         assert(object.Render.Type == RenderType::Model);
         auto& meshHandle = GetOutrageMeshHandle(object.Render.Model.ID);
 
+        auto model = Resources::GetOutrageModel(object.Render.Model.ID);
+        if (model == nullptr) return;
+
         ObjectShader::Constants constants = {};
         auto& seg = Game::Level.GetSegment(object.Segment);
         //constants.EmissiveLight = object.Render.Emissive;
@@ -79,11 +82,8 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
-        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-
-        auto model = Resources::GetOutrageModel(object.Render.Model.ID);
-        if (model == nullptr) return;
 
         auto cmd = ctx.CommandList();
 
@@ -190,7 +190,7 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
-        Matrix transform = Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
         const float vclipOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 

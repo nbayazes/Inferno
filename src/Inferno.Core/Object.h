@@ -321,6 +321,7 @@ namespace Inferno {
         Matrix3x3 LastRotation; // The rotation from the previous update. Used for graphics interpolation.
 
         float NextThinkTime = NEVER_THINK;
+        float Scale = 1.0;
 
         Matrix GetTransform() const {
             Matrix m(Rotation);

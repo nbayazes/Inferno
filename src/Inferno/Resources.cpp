@@ -361,12 +361,12 @@ namespace Inferno::Resources {
         fusion.Extended.Size = 2.1f;
         // fusion.HitEffect = "FusionHit1"
 
-        GetWeapon(WeaponID::Laser1).Extended.Glow = { 0.75f, 0.3f, 0.3f };
-        GetWeapon(WeaponID::Laser2).Extended.Glow = { 0.7f, 0.25f, 0.25f };
-        GetWeapon(WeaponID::Laser3).Extended.Glow = { 0.55f, 0.55f, 0.75f };
-        GetWeapon(WeaponID::Laser4).Extended.Glow = { 0.1f, 0.7f, 0.1f };
-        GetWeapon(WeaponID::Laser5).Extended.Glow = { 0.7f, 0.4f, 0.1f };
-        GetWeapon(WeaponID::Laser6).Extended.Glow = { 0.65f, 0.65f, 0.65f };
+        GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.13f, 0.13f) * 0.55;
+        GetWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.35;
+        GetWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.35;
+        GetWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.35;
+        GetWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
+        GetWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
 
         GetWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
         GetWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
@@ -375,12 +375,12 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
         GetWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
 
-        GetWeapon(WeaponID::Spreadfire).Extended.Glow = { 0.4f, 0.4f, 0.6f };
-        GetWeapon(WeaponID::Helix).Extended.Glow = { 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Plasma).Extended.Glow = { 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Phoenix).Extended.Glow = { 0.7f, 0.3f, 0.1f };
-        GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
-        GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
+        GetWeapon(WeaponID::Laser1).Extended.ModelScale =
+            GetWeapon(WeaponID::Laser2).Extended.ModelScale =
+            GetWeapon(WeaponID::Laser3).Extended.ModelScale =
+            GetWeapon(WeaponID::Laser4).Extended.ModelScale =
+            GetWeapon(WeaponID::Laser5).Extended.ModelScale =
+            GetWeapon(WeaponID::Laser6).Extended.ModelScale = 0.6f;
 
         GetWeapon(WeaponID::Laser1).Mass =
             GetWeapon(WeaponID::Laser2).Mass =
@@ -388,6 +388,14 @@ namespace Inferno::Resources {
             GetWeapon(WeaponID::Laser4).Mass =
             GetWeapon(WeaponID::Laser5).Mass =
             GetWeapon(WeaponID::Laser6).Mass = 0.05f;
+
+
+        GetWeapon(WeaponID::Spreadfire).Extended.Glow = { 0.4f, 0.4f, 0.6f };
+        GetWeapon(WeaponID::Helix).Extended.Glow = { 0.4f, 0.5f, 0.4f };
+        GetWeapon(WeaponID::Plasma).Extended.Glow = { 0.4f, 0.5f, 0.4f };
+        GetWeapon(WeaponID::Phoenix).Extended.Glow = { 0.7f, 0.3f, 0.1f };
+        GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
+        GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
 
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
 

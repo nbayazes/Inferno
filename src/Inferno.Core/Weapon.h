@@ -107,6 +107,7 @@ namespace Inferno {
         string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
         float ScorchRadius = 0; // Radius of scorch marks. 0 uses a ratio of impact size.
         string ModelPath;
+        float ModelScale = 1;
 
         PowerupID PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.

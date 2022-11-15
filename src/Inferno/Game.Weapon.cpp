@@ -223,6 +223,7 @@ namespace Inferno::Game {
                 bullet.Radius = weapon.Extended.Size; // if D3 model is present, use the defined radius
                 bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.ModelPath);
                 bullet.Render.Model.Outrage = true;
+                bullet.Scale = weapon.Extended.ModelScale;
             }
             else {
                 auto& model = Resources::GetModel(weapon.Model);
