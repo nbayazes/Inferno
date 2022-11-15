@@ -673,8 +673,7 @@ namespace Inferno::Game {
                 }
             }
 
-
-
+            ResetStuckObjects();
             Render::ResetParticles();
             Sound::Reset();
             MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);

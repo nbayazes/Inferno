@@ -17,4 +17,8 @@ namespace Inferno {
     bool WallIsTransparent(Level& level, Tag tag);
     void UpdateExplodingWalls(Level& level, float dt);
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall);
+
+    void AddStuckObject(Tag tag, ObjID id);
+    void RemoveStuckObject(Level& level, Tag tag);
+    void ResetStuckObjects();
 }

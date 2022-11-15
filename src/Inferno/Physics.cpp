@@ -1311,7 +1311,7 @@ namespace Inferno {
         }
     }
 
-    void WeaponHitWall(const LevelHit& hit, Object& obj, Level& level) {
+    void WeaponHitWall(const LevelHit& hit, Object& obj, Level& level, ObjID objId) {
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
@@ -1423,6 +1423,8 @@ namespace Inferno {
             obj.Physics.Velocity = Vector3::Zero;
             obj.Movement = MovementType::None;
             obj.LastPosition = obj.Position;
+            AddStuckObject(hit.Tag, objId);
+            //obj.Flags |= ObjectFlag::Attached;
         }
         else if (obj.Physics.Bounces <= 0) {
             obj.Destroy(); // destroy weapon after hitting a wall
@@ -1565,7 +1567,7 @@ namespace Inferno {
                     if (hit.HitObj)
                         WeaponHitObject(hit, obj, level);
                     else
-                        WeaponHitWall(hit, obj, level);
+                        WeaponHitWall(hit, obj, level, ObjID(id));
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {

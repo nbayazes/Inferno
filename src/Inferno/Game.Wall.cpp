@@ -56,11 +56,39 @@ namespace Inferno {
     //    [[nodiscard]] const auto end() const { return _data.end(); }
     //};
 
+    // Tracks objects stuck to a wall
+    class StuckObjectTracker {
+        struct StuckObject {
+            ObjID Object = ObjID::None;
+            Tag Tag;
+        };
+
+        DataPool<StuckObject> _objects{ [](auto& o) { return o.Object != ObjID::None; }, 10 };
+
+    public:
+        void Add(Tag tag, ObjID id) {
+            _objects.Add({ id, tag });
+        }
+
+        void Remove(Level& level, Tag tag) {
+            for (auto& o : _objects) {
+                if (o.Tag == tag) {
+                    if (auto obj = level.TryGetObject(o.Object))
+                        obj->Destroy();
+
+                    o = {};
+                }
+            }
+        }
+    };
+
+    StuckObjectTracker StuckObjects;
 
     // Removes all effects and objects stuck to a wall
-    void RemoveAttachments(Tag tag) {
+    void RemoveAttachments(Level& level, Tag tag) {
         // todo: remove objects stuck on wall (flares)
         Render::RemoveDecals(tag);
+        StuckObjects.Remove(level, tag);
     }
 
     ActiveDoor* FindDoor(Level& level, WallID id) {
@@ -100,7 +128,7 @@ namespace Inferno {
         auto& wall = level.GetWall(door.Front);
         auto cwall = level.TryGetConnectedWall(wall.Tag);
 
-        RemoveAttachments(wall.Tag);
+        RemoveAttachments(level, wall.Tag);
 
         door.Time += dt;
 
@@ -343,7 +371,7 @@ namespace Inferno {
                 break;
         }
 
-        RemoveAttachments(wall.Tag);
+        RemoveAttachments(level, wall.Tag);
         Editor::Events::LevelChanged();
         return true;
     }
@@ -412,7 +440,7 @@ namespace Inferno {
 
             if (wall.Time > EXPLODE_TIME * 0.75f) {
                 if (auto w = level.TryGetWall(wall.Tag)) {
-                    RemoveAttachments(wall.Tag);
+                    RemoveAttachments(level, wall.Tag);
                     auto& clip = Resources::GetWallClip(w->Clip);
                     SetWallClip(level, wall.Tag, clip, clip.NumFrames - 1);
                 }
@@ -572,6 +600,18 @@ namespace Inferno {
                 }
             }
         }
+    }
+
+    void AddStuckObject(Tag tag, ObjID id) {
+        StuckObjects.Add(tag, id);
+    }
+
+    void RemoveStuckObject(Level& level, Tag tag) {
+        StuckObjects.Remove(level, tag);
+    }
+
+    void ResetStuckObjects() {
+        StuckObjects = {};
     }
 
     // Opens doors targeted by a trigger (or destroys them)

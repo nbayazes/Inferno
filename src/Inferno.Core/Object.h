@@ -39,7 +39,7 @@ namespace Inferno {
         ShouldBeDead = 2,   // Scheduled for deletion
         Destroyed = 4,      // this has been killed, and is showing the dead version
         Silent = 8,         // No sound when colliding
-        Attached = 16,      // this object is a fireball attached to another object
+        Attached = 16,      // Object is attached to another object. Disables physics.
         Harmless = 32,      // Does no damage
         PlayerDropped = 64, // Dropped by player (death?)
     };
