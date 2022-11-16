@@ -431,6 +431,8 @@ namespace Inferno::Game {
             else if (obj.Lifespan <= 0 && obj.Type == ObjectType::Weapon) {
                 // life expired, detonate weapon
                 ExplodeWeapon(obj);
+                if (auto seg = Level.TryGetSegment(obj.Segment))
+                    Seq::remove(seg->Objects, (ObjID)i);
             }
 
             if (obj.Type == ObjectType::Weapon)

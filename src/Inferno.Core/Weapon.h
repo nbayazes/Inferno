@@ -105,7 +105,7 @@ namespace Inferno {
         string ShortName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
         string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
-        float ScorchRadius = 0; // Radius of scorch marks. 0 uses a ratio of impact size.
+        float ScorchRadius = 1; // Radius of scorch marks. 0 uses a ratio of impact size.
         string ModelPath;
         float ModelScale = 1;
 

@@ -409,9 +409,12 @@ namespace Inferno::Resources {
 
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
+
         GetWeapon(WeaponID::Flare).Extended.Sticky = true;
         GetWeapon(WeaponID::Flare).FireDelay = 0.5f;
-        GetWeapon(WeaponID::Flare).Lifetime = 30.0f;
+        GetWeapon(WeaponID::Flare).Lifetime = 20.0f;
+        //GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
+        GetWeapon(WeaponID::Flare).Extended.Glow = Color(0.2f, 0.2f, 0.2f);
 
         auto& mega = GetWeapon(WeaponID::Mega).Extended;
         mega.ScorchTexture = "scorchC";
@@ -433,6 +436,8 @@ namespace Inferno::Resources {
         auto& shaker = GetWeapon(WeaponID::Shaker).Extended;
         shaker.ScorchTexture = "scorchC";
         shaker.ScorchRadius = 8.0f;
+
+        GameData.Robots[37].Mass = 2; // IT droid
     }
 
     // Some levels don't have the D1 reactor model set

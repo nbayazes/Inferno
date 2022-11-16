@@ -55,11 +55,6 @@ namespace Inferno::Render {
         ParticleEmitters.Add(emitter);
     }
 
-    void EffectBase::Queue(List<RenderCommand>& /*opaqueQueue*/, List<RenderCommand>& transparentQueue) {
-        auto depth = GetRenderDepth(Position);
-        transparentQueue.push_back(RenderCommand{ this, depth });
-    }
-
     void Particle::Update(float dt) {
         if ((Delay -= dt) > 0) return;
         Life -= dt;
@@ -73,13 +68,9 @@ namespace Inferno::Render {
         }
     }
 
-    void Particle::Queue(List<RenderCommand>& /*opaqueQueue*/, List<RenderCommand>& transparentQueue) {
-        if (Delay > 0) return;
-        auto depth = GetRenderDepth(Position);
-        transparentQueue.push_back({ this, depth });
-    }
-
     void Particle::Draw(Graphics::GraphicsContext& ctx) {
+        if (Delay > 0) return;
+
         auto& vclip = Resources::GetVideoClip(Clip);
         auto elapsed = vclip.PlayTime - Life;
 
@@ -198,11 +189,6 @@ namespace Inferno::Render {
             cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
             Stats::DrawCalls++;
         }
-    }
-
-    void Debris::Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& /*transparentQueue*/) {
-        auto depth = GetRenderDepth(Transform.Translation());
-        opaqueQueue.push_back({ this, depth });
     }
 
     void Debris::Update(float dt) {
@@ -544,11 +530,6 @@ namespace Inferno::Render {
         parentWasLive = parentWasLive && !ParentIsLive;
         if (parentWasLive)
             Life = FadeSpeed;
-    }
-
-    void TracerInfo::Queue(List<RenderCommand>& /*opaqueQueue*/, List<RenderCommand>& transparentQueue) {
-        auto depth = GetRenderDepth(Position);
-        transparentQueue.push_back(RenderCommand{ this, depth });
     }
 
     void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {

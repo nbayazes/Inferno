@@ -177,16 +177,16 @@ namespace Inferno::Render {
             //constants.Time = (float)ElapsedTime;
 
             // get the mesh associated with the submodel
-            for (auto& [i, mesh] : submesh) {
-                if (i == -1) continue; // flat rendering? invisible mesh?
-                auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[i]);
+            for (auto& [texId, mesh] : submesh) {
+                if (texId == -1) continue; // flat rendering? invisible mesh?
+                auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[texId]);
                 bool transparent = material.Saturate() || material.Alpha();
                 bool transparentPass = pass == RenderPass::Transparent;
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
                     continue; // skip saturate textures unless on glow pass
 
-                auto handle = i >= 0 ?
-                    Render::NewTextureCache->GetResource(model->TextureHandles[i], (float)ElapsedTime) :
+                auto handle = texId >= 0 ?
+                    Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) :
                     Materials->White.Handles[0];
 
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);

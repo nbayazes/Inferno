@@ -22,7 +22,6 @@ namespace Inferno::Render {
         static bool IsAliveFn(const EffectBase& e) { return e.Life > 0; }
 
         virtual void Update(float dt) { Life -= dt; }
-        virtual void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue);
         virtual void Draw(Graphics::GraphicsContext&) {}
         virtual void DepthPrepass(Graphics::GraphicsContext&) {
             assert(IsTransparent); // must provide a depth prepass if not transparent
@@ -50,7 +49,6 @@ namespace Inferno::Render {
         Vector3 ParentOffset;
 
         void Update(float dt) override;
-        void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue) override;
         void Draw(Graphics::GraphicsContext&) override;
     };
 
@@ -130,7 +128,6 @@ namespace Inferno::Render {
 
         void Draw(Graphics::GraphicsContext&) override;
         void DepthPrepass(Graphics::GraphicsContext&) override;
-        void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue) override;
         void Update(float dt) override;
     };
 
@@ -211,7 +208,6 @@ namespace Inferno::Render {
         static bool IsAlive(const TracerInfo& info) { return info.Life > 0; }
 
         void Update(float dt) override;
-        void Queue(List<RenderCommand>& opaqueQueue, List<RenderCommand>& transparentQueue) override;
         void Draw(Graphics::GraphicsContext&) override;
     };
 

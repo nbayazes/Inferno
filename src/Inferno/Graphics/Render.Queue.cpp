@@ -189,8 +189,13 @@ namespace Inferno::Render {
                         _transparentQueue.push_back({ obj.Obj, obj.Depth });
                     }
                 }
-                else {
-                    obj.Effect->Queue(_opaqueQueue, _transparentQueue);
+                else if (obj.Effect) {
+                    auto depth = GetRenderDepth(obj.Effect->Position);
+
+                    if (obj.Effect->IsTransparent)
+                        _transparentQueue.push_back({ obj.Effect, depth });
+                    else
+                        _opaqueQueue.push_back({ obj.Effect, depth });
                 }
             }
 
