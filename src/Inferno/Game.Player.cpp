@@ -37,27 +37,27 @@ namespace Inferno {
         if (AfterburnerCharge <= 0 && active)
             active = false; // ran out of charge
 
-        // activated / released with charge, or ran out of charge
-        if (active != AfterburnerActive) {
-            if (AfterburnerCharge > 0 && active) {
-                Sound3D sound(ID);
-                sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
-                sound.FromPlayer = true;
-                sound.Radius = 125;
-                sound.LoopStart = 32027;
-                sound.LoopEnd = 48452;
-                sound.Looped = true;
-                _afterburnerSoundSig = Sound::Play(sound);
-                //Render::Camera.Shake(2.0f);
-            }
-            else if (_prevAfterburnerCharge != AfterburnerCharge) {
-                Sound::Stop(_afterburnerSoundSig);
-                Sound3D sound(ID);
-                sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
-                sound.FromPlayer = true;
-                sound.Radius = 125;
-                Sound::Play(sound);
-            }
+        // AB button held
+        if (active && !AfterburnerActive) {
+            Sound3D sound(ID);
+            sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
+            sound.FromPlayer = true;
+            sound.Radius = 125;
+            sound.LoopStart = 32027;
+            sound.LoopEnd = 48452;
+            sound.Looped = true;
+            _afterburnerSoundSig = Sound::Play(sound);
+            //Render::Camera.Shake(2.0f);
+        }
+
+        // AB button released
+        if (!active && AfterburnerActive) {
+            Sound::Stop(_afterburnerSoundSig);
+            Sound3D sound(ID);
+            sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
+            sound.FromPlayer = true;
+            sound.Radius = 125;
+            Sound::Play(sound);
         }
 
         AfterburnerActive = active;
@@ -369,7 +369,7 @@ namespace Inferno {
         for (int i = 0; i < 10; i++) {
             auto idx = (PrimaryWeaponIndex)i;
             auto& weapon = Resources::GetWeapon(PrimaryToWeaponID[i]);
-            if (weapon.EnergyUsage > 0 && Energy < 1) 
+            if (weapon.EnergyUsage > 0 && Energy < 1)
                 continue; // don't switch to energy weapons at low energy
 
             if (!CanFirePrimary(idx)) continue;
