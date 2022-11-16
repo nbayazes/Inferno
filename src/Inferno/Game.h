@@ -85,4 +85,6 @@ namespace Inferno::Game {
 
     inline Array<uint8, 11> PrimaryPriority = DefaultPrimaryPriority;
     inline Array<uint8, 11> SecondaryPriority = DefaultSecondaryPriority;
+
+    inline bool Cheater = false;
 }

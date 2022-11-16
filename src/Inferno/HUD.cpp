@@ -617,8 +617,12 @@ namespace Inferno {
         }
     }
 
+    constexpr float BASE_SCORE_WINDOW = 3.0f;
+
     class Hud {
         MonitorState _leftMonitor = { true }, _rightMonitor = { false };
+        float _scoreTime = 0;
+        int _scoreAdded = 0;
     public:
         void Draw(float dt, Player& player) {
             float spacing = 100;
@@ -669,15 +673,25 @@ namespace Inferno {
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;
                 info.Position = Vector2(-5, 5) * scale;
-                auto score = fmt::format("{}: {:5}", Resources::GetString(GameString::Score), player.Score);
+                auto score = fmt::format("score: {:5}", player.Score);
                 UseWide1Char(score);
                 Render::HudCanvas->DrawGameText(score, info);
 
-                /*info.Position = Vector2(-80, 5) * scale;
-                Render::HudCanvas->DrawGameText("Score:", info);
-
-                info.Position = Vector2(0, 5) * scale;
-                Render::HudCanvas->DrawGameText(score, info);*/
+                _scoreTime -= dt;
+                if (_scoreTime > 0) {
+                    // fade score out
+                    info.Position = Vector2(-5, 20) * scale;
+                    auto t = std::clamp((2 - _scoreTime) / 2, 0.0f, 1.0f); // fade the last 2 seconds
+                    t = int(t * 10) / 10.0f; // steps of 10 to simulate a limited palette
+                    info.Color.w = std::lerp(1.0f, 0.0f, t);
+                    score = fmt::format("{:5}", _scoreAdded);
+                    UseWide1Char(score);
+                    Render::HudCanvas->DrawGameText(score, info);
+                }
+                else {
+                    _scoreTime = 0;
+                    _scoreAdded = 0;
+                }
             }
 
             {
@@ -715,9 +729,19 @@ namespace Inferno {
             DrawHudMessages(dt);
         }
 
+        void AddPoints(int points) {
+            _scoreAdded += points;
+            _scoreTime += BASE_SCORE_WINDOW;
+            _scoreTime = std::clamp(_scoreTime, 0.0f, BASE_SCORE_WINDOW * 2);
+        }
+
     } Hud;
 
     void DrawHUD(float dt) {
         Hud.Draw(dt, Game::Player);
+    }
+
+    void AddPointsToHUD(int points) {
+        Hud.AddPoints(points);
     }
 }

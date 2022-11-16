@@ -124,6 +124,7 @@ namespace Inferno {
 
         void AutoselectPrimary();
         void AutoselectSecondary();
+        void GiveExtraLife(int lives = 1);
 
     private:
         SoundUID _afterburnerSoundSig = 0;

@@ -201,6 +201,21 @@ namespace Inferno::Game {
         PendingNewObjects.push_back(obj);
     }
 
+    constexpr int EXTRA_LIFE_POINTS = 50'000;
+
+    void AddPointsToScore(int points) {
+        auto score = Player.Score;
+
+        Player.Score += points;
+        AddPointsToHUD(points);
+
+        // This doesn't account for negative scoring (which never happens in D2)
+        auto lives = Player.Score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
+        if (lives > 0) {
+            Player.GiveExtraLife(lives);
+        }
+    }
+
     bool DestroyObject(Object& obj) {
         if (obj.Lifespan < 0 && obj.HitPoints < 0) return false; // already dead
 
@@ -232,7 +247,7 @@ namespace Inferno::Game {
                 expl.Instances = 1;
                 Render::CreateExplosion(expl);
 
-                Player.Score += robot.Score;
+                AddPointsToScore(robot.Score);
 
                 auto& model = Resources::GetModel(robot.Model);
                 for (int i = 0; i < model.Submodels.size(); i++) {

@@ -426,8 +426,15 @@ namespace Inferno {
         SelectSecondary(SecondaryWeaponIndex(index));
     }
 
+
     void ScreenFlash(const Color& /*color*/) {
         // Tint the screen
+    }
+
+    void Player::GiveExtraLife(int lives) {
+        Lives += lives;
+        PrintHudMessage("extra life!");
+        ScreenFlash({ 15, 15, 15 });
     }
 
     bool Player::PickUpEnergy() {
@@ -507,9 +514,7 @@ namespace Inferno {
 
         switch (id) {
             case PowerupID::ExtraLife:
-                Lives++;
-                PrintHudMessage("extra life!");
-                ScreenFlash({ 15, 15, 15 });
+                GiveExtraLife(1);
                 used = true;
                 break;
 
