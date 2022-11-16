@@ -1419,12 +1419,15 @@ namespace Inferno {
         }
 
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLiquid && !hitForcefield) {
-            // todo: track stuck objects
+            //obj.Position += obj.Physics.Velocity * hit.Distance;
+            Vector3 vec;
+            obj.Physics.Velocity.Normalize(vec);
+            obj.Position += vec * hit.Distance;
             obj.Physics.Velocity = Vector3::Zero;
-            obj.Movement = MovementType::None;
-            obj.LastPosition = obj.Position;
+            //obj.Movement = MovementType::None;
+            //obj.LastPosition = obj.Position;
             AddStuckObject(hit.Tag, objId);
-            //obj.Flags |= ObjectFlag::Attached;
+            obj.Flags |= ObjectFlag::Attached;
         }
         else if (obj.Physics.Bounces <= 0) {
             obj.Destroy(); // destroy weapon after hitting a wall
@@ -1534,6 +1537,9 @@ namespace Inferno {
 
             obj.Physics.InputVelocity = obj.Physics.Velocity;
             obj.Position += obj.Physics.Velocity * dt;
+
+            if (HasFlag(obj.Flags, ObjectFlag::Attached))
+                continue; // don't test collision of attached objects
 
             auto delta = obj.Position - obj.LastPosition;
             auto maxDistance = delta.Length();

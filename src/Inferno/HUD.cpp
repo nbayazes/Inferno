@@ -152,7 +152,7 @@ namespace Inferno {
     }
 
     void DrawOpaqueBitmap(const Vector2& offset, AlignH align, string bitmapName) {
-        auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
+        auto& material = Render::Materials->Get(bitmapName);
         DrawOpaqueBitmap(offset, align, material);
     }
 
@@ -176,7 +176,7 @@ namespace Inferno {
     }
 
     void DrawAdditiveBitmap(const Vector2& offset, AlignH align, string bitmapName, float sizeScale, float scanline = 0.4f) {
-        auto& material = Render::Materials->GetOutrageMaterial(bitmapName);
+        auto& material = Render::Materials->Get(bitmapName);
         DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
     }
 
@@ -237,7 +237,7 @@ namespace Inferno {
         constexpr float ENERGY_SPACING = -9;
         auto percent = std::lerp(0.115f, 1.0f, energy / 100);
 
-        auto& material = Render::Materials->GetOutrageMaterial("gauge03b");
+        auto& material = Render::Materials->Get("gauge03b");
         auto scale = Render::HudCanvas->GetScale();
         Vector2 pos = Vector2(spacing + (flipX ? ENERGY_SPACING : -ENERGY_SPACING), ENERGY_HEIGHT) * scale;
         Vector2 size = { (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
@@ -291,7 +291,7 @@ namespace Inferno {
         auto scale = Render::HudCanvas->GetScale();
         auto hex = Color(1, 1, 1).RGBA().v;
         auto pos = Vector2{ x - 151, -37 } * scale;
-        auto& material = Render::Materials->GetOutrageMaterial("gauge02b");
+        auto& material = Render::Materials->Get("gauge02b");
         Vector2 size = {
             (float)material.Textures[0].GetWidth() * scale,
             (float)material.Textures[0].GetHeight() * percent * scale 
@@ -435,7 +435,7 @@ namespace Inferno {
     }
 
     void DrawHighlights(bool flip, float opacity = 0.07f) {
-        auto& material = Render::Materials->GetOutrageMaterial("SmHilite");
+        auto& material = Render::Materials->Get("SmHilite");
         auto scale = Render::HudCanvas->GetScale() * 1.5f;
         auto& screen = Render::HudCanvas->GetSize();
         int fl = flip ? 1 : -1;
@@ -612,7 +612,7 @@ namespace Inferno {
 
             if (frame != 9) { // Frame 9 is 'missing' - no shields
                 auto shieldGfx = fmt::format("gauge01b#{}", frame);
-                DrawShipBitmap({ 0, -29 }, Render::Materials->GetOutrageMaterial(shieldGfx), 1, 1);
+                DrawShipBitmap({ 0, -29 }, Render::Materials->Get(shieldGfx), 1, 1);
             }
         }
     }
@@ -713,7 +713,7 @@ namespace Inferno {
             //DrawAdditiveBitmap({ -220, -230 }, AlignH::CenterRight, "gauge16b", 1);
 
             //{
-            //    auto& material = Render::Materials->GetOutrageMaterial("gauge16b");
+            //    auto& material = Render::Materials->Get("gauge16b");
 
             //    Render::CanvasBitmapInfo info;
             //    info.Position = { -300, 0 } *scale;

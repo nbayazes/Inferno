@@ -430,7 +430,7 @@ namespace Inferno::Render {
             //int segsDrawn = 0;
             auto vStep = length / 20 * div * beam.Scale;
 
-            auto& material = Render::Materials->GetOutrageMaterial(beam.Texture);
+            auto& material = Render::Materials->Get(beam.Texture);
             effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
             Stats::DrawCalls++;
             g_SpriteBatch->Begin(ctx.CommandList());
@@ -571,7 +571,7 @@ namespace Inferno::Render {
         color.w *= Fade;
 
         if (!Texture.empty()) {
-            auto& material = Render::Materials->GetOutrageMaterial(Texture);
+            auto& material = Render::Materials->Get(Texture);
             effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
             g_SpriteBatch->Begin(ctx.CommandList());
 
@@ -585,7 +585,7 @@ namespace Inferno::Render {
         }
 
         if (!BlobTexture.empty() && dist > Length) {
-            auto& material = Render::Materials->GetOutrageMaterial(BlobTexture);
+            auto& material = Render::Materials->Get(BlobTexture);
             effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
             g_SpriteBatch->Begin(ctx.CommandList());
 
@@ -646,7 +646,7 @@ namespace Inferno::Render {
             const auto up = decal.Bitangent * decal.Radius;
             const auto right = decal.Tangent * decal.Radius;
 
-            auto& material = Render::Materials->GetOutrageMaterial(decal.Texture);
+            auto& material = Render::Materials->Get(decal.Texture);
             effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
             g_SpriteBatch->Begin(ctx.CommandList());
 

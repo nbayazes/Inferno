@@ -413,8 +413,8 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Flare).Extended.Sticky = true;
         GetWeapon(WeaponID::Flare).FireDelay = 0.5f;
         GetWeapon(WeaponID::Flare).Lifetime = 20.0f;
-        //GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
-        GetWeapon(WeaponID::Flare).Extended.Glow = Color(0.2f, 0.2f, 0.2f);
+        GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
+        GetWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
 
         auto& mega = GetWeapon(WeaponID::Mega).Extended;
         mega.ScorchTexture = "scorchC";

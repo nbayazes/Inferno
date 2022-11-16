@@ -1,13 +1,10 @@
 #pragma once
 
-#include <condition_variable>
 #include "Heap.h"
 #include "Level.h"
 #include "Resources.h"
 #include "Buffers.h"
 #include "Concurrent.h"
-#include "OutrageBitmap.h"
-#include "OutrageModel.h"
 
 namespace Inferno::Render {
     struct Material2D {
@@ -38,7 +35,7 @@ namespace Inferno::Render {
         Texture2D _black, _white, _purple;
         ConcurrentList<Material2D> _materials, PendingCopies;
         ConcurrentList<MaterialUpload> RequestedUploads;
-        Dictionary<string, Material2D> _outrageMaterials;
+        Dictionary<string, Material2D> _unpackedMaterials;
 
         Ptr<WorkerThread> _worker;
         friend class MaterialUploadWorker;
@@ -52,26 +49,27 @@ namespace Inferno::Render {
         void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false);
         void Dispatch();
 
-        // Returns the starting GPU handle for the material
+        // Gets a material based on a D1/D2 texture ID
         const Material2D& Get(TexID id) const {
             if ((int)id > _materials.Size()) return _defaultMaterial;
             auto& material = _materials[(int)id];
             return material.ID > TexID::Invalid ? material : _defaultMaterial;
         }
 
+        // Gets a material based on a D1/D2 level texture ID
         const Material2D& Get(LevelTexID tid) const {
             auto id = Resources::LookupLevelTexID(tid);
             return Get(id);
         }
 
-        const Material2D& GetOutrageMaterial(const string& name) {
-            if (!_outrageMaterials.contains(name)) return _defaultMaterial;
-            return _outrageMaterials[name];
+        // Gets a material loaded from the filesystem based on name
+        const Material2D& Get(const string& name) {
+            if (!_unpackedMaterials.contains(name)) return _defaultMaterial;
+            return _unpackedMaterials[name];
         };
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
         void LoadTextures(span<string> names);
-        void LoadOutrageModel(const Outrage::Model& model);
 
         void Reload();
 
@@ -99,7 +97,6 @@ namespace Inferno::Render {
 
             return hasPending;
         }
-        //Option<Material2D> LoadMaterial(DirectX::ResourceUploadBatch& batch, TexID id);
 
         void LoadDefaults();
     };

@@ -193,7 +193,7 @@ namespace Inferno::Render {
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
-                effect.Shader->SetSampler(cmd, GetTextureSampler());
+                effect.Shader->SetSampler(cmd, Heaps->States.AnisotropicWrap());
                 effect.Shader->SetMaterial(cmd, handle);
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {

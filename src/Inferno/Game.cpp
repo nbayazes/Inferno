@@ -212,7 +212,7 @@ namespace Inferno::Game {
         // This doesn't account for negative scoring (which never happens in D2)
         auto lives = Player.Score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
         if (lives > 0) {
-            Player.GiveExtraLife(lives);
+            Player.GiveExtraLife((uint8)lives);
         }
     }
 

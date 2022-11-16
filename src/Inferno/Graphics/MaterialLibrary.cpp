@@ -419,7 +419,7 @@ namespace Inferno::Render {
     void MaterialLibrary::LoadTextures(span<string> names) {
         bool hasUnloaded = false;
         for (auto& name : names) {
-            if (!name.empty() && !_outrageMaterials.contains(name)) {
+            if (!name.empty() && !_unpackedMaterials.contains(name)) {
                 hasUnloaded = true;
                 break;
             }
@@ -432,7 +432,7 @@ namespace Inferno::Render {
         auto batch = BeginTextureUpload();
 
         for (auto& name : names) {
-            if (_outrageMaterials.contains(name)) continue; // skip loaded
+            if (_unpackedMaterials.contains(name)) continue; // skip loaded
 
             if (FileSystem::TryFindFile(name + ".dds")) {
                 if (auto material = UploadBitmap(batch, name, _black))
@@ -452,40 +452,7 @@ namespace Inferno::Render {
         EndTextureUpload(batch);
 
         for (auto& upload : uploads)
-            _outrageMaterials[upload.Name] = std::move(upload);
-    }
-
-    void MaterialLibrary::LoadOutrageModel(const Outrage::Model& model) {
-        bool hasUnloaded = false;
-        for (auto& texture : model.Textures) {
-            if (!_outrageMaterials.contains(texture)) {
-                hasUnloaded = true;
-                break;
-            }
-        }
-
-        if (!hasUnloaded) return;
-
-        Render::Adapter->WaitForGpu();
-
-        List<Material2D> uploads;
-        auto batch = BeginTextureUpload();
-
-        for (auto& texture : model.Textures) {
-            if (_outrageMaterials.contains(texture)) continue; // skip loaded
-
-            if (auto bitmap = Resources::ReadOutrageBitmap(texture)) {
-                if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
-                    material->Name = texture; // Name in the model can be different than file name
-                    uploads.emplace_back(std::move(material.value()));
-                }
-            }
-        }
-
-        EndTextureUpload(batch);
-
-        for (auto& upload : uploads)
-            _outrageMaterials[upload.Name] = std::move(upload);
+            _unpackedMaterials[upload.Name] = std::move(upload);
     }
 
     void MaterialLibrary::Reload() {

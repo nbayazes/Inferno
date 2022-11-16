@@ -431,7 +431,7 @@ namespace Inferno {
         // Tint the screen
     }
 
-    void Player::GiveExtraLife(int lives) {
+    void Player::GiveExtraLife(uint8 lives) {
         Lives += lives;
         PrintHudMessage("extra life!");
         ScreenFlash({ 15, 15, 15 });
