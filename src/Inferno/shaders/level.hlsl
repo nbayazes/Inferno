@@ -74,10 +74,10 @@ PS_INPUT vsmain(LevelVertex input) {
     return output;
 }
 
-float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
+float4 Specular(float3 lightDir, float3 eyeDir, float3 normal, float power) {
     float3 r = reflect(lightDir, normal);
     float3 theta = dot(r, eyeDir);
-    float3 specular = pow(saturate(theta), 4);
+    float3 specular = pow(saturate(theta), power);
     return float4(specular, 0);
 }
 
@@ -106,7 +106,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
-    float4 specular = Specular(-viewDir, viewDir, input.normal);
+    float4 specular = Specular(-viewDir, viewDir, input.normal, 4);
     float4 lighting = lerp(1, max(0, input.col), LightingScale);
     //float d = dot(input.normal, viewDir);
     //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
@@ -115,7 +115,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 base = Sample2DAA(Diffuse, input.uv);
     float4 emissive = Sample2DAA(Emissive, input.uv) * base;
     emissive.a = 0;
-    
+    base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
+
     if (HasOverlay) {
         // Apply supertransparency mask
         float mask = Sample2DAA(StMask, input.uv2).r; // only need a single channel

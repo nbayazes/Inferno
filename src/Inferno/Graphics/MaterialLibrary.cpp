@@ -154,7 +154,8 @@ namespace Inferno::Render {
 
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
                                       MaterialUpload& upload,
-                                      Texture2D& defaultTex) {
+                                      Texture2D& blackTex,
+                                      Texture2D& whiteTex) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.Index = Render::Heaps->Shader.AllocateIndex();
@@ -184,9 +185,8 @@ namespace Inferno::Render {
                     loadedST = material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        if (!loadedDiffuse) {
+        if (!loadedDiffuse)
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
-        }
 
         if (!loadedST && upload.SuperTransparent)
             material.Textures[Material2D::SuperTransparency].Load(batch, upload.Bitmap->Mask.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
@@ -197,9 +197,13 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
+        auto& info = Resources::GetTextureInfo(material.ID);
+
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
-            auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
+            auto texture = material.Textures[i] ? &material.Textures[i] :
+                (info.Transparent && i == Material2D::Specular ? &whiteTex : &blackTex);
+
             texture->CreateShaderResourceView(handle);
         }
 
@@ -271,7 +275,7 @@ namespace Inferno::Render {
                 if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                     continue;
 
-                if (auto material = UploadMaterial(batch, upload, _lib->_black))
+                if (auto material = UploadMaterial(batch, upload, _lib->_black, _lib->_white))
                     uploads.emplace_back(std::move(material.value()));
             }
 
@@ -320,7 +324,7 @@ namespace Inferno::Render {
             if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                 continue;
 
-            if (auto material = UploadMaterial(batch, upload, _black))
+            if (auto material = UploadMaterial(batch, upload, _black, _white))
                 uploads.emplace_back(std::move(material.value()));
         }
 
