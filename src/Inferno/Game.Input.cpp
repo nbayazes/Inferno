@@ -47,43 +47,43 @@ namespace Inferno {
 
     void HandleWeaponKeys() {
         if (Input::IsKeyPressed(Keys::D1)) {
-            Game::Player.ArmPrimary(PrimaryWeaponIndex::Laser);
+            Game::Player.SelectPrimary(PrimaryWeaponIndex::Laser);
         }
 
         if (Input::IsKeyPressed(Keys::D2)) {
-            Game::Player.ArmPrimary(PrimaryWeaponIndex::Vulcan);
+            Game::Player.SelectPrimary(PrimaryWeaponIndex::Vulcan);
         }
 
         if (Input::IsKeyPressed(Keys::D3)) {
-            Game::Player.ArmPrimary(PrimaryWeaponIndex::Spreadfire);
+            Game::Player.SelectPrimary(PrimaryWeaponIndex::Spreadfire);
         }
 
         if (Input::IsKeyPressed(Keys::D4)) {
-            Game::Player.ArmPrimary(PrimaryWeaponIndex::Plasma);
+            Game::Player.SelectPrimary(PrimaryWeaponIndex::Plasma);
         }
 
         if (Input::IsKeyPressed(Keys::D5)) {
-            Game::Player.ArmPrimary(PrimaryWeaponIndex::Fusion);
+            Game::Player.SelectPrimary(PrimaryWeaponIndex::Fusion);
         }
 
         if (Input::IsKeyPressed(Keys::D6)) {
-            Game::Player.ArmSecondary(SecondaryWeaponIndex::Concussion);
+            Game::Player.SelectSecondary(SecondaryWeaponIndex::Concussion);
         }
 
         if (Input::IsKeyPressed(Keys::D7)) {
-            Game::Player.ArmSecondary(SecondaryWeaponIndex::Homing);
+            Game::Player.SelectSecondary(SecondaryWeaponIndex::Homing);
         }
 
         if (Input::IsKeyPressed(Keys::D8)) {
-            Game::Player.ArmSecondary(SecondaryWeaponIndex::Proximity);
+            Game::Player.SelectSecondary(SecondaryWeaponIndex::Proximity);
         }
 
         if (Input::IsKeyPressed(Keys::D9)) {
-            Game::Player.ArmSecondary(SecondaryWeaponIndex::Smart);
+            Game::Player.SelectSecondary(SecondaryWeaponIndex::Smart);
         }
 
         if (Input::IsKeyPressed(Keys::D0)) {
-            Game::Player.ArmSecondary(SecondaryWeaponIndex::Mega);
+            Game::Player.SelectSecondary(SecondaryWeaponIndex::Mega);
         }
 
         if (Input::IsKeyPressed(Keys::F))

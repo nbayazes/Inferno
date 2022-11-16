@@ -36,19 +36,6 @@ namespace Inferno {
         float RefuelSoundTime = 0;
         bool AfterburnerActive = false;
 
-        bool Gunpoints[20][8] = {
-            { true, true }, // Laser
-            { false, false, false, false, false, false, true }, // Center fire
-            { false, false, false, false, false, false, true }, // Center fire
-            { true, true }, // Plasma
-            { true, true }, // Fusion
-            { true, true }, // Laser
-            { false, false, false, false, false, false, true }, // Center fire
-            { false, false, false, false, false, false, true }, // Center fire
-            { true, true }, // Phoenix
-            { true }, // Omega
-        };
-
         void GiveWeapon(PrimaryWeaponIndex weapon) {
             PrimaryWeapons |= (1 << (uint16)weapon);
             if ((weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss))
@@ -67,9 +54,9 @@ namespace Inferno {
             return PrimaryWeapons & (1 << (uint16)weapon);
         }
 
-        bool HasWeapon(SecondaryWeaponIndex weapon) const {
-            return SecondaryWeapons & (1 << (uint16)weapon);
-        }
+        //bool HasWeapon(SecondaryWeaponIndex weapon) const {
+        //    return SecondaryWeapons & (1 << (uint16)weapon);
+        //}
 
         void GivePowerup(PowerupFlag powerup) {
             SetFlag(Powerups, powerup);
@@ -93,26 +80,10 @@ namespace Inferno {
         // Returns the amount of ammo picked up
         int PickUpAmmo(PrimaryWeaponIndex, uint16 amount);
 
-        WeaponID GetPrimaryWeaponID() const {
-            if (Primary == PrimaryWeaponIndex::Laser) {
-                if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };
-                if (LaserLevel == 4) return WeaponID::Laser5;
-                if (LaserLevel == 5) return WeaponID::Laser6;
-            }
-
-            return PrimaryToWeaponID[(int)Primary];
-        }
-
-        WeaponID GetSecondaryWeaponID() const {
-            return SecondaryToWeaponID[(int)Secondary];
-        }
-
-        bool CanFirePrimary() const {
-            auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
-            auto index = Primary;
+        bool CanFirePrimary(PrimaryWeaponIndex index) const {
             if (!HasWeapon(index)) return false;
-            if (PrimaryDelay > 0) return false;
 
+            auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(index));
             bool canFire = true;
 
             if (index == PrimaryWeaponIndex::Vulcan ||
@@ -120,17 +91,14 @@ namespace Inferno {
                 canFire &= weapon.AmmoUsage <= PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
 
             if (index == PrimaryWeaponIndex::Omega)
-                canFire &= Energy > 0 || OmegaCharge > 0;
+                canFire &= Energy > 1 && OmegaCharge >= 0.75f; // it's annoying to switch to omega with no energy
 
             canFire &= weapon.EnergyUsage <= Energy;
             return canFire;
         }
 
-        bool CanFireSecondary() const {
-            auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID());
-            auto index = Secondary;
-            if (!HasWeapon(index)) return false;
-            if (SecondaryDelay > 0) return false;
+        bool CanFireSecondary(SecondaryWeaponIndex index) const {
+            auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID(index));
 
             return
                 weapon.AmmoUsage <= SecondaryAmmo[(int)index] &&
@@ -140,8 +108,8 @@ namespace Inferno {
         // returns the forward thrust multiplier
         float UpdateAfterburner(float dt, bool active);
 
-        void ArmPrimary(PrimaryWeaponIndex index);
-        void ArmSecondary(SecondaryWeaponIndex index);
+        void SelectPrimary(PrimaryWeaponIndex index);
+        void SelectSecondary(SecondaryWeaponIndex index);
 
         void Update(float dt);
 
@@ -154,8 +122,25 @@ namespace Inferno {
 
         bool CanOpenDoor(const Wall& wall) const;
 
+        void AutoselectPrimary();
+        void AutoselectSecondary();
+
     private:
         SoundUID _afterburnerSoundSig = 0;
         float _prevAfterburnerCharge = 0;
+
+        WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
+            if (index == PrimaryWeaponIndex::Laser) {
+                if (LaserLevel < 4) return WeaponID{ (int)WeaponID::Laser1 + LaserLevel };
+                if (LaserLevel == 4) return WeaponID::Laser5;
+                if (LaserLevel == 5) return WeaponID::Laser6;
+            }
+
+            return PrimaryToWeaponID[(int)index];
+        }
+
+        static WeaponID GetSecondaryWeaponID(SecondaryWeaponIndex index) {
+            return SecondaryToWeaponID[(int)index];
+        }
     };
 }

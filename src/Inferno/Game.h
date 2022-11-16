@@ -77,4 +77,12 @@ namespace Inferno::Game {
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open
     constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
+
+    // 255 marks where weapons aren't considered for autoselection
+
+    constexpr Array<uint8, 11> DefaultPrimaryPriority{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 255 };
+    constexpr Array<uint8, 11> DefaultSecondaryPriority{ 9, 8, 4, 3, 1, 5, 0, 255, 7, 6, 2 };
+
+    inline Array<uint8, 11> PrimaryPriority = DefaultPrimaryPriority;
+    inline Array<uint8, 11> SecondaryPriority = DefaultSecondaryPriority;
 }

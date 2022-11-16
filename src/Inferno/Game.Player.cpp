@@ -65,7 +65,7 @@ namespace Inferno {
         return thrust;
     }
 
-    void Player::ArmPrimary(PrimaryWeaponIndex index) {
+    void Player::SelectPrimary(PrimaryWeaponIndex index) {
         const auto requestedWeapon = (uint8)index;
         auto weapon = (uint8)index;
 
@@ -83,7 +83,7 @@ namespace Inferno {
                 weapon += SUPER_WEAPON;
 
             // Try other version if we don't have it anymore
-            if (!HasWeapon(index)) {
+            if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
                 weapon = 2 * requestedWeapon + SUPER_WEAPON - weapon;
                 if (!HasWeapon((PrimaryWeaponIndex)weapon))
                     weapon = 2 * requestedWeapon + SUPER_WEAPON - weapon;
@@ -101,13 +101,14 @@ namespace Inferno {
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
+        PrintHudMessage(fmt::format("{} selected!", Resources::GetPrimaryName(Primary)));
 
         WeaponCharge = 0; // failsafe
     }
 
-    void Player::ArmSecondary(SecondaryWeaponIndex index) {
-        const uint8 requestedWeapon = (uint8)index;
-        uint8 weapon = (uint8)index;
+    void Player::SelectSecondary(SecondaryWeaponIndex index) {
+        const auto requestedWeapon = (uint8)index;
+        auto weapon = (uint8)index;
 
         if (index == Secondary && Game::Level.IsDescent1()) {
             Sound::Play(Resources::GetSoundResource(SoundID::AlreadySelected));
@@ -123,18 +124,15 @@ namespace Inferno {
                 weapon += SUPER_WEAPON;
 
             // Try other version if we don't have it anymore
-            if (!HasWeapon(index)) {
+            if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
                 weapon = 2 * requestedWeapon + SUPER_WEAPON - weapon;
-                if (!HasWeapon((SecondaryWeaponIndex)weapon))
+                if (!CanFireSecondary((SecondaryWeaponIndex)weapon))
                     weapon = 2 * requestedWeapon + SUPER_WEAPON - weapon;
             }
         }
 
-        if (!HasWeapon((SecondaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("{} {}{}!",
-                                   Resources::GetString(GameString::HaveNo),
-                                   Resources::GetSecondaryName(index),
-                                   Resources::GetString(GameString::Sx));
+        if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
+            auto msg = fmt::format("you have no {}s!", Resources::GetSecondaryName(index));
             PrintHudMessage(msg);
             Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
             return;
@@ -144,6 +142,8 @@ namespace Inferno {
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
+
+        PrintHudMessage(fmt::format("{} selected!", Resources::GetSecondaryName(Secondary)));
     }
 
     void Player::Update(float dt) {
@@ -175,11 +175,11 @@ namespace Inferno {
             }
         }
 
-        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID());
+        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
 
         if (weapon.Extended.Chargable) {
             if (PrimaryState == FireState::Hold && WeaponCharge <= 0) {
-                if (CanFirePrimary()) {
+                if (CanFirePrimary(Primary) && PrimaryDelay <= 0) {
                     WeaponCharge = 0.001f;
                     FusionNextSoundDelay = 0.25f;
                     SubtractEnergy(weapon.EnergyUsage);
@@ -255,12 +255,15 @@ namespace Inferno {
     }
 
     void Player::FirePrimary() {
-        if (!CanFirePrimary() && WeaponCharge <= 0) {
-            // Arm different weapon
+        if (PrimaryDelay > 0)
+            return;
+
+        if (!CanFirePrimary(Primary) && WeaponCharge <= 0) {
+            AutoselectPrimary();
             return;
         }
 
-        auto id = GetPrimaryWeaponID();
+        auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = weapon.FireDelay;
 
@@ -292,7 +295,8 @@ namespace Inferno {
         FiringIndex = (FiringIndex + 1) % sequence.size();
         WeaponCharge = 0;
 
-        // todo: Swap to different weapon if ammo or energy == 0
+        if (!CanFirePrimary(Primary))
+            AutoselectPrimary();
     }
 
     void Player::HoldPrimary() {
@@ -305,9 +309,13 @@ namespace Inferno {
     }
 
     void Player::FireSecondary() {
-        if (!CanFireSecondary()) return;
+        if (SecondaryDelay > 0) return;
+        if (!CanFireSecondary(Secondary)) {
+            AutoselectSecondary();
+            return;
+        }
 
-        auto id = GetSecondaryWeaponID();
+        auto id = GetSecondaryWeaponID(Secondary);
         auto& weapon = Resources::GameData.Weapons[(int)id];
         SecondaryDelay = weapon.FireDelay;
         auto& ship = PyroGX;
@@ -323,6 +331,9 @@ namespace Inferno {
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= weapon.AmmoUsage;
         // Swap to different weapon if ammo == 0
+
+        if (!CanFireSecondary(Secondary))
+            AutoselectSecondary();
     }
 
     bool Player::CanOpenDoor(const Wall& wall) const {
@@ -339,6 +350,80 @@ namespace Inferno {
             return false;
 
         return true;
+    }
+
+    void Player::AutoselectPrimary() {
+        auto GetPriority = [](PrimaryWeaponIndex primary) {
+            for (int i = 0; i < Game::PrimaryPriority.size(); i++) {
+                if (i == 255) return 255;
+                if (Game::PrimaryPriority[i] == (int)primary) {
+                    return i;
+                }
+            }
+            return 0;
+        };
+
+        int priority = -1;
+        int index = -1;
+
+        for (int i = 0; i < 10; i++) {
+            auto idx = (PrimaryWeaponIndex)i;
+            auto& weapon = Resources::GetWeapon(PrimaryToWeaponID[i]);
+            if (weapon.EnergyUsage > 0 && Energy < 1) 
+                continue; // don't switch to energy weapons at low energy
+
+            if (!CanFirePrimary(idx)) continue;
+
+            auto p = GetPriority(idx);
+            if (p == 255) continue;
+
+            if (p < priority || priority == -1) {
+                priority = p;
+                index = i;
+            }
+        }
+
+        if (index == -1) {
+            PrintHudMessage("no primary weapons available!");
+            // play sound first time this happens?
+            return;
+        }
+
+        SelectPrimary(PrimaryWeaponIndex(index));
+    }
+
+    void Player::AutoselectSecondary() {
+        auto GetPriority = [](SecondaryWeaponIndex secondary) {
+            for (int i = 0; i < Game::SecondaryPriority.size(); i++) {
+                auto prio = Game::SecondaryPriority[i];
+                if (prio == 255) return 255;
+                if (prio == (int)secondary) return i;
+            }
+            return 0;
+        };
+
+        int priority = -1;
+        int index = -1;
+
+        for (int i = 0; i < 10; i++) {
+            auto idx = (SecondaryWeaponIndex)i;
+            if (!CanFireSecondary(idx)) continue;
+
+            auto p = GetPriority(idx);
+            if (p == 255) continue;
+
+            if (p < priority || priority == -1) {
+                priority = p;
+                index = i;
+            }
+        }
+
+        if (index == -1) {
+            PrintHudMessage("no secondary weapons available!");
+            return;
+        }
+
+        SelectSecondary(SecondaryWeaponIndex(index));
     }
 
     void ScreenFlash(const Color& /*color*/) {

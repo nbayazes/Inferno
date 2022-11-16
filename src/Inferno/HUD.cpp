@@ -201,8 +201,8 @@ namespace Inferno {
         constexpr Vector2 primaryOffset(0/*-30*/, 14);
         constexpr Vector2 secondaryOffset(0/*-24*/, 2);
 
-        bool primaryReady = Game::Player.CanFirePrimary();
-        bool secondaryReady = Game::Player.CanFireSecondary();
+        bool primaryReady = Game::Player.CanFirePrimary(Game::Player.Primary);
+        bool secondaryReady = Game::Player.CanFireSecondary(Game::Player.Secondary);
         float scale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
         // cross deactivates when no primary or secondary weapons are available
         int crossFrame = primaryReady || secondaryReady ? 1 : 0;
