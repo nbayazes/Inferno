@@ -440,12 +440,18 @@ namespace Inferno {
     bool Player::PickUpEnergy() {
         constexpr float MAX_ENERGY = 200;
         if (Energy < MAX_ENERGY) {
-            Energy += 3 + 3 * (5 - Game::Difficulty);
+            bool canFire = CanFirePrimary(Primary);
+
+            Energy += float(3 + 3 * (5 - Game::Difficulty));
             if (Energy > MAX_ENERGY) Energy = MAX_ENERGY;
 
             ScreenFlash({ 15, 15, 7 });
             auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Energy), Resources::GetString(GameString::BoostedTo), int(Energy));
             PrintHudMessage(msg);
+
+            if (!canFire)
+                AutoselectPrimary(); // maybe picking up energy lets us fire a weapon
+
             return true;
         }
         else {
@@ -467,7 +473,7 @@ namespace Inferno {
         if (ammo >= max)
             return 0;
 
-        auto prevAmmo = ammo;
+        bool canFire = CanFirePrimary(Primary);
         ammo += amount;
 
         if (ammo > max) {
@@ -475,8 +481,8 @@ namespace Inferno {
             ammo = max;
         }
 
-        if (prevAmmo == 0)
-            AutoselectPrimary();
+        if (!canFire)
+            AutoselectPrimary(); // maybe picking up ammo lets us fire a weapon
 
         return amount;
     }
@@ -862,8 +868,6 @@ namespace Inferno {
             ammo = max;
         }
 
-        // todo: autoselect stuff, set ownership flag
-
         if (pickedUp > 1) {
             ScreenFlash({ 15, 15, 15 });
             auto msg = fmt::format("{} {}{}", pickedUp, name, Resources::GetString(GameString::Sx));
@@ -873,6 +877,9 @@ namespace Inferno {
             ScreenFlash({ 10, 10, 10 });
             PrintHudMessage(fmt::format("{}!", name));
         }
+
+        if (!CanFireSecondary(Secondary))
+            AutoselectSecondary();
 
         // todo: spawn individual missiles if count > 1 and full
         return true;
