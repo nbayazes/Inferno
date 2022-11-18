@@ -131,11 +131,11 @@ namespace Inferno {
     //        std::runtime_error(fmt::format(format, std::forward<TArgs>(args)...)) {}
     //};
     using ArgumentException = std::invalid_argument;
-    struct IndexOutOfRangeException : public std::exception {
+    struct IndexOutOfRangeException final : std::exception {
         const char* what() const override { return "Index out of range"; }
     };
 
-    struct NotImplementedException : public std::exception {
+    struct NotImplementedException final : std::exception {
         const char* what() const override { return "Not Implemented"; }
     };
 
@@ -156,14 +156,15 @@ namespace Inferno {
     using int64 = int64_t;
     using uint64 = uint64_t;
 
+    using uchar = unsigned char;
     using ushort = unsigned short;
     using uint = unsigned int;
 
-    template<class T>
-    using List = std::vector<T>;
+    template<class T, class TAlloc = std::allocator<T>>
+    using List = std::vector<T, TAlloc>;
 
-    template<class T, size_t _Size>
-    using Array = std::array<T, _Size>;
+    template<class T, size_t TSize>
+    using Array = std::array<T, TSize>;
 
     template<class T>
     using Option = std::optional<T>;

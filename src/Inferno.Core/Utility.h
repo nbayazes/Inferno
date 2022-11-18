@@ -433,6 +433,7 @@ namespace Inferno {
             return index < xs.size();
         }
 
+        // Use append() for lists
         template<class T>
         constexpr void insert(Set<T>& dest, auto&& src) {
             dest.insert(src.begin(), src.end());

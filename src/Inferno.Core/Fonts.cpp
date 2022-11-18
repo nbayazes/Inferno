@@ -80,7 +80,7 @@ namespace Inferno {
         return font;
     }
 
-    int FontAtlas::GetKerning(char c, char next, FontSize font) const {
+    int FontAtlas::GetKerning(uchar c, uchar next, FontSize font) const {
         auto& f = _fonts[(int)font];
         if (f.Flags & Font::FT_KERNED && next != 0) {
             auto& kernings = f.Kernings;

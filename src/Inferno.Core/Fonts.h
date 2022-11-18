@@ -52,13 +52,13 @@ namespace Inferno {
     private:
         const int _width, _height;
         int _x = 0, _y = 0;
-        Array<List<Character>, 5> _lookup; // texture character position lookup
-        Array<Font, 5> _fonts;
+        Array<List<Character>, 5> _lookup{}; // texture character position lookup
+        Array<Font, 5> _fonts{};
 
     public:
         FontAtlas(int width, int height) : _width(width), _height(height) {}
 
-        const Character& GetCharacter(char c, FontSize font) const {
+        const Character& GetCharacter(uchar c, FontSize font) const {
             c -= 32;
             if (c > _lookup[(int)font].size()) c = 0; // default to space if character is out of range
             return _lookup[(int)font][c];
@@ -69,7 +69,7 @@ namespace Inferno {
             return &_fonts[(int)font];
         }
 
-        int GetKerning(char c, char next, FontSize font) const;
+        int GetKerning(uchar c, uchar next, FontSize font) const;
 
         int Width() { return _width; }
         int Height() { return _height; }
