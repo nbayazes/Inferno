@@ -4,6 +4,7 @@
 #include "Render.h"
 #include "Game.h"
 #include "Convert.h"
+#include "ScopedTimer.h"
 
 using namespace DirectX;
 
@@ -35,10 +36,8 @@ namespace Inferno::Render {
             ids.push_back(tid);
 
             // Also load effect clip frames
-            if (auto eclip = Resources::TryGetEffectClip(tid)) {
-                for (auto& frame : eclip->VClip.GetFrames())
-                    ids.push_back(frame);
-            }
+            auto& eclip = Resources::GetEffectClip(tid);
+            Seq::append(ids, eclip.VClip.GetFrames());
         }
 
         return ids;
@@ -82,15 +81,15 @@ namespace Inferno::Render {
                 auto& side = seg.GetSide(sideId);
                 if (!seg.SideHasConnection(sideId) || seg.SideIsWall(sideId)) {
                     ids.insert(Resources::LookupLevelTexID(side.TMap));
-                    if (auto eclip = Resources::TryGetEffectClip(side.TMap))
-                        Seq::insert(ids, eclip->VClip.GetFrames());
+                    auto& eclip = Resources::GetEffectClip(side.TMap);
+                    Seq::insert(ids, eclip.VClip.GetFrames());
 
                 }
 
                 if (side.HasOverlay()) {
                     ids.insert(Resources::LookupLevelTexID(side.TMap2));
-                    if (auto eclip = Resources::TryGetEffectClip(side.TMap2))
-                        Seq::insert(ids, eclip->VClip.GetFrames());
+                    auto& eclip = Resources::GetEffectClip(side.TMap2);
+                    Seq::insert(ids, eclip.VClip.GetFrames());
                 }
 
                 // Door clips
@@ -233,7 +232,7 @@ namespace Inferno::Render {
     }
 
     Option<Material2D> UploadOutrageMaterial(ResourceUploadBatch& batch,
-                                             Outrage::Bitmap& bitmap,
+                                             const Outrage::Bitmap& bitmap,
                                              Texture2D& defaultTex) {
         Material2D material;
         material.Index = Render::Heaps->Shader.AllocateIndex();
@@ -316,6 +315,7 @@ namespace Inferno::Render {
         // Pre-scan materials, as starting an upload batch causes a stall
         if (!forceLoad && !HasUnloadedTextures(tids)) return;
 
+        Stopwatch time;
         List<Material2D> uploads;
         auto batch = BeginTextureUpload();
 
@@ -336,6 +336,7 @@ namespace Inferno::Render {
 
         Render::Adapter->PrintMemoryUsage();
         Render::Heaps->Shader.GetFreeDescriptors();
+        SPDLOG_INFO("LoadMaterials: {:.3f}s", time.GetElapsedSeconds());
     }
 
     void MaterialLibrary::LoadMaterialsAsync(span<const TexID> tids, bool forceLoad) {
@@ -348,14 +349,12 @@ namespace Inferno::Render {
     }
 
     MaterialUpload MaterialLibrary::PrepareUpload(TexID id, bool forceLoad) {
-        auto ti = Resources::TryGetTextureInfo(id);
-        if (!ti) return {};
         if (!forceLoad && _materials[(int)id].ID == id) return {};
 
         MaterialUpload upload;
         upload.Bitmap = &Resources::ReadBitmap(id);
         upload.ID = id;
-        upload.SuperTransparent = ti->SuperTransparent;
+        upload.SuperTransparent = Resources::GetTextureInfo(id).SuperTransparent;
         return upload;
     }
 

@@ -83,7 +83,7 @@ namespace Inferno::Render {
                         mesh.IndexBuffer = _buffer.PackIndices(indices);
                         mesh.IndexCount = (uint)indices.size();
                         mesh.Texture = Resources::LookupModelTexID(model, slot);
-                        mesh.EffectClip = Resources::GetEffectClip(mesh.Texture);
+                        mesh.EffectClip = Resources::GetEffectClipID(mesh.Texture);
                         auto& ti = Resources::GetTextureInfo(mesh.Texture);
                         if (ti.Transparent) {
                             mesh.HasTransparentTexture = true;

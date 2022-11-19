@@ -280,7 +280,7 @@ namespace Inferno {
         return bmp;
     }
 
-    PigBitmap ReadBitmap(PigFile& pig, const Palette& palette, TexID id) {
+    PigBitmap ReadBitmap(const PigFile& pig, const Palette& palette, TexID id) {
         auto index = (int)id;
         if (pig.Entries.empty()) return { 0, 0, "" };
         if (index >= pig.Entries.size() || index < 0) index = 0;
@@ -291,7 +291,7 @@ namespace Inferno {
         return ReadBitmapEntry(reader, pig.DataStart, entry, palette);
     }
 
-    List<PigBitmap> ReadAllBitmaps(PigFile& pig, const Palette& palette) {
+    List<PigBitmap> ReadAllBitmaps(const PigFile& pig, const Palette& palette) {
         List<PigBitmap> bitmaps;
 
         StreamReader reader(pig.Path);

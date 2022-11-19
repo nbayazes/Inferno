@@ -42,18 +42,18 @@ namespace Inferno {
 
     // Effect clip. Assigns a vclip to a segment side.
     struct EffectClip {
-        VClip VClip;    // embedded vclip
-        float TimeLeft{};   // for sequencing
+        VClip VClip{};    // embedded vclip
+        float TimeLeft{}; // for sequencing
         int FrameCount{}; // for sequencing
-        LevelTexID ChangingWallTexture = LevelTexID::None; //Which element of Textures array to replace.
-        short ChangingObjectTexture{}; //Which element of ObjBitmapPtrs array to replace.
+        LevelTexID ChangingWallTexture = LevelTexID::None; // Which element of Textures array to replace.
+        short ChangingObjectTexture{}; // Which element of ObjBitmapPtrs array to replace.
         EClipFlag Flags{};
-        int CritClip{};  //use this clip instead of above one when mine critical
-        LevelTexID DestroyedTexture = LevelTexID::None; //use this bitmap when monitor destroyed
-        VClipID DestroyedVClip = VClipID::None;  //what vclip to play when exploding
-        EClipID DestroyedEClip = EClipID::None;  //what eclip to play when exploding
-        float ExplosionSize{};  //3d size of explosion
-        SoundID Sound = SoundID::None; //what sound this makes
+        int CritClip{};  // what clip to play (vclip?) when mine is critical
+        LevelTexID DestroyedTexture = LevelTexID::None; // use this bitmap when monitor destroyed
+        VClipID DestroyedVClip = VClipID::None;  // what vclip to play when exploding
+        EClipID DestroyedEClip = EClipID::None;  // what eclip to play when exploding
+        float ExplosionSize{};  // effect radius?
+        SoundID Sound = SoundID::None; // Ambient sound
         Tag OneShotTag; //what seg & side, for one-shot clips. Probably unused
     };
 

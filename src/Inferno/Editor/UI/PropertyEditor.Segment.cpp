@@ -866,15 +866,15 @@ namespace Inferno::Editor {
 
     void TextureProperties(const char* label, LevelTexID ltid, bool isOverlay) {
         bool open = ImGui::TableBeginTreeNode(label);
-        const auto ti = Resources::TryGetTextureInfo(ltid);
+        auto& ti = Resources::GetTextureInfo(ltid);
 
         if (isOverlay && ltid == LevelTexID::Unset) {
             ImGui::AlignTextToFramePadding();
             ImGui::Text("None");
         }
-        else if (ti) {
+        else {
             ImGui::AlignTextToFramePadding();
-            ImGui::Text("%s", ti ? ti->Name.c_str() : "None");
+            ImGui::Text("%s", ti.Name.c_str());
         }
 
         if (isOverlay && ltid > LevelTexID(0)) {
@@ -884,49 +884,46 @@ namespace Inferno::Editor {
         }
 
         if (open) {
-            if (ti) {
-                ImGui::TableRowLabel("Level TexID");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("%i", ltid);
+            ImGui::TableRowLabel("Level TexID");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", ltid);
 
-                ImGui::TableRowLabel("TexID");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("%i", ti->ID);
+            ImGui::TableRowLabel("TexID");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", ti.ID);
 
-                //ImGui::TableRowLabel("Size");
-                //ImGui::AlignTextToFramePadding();
-                //ImGui::Text("%i x %i", ti->Width, ti->Height);
+            //ImGui::TableRowLabel("Size");
+            //ImGui::AlignTextToFramePadding();
+            //ImGui::Text("%i x %i", ti->Width, ti->Height);
 
-                ImGui::TableRowLabel("Average Color");
-                ImGui::AlignTextToFramePadding();
-                ImGui::ColorButton("##color", { ti->AverageColor.x, ti->AverageColor.y, ti->AverageColor.z, 1 });
+            ImGui::TableRowLabel("Average Color");
+            ImGui::AlignTextToFramePadding();
+            ImGui::ColorButton("##color", { ti.AverageColor.x, ti.AverageColor.y, ti.AverageColor.z, 1 });
 
-                ImGui::TableRowLabel("Transparent");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("%s %s", ti->Transparent ? "Yes" : "No", ti->SuperTransparent ? "(super)" : "");
-            }
+            ImGui::TableRowLabel("Transparent");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%s %s", ti.Transparent ? "Yes" : "No", ti.SuperTransparent ? "(super)" : "");
 
-            if (auto lti = Resources::TryGetLevelTextureInfo(ltid)) {
-                ImGui::TableRowLabel("Lighting");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("%.2f", lti->Lighting);
+            auto& lti = Resources::GetLevelTextureInfo(ltid);
+            ImGui::TableRowLabel("Lighting");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%.2f", lti.Lighting);
 
-                ImGui::TableRowLabel("Effect clip");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("%i", lti->EffectClip);
+            ImGui::TableRowLabel("Effect clip");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i", lti.EffectClip);
 
-                ImGui::TableRowLabel("Damage");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text("%.1f", lti->Damage);
+            ImGui::TableRowLabel("Damage");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%.1f", lti.Damage);
 
-                // ImGui::TableRowLabel("Volatile");
-                // auto isVolatile = (bool)(lti->Flags & TextureFlag::Volatile);
-                // ImGui::Checkbox("Volatile", &isVolatile);
+            // ImGui::TableRowLabel("Volatile");
+            // auto isVolatile = (bool)(lti.Flags & TextureFlag::Volatile);
+            // ImGui::Checkbox("Volatile", &isVolatile);
 
-                ImGui::TableRowLabel("Flags");
-                ImGui::AlignTextToFramePadding();
-                ImGui::Text(TextureFlagToString(lti->Flags).c_str());
-            }
+            ImGui::TableRowLabel("Flags");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text(TextureFlagToString(lti.Flags).c_str());
 
             ImGui::TreePop();
         }

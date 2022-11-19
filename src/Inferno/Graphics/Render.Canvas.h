@@ -6,7 +6,6 @@
 #include "DeviceResources.h"
 #include "CommandContext.h"
 #include "Game.Text.h"
-#include "Shell.h"
 
 namespace Inferno::Render {
 
@@ -238,9 +237,7 @@ namespace Inferno::Render {
                 auto x0 = alignment.x + xOffset + x;
                 auto y0 = alignment.y + yOffset + y;
 
-                auto fontTex = Render::StaticTextures->Font.GetSRV();
-                Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;
-                Vector2 uvMin = { ci.X0, ci.Y0 }, uvMax = { ci.X1, ci.Y1 };
+                Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
                 CanvasBitmapInfo info;
                 info.Position = { x0, y0 };
                 info.Size = charSize;
@@ -253,8 +250,6 @@ namespace Inferno::Render {
                 info.Color = color;
                 info.Position.x += 1;
                 DrawBitmap(info); // Foreground
-                //DrawBitmap(fontTex, Vector2{ x0, y0 }, charSize, uvMin, uvMax, background);
-                //DrawBitmap(fontTex, Vector2{ x0 + 1, y0 }, charSize, uvMin, uvMax, color);
 
                 auto kerning = Atlas.GetKerning(c, next, size) * scale;
                 xOffset += charSize.x + kerning;
@@ -337,7 +332,7 @@ namespace Inferno::Render {
             bool inToken = false;
 
             for (int i = 0; i < str.size(); i++) {
-                auto c = str[i];
+                uchar c = str[i];
                 if (c == '\n') {
                     xOffset = 0;
                     yOffset += font->Height * scale * FONT_LINE_SPACING;
@@ -378,7 +373,7 @@ namespace Inferno::Render {
                 auto y0 = alignment.y + yOffset + info.Position.y;
 
                 //auto fontTex = Render::StaticTextures->Font.GetSRV();
-                Vector2 charSize = Vector2((float)font->GetWidth(c), (float)font->Height) * scale;
+                Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
                 //Vector2 uvMin = { ci.X0, ci.Y0 }, uvMax = { ci.X1, ci.Y1 };
                 CanvasBitmapInfo cbi;
                 cbi.Position = { x0, y0 };

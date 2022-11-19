@@ -265,11 +265,11 @@ namespace Inferno {
 
                 chunk.TMap1 = side.TMap;
                 chunk.TMap2 = side.TMap2;
-                chunk.EffectClip1 = Resources::GetEffectClip(side.TMap);
+                chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
                 chunk.ID = id;
 
                 if (side.HasOverlay())
-                    chunk.EffectClip2 = Resources::GetEffectClip(side.TMap2);
+                    chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
                 Array<Color, 4> lt = side.Light;
 

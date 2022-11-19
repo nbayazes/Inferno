@@ -192,8 +192,8 @@ namespace Inferno {
 
         float FlashSize; // Muzzle flash radius
         float ImpactSize; // Radius of effect when hitting something
-        float Damage[5];
-        float Speed[5];
+        Array<float, 5> Damage;
+        Array<float, 5> Speed;
         float Mass;
         float Drag;
         float Thrust;

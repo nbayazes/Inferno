@@ -764,7 +764,7 @@ namespace Inferno {
                     case ObjectType::Player:
                     {
                         if (target.ID > 0) return false; // Only hit player 0 in singleplayer
-
+                        if (src.Parent == ObjID(0)) return false; // Don't hit the player with their own shots
                         if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
                             return false; // Mines can't hit the player until they arm
 

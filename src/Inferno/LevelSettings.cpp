@@ -18,13 +18,11 @@ namespace Inferno {
 
                 bool isLightSource = side.LightOverride.has_value();
                 if (!isLightSource) {
-                    if (auto ti = Resources::TryGetLevelTextureInfo(side.TMap2)) {
-                        if (ti->Lighting > 0) isLightSource = true;
-                    }
+                    auto& ti2 = Resources::GetLevelTextureInfo(side.TMap2);
+                    if (ti2.Lighting > 0) isLightSource = true;
 
-                    if (auto ti = Resources::TryGetLevelTextureInfo(side.TMap)) {
-                        if (ti->Lighting > 0) isLightSource = true;
-                    }
+                    auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+                    if (ti.Lighting > 0) isLightSource = true;
                 }
 
                 bool hasLockLight = side.LockLight[0] || side.LockLight[1] || side.LockLight[2] || side.LockLight[3];

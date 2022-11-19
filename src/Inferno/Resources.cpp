@@ -99,22 +99,20 @@ namespace Inferno::Resources {
         return GameData.Effects[(int)id];
     }
 
-    const EffectClip* TryGetEffectClip(LevelTexID id) {
-        auto tid = LookupLevelTexID(id);
-        if (tid == TexID::None) return nullptr;
-        return TryGetEffectClip(tid);
+    const EffectClip& GetEffectClip(LevelTexID id) {
+        return GetEffectClip(LookupLevelTexID(id));
     }
 
-    const EffectClip* TryGetEffectClip(TexID id) {
+    const EffectClip& GetEffectClip(TexID id) {
         for (auto& clip : GameData.Effects) {
             if (clip.VClip.Frames[0] == id)
-                return &clip;
+                return clip;
         }
 
-        return nullptr;
+        return DefaultEffectClip;
     }
 
-    EClipID GetEffectClip(TexID tid) {
+    EClipID GetEffectClipID(TexID tid) {
         for (int i = 0; i < GameData.Effects.size(); i++) {
             if (GameData.Effects[i].VClip.Frames[0] == tid)
                 return EClipID(i);
@@ -123,10 +121,10 @@ namespace Inferno::Resources {
         return EClipID::None;
     }
 
-    EClipID GetEffectClip(LevelTexID id) {
+    EClipID GetEffectClipID(LevelTexID id) {
         auto tid = LookupLevelTexID(id);
         if (tid == TexID::None) return EClipID::None;
-        return GetEffectClip(tid);
+        return GetEffectClipID(tid);
     }
 
     // Some vclips have very fast speeds (like robot engine glows) that looks bad.
@@ -171,11 +169,6 @@ namespace Inferno::Resources {
         return TexID((int)GameData.AllTexIdx[id]);
     }
 
-    const LevelTexture* TryGetLevelTextureInfo(LevelTexID id) {
-        if (!Seq::inRange(GameData.TexInfo, (int)id)) return nullptr; // fix for invalid ids in some levels
-        return &GameData.TexInfo[(int)id];
-    }
-
     const LevelTexture DefaultTexture{};
 
     const LevelTexture& GetLevelTextureInfo(LevelTexID id) {
@@ -199,21 +192,15 @@ namespace Inferno::Resources {
             return info.DestroyedTexture;
     }
 
-    const PigEntry& GetTextureInfo(TexID id) {
-        return Pig.Get(id);
-    }
+    PigEntry DefaultPigEntry = { .Name = "Unknown", .Width = 64, .Height = 64 };
 
-    const PigEntry* TryGetTextureInfo(TexID id) {
-        if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return nullptr;
-        return &Pig.Get(id);
+    const PigEntry& GetTextureInfo(TexID id) {
+        if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return DefaultPigEntry;
+        return Pig.Get(id);
     }
 
     const PigEntry& GetTextureInfo(LevelTexID id) {
         return Pig.Get(LookupLevelTexID(id));
-    }
-
-    const PigEntry* TryGetTextureInfo(LevelTexID id) {
-        return TryGetTextureInfo(LookupLevelTexID(id));
     }
 
     int GetSoundCount() { return (int)GameData.Sounds.size(); }
@@ -412,8 +399,10 @@ namespace Inferno::Resources {
 
         GetWeapon(WeaponID::Flare).Extended.Sticky = true;
         GetWeapon(WeaponID::Flare).FireDelay = 0.5f;
-        GetWeapon(WeaponID::Flare).Lifetime = 20.0f;
+        GetWeapon(WeaponID::Flare).Lifetime = 30.0f;
         GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
+        GetWeapon(WeaponID::Flare).Extended.ModelPath = "Buddybot.oof";
+        GetWeapon(WeaponID::Flare).Speed.fill(0);
         GetWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
 
         auto& mega = GetWeapon(WeaponID::Mega).Extended;
@@ -432,6 +421,7 @@ namespace Inferno::Resources {
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
         gauss.Extended.ScorchTexture = "BulletHole02";
+        gauss.Extended.ScorchRadius = 1.75f;
 
         auto& shaker = GetWeapon(WeaponID::Shaker).Extended;
         shaker.ScorchTexture = "scorchC";

@@ -98,6 +98,7 @@ namespace Inferno::Render {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
         Materials = MakePtr<MaterialLibrary>(3000);
+        Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
         BriefingCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
@@ -201,7 +202,6 @@ namespace Inferno::Render {
     // Loads a single model at runtime
     void LoadModelDynamic(ModelID id) {
         if (!_meshBuffer) return;
-        //SPDLOG_INFO("LoadModelDynamic: {}", id);
         _meshBuffer->LoadModel(id);
         auto ids = GetTexturesForModel(id);
         Materials->LoadMaterials(ids, false);
@@ -209,16 +209,16 @@ namespace Inferno::Render {
 
     void LoadTextureDynamic(LevelTexID id) {
         List<TexID> list = { Resources::LookupLevelTexID(id) };
-        if (auto eclip = Resources::TryGetEffectClip(id))
-            Seq::append(list, eclip->VClip.GetFrames());
+        auto& eclip = Resources::GetEffectClip(id);
+        Seq::append(list, eclip.VClip.GetFrames());
         Materials->LoadMaterials(list, false);
     }
 
     void LoadTextureDynamic(TexID id) {
         if (id <= TexID::None) return;
         List<TexID> list{ id };
-        if (auto eclip = Resources::TryGetEffectClip(id))
-            Seq::append(list, eclip->VClip.GetFrames());
+        auto& eclip = Resources::GetEffectClip(id);
+        Seq::append(list, eclip.VClip.GetFrames());
         Materials->LoadMaterials(list, false);
     }
 

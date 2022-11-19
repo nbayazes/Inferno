@@ -129,9 +129,9 @@ namespace Inferno {
     };
 
 
-    PigBitmap ReadBitmap(PigFile& pig, const Palette& palette, TexID id);
+    PigBitmap ReadBitmap(const PigFile& pig, const Palette& palette, TexID id);
     PigBitmap ReadBitmapEntry(StreamReader&, size_t dataStart, const PigEntry&, const Palette&);
-    List<PigBitmap> ReadAllBitmaps(PigFile& pig, const Palette& palette);
+    List<PigBitmap> ReadAllBitmaps(const PigFile& pig, const Palette& palette);
 
     Dictionary<TexID, PigBitmap> ReadDTX(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);
     Dictionary<TexID, PigBitmap> ReadPoggies(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);

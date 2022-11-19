@@ -1,12 +1,11 @@
 #pragma once
 
 #include "Heap.h"
-#include "FileSystem.h"
 #include "Resources.h"
 #include "GpuResources.h"
 
 namespace Inferno {
-    inline const D3D12_RANGE CPU_READ_NONE = {};
+    constexpr D3D12_RANGE CPU_READ_NONE = {};
     inline const D3D12_RANGE* CPU_READ_ALL = nullptr;
 
     constexpr uint Align(uint location, uint align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) {

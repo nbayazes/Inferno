@@ -27,21 +27,18 @@ namespace Inferno::Resources {
 
     const VClip& GetVideoClip(VClipID);
     const EffectClip& GetEffectClip(EClipID);
-    const EffectClip* TryGetEffectClip(LevelTexID);
-    const EffectClip* TryGetEffectClip(TexID);
+    const EffectClip& GetEffectClip(LevelTexID);
+    const EffectClip& GetEffectClip(TexID);
 
-    EClipID GetEffectClip(LevelTexID);
-    EClipID GetEffectClip(TexID);
+    EClipID GetEffectClipID(LevelTexID);
+    EClipID GetEffectClipID(TexID);
 
-    const LevelTexture* TryGetLevelTextureInfo(LevelTexID);
     const LevelTexture& GetLevelTextureInfo(LevelTexID);
     const LevelTexture& GetLevelTextureInfo(TexID);
-    LevelTexID GetDestroyedTexture(LevelTexID);
     const PigEntry& GetTextureInfo(TexID);
-    const PigEntry* TryGetTextureInfo(TexID);
-    const PigEntry* TryGetTextureInfo(LevelTexID);
-
     const PigEntry& GetTextureInfo(LevelTexID);
+    LevelTexID GetDestroyedTexture(LevelTexID);
+
     const Model& GetModel(ModelID);
     const RobotInfo& GetRobotInfo(uint);
 

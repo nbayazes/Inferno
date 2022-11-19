@@ -14,6 +14,7 @@
 #include "DirectX.h"
 #include "Physics.h"
 #include "Render.Object.h"
+#include "Shell.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;

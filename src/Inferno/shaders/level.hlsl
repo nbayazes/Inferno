@@ -88,6 +88,16 @@ float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 f
     return f * pixel + (1 - f) * fogColor;
 }
 
+float rand(float2 co) {
+    float dt = dot(co.xy, float2(12.9898, 78.233));
+    float sn = fmod(dt, 3.14);
+    return frac(sin(sn) * 43758.5453);
+}
+
+float rand2(float2 co) {
+    return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453);
+}
+
 // Samples a texture with anti-aliasing. Intended for low resolution textures.
 float4 Sample2DAA(Texture2D tex, float2 uv) {
     // if (disabled)
@@ -102,11 +112,39 @@ float4 Sample2DAA(Texture2D tex, float2 uv) {
     return tex.Sample(LinearSampler, uv_texspace / texsize);
 }
 
+float hash12(float2 p) {
+    float3 p3 = frac(float3(p.xyx) * .1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z).xxx;
+}
+
+float noise(in float2 st) {
+    float2 i = floor(st);
+    float2 f = frac(st);
+
+    // Four corners in 2D of a tile
+    float a = rand(i);
+    float b = rand(i + float2(1.0, 0.0));
+    float c = rand(i + float2(0.0, 1.0));
+    float d = rand(i + float2(1.0, 1.0));
+
+    // Smooth Interpolation
+    float2 u = smoothstep(0, 1, f);
+
+    // Mix 4 coorners percentages
+    return lerp(a, b, u.x) +
+            (c - a) * u.y * (1.0 - u.x) +
+            (d - b) * u.x * u.y;
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
     float4 specular = Specular(-viewDir, viewDir, input.normal, 4);
+    // adding noise fixes dithering, but this is expensive. sample a texture instead
+    //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
+    
     float4 lighting = lerp(1, max(0, input.col), LightingScale);
     //float d = dot(input.normal, viewDir);
     //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
