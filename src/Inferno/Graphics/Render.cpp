@@ -98,7 +98,7 @@ namespace Inferno::Render {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
         Materials = MakePtr<MaterialLibrary>(3000);
-        Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
+        //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
         BriefingCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);

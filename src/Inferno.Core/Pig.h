@@ -66,7 +66,7 @@ namespace Inferno {
 
         PigBitmap() : Width(0), Height(0) {}
         PigBitmap(uint16 width, uint16 height, string name) 
-            : Width(width), Height(height), Name(name) {}
+            : Width(width), Height(height), Name(std::move(name)) {}
         ~PigBitmap() = default;
         PigBitmap(const PigBitmap&) = delete;
         PigBitmap(PigBitmap&&) = default;
@@ -109,10 +109,10 @@ namespace Inferno {
         static constexpr uint8 AnimatedFlag = 64;
     };
 
-    // A texture file
+    // A Descent 1 or 2 texture archive
     struct PigFile {
         wstring Path;
-        size_t DataStart;
+        size_t DataStart = 0;
         List<PigEntry> Entries;
 
         const PigEntry& Get(TexID id) const {

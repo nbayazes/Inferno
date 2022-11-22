@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Game.h"
+
+#include <numeric>
+
 #include "FileSystem.h"
 #include "Graphics/Render.h"
 #include "Resources.h"
@@ -62,8 +65,14 @@ namespace Inferno::Game {
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();
+
+            //List<TexID> ids(Resources::GetTextureCount());
+            //for (size_t i = 0; i < ids.size(); i++)
+            //    ids[i] = TexID(i);
+            //Render::Materials2->LoadMaterials(ids, false);
         }
-        catch (const std::exception&) {
+        catch (const std::exception& e) {
+            SPDLOG_ERROR(e.what());
             Level = backup; // restore the old level if something went wrong
             throw;
         }
@@ -542,13 +551,13 @@ namespace Inferno::Game {
     Camera EditorCameraSnapshot;
 
     SoundID GetSoundForSide(const SegmentSide& side) {
-        auto ti1 = Resources::TryGetEffectClip(side.TMap);
-        auto ti2 = Resources::TryGetEffectClip(side.TMap2);
+        auto& ti1 = Resources::GetEffectClip(side.TMap);
+        auto& ti2 = Resources::GetEffectClip(side.TMap2);
 
-        if (ti1 && ti1->Sound != SoundID::None)
-            return ti1->Sound;
-        if (ti2 && ti2->Sound != SoundID::None)
-            return ti2->Sound;
+        if (ti1.Sound != SoundID::None)
+            return ti1.Sound;
+        if (ti2.Sound != SoundID::None)
+            return ti2.Sound;
 
         return SoundID::None;
     }

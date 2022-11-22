@@ -585,6 +585,8 @@ namespace Inferno::Resources {
         return Textures[(int)id];
     }
 
+    int GetTextureCount() { return Textures.size(); }
+
     List<ubyte> ReadFile(string file) {
         // Search mounted mission first
         if (Game::Mission && Game::Mission->Exists(file))

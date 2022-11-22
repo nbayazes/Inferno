@@ -56,6 +56,7 @@ namespace Inferno::Resources {
     void LoadLevel(Level&);
 
     const PigBitmap& ReadBitmap(TexID);
+    int GetTextureCount();
 
     inline HamFile GameData = {};
 

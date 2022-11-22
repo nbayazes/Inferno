@@ -87,7 +87,15 @@ namespace Inferno::Render {
         return Vector3::DistanceSquared(Render::Camera.Position, pos);
     }
 
-    void DrawBillboard(Graphics::GraphicsContext& ctx, TexID tid, const Vector3& position, float radius, const Color& color, bool additive, float rotation, const Vector3* up);
+    void DrawBillboard(Graphics::GraphicsContext& ctx, 
+                       TexID tid, 
+                       const Vector3& position, 
+                       float radius,
+                       const Color& color, 
+                       bool additive,
+                       float rotation,
+                       const Vector3* up);
+
     extern bool LevelChanged;
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
     PackedBuffer* GetLevelMeshBuffer();

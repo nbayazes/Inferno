@@ -22,13 +22,12 @@ namespace Inferno {
         GpuResource& operator=(const GpuResource&) = delete;
         GpuResource& operator=(GpuResource&&) = default;
 
-        ID3D12Resource* Get() { return _resource.Get(); }
+        ID3D12Resource* Get() const { return _resource.Get(); }
         ID3D12Resource* operator->() { return _resource.Get(); }
         const ID3D12Resource* operator->() const { return _resource.Get(); }
-        operator bool() { return _resource.Get() != nullptr; }
-        void Release() {
-            _resource.Reset();
-        }
+        operator bool() const { return _resource.Get() != nullptr; }
+        void Release() { _resource.Reset(); }
+        D3D12_RESOURCE_DESC& Description() { return _desc; }
 
         void Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
             if (_state == state) return;
@@ -44,36 +43,52 @@ namespace Inferno {
             _state = state;
         }
 
-        void CreateOnUploadHeap(wstring name, D3D12_CLEAR_VALUE* clearValue = nullptr) {
+        void CreateOnUploadHeap(wstring name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }
 
-        void CreateOnDefaultHeap(wstring name, D3D12_CLEAR_VALUE* clearValue = nullptr) {
+        void CreateOnDefaultHeap(wstring name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue);
         }
 
+        // Creates a resource at a specific location in a heap
+        CD3DX12_RESOURCE_BARRIER CreatePlacedResource(ID3D12Device* device,
+                                                      ID3D12Heap* heap,
+                                                      size_t offset,
+                                                      wstring name) {
+            ThrowIfFailed(device->CreatePlacedResource(
+                heap,
+                offset,
+                &_desc,
+                D3D12_RESOURCE_STATE_COMMON,
+                nullptr,
+                IID_PPV_ARGS(&_resource)));
+
+            _resource->SetName(name.c_str());
+            return CD3DX12_RESOURCE_BARRIER::Aliasing(nullptr, _resource.Get());
+        }
+
         // If desc is null then default initialization is used. Not supported for all resources.
-        void CreateShaderResourceView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr) {
+        void CreateShaderResourceView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr) const {
             Render::Device->CreateShaderResourceView(Get(), desc, dest);
         }
 
         // If desc is null then default initialization is used. Not supported for all resources.
-        void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) {
+        void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) const {
             Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
         }
 
     private:
-        void Create(D3D12_HEAP_TYPE heapType, wstring name, D3D12_CLEAR_VALUE* clearValue) {
+        void Create(D3D12_HEAP_TYPE heapType, wstring name, const D3D12_CLEAR_VALUE* clearValue) {
             _heapType = heapType;
             CD3DX12_HEAP_PROPERTIES props(_heapType);
-            ThrowIfFailed(
-                Render::Device->CreateCommittedResource(
-                    &props,
-                    D3D12_HEAP_FLAG_NONE,
-                    &_desc,
-                    _state,
-                    clearValue,
-                    IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
+            ThrowIfFailed(Render::Device->CreateCommittedResource(
+                &props,
+                D3D12_HEAP_FLAG_NONE,
+                &_desc,
+                _state,
+                clearValue,
+                IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
             _resource->SetName(name.c_str());
             _name = name;
@@ -152,7 +167,7 @@ namespace Inferno {
             Render::Device->CreateRenderTargetView(Get(), &_rtvDesc, _rtv.GetCpuHandle());
         }
 
-        bool IsMultisampled() { return _desc.SampleDesc.Count > 1; }
+        bool IsMultisampled() const { return _desc.SampleDesc.Count > 1; }
 
         // Copies a MSAA source into a non-sampled buffer
         void ResolveFromMultisample(ID3D12GraphicsCommandList* commandList, PixelBuffer& src) {
@@ -165,9 +180,14 @@ namespace Inferno {
         }
     };
 
+    // GPU 2D Texture resource
     class Texture2D : public PixelBuffer {
     public:
         Texture2D() = default;
+        Texture2D(ComPtr<ID3D12Resource> resource) {
+            _resource = std::move(resource);
+            _desc = _resource->GetDesc();
+        }
 
         // Uploads a resource with no mip-mapping. Intended for use with low res textures.
         void Load(DirectX::ResourceUploadBatch& batch,
@@ -190,7 +210,7 @@ namespace Inferno {
             upload.SlicePitch = upload.RowPitch * GetHeight();
 
             if (!_resource)
-                CreateOnDefaultHeap(name, nullptr);
+                CreateOnDefaultHeap(name);
 
             auto resource = _resource.Get();
             batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -203,7 +223,6 @@ namespace Inferno {
         void Create(int width, int height,
                     wstring name,
                     DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
-
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -215,13 +234,27 @@ namespace Inferno {
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        Tuple<Ptr<uint8[]>, List<D3D12_SUBRESOURCE_DATA>> CreateFromDDS(filesystem::path path) {
-            Ptr<uint8[]> data;
-            List<D3D12_SUBRESOURCE_DATA> subres;
-            // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
-            ThrowIfFailed(DirectX::LoadDDSTextureFromFile(Render::Device, path.c_str(), _resource.ReleaseAndGetAddressOf(), data, subres));
-            _state = D3D12_RESOURCE_STATE_COPY_DEST;
-            return { std::move(data), std::move(subres) };
+        void CreateNoHeap(int width, int height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+        }
+
+        // Returns the small placement alignment size in bytes
+        D3D12_RESOURCE_ALLOCATION_INFO GetPlacementAlignment(ID3D12Device* device) {
+            _desc.Alignment = D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT;
+            auto info = device->GetResourceAllocationInfo(0, 1, &_desc);
+            if (info.Alignment != D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT) {
+                // If the alignment requested is not granted, then let D3D tell us
+                // the alignment that needs to be used for these resources.
+                _desc.Alignment = 0;
+                info = device->GetResourceAllocationInfo(0, 1, &_desc);
+            }
+
+            return info;
         }
 
         bool LoadDDS(DirectX::ResourceUploadBatch& batch, filesystem::path path) {
@@ -232,19 +265,24 @@ namespace Inferno {
             _desc = _resource->GetDesc();
             return true;
         }
+
+        // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
+        void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
+            ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
+            _resource->SetName(path.c_str());
+            _state = D3D12_RESOURCE_STATE_COPY_DEST;
+        }
     };
 
     // Color buffer for render targets or compute shaders
     class ColorBuffer : public PixelBuffer {
-        uint32 _fragmentCount, _sampleCount;
+        uint32 _sampleCount = 0;
 
     public:
         Color ClearColor = { 0, 0, 0, 1 };
 
         void Create(wstring name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
             _sampleCount = samples;
-
-            CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1, samples);
             _desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
@@ -279,12 +317,12 @@ namespace Inferno {
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
             _srvDesc.Format = format;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Buffer.NumElements = (UINT)size / 4;
+            _srvDesc.Buffer.NumElements = size / 4;
             _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
             _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
             _uavDesc.Format = format;
-            _uavDesc.Buffer.NumElements = (UINT)size / 4;
+            _uavDesc.Buffer.NumElements = size / 4;
             _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
         }
 
@@ -350,7 +388,7 @@ namespace Inferno {
             commandList->ClearDepthStencilView(_dsv.GetCpuHandle(), D3D12_CLEAR_FLAG_DEPTH, StencilDepth, 0, 0, nullptr);
         }
 
-        auto GetDSV() { return _dsv.GetCpuHandle(); }
+        auto GetDSV() const { return _dsv.GetCpuHandle(); }
         //auto GetReadOnlyDSV() { return _roDescriptor.GetCpuHandle(); }
 
     private:

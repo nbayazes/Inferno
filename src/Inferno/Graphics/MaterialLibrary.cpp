@@ -233,7 +233,7 @@ namespace Inferno::Render {
 
     Option<Material2D> UploadOutrageMaterial(ResourceUploadBatch& batch,
                                              const Outrage::Bitmap& bitmap,
-                                             Texture2D& defaultTex) {
+                                             const Texture2D& defaultTex) {
         Material2D material;
         material.Index = Render::Heaps->Shader.AllocateIndex();
         assert(!bitmap.Mips.empty());
@@ -334,9 +334,9 @@ namespace Inferno::Render {
         for (auto& upload : uploads)
             _materials[(int)upload.ID] = std::move(upload);
 
+        SPDLOG_INFO("LoadMaterials: {:.3f}s", time.GetElapsedSeconds());
         Render::Adapter->PrintMemoryUsage();
         Render::Heaps->Shader.GetFreeDescriptors();
-        SPDLOG_INFO("LoadMaterials: {:.3f}s", time.GetElapsedSeconds());
     }
 
     void MaterialLibrary::LoadMaterialsAsync(span<const TexID> tids, bool forceLoad) {
@@ -495,15 +495,6 @@ namespace Inferno::Render {
         TrashTextures(std::move(trash));
     }
 
-    constexpr void FillTexture(span<ubyte> data, ubyte red, ubyte green, ubyte blue, ubyte alpha) {
-        for (size_t i = 0; i < data.size() / 4; i++) {
-            data[i * 4] = red;
-            data[i * 4 + 1] = green;
-            data[i * 4 + 2] = blue;
-            data[i * 4 + 3] = alpha;
-        }
-    }
-
     void MaterialLibrary::LoadDefaults() {
         auto batch = BeginTextureUpload();
 
@@ -548,7 +539,6 @@ namespace Inferno::Render {
                 _black.CreateShaderResourceView(handle.GetCpuHandle());
             }
         }
-
 
         EndTextureUpload(batch);
     }
