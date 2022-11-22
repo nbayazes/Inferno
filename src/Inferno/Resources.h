@@ -20,10 +20,8 @@ namespace Inferno::Resources {
     int GetSoundIndex(SoundID id);
     SoundResource GetSoundResource(SoundID id);
 
-    WClipID GetWallClipID(LevelTexID);
-    const WallClip& GetWallClip(WClipID);
-    const WallClip* TryGetWallClip(WClipID);
-    //const WallClip* TryGetWallClip(LevelTexID);
+    DClipID GetDoorClipID(LevelTexID);
+    const DoorClip& GetDoorClip(DClipID);
 
     const VClip& GetVideoClip(VClipID);
     const EffectClip& GetEffectClip(EClipID);

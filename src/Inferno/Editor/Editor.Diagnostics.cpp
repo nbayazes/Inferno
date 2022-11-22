@@ -68,8 +68,8 @@ namespace Inferno::Editor {
         for (int id = 0; id < level.Walls.size(); id++) {
             auto& wall = level.GetWall((WallID)id);
             wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
-            if (wall.Clip == WClipID(2)) { // ID 2 is bad and has no animation
-                if (FixWallClip(wall))
+            if (wall.Clip == DClipID(2)) { // ID 2 is bad and has no animation
+                if (FixDoorClip(wall))
                     SPDLOG_WARN("Fixed invalid wall clip on {}:{}", wall.Tag.Segment, wall.Tag.Side);
             }
         }

@@ -417,10 +417,10 @@ namespace Inferno::Editor {
             side.UVs = srcSeg.Sides[i].UVs;
 
             // Clear door textures
-            if (Resources::GetWallClipID(side.TMap) != WClipID::None)
+            if (Resources::GetDoorClipID(side.TMap) != DClipID::None)
                 side.TMap = LevelTexID::Unset;
 
-            if (Resources::GetWallClipID(side.TMap2) != WClipID::None)
+            if (Resources::GetDoorClipID(side.TMap2) != DClipID::None)
                 side.TMap2 = LevelTexID::Unset;
         }
 
@@ -797,17 +797,17 @@ namespace Inferno::Editor {
             return trigger.Type == TriggerType::Exit;
     }
 
-    void SetTextureFromWallClip(Level& level, Tag tag, WClipID id) {
+    void SetTextureFromDoorClip(Level& level, Tag tag, DClipID id) {
         auto side = level.TryGetSide(tag);
-        auto clip = Resources::TryGetWallClip(id);
-        if (!side || !clip) return;
+        if (!side) return;
+        auto& clip = Resources::GetDoorClip(id);
 
-        if (clip->NumFrames < 0) return;
+        if (clip.NumFrames < 0) return;
 
-        if (clip->UsesTMap1())
-            side->TMap = clip->Frames[0];
+        if (clip.HasFlag(DoorClipFlag::TMap1))
+            side->TMap = clip.Frames[0];
         else
-            side->TMap2 = clip->Frames[0];
+            side->TMap2 = clip.Frames[0];
 
         if (auto wall = level.TryGetWall(tag))
             wall->Clip = id;
@@ -1088,7 +1088,7 @@ namespace Inferno::Editor {
 
         if (opposite.Segment < tag.Segment)
             tag.Segment--;
-        
+
         Editor::Selection.SetSelection(tag.Segment);
         std::array segs = { tag.Segment };
         auto tags = FacesForSegments(segs);

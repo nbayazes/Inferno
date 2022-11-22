@@ -52,7 +52,7 @@ namespace Inferno {
         WallFlag Flags = WallFlag::None;
         WallState State = WallState::Closed;
         TriggerID Trigger = TriggerID::None; // Trigger for this wall
-        WClipID Clip = WClipID::None; // Animation to play for a door
+        DClipID Clip = DClipID::None; // Animation to play for a door
         WallKey Keys = WallKey::None; // Required keys to open a door
         TriggerID ControllingTrigger = TriggerID::None; // Which trigger causes something to happen here. Should be saved as none from editor.
         sbyte cloak_value = 0; // Fade percentage if this wall is cloaked

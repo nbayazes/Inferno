@@ -599,24 +599,24 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    bool WallClipDropdown(WClipID& id) {
+    bool DoorClipDropdown(DClipID& id) {
         bool changed = false;
 
         auto label = std::to_string((int)id);
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##segs", label.c_str(), ImGuiComboFlags_HeightLarge)) {
-            for (int i = 0; i < Resources::GameData.WallClips.size(); i++) {
+            for (int i = 0; i < Resources::GameData.DoorClips.size(); i++) {
                 if (i == 2) continue; // clip 2 is invalid and has no animation frames
                 const bool isSelected = (int)id == i;
-                auto itemLabel = std::to_string((int)i);
-                auto& clip = Resources::GameData.WallClips[i];
+                auto itemLabel = std::to_string(i);
+                auto& clip = Resources::GameData.DoorClips[i];
                 TexturePreview(clip.Frames[0], { 32 * Shell::DpiScale, 32 * Shell::DpiScale });
 
                 ImGui::SameLine();
                 ImGui::AlignTextToFramePadding();
                 if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
                     changed = true;
-                    id = (WClipID)i;
+                    id = (DClipID)i;
                 }
 
                 if (isSelected)
@@ -629,12 +629,11 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    void OnChangeWallClip(Level& level, const Wall& wall) {
-        SetTextureFromWallClip(level, wall.Tag, wall.Clip);
-        if (auto clip = Resources::TryGetWallClip(wall.Clip)) {
-            Render::LoadTextureDynamic(clip->Frames[0]);
-            Events::LevelChanged();
-        }
+    void OnChangeDoorClip(Level& level, const Wall& wall) {
+        SetTextureFromDoorClip(level, wall.Tag, wall.Clip);
+        auto& clip = Resources::GetDoorClip(wall.Clip);
+        Render::LoadTextureDynamic(clip.Frames[0]);
+        Events::LevelChanged();
     }
 
     bool WallLightDropdown(Option<bool>& value) {
@@ -728,17 +727,18 @@ namespace Inferno::Editor {
 
                 switch (wall->Type) {
                     case WallType::Destroyable:
+                    {
                         ImGui::TableRowLabel("Clip");
-                        if (WallClipDropdown(wall->Clip)) {
-                            OnChangeWallClip(level, *wall);
+                        if (DoorClipDropdown(wall->Clip)) {
+                            OnChangeDoorClip(level, *wall);
                             if (other && Settings::Editor.EditBothWallSides) {
                                 other->Clip = wall->Clip;
-                                OnChangeWallClip(level, *other);
+                                OnChangeDoorClip(level, *other);
                             }
                         }
 
-                        if (auto clip = Resources::TryGetWallClip(wall->Clip))
-                            TexturePreview(clip->Frames[0]);
+                        auto& clip = Resources::GetDoorClip(wall->Clip);
+                        TexturePreview(clip.Frames[0]);
 
                         ImGui::TableRowLabel("Hit points");
                         ImGui::SetNextItemWidth(-1);
@@ -749,20 +749,21 @@ namespace Inferno::Editor {
 
                         //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
                         break;
+                    }
 
                     case WallType::Door:
                     {
                         ImGui::TableRowLabel("Clip");
-                        if (WallClipDropdown(wall->Clip)) {
-                            OnChangeWallClip(level, *wall);
+                        if (DoorClipDropdown(wall->Clip)) {
+                            OnChangeDoorClip(level, *wall);
                             if (other && Settings::Editor.EditBothWallSides) {
                                 other->Clip = wall->Clip;
-                                OnChangeWallClip(level, *other);
+                                OnChangeDoorClip(level, *other);
                             }
                         }
 
-                        if (auto clip = Resources::TryGetWallClip(wall->Clip))
-                            TexturePreview(clip->Frames[0]);
+                        auto& clip = Resources::GetDoorClip(wall->Clip);
+                        TexturePreview(clip.Frames[0]);
 
                         ImGui::TableRowLabel("Key");
                         if (KeyDropdown(wall->Keys))
@@ -772,22 +773,26 @@ namespace Inferno::Editor {
                         if (flagCheckbox("Opened", WallFlag::DoorOpened, wall)) {
                             // If opened, also set the wall state to open so that close triggers will work on it
                             bool opened = wall->HasFlag(WallFlag::DoorOpened);
-                            auto& wclip = Resources::GetWallClip(wall->Clip);
+                            auto& wclip = Resources::GetDoorClip(wall->Clip);
                             auto tmap = opened ? wclip.GetFrames().back() : wclip.Frames[0];
 
                             wall->State = opened ? WallState::DoorOpen : WallState::Closed;
 
                             if (auto side = level.TryGetSide(wall->Tag)) {
-                                if (wclip.UsesTMap1()) side->TMap = tmap;
-                                else side->TMap2 = tmap;
+                                if (wclip.HasFlag(DoorClipFlag::TMap1))
+                                    side->TMap = tmap;
+                                else
+                                    side->TMap2 = tmap;
                             }
 
                             if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type) {
                                 other->State = opened ? WallState::DoorOpen : WallState::Closed;
 
                                 if (auto side = level.TryGetSide(other->Tag)) {
-                                    if (wclip.UsesTMap1()) side->TMap = tmap;
-                                    else side->TMap2 = tmap;
+                                    if (wclip.HasFlag(DoorClipFlag::TMap1))
+                                        side->TMap = tmap;
+                                    else
+                                        side->TMap2 = tmap;
                                 }
                             }
 
@@ -952,7 +957,7 @@ namespace Inferno::Editor {
             otherWall->Flags = wall->Flags;
             otherWall->Keys = wall->Keys;
             otherWall->cloak_value = wall->cloak_value;
-            OnChangeWallClip(level, *otherWall);
+            OnChangeDoorClip(level, *otherWall);
         }
     }
 

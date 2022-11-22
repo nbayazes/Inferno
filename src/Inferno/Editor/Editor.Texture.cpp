@@ -253,7 +253,7 @@ namespace Inferno::Editor {
         for (auto& tag : GetSelectedFaces()) {
             if (!Game::Level.SegmentExists(tag)) continue;
             auto& side = Game::Level.GetSide(tag);
-            auto wclip = WClipID::None;
+            auto dclip = DClipID::None;
 
             if (tmap2 != LevelTexID::None) {
                 side.TMap2 = tmap2;
@@ -261,17 +261,17 @@ namespace Inferno::Editor {
 
             if (tmap1 != LevelTexID::None) {
                 side.TMap = tmap1;
-                wclip = Resources::GetWallClipID(tmap1);
+                dclip = Resources::GetDoorClipID(tmap1);
             }
 
             if (side.TMap == side.TMap2)
                 side.TMap2 = LevelTexID::Unset; // Unset if overlay is the same as tmap1
 
             if (side.TMap2 > LevelTexID::Unset)
-                wclip = Resources::GetWallClipID(tmap2);
+                dclip = Resources::GetDoorClipID(tmap2);
 
-            if (wclip != WClipID::None)
-                SetTextureFromWallClip(Game::Level, tag, wclip);
+            if (dclip != DClipID::None)
+                SetTextureFromDoorClip(Game::Level, tag, dclip);
         }
 
         Events::LevelChanged();

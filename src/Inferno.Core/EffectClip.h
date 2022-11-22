@@ -57,32 +57,32 @@ namespace Inferno {
         Tag OneShotTag; //what seg & side, for one-shot clips. Probably unused
     };
 
-    enum class WallClipFlag : int16 {
+    enum class DoorClipFlag : int16 {
         Explodes = 1,  // door explodes when opening (hostage door)
         Blastable = 2, // this is a blastable wall
         TMap1 = 4,     // this uses primary tmap, not tmap2
         Hidden = 8
     };
 
-    //DEFINE_ENUM_FLAG_OPERATORS(WallClipFlag);
+    //DEFINE_ENUM_FLAG_OPERATORS(DoorClipFlag);
 
     // Wall animation clip (doors)
-    struct WallClip {
+    struct DoorClip {
         float PlayTime{};
         int16 NumFrames{};
         Array<LevelTexID, 50> Frames{};
         SoundID OpenSound{}, CloseSound{};
-        WallClipFlag Flags{};
+        DoorClipFlag Flags{};
         string Filename;
 
-        span<const LevelTexID> GetFrames() const {
-            return span<const LevelTexID>(Frames.begin(), NumFrames);
+        DoorClip() {
+            Frames.fill(LevelTexID::None);
         }
 
-        bool HasFlag(WallClipFlag flag) const { return bool(Flags & flag); }
+        span<const LevelTexID> GetFrames() const {
+            return span(Frames.begin(), NumFrames);
+        }
 
-        // Uses tmap1, otherwise tmap2
-        bool UsesTMap1() const { return (bool)((WallClipFlag)((int16)Flags & (int16)WallClipFlag::TMap1)); }
+        bool HasFlag(DoorClipFlag flag) const { return bool(Flags & flag); }
     };
-
 }

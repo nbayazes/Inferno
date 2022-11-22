@@ -377,7 +377,7 @@ namespace Inferno {
             w.Flags = (WallFlag)_reader.ReadByte();
             w.State = (WallState)_reader.ReadByte();
             w.Trigger = (TriggerID)_reader.ReadByte();
-            w.Clip = (WClipID)_reader.ReadByte();
+            w.Clip = (DClipID)_reader.ReadByte();
             w.Keys = (WallKey)_reader.ReadByte();
             w.ControllingTrigger = (TriggerID)_reader.ReadByte();
             w.cloak_value = _reader.ReadByte();

@@ -57,6 +57,13 @@ namespace Inferno {
         RleBig = 32     // for bitmaps that RLE to > 255 per row (i.e. cockpits)
     };
 
+    enum class BitmapType {
+        Level, // walls, wall clips
+        Object,
+        Effect, // vclips
+        UI // menus, HUD
+    };
+
     struct PigBitmap {
         List<Palette::Color> Mask;
         List<Palette::Color> Data;

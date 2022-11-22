@@ -200,8 +200,8 @@ namespace Inferno {
         Unset = 0 // Used for unset overlays and open connections
     };
     enum class WallID : int16 { None = -1, Max = 255 }; // Unfortunately segments save their wall IDs as bytes, limiting us to 255
-    enum class WClipID : sbyte { None = -1, Unset = 2 }; // Wall clip ID
-    enum class EClipID : int16 { None = -1 }; // Effect clip ID
+    enum class DClipID : sbyte { None = -1, Unset = 2 }; // Door clip ID (wall clips)
+    enum class EClipID : int16 { None = -1 }; // Effect clip ID (animation on a wall)
     enum class MatcenID : uint8 { None = 255 };
     enum class TriggerID : uint8 { None = 255 };
 

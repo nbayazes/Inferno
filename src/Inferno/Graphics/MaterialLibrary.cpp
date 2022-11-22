@@ -94,10 +94,9 @@ namespace Inferno::Render {
 
                 // Door clips
                 if (auto wall = level.TryGetWall(side.Wall)) {
-                    if (auto wclip = Resources::TryGetWallClip(wall->Clip)) {
-                        auto wids = Seq::map(wclip->GetFrames(), Resources::LookupLevelTexID);
-                        Seq::insert(ids, wids);
-                    }
+                    auto& wclip = Resources::GetDoorClip(wall->Clip);
+                    auto wids = Seq::map(wclip.GetFrames(), Resources::LookupLevelTexID);
+                    Seq::insert(ids, wids);
                 }
             }
         }
@@ -126,11 +125,27 @@ namespace Inferno::Render {
     List<TexID> GetDoorTextures() {
         List<TexID> ids;
 
-        for (auto& clip : Resources::GameData.WallClips) {
+        for (auto& clip : Resources::GameData.DoorClips) {
             auto id = Resources::LookupLevelTexID(clip.Frames[0]);
             ids.push_back(id);
         }
 
+        return ids;
+    }
+
+    List<TexID> GetEffectTextures() {
+        List<TexID> ids;
+
+        //for (auto& effect : Resources::GameData.Effects) {
+        //    auto id = Resources::LookupLevelTexID(effect. clip.Frames[0]);
+        //    ids.push_back(id);
+        //}
+
+        return ids;
+    }
+
+    List<TexID> GetUITextures() {
+        List<TexID> ids;
         return ids;
     }
 

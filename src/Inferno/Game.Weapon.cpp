@@ -147,19 +147,19 @@ namespace Inferno::Game {
             }
         }
 
-        const int children = 6; // todo: add to extended weapon data
-        auto wid = parentType == ObjectType::Player ? WeaponID::PlayerSmartBlob : WeaponID::RobotSmartBlob;
+        //const int children = 6; // todo: add to extended weapon data
+        //auto wid = parentType == ObjectType::Player ? WeaponID::PlayerSmartBlob : WeaponID::RobotSmartBlob;
 
-        if (targets.empty()) {
-            for (int i = 0; i < children; i++) {
-                //CreateHomingWeapon(-1); // random target
-            }
-        }
-        else {
-            for (int i = 0; i < children; i++) {
-                //CreateHomingWeapon(); // use random target in list
-            }
-        }
+        //if (targets.empty()) {
+        //    for (int i = 0; i < children; i++) {
+        //        //CreateHomingWeapon(-1); // random target
+        //    }
+        //}
+        //else {
+        //    for (int i = 0; i < children; i++) {
+        //        //CreateHomingWeapon(); // use random target in list
+        //    }
+        //}
     }
 
     // Returns a random point inside of a circle

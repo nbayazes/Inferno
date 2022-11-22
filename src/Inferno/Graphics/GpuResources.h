@@ -307,24 +307,24 @@ namespace Inferno {
         }
 
         // Creates a buffer for use with unordered access
-        void CreateUnorderedAccess(wstring name, uint size,
-                                   DXGI_FORMAT format = DXGI_FORMAT_R32_TYPELESS,
-                                   D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
-                                   UINT64 alignment = 0) {
-            _desc = CD3DX12_RESOURCE_DESC::Buffer(size, flags, alignment);
-            _state = D3D12_RESOURCE_STATE_GENERIC_READ;
+        //void CreateUnorderedAccess(wstring name, uint size,
+        //                           DXGI_FORMAT format = DXGI_FORMAT_R32_TYPELESS,
+        //                           D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
+        //                           UINT64 alignment = 0) {
+        //    _desc = CD3DX12_RESOURCE_DESC::Buffer(size, flags, alignment);
+        //    _state = D3D12_RESOURCE_STATE_GENERIC_READ;
 
-            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-            _srvDesc.Format = format;
-            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Buffer.NumElements = size / 4;
-            _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+        //    _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        //    _srvDesc.Format = format;
+        //    _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        //    _srvDesc.Buffer.NumElements = size / 4;
+        //    _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
 
-            _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-            _uavDesc.Format = format;
-            _uavDesc.Buffer.NumElements = size / 4;
-            _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
-        }
+        //    _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        //    _uavDesc.Format = format;
+        //    _uavDesc.Buffer.NumElements = size / 4;
+        //    _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+        //}
 
         void Clear(ID3D12GraphicsCommandList* cmdList) {
             DirectX::TransitionResource(cmdList, Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);

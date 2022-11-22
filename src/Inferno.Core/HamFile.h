@@ -66,9 +66,9 @@ namespace Inferno {
         List<LevelTexture> TexInfo; // Level texture info. Must match length of AllTexIdx.
         List<uint8> Sounds; // Maps SoundID to entry in S11/S22 file
         List<uint8> AltSounds; // Low memory sounds, unneeded
-        List<VClip> VClips;
-        List<EffectClip> Effects;
-        List<WallClip> WallClips;
+        List<VClip> VClips; // Particles, explosions
+        List<EffectClip> Effects; // Animated wall textures
+        List<DoorClip> DoorClips;
         List<RobotInfo> Robots;
         List<JointPos> RobotJoints;
         List<Weapon> Weapons;

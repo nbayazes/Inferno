@@ -637,6 +637,43 @@ namespace Inferno::Game {
         }
     }
 
+    // Preloads textures for a level
+    void PreloadTextures() {
+
+
+        string customHudTextures[] = {
+                "cockpit-ctr",
+                "cockpit-left",
+                "cockpit-right",
+                "gauge01b#0",
+                "gauge01b#1",
+                "gauge01b#2",
+                "gauge01b#3",
+                "gauge01b#4",
+                "gauge01b#5",
+                "gauge01b#6",
+                "gauge01b#7",
+                "gauge01b#8",
+                "gauge01b#10",
+                "gauge01b#11",
+                "gauge01b#12",
+                "gauge01b#13",
+                "gauge01b#14",
+                "gauge01b#15",
+                "gauge01b#16",
+                "gauge01b#17",
+                "gauge01b#18",
+                "gauge01b#19",
+                "gauge02b",
+                "gauge03b",
+                //"gauge16b", // lock
+                "Hilite",
+                "SmHilite"
+        };
+
+        Render::Materials->LoadTextures(customHudTextures);
+    }
+
     void ToggleEditorMode() {
         if (State == GameState::Game) {
             // Activate editor mode
@@ -711,37 +748,8 @@ namespace Inferno::Game {
             Input::SetMouselook(true);
             Render::LoadHUDTextures();
 
-            string customHudTextures[] = {
-                "cockpit-ctr",
-                "cockpit-left",
-                "cockpit-right",
-                "gauge01b#0",
-                "gauge01b#1",
-                "gauge01b#2",
-                "gauge01b#3",
-                "gauge01b#4",
-                "gauge01b#5",
-                "gauge01b#6",
-                "gauge01b#7",
-                "gauge01b#8",
-                "gauge01b#10",
-                "gauge01b#11",
-                "gauge01b#12",
-                "gauge01b#13",
-                "gauge01b#14",
-                "gauge01b#15",
-                "gauge01b#16",
-                "gauge01b#17",
-                "gauge01b#18",
-                "gauge01b#19",
-                "gauge02b",
-                "gauge03b",
-                //"gauge16b", // lock
-                "Hilite",
-                "SmHilite"
-            };
+            PreloadTextures();
 
-            Render::Materials->LoadTextures(customHudTextures);
             Player.GiveWeapon(PrimaryWeaponIndex::Laser);
             Player.GiveWeapon(PrimaryWeaponIndex::Vulcan);
             Player.GiveWeapon(PrimaryWeaponIndex::Spreadfire);

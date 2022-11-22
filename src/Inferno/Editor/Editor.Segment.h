@@ -18,7 +18,7 @@ namespace Inferno::Editor {
     bool IsSecretExit(const Trigger& trigger);
     bool IsExit(const Trigger& trigger);
 
-    void SetTextureFromWallClip(Level&, Tag, WClipID);
+    void SetTextureFromDoorClip(Level&, Tag, DClipID);
     bool AddFlickeringLight(Level& level, Tag tag, FlickeringLight light);
 
     void BreakConnection(Level& level, Tag tag);

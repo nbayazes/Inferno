@@ -116,6 +116,7 @@ namespace Inferno::Render {
     ComPtr<ID3D12CommandQueue> EndTextureUpload(DirectX::ResourceUploadBatch&);
 
     List<TexID> GetTexturesForModel(ModelID id);
+    Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors);
 
     inline Ptr<MaterialLibrary> Materials;
 
@@ -420,11 +421,10 @@ namespace Inferno::Render {
         }
 
         Option<TextureUpload> LoadDDS(const filesystem::path& path) const {
-            return {};
-            //TextureUpload upload;
-            //upload.Texture.LoadDDS(_device, path, upload.data, upload.subresources);
-            //upload.OnHeap = true;
-            //return upload;
+            TextureUpload upload;
+            upload.Texture.LoadDDS(_device, path, upload.data, upload.subresources);
+            upload.OnHeap = true;
+            return upload;
         }
 
         void CopyToGpu(const TextureUpload& upload) {

@@ -64,32 +64,20 @@ namespace Inferno::Resources {
         LoadRobotNames("robots.txt");
     }
 
-    const WallClip& GetWallClip(WClipID id) {
-        return GameData.WallClips[(int)id];
+    DoorClip DefaultDoorClip{};
+
+    const DoorClip& GetDoorClip(DClipID id) {
+        if (!Seq::inRange(GameData.DoorClips, (int)id)) return DefaultDoorClip;
+        return GameData.DoorClips[(int)id];
     }
 
-    const WallClip* TryGetWallClip(WClipID id) {
-        if (!Seq::inRange(GameData.WallClips, (int)id)) return nullptr;
-        return &GameData.WallClips[(int)id];
-    }
-
-    //const WallClip* TryGetWallClip(LevelTexID id) {
-    //    for (int i = 0; i < GameData.WallClips.size(); i++) {
-    //        if (GameData.WallClips[i].NumFrames < 0) continue;
-    //        if (GameData.WallClips[i].Frames[0] == id)
-    //            return &GameData.WallClips[i];
-    //    }
-
-    //    return nullptr;
-    //}
-
-    WClipID GetWallClipID(LevelTexID id) {
-        for (int i = 0; i < GameData.WallClips.size(); i++) {
-            if (GameData.WallClips[i].Frames[0] == id)
-                return WClipID(i);
+    DClipID GetDoorClipID(LevelTexID id) {
+        for (int i = 0; i < GameData.DoorClips.size(); i++) {
+            if (GameData.DoorClips[i].Frames[0] == id)
+                return DClipID(i);
         }
 
-        return WClipID::None;
+        return DClipID::None;
     }
 
     EffectClip DefaultEffectClip{};
@@ -585,7 +573,7 @@ namespace Inferno::Resources {
         return Textures[(int)id];
     }
 
-    int GetTextureCount() { return Textures.size(); }
+    int GetTextureCount() { return (int)Textures.size(); }
 
     List<ubyte> ReadFile(string file) {
         // Search mounted mission first

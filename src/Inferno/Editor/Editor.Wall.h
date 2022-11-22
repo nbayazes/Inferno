@@ -21,7 +21,7 @@ namespace Inferno::Editor {
 
     TriggerID AddTrigger(Level&, WallID, TriggerType);
     TriggerID AddTrigger(Level&, WallID, TriggerFlagD1);
-    bool FixWallClip(Wall&);
+    bool FixDoorClip(Wall&);
 
     // Returns ID of the first wall (the one on the source tag)
     WallID AddPairedWall(Level& level, Tag tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags = WallFlag::None);
