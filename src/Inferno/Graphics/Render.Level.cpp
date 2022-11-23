@@ -12,6 +12,7 @@
 #include "ShaderLibrary.h"
 #include "Object.h"
 #include "DirectX.h"
+#include "Game.Wall.h"
 #include "Physics.h"
 #include "Render.Object.h"
 #include "Shell.h"
@@ -27,7 +28,7 @@ namespace Inferno::Render {
     void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, ModelID modelId, float lerp) {
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = GetMeshHandle(modelId);
-        auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+        auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
 
         ObjectDepthShader::Constants constants = {};
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
@@ -205,7 +206,7 @@ namespace Inferno::Render {
         ctx.EndEvent();
     }
 
-    void DrawLevelMesh(GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
+    void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
 
@@ -232,9 +233,18 @@ namespace Inferno::Render {
             if (chunk.TMap2 > LevelTexID::Unset) {
                 constants.Overlay = true;
 
-                auto& map2 = chunk.EffectClip2 == EClipID::None ?
-                    Materials->Get(chunk.TMap2) :
-                    Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
+                auto overlayId = TexID::None;
+
+                if (chunk.EffectClip2 == EClipID::None) {
+                    overlayId = Resources::LookupTexID(chunk.TMap2);
+                }
+                else {
+                    auto& eclip = Resources::GetEffectClip(chunk.EffectClip2);
+                    auto time = eclip.TimeLeft > 0 ? eclip.VClip.PlayTime - eclip.TimeLeft : ElapsedTime;
+                    overlayId = eclip.VClip.GetFrame(time);
+                }
+
+                auto& map2 = Materials->Get(overlayId);
 
                 Shaders->Level.SetMaterial2(cmdList, map2);
             }

@@ -37,24 +37,26 @@ namespace Inferno {
         };
     };
 
-    enum class EClipFlag : int32 { Critical = 1, OneShot = 2, Stopped = 4 };
+    enum class EClipFlag : int32 { None = 0, Critical = 1, OneShot = 2, Stopped = 4 };
     //DEFINE_ENUM_FLAG_OPERATORS(EClipFlag);
 
     // Effect clip. Assigns a vclip to a segment side.
     struct EffectClip {
-        VClip VClip{};    // embedded vclip
-        float TimeLeft{}; // for sequencing
-        int FrameCount{}; // for sequencing
-        LevelTexID ChangingWallTexture = LevelTexID::None; // Which element of Textures array to replace.
+        VClip VClip{}; // embedded vclip for this effect
+        LevelTexID ChangingWallTexture = LevelTexID::None; // Which element of Textures array to replace. Unused?
         short ChangingObjectTexture{}; // Which element of ObjBitmapPtrs array to replace.
         EClipFlag Flags{};
-        int CritClip{};  // what clip to play (vclip?) when mine is critical
-        LevelTexID DestroyedTexture = LevelTexID::None; // use this bitmap when monitor destroyed
-        VClipID DestroyedVClip = VClipID::None;  // what vclip to play when exploding
-        EClipID DestroyedEClip = EClipID::None;  // what eclip to play when exploding
-        float ExplosionSize{};  // effect radius?
+        EClipID CritClip{};  // swap to this animation when mine is critical
+        LevelTexID DestroyedTexture = LevelTexID::None; // swap to this texture when destroyed after playing the eclip if present
+        EClipID DestroyedEClip = EClipID::None;  // swap to this animation when destroyed
+        VClipID DestroyedVClip = VClipID::None;  // vclip to play when exploding
+        float ExplosionSize{};  // Radius for vclip
         SoundID Sound = SoundID::None; // Ambient sound
-        Tag OneShotTag; //what seg & side, for one-shot clips. Probably unused
+
+        // the follow are a hack for animating a breaking clip on a wall
+        float TimeLeft{}; 
+        int FrameCount{};
+        Tag OneShotTag;
     };
 
     enum class DoorClipFlag : int16 {

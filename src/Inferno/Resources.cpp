@@ -11,18 +11,30 @@
 #include <Briefing.h>
 
 namespace Inferno::Resources {
-    List<string> RobotNames;
-    List<string> PowerupNames;
-
-    HogFile Hog;
     SoundFile SoundsD1, SoundsD2;
-    Palette LevelPalette;
-    PigFile Pig;
-    Dictionary<TexID, PigBitmap> CustomTextures;
-    List<PigBitmap> Textures;
-    List<string> StringTable; // Text for the UI
 
-    std::mutex PigMutex;
+    namespace {
+        List<string> RobotNames;
+        List<string> PowerupNames;
+        HogFile Hog;
+        Palette LevelPalette;
+        PigFile Pig;
+        Dictionary<TexID, PigBitmap> CustomTextures;
+        List<PigBitmap> Textures;
+        List<string> StringTable; // Text for the UI
+
+        std::mutex PigMutex;
+
+        constexpr EffectClip DefaultEffectClip{};
+        constexpr VClip DefaultVClip{};
+        const RobotInfo DefaultRobotInfo{};
+        const DoorClip DefaultDoorClip{};
+        const Model DefaultModel{};
+        const LevelTexture DefaultTexture{};
+
+        struct ModelEntry { string Name; Outrage::Model Model; };
+        List<ModelEntry> OutrageModels;
+    }
 
     void LoadRobotNames(filesystem::path path) {
         try {
@@ -64,8 +76,6 @@ namespace Inferno::Resources {
         LoadRobotNames("robots.txt");
     }
 
-    DoorClip DefaultDoorClip{};
-
     const DoorClip& GetDoorClip(DClipID id) {
         if (!Seq::inRange(GameData.DoorClips, (int)id)) return DefaultDoorClip;
         return GameData.DoorClips[(int)id];
@@ -80,15 +90,13 @@ namespace Inferno::Resources {
         return DClipID::None;
     }
 
-    EffectClip DefaultEffectClip{};
-
     const EffectClip& GetEffectClip(EClipID id) {
         if (!Seq::inRange(GameData.Effects, (int)id)) return DefaultEffectClip;
         return GameData.Effects[(int)id];
     }
 
     const EffectClip& GetEffectClip(LevelTexID id) {
-        return GetEffectClip(LookupLevelTexID(id));
+        return GetEffectClip(LookupTexID(id));
     }
 
     const EffectClip& GetEffectClip(TexID id) {
@@ -110,7 +118,7 @@ namespace Inferno::Resources {
     }
 
     EClipID GetEffectClipID(LevelTexID id) {
-        auto tid = LookupLevelTexID(id);
+        auto tid = LookupTexID(id);
         if (tid == TexID::None) return EClipID::None;
         return GetEffectClipID(tid);
     }
@@ -127,15 +135,10 @@ namespace Inferno::Resources {
         }
     }
 
-    VClip DefaultVClip{};
-
     const VClip& GetVideoClip(VClipID id) {
         if (GameData.VClips.size() <= (int)id) return DefaultVClip;
         return GameData.VClips[(int)id];
     }
-
-    Model DefaultModel{};
-    RobotInfo DefaultRobotInfo{};
 
     const Inferno::Model& GetModel(ModelID id) {
         if ((int)id >= GameData.Models.size()) return DefaultModel;
@@ -151,13 +154,11 @@ namespace Inferno::Resources {
         return GameData.AllTexIdx;
     }
 
-    TexID LookupLevelTexID(LevelTexID tid) {
+    TexID LookupTexID(LevelTexID tid) {
         auto id = (int)tid;
         if (!Seq::inRange(GameData.AllTexIdx, id)) return TexID::None;
         return TexID((int)GameData.AllTexIdx[id]);
     }
-
-    const LevelTexture DefaultTexture{};
 
     const LevelTexture& GetLevelTextureInfo(LevelTexID id) {
         if (!Seq::inRange(GameData.TexInfo, (int)id)) return DefaultTexture; // fix for invalid ids in some levels
@@ -188,7 +189,7 @@ namespace Inferno::Resources {
     }
 
     const PigEntry& GetTextureInfo(LevelTexID id) {
-        return Pig.Get(LookupLevelTexID(id));
+        return Pig.Get(LookupTexID(id));
     }
 
     int GetSoundCount() { return (int)GameData.Sounds.size(); }
@@ -327,10 +328,10 @@ namespace Inferno::Resources {
         fusion.Extended.Chargable = true;
         fusion.Extended.ScorchTexture = "scorchC";
         fusion.Extended.ScorchRadius = 3.25f;
-        fusion.Extended.Glow = { 0.20f, 0.0f, 0.45f };
+        fusion.Extended.Glow = Color{ 0.20f, 0.0f, 0.45f };
         fusion.EnergyUsage = 2.0f; // 2.0 matches original behavior
         fusion.Extended.ModelPath = "FusionBlobNewJ.OOF";
-        fusion.Extended.RotationalVelocity = { 0, 0, DirectX::XM_PIDIV2 };
+        fusion.Extended.RotationalVelocity = Vector3{ 0, 0, DirectX::XM_PIDIV2 };
         //fusion.Flags |= WeaponFlag::FixedRotationalVelocity
         fusion.ModelSizeRatio = 2.5f;
         fusion.Extended.Size = 2.1f;
@@ -365,10 +366,10 @@ namespace Inferno::Resources {
             GetWeapon(WeaponID::Laser6).Mass = 0.05f;
 
 
-        GetWeapon(WeaponID::Spreadfire).Extended.Glow = { 0.4f, 0.4f, 0.6f };
-        GetWeapon(WeaponID::Helix).Extended.Glow = { 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Plasma).Extended.Glow = { 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Phoenix).Extended.Glow = { 0.7f, 0.3f, 0.1f };
+        GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
+        GetWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
+        GetWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
+        GetWeapon(WeaponID::Phoenix).Extended.Glow = Color{ 0.7f, 0.3f, 0.1f };
         GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
         GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
 
@@ -674,16 +675,11 @@ namespace Inferno::Resources {
         return {};
     }
 
-    //Dictionary<string, Outrage::Model> OutrageModels;
-
-    struct ModelEntry { string Name; Outrage::Model Model; };
-    static List<ModelEntry> OutrageModels2;
-
     ModelID LoadOutrageModel(const string& name) {
         if (name.empty()) return ModelID::None;
 
-        for (int i = 0; i < OutrageModels2.size(); i++) {
-            if (OutrageModels2[i].Name == name)
+        for (int i = 0; i < OutrageModels.size(); i++) {
+            if (OutrageModels[i].Name == name)
                 return ModelID(i);
         }
 
@@ -692,8 +688,8 @@ namespace Inferno::Resources {
                 model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
             }
 
-            OutrageModels2.push_back({ name, std::move(*model) });
-            return ModelID(OutrageModels2.size() - 1);
+            OutrageModels.push_back({ name, std::move(*model) });
+            return ModelID(OutrageModels.size() - 1);
         }
 
         return ModelID::None;
@@ -701,8 +697,8 @@ namespace Inferno::Resources {
 
     Outrage::Model const* GetOutrageModel(ModelID id) {
         auto i = (int)id;
-        if (Seq::inRange(OutrageModels2, i))
-            return &OutrageModels2[i].Model;
+        if (Seq::inRange(OutrageModels, i))
+            return &OutrageModels[i].Model;
 
         return nullptr;
     }

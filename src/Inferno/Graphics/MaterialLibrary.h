@@ -68,7 +68,7 @@ namespace Inferno::Render {
 
         // Gets a material based on a D1/D2 level texture ID
         const Material2D& Get(LevelTexID tid) const {
-            auto id = Resources::LookupLevelTexID(tid);
+            auto id = Resources::LookupTexID(tid);
             return Get(id);
         }
 

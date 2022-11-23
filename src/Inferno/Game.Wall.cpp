@@ -56,37 +56,8 @@ namespace Inferno {
     //    [[nodiscard]] const auto end() const { return _data.end(); }
     //};
 
-    // Tracks objects stuck to a wall
-    class StuckObjectTracker {
-        struct StuckObject {
-            ObjID Object = ObjID::None;
-            Tag Tag;
-        };
-
-        DataPool<StuckObject> _objects{ [](auto& o) { return o.Object != ObjID::None; }, 10 };
-
-    public:
-        void Add(Tag tag, ObjID id) {
-            _objects.Add({ id, tag });
-        }
-
-        void Remove(Level& level, Tag tag) {
-            for (auto& o : _objects) {
-                if (o.Tag == tag) {
-                    if (auto obj = level.TryGetObject(o.Object))
-                        obj->Destroy();
-
-                    o = {};
-                }
-            }
-        }
-    };
-
-    StuckObjectTracker StuckObjects;
-
     // Removes all effects and objects stuck to a wall
     void RemoveAttachments(Level& level, Tag tag) {
-        // todo: remove objects stuck on wall (flares)
         Render::RemoveDecals(tag);
         StuckObjects.Remove(level, tag);
     }
@@ -600,18 +571,6 @@ namespace Inferno {
                 }
             }
         }
-    }
-
-    void AddStuckObject(Tag tag, ObjID id) {
-        StuckObjects.Add(tag, id);
-    }
-
-    void RemoveStuckObject(Level& level, Tag tag) {
-        StuckObjects.Remove(level, tag);
-    }
-
-    void ResetStuckObjects() {
-        StuckObjects = {};
     }
 
     // Opens doors targeted by a trigger (or destroys them)

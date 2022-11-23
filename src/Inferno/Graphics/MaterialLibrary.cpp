@@ -55,7 +55,7 @@ namespace Inferno::Render {
                     auto modelIds = GetTexturesForModel(info.Model);
                     ids.insert(modelIds.begin(), modelIds.end());
                     if (object.Render.Model.TextureOverride != LevelTexID::None) {
-                        auto id = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                        auto id = Resources::LookupTexID(object.Render.Model.TextureOverride);
                         ids.insert(id);
                     }
 
@@ -80,22 +80,27 @@ namespace Inferno::Render {
             for (auto& sideId : SideIDs) {
                 auto& side = seg.GetSide(sideId);
                 if (!seg.SideHasConnection(sideId) || seg.SideIsWall(sideId)) {
-                    ids.insert(Resources::LookupLevelTexID(side.TMap));
+                    ids.insert(Resources::LookupTexID(side.TMap));
                     auto& eclip = Resources::GetEffectClip(side.TMap);
                     Seq::insert(ids, eclip.VClip.GetFrames());
 
                 }
 
                 if (side.HasOverlay()) {
-                    ids.insert(Resources::LookupLevelTexID(side.TMap2));
+                    ids.insert(Resources::LookupTexID(side.TMap2));
                     auto& eclip = Resources::GetEffectClip(side.TMap2);
                     Seq::insert(ids, eclip.VClip.GetFrames());
+
+                    auto& destroyed = Resources::GetVideoClip(eclip.DestroyedVClip);
+                    Seq::insert(ids, destroyed.GetFrames());
+
+                    ids.insert(Resources::LookupTexID(eclip.DestroyedTexture));
                 }
 
                 // Door clips
                 if (auto wall = level.TryGetWall(side.Wall)) {
                     auto& wclip = Resources::GetDoorClip(wall->Clip);
-                    auto wids = Seq::map(wclip.GetFrames(), Resources::LookupLevelTexID);
+                    auto wids = Seq::map(wclip.GetFrames(), Resources::LookupTexID);
                     Seq::insert(ids, wids);
                 }
             }
@@ -126,26 +131,32 @@ namespace Inferno::Render {
         List<TexID> ids;
 
         for (auto& clip : Resources::GameData.DoorClips) {
-            auto id = Resources::LookupLevelTexID(clip.Frames[0]);
+            auto id = Resources::LookupTexID(clip.Frames[0]);
             ids.push_back(id);
         }
 
         return ids;
     }
 
-    List<TexID> GetEffectTextures() {
-        List<TexID> ids;
+    Set<TexID> GetAllVClips() {
+        Set<TexID> ids;
 
-        //for (auto& effect : Resources::GameData.Effects) {
-        //    auto id = Resources::LookupLevelTexID(effect. clip.Frames[0]);
-        //    ids.push_back(id);
-        //}
+        for (auto& vclip : Resources::GameData.VClips) {
+            Seq::insert(ids, vclip.GetFrames());
+        }
 
         return ids;
     }
 
     List<TexID> GetUITextures() {
         List<TexID> ids;
+
+        for (auto& gauges : Resources::GameData.HiResGauges) {
+            ids.push_back(gauges);
+        }
+
+        // menu background?
+
         return ids;
     }
 
@@ -160,7 +171,7 @@ namespace Inferno::Render {
             Seq::insert(ids, GetDoorTextures());
 
         // always keep texture 0 loaded
-        auto defaultId = Resources::LookupLevelTexID(LevelTexID(0));
+        auto defaultId = Resources::LookupTexID(LevelTexID(0));
         ids.insert(defaultId);
 
         return ids;
@@ -335,6 +346,7 @@ namespace Inferno::Render {
         auto batch = BeginTextureUpload();
 
         for (auto& id : tids) {
+            if (id == TexID::None) continue;
             auto upload = PrepareUpload(id, forceLoad);
             if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                 continue;

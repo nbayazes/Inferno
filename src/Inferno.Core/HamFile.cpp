@@ -18,7 +18,7 @@ namespace Inferno {
         t.DestroyedTexture = (LevelTexID)r.ReadInt16();
         auto slideU = FixToFloat(r.ReadInt16());
         auto slideV = FixToFloat(r.ReadInt16());
-        t.Slide = { slideU, slideV };
+        t.Slide = Vector2{ slideU, slideV };
         return t;
     }
 
@@ -53,7 +53,7 @@ namespace Inferno {
         ec.ChangingWallTexture = (LevelTexID)r.ReadInt16();
         ec.ChangingObjectTexture = r.ReadInt16();
         ec.Flags = (EClipFlag)r.ReadInt32();
-        ec.CritClip = r.ReadInt32();
+        ec.CritClip = (EClipID)r.ReadInt32();
         ec.DestroyedTexture = (LevelTexID)r.ReadInt32();
         ec.DestroyedVClip = (VClipID)r.ReadInt32();
         ec.DestroyedEClip = (EClipID)r.ReadInt32();
@@ -533,7 +533,6 @@ namespace Inferno {
 
             // replace existing robot. mark as custom?
             ham.Robots[hamIdx] = ReadRobotInfo(reader);
-            hamIdx = 0;
         }
 
         auto joints = reader.ReadElementCount();

@@ -293,7 +293,7 @@ namespace Inferno::Game {
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
                     debris.Model = robot.Model;
                     debris.Submodel = i;
-                    debris.TexOverride = Resources::LookupLevelTexID(obj.Render.Model.TextureOverride);
+                    debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
                     AddDebris(debris, obj.Segment);
                 }
 
@@ -468,12 +468,6 @@ namespace Inferno::Game {
 
     // Returns the lerp amount for the current tick
     float GameTick(float dt) {
-        static double accumulator = 0;
-        static double t = 0;
-
-        accumulator += dt;
-        accumulator = std::min(accumulator, 2.0);
-
         if (!Level.Objects.empty()) {
             auto& physics = Level.Objects[0].Physics; // player
             physics.Thrust = Vector3::Zero;
@@ -487,6 +481,26 @@ namespace Inferno::Game {
                 HandleInput(dt);
             }
         }
+
+        DestroyedClips.Update(Level, dt);
+        for (auto& clip : Resources::GameData.Effects) {
+            if (clip.TimeLeft > 0) {
+                clip.TimeLeft -= dt;
+                if (clip.TimeLeft <= 0) {
+                    if (auto side = Level.TryGetSide(clip.OneShotTag))
+                        side->TMap2 = clip.DestroyedTexture;
+
+                    clip.OneShotTag = {};
+                    Editor::Events::LevelChanged();
+                }
+            }
+        }
+
+        static double accumulator = 0;
+        static double t = 0;
+
+        accumulator += dt;
+        accumulator = std::min(accumulator, 2.0);
 
         while (accumulator >= TICK_RATE) {
             UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
@@ -639,7 +653,19 @@ namespace Inferno::Game {
 
     // Preloads textures for a level
     void PreloadTextures() {
+        Set<TexID> ids;
 
+        for (auto& vclip : Resources::GameData.VClips) {
+            Seq::insert(ids, vclip.GetFrames());
+        }
+
+        for (auto& eclip : Resources::GameData.Effects) {
+            Seq::insert(ids, eclip.VClip.GetFrames());
+            ids.insert(Resources::LookupTexID(eclip.DestroyedTexture));
+        }
+
+        Seq::insert(ids, Resources::GameData.HiResGauges);
+        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
 
         string customHudTextures[] = {
                 "cockpit-ctr",
@@ -736,7 +762,7 @@ namespace Inferno::Game {
                 }
             }
 
-            ResetStuckObjects();
+            StuckObjects = {};
             Render::ResetParticles();
             Sound::Reset();
             MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);

@@ -87,7 +87,7 @@ namespace Inferno {
         auto uv = IntersectFaceUVs(level, pnt, seg, tag, tri);
         auto& side = seg.GetSide(tag.Side);
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
-        auto& bitmap = Resources::ReadBitmap(Resources::LookupLevelTexID(tmap));
+        auto& bitmap = Resources::ReadBitmap(Resources::LookupTexID(tmap));
         auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
         auto y = uint(uv.y * bitmap.Height) % bitmap.Height;
 
@@ -102,7 +102,7 @@ namespace Inferno {
                 return false; // overlay wasn't transparent
 
             // Check the base texture
-            auto& tmap1 = Resources::ReadBitmap(Resources::LookupLevelTexID(side.TMap));
+            auto& tmap1 = Resources::ReadBitmap(Resources::LookupTexID(side.TMap));
             x = uint(uv.x * tmap1.Width) % tmap1.Width;
             y = uint(uv.y * tmap1.Height) % tmap1.Height;
             return tmap1.Data[y * bitmap.Width + x].a == 0;
@@ -123,8 +123,11 @@ namespace Inferno {
         auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
         if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None) return false;
         auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
-        if (eclip.DestroyedTexture == LevelTexID::None && tmi.DestroyedTexture == LevelTexID::None) return false;
-        bool hasEClip = eclip.DestroyedTexture != LevelTexID::None;
+        bool hasEClip = eclip.DestroyedTexture != LevelTexID::None || eclip.DestroyedEClip != EClipID::None;
+
+        if (!hasEClip && tmi.DestroyedTexture == LevelTexID::None)
+            return false;
+
         //if (HasFlag(eclip.Flags, EClipFlag::OneShot))
         //    return false;
 
@@ -138,7 +141,7 @@ namespace Inferno {
 
         auto uv = IntersectFaceUVs(level, point, *seg, tag, tri);
 
-        auto& bitmap = Resources::ReadBitmap(Resources::LookupLevelTexID(side.TMap2));
+        auto& bitmap = Resources::ReadBitmap(Resources::LookupTexID(side.TMap2));
         auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
         auto y = uint(uv.y * bitmap.Height) % bitmap.Height;
         FixOverlayRotation(x, y, bitmap.Width, bitmap.Height, side.OverlayRotation);
@@ -152,31 +155,49 @@ namespace Inferno {
         // Hit opaque overlay!
         //Inferno::SubtractLight(level, tag, *seg);
 
-        {
-            auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
+        bool usedEClip = false;
 
-            Render::ExplosionInfo ei;
-            ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
-            ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
-            ei.FadeTime = 0.25f;
-            ei.Position = point;
-            ei.Segment = tag.Segment;
-            Render::CreateExplosion(ei);
-
-            auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
-            Sound3D sound(point, tag.Segment);
-            sound.Resource = Resources::GetSoundResource(soundId);
-            Sound::Play(sound);
+        if (eclip.DestroyedEClip != EClipID::None) {
+            // Hack storing exploding side state into the global effect.
+            // The original game did this, but should be replaced with a more robust system.
+            if (Seq::inRange(Resources::GameData.Effects, (int)eclip.DestroyedEClip)) {
+                auto& destroyed = Resources::GameData.Effects[(int)eclip.DestroyedEClip];
+                if (!destroyed.OneShotTag) {
+                    side.TMap2 = Resources::LookupLevelTexID(destroyed.VClip.Frames[0]);
+                    destroyed.TimeLeft = eclip.VClip.PlayTime;
+                    destroyed.OneShotTag = tag;
+                    destroyed.DestroyedTexture = eclip.DestroyedTexture;
+                    usedEClip = true;
+                }
+            }
         }
+
+        if (!usedEClip) {
+            side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
+            Render::LoadTextureDynamic(side.TMap2);
+        }
+
+        Editor::Events::LevelChanged();
+
+        Render::ExplosionInfo ei;
+        ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
+        ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
+        ei.FadeTime = 0.25f;
+        ei.Position = point;
+        ei.Segment = tag.Segment;
+        Render::CreateExplosion(ei);
+
+        auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
+        auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
+        Sound3D sound(point, tag.Segment);
+        sound.Resource = Resources::GetSoundResource(soundId);
+        Sound::Play(sound);
 
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
             fmt::print("Activating switch {}:{}\n", tag.Segment, tag.Side);
             ActivateTrigger(level, *trigger);
         }
 
-        side.TMap2 = hasEClip ? eclip.DestroyedTexture : tmi.DestroyedTexture;
-        Render::LoadTextureDynamic(side.TMap2);
-        Editor::Events::LevelChanged();
         return true; // was destroyed!
     }
 
@@ -1426,7 +1447,7 @@ namespace Inferno {
             obj.Physics.Velocity = Vector3::Zero;
             //obj.Movement = MovementType::None;
             //obj.LastPosition = obj.Position;
-            AddStuckObject(hit.Tag, objId);
+            StuckObjects.Add(hit.Tag, objId);
             obj.Flags |= ObjectFlag::Attached;
         }
         else if (obj.Physics.Bounces <= 0) {

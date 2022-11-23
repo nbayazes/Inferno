@@ -290,7 +290,7 @@ namespace Inferno::Render {
             {
                 // could be transparent or opaque pass
                 auto& info = Resources::GetRobotInfo(object.ID);
-                auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
                 DrawModel(ctx, object, info.Model, pass, texOverride);
                 break;
             }
@@ -309,7 +309,7 @@ namespace Inferno::Render {
             case ObjectType::SecretExitReturn:
             case ObjectType::Marker:
             {
-                auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
                 DrawModel(ctx, object, object.Render.Model.ID, pass, texOverride);
                 break;
             }
@@ -319,7 +319,7 @@ namespace Inferno::Render {
                     // Do nothing, what did you expect?
                 }
                 else if (object.Render.Type == RenderType::Model) {
-                    auto texOverride = Resources::LookupLevelTexID(object.Render.Model.TextureOverride);
+                    auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
 
                     if (object.Render.Model.Outrage) {
                         DrawOutrageModel(ctx, object, pass);

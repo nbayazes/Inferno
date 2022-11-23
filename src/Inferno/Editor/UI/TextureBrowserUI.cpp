@@ -144,7 +144,7 @@ namespace Inferno::Editor {
     void TextureBrowserUI::UpdateTextureList(FilterGroup filter, bool loadMaterials) {
         //SPDLOG_INFO("Updating texture browser");
         auto ids = FilterLevelTextures(filter, _showInUse, _showEverything);
-        auto tids = Seq::map(ids, Resources::LookupLevelTexID);
+        auto tids = Seq::map(ids, Resources::LookupTexID);
         if (loadMaterials)
             Render::Materials->LoadMaterialsAsync(tids);
 

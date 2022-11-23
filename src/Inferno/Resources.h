@@ -13,6 +13,8 @@
 
 // Abstraction for game resources
 namespace Inferno::Resources {
+    inline HamFile GameData = {};
+
     void Init();
 
     extern SoundFile SoundsD1, SoundsD2;
@@ -41,8 +43,9 @@ namespace Inferno::Resources {
     const RobotInfo& GetRobotInfo(uint);
 
     List<TexID> CopyLevelTextureLookup();
-    TexID LookupLevelTexID(LevelTexID);
+    TexID LookupTexID(LevelTexID);
     TexID LookupModelTexID(const Model&, int16);
+    inline LevelTexID LookupLevelTexID(TexID id) { return GameData.LevelTexIdx[(int)id]; }
 
     Weapon& GetWeapon(WeaponID);
 
@@ -55,8 +58,6 @@ namespace Inferno::Resources {
 
     const PigBitmap& ReadBitmap(TexID);
     int GetTextureCount();
-
-    inline HamFile GameData = {};
 
     // Reads a file from the mission or game HOG
     List<ubyte> ReadFile(string file);

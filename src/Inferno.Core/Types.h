@@ -205,6 +205,7 @@ namespace Inferno {
     enum class MatcenID : uint8 { None = 255 };
     enum class TriggerID : uint8 { None = 255 };
 
+    // Video clips of explosions or other particle effects
     enum class VClipID : int32 {
         None = -1,
         HitPlayer = 1,

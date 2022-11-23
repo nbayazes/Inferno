@@ -208,7 +208,7 @@ namespace Inferno::Render {
     }
 
     void LoadTextureDynamic(LevelTexID id) {
-        List<TexID> list = { Resources::LookupLevelTexID(id) };
+        List<TexID> list = { Resources::LookupTexID(id) };
         auto& eclip = Resources::GetEffectClip(id);
         Seq::append(list, eclip.VClip.GetFrames());
         Materials->LoadMaterials(list, false);
