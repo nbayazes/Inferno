@@ -44,6 +44,7 @@ namespace Inferno::Render {
         AlignV VerticalAlign = AlignV::Top;
         Vector2 UV0{ 0, 0 }, UV1{ 1, 1 };
         float Scanline = 0;
+        bool MirrorX = false;
     };
 
 
@@ -137,8 +138,10 @@ namespace Inferno::Render {
             auto& pos = info.Position;
             auto size = info.Size;
             auto alignment = GetAlignment(size, info.HorizontalAlign, info.VerticalAlign, _size);
-            auto& uv0 = info.UV0;
-            auto& uv1 = info.UV1;
+            auto uv0 = info.UV0;
+            auto uv1 = info.UV1;
+            if (info.MirrorX) std::swap(uv0.x, uv1.x);
+
             payload.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { uv0.x, uv1.y }, hex }; // bottom left
             payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, uv1, hex }; // bottom right
             payload.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { uv1.x, uv0.y }, hex }; // top right
@@ -281,8 +284,10 @@ namespace Inferno::Render {
             auto& pos = info.Position;
             auto size = info.Size;
             auto alignment = GetAlignment(size, info.HorizontalAlign, info.VerticalAlign, _size);
-            auto& uv0 = info.UV0;
-            auto& uv1 = info.UV1;
+            auto uv0 = info.UV0;
+            auto uv1 = info.UV1;
+            if (info.MirrorX) std::swap(uv0.x, uv1.x);
+
             payload.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { uv0.x, uv1.y }, hex }; // bottom left
             payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, uv1, hex }; // bottom right
             payload.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { uv1.x, uv0.y }, hex }; // top right
@@ -298,7 +303,7 @@ namespace Inferno::Render {
 
             auto cmdList = ctx.CommandList();
             ctx.ApplyEffect(_effect);
-            
+
             HudShader::Constants constants;
             constants.Transform = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 

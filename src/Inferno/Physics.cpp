@@ -167,7 +167,7 @@ namespace Inferno {
                 auto& destroyed = Resources::GameData.Effects[(int)eclip.DestroyedEClip];
                 if (!destroyed.OneShotTag) {
                     side.TMap2 = Resources::LookupLevelTexID(destroyed.VClip.Frames[0]);
-                    destroyed.TimeLeft = eclip.VClip.PlayTime;
+                    destroyed.TimeLeft = destroyed.VClip.PlayTime;
                     destroyed.OneShotTag = tag;
                     destroyed.DestroyedTexture = eclip.DestroyedTexture;
                     usedEClip = true;

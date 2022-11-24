@@ -322,7 +322,7 @@ namespace Inferno::Resources {
     }
 
     void LoadExtendedWeaponInfo() {
-        if (GameData.Weapons.size() < 32) return; // No D1 data
+        if (GameData.Weapons.size() < 30) return; // No D1 data
         auto GetWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
         auto& fusion = GetWeapon(WeaponID::Fusion);
         fusion.Extended.Chargable = true;
@@ -337,43 +337,33 @@ namespace Inferno::Resources {
         fusion.Extended.Size = 2.1f;
         // fusion.HitEffect = "FusionHit1"
 
+        constexpr float LASER_MASS = 0.05f;
+        constexpr float LASER_SCALE = 0.7f;
+
         GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.55;
         GetWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.35;
         GetWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.35;
         GetWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.35;
-        GetWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
-        GetWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
 
         GetWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
         GetWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
         GetWeapon(WeaponID::Laser3).Extended.ModelPath = "PurpleLaser.OOF";
         GetWeapon(WeaponID::Laser4).Extended.ModelPath = "GreenLaser.OOF";
-        GetWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
-        GetWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
 
         GetWeapon(WeaponID::Laser1).Extended.ModelScale =
             GetWeapon(WeaponID::Laser2).Extended.ModelScale =
             GetWeapon(WeaponID::Laser3).Extended.ModelScale =
-            GetWeapon(WeaponID::Laser4).Extended.ModelScale =
-            GetWeapon(WeaponID::Laser5).Extended.ModelScale =
-            GetWeapon(WeaponID::Laser6).Extended.ModelScale = 0.6f;
+            GetWeapon(WeaponID::Laser4).Extended.ModelScale = LASER_SCALE;
 
         GetWeapon(WeaponID::Laser1).Mass =
             GetWeapon(WeaponID::Laser2).Mass =
             GetWeapon(WeaponID::Laser3).Mass =
-            GetWeapon(WeaponID::Laser4).Mass =
-            GetWeapon(WeaponID::Laser5).Mass =
-            GetWeapon(WeaponID::Laser6).Mass = 0.05f;
-
+            GetWeapon(WeaponID::Laser4).Mass = LASER_MASS;
 
         GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
-        GetWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Phoenix).Extended.Glow = Color{ 0.7f, 0.3f, 0.1f };
-        GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
-        GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
-
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
+
+        GetWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
 
         auto& vulcan = GetWeapon(WeaponID::Vulcan);
         vulcan.Extended.Behavior = "vulcan";
@@ -381,7 +371,6 @@ namespace Inferno::Resources {
         vulcan.AmmoUsage = 13;
 
         GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
-        GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
 
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
@@ -401,9 +390,25 @@ namespace Inferno::Resources {
         if (GameData.Weapons.size() < 35) return;
         // D2 WEAPONS BELOW!
 
-        GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
-        GetWeapon(WeaponID::Omega).Extended.Behavior = "omega";
+        GetWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
+        GetWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
+        GetWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
+        GetWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
+        GetWeapon(WeaponID::Laser5).Extended.ModelScale = LASER_SCALE;
+        GetWeapon(WeaponID::Laser6).Extended.ModelScale = LASER_SCALE;
+        GetWeapon(WeaponID::Laser5).Mass = LASER_MASS;
+        GetWeapon(WeaponID::Laser6).Mass = LASER_MASS;
+
+        GetWeapon(WeaponID::Phoenix).Extended.Glow = Color{ 0.7f, 0.3f, 0.1f };
+        GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
         GetWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";
+        GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
+
+        GetWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
+        GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
+
+        GetWeapon(WeaponID::Omega).Extended.Behavior = "omega";
+        GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
 
         auto& gauss = GetWeapon(WeaponID::Gauss);
         gauss.AmmoUsage = 26;

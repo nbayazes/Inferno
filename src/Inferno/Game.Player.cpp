@@ -393,8 +393,9 @@ namespace Inferno {
     void Player::AutoselectPrimary() {
         int priority = -1;
         int index = -1;
+        const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < numWeapons; i++) {
             auto idx = (PrimaryWeaponIndex)i;
             auto& weapon = Resources::GetWeapon(PrimaryToWeaponID[i]);
             if (weapon.EnergyUsage > 0 && Energy < 1)
@@ -432,8 +433,9 @@ namespace Inferno {
 
         int priority = -1;
         int index = -1;
+        const int numWeapons = Game::Level.IsDescent1() ? 5 : 10;
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < numWeapons; i++) {
             auto idx = (SecondaryWeaponIndex)i;
             if (!CanFireSecondary(idx)) continue;
 

@@ -3,6 +3,18 @@
 #include "Game.h"
 
 namespace Inferno {
+    const string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
+        if(id == PrimaryWeaponIndex::Spreadfire) 
+            return "spread"; // D1 has "spreadfire" in the string table, but it gets trimmed by the border
+
+        int index = Game::Level.IsDescent1() ? 114 + (int)id : 124 + (int)id;
+        return Resources::GetString(GameString{ index });
+    }
+
+    const string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
+        int index = Game::Level.IsDescent1() ? 119 + (int)id : 134 + (int)id;
+        return Resources::GetString(GameString{ index });
+    }
 
     enum class Gauges {
         Shield = 0, // 0 to 9 in decreasing strength
@@ -11,9 +23,6 @@ namespace Inferno {
         BlueKey = 24,
         GoldKey = 25,
         RedKey = 26,
-        //BlueKeyOff = 27,
-        //GoldKeyOff = 28,
-        //RedKeyOff = 29,
         Lives = 37,
         Ship = 38, // 8 Colors
         ReticleCross = 46, // 2 frames: not ready, ready
@@ -155,7 +164,7 @@ namespace Inferno {
         DrawOpaqueBitmap(offset, align, material);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline) {
+    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline, bool mirrorX = false) {
         float scale = Render::HudCanvas->GetScale();
         Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
@@ -165,13 +174,14 @@ namespace Inferno {
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = scanline;
+        info.MirrorX = mirrorX;
         Render::HudGlowCanvas->DrawBitmap(info);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float sizeScale, float scanline = 0.4f) {
+    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, Gauges gauge, float sizeScale, float scanline = 0.4f, bool mirrorX = false) {
         TexID id = GetGaugeTexID(gauge);
         auto& material = Render::Materials->Get(id);
-        DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
+        DrawAdditiveBitmap(offset, align, material, sizeScale, scanline, mirrorX);
     }
 
     void DrawAdditiveBitmap(const Vector2& offset, AlignH align, string bitmapName, float sizeScale, float scanline = 0.4f) {
@@ -196,13 +206,14 @@ namespace Inferno {
     }
 
     void DrawReticle() {
-        constexpr Vector2 crossOffset(0/*-8*/, -5);
-        constexpr Vector2 primaryOffset(0/*-30*/, 14);
-        constexpr Vector2 secondaryOffset(0/*-24*/, 2);
+        auto isD1 = Game::Level.IsDescent1();
+        const Vector2 crossOffset(0, isD1 ? -2 : -5);
+        const Vector2 primaryOffset(0, isD1 ? 6 : 14);
+        const Vector2 secondaryOffset(0, isD1 ? 1 : 2);
 
-        bool primaryReady = Game::Player.CanFirePrimary(Game::Player.Primary);
-        bool secondaryReady = Game::Player.CanFireSecondary(Game::Player.Secondary);
-        float scale = Game::Level.IsDescent1() ? 2.0f : 1.0f;
+        bool primaryReady = Game::Player.CanFirePrimary(Game::Player.Primary) && Game::Player.PrimaryDelay <= 0;
+        bool secondaryReady = Game::Player.CanFireSecondary(Game::Player.Secondary) && Game::Player.SecondaryDelay <= 0;
+        float scale = isD1 ? 2.0f : 1.0f;
         // cross deactivates when no primary or secondary weapons are available
         int crossFrame = primaryReady || secondaryReady ? 1 : 0;
 
@@ -220,15 +231,6 @@ namespace Inferno {
             secondaryFrame++;
 
         DrawReticleBitmap(secondaryOffset, Gauges::ReticleSecondary, secondaryFrame, scale);
-
-        //TexID id = Resources::GameData.HiResGauges[RETICLE_PRIMARY];
-        //auto& ti = Resources::GetTextureInfo(id);
-        //auto pos = size / 2;
-        //auto ratio = size.y / BASE_RESOLUTION_Y;
-
-        //Vector2 scaledSize = { ti.Width * ratio, ti.Height * ratio };
-        //pos -= scaledSize / 2;
-        //Render::Canvas->DrawBitmap(id, pos, scaledSize);
     }
 
     void DrawEnergyBar(float spacing, bool flipX, float energy) {
@@ -329,7 +331,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
+        auto weaponName = GetPrimaryNameShort(weaponIndex);
         string label = string(weaponName), ammo;
 
         switch (weaponIndex) {
@@ -395,7 +397,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        DrawMonitorText(Resources::GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
+        DrawMonitorText(GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
 
         // Ammo counter
         info.Color = MonitorRedText;
@@ -432,15 +434,16 @@ namespace Inferno {
         }
 
         // Draw Keys
+        bool mirrorX = Game::Level.IsDescent1();
         float keyScanline = 0.0f;
         if (player.HasPowerup(PowerupFlag::BlueKey))
-            DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline);
+            DrawAdditiveBitmap({ x + 147, -90 }, AlignH::CenterRight, Gauges::BlueKey, resScale, keyScanline, mirrorX);
 
         if (player.HasPowerup(PowerupFlag::GoldKey))
-            DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, resScale, keyScanline);
+            DrawAdditiveBitmap({ x + 147 + 2, -90 + 21 }, AlignH::CenterRight, Gauges::GoldKey, resScale, keyScanline, mirrorX);
 
         if (player.HasPowerup(PowerupFlag::RedKey))
-            DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, resScale, keyScanline);
+            DrawAdditiveBitmap({ x + 147 + 4, -90 + 42 }, AlignH::CenterRight, Gauges::RedKey, resScale, keyScanline, mirrorX);
     }
 
     void DrawHighlights(bool flip, float opacity = 0.07f) {
