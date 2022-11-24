@@ -1291,6 +1291,7 @@ namespace Inferno {
 
         if (target.Type == ObjectType::Weapon) {
             Game::ExplodeWeapon(target); // Destroy the weapon that was hit (usually a mine)
+            return; // keep going
         }
         else {
             if (target.Type != ObjectType::Player) // player shields are handled differently
