@@ -128,7 +128,7 @@ namespace Inferno::Editor {
         return sorted;
     }
 
-    bool PowerupDropdown(const char* label, int8& id, VClipID* vclipID = nullptr) {
+    bool PowerupDropdown(const char* label, int8& id, Object* obj = nullptr) {
         auto name = Resources::GetPowerupName(id);
         auto preview = name.value_or("Unknown");
         bool changed = false;
@@ -139,10 +139,11 @@ namespace Inferno::Editor {
                 const bool isSelected = id == sorted[i].ID;
                 ImGui::PushID(i);
                 if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
-                    id = (int8)sorted[i].ID;
-                    if (vclipID) {
-                        *vclipID = sorted[i].Ptr->VClip;
-                        Render::LoadTextureDynamic(*vclipID);
+                    id = sorted[i].ID;
+                    if (obj) {
+                        obj->Render.VClip.ID = sorted[i].Ptr->VClip;
+                        obj->Radius = sorted[i].Ptr->Size;
+                        Render::LoadTextureDynamic(obj->Render.VClip.ID);
                     }
                     changed = true;
                 }
@@ -308,9 +309,9 @@ namespace Inferno::Editor {
 
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-                o.ID = obj.ID;
-                o.Render.Model.ID = obj.Render.Model.ID;
-                o.Radius = GetObjectRadius(obj);
+            o.ID = obj.ID;
+            o.Render.Model.ID = obj.Render.Model.ID;
+            o.Radius = GetObjectRadius(obj);
             });
 
             Render::LoadModelDynamic(robot.Model);
@@ -325,8 +326,8 @@ namespace Inferno::Editor {
         if (AIBehaviorDropdown("##Behavior", obj.Control.AI)) {
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-                o.Control.AI.Behavior = obj.Control.AI.Behavior;
-                o.Control.AI.Flags = obj.Control.AI.Flags;
+            o.Control.AI.Behavior = obj.Control.AI.Behavior;
+            o.Control.AI.Flags = obj.Control.AI.Flags;
             });
             changed = true;
         }
@@ -343,8 +344,8 @@ namespace Inferno::Editor {
 
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-                o.Contains.Type = obj.Contains.Type;
-                o.Contains.Count = obj.Contains.Count;
+            o.Contains.Type = obj.Contains.Type;
+            o.Contains.Count = obj.Contains.Count;
             });
             changed = true;
         }
@@ -375,7 +376,7 @@ namespace Inferno::Editor {
         if (containsChanged) {
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-                o.Contains = obj.Contains;
+            o.Contains = obj.Contains;
             });
             changed = true;
         }
@@ -486,7 +487,7 @@ namespace Inferno::Editor {
         return sorted;
     }
 
-    inline bool ObjectDropdown(Level& level, ObjID& id) {
+    bool ObjectDropdown(const Level& level, ObjID& id) {
         bool changed = false;
         //auto label = fmt::format("{}: {}", id, GetObjectName(level.Objects[(int)id]));
         auto label = GetObjectName(level.Objects[(int)id]);
@@ -545,7 +546,7 @@ namespace Inferno::Editor {
         //AngleSlider("Pitch", angles.x);
         //AngleSlider("Yaw", angles.y);
         //AngleSlider("Roll", angles.z);
-        
+
         if (changed) {
             //obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(angles));
             Editor::Gizmo.UpdatePosition();
@@ -557,7 +558,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void PropertyEditor::ObjectProperties() {
+    void PropertyEditor::ObjectProperties() const {
         DisableControls disable(!Resources::HasGameData());
 
         ImGui::TableRowLabel("Object");
@@ -608,10 +609,11 @@ namespace Inferno::Editor {
             case ObjectType::Powerup:
                 ImGui::TableRowLabel("Powerup");
                 ImGui::SetNextItemWidth(-1);
-                if (PowerupDropdown("##Powerup", obj.ID, &obj.Render.VClip.ID)) {
+                if (PowerupDropdown("##Powerup", obj.ID, &obj)) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
                         o.Render.VClip.ID = obj.Render.VClip.ID;
+                        o.Radius = obj.Radius;
                     });
                     Editor::History.SnapshotLevel("Change object");
                 }
@@ -636,7 +638,7 @@ namespace Inferno::Editor {
                 if (ImGui::SliderFloat3("##angular", &obj.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f")) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                        o.Physics.AngularVelocity = obj.Physics.AngularVelocity;
+                    o.Physics.AngularVelocity = obj.Physics.AngularVelocity;
                     });
                 }
 
@@ -659,7 +661,7 @@ namespace Inferno::Editor {
                 Render::LoadTextureDynamic(obj.Render.Model.TextureOverride);
                 ForMarkedObjects([&obj](Object& o) {
                     if (o.Render.Type != obj.Render.Type) return;
-                    o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;
+                o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;
                 });
                 Editor::History.SnapshotLevel("Change object");
             }
