@@ -32,7 +32,11 @@ namespace Inferno::Resources {
         const Model DefaultModel{};
         const LevelTexture DefaultTexture{};
 
-        struct ModelEntry { string Name; Outrage::Model Model; };
+        struct ModelEntry {
+            string Name;
+            Outrage::Model Model;
+        };
+
         List<ModelEntry> OutrageModels;
     }
 
@@ -362,10 +366,10 @@ namespace Inferno::Resources {
         constexpr float LASER_MASS = 0.05f;
         constexpr float LASER_SCALE = 0.7f;
 
-        GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.55;
-        GetWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.35;
-        GetWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.35;
-        GetWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.35;
+        GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.35;
+        GetWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.15;
+        GetWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.15;
+        GetWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.15;
 
         GetWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
         GetWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
@@ -381,6 +385,11 @@ namespace Inferno::Resources {
             GetWeapon(WeaponID::Laser2).Mass =
             GetWeapon(WeaponID::Laser3).Mass =
             GetWeapon(WeaponID::Laser4).Mass = LASER_MASS;
+
+        GetWeapon(WeaponID::Laser2).FireDelay =
+            GetWeapon(WeaponID::Laser3).FireDelay =
+            GetWeapon(WeaponID::Laser4).FireDelay =
+            GetWeapon(WeaponID::Laser1).FireDelay;
 
         GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
