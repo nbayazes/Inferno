@@ -294,7 +294,7 @@ namespace Inferno {
         auto& material = Render::Materials->Get("gauge02b");
         Vector2 size = {
             (float)material.Textures[0].GetWidth() * scale,
-            (float)material.Textures[0].GetHeight() * percent * scale 
+            (float)material.Textures[0].GetHeight() * percent * scale
         };
 
         auto alignment = Render::GetAlignment(size, AlignH::CenterLeft, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
@@ -321,59 +321,62 @@ namespace Inferno {
 
         auto scale = Render::HudCanvas->GetScale();
         auto weaponIndex = (PrimaryWeaponIndex)state.WeaponIndex;
-        if (weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4)
-            weaponIndex = PrimaryWeaponIndex::SuperLaser;
 
-        {
-            Render::DrawTextInfo info;
-            info.Font = FontSize::Small;
-            info.Color = MonitorGreenText;
+        Render::DrawTextInfo info;
+        info.Font = FontSize::Small;
+        info.Color = MonitorGreenText;
+        info.Color.w = state.Opacity;
+        info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET, WEAPON_TEXT_Y_OFFSET) * scale;
+        info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
+        info.VerticalAlign = AlignV::CenterTop;
+        info.Scanline = 0.5f;
+        auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
+        string label = string(weaponName), ammo;
+
+        switch (weaponIndex) {
+            case PrimaryWeaponIndex::Laser:
+            {
+                if (player.HasPowerup(PowerupFlag::QuadLasers))
+                    label = fmt::format("laser\nlvl: {}\nquad", state.LaserLevel + 1);
+                else
+                    label = fmt::format("laser\nlvl: {}", state.LaserLevel + 1);
+                break;
+            }
+            case PrimaryWeaponIndex::SuperLaser:
+                label = "napalm";
+                break;
+
+            case PrimaryWeaponIndex::Vulcan:
+            case PrimaryWeaponIndex::Gauss:
+                ammo = fmt::format("{:05}", player.PrimaryAmmo[1]);
+                break;
+        }
+
+        DrawMonitorText(label, info, 0.6f * state.Opacity);
+
+        if (!ammo.empty()) {
+            // Ammo counter
+            info.Color = MonitorRedText;
             info.Color.w = state.Opacity;
-            info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET, WEAPON_TEXT_Y_OFFSET) * scale;
-            info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
+            info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET + 5, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
+            info.HorizontalAlign = AlignH::CenterRight;
             info.VerticalAlign = AlignV::CenterTop;
             info.Scanline = 0.5f;
-            auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
-            string label = string(weaponName), ammo;
-
-            switch (weaponIndex) {
-                case PrimaryWeaponIndex::Laser:
-                case PrimaryWeaponIndex::SuperLaser:
-                {
-                    auto lvl = Resources::GetString(GameString::Lvl);
-                    if (player.HasPowerup(PowerupFlag::QuadLasers))
-                        label = fmt::format("{}\n{}: {}\n{}", weaponName, lvl, state.LaserLevel + 1, Resources::GetString(GameString::Quad));
-                    else
-                        label = fmt::format("{}\n{}: {}", weaponName, lvl, state.LaserLevel + 1);
-                    break;
-                }
-
-                case PrimaryWeaponIndex::Vulcan:
-                case PrimaryWeaponIndex::Gauss:
-                    ammo = fmt::format("{:05}", player.PrimaryAmmo[1]);
-                    break;
-            }
-
-            DrawMonitorText(label, info, 0.6f * state.Opacity);
-
-            if (!ammo.empty()) {
-                // Ammo counter
-                info.Color = MonitorRedText;
-                info.Color.w = state.Opacity;
-                info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET + 5, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
-                info.HorizontalAlign = AlignH::CenterRight;
-                info.VerticalAlign = AlignV::CenterTop;
-                info.Scanline = 0.5f;
-                UseWide1Char(ammo);
-                DrawMonitorText(ammo, info, 0.6f * state.Opacity);
-            }
-
-            // todo: omega charge
+            UseWide1Char(ammo);
+            DrawMonitorText(ammo, info, 0.6f * state.Opacity);
         }
+
+        // todo: omega charge
 
         {
             float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
-            auto texId = GetWeaponTexID(Resources::GetWeapon(PrimaryToWeaponID[(int)weaponIndex]));
+            WeaponID wid = 
+                weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4 ?
+                WeaponID::Laser5 :
+                PrimaryToWeaponID[(int)weaponIndex];
+
+            auto texId = GetWeaponTexID(Resources::GetWeapon(wid));
+
             DrawWeaponBitmap({ x + WEAPON_BMP_X_OFFSET, WEAPON_BMP_Y_OFFSET }, AlignH::CenterRight, texId, resScale, state.Opacity);
         }
 

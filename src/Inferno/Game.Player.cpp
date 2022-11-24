@@ -6,6 +6,18 @@
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;
 
+    // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
+    int GetWeaponPriority(PrimaryWeaponIndex primary) {
+        for (int i = 0; i < Game::PrimaryPriority.size(); i++) {
+            if (i == 255) return 255;
+            if (Game::PrimaryPriority[i] == (int)primary) {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
     float Player::UpdateAfterburner(float dt, bool active) {
         if (!HasPowerup(PowerupFlag::Afterburner)) return 0;
 
@@ -353,16 +365,6 @@ namespace Inferno {
     }
 
     void Player::AutoselectPrimary() {
-        auto GetPriority = [](PrimaryWeaponIndex primary) {
-            for (int i = 0; i < Game::PrimaryPriority.size(); i++) {
-                if (i == 255) return 255;
-                if (Game::PrimaryPriority[i] == (int)primary) {
-                    return i;
-                }
-            }
-            return 0;
-        };
-
         int priority = -1;
         int index = -1;
 
@@ -374,7 +376,7 @@ namespace Inferno {
 
             if (!CanFirePrimary(idx)) continue;
 
-            auto p = GetPriority(idx);
+            auto p = GetWeaponPriority(idx);
             if (p == 255) continue;
 
             if (p < priority || priority == -1) {
@@ -555,7 +557,7 @@ namespace Inferno {
                 else {
                     LaserLevel++;
                     ScreenFlash({ 10, 0, 10 });
-                    auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Laser), Resources::GetString(GameString::BoostedTo), LaserLevel + 1);
+                    auto msg = fmt::format("laser cannon boosted to {}", LaserLevel + 1);
                     PrintHudMessage(msg);
                     PickUpPrimary(PrimaryWeaponIndex::Laser);
                     used = true;
@@ -646,14 +648,17 @@ namespace Inferno {
                     used = PickUpEnergy();
                 }
                 else {
-                    //auto oldLevel = LaserLevel;
                     if (LaserLevel <= MAX_LASER_LEVEL) {
                         LaserLevel = MAX_LASER_LEVEL;
 
                         if (Primary == PrimaryWeaponIndex::Laser) {
+                            // Fake a weapon swap if the laser is already selected and super laser is picked up
                             Sound::Play(Resources::GetSoundResource(SoundID::SelectPrimary));
                             PrimaryDelay = RearmTime;
-                            //UpgradingSuperLaser = true;
+                        }
+                        else if (GetWeaponPriority(PrimaryWeaponIndex::SuperLaser) < GetWeaponPriority(Primary)) {
+                            // Do a real weapon swap check
+                            SelectPrimary(PrimaryWeaponIndex::Laser);
                         }
                     }
 
@@ -661,7 +666,6 @@ namespace Inferno {
                     ScreenFlash({ 10, 0, 10 });
                     PrintHudMessage(fmt::format("super boost to laser level {}", LaserLevel + 1));
                     used = true;
-                    // todo: autoswap
                 }
                 break;
             }
@@ -836,12 +840,15 @@ namespace Inferno {
             return false;
         }
 
-        PrimaryWeapons |= flag;
-        AutoselectPrimary();
-        ScreenFlash({ 7, 14, 21 });
-
         if (index != PrimaryWeaponIndex::Laser)
             PrintHudMessage(fmt::format("{}!", name));
+
+        PrimaryWeapons |= flag;
+        ScreenFlash({ 7, 14, 21 });
+
+        // Select the weapon we just picked up if it has a higher priority
+        if (GetWeaponPriority(index) < GetWeaponPriority(Primary))
+            SelectPrimary(index);
 
         return true;
     }

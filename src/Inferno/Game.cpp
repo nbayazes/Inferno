@@ -653,19 +653,19 @@ namespace Inferno::Game {
 
     // Preloads textures for a level
     void PreloadTextures() {
-        Set<TexID> ids;
+        //Set<TexID> ids;
 
-        for (auto& vclip : Resources::GameData.VClips) {
-            Seq::insert(ids, vclip.GetFrames());
-        }
+        //for (auto& vclip : Resources::GameData.VClips) {
+        //    Seq::insert(ids, vclip.GetFrames());
+        //}
 
-        for (auto& eclip : Resources::GameData.Effects) {
-            Seq::insert(ids, eclip.VClip.GetFrames());
-            ids.insert(Resources::LookupTexID(eclip.DestroyedTexture));
-        }
+        //for (auto& eclip : Resources::GameData.Effects) {
+        //    Seq::insert(ids, eclip.VClip.GetFrames());
+        //    ids.insert(Resources::LookupTexID(eclip.DestroyedTexture));
+        //}
 
-        Seq::insert(ids, Resources::GameData.HiResGauges);
-        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
+        //Seq::insert(ids, Resources::GameData.HiResGauges);
+        //Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
 
         string customHudTextures[] = {
                 "cockpit-ctr",
