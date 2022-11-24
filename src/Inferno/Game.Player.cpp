@@ -242,14 +242,40 @@ namespace Inferno {
         }
     }
 
-    float _nextFlareFireTime = 0;
     constexpr float FLARE_FIRE_DELAY = 0.25f;
 
-    void Player::FireFlare() const {
+    void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
         Game::FireWeapon(ID, 6, WeaponID::Flare);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
+    }
+
+    void Player::DropBomb() {
+        auto bomb = GetActiveBomb();
+        auto& ammo = SecondaryAmmo[(int)bomb];
+        if (ammo == 0) {
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            PrintHudMessage("you have no bombs!");
+            return;
+        }
+
+        auto id = GetSecondaryWeaponID(bomb);
+        auto& weapon = Resources::GameData.Weapons[(int)id];
+        Game::FireWeapon(ID, 7, id);
+        ammo -= weapon.AmmoUsage;
+
+        // Switch active bomb type if ran out of ammo
+        if (ammo == 0) {
+            if (BombIndex == 0 && SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine]) {
+                BombIndex = 1;
+                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+            }
+            else if (BombIndex == 1 && SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity]) {
+                BombIndex = 0;
+                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+            }
+        }
     }
 
     Vector2 GetHelixOffset(int index) {

@@ -197,7 +197,7 @@ namespace Inferno {
         Ray UnprojectRay(Vector2 screen, const Matrix& world) const {
             auto direction = Unproject(screen, world) - Position;
             direction.Normalize();
-            return Ray(Position, direction);
+            return { Position, direction };
         }
 
         // Returns a frustum for the perspective view

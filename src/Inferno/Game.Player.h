@@ -35,24 +35,45 @@ namespace Inferno {
         FireState PrimaryState{}, SecondaryState{};
         float RefuelSoundTime = 0;
         bool AfterburnerActive = false;
+        int BombIndex = 0; // 0 is proxy, 1 is smart mine
 
         void GiveWeapon(PrimaryWeaponIndex weapon) {
             PrimaryWeapons |= (1 << (uint16)weapon);
-            if ((weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss))
+            if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
                 PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += 2500;
-
-            // todo: autoswap based on priority
         }
 
         void GiveWeapon(SecondaryWeaponIndex weapon) {
             SecondaryWeapons |= (1 << (uint16)weapon);
             SecondaryAmmo[(uint16)weapon]++;
-            // todo: autoswap based on priority
         }
 
         bool HasWeapon(PrimaryWeaponIndex weapon) const {
             return PrimaryWeapons & (1 << (uint16)weapon);
         }
+
+        SecondaryWeaponIndex GetActiveBomb() const {
+            return BombIndex == 0 ? SecondaryWeaponIndex::Proximity : SecondaryWeaponIndex::SmartMine;
+        }
+
+        void CycleBombs() {
+            auto proxAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity];
+            auto smartAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine];
+
+            if (BombIndex == 0 && smartAmmo > 0) {
+                BombIndex = 1;
+                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+            }
+            else if (BombIndex == 1 && proxAmmo > 0) {
+                BombIndex = 0;
+                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+            }
+            else {
+                Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            }
+        }
+
+        void DropBomb();
 
         //bool HasWeapon(SecondaryWeaponIndex weapon) const {
         //    return SecondaryWeapons & (1 << (uint16)weapon);
@@ -113,7 +134,7 @@ namespace Inferno {
 
         void Update(float dt);
 
-        void FireFlare() const;
+        void FireFlare();
         void FirePrimary();
         void HoldPrimary();
         void ReleasePrimary();
@@ -129,6 +150,7 @@ namespace Inferno {
     private:
         SoundUID _afterburnerSoundSig = 0;
         float _prevAfterburnerCharge = 0;
+        float _nextFlareFireTime = 0;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {

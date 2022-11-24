@@ -63,8 +63,6 @@ namespace Inferno {
             }
 
             if (State == FadeOut) {
-                //player.UpgradingSuperLaser = false;
-
                 Opacity -= dt * player.RearmTime * 2;
                 if (Opacity <= 0) {
                     Opacity = 0;
@@ -103,6 +101,7 @@ namespace Inferno {
     constexpr float WEAPON_BMP_X_OFFSET = -135;
     constexpr Color MonitorGreenText = { 0, 0.7f, 0 };
     constexpr Color MonitorRedText = { 0.7f, 0, 0 };
+    constexpr Color MonitorGoldText = { 0.78f, 0.56f, 0.18f };
 
     void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
@@ -290,7 +289,7 @@ namespace Inferno {
         float percent = player.AfterburnerCharge;
         auto scale = Render::HudCanvas->GetScale();
         auto hex = Color(1, 1, 1).RGBA().v;
-        auto pos = Vector2{ x - 151, -37 } * scale;
+        auto pos = Vector2{ x - 151, -37 } *scale;
         auto& material = Render::Materials->Get("gauge02b");
         Vector2 size = {
             (float)material.Textures[0].GetWidth() * scale,
@@ -370,7 +369,7 @@ namespace Inferno {
 
         {
             float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
-            WeaponID wid = 
+            WeaponID wid =
                 weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4 ?
                 WeaponID::Laser5 :
                 PrimaryToWeaponID[(int)weaponIndex];
@@ -417,13 +416,20 @@ namespace Inferno {
 
         DrawEnergyBar(x, true, player.Energy);
 
-        // Bomb counter
-        info.Color = MonitorRedText;
-        info.Position = Vector2(x + 157, -26) * scale;
-        info.HorizontalAlign = AlignH::CenterRight;
-        info.VerticalAlign = AlignV::Bottom;
-        info.Scanline = 0.5f;
-        DrawMonitorText(fmt::format("B:{:02}", player.SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity]), info);
+        {
+            auto bomb = player.GetActiveBomb();
+
+            // Bomb counter
+            info.Color = bomb == SecondaryWeaponIndex::Proximity ? MonitorRedText : MonitorGoldText;
+            info.Position = Vector2(x + 157, -26) * scale;
+            info.HorizontalAlign = AlignH::CenterRight;
+            info.VerticalAlign = AlignV::Bottom;
+            info.Scanline = 0.5f;
+
+            auto bombs = player.SecondaryAmmo[(int)bomb];
+            if (bombs > 0)
+                DrawMonitorText(fmt::format("B:{:02}", bombs), info);
+        }
 
         // Draw Keys
         float keyScanline = 0.0f;
@@ -586,7 +592,7 @@ namespace Inferno {
             //info.Color *= 0.1;
             //info.Color.z = 0.8f;
 
-            info.Color = Color{ 0.78f, 0.56f, 0.18f };
+            info.Color = MonitorGoldText;
             info.Position = Vector2(2, -150) * scale;
             info.Scanline = 0.5f;
             auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));

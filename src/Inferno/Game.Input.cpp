@@ -88,6 +88,12 @@ namespace Inferno {
 
         if (Input::IsKeyPressed(Keys::F))
             Game::Player.FireFlare();
+
+        if (Input::IsKeyPressed(Keys::X))
+            Game::Player.CycleBombs();
+
+        if (Input::IsKeyPressed(Keys::Z))
+            Game::Player.DropBomb();
     }
 
     void HandleInput(float dt) {
