@@ -288,15 +288,15 @@ namespace Inferno {
         return AngleBetweenVectors(v0, v1, normal);
     }
 
-    constexpr float PaletteToRGB(int16 color) {
+    constexpr float PaletteToRGB(uint16 color) {
         return color >= 31 ? 1.0f : float(color) / 31.0f;
     }
 
     // Unpacks a 16 bpp palette value to a color
     constexpr Color UnpackColor(uint16 color) {
-        int16 r = ((color >> 10) & 31) * 2;
-        int16 g = ((color >> 5) & 31) * 2;
-        int16 b = (color & 31) * 2;
+        uint16 r = ((color >> 10) & 31) * 2;
+        uint16 g = ((color >> 5) & 31) * 2;
+        uint16 b = (color & 31) * 2;
 
         return { PaletteToRGB(r), PaletteToRGB(g), PaletteToRGB(b) };
     }

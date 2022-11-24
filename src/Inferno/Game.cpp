@@ -278,8 +278,7 @@ namespace Inferno::Game {
                     //auto vec = RandomVector(obj.Radius * 5);
                     //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
-                    debris.Velocity = i == 0 ? hitForce
-                        : explosionVec * 25 + RandomVector(10) + hitForce;
+                    debris.Velocity = i == 0 ? hitForce : explosionVec * 25 + RandomVector(10) + hitForce;
                     debris.Velocity += obj.Physics.Velocity;
                     debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
                     debris.Transform = world;
@@ -668,33 +667,33 @@ namespace Inferno::Game {
         //Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
 
         string customHudTextures[] = {
-                "cockpit-ctr",
-                "cockpit-left",
-                "cockpit-right",
-                "gauge01b#0",
-                "gauge01b#1",
-                "gauge01b#2",
-                "gauge01b#3",
-                "gauge01b#4",
-                "gauge01b#5",
-                "gauge01b#6",
-                "gauge01b#7",
-                "gauge01b#8",
-                "gauge01b#10",
-                "gauge01b#11",
-                "gauge01b#12",
-                "gauge01b#13",
-                "gauge01b#14",
-                "gauge01b#15",
-                "gauge01b#16",
-                "gauge01b#17",
-                "gauge01b#18",
-                "gauge01b#19",
-                "gauge02b",
-                "gauge03b",
-                //"gauge16b", // lock
-                "Hilite",
-                "SmHilite"
+            "cockpit-ctr",
+            "cockpit-left",
+            "cockpit-right",
+            "gauge01b#0",
+            "gauge01b#1",
+            "gauge01b#2",
+            "gauge01b#3",
+            "gauge01b#4",
+            "gauge01b#5",
+            "gauge01b#6",
+            "gauge01b#7",
+            "gauge01b#8",
+            "gauge01b#10",
+            "gauge01b#11",
+            "gauge01b#12",
+            "gauge01b#13",
+            "gauge01b#14",
+            "gauge01b#15",
+            "gauge01b#16",
+            "gauge01b#17",
+            "gauge01b#18",
+            "gauge01b#19",
+            "gauge02b",
+            "gauge03b",
+            //"gauge16b", // lock
+            "Hilite",
+            "SmHilite"
         };
 
         Render::Materials->LoadTextures(customHudTextures);
@@ -746,8 +745,8 @@ namespace Inferno::Game {
                     obj.HitPoints = ri.HitPoints;
                 }
 
-                if (obj.Type == ObjectType::Weapon &&
-                    (obj.ID == (int)WeaponID::Gauss || obj.ID == (int)WeaponID::Vulcan)) {
+                if (obj.Type == ObjectType::Powerup &&
+                    (obj.ID == (int)PowerupID::Gauss || obj.ID == (int)PowerupID::Vulcan)) {
                     obj.Control.Powerup.Count = 2500;
                 }
 
@@ -789,15 +788,13 @@ namespace Inferno::Game {
             Player.Energy = std::max(Player.Energy, 100.0f);
             Player.Energy = 5;
 
-            uint16 VULCAN_AMMO_MAX = Level.IsDescent1() ? 10000 : 1250;
+            // Max vulcan ammo changes between D1 and D2
+            PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Level.IsDescent1() ? 10000 : 20000;
+
             Player.PrimaryWeapons = 0xffff;
             Player.SecondaryWeapons = 0xffff;
             std::ranges::generate(Player.SecondaryAmmo, [] { return 5; });
-            std::ranges::generate(Player.PrimaryAmmo, [VULCAN_AMMO_MAX] { return VULCAN_AMMO_MAX; });
-
-            //TexID weaponTextures[] = {
-            //    TexID(30), TexID(11), TexID(
-            //};
+            std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
         }
     }
 }

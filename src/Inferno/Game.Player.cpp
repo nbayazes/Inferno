@@ -522,11 +522,6 @@ namespace Inferno {
 
         assert(obj.Type == ObjectType::Powerup);
 
-        auto id = PowerupID(obj.ID);
-        auto& powerup = Resources::GameData.Powerups[obj.ID];
-
-        bool used = false, ammoPickedUp = false;
-
         auto PickUpAccesory = [this](PowerupFlag powerup, string_view name) {
             if (HasPowerup(powerup)) {
                 auto msg = fmt::format("{} the {}!", Resources::GetString(GameString::AlreadyHave), name);
@@ -547,6 +542,10 @@ namespace Inferno {
                 pickedUp = PickUpEnergy();
             return pickedUp;
         };
+
+        auto id = PowerupID(obj.ID);
+        auto& powerup = Resources::GameData.Powerups[obj.ID];
+        bool used = false, ammoPickedUp = false;
 
         switch (id) {
             case PowerupID::ExtraLife:
@@ -861,7 +860,7 @@ namespace Inferno {
 
     bool Player::PickUpPrimary(PrimaryWeaponIndex index) {
         uint16 flag = 1 << (int)index;
-        auto name = Resources::GetString(GameString(104 + (int)index)); // this changes in d1
+        auto name = Resources::GetPrimaryName(index);
 
         if (index != PrimaryWeaponIndex::Laser && PrimaryWeapons & flag) {
             PrintHudMessage(fmt::format("you already have the {}", name));
@@ -887,7 +886,7 @@ namespace Inferno {
             max *= 2;
 
         auto& ammo = SecondaryAmmo[(int)index];
-        auto name = Resources::GetString(GameString(114 + (int)index)); // this changes in d1
+        auto name = Resources::GetSecondaryName(index);
 
         if (ammo >= max) {
             auto msg = fmt::format("{} {} {}s!", Resources::GetString(GameString::AlreadyHave), ammo, name);
@@ -905,7 +904,7 @@ namespace Inferno {
 
         if (pickedUp > 1) {
             ScreenFlash({ 15, 15, 15 });
-            auto msg = fmt::format("{} {}{}", pickedUp, name, Resources::GetString(GameString::Sx));
+            auto msg = fmt::format("{} {}s!", pickedUp, name);
             PrintHudMessage(msg);
         }
         else {

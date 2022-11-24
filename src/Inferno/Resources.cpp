@@ -321,6 +321,28 @@ namespace Inferno::Resources {
         return StringTable[(int)i];
     }
 
+    const string_view GetPrimaryName(PrimaryWeaponIndex id) {
+        return GetString(GameString{ 104 + (int)id }); // Same for d1 and d2
+    }
+
+    const string_view GetSecondaryName(SecondaryWeaponIndex id) {
+        int index = Game::Level.IsDescent1() ? 109 : 114;
+        return GetString(GameString{ index + (int)id });
+    }
+
+    const string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
+        if (id == PrimaryWeaponIndex::Spreadfire)
+            return "spread"; // D1 has "spreadfire" in the string table, but it gets trimmed by the border
+
+        int index = Game::Level.IsDescent1() ? 114 : 124;
+        return Resources::GetString(GameString{ index + (int)id });
+    }
+
+    const string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
+        int index = Game::Level.IsDescent1() ? 119 : 134;
+        return Resources::GetString(GameString{ index + (int)id });
+    }
+
     void LoadExtendedWeaponInfo() {
         if (GameData.Weapons.size() < 30) return; // No D1 data
         auto GetWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };

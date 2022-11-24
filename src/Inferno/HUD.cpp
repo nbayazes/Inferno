@@ -3,19 +3,6 @@
 #include "Game.h"
 
 namespace Inferno {
-    const string_view GetPrimaryNameShort(PrimaryWeaponIndex id) {
-        if(id == PrimaryWeaponIndex::Spreadfire) 
-            return "spread"; // D1 has "spreadfire" in the string table, but it gets trimmed by the border
-
-        int index = Game::Level.IsDescent1() ? 114 + (int)id : 124 + (int)id;
-        return Resources::GetString(GameString{ index });
-    }
-
-    const string_view GetSecondaryNameShort(SecondaryWeaponIndex id) {
-        int index = Game::Level.IsDescent1() ? 119 + (int)id : 134 + (int)id;
-        return Resources::GetString(GameString{ index });
-    }
-
     enum class Gauges {
         Shield = 0, // 0 to 9 in decreasing strength
         Invincible = 10, // 10 to 19
@@ -331,7 +318,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        auto weaponName = GetPrimaryNameShort(weaponIndex);
+        auto weaponName = Resources::GetPrimaryNameShort(weaponIndex);
         string label = string(weaponName), ammo;
 
         switch (weaponIndex) {
@@ -397,7 +384,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
         info.Scanline = 0.5f;
-        DrawMonitorText(GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
+        DrawMonitorText(Resources::GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
 
         // Ammo counter
         info.Color = MonitorRedText;

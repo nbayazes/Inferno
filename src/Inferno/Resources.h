@@ -92,11 +92,8 @@ namespace Inferno::Resources {
     void LoadSounds();
 
     const string_view GetString(GameString);
-    inline const string_view GetPrimaryName(PrimaryWeaponIndex id) {
-        return GetString(GameString{ (int)GameString::Laser + (int)id });
-    }
-
-    inline const string_view GetSecondaryName(SecondaryWeaponIndex id) {
-        return GetString(GameString{ (int)GameString::Concussion + (int)id });
-    }
+    const string_view GetPrimaryName(PrimaryWeaponIndex id);
+    const string_view GetSecondaryName(SecondaryWeaponIndex id);
+    const string_view GetPrimaryNameShort(PrimaryWeaponIndex id);
+    const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
 }
