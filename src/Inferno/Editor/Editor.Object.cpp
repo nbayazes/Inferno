@@ -160,9 +160,11 @@ namespace Inferno::Editor {
 
                 physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model.ID = ship.Model;
-                obj.Render.Model.subobj_flags = 0;
-                obj.Render.Model.TextureOverride = LevelTexID::None;
+                obj.Render.Model = {
+                    .ID = ship.Model,
+                    .TextureOverride = LevelTexID::None
+                };
+
                 for (auto& angle : obj.Render.Model.Angles)
                     angle = Vector3::Zero;
 
@@ -173,7 +175,7 @@ namespace Inferno::Editor {
             case ObjectType::Coop:
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model.ID = coopModel;
+                obj.Render.Model = { .ID = coopModel };
                 break;
 
             case ObjectType::Robot:
@@ -185,7 +187,7 @@ namespace Inferno::Editor {
                 obj.Physics.Drag = ri.Drag;
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
-                obj.Render.Model.ID = ri.Model;
+                obj.Render.Model = { .ID = ri.Model };
                 obj.Control.AI.Behavior = AIBehavior::Normal;
                 obj.Contains.Type = ObjectType::None;
                 break;
@@ -193,7 +195,7 @@ namespace Inferno::Editor {
             case ObjectType::Hostage:
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Hostage;
-                obj.Render.VClip.ID = VClipID(33);
+                obj.Render.VClip = { .ID = VClipID(33) };
                 break;
 
             case ObjectType::Powerup:
@@ -201,7 +203,7 @@ namespace Inferno::Editor {
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Powerup;
                 auto& info = Resources::GameData.Powerups.at(0);
-                obj.Render.VClip.ID = info.VClip;
+                obj.Render.VClip = { .ID = info.VClip };
                 break;
             }
 
@@ -210,7 +212,7 @@ namespace Inferno::Editor {
                 obj.Control.Type = ControlType::Reactor;
                 obj.Render.Type = RenderType::Model;
                 auto& info = Resources::GameData.Reactors.at(0);
-                obj.Render.Model.ID = info.Model;
+                obj.Render.Model = { .ID = info.Model };
                 obj.HitPoints = 200;
                 break;
             }
@@ -232,7 +234,7 @@ namespace Inferno::Editor {
 
                 obj.ID = 51;
                 obj.Render.Type = RenderType::Model;
-                obj.Render.Model.ID = ModelID::Mine;
+                obj.Render.Model = { .ID = ModelID::Mine };
                 obj.HitPoints = 20;
             }
         }
