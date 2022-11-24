@@ -118,18 +118,20 @@ namespace Inferno {
 
         auto seg = level.TryGetSegment(tag);
         if (!seg) return false;
+
         auto& side = seg->GetSide(tag.Side);
         if (side.TMap2 <= LevelTexID::Unset) return false;
-        auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
-        if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None) return false;
-        auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
-        bool hasEClip = eclip.DestroyedTexture != LevelTexID::None || eclip.DestroyedEClip != EClipID::None;
 
-        if (!hasEClip && tmi.DestroyedTexture == LevelTexID::None)
+        auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
+        if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None) 
             return false;
 
-        //if (HasFlag(eclip.Flags, EClipFlag::OneShot))
-        //    return false;
+        auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
+        if (eclip.OneShotTag) return false; // don't trigger from one-shot effects
+
+        bool hasEClip = eclip.DestroyedTexture != LevelTexID::None || eclip.DestroyedEClip != EClipID::None;
+        if (!hasEClip && tmi.DestroyedTexture == LevelTexID::None)
+            return false;
 
         // Don't allow non-players to destroy triggers
         if (source.Control.Weapon.ParentType != ObjectType::Player) {
@@ -155,6 +157,7 @@ namespace Inferno {
         // Hit opaque overlay!
         //Inferno::SubtractLight(level, tag, *seg);
 
+        fmt::print("tmap2: {}\n", side.TMap2);
         bool usedEClip = false;
 
         if (eclip.DestroyedEClip != EClipID::None) {
@@ -168,6 +171,8 @@ namespace Inferno {
                     destroyed.OneShotTag = tag;
                     destroyed.DestroyedTexture = eclip.DestroyedTexture;
                     usedEClip = true;
+                    Render::LoadTextureDynamic(eclip.DestroyedTexture);
+                    Render::LoadTextureDynamic(side.TMap2);
                 }
             }
         }
@@ -194,7 +199,8 @@ namespace Inferno {
         Sound::Play(sound);
 
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
-            fmt::print("Activating switch {}:{}\n", tag.Segment, tag.Side);
+            SPDLOG_INFO("Activating switch {}:{}\n", tag.Segment, tag.Side);
+            //fmt::print("Activating switch {}:{}\n", tag.Segment, tag.Side);
             ActivateTrigger(level, *trigger);
         }
 
