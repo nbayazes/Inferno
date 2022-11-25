@@ -418,6 +418,9 @@ namespace Inferno {
             return;
         }
 
+        if (index == (int)Primary && Game::Level.IsDescent1())
+            return; // Weapon already selected
+
         SelectPrimary(PrimaryWeaponIndex(index));
     }
 
@@ -452,6 +455,9 @@ namespace Inferno {
             PrintHudMessage("no secondary weapons available!");
             return;
         }
+
+        if (index == (int)Secondary && Game::Level.IsDescent1())
+            return; // Weapon already selected
 
         SelectSecondary(SecondaryWeaponIndex(index));
     }
