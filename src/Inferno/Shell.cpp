@@ -139,6 +139,8 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_ACTIVATEAPP:
             if (app) {
+                Shell::HasFocus = wParam == true;
+
                 if (wParam)
                     app->OnActivated();
                 else
@@ -240,7 +242,7 @@ bool RegisterWindowClass(HINSTANCE hInstance) {
     return RegisterClassEx(&wc) != 0;
 }
 
-int Shell::Show(int width, int height, int nCmdShow) {
+int Shell::Show(int width, int height, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
 

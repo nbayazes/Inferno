@@ -63,7 +63,7 @@ namespace Inferno::Input {
             RawX = RawY = 0;
 
             if (Mouselook) {
-                RECT r{}, frame{};
+                RECT r{};
                 GetClientRect(Hwnd, &r);
                 POINT center = { (r.left + r.right) / 2, (r.top + r.bottom) / 2 };
                 WindowCenter = { (float)center.x, (float)center.y };
@@ -71,6 +71,8 @@ namespace Inferno::Input {
 
             ShowCursor(!Mouselook);
         }
+
+        if (!Shell::HasFocus) return;
 
         auto keyboardState = _keyboard.GetState();
         auto mouseState = _mouse.GetState();

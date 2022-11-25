@@ -1,10 +1,6 @@
 #pragma once
 
-#define NOMINMAX
-#include <wtypes.h>
-#include "Graphics/ShaderLibrary.h"
 #include "Graphics/Render.h"
-#include "Level.h"
 #include "SystemClock.h"
 
 namespace Inferno {
