@@ -200,6 +200,8 @@ namespace Inferno::Game {
         bullet.Physics.Drag = weapon.Drag;
         bullet.Physics.Mass = weapon.Mass;
         bullet.Physics.Bounces = weapon.Extended.Bounces;
+        if (bullet.Physics.Bounces > 0)
+            ClearFlag(bullet.Physics.Flags, PhysicsFlag::Bounce); // remove the bounce flag as physics will stop when bounces = 0
 
         bullet.Control.Type = ControlType::Weapon;
         bullet.Control.Weapon = {};

@@ -1612,7 +1612,7 @@ namespace Inferno {
                     Game::Player.TouchObject(*hit.HitObj);
                 }
 
-                if (/*HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) ||*/ obj.Physics.Bounces > 0) {
+                if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) || obj.Physics.Bounces > 0) {
                     obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
                     obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
                     obj.Physics.Bounces--;

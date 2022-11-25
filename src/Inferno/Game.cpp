@@ -184,6 +184,7 @@ namespace Inferno::Game {
                     powerup.Render.VClip.ID = vclip;
                     powerup.Render.VClip.Frame = 0;
                     powerup.Render.VClip.FrameTime = Resources::GetVideoClip(vclip).FrameTime;
+                    powerup.Radius = Resources::GameData.Powerups[powerup.ID].Size;
 
                     powerup.Movement = MovementType::Physics;
                     powerup.Physics.Velocity = RandomVector(32);
@@ -191,6 +192,7 @@ namespace Inferno::Game {
                     powerup.Physics.Drag = 0.01f;
                     powerup.Physics.Flags = PhysicsFlag::Bounce;
 
+                    Render::LoadTextureDynamic(vclip);
                     AddObject(powerup);
                 }
                 break;
