@@ -417,7 +417,6 @@ namespace Inferno::Resources {
 
         auto& smart = GetWeapon(WeaponID::Smart);
         smart.Extended.ModelPath = "smartmissile.OOF";
-        GetWeapon(WeaponID::Smart).Speed.fill(0);
 
         auto& mega = GetWeapon(WeaponID::Mega).Extended;
         mega.ScorchTexture = "scorchC";

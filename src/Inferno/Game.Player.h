@@ -52,26 +52,9 @@ namespace Inferno {
             return PrimaryWeapons & (1 << (uint16)weapon);
         }
 
-        SecondaryWeaponIndex GetActiveBomb() const {
-            return BombIndex == 0 ? SecondaryWeaponIndex::Proximity : SecondaryWeaponIndex::SmartMine;
-        }
+        SecondaryWeaponIndex GetActiveBomb() const;
 
-        void CycleBombs() {
-            auto proxAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity];
-            auto smartAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine];
-
-            if (BombIndex == 0 && smartAmmo > 0) {
-                BombIndex = 1;
-                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
-            }
-            else if (BombIndex == 1 && proxAmmo > 0) {
-                BombIndex = 0;
-                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
-            }
-            else {
-                Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
-            }
-        }
+        void CycleBombs();
 
         void DropBomb();
 

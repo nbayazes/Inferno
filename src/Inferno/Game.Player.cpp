@@ -251,6 +251,33 @@ namespace Inferno {
         _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
     }
 
+    SecondaryWeaponIndex Player::GetActiveBomb() const {
+        return BombIndex == 0 || Game::Level.IsDescent1() ? SecondaryWeaponIndex::Proximity : SecondaryWeaponIndex::SmartMine;
+    }
+
+    void Player::CycleBombs() {
+        if (Game::Level.IsDescent1()) {
+            BombIndex = 0;
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            return;
+        }
+
+        auto proxAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity];
+        auto smartAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine];
+
+        if (BombIndex == 0 && smartAmmo > 0) {
+            BombIndex = 1;
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+        }
+        else if (BombIndex == 1 && proxAmmo > 0) {
+            BombIndex = 0;
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+        }
+        else {
+            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+        }
+    }
+
     void Player::DropBomb() {
         auto bomb = GetActiveBomb();
         auto& ammo = SecondaryAmmo[(int)bomb];
@@ -266,7 +293,7 @@ namespace Inferno {
         ammo -= weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
-        if (ammo == 0) {
+        if (ammo == 0 && !Game::Level.IsDescent1()) {
             if (BombIndex == 0 && SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine]) {
                 BombIndex = 1;
                 Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
@@ -305,8 +332,8 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = weapon.FireDelay;
 
-        if (!weapon.Extended.Chargable) { // Charged weapons drain energy on button down
-            Energy -= weapon.EnergyUsage;
+        if (!weapon.Extended.Chargable) {
+            Energy -= weapon.EnergyUsage; // Charged weapons drain energy on button down
             PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
         }
 
@@ -337,9 +364,7 @@ namespace Inferno {
             AutoselectPrimary();
     }
 
-    void Player::HoldPrimary() {
-
-    }
+    void Player::HoldPrimary() { }
 
     void Player::ReleasePrimary() {
         //auto id = GetPrimaryWeaponID();

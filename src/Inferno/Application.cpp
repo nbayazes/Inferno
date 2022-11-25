@@ -109,13 +109,13 @@ void Application::Tick() {
 
     _clock.Update(false);
 
-    float dt = (float)_clock.GetElapsedSeconds();
+    auto dt = (float)_clock.GetElapsedSeconds();
     if (dt > 2) dt = 2;
 
     Render::FrameTime = dt;
 
     if (Game::State == GameState::Game) {
-        Game::Time = milliseconds / 1000.; // this should be accumulating
+        Game::Time = milliseconds / 1000.;
     }
 
     if (Settings::Editor.ShowAnimation)
