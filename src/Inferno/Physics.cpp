@@ -123,7 +123,7 @@ namespace Inferno {
         if (side.TMap2 <= LevelTexID::Unset) return false;
 
         auto& tmi = Resources::GetLevelTextureInfo(side.TMap2);
-        if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None) 
+        if (tmi.EffectClip == EClipID::None && tmi.DestroyedTexture == LevelTexID::None)
             return false;
 
         auto& eclip = Resources::GetEffectClip(tmi.EffectClip);
@@ -1215,14 +1215,13 @@ namespace Inferno {
                 case ObjectType::Weapon:
                 {
                     ApplyForce(obj, forceVec);
-
                     // Mines can blow up under enough force
-                    if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
-                        if (dist * force > 0.122f) {
-                            obj.Lifespan = 0;
-                            // explode()?
-                        }
-                    }
+                    //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
+                    //    if (dist * force > 0.122f) {
+                    //        obj.Lifespan = 0;
+                    //        // explode()?
+                    //    }
+                    //}
                     break;
                 }
 
@@ -1291,7 +1290,8 @@ namespace Inferno {
 
         if (target.Type == ObjectType::Weapon) {
             Game::ExplodeWeapon(target); // Destroy the weapon that was hit (usually a mine)
-            return; // keep going
+            if (weapon.SplashRadius == 0)
+                return; // non-explosive weapons keep going
         }
         else {
             if (target.Type != ObjectType::Player) // player shields are handled differently
