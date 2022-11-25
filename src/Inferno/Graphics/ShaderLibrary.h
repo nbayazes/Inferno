@@ -36,7 +36,7 @@ namespace Inferno {
         Vector2 UV2; // for overlay texture
         Vector3 Normal;
 
-        static inline const D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -51,7 +51,7 @@ namespace Inferno {
         Vector3 Position;
         Color Color;
 
-        static inline const D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
@@ -65,7 +65,7 @@ namespace Inferno {
         Vector2 UV;
         uint32 Color;
 
-        static inline const D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -94,7 +94,7 @@ namespace Inferno {
         Color Color;
         Vector3 Normal;
 
-        static inline const D3D12_INPUT_ELEMENT_DESC Description[] = {
+        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -118,7 +118,7 @@ namespace Inferno {
         ComPtr<ID3DBlob> PixelShader;
         ComPtr<ID3D12RootSignature> RootSignature;
 
-        void Apply(ID3D12GraphicsCommandList* commandList) {
+        void Apply(ID3D12GraphicsCommandList* commandList) const {
             commandList->SetGraphicsRootSignature(RootSignature.Get());
         }
     };
@@ -146,7 +146,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        const static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
+        constexpr static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
 
         DepthShader(ShaderInfo info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
@@ -447,11 +447,11 @@ namespace Inferno {
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         
         Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
-        Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque } };
-        Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::Clockwise } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
+        Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::None } };
+        Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::Clockwise } };
         
-        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };

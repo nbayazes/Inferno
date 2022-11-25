@@ -185,19 +185,19 @@ namespace Inferno {
         }
 
         // Unprojects a screen coordinate into world space along the near plane
-        Vector3 Unproject(Vector2 screen, const Matrix& world) const {
+        Vector3 Unproject(Vector2 screen, const Matrix& world = Matrix::Identity) const {
             return Viewport.Unproject({ screen.x, screen.y, 0 }, Projection, View, world);
+        }
+
+        Ray UnprojectRay(Vector2 screen, const Matrix& world = Matrix::Identity) const {
+            auto direction = Unproject(screen, world) - Position;
+            direction.Normalize();
+            return { Position, direction };
         }
 
         // Projects a world coordinate into screen space
         Vector3 Project(Vector3 p, const Matrix& world) const {
             return Viewport.Project(p, Projection, View, world);
-        }
-
-        Ray UnprojectRay(Vector2 screen, const Matrix& world) const {
-            auto direction = Unproject(screen, world) - Position;
-            direction.Normalize();
-            return { Position, direction };
         }
 
         // Returns a frustum for the perspective view
@@ -228,7 +228,7 @@ namespace Inferno {
         void Update(float dt) {
             float shake = _pendingShake * dt * 4;
             _pendingShake -= shake;
-            if(_pendingShake < 0) _pendingShake = 0;
+            if (_pendingShake < 0) _pendingShake = 0;
 
             constexpr float DECAY_SPEED = 5;
             _shake += shake - DECAY_SPEED * dt;

@@ -25,49 +25,6 @@ namespace Inferno::Render {
         LevelMeshBuilder _levelMeshBuilder;
     }
 
-    void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, ModelID modelId, float lerp) {
-        auto& model = Resources::GetModel(modelId);
-        auto& meshHandle = GetMeshHandle(modelId);
-        auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
-
-        ObjectDepthShader::Constants constants = {};
-        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), lerp);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-
-        auto& shader = Shaders->DepthObject;
-
-        int submodelIndex = 0;
-        for (auto& submodel : model.Submodels) {
-            // accumulate the offsets for each submodel
-            auto submodelOffset = Vector3::Zero;
-            auto* smc = &submodel;
-            while (smc->Parent != ROOT_SUBMODEL) {
-                submodelOffset += smc->Offset;
-                smc = &model.Submodels[smc->Parent];
-            }
-
-            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
-            constants.World = world;
-            shader.SetConstants(cmdList, constants);
-
-            // get the mesh associated with the submodel
-            auto& subMesh = meshHandle.Meshes[submodelIndex++];
-
-            for (int i = 0; i < subMesh.size(); i++) {
-                auto mesh = subMesh[i];
-                if (!mesh) continue;
-
-                auto& ti = Resources::GetTextureInfo(texOverride == TexID::None ? mesh->Texture : texOverride);
-                if (ti.Transparent) continue;
-
-                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
-                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                Stats::DrawCalls++;
-            }
-        }
-    }
-
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         assert(cmd.Type == RenderCommandType::LevelMesh);
         auto& mesh = *cmd.Data.LevelMesh;
@@ -158,7 +115,8 @@ namespace Inferno::Render {
                         if (cmd.Data.Object->Type == ObjectType::Robot)
                             model = Resources::GetRobotInfo(object.ID).Model;
 
-                        if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
+                        auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
+                        if (object.Type == ObjectType::Weapon && inner > ModelID::None && inner != ModelID(255)) {
                             // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
                             ctx.ApplyEffect(Effects->DepthObjectFlipped);
                         }
@@ -167,7 +125,7 @@ namespace Inferno::Render {
                         }
 
                         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-                        ModelDepthPrepass(cmdList, object, model, Game::LerpAmount);
+                        ModelDepthPrepass(cmdList, object, model);
                     }
 
                     break;

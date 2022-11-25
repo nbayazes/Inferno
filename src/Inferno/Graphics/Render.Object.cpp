@@ -57,7 +57,48 @@ namespace Inferno::Render {
         g_SpriteBatch->End();
     }
 
-    //TexID texOverride = TexID::None
+    void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, ModelID modelId) {
+        auto& model = Resources::GetModel(modelId);
+        auto& meshHandle = GetMeshHandle(modelId);
+        auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
+
+        ObjectDepthShader::Constants constants = {};
+        auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        auto& shader = Shaders->DepthObject;
+
+        int submodelIndex = 0;
+        for (auto& submodel : model.Submodels) {
+            // accumulate the offsets for each submodel
+            auto submodelOffset = Vector3::Zero;
+            auto* smc = &submodel;
+            while (smc->Parent != ROOT_SUBMODEL) {
+                submodelOffset += smc->Offset;
+                smc = &model.Submodels[smc->Parent];
+            }
+
+            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+            constants.World = world;
+            shader.SetConstants(cmdList, constants);
+
+            // get the mesh associated with the submodel
+            auto& subMesh = meshHandle.Meshes[submodelIndex++];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                auto& ti = Resources::GetTextureInfo(texOverride == TexID::None ? mesh->Texture : texOverride);
+                if (ti.Transparent) continue;
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
 
     void OutrageModelDepthPrepass(GraphicsContext& ctx, const Object& object) {
         assert(object.Render.Type == RenderType::Model);
@@ -193,7 +234,7 @@ namespace Inferno::Render {
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
-                effect.Shader->SetSampler(cmd, Heaps->States.AnisotropicWrap());
+                effect.Shader->SetSampler(cmd, GetTextureSampler());
                 effect.Shader->SetMaterial(cmd, handle);
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
@@ -327,7 +368,8 @@ namespace Inferno::Render {
                     }
                     else {
                         DrawModel(ctx, object, object.Render.Model.ID, pass, texOverride);
-                        if (object.Type == ObjectType::Weapon && Resources::GameData.Weapons[object.ID].ModelInner > ModelID::None) {
+                        auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
+                        if (object.Type == ObjectType::Weapon && inner > ModelID::None && inner != ModelID(255)) {
                             DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass, texOverride);
                         }
                     }
