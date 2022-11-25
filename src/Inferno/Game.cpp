@@ -339,7 +339,7 @@ namespace Inferno::Game {
     }
 
     Tuple<ObjID, float> FindNearestObject(const Object& src) {
-        ObjID id = ObjID::None;
+        auto id = ObjID::None;
         //auto& srcObj = Level.GetObject(src);
         float dist = FLT_MAX;
 
@@ -457,6 +457,7 @@ namespace Inferno::Game {
         //Render::UpdateExplosions(dt);
         UpdateAmbientSounds();
         UpdateExplodingWalls(Game::Level, dt);
+        Render::FixedUpdateEffects(dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
@@ -730,7 +731,7 @@ namespace Inferno::Game {
         else if (State == GameState::Editor) {
             if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
                 Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
-                Gravity = Level.Objects[0].Rotation.Up() * -10;
+                Gravity = Level.Objects[0].Rotation.Up() * -200;
             }
             else {
                 SPDLOG_ERROR("No player start at object 0!");

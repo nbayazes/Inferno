@@ -40,6 +40,14 @@ namespace Inferno {
         return v * scale;
     }
 
+    // Returns a random point inside of a circle
+    inline Vector2 RandomPointInCircle(float radius) {
+        auto t = Random() * DirectX::XM_2PI;
+        auto x = std::cos(t) * radius * RandomN11();
+        auto y = std::sin(t) * radius * RandomN11();
+        return { x, y };
+    }
+
     // defined in C++23
     template <class T>
     inline constexpr bool is_scoped_enum_v = std::conjunction_v<std::is_enum<T>, std::negation<std::is_convertible<T, int>>>;

@@ -184,13 +184,21 @@ namespace Inferno {
 
         Editor::Events::LevelChanged();
 
-        Render::ExplosionInfo ei;
-        ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
-        ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
-        ei.FadeTime = 0.25f;
-        ei.Position = point;
-        ei.Segment = tag.Segment;
-        Render::CreateExplosion(ei);
+        //Render::ExplosionInfo ei;
+        //ei.Clip = hasEClip ? eclip.DestroyedVClip : VClipID::LightExplosion;
+        //ei.MinRadius = ei.MaxRadius = hasEClip ? eclip.ExplosionSize : 20.0f;
+        //ei.FadeTime = 0.25f;
+        //ei.Position = point;
+        //ei.Segment = tag.Segment;
+        //Render::CreateExplosion(ei);
+        Render::SparkEmitter e;
+        e.Position = point + side.AverageNormal * 0.1f;
+        e.Life = 5;
+        e.Segment = tag.Segment;
+        e.Direction = side.AverageNormal;
+        e.Up = side.Tangents[0];
+        e.ConeRadius = 5;
+        Render::AddSparkEmitter(e);
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
         auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
@@ -940,6 +948,7 @@ namespace Inferno {
 
     // intersects a ray with the level, returning hit information
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, LevelHit& hit) {
+        if (start == SegID::None) return false;
         if (maxDist <= 0.01f) return false;
         SegID next = start;
 
@@ -965,7 +974,8 @@ namespace Inferno {
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
                         hit.Tangent = face.Side.Tangents[tri - 1];
-                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point); // bug: is hit.point set?
+                        hit.Point = ray.position + ray.direction * dist;
+                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
                     }
                     else {

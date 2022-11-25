@@ -12,6 +12,20 @@ namespace Inferno::Render {
     //    None, Particle, Emitter, Debris, Tracer
     //};
 
+    template<class T>
+    struct NumericRange {
+        T Min{}, Max{};
+
+        NumericRange() = default;
+        NumericRange(T minimum, T maximum) : Min(minimum), Max(maximum) {
+            if (Min > Max) std::swap(Min, Max);
+        }
+
+        T GetRandom() {
+            return (Max - Min) * (T)Random() + Min;
+        }
+    };
+
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;
@@ -21,7 +35,12 @@ namespace Inferno::Render {
         virtual bool IsAlive() { return Life > 0; }
         static bool IsAliveFn(const EffectBase& e) { return e.Life > 0; }
 
+        // Called once per frame
         virtual void Update(float dt) { Life -= dt; }
+
+        // Called per game tick
+        virtual void FixedUpdate(float /*dt*/) { }
+
         virtual void Draw(Graphics::GraphicsContext&) {}
         virtual void DepthPrepass(Graphics::GraphicsContext&) {
             assert(IsTransparent); // must provide a depth prepass if not transparent
@@ -35,7 +54,7 @@ namespace Inferno::Render {
         EffectBase& operator=(EffectBase&&) = default;
     };
 
-    struct Particle : EffectBase {
+    struct Particle final : EffectBase {
         VClipID Clip = VClipID::None;
         Vector3 Up = Vector3::Zero;
         Color Color = { 1, 1, 1 };
@@ -88,7 +107,7 @@ namespace Inferno::Render {
         }
     };
 
-    class ParticleEmitter : public EffectBase {
+    class ParticleEmitter final : public EffectBase {
         float _spawnTimer = 0; // internal timer for when to create a particle
         float _startDelay = 0;
         ParticleEmitterInfo _info;
@@ -105,7 +124,7 @@ namespace Inferno::Render {
         //    _particles.Add(_info.CreateParticle());
         //}
 
-        void Update(float dt);
+        void Update(float dt) override;
         static bool IsAlive(const ParticleEmitter& p) { return p.Life > 0; }
     };
 
@@ -113,7 +132,7 @@ namespace Inferno::Render {
     void AddParticle(Particle&, SegID);
 
     // Remains of a destroyed robot
-    struct Debris : EffectBase {
+    struct Debris final : EffectBase {
         Debris() { IsTransparent = false; }
 
         Matrix Transform, PrevTransform;
@@ -128,7 +147,7 @@ namespace Inferno::Render {
 
         void Draw(Graphics::GraphicsContext&) override;
         void DepthPrepass(Graphics::GraphicsContext&) override;
-        void Update(float dt) override;
+        void FixedUpdate(float dt) override;
     };
 
     void AddDebris(Debris&, SegID);
@@ -192,7 +211,7 @@ namespace Inferno::Render {
     void AddBeam(BeamInfo&);
     void DrawBeams(Graphics::GraphicsContext& ctx);
 
-    struct TracerInfo : EffectBase {
+    struct TracerInfo final : EffectBase {
         ObjID Parent = ObjID::None; // Object the tracer is attached to. Normally a weapon projectile.
         ObjSig Signature = {};
         float Length = 20; // How long the tracer is
@@ -215,7 +234,7 @@ namespace Inferno::Render {
     // Tracers are only drawn when the minimum length is reached
     void AddTracer(TracerInfo&, SegID);
 
-    struct DecalInfo : EffectBase {
+    struct DecalInfo final : EffectBase {
         Vector3 Tangent, Bitangent;
         string Texture = "scorchB";
 
@@ -230,12 +249,49 @@ namespace Inferno::Render {
     // Removes decals on a side
     void RemoveDecals(Tag);
 
+    struct Spark {
+        float Life = 0;
+        Vector3 Velocity, PrevVelocity;
+        Vector3 Position, PrevPosition;
+        SegID Segment = SegID::None;
+        static bool IsAlive(const Spark& s) { return s.Life > 0; }
+    };
+
+    class SparkEmitter final : public EffectBase {
+        DataPool<Spark> _sparks = { Spark::IsAlive, 20 };
+        bool _createdSparks = false;
+    public:
+        string Texture = "sun";
+        Color Color = { 3.0, 3.0, 3.0 };
+        float Width = 0.35f;
+
+        NumericRange<float> Duration = { 1.4, 3.0f }; // Range for individual spark lifespans 
+        NumericRange<uint> Count = { 80, 100 };
+        NumericRange<float> Velocity = { 50, 75 };
+        Vector3 Direction; // if Zero, random direction
+        Vector3 Up; // Used with direction
+        float ConeRadius = 0; // Used with Direction to create a random velocity
+        float Drag = 0.02f;
+        float FadeTime = 1.0f; // How long it takes to fade the particle out
+        float Restitution = 0.8f; // How much velocity to keep after hitting a wall
+
+        float VelocitySmear = 0.04f; // Percentage of velocity to add to spark length
+
+        void FixedUpdate(float dt) override;
+        void Draw(Graphics::GraphicsContext&) override;
+    private:
+        void CreateSpark();
+    };
+
+    void AddSparkEmitter(SparkEmitter&);
+
     void ResetParticles();
 
     span<Ptr<EffectBase>> GetEffectsInSegment(SegID);
 
     void InitEffects(const Level& level);
     void UpdateEffects(float dt);
+    void FixedUpdateEffects(float dt);
 
     namespace Stats {
         inline uint EffectDraws = 0;

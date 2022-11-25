@@ -162,14 +162,6 @@ namespace Inferno::Game {
         //}
     }
 
-    // Returns a random point inside of a circle
-    Vector2 RandomPointInCircle(float radius) {
-        auto t = Random() * DirectX::XM_2PI;
-        auto x = std::cos(t) * radius * RandomN11();
-        auto y = std::sin(t) * radius * RandomN11();
-        return { x, y };
-    }
-
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash, const Vector2& spread) {
         auto& level = Game::Level;
         auto& obj = level.Objects[(int)objId];

@@ -89,7 +89,7 @@ namespace Inferno::Render {
 
         Life -= dt;
 
-        if ((_info.MaxDelay == 0 && _info.MinDelay == 0) && _info.ParticlesToSpawn > 0) {
+        if (_info.MaxDelay == 0 && _info.MinDelay == 0 && _info.ParticlesToSpawn > 0) {
             // Create all particles at once if delay is zero
             while (_info.ParticlesToSpawn-- > 0) {
                 _particles.Add(_info.CreateParticle());
@@ -191,7 +191,7 @@ namespace Inferno::Render {
         }
     }
 
-    void Debris::Update(float dt) {
+    void Debris::FixedUpdate(float dt) {
         Velocity *= 1 - Drag;
         Life -= dt;
         PrevTransform = Transform;
@@ -213,7 +213,7 @@ namespace Inferno::Render {
 
         if (IntersectLevelDebris(Game::Level, capsule, Segment, hit)) {
             Life = -1; // destroy on contact
-            // scorch marks on walls?
+            // todo: scorch marks on walls
         }
 
         if (!Editor::PointInSegment(Game::Level, Segment, position)) {
@@ -313,6 +313,7 @@ namespace Inferno::Render {
         //Beams.Add(beam);
     }
 
+    // returns a vector perpendicular to the camera and the start/end points
     Vector3 GetBeamNormal(const Vector3& start, const Vector3 end) {
         auto tangent = start - end;
         auto dirToBeam = start - Render::Camera.Position;
@@ -671,6 +672,123 @@ namespace Inferno::Render {
         }
     }
 
+    void SparkEmitter::FixedUpdate(float dt) {
+        if (!_createdSparks) {
+            // for now create all sparks when inserted. want to support random delay / permanent generators later.
+            auto count = Count.GetRandom();
+            for (uint i = 0; i < count; i++)
+                CreateSpark();
+
+            _createdSparks = true;
+        }
+
+        for (auto& spark : _sparks) {
+            spark.Life -= dt;
+            if (!Spark::IsAlive(spark)) continue;
+            spark.PrevPosition = spark.Position;
+            spark.PrevVelocity = spark.Velocity;
+
+            spark.Velocity += Game::Gravity * dt;
+            spark.Velocity *= 1 - Drag;
+            spark.Position += spark.Velocity * dt;
+
+            auto dir = spark.Velocity;
+            dir.Normalize();
+
+            Ray ray(spark.Position, dir);
+
+            auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
+            LevelHit hit;
+            bool hitSomething = IntersectLevel(Game::Level, ray, spark.Segment, rayLen, true, hit);
+
+            if (!hitSomething) {
+                // check surrounding segments
+                auto& seg = Game::Level.GetSegment(spark.Segment);
+                for (auto& side : SideIDs) {
+                    hitSomething = IntersectLevel(Game::Level, ray, seg.GetConnection(side), rayLen, true, hit);
+                    if (hitSomething)
+                        break;
+                }
+            }
+
+            // skip low velocity particles to prevent jitter
+            if (hitSomething && spark.Velocity.Length() > 0.5f) {
+                // bounce particles that hit a wall
+                spark.Velocity -= hit.Normal * hit.Normal.Dot(spark.Velocity) * (1 - Restitution);
+                spark.Velocity = Vector3::Reflect(spark.Velocity, hit.Normal);
+                spark.Segment = hit.Tag.Segment;
+            }
+        }
+    }
+
+    void SparkEmitter::Draw(Graphics::GraphicsContext& ctx) {
+        auto& effect = Effects->SpriteAdditive;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        auto cmdList = ctx.CommandList();
+
+        effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
+        auto& material = Render::Materials->Get(Texture);
+        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+        g_SpriteBatch->Begin(ctx.CommandList());
+
+        for (auto& spark : _sparks) {
+            if (spark.Life <= 0) continue;
+            auto pos = Vector3::Lerp(spark.PrevPosition, spark.Position, Game::LerpAmount);
+            auto vec = Vector3::Lerp(spark.PrevVelocity, spark.Velocity, Game::LerpAmount);
+            vec.Normalize();
+            Vector3 head = pos + vec * Width * 0.5;
+            Vector3 tail = pos - vec * Width * 0.5;
+
+            auto size = spark.Velocity * VelocitySmear;
+            head += size;
+            tail -= size;
+
+            auto tangent = GetBeamNormal(head, tail) * Width * 0.5f;
+
+            auto color = Color;
+            if (FadeTime > 0)
+                color.w = std::lerp(1.0f, 0.0f, std::clamp((FadeTime - spark.Life) / FadeTime, 0.0f, 1.0f));
+
+            ObjectVertex v0{ head + tangent, { 0, 1 }, color };
+            ObjectVertex v1{ head - tangent, { 1, 1 }, color };
+            ObjectVertex v2{ tail - tangent, { 1, 0 }, color };
+            ObjectVertex v3{ tail + tangent, { 0, 0 }, color };
+            g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+        }
+
+        g_SpriteBatch->End();
+        Render::Stats::DrawCalls++;
+    }
+
+    void SparkEmitter::CreateSpark() {
+        Spark spark;
+        spark.Life = Duration.GetRandom();
+        spark.Position = spark.PrevPosition = Position;
+
+        if (Direction == Vector3::Zero) {
+            spark.Velocity = RandomVector(Velocity.GetRandom());
+        }
+        else {
+            auto spread = RandomPointInCircle(ConeRadius);
+            auto direction = Direction;
+            auto right = Direction.Cross(Up);
+            direction += right * spread.x;
+            direction += Up * spread.y;
+            direction.Normalize();
+            spark.Velocity = direction * Velocity.GetRandom();
+            spark.Segment = Segment;
+        }
+
+        _sparks.Add(spark);
+    }
+
+    void AddSparkEmitter(SparkEmitter& emitter) {
+        std::array tex = { emitter.Texture };
+        Render::Materials->LoadTextures(tex);
+        AddEffect(MakePtr<SparkEmitter>(emitter));
+    }
+
     void ResetParticles() {
         ParticleEmitters.Clear();
         Beams.Clear();
@@ -688,6 +806,17 @@ namespace Inferno::Render {
             for (auto&& effect : effects) {
                 if (effect && effect->IsAlive())
                     effect->Update(dt);
+                i++;
+            }
+        }
+    }
+
+    void FixedUpdateEffects(float dt) {
+        for (auto& effects : SegmentEffects) {
+            int i = 0;
+            for (auto&& effect : effects) {
+                if (effect && effect->IsAlive())
+                    effect->FixedUpdate(dt);
                 i++;
             }
         }

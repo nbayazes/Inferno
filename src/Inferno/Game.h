@@ -14,7 +14,7 @@ namespace Inferno::Game {
     inline int Difficulty = 0; // 0 to 4 for trainee to insane
 
     inline GameState State = GameState::Editor;
-    inline Vector3 Gravity = { 0, -10, 0 };
+    inline Vector3 Gravity = { 0, -200, 0 }; // u/s acceleration
 
     // The loaded level. Only one level can be active at a time.
     inline Inferno::Level Level;
@@ -87,4 +87,10 @@ namespace Inferno::Game {
     inline Array<uint8, 11> SecondaryPriority = DefaultSecondaryPriority;
 
     inline bool Cheater = false;
+
+    //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
+    //    List<SegID> segs;
+    //    segs.reserve(1 + 6 * depth);
+    //    segs.push_back(start);
+    //}
 }
