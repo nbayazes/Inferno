@@ -15,8 +15,8 @@ namespace Inferno {
 
         // Priority is D3, D1, D2
         bool operator== (const SoundResource& rhs) const {
-            if (!D3.empty() && !rhs.D3.empty() && D3 == rhs.D3) return true;
-            if (D1 != -1 && D2 != -1 && D1 == rhs.D1) return true;
+            if (!D3.empty() && !rhs.D3.empty()) return D3 == rhs.D3;
+            if (D1 != -1 && rhs.D1 != -1) return D1 == rhs.D1;
             return D2 == rhs.D2;
         }
     };
