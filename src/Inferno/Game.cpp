@@ -167,17 +167,16 @@ namespace Inferno::Game {
     // Exists to prevent modifying object list size mid-update.
     List<Object> PendingNewObjects;
 
-    void DropContainedItems(const Object& obj) {
-        // todo: drop random chance powerups / robots
-        switch (obj.Contains.Type) {
+    void SpawnContained(const ContainsData& contains, const Vector3& position, SegID segment) {
+        switch (contains.Type) {
             case ObjectType::Powerup:
             {
-                for (int i = 0; i < obj.Contains.Count; i++) {
+                for (int i = 0; i < contains.Count; i++) {
                     Object powerup{};
-                    powerup.Position = obj.Position;
+                    powerup.Position = position;
                     powerup.Type = ObjectType::Powerup;
-                    powerup.ID = obj.Contains.ID;
-                    powerup.Segment = obj.Segment;
+                    powerup.ID = contains.ID;
+                    powerup.Segment = segment;
 
                     auto vclip = Resources::GameData.Powerups[powerup.ID].VClip;
                     powerup.Render.Type = RenderType::Powerup;
@@ -202,10 +201,26 @@ namespace Inferno::Game {
                 // todo: spawn robots
                 break;
             }
-            default:
-                break;
         }
+    }
 
+    void DropContainedItems(const Object& obj) {
+        assert(obj.Type == ObjectType::Robot);
+
+        if (obj.Contains.Type != ObjectType::None) {
+            SpawnContained(obj.Contains, obj.Position, obj.Segment);
+        }
+        else {
+            auto& ri = Resources::GetRobotInfo(obj.ID);
+            if (ri.Contains.Count > 0) {
+                if (Random() < (float)ri.ContainsChance / 16.0f) {
+                    auto div = (float)ri.Contains.Count / 1.001f; // 1.001f so never exactly equals count
+                    auto contains = ri.Contains;
+                    contains.Count = (int8)std::floor(Random() * div) + 1;
+                    SpawnContained(contains, obj.Position, obj.Segment);
+                }
+            }
+        }
     }
 
     void AddObject(const Object& obj) {
@@ -728,6 +743,8 @@ namespace Inferno::Game {
             Editor::History.SnapshotLevel("Playtest");
 
             State = GameState::Game;
+
+            Render::InitEffects(Level);
 
             for (auto& seg : Level.Segments) {
                 seg.Objects.clear();

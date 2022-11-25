@@ -391,28 +391,33 @@ namespace Inferno::Resources {
             GetWeapon(WeaponID::Laser4).FireDelay =
             GetWeapon(WeaponID::Laser1).FireDelay;
 
-        GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
-        GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
-
-        GetWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
-
         auto& vulcan = GetWeapon(WeaponID::Vulcan);
         vulcan.Extended.Behavior = "vulcan";
         vulcan.Extended.ScorchTexture = "BulletHole01";
         vulcan.AmmoUsage = 13;
 
-        GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
+        GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
+        GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
 
         GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
+        GetWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
+
+        GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
+
         GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
+        GetWeapon(WeaponID::Concussion).Extended.ScorchRadius = 4;
 
         GetWeapon(WeaponID::Flare).Extended.Sticky = true;
         GetWeapon(WeaponID::Flare).FireDelay = 0.5f;
         GetWeapon(WeaponID::Flare).Lifetime = 30.0f;
-        GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
-        GetWeapon(WeaponID::Flare).Extended.ModelPath = "Buddybot.oof";
-        GetWeapon(WeaponID::Flare).Speed.fill(0);
+        //GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
+        //GetWeapon(WeaponID::Flare).Extended.ModelPath = "Buddybot.oof";
+        //GetWeapon(WeaponID::Flare).Speed.fill(0);
         GetWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
+
+        auto& smart = GetWeapon(WeaponID::Smart);
+        smart.Extended.ModelPath = "smartmissile.OOF";
+        GetWeapon(WeaponID::Smart).Speed.fill(0);
 
         auto& mega = GetWeapon(WeaponID::Mega).Extended;
         mega.ScorchTexture = "scorchC";
