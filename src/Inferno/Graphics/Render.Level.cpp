@@ -323,7 +323,7 @@ namespace Inferno::Render {
         }
 
         for (auto& emitter : Inferno::Sound::Debug::Emitters) {
-            Debug::DrawPoint(emitter, { 0 ,1, 0 });
+            Debug::DrawPoint(emitter, { 0, 1, 0 });
         }
     }
 

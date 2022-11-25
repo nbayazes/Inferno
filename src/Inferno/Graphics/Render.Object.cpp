@@ -244,6 +244,7 @@ namespace Inferno::Render {
         }
         else {
             constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
+            constants.Ambient.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
