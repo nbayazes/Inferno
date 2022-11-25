@@ -9,7 +9,8 @@
         "addressU = TEXTURE_ADDRESS_WRAP," \
         "addressV = TEXTURE_ADDRESS_WRAP," \
         "addressW = TEXTURE_ADDRESS_WRAP," \
-        "filter = FILTER_MIN_MAG_MIP_LINEAR)"
+        "maxAnisotropy = 16," \
+        "filter = FILTER_ANISOTROPIC)"
 
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used
