@@ -762,6 +762,7 @@ namespace Inferno::Game {
                 if (obj.Type == ObjectType::Robot) {
                     auto& ri = Resources::GetRobotInfo(obj.ID);
                     obj.HitPoints = ri.HitPoints;
+                    obj.Physics.Flags |= PhysicsFlag::Bounce;
                 }
 
                 if (obj.Type == ObjectType::Powerup &&

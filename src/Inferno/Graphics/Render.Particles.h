@@ -154,7 +154,7 @@ namespace Inferno::Render {
 
     struct ExplosionInfo {
         ObjID Parent = ObjID::None;
-        VClipID Clip = VClipID::SmallExplosion; // Default explosion
+        VClipID Clip = VClipID::SmallExplosion;
         SoundID Sound = SoundID::None;
         float MinRadius = 2.5f, MaxRadius = 2.5f;
         float Variance = 0; // Position variance
@@ -265,7 +265,7 @@ namespace Inferno::Render {
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
 
-        NumericRange<float> Duration = { 1.4, 2.4f }; // Range for individual spark lifespans 
+        NumericRange<float> Duration = { 1.0, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };
         Vector3 Direction; // if Zero, random direction

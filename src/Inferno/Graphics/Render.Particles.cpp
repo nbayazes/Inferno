@@ -716,11 +716,11 @@ namespace Inferno::Render {
                 auto& ti = Resources::GetLevelTextureInfo(side.TMap);
                 if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
                     // Remove sparks that hit a liquid
-                    spark.Life = 0.125f;
+                    spark.Life = -1;
                     spark.Velocity *= 0.25f;
                     Sound3D sound(hit.Point, hit.Tag.Segment);
                     sound.Resource = Resources::GetSoundResource(SoundID::MissileHitWater);
-                    sound.Volume = 0.3f;
+                    sound.Volume = 0.6f;
                     sound.Radius = 75;
                     sound.Occlusion = false;
                     Sound::Play(sound);

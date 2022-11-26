@@ -68,14 +68,26 @@ namespace Inferno {
     }
 
     void FixOverlayRotation(uint& x, uint& y, int width, int height, OverlayRotation rotation) {
-        int t = 0;
+        uint t = 0;
 
         switch (rotation) // adjust for overlay rotation
         {
-            case OverlayRotation::Rotate0: break;
-            case OverlayRotation::Rotate90: t = y; y = x; x = width - t - 1; break;
-            case OverlayRotation::Rotate180: y = height - y - 1; x = width - x - 1; break;
-            case OverlayRotation::Rotate270: t = x; x = y; y = height - t - 1; break;
+            case OverlayRotation::Rotate0: 
+                break;
+            case OverlayRotation::Rotate90: 
+                t = y;
+                y = x;
+                x = width - t - 1;
+                break;
+            case OverlayRotation::Rotate180: 
+                y = height - y - 1;
+                x = width - x - 1;
+                break;
+            case OverlayRotation::Rotate270: 
+                t = x;
+                x = y;
+                y = height - t - 1;
+                break;
         }
     }
 
@@ -333,8 +345,8 @@ namespace Inferno {
 
     struct Triangle {
         Array<Vector3, 3> Points;
-        Vector3& operator[] (int i) { return Points[i]; }
-        const Vector3& operator[] (int i) const { return Points[i]; }
+        Vector3& operator[](int i) { return Points[i]; }
+        const Vector3& operator[](int i) const { return Points[i]; }
 
         Plane GetPlane() const { return Plane(Points[0], Points[1], Points[2]); }
     };
@@ -362,7 +374,10 @@ namespace Inferno {
         return a + t * ab;
     }
 
-    struct ClosestResult { float distSq, s, t; Vector3 c1, c2; };
+    struct ClosestResult {
+        float distSq, s, t;
+        Vector3 c1, c2;
+    };
 
     // Computes closest points between two lines. 
     // C1 and C2 of S1(s)=P1+s*(Q1-P1) and S2(t)=P2+t*(Q2-P2), returning s and t. 
@@ -745,10 +760,10 @@ namespace Inferno {
             case ObjectType::Robot:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                        //case ObjectType::Robot:
+                    //case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Coop:
-                        //case ObjectType::Weapon:
+                    //case ObjectType::Weapon:
                     case ObjectType::Clutter:
                         return true;
                     default:
@@ -774,8 +789,8 @@ namespace Inferno {
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
                     case ObjectType::Hostage:
-                        //case ObjectType::Player: // player can hit other players, but not in singleplayer
-                        //case ObjectType::Coop:
+                    //case ObjectType::Player: // player can hit other players, but not in singleplayer
+                    //case ObjectType::Coop:
                     case ObjectType::Marker:
                         return true;
                     default:
@@ -823,7 +838,7 @@ namespace Inferno {
             case ObjectType::Reactor:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                        //case ObjectType::Robot:
+                    //case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Clutter:
                     case ObjectType::Coop:
@@ -961,15 +976,17 @@ namespace Inferno {
             for (auto& side : SideIDs) {
                 auto face = Face::FromSide(level, seg, side);
 
-                if (passTransparent && WallIsTransparent(level, { segId, side }))
-                    continue; // skip transparent walls if flag is set
-
                 float dist{};
                 auto tri = face.Intersects(ray, dist);
                 if (tri && dist < hit.Distance) {
                     if (dist > maxDist) return {}; // hit is too far
 
-                    if (seg.SideIsSolid(side, level)) {
+                    // if the pass transparent flag is set, treat transparent walls as non-solid
+                    bool isSolid = passTransparent
+                        ? !WallIsTransparent(level, { segId, side })
+                        : seg.SideIsSolid(side, level);
+
+                    if (isSolid) {
                         hit.Tag = { segId, side };
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
@@ -1027,6 +1044,13 @@ namespace Inferno {
                             if (CheckTransparentWall(level, refPoint, seg, tag, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
                         }
+
+                        auto dir = object.Physics.Velocity;
+                        dir.Normalize();
+                        Ray ray(object.LastPosition, dir);
+                        float wallDistance;
+                        face.Intersects(ray, wallDistance);
+                        hit.WallPoint = object.LastPosition + dir * wallDistance;
 
                         hit.Normal = face.Side.Normals[tri];
                         hit.Point = refPoint;
@@ -1187,7 +1211,7 @@ namespace Inferno {
             if (!obj.IsAlive()) continue;
 
             if (obj.Type == ObjectType::Weapon && (obj.ID != (int)WeaponID::ProxMine && obj.ID != (int)WeaponID::SmartMine && obj.ID != (int)WeaponID::LevelMine))
-                continue; // only allow explosions to affect mines
+                continue; // only allow explosions to affect weapons that are mines
 
             // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
             //if (&level.GetObject(obj.Parent) == &source) continue; // don't hit your parent
@@ -1240,7 +1264,7 @@ namespace Inferno {
                     ApplyForce(obj, forceVec);
                     obj.ApplyDamage(damage);
                     obj.LastHitForce += forceVec;
-                    fmt::print("applied {} splash damage at dist {}\n", damage, dist);
+                    fmt::print("applied {} splash damage at dist {} from seg {}\n", damage, dist, source->Segment);
 
                     // stun robot if not boss
 
@@ -1322,7 +1346,8 @@ namespace Inferno {
             expl.Color = Color{ 1.15f, 1.15f, 1.15f };
             expl.FadeTime = 0.1f;
 
-            if (obj.ID == (int)WeaponID::Concussion) { // todo: and all other missiles
+            if (obj.ID == (int)WeaponID::Concussion) {
+                // todo: and all other missiles
                 expl.Instances = 2;
                 expl.MinDelay = expl.MaxDelay = 0;
                 expl.Clip = weapon.RobotHitVClip;
@@ -1370,7 +1395,8 @@ namespace Inferno {
             if (hitForcefield) {
                 addDecal = false;
 
-                if (!weapon.IsMatter) { // Bounce energy weapons
+                if (!weapon.IsMatter) {
+                    // Bounce energy weapons
                     obj.Physics.Bounces++;
                     obj.Parent = ObjID::None; // Make hostile to owner!
 
@@ -1412,12 +1438,11 @@ namespace Inferno {
             e.Sound = soundId;
             e.Segment = hit.Tag.Segment;
 
-            //const auto offset = weapon.ImpactSize < 5 ? 0.2f : 1.5f;
+            // move explosions out of wall
             if (weapon.ImpactSize < 5)
-                e.Position = hit.Point + hit.Normal * 0.15f;
+                e.Position = hit.WallPoint - dir * weapon.ImpactSize * 0.5f;
             else
-                // this doesn't work properly with fast moving projectiles
-                e.Position = obj.LastPosition + dir * hit.Distance - dir * 1.5f; // move explosion out of wall
+                e.Position = hit.WallPoint - dir * 2.5;
 
             e.Color = Color{ 1, 1, 1 };
             e.FadeTime = 0.1f;
@@ -1626,7 +1651,7 @@ namespace Inferno {
                     obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
                     if (obj.Type == ObjectType::Weapon)
                         obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
-                    
+
                     obj.Physics.Bounces--;
                 }
 

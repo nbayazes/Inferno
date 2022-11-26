@@ -25,8 +25,11 @@ namespace Inferno {
         Tag Tag;
         Object* HitObj = nullptr;
         float Distance = FLT_MAX;
+        //float WallDistance = FLT_MAX; // ray distance to the wall
         float EdgeDistance = 0; // Impact distance from the face edge. Used for decal culling.
-        Vector3 Point, Normal, Tangent;
+        Vector3 WallPoint; // point along the object's velocity vector where it hits a wall
+        Vector3 Point; // where the two objects or geometry touched
+        Vector3 Normal, Tangent;
         Set<SegID> Visited; // visited segments
         int Tri = -1; // Triangle of the face hit. -1, 0 or 1
 
