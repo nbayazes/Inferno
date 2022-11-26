@@ -36,7 +36,7 @@ namespace Inferno {
         SideID Side = SideID::None; // Side, used for turning of forcefields
         ObjID Source = ObjID::None; // Source to attach the sound to
         float Volume = 1;
-        float Pitch = 0;
+        float Pitch = 0; // -1 to 1;
         bool Occlusion = true; // Occludes level geometry when determining volume
         float Radius = 250; // Determines max range and falloff
         SoundResource Resource;
