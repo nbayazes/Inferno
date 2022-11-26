@@ -38,8 +38,8 @@ struct PS_INPUT {
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
     output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
-    output.uv = input.uv + Scroll * Time * 100;
-    output.uv2 = input.uv2 + Scroll2 * Time * 100;
+    output.uv = input.uv + Scroll * Time * 200;
+    output.uv2 = input.uv2 + Scroll2 * Time * 200;
     return output;
 }
 

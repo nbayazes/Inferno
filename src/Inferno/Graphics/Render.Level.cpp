@@ -66,7 +66,7 @@ namespace Inferno::Render {
         Stats::DrawCalls++;
     }
 
-    void ClearDepthPrepass(Graphics::GraphicsContext& ctx) {
+    void ClearDepthPrepass(const Graphics::GraphicsContext& ctx) {
         auto& target = Adapter->GetHdrRenderTarget();
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
