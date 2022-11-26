@@ -52,7 +52,7 @@ namespace Inferno::Game {
     void ToggleEditorMode();
 
     // Finds the nearest object ID to an object
-    Tuple<ObjID, float> FindNearestObject(const Object&);
+    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
     void UpdateWeapon(Object&, float dt);
 
     inline bool ShowDebugOverlay = false;
@@ -77,6 +77,7 @@ namespace Inferno::Game {
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open before automatically closing
     constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
+    constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
     // 255 marks where weapons aren't considered for autoselection
 

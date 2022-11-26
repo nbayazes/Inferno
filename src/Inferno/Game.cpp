@@ -227,8 +227,6 @@ namespace Inferno::Game {
         PendingNewObjects.push_back(obj);
     }
 
-    constexpr int EXTRA_LIFE_POINTS = 50'000;
-
     void AddPointsToScore(int points) {
         auto score = Player.Score;
 
@@ -338,16 +336,17 @@ namespace Inferno::Game {
         return true;
     }
 
-    Tuple<ObjID, float> FindNearestObject(const Object& src) {
+    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask) {
         auto id = ObjID::None;
         //auto& srcObj = Level.GetObject(src);
         float dist = FLT_MAX;
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
-            if (!obj.IsAlive() || obj.Signature == src.Signature) continue;
-            auto d = Vector3::Distance(obj.Position, src.Position);
-            if (d < dist) {
+            if (!obj.PassesMask(mask)) continue;
+            if (!obj.IsAlive() /*|| obj.Signature == src.Signature*/) continue;
+            auto d = Vector3::Distance(obj.Position, position);
+            if (d <= maxDist && d < dist) {
                 id = (ObjID)i;
                 dist = d;
             }

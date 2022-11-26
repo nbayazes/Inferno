@@ -71,6 +71,7 @@ namespace Inferno {
     }
 
     void SetSideClip(SegmentSide& side, const DoorClip& clip, int frame) {
+        if (clip.NumFrames == 0) return;
         frame = std::clamp(frame, 0, (int)clip.NumFrames - 1);
         auto tmap = clip.Frames[frame];
         bool changed = false;
@@ -104,6 +105,10 @@ namespace Inferno {
         door.Time += dt;
 
         auto& clip = Resources::GetDoorClip(wall.Clip);
+        if (clip.PlayTime == 0) {
+            SPDLOG_WARN("Tried to open door {}:{} with invalid wall clip", wall.Tag.Segment, wall.Tag.Side);
+            return;
+        }
         auto frameTime = clip.PlayTime / clip.NumFrames;
         auto i = int(door.Time / frameTime);
 

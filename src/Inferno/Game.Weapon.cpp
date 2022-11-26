@@ -76,7 +76,7 @@ namespace Inferno::Game {
             // Try to find a nearby target
             if (cw.TrackingTarget == ObjID::None) {
                 // todo: filter targets based on if mine owner is a player
-                auto [id, dist] = Game::FindNearestObject(obj);
+                auto [id, dist] = Game::FindNearestObject(obj.Position, PROX_WAKE_RANGE, ObjectMask::Enemy);
                 if (id != ObjID::None && dist <= PROX_WAKE_RANGE)
                     cw.TrackingTarget = id; // New target!
             }
@@ -120,8 +120,6 @@ namespace Inferno::Game {
 
     void CreateSmartBlobs(const Object& obj) {
         auto parentType = obj.Control.Weapon.ParentType;
-
-        if (obj.ID != (int)WeaponID::Smart) return; // todo: don't hard code this
 
         List<ObjID> targets;
         targets.reserve(30);
@@ -356,22 +354,22 @@ namespace Inferno::Game {
     }
 
     // Returns the object closest object within a distance to a point
-    Object* GetClosestObject(const Vector3& pos, float dist, ObjectMask mask) {
-        // todo: add object type mask
-        Object* result = nullptr;
-        float minDist = FLT_MAX;
+    //Object* GetClosestObject(const Vector3& pos, float dist, ObjectMask mask) {
+    //    // todo: add object type mask
+    //    Object* result = nullptr;
+    //    float minDist = FLT_MAX;
 
-        for (auto& obj : Game::Level.Objects) {
-            if (!obj.PassesMask(mask)) continue;
-            auto d = Vector3::Distance(obj.Position, pos);
-            if (d <= dist && d < minDist) {
-                minDist = d;
-                result = &obj;
-            }
-        }
+    //    for (auto& obj : Game::Level.Objects) {
+    //        if (!obj.PassesMask(mask)) continue;
+    //        auto d = Vector3::Distance(obj.Position, pos);
+    //        if (d <= dist && d < minDist) {
+    //            minDist = d;
+    //            result = &obj;
+    //        }
+    //    }
 
-        return result;
-    }
+    //    return result;
+    //}
 
     void OmegaBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
         constexpr auto FOV = 12.5f * DegToRad;
@@ -395,8 +393,9 @@ namespace Inferno::Game {
                 auto src = targets[i];
                 if (!src) break;
 
-                if (auto next = GetClosestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy)) {
-                    targets[i + 1] = next;
+                auto [id, dist] = Game::FindNearestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy);
+                if (id != ObjID::None) {
+                    targets[i + 1] = &Game::Level.GetObject(id);
                 }
             }
 
