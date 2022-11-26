@@ -877,7 +877,7 @@ namespace Inferno {
 
         if (obj.Type == ObjectType::Hostage) {
             obj.Lifespan = -1;
-            Score += 1000;
+            Game::AddPointsToScore(Game::HOSTAGE_SCORE);
             HostagesOnShip++;
             PrintHudMessage("hostage rescued!");
             ScreenFlash({ 0, 0, 25 });

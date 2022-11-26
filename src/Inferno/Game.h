@@ -75,9 +75,9 @@ namespace Inferno::Game {
     using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
     WeaponBehavior& GetWeaponBehavior(const string& name);
 
-    constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open
+    constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open before automatically closing
     constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
-
+    constexpr uint HOSTAGE_SCORE = 1000;
     // 255 marks where weapons aren't considered for autoselection
 
     constexpr Array<uint8, 11> DefaultPrimaryPriority{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 255 };
@@ -87,6 +87,8 @@ namespace Inferno::Game {
     inline Array<uint8, 11> SecondaryPriority = DefaultSecondaryPriority;
 
     inline bool Cheater = false;
+
+    void AddPointsToScore(int points);
 
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;

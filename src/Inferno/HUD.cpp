@@ -729,6 +729,7 @@ namespace Inferno {
         }
 
         void AddPoints(int points) {
+            if (points <= 0) return;
             _scoreAdded += points;
             _scoreTime += BASE_SCORE_WINDOW;
             _scoreTime = std::clamp(_scoreTime, 0.0f, BASE_SCORE_WINDOW * 2);
