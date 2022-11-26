@@ -227,11 +227,11 @@ namespace Inferno {
                         Shields -= Random() * OVERCHARGE_DAMAGE;
                     }
                     else {
-                        // increase robot awareness
+                        // todo: increase robot awareness
                         Sound3D sound(ID);
                         sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
                         sound.FromPlayer = true;
-                        Sound::Play(sound);
+                        _fusionChargeSound = Sound::Play(sound);
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;
@@ -239,6 +239,7 @@ namespace Inferno {
             }
             else if (PrimaryState == FireState::Release || Energy <= 0) {
                 if (WeaponCharge > 0) {
+                    Sound::Stop(_fusionChargeSound);
                     FirePrimary();
                 }
             }

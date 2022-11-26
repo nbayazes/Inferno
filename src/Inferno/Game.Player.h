@@ -132,6 +132,7 @@ namespace Inferno {
 
     private:
         SoundUID _afterburnerSoundSig = 0;
+        SoundUID _fusionChargeSound = 0;
         float _prevAfterburnerCharge = 0;
         float _nextFlareFireTime = 0;
 
