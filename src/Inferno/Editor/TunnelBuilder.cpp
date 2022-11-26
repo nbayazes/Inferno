@@ -280,9 +280,6 @@ namespace Inferno::Editor {
             }
         }
 
-        for (int i = 0; i <= steps; i++)
-            nodes[i].Rotation = nodes[i].Rotation.Invert();
-
         return path;
     }
 
@@ -409,7 +406,7 @@ namespace Inferno::Editor {
             for (uint nVertex = 0; nVertex < startVertices.size(); nVertex++) {
                 Vector3 v = startVertices[nVertex];
                 v -= startNode.Point; // un-translate (make relative to tunnel start)
-                v = Vector3::Transform(v, startNode.Rotation); // un-rotate
+                v = Vector3::Transform(v, startNode.Rotation.Transpose()); // un-rotate
 
                 if (morph) {
                     float amount = (float)nSegment / (float)steps;
@@ -417,7 +414,7 @@ namespace Inferno::Editor {
                     v += vMorph[nVertex] * amount;
                 }
 
-                v = Vector3::Transform(v, rotation);
+                v = Vector3::Transform(v, rotation.Transpose());
                 v += translation;
                 vertices.push_back(v);
                 TunnelBuilderPoints.push_back(v);
