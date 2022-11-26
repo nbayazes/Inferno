@@ -1474,7 +1474,7 @@ namespace Inferno {
         if (splashRadius > 0 || hitVolatile) {
             GameExplosion ge{};
             ge.Segment = hit.Tag.Segment;
-            ge.Position = hit.Point;
+            ge.Position = hit.Point + hit.Normal * obj.Radius; // shift explosion out of wall
             constexpr float VOLATILE_DAMAGE_RADIUS = 30;
 
             if (hitVolatile && splashRadius < VOLATILE_DAMAGE_RADIUS / 2) {
