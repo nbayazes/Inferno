@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Input.h"
 #include "imgui_local.h"
+#include "Game.h"
 
 using namespace DirectX::SimpleMath;
 
@@ -72,35 +73,39 @@ namespace Inferno::Input {
             ShowCursor(!Mouselook);
         }
 
-        if (!Shell::HasFocus) return;
-
         auto keyboardState = _keyboard.GetState();
-        auto mouseState = _mouse.GetState();
         Keyboard.Update(keyboardState);
+        auto mouseState = _mouse.GetState();
         Mouse.Update(mouseState);
 
-        if (Mouselook) {
-            // keep the cursor in place in mouselook mode
-            MousePrev = WindowCenter;
-            MousePosition = WindowCenter;
-            POINT pt{ (int)WindowCenter.x, (int)WindowCenter.y };
-            ClientToScreen(Hwnd, &pt);
-            SetCursorPos(pt.x, pt.y);
-
-            //SPDLOG_INFO("Delta: {}, {}", MouseDelta.x, MouseDelta.y);
-            //SPDLOG_INFO("Raw: {}, {}", RawX, RawY);
-            MouseDelta.x = (float)RawX;
-            MouseDelta.y = (float)RawY;
-            RawX = RawY = 0;
-        }
-        else {
-            MousePosition = { (float)mouseState.x, (float)mouseState.y };
-            MouseDelta = MousePrev - MousePosition;
+        if (!Shell::HasFocus && Game::State == GameState::Game) {
+            MouseDelta.x = MouseDelta.y = 0;
             MousePrev = MousePosition;
         }
+        else {
+            if (Mouselook) {
+                // keep the cursor in place in mouselook mode
+                MousePrev = WindowCenter;
+                MousePosition = WindowCenter;
+                POINT pt{ (int)WindowCenter.x, (int)WindowCenter.y };
+                ClientToScreen(Hwnd, &pt);
+                SetCursorPos(pt.x, pt.y);
 
-        WheelDelta = WheelPrev - mouseState.scrollWheelValue;
-        WheelPrev = mouseState.scrollWheelValue;
+                //SPDLOG_INFO("Delta: {}, {}", MouseDelta.x, MouseDelta.y);
+                //SPDLOG_INFO("Raw: {}, {}", RawX, RawY);
+                MouseDelta.x = (float)RawX;
+                MouseDelta.y = (float)RawY;
+                RawX = RawY = 0;
+            }
+            else {
+                MousePosition = { (float)mouseState.x, (float)mouseState.y };
+                MouseDelta = MousePrev - MousePosition;
+                MousePrev = MousePosition;
+            }
+
+            WheelDelta = WheelPrev - mouseState.scrollWheelValue;
+            WheelPrev = mouseState.scrollWheelValue;
+        }
 
         AltDown = keyboardState.LeftAlt || keyboardState.RightAlt;
         ShiftDown = keyboardState.LeftShift || keyboardState.RightShift;
@@ -178,23 +183,19 @@ namespace Inferno::Input {
                 throw std::system_error(std::error_code((int)GetLastError(), std::system_category()), "WaitForMultipleObjectsEx");
         }
 
-        switch (message) {
-            case WM_INPUT:
-            {
-                RAWINPUT raw{};
-                UINT rawSize = sizeof(raw);
+        if (message == WM_INPUT) {
+            RAWINPUT raw{};
+            UINT rawSize = sizeof(raw);
 
-                UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
-                if (resultData == UINT(-1))
-                    throw std::runtime_error("GetRawInputData");
+            UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
+            if (resultData == UINT(-1))
+                throw std::runtime_error("GetRawInputData");
 
-                if (raw.header.dwType == RIM_TYPEMOUSE) {
-                    RawX += raw.data.mouse.lLastX;
-                    RawY += raw.data.mouse.lLastY;
-                    //fmt::print("raw mouse x/y: {}, {}\n", RawX, RawY);
-                    ResetEvent(RelativeReadEvent.get());
-                }
-                return;
+            if (raw.header.dwType == RIM_TYPEMOUSE) {
+                RawX += raw.data.mouse.lLastX;
+                RawY += raw.data.mouse.lLastY;
+                //fmt::print("raw mouse x/y: {}, {}\n", RawX, RawY);
+                ResetEvent(RelativeReadEvent.get());
             }
         }
     }

@@ -143,9 +143,7 @@ void Application::OnActivated() {
 }
 
 void Application::OnDeactivated() {
-    if (Input::GetMouselook())
-        Input::SetMouselook(false);
-
+    Input::SetMouselook(false);
     Input::ResetState();
     _isForeground = false;
     UpdateFpsLimit();
