@@ -143,6 +143,11 @@ namespace Inferno::Editor {
         }
     }
 
+    void ResetUVs(Level& level, SegID seg) {
+        for (auto& side : SideIDs)
+            ResetUVs(level, Tag{seg, side});
+    }
+
     // Remaps UVs to their minimum values. i.e. u: 4-5 becomes u: 0-1
     void RemapUVs(SegmentSide& side) {
         Vector2 min = { FLT_MIN, FLT_MAX };

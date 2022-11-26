@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "TunnelBuilder.h"
 #include "Face.h"
+#include "Events.h"
+#include "Resources.h"
+#include "Gizmo.h"
+#include "Editor.Texture.h"
 
 namespace Inferno::Editor {
     constexpr long Factorial(const int n) {
@@ -325,6 +329,71 @@ namespace Inferno::Editor {
     //    }
     //}
 
+    void CreateTunnelSegments(Level& level, TunnelPath& path, PointTag start, PointTag end) {
+        Tag last = start;
+        auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
+        auto endIndices = level.GetSegment(end).GetVertexIndices(end.Side);
+
+        Marked.Segments.clear();
+
+        auto vertIndex = (uint16)level.Vertices.size(); // take index before adding new points
+
+        // copy vertices, skip start side
+        level.Vertices.insert(level.Vertices.end(),
+            TunnelBuilderPoints.begin() + startIndices.size(),
+            TunnelBuilderPoints.begin() + startIndices.size() * path.Nodes.size());
+
+        for (size_t nNode = 1; nNode < path.Nodes.size(); nNode++) {
+            auto& lastSeg = level.GetSegment(last);
+
+            Segment seg = {};
+            SegID id = (SegID)level.Segments.size();
+
+            auto oppositeSide = (int)GetOppositeSide(last.Side);
+            seg.Connections[oppositeSide] = last.Segment;
+            lastSeg.Connections[(int)last.Side] = id;
+
+            auto srcIndices = lastSeg.GetVertexIndices(last.Side);
+            auto& srcVertIndices = SideIndices[oppositeSide];
+            auto& newVertIndices = SideIndices[(int)last.Side];
+            seg.Indices[srcVertIndices[3]] = srcIndices[0];
+            seg.Indices[srcVertIndices[2]] = srcIndices[1];
+            seg.Indices[srcVertIndices[1]] = srcIndices[2];
+            seg.Indices[srcVertIndices[0]] = srcIndices[3];
+
+            seg.Indices[newVertIndices[0]] = vertIndex + 0;
+            seg.Indices[newVertIndices[1]] = vertIndex + 1;
+            seg.Indices[newVertIndices[2]] = vertIndex + 2;
+            seg.Indices[newVertIndices[3]] = vertIndex + 3;
+            vertIndex += (uint16)startIndices.size();
+
+            // copy textures
+            for (int i = 0; i < 6; i++) {
+                auto& side = seg.Sides[i];
+                side.TMap = lastSeg.Sides[i].TMap;
+                side.TMap2 = lastSeg.Sides[i].TMap2;
+                side.OverlayRotation = lastSeg.Sides[i].OverlayRotation;
+                //side.UVs = lastSeg.Sides[i].UVs;
+
+                // Clear door textures
+                if (Resources::GetWallClipID(side.TMap) != WClipID::None)
+                    side.TMap = LevelTexID::Unset;
+
+                if (Resources::GetWallClipID(side.TMap2) != WClipID::None)
+                    side.TMap2 = LevelTexID::Unset;
+            }
+
+            seg.UpdateGeometricProps(level);
+
+            level.Segments.push_back(seg);
+            last.Segment = id;
+            ResetUVs(level, id);
+            Marked.Segments.insert(id);
+        }
+        Events::SegmentsChanged();
+        Events::LevelChanged();
+    }
+
     void CreateDebugPath(TunnelPath& path) {
         TunnelBuilderPath.clear();
 
@@ -333,13 +402,18 @@ namespace Inferno::Editor {
         }
     }
 
+    void ClearTunnel() {
+        TunnelBuilderPath.clear();
+        TunnelBuilderPoints.clear();
+        DebugTunnelPoints.clear();
+        DebugTunnel.Nodes.clear();
+    }
+
     void CreateTunnel(Level& level, PointTag start, PointTag end, int steps, float startLength, float endLength) {
         if (!level.SegmentExists(start) || !level.SegmentExists(end))
             return;
 
-        TunnelBuilderPath.clear();
-        TunnelBuilderPoints.clear();
-        DebugTunnelPoints.clear();
+        ClearTunnel();
 
         // clamp inputs
         if (steps < 1) steps = 1;
