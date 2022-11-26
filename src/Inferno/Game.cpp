@@ -482,8 +482,20 @@ namespace Inferno::Game {
         AddPendingObjects();
     }
 
-    // Returns the lerp amount for the current tick
-    float GameTick(float dt) {
+    void DecayScreenFlash(float dt) {
+        if (ScreenFlash.x > 0) ScreenFlash.x -= FLASH_DECAY_RATE * dt;
+        if (ScreenFlash.y > 0) ScreenFlash.y -= FLASH_DECAY_RATE * dt;
+        if (ScreenFlash.z > 0) ScreenFlash.z -= FLASH_DECAY_RATE * dt;
+        ClampColor(ScreenFlash);
+    }
+
+    void AddScreenFlash(const Color& color) {
+        ScreenFlash += color;
+        ClampColor(ScreenFlash, { 0, 0, 0 }, { MAX_FLASH, MAX_FLASH, MAX_FLASH });
+    }
+
+    // Returns the lerp amount for the current tick. Executes every frame.
+    float GameUpdate(float dt) {
         if (!Level.Objects.empty()) {
             auto& physics = Level.Objects[0].Physics; // player
             physics.Thrust = Vector3::Zero;
@@ -497,6 +509,8 @@ namespace Inferno::Game {
                 HandleInput(dt);
             }
         }
+
+        DecayScreenFlash(dt);
 
         DestroyedClips.Update(Level, dt);
         for (auto& clip : Resources::GameData.Effects) {
@@ -554,14 +568,14 @@ namespace Inferno::Game {
         g_ImGuiBatch->BeginFrame();
         switch (State) {
             case GameState::Game:
-                LerpAmount = GameTick(dt);
+                LerpAmount = GameUpdate(dt);
                 if (!Level.Objects.empty())
                     MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
 
                 break;
             case GameState::Editor:
                 if (Settings::Editor.EnablePhysics) {
-                    LerpAmount = Settings::Editor.EnablePhysics ? GameTick(dt) : 1;
+                    LerpAmount = Settings::Editor.EnablePhysics ? GameUpdate(dt) : 1;
                 }
                 else {
                     LerpAmount = 1;

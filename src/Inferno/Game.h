@@ -91,6 +91,12 @@ namespace Inferno::Game {
 
     void AddPointsToScore(int points);
 
+    inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
+    constexpr float MAX_FLASH = 0.45f;
+    constexpr float FLASH_DECAY_RATE = MAX_FLASH / 1.5;
+
+    void AddScreenFlash(const Color&);
+
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;
     //    segs.reserve(1 + 6 * depth);

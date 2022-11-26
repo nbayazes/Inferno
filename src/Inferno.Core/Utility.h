@@ -145,7 +145,7 @@ namespace Inferno {
         return desaturate.x;
     }
 
-    constexpr void ClampColor(Color& color, float min = 0.0f, float max = 1.0f) {
+    constexpr void ClampColor(Color& color, float min, float max) {
         color.x = std::clamp(color.x, min, max);
         color.y = std::clamp(color.y, min, max);
         color.z = std::clamp(color.z, min, max);

@@ -5,6 +5,16 @@
 
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;
+    using Game::MAX_FLASH;
+    using Game::AddScreenFlash;
+    constexpr auto FLASH = MAX_FLASH / 2;
+    constexpr Color FLASH_PRIMARY = { FLASH / 3, FLASH / 2, FLASH };
+    constexpr Color FLASH_WHITE = { FLASH, FLASH, FLASH };
+    constexpr Color FLASH_LASER_POWERUP = { FLASH * 0.66f, 0, FLASH * 0.66f };
+    constexpr Color FLASH_BLUE = { 0, 0, FLASH };
+    constexpr Color FLASH_RED = { FLASH, 0, 0 };
+    constexpr Color FLASH_GOLD = { FLASH * 0.9f, FLASH * 0.9f, FLASH * 0.4f };
+    constexpr Color FLASH_POWERUP = { FLASH, 0, FLASH };
 
     // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
     int GetWeaponPriority(PrimaryWeaponIndex primary) {
@@ -364,7 +374,7 @@ namespace Inferno {
             AutoselectPrimary();
     }
 
-    void Player::HoldPrimary() { }
+    void Player::HoldPrimary() {}
 
     void Player::ReleasePrimary() {
         //auto id = GetPrimaryWeaponID();
@@ -487,15 +497,10 @@ namespace Inferno {
         SelectSecondary(SecondaryWeaponIndex(index));
     }
 
-
-    void ScreenFlash(const Color& /*color*/) {
-        // Tint the screen
-    }
-
     void Player::GiveExtraLife(uint8 lives) {
         Lives += lives;
         PrintHudMessage("extra life!");
-        ScreenFlash({ 15, 15, 15 });
+        AddScreenFlash(FLASH_WHITE);
     }
 
     bool Player::PickUpEnergy() {
@@ -506,7 +511,7 @@ namespace Inferno {
             Energy += float(3 + 3 * (5 - Game::Difficulty));
             if (Energy > MAX_ENERGY) Energy = MAX_ENERGY;
 
-            ScreenFlash({ 15, 15, 7 });
+            AddScreenFlash(FLASH_GOLD);
             auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Energy), Resources::GetString(GameString::BoostedTo), int(Energy));
             PrintHudMessage(msg);
 
@@ -561,7 +566,7 @@ namespace Inferno {
             }
             else {
                 GivePowerup(powerup);
-                ScreenFlash({ 15, 0, 15 });
+                AddScreenFlash(FLASH_POWERUP);
                 PrintHudMessage(fmt::format("{}!", name));
                 return true;
             }
@@ -595,7 +600,7 @@ namespace Inferno {
                     Shields += 3 + 3 * (5 - Game::Difficulty);
                     if (Shields > MAX_SHIELDS) Shields = MAX_SHIELDS;
 
-                    ScreenFlash({ 0, 0, 15 });
+                    AddScreenFlash(FLASH_BLUE);
                     auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Shield), Resources::GetString(GameString::BoostedTo), int(Shields));
                     PrintHudMessage(msg);
                     used = true;
@@ -614,7 +619,7 @@ namespace Inferno {
                 }
                 else {
                     LaserLevel++;
-                    ScreenFlash({ 10, 0, 10 });
+                    AddScreenFlash(FLASH_LASER_POWERUP);
                     auto msg = fmt::format("laser cannon boosted to {}", LaserLevel + 1);
                     PrintHudMessage(msg);
                     PickUpPrimary(PrimaryWeaponIndex::Laser);
@@ -628,7 +633,7 @@ namespace Inferno {
                     break;
 
                 GivePowerup(PowerupFlag::BlueKey);
-                ScreenFlash({ 0, 0, 15 });
+                AddScreenFlash(FLASH_BLUE);
 
                 auto msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), Resources::GetString(GameString::AccessGranted));
                 PrintHudMessage(msg);
@@ -642,7 +647,7 @@ namespace Inferno {
                     break;
 
                 GivePowerup(PowerupFlag::RedKey);
-                ScreenFlash({ 15, 0, 0 });
+                AddScreenFlash(FLASH_RED);
 
                 auto msg = fmt::format("{} {}", Resources::GetString(GameString::Red), Resources::GetString(GameString::AccessGranted));
                 PrintHudMessage(msg);
@@ -656,7 +661,7 @@ namespace Inferno {
                     break;
 
                 GivePowerup(PowerupFlag::GoldKey);
-                ScreenFlash({ 15, 15, 7 });
+                AddScreenFlash(FLASH_GOLD);
 
                 auto msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), Resources::GetString(GameString::AccessGranted));
                 PrintHudMessage(msg);
@@ -675,7 +680,7 @@ namespace Inferno {
                     auto amount = PickUpAmmo(PrimaryWeaponIndex::Vulcan, (uint16)ammo);
                     ammo -= amount;
                     if (!used && amount > 0) {
-                        ScreenFlash({ 7, 14, 21 });
+                        AddScreenFlash(FLASH_PRIMARY);
                         PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::VulcanAmmo)));
                         ammoPickedUp = true;
                         if (ammo == 0)
@@ -721,7 +726,7 @@ namespace Inferno {
                     }
 
                     LaserLevel++;
-                    ScreenFlash({ 10, 0, 10 });
+                    AddScreenFlash(FLASH_LASER_POWERUP);
                     PrintHudMessage(fmt::format("super boost to laser level {}", LaserLevel + 1));
                     used = true;
                 }
@@ -798,7 +803,7 @@ namespace Inferno {
 
             case PowerupID::VulcanAmmo:
                 if (PickUpAmmo(PrimaryWeaponIndex::Vulcan, 2500)) {
-                    ScreenFlash({ 7, 14, 21 });
+                    AddScreenFlash(FLASH_PRIMARY * 0.66f);
                     PrintHudMessage("vulcan ammo!");
                     used = true;
                 }
@@ -880,7 +885,7 @@ namespace Inferno {
             Game::AddPointsToScore(Game::HOSTAGE_SCORE);
             HostagesOnShip++;
             PrintHudMessage("hostage rescued!");
-            ScreenFlash({ 0, 0, 25 });
+            AddScreenFlash({ 0, 0, MAX_FLASH });
 
             Sound3D sound(ObjID(0));
             sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
@@ -902,7 +907,7 @@ namespace Inferno {
             PrintHudMessage(fmt::format("{}!", name));
 
         PrimaryWeapons |= flag;
-        ScreenFlash({ 7, 14, 21 });
+        AddScreenFlash(FLASH_PRIMARY);
 
         // Select the weapon we just picked up if it has a higher priority
         if (GetWeaponPriority(index) < GetWeaponPriority(Primary))
@@ -934,12 +939,12 @@ namespace Inferno {
         }
 
         if (pickedUp > 1) {
-            ScreenFlash({ 15, 15, 15 });
+            AddScreenFlash(FLASH_WHITE * 0.9f);
             auto msg = fmt::format("{} {}s!", pickedUp, name);
             PrintHudMessage(msg);
         }
         else {
-            ScreenFlash({ 10, 10, 10 });
+            AddScreenFlash(FLASH_WHITE * 0.66f);
             PrintHudMessage(fmt::format("{}!", name));
         }
 

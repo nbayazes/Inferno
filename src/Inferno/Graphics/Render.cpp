@@ -35,8 +35,7 @@ namespace Inferno::Render {
         Ptr<GraphicsMemory> _graphicsMemory;
 
         Ptr<MeshBuffer> _meshBuffer;
-        Ptr<SpriteBatch> _tempBatch;
-        void* ActiveEffect = nullptr; // address of the currently active effect
+        Ptr<SpriteBatch> _postBatch;
         Ptr<PackedBuffer> _levelMeshBuffer;
     }
 
@@ -48,7 +47,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
     }
-    
+
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
                        const Vector3& position,
@@ -124,7 +123,7 @@ namespace Inferno::Render {
         {
             RenderTargetState rtState(Adapter->GetBackBufferFormat(), Adapter->SceneDepthBuffer.GetFormat());
             SpriteBatchPipelineStateDescription pd(rtState);
-            _tempBatch = MakePtr<SpriteBatch>(Device, resourceUpload, pd);
+            _postBatch = MakePtr<SpriteBatch>(Device, resourceUpload, pd);
         }
 
         auto task = resourceUpload.End(Adapter->GetCommandQueue());
@@ -183,7 +182,7 @@ namespace Inferno::Render {
 
         Adapter.reset();
         Bloom.reset();
-        _tempBatch.reset();
+        _postBatch.reset();
         Debug::Shutdown();
         Device = nullptr;
         ReportLiveObjects();
@@ -292,8 +291,6 @@ namespace Inferno::Render {
         auto backBuffer = Adapter->GetBackBuffer();
         ctx.ClearColor(*backBuffer);
         ctx.SetRenderTarget(backBuffer->GetRTV());
-        //backBuffer->Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-        //SetRenderTarget(ctx.CommandList(), *backBuffer);
 
         Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
@@ -301,14 +298,15 @@ namespace Inferno::Render {
             Bloom->Apply(ctx.CommandList(), Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
-        _tempBatch->SetViewport(Adapter->GetScreenViewport());
-        _tempBatch->Begin(ctx.CommandList());
+        _postBatch->SetViewport(Adapter->GetScreenViewport());
+        _postBatch->Begin(ctx.CommandList());
         auto size = Adapter->GetOutputSize();
-        _tempBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
+        _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
+
         //if (DebugEmissive)
         //    draw with shader that subtracts 1 from all values;
 
-        _tempBatch->End();
+        _postBatch->End();
     }
 
     void DrawUI(GraphicsContext& ctx) {
@@ -351,7 +349,6 @@ namespace Inferno::Render {
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
-        ActiveEffect = nullptr;
 
         Heaps->SetDescriptorHeaps(ctx.CommandList());
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
@@ -382,6 +379,14 @@ namespace Inferno::Render {
             HudCanvas->SetSize(width, height);
             HudGlowCanvas->SetSize(width, height);
             DrawHUD(Render::FrameTime);
+            if (Game::ScreenFlash.ToVector3().LengthSquared() > 0) {
+                CanvasBitmapInfo flash;
+                flash.Size = Adapter->GetOutputSize();
+                flash.Color = Game::ScreenFlash;
+                flash.Texture = Materials->White.Handles[0];
+                HudGlowCanvas->DrawBitmap(flash);
+            }
+
             HudCanvas->Render(ctx);
             HudGlowCanvas->Render(ctx);
         }
