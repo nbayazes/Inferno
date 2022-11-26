@@ -717,7 +717,6 @@ namespace Inferno::Render {
                 if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
                     // Remove sparks that hit a liquid
                     spark.Life = -1;
-                    spark.Velocity *= 0.25f;
                     Sound3D sound(hit.Point, hit.Tag.Segment);
                     sound.Resource = Resources::GetSoundResource(SoundID::MissileHitWater);
                     sound.Volume = 0.6f;
@@ -725,8 +724,7 @@ namespace Inferno::Render {
                     sound.Occlusion = false;
                     Sound::Play(sound);
                 }
-                else if (spark.Velocity.Length() > 0.5f) {
-                    // skip low velocity particles to prevent jitter
+                else {
                     // bounce sparks that hit a wall
                     spark.Velocity -= hit.Normal * hit.Normal.Dot(spark.Velocity) * (1 - Restitution);
                     spark.Velocity = Vector3::Reflect(spark.Velocity, hit.Normal);

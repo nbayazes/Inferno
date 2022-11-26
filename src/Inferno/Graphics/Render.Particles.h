@@ -258,7 +258,7 @@ namespace Inferno::Render {
     };
 
     class SparkEmitter final : public EffectBase {
-        DataPool<Spark> _sparks = { Spark::IsAlive, 20 };
+        DataPool<Spark> _sparks = { Spark::IsAlive, 100 };
         bool _createdSparks = false;
     public:
         string Texture = "sun";

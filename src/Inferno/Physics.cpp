@@ -210,6 +210,10 @@ namespace Inferno {
         e.Direction = side.AverageNormal;
         e.Up = side.Tangents[0];
         e.ConeRadius = 5;
+        e.Duration = { 0.75f, 2.4f };
+        e.Restitution = 0.6f;
+        e.Velocity = { 50, 65 };
+        e.Count = { 80, 100 };
         Render::AddSparkEmitter(e);
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
