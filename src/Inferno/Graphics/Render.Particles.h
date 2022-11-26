@@ -265,7 +265,7 @@ namespace Inferno::Render {
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
 
-        NumericRange<float> Duration = { 1.4, 3.0f }; // Range for individual spark lifespans 
+        NumericRange<float> Duration = { 1.4, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };
         Vector3 Direction; // if Zero, random direction
