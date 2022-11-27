@@ -79,6 +79,7 @@ namespace Inferno::Game {
     constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
     constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
+    constexpr uint REACTOR_SCORE = 5000;
     // 255 marks where weapons aren't considered for autoselection
 
     constexpr Array<uint8, 11> DefaultPrimaryPriority{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 255 };
@@ -96,6 +97,8 @@ namespace Inferno::Game {
     constexpr float FLASH_DECAY_RATE = MAX_FLASH / 1.5;
 
     void AddScreenFlash(const Color&);
+
+    inline int CountdownTime = -1;
 
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;

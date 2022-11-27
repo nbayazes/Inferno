@@ -59,9 +59,6 @@ namespace Inferno::Game {
             ge.Position = obj.Position;
             CreateExplosion(Game::Level, &obj, ge);
         }
-
-        obj.HitPoints = 0;
-        obj.Destroy();
     }
 
     void ProxMineBehavior(Object& obj) {

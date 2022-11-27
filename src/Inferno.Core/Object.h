@@ -36,7 +36,7 @@ namespace Inferno {
     enum class ObjectFlag : uint8 {
         None = 0,
         Exploding = 1,
-        ShouldBeDead = 2,   // Scheduled for deletion
+        Dead = 2,           // Scheduled for deletion
         Destroyed = 4,      // this has been killed, and is showing the dead version
         Silent = 8,         // No sound when colliding
         Attached = 16,      // Object is attached to another object or wall. Disables hit testing.
@@ -170,6 +170,10 @@ namespace Inferno {
         PhysicsFlag Flags;
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
         int Bounces = 0; // Number of remaining bounces
+
+        bool CanBounce() const {
+            return Bounces > 0 || HasFlag(Flags, PhysicsFlag::Bounce);
+        }
     };
 
     struct ModelData {
@@ -287,12 +291,11 @@ namespace Inferno {
 
     enum class ObjectMask {
         Any = 0, // No masking
-        Enemy = 1 >> 1, // Reactor or robot
-        Player = 1 >> 2, // Player or Coop
-        Powerup = 1 >> 3 // Powerup or hostage
+        Enemy = 1 << 1, // Reactor or robot
+        Player = 1 << 2, // Player or Coop
+        Powerup = 1 << 3 // Powerup or hostage
     };
 
-    constexpr float WEAPON_FADE_TIME = 0.25f;
     constexpr float OBJECT_LIFE = 3600 * 100; // 100 hours
 
     struct Object {
@@ -302,10 +305,10 @@ namespace Inferno {
         ObjectFlag Flags{};
         SegID Segment{};        // segment number containing object
         float Radius = 2;       // radius of object for collision detection
-        float HitPoints = 100;
+        float HitPoints = 100;  // Objects are destroyed when hitpoints go under 0
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
-        float Lifespan = OBJECT_LIFE; // how long before despawning
+        float Lifespan = OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
         ObjID Parent = ObjID::None; // Parent for projectiles, maybe attached objects
 
         MovementType Movement;
@@ -357,20 +360,13 @@ namespace Inferno {
         }
 
         static bool IsAliveFn(const Object& obj) {
-            return obj.Lifespan >= 0 && obj.HitPoints >= 0;
+            return !HasFlag(obj.Flags, ObjectFlag::Dead);
         }
 
         void ApplyDamage(float damage) {
             HitPoints -= damage;
-            if (HitPoints < 0)
-                Destroy();
         }
 
-        void Destroy() { Flags |= ObjectFlag::Destroyed; }
-        void ShouldBeDead() {
-            Flags |= ObjectFlag::ShouldBeDead;
-            Lifespan = WEAPON_FADE_TIME;
-        }
 
         bool IsAlive() const { return IsAliveFn(*this); }
 

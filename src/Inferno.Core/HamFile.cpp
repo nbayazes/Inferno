@@ -436,10 +436,10 @@ namespace Inferno {
             for (auto& m : ham.Models) ReadModelData(reader, m);
 
             ham.DyingModels.resize(modelCount);
-            for (auto& m : ham.DyingModels) m = reader.ReadInt32();
+            for (auto& m : ham.DyingModels) m = (ModelID)reader.ReadInt32();
 
             ham.DeadModels.resize(modelCount);
-            for (auto& m : ham.DeadModels) m = reader.ReadInt32();
+            for (auto& m : ham.DeadModels) m = (ModelID)reader.ReadInt32();
         }
 
         {
@@ -500,8 +500,8 @@ namespace Inferno {
         for (auto& model : models) ReadModelData(reader, model);
         for (auto& model : models) ham.Models.push_back(model);
 
-        Seq::iter(models, [&](auto) { ham.DyingModels.push_back(reader.ReadInt32()); });
-        Seq::iter(models, [&](auto) { ham.DeadModels.push_back(reader.ReadInt32()); });
+        Seq::iter(models, [&](auto) { ham.DyingModels.push_back((ModelID)reader.ReadInt32()); });
+        Seq::iter(models, [&](auto) { ham.DeadModels.push_back((ModelID)reader.ReadInt32()); });
 
         auto bitmaps = reader.ReadElementCount();
         for (size_t i = 422; i < 422 + bitmaps; i++)
@@ -549,8 +549,8 @@ namespace Inferno {
             ham.Models[index] = ReadModelInfo(reader);
             ReadModelData(reader, ham.Models[index]);
 
-            ham.DyingModels[index] = reader.ReadInt32();
-            ham.DeadModels[index] = reader.ReadInt32();
+            ham.DyingModels[index] = (ModelID)reader.ReadInt32();
+            ham.DeadModels[index] = (ModelID)reader.ReadInt32();
         }
 
         auto tindices = reader.ReadElementCount();
@@ -703,10 +703,10 @@ namespace Inferno {
         ham.DeadModels.resize(85);
 
         for (int i = 0; i < 85; i++)
-            ham.DyingModels[i] = reader.ReadInt32();
+            ham.DyingModels[i] = (ModelID)reader.ReadInt32();
 
         for (int i = 0; i < 85; i++)
-            ham.DeadModels[i] = reader.ReadInt32();
+            ham.DeadModels[i] = (ModelID)reader.ReadInt32();
 
         for (auto& o : ham.ObjectBitmaps) o = (TexID)reader.ReadInt16();
         for (auto& o : ham.ObjectBitmapPointers) o = reader.ReadInt16();

@@ -72,18 +72,18 @@ namespace Inferno {
 
         switch (rotation) // adjust for overlay rotation
         {
-            case OverlayRotation::Rotate0: 
+            case OverlayRotation::Rotate0:
                 break;
-            case OverlayRotation::Rotate90: 
+            case OverlayRotation::Rotate90:
                 t = y;
                 y = x;
                 x = width - t - 1;
                 break;
-            case OverlayRotation::Rotate180: 
+            case OverlayRotation::Rotate180:
                 y = height - y - 1;
                 x = width - x - 1;
                 break;
-            case OverlayRotation::Rotate270: 
+            case OverlayRotation::Rotate270:
                 t = x;
                 x = y;
                 y = height - t - 1;
@@ -753,7 +753,7 @@ namespace Inferno {
     }
 
     bool ObjectCanHitTarget(const Object& src, const Object& target) {
-        if (!target.IsAlive()) return false;
+        if (!target.IsAlive() && target.Type != ObjectType::Reactor) return false;
         if (src.Signature == target.Signature) return false; // don't hit yourself!
         //if (src.Parent == target.Parent && src.Parent != ObjID::None) return false; // don't hit your siblings!
 
@@ -764,10 +764,10 @@ namespace Inferno {
             case ObjectType::Robot:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                    //case ObjectType::Robot:
+                        //case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Coop:
-                    //case ObjectType::Weapon:
+                        //case ObjectType::Weapon:
                     case ObjectType::Clutter:
                         return true;
                     default:
@@ -793,8 +793,8 @@ namespace Inferno {
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
                     case ObjectType::Hostage:
-                    //case ObjectType::Player: // player can hit other players, but not in singleplayer
-                    //case ObjectType::Coop:
+                        //case ObjectType::Player: // player can hit other players, but not in singleplayer
+                        //case ObjectType::Coop:
                     case ObjectType::Marker:
                         return true;
                     default:
@@ -842,7 +842,7 @@ namespace Inferno {
             case ObjectType::Reactor:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                    //case ObjectType::Robot:
+                        //case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Clutter:
                     case ObjectType::Coop:
@@ -1327,7 +1327,7 @@ namespace Inferno {
         targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
         if (target.Type == ObjectType::Weapon) {
-            Game::ExplodeWeapon(target); // Destroy the weapon that was hit (usually a mine)
+            target.Lifespan = -1; // Destroy the weapon that was hit (usually a mine)
             if (weapon.SplashRadius == 0)
                 return; // non-explosive weapons keep going
         }
@@ -1364,7 +1364,7 @@ namespace Inferno {
         obj.Control.Weapon.AddRecentHit(target.Signature);
 
         if (!weapon.Piercing)
-            obj.Destroy(); // destroy weapon after hitting an enemy
+            obj.Lifespan = -1; // destroy weapon after hitting an enemy
 
         if (weapon.SplashRadius > 0) {
             GameExplosion ge{};
@@ -1430,34 +1430,6 @@ namespace Inferno {
             }
         }
 
-        if (obj.Physics.Bounces <= 0 || hitLiquid) {
-            // Only create explosions when out of bounces or hitting a liquid
-            auto dir = obj.Physics.Velocity;
-            dir.Normalize();
-
-            Render::ExplosionInfo e;
-            e.MinRadius = weapon.ImpactSize * 0.9f;
-            e.MaxRadius = weapon.ImpactSize * 1.1f;
-            e.Clip = vclip;
-            e.Sound = soundId;
-            e.Segment = hit.Tag.Segment;
-
-            // move explosions out of wall
-            if (weapon.ImpactSize < 5)
-                e.Position = hit.WallPoint - dir * weapon.ImpactSize * 0.5f;
-            else
-                e.Position = hit.WallPoint - dir * 2.5;
-
-            e.Color = Color{ 1, 1, 1 };
-            e.FadeTime = 0.1f;
-
-            if (obj.ID == (int)WeaponID::Concussion) {
-                e.Instances = 3;
-                e.MinDelay = e.MaxDelay = 0;
-            }
-            Render::CreateExplosion(e);
-        }
-
         if (addDecal) {
             auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
 
@@ -1495,10 +1467,39 @@ namespace Inferno {
             //obj.LastPosition = obj.Position;
             StuckObjects.Add(hit.Tag, objId);
             obj.Flags |= ObjectFlag::Attached;
+            return;
         }
-        else if (obj.Physics.Bounces <= 0) {
-            obj.Destroy(); // destroy weapon after hitting a wall
+
+        if (obj.Physics.CanBounce() && !hitLiquid) {
+            return; // don't create explosions when bouncing
         }
+
+        obj.Lifespan = -1; // destroy weapon after hitting a wall
+
+        auto dir = obj.Physics.Velocity;
+        dir.Normalize();
+
+        Render::ExplosionInfo e;
+        e.MinRadius = weapon.ImpactSize * 0.9f;
+        e.MaxRadius = weapon.ImpactSize * 1.1f;
+        e.Clip = vclip;
+        e.Sound = soundId;
+        e.Segment = hit.Tag.Segment;
+
+        // move explosions out of wall
+        if (weapon.ImpactSize < 5)
+            e.Position = hit.WallPoint - dir * weapon.ImpactSize * 0.5f;
+        else
+            e.Position = hit.WallPoint - dir * 2.5;
+
+        e.Color = Color{ 1, 1, 1 };
+        e.FadeTime = 0.1f;
+
+        if (obj.ID == (int)WeaponID::Concussion) {
+            e.Instances = 3;
+            e.MinDelay = e.MaxDelay = 0;
+        }
+        Render::CreateExplosion(e);
 
         if (splashRadius > 0 || hitVolatile) {
             GameExplosion ge{};
@@ -1590,8 +1591,8 @@ namespace Inferno {
 
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
-            if (!obj.IsAlive()) continue;
-            if (obj.Type == ObjectType::Player && obj.ID > 0) continue;
+            if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
+            if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
             if (obj.Movement != MovementType::Physics) continue;
 
             obj.LastPosition = obj.Position;

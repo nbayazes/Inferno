@@ -100,6 +100,7 @@ namespace Inferno {
     constexpr auto MaxDynamicLights = 500;
     constexpr uint8 MaxDeltasPerLight = 255;
     constexpr auto MaxLightDeltas = 32000; // Rebirth limit. Original D2: 10000
+    constexpr int DEFAULT_REACTOR_COUNTDOWN = 30;
 
     struct Level {
         string Palette = "groupa.256";
@@ -116,7 +117,7 @@ namespace Inferno {
         List<FlickeringLight> FlickeringLights; // Vertigo flickering lights
 
         // Reactor stuff
-        int BaseReactorCountdown = 30;
+        int BaseReactorCountdown = DEFAULT_REACTOR_COUNTDOWN;
         int ReactorStrength = -1;
         ResizeArray<Tag, MAX_TRIGGER_TARGETS> ReactorTriggers{};
 

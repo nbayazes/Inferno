@@ -74,8 +74,8 @@ namespace Inferno {
         List<Weapon> Weapons;
         List<Powerup> Powerups;
         List<Model> Models;
-        List<int> DyingModels; // ModelID?
-        List<int> DeadModels; // ModelID?
+        List<ModelID> DyingModels; // Corresponds to index in Model
+        List<ModelID> DeadModels; // Corresponds to index in Model
         List<TexID> Gauges;
         List<TexID> HiResGauges;
         List<TexID> ObjectBitmaps;

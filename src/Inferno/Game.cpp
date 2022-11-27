@@ -240,12 +240,43 @@ namespace Inferno::Game {
         }
     }
 
-    bool DestroyObject(Object& obj) {
-        if (obj.Lifespan < 0 && obj.HitPoints < 0) return false; // already dead
+    void DestroyReactor(Object& obj) {
+        assert(obj.Type == ObjectType::Reactor);
+
+        obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
+        Render::LoadModelDynamic(obj.Render.Model.ID);
+
+        AddPointsToScore(REACTOR_SCORE);
+
+        for (auto& tag : Level.ReactorTriggers) {
+            if (auto wall = Level.TryGetWall(tag)) {
+                if (wall->Type == WallType::Door && wall->State == WallState::Closed)
+                    OpenDoor(Level, tag);
+
+                if (wall->Type == WallType::Destroyable)
+                    DestroyWall(Level, tag);
+            }
+        }
+
+        if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
+            CountdownTime = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
+        }
+        else {
+            std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
+            CountdownTime = DefaultCountdownTimes[Difficulty];
+        }
+
+        // todo: disable secret portals
+        // todo: start countdown
+    }
+
+    void DestroyObject(Object& obj) {
+        obj.Flags |= ObjectFlag::Destroyed;
 
         switch (obj.Type) {
-            case ObjectType::Fireball:
+            case ObjectType::Reactor:
             {
+                DestroyReactor(obj);
                 break;
             }
 
@@ -312,28 +343,23 @@ namespace Inferno::Game {
                 }
 
                 DropContainedItems(obj);
+                obj.Flags |= ObjectFlag::Dead;
                 break;
             }
 
             case ObjectType::Player:
             {
+                obj.Flags |= ObjectFlag::Destroyed;
                 // Player_ship->expl_vclip_num
                 break;
             }
 
             case ObjectType::Weapon:
             {
+                // weapons are destroyed in physics
                 break;
             }
-
-            default:
-                // VCLIP_SMALL_EXPLOSION = 2
-                break;
         }
-
-        obj.Lifespan = -1;
-        obj.HitPoints = -1;
-        return true;
     }
 
     Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask) {
@@ -461,16 +487,15 @@ namespace Inferno::Game {
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
 
-            if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
-                if (DestroyObject(obj)) {
-                    if (auto seg = Level.TryGetSegment(obj.Segment))
-                        Seq::remove(seg->Objects, (ObjID)i);
-                }
-                continue;
+            if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
+                DestroyObject(obj);
             }
-            else if (obj.Lifespan <= 0 && obj.Type == ObjectType::Weapon) {
-                // life expired, detonate weapon
-                ExplodeWeapon(obj);
+            else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
+                ExplodeWeapon(obj); // explode expired weapons
+                obj.Flags |= ObjectFlag::Dead;
+            }
+
+            if (HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 if (auto seg = Level.TryGetSegment(obj.Segment))
                     Seq::remove(seg->Objects, (ObjID)i);
             }
@@ -771,7 +796,7 @@ namespace Inferno::Game {
                 obj.Signature = GetObjectSig();
 
                 if ((obj.Type == ObjectType::Player && obj.ID != 0) || obj.Type == ObjectType::Coop)
-                    obj.Destroy(); // Remove non-player 0 starts (no multiplayer)
+                    obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
 
                 if (obj.Type == ObjectType::Robot) {
                     auto& ri = Resources::GetRobotInfo(obj.ID);
@@ -786,7 +811,7 @@ namespace Inferno::Game {
 
                 if (obj.Type == ObjectType::Powerup &&
                     (obj.ID == (int)PowerupID::FlagBlue || obj.ID == (int)PowerupID::FlagRed)) {
-                    obj.Destroy(); // Remove CTF flags (no multiplayer)
+                    obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
                 }
 
                 Editor::UpdateObjectSegment(Level, obj);

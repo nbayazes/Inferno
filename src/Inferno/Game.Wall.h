@@ -8,6 +8,7 @@
 namespace Inferno {
     // Tries to open a door
     void OpenDoor(Level& level, Tag tag);
+    void DestroyWall(Level& level, Tag tag);
 
     // Updates opened doors
     void UpdateDoors(Level& level, float dt);
@@ -117,7 +118,7 @@ namespace Inferno {
                 if (o.Tag != tag) continue;
 
                 if (auto obj = level.TryGetObject(o.Object))
-                    obj->Destroy();
+                    obj->Lifespan = -1;
 
                 o = {};
             }

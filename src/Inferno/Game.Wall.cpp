@@ -474,6 +474,11 @@ namespace Inferno {
         auto [wall, cwall] = level.TryGetWalls(tag);
         if (!wall) return;
 
+        if (wall->Type != WallType::Destroyable) {
+            SPDLOG_WARN("Tried to destroy a non-destroyable wall {}:{}", tag.Segment, tag.Side);
+            return;
+        }
+
         wall->HitPoints = -1;
         if (cwall) cwall->HitPoints = -1;
 
