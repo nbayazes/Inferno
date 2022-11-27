@@ -4,7 +4,7 @@
 #include "Utility.h"
 
 namespace Inferno {
-    enum class VClipFlag : uint32 { None, Rod = 1 }; // Rod is a hostage?? Axis aligned billboard?
+    enum class VClipFlag : uint32 { None, AxisAligned = 1 };
 
     //VCLIP_PLAYER_HIT 1
     //VCLIP_MORPHING_ROBOT 10
@@ -26,12 +26,13 @@ namespace Inferno {
         float LightValue{};
 
         // Returns the active frames
-        span<const TexID> GetFrames() const { 
-            return span(Frames.begin(), std::max(NumFrames, 0)); 
+        span<const TexID> GetFrames() const {
+            return span(Frames.begin(), std::max(NumFrames, 0));
         }
 
         // Returns the frame for the vclip based on elapsed time
         TexID GetFrame(double elapsed) const {
+            if (NumFrames == 0) return TexID::None;
             auto frame = (int)std::floor(std::abs(elapsed) / (double)FrameTime) % NumFrames;
             return Frames[frame];
         };
@@ -54,7 +55,7 @@ namespace Inferno {
         SoundID Sound = SoundID::None; // Ambient sound
 
         // the follow are a hack for animating a breaking clip on a wall
-        float TimeLeft{}; 
+        float TimeLeft{};
         int FrameCount{};
         Tag OneShotTag;
     };

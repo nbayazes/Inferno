@@ -36,6 +36,12 @@ namespace Inferno::Game {
         return ObjSig(ObjSigIndex++);
     }
 
+    void ResetCountdown() {
+        ControlCenterDestroyed = false;
+        TotalCountdown = CountdownSeconds = -1;
+        CountdownTimer = -1.0f;
+    }
+
     void LoadLevel(Inferno::Level&& level) {
         Inferno::Level backup = Level;
 
@@ -383,7 +389,15 @@ namespace Inferno::Game {
         }
 
         // todo: disable secret portals
-        // todo: start countdown
+
+        // Load critical clips
+        Set<TexID> ids;
+        for (auto& eclip : Resources::GameData.Effects) {
+            auto& crit = Resources::GetEffectClip(eclip.CritClip);
+            Seq::insert(ids, crit.VClip.GetFrames());
+        }
+
+        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
     }
 
     void DestroyObject(Object& obj) {
@@ -723,6 +737,7 @@ namespace Inferno::Game {
                 // Activate editor mode
                 Editor::History.Undo();
                 State = GameState::Editor;
+                ResetCountdown();
                 Render::Camera = EditorCameraSnapshot;
                 Input::SetMouselook(false);
                 Sound::Reset();
@@ -747,7 +762,6 @@ namespace Inferno::Game {
                 break;
 
             case GameState::ExitSequence:
-                //RequestedState = GameState::Editor;
                 break;
 
             case GameState::Paused:
@@ -976,10 +990,7 @@ namespace Inferno::Game {
             }
         }
 
-        ControlCenterDestroyed = false;
-        TotalCountdown = CountdownSeconds = -1;
-        CountdownTimer = -1.0f;
-
+        ResetCountdown();
         StuckObjects = {};
         Render::ResetParticles();
         Sound::Reset();

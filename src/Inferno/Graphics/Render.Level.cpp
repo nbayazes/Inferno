@@ -42,7 +42,7 @@ namespace Inferno::Render {
         {
             auto& map1 = chunk.EffectClip1 == EClipID::None ?
                 Materials->Get(chunk.TMap1) :
-                Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
+                Materials->Get(chunk.EffectClip1, ElapsedTime, Game::ControlCenterDestroyed);
 
             effect.Shader->SetMaterial1(cmdList, map1);
         }
@@ -52,7 +52,7 @@ namespace Inferno::Render {
 
             auto& map2 = chunk.EffectClip2 == EClipID::None ?
                 Materials->Get(chunk.TMap2) :
-                Materials->Get(Resources::GetEffectClip(chunk.EffectClip2).VClip.GetFrame(ElapsedTime));
+                Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
 
             effect.Shader->SetMaterial2(cmdList, map2);
         }
@@ -191,18 +191,9 @@ namespace Inferno::Render {
             if (chunk.TMap2 > LevelTexID::Unset) {
                 constants.Overlay = true;
 
-                auto overlayId = TexID::None;
-
-                if (chunk.EffectClip2 == EClipID::None) {
-                    overlayId = Resources::LookupTexID(chunk.TMap2);
-                }
-                else {
-                    auto& eclip = Resources::GetEffectClip(chunk.EffectClip2);
-                    auto time = eclip.TimeLeft > 0 ? eclip.VClip.PlayTime - eclip.TimeLeft : ElapsedTime;
-                    overlayId = eclip.VClip.GetFrame(time);
-                }
-
-                auto& map2 = Materials->Get(overlayId);
+                auto& map2 = chunk.EffectClip2 == EClipID::None ?
+                    Materials->Get(chunk.TMap2) :
+                    Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
 
                 Shaders->Level.SetMaterial2(cmdList, map2);
             }
