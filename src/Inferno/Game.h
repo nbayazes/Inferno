@@ -98,7 +98,10 @@ namespace Inferno::Game {
 
     void AddScreenFlash(const Color&);
 
-    inline int CountdownTime = -1;
+    inline bool ControlCenterDestroyed = false;
+    inline float CountdownTimer = -1; // time before reactor goes critical
+    inline int CountdownSeconds = -1; // seconds before the reactor goes critical
+    inline int TotalCountdown = -1; // the starting countdown time
 
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;

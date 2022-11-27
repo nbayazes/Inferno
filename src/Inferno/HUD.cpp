@@ -705,6 +705,18 @@ namespace Inferno {
                 //DrawMonitorText("!LOCK!", info);
             }
 
+            if (Game::ControlCenterDestroyed && Game::CountdownSeconds >= 0) {
+                Render::DrawTextInfo info;
+                info.Font = FontSize::Small;
+                info.Color = MonitorGreenText;
+                info.Position = Vector2(0, 80) * scale;
+                info.HorizontalAlign = AlignH::Center;
+                info.VerticalAlign = AlignV::Top;
+                info.Scanline = 0.8f;
+                auto timer = fmt::format("T-{} s", Game::CountdownSeconds);
+                Render::HudCanvas->DrawGameText(timer, info);
+            }
+
             DrawHighlights(false);
             DrawHighlights(true);
 

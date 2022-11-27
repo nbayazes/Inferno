@@ -240,6 +240,49 @@ namespace Inferno::Game {
         }
     }
 
+    void UpdateReactorCountdown(float dt) {
+        auto fc = std::min(CountdownSeconds, 16);
+        auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
+
+        // Shake the player ship
+        Level.Objects[0].Physics.AngularVelocity.x += RandomN11() * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
+        Level.Objects[0].Physics.AngularVelocity.z += RandomN11() * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
+
+        auto time = CountdownTimer;
+        CountdownTimer -= dt;
+        CountdownSeconds = int(CountdownTimer + 7.0f / 8);
+
+        constexpr float COUNTDOWN_VOICE_TIME = 12.75f;
+        if (time > COUNTDOWN_VOICE_TIME && CountdownTimer <= COUNTDOWN_VOICE_TIME) {
+            Sound::Play(Resources::GetSoundResource(SoundID::Countdown13));
+        }
+
+        if (int(time + 7.0f / 8) != CountdownSeconds) {
+            if (CountdownSeconds >= 0 && CountdownSeconds < 10)
+                Sound::Play(Resources::GetSoundResource(SoundID((int)SoundID::Countdown0 + CountdownSeconds)));
+            if (CountdownSeconds == TotalCountdown - 1)
+                Sound::Play(Resources::GetSoundResource(SoundID::SelfDestructActivated));
+        }
+
+        if (CountdownTimer > 0) {
+            auto size = (float)TotalCountdown - CountdownTimer / 0.65f;
+            auto oldSize = (float)TotalCountdown - time / 0.65f;
+            if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - 5)
+                Sound::Play(Resources::GetSoundResource(SoundID::Siren)); // play siren every 2 seconds
+        }
+        else {
+            if (time > 0)
+                Sound::Play(Resources::GetSoundResource(SoundID::MineBlewUp));
+
+            auto flash = -CountdownTimer / 4.0f; // 4 seconds to total whiteness
+            ScreenFlash = Color{ flash, flash, flash };
+
+            if (CountdownTimer <= -4) {
+                // kill player
+            }
+        }
+    }
+
     void DestroyReactor(Object& obj) {
         assert(obj.Type == ObjectType::Reactor);
 
@@ -259,12 +302,16 @@ namespace Inferno::Game {
         }
 
         if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
-            CountdownTime = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
+            TotalCountdown = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
         }
         else {
             std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
-            CountdownTime = DefaultCountdownTimes[Difficulty];
+            TotalCountdown = DefaultCountdownTimes[Difficulty];
         }
+
+        TotalCountdown = 30; // debug
+        CountdownTimer = (float)TotalCountdown;
+        ControlCenterDestroyed = true;
 
         {
             Render::SparkEmitter e;
@@ -298,7 +345,7 @@ namespace Inferno::Game {
         }
 
         {
-            // Larger explosions with sound
+            // Larger periodic explosions with sound
             Render::ExplosionInfo e;
             e.Radius = { 2, 3 };
             e.Clip = VClipID::SmallExplosion;
@@ -308,7 +355,7 @@ namespace Inferno::Game {
             e.Position = obj.Position;
             e.FadeTime = 0.25f;
             e.Variance = obj.Radius * 0.45f;
-            e.Instances = CountdownTime;
+            e.Instances = CountdownTimer;
             e.Delay = { 1.25f, 2.00f };
             Render::CreateExplosion(e);
         }
@@ -322,7 +369,7 @@ namespace Inferno::Game {
             e.Position = obj.Position;
             e.FadeTime = 0.25f;
             e.Variance = obj.Radius * 0.45f;
-            e.Instances = CountdownTime * 4;
+            e.Instances = CountdownTimer * 4;
             e.Delay = { 0.25f, 0.35f };
             Render::CreateExplosion(e);
         }
@@ -542,6 +589,8 @@ namespace Inferno::Game {
         //Render::UpdateExplosions(dt);
         UpdateAmbientSounds();
         UpdateExplodingWalls(Game::Level, dt);
+        if (ControlCenterDestroyed)
+            UpdateReactorCountdown(dt);
         Render::FixedUpdateEffects(dt);
 
         for (int i = 0; i < Level.Objects.size(); i++) {

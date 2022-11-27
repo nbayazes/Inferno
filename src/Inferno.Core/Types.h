@@ -249,7 +249,7 @@ namespace Inferno {
         BriefingPrint = 95,
         Countdown0 = 100, // countdown messages are 100-114
         Countdown13 = 113,
-        Countdown29 = 114,
+        SelfDestructActivated = 114,
         HomingWarning = 122,
 
         TouchLavafall = 150,
