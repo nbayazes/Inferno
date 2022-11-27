@@ -26,8 +26,11 @@ namespace Inferno::Game {
     namespace {
         uint16 ObjSigIndex = 1;
         GameState State = GameState::Editor;
+        GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
     }
+
+    void StartLevel();
 
     ObjSig GetObjectSig() {
         return ObjSig(ObjSigIndex++);
@@ -139,7 +142,7 @@ namespace Inferno::Game {
             Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
         if (Input::IsKeyPressed(Keys::F2))
-            ChangeState(State == GameState::Game ? GameState::Editor : GameState::Game);
+            SetState(State == GameState::Game ? GameState::Editor : GameState::Game);
 
         if (Input::IsKeyPressed(Keys::F3))
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
@@ -278,12 +281,12 @@ namespace Inferno::Game {
             if (time > 0)
                 Sound::Play(Resources::GetSoundResource(SoundID::MineBlewUp));
 
-            auto flash = -CountdownTimer / 4.0f; // 4 seconds to total whiteness
+            auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
             ScreenFlash = Color{ flash, flash, flash };
 
-            if (CountdownTimer <= -4) {
-                // kill player
-
+            if (CountdownTimer < -4) {
+                // todo: kill player, show "you have died in the mine" message
+                SetState(GameState::Editor);
             }
         }
     }
@@ -644,7 +647,7 @@ namespace Inferno::Game {
                 if (Settings::Editor.EnablePhysics)
                     HandleEditorDebugInput(dt);
             }
-            else {
+            else if (Game::State == GameState::Game) {
                 HandleInput(dt);
             }
         }
@@ -698,11 +701,68 @@ namespace Inferno::Game {
         camera.Up = transform.Up();
     }
 
+    void UpdateExitSequence() {
+        // todo: escape sequence
+        // for first 5? seconds move camera to player
+        MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
+        // otherwise shift camera in front of player by 20? units
+
+        // use a smoothed path between segment centers
+
+        // escape cancels sequence?
+
+        SetState(GameState::Editor); // just exit for now
+    }
+
+
+    void UpdateState() {
+        if (State == RequestedState) return;
+
+        switch (RequestedState) {
+            case GameState::Editor:
+                // Activate editor mode
+                Editor::History.Undo();
+                State = GameState::Editor;
+                Render::Camera = EditorCameraSnapshot;
+                Input::SetMouselook(false);
+                Sound::Reset();
+                Render::ResetParticles();
+                LerpAmount = 1;
+                break;
+
+            case GameState::Game:
+                // Activate game mode
+                if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
+                    Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
+                }
+                else {
+                    SPDLOG_ERROR("No player start at object 0!");
+                    return; // no player start!
+                }
+
+                Editor::History.SnapshotLevel("Playtest");
+                State = GameState::Game;
+
+                StartLevel();
+                break;
+
+            case GameState::ExitSequence:
+                //RequestedState = GameState::Editor;
+                break;
+
+            case GameState::Paused:
+                break;
+        }
+
+        State = RequestedState;
+    }
+
     void Update(float dt) {
         Inferno::Input::Update();
         HandleGlobalInput();
         Render::Debug::BeginFrame(); // enable debug calls during updates
         Game::DeltaTime = 0;
+        UpdateState();
 
         g_ImGuiBatch->BeginFrame();
         switch (State) {
@@ -712,6 +772,12 @@ namespace Inferno::Game {
                     MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
 
                 break;
+
+            case GameState::ExitSequence:
+                LerpAmount = GameUpdate(dt);
+                UpdateExitSequence();
+                break;
+
             case GameState::Editor:
                 if (Settings::Editor.EnablePhysics) {
                     LerpAmount = Settings::Editor.EnablePhysics ? GameUpdate(dt) : 1;
@@ -910,6 +976,10 @@ namespace Inferno::Game {
             }
         }
 
+        ControlCenterDestroyed = false;
+        TotalCountdown = CountdownSeconds = -1;
+        CountdownTimer = -1.0f;
+
         StuckObjects = {};
         Render::ResetParticles();
         Sound::Reset();
@@ -946,40 +1016,9 @@ namespace Inferno::Game {
         std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
     }
 
-    void ChangeState(GameState state) {
-        if (State == state) return;
+    void SetState(GameState state) {
+        RequestedState = state;
 
-        switch (state) {
-            case GameState::Editor:
-                // Activate editor mode
-                Editor::History.Undo();
-                State = GameState::Editor;
-                Render::Camera = EditorCameraSnapshot;
-                Input::SetMouselook(false);
-                Sound::Reset();
-                Render::ResetParticles();
-                LerpAmount = 1;
-                break;
-
-            case GameState::Game:
-                // Activate game mode
-                if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
-                    Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
-                }
-                else {
-                    SPDLOG_ERROR("No player start at object 0!");
-                    return; // no player start!
-                }
-
-                Editor::History.SnapshotLevel("Playtest");
-                State = GameState::Game;
-
-                StartLevel();
-                break;
-
-            case GameState::Paused:
-                break;
-        }
     }
 
     GameState GetState() { return State; }

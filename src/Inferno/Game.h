@@ -7,8 +7,12 @@
 namespace Inferno {
     enum class GameState {
         Game, // In first person and running game logic
-        Editor, // In the editor
-        Paused // In game but paused or in a menu
+        Paused, // In game but paused or in a menu
+        ExitSequence, // exit tunnel sequence
+        ScoreScreen,
+        Briefing,
+        MainMenu,
+        Editor
     };
 }
 
@@ -101,11 +105,11 @@ namespace Inferno::Game {
     void AddScreenFlash(const Color&);
 
     inline bool ControlCenterDestroyed = false;
-    inline float CountdownTimer = -1; // time before reactor goes critical
+    inline float CountdownTimer = -1.0f; // time before reactor goes critical
     inline int CountdownSeconds = -1; // seconds before the reactor goes critical
     inline int TotalCountdown = -1; // the starting countdown time
 
-    void ChangeState(GameState);
+    void SetState(GameState);
     GameState GetState();
 
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {

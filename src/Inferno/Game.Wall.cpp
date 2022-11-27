@@ -376,7 +376,7 @@ namespace Inferno {
     }
 
     void StartExitSequence(Level&) {
-
+        Game::SetState(GameState::ExitSequence);
     }
 
     void EnterSecretLevel() {}
