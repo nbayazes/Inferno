@@ -373,7 +373,7 @@ namespace Inferno::Render {
         Adapter->FrameConstantsBuffer.End();
 
         DrawLevel(ctx, Game::Level);
-        if (Game::State == GameState::Game) {
+        if (Game::GetState() == GameState::Game) {
             auto width = Adapter->GetWidth();
             auto height = Adapter->GetHeight();
             HudCanvas->SetSize(width, height);

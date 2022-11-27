@@ -5,7 +5,11 @@
 #include "Game.Player.h"
 
 namespace Inferno {
-    enum class GameState { Game, Editor, Paused };
+    enum class GameState {
+        Game, // In first person and running game logic
+        Editor, // In the editor
+        Paused // In game but paused or in a menu
+    };
 }
 
 namespace Inferno::Game {
@@ -13,7 +17,6 @@ namespace Inferno::Game {
 
     inline int Difficulty = 0; // 0 to 4 for trainee to insane
 
-    inline GameState State = GameState::Editor;
     inline Vector3 Gravity = { 0, -200, 0 }; // u/s acceleration
 
     // The loaded level. Only one level can be active at a time.
@@ -49,7 +52,6 @@ namespace Inferno::Game {
     void ExplodeWeapon(Object&);
 
     void Update(float dt);
-    void ToggleEditorMode();
 
     // Finds the nearest object ID to an object
     Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
@@ -102,6 +104,9 @@ namespace Inferno::Game {
     inline float CountdownTimer = -1; // time before reactor goes critical
     inline int CountdownSeconds = -1; // seconds before the reactor goes critical
     inline int TotalCountdown = -1; // the starting countdown time
+
+    void ChangeState(GameState);
+    GameState GetState();
 
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;

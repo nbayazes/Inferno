@@ -23,7 +23,11 @@
 using namespace DirectX;
 
 namespace Inferno::Game {
-    uint16 ObjSigIndex = 1;
+    namespace {
+        uint16 ObjSigIndex = 1;
+        GameState State = GameState::Editor;
+        Camera EditorCameraSnapshot;
+    }
 
     ObjSig GetObjectSig() {
         return ObjSig(ObjSigIndex++);
@@ -135,7 +139,7 @@ namespace Inferno::Game {
             Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
         if (Input::IsKeyPressed(Keys::F2))
-            Game::ToggleEditorMode();
+            ChangeState(State == GameState::Game ? GameState::Editor : GameState::Game);
 
         if (Input::IsKeyPressed(Keys::F3))
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
@@ -160,7 +164,7 @@ namespace Inferno::Game {
             }
         }
 
-        return Level.Objects.emplace_back();
+        return Level.Objects.emplace_back(Object{});
     }
 
     // Objects to be added at the end of this tick.
@@ -279,6 +283,7 @@ namespace Inferno::Game {
 
             if (CountdownTimer <= -4) {
                 // kill player
+
             }
         }
     }
@@ -355,7 +360,7 @@ namespace Inferno::Game {
             e.Position = obj.Position;
             e.FadeTime = 0.25f;
             e.Variance = obj.Radius * 0.45f;
-            e.Instances = CountdownTimer;
+            e.Instances = TotalCountdown;
             e.Delay = { 1.25f, 2.00f };
             Render::CreateExplosion(e);
         }
@@ -369,7 +374,7 @@ namespace Inferno::Game {
             e.Position = obj.Position;
             e.FadeTime = 0.25f;
             e.Variance = obj.Radius * 0.45f;
-            e.Instances = CountdownTimer * 4;
+            e.Instances = TotalCountdown * 4;
             e.Delay = { 0.25f, 0.35f };
             Render::CreateExplosion(e);
         }
@@ -726,7 +731,6 @@ namespace Inferno::Game {
         Render::Present();
     }
 
-    Camera EditorCameraSnapshot;
 
     SoundID GetSoundForSide(const SegmentSide& side) {
         auto& ti1 = Resources::GetEffectClip(side.TMap);
@@ -864,105 +868,120 @@ namespace Inferno::Game {
         Render::Materials->LoadTextures(customHudTextures);
     }
 
-    void ToggleEditorMode() {
-        if (State == GameState::Game) {
-            // Activate editor mode
-            Editor::History.Undo();
-            State = GameState::Editor;
-            Render::Camera = EditorCameraSnapshot;
-            Input::SetMouselook(false);
-            Sound::Reset();
-            Render::ResetParticles();
-            LerpAmount = 1;
+    void StartLevel() {
+        Editor::SetPlayerStartIDs(Level);
+        Gravity = Level.Objects[0].Rotation.Up() * -200;
+
+        Render::InitEffects(Level);
+
+        for (auto& seg : Level.Segments) {
+            seg.Objects.clear();
         }
-        else if (State == GameState::Editor) {
-            if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
-                Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
-                Gravity = Level.Objects[0].Rotation.Up() * -200;
-            }
-            else {
-                SPDLOG_ERROR("No player start at object 0!");
-                return; // no player start!
-            }
 
-            Editor::SetPlayerStartIDs(Level);
+        // init objects
+        for (int id = 0; id < Level.Objects.size(); id++) {
+            auto& obj = Level.Objects[id];
+            obj.LastPosition = obj.Position;
+            obj.LastRotation = obj.Rotation;
+            obj.Signature = GetObjectSig();
 
-            // Activate game mode
-            Editor::History.SnapshotLevel("Playtest");
+            if ((obj.Type == ObjectType::Player && obj.ID != 0) || obj.Type == ObjectType::Coop)
+                obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
 
-            State = GameState::Game;
-
-            Render::InitEffects(Level);
-
-            for (auto& seg : Level.Segments) {
-                seg.Objects.clear();
+            if (obj.Type == ObjectType::Robot) {
+                auto& ri = Resources::GetRobotInfo(obj.ID);
+                obj.HitPoints = ri.HitPoints;
+                obj.Physics.Flags |= PhysicsFlag::Bounce;
             }
 
-            for (int id = 0; id < Level.Objects.size(); id++) {
-                auto& obj = Level.Objects[id];
-                obj.LastPosition = obj.Position;
-                obj.LastRotation = obj.Rotation;
-                obj.Signature = GetObjectSig();
-
-                if ((obj.Type == ObjectType::Player && obj.ID != 0) || obj.Type == ObjectType::Coop)
-                    obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
-
-                if (obj.Type == ObjectType::Robot) {
-                    auto& ri = Resources::GetRobotInfo(obj.ID);
-                    obj.HitPoints = ri.HitPoints;
-                    obj.Physics.Flags |= PhysicsFlag::Bounce;
-                }
-
-                if (obj.Type == ObjectType::Powerup &&
-                    (obj.ID == (int)PowerupID::Gauss || obj.ID == (int)PowerupID::Vulcan)) {
-                    obj.Control.Powerup.Count = 2500;
-                }
-
-                if (obj.Type == ObjectType::Powerup &&
-                    (obj.ID == (int)PowerupID::FlagBlue || obj.ID == (int)PowerupID::FlagRed)) {
-                    obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
-                }
-
-                Editor::UpdateObjectSegment(Level, obj);
-                if (auto seg = Level.TryGetSegment(obj.Segment)) {
-                    seg->Objects.push_back((ObjID)id);
-                }
+            if (obj.Type == ObjectType::Powerup &&
+                (obj.ID == (int)PowerupID::Gauss || obj.ID == (int)PowerupID::Vulcan)) {
+                obj.Control.Powerup.Count = 2500;
             }
 
-            StuckObjects = {};
-            Render::ResetParticles();
-            Sound::Reset();
-            MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
-            MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
-            AddSoundSources();
+            if (obj.Type == ObjectType::Powerup &&
+                (obj.ID == (int)PowerupID::FlagBlue || obj.ID == (int)PowerupID::FlagRed)) {
+                obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
+            }
 
-            EditorCameraSnapshot = Render::Camera;
-            Settings::Editor.RenderMode = RenderMode::Shaded;
-            Input::SetMouselook(true);
-            Render::LoadHUDTextures();
+            Editor::UpdateObjectSegment(Level, obj);
+            if (auto seg = Level.TryGetSegment(obj.Segment)) {
+                seg->Objects.push_back((ObjID)id);
+            }
+        }
 
-            PreloadTextures();
+        StuckObjects = {};
+        Render::ResetParticles();
+        Sound::Reset();
+        MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
+        MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
+        AddSoundSources();
 
-            Player.GiveWeapon(PrimaryWeaponIndex::Laser);
-            Player.GiveWeapon(PrimaryWeaponIndex::Vulcan);
-            Player.GiveWeapon(PrimaryWeaponIndex::Spreadfire);
-            Player.GiveWeapon(PrimaryWeaponIndex::Helix);
-            Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
-            Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
-            Player.GivePowerup(PowerupFlag::Afterburner);
+        EditorCameraSnapshot = Render::Camera;
+        Settings::Editor.RenderMode = RenderMode::Shaded;
+        Input::SetMouselook(true);
+        Render::LoadHUDTextures();
 
-            // Reset shields and energy to at least 100 on level start
-            Player.Shields = std::max(Player.Shields, 100.0f);
-            Player.Energy = std::max(Player.Energy, 100.0f);
-            Player.Energy = 10;
+        PreloadTextures();
 
-            // Max vulcan ammo changes between D1 and D2
-            PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Level.IsDescent1() ? 10000 : 20000;
+        Player.GiveWeapon(PrimaryWeaponIndex::Laser);
+        Player.GiveWeapon(PrimaryWeaponIndex::Vulcan);
+        Player.GiveWeapon(PrimaryWeaponIndex::Spreadfire);
+        Player.GiveWeapon(PrimaryWeaponIndex::Helix);
+        Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
+        Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
+        Player.GivePowerup(PowerupFlag::Afterburner);
 
-            Player.PrimaryWeapons = 0xffff;
-            Player.SecondaryWeapons = 0xffff;
-            std::ranges::generate(Player.SecondaryAmmo, [] { return 5; });
-            std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
+        // Reset shields and energy to at least 100 on level start
+        Player.Shields = std::max(Player.Shields, 100.0f);
+        Player.Energy = std::max(Player.Energy, 100.0f);
+        Player.Energy = 10;
+
+        // Max vulcan ammo changes between D1 and D2
+        PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Level.IsDescent1() ? 10000 : 20000;
+
+        Player.PrimaryWeapons = 0xffff;
+        Player.SecondaryWeapons = 0xffff;
+        std::ranges::generate(Player.SecondaryAmmo, [] { return 5; });
+        std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
+    }
+
+    void ChangeState(GameState state) {
+        if (State == state) return;
+
+        switch (state) {
+            case GameState::Editor:
+                // Activate editor mode
+                Editor::History.Undo();
+                State = GameState::Editor;
+                Render::Camera = EditorCameraSnapshot;
+                Input::SetMouselook(false);
+                Sound::Reset();
+                Render::ResetParticles();
+                LerpAmount = 1;
+                break;
+
+            case GameState::Game:
+                // Activate game mode
+                if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
+                    Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
+                }
+                else {
+                    SPDLOG_ERROR("No player start at object 0!");
+                    return; // no player start!
+                }
+
+                Editor::History.SnapshotLevel("Playtest");
+                State = GameState::Game;
+
+                StartLevel();
+                break;
+
+            case GameState::Paused:
+                break;
         }
     }
+
+    GameState GetState() { return State; }
+
 }

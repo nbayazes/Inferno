@@ -114,7 +114,7 @@ void Application::Tick() {
 
     Render::FrameTime = dt;
 
-    if (Game::State == GameState::Game) {
+    if (Game::GetState() == GameState::Game) {
         Game::Time = milliseconds / 1000.;
     }
 
@@ -134,7 +134,7 @@ bool Inferno::Application::OnClose() {
 
 // Message handlers
 void Application::OnActivated() {
-    if (Game::State == GameState::Game)
+    if (Game::GetState() == GameState::Game)
         Input::SetMouselook(true);
 
     Input::ResetState();

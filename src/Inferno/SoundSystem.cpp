@@ -234,7 +234,7 @@ namespace Inferno::Sound {
                         sound->UpdateEmitter(Render::Camera.Position, dt);
                         // Hack to force sounds caused by the player to be exactly on top of the listener.
                         // Objects and the camera are slightly out of sync due to update timing and threading
-                        if (Game::State == GameState::Game && sound->FromPlayer)
+                        if (Game::GetState() == GameState::Game && sound->FromPlayer)
                             sound->Emitter.Position = Listener.Position;
 
                         if (sound->Instance)

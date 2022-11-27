@@ -78,7 +78,7 @@ namespace Inferno::Input {
         auto mouseState = _mouse.GetState();
         Mouse.Update(mouseState);
 
-        if (!Shell::HasFocus && Game::State == GameState::Game) {
+        if (!Shell::HasFocus && Game::GetState() == GameState::Game) {
             MouseDelta.x = MouseDelta.y = 0;
             MousePrev = MousePosition;
         }

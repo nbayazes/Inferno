@@ -341,7 +341,7 @@ namespace Inferno::Render {
             //DrawTracers(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
-            if (!Settings::Inferno.ScreenshotMode && Game::State == GameState::Editor) {
+            if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
                 ctx.BeginEvent(L"Editor");
                 DrawEditor(ctx.CommandList(), level);
                 DrawDebug(level);

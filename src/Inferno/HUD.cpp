@@ -194,9 +194,9 @@ namespace Inferno {
 
     void DrawReticle() {
         auto isD1 = Game::Level.IsDescent1();
-        const Vector2 crossOffset(0, isD1 ? -2 : -5);
-        const Vector2 primaryOffset(0, isD1 ? 6 : 14);
-        const Vector2 secondaryOffset(0, isD1 ? 1 : 2);
+        const Vector2 crossOffset(0, isD1 ? -2.0f : -5.0f);
+        const Vector2 primaryOffset(0, isD1 ? 6.0f : 14.0f);
+        const Vector2 secondaryOffset(0, isD1 ? 1.0f : 2.0f);
 
         bool primaryReady = Game::Player.CanFirePrimary(Game::Player.Primary) && Game::Player.PrimaryDelay <= 0;
         bool secondaryReady = Game::Player.CanFireSecondary(Game::Player.Secondary) && Game::Player.SecondaryDelay <= 0;

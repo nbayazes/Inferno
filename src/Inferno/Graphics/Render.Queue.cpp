@@ -13,7 +13,7 @@ namespace Inferno::Render {
     bool ShouldDrawObject(const Object& obj) {
         if (!obj.IsAlive()) return false;
         bool gameModeHidden = obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop;
-        if (Game::State != GameState::Editor && gameModeHidden) return false;
+        if (Game::GetState() != GameState::Editor && gameModeHidden) return false;
         return true;
     }
 
@@ -26,7 +26,7 @@ namespace Inferno::Render {
             for (auto& mesh : levelMeshes)
                 _opaqueQueue.push_back({ &mesh, 0 });
 
-            if (Game::State == GameState::Editor || level.Objects.empty()) {
+            if (Game::GetState() == GameState::Editor || level.Objects.empty()) {
                 for (auto& mesh : wallMeshes) {
                     float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
                     _transparentQueue.push_back({ &mesh, depth });
@@ -63,7 +63,7 @@ namespace Inferno::Render {
         float depth = GetRenderDepth(position);
         const float maxDistSquared = Settings::Editor.ObjectRenderDistance * Settings::Editor.ObjectRenderDistance;
 
-        if (depth > maxDistSquared && Game::State == GameState::Editor) {
+        if (depth > maxDistSquared && Game::GetState() == GameState::Editor) {
             DrawObjectOutline(obj);
         }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {

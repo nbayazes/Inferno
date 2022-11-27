@@ -19,7 +19,7 @@ namespace Inferno::Render {
 
     void DrawObjectOutline(const Object& object, const Color& color, float scale = 1.0f) {
         if (object.Radius == 0) return;
-        if (Game::State != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
+        if (Game::GetState() != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
         DrawFacingCircle(object.Position, object.Radius * scale, color);
         // submodel hitboxes
         //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
