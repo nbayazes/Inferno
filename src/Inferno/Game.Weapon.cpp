@@ -40,8 +40,7 @@ namespace Inferno::Game {
         float damage = weapon.Damage[Game::Difficulty];
 
         Render::ExplosionInfo e;
-        e.MinRadius = weapon.ImpactSize * 0.9f;
-        e.MaxRadius = weapon.ImpactSize * 1.1f;
+        e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
         e.Clip = vclip;
         e.Sound = soundId;
         e.Position = obj.Position;

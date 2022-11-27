@@ -266,6 +266,67 @@ namespace Inferno::Game {
             CountdownTime = DefaultCountdownTimes[Difficulty];
         }
 
+        {
+            Render::SparkEmitter e;
+            e.Position = obj.Position;
+            e.Segment = obj.Segment;
+            e.Duration = { 0.75f, 2.4f };
+            e.Restitution = 0.6f;
+            e.Velocity = { 65, 85 };
+            e.Count = { 120, 120 };
+            e.Color = Color{ 4, 3, 3 };
+            e.Texture = "Hotspark";
+            e.Width = 0.65f;
+            Render::AddSparkEmitter(e);
+        }
+
+        {
+            // Initial explosion
+            Render::ExplosionInfo e;
+            e.Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
+            e.Clip = VClipID::SmallExplosion;
+            e.Sound = SoundID::Explosion;
+            e.Segment = obj.Segment;
+            e.Position = obj.Position;
+            e.FadeTime = 0.25f;
+            e.Instances = 5;
+            e.Variance = obj.Radius * 0.9f;
+            e.Delay = { 0, 0 };
+            e.Color = Color{ 1.3f, 1.3f, 1.3f };
+
+            Render::CreateExplosion(e);
+        }
+
+        {
+            // Larger explosions with sound
+            Render::ExplosionInfo e;
+            e.Radius = { 2, 3 };
+            e.Clip = VClipID::SmallExplosion;
+            e.Sound = SoundID::ExplodingWall;
+            e.Volume = 0.5f;
+            e.Segment = obj.Segment;
+            e.Position = obj.Position;
+            e.FadeTime = 0.25f;
+            e.Variance = obj.Radius * 0.45f;
+            e.Instances = CountdownTime;
+            e.Delay = { 1.25f, 2.00f };
+            Render::CreateExplosion(e);
+        }
+
+        {
+            // Small periodic explosions
+            Render::ExplosionInfo e;
+            e.Radius = { 0.75f, 1.5f };
+            e.Clip = VClipID::SmallExplosion;
+            e.Segment = obj.Segment;
+            e.Position = obj.Position;
+            e.FadeTime = 0.25f;
+            e.Variance = obj.Radius * 0.45f;
+            e.Instances = CountdownTime * 4;
+            e.Delay = { 0.25f, 0.35f };
+            Render::CreateExplosion(e);
+        }
+
         // todo: disable secret portals
         // todo: start countdown
     }
@@ -289,15 +350,14 @@ namespace Inferno::Game {
                 Render::ExplosionInfo expl;
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
-                expl.MinRadius = expl.MaxRadius = obj.Radius * 1.9f;
+                expl.Radius = { obj.Radius * 1.75f, obj.Radius * 1.9f };
                 expl.Segment = obj.Segment;
                 expl.Position = obj.GetPosition(LerpAmount);
                 Render::CreateExplosion(expl);
 
                 expl.Sound = SoundID::None;
                 expl.InitialDelay = EXPLOSION_DELAY;
-                expl.MinRadius = obj.Radius * 1.15f;
-                expl.MaxRadius = obj.Radius * 1.55f;
+                expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
                 expl.Instances = 1;
                 Render::CreateExplosion(expl);

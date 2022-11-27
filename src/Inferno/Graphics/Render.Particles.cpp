@@ -223,14 +223,12 @@ namespace Inferno::Render {
 
         if (Life < 0) {
             ExplosionInfo e;
-            e.MinRadius = Radius * 1.0f;
-            e.MaxRadius = Radius * 1.45f;
+            e.Radius = { Radius * 1.0f, Radius * 1.45f };
             e.Position = PrevTransform.Translation();
             e.Variance = Radius * 1.0f;
             e.Instances = 2;
             e.Segment = Segment;
-            e.MinDelay = 0.15f;
-            e.MaxDelay = 0.3f;
+            e.Delay = { 0.15f, 0.3f };
             CreateExplosion(e);
         }
     }
@@ -256,7 +254,8 @@ namespace Inferno::Render {
                 //fmt::print("playing expl sound\n");
                 Sound3D sound(expl.Position, expl.Segment);
                 sound.Resource = Resources::GetSoundResource(expl.Sound);
-                //sound.Source = expl.Parent; // no parent so all nearby explosions merge
+                sound.Volume = expl.Volume;
+                //sound.Source = expl.Parent; // no parent so all nearby sounds merge
                 Sound::Play(sound);
             }
 
@@ -266,15 +265,18 @@ namespace Inferno::Render {
                 if (expl.Variance > 0)
                     p.Position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
 
-                p.Radius = expl.MinRadius + Random() * (expl.MaxRadius - expl.MinRadius);
+                p.Radius = expl.Radius.GetRandom();
                 p.Clip = expl.Clip;
                 p.Color = expl.Color;
                 p.FadeTime = expl.FadeTime;
 
-                if (expl.Instances > 1 && i > 0)
-                    p.Delay = expl.MinDelay + Random() * (expl.MaxDelay - expl.MinDelay);
-
                 Render::AddParticle(p, expl.Segment);
+
+                if (expl.Instances > 1 && (expl.Delay.Min > 0 || expl.Delay.Max > 0)) {
+                    expl.InitialDelay = expl.Delay.GetRandom();
+                    expl.Instances--;
+                    break;
+                }
             }
         }
     }
@@ -778,6 +780,7 @@ namespace Inferno::Render {
         Spark spark;
         spark.Life = Duration.GetRandom();
         spark.Position = spark.PrevPosition = Position;
+        spark.Segment = Segment;
 
         if (Direction == Vector3::Zero) {
             spark.Velocity = RandomVector(Velocity.GetRandom());
@@ -790,7 +793,6 @@ namespace Inferno::Render {
             direction += Up * spread.y;
             direction.Normalize();
             spark.Velocity = direction * Velocity.GetRandom();
-            spark.Segment = Segment;
         }
 
         _sparks.Add(spark);
@@ -799,6 +801,8 @@ namespace Inferno::Render {
     void AddSparkEmitter(SparkEmitter& emitter) {
         std::array tex = { emitter.Texture };
         Render::Materials->LoadTextures(tex);
+        assert(emitter.Segment != SegID::None);
+        if (emitter.Life == 0) emitter.Life = emitter.Duration.Max;
         AddEffect(MakePtr<SparkEmitter>(emitter));
     }
 

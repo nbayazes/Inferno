@@ -1345,15 +1345,14 @@ namespace Inferno {
             expl.Parent = obj.Parent;
 
             expl.Clip = vclip;
-            expl.MinRadius = weapon.ImpactSize * 0.85f;
-            expl.MaxRadius = weapon.ImpactSize * 1.15f;
+            expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
             expl.Color = Color{ 1.15f, 1.15f, 1.15f };
             expl.FadeTime = 0.1f;
 
             if (obj.ID == (int)WeaponID::Concussion) {
                 // todo: and all other missiles
                 expl.Instances = 2;
-                expl.MinDelay = expl.MaxDelay = 0;
+                expl.Delay = { 0, 0 };
                 expl.Clip = weapon.RobotHitVClip;
                 expl.Color = Color{ 1, 1, 1 };
             }
@@ -1480,8 +1479,7 @@ namespace Inferno {
         dir.Normalize();
 
         Render::ExplosionInfo e;
-        e.MinRadius = weapon.ImpactSize * 0.9f;
-        e.MaxRadius = weapon.ImpactSize * 1.1f;
+        e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
         e.Clip = vclip;
         e.Sound = soundId;
         e.Segment = hit.Tag.Segment;
@@ -1497,7 +1495,7 @@ namespace Inferno {
 
         if (obj.ID == (int)WeaponID::Concussion) {
             e.Instances = 3;
-            e.MinDelay = e.MaxDelay = 0;
+            e.Delay = { 0, 0 };
         }
         Render::CreateExplosion(e);
 

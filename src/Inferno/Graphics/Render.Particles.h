@@ -156,12 +156,13 @@ namespace Inferno::Render {
         ObjID Parent = ObjID::None;
         VClipID Clip = VClipID::SmallExplosion;
         SoundID Sound = SoundID::None;
-        float MinRadius = 2.5f, MaxRadius = 2.5f;
+        float Volume = 1.0f;
+        NumericRange<float> Radius = { 2.5f, 2.5f };
         float Variance = 0; // Position variance
         int Instances = 1; // how many explosions to create
-        float MinDelay = 0.25f, MaxDelay = 0.75f; // how long to wait before creating the next explosion instance
+        NumericRange<float> Delay = { 0.25f, 0.75f }; // how long to wait before creating the next explosion instance
         float InitialDelay = -1; // how long to wait before creating any explosions
-        Color Color = { 2, 2, 2 }; // Particle color
+        Color Color = { 1.75f, 1.75f, 1.75f }; // Particle color
         float FadeTime = 0; // How long it takes to fade the particles out
         SegID Segment = SegID::None;
         Vector3 Position;
