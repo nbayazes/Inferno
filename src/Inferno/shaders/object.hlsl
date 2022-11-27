@@ -93,7 +93,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float4 specular = Specular(lightDir, viewDir, input.normal) - 1;
     float sum = emissive.r + emissive.g + emissive.b; // is there a better way to sum this?
     float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
-    float3 light = Ambient + pow(emissive * mult, 4);
+    float3 light = Ambient * GlobalDimming + pow(emissive * mult, 4);
     //float3 light = Ambient + emissive + pow(emissive, 4) * 10;
     
     light *= Specular(lightDir, viewDir, input.normal);

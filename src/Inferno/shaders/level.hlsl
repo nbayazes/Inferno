@@ -155,6 +155,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 emissive = Sample2DAA(Emissive, input.uv) * base;
     emissive.a = 0;
     base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
+    float4 diffuse;
 
     if (HasOverlay) {
         // Apply supertransparency mask
@@ -165,7 +166,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         
         float out_a = src.a + base.a * (1 - src.a);
         float3 out_rgb = src.a * src.rgb + (1 - src.a) * base.rgb;
-        float4 diffuse = float4(out_rgb, out_a);
+        diffuse = float4(out_rgb, out_a);
         
         if (diffuse.a < 0.01f)
             discard;
@@ -184,7 +185,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float multiplier = length(emissive.rgb); 
         //lighting.a = saturate(lighting.a);
         //output.Color = diffuse * lighting;
-        return diffuse * lighting;
         //return ApplyLinearFog(diffuse * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
         
         // assume overlay is only emissive source for now
@@ -196,13 +196,15 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //lighting = max(lighting, emissive); // lighting should always be at least as bright as the emissive texture
         lighting += emissive * 3;
         //output.Color = base * lighting;
+        diffuse = base;
 
         //base.rgb *= emissive.rgb * 0.5;
         //output.Emissive = base * lighting;
-        if (base.a < 0.01f)
+        if (diffuse.a < 0.01f)
             discard;
         
-        return base * lighting;
         //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     }
+
+    return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
 }

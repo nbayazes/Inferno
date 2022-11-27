@@ -4,4 +4,5 @@ cbuffer FrameConstants : register(b0) {
     float Time; // elapsed game time in seconds
     float2 FrameSize;
     float NearClip, FarClip;
+    float GlobalDimming;
 };

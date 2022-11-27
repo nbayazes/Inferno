@@ -367,6 +367,7 @@ namespace Inferno::Render {
         frameConstants.FarClip = Camera.FarClip;
         frameConstants.Eye = Camera.Position;
         frameConstants.FrameSize = Adapter->GetOutputSize();
+        frameConstants.GlobalDimming = Game::ControlCenterDestroyed ? float(sin(Game::CountdownTimer * 4) * 0.5 + 0.5) : 1;
 
         Adapter->FrameConstantsBuffer.Begin();
         Adapter->FrameConstantsBuffer.Copy({ &frameConstants, 1 });

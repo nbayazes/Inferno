@@ -21,6 +21,7 @@ namespace Inferno {
         float ElapsedTime;
         Vector2 FrameSize;
         float NearClip, FarClip;
+        float GlobalDimming;
     };
 
     using HlslBool = int32; // For alignment on GPU
