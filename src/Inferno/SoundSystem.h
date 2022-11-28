@@ -49,6 +49,18 @@ namespace Inferno {
         uint32 LoopStart = 0;
         uint32 LoopEnd = 0;
     };
+
+    struct AmbientSoundEmitter {
+        List<string> Sounds; // List of sounds to play at random
+        NumericRange<float> Delay; // Time between each sound
+        NumericRange<float> Volume{ 1, 1 };
+
+        float Life = 60 * 60 * 60;
+        float NextPlayTime = 0;
+        float Distance = 1000; // When > 0, enables random 3D positioning of sources
+
+        static bool IsAlive(const AmbientSoundEmitter& e) { return e.Life > 0; }
+    };
 }
 
 namespace Inferno::Sound {
@@ -57,7 +69,6 @@ namespace Inferno::Sound {
 
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
     SoundUID Play(const Sound3D& sound);
-    void UpdateEmitterPositions(float dt);
 
     // Resets any cached sounds after loading a level
     void Reset();
@@ -93,6 +104,9 @@ namespace Inferno::Sound {
     void Stop2DSounds();
     void Stop(Tag);
     void Stop(SoundUID);
+
+    void AddEmitter(AmbientSoundEmitter&&);
+    void UpdateSoundEmitters(float dt);
 
     namespace Debug {
         inline List<Vector3> Emitters;

@@ -1268,7 +1268,7 @@ namespace Inferno {
                     ApplyForce(obj, forceVec);
                     obj.ApplyDamage(damage);
                     obj.LastHitForce += forceVec;
-                    fmt::print("applied {} splash damage at dist {} from seg {}\n", damage, dist, source->Segment);
+                    fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 
                     // stun robot if not boss
 

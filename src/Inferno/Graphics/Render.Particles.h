@@ -12,20 +12,6 @@ namespace Inferno::Render {
     //    None, Particle, Emitter, Debris, Tracer
     //};
 
-    template<class T>
-    struct NumericRange {
-        T Min{}, Max{};
-
-        NumericRange() = default;
-        NumericRange(T minimum, T maximum) : Min(minimum), Max(maximum) {
-            if (Min > Max) std::swap(Min, Max);
-        }
-
-        T GetRandom() {
-            return (Max - Min) * (T)Random() + Min;
-        }
-    };
-
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;

@@ -15,15 +15,22 @@ using namespace DirectX::SimpleMath;
 using namespace std::chrono;
 
 namespace Inferno::Sound {
-    // Scales game coordinates to audio coordinates.
-    // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
-    constexpr float AUDIO_SCALE = 1;
-    constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
-    constexpr float MERGE_WINDOW = 1 / 12.0f; // Merge the same sound being played by a source within a window
+    namespace {
+        std::atomic RequestStopSounds = false;
+        std::atomic Alive = false;
+        std::jthread WorkerThread;
+        std::mutex ResetMutex, SoundInstancesMutex;
 
-    std::atomic RequestStopSounds = false;
-    List<Tag> StopSoundTags;
-    List<SoundUID> StopSoundUIDs;
+        constexpr int FREQUENCY_11KHZ = 11025;
+        constexpr int FREQUENCY_22KHZ = 22050;
+
+        // Scales game coordinates to audio coordinates.
+        // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
+        constexpr float AUDIO_SCALE = 1;
+        //constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
+        constexpr float MERGE_WINDOW = 1 / 12.0f; // Merge the same sound being played by a source within a window
+
+    }
 
     struct Sound3DInstance : Sound3D {
         float Muffle = 1, TargetMuffle = 1;
@@ -112,15 +119,16 @@ namespace Inferno::Sound {
     };
 
     namespace {
+        List<Tag> StopSoundTags;
+        List<SoundUID> StopSoundUIDs;
+
+        DataPool<AmbientSoundEmitter> Emitters = { AmbientSoundEmitter::IsAlive, 10 };
+
         // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
         Ptr<AudioEngine> Engine;
         List<Ptr<SoundEffect>> SoundsD1, SoundsD2;
         Dictionary<string, Ptr<SoundEffect>> SoundsD3;
-
-        std::atomic Alive = false;
-        std::jthread WorkerThread;
         std::list<Sound3DInstance> SoundInstances;
-        std::mutex ResetMutex, SoundInstancesMutex;
 
         AudioListener Listener;
 
@@ -132,20 +140,20 @@ namespace Inferno::Sound {
             0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 1.f
         };
 
-        constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_LFE_CurvePoints[3] = {
-            { 0.0f, 0.1f }, { 0.5f, 0.5f}, { 0.5f, 0.5f }
-        };
+        //constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_LFE_CurvePoints[3] = {
+        //    { 0.0f, 0.1f }, { 0.5f, 0.5f}, { 0.5f, 0.5f }
+        //};
 
-        constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_LFE_Curve = {
-            (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_LFE_CurvePoints[0], 3
-        };
+        //constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_LFE_Curve = {
+        //    (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_LFE_CurvePoints[0], 3
+        //};
 
-        constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_Reverb_CurvePoints[3] = {
-            { 0.0f, 0.5f}, { 0.75f, 1.0f }, { 1.0f, 0.65f }
-        };
-        constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_Reverb_Curve = {
-            (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_Reverb_CurvePoints[0], 3
-        };
+        //constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_Reverb_CurvePoints[3] = {
+        //    { 0.0f, 0.5f}, { 0.75f, 1.0f }, { 1.0f, 0.65f }
+        //};
+        //constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_Reverb_Curve = {
+        //    (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_Reverb_CurvePoints[0], 3
+        //};
     }
 
     void SoundWorker(float volume, milliseconds pollRate) {
@@ -317,30 +325,12 @@ namespace Inferno::Sound {
     // HWND is not used directly, but indicates the sound system requires a window
     void Init(HWND, float volume, milliseconds pollRate) {
         WorkerThread = std::jthread(SoundWorker, volume, pollRate);
-
-        //DWORD channelMask{};
-        //Engine->GetMasterVoice()->GetChannelMask(&channelMask);
-        //auto hresult = X3DAudioInitialize(channelMask, 20, Engine->Get3DHandle());
-
-        //XAUDIO2_VOICE_DETAILS details{};
-        //Engine->GetMasterVoice()->GetVoiceDetails(&details);
-
-        //DSPMatrix.resize(details.InputChannels);
-        //DSPSettings.SrcChannelCount = 1;
-        //DSPSettings.DstChannelCount = DSPMatrix.size();
-        //DSPSettings.pMatrixCoefficients = DSPMatrix.data();
-
         Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
-
-        //X3DAudioCalculate(instance, listener, emitter, flags, &dsp);
     }
 
     void SetReverb(Reverb reverb) {
         Engine->SetReverb((AUDIO_ENGINE_REVERB)reverb);
     }
-
-    constexpr int FREQUENCY_11KHZ = 11025;
-    constexpr int FREQUENCY_22KHZ = 22050;
 
     SoundEffect* LoadSoundD1(int id) {
         if (!Seq::inRange(SoundsD1, id)) return nullptr;
@@ -482,6 +472,7 @@ namespace Inferno::Sound {
         StopSoundTags.clear();
         StopSoundUIDs.clear();
         Engine->TrimVoicePool();
+        Emitters.Clear();
     }
 
     void PrintStatistics() {
@@ -524,5 +515,39 @@ namespace Inferno::Sound {
         if (!Alive || id == 0) return;
         std::scoped_lock lock(SoundInstancesMutex);
         StopSoundUIDs.push_back(id);
+    }
+
+    void AddEmitter(AmbientSoundEmitter&& e) {
+        if (e.Sounds.empty()) {
+            SPDLOG_WARN("Tried to add an empty sound emitter");
+            return;
+        }
+
+        Emitters.Add(e);
+    }
+
+    void UpdateSoundEmitters(float dt) {
+        for (auto& emitter : Emitters) {
+            emitter.Life -= dt;
+            if (!AmbientSoundEmitter::IsAlive(emitter)) continue;
+
+            if (Game::Time >= emitter.NextPlayTime) {
+                auto index = int(Random() * (emitter.Sounds.size() - 1));
+                emitter.NextPlayTime = Game::Time + emitter.Delay.GetRandom();
+                SoundResource resource{ .D3 = emitter.Sounds[index] };
+
+                if (emitter.Distance > 0) {
+                    Sound3D sound(Listener.Position + RandomVector(emitter.Distance), SegID::None);
+                    sound.Occlusion = false;
+                    sound.Volume = emitter.Volume.GetRandom();
+                    sound.Resource = resource;
+                    sound.Radius = emitter.Distance * 3; // Random?
+                    Play(sound);
+                }
+                else {
+                    Play(resource, emitter.Volume.GetRandom());
+                }
+            }
+        }
     }
 }

@@ -608,8 +608,8 @@ namespace Inferno::Game {
         UpdatePlayerFireState(Player);
         Player.Update(dt);
 
-        //Render::UpdateExplosions(dt);
         UpdateAmbientSounds();
+        Sound::UpdateSoundEmitters(dt);
         UpdateExplodingWalls(Game::Level, dt);
         if (ControlCenterDestroyed)
             UpdateReactorCountdown(dt);
@@ -844,7 +844,7 @@ namespace Inferno::Game {
 
                 Sound3D s(side.Center - side.AverageNormal * 10, segid);
                 s.Looped = true;
-                s.Radius = 150;
+                s.Radius = 80;
                 s.Resource = Resources::GetSoundResource(sound);
                 s.Volume = 0.50f;
                 s.Occlusion = false;
@@ -1025,6 +1025,27 @@ namespace Inferno::Game {
         Player.SecondaryWeapons = 0xffff;
         std::ranges::generate(Player.SecondaryAmmo, [] { return 5; });
         std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
+
+
+        AmbientSoundEmitter explosions{};
+        explosions.Delay = { 0.5f, 3.5f };
+        explosions.Sounds = {
+            "AmbExplosionFarA", "AmbExplosionFarB", "AmbExplosionFarC", "AmbExplosionFarE",
+            "AmbExplosionFarF", "AmbExplosionFarG", "AmbExplosionFarI"
+        };
+        explosions.Volume = { 2.5f, 4.0f };
+        explosions.Distance = 500;
+        Sound::AddEmitter(std::move(explosions));
+
+        AmbientSoundEmitter creaks{};
+        creaks.Delay = { 3.0f, 7.0f };
+        creaks.Sounds = {
+            "AmbPipeKnockB", "AmbPipeKnockC", "EnvSlowCreakB2", "EnvSlowCreakC",
+            "EnvSlowCreakD", "EnvSlowCreakE"
+        };
+        creaks.Volume = { 1.5f, 2.00f };
+        creaks.Distance = 100;
+        Sound::AddEmitter(std::move(creaks));
     }
 
     void SetState(GameState state) {
