@@ -314,6 +314,7 @@ namespace Inferno {
 
             doc["Descent1Path"] << Settings::Inferno.Descent1Path.string();
             doc["Descent2Path"] << Settings::Inferno.Descent2Path.string();
+            doc["MasterVolume"] << Settings::Inferno.MasterVolume;
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
             SaveEditorSettings(doc["Editor"], Settings::Editor);
             SaveGraphicsSettings(doc["Render"], Settings::Graphics);
@@ -340,6 +341,8 @@ namespace Inferno {
             if (root.is_map()) {
                 ReadValue(root["Descent1Path"], Settings::Inferno.Descent1Path);
                 ReadValue(root["Descent2Path"], Settings::Inferno.Descent2Path);
+                ReadValue(root["MasterVolume"], Settings::Inferno.MasterVolume);
+
                 auto dataPaths = root["DataPaths"];
                 if (!dataPaths.is_seed()) {
                     for (const auto& c : root["DataPaths"].children()) {

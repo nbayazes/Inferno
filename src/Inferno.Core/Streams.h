@@ -5,7 +5,7 @@
 #include "Utility.h"
 
 namespace Inferno {
-    class MemoryBuffer : public std::streambuf {
+    class MemoryBuffer final : public std::streambuf {
     public:
         MemoryBuffer(char* p, size_t size) {
             setp(p, p + size);
@@ -30,7 +30,7 @@ namespace Inferno {
         }
     };
 
-    class MemoryStream : public std::iostream {
+    class MemoryStream final : public std::iostream {
         MemoryBuffer _buffer;
     public:
         MemoryStream(char* p, size_t size) : std::iostream(&_buffer), _buffer(p, size) {
@@ -86,39 +86,40 @@ namespace Inferno {
             _data = std::move(other._data);
             _stream = std::move(other._stream);
             _file.swap(other._file);
+            return *this;
         }
 
         ~StreamReader() = default;
 
-        List<sbyte> ReadSBytes(size_t length) {
+        List<sbyte> ReadSBytes(size_t length) const {
             List<sbyte> b(length);
             _stream->read(b.data(), sizeof(sbyte) * length);
             return b;
         }
 
-        List<ubyte> ReadUBytes(size_t length) {
+        List<ubyte> ReadUBytes(size_t length) const {
             List<ubyte> b(length);
             _stream->read((char*)b.data(), sizeof(ubyte) * length);
             return b;
         }
 
-        void ReadBytes(void* buffer, size_t length) {
+        void ReadBytes(void* buffer, size_t length) const {
             _stream->read((char*)buffer, length);
         }
 
-        void ReadBytes(span<ubyte> buffer) {
+        void ReadBytes(span<ubyte> buffer) const {
             _stream->read((char*)buffer.data(), buffer.size());
         }
 
         // Reads a fixed length string
-        string ReadString(size_t length) {
+        string ReadString(size_t length) const {
             List<char> b(length + 1);
             _stream->read(b.data(), sizeof(char) * length);
             return { b.data() };
         }
 
         // Reads a null or newline terminated string up to the max length
-        string ReadCString(size_t maxLen) {
+        string ReadCString(size_t maxLen) const {
             List<char> b(maxLen + 1);
             for (int i = 0; i < maxLen; i++) {
                 _stream->read(&b[i], sizeof(char));
@@ -203,7 +204,7 @@ namespace Inferno {
             auto p = ReadFixAng();
             auto h = ReadFixAng();
             auto b = ReadFixAng();
-            return Vector3(p, h, b);
+            return { p, h, b };
         }
 
         // Reads a 6 byte RGB color
@@ -211,24 +212,24 @@ namespace Inferno {
             auto r = ReadByte();
             auto g = ReadByte();
             auto b = ReadByte();
-            return Color(r / 255.0f, g / 255.0f, b / 255.0f);
+            return { r / 255.0f, g / 255.0f, b / 255.0f };
         }
 
-        bool EndOfStream() { 
+        bool EndOfStream() const { 
             _stream->peek(); // need to peek to ensure EOF is correct
             return _stream->eof(); 
         }
 
         // Current stream offset
-        size_t Position() { return _stream->tellg(); }
+        size_t Position() const { return _stream->tellg(); }
 
         // Seek from the beginning
-        void Seek(size_t offset) {
+        void Seek(size_t offset) const {
             _stream->seekg(offset, std::ios_base::beg);
         }
 
         // Seek forward from the current position
-        void SeekForward(size_t offset) {
+        void SeekForward(size_t offset) const {
             _stream->seekg(offset, std::ios_base::cur);
         }
     };
@@ -249,11 +250,12 @@ namespace Inferno {
         template<class T>
         void Write(const T value) {
             static_assert(!std::is_floating_point<T>()); // serializing a float is always wrong for Descent files
-            static_assert(!std::is_same<T, Vector3>::value); // ambiguous
+            static_assert(!std::is_same_v<T, Vector3>); // ambiguous
             _stream.write((char*)&value, sizeof(T));
         }
 
         void WriteFix(float f) {
+
             Write(FloatToFix(f));
         }
 
@@ -281,11 +283,11 @@ namespace Inferno {
             WriteAngle(angles.z);
         }
 
-        void WriteBytes(span<ubyte> data) {
+        void WriteBytes(span<ubyte> data) const {
             _stream.write((char*)data.data(), data.size());
         }
 
-        void WriteNewlineTerminatedString(string s, size_t maxLen) {
+        void WriteNewlineTerminatedString(string s, size_t maxLen) const {
             assert(maxLen > 0);
             if (s.size() > maxLen - 1)
                 s = s.substr(0, maxLen - 1);
@@ -296,7 +298,7 @@ namespace Inferno {
         }
 
         // Writes a null terminated string
-        void WriteCString(string s, size_t maxLen) {
+        void WriteCString(string s, size_t maxLen) const {
             assert(maxLen > 0);
             if (s.size() > maxLen - 1)
                 s = s.substr(0, maxLen - 1);
@@ -306,7 +308,7 @@ namespace Inferno {
         }
 
         // Writes a fixed length string
-        void WriteString(string s, size_t length) {
+        void WriteString(string s, size_t length) const {
             assert(length > 0);
 
             for (size_t i = 0; i < length; i++) {
@@ -321,12 +323,12 @@ namespace Inferno {
         size_t Position() const { return _stream.tellp() - _start; }
 
         // Seek from the beginning
-        void Seek(std::streampos offset) {
+        void Seek(std::streampos offset) const {
             _stream.seekp(_start + offset, std::ios_base::beg);
         }
 
         // Seek forward from the current position
-        void SeekForward(size_t offset) {
+        void SeekForward(size_t offset) const {
             _stream.seekp(offset, std::ios_base::cur);
         }
     };

@@ -156,7 +156,7 @@ namespace Inferno::Sound {
         //};
     }
 
-    void SoundWorker(float volume, milliseconds pollRate) {
+    void SoundWorker(milliseconds pollRate) {
         SPDLOG_INFO("Starting audio mixer thread");
 
         auto result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -186,7 +186,7 @@ namespace Inferno::Sound {
             return;
         }
 
-        Engine->SetMasterVolume(volume);
+        Engine->SetMasterVolume(Settings::Inferno.MasterVolume);
 
         while (Alive) {
             Debug::Emitters.clear();
@@ -323,8 +323,8 @@ namespace Inferno::Sound {
     }
 
     // HWND is not used directly, but indicates the sound system requires a window
-    void Init(HWND, float volume, milliseconds pollRate) {
-        WorkerThread = std::jthread(SoundWorker, volume, pollRate);
+    void Init(HWND, milliseconds pollRate) {
+        WorkerThread = std::jthread(SoundWorker, pollRate);
         Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
     }
 
@@ -491,7 +491,10 @@ namespace Inferno::Sound {
     void Resume() { Engine->Resume(); }
 
     float GetVolume() { return Alive ? Engine->GetMasterVolume() : 0; }
-    void SetVolume(float volume) { if (Alive) Engine->SetMasterVolume(volume); }
+    void SetVolume(float volume) {
+        Settings::Inferno.MasterVolume = volume;
+        if (Alive) Engine->SetMasterVolume(volume);
+    }
 
     void Stop3DSounds() {
         if (!Alive) return;

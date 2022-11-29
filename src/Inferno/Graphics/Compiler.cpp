@@ -1,8 +1,10 @@
 #include "pch.h"
+#include "Types.h"
 #include "Compiler.h"
 #include "Render.h"
-#include <D3Dcompiler.h>
 #include "logging.h"
+#include <D3Dcompiler.h>
+#include <filesystem>
 
 #if defined(_DEBUG)
 // Enable better shader debugging with the graphics debugging tools.
@@ -27,7 +29,7 @@ void Inferno::LoadShaderRootSig(ID3DBlob& shader, ComPtr<ID3D12RootSignature>& r
         0,
         shader.GetBufferPointer(),
         shader.GetBufferSize(),
-        IID_PPV_ARGS(rootSignature.ReleaseAndGetAddressOf())
+        IID_PPV_ARGS(&rootSignature)
     ));
 }
 
@@ -36,11 +38,18 @@ std::filesystem::path GetBinaryPath(std::filesystem::path file, std::string ext)
     return file.parent_path() / "bin" / name;
 }
 
+ComPtr<ID3DBlob> CreateBlobFromBytes(std::span<char> src) {
+    ComPtr<ID3DBlob> blob;
+    ThrowIfFailed(D3DCreateBlob(src.size(), &blob)); // allocate D3DBlob
+    memcpy(blob->GetBufferPointer(), src.data(), src.size()); // Copy shader data
+    return blob;
+}
+
 ComPtr<ID3DBlob> Inferno::LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, string entryPoint) {
     ComPtr<ID3DBlob> shader, error;
     try {
         auto binaryPath = GetBinaryPath(file, ".bin");
-        if (filesystem::exists(binaryPath)) {
+        if (std::filesystem::exists(binaryPath)) {
             SPDLOG_INFO(L"Loading compute shader {}", binaryPath.wstring());
             ThrowIfFailed(D3DReadFileToBlob(binaryPath.c_str(), &shader));
         }

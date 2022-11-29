@@ -10,7 +10,7 @@ namespace Inferno::FileSystem {
     List<filesystem::path> Directories;
 
     wstring FindFile(filesystem::path file) {
-        if (auto path = TryFindFile(file)) 
+        if (auto path = TryFindFile(file))
             return path.value();
 
         auto msg = fmt::format(L"File not found: {}", file.wstring());
@@ -68,6 +68,12 @@ namespace Inferno::FileSystem {
         }
 
         return {};
+    }
+
+    List<char> ReadFileBytes(std::filesystem::path path) {
+        if (std::filesystem::exists(path)) return {};
+        std::ifstream stream(path, std::ios::binary);
+        return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
     }
 }
 

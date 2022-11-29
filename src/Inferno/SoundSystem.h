@@ -56,7 +56,7 @@ namespace Inferno {
         NumericRange<float> Volume{ 1, 1 };
 
         float Life = 60 * 60 * 60;
-        float NextPlayTime = 0;
+        double NextPlayTime = 0;
         float Distance = 1000; // When > 0, enables random 3D positioning of sources
 
         static bool IsAlive(const AmbientSoundEmitter& e) { return e.Life > 0; }
@@ -64,7 +64,7 @@ namespace Inferno {
 }
 
 namespace Inferno::Sound {
-    void Init(HWND, float volume = 1, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
+    void Init(HWND, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
     void Shutdown();
 
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);

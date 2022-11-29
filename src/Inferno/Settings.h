@@ -129,6 +129,7 @@ namespace Inferno {
         bool InvertY = false;
         bool LimitPitchSpeed = true; // Halves the maximum pitch speed
         bool ScreenshotMode = false; // game setting?
+        float MasterVolume = 0.1f;
     };
 
     void SaveLightSettings(ryml::NodeRef node, const LightSettings& s);

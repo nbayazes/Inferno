@@ -1028,20 +1028,21 @@ namespace Inferno::Game {
 
 
         AmbientSoundEmitter explosions{};
-        explosions.Delay = { 0.5f, 3.5f };
+        explosions.Delay = { 0.5f, 3.0f };
         explosions.Sounds = {
             "AmbExplosionFarA", "AmbExplosionFarB", "AmbExplosionFarC", "AmbExplosionFarE",
-            "AmbExplosionFarF", "AmbExplosionFarG", "AmbExplosionFarI"
+            "AmbExplosionFarF", /*"AmbExplosionFarG",*/ "AmbExplosionFarI"
         };
         explosions.Volume = { 2.5f, 4.0f };
         explosions.Distance = 500;
         Sound::AddEmitter(std::move(explosions));
 
         AmbientSoundEmitter creaks{};
-        creaks.Delay = { 3.0f, 7.0f };
+        creaks.Delay = { 3.0f, 6.0f };
         creaks.Sounds = {
-            "AmbPipeKnockB", "AmbPipeKnockC", "EnvSlowCreakB2", "EnvSlowCreakC",
-            "EnvSlowCreakD", "EnvSlowCreakE"
+            "AmbPipeKnockB", "AmbPipeKnockC",
+            "AmbEnvSlowMetal", "AmbEnvShortMetal",
+            "EnvSlowCreakB2", "EnvSlowCreakC", /*"EnvSlowCreakD",*/ "EnvSlowCreakE"
         };
         creaks.Volume = { 1.5f, 2.00f };
         creaks.Distance = 100;

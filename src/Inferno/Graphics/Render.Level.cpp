@@ -42,7 +42,7 @@ namespace Inferno::Render {
         {
             auto& map1 = chunk.EffectClip1 == EClipID::None ?
                 Materials->Get(chunk.TMap1) :
-                Materials->Get(chunk.EffectClip1, ElapsedTime, Game::ControlCenterDestroyed);
+                Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
 
             effect.Shader->SetMaterial1(cmdList, map1);
         }
@@ -52,7 +52,7 @@ namespace Inferno::Render {
 
             auto& map2 = chunk.EffectClip2 == EClipID::None ?
                 Materials->Get(chunk.TMap2) :
-                Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
 
             effect.Shader->SetMaterial2(cmdList, map2);
         }
@@ -193,7 +193,7 @@ namespace Inferno::Render {
 
                 auto& map2 = chunk.EffectClip2 == EClipID::None ?
                     Materials->Get(chunk.TMap2) :
-                    Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                    Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
 
                 Shaders->Level.SetMaterial2(cmdList, map2);
             }

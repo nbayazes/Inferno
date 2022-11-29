@@ -139,7 +139,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_ACTIVATEAPP:
             if (app) {
-                Shell::HasFocus = wParam == true;
+                Shell::HasFocus = (bool)wParam;
 
                 if (wParam)
                     app->OnActivated();

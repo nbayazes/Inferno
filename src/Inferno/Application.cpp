@@ -68,7 +68,7 @@ void Application::Initialize(int width, int height) {
 
     Editor::Initialize();
 
-    Sound::Init(Shell::Hwnd, 0.01f);
+    Sound::Init(Shell::Hwnd);
 
     OnActivated();
 
