@@ -986,9 +986,9 @@ namespace Inferno {
                     if (dist > maxDist) return {}; // hit is too far
 
                     // if the pass transparent flag is set, treat transparent walls as non-solid
-                    bool isSolid = passTransparent
-                        ? !WallIsTransparent(level, { segId, side })
-                        : seg.SideIsSolid(side, level);
+                    bool isSolid = passTransparent ? 
+                        !WallIsTransparent(level, { segId, side }) : 
+                        seg.SideIsSolid(side, level);
 
                     if (isSolid) {
                         hit.Tag = { segId, side };
@@ -1327,7 +1327,7 @@ namespace Inferno {
         targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
         if (target.Type == ObjectType::Weapon) {
-            target.Lifespan = -1; // Destroy the weapon that was hit (usually a mine)
+            target.Lifespan = -1; // Cause the target weapon to detonate by expiring
             if (weapon.SplashRadius == 0)
                 return; // non-explosive weapons keep going
         }
@@ -1363,7 +1363,7 @@ namespace Inferno {
         obj.Control.Weapon.AddRecentHit(target.Signature);
 
         if (!weapon.Piercing)
-            obj.Lifespan = -1; // destroy weapon after hitting an enemy
+            obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting an enemy
 
         if (weapon.SplashRadius > 0) {
             GameExplosion ge{};
@@ -1381,7 +1381,12 @@ namespace Inferno {
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
-        bool hitVolatile = false;
+        float force = damage;
+        float impactSize = weapon.ImpactSize;
+
+        // don't use volatile hits on large explosions like megas
+        constexpr float VOLATILE_DAMAGE_RADIUS = 30;
+        bool isLargeExplosion = splashRadius >= VOLATILE_DAMAGE_RADIUS / 2;
 
         // weapons with splash damage (explosions) always use robot hit effects
         SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
@@ -1391,42 +1396,61 @@ namespace Inferno {
         bool hitLiquid = false;
         bool hitForcefield = false;
 
-        if (auto side = level.TryGetSide(hit.Tag)) {
-            auto& ti = Resources::GetLevelTextureInfo(side->TMap);
+        auto& side = level.GetSide(hit.Tag);
+        auto& ti = Resources::GetLevelTextureInfo(side.TMap);
 
-            hitForcefield = ti.HasFlag(TextureFlag::ForceField);
-            if (hitForcefield) {
-                addDecal = false;
+        hitForcefield = ti.HasFlag(TextureFlag::ForceField);
+        if (hitForcefield) {
+            addDecal = false;
 
-                if (!weapon.IsMatter) {
-                    // Bounce energy weapons
-                    obj.Physics.Bounces++;
-                    obj.Parent = ObjID::None; // Make hostile to owner!
+            if (!weapon.IsMatter) {
+                // Bounce energy weapons
+                obj.Physics.Bounces++;
+                obj.Parent = ObjID::None; // Make hostile to owner!
 
-                    Sound3D sound(hit.Point, hit.Tag.Segment);
-                    sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
-                    Sound::Play(sound);
-                }
+                Sound3D sound(hit.Point, hit.Tag.Segment);
+                sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
+                Sound::Play(sound);
             }
+        }
 
-            if (ti.HasFlag(TextureFlag::Volatile)) {
+        if (ti.HasFlag(TextureFlag::Volatile)) {
+            if (!isLargeExplosion) {
+                // add volatile size and damage bonuses to smaller explosions
                 vclip = VClipID::HitLava;
-                soundId = SoundID::HitLava;
-                addDecal = false;
-                hitLiquid = true;
-                hitVolatile = true;
-            }
-            else if (ti.HasFlag(TextureFlag::Water)) {
-                if (obj.ID == (int)WeaponID::Concussion)
-                    soundId = SoundID::MissileHitWater;
-                else
-                    soundId = SoundID::HitWater;
+                constexpr float VOLATILE_DAMAGE = 10;
+                constexpr float VOLATILE_FORCE = 5;
 
+                damage = damage / 4 + VOLATILE_DAMAGE;
+                splashRadius += VOLATILE_DAMAGE_RADIUS;
+                force = force / 2 + VOLATILE_FORCE;
+                impactSize += 1;
+            }
+
+            soundId = SoundID::HitLava;
+            addDecal = false;
+            hitLiquid = true;
+        }
+        else if (ti.HasFlag(TextureFlag::Water)) {
+            if (obj.ID == (int)WeaponID::Concussion)
+                soundId = SoundID::MissileHitWater;
+            else
+                soundId = SoundID::HitWater;
+
+            if (isLargeExplosion) {
+                // reduce strength of megas and shakers in water, but don't cancel them
+                splashRadius *= 0.5f;
+                damage *= 0.25f;
+                force *= 0.5f;
+                impactSize *= 0.5f;
+            }
+            else {
                 vclip = VClipID::HitWater;
                 splashRadius = 0; // Cancel explosions when hitting water
-                addDecal = false;
-                hitLiquid = true;
             }
+
+            addDecal = false;
+            hitLiquid = true;
         }
 
         if (addDecal) {
@@ -1473,20 +1497,20 @@ namespace Inferno {
             return; // don't create explosions when bouncing
         }
 
-        obj.Lifespan = -1; // destroy weapon after hitting a wall
+        obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting a wall
 
         auto dir = obj.Physics.Velocity;
         dir.Normalize();
 
         Render::ExplosionInfo e;
-        e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
+        e.Radius = { impactSize * 0.9f, impactSize * 1.1f };
         e.Clip = vclip;
         e.Sound = soundId;
         e.Segment = hit.Tag.Segment;
 
         // move explosions out of wall
-        if (weapon.ImpactSize < 5)
-            e.Position = hit.WallPoint - dir * weapon.ImpactSize * 0.5f;
+        if (impactSize < 5)
+            e.Position = hit.WallPoint - dir * impactSize * 0.5f;
         else
             e.Position = hit.WallPoint - dir * 2.5;
 
@@ -1497,28 +1521,16 @@ namespace Inferno {
             e.Instances = 3;
             e.Delay = { 0, 0 };
         }
+
         Render::CreateExplosion(e);
 
-        if (splashRadius > 0 || hitVolatile) {
+        if (splashRadius > 0) {
             GameExplosion ge{};
             ge.Segment = hit.Tag.Segment;
             ge.Position = hit.Point + hit.Normal * obj.Radius; // shift explosion out of wall
-            constexpr float VOLATILE_DAMAGE_RADIUS = 30;
-
-            if (hitVolatile && splashRadius < VOLATILE_DAMAGE_RADIUS / 2) {
-                // don't use volatile hits on large explosions like megas
-                constexpr float VOLATILE_DAMAGE = 10;
-                constexpr float VOLATILE_FORCE = 5;
-
-                ge.Damage = weapon.Damage[Game::Difficulty] / 4 + VOLATILE_DAMAGE;
-                ge.Radius = weapon.SplashRadius + VOLATILE_DAMAGE_RADIUS;
-                ge.Force = weapon.Damage[Game::Difficulty] / 2 + VOLATILE_FORCE;
-            }
-            else {
-                ge.Damage = damage;
-                ge.Force = damage;
-                ge.Radius = splashRadius;
-            }
+            ge.Damage = damage;
+            ge.Force = force;
+            ge.Radius = splashRadius;
 
             CreateExplosion(level, &obj, ge);
         }

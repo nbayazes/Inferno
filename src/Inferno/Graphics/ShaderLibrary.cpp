@@ -46,7 +46,7 @@ namespace Inferno {
         .RenderTarget = { BlendDescMultiplyRt }
     };
 
-    const D3D12_DEPTH_STENCIL_DESC DepthEqual =
+    constexpr D3D12_DEPTH_STENCIL_DESC DepthEqual =
     {
         TRUE, // DepthEnable
         D3D12_DEPTH_WRITE_MASK_ZERO,
