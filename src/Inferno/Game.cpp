@@ -110,6 +110,31 @@ namespace Inferno::Game {
         }
     }
 
+    void PlaySelfDestructSounds(float delay) {
+        AmbientSoundEmitter explosions{};
+        explosions.Delay = { 0.5f, 3.0f };
+        explosions.Sounds = {
+            "AmbExplosionFarA", "AmbExplosionFarB", "AmbExplosionFarC", "AmbExplosionFarE",
+            "AmbExplosionFarF", /*"AmbExplosionFarG",*/ "AmbExplosionFarI"
+        };
+        explosions.Volume = { 2.5f, 4.0f };
+        explosions.Distance = 500;
+        explosions.NextPlayTime = Time + delay;
+        Sound::AddEmitter(std::move(explosions));
+
+        AmbientSoundEmitter creaks{};
+        creaks.Delay = { 3.0f, 6.0f };
+        creaks.Sounds = {
+            "AmbPipeKnockB", "AmbPipeKnockC",
+            "AmbEnvSlowMetal", "AmbEnvShortMetal",
+            "EnvSlowCreakB2", "EnvSlowCreakC", /*"EnvSlowCreakD",*/ "EnvSlowCreakE"
+        };
+        creaks.Volume = { 1.5f, 2.00f };
+        creaks.Distance = 100;
+        creaks.NextPlayTime = Time + delay;
+        Sound::AddEmitter(std::move(creaks));
+    }
+
     void UpdateAmbientSounds() {
         auto& player = Level.Objects[0];
         bool hasLava = bool(Level.GetSegment(player.Segment).AmbientSound & SoundFlag::AmbientLava);
@@ -133,7 +158,7 @@ namespace Inferno::Game {
             // Playing the sound at player is what the original game does,
             // but it would be nicer to come from the environment instead...
             Sound3D s(ObjID(0));
-            s.Volume = Random() + 0.5f;
+            s.Volume = Random() * 0.1f + 0.05f;
             s.Resource = Resources::GetSoundResource(sound);
             s.AttachToSource = true;
             s.FromPlayer = true;
@@ -229,7 +254,7 @@ namespace Inferno::Game {
                 if (Random() < (float)ri.ContainsChance / 16.0f) {
                     auto div = (float)ri.Contains.Count / 1.001f; // 1.001f so never exactly equals count
                     auto contains = ri.Contains;
-                    contains.Count = (int8)std::floor(Random() * div) + 1;
+                    contains.Count = (int8)std::floor(Random() * div) + (int8)1;
                     SpawnContained(contains, obj.Position, obj.Segment);
                 }
             }
@@ -319,7 +344,7 @@ namespace Inferno::Game {
             TotalCountdown = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
         }
         else {
-            std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
+            constexpr std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
             TotalCountdown = DefaultCountdownTimes[Difficulty];
         }
 
@@ -398,6 +423,7 @@ namespace Inferno::Game {
         }
 
         Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
+        PlaySelfDestructSounds(5);
     }
 
     void DestroyObject(Object& obj) {
@@ -428,7 +454,6 @@ namespace Inferno::Game {
                 expl.InitialDelay = EXPLOSION_DELAY;
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
-                expl.Instances = 1;
                 Render::CreateExplosion(expl);
 
                 AddPointsToScore(robot.Score);
@@ -620,6 +645,7 @@ namespace Inferno::Game {
 
             if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
                 DestroyObject(obj);
+                Sound::Stop((ObjID)i); // stop any sounds playing from this object
             }
             else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 ExplodeWeapon(obj); // explode expired weapons
@@ -842,7 +868,7 @@ namespace Inferno::Game {
                         continue; // skip sound on lower numbered segment
                 }
 
-                Sound3D s(side.Center - side.AverageNormal * 10, segid);
+                Sound3D s(side.Center, segid);
                 s.Looped = true;
                 s.Radius = 80;
                 s.Resource = Resources::GetSoundResource(sound);
@@ -949,6 +975,11 @@ namespace Inferno::Game {
     }
 
     void StartLevel() {
+        ResetCountdown();
+        StuckObjects = {};
+        Render::ResetParticles();
+        Sound::Reset();
+
         Editor::SetPlayerStartIDs(Level);
         Gravity = Level.Objects[0].Rotation.Up() * -200;
 
@@ -988,12 +1019,29 @@ namespace Inferno::Game {
             if (auto seg = Level.TryGetSegment(obj.Segment)) {
                 seg->Objects.push_back((ObjID)id);
             }
-        }
 
-        ResetCountdown();
-        StuckObjects = {};
-        Render::ResetParticles();
-        Sound::Reset();
+            if (obj.Type == ObjectType::Reactor) {
+                Sound3D reactorHum((ObjID)id);
+                //reactorHum.Resource = { .D3 = "AmbDroneReactor" };
+                reactorHum.Resource = { .D3 = "AmbDroneM" }; // M is very bass heavy
+                reactorHum.Radius = 300;
+                reactorHum.Looped = true;
+                reactorHum.Volume = 0.3f;
+                reactorHum.Occlusion = false;
+                reactorHum.Position = obj.Position;
+                reactorHum.Segment = obj.Segment;
+                Sound::Play(reactorHum);
+
+                reactorHum.Resource = { .D3 = "Indoor Ambient 5" };
+                reactorHum.Radius = 160;
+                reactorHum.Looped = true;
+                reactorHum.Occlusion = true;
+                reactorHum.Volume = 1.1f;
+                reactorHum.Position = obj.Position;
+                Sound::Play(reactorHum);
+            }
+        }
+        
         MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
         MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
         AddSoundSources();
@@ -1025,28 +1073,6 @@ namespace Inferno::Game {
         Player.SecondaryWeapons = 0xffff;
         std::ranges::generate(Player.SecondaryAmmo, [] { return 5; });
         std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
-
-
-        AmbientSoundEmitter explosions{};
-        explosions.Delay = { 0.5f, 3.0f };
-        explosions.Sounds = {
-            "AmbExplosionFarA", "AmbExplosionFarB", "AmbExplosionFarC", "AmbExplosionFarE",
-            "AmbExplosionFarF", /*"AmbExplosionFarG",*/ "AmbExplosionFarI"
-        };
-        explosions.Volume = { 2.5f, 4.0f };
-        explosions.Distance = 500;
-        Sound::AddEmitter(std::move(explosions));
-
-        AmbientSoundEmitter creaks{};
-        creaks.Delay = { 3.0f, 6.0f };
-        creaks.Sounds = {
-            "AmbPipeKnockB", "AmbPipeKnockC",
-            "AmbEnvSlowMetal", "AmbEnvShortMetal",
-            "EnvSlowCreakB2", "EnvSlowCreakC", /*"EnvSlowCreakD",*/ "EnvSlowCreakE"
-        };
-        creaks.Volume = { 1.5f, 2.00f };
-        creaks.Distance = 100;
-        Sound::AddEmitter(std::move(creaks));
     }
 
     void SetState(GameState state) {

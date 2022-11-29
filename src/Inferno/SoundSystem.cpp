@@ -69,7 +69,8 @@ namespace Inferno::Sound {
 
             TargetMuffle = 1; // don't hit test very close sounds
 
-            if (dist < Radius && !RequestStopSounds) { // only hit test if sound is actually within range
+            if (dist < Radius && !RequestStopSounds) {
+                // only hit test if sound is actually within range
                 if (Looped && !Instance->GetState() == SoundState::PLAYING) {
                     //fmt::print("Starting looped sound\n");
                     SoundLoopInfo info{
@@ -85,7 +86,8 @@ namespace Inferno::Sound {
                     constexpr float MUFFLE_MAX = 0.95f;
                     constexpr float MUFFLE_MIN = 0.25f;
 
-                    if (dist > 10) { // don't hit test nearby sounds
+                    if (dist > 10) {
+                        // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;
                         if (IntersectLevel(Game::Level, ray, Segment, dist, true, hit)) {
@@ -112,7 +114,7 @@ namespace Inferno::Sound {
             //auto falloff = std::powf(1 - ratio, 3); // cubic falloff
             //auto falloff = 1 - ratio; // linear falloff
             //auto falloff = 1 - (ratio * ratio); // square falloff
-            //Instance->SetVolume(Volume * falloff * Muffle * MAX_SFX_VOLUME);
+            Instance->SetVolume(Volume /** falloff*/ * Muffle);
 
             Debug::Emitters.push_back(Emitter.Position / AUDIO_SCALE);
         }
@@ -121,6 +123,7 @@ namespace Inferno::Sound {
     namespace {
         List<Tag> StopSoundTags;
         List<SoundUID> StopSoundUIDs;
+        List<ObjID> StopSoundSources;
 
         DataPool<AmbientSoundEmitter> Emitters = { AmbientSoundEmitter::IsAlive, 10 };
 
@@ -139,21 +142,25 @@ namespace Inferno::Sound {
         constexpr X3DAUDIO_CONE c_emitterCone = {
             0.f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, 1.f
         };
+    }
 
-        //constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_LFE_CurvePoints[3] = {
-        //    { 0.0f, 0.1f }, { 0.5f, 0.5f}, { 0.5f, 0.5f }
-        //};
+    bool ShouldDispose(const Sound3DInstance& sound) {
+        for (auto& tag : StopSoundTags) {
+            if (sound.Segment == tag.Segment && sound.Side == tag.Side)
+                return true;
+        }
 
-        //constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_LFE_Curve = {
-        //    (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_LFE_CurvePoints[0], 3
-        //};
+        for (auto& id : StopSoundUIDs) {
+            if (sound.ID == id)
+                return true;
+        }
 
-        //constexpr X3DAUDIO_DISTANCE_CURVE_POINT c_emitter_Reverb_CurvePoints[3] = {
-        //    { 0.0f, 0.5f}, { 0.75f, 1.0f }, { 1.0f, 0.65f }
-        //};
-        //constexpr X3DAUDIO_DISTANCE_CURVE c_emitter_Reverb_Curve = {
-        //    (X3DAUDIO_DISTANCE_CURVE_POINT*)&c_emitter_Reverb_CurvePoints[0], 3
-        //};
+        for (auto& id : StopSoundSources) {
+            if (sound.Source == id)
+                return true;
+        }
+
+        return false;
     }
 
     void SoundWorker(milliseconds pollRate) {
@@ -208,17 +215,7 @@ namespace Inferno::Sound {
                     while (sound != SoundInstances.end()) {
                         auto state = sound->Instance->GetState();
 
-                        bool dispose = false;
-
-                        for (auto& tag : StopSoundTags) {
-                            if (sound->Segment == tag.Segment && sound->Side == tag.Side)
-                                dispose = true;
-                        }
-
-                        for (auto& id : StopSoundUIDs) {
-                            if (sound->ID == id)
-                                dispose = true;
-                        }
+                        bool dispose = ShouldDispose(*sound);
 
                         if (RequestStopSounds) {
                             dispose = true;
@@ -252,6 +249,7 @@ namespace Inferno::Sound {
                     }
 
                     StopSoundUIDs.clear();
+                    StopSoundSources.clear();
                 }
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
@@ -264,8 +262,7 @@ namespace Inferno::Sound {
                 RequestStopSounds = false;
 
                 // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
-                if (!Engine->IsAudioDevicePresent()) {
-                }
+                if (!Engine->IsAudioDevicePresent()) { }
 
                 if (Engine->IsCriticalError()) {
                     SPDLOG_WARN("Attempting to reset audio engine");
@@ -402,10 +399,20 @@ namespace Inferno::Sound {
     // Specify LFE level distance curve such that it rolls off much sooner than
     // all non-LFE channels, making use of the subwoofer more dramatic.
     static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_LFE_CurvePoints[3] = { 0.0f, 1.0f, 0.25f, 0.0f, 1.0f, 0.0f };
-    static const X3DAUDIO_DISTANCE_CURVE       Emitter_LFE_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_LFE_CurvePoints[0], 3 };
+    static const X3DAUDIO_DISTANCE_CURVE Emitter_LFE_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_LFE_CurvePoints[0], 3 };
 
     static const X3DAUDIO_DISTANCE_CURVE_POINT Emitter_Reverb_CurvePoints[3] = { 0.0f, 0.5f, 0.75f, 1.0f, 1.0f, 0.0f };
-    static const X3DAUDIO_DISTANCE_CURVE       Emitter_Reverb_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_Reverb_CurvePoints[0], 3 };
+    static const X3DAUDIO_DISTANCE_CURVE Emitter_Reverb_Curve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_Reverb_CurvePoints[0], 3 };
+
+    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_SquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.2f, 0.65f }, { 0.5f, 0.25f }, { 0.75f, 0.06f }, { 1.0f, 0.0f } };
+    static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_SquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_SquaredCurvePoints[0], _countof(Emitter_SquaredCurvePoints) };
+
+    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_InvSquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.05f, 0.95f }, { 0.2f, 0.337f }, { 0.4f, 0.145f }, { 0.6f, 0.065f }, { 0.8f, 0.024f }, { 1.0f, 0.0f } };
+    static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_InvSquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_InvSquaredCurvePoints[0], _countof(Emitter_InvSquaredCurvePoints) };
+
+    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_CubicPoints[] = { { 0.0f, 1.0f }, { 0.1f, 0.73f }, { 0.2f, 0.5f }, { 0.4f, 0.21f }, { 0.6f, 0.060f }, { 0.7f, 0.026f },{ 0.8f, 0.01f }, { 1.0f, 0.0f } };
+    static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
+
 
     SoundUID Play(const Sound3D& sound) {
         auto sfx = LoadSound(sound.Resource);
@@ -442,9 +449,8 @@ namespace Inferno::Sound {
         s.Instance->SetVolume(sound.Volume);
         s.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
 
-        //s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_LFE_Curve;
-        //s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&c_emitter_Reverb_Curve;
-        s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
+        //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
+        s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_CubicCurve;
         s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
         s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
         s.Emitter.CurveDistanceScaler = sound.Radius;
@@ -471,6 +477,7 @@ namespace Inferno::Sound {
 
         StopSoundTags.clear();
         StopSoundUIDs.clear();
+        StopSoundSources.clear();
         Engine->TrimVoicePool();
         Emitters.Clear();
     }
@@ -491,6 +498,7 @@ namespace Inferno::Sound {
     void Resume() { Engine->Resume(); }
 
     float GetVolume() { return Alive ? Engine->GetMasterVolume() : 0; }
+
     void SetVolume(float volume) {
         Settings::Inferno.MasterVolume = volume;
         if (Alive) Engine->SetMasterVolume(volume);
@@ -518,6 +526,12 @@ namespace Inferno::Sound {
         if (!Alive || id == 0) return;
         std::scoped_lock lock(SoundInstancesMutex);
         StopSoundUIDs.push_back(id);
+    }
+
+    void Stop(ObjID id) {
+        if (!Alive) return;
+        std::scoped_lock lock(SoundInstancesMutex);
+        StopSoundSources.push_back(id);
     }
 
     void AddEmitter(AmbientSoundEmitter&& e) {

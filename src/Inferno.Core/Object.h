@@ -37,7 +37,7 @@ namespace Inferno {
         None = 0,
         Exploding = 1,
         Dead = 2,           // Scheduled for deletion
-        Destroyed = 4,      // this has been killed, and is showing the dead version
+        Destroyed = 4,      // Object has been destroyed from damage. Can change model appearance.
         Silent = 8,         // No sound when colliding
         Attached = 16,      // Object is attached to another object or wall. Disables hit testing.
         Harmless = 32,      // Does no damage
