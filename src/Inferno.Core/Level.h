@@ -378,8 +378,6 @@ namespace Inferno {
             return true;
         }
 
-        const Object& GetObject(ObjID id) const { return Objects[(int)id]; }
-        Object& GetObject(ObjID id) { return Objects[(int)id]; }
         Object* TryGetObject(ObjID id) {
             if ((int)id < 0 || (int)id >= Objects.size()) return nullptr;
             return &Objects[(int)id];

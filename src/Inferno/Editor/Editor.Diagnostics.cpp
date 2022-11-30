@@ -32,14 +32,15 @@ namespace Inferno::Editor {
         }
 
         for (int id = 0; id < level.Objects.size(); id++) {
-            auto& obj = level.GetObject((ObjID)id);
-            if (obj.Type == ObjectType::Weapon) {
-                obj.Control.Weapon.Parent = (ObjID)id;
-                obj.Control.Weapon.ParentSig = (ObjSig)id;
-                obj.Control.Weapon.ParentType = obj.Type;
-            }
+            if (auto obj = level.TryGetObject((ObjID)id)) {
+                if (obj->Type == ObjectType::Weapon) {
+                    obj->Control.Weapon.Parent = (ObjID)id;
+                    obj->Control.Weapon.ParentSig = (ObjSig)id;
+                    obj->Control.Weapon.ParentType = obj->Type;
+                }
 
-            NormalizeObjectVectors(obj);
+                NormalizeObjectVectors(*obj);
+            }
         }
     }
 

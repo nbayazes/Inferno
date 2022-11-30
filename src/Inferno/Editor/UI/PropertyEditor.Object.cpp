@@ -565,9 +565,12 @@ namespace Inferno::Editor {
         if (ObjectDropdown(Game::Level, Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
 
-        auto& obj = Game::Level.GetObject(Selection.Object);
-
         ImGui::TableRowLabel("Segment");
+
+        auto pObj = Game::Level.TryGetObject(Selection.Object);
+        if(!pObj) return;
+        auto& obj = *pObj;
+
         if (SegmentDropdown(obj.Segment))
             Editor::History.SnapshotLevel("Change object segment");
 
@@ -578,7 +581,7 @@ namespace Inferno::Editor {
             ImGui::Text("Secret Exit Return");
         }
         else if (ImGui::BeginCombo("##Type", GetObjectTypeName(obj.Type))) {
-            static constexpr std::array availableTypes = {
+            static constexpr std::array AVAILABLE_TYPES = {
                 ObjectType::Robot,
                 ObjectType::Powerup,
                 ObjectType::Hostage,
@@ -588,9 +591,9 @@ namespace Inferno::Editor {
                 ObjectType::Weapon
             };
 
-            auto typeCount = Game::Level.IsDescent1() ? availableTypes.size() - 1 : availableTypes.size();
+            auto typeCount = Game::Level.IsDescent1() ? AVAILABLE_TYPES.size() - 1 : AVAILABLE_TYPES.size();
             for (int i = 0; i < typeCount; i++) {
-                auto type = availableTypes[i];
+                auto type = AVAILABLE_TYPES[i];
                 const bool isSelected = obj.Type == type;
                 if (ImGui::Selectable(GetObjectTypeName(type), isSelected)) {
                     InitObject(Game::Level, obj, type);

@@ -364,7 +364,9 @@ namespace Inferno::Game {
 
         const auto& weapon = Resources::GetWeapon(wid);
 
-        auto& playerObj = Game::Level.GetObject(player.ID);
+        auto pObj = Game::Level.TryGetObject(player.ID);
+        if (!pObj) return;
+        auto& playerObj = *pObj;
         auto gunOffset = GetGunpointOffset(playerObj, gun);
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
@@ -414,10 +416,10 @@ namespace Inferno::Game {
             for (int i = 0; i < MAX_TARGETS - 1; i++) {
                 if (targets[i] == ObjID::None) break;
 
-                auto& src = Game::Level.GetObject(targets[i]);
-                auto [id, dist] = Game::FindNearestObject(src.Position, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
-                if (id != ObjID::None) {
-                    targets[i + 1] = id;
+                if (auto src = Game::Level.TryGetObject(targets[i])) {
+                    auto [id, dist] = Game::FindNearestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
+                    if (id != ObjID::None)
+                        targets[i + 1] = id;
                 }
             }
 
@@ -428,12 +430,13 @@ namespace Inferno::Game {
             // Apply damage and visuals to each target
             for (auto& targetObj : targets) {
                 if (targetObj == ObjID::None) continue;
-                auto& target = Game::Level.GetObject(targetObj);
-                target.HitPoints -= weapon.Damage[Difficulty];
+                auto target = Game::Level.TryGetObject(targetObj);
+                if (!target) continue;
+                target->HitPoints -= weapon.Damage[Difficulty];
 
                 // Beams between previous and next target
                 tracer.Start = beam.Start = prevPosition;
-                tracer.End = beam.End = target.Position;
+                tracer.End = beam.End = target->Position;
                 tracer.StartObj = beam.StartObj = prevObj;
                 tracer.EndObj = beam.EndObj = targetObj;
                 tracer.StartObjGunpoint = beam.StartObjGunpoint = objGunpoint;
@@ -445,7 +448,7 @@ namespace Inferno::Game {
                 Render::AddBeam(tracer);
                 Render::AddBeam(tracer);
 
-                tracer.Start = target.Position;
+                tracer.Start = target->Position;
 
                 // Random endpoint tendrils
                 tracer.RandomEnd = true;
@@ -461,17 +464,17 @@ namespace Inferno::Game {
                 tracer.FadeEnd = false;
 
                 // Sparks and explosion
-                spark.Position = target.Position;
-                spark.Segment = target.Segment;
+                spark.Position = target->Position;
+                spark.Segment = target->Segment;
                 Render::AddSparkEmitter(spark);
 
                 Render::ExplosionInfo expl;
                 //expl.Sound = weapon.RobotHitSound;
-                expl.Segment = target.Segment;
-                expl.Position = target.Position;
+                expl.Segment = target->Segment;
+                expl.Position = target->Position;
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
-                expl.Variance = target.Radius * 0.45f;
+                expl.Variance = target->Radius * 0.45f;
                 expl.Color = Color{ 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
                 Render::CreateExplosion(expl);
@@ -479,12 +482,13 @@ namespace Inferno::Game {
 
             // Hit sound
             constexpr std::array hitSounds = { "EnvElectricA", "EnvElectricB", "EnvElectricC", "EnvElectricD", "EnvElectricE", "EnvElectricF" };
-            auto& initialTargetObj = Game::Level.GetObject(initialTarget);
-            Sound3D hitSound(initialTargetObj.Position, initialTargetObj.Segment);
-            hitSound.Resource = { .D3 = hitSounds[RandomInt((int)hitSounds.size() - 1)] };
-            hitSound.Volume = 2.00f;
-            hitSound.Radius = 200;
-            Sound::Play(hitSound);
+            if (auto initialTargetObj = Game::Level.TryGetObject(initialTarget)) {
+                Sound3D hitSound(initialTargetObj->Position, initialTargetObj->Segment);
+                hitSound.Resource = { .D3 = hitSounds[RandomInt((int)hitSounds.size() - 1)] };
+                hitSound.Volume = 2.00f;
+                hitSound.Radius = 200;
+                Sound::Play(hitSound);
+            }
         }
         else {
             // no target: pick a random point within FOV
