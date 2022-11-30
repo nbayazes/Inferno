@@ -170,6 +170,8 @@ namespace Inferno {
         PhysicsFlag Flags;
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
         int Bounces = 0; // Number of remaining bounces
+        float Wiggle = 0; // Amplitude of wiggle
+        float WiggleRate = 1; // How long one wiggle takes
 
         bool CanBounce() const {
             return Bounces > 0 || HasFlag(Flags, PhysicsFlag::Bounce);

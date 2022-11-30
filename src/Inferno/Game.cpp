@@ -117,7 +117,7 @@ namespace Inferno::Game {
             "AmbExplosionFarA", "AmbExplosionFarB", "AmbExplosionFarC", "AmbExplosionFarE",
             "AmbExplosionFarF", /*"AmbExplosionFarG",*/ "AmbExplosionFarI"
         };
-        explosions.Volume = { 2.5f, 4.0f };
+        explosions.Volume = { 3.5f, 4.5f };
         explosions.Distance = 500;
         explosions.NextPlayTime = Time + delay;
         Sound::AddEmitter(std::move(explosions));
@@ -423,7 +423,7 @@ namespace Inferno::Game {
         }
 
         Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
-        PlaySelfDestructSounds(5);
+        PlaySelfDestructSounds(3);
     }
 
     void DestroyObject(Object& obj) {
@@ -996,6 +996,9 @@ namespace Inferno::Game {
             obj.LastRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
 
+            if (obj.Type == ObjectType::Player)
+                obj.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
+
             if ((obj.Type == ObjectType::Player && obj.ID != 0) || obj.Type == ObjectType::Coop)
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
 
@@ -1003,6 +1006,8 @@ namespace Inferno::Game {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
                 obj.HitPoints = ri.HitPoints;
                 obj.Physics.Flags |= PhysicsFlag::Bounce;
+                //obj.Physics.Wiggle = obj.Radius * 0.01f;
+                //obj.Physics.WiggleRate = 0.33f;
             }
 
             if (obj.Type == ObjectType::Powerup &&

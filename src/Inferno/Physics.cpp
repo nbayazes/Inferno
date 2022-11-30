@@ -317,8 +317,8 @@ namespace Inferno {
     }
 
     // Applies wiggle to an object
-    void WiggleObject(Object& obj, double t, float dt, float amplitude) {
-        auto angle = std::sinf((float)t * XM_2PI) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
+    void WiggleObject(Object& obj, double t, float dt, float amplitude, float rate) {
+        auto angle = std::sinf((float)t * XM_2PI * rate) * 20; // multiplier tweaked to cause 0.5 units of movement at a 1/64 tick rate
         auto wiggle = obj.Rotation.Up() * angle * amplitude * dt;
         obj.Physics.Velocity += wiggle;
     }
@@ -986,8 +986,8 @@ namespace Inferno {
                     if (dist > maxDist) return {}; // hit is too far
 
                     // if the pass transparent flag is set, treat transparent walls as non-solid
-                    bool isSolid = passTransparent ? 
-                        !WallIsTransparent(level, { segId, side }) : 
+                    bool isSolid = passTransparent ?
+                        !WallIsTransparent(level, { segId, side }) :
                         seg.SideIsSolid(side, level);
 
                     if (isSolid) {
@@ -1610,8 +1610,10 @@ namespace Inferno {
 
             FixedPhysics(obj, dt);
 
-            if (HasFlag(obj.Physics.Flags, PhysicsFlag::Wiggle))
-                WiggleObject(obj, t, dt, Resources::GameData.PlayerShip.Wiggle); // rather hacky, assumes the ship is the only thing that wiggles
+            if (obj.Physics.Wiggle > 0) {
+                auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
+                WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
+            }
 
             obj.Physics.InputVelocity = obj.Physics.Velocity;
             obj.Position += obj.Physics.Velocity * dt;

@@ -120,7 +120,7 @@ namespace Inferno::Graphics {
         //    _cmdList->SetGraphicsRootConstantBufferView(rootIndex, cb.GpuAddress);
         //}
 
-        void InsertUAVBarrier(GpuResource& resource) const {
+        void InsertUAVBarrier(const GpuResource& resource) const {
             D3D12_RESOURCE_BARRIER barrier{};
             barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
             barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;

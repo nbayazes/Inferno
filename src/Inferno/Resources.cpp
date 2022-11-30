@@ -394,7 +394,9 @@ namespace Inferno::Resources {
         auto& vulcan = GetWeapon(WeaponID::Vulcan);
         vulcan.Extended.Behavior = "vulcan";
         vulcan.Extended.ScorchTexture = "BulletHole01";
-        vulcan.AmmoUsage = 13;
+        vulcan.AmmoUsage = 10;
+        vulcan.Damage.fill(8);
+
 
         GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
         GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
@@ -446,7 +448,8 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
 
         auto& gauss = GetWeapon(WeaponID::Gauss);
-        gauss.AmmoUsage = 26;
+        gauss.AmmoUsage = 60; // 26
+        gauss.Damage.fill(20);
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
         gauss.Extended.ScorchTexture = "BulletHole02";
@@ -572,7 +575,6 @@ namespace Inferno::Resources {
                 case ObjectType::Coop:
                     obj.Render.Model.ID = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
                     break;
-
             }
         }
     }
