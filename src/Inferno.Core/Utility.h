@@ -46,9 +46,8 @@ namespace Inferno {
     // Returns a random point inside of a circle
     inline Vector2 RandomPointInCircle(float radius) {
         auto t = Random() * DirectX::XM_2PI;
-        auto x = std::cos(t) * radius * RandomN11();
-        auto y = std::sin(t) * radius * RandomN11();
-        return { x, y };
+        float r = std::sqrt(Random()) * radius;
+        return { r * cos(t), r * sin(t) };
     }
 
     template<class T>

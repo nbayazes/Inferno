@@ -8,8 +8,8 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
+    // Gets the gunpoint offset relative to the object center
     Vector3 GetGunpointOffset(const Object& obj, int gun) {
-        //Vector3 offset = Vector3::Zero;
         gun = std::clamp(gun, 0, 8);
 
         if (obj.Type == ObjectType::Robot) {
@@ -26,7 +26,6 @@ namespace Inferno::Game {
             if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return Vector3::Zero;
             auto& reactor = Resources::GameData.Reactors[obj.ID];
             return reactor.GunPoints[gun];
-            //if (!Seq::inRange(reactor.GunPoints, gun));
         }
 
         return Vector3::Zero;
@@ -277,12 +276,14 @@ namespace Inferno::Game {
 
     void SpreadfireBehavior(Inferno::Player& player, int gun, WeaponID wid) {
         constexpr float SPREAD_ANGLE = 1 / 16.0f;
-        if (player.SpreadfireToggle) { // Vertical
+        if (player.SpreadfireToggle) {
+            // Vertical
             FireWeapon(player.ID, gun, wid);
             FireWeapon(player.ID, gun, wid, false, { 0, -SPREAD_ANGLE });
             FireWeapon(player.ID, gun, wid, false, { 0, SPREAD_ANGLE });
         }
-        else { // Horizontal
+        else {
+            // Horizontal
             FireWeapon(player.ID, gun, wid);
             FireWeapon(player.ID, gun, wid, false, { -SPREAD_ANGLE, 0 });
             FireWeapon(player.ID, gun, wid, false, { SPREAD_ANGLE, 0 });
@@ -331,12 +332,13 @@ namespace Inferno::Game {
     }
 
     // Used for omega and homing weapons
-    Object* GetClosestObjectInFOV(const Object& src, float fov, float dist, ObjectMask mask) {
-        Object* result = nullptr;
+    ObjID GetClosestObjectInFOV(const Object& src, float fov, float dist, ObjectMask mask) {
+        auto result = ObjID::None;
         float minDist = FLT_MAX;
 
         // todo: don't scan all objects, only nearby ones
-        for (auto& obj : Game::Level.Objects) {
+        for (int i = 0; i < Game::Level.Objects.size(); i++) {
+            auto& obj = Game::Level.Objects[i];
             if (!obj.IsAlive()) continue;
             if (!obj.PassesMask(mask)) continue;
 
@@ -345,7 +347,7 @@ namespace Inferno::Game {
 
             if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov)) {
                 minDist = odist;
-                result = &obj;
+                result = (ObjID)i;
             }
         }
 
@@ -357,22 +359,21 @@ namespace Inferno::Game {
         constexpr auto MAX_DIST = 60;
         constexpr auto MAX_TARGETS = 3;
         constexpr auto MAX_CHAIN_DIST = 30;
-        constexpr auto NO_TARGET_RADIUS = 0.25f;
 
         // original omega projectile life is 0.25. length should be speed * 0.25
 
-        Object* targets[MAX_TARGETS]{};
         const auto& weapon = Resources::GetWeapon(wid);
 
         auto& playerObj = Game::Level.GetObject(player.ID);
         auto gunOffset = GetGunpointOffset(playerObj, gun);
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
-
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
 
         // thicker beam used when hitting targets
         Render::BeamInfo beam{
             .Start = start,
+            .StartObj = player.ID,
+            .StartObjGunpoint = gun,
             .Width = 1.85f + 0.25f * Random(),
             .Life = weapon.FireDelay,
             .Color = { 3.00f + Random() * 0.5f, 1.0f, 3.0f + Random() * 0.5f },
@@ -384,7 +385,9 @@ namespace Inferno::Game {
         // tracers are thinner 'feelers' for the main beam
         Render::BeamInfo tracer{
             .Start = start,
-            .Radius = MAX_CHAIN_DIST * 0.75f,
+            .StartObj = player.ID,
+            .StartObjGunpoint = gun,
+            .Radius = MAX_CHAIN_DIST,
             .Width = 0.65f,
             .Life = weapon.FireDelay,
             .Color = { 1.30f, 1.0f, 1.45f },
@@ -402,57 +405,73 @@ namespace Inferno::Game {
         spark.Texture = "Bright Blue Energy1";
         spark.Width = 0.15f;
 
-        if (initialTarget) {
+        if (initialTarget != ObjID::None) {
             // found a target! try chaining to others
-            ObjSig visited[MAX_TARGETS]{};
+            std::array<ObjID, MAX_TARGETS> targets{};
+            targets.fill(ObjID::None);
             targets[0] = initialTarget;
-            visited[0] = initialTarget->Signature;
 
             for (int i = 0; i < MAX_TARGETS - 1; i++) {
-                auto src = targets[i];
-                if (!src) break;
+                if (targets[i] == ObjID::None) break;
 
-                auto [id, dist] = Game::FindNearestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy, visited);
+                auto& src = Game::Level.GetObject(targets[i]);
+                auto [id, dist] = Game::FindNearestObject(src.Position, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
                 if (id != ObjID::None) {
-                    targets[i + 1] = &Game::Level.GetObject(id);
-                    visited[i + 1] = targets[i + 1]->Signature;
+                    targets[i + 1] = id;
                 }
             }
 
             auto prevPosition = start;
+            ObjID prevObj = player.ID;
+            int objGunpoint = gun;
 
             // Apply damage and visuals to each target
-            for (auto& target : targets) {
-                if (!target) continue;
-                target->HitPoints -= weapon.Damage[Difficulty];
+            for (auto& targetObj : targets) {
+                if (targetObj == ObjID::None) continue;
+                auto& target = Game::Level.GetObject(targetObj);
+                target.HitPoints -= weapon.Damage[Difficulty];
 
+                // Beams between previous and next target
                 tracer.Start = beam.Start = prevPosition;
-                tracer.End = beam.End = target->Position;
+                tracer.End = beam.End = target.Position;
+                tracer.StartObj = beam.StartObj = prevObj;
+                tracer.EndObj = beam.EndObj = targetObj;
+                tracer.StartObjGunpoint = beam.StartObjGunpoint = objGunpoint;
+                prevObj = targetObj;
+                objGunpoint = -1;
+
                 prevPosition = beam.End;
                 Render::AddBeam(beam);
                 Render::AddBeam(tracer);
                 Render::AddBeam(tracer);
 
-                tracer.Start = target->Position;
+                tracer.Start = target.Position;
+
+                // Random endpoint tendrils
                 tracer.RandomEnd = true;
                 auto ampl = tracer.Amplitude;
                 tracer.Amplitude = 1.25;
+                tracer.StartObj = beam.StartObj = targetObj;
+                tracer.EndObj = beam.EndObj = ObjID::None;
+                tracer.FadeEnd = true;
                 Render::AddBeam(tracer);
                 Render::AddBeam(tracer);
                 tracer.RandomEnd = false;
                 tracer.Amplitude = ampl;
+                tracer.FadeEnd = false;
 
-                spark.Position = target->Position;
-                spark.Segment = target->Segment;
+                // Sparks and explosion
+                spark.Position = target.Position;
+                spark.Segment = target.Segment;
                 Render::AddSparkEmitter(spark);
 
                 Render::ExplosionInfo expl;
                 //expl.Sound = weapon.RobotHitSound;
-                expl.Segment = target->Segment;
-                expl.Position = target->Position;
+                expl.Segment = target.Segment;
+                expl.Position = target.Position;
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
-                expl.Variance = target->Radius * 0.45f;
+                expl.Variance = target.Radius * 0.45f;
                 expl.Color = Color{ 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
                 Render::CreateExplosion(expl);
@@ -460,15 +479,16 @@ namespace Inferno::Game {
 
             // Hit sound
             constexpr std::array hitSounds = { "EnvElectricA", "EnvElectricB", "EnvElectricC", "EnvElectricD", "EnvElectricE", "EnvElectricF" };
-            Sound3D hitSound(initialTarget->Position, initialTarget->Segment);
-            hitSound.Resource = { .D3 = hitSounds[RandomInt(hitSounds.size() - 1)] };
+            auto& initialTargetObj = Game::Level.GetObject(initialTarget);
+            Sound3D hitSound(initialTargetObj.Position, initialTargetObj.Segment);
+            hitSound.Resource = { .D3 = hitSounds[RandomInt((int)hitSounds.size() - 1)] };
             hitSound.Volume = 2.00f;
             hitSound.Radius = 200;
             Sound::Play(hitSound);
         }
         else {
             // no target: pick a random point within FOV
-            auto offset = RandomPointInCircle(NO_TARGET_RADIUS);
+            auto offset = RandomPointInCircle(FOV * 0.75f);
             auto dir = playerObj.Rotation.Forward();
             dir += playerObj.Rotation.Right() * offset.x;
             dir += playerObj.Rotation.Up() * offset.y;
@@ -494,6 +514,8 @@ namespace Inferno::Game {
                     HitWall(Level, hit.Point, dummy, *wall);
             }
             else {
+                tracer.FadeEnd = true;
+                // not sure why scaling the length down is necessary, but it feels more accurate
                 tracer.End = beam.End = start + dir * MAX_DIST * 0.3f;
             }
 

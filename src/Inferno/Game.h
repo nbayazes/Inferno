@@ -21,7 +21,7 @@ namespace Inferno::Game {
 
     inline int Difficulty = 0; // 0 to 4 for trainee to insane
 
-    constexpr int DEFAULT_GRAVITY = 100;
+    constexpr int DEFAULT_GRAVITY = 80;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
 
     // The loaded level. Only one level can be active at a time.
@@ -53,6 +53,8 @@ namespace Inferno::Game {
 
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
 
+    Vector3 GetGunpointOffset(const Object& obj, int gun);
+
     // Detonates a weapon with a splash radius
     void ExplodeWeapon(Object&);
 
@@ -60,7 +62,7 @@ namespace Inferno::Game {
 
     // Finds the nearest object ID to an object
     Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
-    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjSig> objFilter);
+    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjID> objFilter);
 
     void UpdateWeapon(Object&, float dt);
 

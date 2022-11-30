@@ -168,7 +168,8 @@ namespace Inferno::Render {
     struct BeamInfo {
         Vector3 Start;
         Vector3 End;
-        ObjID StartObj = ObjID::None; // NYI: attaches beam to this object
+        ObjID StartObj = ObjID::None;
+        int StartObjGunpoint = -1;
         ObjID EndObj = ObjID::None; // NYI: attaches beam to this object
         float Radius = 0; // If RandomEnd is true, randomly strike targets within this radius
         float Width = 2.0f;
@@ -184,6 +185,8 @@ namespace Inferno::Render {
         bool RandomEnd = false; // Uses a random end point
         float Time = 0; // animates noise and determines the phase
         float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
+        bool FadeEnd = false;
+        bool FadeStart = false;
 
         struct {
             float Length;

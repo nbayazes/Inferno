@@ -534,14 +534,14 @@ namespace Inferno::Game {
         return { id, dist };
     }
 
-    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjSig> objFilter) {
+    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjID> objFilter) {
         auto id = ObjID::None;
         float dist = FLT_MAX;
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
             if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
-            if (Seq::contains(objFilter, obj.Signature)) continue;
+            if (Seq::contains(objFilter, (ObjID)i)) continue;
             auto d = Vector3::Distance(obj.Position, position);
             if (d <= maxDist && d < dist) {
                 id = (ObjID)i;

@@ -192,6 +192,7 @@ namespace Inferno::Render {
     }
 
     void Debris::FixedUpdate(float dt) {
+        Velocity += Game::Gravity * dt;
         Velocity *= 1 - Drag;
         Life -= dt;
         PrevTransform = Transform;
@@ -375,9 +376,25 @@ namespace Inferno::Render {
 
             if (!BeamInfo::IsAlive(beam)) continue;
 
+            if (beam.StartObj != ObjID::None) {
+                if (auto obj = Game::Level.TryGetObject(beam.StartObj)) {
+                    if (beam.StartObjGunpoint > -1) {
+                        auto offset = Game::GetGunpointOffset(*obj, beam.StartObjGunpoint);
+                        beam.Start = Vector3::Transform(offset, obj->GetTransform(Game::LerpAmount));
+                    }
+                    else {
+                        beam.Start = obj->GetPosition(Game::LerpAmount);
+                    }
+                }
+            }
+
+            if (beam.EndObj != ObjID::None) {
+                if (auto obj = Game::Level.TryGetObject(beam.EndObj))
+                    beam.End = obj->GetPosition(Game::LerpAmount);
+            }
+
             beam.Time += Render::FrameTime;
             auto& noise = beam.Runtime.Noise;
-
             auto delta = beam.End - beam.Start;
             auto length = delta.Length();
             if (length < 1) continue; // don't draw really short beams
@@ -417,13 +434,6 @@ namespace Inferno::Render {
                 beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
             }
 
-            //auto perp1 = GetBeamPerpendicular(delta);
-            //auto center = (beam.End + beam.Start) / 2;
-            //Vector3 dir;
-            //delta.Normalize(dir);
-            //auto billboard = Matrix::CreateConstrainedBillboard(center, Camera.Position, dir);
-            //auto perp1 = billboard.Up();
-
             // if (flags.FadeIn) alpha = 0;
 
             struct BeamSeg {
@@ -446,7 +456,6 @@ namespace Inferno::Render {
             auto tangent = GetBeamNormal(beam.Start, beam.End);
 
             for (int i = 0; i < segments; i++) {
-
                 BeamSeg nextSeg{};
                 auto fraction = i * div;
 
@@ -491,10 +500,17 @@ namespace Inferno::Render {
                     auto up = avgNormal * beam.Width * 0.5f;
                     if (i == 1) prevUp = up;
 
-                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, beam.Color };
-                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, beam.Color };
-                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, beam.Color };
-                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, beam.Color };
+                    auto color = beam.Color;
+                    if (beam.FadeEnd && fraction >= 0.5)
+                        color.w = std::lerp(1, 0, (fraction - 0.5) * 2);
+
+                    if (beam.FadeStart && fraction <= 0.5)
+                        color.w = std::lerp(0, 1, fraction * 2);
+
+                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, color };
+                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, color };
+                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, color };
+                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, color };
 
                     g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
                     prevUp = up;
@@ -793,6 +809,7 @@ namespace Inferno::Render {
             auto right = Direction.Cross(Up);
             direction += right * spread.x;
             direction += Up * spread.y;
+            direction += Direction * ConeRadius;
             direction.Normalize();
             spark.Velocity = direction * Velocity.GetRandom();
         }

@@ -340,6 +340,12 @@ namespace Inferno {
             return m;
         }
 
+        Matrix GetTransform(float lerp) const {
+            auto matrix = GetRotation(lerp);
+            matrix.Translation(GetPosition(lerp));
+            return matrix;
+        }
+
         void SetTransform(const Matrix& m) {
             DirectX::XMStoreFloat3x3(&Rotation, m);
             Position = m.Translation();
