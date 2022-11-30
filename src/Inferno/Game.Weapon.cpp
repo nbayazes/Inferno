@@ -345,7 +345,13 @@ namespace Inferno::Game {
             auto odist = obj.Distance(src);
             if (odist > dist || odist >= minDist) continue;
 
-            if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov)) {
+            auto vec = obj.Position - src.Position;
+            vec.Normalize();
+            Ray targetRay(src.Position, vec);
+            LevelHit hit;
+
+            if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
+                !IntersectLevel(Game::Level, targetRay, src.Segment, odist, true, hit)) {
                 minDist = odist;
                 result = (ObjID)i;
             }
