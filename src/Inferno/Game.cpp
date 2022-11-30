@@ -523,8 +523,25 @@ namespace Inferno::Game {
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
-            if (!obj.PassesMask(mask)) continue;
-            if (!obj.IsAlive() /*|| obj.Signature == src.Signature*/) continue;
+            if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
+            auto d = Vector3::Distance(obj.Position, position);
+            if (d <= maxDist && d < dist) {
+                id = (ObjID)i;
+                dist = d;
+            }
+        }
+
+        return { id, dist };
+    }
+
+    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjSig> objFilter) {
+        auto id = ObjID::None;
+        float dist = FLT_MAX;
+
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+            if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
+            if (Seq::contains(objFilter, obj.Signature)) continue;
             auto d = Vector3::Distance(obj.Position, position);
             if (d <= maxDist && d < dist) {
                 id = (ObjID)i;
@@ -981,7 +998,7 @@ namespace Inferno::Game {
         Sound::Reset();
 
         Editor::SetPlayerStartIDs(Level);
-        Gravity = Level.Objects[0].Rotation.Up() * -200;
+        Gravity = Level.Objects[0].Rotation.Up() * -DEFAULT_GRAVITY;
 
         Render::InitEffects(Level);
 
@@ -1046,7 +1063,7 @@ namespace Inferno::Game {
                 Sound::Play(reactorHum);
             }
         }
-        
+
         MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
         MarkAmbientSegments(SoundFlag::AmbientWater, TextureFlag::Water);
         AddSoundSources();

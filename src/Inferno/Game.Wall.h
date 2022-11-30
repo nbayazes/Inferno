@@ -90,7 +90,7 @@ namespace Inferno {
         // Returns -1 if no clip playing on this side
         float GetElapsed(Tag tag) {
             for (auto& anim : _animations) {
-                if(anim.tag == tag) return anim.time;
+                if (anim.tag == tag) return anim.time;
             }
 
             return -1;
@@ -110,6 +110,7 @@ namespace Inferno {
 
     public:
         void Add(Tag tag, ObjID id) {
+            if (id == ObjID::None) return;
             _objects.Add({ id, tag });
         }
 

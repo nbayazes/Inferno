@@ -995,7 +995,7 @@ namespace Inferno {
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
                         hit.Tangent = face.Side.Tangents[tri - 1];
-                        hit.Point = ray.position + ray.direction * dist;
+                        hit.WallPoint = hit.Point = ray.position + ray.direction * dist;
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
                     }
@@ -1378,6 +1378,8 @@ namespace Inferno {
     }
 
     void WeaponHitWall(const LevelHit& hit, Object& obj, Level& level, ObjID objId) {
+        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
+
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
@@ -1432,7 +1434,7 @@ namespace Inferno {
             hitLiquid = true;
         }
         else if (ti.HasFlag(TextureFlag::Water)) {
-            if (obj.ID == (int)WeaponID::Concussion)
+            if (obj.ID == (int)WeaponID::Concussion) // todo: or other matter weapons?
                 soundId = SoundID::MissileHitWater;
             else
                 soundId = SoundID::HitWater;
@@ -1507,6 +1509,7 @@ namespace Inferno {
         e.Clip = vclip;
         e.Sound = soundId;
         e.Segment = hit.Tag.Segment;
+        e.Parent = obj.Parent;
 
         // move explosions out of wall
         if (impactSize < 5)
@@ -1648,8 +1651,6 @@ namespace Inferno {
 
             if (hit) {
                 if (obj.Type == ObjectType::Weapon) {
-                    CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
-
                     if (hit.HitObj)
                         WeaponHitObject(hit, obj, level);
                     else

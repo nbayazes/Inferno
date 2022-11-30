@@ -444,7 +444,13 @@ namespace Inferno::Resources {
         GetWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
         GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
 
-        GetWeapon(WeaponID::Omega).Extended.Behavior = "omega";
+        auto& omega = GetWeapon(WeaponID::Omega);
+        omega.Extended.Behavior = "omega";
+        omega.FireDelay = 1.0f / 8;
+        omega.Damage.fill(3);
+        omega.RobotHitVClip = omega.WallHitVClip = VClipID::None; // todo: replace with planar wall effect
+        omega.WallHitSound = SoundID::None;
+
         GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
 
         auto& gauss = GetWeapon(WeaponID::Gauss);

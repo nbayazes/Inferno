@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "Object.h"
 #include "Game.h"
+#include "Game.Wall.h"
 #include "Physics.h"
+#include "Editor/Editor.Segment.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 
@@ -254,6 +256,7 @@ namespace Inferno::Game {
             sound.AttachToSource = true;
             sound.AttachOffset = gunOffset;
             sound.FromPlayer = true;
+            sound.Source = objId;
             Sound::Play(sound);
 
             // Hide flashes in first person for gunpoints under the ship
@@ -334,9 +337,9 @@ namespace Inferno::Game {
 
         // todo: don't scan all objects, only nearby ones
         for (auto& obj : Game::Level.Objects) {
+            if (!obj.IsAlive()) continue;
             if (!obj.PassesMask(mask)) continue;
 
-            // todo: filter object types based on mask
             auto odist = obj.Distance(src);
             if (odist > dist || odist >= minDist) continue;
 
@@ -349,30 +352,14 @@ namespace Inferno::Game {
         return result;
     }
 
-    // Returns the object closest object within a distance to a point
-    //Object* GetClosestObject(const Vector3& pos, float dist, ObjectMask mask) {
-    //    // todo: add object type mask
-    //    Object* result = nullptr;
-    //    float minDist = FLT_MAX;
-
-    //    for (auto& obj : Game::Level.Objects) {
-    //        if (!obj.PassesMask(mask)) continue;
-    //        auto d = Vector3::Distance(obj.Position, pos);
-    //        if (d <= dist && d < minDist) {
-    //            minDist = d;
-    //            result = &obj;
-    //        }
-    //    }
-
-    //    return result;
-    //}
-
     void OmegaBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
         constexpr auto FOV = 12.5f * DegToRad;
-        constexpr auto MAX_DIST = 100;
+        constexpr auto MAX_DIST = 60;
         constexpr auto MAX_TARGETS = 3;
-        constexpr auto MAX_CHAIN_DIST = 50;
+        constexpr auto MAX_CHAIN_DIST = 30;
         constexpr auto NO_TARGET_RADIUS = 0.25f;
+
+        // original omega projectile life is 0.25. length should be speed * 0.25
 
         Object* targets[MAX_TARGETS]{};
         const auto& weapon = Resources::GetWeapon(wid);
@@ -382,24 +369,102 @@ namespace Inferno::Game {
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
 
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
+
+        // thicker beam used when hitting targets
+        Render::BeamInfo beam{
+            .Start = start,
+            .Width = 1.85f + 0.25f * Random(),
+            .Life = weapon.FireDelay,
+            .Color = { 3.00f + Random() * 0.5f, 1.0f, 3.0f + Random() * 0.5f },
+            .Texture = "HellionBeam",
+            .Frequency = 1 / 30.0f,
+            .Amplitude = 1.00f,
+        };
+
+        // tracers are thinner 'feelers' for the main beam
+        Render::BeamInfo tracer{
+            .Start = start,
+            .Radius = MAX_CHAIN_DIST * 0.75f,
+            .Width = 0.65f,
+            .Life = weapon.FireDelay,
+            .Color = { 1.30f, 1.0f, 1.45f },
+            .Texture = "Lightning4",
+            .Frequency = 1 / 30.0f,
+            .Amplitude = 0.55f,
+        };
+
+        Render::SparkEmitter spark;
+        spark.Duration = { 0.35f, 0.85f };
+        spark.Restitution = 0.6f;
+        spark.Velocity = { 30, 40 };
+        spark.Count = { 13, 20 };
+        spark.Color = Color{ 3, 3, 3 };
+        spark.Texture = "Bright Blue Energy1";
+        spark.Width = 0.15f;
+
         if (initialTarget) {
+            // found a target! try chaining to others
+            ObjSig visited[MAX_TARGETS]{};
             targets[0] = initialTarget;
+            visited[0] = initialTarget->Signature;
 
             for (int i = 0; i < MAX_TARGETS - 1; i++) {
                 auto src = targets[i];
                 if (!src) break;
 
-                auto [id, dist] = Game::FindNearestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy);
+                auto [id, dist] = Game::FindNearestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy, visited);
                 if (id != ObjID::None) {
                     targets[i + 1] = &Game::Level.GetObject(id);
+                    visited[i + 1] = targets[i + 1]->Signature;
                 }
             }
 
-            // Apply damage to each target
+            auto prevPosition = start;
+
+            // Apply damage and visuals to each target
             for (auto& target : targets) {
-                if (target)
-                    target->HitPoints -= weapon.Damage[Difficulty];
+                if (!target) continue;
+                target->HitPoints -= weapon.Damage[Difficulty];
+
+                tracer.Start = beam.Start = prevPosition;
+                tracer.End = beam.End = target->Position;
+                prevPosition = beam.End;
+                Render::AddBeam(beam);
+                Render::AddBeam(tracer);
+                Render::AddBeam(tracer);
+
+                tracer.Start = target->Position;
+                tracer.RandomEnd = true;
+                auto ampl = tracer.Amplitude;
+                tracer.Amplitude = 1.25;
+                Render::AddBeam(tracer);
+                Render::AddBeam(tracer);
+                tracer.RandomEnd = false;
+                tracer.Amplitude = ampl;
+
+                spark.Position = target->Position;
+                spark.Segment = target->Segment;
+                Render::AddSparkEmitter(spark);
+
+                Render::ExplosionInfo expl;
+                //expl.Sound = weapon.RobotHitSound;
+                expl.Segment = target->Segment;
+                expl.Position = target->Position;
+                expl.Clip = VClipID::SmallExplosion;
+                expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
+                expl.Variance = target->Radius * 0.45f;
+                expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+                expl.FadeTime = 0.1f;
+                Render::CreateExplosion(expl);
             }
+
+            // Hit sound
+            constexpr std::array hitSounds = { "EnvElectricA", "EnvElectricB", "EnvElectricC", "EnvElectricD", "EnvElectricE", "EnvElectricF" };
+            Sound3D hitSound(initialTarget->Position, initialTarget->Segment);
+            hitSound.Resource = { .D3 = hitSounds[RandomInt(hitSounds.size() - 1)] };
+            hitSound.Volume = 2.00f;
+            hitSound.Radius = 200;
+            Sound::Play(hitSound);
         }
         else {
             // no target: pick a random point within FOV
@@ -409,38 +474,40 @@ namespace Inferno::Game {
             dir += playerObj.Rotation.Up() * offset.y;
             dir.Normalize();
 
-            Vector3 end;
             LevelHit hit;
             if (IntersectLevel(Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, true, hit)) {
-                end = hit.Point;
-                // create explosion / sound
+                tracer.End = beam.End = hit.Point;
+                spark.Position = beam.End;
+                spark.Segment = hit.Tag.Segment;
+                Render::AddSparkEmitter(spark);
+
+                // Do wall hit stuff
+                Object dummy{};
+                dummy.Position = hit.Point;
+                dummy.Parent = player.ID;
+                dummy.ID = (int)WeaponID::Omega;
+                dummy.Type = ObjectType::Weapon;
+                dummy.Control.Weapon.ParentType = ObjectType::Player;
+                WeaponHitWall(hit, dummy, Level, ObjID::None);
+
+                if (auto wall = Level.TryGetWall(hit.Tag))
+                    HitWall(Level, hit.Point, dummy, *wall);
             }
             else {
-                end = start + dir * MAX_DIST;
+                tracer.End = beam.End = start + dir * MAX_DIST * 0.3f;
             }
 
-            Render::BeamInfo beam{
-                .Start = start,
-                .End = end,
-                //.Radius = 20,
-                .Width = 0.35f,
-                .Life = 1.5f,
-                .Color = { 3.00f, 1.0f, 2.0f },
-                .Texture = "Lightning1",
-                //.Scale = 0.25f,
-                //.SineNoise = true,
-                .Frequency = 1000,
-                .Amplitude = 2.25f,
-            };
-            Render::AddBeam(beam);
+            Render::AddBeam(tracer);
         }
 
-        // Create vfx between each object, along with random arcs at each
-
-
-        // Find a target within a certain range and FOV, otherwise project straight ahead randomly
-
-        // If found a valid target, chain to up to x more within range (or randomly arc)
+        // Fire sound
+        Sound3D sound(player.ID);
+        sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
+        sound.Volume = 0.40f;
+        sound.AttachToSource = true;
+        sound.AttachOffset = gunOffset;
+        sound.FromPlayer = true;
+        Sound::Play(sound);
     }
 
     // default weapon firing behavior

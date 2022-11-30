@@ -262,7 +262,7 @@ namespace Inferno::Sound {
                 RequestStopSounds = false;
 
                 // https://github.com/microsoft/DirectXTK/wiki/AudioEngine
-                if (!Engine->IsAudioDevicePresent()) { }
+                if (!Engine->IsAudioDevicePresent()) {}
 
                 if (Engine->IsCriticalError()) {
                     SPDLOG_WARN("Attempting to reset audio engine");
@@ -365,6 +365,7 @@ namespace Inferno::Sound {
 
         std::scoped_lock lock(ResetMutex);
         auto info = Resources::ReadOutrageSoundInfo(fileName);
+        if (!info) return nullptr;
 
         if (auto data = Resources::Descent3Hog.ReadEntry(info->FileName)) {
             return (SoundsD3[fileName] = MakePtr<SoundEffect>(CreateSoundEffectWav(*Engine, *data))).get();
@@ -425,21 +426,23 @@ namespace Inferno::Sound {
 
         std::scoped_lock lock(SoundInstancesMutex);
 
-        // Check if any emitters are already playing this sound from this source
-        for (auto& instance : SoundInstances) {
-            if (instance.Source == sound.Source &&
-                instance.Resource == sound.Resource &&
-                instance.StartTime + MERGE_WINDOW > Game::Time &&
-                !instance.Looped) {
+        if (sound.Source != ObjID::None) {
+            // Check if any emitters are already playing this sound from this source
+            for (auto& instance : SoundInstances) {
+                if (instance.Source == sound.Source &&
+                    instance.Resource == sound.Resource &&
+                    instance.StartTime + MERGE_WINDOW > Game::Time &&
+                    !instance.Looped) {
 
-                if (instance.AttachToSource && sound.AttachToSource)
-                    instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
+                    if (instance.AttachToSource && sound.AttachToSource)
+                        instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 
-                instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                // only use a portion of the duplicate sound to increase volume (should use log scaling)
-                instance.Volume = std::max(instance.Volume, sound.Volume) * 1.25f;
-                //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
-                return instance.ID; // Don't play sounds within the merge window
+                    instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
+                    // only use a portion of the duplicate sound to increase volume (should use log scaling)
+                    instance.Volume = std::max(instance.Volume, sound.Volume) * 1.25f;
+                    //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
+                    return instance.ID; // Don't play sounds within the merge window
+                }
             }
         }
 

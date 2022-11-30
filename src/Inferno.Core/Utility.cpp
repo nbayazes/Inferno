@@ -16,4 +16,9 @@ namespace Inferno {
         //return (float)rand() / RAND_MAX;
         return (float)randomRange(gen) / RANDOM_MAX;
     }
+
+    int RandomInt(int maximum) {
+        std::uniform_int_distribution range(0, maximum);
+        return range(gen);
+    }
 }

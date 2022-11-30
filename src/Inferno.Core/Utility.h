@@ -24,8 +24,11 @@ namespace Inferno {
 
     void InitRandom();
 
-    // Returns a random value between 0 and 1
+    // Returns a random float between 0 and 1
     float Random();
+
+    // Returns a random int between 0 and maximum
+    int RandomInt(int maximum);
 
     // Returns a random value between -1 and 1
     inline float RandomN11() {

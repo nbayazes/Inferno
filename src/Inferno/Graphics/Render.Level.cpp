@@ -328,8 +328,7 @@ namespace Inferno::Render {
             // Draw heat volumes
             //    _levelResources->Volumes.Draw(cmdList);
 
-            //DrawBeams(ctx);
-            //DrawTracers(ctx);
+            DrawBeams(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {

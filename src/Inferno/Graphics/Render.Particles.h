@@ -143,7 +143,7 @@ namespace Inferno::Render {
         VClipID Clip = VClipID::SmallExplosion;
         SoundID Sound = SoundID::None;
         float Volume = 1.0f;
-        NumericRange<float> Radius = { 2.5f, 2.5f };
+        NumericRange<float> Radius = { 2.5f, 2.5f }; // size of the explosion
         float Variance = 0; // Position variance
         int Instances = 1; // how many explosions to create
         NumericRange<float> Delay = { 0.25f, 0.75f }; // how long to wait before creating the next explosion instance
@@ -170,7 +170,7 @@ namespace Inferno::Render {
         Vector3 End;
         ObjID StartObj = ObjID::None; // NYI: attaches beam to this object
         ObjID EndObj = ObjID::None; // NYI: attaches beam to this object
-        float Radius = 0; // If End is none, randomly strike targets within this radius
+        float Radius = 0; // If RandomEnd is true, randomly strike targets within this radius
         float Width = 2.0f;
         float Life = 0;
         Color Color = { 1, 1, 1 };

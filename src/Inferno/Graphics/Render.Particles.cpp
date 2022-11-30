@@ -239,6 +239,7 @@ namespace Inferno::Render {
     }
 
     void CreateExplosion(ExplosionInfo& e) {
+        if (e.Clip == VClipID::None) return;
         if (e.InitialDelay < 0) e.InitialDelay = 0;
         if (e.Instances < 0) e.Instances = 1;
         Explosions.Add(e);
@@ -255,6 +256,7 @@ namespace Inferno::Render {
                 Sound3D sound(expl.Position, expl.Segment);
                 sound.Resource = Resources::GetSoundResource(expl.Sound);
                 sound.Volume = expl.Volume;
+                sound.Source = expl.Parent;
                 //sound.Source = expl.Parent; // no parent so all nearby sounds merge
                 Sound::Play(sound);
             }
@@ -312,7 +314,7 @@ namespace Inferno::Render {
             beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius);
 
         beam.Runtime.Length = (beam.Start - beam.End).Length();
-        //Beams.Add(beam);
+        Beams.Add(beam);
     }
 
     // returns a vector perpendicular to the camera and the start/end points
@@ -369,7 +371,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicWrap());
 
         for (auto& beam : Beams) {
-            //beam.Life -= dt;
+            beam.Life -= Render::FrameTime;
 
             if (!BeamInfo::IsAlive(beam)) continue;
 
@@ -719,12 +721,12 @@ namespace Inferno::Render {
                 if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
                     // Remove sparks that hit a liquid
                     spark.Life = -1;
-                    Sound3D sound(hit.Point, hit.Tag.Segment);
-                    sound.Resource = Resources::GetSoundResource(SoundID::MissileHitWater);
-                    sound.Volume = 0.6f;
-                    sound.Radius = 75;
-                    sound.Occlusion = false;
-                    Sound::Play(sound);
+                    //Sound3D sound(hit.Point, hit.Tag.Segment);
+                    //sound.Resource = Resources::GetSoundResource(SoundID::MissileHitWater);
+                    //sound.Volume = 0.6f;
+                    //sound.Radius = 75;
+                    //sound.Occlusion = false;
+                    //Sound::Play(sound);
                 }
                 else {
                     // bounce sparks that hit a wall
