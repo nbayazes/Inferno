@@ -338,6 +338,10 @@ namespace Inferno {
             case PrimaryWeaponIndex::Gauss:
                 ammo = fmt::format("{:05}", player.PrimaryAmmo[1]);
                 break;
+
+            case PrimaryWeaponIndex::Omega:
+                ammo = fmt::format("{:.0f}%", player.OmegaCharge * 100);
+                break;
         }
 
         DrawMonitorText(label, info, 0.6f * state.Opacity);

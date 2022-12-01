@@ -180,13 +180,13 @@ namespace Inferno::Render {
         float ScrollSpeed = 0; // Texture scroll speed
         float Frequency = 1 / 60.0f; // How often in seconds to recalculate noise
         SegID Segment;
-        float Scale = 1; // Scale for texture vs beam width
+        float Scale = 4; // Scale for texture vs beam width
         bool SineNoise = false; // Sine noise when true, Fractal noise when false
         bool RandomEnd = false; // Uses a random end point
         float Time = 0; // animates noise and determines the phase
         float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
-        bool FadeEnd = false;
-        bool FadeStart = false;
+        bool FadeEnd = false; // fades the start of the beam to 0 transparency
+        bool FadeStart = false; // fades the end of the beam to 0 transparency
 
         struct {
             float Length;

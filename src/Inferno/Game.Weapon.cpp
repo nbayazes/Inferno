@@ -360,13 +360,14 @@ namespace Inferno::Game {
         return result;
     }
 
-    void OmegaBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
+    void OmegaBehavior(Inferno::Player& player, int gun, WeaponID wid) {
         constexpr auto FOV = 12.5f * DegToRad;
         constexpr auto MAX_DIST = 60;
         constexpr auto MAX_TARGETS = 3;
         constexpr auto MAX_CHAIN_DIST = 30;
 
-        // original omega projectile life is 0.25. length should be speed * 0.25
+        player.OmegaCharge -= OMEGA_CHARGE_COST;
+        player.OmegaCharge = std::max(0.0f, player.OmegaCharge);
 
         const auto& weapon = Resources::GetWeapon(wid);
 

@@ -6,6 +6,13 @@
 namespace Inferno {
     enum class FireState { None, Press, Hold, Release };
 
+    constexpr float MAX_ENERGY = 200;
+    constexpr float MAX_SHIELDS = 200;
+    constexpr float OMEGA_CHARGE_COST = 1.0f / 8; // charge cost to fire one shot of omega
+    constexpr float OMEGA_RECHARGE_TIME = 2; // time to fully recharge omega
+    constexpr float OMEGA_RECHARGE_ENERGY = 4; // energy to fully recharge omega
+    constexpr float OMEGA_RECHARGE_DELAY = 1.0f / 4; // how long before recharging starts
+
     // Extracted player state that was scattered across methods or globals as static variables
     struct Player : PlayerData {
         const float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
@@ -36,6 +43,7 @@ namespace Inferno {
         float RefuelSoundTime = 0;
         bool AfterburnerActive = false;
         int BombIndex = 0; // 0 is proxy, 1 is smart mine
+        double LastPrimaryFireTime = 0;
 
         void GiveWeapon(PrimaryWeaponIndex weapon) {
             PrimaryWeapons |= (1 << (uint16)weapon);
@@ -53,6 +61,11 @@ namespace Inferno {
         }
 
         SecondaryWeaponIndex GetActiveBomb() const;
+
+        void AddEnergy(float energy) {
+            Energy += energy;
+            Energy = std::clamp(Energy, 0.0f, MAX_ENERGY);
+        }
 
         void CycleBombs();
 
@@ -95,7 +108,7 @@ namespace Inferno {
                 canFire &= weapon.AmmoUsage <= PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
 
             if (index == PrimaryWeaponIndex::Omega)
-                canFire &= Energy > 1 && OmegaCharge >= 0.75f; // it's annoying to switch to omega with no energy
+                canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST;  // it's annoying to switch to omega with no energy
 
             canFire &= weapon.EnergyUsage <= Energy;
             return canFire;

@@ -53,7 +53,7 @@ namespace Inferno {
             float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
             chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
             AfterburnerCharge += chargeUp;
-            Energy -= chargeUp * 100 / 10; // full charge uses 10% energy
+            AddEnergy(-chargeUp * 100 / 10);// full charge uses 10% energy
         }
 
         if (AfterburnerCharge <= 0 && active)
@@ -186,7 +186,7 @@ namespace Inferno {
             if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
                 if (seg->Type == SegmentType::Energy && Energy < 100) {
                     constexpr float ENERGY_PER_SECOND = 25.0f;
-                    Energy += ENERGY_PER_SECOND * dt;
+                    AddEnergy(ENERGY_PER_SECOND * dt);
 
                     if (RefuelSoundTime <= Game::Time) {
                         Sound::Play(Resources::GetSoundResource(SoundID::Refuel), 0.5f);
@@ -250,6 +250,14 @@ namespace Inferno {
 
         if (SecondaryState == FireState::Hold || SecondaryState == FireState::Press) {
             FireSecondary();
+        }
+
+        if (Energy > 0 && OmegaCharge < 1 &&
+            LastPrimaryFireTime + OMEGA_RECHARGE_DELAY < Game::Time) {
+            // Recharge omega
+            float chargeUp = std::min(dt / OMEGA_RECHARGE_TIME, 1 - OmegaCharge);
+            OmegaCharge += chargeUp;
+            AddEnergy(-chargeUp * OMEGA_RECHARGE_ENERGY);
         }
     }
 
@@ -339,12 +347,16 @@ namespace Inferno {
             return;
         }
 
+        // must do a different check for omega so running out of charge doesn't cause an autoswap
+        if (Primary == PrimaryWeaponIndex::Omega && OmegaCharge < OMEGA_CHARGE_COST)
+            return;
+
         auto id = GetPrimaryWeaponID(Primary);
         auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = weapon.FireDelay;
 
         if (!weapon.Extended.Chargable) {
-            Energy -= weapon.EnergyUsage; // Charged weapons drain energy on button down
+            AddEnergy(-weapon.EnergyUsage); // Charged weapons drain energy on button down
             PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
         }
 
@@ -370,8 +382,9 @@ namespace Inferno {
 
         FiringIndex = (FiringIndex + 1) % sequence.size();
         WeaponCharge = 0;
+        LastPrimaryFireTime = Game::Time;
 
-        if (!CanFirePrimary(Primary))
+        if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
     }
 
@@ -505,12 +518,9 @@ namespace Inferno {
     }
 
     bool Player::PickUpEnergy() {
-        constexpr float MAX_ENERGY = 200;
         if (Energy < MAX_ENERGY) {
             bool canFire = CanFirePrimary(Primary);
-
-            Energy += float(3 + 3 * (5 - Game::Difficulty));
-            if (Energy > MAX_ENERGY) Energy = MAX_ENERGY;
+            AddEnergy(float(3 + 3 * (5 - Game::Difficulty)));
 
             AddScreenFlash(FLASH_GOLD);
             auto msg = fmt::format("{} {} {}", Resources::GetString(GameString::Energy), Resources::GetString(GameString::BoostedTo), int(Energy));
@@ -596,7 +606,6 @@ namespace Inferno {
 
             case PowerupID::ShieldBoost:
             {
-                constexpr float MAX_SHIELDS = 200;
                 if (Shields < MAX_SHIELDS) {
                     Shields += 3 + 3 * (5 - Game::Difficulty);
                     if (Shields > MAX_SHIELDS) Shields = MAX_SHIELDS;
