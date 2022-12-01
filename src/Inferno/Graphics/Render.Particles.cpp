@@ -13,9 +13,12 @@ namespace Inferno::Render {
     namespace {
         DataPool<BeamInfo> Beams(BeamInfo::IsAlive, 50);
         Array<DecalInfo, 100> Decals;
+        Array<DecalInfo, 10> AdditiveDecals;
+        uint16 DecalIndex = 0;
+        uint16 AdditiveDecalIndex = 0;
+
         DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
         DataPool<ParticleEmitter> ParticleEmitters(ParticleEmitter::IsAlive, 10);
-        uint16 DecalIndex = 0;
         List<List<Ptr<EffectBase>>> SegmentEffects; // equals segment count
     }
 
@@ -258,8 +261,8 @@ namespace Inferno::Render {
                 sound.Resource = Resources::GetSoundResource(expl.Sound);
                 sound.Volume = expl.Volume;
                 sound.Source = expl.Parent;
-                //sound.Source = expl.Parent; // no parent so all nearby sounds merge
                 Sound::Play(sound);
+                //sound.Source = expl.Parent; // no parent so all nearby sounds merge
             }
 
             for (int i = 0; i < expl.Instances; i++) {
@@ -645,39 +648,82 @@ namespace Inferno::Render {
         std::array tex = { decal.Texture };
         Render::Materials->LoadTextures(tex);
 
-        decal.Life = FLT_MAX;
-        Decals[DecalIndex++] = decal;
+        if (decal.Life == 0)
+            decal.Life = FLT_MAX;
 
-        if (DecalIndex >= Decals.size())
-            DecalIndex = 0;
+        if (decal.Additive) {
+            AdditiveDecals[AdditiveDecalIndex++] = decal;
+
+            if (AdditiveDecalIndex >= AdditiveDecals.size())
+                AdditiveDecalIndex = 0;
+        }
+        else {
+            Decals[DecalIndex++] = decal;
+
+            if (DecalIndex >= Decals.size())
+                DecalIndex = 0;
+        }
+    }
+
+    void DrawDecal(const DecalInfo& decal, DirectX::PrimitiveBatch<ObjectVertex>& batch) {
+        auto radius = decal.Radius;
+        auto color = decal.Color;
+        if (decal.FadeTime > 0) {
+            auto t = std::lerp(1.0f, 0.0f, std::clamp((decal.FadeTime - decal.Life) / decal.FadeTime, 0.0f, 1.0f));
+            color.w = t;
+            radius += (1 - t) * decal.Radius * 0.5f; // expand as fading out
+        }
+
+        const auto& pos = decal.Position;
+        const auto up = decal.Bitangent * radius;
+        const auto right = decal.Tangent * radius;
+
+        ObjectVertex v0{ pos - up, { 0, 1 }, color };
+        ObjectVertex v1{ pos - right, { 1, 1 }, color };
+        ObjectVertex v2{ pos + up, { 1, 0 }, color };
+        ObjectVertex v3{ pos + right, { 0, 0 }, color };
+        batch.DrawQuad(v0, v1, v2, v3);
     }
 
     void DrawDecals(Graphics::GraphicsContext& ctx) {
-        auto& effect = Effects->SpriteMultiply;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-        effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
+        {
+            auto& effect = Effects->SpriteMultiply;
+            ctx.ApplyEffect(effect);
+            ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+            effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+            effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
 
-        for (auto& decal : Decals) {
-            decal.Life -= Render::FrameTime;
-            if (decal.Life <= 0) continue;
+            for (auto& decal : Decals) {
+                decal.Life -= Render::FrameTime;
+                if (decal.Life <= 0) continue;
 
-            const auto& pos = decal.Position;
-            const auto up = decal.Bitangent * decal.Radius;
-            const auto right = decal.Tangent * decal.Radius;
+                auto& material = Render::Materials->Get(decal.Texture);
+                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+                g_SpriteBatch->Begin(ctx.CommandList());
+                DrawDecal(decal, *g_SpriteBatch.get());
+                g_SpriteBatch->End();
+                Stats::DrawCalls++;
+            }
+        }
 
-            auto& material = Render::Materials->Get(decal.Texture);
-            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
-            g_SpriteBatch->Begin(ctx.CommandList());
+        {
+            auto& effect = Effects->SpriteAdditiveBiased;
+            ctx.ApplyEffect(effect);
+            ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+            effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+            effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
 
-            ObjectVertex v0{ pos - up, { 0, 1 }, decal.Color };
-            ObjectVertex v1{ pos - right, { 1, 1 }, decal.Color };
-            ObjectVertex v2{ pos + up, { 1, 0 }, decal.Color };
-            ObjectVertex v3{ pos + right, { 0, 0 }, decal.Color };
-            g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
-            g_SpriteBatch->End();
-            Stats::DrawCalls++;
+            for (auto& decal : AdditiveDecals) {
+                decal.Life -= Render::FrameTime;
+                if (decal.Life <= 0) continue;
+
+                auto& material = Render::Materials->Get(decal.Texture);
+                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+                g_SpriteBatch->Begin(ctx.CommandList());
+                DrawDecal(decal, *g_SpriteBatch.get());
+                g_SpriteBatch->End();
+                Stats::DrawCalls++;
+            }
         }
     }
 

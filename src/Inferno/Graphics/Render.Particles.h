@@ -229,8 +229,12 @@ namespace Inferno::Render {
         string Texture = "scorchB";
 
         float Radius = 2;
+        float FadeTime = 0; // How long it takes to fade out the decal
+        float FadeRadius = 3.0; // Radius to fade to
+
         Color Color = { 1, 1, 1 };
         SideID Side;
+        bool Additive = false;
     };
 
     void AddDecal(DecalInfo& decal);

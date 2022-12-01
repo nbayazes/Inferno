@@ -209,7 +209,7 @@ namespace Inferno {
         e.Segment = tag.Segment;
         e.Direction = side.AverageNormal;
         e.Up = side.Tangents[0];
-        e.ConeRadius = 1; 
+        e.ConeRadius = 1;
         e.Duration = { 0.75f, 2.4f };
         e.Restitution = 0.6f;
         e.Velocity = { 50, 65 };
@@ -1394,6 +1394,9 @@ namespace Inferno {
         SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
         VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
+        auto soundRes = Resources::GetSoundResource(soundId);
+        soundRes.D3 = weapon.Extended.ExplosionSound;
+
         bool addDecal = !weapon.Extended.ScorchTexture.empty();
         bool hitLiquid = false;
         bool hitForcefield = false;
@@ -1458,18 +1461,18 @@ namespace Inferno {
         if (addDecal) {
             auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
 
+            Render::DecalInfo decal{};
+            auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
+            decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
+            decal.Bitangent = decal.Tangent.Cross(hit.Normal);
+            decal.Radius = decalSize;
+            decal.Position = hit.Point;
+            decal.Segment = hit.Tag.Segment;
+            decal.Side = hit.Tag.Side;
+            decal.Texture = weapon.Extended.ScorchTexture;
+
             // check that decal isn't too close to edge due to lack of clipping
             if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) {
-                Render::DecalInfo decal{};
-                auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
-                decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
-                decal.Bitangent = decal.Tangent.Cross(hit.Normal);
-                decal.Radius = decalSize;
-                decal.Position = hit.Point;
-                decal.Segment = hit.Tag.Segment;
-                decal.Side = hit.Tag.Side;
-                decal.Texture = weapon.Extended.ScorchTexture;
-
                 if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
                     if (Game::Player.CanOpenDoor(*wall))
                         addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
@@ -1479,6 +1482,18 @@ namespace Inferno {
 
                 if (addDecal)
                     Render::AddDecal(decal);
+            }
+
+            if (!weapon.Extended.ExplosionTexture.empty()) {
+                // Add the planar explosion effect
+                decal.Texture = weapon.Extended.ExplosionTexture;
+                decal.Radius = weapon.Extended.ExplosionSize;
+                decal.Life = decal.FadeTime = weapon.Extended.ExplosionTime;
+                decal.FadeRadius = decalSize * 2.4f;
+                decal.Additive = true;
+                decal.Color = Color{ 1.5f, 1.5f, 1.5f };
+                Render::AddDecal(decal);
+                vclip = VClipID::None;
             }
         }
 
@@ -1504,28 +1519,36 @@ namespace Inferno {
         auto dir = obj.Physics.Velocity;
         dir.Normalize();
 
-        Render::ExplosionInfo e;
-        e.Radius = { impactSize * 0.9f, impactSize * 1.1f };
-        e.Clip = vclip;
-        e.Sound = soundId;
-        e.Segment = hit.Tag.Segment;
-        e.Parent = obj.Parent;
-
-        // move explosions out of wall
-        if (impactSize < 5)
-            e.Position = hit.WallPoint - dir * impactSize * 0.5f;
-        else
-            e.Position = hit.WallPoint - dir * 2.5;
-
-        e.Color = Color{ 1, 1, 1 };
-        e.FadeTime = 0.1f;
-
-        if (obj.ID == (int)WeaponID::Concussion) {
-            e.Instances = 3;
-            e.Delay = { 0, 0 };
+        if (soundId != SoundID::None) {
+            Sound3D sound(hit.WallPoint, hit.Tag.Segment);
+            sound.Resource = soundRes;
+            sound.Source = obj.Parent;
+            Sound::Play(sound);
         }
 
-        Render::CreateExplosion(e);
+        if (vclip != VClipID::None) {
+            Render::ExplosionInfo e;
+            e.Radius = { impactSize * 0.9f, impactSize * 1.1f };
+            e.Clip = vclip;
+            e.Segment = hit.Tag.Segment;
+            e.Parent = obj.Parent;
+
+            // move explosions out of wall
+            if (impactSize < 5)
+                e.Position = hit.WallPoint - dir * impactSize * 0.5f;
+            else
+                e.Position = hit.WallPoint - dir * 2.5;
+
+            e.Color = Color{ 1, 1, 1 };
+            e.FadeTime = 0.1f;
+
+            if (obj.ID == (int)WeaponID::Concussion) {
+                e.Instances = 3;
+                e.Delay = { 0, 0 };
+            }
+
+            Render::CreateExplosion(e);
+        }
 
         if (splashRadius > 0) {
             GameExplosion ge{};

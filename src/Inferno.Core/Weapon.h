@@ -109,6 +109,11 @@ namespace Inferno {
         string ModelPath;
         float ModelScale = 1;
 
+        string ExplosionTexture; // Texture to use when exploding, overrides vclip
+        float ExplosionSize = 1.5f; // Initial size of explosion texture, scales up and out
+        float ExplosionTime = 0.4f; // How long the explosion takes to fade out
+        string ExplosionSound; // Sound to play when exploding. Overrides base sound.
+
         PowerupID PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
         int AmmoType; // Vulcan and gauss share ammo types

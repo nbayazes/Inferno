@@ -171,7 +171,7 @@ namespace Inferno {
             Matrix World;
         };
 
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
     };
@@ -198,20 +198,20 @@ namespace Inferno {
             Format = DepthShader::OutputFormat;
         }
 
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
 
-        void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+        static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[Material2D::Diffuse]);
         }
 
-        void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+        static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[Material2D::Diffuse]);
             commandList->SetGraphicsRootDescriptorTable(StMask, material.Handles[Material2D::SuperTransparency]);
         }
 
-        void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
     };
@@ -238,23 +238,23 @@ namespace Inferno {
             InputLayout = LevelVertex::Layout;
         }
 
-        void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
 
-        void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+        static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[0]);
         }
 
-        void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+        static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[0]);
         }
 
-        void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+        static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
         }
 
-        void SetInstanceConstants(ID3D12GraphicsCommandList* commandList, const InstanceConstants& consts) {
+        static void SetInstanceConstants(ID3D12GraphicsCommandList* commandList, const InstanceConstants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
     };
@@ -272,15 +272,15 @@ namespace Inferno {
             InputLayout = ObjectVertex::Layout;
         }
 
-        void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
 
-        void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+        static void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
         }
 
-        void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+        static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Depth, texture);
         }
     };
@@ -303,19 +303,19 @@ namespace Inferno {
             InputLayout = ObjectVertex::Layout;
         }
 
-        void SetMaterial(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+        static void SetMaterial(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(Material, material.Handles[0]);
         }
 
-        void SetMaterial(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+        static void SetMaterial(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
             commandList->SetGraphicsRootDescriptorTable(Material, handle);
         }
 
-        void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
 
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
     };
@@ -335,7 +335,7 @@ namespace Inferno {
             Color Tint = { 1, 1, 1, 1 };
         };
 
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
             commandList->SetGraphicsRoot32BitConstants(0, sizeof(constants) / 4, &constants, 0);
         }
     };
@@ -353,11 +353,11 @@ namespace Inferno {
             Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         }
 
-        void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+        static void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
         }
 
-        void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
+        static void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
             commandList->SetGraphicsRoot32BitConstants(Constants, sizeof(wvp) / 4, &wvp.m, 0);
         }
     };
@@ -382,18 +382,18 @@ namespace Inferno {
             Format = DXGI_FORMAT_R11G11B10_FLOAT;
         }
 
-        void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+        static void SetDiffuse(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(Diffuse, texture);
         }
 
-        void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(constants) / 4, &constants, 0);
         }
     };
 
     enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply };
     enum class CullMode { None, CounterClockwise, Clockwise };
-    enum class DepthMode { ReadWrite, Read, ReadEqual, None };
+    enum class DepthMode { ReadWrite, Read, ReadBiased, None };
 
     struct EffectSettings {
         BlendMode Blend = BlendMode::Opaque;
@@ -406,7 +406,7 @@ namespace Inferno {
     template<class TShader>
     struct Effect {
         Effect(TShader* shader, EffectSettings settings = {})
-            : Shader(shader), Settings(settings) {
+            : Settings(settings), Shader(shader) {
         }
 
         EffectSettings Settings;
@@ -465,7 +465,8 @@ namespace Inferno {
        
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
-        Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadEqual } };
+        Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadBiased } };
+        Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadBiased } };
 
         void Compile(ID3D12Device* device, uint msaaSamples) {
             CompileShader(&_shaders->Flat);
@@ -479,7 +480,7 @@ namespace Inferno {
             CompileShader(&_shaders->DepthCutout);
             CompileShader(&_shaders->Hud);
 
-            auto Compile = [&](auto& effect, uint renderTargets = 1) {
+            auto compile = [&](auto& effect, uint renderTargets = 1) {
                 try {
                     auto psoDesc = BuildPipelineStateDesc(effect.Settings, effect.Shader, msaaSamples, renderTargets);
                     ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&effect.PipelineState)));
@@ -489,32 +490,33 @@ namespace Inferno {
                 }
             };
 
-            Compile(Level);
-            Compile(LevelWall);
-            Compile(LevelWallAdditive);
+            compile(Level);
+            compile(LevelWall);
+            compile(LevelWallAdditive);
 
-            Compile(Depth);
-            Compile(DepthObject);
-            Compile(DepthObjectFlipped);
-            Compile(DepthCutout);
+            compile(Depth);
+            compile(DepthObject);
+            compile(DepthObjectFlipped);
+            compile(DepthCutout);
 
-            Compile(LevelFlat);
-            Compile(LevelWallFlat);
+            compile(LevelFlat);
+            compile(LevelWallFlat);
 
-            Compile(Object);
-            Compile(ObjectGlow);
-            Compile(Sprite);
-            Compile(SpriteAdditive);
-            Compile(SpriteMultiply);
+            compile(Object);
+            compile(ObjectGlow);
+            compile(Sprite);
+            compile(SpriteAdditive);
+            compile(SpriteMultiply);
+            compile(SpriteAdditiveBiased);
 
-            Compile(Flat);
-            Compile(FlatAdditive);
-            Compile(EditorSelection);
-            Compile(Line);
+            compile(Flat);
+            compile(FlatAdditive);
+            compile(EditorSelection);
+            compile(Line);
 
-            Compile(UserInterface);
-            Compile(Hud);
-            Compile(HudAdditive);
+            compile(UserInterface);
+            compile(Hud);
+            compile(HudAdditive);
         }
     };
 }

@@ -29,7 +29,7 @@ namespace Inferno {
     }
 
     // Orgb = srgb * Srgb + drgb * Drgb
-    const D3D12_RENDER_TARGET_BLEND_DESC BlendDescMultiplyRt = {
+    const D3D12_RENDER_TARGET_BLEND_DESC BLEND_DESC_MULTIPLY_RT = {
         .BlendEnable = true,
         .LogicOpEnable = false,
         .SrcBlend = D3D12_BLEND_DEST_COLOR, // O = S * D
@@ -42,11 +42,11 @@ namespace Inferno {
         .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL
     };
 
-    const D3D12_BLEND_DESC BlendDescMultiply = {
-        .RenderTarget = { BlendDescMultiplyRt }
+    const D3D12_BLEND_DESC BLEND_DESC_MULTIPLY = {
+        .RenderTarget = { BLEND_DESC_MULTIPLY_RT }
     };
 
-    constexpr D3D12_DEPTH_STENCIL_DESC DepthEqual =
+    constexpr D3D12_DEPTH_STENCIL_DESC DEPTH_EQUAL =
     {
         TRUE, // DepthEnable
         D3D12_DEPTH_WRITE_MASK_ZERO,
@@ -92,7 +92,7 @@ namespace Inferno {
                 case BlendMode::StraightAlpha: return CommonStates::NonPremultiplied;
                 case BlendMode::Additive: return CommonStates::Additive;
                 case BlendMode::Opaque: default: return CommonStates::Opaque;
-                case BlendMode::Multiply: return BlendDescMultiply;
+                case BlendMode::Multiply: return BLEND_DESC_MULTIPLY;
             }
         }();
 
@@ -110,7 +110,7 @@ namespace Inferno {
         psoDesc.PrimitiveTopologyType = effect.TopologyType;
         psoDesc.NumRenderTargets = renderTargets;
 
-        if (effect.Depth == DepthMode::ReadEqual) {
+        if (effect.Depth == DepthMode::ReadBiased) {
             // Biases for decals
             psoDesc.RasterizerState.DepthBias = -10000;
             psoDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;

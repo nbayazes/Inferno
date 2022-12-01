@@ -203,6 +203,8 @@ namespace Inferno::Resources {
     }
 
     SoundResource GetSoundResource(SoundID id) {
+        if (id == SoundID::None) return {};
+
         if (Game::Level.IsDescent1())
             return { .D1 = GameData.Sounds[(int)id] };
         else
@@ -349,8 +351,8 @@ namespace Inferno::Resources {
 
     void LoadExtendedWeaponInfo() {
         if (GameData.Weapons.size() < 30) return; // No D1 data
-        auto GetWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
-        auto& fusion = GetWeapon(WeaponID::Fusion);
+        auto getWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
+        auto& fusion = getWeapon(WeaponID::Fusion);
         fusion.Extended.Chargable = true;
         fusion.Extended.ScorchTexture = "scorchC";
         fusion.Extended.ScorchRadius = 3.25f;
@@ -366,94 +368,100 @@ namespace Inferno::Resources {
         constexpr float LASER_MASS = 0.05f;
         constexpr float LASER_SCALE = 0.7f;
 
-        GetWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.35;
-        GetWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.15;
-        GetWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.15;
-        GetWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.15;
+        getWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.35;
+        getWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.15;
+        getWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.15;
+        getWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.15;
 
-        GetWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
-        GetWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
-        GetWeapon(WeaponID::Laser3).Extended.ModelPath = "PurpleLaser.OOF";
-        GetWeapon(WeaponID::Laser4).Extended.ModelPath = "GreenLaser.OOF";
+        getWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
+        getWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
+        getWeapon(WeaponID::Laser3).Extended.ModelPath = "PurpleLaser.OOF";
+        getWeapon(WeaponID::Laser4).Extended.ModelPath = "GreenLaser.OOF";
+        getWeapon(WeaponID::Laser1).Extended.ExplosionTexture = "RedLaserHit";
+        getWeapon(WeaponID::Laser1).Extended.ExplosionSound = "LazorHitshrt";
+        getWeapon(WeaponID::Laser1).Extended.ExplosionSize = 1.75f;
 
-        GetWeapon(WeaponID::Laser1).Extended.ModelScale =
-            GetWeapon(WeaponID::Laser2).Extended.ModelScale =
-            GetWeapon(WeaponID::Laser3).Extended.ModelScale =
-            GetWeapon(WeaponID::Laser4).Extended.ModelScale = LASER_SCALE;
+        getWeapon(WeaponID::Laser1).Extended.ModelScale =
+            getWeapon(WeaponID::Laser2).Extended.ModelScale =
+            getWeapon(WeaponID::Laser3).Extended.ModelScale =
+            getWeapon(WeaponID::Laser4).Extended.ModelScale = LASER_SCALE;
 
-        GetWeapon(WeaponID::Laser1).Mass =
-            GetWeapon(WeaponID::Laser2).Mass =
-            GetWeapon(WeaponID::Laser3).Mass =
-            GetWeapon(WeaponID::Laser4).Mass = LASER_MASS;
+        getWeapon(WeaponID::Laser1).Mass =
+            getWeapon(WeaponID::Laser2).Mass =
+            getWeapon(WeaponID::Laser3).Mass =
+            getWeapon(WeaponID::Laser4).Mass = LASER_MASS;
 
-        GetWeapon(WeaponID::Laser2).FireDelay =
-            GetWeapon(WeaponID::Laser3).FireDelay =
-            GetWeapon(WeaponID::Laser4).FireDelay =
-            GetWeapon(WeaponID::Laser1).FireDelay;
+        getWeapon(WeaponID::Laser2).FireDelay =
+            getWeapon(WeaponID::Laser3).FireDelay =
+            getWeapon(WeaponID::Laser4).FireDelay =
+            getWeapon(WeaponID::Laser1).FireDelay;
 
-        auto& vulcan = GetWeapon(WeaponID::Vulcan);
+        auto& vulcan = getWeapon(WeaponID::Vulcan);
         vulcan.Extended.Behavior = "vulcan";
         vulcan.Extended.ScorchTexture = "BulletHole01";
+        vulcan.Extended.ExplosionSize = 0.6f;
+        vulcan.Extended.ExplosionTexture = "vaussimpact";
+        vulcan.Extended.ExplosionTime = 0.8f;
         vulcan.AmmoUsage = 10;
         vulcan.Damage.fill(8);
 
 
-        GetWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
-        GetWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
+        getWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
+        getWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
 
-        GetWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
-        GetWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
+        getWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
+        getWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
 
-        GetWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
+        getWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
 
-        GetWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
-        GetWeapon(WeaponID::Concussion).Extended.ScorchRadius = 4;
+        getWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
+        getWeapon(WeaponID::Concussion).Extended.ScorchRadius = 4;
 
-        GetWeapon(WeaponID::Flare).Extended.Sticky = true;
-        GetWeapon(WeaponID::Flare).FireDelay = 0.5f;
-        GetWeapon(WeaponID::Flare).Lifetime = 30.0f;
+        getWeapon(WeaponID::Flare).Extended.Sticky = true;
+        getWeapon(WeaponID::Flare).FireDelay = 0.5f;
+        getWeapon(WeaponID::Flare).Lifetime = 30.0f;
         //GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
         //GetWeapon(WeaponID::Flare).Extended.ModelPath = "Buddybot.oof";
         //GetWeapon(WeaponID::Flare).Speed.fill(0);
-        GetWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
+        getWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
 
-        auto& smart = GetWeapon(WeaponID::Smart);
+        auto& smart = getWeapon(WeaponID::Smart);
         smart.Extended.ModelPath = "smartmissile.OOF";
 
-        auto& mega = GetWeapon(WeaponID::Mega).Extended;
+        auto& mega = getWeapon(WeaponID::Mega).Extended;
         mega.ScorchTexture = "scorchC";
         mega.ScorchRadius = 8.0f;
 
         if (GameData.Weapons.size() < 35) return;
         // D2 WEAPONS BELOW!
 
-        GetWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
-        GetWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
-        GetWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
-        GetWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
-        GetWeapon(WeaponID::Laser5).Extended.ModelScale = LASER_SCALE;
-        GetWeapon(WeaponID::Laser6).Extended.ModelScale = LASER_SCALE;
-        GetWeapon(WeaponID::Laser5).Mass = LASER_MASS;
-        GetWeapon(WeaponID::Laser6).Mass = LASER_MASS;
+        getWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
+        getWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
+        getWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
+        getWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
+        getWeapon(WeaponID::Laser5).Extended.ModelScale = LASER_SCALE;
+        getWeapon(WeaponID::Laser6).Extended.ModelScale = LASER_SCALE;
+        getWeapon(WeaponID::Laser5).Mass = LASER_MASS;
+        getWeapon(WeaponID::Laser6).Mass = LASER_MASS;
 
-        GetWeapon(WeaponID::Phoenix).Extended.Glow = Color{ 0.7f, 0.3f, 0.1f };
-        GetWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
-        GetWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";
-        GetWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
+        getWeapon(WeaponID::Phoenix).Extended.Glow = Color{ 0.7f, 0.3f, 0.1f };
+        getWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
+        getWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";
+        getWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
 
-        GetWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
-        GetWeapon(WeaponID::Helix).Extended.Behavior = "helix";
+        getWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
+        getWeapon(WeaponID::Helix).Extended.Behavior = "helix";
 
-        auto& omega = GetWeapon(WeaponID::Omega);
+        auto& omega = getWeapon(WeaponID::Omega);
         omega.Extended.Behavior = "omega";
         omega.FireDelay = 1.0f / 8;
         omega.Damage.fill(3);
         omega.RobotHitVClip = omega.WallHitVClip = VClipID::None; // todo: replace with planar wall effect
         omega.WallHitSound = SoundID::None;
 
-        GetWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
+        getWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
 
-        auto& gauss = GetWeapon(WeaponID::Gauss);
+        auto& gauss = getWeapon(WeaponID::Gauss);
         gauss.AmmoUsage = 60; // 26
         gauss.Damage.fill(20);
         gauss.Model = ModelID::None;
@@ -461,7 +469,7 @@ namespace Inferno::Resources {
         gauss.Extended.ScorchTexture = "BulletHole02";
         gauss.Extended.ScorchRadius = 1.75f;
 
-        auto& shaker = GetWeapon(WeaponID::Shaker).Extended;
+        auto& shaker = getWeapon(WeaponID::Shaker).Extended;
         shaker.ScorchTexture = "scorchC";
         shaker.ScorchRadius = 8.0f;
 
