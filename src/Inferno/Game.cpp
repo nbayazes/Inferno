@@ -534,22 +534,26 @@ namespace Inferno::Game {
         return { id, dist };
     }
 
-    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjID> objFilter) {
+    Tuple<ObjID, float> FindNearestVisibleObject(const Vector3& position, SegID seg, float maxDist, ObjectMask mask, span<ObjID> objFilter) {
         auto id = ObjID::None;
-        float dist = FLT_MAX;
+        float minDist = FLT_MAX;
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
             if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
             if (Seq::contains(objFilter, (ObjID)i)) continue;
-            auto d = Vector3::Distance(obj.Position, position);
-            if (d <= maxDist && d < dist) {
+            auto dir = obj.Position - position;
+            auto d = dir.Length();
+            dir.Normalize();
+            Ray ray(position, dir);
+            LevelHit hit;
+            if (d <= maxDist && d < minDist && !IntersectLevel(Level, ray, seg, d, true, hit)) {
                 id = (ObjID)i;
-                dist = d;
+                minDist = d;
             }
         }
 
-        return { id, dist };
+        return { id, minDist };
     }
 
     void UpdatePlayerFireState(Inferno::Player& player) {

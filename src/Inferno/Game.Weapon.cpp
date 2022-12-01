@@ -31,7 +31,7 @@ namespace Inferno::Game {
         return Vector3::Zero;
     }
 
-    void ExplodeWeapon(Object& obj) {
+    void ExplodeWeapon(const Object& obj) {
         if (obj.Type != ObjectType::Weapon) return;
         const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
         if (weapon.SplashRadius <= 0) return; // don't explode weapons without a splash radius
@@ -382,7 +382,7 @@ namespace Inferno::Game {
             .Start = start,
             .StartObj = player.ID,
             .StartObjGunpoint = gun,
-            .Width = 1.85f + 0.25f * Random(),
+            .Width = 1.25f + 0.25f * Random(),
             .Life = weapon.FireDelay,
             .Color = { 3.00f + Random() * 0.5f, 1.0f, 3.0f + Random() * 0.5f },
             .Texture = "HellionBeam",
@@ -423,7 +423,7 @@ namespace Inferno::Game {
                 if (targets[i] == ObjID::None) break;
 
                 if (auto src = Game::Level.TryGetObject(targets[i])) {
-                    auto [id, dist] = Game::FindNearestObject(src->Position, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
+                    auto [id, dist] = Game::FindNearestVisibleObject(src->Position, src->Segment, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
                     if (id != ObjID::None)
                         targets[i + 1] = id;
                 }
@@ -455,6 +455,7 @@ namespace Inferno::Game {
                 Render::AddBeam(tracer);
 
                 tracer.Start = target->Position;
+                //beam.Width -= 0.33f;
 
                 // Random endpoint tendrils
                 tracer.RandomEnd = true;

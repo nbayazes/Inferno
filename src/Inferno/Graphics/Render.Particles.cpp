@@ -502,10 +502,10 @@ namespace Inferno::Render {
 
                     auto color = beam.Color;
                     if (beam.FadeEnd && fraction >= 0.5)
-                        color.w = std::lerp(1, 0, (fraction - 0.5) * 2);
+                        color.w = std::lerp(1.0f, 0.0f, (fraction - 0.5f) * 2);
 
                     if (beam.FadeStart && fraction <= 0.5)
-                        color.w = std::lerp(0, 1, fraction * 2);
+                        color.w = std::lerp(0.0f, 1.0f, fraction * 2);
 
                     ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, color };
                     ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, color };

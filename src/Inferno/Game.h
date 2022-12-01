@@ -56,13 +56,13 @@ namespace Inferno::Game {
     Vector3 GetGunpointOffset(const Object& obj, int gun);
 
     // Detonates a weapon with a splash radius
-    void ExplodeWeapon(Object&);
+    void ExplodeWeapon(const Object&);
 
     void Update(float dt);
 
     // Finds the nearest object ID to an object
     Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
-    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask, span<ObjID> objFilter);
+    Tuple<ObjID, float> FindNearestVisibleObject(const Vector3& position, SegID, float maxDist, ObjectMask, span<ObjID> objFilter);
 
     void UpdateWeapon(Object&, float dt);
 
