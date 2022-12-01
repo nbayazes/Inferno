@@ -260,7 +260,7 @@ namespace Inferno::Render {
         NumericRange<float> Velocity = { 50, 75 };
         Vector3 Direction; // if Zero, random direction
         Vector3 Up; // Used with direction
-        float ConeRadius = 0; // Used with Direction to create a random velocity
+        float ConeRadius = 1.0f; // Used with direction to spread sparks. Value of 1 is 45 degrees.
         float Drag = 0.02f;
         float FadeTime = 1.0f; // How long it takes to fade the particle out
         float Restitution = 0.8f; // How much velocity to keep after hitting a wall

@@ -319,8 +319,8 @@ namespace Inferno::Game {
     void VulcanBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
         constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
         //Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
-        Vector2 spread = RandomPointInCircle(SPREAD_ANGLE);
-        FireWeapon(player.ID, gun, wid, true, spread);
+        auto spread = RandomPointInCircle(SPREAD_ANGLE);
+        FireWeapon(player.ID, gun, wid, true, { spread.x, spread.y });
     }
 
     // FOV in 0 to PI

@@ -340,7 +340,7 @@ namespace Inferno::Render {
         noise[div2] = (noise.front() + noise.back()) * 0.5f + noise.size() * RandomN11() * 0.125f;
 
         if (div2 > 1) {
-            FractalNoise(noise.subspan(0, div2 + 1)); // -1 ?
+            FractalNoise(noise.subspan(0, div2 + 1));
             FractalNoise(noise.subspan(div2));
         }
     }
@@ -804,13 +804,13 @@ namespace Inferno::Render {
             spark.Velocity = RandomVector(Velocity.GetRandom());
         }
         else {
-            auto spread = RandomPointInCircle(ConeRadius);
-            auto direction = Direction;
+            auto spread = RandomPointOnHemisphere();
             auto right = Direction.Cross(Up);
-            direction += right * spread.x;
-            direction += Up * spread.y;
-            direction += Direction * ConeRadius;
-            direction.Normalize();
+            //auto direction = Direction;
+            Vector3 direction;
+            direction += right * spread.x * ConeRadius;
+            direction += Up * spread.y * ConeRadius;
+            direction += Direction * spread.z;
             spark.Velocity = direction * Velocity.GetRandom();
         }
 

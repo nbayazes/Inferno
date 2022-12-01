@@ -209,7 +209,7 @@ namespace Inferno {
         e.Segment = tag.Segment;
         e.Direction = side.AverageNormal;
         e.Up = side.Tangents[0];
-        e.ConeRadius = 5;
+        e.ConeRadius = 1; 
         e.Duration = { 0.75f, 2.4f };
         e.Restitution = 0.6f;
         e.Velocity = { 50, 65 };
@@ -1434,7 +1434,7 @@ namespace Inferno {
             hitLiquid = true;
         }
         else if (ti.HasFlag(TextureFlag::Water)) {
-            if (obj.ID == (int)WeaponID::Concussion) // todo: or other matter weapons?
+            if (weapon.IsMatter)
                 soundId = SoundID::MissileHitWater;
             else
                 soundId = SoundID::HitWater;
