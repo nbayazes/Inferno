@@ -38,7 +38,7 @@ namespace Inferno {
         float Volume = 1;
         float Pitch = 0; // -1 to 1;
         bool Occlusion = true; // Occludes level geometry when determining volume
-        float Radius = 150; // Determines max range and falloff
+        float Radius = 250; // Determines max range and falloff
         SoundResource Resource;
         bool AttachToSource = false; // The sound moves with the Source object
         Vector3 AttachOffset; // The offset from the Source when attached

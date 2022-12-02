@@ -101,7 +101,7 @@ Weapons:
     Name: plasma
     Decal: scorchB
     Glow: 0.4, 0.5, 0.4
-    Size: 0.1
+    Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
     ExplosionSize: 2.3
@@ -118,7 +118,7 @@ Weapons:
     RotationalVelocity: 0, 0, 1.5708
     Size: 2.1
     ExplosionTexture: FusionHit
-    ExplosionSize: 1.6
+    ExplosionSize: 4.6
     ExplosionTime: 0.4
 
   - id: 8
@@ -170,9 +170,9 @@ Weapons:
     Name: phoenix
     Bounces: 2
     Glow: 0.7, 0.3, 0.1
-    ExplosionSound: PlasmaHit1
+    ExplosionSound: emdBounce
     ExplosionTexture: EMDOrangeHit
-    ExplosionSize: 0.6
+    ExplosionSize: 2.1
     ExplosionTime: 0.4
 
   - id: 35

@@ -93,8 +93,7 @@ namespace Inferno {
 
     // Returns true if the point was transparent
     bool WallPointIsTransparent(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
-        if (!WallIsTransparent(level, tag))
-            return false; // only hit test walls with transparent textures
+        if (!seg.SideIsSolid(tag.Side, level)) return true;
 
         auto uv = IntersectFaceUVs(level, pnt, seg, tag, tri);
         auto& side = seg.GetSide(tag.Side);
@@ -1003,7 +1002,7 @@ namespace Inferno {
                         hit.Tag = tag;
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side.Tangents[tri ];
+                        hit.Tangent = face.Side.Tangents[tri];
                         hit.WallPoint = hit.Point = ray.position + ray.direction * dist;
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
@@ -1403,9 +1402,6 @@ namespace Inferno {
         SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
         VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
-        auto soundRes = Resources::GetSoundResource(soundId);
-        soundRes.D3 = weapon.Extended.ExplosionSound;
-
         bool addDecal = !weapon.Extended.Decal.empty();
         bool hitLiquid = false;
         bool hitForcefield = false;
@@ -1493,7 +1489,7 @@ namespace Inferno {
                     Render::AddDecal(decal);
             }
 
-            if (!weapon.Extended.ExplosionTexture.empty()) {
+            if (!weapon.Extended.ExplosionTexture.empty() && !obj.Physics.CanBounce()) {
                 // Add the planar explosion effect
                 decal.Texture = weapon.Extended.ExplosionTexture;
                 decal.Radius = weapon.Extended.ExplosionSize;
@@ -1529,6 +1525,10 @@ namespace Inferno {
         dir.Normalize();
 
         if (soundId != SoundID::None) {
+            auto soundRes = Resources::GetSoundResource(soundId);
+            if (!hitLiquid)
+                soundRes.D3 = weapon.Extended.ExplosionSound;
+
             Sound3D sound(hit.WallPoint, hit.Tag.Segment);
             sound.Resource = soundRes;
             sound.Source = obj.Parent;
