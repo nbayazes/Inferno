@@ -36,18 +36,18 @@ namespace Inferno {
             return Face(v0, v1, v2, v3, seg.GetSide(side), seg.GetVertexIndices(side));
         }
 
-        // Returns 0 if no hit, 1 if hit tri 0, 2 if hit tri 1
+        // Returns -1 if no hit, 0 if hit tri 0, 1 if hit tri 1
         int Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
             auto i = Side.GetRenderIndices();
             bool hitTri0 = hitBackface || Side.Normals[0].Dot(ray.direction) < 0;
             bool hitTri1 = hitBackface || Side.Normals[1].Dot(ray.direction) < 0;
             if (hitTri0 && ray.Intersects(GetPoint(i[0]), GetPoint(i[1]), GetPoint(i[2]), dist))
-                return 1;
+                return 0;
 
             if (hitTri1 && ray.Intersects(GetPoint(i[3]), GetPoint(i[4]), GetPoint(i[5]), dist))
-                return 2;
+                return 1;
 
-            return 0;
+            return -1;
         }
 
         Array<Vector3, 4> CopyPoints() const {

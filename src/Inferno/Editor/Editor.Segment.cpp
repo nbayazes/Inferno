@@ -515,7 +515,7 @@ namespace Inferno::Editor {
             if (flatness <= 0.80f) return true;
 
             float dist{};
-            if (tface.Intersects(ray, dist, true) && dist > 0.01f/*&& dist < maxDist*/)
+            if (tface.Intersects(ray, dist, true) != -1 && dist > 0.01f/*&& dist < maxDist*/)
                 if (dist < maxDist)
                     return true;
         }

@@ -40,6 +40,7 @@ namespace Inferno::Game {
         ControlCenterDestroyed = false;
         TotalCountdown = CountdownSeconds = -1;
         CountdownTimer = -1.0f;
+        ScreenFlash = Color();
     }
 
     void LoadLevel(Inferno::Level&& level) {
@@ -547,7 +548,7 @@ namespace Inferno::Game {
             dir.Normalize();
             Ray ray(position, dir);
             LevelHit hit;
-            if (d <= maxDist && d < minDist && !IntersectLevel(Level, ray, seg, d, true, hit)) {
+            if (d <= maxDist && d < minDist && !IntersectLevel(Level, ray, seg, d, false, true, hit)) {
                 id = (ObjID)i;
                 minDist = d;
             }
@@ -1000,6 +1001,7 @@ namespace Inferno::Game {
         StuckObjects = {};
         Render::ResetParticles();
         Sound::Reset();
+        Resources::LoadGameTable();
 
         Editor::SetPlayerStartIDs(Level);
         Gravity = Level.Objects[0].Rotation.Up() * -DEFAULT_GRAVITY;

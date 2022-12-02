@@ -86,8 +86,8 @@ namespace Inferno {
         bool Intersects(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const;
     };
 
-    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, LevelHit& hit);
+    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit);
     HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
     bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
-    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool transparent);
+    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent);
 }

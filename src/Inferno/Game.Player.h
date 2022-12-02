@@ -9,7 +9,7 @@ namespace Inferno {
     constexpr float MAX_ENERGY = 200;
     constexpr float MAX_SHIELDS = 200;
     constexpr float OMEGA_CHARGE_COST = 1.0f / 8; // charge cost to fire one shot of omega
-    constexpr float OMEGA_RECHARGE_TIME = 2; // time to fully recharge omega
+    constexpr float OMEGA_RECHARGE_TIME = 3; // time to fully recharge omega (original: 4)
     constexpr float OMEGA_RECHARGE_ENERGY = 4; // energy to fully recharge omega
     constexpr float OMEGA_RECHARGE_DELAY = 1.0f / 4; // how long before recharging starts
 

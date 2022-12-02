@@ -2,10 +2,10 @@
 #define MAGIC_ENUM_RANGE_MIN 0
 #define MAGIC_ENUM_RANGE_MAX 256
 #include <magic_enum.hpp>
-
-#include <fstream>
-#include "Settings.h"
 #include <spdlog/spdlog.h>
+#include <fstream>
+
+#include "Settings.h"
 #include "Yaml.h"
 #include "Editor/Bindings.h"
 
@@ -345,7 +345,7 @@ namespace Inferno {
 
                 auto dataPaths = root["DataPaths"];
                 if (!dataPaths.is_seed()) {
-                    for (const auto& c : root["DataPaths"].children()) {
+                    for (const auto& c : dataPaths.children()) {
                         filesystem::path dataPath;
                         ReadValue(c, dataPath);
                         if (!dataPath.empty()) Settings::Inferno.DataPaths.push_back(dataPath);

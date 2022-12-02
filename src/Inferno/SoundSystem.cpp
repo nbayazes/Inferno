@@ -90,7 +90,7 @@ namespace Inferno::Sound {
                         // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;
-                        if (IntersectLevel(Game::Level, ray, Segment, dist, true, hit)) {
+                        if (IntersectLevel(Game::Level, ray, Segment, dist, true, false, hit)) {
                             auto hitDist = (listener - hit.Point).Length();
                             // we hit a wall, muffle it based on the distance from the source
                             // a sound coming immediately around the corner shouldn't get muffled much
@@ -254,7 +254,6 @@ namespace Inferno::Sound {
                 catch (const std::exception& e) {
                     SPDLOG_ERROR("Error in audio worker: {}", e.what());
                 }
-
                 RequestStopSounds = false;
                 std::this_thread::sleep_for(pollRate);
             }

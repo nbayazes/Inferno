@@ -196,26 +196,28 @@ namespace Inferno::Game {
 
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
-            bullet.Radius = weapon.BlobSize;
+            bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
             Render::LoadTextureDynamic(weapon.BlobBitmap);
         }
         else if (weapon.RenderType == WeaponRenderType::VClip) {
             bullet.Render.Type = RenderType::WeaponVClip;
             bullet.Render.VClip.ID = weapon.WeaponVClip;
-            bullet.Radius = weapon.BlobSize;
+            bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
             Render::LoadTextureDynamic(weapon.WeaponVClip);
         }
         else if (weapon.RenderType == WeaponRenderType::Model) {
             bullet.Render.Type = RenderType::Model;
 
-            if (!weapon.Extended.ModelPath.empty()) {
-                bullet.Radius = weapon.Extended.Size; // if D3 model is present, use the defined radius
-                bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.ModelPath);
+            auto& model = Resources::GetModel(weapon.Model);
+            bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : model.Radius / weapon.ModelSizeRatio;
+            if (bullet.Radius < 0) bullet.Radius = 1;
+
+            if (!weapon.Extended.Model.empty()) {
+                bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.Model);
                 bullet.Render.Model.Outrage = true;
                 bullet.Scale = weapon.Extended.ModelScale;
             }
             else {
-                auto& model = Resources::GetModel(weapon.Model);
                 bullet.Radius = model.Radius / weapon.ModelSizeRatio;
                 bullet.Render.Model.ID = weapon.Model;
             }
@@ -351,7 +353,7 @@ namespace Inferno::Game {
             LevelHit hit;
 
             if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
-                !IntersectLevel(Game::Level, targetRay, src.Segment, odist, true, hit)) {
+                !IntersectLevel(Game::Level, targetRay, src.Segment, odist, false, true, hit)) {
                 minDist = odist;
                 result = (ObjID)i;
             }
@@ -507,7 +509,7 @@ namespace Inferno::Game {
             dir.Normalize();
 
             LevelHit hit;
-            if (IntersectLevel(Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, true, hit)) {
+            if (IntersectLevel(Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, false, true, hit)) {
                 tracer.End = beam.End = hit.Point;
                 spark.Position = beam.End;
                 spark.Segment = hit.Tag.Segment;

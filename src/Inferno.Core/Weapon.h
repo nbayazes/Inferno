@@ -104,9 +104,9 @@ namespace Inferno {
         string Name; // Name in fullscreen HUD
         string ShortName; // Name in cockpit window
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
-        string ScorchTexture = "scorchA"; // Texture to use for wall burn marks
-        float ScorchRadius = 1; // Radius of scorch marks. 0 uses a ratio of impact size.
-        string ModelPath;
+        string Decal = "scorchA"; // Texture to apply to walls when hit
+        float DecalRadius = 1; // Radius of decals. 0 uses a ratio of impact size.
+        string Model;
         float ModelScale = 1;
 
         string ExplosionTexture; // Texture to use when exploding, overrides vclip
@@ -126,12 +126,12 @@ namespace Inferno {
 
         bool SilentSelectFail = false; // Hide HUD errors when selecting
         Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
-        Color Glow = {}; // For emissive glows
+        Color Glow = { 0.01f, 0.01f, 0.01f }; // For emissive glows
         int Bounces = 0;
         bool Sticky = false; // Sticks to surfaces once Bounces = 0
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing
         Vector3 RotationalVelocity; // Initial rotational velocity
-        float Size = 1; // Overrides Blob Size and Model Size
+        float Size = -1; // Overrides Blob Size and Model Size
 
         //struct FiringPattern {
         //    string Crosshair;
@@ -167,7 +167,7 @@ namespace Inferno {
         VClipID RobotHitVClip = VClipID::None;
         SoundID RobotHitSound = SoundID::None;
 
-        sbyte AmmoUsage = 0;
+        int AmmoUsage = 0;
         VClipID WeaponVClip = VClipID::None;
 
         VClipID WallHitVClip = VClipID::None;

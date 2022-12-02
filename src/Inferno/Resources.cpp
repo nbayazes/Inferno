@@ -9,6 +9,7 @@
 #include "logging.h"
 #include "Graphics/Render.h"
 #include <Briefing.h>
+#include "GameTable.h"
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
@@ -354,16 +355,8 @@ namespace Inferno::Resources {
         auto getWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
         auto& fusion = getWeapon(WeaponID::Fusion);
         fusion.Extended.Chargable = true;
-        fusion.Extended.ScorchTexture = "scorchC";
-        fusion.Extended.ScorchRadius = 3.25f;
-        fusion.Extended.Glow = Color{ 0.20f, 0.0f, 0.45f };
         fusion.EnergyUsage = 2.0f; // 2.0 matches original behavior
-        fusion.Extended.ModelPath = "FusionBlobNewJ.OOF";
-        fusion.Extended.RotationalVelocity = Vector3{ 0, 0, DirectX::XM_PIDIV2 };
-        //fusion.Flags |= WeaponFlag::FixedRotationalVelocity
-        fusion.ModelSizeRatio = 2.5f;
-        fusion.Extended.Size = 2.1f;
-        // fusion.HitEffect = "FusionHit1"
+        fusion.ModelSizeRatio = 2.5f; // Adjust radius to fit model better
 
         constexpr float LASER_MASS = 0.05f;
         constexpr float LASER_SCALE = 0.7f;
@@ -372,14 +365,6 @@ namespace Inferno::Resources {
         getWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.15;
         getWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.15;
         getWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.15;
-
-        getWeapon(WeaponID::Laser1).Extended.ModelPath = "RedLaser.OOF";
-        getWeapon(WeaponID::Laser2).Extended.ModelPath = "bluelaser.OOF";
-        getWeapon(WeaponID::Laser3).Extended.ModelPath = "PurpleLaser.OOF";
-        getWeapon(WeaponID::Laser4).Extended.ModelPath = "GreenLaser.OOF";
-        getWeapon(WeaponID::Laser1).Extended.ExplosionTexture = "RedLaserHit";
-        getWeapon(WeaponID::Laser1).Extended.ExplosionSound = "LazorHitshrt";
-        getWeapon(WeaponID::Laser1).Extended.ExplosionSize = 1.75f;
 
         getWeapon(WeaponID::Laser1).Extended.ModelScale =
             getWeapon(WeaponID::Laser2).Extended.ModelScale =
@@ -398,55 +383,28 @@ namespace Inferno::Resources {
 
         auto& vulcan = getWeapon(WeaponID::Vulcan);
         vulcan.Extended.Behavior = "vulcan";
-        vulcan.Extended.ScorchTexture = "BulletHole01";
-        vulcan.Extended.ExplosionSize = 0.6f;
-        vulcan.Extended.ExplosionTexture = "vaussimpact";
-        vulcan.Extended.ExplosionTime = 0.8f;
-        vulcan.AmmoUsage = 10;
-        vulcan.Damage.fill(8);
-
 
         getWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
         getWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
 
-        getWeapon(WeaponID::Plasma).Extended.ScorchTexture = "scorchB";
-        getWeapon(WeaponID::Plasma).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
-
         getWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
-
-        getWeapon(WeaponID::Concussion).Extended.ScorchTexture = "scorchC";
-        getWeapon(WeaponID::Concussion).Extended.ScorchRadius = 4;
 
         getWeapon(WeaponID::Flare).Extended.Sticky = true;
         getWeapon(WeaponID::Flare).FireDelay = 0.5f;
         getWeapon(WeaponID::Flare).Lifetime = 30.0f;
-        //GetWeapon(WeaponID::Flare).Extended.ModelPath = "FlareYellowBright.OOF";
-        //GetWeapon(WeaponID::Flare).Extended.ModelPath = "Buddybot.oof";
-        //GetWeapon(WeaponID::Flare).Speed.fill(0);
         getWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
 
-        auto& smart = getWeapon(WeaponID::Smart);
-        smart.Extended.ModelPath = "smartmissile.OOF";
-
         auto& mega = getWeapon(WeaponID::Mega).Extended;
-        mega.ScorchTexture = "scorchC";
-        mega.ScorchRadius = 8.0f;
 
         if (GameData.Weapons.size() < 35) return;
         // D2 WEAPONS BELOW!
 
         getWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
         getWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
-        getWeapon(WeaponID::Laser5).Extended.ModelPath = "YellowLaser.OOF";
-        getWeapon(WeaponID::Laser6).Extended.ModelPath = "WhiteLaser.OOF";
-        getWeapon(WeaponID::Laser5).Extended.ModelScale = LASER_SCALE;
-        getWeapon(WeaponID::Laser6).Extended.ModelScale = LASER_SCALE;
         getWeapon(WeaponID::Laser5).Mass = LASER_MASS;
         getWeapon(WeaponID::Laser6).Mass = LASER_MASS;
 
-        getWeapon(WeaponID::Phoenix).Extended.Glow = Color{ 0.7f, 0.3f, 0.1f };
         getWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
-        getWeapon(WeaponID::Phoenix).Extended.ScorchTexture = "scorchB";
         getWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
 
         getWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
@@ -455,23 +413,15 @@ namespace Inferno::Resources {
         auto& omega = getWeapon(WeaponID::Omega);
         omega.Extended.Behavior = "omega";
         omega.FireDelay = 1.0f / 8;
-        omega.Damage.fill(3);
-        omega.RobotHitVClip = omega.WallHitVClip = VClipID::None; // todo: replace with planar wall effect
-        omega.WallHitSound = SoundID::None;
+        omega.Damage.fill(32); // hard coded 32 damage mult in original
 
         getWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
 
         auto& gauss = getWeapon(WeaponID::Gauss);
-        gauss.AmmoUsage = 60; // 26
-        gauss.Damage.fill(20);
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
-        gauss.Extended.ScorchTexture = "BulletHole02";
-        gauss.Extended.ScorchRadius = 1.75f;
 
         auto& shaker = getWeapon(WeaponID::Shaker).Extended;
-        shaker.ScorchTexture = "scorchC";
-        shaker.ScorchRadius = 8.0f;
 
         GameData.Robots[37].Mass = 2; // IT droid
     }
@@ -593,6 +543,10 @@ namespace Inferno::Resources {
         }
     }
 
+    void LoadGameTable() {
+        LoadGameTable("game.yml", GameData);
+    }
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
@@ -612,6 +566,7 @@ namespace Inferno::Resources {
 
             FixObjectModelIds(level);
             LoadExtendedWeaponInfo();
+            LoadGameTable();
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());
@@ -621,8 +576,8 @@ namespace Inferno::Resources {
     const PigBitmap& ReadBitmap(TexID id) {
         //std::scoped_lock lock(PigMutex);
         if (Textures.empty()) {
-            static const PigBitmap empty(64, 64, "default");
-            return empty;
+            static const PigBitmap EMPTY(64, 64, "default");
+            return EMPTY;
         }
 
         if (CustomTextures.contains(id)) return CustomTextures[id];

@@ -34,7 +34,7 @@ namespace Inferno::Editor {
                 for (int i = 0; i < 2; i++) {
                     auto face = Face::FromSide(level, seg, side);
                     float dist;
-                    if (face.Intersects(ray, dist)) {
+                    if (face.Intersects(ray, dist) != -1) {
                         auto intersect = ray.position + dist * ray.direction;
                         int16 edge = 0;
                         if (mode == SelectionMode::Point)

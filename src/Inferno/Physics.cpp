@@ -92,7 +92,7 @@ namespace Inferno {
     }
 
     // Returns true if the point was transparent
-    bool CheckTransparentWall(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
+    bool WallPointIsTransparent(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
         if (!WallIsTransparent(level, tag))
             return false; // only hit test walls with transparent textures
 
@@ -966,7 +966,7 @@ namespace Inferno {
     }
 
     // intersects a ray with the level, returning hit information
-    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, LevelHit& hit) {
+    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit) {
         if (start == SegID::None) return false;
         if (maxDist <= 0.01f) return false;
         SegID next = start;
@@ -982,19 +982,28 @@ namespace Inferno {
 
                 float dist{};
                 auto tri = face.Intersects(ray, dist);
-                if (tri && dist < hit.Distance) {
+                if (tri != -1 && dist < hit.Distance) {
                     if (dist > maxDist) return {}; // hit is too far
 
-                    // if the pass transparent flag is set, treat transparent walls as non-solid
-                    bool isSolid = passTransparent ?
-                        !WallIsTransparent(level, { segId, side }) :
-                        seg.SideIsSolid(side, level);
+                    auto intersect = hit.Point = ray.position + ray.direction * dist;
+                    Tag tag{ segId, side };
+
+                    bool isSolid = false;
+                    if (seg.SideIsWall(side) && WallIsTransparent(level, tag)) {
+                        if (passTransparent)
+                            isSolid = false;
+                        else
+                            isSolid = !WallPointIsTransparent(level, intersect, seg, tag, tri);
+                    }
+                    else {
+                        isSolid = seg.SideIsSolid(side, level);
+                    }
 
                     if (isSolid) {
-                        hit.Tag = { segId, side };
+                        hit.Tag = tag;
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side.Tangents[tri - 1];
+                        hit.Tangent = face.Side.Tangents[tri ];
                         hit.WallPoint = hit.Point = ray.position + ray.direction * dist;
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
@@ -1045,7 +1054,7 @@ namespace Inferno {
                     if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
                         Tag tag(segId, side);
                         if (object.Type == ObjectType::Weapon) {
-                            if (CheckTransparentWall(level, refPoint, seg, tag, tri))
+                            if (WallPointIsTransparent(level, refPoint, seg, tag, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
                         }
 
@@ -1083,7 +1092,7 @@ namespace Inferno {
         dir.Normalize();
         Ray ray(a.Position, dir);
         LevelHit hit;
-        return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, hit);
+        return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
     }
 
     //void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
@@ -1237,7 +1246,7 @@ namespace Inferno {
             dir.Normalize();
             Ray ray(explosion.Position, dir);
             LevelHit hit;
-            if (IntersectLevel(level, ray, explosion.Segment, dist, true, hit))
+            if (IntersectLevel(level, ray, explosion.Segment, dist, true, false, hit))
                 continue; // 
 
             float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
@@ -1397,7 +1406,7 @@ namespace Inferno {
         auto soundRes = Resources::GetSoundResource(soundId);
         soundRes.D3 = weapon.Extended.ExplosionSound;
 
-        bool addDecal = !weapon.Extended.ScorchTexture.empty();
+        bool addDecal = !weapon.Extended.Decal.empty();
         bool hitLiquid = false;
         bool hitForcefield = false;
 
@@ -1459,7 +1468,7 @@ namespace Inferno {
         }
 
         if (addDecal) {
-            auto decalSize = weapon.Extended.ScorchRadius ? weapon.Extended.ScorchRadius : weapon.ImpactSize / 3;
+            auto decalSize = weapon.Extended.DecalRadius ? weapon.Extended.DecalRadius : weapon.ImpactSize / 3;
 
             Render::DecalInfo decal{};
             auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
@@ -1469,7 +1478,7 @@ namespace Inferno {
             decal.Position = hit.Point;
             decal.Segment = hit.Tag.Segment;
             decal.Side = hit.Tag.Side;
-            decal.Texture = weapon.Extended.ScorchTexture;
+            decal.Texture = weapon.Extended.Decal;
 
             // check that decal isn't too close to edge due to lack of clipping
             if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) {
@@ -1663,12 +1672,24 @@ namespace Inferno {
             else {
                 Vector3 dir;
                 delta.Normalize(dir);
-                BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
 
-                if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
-                    //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-                    Debug::ClosestPoints.push_back(hit.Point);
-                    Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                if (obj.Radius < 0.1) {
+                    Ray ray(obj.LastPosition, dir);
+                    auto maxDist = (dir * obj.Physics.Velocity).Length();
+                    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
+                        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+                        Debug::ClosestPoints.push_back(hit.Point);
+                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                    }
+                }
+                else {
+                    BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
+
+                    if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
+                        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+                        Debug::ClosestPoints.push_back(hit.Point);
+                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                    }
                 }
             }
 
