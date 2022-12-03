@@ -143,7 +143,7 @@ namespace Inferno {
         int Version{};
         LevelLimits Limits = { 1 };
 
-        DataPool<ActiveDoor> ActiveDoors{ ActiveDoor::IsAlive, 20 };
+        DataPool<ActiveDoor> ActiveDoors{ &ActiveDoor::IsAlive, 20 };
 
 
 #pragma region EditorProperties

@@ -367,16 +367,11 @@ namespace Inferno {
             Position = Vector3::Transform(Position, m);
         }
 
-        static bool IsAliveFn(const Object& obj) {
-            return !HasFlag(obj.Flags, ObjectFlag::Dead);
-        }
-
         void ApplyDamage(float damage) {
             HitPoints -= damage;
         }
 
-
-        bool IsAlive() const { return IsAliveFn(*this); }
+        bool IsAlive() const { return !HasFlag(Flags, ObjectFlag::Dead); }
 
         float Distance(const Object& obj) const {
             return Vector3::Distance(Position, obj.Position);

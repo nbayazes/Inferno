@@ -94,7 +94,7 @@ namespace Inferno {
         WallID Back = WallID::None;
         float Time = -1;
         int Parts = 0;
-        static bool IsAlive(const ActiveDoor& d) { return d.Time >= 0; }
+        bool IsAlive() const { return Time >= 0; }
     };
 
     constexpr int16 MAX_TRIGGER_TARGETS = 10;

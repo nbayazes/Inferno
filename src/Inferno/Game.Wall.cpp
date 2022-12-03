@@ -138,7 +138,7 @@ namespace Inferno {
 
     bool DoorIsObstructed(Level& level, Tag tag) {
         auto other = level.GetConnectedSide(tag);
-        for (auto& obj : level.Objects | views::filter(Object::IsAliveFn)) {
+        for (auto& obj : level.Objects | views::filter(&Object::IsAlive)) {
             if (obj.Segment == tag.Segment || obj.Segment == other.Segment) {
                 DirectX::BoundingSphere sphere(obj.Position, obj.Radius);
                 auto face = Face::FromSide(level, tag);
@@ -397,17 +397,17 @@ namespace Inferno {
     struct ExplodingWall {
         Tag Tag;
         float Time = 0;
-        static bool IsAlive(const ExplodingWall& w) { return w.Tag.HasValue(); }
+        bool IsAlive() const { return Tag.HasValue(); }
     };
 
-    DataPool<ExplodingWall> ExplodingWalls(ExplodingWall::IsAlive, 10);
+    DataPool<ExplodingWall> ExplodingWalls(&ExplodingWall::IsAlive, 10);
 
     void UpdateExplodingWalls(Level& level, float dt) {
         constexpr float EXPLODE_TIME = 1.0f;
         constexpr int TOTAL_FIREBALLS = 32;
 
         for (auto& wall : ExplodingWalls) {
-            if (!ExplodingWall::IsAlive(wall)) continue;
+            if (!wall.IsAlive()) continue;
 
             auto prevFrac = wall.Time / EXPLODE_TIME;
             wall.Time += dt;

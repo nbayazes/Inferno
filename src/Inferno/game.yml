@@ -151,9 +151,9 @@ Weapons:
     Name: gauss
     Decal: BulletHole02
     DecalRadius: 1.75
-    ExplosionTexture: fragparticlehit
-    ExplosionSize: 0.8
-    ExplosionTime: 0.4
+    ExplosionTexture: vaussimpact
+    ExplosionSize: 2.4
+    ExplosionTime: 0.6
     Damage: [ 20, 20, 20, 20, 20 ]
     AmmoUsage: 60
 

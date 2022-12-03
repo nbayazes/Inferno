@@ -19,7 +19,6 @@ namespace Inferno::Render {
         bool IsTransparent = true;
 
         virtual bool IsAlive() { return Life > 0; }
-        static bool IsAliveFn(const EffectBase& e) { return e.Life > 0; }
 
         // Called once per frame
         virtual void Update(float dt) { Life -= dt; }
@@ -111,7 +110,7 @@ namespace Inferno::Render {
         //}
 
         void Update(float dt) override;
-        static bool IsAlive(const ParticleEmitter& p) { return p.Life > 0; }
+        bool IsAlive() const { return Life > 0; }
     };
 
     //void AddEmitter(ParticleEmitter& emitter, size_t capacity);
@@ -153,9 +152,7 @@ namespace Inferno::Render {
         SegID Segment = SegID::None;
         Vector3 Position;
 
-        static bool IsAlive(const ExplosionInfo& info) {
-            return info.InitialDelay >= 0;
-        }
+        bool IsAlive() const { return InitialDelay >= 0; }
     };
 
     void CreateExplosion(ExplosionInfo&);
@@ -192,7 +189,7 @@ namespace Inferno::Render {
             float NextStrikeTime;
         } Runtime{};
 
-        static bool IsAlive(const BeamInfo& info) { return info.Life > 0; }
+        bool IsAlive() const { return Life > 0; }
     };
 
     void AddBeam(BeamInfo&);
@@ -245,11 +242,11 @@ namespace Inferno::Render {
         Vector3 Velocity, PrevVelocity;
         Vector3 Position, PrevPosition;
         SegID Segment = SegID::None;
-        static bool IsAlive(const Spark& s) { return s.Life > 0; }
+        bool IsAlive() const { return Life > 0; }
     };
 
     class SparkEmitter final : public EffectBase {
-        DataPool<Spark> _sparks = { Spark::IsAlive, 100 };
+        DataPool<Spark> _sparks = { &Spark::IsAlive, 100 };
         bool _createdSparks = false;
     public:
         string Texture = "sun";

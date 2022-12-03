@@ -991,7 +991,7 @@ namespace Inferno {
                     if (seg.SideIsWall(side) && WallIsTransparent(level, tag)) {
                         if (passTransparent)
                             isSolid = false;
-                        else
+                        else if (hitTestTextures)
                             isSolid = !WallPointIsTransparent(level, intersect, seg, tag, tri);
                     }
                     else {

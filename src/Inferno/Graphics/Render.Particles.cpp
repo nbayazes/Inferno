@@ -11,14 +11,14 @@ namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
     namespace {
-        DataPool<BeamInfo> Beams(BeamInfo::IsAlive, 50);
+        DataPool<BeamInfo> Beams(&BeamInfo::IsAlive, 50);
         Array<DecalInfo, 100> Decals;
         Array<DecalInfo, 10> AdditiveDecals;
         uint16 DecalIndex = 0;
         uint16 AdditiveDecalIndex = 0;
 
-        DataPool<ExplosionInfo> Explosions(ExplosionInfo::IsAlive, 50);
-        DataPool<ParticleEmitter> ParticleEmitters(ParticleEmitter::IsAlive, 10);
+        DataPool<ExplosionInfo> Explosions(&ExplosionInfo::IsAlive, 50);
+        DataPool<ParticleEmitter> ParticleEmitters(&ParticleEmitter::IsAlive, 10);
         List<List<Ptr<EffectBase>>> SegmentEffects; // equals segment count
     }
 
@@ -87,7 +87,7 @@ namespace Inferno::Render {
     }
 
     void ParticleEmitter::Update(float dt) {
-        if (!ParticleEmitter::IsAlive(*this)) return;
+        if (!IsAlive()) return;
         if ((_startDelay -= dt) > 0) return;
 
         Life -= dt;
@@ -106,17 +106,6 @@ namespace Inferno::Render {
             }
         }
     }
-
-    //void UpdateEmitters(float dt) {
-    //    for (auto& emitter : ParticleEmitters) {
-    //        if (!ParticleEmitter::IsAlive(emitter)) continue;
-    //        emitter.Update(dt);
-
-    //        auto depth = GetRenderDepth(emitter.Position);
-    //        RenderCommand cmd(&emitter, depth);
-    //        //QueueTransparent(cmd);
-    //    }
-    //}
 
     void Debris::Draw(Graphics::GraphicsContext& ctx) {
         auto& model = Resources::GetModel(Model);
@@ -377,7 +366,7 @@ namespace Inferno::Render {
         for (auto& beam : Beams) {
             beam.Life -= Render::FrameTime;
 
-            if (!BeamInfo::IsAlive(beam)) continue;
+            if (!beam.IsAlive()) continue;
 
             if (beam.StartObj != ObjID::None) {
                 if (auto obj = Game::Level.TryGetObject(beam.StartObj)) {
@@ -755,7 +744,7 @@ namespace Inferno::Render {
 
         for (auto& spark : _sparks) {
             spark.Life -= dt;
-            if (!Spark::IsAlive(spark)) continue;
+            if (!spark.IsAlive()) continue;
             spark.PrevPosition = spark.Position;
             spark.PrevVelocity = spark.Velocity;
 
