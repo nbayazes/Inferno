@@ -349,7 +349,7 @@ namespace Inferno::Game {
             TotalCountdown = DefaultCountdownTimes[Difficulty];
         }
 
-        TotalCountdown = 30; // debug
+        //TotalCountdown = 30; // debug
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
 
@@ -401,6 +401,25 @@ namespace Inferno::Game {
         }
 
         {
+            for (int i = 0; i < 4; i++) {
+                Render::BeamInfo tracer;
+                tracer.Start = obj.Position;
+                tracer.StartObj = ObjID(&obj - Level.Objects.data());
+                tracer.Radius = 20 + Random() * 10;
+                tracer.Width = 1.0f + Random() * 0.75f;
+                tracer.Life = CountdownTimer + 5;
+                tracer.Color = Color{ 1.75f, 0.5f + Random() * 0.5f, 1.75f };
+                tracer.Texture = "Lightning4";
+                tracer.Frequency = 1 / 30.0f;
+                tracer.Amplitude = 2.10;
+                tracer.FadeEnd = true;
+                tracer.RandomEnd = true;
+                tracer.StrikeTime = 0.25f + Random() * 0.5f;
+                Render::AddBeam(tracer);
+            }
+        }
+
+        {
             // Small periodic explosions
             Render::ExplosionInfo e;
             e.Radius = { 0.75f, 1.5f };
@@ -409,8 +428,8 @@ namespace Inferno::Game {
             e.Position = obj.Position;
             e.FadeTime = 0.25f;
             e.Variance = obj.Radius * 0.45f;
-            e.Instances = TotalCountdown * 4;
-            e.Delay = { 0.25f, 0.35f };
+            e.Instances = TotalCountdown * 10;
+            e.Delay = { 0.05f, 0.15f };
             Render::CreateExplosion(e);
         }
 

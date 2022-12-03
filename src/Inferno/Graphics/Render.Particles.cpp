@@ -437,6 +437,11 @@ namespace Inferno::Render {
                 beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
             }
 
+            if (beam.RandomEnd && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
+                beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius);
+                beam.Runtime.NextStrikeTime = (float)Render::ElapsedTime + beam.StrikeTime;
+            }
+
             // if (flags.FadeIn) alpha = 0;
 
             struct BeamSeg {

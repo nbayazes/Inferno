@@ -159,18 +159,13 @@ namespace Inferno::Render {
     };
 
     void CreateExplosion(ExplosionInfo&);
-    //void UpdateExplosions(float dt);
-
-    //enum class BeamFlag {
-    //    SineNoise, RandomEnd
-    //};
-
+  
     struct BeamInfo {
         Vector3 Start;
         Vector3 End;
-        ObjID StartObj = ObjID::None;
+        ObjID StartObj = ObjID::None; // attaches start of beam to this object
         int StartObjGunpoint = -1;
-        ObjID EndObj = ObjID::None; // NYI: attaches beam to this object
+        ObjID EndObj = ObjID::None; // attaches end of beam to this object
         float Radius = 0; // If RandomEnd is true, randomly strike targets within this radius
         float Width = 2.0f;
         float Life = 0;
@@ -187,12 +182,14 @@ namespace Inferno::Render {
         float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
         bool FadeEnd = false; // fades the start of the beam to 0 transparency
         bool FadeStart = false; // fades the end of the beam to 0 transparency
+        float StrikeTime = 1; // when using random end, how often to pick a new point
 
         struct {
             float Length;
             int Segments;
             List<float> Noise;
             float NextUpdate;
+            float NextStrikeTime;
         } Runtime{};
 
         static bool IsAlive(const BeamInfo& info) { return info.Life > 0; }
