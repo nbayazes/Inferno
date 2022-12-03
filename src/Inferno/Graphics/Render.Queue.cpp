@@ -12,7 +12,7 @@
 namespace Inferno::Render {
     bool ShouldDrawObject(const Object& obj) {
         if (!obj.IsAlive()) return false;
-        bool gameModeHidden = obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop;
+        bool gameModeHidden = obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop || obj.Type == ObjectType::SecretExitReturn;
         if (Game::GetState() != GameState::Editor && gameModeHidden) return false;
         return true;
     }

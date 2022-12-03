@@ -402,20 +402,20 @@ namespace Inferno::Game {
 
         {
             for (int i = 0; i < 4; i++) {
-                Render::BeamInfo tracer;
-                tracer.Start = obj.Position;
-                tracer.StartObj = ObjID(&obj - Level.Objects.data());
-                tracer.Radius = 20 + Random() * 10;
-                tracer.Width = 1.0f + Random() * 0.75f;
-                tracer.Life = CountdownTimer + 5;
-                tracer.Color = Color{ 1.75f, 0.5f + Random() * 0.5f, 1.75f };
-                tracer.Texture = "Lightning4";
-                tracer.Frequency = 1 / 30.0f;
-                tracer.Amplitude = 2.10;
-                tracer.FadeEnd = true;
-                tracer.RandomEnd = true;
-                tracer.StrikeTime = 0.25f + Random() * 0.5f;
-                Render::AddBeam(tracer);
+                Render::BeamInfo beam;
+                beam.Start = obj.Position;
+                beam.StartObj = ObjID(&obj - Level.Objects.data());
+                beam.Radius = 20 + Random() * 10;
+                beam.Width = 1.0f + Random() * 0.75f;
+                beam.Life = CountdownTimer + 5;
+                beam.Color = Color{ 1.75f, 0.5f + Random() * 0.5f, 1.75f };
+                beam.Texture = "Lightning4";
+                beam.Frequency = 1 / 30.0f;
+                beam.Amplitude = 2.10;
+                beam.FadeEnd = true;
+                beam.RandomEnd = true;
+                beam.StrikeTime = 0.25f + Random() * 0.5f;
+                Render::AddBeam(beam);
             }
         }
 

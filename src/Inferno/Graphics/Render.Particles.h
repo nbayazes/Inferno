@@ -202,7 +202,7 @@ namespace Inferno::Render {
         float Width = 2;
         string Texture, BlobTexture;
         Color Color = { 1, 1, 1 };
-        float FadeSpeed = 0.125f; // How quickly the tracer fades in and out
+        float FadeSpeed = 0.2f; // How quickly the tracer fades in and out
 
         // Runtime vars
         Vector3 End; // Updated in realtime. Used to fade out tracer after object dies.
