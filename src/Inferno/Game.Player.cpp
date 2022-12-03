@@ -15,6 +15,7 @@ namespace Inferno {
     constexpr Color FLASH_RED = { FLASH, 0, 0 };
     constexpr Color FLASH_GOLD = { FLASH * 0.9f, FLASH * 0.9f, FLASH * 0.4f };
     constexpr Color FLASH_POWERUP = { FLASH, 0, FLASH };
+    constexpr Color FLASH_FUSION_CHARGE = { MAX_FLASH * Game::TICK_RATE * 4, 0, MAX_FLASH * Game::TICK_RATE * 4 };
 
     // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
     int GetWeaponPriority(PrimaryWeaponIndex primary) {
@@ -215,6 +216,7 @@ namespace Inferno {
                     Energy = 0;
                 }
 
+                AddScreenFlash(FLASH_FUSION_CHARGE);
                 FusionNextSoundDelay -= dt;
                 if (FusionNextSoundDelay < 0) {
                     if (WeaponCharge > weapon.Extended.MaxCharge) {

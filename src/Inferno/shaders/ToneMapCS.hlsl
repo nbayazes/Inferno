@@ -72,13 +72,13 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     // Load HDR and bloom
     float3 hdrColor = ColorRW[DTid.xy];
+    float l = luminance(hdrColor);
+    if (l > 1.00)
+        hdrColor += (l - 1) / 3;
     hdrColor += g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
     hdrColor *= g_Exposure;
 
     // Tone map to SDR
     ColorRW[DTid.xy] = hdrColor;
 
-    float l = luminance(hdrColor);
-    if (l > 1.00)
-        ColorRW[DTid.xy] += (l - 1) / 4;
 }
