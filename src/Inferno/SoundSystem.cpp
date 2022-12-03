@@ -1,5 +1,4 @@
 #include "pch.h"
-#include <list>
 #include "DirectX.h"
 #include "SoundSystem.h"
 #include "Resources.h"
@@ -38,6 +37,9 @@ namespace Inferno::Sound {
         Ptr<SoundEffectInstance> Instance;
         AudioEmitter Emitter; // Stores position
         double StartTime = 0;
+        bool Alive = false;
+
+        bool IsAlive() const { return Alive; }
 
         void UpdateEmitter(const Vector3& listener, float dt) {
             auto obj = Game::Level.TryGetObject(Source);
@@ -131,7 +133,7 @@ namespace Inferno::Sound {
         Ptr<AudioEngine> Engine;
         List<Ptr<SoundEffect>> SoundsD1, SoundsD2;
         Dictionary<string, Ptr<SoundEffect>> SoundsD3;
-        std::list<Sound3DInstance> SoundInstances;
+        DataPool<Sound3DInstance> SoundInstances(&Sound3DInstance::IsAlive, 50);
 
         AudioListener Listener;
 
@@ -145,6 +147,8 @@ namespace Inferno::Sound {
     }
 
     bool ShouldDispose(const Sound3DInstance& sound) {
+        if (RequestStopSounds) return true;
+
         for (auto& tag : StopSoundTags) {
             if (sound.Segment == tag.Segment && sound.Side == tag.Side)
                 return true;
@@ -211,41 +215,30 @@ namespace Inferno::Sound {
                     //Listener.Velocity = {};
 
                     std::scoped_lock lock(SoundInstancesMutex);
-                    auto sound = SoundInstances.begin();
-                    while (sound != SoundInstances.end()) {
-                        auto state = sound->Instance->GetState();
+                    for (auto& sound : SoundInstances) {
+                        if (!sound.Alive) continue;
+                        auto state = sound.Instance->GetState();
 
-                        bool dispose = ShouldDispose(*sound);
-
-                        if (RequestStopSounds) {
-                            dispose = true;
-                        }
-                        else if (!sound->Looped && state == SoundState::STOPPED) {
-                            if (sound->Started) {
-                                dispose = true; // a one-shot sound finished playing
+                        sound.Alive = !ShouldDispose(sound);
+                        if (!sound.Looped && state == SoundState::STOPPED) {
+                            if (sound.Started) {
+                                sound.Alive = false; // a one-shot sound finished playing
                             }
                             else {
                                 // New sound
-                                sound->Instance->Play();
-                                sound->Started = true;
+                                sound.Instance->Play();
+                                sound.Started = true;
                             }
                         }
 
-                        if (dispose) {
-                            SoundInstances.erase(sound++);
-                            continue;
-                        }
-
-                        sound->UpdateEmitter(Render::Camera.Position, dt);
+                        sound.UpdateEmitter(Render::Camera.Position, dt);
                         // Hack to force sounds caused by the player to be exactly on top of the listener.
                         // Objects and the camera are slightly out of sync due to update timing and threading
-                        if (Game::GetState() == GameState::Game && sound->FromPlayer)
-                            sound->Emitter.Position = Listener.Position;
+                        if (Game::GetState() == GameState::Game && sound.FromPlayer)
+                            sound.Emitter.Position = Listener.Position;
 
-                        if (sound->Instance)
-                            sound->Instance->Apply3D(Listener, sound->Emitter, false);
-
-                        sound++;
+                        if (sound.Instance)
+                            sound.Instance->Apply3D(Listener, sound.Emitter, false);
                     }
 
                     StopSoundUIDs.clear();
@@ -445,25 +438,28 @@ namespace Inferno::Sound {
             }
         }
 
-        auto& s = SoundInstances.emplace_back(sound);
-        s.ID = GetSoundUID();
+        Sound3DInstance s(sound);
+        auto uid = GetSoundUID();
+        s.ID = uid;
         s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-        s.Instance->SetVolume(sound.Volume);
-        s.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
+        s.Instance->SetVolume(s.Volume);
+        s.Instance->SetPitch(std::clamp(s.Pitch, -1.0f, 1.0f));
 
         //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
         s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_CubicCurve;
         s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
         s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
-        s.Emitter.CurveDistanceScaler = sound.Radius;
+        s.Emitter.CurveDistanceScaler = s.Radius;
         s.Emitter.Position = position;
         s.Emitter.DopplerScaler = 1.0f;
-        s.Emitter.InnerRadius = sound.Radius / 6;
+        s.Emitter.InnerRadius = s.Radius / 6;
         s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
         s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
         s.StartTime = Game::Time;
+        s.Alive = true;
 
-        return s.ID;
+        SoundInstances.AddBack(std::move(s));
+        return uid;
     }
 
     void Reset() {

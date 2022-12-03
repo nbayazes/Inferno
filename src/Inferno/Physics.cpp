@@ -1245,8 +1245,8 @@ namespace Inferno {
             dir.Normalize();
             Ray ray(explosion.Position, dir);
             LevelHit hit;
-            if (IntersectLevel(level, ray, explosion.Segment, dist, true, false, hit))
-                continue; // 
+            if (IntersectLevel(level, ray, explosion.Segment, dist, true, true, hit))
+                continue;
 
             float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
             float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;

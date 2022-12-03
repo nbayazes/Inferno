@@ -309,7 +309,7 @@ namespace Inferno {
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
         Game::FireWeapon(ID, 7, id);
-        ammo -= weapon.AmmoUsage;
+        ammo -= (uint16)weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
         if (ammo == 0 && !Game::Level.IsDescent1()) {
@@ -357,7 +357,7 @@ namespace Inferno {
 
         if (!weapon.Extended.Chargable) {
             AddEnergy(-weapon.EnergyUsage); // Charged weapons drain energy on button down
-            PrimaryAmmo[1] -= weapon.AmmoUsage; // only vulcan ammo
+            PrimaryAmmo[1] -= (uint16)weapon.AmmoUsage; // only vulcan ammo
         }
 
         auto& ship = PyroGX;
@@ -416,7 +416,7 @@ namespace Inferno {
         }
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
-        SecondaryAmmo[(int)Secondary] -= weapon.AmmoUsage;
+        SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
         // Swap to different weapon if ammo == 0
 
         if (!CanFireSecondary(Secondary))

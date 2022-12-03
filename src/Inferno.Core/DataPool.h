@@ -39,6 +39,19 @@ namespace Inferno {
             return TKey(_data.size() - 1);
         }
 
+        TKey AddBack(TData&& data) {
+            for (size_t i = 0; i < _data.size(); i++) {
+                if (!_aliveFn(_data[i])) {
+                    _data[i] = std::move(data);
+                    return (TKey)i;
+                }
+            }
+
+            _liveItems++;
+            _data.push_back(std::move(data));
+            return TKey(_data.size() - 1);
+        }
+
         // Allocates an element
         [[nodiscard]] TData& Alloc() {
             return Get(Add({}));
