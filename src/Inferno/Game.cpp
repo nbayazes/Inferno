@@ -1111,14 +1111,13 @@ namespace Inferno::Game {
         // Reset shields and energy to at least 100 on level start
         Player.Shields = std::max(Player.Shields, 100.0f);
         Player.Energy = std::max(Player.Energy, 100.0f);
-        Player.Energy = 10;
 
         // Max vulcan ammo changes between D1 and D2
         PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Level.IsDescent1() ? 10000 : 20000;
 
         Player.PrimaryWeapons = 0xffff;
         Player.SecondaryWeapons = 0xffff;
-        std::ranges::generate(Player.SecondaryAmmo, [] { return 5; });
+        std::ranges::generate(Player.SecondaryAmmo, [] { return 10; });
         std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
     }
 

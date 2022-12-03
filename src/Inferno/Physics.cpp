@@ -710,44 +710,52 @@ namespace Inferno {
 
     bool BoundingCapsule::Intersects(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const {
         if (p0 == p1 || p1 == p2 || p2 == p0) return false; // Degenerate check
-        auto base = A;
-        auto tip = B;
         // Compute capsule line endpoints A, B like before in capsule-capsule case:
-        auto capsuleNormal = tip - base;
+        auto capsuleNormal = B - A;
         capsuleNormal.Normalize();
-        if (capsuleNormal.Dot(faceNormal) > 0)
-            return false; // skip backfacing. This might be undesireable for some capsule tests.
 
-        //auto offset = capsuleNormal * Radius; // line end offset
-        //auto a = base + offset; // base
-        //auto b = tip - offset; // tip
+        if (capsuleNormal.Dot(faceNormal) < 0) {
+            // only do projections if triangle faces towards the capsule
 
-        //Render::Debug::DrawLine(a, b, { 1, 0, 0 });
+            //auto offset = capsuleNormal * Radius; // line end offset
+            //auto a = base + offset; // base
+            //auto b = tip - offset; // tip
 
-        // Project the line onto plane
-        Ray r(A, capsuleNormal);
-        Plane p(p0, p1, p2);
-        auto linePlaneIntersect = ProjectRayOntoPlane(r, p0, p.Normal());
-        auto inside = PointInTriangle(p0, p1, p2, linePlaneIntersect);
+            //Render::Debug::DrawLine(a, b, { 1, 0, 0 });
 
-        if (inside) {
-            refPoint = linePlaneIntersect;
-            //Render::Debug::DrawPoint(refPoint, { 0, 1, 0 });
+            // Project the line onto plane
+            Ray r(A, capsuleNormal);
+            Plane p(p0, p1, p2);
+            auto linePlaneIntersect = ProjectRayOntoPlane(r, p0, p.Normal());
+            auto inside = PointInTriangle(p0, p1, p2, linePlaneIntersect);
+
+            if (inside) {
+                refPoint = linePlaneIntersect;
+                //Render::Debug::DrawPoint(refPoint, { 0, 1, 0 });
+            }
+            else {
+                refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
+                //Render::Debug::DrawPoint(refPoint, { 0, 1, 1 });
+            }
+
+            auto center = ClosestPointOnLine(A, B, refPoint);
+            DirectX::BoundingSphere sphere(center, Radius);
+
+            auto [point, idist] = IntersectTriangleSphere(p0, p1, p2, sphere);
+
+            if (idist != FLT_MAX) {
+                refPoint = point;
+
+                normal = idist == 0 ? faceNormal : center - point;
+                normal.Normalize();
+                dist = idist;
+                return idist < Radius;
+            }
         }
-        else {
-            refPoint = ClosestPointOnTriangle(p0, p1, p2, linePlaneIntersect);
-            //Render::Debug::DrawPoint(refPoint, { 0, 1, 1 });
-        }
 
-        auto center = ClosestPointOnLine(A, B, refPoint);
-        DirectX::BoundingSphere sphere(center, Radius);
-
+        // projection didn't intersect triangle, check if end does
+        DirectX::BoundingSphere sphere{ B, Radius };
         auto [point, idist] = IntersectTriangleSphere(p0, p1, p2, sphere);
-        refPoint = point;
-
-        normal = idist == 0 ? faceNormal : center - point;
-        normal.Normalize();
-        dist = idist;
         return idist < Radius;
     }
 
@@ -1037,8 +1045,6 @@ namespace Inferno {
                 hit.Update(info, &target);
             }
         }
-
-        //if (hit) return hit; // Objects will always be inside of a segment, no need to check walls if we hit something
 
         for (auto& side : SideIDs) {
             auto face = Face::FromSide(level, seg, side);
@@ -1647,7 +1653,7 @@ namespace Inferno {
 
             if (obj.Physics.Wiggle > 0) {
                 auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
-                WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
+                //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
             }
 
             obj.Physics.InputVelocity = obj.Physics.Velocity;
