@@ -115,15 +115,15 @@ namespace Inferno::Render {
                         if (cmd.Data.Object->Type == ObjectType::Robot)
                             model = Resources::GetRobotInfo(object.ID).Model;
 
-                        auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
-                        if (object.Type == ObjectType::Weapon && inner > ModelID::None && inner != ModelID(255)) {
+                        auto& effect = Effects->DepthObject;
+                        if (object.Type == ObjectType::Weapon) {
                             // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
-                            ctx.ApplyEffect(Effects->DepthObjectFlipped);
-                        }
-                        else {
-                            ctx.ApplyEffect(Effects->DepthObject);
+                            auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
+                            if (inner > ModelID::None && inner != ModelID(255))
+                                effect = Effects->DepthObjectFlipped;
                         }
 
+                        ctx.ApplyEffect(effect);
                         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
                         ModelDepthPrepass(cmdList, object, model);
                     }
