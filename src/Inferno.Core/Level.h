@@ -64,7 +64,7 @@ namespace Inferno {
     };
 
     struct LevelFileInfo {
-        static constexpr uint16 Signature = 0x6705;
+        static constexpr uint16 SIGNATURE = 0x6705;
         uint16 GameVersion;
         int32 Size;
         string FileName; // Unused
@@ -97,9 +97,9 @@ namespace Inferno {
         int FlickeringLights = 0;
     };
 
-    constexpr auto MaxDynamicLights = 500;
-    constexpr uint8 MaxDeltasPerLight = 255;
-    constexpr auto MaxLightDeltas = 32000; // Rebirth limit. Original D2: 10000
+    constexpr auto MAX_DYNAMIC_LIGHTS = 500;
+    constexpr uint8 MAX_DELTAS_PER_LIGHT = 255;
+    constexpr auto MAX_LIGHT_DELTAS = 32000; // Rebirth limit. Original D2: 10000
     constexpr int DEFAULT_REACTOR_COUNTDOWN = 30;
 
     struct Level {
@@ -123,7 +123,7 @@ namespace Inferno {
 
         string Name; // Name displayed on automap
 
-        static constexpr int MaxNameLength = 35; // +1 for null terminator
+        static constexpr int MAX_NAME_LENGTH = 35; // +1 for null terminator
 
         int32 StaticLights = 0;
         int32 DynamicLights = 0;

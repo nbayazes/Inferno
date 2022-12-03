@@ -264,7 +264,7 @@ namespace Inferno {
         }
 
         void WriteLevelFileInfo(StreamWriter& writer, const LevelFileInfo& info) {
-            writer.Write(info.Signature);
+            writer.Write(info.SIGNATURE);
             writer.Write(info.GameVersion);
             writer.Write(info.Size);
             writer.WriteString(info.FileName, 15);
@@ -485,9 +485,9 @@ namespace Inferno {
 
             if (info.GameVersion >= 14) {
                 if (info.GameVersion >= 31)
-                    writer.WriteNewlineTerminatedString(level.Name, Level::MaxNameLength + 1);
+                    writer.WriteNewlineTerminatedString(level.Name, Level::MAX_NAME_LENGTH + 1);
                 else
-                    writer.WriteCString(level.Name, Level::MaxNameLength + 1);
+                    writer.WriteCString(level.Name, Level::MAX_NAME_LENGTH + 1);
             }
 
             WritePofData(writer, level);

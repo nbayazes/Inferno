@@ -500,7 +500,7 @@ namespace Inferno {
                 _deltaLights = ReadHeader();
             }
 
-            level.Name = _reader.ReadStringToNewline(Level::MaxNameLength + 1);
+            level.Name = _reader.ReadStringToNewline(Level::MAX_NAME_LENGTH + 1);
 
             // Read object file names (unused)
             //auto pofNames = _reader.ReadInt16();

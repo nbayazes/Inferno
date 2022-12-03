@@ -288,11 +288,11 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            char name[Level::MaxNameLength]{};
-            LevelName.copy(name, std::min((int)LevelName.size(), Level::MaxNameLength));
+            char name[Level::MAX_NAME_LENGTH]{};
+            LevelName.copy(name, std::min((int)LevelName.size(), Level::MAX_NAME_LENGTH));
 
             SetInitialFocus();
-            if (ImGui::InputTextEx("##renamelevel", nullptr, name, Level::MaxNameLength, { -1, 0 }, 0))
+            if (ImGui::InputTextEx("##renamelevel", nullptr, name, Level::MAX_NAME_LENGTH, { -1, 0 }, 0))
                 LevelName = string(name);
             EndInitialFocus();
 

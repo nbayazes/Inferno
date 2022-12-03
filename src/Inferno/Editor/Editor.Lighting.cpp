@@ -726,12 +726,12 @@ namespace Inferno::Editor {
         for (auto& [src, light] : rayCasts) {
             if (!light.Source->IsDynamic) continue;
 
-            if (level.LightDeltaIndices.size() >= MaxDynamicLights) {
+            if (level.LightDeltaIndices.size() >= MAX_DYNAMIC_LIGHTS) {
                 ShowWarningMessage(L"Maximum dynamic lights reached. Some lights will not work as expected.");
                 return;
             }
 
-            if (level.LightDeltas.size() + MaxDeltasPerLight > MaxLightDeltas) {
+            if (level.LightDeltas.size() + MAX_DELTAS_PER_LIGHT > MAX_LIGHT_DELTAS) {
                 ShowWarningMessage(L"Maximum light deltas reached. Some lights will not work as expected.");
                 return;
             }
@@ -747,7 +747,7 @@ namespace Inferno::Editor {
             for (auto& [dest, color] : accumulated) {
                 if (AverageBrightness(color) < 0.005f) continue; // discard low brightness faces
 
-                if (light.Source->IsDynamic && deltaCount >= MaxDeltasPerLight) {
+                if (light.Source->IsDynamic && deltaCount >= MAX_DELTAS_PER_LIGHT) {
                     SPDLOG_WARN("Reached delta limit for light {}-{}", light.Source->Tag.Segment, light.Source->Tag.Side);
                     break;
                 }
@@ -768,7 +768,7 @@ namespace Inferno::Editor {
                 .Index = startIndex });
         }
 
-        SPDLOG_INFO("Delta lights: {} of {}\nIndices: {} of {}", level.LightDeltaIndices.size(), MaxDynamicLights, level.LightDeltas.size(), MaxLightDeltas);
+        SPDLOG_INFO("Delta lights: {} of {}\nIndices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);
     }
 
     // Copies accumulated light to the level faces
