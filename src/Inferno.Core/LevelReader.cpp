@@ -7,7 +7,7 @@
 namespace Inferno {
     void ReadLevelInfo(StreamReader& reader, Level& level) {
         if (level.Version >= 2)
-            level.Palette = reader.ReadCString(13);
+            level.Palette = reader.ReadStringToNewline(13);
 
         level.BaseReactorCountdown = level.Version >= 3 ? reader.ReadInt32() : 30;
         level.ReactorStrength = level.Version >= 4 ? reader.ReadInt32() : -1;
