@@ -117,12 +117,12 @@ namespace Inferno::Editor {
 
         Seq::sortBy(sorted, [](PowerupSort& a, PowerupSort& b) {
             auto p0 = GetPowerupGroup(a.ID);
-            auto p1 = GetPowerupGroup(b.ID);
-            if (p0 < p1) return true;
-            if (p1 < p0) return false;
-            if (a.Name < b.Name) return true;
-            if (b.Name < a.Name) return false;
-            return false;
+        auto p1 = GetPowerupGroup(b.ID);
+        if (p0 < p1) return true;
+        if (p1 < p0) return false;
+        if (a.Name < b.Name) return true;
+        if (b.Name < a.Name) return false;
+        return false;
         });
 
         return sorted;
@@ -264,8 +264,8 @@ namespace Inferno::Editor {
 
         Seq::sortBy(sorted, [](RobotSort& a, RobotSort& b) {
             if (a.Name < b.Name) return true;
-            if (b.Name < a.Name) return false;
-            return false;
+        if (b.Name < a.Name) return false;
+        return false;
         });
 
         return sorted;
@@ -392,27 +392,22 @@ namespace Inferno::Editor {
             //ImGui::TableRowLabel("Drag");
             //ImGui::Text("%.2f", robot.Drag);
 
-            //ImGui::TableRowLabel("See sound");
-            //if(ImGui::SmallButton("Play##see")) Sound::Play3D(robot.SeeSound, Selection.Object);
+            int i = 0;
+            auto soundRow = [&i](const char* label, SoundID id) {
+                ImGui::PushID(i++);
+                ImGui::TableRowLabel(label);
+                if (ImGui::SmallButton(Resources::GetSoundName(id).data()))
+                    Sound::Play(Resources::GetSoundResource(id));
+                ImGui::PopID();
+            };
 
-            //ImGui::TableRowLabel("Attack sound");
-            //if (ImGui::SmallButton("Play##atk")) Sound::Play3D(robot.AttackSound, Selection.Object);
-
-            //ImGui::TableRowLabel("Claw sound");
-            //if (ImGui::SmallButton("Play##claw")) Sound::Play3D(robot.ClawSound, Selection.Object);
-
-            //ImGui::TableRowLabel("Taunt sound");
-            //if (ImGui::SmallButton("Play##taunt")) Sound::Play3D(robot.TauntSound, Selection.Object);
-
-            //ImGui::TableRowLabel("Explosion 1");
-            //if (ImGui::SmallButton("Play##exp1")) Sound::Play3D(robot.ExplosionSound1, Selection.Object);
-
-            //ImGui::TableRowLabel("Explosion 2");
-            //if (ImGui::SmallButton("Play##exp2")) Sound::Play3D(robot.ExplosionSound2, Selection.Object);
-
-            //ImGui::TableRowLabel("Deathroll");
-            //if (ImGui::SmallButton("Play##droll")) Sound::Play3D(robot.DeathrollSound, Selection.Object);
-
+            soundRow("See", robot.SeeSound);
+            soundRow("Attack", robot.AttackSound);
+            soundRow("Claw", robot.ClawSound);
+            soundRow("Taunt", robot.TauntSound);
+            soundRow("Explosion 1", robot.ExplosionSound1);
+            soundRow("Explosion 2", robot.ExplosionSound2);
+            soundRow("Deathroll", robot.DeathrollSound);
             ImGui::TreePop();
         }
 
@@ -476,12 +471,12 @@ namespace Inferno::Editor {
 
         Seq::sortBy(sorted, [](auto& a, auto& b) {
             auto p0 = GetObjectTypePriority(a.Obj->Type);
-            auto p1 = GetObjectTypePriority(b.Obj->Type);
-            if (p0 < p1) return true;
-            if (p1 < p0) return false;
-            if (a.Name < b.Name) return true;
-            if (b.Name < a.Name) return false;
-            return false;
+        auto p1 = GetObjectTypePriority(b.Obj->Type);
+        if (p0 < p1) return true;
+        if (p1 < p0) return false;
+        if (a.Name < b.Name) return true;
+        if (b.Name < a.Name) return false;
+        return false;
         });
 
         return sorted;
@@ -568,7 +563,7 @@ namespace Inferno::Editor {
         ImGui::TableRowLabel("Segment");
 
         auto pObj = Game::Level.TryGetObject(Selection.Object);
-        if(!pObj) return;
+        if (!pObj) return;
         auto& obj = *pObj;
 
         if (SegmentDropdown(obj.Segment))
@@ -615,8 +610,8 @@ namespace Inferno::Editor {
                 if (PowerupDropdown("##Powerup", obj.ID, &obj)) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                        o.Render.VClip.ID = obj.Render.VClip.ID;
-                        o.Radius = obj.Radius;
+                    o.Render.VClip.ID = obj.Render.VClip.ID;
+                    o.Radius = obj.Radius;
                     });
                     Editor::History.SnapshotLevel("Change object");
                 }

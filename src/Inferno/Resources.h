@@ -18,9 +18,8 @@ namespace Inferno::Resources {
     void Init();
 
     extern SoundFile SoundsD1, SoundsD2;
-    int GetSoundCount();
-    int GetSoundIndex(SoundID id);
     SoundResource GetSoundResource(SoundID id);
+    string_view GetSoundName(SoundID id);
 
     DClipID GetDoorClipID(LevelTexID);
     const DoorClip& GetDoorClip(DClipID);
