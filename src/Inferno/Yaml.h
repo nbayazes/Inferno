@@ -22,8 +22,18 @@ namespace Yaml {
     // Tries to read a value from the node. Value is unchanged if node is invalid.
     template<class T>
     void ReadValue(ryml::NodeRef node, T& value) {
-        static_assert(!std::is_same<T, const char*>::value, "Must be writable value");
+        static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
         if (!node.is_seed() && node.has_val()) node >> value;
+    }
+
+    // Specification for bools. Reading them as bools has undeseriable behavior.
+    template<>
+    inline void ReadValue(ryml::NodeRef node, bool& value) {
+        int val = 0;
+        if (!node.is_seed() && node.has_val()) {
+            node >> val;
+            value = val;
+        }
     }
 
     template<>
@@ -49,7 +59,6 @@ namespace Yaml {
         a[1] = token[1] == "1";
         a[2] = token[2] == "1";
         a[3] = token[3] == "1";
-        return;
     }
 
     template<>
@@ -69,8 +78,7 @@ namespace Yaml {
         if (token.size() == 4)
             ParseFloat(token[3], a);
 
-        value = { r, g, b, a };
-        return;
+        value = DirectX::SimpleMath::Color{ r, g, b, a };
     }
 
     template<>
@@ -88,7 +96,6 @@ namespace Yaml {
         }
         catch (...) {
         }
-        return;
     }
 
     inline std::string EncodeArray(const std::array<bool, 4>& a) {
@@ -113,7 +120,7 @@ namespace Yaml {
     }
 
     template<class T>
-    inline void WriteSequence(ryml::NodeRef node, T&& src) {
+    void WriteSequence(ryml::NodeRef node, T&& src) {
         node |= ryml::SEQ;
 
         for (auto& item : src)

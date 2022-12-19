@@ -233,6 +233,9 @@ namespace Inferno {
         node["AutosaveMinutes"] << s.AutosaveMinutes;
         node["CoordinateSystem"] << (int)s.CoordinateSystem;
         node["EnablePhysics"] << s.EnablePhysics;
+        node["PasteSegmentObjects"] << s.PasteSegmentObjects;
+        node["PasteSegmentWalls"] << s.PasteSegmentWalls;
+        node["PasteSegmentSpecial"] << s.PasteSegmentSpecial;
         node["TexturePreviewSize"] << (int)s.TexturePreviewSize;
         node["ShowLevelTitle"] << s.ShowLevelTitle;
 
@@ -300,7 +303,10 @@ namespace Inferno {
         ReadValue(node["Undos"], s.UndoLevels);
         ReadValue(node["AutosaveMinutes"], s.AutosaveMinutes);
         ReadValue(node["CoordinateSystem"], (int&)s.CoordinateSystem);
-        ReadValue(node["EnablePhysics"], (int&)s.EnablePhysics);
+        ReadValue(node["EnablePhysics"], s.EnablePhysics);
+        ReadValue(node["PasteSegmentObjects"], s.PasteSegmentObjects);
+        ReadValue(node["PasteSegmentWalls"], s.PasteSegmentWalls);
+        ReadValue(node["PasteSegmentSpecial"], s.PasteSegmentSpecial);
         ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
         ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
 

@@ -61,6 +61,9 @@ namespace Inferno {
         bool SelectMarkedSegment = false;
         bool ResetUVsOnAlign = true;
         bool EnablePhysics = false;
+        bool PasteSegmentObjects = true;
+        bool PasteSegmentWalls = true;
+        bool PasteSegmentSpecial = true;
 
         float ObjectRenderDistance = 300.0f;
 

@@ -207,6 +207,13 @@ namespace Inferno::Editor {
 
                 ClipboardMenu();
                 MenuCommand(Commands::PasteMirrored, EditorAction::PasteMirrored);
+                if (ImGui::BeginMenu("Include Segment")) {
+                    ImGui::MenuItem("Walls", nullptr, &Settings::Editor.PasteSegmentWalls);
+                    ImGui::MenuItem("Objects", nullptr, &Settings::Editor.PasteSegmentObjects);
+                    ImGui::MenuItem("Types", nullptr, &Settings::Editor.PasteSegmentSpecial);
+                    ImGui::EndMenu();
+                }
+
 
                 ImGui::Separator();
 

@@ -126,43 +126,60 @@ namespace Inferno::Editor {
             newIds.push_back((SegID)level.Segments.size());
 
             for (auto& side : seg.Sides) {
-                if (side.Wall != WallID::None) {
-                    auto woffset = (int)side.Wall + wallOffset;
-                    if (woffset >= level.Limits.Walls) {
-                        SPDLOG_WARN("Wall id is out of range!");
-                        break;
+                if (Settings::Editor.PasteSegmentWalls) {
+                    if (side.Wall != WallID::None) {
+                        auto woffset = (int)side.Wall + wallOffset;
+                        if (woffset >= level.Limits.Walls) {
+                            SPDLOG_WARN("Wall id is out of range!");
+                            break;
+                        }
+                        side.Wall = WallID(woffset);
                     }
-                    side.Wall = WallID(woffset);
+                } else {
+                    side.Wall = WallID::None;
                 }
             }
 
-            if (seg.Matcen != MatcenID::None) seg.Matcen = MatcenID((int)seg.Matcen + matcenOffset);
+            if (Settings::Editor.PasteSegmentSpecial) {
+                if (seg.Matcen != MatcenID::None) 
+                    seg.Matcen = MatcenID((int)seg.Matcen + matcenOffset);
+            } else {
+                seg.Matcen = MatcenID::None;
+                seg.Type = SegmentType::None;
+            }
+
             level.Segments.push_back(std::move(seg));
         }
 
-        for (auto& o : copy.Objects) {
-            if (level.Objects.size() >= level.Limits.Objects) {
-                SPDLOG_WARN("Ran out of space for objects!");
-                break;
-            }
+        if (Settings::Editor.PasteSegmentObjects) {
+            for (auto& o : copy.Objects) {
+                if (level.Objects.size() >= level.Limits.Objects) {
+                    SPDLOG_WARN("Ran out of space for objects!");
+                    break;
+                }
 
-            o.Segment += segIdOffset;
-            level.Objects.push_back(std::move(o));
+                o.Segment += segIdOffset;
+                level.Objects.push_back(std::move(o));
+            }
         }
 
-        for (auto& wall : copy.Walls) {
-            if (level.Walls.size() >= level.Limits.Walls) {
-                SPDLOG_WARN("Ran out of space for walls!");
-                break;
-            }
+        if (Settings::Editor.PasteSegmentWalls) {
+            for (auto& wall : copy.Walls) {
+                if (level.Walls.size() >= level.Limits.Walls) {
+                    SPDLOG_WARN("Ran out of space for walls!");
+                    break;
+                }
 
-            wall.Tag.Segment += segIdOffset;
-            level.Walls.push_back(std::move(wall));
+                wall.Tag.Segment += segIdOffset;
+                level.Walls.push_back(std::move(wall));
+            }
         }
 
-        for (auto& matcen : copy.Matcens) {
-            matcen.Segment += segIdOffset;
-            level.Matcens.push_back(std::move(matcen));
+        if (Settings::Editor.PasteSegmentSpecial) {
+            for (auto& matcen : copy.Matcens) {
+                matcen.Segment += segIdOffset;
+                level.Matcens.push_back(std::move(matcen));
+            }
         }
 
         level.UpdateAllGeometricProps();
@@ -171,7 +188,7 @@ namespace Inferno::Editor {
         for (auto& id : newIds)
             for (auto& side : SideIDs)
                 WeldConnection(level, { id, side }, 0.01f);
-        
+
         return newIds;
     }
 
