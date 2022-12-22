@@ -214,7 +214,7 @@ namespace Inferno::Editor {
                         Events::LevelChanged();
                     }
                     else {
-                        Editor::History.Undo();
+                        Editor::History.Restore();
                         SetStatusMessage("Tried to extrude a zero length segment");
                     }
                 }

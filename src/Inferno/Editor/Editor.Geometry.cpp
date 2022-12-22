@@ -180,13 +180,11 @@ namespace Inferno::Editor {
     List<SegID> ExtrudeFaces(Level& level, span<Tag> faces, const Vector3& offset) {
         List<Tag> toAdd, toRemove;
         List<SegID> newSegs;
-        bool isExtruding = false;
 
         for (auto& tag : faces) {
             auto newSeg = InsertSegment(level, { tag.Segment, tag.Side }, 0, InsertMode::Extrude, &offset);
 
             if (newSeg != SegID::None) {
-                isExtruding = true;
                 TriedMergingNewSegments = false;
                 toAdd.push_back({ newSeg, tag.Side });
                 toRemove.push_back(tag);

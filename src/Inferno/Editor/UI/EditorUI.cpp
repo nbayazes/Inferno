@@ -214,7 +214,6 @@ namespace Inferno::Editor {
                     ImGui::EndMenu();
                 }
 
-
                 ImGui::Separator();
 
                 if (ImGui::BeginMenu("Marks")) {
