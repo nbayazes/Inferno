@@ -251,27 +251,18 @@ namespace Inferno::Editor {
         if (side.LightOverride) return *side.LightOverride;
 
         auto& tmap1 = Resources::GetLevelTextureInfo(side.TMap);
-        auto light = tmap1.Lighting;
-
+        auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
+        auto luminosity = tmap1.Lighting + tmap2.Lighting;
+        
         Color color;
-        if (tmap1.Lighting > 0) {
-            auto& tmap1i = Resources::GetTextureInfo(side.TMap);
-            color += tmap1i.AverageColor;
-            return { tmap1.Lighting, tmap1.Lighting, tmap1.Lighting };
-        }
 
-        if (side.HasOverlay()) {
-            auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
-            light += tmap2.Lighting;
-            if (tmap2.Lighting > 0) {
-                auto& tmap2i = Resources::GetTextureInfo(side.TMap2);
-                color += tmap2i.AverageColor;
-                return { tmap2.Lighting, tmap2.Lighting, tmap2.Lighting };
-            }
-        }
+        if (tmap1.Lighting > 0)
+            color += Resources::GetTextureInfo(side.TMap).AverageColor;
 
-        color.w = 0;
-        return color * light;
+        if (tmap2.Lighting > 0)
+            color += Resources::GetTextureInfo(side.TMap2).AverageColor;
+        
+        return color * luminosity;
     }
 
     // Returns segments that are within range and visible from the source surface.
@@ -823,7 +814,7 @@ namespace Inferno::Editor {
 
             if (!settings.EnableColor)
                 DesaturateAccumulated(RayCasts);
-            
+
             auto maxValue = std::clamp(settings.MaxValue, 0.0f, 10.0f);
             const Color max = { maxValue, maxValue, maxValue, 1 };
             SetSideLighting(level, RayCasts, max, settings.EnableColor);
