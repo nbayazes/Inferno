@@ -496,9 +496,6 @@ namespace Inferno::Editor {
                     BindingEntry entry{};
                     auto& cmd = GetCommandForAction(binding.Action);
                     entry.Label = cmd.Name;
-                    if (binding.Action == EditorAction::HoldMouselook)
-                        entry.Label = "Hold Mouselook";
-
                     entry.Action = binding.Action;
                     entry.Primary = binding;
                     entries.push_back(entry);
@@ -519,8 +516,9 @@ namespace Inferno::Editor {
                 if (entry.Secondary.Key != Keys::None)
                     Bindings::Active.Add(entry.Secondary);
 
-                if (entry.Action == EditorAction::HoldMouselook)
-                    Bindings::MouselookHoldBinding = entry.Primary;
+                // Save bindings set to 'none' in case the user unbinds them
+                if (entry.Primary.Key == Keys::None && entry.Secondary.Key == Keys::None)
+                    Bindings::Active.Add(entry.Primary);
             }
         }
     };

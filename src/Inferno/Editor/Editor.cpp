@@ -235,12 +235,14 @@ namespace Inferno::Editor {
 
     // Enables mouselook while middle mouse is down
     void CheckForMouselook() {
+        auto mouselookKey = Bindings::Active.GetBindingKey(EditorAction::HoldMouselook);
+
         if (Input::Mouse.middleButton == Input::MouseState::PRESSED ||
-            Input::Keyboard.IsKeyPressed(Bindings::MouselookHoldBinding.Key))
+            Input::Keyboard.IsKeyPressed(mouselookKey))
             Input::SetMouselook(true);
 
         if (Input::Mouse.middleButton == Input::MouseState::RELEASED ||
-            Input::Keyboard.IsKeyReleased(Bindings::MouselookHoldBinding.Key))
+            Input::Keyboard.IsKeyReleased(mouselookKey))
             Input::SetMouselook(false);
     }
 

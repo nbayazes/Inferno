@@ -83,7 +83,7 @@ namespace Inferno::Editor {
     void LoadLevelFromHOG(string name);
     void LoadMission(std::filesystem::path);
 
-    void OnSelectTexture(LevelTexID tmap, LevelTexID tmap2);
+    void OnSelectTexture(LevelTexID tmap1, LevelTexID tmap2);
 
     // Checks if the current file is dirty. Returns true if the file can be closed.
     bool CanCloseCurrentFile();

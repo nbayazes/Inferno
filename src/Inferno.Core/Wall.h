@@ -64,7 +64,7 @@ namespace Inferno {
         }
 
         // Returns true if wall collides with objects
-        bool IsSolid() {
+        bool IsSolid() const {
             if (Type == WallType::Illusion) return false;
             if (Type == WallType::Door && HasFlag(WallFlag::DoorOpened)) return false;
             if (Type == WallType::Destroyable && HasFlag(WallFlag::Blasted)) return false;

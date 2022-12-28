@@ -130,6 +130,9 @@ namespace Inferno::Editor {
             .Action = [] { Events::ShowDialog(DialogType::HogEditor); },
             .Name = "Go to Segment"
         };
+
+        Command HideMarks{ .Action = [] {}, .Name = "Hide Marks" };
+        Command HoldMouselook{ .Action = [] {}, .Name = "Hold Mouselook" };
     }
 
     const Command& GetCommandForAction(EditorAction action) {
@@ -191,6 +194,8 @@ namespace Inferno::Editor {
             case EditorAction::NewLevel: return Commands::NewLevel;
             case EditorAction::InvertMarked: return Commands::InvertMarked;
             case EditorAction::MakeCoplanar: return Commands::MakeCoplanar;
+            case EditorAction::HideMarks: return Commands::HideMarks;
+            case EditorAction::HoldMouselook: return Commands::HoldMouselook;
         }
 
         return Commands::NullCommand;
@@ -214,7 +219,7 @@ namespace Inferno::Editor {
             case Keys::Insert: return "Ins";
             case Keys::Delete: return "Del";
 
-            // OEM keys
+                // OEM keys
             case Keys::OemOpenBrackets: return "[";
             case Keys::OemCloseBrackets: return "]";
             case Keys::OemPlus: return "+";
@@ -227,7 +232,7 @@ namespace Inferno::Editor {
             case Keys::OemSemicolon: return ";";
             case Keys::OemQuotes: return "'";
 
-            // Numpad
+                // Numpad
             case Keys::Multiply: return "*";
             case Keys::Divide: return "/";
             case Keys::Subtract: return "-";
@@ -299,7 +304,7 @@ namespace Inferno::Editor {
         }
     }
 
-    string EditorBinding::GetShortcutLabel() {
+    string EditorBinding::GetShortcutLabel() const {
         if (!Shift && !Control && !Alt) return KeyToString(Key);
         string modifiers;
         if (Control) modifiers = "Ctrl";
@@ -326,7 +331,7 @@ namespace Inferno::Editor {
 
         UnbindExisting(binding);
 
-        if (!binding.Command || binding.Command == &Commands::NullCommand) 
+        if (!binding.Command || binding.Command == &Commands::NullCommand)
             binding.Command = &GetCommandForAction(binding.Action);
         _bindings.push_back(binding);
     }
@@ -452,6 +457,8 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
         bindings.Add({ .Action = EditorAction::HoldMouselook });
+        bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
+
         Active = Default;
     }
 
