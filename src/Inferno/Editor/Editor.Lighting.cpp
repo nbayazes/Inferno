@@ -10,7 +10,7 @@
 #include "Editor.Segment.h"
 
 namespace Inferno::Editor {
-    constexpr float PlaneTolerance = -0.01f;
+    constexpr float PLANE_TOLERANCE = -0.01f;
 
     // Scales a color down to a max brightness while retaining color
     constexpr void ScaleColor(Color& color, float maxValue) {
@@ -94,7 +94,7 @@ namespace Inferno::Editor {
 
         void UpdateMaxValueFromPass(float reflectance) {
             Color max;
-            for (auto& [_, colors] : Pass)
+            for (auto& colors : Pass | views::values)
                 for (auto& color : colors)
                     if (max.ToVector3().Length() < color.ToVector3().Length())
                         max = color;
@@ -257,7 +257,7 @@ namespace Inferno::Editor {
         if (tmap1.Lighting > 0) {
             auto& tmap1i = Resources::GetTextureInfo(side.TMap);
             color += tmap1i.AverageColor;
-            return Color(tmap1.Lighting, tmap1.Lighting, tmap1.Lighting);
+            return { tmap1.Lighting, tmap1.Lighting, tmap1.Lighting };
         }
 
         if (side.HasOverlay()) {
@@ -266,7 +266,7 @@ namespace Inferno::Editor {
             if (tmap2.Lighting > 0) {
                 auto& tmap2i = Resources::GetTextureInfo(side.TMap2);
                 color += tmap2i.AverageColor;
-                return Color(tmap2.Lighting, tmap2.Lighting, tmap2.Lighting);
+                return { tmap2.Lighting, tmap2.Lighting, tmap2.Lighting };
             }
         }
 
@@ -310,7 +310,7 @@ namespace Inferno::Editor {
                 for (int i = 0; i < 4; i++) {
                     // is the portal vert behind the light source?
                     auto planeDist = DistanceFromPlane(inset[i], srcFace.Center(), srcFace.AverageNormal());
-                    if (planeDist < PlaneTolerance) continue;
+                    if (planeDist < PLANE_TOLERANCE) continue;
 
                     // Don't travel through sides that are too far
                     for (int j = 0; j < 4; j++) {
@@ -419,7 +419,6 @@ namespace Inferno::Editor {
                        bool bouncePass, // is this a bounce light pass?
                        LightRayCast& cast) {
         auto [srcSeg, srcSide] = level.GetSegmentAndSide(src);
-        auto center = srcSeg.Center;
         const auto srcFace = Face::FromSide(level, srcSeg, src.Side);
 
         // Move occlusion sample points off of faces to improve light wrapping around corners
@@ -471,7 +470,7 @@ namespace Inferno::Editor {
                             // is the light behind the dest face?
                             if (destFace.Distance(lightPos, destEdge) < cast.Source->LightPlaneTolerance) return false;
                             // Is the vert behind the light?
-                            if (srcFace.Distance(destFace[srcVertIndex], lightIndex) < PlaneTolerance) return false;
+                            if (srcFace.Distance(destFace[srcVertIndex], lightIndex) < PLANE_TOLERANCE) return false;
                         }
                         return true;
                     };
@@ -773,7 +772,7 @@ namespace Inferno::Editor {
 
     // Copies accumulated light to the level faces
     void SetSideLighting(Level& level, const Dictionary<Tag, LightRayCast>& rayCasts, Color max, bool color) {
-        for (auto& [src, light] : rayCasts) {
+        for (const auto& light : rayCasts | views::values) {
             for (auto& [dest, l] : light.Accumulated) {
                 auto& side = level.GetSide(dest);
                 for (int vert = 0; vert < 4; vert++) {
@@ -788,8 +787,8 @@ namespace Inferno::Editor {
 
     // Removes all color from results
     void DesaturateAccumulated(Dictionary<Tag, LightRayCast>& rayCasts) {
-        for (auto& [_, cast] : rayCasts)
-            for (auto& [__, side] : cast.Accumulated)
+        for (auto& cast : rayCasts | views::values)
+            for (auto& side : cast.Accumulated | views::values)
                 for (auto& l : side)
                     l.AdjustSaturation(0);
     }
@@ -816,7 +815,7 @@ namespace Inferno::Editor {
 
             // Accumulate radiosity bounces
             for (int i = 0; i < bounces; i++) {
-                for (auto& [_, light] : RayCasts) {
+                for (auto& light : RayCasts | views::values) {
                     auto& info = CastBounces(level, settings, light);
                     info.AccumulatePass(!(settings.SkipFirstPass && i == 0));
                 }
