@@ -135,15 +135,17 @@ namespace Inferno::Editor {
                         }
                         side.Wall = WallID(woffset);
                     }
-                } else {
+                }
+                else {
                     side.Wall = WallID::None;
                 }
             }
 
             if (Settings::Editor.PasteSegmentSpecial) {
-                if (seg.Matcen != MatcenID::None) 
+                if (seg.Matcen != MatcenID::None)
                     seg.Matcen = MatcenID((int)seg.Matcen + matcenOffset);
-            } else {
+            }
+            else {
                 seg.Matcen = MatcenID::None;
                 seg.Type = SegmentType::None;
             }
@@ -382,9 +384,11 @@ namespace Inferno::Editor {
         for (auto& id : ids) {
             PasteSide(level, id, *SideClipboard1);
 
-            auto otherSide = level.GetConnectedSide(id);
-            if (otherSide && SideClipboard2)
-                PasteSide(level, otherSide, *SideClipboard2);
+            if (Settings::Editor.EditBothWallSides) {
+                auto otherSide = level.GetConnectedSide(id);
+                if (otherSide && SideClipboard2)
+                    PasteSide(level, otherSide, *SideClipboard2);
+            }
         }
 
         Events::LevelChanged();
