@@ -305,7 +305,7 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    string GetMatcenRobotLabel(Level& level, const Matcen& matcen) {
+    string GetMatcenRobotLabel(const Level& level, const Matcen& matcen) {
         string label;
 
         const uint maxRobots = level.IsDescent1() ? 25 : 64;
@@ -348,12 +348,12 @@ namespace Inferno::Editor {
                 // Emission override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightOverride.has_value();
-                auto light = side.LightOverride.value_or(GetLightColor(side));
+                auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Emission", &hasOverride)) {
-                    side.LightOverride = hasOverride ? Option<Color>(light) : std::nullopt;
+                    side.LightOverride = hasOverride ? Option(light) : std::nullopt;
                     overrideChanged = true;
                 }
 

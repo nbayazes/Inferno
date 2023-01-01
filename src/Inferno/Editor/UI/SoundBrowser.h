@@ -6,10 +6,10 @@
 
 namespace Inferno::Editor {
 
-    class SoundBrowser : public WindowBase {
-        int _selection;
+    class SoundBrowser final : public WindowBase {
+        int _selection = 0;
         float _vol = 1, _pan = 0, _pitch = 0;
-        bool _3d;
+        bool _3d = false;
         Sound::Reverb _reverb{};
 
         const std::map<Sound::Reverb, const char*> ReverbLabels = {
@@ -57,7 +57,7 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginCombo("Reverb", ReverbLabels.at(_reverb), ImGuiComboFlags_HeightLarge)) {
-                for (auto& [item, text] : ReverbLabels) {
+                for (const auto& item : ReverbLabels | views::keys) {
                     if (ImGui::Selectable(ReverbLabels.at(item), item == _reverb)) {
                         _reverb = item;
                         Sound::SetReverb(_reverb);
