@@ -196,6 +196,7 @@ namespace Inferno::Editor {
             case EditorAction::MakeCoplanar: return Commands::MakeCoplanar;
             case EditorAction::HideMarks: return Commands::HideMarks;
             case EditorAction::HoldMouselook: return Commands::HoldMouselook;
+            case EditorAction::InsertAlignedSegment: return Commands::InsertAlignedSegment;
         }
 
         return Commands::NullCommand;
@@ -458,6 +459,7 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
         bindings.Add({ .Action = EditorAction::HoldMouselook });
         bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
+        bindings.Add({ .Action = EditorAction::InsertAlignedSegment, .Key = Keys::Insert, .Control = true });
 
         Active = Default;
     }

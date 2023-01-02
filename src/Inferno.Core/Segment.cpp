@@ -22,7 +22,7 @@ namespace Inferno {
         return normal;
     }
 
-    void Segment::UpdateGeometricProps(Level& level) {
+    void Segment::UpdateGeometricProps(const Level& level) {
         for (auto& s : SideIDs) {
             auto& side = GetSide(s);
             auto& sideVerts = SideIndices[(int)s];

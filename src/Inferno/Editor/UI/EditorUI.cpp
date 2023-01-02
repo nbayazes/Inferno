@@ -273,7 +273,8 @@ namespace Inferno::Editor {
             if (ImGui::BeginMenu("Insert")) {
                 MenuCommandEx(Commands::Insert, "Segment or Object", EditorAction::Insert);
                 MenuCommandEx(Commands::InsertMirrored, "Mirrored Segment", EditorAction::InsertMirrored);
-                if (ImGui::MenuItem("Default Segment")) Commands::AddDefaultSegment();
+                MenuCommand(Commands::InsertSegmentAtOrigin);
+                MenuCommand(Commands::InsertAlignedSegment, EditorAction::InsertAlignedSegment);
                 ImGui::Separator();
                 InsertMenuItems();
                 ImGui::EndMenu();

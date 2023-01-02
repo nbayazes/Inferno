@@ -68,7 +68,8 @@ namespace Inferno::Editor {
         NewLevel,
         InvertMarked,
         MakeCoplanar,
-        HideMarks
+        HideMarks,
+        InsertAlignedSegment
     };
 
     const Command& GetCommandForAction(EditorAction action);

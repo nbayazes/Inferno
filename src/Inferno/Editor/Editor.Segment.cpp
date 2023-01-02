@@ -141,7 +141,7 @@ namespace Inferno::Editor {
     }
 
     // Creates a 20x20 face aligned to the selected edge and centered to the source face
-    void CreateOrthoSegmentFace(Level& level, Tag src, int point, Array<uint16, 4>& srcIndices, const Vector3& offset) {
+    void CreateOrthoSegmentFace(Level& level, Tag src, int point, const Array<uint16, 4>& srcIndices, const Vector3& offset) {
         // Project the existing points
         Vector3 points[4] = {
             level.Vertices[srcIndices[0]] - offset,
@@ -173,13 +173,14 @@ namespace Inferno::Editor {
         // center the verts on the source face
         {
             auto center = AverageVectors(points);
-            auto face = Face::FromSide(level, src.Segment, src.Side);
+            auto face = Face::FromSide(level, src);
             auto projectedCenter = face.Center() - offset;
             auto dist = projectedCenter - center;
             for (auto& p : points) p += dist;
         }
 
-        for (auto& p : points) level.Vertices.push_back(p);
+        for (auto& p : points)
+            level.Vertices.push_back(p);
     }
 
     // Removes any walls or connections on this side and other side
@@ -432,20 +433,27 @@ namespace Inferno::Editor {
         return id;
     }
 
-    SegID AddDefaultSegment(Level& level) {
+    SegID AddDefaultSegment(Level& level, const Matrix& transform) {
         Segment seg = {};
 
+        std::array verts = {
+            // Back
+            Vector3{ 10, 10, -10 },
+            Vector3{ 10, -10, -10 },
+            Vector3{ -10, -10, -10 },
+            Vector3{ -10, 10, -10 },
+            // Front
+            Vector3{ 10, 10, 10 },
+            Vector3{ 10, -10, 10 },
+            Vector3{ -10, -10, 10 },
+            Vector3{ -10, 10, 10 }
+        };
+
         auto offset = (uint16)level.Vertices.size();
-        // Back
-        level.Vertices.push_back({ 10,  10, -10 });
-        level.Vertices.push_back({ 10, -10, -10 });
-        level.Vertices.push_back({ -10, -10, -10 });
-        level.Vertices.push_back({ -10,  10, -10 });
-        // Front
-        level.Vertices.push_back({ 10,  10,  10 });
-        level.Vertices.push_back({ 10, -10,  10 });
-        level.Vertices.push_back({ -10, -10,  10 });
-        level.Vertices.push_back({ -10,  10,  10 });
+
+        for (auto& v : verts) {
+            level.Vertices.push_back(Vector3::Transform(v, transform));
+        }
 
         for (uint16 i = 0; i < 8; i++)
             seg.Indices[i] = offset + i;
@@ -842,15 +850,10 @@ namespace Inferno::Editor {
         }
     }
 
-    void Commands::AddDefaultSegment() {
-        Editor::AddDefaultSegment(Game::Level);
-        Editor::History.SnapshotLevel("Add default segment");
-    }
-
     // Tries to delete a segment. Returns a new selection if possible.
     Tag TryDeleteSegment(Level& level, SegID id) {
         auto seg = level.TryGetSegment(id);
-        if (!seg) return{};
+        if (!seg) return {};
         SegID newSeg{};
         SideID newSide{};
 
@@ -930,14 +933,16 @@ namespace Inferno::Editor {
         return "Detach segments";
     }
 
-    std::array<std::array<SideID, 4>, 6> SidesForSide = { {
-        { (SideID)4, (SideID)3, (SideID)5, (SideID)1 },
-        { (SideID)2, (SideID)4, (SideID)3, (SideID)5 },
-        { (SideID)5, (SideID)3, (SideID)4, (SideID)1 },
-        { (SideID)0, (SideID)4, (SideID)2, (SideID)5 },
-        { (SideID)2, (SideID)3, (SideID)0, (SideID)1 },
-        { (SideID)0, (SideID)3, (SideID)2, (SideID)1 }
-    } };
+    std::array<std::array<SideID, 4>, 6> SidesForSide = {
+        {
+            { (SideID)4, (SideID)3, (SideID)5, (SideID)1 },
+            { (SideID)2, (SideID)4, (SideID)3, (SideID)5 },
+            { (SideID)5, (SideID)3, (SideID)4, (SideID)1 },
+            { (SideID)0, (SideID)4, (SideID)2, (SideID)5 },
+            { (SideID)2, (SideID)3, (SideID)0, (SideID)1 },
+            { (SideID)0, (SideID)3, (SideID)2, (SideID)1 }
+        }
+    };
 
     string OnDetachSides() {
         Editor::History.SnapshotSelection();
@@ -1011,7 +1016,8 @@ namespace Inferno::Editor {
             }
         }
 
-        if (i == 0) { // In case no faces are valid
+        if (i == 0) {
+            // In case no faces are valid
             offset = Vector3::Up;
             i = 1;
         }
@@ -1350,7 +1356,29 @@ namespace Inferno::Editor {
         return "Split Segment 8";
     }
 
+    string OnInsertAlignedSegment() {
+        auto transform = Editor::Gizmo.Transform;
+        if (Editor::Marked.HasSelection(Settings::Editor.SelectionMode)) {
+            auto center = Editor::Marked.GetMarkedCenter(Settings::Editor.SelectionMode, Game::Level);
+            transform.Translation(center);
+        }
+
+        transform.Forward(-transform.Forward()); // flip z axis
+
+        auto id = Editor::AddDefaultSegment(Game::Level, transform);
+        Selection.SetSelection(id);
+        return "Insert Aligned Segment";
+    }
+
+    string OnInsertSegmentAtOrigin() {
+        auto id = Editor::AddDefaultSegment(Game::Level);
+        Selection.SetSelection(id);
+        return "Insert Segment at Origin";
+    }
+
     namespace Commands {
+        Command InsertAlignedSegment{ .SnapshotAction = OnInsertAlignedSegment, .Name = "Aligned Segment" };
+        Command InsertSegmentAtOrigin{ .SnapshotAction = OnInsertSegmentAtOrigin, .Name = "Segment at Origin" };
         Command JoinSides{ .SnapshotAction = OnJoinSides, .Name = "Join Sides" };
 
         Command InsertMirrored{ .SnapshotAction = OnInsertMirroredSegment, .Name = "Insert Mirrored Segment" };
@@ -1371,4 +1399,3 @@ namespace Inferno::Editor {
         Command SplitSegment8{ .SnapshotAction = OnSplitSegment8, .Name = "Split Segment in 8" };
     }
 }
-

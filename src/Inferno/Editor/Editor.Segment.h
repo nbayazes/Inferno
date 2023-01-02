@@ -5,7 +5,7 @@
 
 namespace Inferno::Editor {
     // Adds the default size segment at the world origin
-    SegID AddDefaultSegment(Level&);
+    SegID AddDefaultSegment(Level&, const Matrix& transform = Matrix::Identity);
     Tag TryDeleteSegment(Level& level, SegID id);
     void DeleteSegments(Level&, span<SegID> ids);
 
@@ -37,8 +37,8 @@ namespace Inferno::Editor {
         void AddSecretExit();
         void AddFlickeringLight();
         void RemoveFlickeringLight();
-        void AddDefaultSegment();
-        
+
+        extern Command InsertSegmentAtOrigin, InsertAlignedSegment;
         extern Command InsertMirrored;
         extern Command ExtrudeFaces, ExtrudeSegment, InsertSegment;
         extern Command JoinPoints, ConnectSides;

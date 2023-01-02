@@ -97,7 +97,7 @@ namespace Inferno {
     // Executes a function on a new thread asynchronously
     void StartAsync(auto&& fun) {
         auto future = std::make_shared<std::future<void>>();
-        *future = std::async(std::launch::async, [future, fun]() {
+        *future = std::async(std::launch::async, [future, fun] {
             fun();
         }); // future disposes itself on exit
     }
@@ -128,7 +128,7 @@ namespace Inferno {
     }
 
     constexpr Color ColorFromRGB(uint8 r, uint8 g, uint8 b, uint8 a = 255) {
-        return Color((float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, float(a) / 255.0f);
+        return { (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, float(a) / 255.0f };
     }
 
     inline Vector3 AverageVectors(span<Vector3> verts) {
@@ -161,17 +161,17 @@ namespace Inferno {
         return Color(average);
     }
 
-    const DirectX::XMVECTORF32 g_UnitVectorEpsilon = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
+    constexpr DirectX::XMVECTORF32 UNIT_VECTOR_EPSILON = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
 
     inline bool IsNormalized(const Vector3& v) {
         using namespace DirectX;
         auto difference = XMVectorSubtract(XMVector3Length(v), XMVectorSplatOne());
-        return XMVector4Less(XMVectorAbs(difference), g_UnitVectorEpsilon);
+        return XMVector4Less(XMVectorAbs(difference), UNIT_VECTOR_EPSILON);
     }
 
     inline bool IsZero(const Vector3& v) {
         using namespace DirectX;
-        return XMVector4Less(XMVectorAbs(v), g_UnitVectorEpsilon);
+        return XMVector4Less(XMVectorAbs(v), UNIT_VECTOR_EPSILON);
     }
 
     // Converts a direction vector into a rotation matrix
@@ -415,7 +415,7 @@ namespace Inferno {
         }
 
         constexpr bool inRange(auto&& xs, size_t index) {
-            return index >= 0 && index < xs.size();
+            return index < xs.size();
         }
 
         template<class T>
@@ -549,7 +549,7 @@ namespace Inferno {
         }
 
         // Specialization to filter a collection of strings by a value. Causes heap allocation.
-        [[nodiscard]] inline List<string> filter(const auto& xs, string value, bool invariant) {
+        [[nodiscard]] List<string> filter(const auto& xs, string value, bool invariant) {
             if (invariant) {
                 value = String::ToLower(value);
                 return filter(xs, [&](const string& e) {
