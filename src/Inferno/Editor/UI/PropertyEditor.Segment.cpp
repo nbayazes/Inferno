@@ -591,7 +591,7 @@ namespace Inferno::Editor {
         bool changed = false;
 
         ImGui::SetNextItemWidth(-1);
-        if (ImGui::BeginCombo("##Key", KeyLabels[(int)selection])) {
+        if (ImGui::BeginCombo("##Key", KeyLabels[selection])) {
             for (int i = 0; i < std::size(KeyLabels); i++) {
                 const bool isSelected = selection == i;
                 if (ImGui::Selectable(KeyLabels[i], isSelected)) {

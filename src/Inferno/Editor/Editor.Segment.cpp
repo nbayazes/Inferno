@@ -905,14 +905,27 @@ namespace Inferno::Editor {
     string OnDetachSegments() {
         Editor::History.SnapshotSelection();
         auto segs = GetSelectedSegments();
-        auto faces = GetBoundary(Game::Level, segs);
-        if (faces.empty()) return {};
+        auto copy = CopySegments(Game::Level, segs);
+        DeleteSegments(Game::Level, segs);
+        PasteSegmentsInPlace(Game::Level, copy);
 
-        for (auto& face : faces)
-            DetachSide(Game::Level, face);
+        bool inSelection = false;
+        int offset = 0;
+        for (auto& seg : segs) {
+            if (Editor::Selection.Segment > seg) offset--;
+            if (seg == Editor::Selection.Segment)
+                inSelection = true;
+        }
 
-        auto nearby = GetNearbySegmentsExclusive(Game::Level, segs);
-        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::Editor.CleanupTolerance);
+        if (inSelection) {
+            // the selection was in a detached segment, recalculate it
+            auto start = SegID(Game::Level.Segments.size() - segs.size());
+            Editor::Selection.SetSelection(start - (SegID)offset);
+        }
+        else {
+            Editor::Selection.SetSelection(Editor::Selection.Segment + (SegID)offset);
+        }
+
         Events::LevelChanged();
         return "Detach segments";
     }
@@ -1022,8 +1035,6 @@ namespace Inferno::Editor {
 
         auto src = Editor::Selection.Tag();
         Tag dest = *Editor::Marked.Faces.begin();
-        auto srcFace = Face::FromSide(Game::Level, src);
-        auto destFace = Face::FromSide(Game::Level, dest);
         if (!JoinSides(Game::Level, src, dest)) {
             SetStatusMessage("Unable to join sides");
             return {};
@@ -1050,17 +1061,15 @@ namespace Inferno::Editor {
         // move verts on top of the connected opposite side
         auto endFace = Face::FromSide(level, opposite);
         auto selFace = Face::FromSide(level, tag);
-        auto startFaceSide = GetOppositeSide(tag.Side);
-        auto startFace = Face::FromSide(level, tag.Segment, startFaceSide);
 
-        static const std::array forward = { 0, 1, 2, 3 };
-        static const std::array reverse = { 3, 2, 1, 0 };
+        static const std::array FORWARD = { 0, 1, 2, 3 };
+        static const std::array REVERSE = { 3, 2, 1, 0 };
         bool foundValid = false;
 
         // try attaching the segment to the dest in each orientation until one isn't degenerate
         for (int i = 0; i < 8; i++) {
             //int i = 0;
-            auto order = i < 4 ? forward : reverse;
+            auto order = i < 4 ? FORWARD : REVERSE;
 
             // copy point locations from dest to src
             for (int f = 0; f < 4; f++) {
@@ -1092,7 +1101,7 @@ namespace Inferno::Editor {
 
         if (opposite.Segment < tag.Segment)
             tag.Segment--;
-        
+
         Editor::Selection.SetSelection(tag.Segment);
         std::array segs = { tag.Segment };
         auto tags = FacesForSegments(segs);
@@ -1224,8 +1233,6 @@ namespace Inferno::Editor {
         Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
         auto srcFace = Face::FromSide(level, tag);
         auto oppFace = Face::FromSide(level, opposite);
-        auto srcCenter = srcFace.Center();
-        auto oppCenter = oppFace.Center();
         auto& srcSeg = level.GetSegment(tag);
 
         // inset vertices on each face towards center

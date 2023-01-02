@@ -279,35 +279,35 @@ namespace Inferno::Editor {
             std::swap(seg.Connections[0], seg.Connections[1]);
             std::swap(seg.Connections[2], seg.Connections[3]);
 
-            auto RotateUVs = [&seg](int i, int j) {
-                std::rotate(seg.Sides[i].UVs.begin(), seg.Sides[i].UVs.begin() + j, seg.Sides[i].UVs.end());
-                std::rotate(seg.Sides[i].Light.begin(), seg.Sides[i].Light.begin() + j, seg.Sides[i].Light.end());
+            auto rotateUVs = [&seg](int i, int j) {
+                ranges::rotate(seg.Sides[i].UVs, seg.Sides[i].UVs.begin() + j);
+                ranges::rotate(seg.Sides[i].Light, seg.Sides[i].Light.begin() + j);
             };
 
-            auto SwapUVs = [&seg](int side, int i, int j) {
+            auto swapUVs = [&seg](int side, int i, int j) {
                 std::swap(seg.Sides[side].UVs[i], seg.Sides[side].UVs[j]);
                 std::swap(seg.Sides[side].Light[i], seg.Sides[side].Light[j]);
             };
 
-            SwapUVs(0, 0, 2);
+            swapUVs(0, 0, 2);
 
-            RotateUVs(1, 1);
-            SwapUVs(1, 3, 2); // mirror x
-            SwapUVs(1, 1, 0);
+            rotateUVs(1, 1);
+            swapUVs(1, 3, 2); // mirror x
+            swapUVs(1, 1, 0);
 
-            SwapUVs(2, 3, 1);
+            swapUVs(2, 3, 1);
 
-            RotateUVs(3, 1);
-            SwapUVs(3, 1, 2); // mirror y
-            SwapUVs(3, 3, 0);
+            rotateUVs(3, 1);
+            swapUVs(3, 1, 2); // mirror y
+            swapUVs(3, 3, 0);
 
-            RotateUVs(4, 1);
-            SwapUVs(4, 3, 2); // mirror x
-            SwapUVs(4, 1, 0);
+            rotateUVs(4, 1);
+            swapUVs(4, 3, 2); // mirror x
+            swapUVs(4, 1, 0);
 
-            RotateUVs(5, 3);
-            SwapUVs(5, 3, 2); // mirror x
-            SwapUVs(5, 1, 0);
+            rotateUVs(5, 3);
+            swapUVs(5, 3, 2); // mirror x
+            swapUVs(5, 1, 0);
         }
     }
 
@@ -357,7 +357,7 @@ namespace Inferno::Editor {
     void OnCopySide(Level& level, Tag tag) {
         SideClipboard1 = CopySide(level, tag);
         if (auto otherSide = level.GetConnectedSide(tag)) {
-            SideClipboard2 = CopySide(level, tag);
+            SideClipboard2 = CopySide(level, otherSide);
         }
         else {
             SideClipboard2 = {};
