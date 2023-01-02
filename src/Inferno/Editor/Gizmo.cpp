@@ -419,16 +419,17 @@ namespace Inferno::Editor {
         auto tangent = face.VectorForEdge(point % 4);
 
         if (IsZero(tangent)) {
-            transform = {}; // global transform if edge length is zero
+            transform = Matrix::Identity; // use identity if edge length is zero
         }
         else {
             auto bitangent = normal.Cross(tangent);
             bitangent.Normalize();
-            transform.Up(tangent);
-            transform.Right(bitangent);
             if (useAverageNormal)
-                normal = bitangent.Cross(tangent); // On triangulated faces, the normal isn't perpendicular
-            transform.Forward(normal);
+                normal = tangent.Cross(bitangent); // On triangulated faces, the normal isn't perpendicular
+
+            transform.Right(normal);
+            transform.Up(tangent);
+            transform.Forward(bitangent);
         }
 
         return transform;
