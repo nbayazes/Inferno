@@ -28,8 +28,8 @@ namespace Inferno::Editor {
             auto verts = seg.CopyVertices(level); // grabs front then back
             Seq::move(copy.Vertices, verts);
 
-            auto& front = SideIndices[(int)SideID::Front];
-            auto& back = SideIndices[(int)SideID::Back];
+            auto& front = SIDE_INDICES[(int)SideID::Front];
+            auto& back = SIDE_INDICES[(int)SideID::Back];
 
             for (int i = 0; i < 4; i++) {
                 seg.Indices[i] = offset + front[i];

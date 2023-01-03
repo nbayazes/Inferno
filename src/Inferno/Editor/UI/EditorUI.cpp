@@ -369,7 +369,7 @@ namespace Inferno::Editor {
                 if (ImGui::MenuItem("User Guide"))
                     Events::ShowDialog(DialogType::Help);
 
-                if (ImGui::MenuItem(fmt::format("About {}", AppTitle).c_str()))
+                if (ImGui::MenuItem(fmt::format("About {}", APP_TITLE).c_str()))
                     Events::ShowDialog(DialogType::About);
 
                 ImGui::EndMenu();

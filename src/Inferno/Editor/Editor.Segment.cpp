@@ -394,8 +394,8 @@ namespace Inferno::Editor {
         seg.Connections[oppositeSide] = src.Segment;
         srcSeg.Connections[(int)src.Side] = id;
 
-        auto& srcVertIndices = SideIndices[oppositeSide];
-        auto& destSideIndices = SideIndices[(int)src.Side];
+        auto& srcVertIndices = SIDE_INDICES[oppositeSide];
+        auto& destSideIndices = SIDE_INDICES[(int)src.Side];
 
         // Existing face
         seg.Indices[srcVertIndices[3]] = srcIndices[0];

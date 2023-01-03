@@ -59,8 +59,8 @@ namespace Inferno::Editor {
         srcSeg.GetConnection(src.Side) = dest.Segment;
         destSeg.GetConnection(dest.Side) = src.Segment;
 
-        auto& srcIndices = SideIndices[(int)src.Side];
-        auto& destIndices = SideIndices[(int)dest.Side];
+        auto& srcIndices = SIDE_INDICES[(int)src.Side];
+        auto& destIndices = SIDE_INDICES[(int)dest.Side];
 
         List<VertexReplacement> replacements;
 

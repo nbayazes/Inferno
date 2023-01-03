@@ -113,7 +113,7 @@ namespace Inferno::Render {
         colors.fill(segColor);
 
         auto sideColor = Settings::Editor.SelectionMode == SelectionMode::Face ? Colors::SelectionPrimary : Colors::SelectionTertiary;
-        auto& edges = EdgesOfSide[(int)selection.Side];
+        auto& edges = EDGES_OF_SIDE[(int)selection.Side];
         for (int i = 0; i < 4; i++)
             colors[edges[i]] = sideColor;
 
@@ -122,7 +122,7 @@ namespace Inferno::Render {
 
         // Draw each of the 12 edges
         for (int i = 0; i < 12; i++) {
-            auto& vi = VertsOfEdge[i];
+            auto& vi = VERTS_OF_EDGE[i];
             auto v1 = vs[vi[0]];
             auto v2 = vs[vi[1]];
             Debug::DrawLine(*v1, *v2, colors[i]);
@@ -281,7 +281,7 @@ namespace Inferno::Render {
 
             // Draw each of the 12 edges
             for (int i = 0; i < 12; i++) {
-                auto& vi = VertsOfEdge[i];
+                auto& vi = VERTS_OF_EDGE[i];
                 auto v1 = vs[vi[0]];
                 auto v2 = vs[vi[1]];
                 Debug::DrawLine(*v1, *v2, color);

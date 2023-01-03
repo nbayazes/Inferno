@@ -351,8 +351,8 @@ namespace Inferno::Editor {
             lastSeg.Connections[(int)last.Side] = id;
 
             auto srcIndices = lastSeg.GetVertexIndices(last.Side);
-            auto& srcVertIndices = SideIndices[oppositeSide];
-            auto& newVertIndices = SideIndices[(int)last.Side];
+            auto& srcVertIndices = SIDE_INDICES[oppositeSide];
+            auto& newVertIndices = SIDE_INDICES[(int)last.Side];
             seg.Indices[srcVertIndices[3]] = srcIndices[0];
             seg.Indices[srcVertIndices[2]] = srcIndices[1];
             seg.Indices[srcVertIndices[1]] = srcIndices[2];

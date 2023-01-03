@@ -414,8 +414,8 @@ namespace Inferno::Editor {
 
         string title =
             Game::Mission
-            ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), AppTitle)
-            : fmt::format("{} - {}", levelName, AppTitle);
+            ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), APP_TITLE)
+            : fmt::format("{} - {}", levelName, APP_TITLE);
 
         SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
     }

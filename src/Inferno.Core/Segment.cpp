@@ -25,7 +25,7 @@ namespace Inferno {
     void Segment::UpdateGeometricProps(const Level& level) {
         for (auto& s : SideIDs) {
             auto& side = GetSide(s);
-            auto& sideVerts = SideIndices[(int)s];
+            auto& sideVerts = SIDE_INDICES[(int)s];
             auto& v0 = level.Vertices[Indices[sideVerts[0]]];
             auto& v1 = level.Vertices[Indices[sideVerts[1]]];
             auto& v2 = level.Vertices[Indices[sideVerts[2]]];
