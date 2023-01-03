@@ -199,17 +199,22 @@ namespace Inferno::Resources {
         return TryGetTextureInfo(LookupLevelTexID(id));
     }
 
-    int GetSoundCount() { return (int)GameData.Sounds.size(); }
-
-    int GetSoundIndex(SoundID id) {
-        return GameData.Sounds[(int)id];
-    }
-
     Sound::SoundResource GetSoundResource(SoundID id) {
+        if (!Seq::inRange(GameData.Sounds, (int)id)) return {};
+
         if (Game::Level.IsDescent1())
             return { .D1 = GameData.Sounds[(int)id] };
         else
             return { .D2 = GameData.Sounds[(int)id] };
+    }
+
+    string_view GetSoundName(SoundID id) {
+        if (!Seq::inRange(GameData.Sounds, (int)id)) return "None";
+        auto index = GameData.Sounds[(int)id];
+        if (Game::Level.IsDescent1())
+            return SoundsD1.Sounds[index].Name;
+        else
+            return SoundsD2.Sounds[index].Name;
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
