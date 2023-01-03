@@ -150,7 +150,7 @@ namespace Inferno::Editor {
             Events::SnapshotChanged();
         }
 
-        auto Snapshots() { return _snapshots.size(); }
+        auto Snapshots() const { return _snapshots.size(); }
 
         bool Dirty() {
             if (_cleanId == -1) return true;

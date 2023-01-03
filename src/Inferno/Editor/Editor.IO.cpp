@@ -346,9 +346,8 @@ namespace Inferno::Editor {
             }
 
             Settings::Editor.AddRecentFile(*path);
+            History.UpdateCleanSnapshot();
         }
-
-        History.UpdateCleanSnapshot();
     }
 
     void OnSave() {
