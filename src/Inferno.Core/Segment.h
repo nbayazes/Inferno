@@ -169,7 +169,7 @@ namespace Inferno {
         }
 
         bool SideContainsPoint(SideID side, PointID point) const {
-            for (auto& si : Inferno::SIDE_INDICES[(int)side]) {
+            for (auto& si : SIDE_INDICES[(int)side]) {
                 if (point == Indices[si]) return true;
             }
 
@@ -179,7 +179,7 @@ namespace Inferno {
         // Vertex indices for a side in the vertex buffer
         Array<PointID, 4> GetVertexIndices(SideID side) const {
             Array<PointID, 4> indices{};
-            auto& sideVerts = Inferno::SIDE_INDICES[(int)side];
+            auto& sideVerts = SIDE_INDICES[(int)side];
             for (int i = 0; i < indices.size(); i++)
                 indices[i] = Indices[sideVerts[i]];
 
@@ -187,7 +187,7 @@ namespace Inferno {
         }
 
         Array<PointID*, 4> GetVertexIndicesRef(SideID side) {
-            auto& sideVerts = Inferno::SIDE_INDICES[(int)side];
+            auto& sideVerts = SIDE_INDICES[(int)side];
             return {
                 &Indices[sideVerts[0]],
                 &Indices[sideVerts[1]],
@@ -197,7 +197,7 @@ namespace Inferno {
         }
 
         PointID GetVertexIndex(SideID side, uint16 point) const {
-            auto& indices = Inferno::SIDE_INDICES[(int)side];
+            auto& indices = SIDE_INDICES[(int)side];
             return Indices[indices[point % 4]];
         }
 
