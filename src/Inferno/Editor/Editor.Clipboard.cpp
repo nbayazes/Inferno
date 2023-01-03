@@ -201,6 +201,10 @@ namespace Inferno::Editor {
         auto srcTranslation = copy.Reference.Translation();
         auto positionDelta = selectionTransform.Translation() - srcTranslation;
 
+        // flip transform to place segments on the other side
+        srcTransform.Right(-srcTransform.Right());
+        srcTransform.Forward(-srcTransform.Forward());
+
         // change of basis
         Matrix m0 = srcTransform.Invert(), m1 = selectionTransform;
         m0.Translation(Vector3::Zero); // Must remove translations for change of basis to work
