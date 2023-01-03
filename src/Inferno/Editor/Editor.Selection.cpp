@@ -31,20 +31,18 @@ namespace Inferno::Editor {
                     if (seg.SideHasConnection(side) && !visibleWall) continue;
                 }
 
-                for (int i = 0; i < 2; i++) {
-                    auto face = Face::FromSide(level, seg, side);
-                    float dist;
-                    if (face.Intersects(ray, dist) && dist >= Render::Camera.NearClip) {
-                        auto intersect = ray.position + dist * ray.direction;
-                        int16 edge = 0;
-                        if (mode == SelectionMode::Point)
-                            // find the point on this face closest to the intersect
-                            edge = face.GetClosestPoint(intersect);
-                        else
-                            edge = face.GetClosestEdge(intersect);
+                auto face = Face::FromSide(level, seg, side);
+                float dist;
+                if (face.Intersects(ray, dist) && dist >= Render::Camera.NearClip) {
+                    auto intersect = ray.position + dist * ray.direction;
+                    int16 edge = 0;
+                    if (mode == SelectionMode::Point)
+                        // find the point on this face closest to the intersect
+                        edge = face.GetClosestPoint(intersect);
+                    else
+                        edge = face.GetClosestEdge(intersect);
 
-                        hits.push_back({ { SegID(segid), side }, edge, face.Side.AverageNormal, dist });
-                    }
+                    hits.push_back({ { SegID(segid), side }, edge, face.Side.AverageNormal, dist });
                 }
             }
 
@@ -56,7 +54,7 @@ namespace Inferno::Editor {
         return hits;
     }
 
-    List<SelectionHit> HitTestObjects(Level& level, const Ray& ray) {
+    List<SelectionHit> HitTestObjects(const Level& level, const Ray& ray) {
         List<SelectionHit> hits;
 
         for (int id = 0; id < level.Objects.size(); id++) {
@@ -91,8 +89,6 @@ namespace Inferno::Editor {
             }
 
             _selection = hits[_cycleDepth];
-
-            auto intersectPoint = ray.position + _selection.Distance * ray.direction;
 
             if (_selection.Tag.HasValue()) {
                 Point = _selection.Edge;
@@ -386,7 +382,7 @@ namespace Inferno::Editor {
         if (!Game::Level.SegmentExists(tag))
             tag = { SegID(0) };
 
-        if (tag.Side == SideID::None) 
+        if (tag.Side == SideID::None)
             tag.Side = SideID::Left;
 
         Segment = tag.Segment;
