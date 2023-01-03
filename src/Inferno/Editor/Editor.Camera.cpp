@@ -71,6 +71,21 @@ namespace Inferno::Editor {
             },
             .Name = "Focus Object"
         };
+
+        Command FocusSelection{
+            .Action = [] {
+                if (Settings::Editor.SelectionMode == SelectionMode::Object) {
+                    if (auto obj = Game::Level.TryGetObject(Selection.Object)) {
+                        Render::Camera.MoveTo(obj->Position);
+                        return;
+                    }
+                }
+
+                if (auto seg = Game::Level.TryGetSegment(Selection.Segment))
+                    Render::Camera.MoveTo(seg->Center);
+            },
+            .Name = "Focus Selection"
+        };
     }
 
 }

@@ -169,7 +169,7 @@ namespace Inferno::Editor {
             case EditorAction::Undo: return Commands::Undo;
             case EditorAction::Redo: return Commands::Redo;
             case EditorAction::AlignViewToFace: return Commands::AlignViewToFace;
-            case EditorAction::FocusSelection: return Commands::FocusSegment;
+            case EditorAction::FocusSelection: return Commands::FocusSelection;
             case EditorAction::ZoomExtents: return Commands::ZoomExtents;
             case EditorAction::ShowHogEditor: return Commands::OpenHogEditor;
             case EditorAction::ShowMissionEditor: return Commands::OpenMissionEditor;

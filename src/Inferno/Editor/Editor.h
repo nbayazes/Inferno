@@ -179,7 +179,8 @@ namespace Inferno::Editor {
         inline Command Redo{ .Action = [] { History.Redo(); }, .CanExecute = [] { return History.CanRedo(); }, .Name = "Redo" };
         extern Command Insert, Delete;
         inline Command DisableFlickeringLights{ .Action = [] { Editor::DisableFlickeringLights(Game::Level); } };
-        extern Command AlignViewToFace, FocusSegment, FocusObject, ZoomExtents;
+        extern Command AlignViewToFace, ZoomExtents;
+        extern Command FocusSegment, FocusObject, FocusSelection;
         extern Command CycleRenderMode, ToggleWireframe;
     }
 }

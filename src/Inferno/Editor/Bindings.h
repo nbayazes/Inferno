@@ -75,6 +75,7 @@ namespace Inferno::Editor {
     const Command& GetCommandForAction(EditorAction action);
     namespace Commands {
         extern Command NullCommand;
+        extern Command ToggleMouselook;
     }
 
     struct EditorBinding {

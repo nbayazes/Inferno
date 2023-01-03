@@ -281,11 +281,9 @@ namespace Inferno::Editor {
             }
 
             if (ImGui::BeginMenu("View")) {
-                if (ImGui::MenuItem("Focus Selection", "F"))
-                    Commands::FocusSegment();
+                MenuCommand(Commands::FocusSelection, EditorAction::FocusSelection);
                 MenuCommand(Commands::AlignViewToFace, EditorAction::AlignViewToFace);
-                if (ImGui::MenuItem("Mouselook mode", "Z"))
-                    Input::SetMouselook(true);
+                MenuCommand(Commands::ToggleMouselook, EditorAction::ToggleMouselook);
                 ImGui::Separator();
 
                 //if (ImGui::MenuItem("Wireframe", nullptr, Settings::Editor.RenderMode == RenderMode::Wireframe))
