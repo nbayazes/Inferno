@@ -10,7 +10,7 @@ namespace Inferno::Render {
 }
 
 namespace Inferno::Editor {
-    class DiagnosticWindow : public WindowBase {
+    class DiagnosticWindow final : public WindowBase {
         List<SegmentDiagnostic> _segments;
         List<SegmentDiagnostic> _objects;
         int _selection{};

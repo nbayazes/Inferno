@@ -301,7 +301,7 @@ namespace Inferno::Editor {
     }
 
     // returns true if segment is degenerate. Compares the angles between the edges of each corner.
-    bool SegmentIsDegenerate(Level& level, Segment& seg) {
+    bool SegmentIsDegenerate(const Level& level, const Segment& seg) {
         for (short n = 0; n < 8; n++) {
             // define vert numbers
             const auto& v0 = level.Vertices[seg.Indices[n]];

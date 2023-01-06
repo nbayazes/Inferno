@@ -19,7 +19,7 @@ namespace Inferno::Editor {
     // Fixes common errors in a level
     void FixLevel(Level&);
 
-    bool SegmentIsDegenerate(Level& level, Segment& seg);
+    bool SegmentIsDegenerate(const Level& level, const Segment& seg);
 
     List<SegmentDiagnostic> CheckObjects(Level& level);
     List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors);

@@ -479,31 +479,6 @@ namespace Inferno::Editor {
         return id;
     }
 
-    // Simple approach to aligning sides from OLE but isn't reliable.
-    // Moves src onto dest
-    void AlignFaces(const Face& src, const Face& dest) {
-        float minDist = FLT_MAX;
-        int srcVert = 0;
-        int dstVert = 0;
-
-        // Find the closest pair of verts on each face
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                auto diff = src[i] - dest[j];
-                auto dist = diff.LengthSquared();
-                if (dist < minDist) {
-                    minDist = dist;
-                    srcVert = i;
-                    dstVert = j;
-                }
-            }
-        }
-
-        // Align the verts
-        for (int i = 0; i < 4; i++)
-            src[(srcVert + i) % 4] = dest[(dstVert + (4 - i)) % 4];
-    }
-
     // Projects a ray from the center of src face to dest face and checks the flatness ratio
     bool RayCheckDegenerate(Level& level, Tag tag) {
         auto opposite = GetOppositeSide(tag.Side);
@@ -513,19 +488,23 @@ namespace Inferno::Editor {
         auto vec = destFace.Center() - srcFace.Center();
         auto maxDist = vec.Length();
         vec.Normalize();
-        if (vec == Vector3::Zero) return true;
+        if (vec == Vector3::Zero)
+            return true;
 
         Ray ray(srcFace.Center(), vec);
         for (auto side : SideIDs) {
-            if (side == tag.Side || side == opposite) continue;
+            if (side == tag.Side || side == opposite)
+                continue;
+
             auto tface = Face::FromSide(level, { tag.Segment, side });
             auto flatness = tface.FlatnessRatio();
-            if (flatness <= 0.80f) return true;
+            if (flatness <= 0.90f)
+                return true;
 
             float dist{};
-            if (tface.Intersects(ray, dist, true) && dist > 0.01f/*&& dist < maxDist*/)
-                if (dist < maxDist)
-                    return true;
+            if (tface.Intersects(ray, dist, true) && dist > 0.01f && dist < maxDist) {
+                return true;
+            }
         }
 
         return false;
@@ -546,34 +525,29 @@ namespace Inferno::Editor {
         auto destFace = Face::FromSide(level, destId);
         auto original = srcFace.CopyPoints();
 
-        // Use a simple approach to begin with
-        AlignFaces(srcFace, destFace);
-        seg.UpdateGeometricProps(level);
+        static const std::array forward = { 0, 1, 2, 3 };
+        static const std::array reverse = { 3, 2, 1, 0 };
+        bool foundValid = false;
 
-        if (SegmentIsDegenerate(level, seg) || RayCheckDegenerate(level, srcTag)) {
-            static const std::array forward = { 0, 1, 2, 3 };
-            static const std::array reverse = { 3, 2, 1, 0 };
-            bool foundValid = false;
+        // try attaching the segment to the dest in each orientation until one isn't degenerate
+        for (int i = 0; i < 8; i++) {
+            auto order = i < 4 ? forward : reverse;
 
-            // try attaching the segment to the dest in each orientation until one isn't degenerate
-            for (int i = 0; i < 8; i++) {
-                auto order = i < 4 ? forward : reverse;
+            // copy point locations from dest to dest
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = destFace[order[(f + i) % 4]];
 
-                // copy point locations from dest to dest
-                for (int f = 0; f < 4; f++)
-                    srcFace[f] = destFace[order[(f + i) % 4]];
-
-                if (!SegmentIsDegenerate(level, seg) && !RayCheckDegenerate(level, srcTag)) {
-                    foundValid = true;
-                    break;
-                }
+            seg.UpdateGeometricProps(level);
+            if (!SegmentIsDegenerate(level, seg) && !RayCheckDegenerate(level, srcTag)) {
+                foundValid = true;
+                break;
             }
+        }
 
-            if (!foundValid) {
-                for (int f = 0; f < 4; f++)
-                    srcFace[f] = original[f]; // restore original location
-                return false;
-            }
+        if (!foundValid) {
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = original[f]; // restore original location
+            return false;
         }
 
         level.TryAddConnection(srcTag, destId);
