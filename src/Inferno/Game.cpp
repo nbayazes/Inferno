@@ -4,7 +4,6 @@
 #include "Graphics/Render.h"
 #include "Resources.h"
 #include "Editor/Editor.h"
-#include "SoundSystem.h"
 
 namespace Inferno::Game {
     void LoadLevel(Inferno::Level&& level) {
@@ -31,7 +30,6 @@ namespace Inferno::Game {
             Render::LoadLevel(Level);
             IsLoading = false;
 
-            //Sound::Reset();
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();

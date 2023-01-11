@@ -321,7 +321,7 @@ namespace Inferno::Editor {
         tileSize.x *= Shell::DpiScale;
         tileSize.y *= Shell::DpiScale;
 
-        const ImVec4 bg = { 0.1f, 0.1f, 0.1f, 1.0f };
+        constexpr ImVec4 bg = { 0.1f, 0.1f, 0.1f, 1.0f };
         constexpr int borderThickess = 2;
 
         for (auto& id : _textureIds) {

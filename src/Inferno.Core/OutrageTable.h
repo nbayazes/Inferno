@@ -16,6 +16,7 @@ namespace Inferno::Outrage {
     constexpr int MAX_DSPEW_TYPES = 2;
 
     enum class TextureFlag {
+        None = 0,
         Volatile = 1,
         Water = (1 << 1),
         Metal = (1 << 2), // Editor sorting
@@ -31,7 +32,7 @@ namespace Inferno::Outrage {
         Object = (1 << 12),
         Texture64 = (1 << 13),
         Tmap2 = (1 << 14),
-        Texture_32 = (1 << 15),
+        Texture32 = (1 << 15),
         FlyThru = (1 << 16),
         PassThru = (1 << 17),
         PingPong = (1 << 18),

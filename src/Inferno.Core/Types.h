@@ -415,11 +415,9 @@ namespace Inferno {
     };
 }
 
-namespace std {
-    template <>
-    struct hash<Inferno::Tag> {
-        std::size_t operator()(const Inferno::Tag& t) const {
-            return std::hash<Inferno::SegID>()(t.Segment) ^ (std::hash<Inferno::SideID>()(t.Side) << 1);
-        }
-    };
-}
+template <>
+struct std::hash<Inferno::Tag> {
+    std::size_t operator()(const Inferno::Tag& t) const noexcept {
+        return std::hash<Inferno::SegID>()(t.Segment) ^ (std::hash<Inferno::SideID>()(t.Side) << 1);
+    }
+};

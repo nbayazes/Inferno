@@ -248,7 +248,7 @@ namespace Inferno {
         template<class T>
         void Write(const T value) {
             static_assert(!std::is_floating_point<T>()); // serializing a float is always wrong for Descent files
-            static_assert(!std::is_same<T, Vector3>::value); // ambiguous
+            static_assert(!std::is_same_v<T, Vector3>); // ambiguous
             _stream.write((char*)&value, sizeof(T));
         }
 

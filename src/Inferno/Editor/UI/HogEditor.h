@@ -326,7 +326,7 @@ namespace Inferno::Editor {
         // Imports a robot or texture file to all levels in the mission
         void OnImportToLevels() {
             try {
-                static const COMDLG_FILTERSPEC filter[] = {
+                static constexpr COMDLG_FILTERSPEC filter[] = {
                     { L"Custom Data", L"*.HXM;*.POG;*.DTX" },
                     { L"Robots", L"*.HXM" },
                     { L"Textures", L"*.POG" },
@@ -393,7 +393,7 @@ namespace Inferno::Editor {
         }
 
         // Exports an entry to a destination
-        void ExportEntry(HogEntry& entry, filesystem::path dest) {
+        void ExportEntry(const HogEntry& entry, filesystem::path dest) {
             auto data = Game::Mission->ReadEntry(entry);
             if (data.empty()) throw Exception("Entry does not exist");
 
@@ -422,7 +422,7 @@ namespace Inferno::Editor {
                 auto entry = Seq::tryItem(_entries, _selections[0]);
                 if (!entry) return;
 
-                static const COMDLG_FILTERSPEC filter[] = {
+                static constexpr COMDLG_FILTERSPEC filter[] = {
                     { L"All Files", L"*.*" }
                 };
 
