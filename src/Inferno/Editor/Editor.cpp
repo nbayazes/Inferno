@@ -393,16 +393,16 @@ namespace Inferno::Editor {
         if (lti.EffectClip != EClipID::None) {
             auto& eclip = Resources::GetEffectClip(lti.EffectClip);
             for (auto& frame : eclip.VClip.GetFrames()) {
-                auto& bmp = Resources::ReadBitmap(frame);
-                SPDLOG_INFO("Exporting {}", bmp.Name);
-                std::filesystem::remove(bmp.Name + ".png");
-                lodepng::encode(bmp.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Width, bmp.Height);
+                auto& bmp = Resources::GetBitmap(frame);
+                SPDLOG_INFO("Exporting {}", bmp.Info.Name);
+                std::filesystem::remove(bmp.Info.Name + ".png");
+                lodepng::encode(bmp.Info.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Info.Width, bmp.Info.Height);
             }
         }
         else {
-            auto& bmp = Resources::ReadBitmap(lti.TexID);
-            SPDLOG_INFO("Exporting {}", bmp.Name);
-            lodepng::encode(bmp.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Width, bmp.Height);
+            auto& bmp = Resources::GetBitmap(lti.TexID);
+            SPDLOG_INFO("Exporting {}", bmp.Info.Name);
+            lodepng::encode(bmp.Info.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Info.Width, bmp.Info.Height);
         }
         //lodepng::encode("st/" + bmp.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Width, bmp.Height);
         //lodepng::encode("st/" + bmp.Name + "_st.png", (ubyte*)bmp.Mask.data(), bmp.Width, bmp.Height);

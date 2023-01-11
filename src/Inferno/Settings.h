@@ -109,6 +109,7 @@ namespace Inferno {
             bool Sound = false;
             bool Diagnostics = false;
             bool BriefingEditor = false;
+            bool TextureEditor = false;
         } Windows;
 
         bool ShowWireframe = false;

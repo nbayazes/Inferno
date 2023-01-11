@@ -540,11 +540,16 @@ namespace Inferno::Render {
         Materials->LoadMaterials(ids, false);
     }
 
-    void LoadTextureDynamic(LevelTexID id) {
-        List<TexID> list = { Resources::LookupLevelTexID(id) };
+
+    void LoadTextureDynamic(TexID id) {
+        std::vector list{ id };
         if (auto eclip = Resources::TryGetEffectClip(id))
             Seq::append(list, eclip->VClip.GetFrames());
         Materials->LoadMaterials(list, false);
+    }
+
+    void LoadTextureDynamic(LevelTexID id) {
+        return LoadTextureDynamic(Resources::LookupLevelTexID(id));
     }
 
     void LoadTextureDynamic(VClipID id) {

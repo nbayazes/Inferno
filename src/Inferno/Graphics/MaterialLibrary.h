@@ -112,4 +112,5 @@ namespace Inferno::Render {
 
     inline Ptr<MaterialLibrary> Materials;
 
+    Set<TexID> GetLevelSegmentTextures(const Level& level);
 }

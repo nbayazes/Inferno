@@ -14,10 +14,13 @@
 namespace Inferno::Resources {
     void Init();
 
+    inline Dictionary<TexID, PigBitmap> CustomTextures;
+
     extern SoundFile SoundsD1, SoundsD2;
     Sound::SoundResource GetSoundResource(SoundID id);
     string_view GetSoundName(SoundID id);
 
+    const Palette& GetPalette();
     WClipID GetWallClipID(LevelTexID);
     const WallClip& GetWallClip(WClipID);
     const WallClip* TryGetWallClip(WClipID);
@@ -47,7 +50,6 @@ namespace Inferno::Resources {
     TexID LookupLevelTexID(LevelTexID);
     TexID LookupModelTexID(const Model&, int16);
 
-
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
@@ -55,7 +57,13 @@ namespace Inferno::Resources {
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
 
-    const PigBitmap& ReadBitmap(TexID);
+    // Returns bitmap data for a TexID
+    const PigBitmap& GetBitmap(TexID);
+
+    // Returns a modifiable bitmap
+    PigBitmap& AccessBitmap(TexID);
+
+    int GetTextureCount();
 
     inline HamFile GameData = {};
 

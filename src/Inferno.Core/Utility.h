@@ -303,6 +303,12 @@ namespace Inferno {
             return str.find(value) != string::npos;
         }
 
+        constexpr Option<size_t> IndexOf(const std::string_view str, const std::string_view value) {
+            auto p = str.find(value);
+            if (p == string::npos) return {};
+            return p;
+        }
+
         //inline bool InvariantContains(const std::wstring_view str, const std::wstring_view value) {
         //    int found;
         //    FindNLSString(LOCALE_NAME_USER_DEFAULT, LINGUISTIC_IGNORECASE, str.data(), -1, value.data(), -1, &found);
@@ -312,6 +318,11 @@ namespace Inferno {
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const std::string_view s1, const std::string_view s2) {
             return _stricmp(s1.data(), s2.data()) == 0;
+        }
+
+        // Returns true if two strings are equal ignoring capitalization, up to a number of characters
+        inline bool InvariantEquals(const std::string_view s1, const std::string_view s2, size_t maxCount) {
+            return _strnicmp(s1.data(), s2.data(), maxCount) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization

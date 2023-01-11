@@ -17,6 +17,7 @@
 #include "SoundBrowser.h"
 #include "DiagnosticWindow.h"
 #include "BriefingEditor.h"
+#include "TextureEditor.h"
 
 namespace Inferno::Editor {
 
@@ -54,6 +55,7 @@ namespace Inferno::Editor {
 
     class EditorUI {
         TextureBrowserUI _textureBrowser;
+        TextureEditor _textureEditor;
         PropertyEditor _propertyEditor;
         DebugWindow _debugWindow;
         BloomWindow _bloomWindow;
@@ -97,8 +99,8 @@ namespace Inferno::Editor {
 
     protected:
         void DrawMenu();
-        void DrawDockspace(ImGuiViewport* viewport);
-        ImGuiDockNode* CreateDockLayout(ImGuiID dockspace_id, ImGuiViewport* viewport);
+        void DrawDockspace(const ImGuiViewport* viewport);
+        ImGuiDockNode* CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport);
 
     };
 

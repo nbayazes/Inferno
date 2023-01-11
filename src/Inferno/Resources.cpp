@@ -17,10 +17,12 @@ namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
     Palette LevelPalette;
     PigFile Pig;
-    Dictionary<TexID, PigBitmap> CustomTextures;
     List<PigBitmap> Textures;
 
     std::mutex PigMutex;
+
+    int GetTextureCount() { return Textures.size(); }
+    const Palette& GetPalette() { return LevelPalette; }
 
     void LoadRobotNames(filesystem::path path) {
         try {
@@ -234,7 +236,7 @@ namespace Inferno::Resources {
         SPDLOG_INFO("Update average texture color");
 
         for (auto& entry : Pig.Entries) {
-            auto& bmp = ReadBitmap(entry.ID);
+            auto& bmp = GetBitmap(entry.ID);
             entry.AverageColor = GetAverageColor(bmp.Data);
         }
         //for (auto& tid : GameData.LevelTexIdx) {
@@ -438,13 +440,11 @@ namespace Inferno::Resources {
         }
     }
 
-    const PigBitmap& ReadBitmap(TexID id) {
-        //std::scoped_lock lock(PigMutex);
-        if (Textures.empty()) {
-            assert(!Textures.empty());
-            static const PigBitmap empty(64, 64, "default");
-            return empty;
-        }
+    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64  } };
+
+    const PigBitmap& GetBitmap(TexID id) {
+        if (Textures.empty())
+            return DEFAULT_BITMAP;
 
         if (CustomTextures.contains(id)) return CustomTextures[id];
         if (!Seq::inRange(Textures, (int)id)) id = (TexID)0;

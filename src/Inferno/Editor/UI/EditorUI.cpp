@@ -322,6 +322,7 @@ namespace Inferno::Editor {
 
             if (ImGui::BeginMenu("Tools")) {
                 ImGui::MenuItem("Textures", nullptr, &Settings::Editor.Windows.Textures);
+                ImGui::MenuItem("Texture Editor", nullptr, &Settings::Editor.Windows.TextureEditor);
                 ImGui::MenuItem("Properties", nullptr, &Settings::Editor.Windows.Properties);
                 ImGui::MenuItem("Reactor", nullptr, &Settings::Editor.Windows.Reactor);
                 ImGui::MenuItem("Lighting", nullptr, &Settings::Editor.Windows.Lighting);
@@ -717,7 +718,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void DrawMainToolbar(ImGuiViewport* node) {
+    void DrawMainToolbar(const ImGuiViewport* node) {
         //statusPos.y += dock->CentralNode->Size.y;
         //_statusBar.Position = statusPos;
         //_statusBar.Width = dock->CentralNode->Size.x;
@@ -788,17 +789,17 @@ namespace Inferno::Editor {
         ImGui::PopStyleColor();
     }
 
-    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspace_id, ImGuiViewport* viewport) {
-        auto dockspaceNode = ImGui::DockBuilderGetNode(dockspace_id);
+    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) {
+        auto dockspaceNode = ImGui::DockBuilderGetNode(dockspaceId);
 
         if (!dockspaceNode) {
-            ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-            ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
-            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+            ImGui::DockBuilderRemoveNode(dockspaceId); // Clear out existing layout
+            ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace); // Add empty node
+            ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
 
-            ImGuiID dock_main_id = dockspace_id;
-            ImGuiID leftPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
-            ImGuiID rightPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, nullptr, &dock_main_id);
+            ImGuiID dockMainId = dockspaceId;
+            ImGuiID leftPanel = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Left, 0.20f, nullptr, &dockMainId);
+            ImGuiID rightPanel = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.20f, nullptr, &dockMainId);
             //ImGuiID bottomPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
             //ImGuiID leftTopSplit, leftBottomSplit;
 
@@ -808,15 +809,15 @@ namespace Inferno::Editor {
             //ImGui::DockBuilderSplitNode(rightPanel, ImGuiDir_Down, 0.5f, &leftBottomSplit, &leftTopSplit);
             ImGui::DockBuilderDockWindow(_textureBrowser.Name(), leftPanel);
             ImGui::DockBuilderDockWindow(_propertyEditor.Name(), rightPanel);
-            ImGui::DockBuilderFinish(dockspace_id);
-            return ImGui::DockBuilderGetNode(dockspace_id);
+            ImGui::DockBuilderFinish(dockspaceId);
+            return ImGui::DockBuilderGetNode(dockspaceId);
         }
         else {
             return dockspaceNode;
         }
     }
 
-    void EditorUI::DrawDockspace(ImGuiViewport* viewport) {
+    void EditorUI::DrawDockspace(const ImGuiViewport* viewport) {
         float toolbarWidth = 0; // = ToolbarWidth;
         ImGui::SetNextWindowPos({ toolbarWidth, 0 });
         ImGui::SetNextWindowSize({ viewport->WorkSize.x - toolbarWidth, viewport->WorkSize.y + _mainMenuHeight - _statusBar.Height });
@@ -887,7 +888,7 @@ namespace Inferno::Editor {
 
         DrawMainToolbar(viewport);
 
-        for (auto& [_, dialog] : _dialogs)
+        for (auto& dialog : _dialogs | views::values)
             dialog->Update();
 
         _reactorEditor.Update();
@@ -896,6 +897,7 @@ namespace Inferno::Editor {
         _noise.Update();
         _lightingWindow.Update();
         _textureBrowser.Update();
+        _textureEditor.Update();
         _propertyEditor.Update();
         _tunnelBuilder.Update();
         _sounds.Update();
