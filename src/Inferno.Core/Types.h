@@ -11,7 +11,7 @@
 #include <ranges>
 
 namespace DirectX::SimpleMath {
-    struct Matrix3x3 : public XMFLOAT3X3 {
+    struct Matrix3x3 : XMFLOAT3X3 {
         Matrix3x3() noexcept
             : XMFLOAT3X3(1.f, 0, 0,
                          0, 1.f, 0,
@@ -123,11 +123,11 @@ namespace Inferno {
     //        std::runtime_error(fmt::format(format, std::forward<TArgs>(args)...)) {}
     //};
     using ArgumentException = std::invalid_argument;
-    struct IndexOutOfRangeException : public std::exception {
+    struct IndexOutOfRangeException : std::exception {
         const char* what() const override { return "Index out of range"; }
     };
 
-    struct NotImplementedException : public std::exception {
+    struct NotImplementedException : std::exception {
         const char* what() const override { return "Not Implemented"; }
     };
 
@@ -154,8 +154,8 @@ namespace Inferno {
     template<class T>
     using List = std::vector<T>;
 
-    template<class T, size_t _Size>
-    using Array = std::array<T, _Size>;
+    template<class T, size_t TSize>
+    using Array = std::array<T, TSize>;
 
     template<class T>
     using Option = std::optional<T>;
@@ -342,7 +342,7 @@ namespace Inferno {
     };
 
     // Tags a point on a segment side
-    struct PointTag : public Tag { uint16 Point; };
+    struct PointTag : Tag { uint16 Point; };
 
     constexpr Tag GetOppositeSide(Tag tag) {
         tag.Side = GetOppositeSide(tag.Side);

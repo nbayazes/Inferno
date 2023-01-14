@@ -12,8 +12,6 @@ namespace Inferno::Editor {
 
     void WriteBmp(const filesystem::path& path, const Palette& gamePalette, const PigBitmap& bmp);
 
-    void LoadBmp(const filesystem::path& path, bool transparent, PigEntry entry);
-
     // A user defined texture in a POG or DTX
     struct CustomTexture : PigEntry {
         //List<ubyte> Data; // Indexed color data
@@ -160,11 +158,10 @@ namespace Inferno::Editor {
                         ImGui::SameLine();
                         ImGui::Checkbox("Use transparency", &_useTransparency);
 
-                        if (ImGui::Button("Export", { 100 * Shell::DpiScale, 0 })) {
-                            OnExport(material.Name);
-                        }
-
                         ImGui::Dummy({ 0, 10 * Shell::DpiScale });
+                        if (ImGui::Button("Export", { 100 * Shell::DpiScale, 0 })) {
+                            OnExport(bmp.Info.ID);
+                        }
 
                         {
                             DisableControls disable(!ti.Custom);
@@ -198,14 +195,15 @@ namespace Inferno::Editor {
         }
 
     private:
-        void OnExport(string name) const {
+        static void OnExport(TexID id) {
             try {
+                auto& bmp = Resources::GetBitmap(id);
                 static constexpr COMDLG_FILTERSPEC filter[] = {
                     { L"256 Color Bitmap", L"*.BMP" }
                 };
 
-                if (auto path = SaveFileDialog(filter, 0, Convert::ToWideString(name + ".bmp"), L"Export BMP")) {
-                    WriteBmp(*path, Resources::GetPalette(), Resources::GetBitmap(_selection));
+                if (auto path = SaveFileDialog(filter, 0, Convert::ToWideString(bmp.Info.Name + ".bmp"), L"Export BMP")) {
+                    WriteBmp(*path, Resources::GetPalette(), bmp);
                 }
             }
             catch (...) {}
@@ -216,7 +214,7 @@ namespace Inferno::Editor {
                 static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
                 if (auto file = OpenFileDialog(filter, L"Import custom texture")) {
                     // todo: check game version, limits, and if level textures are square
-                    LoadBmp(*file, _useTransparency, entry);
+                    Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry);
                     std::array ids{ _selection };
                     Render::Materials->LoadMaterialsAsync(ids, true);
                     UpdateTextureList();
@@ -226,8 +224,8 @@ namespace Inferno::Editor {
         }
 
         void OnRevert(TexID id) {
-            if (Resources::CustomTextures.contains(id)) {
-                Resources::CustomTextures.erase(id);
+            if (Resources::CustomTextures.Get(id)) {
+                Resources::CustomTextures.Delete(id);
                 std::array ids{ id };
                 Render::Materials->LoadMaterialsAsync(ids, true);
                 UpdateTextureList();

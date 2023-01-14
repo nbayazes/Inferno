@@ -14,9 +14,7 @@ namespace Inferno {
         Option<int> Index; // HOG index for saved files
 
         string NameWithoutExtension() const {
-            auto i = Name.find('.');
-            if (i == string::npos) return "";
-            return Name.substr(0, i);
+            return String::NameWithoutExtension(Name);
         }
 
         // Extension including the dot
@@ -76,7 +74,7 @@ namespace Inferno {
         bool IsDescent2() const { return ContainsFileType("rl2"); }
 
         // Gets the path to the corresponding mission description file
-        std::filesystem::path GetMissionPath() {
+        std::filesystem::path GetMissionPath() const {
             filesystem::path path = Path;
             auto ext = IsDescent1() ? ".msn" : ".mn2";
             return path.replace_extension(ext);
@@ -101,7 +99,7 @@ namespace Inferno {
             return Seq::filter(entries, filter, true);
         }
 
-        List<HogEntry> GetLevels() {
+        List<HogEntry> GetLevels() const {
             return Seq::filter(Entries, [](const HogEntry& e) { return e.IsLevel(); });
         }
     };

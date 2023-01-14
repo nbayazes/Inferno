@@ -15,7 +15,7 @@ namespace Inferno::Game {
 
             bool forceReload =
                 level.IsDescent2() != Level.IsDescent2() ||
-                Resources::HasCustomTextures() ||
+                Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 
             IsLoading = true;
@@ -23,7 +23,7 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             Resources::LoadLevel(Level);
 
-            if (forceReload || Resources::HasCustomTextures()) // Check for custom textures before or after load
+            if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Render::Materials->Unload();
 
             Render::Materials->LoadLevelTextures(Level, forceReload);

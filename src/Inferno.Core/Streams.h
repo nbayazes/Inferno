@@ -280,7 +280,7 @@ namespace Inferno {
             WriteAngle(angles.z);
         }
 
-        void WriteBytes(span<ubyte> data) {
+        void WriteBytes(span<const ubyte> data) const {
             _stream.write((char*)data.data(), data.size());
         }
 

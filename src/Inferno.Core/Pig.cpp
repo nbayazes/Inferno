@@ -8,10 +8,6 @@
 namespace Inferno {
     constexpr auto PIGFILE_VERSION = 2;
 
-    constexpr auto DBM_NUM_FRAMES = 63;
-    constexpr auto DBM_FLAG_ABM = 64; // animated bitmap
-    constexpr auto DBM_FLAG_LARGE = 128; // d1 bitmaps wider than 256
-
     constexpr uint8 RLE_CODE = 0xe0; // marks the end of RLE
     constexpr uint8 NOT_RLE_CODE = 0x1f;
     static_assert((RLE_CODE | NOT_RLE_CODE) == 0xff, "RLE mask error");
@@ -111,6 +107,7 @@ namespace Inferno {
 
         for (auto& entry : entries) {
             entry = ReadD1BitmapHeader(reader, (TexID)0);
+            // Unfortunately textures are replaced by name instead of index
             auto existing = Seq::find(pigEntries, [&entry](PigEntry& e) { return e.Name == entry.Name; });
             if (existing) {
                 entry.ID = existing->ID;
@@ -165,14 +162,18 @@ namespace Inferno {
     // Permanently flips image data along Y axis
     void FlipBitmapY(PigBitmap& bmp) {
         List<ubyte> buffer(bmp.Info.Width * bmp.Info.Height * 4);
-        int rowLen = sizeof(ubyte) * 4 * bmp.Info.Width;
+        List<ubyte> indexBuffer(bmp.Info.Width * bmp.Info.Height);
+        //const int rowLen = bmp.Info.Width * 4;
         int i = 0;
         for (int row = bmp.Info.Height - 1; row >= 0; row--) {
-            memcpy(&buffer[i], &bmp.Data[(size_t)row * bmp.Info.Width], rowLen);
-            i += rowLen;
+            auto offset = (uint)row * bmp.Info.Width;
+            memcpy(&buffer[i * 4], &bmp.Data[offset], bmp.Info.Width * 4);
+            memcpy(&indexBuffer[i], &bmp.Indexed[offset], bmp.Info.Width);
+            i += bmp.Info.Width;
         }
 
         memcpy(bmp.Data.data(), buffer.data(), buffer.size());
+        memcpy(bmp.Indexed.data(), indexBuffer.data(), indexBuffer.size());
     }
 
     void PigBitmap::ExtractMask() {

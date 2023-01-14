@@ -1,9 +1,9 @@
 #pragma once
+#include "CustomTextureLibrary.h"
 #include "Level.h"
 #include "Pig.h"
 #include "HamFile.h"
 #include "Mission.h"
-#include "HogFile.h"
 #include "Hog2.h"
 #include "OutrageBitmap.h"
 #include "OutrageModel.h"
@@ -14,7 +14,7 @@
 namespace Inferno::Resources {
     void Init();
 
-    inline Dictionary<TexID, PigBitmap> CustomTextures;
+    inline CustomTextureLibrary CustomTextures;
 
     extern SoundFile SoundsD1, SoundsD2;
     Sound::SoundResource GetSoundResource(SoundID id);
@@ -78,7 +78,6 @@ namespace Inferno::Resources {
     bool FoundDescent1();
     bool FoundDescent2();
     bool FoundVertigo();
-    bool HasCustomTextures();
 
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;

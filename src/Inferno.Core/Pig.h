@@ -4,6 +4,9 @@
 #include "Streams.h"
 
 namespace Inferno {
+    constexpr auto DBM_FLAG_LARGE = 128; // d1 bitmaps wider than 256
+
+    // 256 color palette used by a Descent 1 or 2 texture
     struct Palette {
         struct Color {
             ubyte r = 0, g = 0, b = 0, a = 255;
@@ -25,6 +28,37 @@ namespace Inferno {
 
         Palette() : FadeTables(34 * 256), Data(256) {}
     };
+
+    // Helper that finds the nearest palette index for a color. Uses caching.
+    class PaletteLookup {
+        const Palette& _palette;
+        Dictionary<uint32, ubyte> _cache; // maps color to index
+    public:
+        PaletteLookup(const Palette& palette) : _palette(palette) {}
+
+        ubyte GetClosestIndex(const Palette::Color& color, bool transparent) {
+            uint hash = (int)color.r + ((int)color.g << 8) + ((int)color.b << 16);
+            if (_cache.contains(hash))
+                return _cache[hash];
+
+            uint closestDelta = 0x7fffffff;
+            ubyte closestIndex = 0;
+
+            for (int i = 0; i < (transparent ? 256 : 254); i++) {
+                uint delta = color.Delta(_palette.Data[i]);
+                if (delta < closestDelta) {
+                    closestIndex = (ubyte)i;
+                    if (delta == 0)
+                        break;
+                    closestDelta = delta;
+                }
+            }
+
+            _cache[hash] = closestIndex;
+            return closestIndex;
+        }
+    };
+
 
     constexpr Color GetAverageColor(span<const Palette::Color> data) {
         int red = 0, green = 0, blue = 0, count = 0;
@@ -107,6 +141,13 @@ namespace Inferno {
             return dflags;
         }
 
+        uint8 GetD1Flags() const {
+            uint8 dflags{};
+            if (Width > 256) dflags |= DBM_FLAG_LARGE;
+            if (Animated) dflags |= AnimatedFlag;
+            return dflags;
+        }
+
     private:
         static constexpr uint8 FrameMask = 63;
         static constexpr uint8 AnimatedFlag = 64;
@@ -160,8 +201,8 @@ namespace Inferno {
     PigBitmap ReadBitmapEntry(StreamReader&, size_t dataStart, const PigEntry&, const Palette&);
     List<PigBitmap> ReadAllBitmaps(const PigFile& pig, const Palette& palette);
 
-    Dictionary<TexID, PigBitmap> ReadDTX(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);
-    Dictionary<TexID, PigBitmap> ReadPoggies(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);
+    //Dictionary<TexID, PigBitmap> ReadDTX(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);
+    //Dictionary<TexID, PigBitmap> ReadPoggies(span<PigEntry> pigEntries, span<ubyte> data, const Palette& palette);
 
     Palette ReadPalette(span<ubyte> data);
     PigFile ReadPigFile(wstring file);
