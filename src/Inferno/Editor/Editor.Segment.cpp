@@ -547,6 +547,8 @@ namespace Inferno::Editor {
         if (!foundValid) {
             for (int f = 0; f < 4; f++)
                 srcFace[f] = original[f]; // restore original location
+
+            seg.UpdateGeometricProps(level);
             return false;
         }
 

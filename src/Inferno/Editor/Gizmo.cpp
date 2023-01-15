@@ -174,6 +174,8 @@ namespace Inferno::Editor {
                 transform.Right(normal);
                 transform.Translation(face[Selection.Point]);
             }
+
+            assert(IsNormalized(transform.Forward()) && IsNormalized(transform.Right()) && IsNormalized(transform.Up()));
             return transform;
         }
 
@@ -189,7 +191,7 @@ namespace Inferno::Editor {
             //transform.Translation(Editor::Selection.GetOrigin());
         }
         else if (Settings::Editor.SelectionMode == SelectionMode::Object &&
-                 Selection.Object != ObjID::None) {
+            Selection.Object != ObjID::None) {
             // use object orientation
             if (auto obj = level.TryGetObject(Selection.Object)) {
                 // Objects can be saved with malformed vectors, normalize them
@@ -217,6 +219,7 @@ namespace Inferno::Editor {
             transform.Forward(Vector3::UnitZ);
         }
 
+        assert(IsNormalized(transform.Forward()) && IsNormalized(transform.Right()) && IsNormalized(transform.Up()));
         return transform;
     }
 
@@ -386,7 +389,7 @@ namespace Inferno::Editor {
             case Input::SelectionState::Released:
                 if (SelectedAxis == GizmoAxis::None) return;
 
-                // clicked an axis
+            // clicked an axis
                 State = Input::LeftDragState == Input::SelectionState::Released ? GizmoState::LeftClick : GizmoState::RightClick;
                 break;
 
@@ -431,6 +434,14 @@ namespace Inferno::Editor {
             transform.Up(tangent);
             transform.Forward(bitangent);
         }
+
+        if (!IsNormalized(transform.Forward()) ||
+            !IsNormalized(transform.Right()) ||
+            !IsNormalized(transform.Up())) {
+            SPDLOG_WARN("Seg {}:{} has invalid geometry!", tag.Segment, tag.Side);
+            transform = Matrix::Identity;
+        }
+
 
         return transform;
     }
