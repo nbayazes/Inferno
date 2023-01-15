@@ -298,8 +298,10 @@ namespace Inferno::Editor {
         }
     }
 
-    // returns true if segment is degenerate. Compares the angles between the edges of each corner.
-    bool SegmentIsDegenerate(const Level& level, const Segment& seg) {
+    // Returns the maximum angle between all sides in the segment. Smaller values are better.
+    // Compare value to MAX_DEGENERACY to check for failure.
+    float CheckDegeneracy(const Level& level, const Segment& seg) {
+        float max = 0;
         for (short n = 0; n < 8; n++) {
             // define vert numbers
             const auto& v0 = level.Vertices[seg.Indices[n]];
@@ -307,16 +309,15 @@ namespace Inferno::Editor {
             const auto& v2 = level.Vertices[seg.Indices[AdjacentPointTable[n][1]]];
             const auto& v3 = level.Vertices[seg.Indices[AdjacentPointTable[n][2]]];
 
-            // Lowered from 90 degrees to 80 degrees due to false negatives
-            constexpr auto minAngle = 80 * DegToRad;
             auto a1 = AngleBetweenThreeVectors(v0, v1, v2, v3);
             auto a2 = AngleBetweenThreeVectors(v0, v2, v3, v1);
             auto a3 = AngleBetweenThreeVectors(v0, v3, v1, v2);
-            if (a1 > minAngle || a2 > minAngle || a3 > minAngle)
-                return true;
+            max = std::max({ max, a1, a2, a3 });
+            if (a1 > MAX_DEGENERACY || a2 > MAX_DEGENERACY || a3 > MAX_DEGENERACY)
+                return max;
         }
 
-        return false;
+        return max;
     }
 
     // Returns false is flatness is invalid
@@ -402,7 +403,7 @@ namespace Inferno::Editor {
                 }
             }
 
-            if (SegmentIsDegenerate(level, seg)) {
+            if (CheckDegeneracy(level, seg) > MAX_DEGENERACY) {
                 results.push_back({ 0, { segid, SideID::None }, "Degenerate geometry" });
                 continue; // Geometry is too deformed to bother reporting the other checks
             }

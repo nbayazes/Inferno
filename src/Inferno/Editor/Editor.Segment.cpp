@@ -527,7 +527,9 @@ namespace Inferno::Editor {
 
         static const std::array forward = { 0, 1, 2, 3 };
         static const std::array reverse = { 3, 2, 1, 0 };
-        bool foundValid = false;
+
+        float minCornerAngle = 1000;
+        int bestMatch = -1;
 
         // try attaching the segment to the dest in each orientation until one isn't degenerate
         for (int i = 0; i < 8; i++) {
@@ -539,20 +541,28 @@ namespace Inferno::Editor {
 
             seg.UpdateGeometricProps(level);
             auto rayCheck = !RayCheckDegenerate(level, srcTag);
-            auto degen = SegmentIsDegenerate(level, seg);
-            if (!degen && rayCheck) {
-                foundValid = true;
-                break;
+            auto angle = CheckDegeneracy(level, seg);
+
+            if (rayCheck && angle < minCornerAngle) {
+                minCornerAngle = angle;
+                bestMatch = i;
             }
 
-            // restore original location between each iteration because src and dest might share an edge
+            // restore location between each iteration because src and dest might share an edge
             for (int f = 0; f < 4; f++)
                 srcFace[f] = original[f];
         }
 
-        if (!foundValid) {
+        if (bestMatch == -1) {
             seg.UpdateGeometricProps(level);
             return false;
+        }
+        else {
+            // Move to the best match
+            auto order = bestMatch < 4 ? forward : reverse;
+
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = destFace[order[(f + bestMatch) % 4]];
         }
 
         level.TryAddConnection(srcTag, destId);
