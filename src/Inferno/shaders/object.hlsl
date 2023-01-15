@@ -54,10 +54,8 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
 }
 
 float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
-
-    float fresnel = dot(eyeDir, normal);
-    fresnel = saturate(1 - fresnel);
-    return 1 + pow(color * fresnel, power);
+    float f = saturate(1 - dot(eyeDir, normal));
+    return float4((pow(f, power) * color).xyz, 0);
 }
 
 float4 PSMain(PS_INPUT input) : SV_Target {
@@ -73,17 +71,7 @@ float4 PSMain(PS_INPUT input) : SV_Target {
     float4 diffuse = Diffuse.Sample(sampler0, input.uv) * input.col;
     float4 emissive = Emissive.Sample(sampler0, input.uv) * diffuse;
     emissive.a = 0;
-    //emissive.r = emissive.r > 0.70 ? emissive.r * 2.5 : emissive.r * 0.25;
-    //emissive = emissive > 0.70 ? emissive * 2.5 : emissive * 0.25;
-    //emissive = smoothstep(emissive * 0.25, emissive * 2, 1) - (emissive * 0.25);
-    //emissive = max(0, 2 * emissive - 1) * 5;
-    //emissive =  smoothstep(0, 1, 2 * emissive - 1) * emissive * 8;
-    //emissive *= max(emissive, (5 * pow(emissive, 2) - 4 * emissive));
-    //emissive += max(emissive, 10 * pow(emissive - 0.4, 3));
-    //emissive = (5 * pow(emissive, 2) - 4 * emissive);
-    //emissive.r = 1;
-    //emissive.r = smoothstep(emissive.r * 0.5, emissive.r * 4.5, 5 * emissive.r - 4);
-    //emissive.r = pow(emissive.r, 3) * 5;
+
     float4 ambient = Colors[0]; // hack for ambient until nearest lights are reworked
     float3 lightDir = float3(0, -1, 0);
     //float4 lightColor = 1.0;
@@ -108,12 +96,12 @@ float4 PSMain(PS_INPUT input) : SV_Target {
     //    //color *= float4(light, 1) * lightColor * specular;
     //}
 
-    // * Fresnel(viewDir, input.normal, float4(0.2, 0, 2, 1), 2)
+    //float4 fresnel = Fresnel(viewDir, input.normal, float4(1, -0.5, -0.5, 1), 4);
     //output.Color = color * (1 + float4(light, 1));
     //emissive *= 1;
     //output.Color = diffuse * light + emissive + pow(emissive, 3);
-    light.a = clamp(light.a, 0, 1);
-    return diffuse * light;
+    light.a = 1;
+    return diffuse * light /*+ fresnel*/;
     //output.Color = diffuse + 1 + emissive;
     //float4 emissiveLight = smoothstep(0, output.Color, light);
     //float4 emissiveLight = output.Color > 0.5 ? output.Color : 0;

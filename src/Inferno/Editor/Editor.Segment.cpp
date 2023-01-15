@@ -522,7 +522,6 @@ namespace Inferno::Editor {
 
         auto& seg = level.GetSegment(srcTag);
         auto srcFace = Face::FromSide(level, srcTag);
-        auto srcOpp = Face::FromSide(level, GetOppositeSide(srcTag));
         auto destFace = Face::FromSide(level, destId);
         auto original = srcFace.CopyPoints();
 
