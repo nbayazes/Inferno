@@ -521,7 +521,8 @@ namespace Inferno::Editor {
             return false;
 
         auto& seg = level.GetSegment(srcTag);
-        auto srcFace = Face::FromSide(level, seg, srcTag.Side);
+        auto srcFace = Face::FromSide(level, srcTag);
+        auto srcOpp = Face::FromSide(level, GetOppositeSide(srcTag));
         auto destFace = Face::FromSide(level, destId);
         auto original = srcFace.CopyPoints();
 
@@ -533,21 +534,24 @@ namespace Inferno::Editor {
         for (int i = 0; i < 8; i++) {
             auto order = i < 4 ? forward : reverse;
 
-            // copy point locations from dest to dest
+            // copy point locations from dest
             for (int f = 0; f < 4; f++)
                 srcFace[f] = destFace[order[(f + i) % 4]];
 
             seg.UpdateGeometricProps(level);
-            if (!SegmentIsDegenerate(level, seg) && !RayCheckDegenerate(level, srcTag)) {
+            auto rayCheck = !RayCheckDegenerate(level, srcTag);
+            auto degen = SegmentIsDegenerate(level, seg);
+            if (!degen && rayCheck) {
                 foundValid = true;
                 break;
             }
+
+            // restore original location between each iteration because src and dest might share an edge
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = original[f];
         }
 
         if (!foundValid) {
-            for (int f = 0; f < 4; f++)
-                srcFace[f] = original[f]; // restore original location
-
             seg.UpdateGeometricProps(level);
             return false;
         }
@@ -1011,12 +1015,17 @@ namespace Inferno::Editor {
 
     string OnJoinSides() {
         if (Editor::Marked.Faces.size() != 1) {
-            SetStatusMessageWarn("Exactly one face must be marked to use Join Sides");
+            SetStatusMessageWarn("Exactly one face must be marked to Join Sides");
             return {};
         }
 
         auto src = Editor::Selection.Tag();
         Tag dest = *Editor::Marked.Faces.begin();
+        if (src == dest) {
+            SetStatusMessageWarn("The marked face must be different than the selected face to Join Sides");
+            return {};
+        }
+
         if (!JoinSides(Game::Level, src, dest)) {
             SetStatusMessage("Unable to join sides");
             return {};

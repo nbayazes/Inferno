@@ -278,23 +278,21 @@ namespace Inferno::Editor {
         auto line2 = v2 - v0;
         auto line3 = v3 - v0;
         // use cross product to calcluate orthogonal vector
-        auto orthog = -line1.Cross(line2);
+        auto ortho = -line1.Cross(line2);
 
-        // use dot product to determine angle A dot B = |A|*|B| * cos (angle)
-        // therefore: angle = acos (A dot B / |A|*|B|)
-        auto dot = line3.Dot(orthog);
-        auto magnitude1 = line3.Length();
-        auto magnitude2 = orthog.Length();
+        auto len1 = line3.Length();
+        auto len2 = ortho.Length();
+        auto dot = line3.Dot(ortho);
 
-        if (dot == 0 || magnitude1 == 0 || magnitude2 == 0) {
-            return 200 * DegToRad; // degenerate length
+        if (dot == 0 || len1 == 0 || len2 == 0) {
+            return 1000; // degenerate length
         }
         else {
-            auto ratio = dot / (magnitude1 * magnitude2);
+            auto ratio = dot / (len1 * len2);
             ratio = float((int)(ratio * 1000.0f)) / 1000.0f; // round
 
             if (ratio < -1.0f || ratio > 1.0f)
-                return 199 * DegToRad; // too skewed
+                return 1000; // too skewed
             else
                 return acos(ratio);
         }
