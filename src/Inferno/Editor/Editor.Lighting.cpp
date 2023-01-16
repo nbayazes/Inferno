@@ -129,7 +129,8 @@ namespace Inferno::Editor {
         std::thread Thread;
         int CastStats = 0;
         int HitStats = 0;
-        int CacheHits = 0;
+        uint64 CacheHits = 0;
+        int Id = 0;
 
         LightContext() {
             HitTests.reserve(100'000);
@@ -885,7 +886,7 @@ namespace Inferno::Editor {
             SetAmbientLight(settings.Ambient);
 
             auto lights = GatherLightSources(level, settings);
-            auto bucketSize = std::max(lights.size() / availThreads, size_t(1));
+            auto bucketSize = (int)std::max(lights.size() / availThreads, size_t(1));
 
             if (settings.CheckCoplanar)
                 ReduceCoplanarBrightness(level, lights);
@@ -911,12 +912,33 @@ namespace Inferno::Editor {
 
             auto tree = CreateLightOctree(level, lights, bucketSize);
             addNodeLights(tree);
+            Seq::sortBy(buckets, [](const LightContext& a, const LightContext& b) {
+                return a.Lights.size() > b.Lights.size();
+            });
+
+            int emptyThreads = 0, filledThreads = 0;
+            for (auto& bucket : buckets) {
+                if (bucket.Lights.empty())
+                    emptyThreads++;
+                else
+                    filledThreads++;
+            }
+
+            //int splitThreads = 0;
+            for (int i = 0; i < emptyThreads; i++) {
+                auto& src = buckets[i].Lights;
+                auto& dst = buckets[filledThreads + i].Lights;
+                // move half of the lights to a new thread
+                auto len = src.size() / 2;
+                std::move(src.begin() + len, src.end(), std::back_inserter(dst));
+                src.resize(src.size() - dst.size());
+                //assert(originalLen == src.size() + dst.size());
+            }
 
             int bucketedLights = 0;
             for (auto& bucket : buckets) {
                 bucketedLights += (int)bucket.Lights.size();
             }
-
 
             // If single threaded, preallocate a single large buffer
             if (availThreads == 1) {
@@ -924,29 +946,32 @@ namespace Inferno::Editor {
                 buckets[0].RayCasts = Dictionary<Tag, LightRayCast>{ 1000 };
             }
 
-            //std::atomic activeThreads = availThreads;
+            std::atomic activeThreads = 0;
 
             for (auto& ctx : buckets) {
                 if (ctx.Lights.empty()) continue;
 
                 ctx.Settings = settings;
+                ctx.Id = activeThreads++;
 
                 // Accumulate radiosity bounces
                 ctx.Thread = std::thread([&ctx, &level] {
-                    SPDLOG_INFO("Dispatching thread with {} lights", ctx.Lights.size());
-                ctx.EmitDirectLight(level);
+                    SPDLOG_INFO("Dispatching thread {} with {} lights", ctx.Id, ctx.Lights.size());
+                    ctx.EmitDirectLight(level);
 
-                auto bounces = std::clamp(ctx.Settings.Bounces, 0, 10);
+                    auto bounces = std::clamp(ctx.Settings.Bounces, 0, 10);
 
-                for (int i = 0; i < bounces; i++) {
-                    for (auto& light : ctx.RayCasts | views::values) {
-                        auto& info = CastBounces(level, light, ctx);
-                        info.AccumulatePass(!(ctx.Settings.SkipFirstPass && i == 0));
+                    for (int i = 0; i < bounces; i++) {
+                        for (auto& light : ctx.RayCasts | views::values) {
+                            auto& info = CastBounces(level, light, ctx);
+                            info.AccumulatePass(!(ctx.Settings.SkipFirstPass && i == 0));
+                        }
                     }
-                }
 
-                if (!ctx.Settings.EnableColor)
-                    DesaturateAccumulated(ctx.RayCasts);
+                    if (!ctx.Settings.EnableColor)
+                        DesaturateAccumulated(ctx.RayCasts);
+
+                    SPDLOG_INFO("Thread {} finished. Lights: {} Cache size: {}", ctx.Id, ctx.Lights.size(), ctx.HitTests.size());
                 });
             }
 
