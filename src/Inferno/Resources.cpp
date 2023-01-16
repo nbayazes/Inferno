@@ -21,7 +21,7 @@ namespace Inferno::Resources {
 
     std::mutex PigMutex;
 
-    int GetTextureCount() { return Textures.size(); }
+    int GetTextureCount() { return (int)Textures.size(); }
     const Palette& GetPalette() { return LevelPalette; }
 
     void LoadRobotNames(filesystem::path path) {

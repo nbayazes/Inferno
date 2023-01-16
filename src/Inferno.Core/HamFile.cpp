@@ -18,7 +18,7 @@ namespace Inferno {
         t.DestroyedTexture = (LevelTexID)r.ReadInt16();
         auto slideU = FixToFloat(r.ReadInt16());
         auto slideV = FixToFloat(r.ReadInt16());
-        t.Slide = { slideU, slideV };
+        t.Slide = Vector2{ slideU, slideV };
         return t;
     }
 
@@ -324,7 +324,7 @@ namespace Inferno {
         for (auto& s : submodels) s.Min = r.ReadVector();
         for (auto& s : submodels) s.Max = r.ReadVector();
         span range{ model.Submodels };
-        std::copy(submodels.begin(), submodels.begin() + submodelCount, range.begin());
+        std::copy_n(submodels.begin(), submodelCount, range.begin());
 
         model.MinBounds = r.ReadVector();
         model.MaxBounds = r.ReadVector();
@@ -369,14 +369,14 @@ namespace Inferno {
 
     void UpdateTexInfo(HamFile& ham) {
         auto& levelTexIdx = ham.LevelTexIdx;
-        auto maxIndex = *std::max_element(ham.AllTexIdx.begin(), ham.AllTexIdx.end());
+        auto maxIndex = *ranges::max_element(ham.AllTexIdx);
         if ((int)maxIndex > 10000) throw Exception("Index out of range in texture indices");
         levelTexIdx.resize((size_t)maxIndex + 1);
-        std::fill(levelTexIdx.begin(), levelTexIdx.end(), LevelTexID(255));
+        ranges::fill(levelTexIdx, LevelTexID(255));
 
         for (auto i = 0; i < ham.TexInfo.size(); i++) {
             ham.TexInfo[i].ID = LevelTexID(i);
-            ham.TexInfo[i].TexID = (TexID)ham.AllTexIdx[i];
+            ham.TexInfo[i].TexID = ham.AllTexIdx[i];
             levelTexIdx.at((int)ham.AllTexIdx[i]) = (LevelTexID)i;
         }
     }
@@ -534,7 +534,6 @@ namespace Inferno {
 
             // replace existing robot. mark as custom?
             ham.Robots[hamIdx] = ReadRobotInfo(reader);
-            hamIdx = 0;
         }
 
         auto joints = reader.ReadElementCount();
