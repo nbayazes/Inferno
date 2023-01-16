@@ -5,6 +5,7 @@
 #include "Resources.h"
 #include "Gizmo.h"
 #include "Editor.Texture.h"
+#include "Editor.Undo.h"
 
 namespace Inferno::Editor {
     constexpr long Factorial(const int n) {
@@ -24,7 +25,7 @@ namespace Inferno::Editor {
         return Coeff(n, i) * powf(u, float(i)) * powf(1 - u, float(n - i));
     }
 
-    Vector3 BezierCurve::Compute(float u) {
+    Vector3 BezierCurve::Compute(float u) const {
         Vector3 v;
 
         for (int i = 0; i < 4; i++) {
@@ -35,9 +36,20 @@ namespace Inferno::Editor {
         return v;
     }
 
-    void BezierCurve::Transform(const Matrix& m) {
+    void BezierCurve::Transform(const Matrix& m) const {
         for (int i = 0; i < 4; i++)
             Vector3::Transform(Points[i], m);
+    }
+
+    Vector3 DeCasteljausAlgorithm(float t, Array<Vector3, 4> points) {
+        auto q = Vector3::Lerp(points[0], points[1], t);
+        auto r = Vector3::Lerp(points[1], points[2], t);
+        auto s = Vector3::Lerp(points[2], points[3], t);
+
+        auto p2 = Vector3::Lerp(q, r, t);
+        auto t2 = Vector3::Lerp(r, s, t);
+
+        return Vector3::Lerp(p2, t2, t);
     }
 
     TunnelNode CreateNode(Level& level, PointTag source, float sign) {
@@ -200,27 +212,154 @@ namespace Inferno::Editor {
         }
     }
 
-    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, int steps, float startLength, float endLength) {
-        BezierCurve curve{};
-        curve.Length[0] = startLength;
-        curve.Length[1] = endLength;
+    // Estimate the length of a curve by taking segment lengths
+    float EstimateCurveLength(const BezierCurve2& curve, int steps) {
+        float delta = 1 / (float)steps;
+        auto lastPos = curve.Points[0];
+        float length = 0;
 
-        // setup intermediate points for a cubic bezier curve
-        curve.Points = {
-            start.Point,
-            start.Point + start.Normal * startLength,
-            end.Point - end.Normal * endLength,
-            end.Point
-        };
+        //Move along the curve
+        for (int i = 1; i <= steps; i++) {
+            float t = delta * (float)i;
+
+            auto pos = DeCasteljausAlgorithm(t, curve.Points);
+            length += Vector3::Distance(pos, lastPos);
+            lastPos = pos;
+        }
+
+        return length;
+    }
+
+    float EstimateCurveLength(const BezierCurve2& curve, float tStart, float tEnd, int steps) {
+        //Divide the curve into sections
+        float delta = (tEnd - tStart) / (float)steps;
+
+        //The start position of the curve
+        Vector3 lastPos = DeCasteljausAlgorithm(tStart, curve.Points);
+        float length = 0;
+
+        //Move along the curve
+        for (int i = 1; i <= steps; i++) {
+            //Calculate the t value at this section
+            float t = tStart + delta * (float)i;
+            Vector3 pos = DeCasteljausAlgorithm(t, curve.Points);
+            length += Vector3::Distance(pos, lastPos);
+            lastPos = pos;
+        }
+
+        return length;
+    }
+
+    Vector3 DeCasteljausDerivative(const Array<Vector3, 4>& curve, float t) {
+        Vector3 dU = t * t * (-3.0f * (curve[0] - 3.0f * (curve[1] - curve[2]) - curve[3]));
+        dU += t * (6.0f * (curve[0] - 2.0f * curve[1] + curve[2]));
+        dU += -3.0f * (curve[0] - curve[1]);
+        return dU;
+    }
+
+    // Get an infinitely small length from the derivative of the curve at position t
+    float GetArcLengthIntegrand(const Array<Vector3, 4>& curve, float t) {
+        return DeCasteljausDerivative(curve, t).Length();
+    }
+
+    float GetLengthSimpsons(const Array<Vector3, 4>& curve, float tStart, float tEnd) {
+        //This is the resolution and has to be even
+        constexpr int n = 20;
+
+        //Now we need to divide the curve into sections
+        float delta = (tEnd - tStart) / (float)n;
+
+        float endPoints = GetArcLengthIntegrand(curve, tStart) + GetArcLengthIntegrand(curve, tEnd);
+
+        //Everything multiplied by 4
+        float x4 = 0;
+        for (int i = 1; i < n; i += 2) {
+            float t = tStart + delta * i;
+            x4 += GetArcLengthIntegrand(curve, t);
+        }
+
+        //Everything multiplied by 2
+        float x2 = 0;
+        for (int i = 2; i < n; i += 2) {
+            float t = tStart + delta * i;
+            x2 += GetArcLengthIntegrand(curve, t);
+        }
+
+        float length = (delta / 3.0f) * (endPoints + 4.0f * x4 + 2.0f * x2);
+        return length;
+    }
+
+    //Use Newton–Raphsons method to find the t value at the end of this distance d
+    float FindTValue(const Array<Vector3, 4>& curve, float dist, float totalLength) {
+        float t = dist / totalLength;
+
+        //Need an error so we know when to stop the iteration
+        constexpr float error = 0.001f;
+        int iterations = 0;
+
+        while (true) {
+            //Newton's method
+            float tNext = t - (GetLengthSimpsons(curve, 0, t) - dist) / GetArcLengthIntegrand(curve, t);
+
+            //Have we reached the desired accuracy?
+            if (std::abs(tNext - t) < error)
+                break;
+
+            t = tNext;
+            iterations += 1;
+
+            if (iterations > 1000)
+                break;
+        }
+
+        return t;
+    }
+
+    List<Vector3> DivideCurveIntoSteps(const Array<Vector3, 4>& curve, int steps) {
+        List<Vector3> result;
+        float totalLength = GetLengthSimpsons(curve, 0, 1);
+
+        float sectionLength = totalLength / (float)steps;
+        float currentDistance = sectionLength;
+        result.push_back(curve[0]); // start point
+
+        for (int i = 1; i < steps; i++) {
+            //Use Newton–Raphsons method to find the t value from the start of the curve 
+            //to the end of the distance we have
+            float t = FindTValue(curve, currentDistance, totalLength);
+
+            //Get the coordinate on the Bezier curve at this t value
+            Vector3 pos = DeCasteljausAlgorithm(t, curve);
+            result.push_back(pos);
+
+            //Add to the distance traveled on the line so far
+            currentDistance += sectionLength;
+        }
+
+        result.push_back(curve[3]); // end point
+        return result;
+    }
+
+    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, int steps, float startLength, float endLength) {
+        BezierCurve2 curve2;
+        curve2.Points[0] = start.Point;
+        curve2.Points[1] = start.Point + start.Normal * startLength;
+        curve2.Points[2] = end.Point - end.Normal * endLength;
+        curve2.Points[3] = end.Point;
+
+        TunnelBuilderHandles = curve2;
 
         TunnelPath path{};
-        path.Curve = curve;
 
         auto& nodes = path.Nodes;
         nodes.resize(steps + 1);
 
-        for (int i = 0; i <= steps; i++)
-            nodes[i].Vertex = curve.Compute((float)i / (float)steps);
+        //auto points = curve2.Compute(steps);
+        auto points = DivideCurveIntoSteps(curve2.Points, steps);
+        //nodes.resize(points.size());
+
+        for (int i = 0; i < nodes.size(); i++)
+            nodes[i].Vertex = points[i];
 
         nodes[0].Rotation = start.Rotation;
         nodes[steps].Rotation = end.Rotation;
@@ -228,22 +367,6 @@ namespace Inferno::Editor {
 
         auto deltaAngle = TotalTwist(start, end);
         auto totalLength = PathLength(nodes, steps);
-
-        //PathNode* n0 = nullptr;
-        //PathNode* n1 = &nodes[0];
-
-        //for (int i = 1; i <= steps; i++) {
-        //    n0 = n1;
-        //    n1 = &nodes[i];
-
-        //    if (i < steps) { // last matrix is the end side's matrix - use it's forward vector
-        //        auto forward = nodes[i + 1].Vertex - nodes[i - 1].Vertex;
-        //        forward.Normalize();
-        //        n1->Rotation.Forward(forward);
-        //    }
-        //    Bend(*n0, *n1);
-        //    Twist(*n0, *n1, deltaAngle, PathLength(nodes, i) / totalLength);
-        //}
 
         for (int i = 1; i <= steps; i++) {
             auto& n0 = nodes[i - 1];
@@ -287,49 +410,11 @@ namespace Inferno::Editor {
         return path;
     }
 
-    // member variables are Tunnel
-    //void CreateSegments(List<TunnelSegment>& segments, TunnelPath& path, int steps) {
-    //    ushort nVertex = 0;
-    //    auto nElements = (short)segments.size();
-
-    //    for (short nSegment = 1; nSegment <= steps; nSegment++) {
-    //        auto nStartSide = path.Start.Tag.Side;
-
-    //        for (short iElement = 0; iElement < nElements; iElement++) {
-    //            auto nStartSeg = path.StartSides[iElement].Segment;
-    //            //CSegment* pStartSeg = segmentManager.Segment(nStartSeg);
-    //            //CTunnelElement& e0 = m_segments[nSegment].m_elements[iElement];
-    //            //CSegment* pSegment = segmentManager.Segment(e0.m_nSegment);
-
-
-    //            //CSide* pSide = pSegment->Side(0);
-    //            //for (short nSide = 0; nSide < 6; nSide++, pSide++) {
-    //            //    pSegment->SetUV(nSide, 0.0, 0.0);
-    //            //    pSide->m_info.nBaseTex = pStartSeg->m_sides[nSide].m_info.nBaseTex;
-    //            //    pSide->m_info.nOvlTex = pStartSeg->m_sides[nSide].m_info.nOvlTex;
-    //            //    pSide->m_nShape = pStartSeg->m_sides[nSide].m_nShape;
-    //            //}
-
-    //            //for (int j = 0; j < 6; j++)
-    //            //    pSegment->SetChild(j, -1);
-
-    //            //if (nSegment > 1)
-    //            //    pSegment->SetChild(oppSideTable[nStartSide], m_segments[nSegment - 1].m_elements[iElement].m_nSegment); // previous tunnel segment
-    //            //else if (bFinalize) {
-    //            //    pStartSeg->SetChild(nStartSide, e0.m_nSegment);
-    //            //    pSegment->SetChild(oppSideTable[nStartSide], nStartSeg);
-    //            //}
-
-    //            //if (nSegment < steps)
-    //                //pSegment->SetChild(nStartSide, m_segments[nSegment + 1].m_elements[iElement].m_nSegment); // next tunnel segment
-    //        }
-    //    }
-    //}
-
-    void CreateTunnelSegments(Level& level, TunnelPath& path, PointTag start, PointTag end) {
+    void CreateTunnelSegments(Level& level, const TunnelPath& path, PointTag start, PointTag end) {
+        // todo: check that tunnel is valid
         Tag last = start;
         auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
-        auto endIndices = level.GetSegment(end).GetVertexIndices(end.Side);
+        //auto endIndices = level.GetSegment(end).GetVertexIndices(end.Side);
 
         Marked.Segments.clear();
 
@@ -344,7 +429,7 @@ namespace Inferno::Editor {
             auto& lastSeg = level.GetSegment(last);
 
             Segment seg = {};
-            SegID id = (SegID)level.Segments.size();
+            auto id = (SegID)level.Segments.size();
 
             auto oppositeSide = (int)GetOppositeSide(last.Side);
             seg.Connections[oppositeSide] = last.Segment;
@@ -387,6 +472,8 @@ namespace Inferno::Editor {
             ResetUVs(level, id);
             Marked.Segments.insert(id);
         }
+
+        Editor::History.SnapshotLevel("Create Tunnel");
         Events::SegmentsChanged();
         Events::LevelChanged();
     }

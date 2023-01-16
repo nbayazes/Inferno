@@ -80,8 +80,8 @@ namespace Inferno::Render {
         //}
 
         Seq::iteri(Editor::DebugTunnelPoints, [](auto i, auto p) {
-            static const Color colors[4] = { Colors::DoorRed, Colors::Hostage, Colors::DoorBlue, Colors::DoorGold };
-        Debug::DrawPoint(p, colors[(i / 4) % 4]);
+            static constexpr Color colors[4] = { Colors::DoorRed, Colors::Hostage, Colors::DoorBlue, Colors::DoorGold };
+            Debug::DrawPoint(p, colors[(i / 4) % 4]);
         });
 
         for (int i = 1; i < Editor::DebugTunnelPoints.size(); i += 2) {
@@ -100,6 +100,12 @@ namespace Inferno::Render {
         for (auto& node : Editor::DebugTunnel.Nodes) {
             DrawTunnelPathNode(node);
         }
+
+        auto& handles = Editor::TunnelBuilderHandles.Points;
+        Debug::DrawLine(handles[0], handles[1], Colors::Reactor);
+        Debug::DrawLine(handles[2], handles[3], Colors::Reactor);
+        Debug::DrawPoint(handles[1], Colors::Reactor);
+        Debug::DrawPoint(handles[2], Colors::Reactor);
     }
 
     void DrawSelection(const Editor::EditorSelection& selection, const Level& level) {

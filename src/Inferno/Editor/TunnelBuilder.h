@@ -7,8 +7,12 @@ namespace Inferno::Editor {
         Array<Vector3, 4> Points{};
         Array<float, 2> Length = { 1, 1 };
 
-        Vector3 Compute(float u);
-        void Transform(const Matrix& m);
+        Vector3 Compute(float u) const;
+        void Transform(const Matrix& m) const;
+    };
+
+    struct BezierCurve2 {
+        Array<Vector3, 4> Points{};
     };
 
     struct PathNode {
@@ -31,19 +35,20 @@ namespace Inferno::Editor {
     };
 
     struct TunnelPath {
-        BezierCurve Curve;
         TunnelNode Start, End;
         List<PathNode> Nodes;
     };
 
     void CreateTunnel(Level& level, PointTag start, PointTag end, int steps, float startLength, float endLength);
     void ClearTunnel();
-    void CreateTunnelSegments(Level& level, TunnelPath& path, PointTag start, PointTag end);
+    void CreateTunnelSegments(Level& level, const TunnelPath& path, PointTag start, PointTag end);
 
     inline List<Vector3> TunnelBuilderPath;
     inline List<Vector3> TunnelBuilderPoints;
     inline List<Vector3> DebugTunnelPoints;
     inline TunnelPath DebugTunnel;
+
+    inline BezierCurve2 TunnelBuilderHandles; // For preview
 
     constexpr float MinTunnelLength = 10;
     constexpr float MaxTunnelLength = 200;
