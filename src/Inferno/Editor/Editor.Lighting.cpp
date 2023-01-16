@@ -7,7 +7,6 @@
 #include "Editor.h"
 #include "ScopedTimer.h"
 #include "WindowsDialogs.h"
-#include "Editor.Segment.h"
 
 namespace Inferno::Editor {
     constexpr float PLANE_TOLERANCE = -0.01f;
@@ -22,7 +21,7 @@ namespace Inferno::Editor {
     // Scales a color up or down to target brightness
     constexpr void ScaleColor2(Color& color, float target) {
         auto max = std::max({ color.x, color.y, color.z });
-        if (max < 0.1f) color = { target, target, target };
+        if (max < 0.1f) color = Color{ target, target, target };
         else color *= target / max;
     }
 
@@ -118,15 +117,34 @@ namespace Inferno::Editor {
         }
     };
 
+    // Self-contained unit of work
+    struct LightContext {
+        Dictionary<Tag, LightRayCast> RayCasts;
+
+        // Key is a combination of src seg, src vertex and dest vertex. Value indicates if dest is visible.
+        Dictionary<int64, bool> HitTests;
+
+        List<LightSource> Lights;
+        LightSettings Settings;
+        std::thread Thread;
+        int CastStats = 0;
+        int HitStats = 0;
+        int CacheHits = 0;
+
+        LightContext() {
+            HitTests.reserve(100'000);
+            RayCasts.reserve(50);
+        }
+
+        // Initial lighting pass from direct light sources
+        void EmitDirectLight(Level& level);
+    };
+
     // checks that there's enough light to bother saving. Prevents wasteful raycasts.
     constexpr bool CheckMinLight(const Color& color) {
         return color.x + color.y + color.z >= 0.001f;
     }
 
-    Dictionary<Tag, LightRayCast> RayCasts;
-
-    // Key is a combination of src seg, src vertex and dest vertex. Value indicates if dest is visible.
-    Dictionary<int64, bool> HitTests;
 
     // Returns sides that are coplanar to the source within an angle
     List<Tag> FindCoplanarSides(const Level& level, Tag src, float thresholdAngle = 10.0f, bool sameTexture = false) {
@@ -326,7 +344,7 @@ namespace Inferno::Editor {
     }
 
     // Returns true if the ray intersects any faces of the segment
-    bool HitTestRay(Level& level, const Set<SegID>& segments, const Ray& ray, float minDist) {
+    bool HitTestRay(Level& level, const Set<SegID>& segments, const Ray& ray, float minDist, LightContext& ctx) {
         for (auto& segId : segments) {
             const auto& seg = level.GetSegment(segId);
 
@@ -340,23 +358,23 @@ namespace Inferno::Editor {
                 auto indices = seg.GetVertexIndices(sideId);
                 float dist{};
 
-                Metrics::RaysCast++;
+                ctx.CastStats++;
                 if (ray.Intersects(level.Vertices[indices[ri[0]]],
                                    level.Vertices[indices[ri[1]]],
                                    level.Vertices[indices[ri[2]]],
                                    dist)
                     && dist < minDist) {
-                    Metrics::RayHits++;
+                    ctx.HitStats++;
                     return true;
                 }
 
-                Metrics::RaysCast++;
+                ctx.CastStats++;
                 if (ray.Intersects(level.Vertices[indices[ri[3]]],
                                    level.Vertices[indices[ri[4]]],
                                    level.Vertices[indices[ri[5]]],
                                    dist)
                     && dist < minDist) {
-                    Metrics::RayHits++;
+                    ctx.HitStats++;
                     return true;
                 }
             }
@@ -373,14 +391,15 @@ namespace Inferno::Editor {
                  const Vector3& lightPos,
                  const Vector3& samplePos,
                  Tag src,
-                 Tag dest) {
+                 Tag dest,
+                 LightContext& ctx) {
         if (src.Segment == dest.Segment) return false;
 
         if ((int)src.Segment > 32767 || (int)dest.Segment > 32767 || (int)destPoint > 46339 || (int)lightPoint > 46339)
             throw Exception("Lighting only supports up to 32767 segments and 46339 verts");
 
         auto packedSegId = SzudzikPairing((uint16)src.Segment, (uint16)dest.Segment); // limited to 32767 (28 bit result)
-        auto packedPointId = SzudzikPairing((uint16)destPoint, lightPoint); // limited to 46339 (30 bit result)
+        auto packedPointId = SzudzikPairing(destPoint, lightPoint); // limited to 46339 (30 bit result)
         uint64 id = (uint64)dest.Side << (28 + 30 + 3) | (uint64)src.Side << (28 + 30) | (uint64)packedPointId << 28 | (uint64)packedSegId;
 
         //// Note that this packing breaks if there are more than 8191 segments in a level
@@ -388,7 +407,7 @@ namespace Inferno::Editor {
         //uint16 packedDest = (uint16)dest.Segment | ((uint16)dest.Side << (16 - 3)); // pack side into the 3 high bits
         //uint64 id = (uint64)packedDest << 48 | (uint64)packedSrc << 32 | (uint64)destPoint << 16 | lightPoint;
 
-        if (!HitTests.contains(id)) {
+        if (!ctx.HitTests.contains(id)) {
             auto dir = samplePos - lightPos;
             float minDist = dir.Length() - 0.01f; // minimum distance the light must travel. hitting something before this means a wall was in the way.
             dir.Normalize();
@@ -396,24 +415,24 @@ namespace Inferno::Editor {
             bool result = false;
             // Direction length can be zero if segment has zero volume, assume it misses
             Ray ray(lightPos, dir);
-            result = dir.Length() != 0 ? HitTestRay(level, segments, ray, minDist) : false;
+            result = dir.Length() != 0 ? HitTestRay(level, segments, ray, minDist, ctx) : false;
 
-            HitTests[id] = result;
+            ctx.HitTests[id] = result;
             return result;
         }
         else {
-            Metrics::CacheHits++;
-            return HitTests[id];
+            ctx.CacheHits++;
+            return ctx.HitTests[id];
         }
     }
 
     void LightSegments(Level& level,
                        const SideLighting& lightColors,
-                       const LightSettings& settings,
                        Set<SegID> segmentsToLight,
                        Tag src,
                        bool bouncePass, // is this a bounce light pass?
-                       LightRayCast& cast) {
+                       LightRayCast& cast,
+                       LightContext& ctx) {
         auto [srcSeg, srcSide] = level.GetSegmentAndSide(src);
         const auto srcFace = Face::FromSide(level, srcSeg, src.Side);
 
@@ -424,7 +443,8 @@ namespace Inferno::Editor {
         Array<Vector3, 4> lightPositions = srcFace.InsetTangent(0.5f, 1.01f);
         auto lightVertIds = srcSeg.GetVertexIndices(src.Side);
 
-        for (int lightIndex = 0; lightIndex < 4; lightIndex++) { // for each light source
+        for (int lightIndex = 0; lightIndex < 4; lightIndex++) {
+            // for each light source
             const auto& lightPos = lightPositions[lightIndex];
             const auto& lightColor = lightColors[lightIndex];
             if (!CheckMinLight(lightColor)) continue; // skip vert with no light
@@ -432,8 +452,9 @@ namespace Inferno::Editor {
             for (auto& destId : segmentsToLight) {
                 auto& destSeg = level.GetSegment(destId);
 
-                for (auto& destSideId : SideIDs) { // for each side in dest
-                    if (!settings.AccurateVolumes && !SideIsVisible(level, destSeg, destSideId))
+                for (auto& destSideId : SideIDs) {
+                    // for each side in dest
+                    if (!ctx.Settings.AccurateVolumes && !SideIsVisible(level, destSeg, destSideId))
                         continue; // skip invisible sides when accurate volumes is off
 
                     const auto destVertIds = destSeg.GetVertexIndices(destSideId);
@@ -449,14 +470,14 @@ namespace Inferno::Editor {
                     auto calcIntensity = [&](int vertIndex) {
                         bool fullBright = !bouncePass && (src == dest || Seq::contains(lightVertIds, destVertIds[vertIndex]));
                         auto dist = Vector3::Distance(destFace[vertIndex], lightPos); // use the real vertex position and not the sample for attenuation
-                        auto attenuation = fullBright ? 1 : Attenuate2(dist, cast.Source->Radius, settings.Falloff);
+                        auto attenuation = fullBright ? 1 : Attenuate2(dist, cast.Source->Radius, ctx.Settings.Falloff);
                         if (attenuation <= 0) return Color();
 
                         if (cast.Source->EnableOcclusion &&
-                            HitTest(level, segmentsToLight, destVertIds[vertIndex], lightVertIds[lightIndex], lightSamples[lightIndex], destSamples[vertIndex], src, dest))
+                            HitTest(level, segmentsToLight, destVertIds[vertIndex], lightVertIds[lightIndex], lightSamples[lightIndex], destSamples[vertIndex], src, dest, ctx))
                             return Color();
 
-                        auto multiplier = bouncePass ? settings.Reflectance : settings.Multiplier;
+                        auto multiplier = bouncePass ? ctx.Settings.Reflectance : ctx.Settings.Multiplier;
                         return lightColor * attenuation * multiplier;
                     };
 
@@ -473,7 +494,8 @@ namespace Inferno::Editor {
 
                     if (destFace.Side.Type == SideSplitType::Quad) {
                         // Quads are flat and can be treated as a single polygon
-                        for (int vertIndex = 0; vertIndex < 4; vertIndex++) { // for each vert on side
+                        for (int vertIndex = 0; vertIndex < 4; vertIndex++) {
+                            // for each vert on side
                             if (!checkPlanes(vertIndex, vertIndex)) continue;
                             auto intensity = calcIntensity(vertIndex);
                             if (CheckMinLight(intensity))
@@ -485,13 +507,15 @@ namespace Inferno::Editor {
                         Color face0Color[4]{}, face1Color[4]{};
                         auto ri = destFace.Side.GetRenderIndices();
 
-                        for (int i = 0; i < 3; i++) { // for each vert of triangle 1
+                        for (int i = 0; i < 3; i++) {
+                            // for each vert of triangle 1
                             auto vertIndex = ri[i];
                             if (!checkPlanes(vertIndex, 0)) continue;
                             face0Color[vertIndex] += calcIntensity(vertIndex);
                         }
 
-                        for (int i = 3; i < 6; i++) { // for each vert of triangle 2
+                        for (int i = 3; i < 6; i++) {
+                            // for each vert of triangle 2
                             auto vertIndex = ri[i];
                             if (!checkPlanes(vertIndex, 2)) continue;
                             face1Color[vertIndex] += calcIntensity(vertIndex);
@@ -517,8 +541,8 @@ namespace Inferno::Editor {
         }
     }
 
-    LightRayCast& CastBounces(Level& level, const LightSettings& settings, LightRayCast& cast) {
-        cast.UpdateMaxValueFromPass(settings.Reflectance);
+    LightRayCast& CastBounces(Level& level, LightRayCast& cast, LightContext& ctx) {
+        cast.UpdateMaxValueFromPass(ctx.Settings.Reflectance);
 
         // Use the previous pass targets as the light sources
         Dictionary<Tag, SideLighting> prevPass = std::move(cast.Pass);
@@ -530,7 +554,7 @@ namespace Inferno::Editor {
             // don't emit from open connections (from accurate volumes setting)
             if (srcSeg.SideHasConnection(src.Side) && !srcSeg.SideIsWall(src.Side)) continue;
 
-            Set<SegID> segmentsToLight = GetSegmentsInRange(level, src, settings.DistanceThreshold);
+            Set<SegID> segmentsToLight = GetSegmentsInRange(level, src, ctx.Settings.DistanceThreshold);
             Color tmapColor = Resources::GetTextureInfo(srcSide.TMap).AverageColor;
             tmapColor.AdjustSaturation(2); // boost saturation to look nicer
             ScaleColor2(tmapColor, 1); // 100% brightness
@@ -538,22 +562,22 @@ namespace Inferno::Editor {
             for (auto& c : adjColors)
                 c *= tmapColor; // premultiply the texture color into the light color
 
-            LightSegments(level, adjColors, settings, segmentsToLight, src, true, cast);
+            LightSegments(level, adjColors, segmentsToLight, src, true, cast, ctx);
         }
 
         return cast;
     }
 
-    LightRayCast& CastDirectLight(Level& level, const LightSource& light, const LightSettings& settings) {
+    LightRayCast& CastDirectLight(Level& level, const LightSource& light, const LightSettings& settings, LightContext& ctx) {
         Set<SegID> segmentsToLight = GetSegmentsInRange(level, light.Tag, settings.DistanceThreshold);
 
-        auto& cast = RayCasts[light.Tag];
+        auto& cast = ctx.RayCasts[light.Tag];
         cast.Source = &light;
         cast.PassMaxValue = light.MaxBrightness() * settings.Multiplier;
         // Clamp to the max light value setting
         ClampColor(cast.PassMaxValue, Color(0, 0, 0), Color(settings.MaxValue, settings.MaxValue, settings.MaxValue));
 
-        LightSegments(level, light.Colors, settings, segmentsToLight, light.Tag, false, cast);
+        LightSegments(level, light.Colors, segmentsToLight, light.Tag, false, cast, ctx);
         return cast;
     }
 
@@ -635,13 +659,9 @@ namespace Inferno::Editor {
         return sources;
     }
 
-    // The initial lighting pass directly from light sources
-    void EmitDirectLight(Level& level, const LightSettings& settings, span<LightSource> lights) {
-        if (settings.CheckCoplanar)
-            ReduceCoplanarBrightness(level, lights);
-
-        for (auto& source : lights) {
-            auto& cast = CastDirectLight(level, source, settings);
+    void LightContext::EmitDirectLight(Level& level) {
+        for (auto& source : Lights) {
+            auto& cast = CastDirectLight(level, source, Settings, *this);
             cast.AccumulatePass();
         }
     }
@@ -734,7 +754,10 @@ namespace Inferno::Editor {
             auto startIndex = (int16)level.LightDeltas.size();
 
             // Sort light by brightness
-            struct Accumulated { Tag Tag; SideLighting Lighting; };
+            struct Accumulated {
+                Tag Tag;
+                SideLighting Lighting;
+            };
             auto accumulated = Seq::map(light.Accumulated, [](auto x) { return Accumulated{ x.first, x.second }; });
             Seq::sortBy(accumulated, [](auto& a, auto& b) { return AverageBrightness(a.Lighting) > AverageBrightness(b.Lighting); });
 
@@ -760,10 +783,9 @@ namespace Inferno::Editor {
             level.LightDeltaIndices.push_back(LightDeltaIndex{
                 .Tag = src,
                 .Count = deltaCount,
-                .Index = startIndex });
+                .Index = startIndex
+            });
         }
-
-        SPDLOG_INFO("Delta lights: {} of {}\nIndices: {} of {}", level.LightDeltaIndices.size(), MaxDynamicLights, level.LightDeltas.size(), MaxLightDeltas);
     }
 
     // Copies accumulated light to the level faces
@@ -789,45 +811,169 @@ namespace Inferno::Editor {
                     l.AdjustSaturation(0);
     }
 
+    struct OctreeLeaf {
+        List<LightSource> Lights;
+        Array<Ptr<OctreeLeaf>, 8> Children;
+        DirectX::BoundingBox Bounds;
+        int Depth = 0;
+
+        void AddChildren(Level& level, const List<LightSource>& lights, int bucketSize) {
+            Array<Vector3, DirectX::BoundingBox::CORNER_COUNT> corners;
+            Bounds.GetCorners(corners.data());
+            Lights = lights;
+            Dictionary<Tag, bool> used;
+
+            for (int i = 0; i < 8; i++) {
+                auto center = (Bounds.Center + corners[i]) / 2;
+                Children[i] = MakePtr<OctreeLeaf>();
+                auto& child = *Children[i];
+                child.Depth = Depth + 1;
+                child.Bounds = { center, Vector3(Bounds.Extents) / 2 };
+
+                for (auto& l : lights) {
+                    if (used.contains(l.Tag)) continue;
+                    auto face = Face::FromSide(level, l.Tag);
+                    if (child.Bounds.Contains(face.Center())) {
+                        used[l.Tag] = true;
+                        child.Lights.push_back(l);
+                    }
+                }
+
+                if (child.Lights.size() > bucketSize)
+                    child.AddChildren(level, child.Lights, bucketSize);
+
+                if (Children[i]->Lights.empty())
+                    Children[i].reset(); // Free the node if it doesn't contain anything
+            }
+        }
+    };
+
+    OctreeLeaf CreateLightOctree(Level& level, const List<LightSource>& lights, int bucketSize) {
+        Vector3 minBounds = { FLT_MAX, FLT_MAX, FLT_MAX };
+        Vector3 maxBounds = { FLT_MIN, FLT_MIN, FLT_MIN };
+
+        for (auto& light : lights) {
+            auto face = Face::FromSide(level, light.Tag);
+            minBounds = VectorMin(minBounds, face.Center());
+            maxBounds = VectorMax(maxBounds, face.Center());
+        }
+
+        minBounds -= Vector3(10, 10, 10);
+        maxBounds += Vector3(10, 10, 10);
+        Vector3 center = (minBounds + maxBounds) / 2;
+
+        OctreeLeaf tree;
+        tree.Bounds = DirectX::BoundingBox(center, maxBounds - center);
+        tree.AddChildren(level, lights, bucketSize);
+        return tree;
+    }
+
     // Lights the level geometry and volumes. Not thread safe (needs refactoring to not use globals).
     void Commands::LightLevel(Level& level, const LightSettings& settings) {
         try {
             ScopedCursor cursor(IDC_WAIT);
             Metrics::Reset();
-            HitTests.clear();
-            HitTests.reserve(1'000'000);
-            RayCasts.clear();
-            RayCasts.reserve(1000);
             level.LightDeltaIndices.clear();
             level.LightDeltas.clear();
 
             ScopedTimer timer(&Metrics::LightCalculationTime);
+
+            auto threads = std::thread::hardware_concurrency();
+            SPDLOG_INFO("Lighting level. {} available threads.", threads);
+            auto availThreads = settings.Multithread && threads > 1 ? threads - 1 : 1; // leave 1 thread unused
+
             SetAmbientLight(settings.Ambient);
 
-            auto sources = GatherLightSources(level, settings);
-            EmitDirectLight(level, settings, sources);
+            auto lights = GatherLightSources(level, settings);
+            auto bucketSize = std::max(lights.size() / availThreads, size_t(1));
 
-            auto bounces = std::clamp(settings.Bounces, 0, 10);
+            if (settings.CheckCoplanar)
+                ReduceCoplanarBrightness(level, lights);
 
-            // Accumulate radiosity bounces
-            for (int i = 0; i < bounces; i++) {
-                for (auto& light : RayCasts | views::values) {
-                    auto& info = CastBounces(level, settings, light);
-                    info.AccumulatePass(!(settings.SkipFirstPass && i == 0));
+            List<LightContext> buckets(availThreads);
+            int bucketIndex = 0;
+
+            std::function<void(OctreeLeaf&)> addNodeLights = [&](const OctreeLeaf& leaf) {
+                if (leaf.Lights.size() <= bucketSize) {
+                    // lights in this leaf fit into a bucket
+                    Seq::append(buckets[bucketIndex].Lights, leaf.Lights);
+                    if (buckets[bucketIndex].Lights.size() >= bucketSize)
+                        bucketIndex++;
                 }
+                else {
+                    for (int i = 0; i < 8; i++) {
+                        if (leaf.Children[i]) {
+                            addNodeLights(*leaf.Children[i]);
+                        }
+                    }
+                }
+            };
+
+            auto tree = CreateLightOctree(level, lights, bucketSize);
+            addNodeLights(tree);
+
+            int bucketedLights = 0;
+            for (auto& bucket : buckets) {
+                bucketedLights += (int)bucket.Lights.size();
             }
 
-            if (!settings.EnableColor)
-                DesaturateAccumulated(RayCasts);
+
+            // If single threaded, preallocate a single large buffer
+            if (availThreads == 1) {
+                buckets[0].HitTests = Dictionary<int64, bool>{ 1'000'000 };
+                buckets[0].RayCasts = Dictionary<Tag, LightRayCast>{ 1000 };
+            }
+
+            //std::atomic activeThreads = availThreads;
+
+            for (auto& ctx : buckets) {
+                if (ctx.Lights.empty()) continue;
+
+                ctx.Settings = settings;
+
+                // Accumulate radiosity bounces
+                ctx.Thread = std::thread([&ctx, &level] {
+                    SPDLOG_INFO("Dispatching thread with {} lights", ctx.Lights.size());
+                ctx.EmitDirectLight(level);
+
+                auto bounces = std::clamp(ctx.Settings.Bounces, 0, 10);
+
+                for (int i = 0; i < bounces; i++) {
+                    for (auto& light : ctx.RayCasts | views::values) {
+                        auto& info = CastBounces(level, light, ctx);
+                        info.AccumulatePass(!(ctx.Settings.SkipFirstPass && i == 0));
+                    }
+                }
+
+                if (!ctx.Settings.EnableColor)
+                    DesaturateAccumulated(ctx.RayCasts);
+                });
+            }
+
+            for (auto& ctx : buckets) {
+                if (ctx.Thread.joinable())
+                    ctx.Thread.join();
+            }
 
             auto maxValue = std::clamp(settings.MaxValue, 0.0f, 10.0f);
             const Color max = { maxValue, maxValue, maxValue, 1 };
-            SetSideLighting(level, RayCasts, max, settings.EnableColor);
-            if (settings.EnableColor)
-                ClampColorBrightness(level, settings.MaxValue);
+
+            // Merge the results from each light
+            for (auto& ctx : buckets) {
+                // updating the level must be done in serial
+                SetSideLighting(level, ctx.RayCasts, max, settings.EnableColor);
+                if (settings.EnableColor)
+                    ClampColorBrightness(level, settings.MaxValue);
+
+                SetDynamicLights(level, ctx.RayCasts);
+                Metrics::CacheHits += ctx.CacheHits;
+                Metrics::RayHits += ctx.HitStats;
+                Metrics::RaysCast += ctx.CastStats;
+            }
 
             SetVolumeLight(level, settings.AccurateVolumes);
-            SetDynamicLights(level, RayCasts);
+
+            SPDLOG_INFO("Delta lights: {} of {}\nIndices: {} of {}", level.LightDeltaIndices.size(), MaxDynamicLights, level.LightDeltas.size(), MaxLightDeltas);
             Editor::History.SnapshotLevel("Light Level");
         }
         catch (const std::exception& e) {

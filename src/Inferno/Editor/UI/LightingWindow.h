@@ -93,6 +93,10 @@ namespace Inferno::Editor {
                 ImGui::Checkbox("Color", &settings.EnableColor);
                 ImGui::HelpMarker("Enables colored lighting. Currently is not saved to the level.");
 
+                ImGui::SameLine();
+                ImGui::Checkbox("Multithread", &settings.Multithread);
+                ImGui::HelpMarker("Enables multithread calculations");
+
                 /*ImGui::Checkbox("Check Coplanar", &_settings.CheckCoplanar);
                 ImGui::HelpMarker("Causes co-planar light sources to have a consistent brightness");*/
             }

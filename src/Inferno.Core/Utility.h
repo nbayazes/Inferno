@@ -42,7 +42,7 @@ namespace Inferno {
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T& operator |= (T& lhs, T rhs) {
+    T& operator |= (T& lhs, T rhs) {
         return lhs = lhs | rhs;
     }
 
@@ -52,12 +52,12 @@ namespace Inferno {
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T& operator &= (T& lhs, T rhs) {
+    T& operator &= (T& lhs, T rhs) {
         return lhs = lhs & rhs;
     }
 
     template<class T> requires is_scoped_enum_v<T>
-    inline T& operator ~ (T& value) {
+    T& operator ~ (T& value) {
         return value = T(~((int)value));
     }
 
@@ -159,6 +159,22 @@ namespace Inferno {
 
         average /= (float)colors.size();
         return Color(average);
+    }
+
+    inline Vector3 VectorMin(const Vector3& a, const Vector3& b) {
+        Vector3 r;
+        r.x = a.x < b.x ? a.x : b.x;
+        r.y = a.y < b.y ? a.y : b.y;
+        r.z = a.z < b.z ? a.z : b.z;
+        return r;
+    }
+
+    inline Vector3 VectorMax(const Vector3& a, const Vector3& b) {
+        Vector3 r;
+        r.x = a.x > b.x ? a.x : b.x;
+        r.y = a.y > b.y ? a.y : b.y;
+        r.z = a.z > b.z ? a.z : b.z;
+        return r;
     }
 
     constexpr DirectX::XMVECTORF32 UNIT_VECTOR_EPSILON = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
@@ -293,7 +309,7 @@ namespace Inferno {
     void CallAsync(auto&& fn) {
         auto future = std::make_shared<std::future<void>>();
         // capturing future adds +1 ref count which will be released when fn completes
-        *future = std::async(std::launch::async, [future, fn]() {
+        *future = std::async(std::launch::async, [future, fn] {
             fn();
         });
     }

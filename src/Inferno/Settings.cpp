@@ -108,6 +108,7 @@ namespace Inferno {
         node["Multiplier"] << s.Multiplier;
         node["Radius"] << s.Radius;
         node["Reflectance"] << s.Reflectance;
+        node["Multithread"] << s.Multithread;
     }
 
     LightSettings LoadLightSettings(ryml::NodeRef node) {
@@ -125,6 +126,7 @@ namespace Inferno {
         ReadValue(node["Multiplier"], settings.Multiplier);
         ReadValue(node["Radius"], settings.Radius);
         ReadValue(node["Reflectance"], settings.Reflectance);
+        ReadValue(node["Multithread"], settings.Multithread);
         return settings;
     }
 
