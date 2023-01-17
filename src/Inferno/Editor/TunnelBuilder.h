@@ -49,6 +49,7 @@ namespace Inferno::Editor {
     inline TunnelPath DebugTunnel;
 
     inline BezierCurve2 TunnelBuilderHandles; // For preview
+    inline bool EnableTunnelTwist = true;
 
     constexpr float MinTunnelLength = 10;
     constexpr float MaxTunnelLength = 200;

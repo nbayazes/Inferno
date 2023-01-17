@@ -9,6 +9,7 @@ namespace Inferno::Editor {
         PointTag _start = { (SegID)6, (SideID)5, 0 }, _end = { (SegID)5, (SideID)0, 0 };
         int _steps = 10;
         float _startLength = 20, _endLength = 20;
+
     public:
         TunnelBuilderWindow() : WindowBase("Tunnel Builder", &Settings::Editor.Windows.TunnelBuilder) {
             Events::LevelChanged += [this] { if (IsOpen()) RefreshTunnel(); };
@@ -72,6 +73,9 @@ namespace Inferno::Editor {
                 _steps = std::clamp(_steps, 1, 50);
                 RefreshTunnel();
             }
+
+            if (ImGui::Checkbox("Twist", &EnableTunnelTwist))
+                RefreshTunnel();
 
             if (ImGui::Button("Generate", { 100, 0 })) {
                 GenerateTunnel();

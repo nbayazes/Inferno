@@ -126,7 +126,8 @@ namespace Inferno::Editor {
 
         auto endRotation = end.Rotation.Right();
 
-        if (bendAngle > 1e-6 && rotAxis.Length() > 1e-6) { // dot >= 0.999999 ~ parallel
+        if (bendAngle > 1e-6 && rotAxis.Length() > 1e-6) {
+            // dot >= 0.999999 ~ parallel
             // Construct quaternion from the axis and angle, and "undo" the end orientation's
             // bend so it is parallel with the start face. We only need the R vector to
             // determine rotation.
@@ -148,13 +149,15 @@ namespace Inferno::Editor {
 
     void Bend(const PathNode& n0, PathNode& n1) {
         // rotate the previous matrix around the perpendicular of the previous and the current forward vector
-    // to orient it properly for the current path node
+        // to orient it properly for the current path node
         auto dot = n0.Rotation.Forward().Dot(n1.Rotation.Forward()); // angle of current and previous forward vectors
-        if (dot >= 0.999999f) { // dot >= 1e-6 ~ parallel
+        if (dot >= 0.999999f) {
+            // dot >= 1e-6 ~ parallel
             n1.Rotation.Right(n0.Rotation.Right()); // rotate right and up vectors accordingly
             n1.Rotation.Up(n0.Rotation.Up());
         }
-        else if (dot <= -0.999999f) { // dot >= 1e-6 ~ parallel
+        else if (dot <= -0.999999f) {
+            // dot >= 1e-6 ~ parallel
             n1.Rotation.Right(-n0.Rotation.Right()); // rotate right and up vectors accordingly
             n1.Rotation.Up(n0.Rotation.Up());
         }
@@ -195,13 +198,16 @@ namespace Inferno::Editor {
     }
 
     void Twist(const PathNode& n0, PathNode& n1, float pathDeltaAngle, float scale) {
-        // if !twist return
+        if (!EnableTunnelTwist) return;
 
         // twist the current matrix around the forward vector 
         n1.Angle = pathDeltaAngle * scale;
-        auto axis = n1.Rotation.Forward();
+        auto axis = n1.Rotation.Backward();
 
-        if (fabs(n1.Angle - n0.Angle) > 1e-6 && axis.Length() > 0) {
+        if (axis.Length() == 0)
+            return;
+
+        if (fabs(n1.Angle - n0.Angle) > 1e-6) {
             auto q = Quaternion::CreateFromAxisAngle(axis, n1.Angle - n0.Angle);
             auto right = Vector3::Transform(n1.Rotation.Right(), q);
             auto up = Vector3::Transform(n1.Rotation.Up(), q);
@@ -346,6 +352,7 @@ namespace Inferno::Editor {
         curve2.Points[1] = start.Point + start.Normal * startLength;
         curve2.Points[2] = end.Point - end.Normal * endLength;
         curve2.Points[3] = end.Point;
+        auto points = DivideCurveIntoSteps(curve2.Points, steps);
 
         TunnelBuilderHandles = curve2;
 
@@ -355,7 +362,6 @@ namespace Inferno::Editor {
         nodes.resize(steps + 1);
 
         //auto points = curve2.Compute(steps);
-        auto points = DivideCurveIntoSteps(curve2.Points, steps);
         //nodes.resize(points.size());
 
         for (int i = 0; i < nodes.size(); i++)
@@ -371,7 +377,8 @@ namespace Inferno::Editor {
         for (int i = 1; i <= steps; i++) {
             auto& n0 = nodes[i - 1];
             auto& n1 = nodes[i];
-            if (i < steps) { // last matrix is the end side's matrix - use it's forward vector
+            if (i < steps) {
+                // last matrix is the end side's matrix - use its forward vector
                 auto forward = nodes[i + 1].Vertex - nodes[i - 1].Vertex;
                 forward.Normalize();
                 n1.Rotation.Forward(forward);
@@ -404,6 +411,7 @@ namespace Inferno::Editor {
 
             if (maxIter-- <= 0) {
                 SPDLOG_WARN("Reached max iterations in CreatePath()");
+                break;
             }
         }
 
@@ -422,8 +430,8 @@ namespace Inferno::Editor {
 
         // copy vertices, skip start side
         level.Vertices.insert(level.Vertices.end(),
-            TunnelBuilderPoints.begin() + startIndices.size(),
-            TunnelBuilderPoints.begin() + startIndices.size() * path.Nodes.size());
+                              TunnelBuilderPoints.begin() + startIndices.size(),
+                              TunnelBuilderPoints.begin() + startIndices.size() * path.Nodes.size());
 
         for (size_t nNode = 1; nNode < path.Nodes.size(); nNode++) {
             auto& lastSeg = level.GetSegment(last);
@@ -521,7 +529,7 @@ namespace Inferno::Editor {
 
         if (morph) {
             //Matrix startRotation = startNode.Rotation.Invert();
-            Matrix startRotation =  startNode.Rotation;
+            Matrix startRotation = startNode.Rotation;
             Matrix endRotation = endNode.Rotation;
             //endRotation.Right(-endRotation.Right());
             //endRotation.Up(-endRotation.Up());
