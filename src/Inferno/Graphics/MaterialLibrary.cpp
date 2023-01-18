@@ -84,7 +84,6 @@ namespace Inferno::Render {
                     ids.insert(Resources::LookupLevelTexID(side.TMap));
                     if (auto eclip = Resources::TryGetEffectClip(side.TMap))
                         Seq::insert(ids, eclip->VClip.GetFrames());
-
                 }
 
                 if (side.HasOverlay()) {
@@ -185,7 +184,6 @@ namespace Inferno::Render {
         }
 
         if (!loadedDiffuse) {
-
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Info.Width, upload.Bitmap->Info.Height, Convert::ToWideString(upload.Bitmap->Info.Name));
         }
 
@@ -235,17 +233,19 @@ namespace Inferno::Render {
 
     class MaterialUploadWorker : public WorkerThread {
         MaterialLibrary* _lib;
+
     public:
         MaterialUploadWorker(MaterialLibrary* lib) : _lib(lib) {}
+
     protected:
         void Work() override {
             auto batch = BeginTextureUpload();
 
             List<MaterialUpload> queuedUploads;
-            _lib->RequestedUploads.ForEach([&queuedUploads](auto& x) {
+            _lib->_requestedUploads.ForEach([&queuedUploads](auto& x) {
                 queuedUploads.push_back(std::move(x));
             });
-            _lib->RequestedUploads.Clear();
+            _lib->_requestedUploads.Clear();
 
             List<Material2D> uploads;
             for (auto& upload : queuedUploads) {
@@ -265,7 +265,7 @@ namespace Inferno::Render {
                     existing.Handles[i] = upload.Handles[i];
                 }
 
-                _lib->PendingCopies.Add(std::move(upload)); // copies are performed on main thread
+                _lib->_pendingCopies.Add(std::move(upload)); // copies are performed on main thread
             }
 
             if (!uploads.empty()) {
@@ -273,7 +273,6 @@ namespace Inferno::Render {
                 Render::Adapter->PrintMemoryUsage();
                 Render::Heaps->Shader.GetFreeDescriptors();
             }
-
         }
     };
 
@@ -315,11 +314,14 @@ namespace Inferno::Render {
         Render::Heaps->Shader.GetFreeDescriptors();
     }
 
-    void MaterialLibrary::LoadMaterialsAsync(span<const TexID> tids, bool forceLoad) {
-        if (!forceLoad && !HasUnloadedTextures(tids)) return;
+    void MaterialLibrary::LoadMaterialsAsync(span<const TexID> ids, bool forceLoad) {
+        if (!forceLoad && !HasUnloadedTextures(ids)) return;
 
-        for (auto& id : tids)
-            RequestedUploads.Add(PrepareUpload(id, forceLoad));
+        for (auto& id : ids) {
+            if (_submittedUploads.contains(id)) continue;
+            _requestedUploads.Add(PrepareUpload(id, forceLoad));
+            _submittedUploads.insert(id);
+        }
 
         _worker->Notify();
     }
@@ -352,21 +354,22 @@ namespace Inferno::Render {
     void MaterialLibrary::Dispatch() {
         Render::Adapter->WaitForGpu();
 
-        if (!PendingCopies.IsEmpty()) {
+        if (!_pendingCopies.IsEmpty()) {
             SPDLOG_INFO("Replacing visible textures");
 
             List<Material2D> trash;
 
             {
-                PendingCopies.ForEach([this, &trash](Material2D& pending) {
+                _pendingCopies.ForEach([this, &trash](Material2D& pending) {
                     int id = (int)pending.ID;
                     if (_materials[id].ID > TexID::Invalid)
                         trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
 
                     _materials[id] = std::move(pending);
+                    _submittedUploads.erase(pending.ID);
                 });
 
-                PendingCopies.Clear();
+                _pendingCopies.Clear();
             }
 
             if (!trash.empty()) {
@@ -756,5 +759,4 @@ namespace Inferno::Render {
     //    // todo: create a future that returns false until pending completes
     //    return UploadHandle;
     //}
-
 }

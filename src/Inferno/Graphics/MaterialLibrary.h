@@ -36,9 +36,10 @@ namespace Inferno::Render {
 
         bool _requestPrune = false;
         Texture2D _black, _white, _purple;
-        ConcurrentList<Material2D> _materials, PendingCopies;
-        ConcurrentList<MaterialUpload> RequestedUploads;
+        ConcurrentList<Material2D> _materials, _pendingCopies;
+        ConcurrentList<MaterialUpload> _requestedUploads;
         Dictionary<string, Material2D> _outrageMaterials;
+        Set<TexID> _submittedUploads; // textures submitted for async processing. Used to filter future requests.
 
         Ptr<WorkerThread> _worker;
         friend class MaterialUploadWorker;
