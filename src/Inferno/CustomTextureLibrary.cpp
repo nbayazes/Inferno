@@ -153,8 +153,6 @@ namespace Inferno {
         for (auto& id : ids)
             writer.WriteBytes(_textures[id].Indexed);
 
-            //WriteBitmap(writer, lookup, _textures[id]);
-
         return writer.Position() - startPos;
     }
 

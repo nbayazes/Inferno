@@ -221,7 +221,7 @@ namespace Inferno::Editor {
     // Estimate the length of a curve by taking segment lengths
     float EstimateCurveLength(const BezierCurve2& curve, int steps) {
         float delta = 1 / (float)steps;
-        auto lastPos = curve.Points[0];
+        Vector3 lastPos = curve.Points[0];
         float length = 0;
 
         //Move along the curve

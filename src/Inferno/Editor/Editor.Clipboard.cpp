@@ -6,7 +6,6 @@
 #include "Editor.Wall.h"
 
 namespace Inferno::Editor {
-
     struct SideClipboardData {
         SegmentSide Side;
         Option<Wall> Wall;
@@ -248,10 +247,12 @@ namespace Inferno::Editor {
     }
 
     void MirrorSelection(Level& level, SegmentClipboardData& copy) {
+        auto tag = Editor::Selection.Tag();
         if (copy.Segments.empty()) return;
+        if (!level.SegmentExists(tag)) return;
 
-        auto selectionTransform = GetTransformFromSelection(level, Selection.Tag(), SelectionMode::Face);
-        auto reflectionPlane = DirectX::SimpleMath::Plane(selectionTransform.Translation(), selectionTransform.Forward());
+        auto& reflectionSide = level.GetSide(tag);
+        auto reflectionPlane = DirectX::SimpleMath::Plane(reflectionSide.Center, reflectionSide.AverageNormal);
         auto reflection = Matrix::CreateReflection(reflectionPlane);
 
         for (auto& v : copy.Vertices)
