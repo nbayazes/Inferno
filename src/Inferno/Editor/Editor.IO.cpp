@@ -500,12 +500,16 @@ namespace Inferno::Editor {
 
         if (mission) {
             auto missionFileName = mission->GetMissionPath().stem().string();
+            auto baseName = String::NameWithoutExtension(level.FileName);
 
-            // Copy aux entries for level if any exist such as pogs / hxms
+            // Copy aux entries for level if any exist such as hxms
             for (auto& entry : mission->Entries) {
-                // current level is written after so skip it
-                if (String::InvariantEquals(entry.NameWithoutExtension(), String::NameWithoutExtension(level.FileName)) &&
-                    !entry.IsLevel()) {
+                constexpr std::array skippedExtensions = { ".dtx", ".pog", ".rl2", ".rdl", ".ied" };
+                auto ext = String::ToLower(entry.Extension());
+                if (Seq::contains(skippedExtensions, ext))
+                    continue; // skip custom textures and the level as they are written after
+
+                if (String::InvariantEquals(entry.NameWithoutExtension(), baseName)) {
                     auto data = mission->ReadEntry(entry);
                     writer.WriteEntry("_test" + entry.Extension(), data);
                 }
@@ -516,6 +520,21 @@ namespace Inferno::Editor {
                     writer.WriteEntry("_test.ham", data);
                     wroteHam = true;
                 }
+            }
+        }
+
+        if (Resources::CustomTextures.Any()) {
+            if (level.IsDescent1()) {
+                auto dtx = SerializeToMemory([](StreamWriter& w) {
+                    return Resources::CustomTextures.WriteDtx(w, Resources::GetPalette());
+                });
+                writer.WriteEntry("_test.dtx", dtx);
+            }
+            else {
+                auto pog = SerializeToMemory([](StreamWriter& w) {
+                    return Resources::CustomTextures.WritePog(w, Resources::GetPalette());
+                });
+                writer.WriteEntry("_test.pog", pog);
             }
         }
 
