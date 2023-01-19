@@ -22,6 +22,10 @@ namespace Inferno {
     //    return cc;
     //}
 
+    constexpr bool IsPowerOfTwo(int v) {
+        return v != 0 && (v & (v - 1)) == 0;
+    }
+
     // Returns a random value between 0 and 1
     inline float Random() {
         return (float)rand() / RAND_MAX;

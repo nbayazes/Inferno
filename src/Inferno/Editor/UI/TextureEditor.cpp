@@ -7,21 +7,23 @@ namespace Inferno::Editor {
         StreamWriter writer(stream, false);
 
         constexpr DWORD offset = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + 256 * 4;
+        constexpr int bpp = 8;
+        const int padding = (bmp.Info.Width * bpp + 31) / 32 * 4 - bmp.Info.Width;
 
         BITMAPFILEHEADER bmfh{
             .bfType = 'MB',
-            .bfSize = offset + bmp.Info.Width * bmp.Info.Height,
+            .bfSize = offset + (bmp.Info.Width + padding) * bmp.Info.Height,
             .bfOffBits = offset
         };
 
         BITMAPINFOHEADER bmih{
-            .biSize = sizeof(BITMAPINFOHEADER), // (DWORD)(bmp.Width * bmp.Height)
+            .biSize = sizeof(BITMAPINFOHEADER),
             .biWidth = bmp.Info.Width,
-            .biHeight = bmp.Info.Height,
+            .biHeight = -bmp.Info.Height, // Top down
             .biPlanes = 1,
-            .biBitCount = 8,
+            .biBitCount = bpp,
             .biCompression = BI_RGB,
-            .biSizeImage = 0, // 64*64*4
+            .biSizeImage = 0,
             .biXPelsPerMeter = 0,
             .biYPelsPerMeter = 0,
             .biClrUsed = 256,
@@ -37,41 +39,14 @@ namespace Inferno::Editor {
             writer.Write<RGBQUAD>({ color.b, color.g, color.r });
         }
 
-        writer.WriteBytes(span{ (ubyte*)bmp.Indexed.data(), bmp.Indexed.size() });
-    }
-
-    enum class TextureType {
-        Level, Robot, Powerup, Misc
-    };
-
-    constexpr std::array ROBOT_TEXTURES = {
-    "rbot", "eye", "glow", "boss", "metl", "ctrl", "react", "rmap", "ship",
-        "energy01", "flare", "marker", "missile", "missiles", "missback", "water07"
-    };
-
-    constexpr std::array POWERUP_TEXTURES = {
-        "aftrbrnr", "allmap", "ammorack", "cloak", "cmissil*", "convert", "erthshkr",
-        "flag01", "flag02", "fusion", "gauss", "headlite", "helix", "hmissil", "hostage",
-        "invuln", "key01", "key02", "key03", "laser", "life01", "merc", "mmissile",
-        "omega", "pbombs", "phoenix", "plasma", "quad", "spbombs", "spread", "suprlasr",
-        "vammo", "vulcan"
-    };
-
-    TextureType ClassifyTexture(const PigEntry& entry) {
-        if (Resources::GameData.LevelTexIdx[(int)entry.ID] != LevelTexID(255))
-            return TextureType::Level;
-
-        for (auto& filter : ROBOT_TEXTURES) {
-            if (String::InvariantEquals(entry.Name, filter, strlen(filter)))
-                return TextureType::Robot;
+        for (size_t i = 0; i < bmp.Info.Height; i++) {
+            for (size_t j = 0; j < bmp.Info.Width; j++) {
+                writer.Write<ubyte>(bmp.Indexed[i * bmp.Info.Width + j]);
+            }
+            for (size_t j = 0; j < padding; j++) {
+                writer.Write<ubyte>(0); // pad rows of data to an alignment of 4
+            }
         }
-
-        for (auto& filter : POWERUP_TEXTURES) {
-            if (String::InvariantEquals(entry.Name, filter, strlen(filter)))
-                return TextureType::Powerup;
-        }
-
-        return TextureType::Misc;
     }
 
     void TextureEditor::UpdateTextureList() {

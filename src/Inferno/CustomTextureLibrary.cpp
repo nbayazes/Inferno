@@ -3,6 +3,36 @@
 #include "Resources.h"
 
 namespace Inferno {
+    constexpr std::array ROBOT_TEXTURES = {
+        "rbot", "eye", "glow", "boss", "metl", "ctrl", "react", "rmap", "ship",
+        "energy01", "flare", "marker", "missile", "missiles", "missback", "water07"
+    };
+
+    constexpr std::array POWERUP_TEXTURES = {
+        "aftrbrnr", "allmap", "ammorack", "cloak", "cmissil*", "convert", "erthshkr",
+        "flag01", "flag02", "fusion", "gauss", "headlite", "helix", "hmissil", "hostage",
+        "invuln", "key01", "key02", "key03", "laser", "life01", "merc", "mmissile",
+        "omega", "pbombs", "phoenix", "plasma", "quad", "spbombs", "spread", "suprlasr",
+        "vammo", "vulcan"
+    };
+
+    TextureType ClassifyTexture(const PigEntry& entry) {
+        if (Resources::GameData.LevelTexIdx[(int)entry.ID] != LevelTexID(255))
+            return TextureType::Level;
+
+        for (auto& filter : ROBOT_TEXTURES) {
+            if (String::InvariantEquals(entry.Name, filter, strlen(filter)))
+                return TextureType::Robot;
+        }
+
+        for (auto& filter : POWERUP_TEXTURES) {
+            if (String::InvariantEquals(entry.Name, filter, strlen(filter)))
+                return TextureType::Powerup;
+        }
+
+        return TextureType::Misc;
+    }
+
     void WriteD1BitmapHeader(StreamWriter& writer, const PigEntry& entry) {
         auto width = entry.Width;
         if (width > 256) width -= 256;
@@ -28,7 +58,7 @@ namespace Inferno {
         writer.Write<uint32>(entry.DataOffset);
     }
 
-    void CustomTextureLibrary::ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry) {
+    void CustomTextureLibrary::ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1) {
         StreamReader stream(path);
         BITMAPFILEHEADER bmfh{};
         BITMAPINFOHEADER bmih{};
@@ -49,10 +79,24 @@ namespace Inferno {
             throw Exception("Not a bitmap file");
 
         if (bmih.biBitCount != 8 && bmih.biBitCount != 4)
-            throw Exception("Only 16 or 256 color bitmap files are supported");
+            throw Exception("Only 256 indexed color bitmap files are supported");
 
         if (bmih.biCompression != BI_RGB)
             throw Exception("Cannot read compressed bitmaps. Resave the file with compression turned off.");
+
+        if (ClassifyTexture(entry) == TextureType::Level) {
+            if (bmih.biWidth != bmih.biHeight || !IsPowerOfTwo(bmih.biWidth))
+                throw Exception("Level textures must be square and a power of 2, otherwise texmerge will fail.");
+        }
+
+        if (descent1) {
+            if (bmih.biWidth > 511 || bmih.biHeight > 255)
+                throw Exception("Descent 1 DTX files support a max resolution of 511 x 255");
+        }
+        else {
+            if (bmih.biWidth > 4095 || bmih.biHeight > 4095)
+                throw Exception("Descent 2 POG files support a max resolution of 4095 x 4095");
+        }
 
         // read palette
         auto paletteSize = (int)bmih.biClrUsed;
@@ -113,7 +157,7 @@ namespace Inferno {
         bmp.Info.Custom = true;
         bmp.ExtractMask();
 
-        SPDLOG_INFO(L"Loaded BMP {}x{} from {}", bmp.Info.Width, bmp.Info.Height, path.c_str());
+        SPDLOG_INFO(L"Loaded BMP {}x{} from {}", bmp.Info.Width, bmp.Info.Height, path.wstring());
         _textures[entry.ID] = std::move(bmp);
     }
 
@@ -139,17 +183,15 @@ namespace Inferno {
 
         uint32 offset = 0;
         for (auto& id : ids) {
-            auto& entry = _textures[id];
-            entry.Info.UsesRle = false; // the serializer does not support RLE
-            //entry.Info.UsesBigRle = false;
-            entry.Info.DataOffset = offset;
-            WriteD2BitmapHeader(writer, entry.Info);
-            offset += entry.Info.Width * entry.Info.Height; // bytes
+            auto& entry = _textures[id].Info;
+            entry.UsesRle = false; // the serializer does not support RLE
+            entry.DataOffset = offset;
+            WriteD2BitmapHeader(writer, entry);
+            offset += entry.Width * entry.Height; // bytes
         }
 
         // write bitmap data
         PaletteLookup lookup(palette);
-
         for (auto& id : ids)
             writer.WriteBytes(_textures[id].Indexed);
 
@@ -162,9 +204,15 @@ namespace Inferno {
         writer.Write<int32>(0); // Sound count
 
         auto ids = GetSortedIds();
+        uint32 offset = 0;
 
-        for (auto& id : ids)
-            WriteD1BitmapHeader(writer, _textures[id].Info);
+        for (auto& id : ids) {
+            auto& entry = _textures[id].Info;
+            entry.UsesRle = false; // the serializer does not support RLE
+            entry.DataOffset = offset;
+            WriteD1BitmapHeader(writer, entry);
+            offset += entry.Width * entry.Height; // bytes
+        }
 
         // Sound headers would be here but are omitted
 
@@ -172,7 +220,6 @@ namespace Inferno {
         PaletteLookup lookup(palette);
         for (auto& id : ids)
             writer.WriteBytes(_textures[id].Indexed);
-        //WriteBitmap(writer, lookup, _textures[id]);
 
         // Sound data would be here but is omitted
         return writer.Position() - startPos;
@@ -228,6 +275,7 @@ namespace Inferno {
             auto existing = Seq::find(pigEntries, [&entry](const PigEntry& e) { return e.Name == entry.Name; });
             if (existing) {
                 entry.ID = existing->ID;
+                entry.Custom = true;
                 *existing = entry;
             }
         }
@@ -242,7 +290,6 @@ namespace Inferno {
 
         for (auto& entry : entries) {
             _textures[entry.ID] = ReadBitmapEntry(reader, dataStart, entry, palette);
-            _textures[entry.ID].Info.Custom = true;
         }
 
         // There's sound data here but we don't care
@@ -250,4 +297,3 @@ namespace Inferno {
         SPDLOG_INFO("Loaded {} custom textures from DTX", nBitmaps);
     }
 }
-

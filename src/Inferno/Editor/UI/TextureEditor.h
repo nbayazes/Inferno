@@ -31,6 +31,7 @@ namespace Inferno::Editor {
         Set<TexID> _levelTextures;
         List<TexID> _visibleTextures;
         bool _initialized = false;
+        List<char> _search;
 
     public:
         TextureEditor() : WindowBase("Texture Editor", &Settings::Editor.Windows.TextureEditor) {
@@ -43,6 +44,9 @@ namespace Inferno::Editor {
             Events::LevelLoaded += [this] {
                 _initialized = false;
             };
+
+            _search.resize(20);
+            ranges::fill(_search, 0);
         }
 
     protected:
@@ -56,6 +60,7 @@ namespace Inferno::Editor {
             const float bottomHeight = 200 * Shell::DpiScale;
 
             auto contentMax = ImGui::GetWindowContentRegionMax();
+            auto searchstr = String::ToLower(string(_search.data()));
 
             {
                 ImGui::BeginChild("list", { contentMax.x - detailWidth, contentMax.y - bottomHeight });
@@ -72,6 +77,12 @@ namespace Inferno::Editor {
 
                     for (auto& id : _visibleTextures) {
                         auto ti = Resources::GetTextureInfo(id);
+
+                        if (!searchstr.empty()) {
+                            if (!String::Contains(String::ToLower(ti.Name), searchstr))
+                                continue;
+                        }
+
                         auto& bmp = Resources::GetBitmap(id);
 
                         auto& material = Render::Materials->Get(id);
@@ -192,35 +203,42 @@ namespace Inferno::Editor {
             ImGui::EndChild();
 
             ImGui::EndChild();
+            ImGui::SameLine();
+
+            ImGui::Text("Search");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(200 * Shell::DpiScale);
+
+            ImGui::InputText("##Search", _search.data(), _search.capacity());
         }
 
     private:
         static void OnExport(TexID id) {
             try {
                 auto& bmp = Resources::GetBitmap(id);
-                static constexpr COMDLG_FILTERSPEC filter[] = {
-                    { L"256 Color Bitmap", L"*.BMP" }
-                };
-
+                static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" } };
                 if (auto path = SaveFileDialog(filter, 0, Convert::ToWideString(bmp.Info.Name + ".bmp"), L"Export BMP")) {
                     WriteBmp(*path, Resources::GetPalette(), bmp);
                 }
             }
-            catch (...) {}
+            catch (const std::exception& e) {
+                ShowErrorMessage(e);
+            }
         }
 
         void OnImport(const PigEntry& entry) {
             try {
                 static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
                 if (auto file = OpenFileDialog(filter, L"Import custom texture")) {
-                    // todo: check game version, limits, and if level textures are square
-                    Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry);
+                    Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1());
                     std::array ids{ _selection };
                     Render::Materials->LoadMaterialsAsync(ids, true);
                     UpdateTextureList();
                 }
             }
-            catch (...) {}
+            catch (const std::exception& e) {
+                ShowErrorMessage(e);
+            }
         }
 
         void OnRevert(TexID id) {

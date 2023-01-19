@@ -2,16 +2,14 @@
 #include "Pig.h"
 
 namespace Inferno {
-    // Serializes data to a vector using the provided function
-    //constexpr std::vector<ubyte> SerializeToMemory(std::function<size_t(StreamWriter&)> fn) {
-    //    std::stringstream stream;
-    //    stream.unsetf(std::ios::skipws);
-    //    StreamWriter writer(stream);
-    //    auto len = fn(writer);
-    //    std::vector<ubyte> data(len);
-    //    stream.read((char*)data.data(), data.size());
-    //    return data;
-    //}
+    enum class TextureType {
+        Level,
+        Robot,
+        Powerup,
+        Misc
+    };
+
+    TextureType ClassifyTexture(const PigEntry& entry);
 
     class CustomTextureLibrary {
         Dictionary<TexID, PigBitmap> _textures;
@@ -30,7 +28,7 @@ namespace Inferno {
 
         bool Any() const { return !_textures.empty(); }
         void Clear() { _textures.clear(); }
-        void ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry);
+        void ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1);
         size_t WritePog(StreamWriter&, const Palette&);
         size_t WriteDtx(StreamWriter&, const Palette&);
 
