@@ -33,11 +33,18 @@ namespace Inferno {
         return TextureType::Misc;
     }
 
+    string RemoveFrameNumber(string name) {
+        if (auto index = String::IndexOf(name, "#"))
+            name = name.substr(0, *index);
+
+        return name;
+    }
+
     void WriteD1BitmapHeader(StreamWriter& writer, const PigEntry& entry) {
         auto width = entry.Width;
         if (width > 256) width -= 256;
 
-        writer.WriteString(entry.Name.c_str(), 8);
+        writer.WriteString(RemoveFrameNumber(entry.Name), 8);
         writer.Write<ubyte>(entry.GetD1Flags());
         writer.Write((uint8)width);
         writer.Write((uint8)entry.Height);
@@ -47,7 +54,7 @@ namespace Inferno {
     }
 
     void WriteD2BitmapHeader(StreamWriter& writer, const PigEntry& entry) {
-        writer.WriteString(entry.Name.c_str(), 8);
+        writer.WriteString(RemoveFrameNumber(entry.Name), 8);
         writer.Write<ubyte>(entry.GetD2Flags());
         writer.Write((uint8)entry.Width);
         writer.Write((uint8)entry.Height);

@@ -145,6 +145,7 @@ namespace Inferno {
             uint8 dflags{};
             if (Width > 256) dflags |= DBM_FLAG_LARGE;
             if (Animated) dflags |= AnimatedFlag;
+            if (Frame) dflags |= Frame & FrameMask;
             return dflags;
         }
 
