@@ -817,11 +817,16 @@ namespace Inferno::Editor {
         Array<Ptr<OctreeLeaf>, 8> Children;
         DirectX::BoundingBox Bounds;
         int Depth = 0;
+        static constexpr int MAX_DEPTH = 10;
 
         void AddChildren(Level& level, const List<LightSource>& lights, int bucketSize) {
+            Lights = lights;
+
+            if (Depth >= MAX_DEPTH)
+                return; // prevent stack overflow due to stacked lights
+
             Array<Vector3, DirectX::BoundingBox::CORNER_COUNT> corners;
             Bounds.GetCorners(corners.data());
-            Lights = lights;
             Dictionary<Tag, bool> used;
 
             for (int i = 0; i < 8; i++) {
@@ -895,7 +900,11 @@ namespace Inferno::Editor {
             int bucketIndex = 0;
 
             std::function<void(OctreeLeaf&)> addNodeLights = [&](const OctreeLeaf& leaf) {
-                if (leaf.Lights.size() <= bucketSize) {
+                if (bucketIndex >= buckets.size()) {
+                    // ran out of buckets, dump everything into 0
+                    Seq::append(buckets[0].Lights, leaf.Lights);
+                }
+                else if (leaf.Lights.size() <= bucketSize) {
                     // lights in this leaf fit into a bucket
                     Seq::append(buckets[bucketIndex].Lights, leaf.Lights);
                     if (buckets[bucketIndex].Lights.size() >= bucketSize)
