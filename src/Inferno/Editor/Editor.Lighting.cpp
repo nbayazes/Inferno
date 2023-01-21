@@ -854,6 +854,7 @@ namespace Inferno::Editor {
         }
     };
 
+    // Groups lights together into an axis aligned octree, stopping once bucket size is reached
     OctreeLeaf CreateLightOctree(Level& level, const List<LightSource>& lights, int bucketSize) {
         Vector3 minBounds = { FLT_MAX, FLT_MAX, FLT_MAX };
         Vector3 maxBounds = { FLT_MIN, FLT_MIN, FLT_MIN };
@@ -884,9 +885,9 @@ namespace Inferno::Editor {
 
             ScopedTimer timer(&Metrics::LightCalculationTime);
 
-            auto threads = std::thread::hardware_concurrency();
-            SPDLOG_INFO("Lighting level. {} available threads.", threads);
-            auto availThreads = settings.Multithread && threads > 1 ? threads - 1 : 1; // leave 1 thread unused
+            auto hardwareThreads = std::thread::hardware_concurrency();
+            SPDLOG_INFO("Lighting level. {} available threads.", hardwareThreads);
+            auto availThreads = settings.Multithread && hardwareThreads > 1 ? hardwareThreads - 1 : 1; // leave 1 thread unused
 
             SetAmbientLight(settings.Ambient);
 
@@ -896,18 +897,19 @@ namespace Inferno::Editor {
             if (settings.CheckCoplanar)
                 ReduceCoplanarBrightness(level, lights);
 
-            List<LightContext> buckets(availThreads);
+            List<LightContext> threads(availThreads);
             int bucketIndex = 0;
 
+            // assign lights to threads based on their spatial locality
             std::function<void(OctreeLeaf&)> addNodeLights = [&](const OctreeLeaf& leaf) {
-                if (bucketIndex >= buckets.size()) {
+                if (bucketIndex >= threads.size()) {
                     // ran out of buckets, dump everything into 0
-                    Seq::append(buckets[0].Lights, leaf.Lights);
+                    Seq::append(threads[0].Lights, leaf.Lights);
                 }
                 else if (leaf.Lights.size() <= bucketSize) {
                     // lights in this leaf fit into a bucket
-                    Seq::append(buckets[bucketIndex].Lights, leaf.Lights);
-                    if (buckets[bucketIndex].Lights.size() >= bucketSize)
+                    Seq::append(threads[bucketIndex].Lights, leaf.Lights);
+                    if (threads[bucketIndex].Lights.size() >= bucketSize)
                         bucketIndex++;
                 }
                 else {
@@ -921,22 +923,23 @@ namespace Inferno::Editor {
 
             auto tree = CreateLightOctree(level, lights, bucketSize);
             addNodeLights(tree);
-            Seq::sortBy(buckets, [](const LightContext& a, const LightContext& b) {
+            Seq::sortBy(threads, [](const LightContext& a, const LightContext& b) {
                 return a.Lights.size() > b.Lights.size();
             });
 
+            // Count the number of empty and filled threads
             int emptyThreads = 0, filledThreads = 0;
-            for (auto& bucket : buckets) {
-                if (bucket.Lights.empty())
+            for (auto& thread : threads) {
+                if (thread.Lights.empty())
                     emptyThreads++;
                 else
                     filledThreads++;
             }
 
-            //int splitThreads = 0;
+            // Fill empty threads by splitting large buckets
             for (int i = 0; i < emptyThreads; i++) {
-                auto& src = buckets[i].Lights;
-                auto& dst = buckets[filledThreads + i].Lights;
+                auto& src = threads[i].Lights;
+                auto& dst = threads[filledThreads + i].Lights;
                 // move half of the lights to a new thread
                 auto len = src.size() / 2;
                 std::move(src.begin() + len, src.end(), std::back_inserter(dst));
@@ -944,20 +947,15 @@ namespace Inferno::Editor {
                 //assert(originalLen == src.size() + dst.size());
             }
 
-            int bucketedLights = 0;
-            for (auto& bucket : buckets) {
-                bucketedLights += (int)bucket.Lights.size();
-            }
-
             // If single threaded, preallocate a single large buffer
             if (availThreads == 1) {
-                buckets[0].HitTests = Dictionary<int64, bool>{ 1'000'000 };
-                buckets[0].RayCasts = Dictionary<Tag, LightRayCast>{ 1000 };
+                threads[0].HitTests = Dictionary<int64, bool>{ 1'000'000 };
+                threads[0].RayCasts = Dictionary<Tag, LightRayCast>{ 1000 };
             }
 
+            // Dispatch worker threads
             std::atomic activeThreads = 0;
-
-            for (auto& ctx : buckets) {
+            for (auto& ctx : threads) {
                 if (ctx.Lights.empty()) continue;
 
                 ctx.Settings = settings;
@@ -984,7 +982,7 @@ namespace Inferno::Editor {
                 });
             }
 
-            for (auto& ctx : buckets) {
+            for (auto& ctx : threads) {
                 if (ctx.Thread.joinable())
                     ctx.Thread.join();
             }
@@ -993,7 +991,7 @@ namespace Inferno::Editor {
             const Color max = { maxValue, maxValue, maxValue, 1 };
 
             // Merge the results from each light
-            for (auto& ctx : buckets) {
+            for (auto& ctx : threads) {
                 // updating the level must be done in serial
                 SetSideLighting(level, ctx.RayCasts, max, settings.EnableColor);
                 if (settings.EnableColor)
