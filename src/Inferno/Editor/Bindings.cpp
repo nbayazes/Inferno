@@ -127,7 +127,7 @@ namespace Inferno::Editor {
         };
 
         Command GotoSegment{
-            .Action = [] { Events::ShowDialog(DialogType::HogEditor); },
+            .Action = [] { Events::ShowDialog(DialogType::GotoSegment); },
             .Name = "Go to Segment"
         };
 
