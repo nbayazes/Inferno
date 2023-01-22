@@ -11,6 +11,8 @@ namespace Inferno::Editor {
         SegmentMode,
         EdgeMode,
         ObjectMode,
+        ToggleWallMode,
+        ToggleTextureMode,
         NextItem,
         PreviousItem,
         SegmentForward,

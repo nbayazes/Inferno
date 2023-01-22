@@ -390,10 +390,6 @@ namespace Inferno::Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::Begin("TopToolbar", nullptr, ToolbarFlags);
 
-        const ImVec2 buttonSize = { 75 * Shell::DpiScale, 0 };
-
-        //auto startY = ImGui::GetCursorPosY();
-
         {
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Snap");
@@ -772,14 +768,11 @@ namespace Inferno::Editor {
             // Toggle features
             ImGui::SameLine();
             if (ImGui::ToggleButton("Wall", Settings::Editor.EnableWallMode, 0, size, 3))
-                Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
+                ToggleWallMode();
 
             ImGui::SameLine(0, 10);
-            if (ImGui::ToggleButton("Texture", Settings::Editor.EnableTextureMode, 0, size, 3)) {
-                Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
-                Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
-                Editor::Gizmo.UpdatePosition();
-            }
+            if (ImGui::ToggleButton("Texture", Settings::Editor.EnableTextureMode, 0, size, 3))
+                ToggleTextureMode();
 
             ImGui::PopStyleColor(4);
             ImGui::End();
@@ -865,8 +858,7 @@ namespace Inferno::Editor {
         ImGui::PopStyleColor(1);
     }
 
-    void DrawSelectionBox(const ImGuiViewport* viewport) {
-        ImVec2 window_center = ImVec2(viewport->Size.x * 0.5f, viewport->Size.y * 0.5f);
+    void DrawSelectionBox() {
         ImVec2 p0 = { Input::DragStart.x, Input::DragStart.y };
         ImVec2 p1 = { Input::MousePosition.x, Input::MousePosition.y };
         ImGui::GetBackgroundDrawList()->AddRect(p0, p1, IM_COL32(0, 255, 0, 255), 0, 0, 2);
@@ -909,7 +901,7 @@ namespace Inferno::Editor {
         }
         else if (Input::LeftDragState == Input::SelectionState::Dragging &&
                  !ImGui::GetIO().WantCaptureMouse) {
-            DrawSelectionBox(viewport);
+            DrawSelectionBox();
         }
 
         if (_showImguiDemo) ImGui::ShowDemoWindow();

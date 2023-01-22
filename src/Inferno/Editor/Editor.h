@@ -40,6 +40,16 @@ namespace Inferno::Editor {
 
     void SetMode(SelectionMode);
 
+    inline void ToggleWallMode() {
+        Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
+    }
+
+    inline void ToggleTextureMode() {
+        Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
+        Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
+        Editor::Gizmo.UpdatePosition();
+    }
+
     // Text to show in status bar. Limited to string due to imgui.
     inline string StatusText = "Ready";
 

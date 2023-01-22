@@ -69,6 +69,16 @@ namespace Inferno::Editor {
             .Name = "Mode: Object"
         };
 
+        Command ToggleWallMode{
+            .Action = [] { Editor::ToggleWallMode(); },
+            .Name = "Toggle Wall Mode"
+        };
+
+        Command ToggleTextureMode{
+            .Action = [] { Editor::ToggleTextureMode(); },
+            .Name = "Toggle Texture Mode"
+        };
+
         Command CameraForward{
             .Action = [] { Render::Camera.MoveForward(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Forward"
@@ -147,6 +157,8 @@ namespace Inferno::Editor {
             case EditorAction::EdgeMode: return Commands::SetEdgeMode;
             case EditorAction::SegmentMode: return Commands::SetSegmentMode;
             case EditorAction::ObjectMode: return Commands::SetObjectMode;
+            case EditorAction::ToggleWallMode: return Commands::ToggleWallMode;
+            case EditorAction::ToggleTextureMode: return Commands::ToggleTextureMode;
             case EditorAction::CameraForward: return Commands::CameraForward;
             case EditorAction::CameraBack: return Commands::CameraBack;
             case EditorAction::CameraLeft: return Commands::CameraLeft;
@@ -220,7 +232,7 @@ namespace Inferno::Editor {
             case Keys::Insert: return "Ins";
             case Keys::Delete: return "Del";
 
-                // OEM keys
+            // OEM keys
             case Keys::OemOpenBrackets: return "[";
             case Keys::OemCloseBrackets: return "]";
             case Keys::OemPlus: return "+";
@@ -233,7 +245,7 @@ namespace Inferno::Editor {
             case Keys::OemSemicolon: return ";";
             case Keys::OemQuotes: return "'";
 
-                // Numpad
+            // Numpad
             case Keys::Multiply: return "*";
             case Keys::Divide: return "/";
             case Keys::Subtract: return "-";
@@ -347,9 +359,9 @@ namespace Inferno::Editor::Bindings {
             if (binding.Realtime) {
                 // Realtime bindings are executed constantly
                 if (Input::IsKeyDown(binding.Key) &&
-                binding.Shift == Input::ShiftDown &&
-                binding.Alt == Input::AltDown &&
-                binding.Control == Input::ControlDown) {
+                    binding.Shift == Input::ShiftDown &&
+                    binding.Alt == Input::AltDown &&
+                    binding.Control == Input::ControlDown) {
                     if (binding.Command)
                         binding.Command->Execute();
                 }
@@ -389,6 +401,8 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ EditorAction::SideMode, Keys::D3 });
         bindings.Add({ EditorAction::SegmentMode, Keys::D4 });
         bindings.Add({ EditorAction::ObjectMode, Keys::D5 });
+        bindings.Add({ EditorAction::ToggleWallMode, Keys::D6 });
+        bindings.Add({ EditorAction::ToggleTextureMode, Keys::D7 });
         bindings.Add({ EditorAction::NextItem, Keys::Right });
         bindings.Add({ EditorAction::PreviousItem, Keys::Left });
         bindings.Add({ EditorAction::SelectLinked, Keys::Tab });
