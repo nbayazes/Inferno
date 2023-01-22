@@ -17,7 +17,8 @@ namespace Inferno::Editor {
 
     struct PathNode {
         Matrix Rotation;
-        Vector3 Vertex; // absolute and unrotated vertices
+        Vector3 Position; // absolute and unrotated vertices
+        Array<Vector3, 4> Vertices;
         Vector3 Axis; // axis of rotation from last node to this node
         float Angle; // rotation angle around z axis
     };
@@ -27,6 +28,7 @@ namespace Inferno::Editor {
 
         Vector3 Point;
         Vector3 Normal;
+        Vector3 Up;
         Array<Vector3, 4> Vertices;
         //Array<ubyte, 4> OppVertexIndex;
         Matrix Rotation; // orientation of tunnel end side
@@ -46,9 +48,12 @@ namespace Inferno::Editor {
     inline List<Vector3> TunnelBuilderPath;
     inline List<Vector3> TunnelBuilderPoints;
     inline List<Vector3> DebugTunnelPoints;
+    inline List<Vector3> DebugTunnelLines;
     inline TunnelPath DebugTunnel;
 
     inline BezierCurve2 TunnelBuilderHandles; // For preview
+    inline PointTag TunnelStart, TunnelEnd;
+
     inline bool EnableTunnelTwist = true;
 
     constexpr float MinTunnelLength = 10;

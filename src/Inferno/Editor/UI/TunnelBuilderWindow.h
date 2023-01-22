@@ -1,12 +1,11 @@
 #pragma once
 
 #include "WindowBase.h"
-#include "Graphics/Render.h"
 #include "../TunnelBuilder.h"
 
 namespace Inferno::Editor {
     class TunnelBuilderWindow : public WindowBase {
-        PointTag _start = { (SegID)6, (SideID)5, 0 }, _end = { (SegID)5, (SideID)0, 0 };
+        PointTag _start = { (SegID)6, (SideID)5, 1 }, _end = { (SegID)5, (SideID)0, 1 };
         int _steps = 10;
         float _startLength = 20, _endLength = 20;
 
