@@ -41,7 +41,25 @@ namespace Inferno::Editor {
         List<PathNode> Nodes;
     };
 
-    void CreateTunnel(Level& level, PointTag start, PointTag end, int steps, float startLength, float endLength);
+    constexpr float MinTunnelLength = 10;
+    constexpr float MaxTunnelLength = 200;
+
+    struct TunnelParams {
+        PointTag Start;
+        PointTag End;
+        int Steps = 5;
+        float StartLength = 40;
+        float EndLength = 40;
+
+
+        void ClampInputs() {
+            Steps = std::clamp(Steps, 1, 100);
+            StartLength = std::clamp(StartLength, MinTunnelLength, MaxTunnelLength);
+            EndLength = std::clamp(EndLength, MinTunnelLength, MaxTunnelLength);
+        }
+    };
+
+    void CreateTunnel(Level& level, TunnelParams& params);
     void ClearTunnel();
     void CreateTunnelSegments(Level& level, const TunnelPath& path, PointTag start, PointTag end);
 
@@ -56,6 +74,5 @@ namespace Inferno::Editor {
 
     inline bool EnableTunnelTwist = true;
 
-    constexpr float MinTunnelLength = 10;
-    constexpr float MaxTunnelLength = 200;
+
 }

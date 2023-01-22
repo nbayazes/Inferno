@@ -150,37 +150,29 @@ namespace Inferno::Editor {
         return atan2(y, x);
     }
 
+    // Rotates n0's matrix around the perpendicular of n0's and n1's vector.
+    // Updates n1.
     void Bend(const PathNode& n0, PathNode& n1) {
-        // rotate the previous matrix around the perpendicular of the previous and the current forward vector
-        // to orient it properly for the current path node
-        auto dot = n0.Rotation.Forward().Dot(n1.Rotation.Forward()); // angle of current and previous forward vectors
+        // angle between forward vectors
+        auto dot = n0.Rotation.Forward().Dot(n1.Rotation.Forward());
+
         if (dot >= 0.999999f) {
-            // dot >= 1e-6 ~ parallel
-            n1.Rotation.Right(n0.Rotation.Right()); // rotate right and up vectors accordingly
+            // Facing same direction, copy
+            n1.Rotation.Right(n0.Rotation.Right());
             n1.Rotation.Up(n0.Rotation.Up());
         }
         else if (dot <= -0.999999f) {
-            // dot >= 1e-6 ~ parallel
-            n1.Rotation.Right(-n0.Rotation.Right()); // rotate right and up vectors accordingly
+            // Facing directly away, copy inverse (should never happen?)
+            n1.Rotation.Right(-n0.Rotation.Right());
             n1.Rotation.Up(n0.Rotation.Up());
         }
         else {
-            //#ifdef _DEBUG
-            //            CDoubleVector v0(n1->m_rotation.F());
-            //            CDoubleVector v1(/*(dot < 0.0) ? n0->m_rotation.F () :*/ -n0->m_rotation.F());
-            //            double a = acos(dot);
-            //            CDoubleVector axis = CrossProduct(v0, v1);
-            //            axis.Normalize();
-            //            CDoubleVector vi;
-            //            axis = Perpendicular(vi, v0, v1);
-            //            axis.Normalize();
-            //#endif
-
-            auto bendAngle = acos(dot);
-
+            // Get the axis of rotation between the two nodes
             n1.Axis = n1.Rotation.Forward().Cross(-n0.Rotation.Forward());
             n1.Axis.Normalize();
+
             if (n1.Axis.Length() > 0) {
+                auto bendAngle = acos(dot);
                 auto q = Quaternion::CreateFromAxisAngle(n1.Axis, bendAngle);
                 auto fVec = Vector3::Transform(n0.Rotation.Forward(), q);
                 dot = fVec.Dot(n1.Rotation.Forward());
@@ -349,11 +341,13 @@ namespace Inferno::Editor {
         return result;
     }
 
-    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, int steps, float startLength, float endLength) {
+    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, TunnelParams& params) {
+        auto steps = params.Steps;
+
         BezierCurve2 curve2;
         curve2.Points[0] = start.Point;
-        curve2.Points[1] = start.Point + start.Normal * startLength;
-        curve2.Points[2] = end.Point - end.Normal * endLength;
+        curve2.Points[1] = start.Point + start.Normal * params.StartLength;
+        curve2.Points[2] = end.Point - end.Normal * params.EndLength;
         curve2.Points[3] = end.Point;
         auto bezierPoints = DivideCurveIntoSteps(curve2.Points, steps);
 
@@ -390,13 +384,24 @@ namespace Inferno::Editor {
 
         std::array<Vector3, 4> deltaShift{}; // amount of vertex change between each frame
         std::array<Vector3, 4> baseFrame{}; // start frame shifted to origin
+        std::array<Vector3, 4> endFrame{}; // end points ordered correctly for edge selections
 
         for (int i = 0; i < 4; i++) {
+            auto ia = (3 + i + params.Start.Point) % 4;
+            auto ib = (6 - i + params.End.Point) % 4; // reverse order to correct for flipped normal
+
             //shiftedEnd[i] = Vector3::Transform(end.Vertices[i], transform);
-            baseFrame[i] = start.Vertices[i] - start.Point;
-            deltaShift[i] = Vector3::Transform(end.Vertices[3 - i], transform) - start.Vertices[i];
-            DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[i], transform) + start.Normal * totalLength);
-            DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[(i + 1) % 4], transform) + start.Normal * totalLength);
+            baseFrame[i] = start.Vertices[ia] - start.Point;
+            endFrame[i] = end.Vertices[ib];
+            deltaShift[i] = Vector3::Transform(end.Vertices[ib], transform) - start.Vertices[ia];
+
+            //// Connecting lines showing delta
+            //DebugTunnelLines.push_back(start.Vertices[ia] + deltaShift[i]);
+            //DebugTunnelLines.push_back(start.Vertices[ia]);
+
+            //// Frame used to build delta
+            //DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[ib], transform));
+            //DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[(ib + 1) % 4], transform));
         }
 
         //auto upBasis = Vector3::Transform(end.Up, rotation);
@@ -408,8 +413,6 @@ namespace Inferno::Editor {
         //for (int i = 1; i < nodes.size(); i++)
         //    nodes[i].Position = curve2.Points[0] + start.Normal * (totalLength / steps) * i;
 
-        //auto positionStep = start.Normal * (totalLength / steps);
-
         for (int i = 1; i <= steps; i++) {
             auto& n0 = nodes[i - 1];
             auto& n1 = nodes[i];
@@ -420,25 +423,58 @@ namespace Inferno::Editor {
             //n1.Rotation *= Matrix::CreateFromAxisAngle(start.Normal, angleStep);
             //n1.Rotation *= m;
 
-            // Set verts from rotation and position
-            for (int j = 0; j < 4; j++) {
-                // use the base cross section shifted to origin
-                // 1. apply cross section morph
-                // 2. rotate in place towards the next point on curve
-                // 3. move to the node position
-
-                n1.Vertices[j] = n1.Position + baseFrame[j] /*+ n0.Vertices[j]*/ + deltaShift[j] * i / steps /*+ positionStep*/;
-
-                // n1.Position
-            }
-
             if (i < steps) {
+                //DebugTunnelLines.push_back(bezierPoints[i]);
+                //DebugTunnelLines.push_back(bezierPoints[i - 1]);
+
                 // prev matrix is the end side's matrix - use its forward vector
-                auto forward = n1.Position - n0.Position;
+                auto forward = bezierPoints[i + 1] - bezierPoints[i];
+                auto forward2 = bezierPoints[i] - bezierPoints[i - 1];
+                forward += forward2;
+                forward *= 0.5f;
                 forward.Normalize();
                 n1.Rotation.Forward(forward);
+                //n1.Rotation.Up(forward);
             }
-            //Bend(n0, n1);
+
+            if (i == steps) {
+                n1.Rotation = start.Rotation;
+                n1.Vertices = endFrame; // force end to match the selection
+            }
+            else {
+                //n1.Rotation.Forward(start.Normal); // DEBUG
+
+                Bend(n0, n1);
+
+                // Set verts from rotation and position
+                for (int j = 0; j < 4; j++) {
+                    // use the base cross section shifted to origin
+                    // 1. apply cross section morph
+                    // 2. rotate in place towards the next point on curve
+                    // 3. move to the node position
+                    auto& vert = n1.Vertices[j];
+                    //v = Vector3::Transform(v, startNode.Rotation.Transpose());
+                    vert = baseFrame[j] + deltaShift[j] * i / steps;
+
+                    // Rotate frame onto node
+                    //vert = Vector3::Transform(vert, start.Rotation.Invert() * n1.Rotation.Transpose());
+                    //vert = Vector3::Transform(vert, start.Rotation.Invert() * n1.Rotation);
+                    vert = Vector3::Transform(vert, start.Rotation.Invert() * n1.Rotation);
+                    //vert = Vector3::Transform(vert, start.Rotation);
+
+                    //vert += start.Point + start.Normal * totalLength * i / steps; // DEBUG forward positions
+
+                    vert += n1.Position;
+                }
+            }
+
+            //if (i == steps) {
+            for (int j = 0; j < 4; j++) {
+                DebugTunnelLines.push_back(n1.Vertices[j]);
+                DebugTunnelLines.push_back(n1.Vertices[(j + 1) % 4]);
+            }
+            //}
+
             //Twist(n0, n1, deltaAngle, PathLength(nodes, i) / totalLength);
         }
 
@@ -557,68 +593,65 @@ namespace Inferno::Editor {
         DebugTunnelLines.clear();
     }
 
-    void CreateTunnel(Level& level, PointTag start, PointTag end, int steps, float startLength, float endLength) {
-        if (!level.SegmentExists(start) || !level.SegmentExists(end))
+    void CreateTunnel(Level& level, TunnelParams& params) {
+        if (!level.SegmentExists(params.Start) || !level.SegmentExists(params.End))
             return;
 
         ClearTunnel();
-        TunnelStart = start;
-        TunnelEnd = end;
+        TunnelStart = params.Start;
+        TunnelEnd = params.End;
 
-        // clamp inputs
-        if (steps < 1) steps = 1;
-        startLength = std::clamp(startLength, MinTunnelLength, MaxTunnelLength);
-        endLength = std::clamp(endLength, MinTunnelLength, MaxTunnelLength);
+        params.ClampInputs();
 
-        auto startNode = CreateNode(level, start, -1);
-        auto endNode = CreateNode(level, end, 1);
-        auto path = CreatePath(startNode, endNode, steps, startLength, endLength);
+        auto startNode = CreateNode(level, params.Start, -1);
+        auto endNode = CreateNode(level, params.End, 1);
+        auto path = CreatePath(startNode, endNode, params);
         //path.StartVertices = startNode.Vertices; 
-        auto startVertices = startNode.Vertices; // should be verts of all selected faces, not just the first
+        //auto startVertices = startNode.Vertices; // should be verts of all selected faces, not just the first
 
         // Pre-calculate morph vectors if necessary since we'll need to use them a lot
-        List<Vector3> vMorph;
-        List<ushort> nVertexMap;
-        nVertexMap.resize(4);
+        //List<Vector3> vMorph;
+        //List<ushort> nVertexMap;
+        //nVertexMap.resize(4);
 
-        bool morph = startVertices.size() == 4; // morph only works with single selected face
-        morph = false;
-        //auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
+        //bool morph = startVertices.size() == 4; // morph only works with single selected face
+        //morph = false;
+        ////auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
 
-        if (morph) {
-            //Matrix startRotation = startNode.Rotation.Invert();
-            Matrix startRotation = startNode.Rotation;
-            Matrix endRotation = endNode.Rotation;
-            //endRotation.Right(-endRotation.Right());
-            //endRotation.Up(-endRotation.Up());
+        //if (morph) {
+        //    //Matrix startRotation = startNode.Rotation.Invert();
+        //    Matrix startRotation = startNode.Rotation;
+        //    Matrix endRotation = endNode.Rotation;
+        //    //endRotation.Right(-endRotation.Right());
+        //    //endRotation.Up(-endRotation.Up());
 
-            for (ushort i = 0; i < 4; i++) {
-                ushort startIndex = (start.Point + i) % 4;
-                Vector3 vStart = startNode.Vertices[startIndex];
-                //DebugTunnelPoints.push_back(vStart);
-                vStart -= startNode.Point; // shift to tunnel start
-                vStart = Vector3::Transform(vStart, startRotation.Invert()); // un-rotate
+        //    for (ushort i = 0; i < 4; i++) {
+        //        ushort startIndex = (start.Point + i) % 4;
+        //        Vector3 vStart = startNode.Vertices[startIndex];
+        //        //DebugTunnelPoints.push_back(vStart);
+        //        vStart -= startNode.Point; // shift to tunnel start
+        //        vStart = Vector3::Transform(vStart, startRotation.Invert()); // un-rotate
 
-                ushort endIndex = (end.Point + 5 - i) % 4;
-                Vector3 vEnd = endNode.Vertices[endIndex];
-                //DebugTunnelPoints.push_back(vEnd);
-                vEnd -= endNode.Point; // shift to tunnel end
-                vEnd = Vector3::Transform(vEnd, endRotation.Invert() /** startRotation*/); // un-rotate
+        //        ushort endIndex = (end.Point + 5 - i) % 4;
+        //        Vector3 vEnd = endNode.Vertices[endIndex];
+        //        //DebugTunnelPoints.push_back(vEnd);
+        //        vEnd -= endNode.Point; // shift to tunnel end
+        //        vEnd = Vector3::Transform(vEnd, endRotation.Invert() /** startRotation*/); // un-rotate
 
-                vMorph.push_back(vEnd - vStart);
-                //DebugTunnelPoints.push_back(vStart);
-                //DebugTunnelPoints.push_back(vEnd + Vector3::UnitZ * 10);
+        //        vMorph.push_back(vEnd - vStart);
+        //        //DebugTunnelPoints.push_back(vStart);
+        //        //DebugTunnelPoints.push_back(vEnd + Vector3::UnitZ * 10);
 
-                nVertexMap[startIndex] = endIndex;
+        //        nVertexMap[startIndex] = endIndex;
 
-                // map the vertex back to the starting vertex
-                //for (ushort nStartVertex = 0; nStartVertex < 4; nStartVertex++)
-                //    if (startIndex == startIndices[nStartVertex]) {
-                //        nVertexMap[nStartVertex] = i;
-                //        break;
-                //    }
-            }
-        }
+        //        // map the vertex back to the starting vertex
+        //        //for (ushort nStartVertex = 0; nStartVertex < 4; nStartVertex++)
+        //        //    if (startIndex == startIndices[nStartVertex]) {
+        //        //        nVertexMap[nStartVertex] = i;
+        //        //        break;
+        //        //    }
+        //    }
+        //}
 
         // Compute all tunnel vertices by rotating the base vertices using each path node's orientation (== rotation matrix)
         // The rotation is relative to the base coordinate system (identity matrix), but the vertices are relative to the 
@@ -626,7 +659,7 @@ namespace Inferno::Editor {
         // it with the current path node's orientation matrix and position.
         //List<Vector3> vertices;
 
-        for (int nSegment = 0; nSegment <= steps; nSegment++) {
+        for (int nSegment = 0; nSegment <= params.Steps; nSegment++) {
             //Matrix rotation = path.Nodes[nSegment].Rotation.Invert();
             //auto& translation = path.Nodes[nSegment].Vertex;
 
@@ -650,7 +683,6 @@ namespace Inferno::Editor {
             for (int i = 0; i < 4; i++) {
                 TunnelBuilderPoints.push_back(path.Nodes[nSegment].Vertices[i]);
             }
-
         }
 
         CreateDebugPath(path);

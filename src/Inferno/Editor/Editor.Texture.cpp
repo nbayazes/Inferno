@@ -489,7 +489,7 @@ namespace Inferno::Editor {
         int rotation = Input::ShiftDown ? -1 : 1;
         for (auto& face : GetSelectedFaces()) {
             if (auto side = Game::Level.TryGetSide(face)) {
-                side->OverlayRotation = (OverlayRotation)mod((uint16)side->OverlayRotation + rotation, 4);
+                side->OverlayRotation = (OverlayRotation)ModSafe((uint16)side->OverlayRotation + rotation, 4);
             }
         }
         Events::LevelChanged();

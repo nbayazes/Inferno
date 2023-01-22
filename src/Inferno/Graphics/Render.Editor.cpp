@@ -60,8 +60,8 @@ namespace Inferno::Render {
     }
 
     void DrawTunnelPathNode(const Editor::PathNode& node) {
-        Matrix m;
-        node.Rotation.Invert(m);
+        Matrix m = node.Rotation;
+        //node.Rotation.Invert(m);
         Vector3 v[4] = { m.Right(), m.Up(), m.Forward(), node.Axis };
 
         Debug::DrawPoint(node.Position, Colors::MarkedFace);
@@ -90,18 +90,18 @@ namespace Inferno::Render {
             Debug::DrawLine(p0, p1, Colors::Fuelcen);
         }
 
-        for (int i = 1; i < Editor::DebugTunnelPoints.size(); i += 2) {
-            auto& p0 = Editor::DebugTunnelPoints[i - 1];
-            auto& p1 = Editor::DebugTunnelPoints[i];
-            if ((i % 4) == 2 || (i % 4) == 3)
-                Debug::DrawLine(p0, p1, Colors::Hostage);
-        }
+        //for (int i = 1; i < Editor::DebugTunnelPoints.size(); i += 2) {
+        //    auto& p0 = Editor::DebugTunnelPoints[i - 1];
+        //    auto& p1 = Editor::DebugTunnelPoints[i];
+        //    if ((i % 4) == 2 || (i % 4) == 3)
+        //        Debug::DrawLine(p0, p1, Colors::Hostage);
+        //}
 
-        for (int i = 4; i < Editor::TunnelBuilderPoints.size(); i++) {
-            auto& p0 = Editor::TunnelBuilderPoints[i - 4];
-            auto& p1 = Editor::TunnelBuilderPoints[i];
-            Debug::DrawLine(p0, p1, Colors::Hostage);
-        }
+        //for (int i = 4; i < Editor::TunnelBuilderPoints.size(); i++) {
+        //    auto& p0 = Editor::TunnelBuilderPoints[i - 4];
+        //    auto& p1 = Editor::TunnelBuilderPoints[i];
+        //    Debug::DrawLine(p0, p1, Colors::Hostage);
+        //}
 
         for (auto& node : Editor::DebugTunnel.Nodes) {
             DrawTunnelPathNode(node);
