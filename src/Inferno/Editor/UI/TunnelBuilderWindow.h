@@ -74,7 +74,7 @@ namespace Inferno::Editor {
                 RefreshTunnel();
             }
 
-            if (ImGui::Checkbox("Twist", &EnableTunnelTwist))
+            if (ImGui::Checkbox("Twist", &_params.Twist))
                 RefreshTunnel();
 
             if (ImGui::Button("Generate", { 100, 0 })) {

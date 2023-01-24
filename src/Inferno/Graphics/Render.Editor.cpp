@@ -61,13 +61,12 @@ namespace Inferno::Render {
 
     void DrawTunnelPathNode(const Editor::PathNode& node) {
         Matrix m = node.Rotation;
-        //node.Rotation.Invert(m);
         Vector3 v[4] = { m.Right(), m.Up(), m.Forward(), node.Axis };
 
         Debug::DrawPoint(node.Position, Colors::MarkedFace);
         static constexpr Color colors[4] = { Colors::DoorRed, Colors::Hostage, Colors::DoorBlue, Colors::DoorGold };
 
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 3; i++) {
             Debug::DrawLine(node.Position, node.Position + v[i] * 5, colors[i]);
         }
     }

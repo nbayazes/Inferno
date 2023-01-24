@@ -3,13 +3,13 @@
 #include "Editor.Selection.h"
 
 namespace Inferno::Editor {
-    struct BezierCurve {
-        Array<Vector3, 4> Points{};
-        Array<float, 2> Length = { 1, 1 };
+    //struct BezierCurve {
+    //    Array<Vector3, 4> Points{};
+    //    Array<float, 2> Length = { 1, 1 };
 
-        Vector3 Compute(float u) const;
-        void Transform(const Matrix& m) const;
-    };
+    //    Vector3 Compute(float u) const;
+    //    void Transform(const Matrix& m) const;
+    //};
 
     struct BezierCurve2 {
         Array<Vector3, 4> Points{};
@@ -50,7 +50,7 @@ namespace Inferno::Editor {
         int Steps = 5;
         float StartLength = 40;
         float EndLength = 40;
-
+        bool Twist = true;
 
         void ClampInputs() {
             Steps = std::clamp(Steps, 1, 100);
@@ -71,8 +71,4 @@ namespace Inferno::Editor {
 
     inline BezierCurve2 TunnelBuilderHandles; // For preview
     inline PointTag TunnelStart, TunnelEnd;
-
-    inline bool EnableTunnelTwist = true;
-
-
 }
