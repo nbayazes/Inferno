@@ -102,12 +102,12 @@ namespace Inferno::Render {
         //    Debug::DrawLine(p0, p1, Colors::Hostage);
         //}
 
-        for (auto& node : Editor::DebugTunnel.Nodes) {
-            DrawTunnelPathNode(node);
-        }
+        //for (auto& node : Editor::DebugTunnel.Nodes) {
+        //    DrawTunnelPathNode(node);
+        //}
 
         auto drawStartFace = [&](PointTag tag) {
-            if (!tag) return;
+            if (!tag || !level.SegmentExists(tag)) return;
             auto face = Face::FromSide(level, tag);
             for (int i = 0; i < 4; i++) {
                 auto color = tag.Point == i ? Colors::DoorGold : Colors::MarkedWall;

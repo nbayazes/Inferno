@@ -91,7 +91,7 @@ namespace Inferno::Editor {
         }
 
         void GenerateTunnel() {
-            CreateTunnelSegments(Game::Level, DebugTunnel, _params.Start, _params.End);
+            CreateTunnelSegments(Game::Level, DebugTunnel, _params);
         }
 
         void UpdateInitialLengths() {

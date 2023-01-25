@@ -359,13 +359,13 @@ namespace Inferno::Editor {
             startFrame[i] = start.Vertices[ia];
             deltaShift[i] = Vector3::Transform(end.Vertices[ib], transform) - start.Vertices[ia];
 
-            // Connecting lines showing delta
-            DebugTunnelLines.push_back(start.Vertices[ia] + deltaShift[i]);
-            DebugTunnelLines.push_back(start.Vertices[ia]);
+            //// Connecting lines showing delta
+            //DebugTunnelLines.push_back(start.Vertices[ia] + deltaShift[i]);
+            //DebugTunnelLines.push_back(start.Vertices[ia]);
 
-            // Frame used to build delta
-            DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[ib], transform));
-            DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[(ib + 1) % 4], transform));
+            //// Frame used to build delta
+            //DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[ib], transform));
+            //DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[(ib + 1) % 4], transform));
         }
 
         nodes[0].Vertices = startFrame;
@@ -470,52 +470,51 @@ namespace Inferno::Editor {
         return path;
     }
 
-    void CreateTunnelSegments(Level& level, const TunnelPath& path, PointTag start, PointTag end) {
-        // todo: check that tunnel is valid
-        if (!level.SegmentExists(start)) return;
+    void CreateTunnelSegments(Level& level, const TunnelPath& path, const TunnelParams& params) {
+        auto start = params.Start;
 
-        Tag last = start;
+        if (!level.SegmentExists(start) || TunnelBuilderPoints.empty()) return;
+
+        if (level.HasConnection(start))
+            return; // todo: show error that start already has a connection
+        
+        auto prev = start;
         auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
-        //auto endIndices = level.GetSegment(end).GetVertexIndices(end.Side);
 
         Marked.Segments.clear();
         auto vertIndex = (uint16)level.Vertices.size(); // take index before adding new points
+        auto lastId = SegID::None;
 
-        // copy vertices, skip start side
-        level.Vertices.insert(level.Vertices.end(),
-                              TunnelBuilderPoints.begin() + startIndices.size(),
-                              TunnelBuilderPoints.begin() + startIndices.size() * path.Nodes.size());
-
-        SegID lastId{};
-
-        // todo: fix twisted verts in first segment caused by edge selection
         for (size_t nNode = 1; nNode < path.Nodes.size(); nNode++) {
-            auto& lastSeg = level.GetSegment(last);
+            auto& lastSeg = level.GetSegment(prev);
 
-            Segment seg = {};
+            Segment newSeg = {};
             auto id = (SegID)level.Segments.size();
 
-            auto oppositeSide = (int)GetOppositeSide(last.Side);
-            seg.Connections[oppositeSide] = last.Segment;
-            lastSeg.Connections[(int)last.Side] = id;
+            auto oppositeSide = (int)GetOppositeSide(prev.Side);
+            // attach the previous seg to the new one
+            newSeg.Connections[oppositeSide] = prev.Segment;
+            lastSeg.Connections[(int)prev.Side] = id;
 
-            auto srcIndices = lastSeg.GetVertexIndices(last.Side);
-            auto& srcVertIndices = SIDE_INDICES[oppositeSide];
-            auto& newVertIndices = SIDE_INDICES[(int)last.Side];
-            seg.Indices[srcVertIndices[3]] = srcIndices[0];
-            seg.Indices[srcVertIndices[2]] = srcIndices[1];
-            seg.Indices[srcVertIndices[1]] = srcIndices[2];
-            seg.Indices[srcVertIndices[0]] = srcIndices[3];
+            auto srcIndices = lastSeg.GetVertexIndices(prev.Side);
+            auto& oppIndices = SIDE_INDICES[oppositeSide];
+            auto& prevIndices = SIDE_INDICES[(int)prev.Side];
 
-            seg.Indices[newVertIndices[0]] = vertIndex + 0;
-            seg.Indices[newVertIndices[1]] = vertIndex + 1;
-            seg.Indices[newVertIndices[2]] = vertIndex + 2;
-            seg.Indices[newVertIndices[3]] = vertIndex + 3;
+            for (int i = 0; i < 4; i++) {
+                // terrible hack to fix winding
+                auto offset = start.Point == 1 || start.Point == 3 ? 3 : 1;
+                auto v = (offset + i + start.Point) % 4;
+
+                newSeg.Indices[prevIndices[i]] = vertIndex + i;
+                newSeg.Indices[oppIndices[3 - i]] = srcIndices[i];
+                level.Vertices.push_back(path.Nodes[nNode].Vertices[v]);
+            }
+
             vertIndex += (uint16)startIndices.size();
 
             // copy textures
             for (int i = 0; i < 6; i++) {
-                auto& side = seg.Sides[i];
+                auto& side = newSeg.Sides[i];
                 side.TMap = lastSeg.Sides[i].TMap;
                 side.TMap2 = lastSeg.Sides[i].TMap2;
                 side.OverlayRotation = lastSeg.Sides[i].OverlayRotation;
@@ -529,10 +528,10 @@ namespace Inferno::Editor {
                     side.TMap2 = LevelTexID::Unset;
             }
 
-            seg.UpdateGeometricProps(level);
+            newSeg.UpdateGeometricProps(level);
 
-            level.Segments.push_back(seg);
-            last.Segment = id;
+            level.Segments.push_back(newSeg);
+            prev.Segment = id;
             ResetUVs(level, id);
             Marked.Segments.insert(id);
             lastId = id;
@@ -547,7 +546,7 @@ namespace Inferno::Editor {
         Events::LevelChanged();
     }
 
-    void CreateDebugPath(TunnelPath& path) {
+    void CreateDebugPath(const TunnelPath& path) {
         TunnelBuilderPath.clear();
 
         for (auto& node : path.Nodes) {
