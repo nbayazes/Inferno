@@ -78,15 +78,26 @@ namespace Inferno::Render {
         //    Debug::DrawLine(p0, p1, Colors::MarkedFace);
         //}
 
-        Seq::iteri(Editor::DebugTunnelPoints, [](auto i, auto p) {
-            static constexpr Color colors[4] = { Colors::DoorRed, Colors::Hostage, Colors::DoorBlue, Colors::DoorGold };
-            Debug::DrawPoint(p, colors[(i / 4) % 4]);
-        });
+        //Seq::iteri(Editor::DebugTunnelPoints, [](auto i, auto p) {
+        //    static constexpr Color colors[4] = { Colors::DoorRed, Colors::Hostage, Colors::DoorBlue, Colors::DoorGold };
+        //    Debug::DrawPoint(p, colors[(i / 4) % 4]);
+        //});
 
-        for (int i = 1; i < Editor::DebugTunnelLines.size(); i += 2) {
-            auto& p0 = Editor::DebugTunnelLines[i - 1];
-            auto& p1 = Editor::DebugTunnelLines[i];
-            Debug::DrawLine(p0, p1, Colors::Fuelcen);
+        //for (int i = 1; i < Editor::DebugTunnelLines.size(); i += 2) {
+        //    auto& p0 = Editor::DebugTunnelLines[i - 1];
+        //    auto& p1 = Editor::DebugTunnelLines[i];
+        //    Debug::DrawLine(p0, p1, Colors::Fuelcen);
+        //}
+
+        // Draw lattice
+        for (int n = 1; n < Editor::PreviewTunnel.Nodes.size(); n++) {
+            auto& n0 = Editor::PreviewTunnel.Nodes[n - 1];
+            auto& n1 = Editor::PreviewTunnel.Nodes[n];
+
+            for (int i = 0; i < 4; i++) {
+                Debug::DrawLine(n0.Vertices[i], n1.Vertices[i], Colors::Fuelcen);
+                Debug::DrawLine(n1.Vertices[i], n1.Vertices[(i + 1) % 4], Colors::Fuelcen);
+            }
         }
 
         //for (int i = 1; i < Editor::DebugTunnelPoints.size(); i += 2) {
@@ -106,23 +117,22 @@ namespace Inferno::Render {
         //    DrawTunnelPathNode(node);
         //}
 
-        auto drawStartFace = [&](PointTag tag) {
-            if (!tag || !level.SegmentExists(tag)) return;
-            auto face = Face::FromSide(level, tag);
+        auto drawStartFace = [&](const Editor::TunnelHandle& handle) {
+            if (!level.SegmentExists(handle.Tag)) return;
+            auto face = Face::FromSide(level, handle.Tag);
             for (int i = 0; i < 4; i++) {
-                auto color = tag.Point == i ? Colors::DoorGold : Colors::MarkedWall;
+                auto color = handle.Tag.Point == i ? Colors::DoorGold : Colors::MarkedWall;
                 Debug::DrawLine(face[i % 4], face[(i + 1) % 4], color);
             }
+
+            auto start = face.Center();
+            auto end = start - face.AverageNormal() * handle.Length;
+            Debug::DrawLine(start, end, Colors::Reactor);
+            Debug::DrawPoint(end, Colors::Reactor);
         };
 
-        drawStartFace(Editor::TunnelStart);
-        drawStartFace(Editor::TunnelEnd);
-
-        auto& handles = Editor::TunnelBuilderHandles.Points;
-        Debug::DrawLine(handles[0], handles[1], Colors::Reactor);
-        Debug::DrawLine(handles[2], handles[3], Colors::Reactor);
-        Debug::DrawPoint(handles[1], Colors::Reactor);
-        Debug::DrawPoint(handles[2], Colors::Reactor);
+        drawStartFace(Editor::PreviewTunnelStart);
+        drawStartFace(Editor::PreviewTunnelEnd);
     }
 
     void DrawSelection(const Editor::EditorSelection& selection, const Level& level) {
@@ -438,7 +448,8 @@ namespace Inferno::Render {
         //}
 
         //DrawFaceNormals(level);
-        DrawTunnelBuilder(level);
+        if (Settings::Editor.Windows.TunnelBuilder)
+            DrawTunnelBuilder(level);
     }
 
     void CreateEditorResources() {}

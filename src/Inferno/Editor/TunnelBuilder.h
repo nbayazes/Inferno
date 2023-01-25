@@ -1,11 +1,12 @@
 #pragma once
 #include "Level.h"
-#include "Editor.Selection.h"
 
 namespace Inferno::Editor {
 
-    struct BezierCurve2 {
+    struct BezierCurve {
         Array<Vector3, 4> Points{};
+
+        float EstimateLength(int steps) const;
     };
 
     struct PathNode {
@@ -27,36 +28,43 @@ namespace Inferno::Editor {
     struct TunnelPath {
         TunnelNode Start, End;
         List<PathNode> Nodes;
+        BezierCurve Curve; // For previews
     };
 
-    constexpr float MinTunnelLength = 10;
-    constexpr float MaxTunnelLength = 200;
+    // A begin or end selection of a tunnel
+    struct TunnelHandle {
+        PointTag Tag = { SegID::None };
+        float Length = MIN_LENGTH;
 
-    struct TunnelParams {
-        PointTag Start;
-        PointTag End;
-        int Steps = 5;
-        float StartLength = 40;
-        float EndLength = 40;
-        bool Twist = true;
+        static constexpr float MIN_LENGTH = 10, MAX_LENGTH = 400;
 
-        void ClampInputs() {
-            Steps = std::clamp(Steps, 1, 100);
-            StartLength = std::clamp(StartLength, MinTunnelLength, MaxTunnelLength);
-            EndLength = std::clamp(EndLength, MinTunnelLength, MaxTunnelLength);
+        void Clamp() {
+            Length = std::clamp(Length, MIN_LENGTH, MAX_LENGTH);
         }
     };
 
-    void CreateTunnel(Level& level, TunnelParams& params);
-    void ClearTunnel();
-    void CreateTunnelSegments(Level& level, const TunnelPath& path, const TunnelParams&);
+    struct TunnelArgs {
+        TunnelHandle Start, End;
+        int Steps = 5;
+        bool Twist = true;
 
-    inline List<Vector3> TunnelBuilderPath;
-    inline List<Vector3> TunnelBuilderPoints;
-    inline List<Vector3> DebugTunnelPoints;
+        static constexpr int MIN_STEPS = 2, MAX_STEPS = 100;
+
+        void ClampInputs() {
+            Steps = std::clamp(Steps, MIN_STEPS, MAX_STEPS);
+            Start.Clamp();
+            End.Clamp();
+        }
+
+        bool IsValid() const {
+            return Steps >= MIN_STEPS && Start.Tag && End.Tag && Start.Tag != End.Tag;
+        }
+    };
+
+    TunnelPath CreateTunnel(Level&, TunnelArgs&);
+    void CreateTunnelSegments(Level&, TunnelArgs&);
+
     inline List<Vector3> DebugTunnelLines;
-    inline TunnelPath DebugTunnel;
-
-    inline BezierCurve2 TunnelBuilderHandles; // For preview
-    inline PointTag TunnelStart, TunnelEnd;
+    inline TunnelPath PreviewTunnel;
+    inline TunnelHandle PreviewTunnelStart, PreviewTunnelEnd;
 }

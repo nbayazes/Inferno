@@ -1,5 +1,6 @@
 #pragma once
 #include "Command.h"
+#include "Gizmo.h"
 
 namespace Inferno::Editor {
     // Resets UVs of a face, aligning it to the specified edge. Angle applies an additional rotation.

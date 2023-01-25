@@ -5,63 +5,63 @@
 
 namespace Inferno::Editor {
     class TunnelBuilderWindow : public WindowBase {
-        TunnelParams _params;
+        TunnelArgs _args;
 
     public:
         TunnelBuilderWindow() : WindowBase("Tunnel Builder", &Settings::Editor.Windows.TunnelBuilder) {
             Events::LevelChanged += [this] { if (IsOpen()) RefreshTunnel(); };
 
-            _params.Start = { (SegID)6, (SideID)5, 1 };
-            _params.End = { (SegID)5, (SideID)0, 1 };
+            //_params.Start = { (SegID)6, (SideID)5, 1 };
+            //_params.End = { (SegID)5, (SideID)0, 1 };
         }
 
     protected:
         void OnUpdate() override {
             if (ImGui::Button("Pick Start", { 100, 0 })) {
-                _params.Start = Editor::Selection.PointTag();
+                _args.Start.Tag = Editor::Selection.PointTag();
                 UpdateInitialLengths();
                 RefreshTunnel();
             }
 
             ImGui::SameLine();
-            ImGui::Text("%i:%i:%i", _params.Start.Segment, _params.Start.Side, _params.Start.Point);
+            if (!_args.Start.Tag)
+                ImGui::Text("None");
+            else
+                ImGui::Text("%i:%i:%i", _args.Start.Tag.Segment, _args.Start.Tag.Side, _args.Start.Tag.Point);
 
-            if (ImGui::Button("Rotate##Start", { 100, 0 }) && _params.Start) {
-                _params.Start.Point = (_params.Start.Point + 1) % 4;
+            if (ImGui::Button("Rotate##Start", { 100, 0 }) && _args.Start.Tag) {
+                _args.Start.Tag.Point = (_args.Start.Tag.Point + 1) % 4;
                 RefreshTunnel();
             }
 
-            if (ImGui::DragFloat("Length##Start", &_params.StartLength, 0.1f, 10, 200, "%.1f")) {
-                _params.ClampInputs();
+            if (ImGui::DragFloat("Length##Start", &_args.Start.Length, 1.0f, TunnelHandle::MIN_LENGTH, TunnelHandle::MAX_LENGTH, "%.1f")) {
+                _args.ClampInputs();
                 RefreshTunnel();
             }
-
-            //if (ImGui::InputFloat("Length##Start", &_startLength, 1, 10, "%.0f")) {
-            //    ClampLengths();
-            //    RefreshTunnel();
-            //}
 
             ImGui::Dummy({ 0, 5 });
             ImGui::Separator();
             ImGui::Dummy({ 0, 5 });
 
             if (ImGui::Button("Pick End", { 100, 0 })) {
-                _params.End = Editor::Selection.PointTag();
+                _args.End.Tag = Editor::Selection.PointTag();
                 UpdateInitialLengths();
                 RefreshTunnel();
             }
 
             ImGui::SameLine();
-            ImGui::Text("%i:%i:%i", _params.End.Segment, _params.End.Side, _params.End.Point);
+            if (!_args.End.Tag)
+                ImGui::Text("None");
+            else
+                ImGui::Text("%i:%i:%i", _args.End.Tag.Segment, _args.End.Tag.Side, _args.End.Tag.Point);
 
-            if (ImGui::Button("Rotate##End", { 100, 0 }) && _params.End) {
-                _params.End.Point = (_params.End.Point + 1) % 4;
+            if (ImGui::Button("Rotate##End", { 100, 0 }) && _args.End.Tag) {
+                _args.End.Tag.Point = (_args.End.Tag.Point + 1) % 4;
                 RefreshTunnel();
             }
 
-            if (ImGui::DragFloat("Length##End", &_params.EndLength, 0.1f, 10, 200, "%.1f")) {
-                //if (ImGui::InputFloat("Length##End", &_endLength, 1, 10, "%.0f")) {
-                _params.ClampInputs();
+            if (ImGui::DragFloat("Length##End", &_args.End.Length, 1.0f, TunnelHandle::MIN_LENGTH, TunnelHandle::MAX_LENGTH, "%.1f")) {
+                _args.ClampInputs();
                 RefreshTunnel();
             }
 
@@ -69,41 +69,93 @@ namespace Inferno::Editor {
             ImGui::Separator();
             ImGui::Dummy({ 0, 5 });
 
-            if (ImGui::InputInt("Steps", &_params.Steps, 1, 10)) {
-                _params.ClampInputs();
+            if (ImGui::InputInt("Steps", &_args.Steps, TunnelArgs::MIN_STEPS, TunnelArgs::MAX_STEPS)) {
+                _args.ClampInputs();
                 RefreshTunnel();
             }
 
-            if (ImGui::Checkbox("Twist", &_params.Twist))
+            if (ImGui::Checkbox("Twist", &_args.Twist))
                 RefreshTunnel();
 
-            if (ImGui::Button("Generate", { 100, 0 })) {
-                GenerateTunnel();
+            if (ImGui::Button("Swap Ends", { 100, 0 })) {
+                std::swap(_args.Start, _args.End);
+                RefreshTunnel();
             }
-            ImGui::SameLine();
-            if (ImGui::Button("Clear", { 100, 0 })) {
-                ClearTunnel();
+            ImGui::HelpMarker("Sometimes the solver does not exactly match the tunnel end.\nSwapping ends might fix this.");
+
+            ImGui::Dummy({ 0, 20 });
+
+            if (ImGui::Button("Reset", { 100, 0 }))
+                Reset();
+            {
+                ImGui::SameLine(ImGui::GetWindowWidth() - 100 - 20);
+                DisableControls disable(!_args.IsValid());
+                if (ImGui::Button("Generate", { 100, 0 }))
+                    GenerateTunnel();
             }
+
         }
 
         void RefreshTunnel() {
-            CreateTunnel(Game::Level, _params);
+            PreviewTunnel = CreateTunnel(Game::Level, _args);
+            PreviewTunnelStart = _args.Start;
+            PreviewTunnelEnd = _args.End;
+
+            // Update previews
+            //PreviewTunnel.Nodes.clear();
+            //DebugTunnelLines.clear();
+
+            //for (int i = 1; i < PreviewTunnel.Nodes.size(); i++) {
+            //    auto& n0 = PreviewTunnel.Nodes[i - 1];
+            //    auto& n1 = PreviewTunnel.Nodes[i];
+
+            //    for (int j = 0; j < 4; j++) {
+            //        // Cross sections
+            //        DebugTunnelLines.push_back(n1.Vertices[j]);
+            //        DebugTunnelLines.push_back(n1.Vertices[(j + 1) % 4]);
+
+            //        // Outer lines
+            //        DebugTunnelLines.push_back(n0.Vertices[j]);
+            //        DebugTunnelLines.push_back(n1.Vertices[j]);
+            //    }
+            //}
+
+            //TunnelBuilderPath.clear();
+            //for (auto& node : DebugTunnel.Nodes)
+            //    TunnelBuilderPath.push_back(node.Position);
         }
 
         void GenerateTunnel() {
-            CreateTunnelSegments(Game::Level, DebugTunnel, _params);
+            CreateTunnelSegments(Game::Level, _args);
+            PreviewTunnel = {};
+            //_params.Start = {};
+            //_params.End = {};
         }
 
         void UpdateInitialLengths() {
-            if (!Game::Level.SegmentExists(_params.Start) || !Game::Level.SegmentExists(_params.End)) 
+            if (!Game::Level.SegmentExists(_args.Start.Tag) || !Game::Level.SegmentExists(_args.End.Tag))
                 return;
 
-            auto start = Face::FromSide(Game::Level, _params.Start);
-            auto end = Face::FromSide(Game::Level, _params.End);
+            auto start = Face::FromSide(Game::Level, _args.Start.Tag);
+            auto end = Face::FromSide(Game::Level, _args.End.Tag);
 
             // calculate the initial length of each end of the bezier curve
-            _params.StartLength = _params.EndLength = (end.Center() - start.Center()).Length() * 0.5f;
-            _params.ClampInputs();
+            _args.Start.Length = _args.End.Length = (end.Center() - start.Center()).Length() * 0.5f;
+
+            // Estimate the number of segments based on the length
+            BezierCurve curve;
+            curve.Points[0] = start.Center();
+            curve.Points[1] = start.Center() + start.AverageNormal() * _args.Start.Length;
+            curve.Points[2] = end.Center() - end.AverageNormal() * _args.End.Length;
+            curve.Points[3] = end.Center();
+            _args.Steps = int(curve.EstimateLength(20) / 20);
+
+            _args.ClampInputs();
+        }
+
+        void Reset() {
+            _args = {};
+            RefreshTunnel();
         }
     };
 }

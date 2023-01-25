@@ -40,7 +40,7 @@ namespace Inferno::Editor {
         inline Event SegmentsChanged; // Number of segments changed
         inline Event ObjectsChanged; // Number of objects changed
 
-        inline Event<DialogType> ShowDialog;
+        inline Event<DialogType> ShowDialog; // More of a command than an event
         inline Event SettingsChanged;
         inline Event SnapshotChanged; // Snapshot undo/redo
     }

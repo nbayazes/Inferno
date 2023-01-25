@@ -137,7 +137,7 @@ namespace Inferno::Editor {
         bool* _pIsOpen = nullptr;
     public:
         WindowBase(string name, bool* open = nullptr, ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse)
-            : _name(name), _flags(flags), _pIsOpen(open) {
+            : _name(std::move(name)), _flags(flags), _pIsOpen(open) {
             if (!open) _pIsOpen = &_isOpen;
         }
 
@@ -185,7 +185,7 @@ namespace Inferno::Editor {
         bool _isOpen = false;
     public:
         ModalWindowBase(string name, ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)
-            : _flags(flags), Name(name) {}
+            : _flags(flags), Name(std::move(name)) {}
         virtual ~ModalWindowBase() = default;
 
         bool EnableCloseHotkeys = true; // Enables enter and escape to close the window
