@@ -4,15 +4,12 @@
 #include "../TunnelBuilder.h"
 
 namespace Inferno::Editor {
-    class TunnelBuilderWindow : public WindowBase {
+    class TunnelBuilderWindow final : public WindowBase {
         TunnelArgs _args;
 
     public:
         TunnelBuilderWindow() : WindowBase("Tunnel Builder", &Settings::Editor.Windows.TunnelBuilder) {
             Events::LevelChanged += [this] { if (IsOpen()) RefreshTunnel(); };
-
-            //_params.Start = { (SegID)6, (SideID)5, 1 };
-            //_params.End = { (SegID)5, (SideID)0, 1 };
         }
 
     protected:
@@ -100,36 +97,11 @@ namespace Inferno::Editor {
             PreviewTunnel = CreateTunnel(Game::Level, _args);
             PreviewTunnelStart = _args.Start;
             PreviewTunnelEnd = _args.End;
-
-            // Update previews
-            //PreviewTunnel.Nodes.clear();
-            //DebugTunnelLines.clear();
-
-            //for (int i = 1; i < PreviewTunnel.Nodes.size(); i++) {
-            //    auto& n0 = PreviewTunnel.Nodes[i - 1];
-            //    auto& n1 = PreviewTunnel.Nodes[i];
-
-            //    for (int j = 0; j < 4; j++) {
-            //        // Cross sections
-            //        DebugTunnelLines.push_back(n1.Vertices[j]);
-            //        DebugTunnelLines.push_back(n1.Vertices[(j + 1) % 4]);
-
-            //        // Outer lines
-            //        DebugTunnelLines.push_back(n0.Vertices[j]);
-            //        DebugTunnelLines.push_back(n1.Vertices[j]);
-            //    }
-            //}
-
-            //TunnelBuilderPath.clear();
-            //for (auto& node : DebugTunnel.Nodes)
-            //    TunnelBuilderPath.push_back(node.Position);
         }
 
         void GenerateTunnel() {
             CreateTunnelSegments(Game::Level, _args);
             PreviewTunnel = {};
-            //_params.Start = {};
-            //_params.End = {};
         }
 
         void UpdateInitialLengths() {

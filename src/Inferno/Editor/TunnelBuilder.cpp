@@ -292,16 +292,13 @@ namespace Inferno::Editor {
         nodes.resize(steps + 1);
 
         for (int i = 0; i < nodes.size(); i++)
-            nodes[i].Position = bezierPoints[i] /*- start.Point*/;
+            nodes[i].Position = bezierPoints[i];
 
         nodes[0].Rotation = start.Rotation;
         nodes[0].Axis = start.Rotation.Right();
         nodes[0].Vertices = start.Vertices;
         nodes[steps].Rotation = end.Rotation;
-        //nodes[steps].Rotation.Forward(-end.Rotation.Forward());
-        //nodes[steps].Rotation.Up(-end.Rotation.Up());
 
-        auto totalTwist = TotalTwist(start, end);
         // change of basis
         auto startTransform = Matrix::CreateWorld(Vector3::Zero, start.Normal, start.Up);
         auto endTransform = Matrix::CreateWorld(Vector3::Zero, end.Normal, end.Up) /** Matrix::CreateFromAxisAngle(end.Normal, DirectX::XM_PI)*/;
@@ -309,6 +306,7 @@ namespace Inferno::Editor {
         Matrix transform = Matrix::CreateTranslation(-end.Point) * rotation * Matrix::CreateTranslation(start.Point);
 
         auto totalLength = PathLength(nodes, steps);
+        auto totalTwist = TotalTwist(start, end);
 
         std::array<Vector3, 4> deltaShift{}; // amount of vertex change between each frame
         std::array<Vector3, 4> baseFrame{}; // start frame shifted to origin
@@ -334,34 +332,19 @@ namespace Inferno::Editor {
         nodes[0].Vertices = startFrame;
         //nodes[steps].Vertices = endFrame;
 
-        // DEBUG
-        //for (int i = 1; i < nodes.size(); i++)
-        //    nodes[i].Position = curve2.Points[0] + start.Normal * (totalLength / steps) * i;
-
         for (int i = 1; i <= steps; i++) {
             auto& n0 = nodes[i - 1];
             auto& n1 = nodes[i];
 
-            //n1.Rotation = n0.Rotation;
-            //auto m = Matrix::CreateFromAxisAngle(start.Normal, angleStep);
-            //n1.Rotation *= Matrix::CreateFromAxisAngle(start.Normal, angleStep);
-            //n1.Rotation *= m;
-
             if (i < steps) {
-                //DebugTunnelLines.push_back(bezierPoints[i]);
-                //DebugTunnelLines.push_back(bezierPoints[i - 1]);
-
                 auto forward = nodes[i + 1].Position - nodes[i - 1].Position;
-                //auto forward = bezierPoints[i + 1] - bezierPoints[i];
-                //auto forward2 = bezierPoints[i] - bezierPoints[i - 1];
-                //forward += forward2;
-                //forward *= 0.5f;
                 forward.Normalize();
                 n1.Rotation.Forward(forward);
             }
 
             Bend(n0, n1);
-            //Twist(n0, n1, deltaAngle, PathLength(nodes, i) / totalLength);
+            if (args.Twist)
+                Twist(n0, n1, totalTwist / steps, PathLength(nodes, i) / totalLength);
             //auto twist = Matrix::CreateFromAxisAngle(start.Normal, -totalTwist * (float)i / (float)steps);
         }
 
@@ -393,28 +376,20 @@ namespace Inferno::Editor {
             }
         }
 
-
         for (int i = 1; i <= steps; i++) {
             auto& node = nodes[i];
 
             // Set verts from rotation and position
             for (int j = 0; j < 4; j++) {
-                // start with the base section shifted to origin
                 auto& vert = node.Vertices[j];
-                //v = Vector3::Transform(v, startNode.Rotation.Transpose());
 
                 // 1. Morph the section
                 vert = baseFrame[j] + deltaShift[j] * (float)i / (float)steps;
 
-                // 2. apply twist
-                //if (params.Twist)
-                //    vert = Vector3::Transform(vert, twist);
-
-                // 3. Rotate section to match node
+                // 2. Rotate section to match node
                 vert = Vector3::Transform(vert, start.Rotation.Invert() * node.Rotation);
 
-                // 4. Move section onto node
-                //vert += start.Point + start.Normal * totalLength * i / steps; // DEBUG forward positions
+                // 3. Move section onto node
                 vert += node.Position;
             }
         }
@@ -425,10 +400,8 @@ namespace Inferno::Editor {
     void CreateTunnelSegments(Level& level, TunnelArgs& args) {
         auto start = args.Start.Tag;
 
-        if (!level.SegmentExists(start)) return;
-
-        if (level.HasConnection(start))
-            return; // todo: show error that start already has a connection
+        if (!level.SegmentExists(args.Start.Tag) || !level.SegmentExists(args.End.Tag) || !args.IsValid())
+            return;
 
         auto path = CreateTunnel(level, args);
         auto prev = start;
@@ -504,17 +477,8 @@ namespace Inferno::Editor {
             return {};
 
         args.ClampInputs();
-
         auto startNode = CreateNode(level, args.Start.Tag, -1);
         auto endNode = CreateNode(level, args.End.Tag, 1);
-        auto path = CreatePath(startNode, endNode, args);
-       
-        //for (int nSegment = 0; nSegment <= params.Steps; nSegment++) {
-        //    for (int i = 0; i < 4; i++) {
-        //        TunnelBuilderPoints.push_back(path.Nodes[nSegment].Vertices[i]);
-        //    }
-        //}
-
-        return path;
+        return CreatePath(startNode, endNode, args);
     }
 }

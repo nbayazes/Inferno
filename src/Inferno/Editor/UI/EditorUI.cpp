@@ -329,10 +329,10 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Diagnostics", nullptr, &Settings::Editor.Windows.Diagnostics);
                 ImGui::MenuItem("Noise", nullptr, &Settings::Editor.Windows.Noise);
                 ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
+                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
                 
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
-                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
 #endif
 
                 ImGui::Separator();
