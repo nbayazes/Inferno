@@ -2,6 +2,7 @@
 #include "Level.h"
 #include "HogFile.h"
 #include "Mission.h"
+#include "Room.h"
 
 namespace Inferno::Game {
     // The loaded level. Only one level can be active at a time.
@@ -29,4 +30,6 @@ namespace Inferno::Game {
 
     // Game time elapsed in seconds
     inline double ElapsedTime = 0;
+
+    inline List<Room> Rooms;
 }

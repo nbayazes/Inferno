@@ -141,7 +141,7 @@ namespace Inferno::Editor {
     }
 
     // Gets the vertices of the selection
-    List<PointID> EditorSelection::GetVertexHandles(Level& level) {
+    List<PointID> EditorSelection::GetVertexHandles(Level& level) const {
         List<PointID> points;
         if (!Game::Level.SegmentExists(Segment)) return points;
         auto& segment = level.GetSegment(Segment);
@@ -149,7 +149,6 @@ namespace Inferno::Editor {
         switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
-                auto segVerts = segment.GetVertices(level);
                 auto front = segment.GetVertexIndices(SideID::Front);
                 auto back = segment.GetVertexIndices(SideID::Back);
                 for (auto& i : front) points.push_back(i);
@@ -215,7 +214,7 @@ namespace Inferno::Editor {
         return { points.begin(), points.end() };
     }
 
-    List<SegID> MultiSelection::GetSegments(Level& level) {
+    List<SegID> MultiSelection::GetSegments(const Level& level) const {
         Set<SegID> segs;
 
         switch (Settings::Editor.SelectionMode) {
@@ -234,10 +233,8 @@ namespace Inferno::Editor {
             case SelectionMode::Face:
             {
                 for (auto& tag : Faces) {
-                    if (const auto seg = level.TryGetSegment(tag.Segment)) {
-                        if (level.SegmentExists(tag.Segment))
-                            segs.insert(tag.Segment);
-                    }
+                    if (level.SegmentExists(tag.Segment))
+                        segs.insert(tag.Segment);
                 }
             }
             break;
@@ -399,6 +396,7 @@ namespace Inferno::Editor {
             }
         }
     }
+
     void EditorSelection::SelectByWall(WallID id) {
         if (auto wall = Game::Level.TryGetWall(id)) {
             Segment = wall->Tag.Segment;
@@ -584,7 +582,8 @@ namespace Inferno::Editor {
                         Seq::insert(Marked.Points, seg.Indices);
                     }
                 }
-                else { // Control
+                else {
+                    // Control
                     auto maxDist = FLT_MAX;
                     Option<PointID> point;
 
@@ -733,7 +732,7 @@ namespace Inferno::Editor {
                             (dest0 == src1 && dest1 == src0)) {
                             if (Settings::Editor.Selection.StopAtWalls &&
                                 (EdgeHasWall(level, destSeg, dest0, dest1) ||
-                                 EdgeHasWall(level, srcSeg, src0, src1)))
+                                    EdgeHasWall(level, srcSeg, src0, src1)))
                                 continue;
 
                             faces.insert({ segid, sid });
@@ -754,12 +753,10 @@ namespace Inferno::Editor {
 
         int16 destEdge = 0, srcEdge = 0;
         for (srcEdge = 0; srcEdge < 4; srcEdge++) {
-            auto srcIndices = srcSeg.GetVertexIndices(src.Side);
             auto src0 = srcSeg.GetVertexIndex(src.Side, srcEdge);
             auto src1 = srcSeg.GetVertexIndex(src.Side, srcEdge + 1);
 
             for (destEdge = 0; destEdge < 4; destEdge++) {
-                auto destIndices = destSeg.GetVertexIndices(dest.Side);
                 auto dest0 = destSeg.GetVertexIndex(dest.Side, destEdge);
                 auto dest1 = destSeg.GetVertexIndex(dest.Side, destEdge + 1);
 

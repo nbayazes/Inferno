@@ -18,6 +18,7 @@ namespace Inferno::Game {
                 Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 
+            Rooms.clear();
             IsLoading = true;
 
             Level = std::move(level); // Move to global so resource loading works properly
@@ -29,6 +30,8 @@ namespace Inferno::Game {
             Render::Materials->LoadLevelTextures(Level, forceReload);
             Render::LoadLevel(Level);
             IsLoading = false;
+
+            //Rooms = CreateRooms(Level);
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();

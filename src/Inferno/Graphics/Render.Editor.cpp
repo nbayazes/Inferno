@@ -303,6 +303,8 @@ namespace Inferno::Render {
     }
 
     void DrawWireframe(Level& level) {
+        bool hideMarks = Editor::Bindings::Active.IsBindingHeld(Editor::EditorAction::HideMarks);
+
         for (auto& seg : level.Segments) {
             auto vs = seg.GetVertices(level);
             Color color = Colors::Wireframe;
@@ -320,16 +322,18 @@ namespace Inferno::Render {
                 Debug::DrawLine(*v1, *v2, color);
             }
 
-            if (seg.Type != SegmentType::None) {
+            if (seg.Type != SegmentType::None && !hideMarks) {
                 for (auto& side : SideIDs)
                     Debug::DrawSide(Game::Level, seg, side, fill);
             }
         }
 
-        for (auto& wall : level.Walls) {
-            auto color = GetWallColor(wall);
-            color.A(0.12f);
-            Debug::DrawSide(Game::Level, wall.Tag, color);
+        if (!hideMarks) {
+            for (auto& wall : level.Walls) {
+                auto color = GetWallColor(wall);
+                color.A(0.12f);
+                Debug::DrawSide(Game::Level, wall.Tag, color);
+            }
         }
     }
 
@@ -399,6 +403,23 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawRooms(Level& level) {
+        std::array colors = { Color(1, 0.75, 0.5), Color(1, 0.5, 0.75), Color(0.75, 0.5, 1), Color(0.5, 0.75, 1), Color(0.5, 1, 0.75), Color(0.75, 1, 0.5) };
+        int colorIndex = 0;
+
+        for (auto& room : Game::Rooms) {
+            colorIndex = (colorIndex + 1) % 4;
+            for (auto& sid : room.Segments) {
+                if (auto seg = level.TryGetSegment(sid)) {
+                    for (auto& side : SideIDs) {
+                        if (seg->SideHasConnection(side)) continue;
+                        Debug::DrawSideOutline(level, *seg, side, colors[colorIndex]);
+                    }
+                }
+            }
+        }
+    }
+
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
         if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
@@ -450,6 +471,8 @@ namespace Inferno::Render {
         //DrawFaceNormals(level);
         if (Settings::Editor.Windows.TunnelBuilder)
             DrawTunnelBuilder(level);
+
+        DrawRooms(level);
     }
 
     void CreateEditorResources() {}
