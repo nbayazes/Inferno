@@ -330,6 +330,7 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Noise", nullptr, &Settings::Editor.Windows.Noise);
                 ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
                 ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
+                ImGui::MenuItem("Scale", nullptr, &Settings::Editor.Windows.Scale);
                 
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
@@ -344,10 +345,10 @@ namespace Inferno::Editor {
                 if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))
                     _bloomWindow.ToggleIsOpen();
 
+#ifdef _DEBUG
                 if (ImGui::MenuItem("Debug", nullptr, _debugWindow.IsOpen()))
                     _debugWindow.ToggleIsOpen();
 
-#ifdef _DEBUG
                 ImGui::Separator();
                 ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
@@ -895,6 +896,7 @@ namespace Inferno::Editor {
         _sounds.Update();
         _diagnosticWindow.Update();
         _briefingEditor.Update();
+        _scaleWindow.Update();
 
         if (Editor::Gizmo.State == GizmoState::Dragging) {
             DrawGizmoTooltip();

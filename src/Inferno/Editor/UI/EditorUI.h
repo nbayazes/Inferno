@@ -17,6 +17,7 @@
 #include "SoundBrowser.h"
 #include "DiagnosticWindow.h"
 #include "BriefingEditor.h"
+#include "ScaleWindow.h"
 #include "TextureEditor.h"
 
 namespace Inferno::Editor {
@@ -67,6 +68,7 @@ namespace Inferno::Editor {
         SoundBrowser _sounds;
         DiagnosticWindow _diagnosticWindow;
         BriefingEditor _briefingEditor;
+        ScaleWindow _scaleWindow;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;

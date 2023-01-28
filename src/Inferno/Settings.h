@@ -111,6 +111,7 @@ namespace Inferno {
             bool Diagnostics = false;
             bool BriefingEditor = false;
             bool TextureEditor = false;
+            bool Scale = false;
         } Windows;
 
         bool ShowWireframe = false;

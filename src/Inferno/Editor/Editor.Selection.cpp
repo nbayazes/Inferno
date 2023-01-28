@@ -183,6 +183,7 @@ namespace Inferno::Editor {
         }
     }
 
+    // Gets the vertices of marked geometry
     List<PointID> MultiSelection::GetVertexHandles(Level& level) {
         Set<PointID> points;
 
