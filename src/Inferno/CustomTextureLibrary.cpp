@@ -65,7 +65,7 @@ namespace Inferno {
         writer.Write<uint32>(entry.DataOffset);
     }
 
-    void CustomTextureLibrary::ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1) {
+    void CustomTextureLibrary::ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1, bool whiteAsTransparent) {
         StreamReader stream(path);
         BITMAPFILEHEADER bmfh{};
         BITMAPINFOHEADER bmih{};
@@ -82,10 +82,14 @@ namespace Inferno {
             topDown = true;
         }
 
+        auto paletteSize = (int)bmih.biClrUsed;
+        if (paletteSize == 0)
+            paletteSize = 1 << bmih.biBitCount;
+
         if (bmfh.bfType != 'MB')
             throw Exception("Not a bitmap file");
 
-        if (bmih.biBitCount != 8 && bmih.biBitCount != 4)
+        if ((bmih.biBitCount != 8 && bmih.biBitCount != 4) || paletteSize != 256)
             throw Exception("Only 256 indexed color bitmap files are supported");
 
         if (bmih.biCompression != BI_RGB)
@@ -106,12 +110,13 @@ namespace Inferno {
         }
 
         // read palette
-        auto paletteSize = (int)bmih.biClrUsed;
-        if (paletteSize == 0)
-            paletteSize = 1 << bmih.biBitCount;
-
-        List<RGBQUAD> palette(paletteSize);
-        stream.ReadBytes(palette.data(), palette.size() * sizeof(RGBQUAD));
+        Palette bmpPalette;
+        for (auto& color : bmpPalette.Data) {
+            color.b = stream.ReadByte(); // RGBQUAD ordering
+            color.g = stream.ReadByte();
+            color.r = stream.ReadByte();
+            stream.ReadByte(); // reserved;
+        }
 
         PigBitmap bmp(entry);
         bmp.Info.Width = (uint16)bmih.biWidth;
@@ -121,6 +126,10 @@ namespace Inferno {
 
         auto& gamePalette = Resources::GetPalette();
         PaletteLookup lookup(gamePalette);
+
+        // Index closest to white when using the "white as transparent" option
+        PaletteLookup bmpLookup(bmpPalette);
+        auto whiteIndex = bmpLookup.GetClosestIndex({ 255, 255, 255 }, true);
 
         // read data into bitmap
         int width = ((int)(bmih.biWidth * bmih.biBitCount + 31) >> 3) & ~3;
@@ -144,8 +153,8 @@ namespace Inferno {
                     palIndex = stream.ReadByte();
                 }
 
-                auto& c = palette[palIndex];
-                bmp.Indexed[z] = lookup.GetClosestIndex({ c.rgbRed, c.rgbGreen, c.rgbBlue }, transparent);
+                auto& c = bmpPalette.Data[palIndex];
+                bmp.Indexed[z] = lookup.GetClosestIndex(c, transparent);
                 bmp.Data[z] = gamePalette.Data[bmp.Indexed[z]];
 
                 if (transparent) {
@@ -156,6 +165,13 @@ namespace Inferno {
 
                     if (palIndex == Palette::ST_INDEX)
                         bmp.Info.SuperTransparent = true;
+                }
+
+                if (whiteAsTransparent && palIndex == whiteIndex) {
+                    bmp.Indexed[z] = Palette::T_INDEX;
+                    bmp.Data[z] = gamePalette.Data[bmp.Indexed[z]];
+                    bmp.Data[z].a = 0;
+                    bmp.Info.Transparent = true;
                 }
             }
         }

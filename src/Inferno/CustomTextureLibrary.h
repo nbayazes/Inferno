@@ -28,7 +28,7 @@ namespace Inferno {
 
         bool Any() const { return !_textures.empty(); }
         void Clear() { _textures.clear(); }
-        void ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1);
+        void ImportBmp(const filesystem::path& path, bool transparent, PigEntry entry, bool descent1, bool whiteAsTransparent);
         size_t WritePog(StreamWriter&, const Palette&);
         size_t WriteDtx(StreamWriter&, const Palette&);
 

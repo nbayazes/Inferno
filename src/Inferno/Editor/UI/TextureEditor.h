@@ -28,6 +28,7 @@ namespace Inferno::Editor {
         bool _showInUse = true;
         TexID _selection = TexID{ 1 };
         bool _useTransparency = false;
+        bool _whiteAsTransparent = false;
         Set<TexID> _levelTextures;
         List<TexID> _visibleTextures;
         bool _initialized = false;
@@ -165,9 +166,16 @@ namespace Inferno::Editor {
                         }
 
                         ImGui::Dummy({ 5 * Shell::DpiScale, 0 });
+
                         ImGui::Dummy({ 0, 5 * Shell::DpiScale });
                         ImGui::SameLine();
-                        ImGui::Checkbox("Use transparency", &_useTransparency);
+                        ImGui::Checkbox("Transparent palette", &_useTransparency);
+                        ImGui::HelpMarker("Loads palette index 254 as super transparent and\nindex 255 as transparent");
+
+                        ImGui::Dummy({ 0, 5 * Shell::DpiScale });
+                        ImGui::SameLine();
+                        ImGui::Checkbox("Transparent white", &_whiteAsTransparent);
+                        ImGui::HelpMarker("Loads the color nearest to white as transparent");
 
                         ImGui::Dummy({ 0, 10 * Shell::DpiScale });
                         if (ImGui::Button("Export", { 100 * Shell::DpiScale, 0 })) {
@@ -230,10 +238,11 @@ namespace Inferno::Editor {
             try {
                 static constexpr COMDLG_FILTERSPEC filter[] = { { L"256 Color Bitmap", L"*.BMP" }, };
                 if (auto file = OpenFileDialog(filter, L"Import custom texture")) {
-                    Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1());
+                    Resources::CustomTextures.ImportBmp(*file, _useTransparency, entry, Game::Level.IsDescent1(), _whiteAsTransparent);
                     std::array ids{ _selection };
                     Render::Materials->LoadMaterialsAsync(ids, true);
                     UpdateTextureList();
+                    Editor::History.SnapshotLevel("Import Texture"); // doesn't actually snapshot anything, but marks level as dirty
                 }
             }
             catch (const std::exception& e) {
