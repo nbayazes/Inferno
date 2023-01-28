@@ -22,6 +22,18 @@ namespace Inferno {
     //    return cc;
     //}
 
+    constexpr float SmoothStep(float a, float b, float x) {
+        x = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
+        return x * x * (3.0f - 2.0f * x);
+    }
+
+    // Polynomial smooth min between two values.
+    // https://iquilezles.org/articles/smin/
+    constexpr float SmoothMin(float a, float b, float k) {
+        float h = std::clamp(0.5f + 0.5f * (a - b) / k, 0.0f, 1.0f);
+        return SmoothStep(a, b, h) - k * h * (1.0f - h);
+    }
+
     constexpr bool IsPowerOfTwo(int v) {
         return v != 0 && (v & (v - 1)) == 0;
     }
