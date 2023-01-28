@@ -53,7 +53,8 @@ namespace Inferno::Editor {
             auto transform = gizmo.Invert() * scale * gizmo;
 
             // transform the vertices
-            auto vertices = Editor::Marked.GetVertexHandles(Game::Level);
+            auto vertices = Editor::GetSelectedVertices();
+
             for (auto& tag : vertices) {
                 auto& v = Game::Level.Vertices[tag];
                 v = Vector3::Transform(v, transform);

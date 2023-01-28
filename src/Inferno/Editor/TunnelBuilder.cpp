@@ -371,7 +371,7 @@ namespace Inferno::Editor {
             }
 
             if (maxIter-- <= 0) {
-                SPDLOG_WARN("Reached max iterations in CreatePath()");
+                //SPDLOG_WARN("Reached max iterations in CreatePath()");
                 break;
             }
         }
