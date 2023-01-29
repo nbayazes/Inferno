@@ -246,14 +246,12 @@ namespace Inferno::Editor {
             JoinTouchingSegments(level, newIds[0], newIds, 0.01f); // try joining the segment we pasted onto
     }
 
-    void MirrorSelection(Level& level, SegmentClipboardData& copy) {
-        auto tag = Editor::Selection.Tag();
-        if (copy.Segments.empty()) return;
-        if (!level.SegmentExists(tag)) return;
+    using DirectX::SimpleMath::Plane;
 
-        auto& reflectionSide = level.GetSide(tag);
-        auto reflectionPlane = DirectX::SimpleMath::Plane(reflectionSide.Center, reflectionSide.AverageNormal);
-        auto reflection = Matrix::CreateReflection(reflectionPlane);
+    void MirrorSelection(SegmentClipboardData& copy, const Plane& plane) {
+        if (copy.Segments.empty()) return;
+
+        auto reflection = Matrix::CreateReflection(plane);
 
         for (auto& v : copy.Vertices)
             v = Vector3::Transform(v, reflection);
@@ -400,17 +398,27 @@ namespace Inferno::Editor {
     }
 
     string OnMirrorSegments() {
+        auto side = Game::Level.TryGetSide(Editor::Selection.Tag());
+        if (!side) return {};
+
         auto segs = GetSelectedSegments();
         auto copy = CopySegments(Game::Level, segs);
-        MirrorSelection(Game::Level, copy);
+        auto plane = Plane(side->Center, side->AverageNormal);
+        MirrorSelection(copy, plane);
         InsertCopiedSegments(Game::Level, copy);
         return "Mirror Segments";
     }
 
     string OnPasteMirrored() {
+        if (!Game::Level.SegmentExists(Editor::Selection.Tag())) return {};
+
+        auto face = Face::FromSide(Game::Level, Editor::Selection.Tag());
+        auto normal = face.VectorForEdge(Editor::Selection.Point);
+
         SegmentClipboardData copy = SegmentClipboard;
-        TransformSegmentsToSelection(Game::Level, copy, Editor::Selection.Tag(), false);
-        MirrorSelection(Game::Level, copy);
+        TransformSegmentsToSelection(Game::Level, copy, Editor::Selection.Tag(), true);
+        auto plane = Plane(face.Center(), normal);
+        MirrorSelection(copy, plane);
         InsertCopiedSegments(Game::Level, copy);
         Editor::Selection.Forward();
         return "Paste Mirrored Segments";
