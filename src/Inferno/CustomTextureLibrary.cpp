@@ -169,8 +169,7 @@ namespace Inferno {
 
                 if (whiteAsTransparent && palIndex == whiteIndex) {
                     bmp.Indexed[z] = Palette::T_INDEX;
-                    bmp.Data[z] = gamePalette.Data[bmp.Indexed[z]];
-                    bmp.Data[z].a = 0;
+                    bmp.Data[z] = { 0, 0, 0, 0 };
                     bmp.Info.Transparent = true;
                 }
             }
