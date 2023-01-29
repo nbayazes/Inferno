@@ -36,7 +36,7 @@ namespace Inferno::Editor {
         PointTag Tag = { SegID::None };
         float Length = MIN_LENGTH;
 
-        static constexpr float MIN_LENGTH = 10, MAX_LENGTH = 400;
+        static constexpr float MIN_LENGTH = 5, MAX_LENGTH = 400;
 
         void Clamp() {
             Length = std::clamp(Length, MIN_LENGTH, MAX_LENGTH);

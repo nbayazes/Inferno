@@ -66,7 +66,7 @@ namespace Inferno::Editor {
             ImGui::Separator();
             ImGui::Dummy({ 0, 5 });
 
-            if (ImGui::InputInt("Steps", &_args.Steps, TunnelArgs::MIN_STEPS, TunnelArgs::MAX_STEPS)) {
+            if (ImGui::InputInt("Steps", &_args.Steps, 1, 5)) {
                 _args.ClampInputs();
                 RefreshTunnel();
             }
