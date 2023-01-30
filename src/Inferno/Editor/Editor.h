@@ -85,7 +85,7 @@ namespace Inferno::Editor {
 
     void UpdateWindowTitle();
 
-    void OnLevelLoad(bool resetCamera);
+    void OnLevelLoad(bool reload);
 
     void LoadFile(filesystem::path path);
 

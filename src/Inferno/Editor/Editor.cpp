@@ -470,6 +470,21 @@ namespace Inferno::Editor {
         }
     }
 
+    void CheckTriggers(Level& level) {
+        for (int tid = 0; tid < level.Triggers.size(); tid++) {
+            auto& trigger = level.Triggers[tid];
+
+            // In reverse to preserve order while removing
+            for (int i = trigger.Targets.Count() - 1; i >= 0; i--) {
+                auto& target = trigger.Targets[i];
+                if (target.Side > SideID::Front || target.Side <= SideID::None) {
+                    SPDLOG_WARN("Removing invalid trigger target {}:{} from trigger {}", target.Segment, target.Side, tid);
+                    trigger.Targets.Remove(i);
+                }
+            }
+        }
+    }
+
     void OnLevelLoad(bool reload) {
         if (!reload)
             Commands::ZoomExtents();
@@ -487,6 +502,7 @@ namespace Inferno::Editor {
         for (auto& obj : Game::Level.Objects)
             obj.Radius = GetObjectRadius(obj);
 
+        CheckTriggers(Game::Level);
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
         ResetAutosaveTimer();

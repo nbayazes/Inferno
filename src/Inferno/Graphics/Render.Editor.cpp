@@ -232,6 +232,9 @@ namespace Inferno::Render {
                 color = Colors::Trigger;
 
                 for (auto& target : trigger->Targets) {
+                    if (!level.SegmentExists(target) || target.Side == SideID::None) 
+                        continue;
+
                     auto& targetSeg = level.GetSegment(target.Segment);
                     Vector3 targetCenter;
                     Color arrowColor;
