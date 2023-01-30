@@ -491,14 +491,22 @@ namespace Inferno::Editor {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Dynamic multiplier", &hasOverride)) {
-                    side.DynamicMultiplierOverride = hasOverride ? Option<float>(mult) : std::nullopt;
+                    side.DynamicMultiplierOverride = hasOverride ? Option(mult) : std::nullopt;
                     overrideChanged = true;
+                }
+
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                    ImGui::TextUnformatted("Adjusts the light subtracted by breakable or flickering lights.\nA value of 0.5 would halve the subtracted light.\n\nIntended to make flickering lights less intense.");
+                    ImGui::PopTextWrapPos();
+                    ImGui::EndTooltip();
                 }
 
                 ImGui::TableNextColumn();
                 DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##dynmult", &mult, 0, 1)) {
+                if (ImGui::SliderFloat("##dynmult", &mult, 0, 1, "%.2f")) {
                     side.DynamicMultiplierOverride = mult;
                     overrideChanged = true;
                 }
