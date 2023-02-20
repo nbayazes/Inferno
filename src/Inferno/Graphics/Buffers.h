@@ -64,7 +64,7 @@ namespace Inferno {
             return (offset + stride - 1) / stride * stride;
         }
 
-        template<class TVertex>
+        template <class TVertex>
         D3D12_VERTEX_BUFFER_VIEW PackVertices(List<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
             auto size = uint(data.size() * stride);
@@ -81,7 +81,7 @@ namespace Inferno {
             return vbv;
         }
 
-        template<class TIndex = uint16>
+        template <class TIndex = uint16>
         D3D12_INDEX_BUFFER_VIEW PackIndices(List<TIndex> data) {
             constexpr auto stride = sizeof(TIndex);
             static_assert(stride == 2 || stride == 4);
@@ -160,11 +160,12 @@ namespace Inferno {
     class DynamicConstantBuffer {
         ComPtr<ID3D12Resource> _buffer;
         void* m_pMappedConstantBuffer;
-        uint  m_alignedPerDrawConstantBufferSize;
-        uint  m_perFrameConstantBufferSize;
+        uint m_alignedPerDrawConstantBufferSize;
+        uint m_perFrameConstantBufferSize;
 
         uint m_frameCount;
         uint m_maxDrawsPerFrame;
+
     public:
         DynamicConstantBuffer(uint constantSize, uint maxDrawsPerFrame, uint frameCount) :
             m_alignedPerDrawConstantBufferSize(Align(constantSize)), // Constant buffers must be aligned for hardware requirements.
@@ -203,7 +204,7 @@ namespace Inferno {
     };
 
     // Fixed size upload heap buffer
-    template<class T>
+    template <class T>
     struct Buffer {
         ComPtr<ID3D12Resource> Resource;
         uint Size;
@@ -232,14 +233,14 @@ namespace Inferno {
 
     public:
         PackedUploadBuffer(uint size = 1024 * 1024 * 10)
-            : _size(size), _resource(size) {
+            : _size(size) {
             _resource.CreateOnUploadHeap(L"Upload buffer");
             ThrowIfFailed(_resource->Map(0, &CPU_READ_NONE, (void**)&_mappedData));
         }
 
         void Reset() { _offset = 0; }
 
-        template<class TVertex>
+        template <class TVertex>
         D3D12_VERTEX_BUFFER_VIEW PackVertices(List<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
             auto size = uint(data.size() * stride);
@@ -255,7 +256,7 @@ namespace Inferno {
             return vbv;
         }
 
-        template<class TIndex = uint16>
+        template <class TIndex = uint16>
         D3D12_INDEX_BUFFER_VIEW PackIndices(List<TIndex> data) {
             constexpr auto stride = sizeof(TIndex);
             static_assert(stride == 2 || stride == 4);
@@ -276,39 +277,76 @@ namespace Inferno {
 
     // Resizable buffer that uses the upload heap every frame.
     // intended for use with small dynamic buffers
-    template<class T>
+    template <class T>
     class UploadBuffer {
         ComPtr<ID3D12Resource> _resource;
         bool _inUpdate = false;
         T* _mappedData = nullptr;
         size_t _gpuCapacity = 0, _requestedCapacity, _gpuElements = 0;
         List<T> _buffer;
+        DescriptorHandle _srv, _uav;
+
     public:
         UploadBuffer(size_t capacity) : _requestedCapacity(capacity) {
             _buffer.reserve(capacity);
+            _gpuCapacity = _requestedCapacity;
         }
 
         const uint Stride = sizeof(T);
-        auto GetGPUVirtualAddress() { return _resource->GetGPUVirtualAddress(); }
-        uint GetSizeInBytes() { return (uint)(sizeof(T) * _gpuCapacity); }
-        uint GetElementCount() { return (uint)_gpuElements; }
+        D3D12_GPU_VIRTUAL_ADDRESS GetGPUVirtualAddress() const { return _resource->GetGPUVirtualAddress(); }
+        uint GetSizeInBytes() const { return (uint)(sizeof(T) * _gpuCapacity); }
+        uint GetElementCount() const { return (uint)_gpuElements; }
+
+        const auto GetSRV() const { return _srv.GetGpuHandle(); }
+        const auto GetUAV() const { return _uav.GetGpuHandle(); }
+
+        ID3D12Resource* Get() const { return _resource.Get(); }
+
+        //// note that these views become invalid if the buffer resizes
+        //void CreateShaderResourceView() {
+        //    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        //    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        //    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+        //    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        //    srvDesc.Buffer.NumElements = _buffer.size();
+        //    srvDesc.Buffer.StructureByteStride = Stride;
+        //    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+        //    if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+        //    Render::Device->CreateShaderResourceView(_resource.Get(), &srvDesc, _srv.GetCpuHandle());
+        //}
+
+        //void CreateUnorderedAccessView() {
+        //    D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};
+        //    desc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        //    desc.Format = DXGI_FORMAT_UNKNOWN;
+        //    desc.Buffer.CounterOffsetInBytes = 0;
+        //    desc.Buffer.NumElements = _buffer.size();
+        //    desc.Buffer.StructureByteStride = Stride;
+        //    desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+        //    if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
+        //    Render::Device->CreateUnorderedAccessView(_resource.Get(), nullptr, &desc, _uav.GetCpuHandle());
+        //}
 
         void Begin() {
             if (_inUpdate) throw Exception("Already called Begin");
             _inUpdate = true;
 
-            if (!_resource || _requestedCapacity > _gpuCapacity) {
-                _gpuCapacity = size_t(_requestedCapacity * 1.5);
+            bool shouldGrow = _requestedCapacity > _gpuCapacity;
+            if (!_resource || shouldGrow) {
+                if (shouldGrow)
+                    _gpuCapacity = size_t(_requestedCapacity * 1.5);
                 CreateUploadHeap(_resource, _gpuCapacity * sizeof(T));
 
                 //if (_mapped) _resource->Unmap(0, &CPU_READ_NONE);
+                // leave the buffer mapped
                 ThrowIfFailed(_resource->Map(0, &CPU_READ_NONE, (void**)&_mappedData));
             }
 
             _buffer.clear();
         }
 
-        // returns false if too much data is in the buffer to copy
         bool End() {
             if (!_inUpdate) throw Exception("Must call Begin before End");
             _inUpdate = false;
@@ -327,6 +365,17 @@ namespace Inferno {
             }
 
             _buffer.insert(_buffer.end(), src.begin(), src.end());
+        }
+
+        void Copy(T& src) {
+            if (!_inUpdate) throw Exception("Must call Begin before Copy");
+            if (_buffer.size() + 1 > _gpuCapacity) {
+                _requestedCapacity = _buffer.size() + 1;
+                return;
+            }
+
+            //_buffer.insert(_buffer.end(), src.begin(), src.end());
+            _buffer.insert(_buffer.end(), src);
         }
     };
 }

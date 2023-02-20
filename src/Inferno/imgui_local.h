@@ -378,7 +378,7 @@ namespace Inferno {
             io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
             auto batch = Render::BeginTextureUpload();
-            Render::StaticTextures->ImguiFont.Load(batch, (void*)pixels, width, height, L"ImGui Font");
+            Render::StaticTextures->ImguiFont.Load(batch, pixels, width, height, L"ImGui Font");
             Render::StaticTextures->ImguiFont.AddShaderResourceView();
             Render::EndTextureUpload(batch);
 

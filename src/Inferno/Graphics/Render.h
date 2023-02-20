@@ -11,6 +11,7 @@
 #include "Mesh.h"
 #include "Render.Canvas.h"
 #include "Graphics/CommandContext.h"
+#include "Lighting.h"
 
 class CommandListManager;
 class ContextManager;
@@ -26,6 +27,7 @@ namespace Inferno::Render {
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
     inline Ptr<Canvas2D<UIShader>> Canvas, BriefingCanvas;
     inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
+    inline Ptr<Graphics::FillLightGridCS> LightGrid;
 
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;

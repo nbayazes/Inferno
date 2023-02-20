@@ -105,6 +105,8 @@ namespace Inferno::Render {
         HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
+        LightGrid = MakePtr<FillLightGridCS>();
+        //LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
         NewTextureCache = MakePtr<TextureCache>();
 
         Debug::Initialize();
@@ -132,6 +134,7 @@ namespace Inferno::Render {
 
     void CreateWindowSizeDependentResources(int width, int height) {
         Bloom->Create(width, height);
+        LightGrid->CreateBuffers(width, height);
     }
 
     void Initialize(HWND hwnd, int width, int height) {
@@ -182,6 +185,7 @@ namespace Inferno::Render {
 
         Adapter.reset();
         Bloom.reset();
+        LightGrid.reset();
         _postBatch.reset();
         Debug::Shutdown();
         Device = nullptr;

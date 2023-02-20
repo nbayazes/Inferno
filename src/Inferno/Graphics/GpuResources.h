@@ -13,6 +13,12 @@ namespace Inferno {
         D3D12_RESOURCE_DESC _desc = {};
         D3D12_HEAP_TYPE _heapType = {};
         wstring _name;
+
+        DescriptorHandle _srv, _rtv, _uav;
+        D3D12_RENDER_TARGET_VIEW_DESC _rtvDesc = {};
+        D3D12_SHADER_RESOURCE_VIEW_DESC _srvDesc = {};
+        D3D12_UNORDERED_ACCESS_VIEW_DESC _uavDesc = {};
+
     public:
         GpuResource() = default;
 
@@ -29,8 +35,13 @@ namespace Inferno {
         void Release() { _resource.Reset(); }
         D3D12_RESOURCE_DESC& Description() { return _desc; }
 
-        void Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
-            if (_state == state) return;
+        const auto GetSRV() const { return _srv.GetGpuHandle(); }
+        const auto GetUAV() const { return _uav.GetGpuHandle(); }
+        const auto GetRTV() const { return _rtv.GetCpuHandle(); }
+
+        // Returns the original state
+        D3D12_RESOURCE_STATES Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
+            if (_state == state) return _state;
             DirectX::TransitionResource(cmdList, _resource.Get(), _state, state);
 
             if (state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
@@ -40,7 +51,9 @@ namespace Inferno {
                 barrier.UAV.pResource = _resource.Get();
                 cmdList->ResourceBarrier(1, &barrier);
             }
+            auto originalState = _state;
             _state = state;
+            return originalState;
         }
 
         void CreateOnUploadHeap(wstring name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
@@ -73,9 +86,28 @@ namespace Inferno {
             Render::Device->CreateShaderResourceView(Get(), desc, dest);
         }
 
-        // If desc is null then default initialization is used. Not supported for all resources.
-        void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) const {
-            Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
+        //// If desc is null then default initialization is used. Not supported for all resources.
+        //void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) const {
+        //    Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
+        //}
+
+        void AddShaderResourceView() {
+            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
+        }
+
+        void AddUnorderedAccessView(bool useDefaultDesc = true) {
+            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
+            if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
+            auto desc = useDefaultDesc ? nullptr : &_uavDesc;
+            Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, _uav.GetCpuHandle());
+        }
+
+        void AddRenderTargetView() {
+            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
+            if (!_rtv) _rtv = Render::Heaps->RenderTargets.Allocate();
+            Render::Device->CreateRenderTargetView(Get(), &_rtvDesc, _rtv.GetCpuHandle());
         }
 
     private:
@@ -97,12 +129,7 @@ namespace Inferno {
 
     // General purpose buffer
     class GpuBuffer : public GpuResource {
-        DescriptorHandle _srv;
-        D3D12_SHADER_RESOURCE_VIEW_DESC _srvDesc{};
     public:
-        GpuBuffer(uint64 size) {
-            _desc = CD3DX12_RESOURCE_DESC::Buffer(size);
-        }
 
         void CreateGenericBuffer(wstring_view name, uint32 elementSize, uint32 elementCount) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount);
@@ -130,42 +157,123 @@ namespace Inferno {
         }
     };
 
+    class ByteAddressBuffer final : public GpuBuffer {
+    public:
+        void Create(wstring_view name, uint32 elementSize, uint32 elementCount) {
+            _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            _srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Buffer.NumElements = elementCount / 4;
+            _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+
+            //m_SRV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+            ThrowIfFailed(Render::Device->CreateCommittedResource(
+                &heapProps,
+                D3D12_HEAP_FLAG_NONE,
+                &_desc,
+                _state,
+                nullptr,
+                IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
+            ));
+
+            //if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+
+            _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+            _uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+            _uavDesc.Buffer.NumElements = elementCount / 4;
+            _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+
+            //if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
+            _resource->SetName(name.data());
+
+            //m_ElementCount = NumElements;
+            //m_ElementSize = ElementSize;
+            //m_BufferSize = NumElements * ElementSize;
+
+            //D3D12_RESOURCE_DESC ResourceDesc = DescribeBuffer();
+
+            //m_UsageState = D3D12_RESOURCE_STATE_COMMON;
+
+            //D3D12_HEAP_PROPERTIES HeapProps;
+            //HeapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+            //HeapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+            //HeapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+            //HeapProps.CreationNodeMask = 1;
+            //HeapProps.VisibleNodeMask = 1;
+
+            //ASSERT_SUCCEEDED(g_Device->CreateCommittedResource(&HeapProps, D3D12_HEAP_FLAG_NONE,
+            //                                                   &ResourceDesc, m_UsageState, nullptr, MY_IID_PPV_ARGS(&m_pResource)));
+
+            //m_GpuVirtualAddress = m_pResource->GetGPUVirtualAddress();
+
+            //if (initialData)
+            //    CommandContext::InitializeBuffer(*this, initialData, m_BufferSize);
+
+            //if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+            //m_UAV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+            //Render::Device->CreateUnorderedAccessView(Get(), nullptr, &uavDesc, _uav.GetCpuHandle());
+            //_resource->SetName(name.data());
+            //g_Device->CreateUnorderedAccessView(m_pResource.Get(), nullptr, &UAVDesc, m_UAV);
+        }
+    };
+
+    class StructuredBuffer final : public GpuBuffer {
+        ByteAddressBuffer _counterBuffer;
+
+    public:
+        void Create(wstring_view name, uint32 elementSize, uint32 elementCount) {
+            _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            _srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Buffer.NumElements = elementCount;
+            _srvDesc.Buffer.StructureByteStride = elementSize;
+            _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+            //if (m_SRV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+            //m_SRV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            //g_Device->CreateShaderResourceView(m_pResource.Get(), &SRVDesc, m_SRV);
+
+            _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+            _uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+            _uavDesc.Buffer.CounterOffsetInBytes = 0;
+            _uavDesc.Buffer.NumElements = elementCount;
+            _uavDesc.Buffer.StructureByteStride = elementSize;
+            _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+            CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+            ThrowIfFailed(Render::Device->CreateCommittedResource(
+                &heapProps,
+                D3D12_HEAP_FLAG_NONE,
+                &_desc,
+                _state,
+                nullptr,
+                IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
+            ));
+
+            _resource->SetName(name.data());
+
+            //_counterBuffer.Create(L"StructuredBuffer::Counter", 1, 4);
+
+            //if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
+            //m_UAV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        }
+    };
 
     class PixelBuffer : public GpuResource {
-    protected:
-        DescriptorHandle _srv, _rtv, _uav;
-        D3D12_RENDER_TARGET_VIEW_DESC _rtvDesc = {};
-        D3D12_SHADER_RESOURCE_VIEW_DESC _srvDesc = {};
-        D3D12_UNORDERED_ACCESS_VIEW_DESC _uavDesc = {};
-
     public:
         uint64 GetWidth() const { return _desc.Width; }
         uint64 GetHeight() const { return _desc.Height; }
         uint64 GetPitch() const { return _desc.Width * sizeof(uint32); }
         DXGI_FORMAT GetFormat() const { return _desc.Format; }
-
-        const auto GetSRV() const { return _srv.GetGpuHandle(); }
-        const auto GetUAV() const { return _uav.GetGpuHandle(); }
-        const auto GetRTV() const { return _rtv.GetCpuHandle(); }
-
-        void AddShaderResourceView() {
-            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
-            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
-        }
-
-        void AddUnorderedAccessView() {
-            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
-            auto desc = _uavDesc.Format == DXGI_FORMAT_UNKNOWN ? nullptr : &_uavDesc;
-            Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, _uav.GetCpuHandle());
-        }
-
-        void AddRenderTargetView() {
-            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            if (!_rtv) _rtv = Render::Heaps->RenderTargets.Allocate();
-            Render::Device->CreateRenderTargetView(Get(), &_rtvDesc, _rtv.GetCpuHandle());
-        }
 
         bool IsMultisampled() const { return _desc.SampleDesc.Count > 1; }
 
@@ -181,7 +289,7 @@ namespace Inferno {
     };
 
     // GPU 2D Texture resource
-    class Texture2D : public PixelBuffer {
+    class Texture2D final : public PixelBuffer {
     public:
         Texture2D() = default;
         Texture2D(ComPtr<ID3D12Resource> resource) {
@@ -220,16 +328,8 @@ namespace Inferno {
             //batch.GenerateMips(resource);
         }
 
-        void Create(int width, int height,
-                    wstring name,
-                    DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
-            _srvDesc.Format = _desc.Format;
-            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Texture2D.MostDetailedMip = 0;
-            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
-
+        void Create(int width, int height, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+            CreateNoHeap(width, height, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
@@ -298,7 +398,6 @@ namespace Inferno {
             _rtvDesc.Format = format;
             _rtvDesc.ViewDimension = samples == 1 ? D3D12_RTV_DIMENSION_TEXTURE2D : D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-            //D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
             _srvDesc.ViewDimension = samples == 1 ? D3D12_SRV_DIMENSION_TEXTURE2D : D3D12_SRV_DIMENSION_TEXTURE2DMS;
             _srvDesc.Texture2D.MipLevels = 1;
             _srvDesc.Texture2D.MostDetailedMip = 0;
@@ -306,27 +405,7 @@ namespace Inferno {
             //AddShaderResourceView(&srvDesc);
         }
 
-        // Creates a buffer for use with unordered access
-        //void CreateUnorderedAccess(wstring name, uint size,
-        //                           DXGI_FORMAT format = DXGI_FORMAT_R32_TYPELESS,
-        //                           D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE,
-        //                           UINT64 alignment = 0) {
-        //    _desc = CD3DX12_RESOURCE_DESC::Buffer(size, flags, alignment);
-        //    _state = D3D12_RESOURCE_STATE_GENERIC_READ;
-
-        //    _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-        //    _srvDesc.Format = format;
-        //    _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        //    _srvDesc.Buffer.NumElements = size / 4;
-        //    _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
-
-        //    _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-        //    _uavDesc.Format = format;
-        //    _uavDesc.Buffer.NumElements = size / 4;
-        //    _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
-        //}
-
-        void Clear(ID3D12GraphicsCommandList* cmdList) {
+        void Clear(ID3D12GraphicsCommandList* cmdList) const {
             DirectX::TransitionResource(cmdList, Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
             cmdList->ClearRenderTargetView(_rtv.GetCpuHandle(), ClearColor, 0, nullptr);
         }
@@ -468,10 +547,7 @@ namespace Inferno {
             _srvDesc.Texture2D.MipLevels = 1;
             _srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
-            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
-            //AddShaderResourceView();
+            AddShaderResourceView();
         }
 
         //void SetAsRenderTarget(ID3D12GraphicsCommandList* commandList, Inferno::DepthBuffer* depthBuffer = nullptr) {

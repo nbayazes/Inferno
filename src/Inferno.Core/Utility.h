@@ -602,7 +602,7 @@ namespace Inferno {
         }
 
         // Specialization to filter a collection of strings by a value. Causes heap allocation.
-        [[nodiscard]] inline List<string> filter(const auto& xs, string value, bool invariant) {
+        [[nodiscard]] List<string> filter(const auto& xs, string value, bool invariant) {
             if (invariant) {
                 value = String::ToLower(value);
                 return filter(xs, [&](const string& e) {

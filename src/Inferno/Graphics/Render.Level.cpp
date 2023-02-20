@@ -205,6 +205,13 @@ namespace Inferno::Render {
         constants.Distort = ti.Slide != Vector2::Zero;
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
+        Shaders->Level.SetLights(cmdList, Render::LightGrid->GetSRVTable());
+        Shaders->Level.SetLights2(cmdList, Render::LightGrid->GetLightGrid().GetSRV());
+        cmdList->SetGraphicsRootDescriptorTable(6, Render::LightGrid->GetSRVTable());
+
+        Shaders->Level.SetLights3(cmdList, Render::LightGrid->GetBitMask().GetSRV());
+        //ctx.SetConstantBuffer(6 + 3, Render::LightGrid->GetConstants());
+        cmdList->SetGraphicsRootConstantBufferView(6+3, Render::LightGrid->GetConstants());
         mesh.Draw(cmdList);
         Stats::DrawCalls++;
     }
@@ -226,7 +233,6 @@ namespace Inferno::Render {
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-
                     cmd.Data.LevelMesh->Draw(ctx.CommandList());
                     Stats::DrawCalls++;
                 }
@@ -245,7 +251,9 @@ namespace Inferno::Render {
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
-                    Shaders->Level.SetSampler(ctx.CommandList(), GetTextureSampler());
+                    auto cmdList = ctx.CommandList();
+                    Shaders->Level.SetSampler(cmdList, GetTextureSampler());
+
                     DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
                 }
 
@@ -294,6 +302,10 @@ namespace Inferno::Render {
 
         DepthPrepass(ctx);
 
+        /* if lights changed */
+        LightGrid->SetLights(ctx.CommandList());
+        LightGrid->Dispatch(ctx.CommandList(), Adapter->LinearizedDepthBuffer);
+
         {
             ctx.BeginEvent(L"Level");
             auto& target = Adapter->GetHdrRenderTarget();
@@ -302,6 +314,7 @@ namespace Inferno::Render {
             ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
+            LightGrid->SetLightConstants((UINT)target.GetWidth(), (UINT)target.GetHeight());
 
             ctx.BeginEvent(L"Opaque queue");
             for (auto& cmd : _renderQueue.Opaque())

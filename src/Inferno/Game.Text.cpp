@@ -49,7 +49,7 @@ namespace Inferno {
         };
 
         List<Palette::Color> buffer(Atlas.Width() * Atlas.Height());
-        std::fill(buffer.begin(), buffer.end(), Palette::Color{ 0, 0, 0, 0 });
+        ranges::fill(buffer, Palette::Color{ 0, 0, 0, 0 });
 
         for (auto& [f, size] : fonts) {
             if (!hog.Exists(f)) continue;

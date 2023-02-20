@@ -15,12 +15,12 @@ namespace Inferno {
 
         bool IsShaderVisible() const { return _gpuHandle.ptr; }
         operator bool() const { return _cpuHandle.ptr; }
-        const CD3DX12_CPU_DESCRIPTOR_HANDLE* operator&() const { return &_cpuHandle; }
+        //const CD3DX12_CPU_DESCRIPTOR_HANDLE* operator&() const { return &_cpuHandle; }
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }
         D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle() const { return _gpuHandle; }
 
-        DescriptorHandle Offset(int index, uint descriptorSize) {
+        DescriptorHandle Offset(int index, uint descriptorSize) const {
             auto copy = *this;
             if (copy._cpuHandle.ptr) copy._cpuHandle.Offset(index, descriptorSize);
             if (copy._gpuHandle.ptr) copy._gpuHandle.Offset(index, descriptorSize);
@@ -62,27 +62,27 @@ namespace Inferno {
         }
 
         auto Size() const { return _desc.NumDescriptors; }
-        auto Heap() { return _heap.Get(); }
+        auto Heap() const { return _heap.Get(); }
         auto DescriptorSize() const { return _descriptorSize; }
 
         // Gets a specific handle by index.
-        DescriptorHandle GetHandle(int index) {
+        DescriptorHandle GetHandle(int index) const {
             if (index >= (int)Size() || index < 0)
                 throw Exception("Out of space in descriptor range");
 
             return _start.Offset(index, _descriptorSize);
         }
 
-        DescriptorHandle operator[](int index) { return GetHandle(index); }
+        DescriptorHandle operator[](int index) const { return GetHandle(index); }
 
-        void SetName(const wstring& name) { _heap->SetName(name.c_str()); };
+        void SetName(const wstring& name) const { _heap->SetName(name.c_str()); };
 
         // Returns an unused handle. This ignores any direct index usage.
         DescriptorHandle Allocate(uint count = 1) {
             std::scoped_lock lock(_indexLock);
             auto index = _index;
             _index += count;
-            return GetHandle(index);
+            return GetHandle((int)index);
         }
     private:
         void Create() {
@@ -196,7 +196,7 @@ namespace Inferno {
     class DescriptorHeaps {
         UserDescriptorHeap _shader;
     public:
-        DescriptorHeaps(uint capacity, uint reserved, uint renderTargets = 10)
+        DescriptorHeaps(uint capacity, uint reserved, uint renderTargets)
             : _shader(capacity, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
             States(Render::Device),
             Reserved(_shader, reserved),

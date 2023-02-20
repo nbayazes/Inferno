@@ -508,6 +508,12 @@
     <ClInclude Include="GameTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Lighting.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\ComputeShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">
@@ -592,5 +598,10 @@
     <CopyFileToFolders Include="shaders\HUD.hlsl">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\FillLightGridCS.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\LightGrid.hlsli" />
+    <CopyFileToFolders Include="shaders\Lighting.hlsli" />
   </ItemGroup>
 </Project>

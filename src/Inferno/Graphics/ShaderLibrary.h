@@ -224,7 +224,7 @@ namespace Inferno {
             Material2,
             Depth,
             Sampler,
-            RootParameterCount
+            LightData, // SRV 9, 10, 11
         };
     public:
         struct InstanceConstants {
@@ -257,6 +257,23 @@ namespace Inferno {
         static void SetInstanceConstants(ID3D12GraphicsCommandList* commandList, const InstanceConstants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
+
+        // SRV must be the light data, grid, and bitmask as contiguous handles
+        static void SetLights(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE lightHandle) {
+            commandList->SetGraphicsRootDescriptorTable(LightData, lightHandle);
+        }
+
+        static void SetLights2(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE lightHandle) {
+            commandList->SetGraphicsRootDescriptorTable(LightData + 1, lightHandle);
+        }
+
+        static void SetLights3(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE lightHandle) {
+            commandList->SetGraphicsRootDescriptorTable(LightData + 2, lightHandle);
+        }
+
+        //static void SetLightConstants(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+        //    commandList->SetGraphicsRootDescriptorTable(LightData + 3, handle);
+        //}
     };
 
     class SpriteShader : public IShader {

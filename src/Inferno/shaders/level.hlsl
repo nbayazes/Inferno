@@ -1,3 +1,6 @@
+#include "FrameConstants.hlsli"
+#include "Lighting.hlsli"
+
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 9), "\
@@ -5,6 +8,10 @@
     "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t8, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t9, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "CBV(b2),"\
     "StaticSampler(s1," \
         "addressU = TEXTURE_ADDRESS_WRAP," \
         "addressV = TEXTURE_ADDRESS_WRAP," \
@@ -22,15 +29,19 @@ Texture2D StMask : register(t5);
 Texture2D Emissive2 : register(t6);
 Texture2D Specular2 : register(t7);
 Texture2D Depth : register(t8);
+//StructuredBuffer<LightData> LightBuffer : register(t9);
+//ByteAddressBuffer LightGrid : register(t10);
+//ByteAddressBuffer LightGridBitMask : register(t11);
 
 SamplerState Sampler : register(s0);
 SamplerState LinearSampler : register(s1);
 
+
+//Texture2DArray<float> lightShadowArrayTex : register(t10);
+
 static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
-            
-#include "FrameConstants.hlsli"
 
 cbuffer InstanceConstants : register(b1) {
     float2 Scroll, Scroll2;
@@ -151,6 +162,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
     //return float4((input.normal + 1) / 2, 1);
 
+
     float4 base = Sample2DAA(Diffuse, input.uv);
     float4 emissive = Sample2DAA(Emissive, input.uv) * base;
     emissive.a = 0;
@@ -205,6 +217,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
         
         //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     }
+
+    uint2 pixelPos = uint2(input.pos.xy);
+    float3 colorSum = float3(0, 0, 0);
+    //ShadeLights(colorSum, pixelPos, diffuse.rgb, float3(0, 0, 0), 0, 0, input.normal, viewDir, input.world);
+    ShadeLights(colorSum, pixelPos, diffuse.rgb, float3(0, 0, 0), 0, 0, input.normal, viewDir, input.world);
+    lighting.rgb += colorSum;
 
     return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
 }

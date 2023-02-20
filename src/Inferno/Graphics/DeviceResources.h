@@ -135,10 +135,10 @@ namespace Inferno {
             //return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
         }
 
-        uint64_t PrintMemoryUsage();
+        void PrintMemoryUsage() const;
 
         // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better
-        bool CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat);
+        bool CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat) const;
 
     private:
         void MoveToNextFrame();
