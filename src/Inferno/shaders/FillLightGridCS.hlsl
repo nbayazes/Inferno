@@ -23,7 +23,7 @@
 
 cbuffer CSConstants : register(b0) {
 uint ViewportWidth, ViewportHeight;
-float InvTileDim;
+float InvTileDim; // 1 / LIGHT_GRID_DIM = 1 / 16
 float RcpZMagic;
 uint TileCountX;
 float4x4 ViewProjMatrix;
@@ -88,8 +88,18 @@ void main(uint2 group : SV_GroupID,
     }
 
     GroupMemoryBarrierWithGroupSync();
-    float tileMinDepth = (rcp(asfloat(maxDepthUInt)) - 1.0) * RcpZMagic;
-    float tileMaxDepth = (rcp(asfloat(minDepthUInt)) - 1.0) * RcpZMagic;
+    // this assumes inverted depth buffer
+    //float tileMinDepth = (rcp(asfloat(maxDepthUInt)) - 1.0) * RcpZMagic;
+    //float tileMaxDepth = (rcp(asfloat(minDepthUInt)) - 1.0) * RcpZMagic;
+    float tileMinDepth = asfloat(maxDepthUInt);
+    float tileMaxDepth = asfloat(minDepthUInt);
+    //tileMinDepth = 0.001;
+    //tileMaxDepth = 0.999;
+    //float near = 1;
+    //float far = 3000;
+    //float tileMinDepth = near / (far + asfloat(minDepthUInt) * (near - far));
+    //float tileMaxDepth = near / (far + asfloat(maxDepthUInt) * (near - far));
+    //near / (far + Depth[DTid.xy] * (near - far));
     float tileDepthRange = tileMaxDepth - tileMinDepth;
     tileDepthRange = max(tileDepthRange, FLT_MIN); // don't allow a depth range of 0
     float invTileDepthRange = rcp(tileDepthRange);
@@ -102,7 +112,8 @@ void main(uint2 group : SV_GroupID,
     float3 tileBias = float3(-2.0 * float(group.x) + invTileSize2X.x - 1.0,
                              -2.0 * float(group.y) + invTileSize2X.y - 1.0,
                              -tileMinDepth * invTileDepthRange);
-
+    // tile bias is scale?
+    // ortho projection matrix for a section of the screen?
     float4x4 projToTile = float4x4(invTileSize2X.x, 0, 0, tileBias.x,
                                    0, -invTileSize2X.y, 0, tileBias.y,
                                    0, 0, invTileDepthRange, tileBias.z,
@@ -111,15 +122,18 @@ void main(uint2 group : SV_GroupID,
     float4x4 tileMVP = mul(projToTile, ViewProjMatrix);
 
     // extract frustum planes (these will be in world space)
-    // BUG: planes are not in the correct space relative to pos
+    // create normals for each plane
     float4 frustumPlanes[6];
-    frustumPlanes[0] = tileMVP[3] + tileMVP[0];
-    frustumPlanes[1] = tileMVP[3] - tileMVP[0];
-    frustumPlanes[2] = tileMVP[3] + tileMVP[1];
-    frustumPlanes[3] = tileMVP[3] - tileMVP[1];
-    frustumPlanes[4] = tileMVP[3] + tileMVP[2];
-    frustumPlanes[5] = tileMVP[3] - tileMVP[2];
+    float4 tilePos = tileMVP[3];
+    frustumPlanes[0] = tilePos + tileMVP[0];
+    frustumPlanes[1] = tilePos - tileMVP[0];
+    frustumPlanes[2] = tilePos + tileMVP[1];
+    frustumPlanes[3] = tilePos - tileMVP[1];
+    frustumPlanes[4] = tilePos + tileMVP[2];
+    frustumPlanes[5] = tilePos - tileMVP[2];
     for (int n = 0; n < 6; n++) {
+        // 1 / sqrt(n * n) -> 1 / (sqrt(length^2)) -> 1 / len
+        // normalize
         frustumPlanes[n] *= rsqrt(dot(frustumPlanes[n].xyz, frustumPlanes[n].xyz));
     }
 
@@ -132,17 +146,16 @@ void main(uint2 group : SV_GroupID,
         float3 lightWorldPos = lightData.pos;
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
         float lightCullRadius = sqrt(lightData.radiusSq);
-
         bool overlapping = true;
         for (int p = 0; p < 6; p++) {
-            float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
+            float3 planeNormal = frustumPlanes[p].xyz;
+            float planeDist = frustumPlanes[p].w;
+            float d = dot(lightWorldPos, planeNormal) + planeDist;
+            //float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
             if (d < -lightCullRadius) {
                 overlapping = false;
             }
         }
-
-        //if (groupIndex == 2)
-        //    continue;
 
         if (!overlapping)
             continue;
@@ -196,6 +209,6 @@ void main(uint2 group : SV_GroupID,
         //    storeOffset += 4;
         //}
 
-        lightGridBitMask.Store4(tileIndex * 16, tileLightBitMask);
+        //lightGridBitMask.Store4(tileIndex * 16, tileLightBitMask);
     }
 }

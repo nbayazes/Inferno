@@ -134,21 +134,22 @@ namespace Inferno::Graphics {
             //List<LightData> lights;
             //LightData light{};
 
-            lights[0].pos = { 0, 0, 10 };
+            constexpr float radiusSq = 30 * 30;
+            lights[0].pos = { 0, 0, 40 };
             lights[0].color = { 1, 0, 0 };
-            lights[0].radiusSq = 400;
+            lights[0].radiusSq = radiusSq;
             //lights.push_back(light);
 
             //light.pos = Vector3(0, 0, -20);
+            lights[1].pos = { 20, 0, 45 };
             lights[1].color = { 0, 1, 0 };
-            lights[1].radiusSq = 400;
-            lights[1].pos = { 0, 0, 30 };
+            lights[1].radiusSq = radiusSq;
             //lights.push_back(light);
 
             //light.pos = Vector3(0, 0, -60);
+            lights[2].pos = { -20, 0, 45 };
             lights[2].color = { 0, 0, 1 };
-            lights[2].radiusSq = 400;
-            lights[2].pos = { 0, 0, 60 };
+            lights[2].radiusSq = radiusSq;
             //lights.push_back(light);
 
             //light.pos = Vector3{-661.167603, 1413.05164, -584.823120};
@@ -181,6 +182,58 @@ namespace Inferno::Graphics {
 
         }
 
+        Matrix GetProjMatrixTest(float yFov, float aspect, float nearClip, float farClip) {
+            //float    SinFov;
+            //float    CosFov;
+            //DirectX::XMScalarSinCos(&SinFov, &CosFov, 0.5f * yFov);
+
+            //float Height = CosFov / SinFov;
+            //float Width = Height / aspect;
+            //float fRange = farClip / (farClip - nearClip);
+
+            //=====
+            float Y = 1.0f / std::tanf(yFov * 0.5f);
+            float X = Y * aspect;
+            float Q1 = farClip / (nearClip - farClip);
+            float Q2 = Q1 * nearClip;
+
+            return Matrix{
+                Vector4(X, 0.0f, 0.0f, 0.0f),
+                Vector4(0.0f, Y, 0.0f, 0.0f),
+                Vector4(0.0f, 0.0f, Q1, -1.0f),
+                Vector4(0.0f, 0.0f, Q2, 0.0f)
+            };
+        }
+
+        Matrix SetLookDirection(Vector3 forward, Vector3 up) {
+            //auto invSqrt = [](auto x) { return 1 / std::sqrt(x); };
+
+            forward.Normalize();
+
+            // Given, but ensure normalization
+            /*auto forwardLenSq = forward.LengthSquared();
+            InvSqrt();
+            forward = Select(forward * invSqrt(forwardLenSq), -Vector3(kZUnitVector), forwardLenSq < 0.000001f);*/
+
+            // Deduce a valid, orthogonal right vector
+            Vector3 right = forward.Cross(up);
+            right.Normalize();
+
+            //auto rightLenSq = right.LengthSquared();
+            //right = Select(right * invSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * forward, rightLenSq < Scalar(0.000001f));
+
+            // Compute actual up vector
+            up = right.Cross(forward);
+
+            // Finish constructing basis
+            Matrix basis(right, up, -forward);
+            auto q = Quaternion::CreateFromRotationMatrix(basis);
+            Quaternion q2;
+            q.Conjugate(q2);
+            return Matrix::CreateFromQuaternion(q2);
+            //m_CameraToWorld.SetRotation(Quaternion(m_Basis));
+        }
+
         void Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth) {
             //ScopedTimer _prof(L"FillLightGrid", gfxContext);
             PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Fill Light Grid");
@@ -209,13 +262,35 @@ namespace Inferno::Graphics {
             constants.InvTileDim = 1.0f / LIGHT_GRID;
             constants.RcpZMagic = rcpZMagic;
             constants.TileCount = tileCountX;
-            constants.ViewProjMatrix = Inferno::Render::Camera.ViewProj();
-            constants.ViewProjMatrix = Inferno::Render::Camera.Projection * Inferno::Render::Camera.View;
+
+            auto& camera = Inferno::Render::Camera;
+            constants.ViewProjMatrix = camera.ViewProj();
+            constants.ViewProjMatrix = camera.Projection * camera.View;
+            auto proj = camera.Projection;
+            auto view = camera.View;
+            auto projView = camera.Projection * camera.View;
+            auto viewProj = camera.ViewProj();
+
+            //Matrix lhView = DirectX::XMMatrixPerspectiveFovLH(0.785398185, 1.35799503, 1, 1000);
+            Matrix proj2 = GetProjMatrixTest(0.785398185, 1.35799503, 1, 1000);
+            //Matrix rhView = DirectX::XMMatrixPerspectiveFovRH(0.785398185, 1.35799503, 1, 1000);
+            // lhview2 aspect width is 3.278 instead of 1.7777
+
+            //Matrix view2 = DirectX::XMMatrixLookAtLH(camera.Position, camera.Target, camera.Up);
+            Matrix view2 = SetLookDirection(camera.Target - camera.Position, camera.Up);
+
+            auto viewProj2 = proj2 * view2;
+
+            // for look at
+            // this matches
+            /*Vector3 testForward(-0.859759986, -0.509800017, 0.0302756485);
+            Vector3 testUp(-0.509484231, 0.860292912, 0.0179410148);
+            Matrix testLookAt = SetLookDirection(testForward, testUp);*/
 
             // hard code
             //constants.ViewportWidth = 1920;
             //constants.ViewportHeight = 1080;
-            //constants.InvTileDim = 0.0625000000;
+            //constants.InvTileDim = 0.0625000000; // 1 / 16
             //constants.RcpZMagic = 0.000100010002;
             //constants.TileCount = 120;
 
@@ -238,6 +313,8 @@ namespace Inferno::Graphics {
             //constants.ViewProjMatrix.m[3][1] = -144.797104;
             //constants.ViewProjMatrix.m[3][2] = 0.872433782;
             //constants.ViewProjMatrix.m[3][3] = 1276.53467;
+
+            constants.ViewProjMatrix = viewProj2;
 
             _csConstants.Begin();
             _csConstants.Copy({ &constants, 1 });
