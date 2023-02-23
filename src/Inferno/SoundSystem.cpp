@@ -42,6 +42,11 @@ namespace Inferno::Sound {
         bool IsAlive() const { return Alive; }
 
         void UpdateEmitter(const Vector3& listener, float dt) {
+            if (!Alive) {
+                Instance->Stop();
+                return;
+            }
+
             auto obj = Game::Level.TryGetObject(Source);
             if (obj && obj->IsAlive() && AttachToSource) {
                 // Move the emitter to the object location if attached
