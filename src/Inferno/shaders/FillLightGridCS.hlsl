@@ -26,7 +26,8 @@ uint ViewportWidth, ViewportHeight;
 float InvTileDim; // 1 / LIGHT_GRID_DIM = 1 / 16
 float RcpZMagic;
 uint TileCountX;
-float4x4 ViewProjMatrix;
+float4x4 ViewMatrix;
+    float4x4 InverseProjection;
 };
 
 StructuredBuffer<LightData> Lights : register(t0);
@@ -34,6 +35,7 @@ Texture2D<float> depthTex : register(t1);
 RWByteAddressBuffer lightGrid : register(u0);
 RWByteAddressBuffer lightGridBitMask : register(u1);
 
+#define BLOCK_SIZE 8
 #define WORK_GROUP_SIZE_X 16
 #define WORK_GROUP_SIZE_Y 16
 #define WORK_GROUP_SIZE_Z 1
@@ -56,11 +58,63 @@ groupshared uint tileLightIndicesConeShadowed[MAX_LIGHTS];
 
 groupshared uint4 tileLightBitMask;
 
+struct Plane {
+    float3 N; // Plane normal.
+    float d; // Distance to origin.
+};
+
+struct Frustum {
+    Plane planes[4]; // left, right, top, bottom frustum planes.
+};
+
+// Convert clip space coordinates to view space
+float4 ClipToView(float4 clip) {
+    // View space position.
+    float4 view = mul(InverseProjection, clip);
+    // Perspective projection (undivide)
+    return view / view.w;
+}
+
+// Convert screen space coordinates to view space.
+float4 ScreenToView(float4 screen) {
+    // Convert to normalized texture coordinates
+    float2 texCoord = screen.xy / float2(ViewportWidth, ViewportHeight);
+    texCoord.y = 1 - texCoord.y;
+    // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
+    float4 clip = float4(float2(texCoord.x, texCoord.y) * 2.0f - 1.0f, screen.z, screen.w);
+    return ClipToView(clip);
+}
+
+// Compute a plane from 3 noncollinear points that form a triangle.
+// This equation assumes a right-handed (counter-clockwise winding order) 
+// coordinate system to determine the direction of the plane normal.
+Plane ComputePlane(float3 p0, float3 p1, float3 p2) {
+    Plane plane;
+    float3 v0 = p1 - p0;
+    float3 v2 = p2 - p0;
+    plane.N = normalize(cross(v0, v2));
+ 
+    // Compute the distance to the origin using p0.
+    //plane.d = dot(plane.N, p0);
+    plane.d = 0;
+    return plane;
+}
+
+float PlaneDist(Plane plane, float3 pos) {
+    float dist = dot(plane.N, pos) - plane.d;
+    return dist;
+}
+
+bool SphereBehindPlane(float3 pos, float radius, Plane plane) {
+    return dot(plane.N, pos) - plane.d < -radius;
+}
+
 [RootSignature(RS)]
-[numthreads(8, 8, 1)]
+[numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
 void main(uint2 group : SV_GroupID,
           uint2 groupThread : SV_GroupThreadID,
-          uint groupIndex : SV_GroupIndex) {
+          uint groupIndex : SV_GroupIndex,
+          uint3 dispatchThreadID : SV_DispatchThreadID) {
     // initialize shared data
     if (groupIndex == 0) {
         tileLightCountSphere = 0;
@@ -73,8 +127,8 @@ void main(uint2 group : SV_GroupID,
     GroupMemoryBarrierWithGroupSync();
 
     // Read all depth values for this tile and compute the tile min and max values
-    for (uint dx = groupThread.x; dx < WORK_GROUP_SIZE_X; dx += 8) {
-        for (uint dy = groupThread.y; dy < WORK_GROUP_SIZE_Y; dy += 8) {
+    for (uint dx = groupThread.x; dx < WORK_GROUP_SIZE_X; dx += BLOCK_SIZE) {
+        for (uint dy = groupThread.y; dy < WORK_GROUP_SIZE_Y; dy += BLOCK_SIZE) {
             uint2 DTid = group * uint2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y) + uint2(dx, dy);
 
             // If pixel coordinates are in bounds...
@@ -88,76 +142,121 @@ void main(uint2 group : SV_GroupID,
     }
 
     GroupMemoryBarrierWithGroupSync();
+
+    // Compute the 4 corner points on the far clipping plane to use as the 
+    // frustum vertices.
+    const float z = -1.0f;
+    const float w = 1.0f;
+    float4 screenSpace[4];
+    // Top left point
+    screenSpace[0] = float4(float2(dispatchThreadID.x, dispatchThreadID.y) * BLOCK_SIZE, z, w);
+    // Top right point
+    screenSpace[1] = float4(float2(dispatchThreadID.x + 1, dispatchThreadID.y) * BLOCK_SIZE, z, w);
+    // Bottom left point
+    screenSpace[2] = float4(float2(dispatchThreadID.x, dispatchThreadID.y + 1) * BLOCK_SIZE, z, w);
+    // Bottom right point
+    screenSpace[3] = float4(float2(dispatchThreadID.x + 1, dispatchThreadID.y + 1) * BLOCK_SIZE, z, w);
+
+    float3 viewSpace[4];
+    // Now convert the screen space points to view space
+    for (int i = 0; i < 4; i++) {
+        viewSpace[i] = ScreenToView(screenSpace[i]).xyz;
+    }
+
+    // View space eye position is always at the origin.
+    const float3 eyePos = float3(0, 0, 0);
+
+    Plane planes[4]; // planes are in view space
+    planes[0] = ComputePlane(eyePos, viewSpace[2], viewSpace[0]); // Left plane
+    planes[1] = ComputePlane(eyePos, viewSpace[3], viewSpace[1]); // Right plane
+    planes[2] = ComputePlane(eyePos, viewSpace[0], viewSpace[1]); // Top plane
+    planes[3] = ComputePlane(eyePos, viewSpace[2], viewSpace[3]); // Bottom plane
+
     // this assumes inverted depth buffer
     //float tileMinDepth = (rcp(asfloat(maxDepthUInt)) - 1.0) * RcpZMagic;
     //float tileMaxDepth = (rcp(asfloat(minDepthUInt)) - 1.0) * RcpZMagic;
     float tileMinDepth = asfloat(maxDepthUInt);
     float tileMaxDepth = asfloat(minDepthUInt);
-    //tileMinDepth = 0.001;
-    //tileMaxDepth = 0.999;
     //float near = 1;
     //float far = 3000;
     //float tileMinDepth = near / (far + asfloat(minDepthUInt) * (near - far));
     //float tileMaxDepth = near / (far + asfloat(maxDepthUInt) * (near - far));
     //near / (far + Depth[DTid.xy] * (near - far));
-    float tileDepthRange = tileMaxDepth - tileMinDepth;
-    tileDepthRange = max(tileDepthRange, FLT_MIN); // don't allow a depth range of 0
-    float invTileDepthRange = rcp(tileDepthRange);
+    //float tileDepthRange = tileMaxDepth - tileMinDepth;
+    //tileDepthRange = max(tileDepthRange, FLT_MIN); // don't allow a depth range of 0
+    //float invTileDepthRange = rcp(tileDepthRange);
     // TODO: near/far clipping planes seem to be falling apart at or near the max depth with infinite projections
 
     // construct transform from world space to tile space (projection space constrained to tile area)
-    float2 invTileSize2X = float2(ViewportWidth, ViewportHeight) * InvTileDim;
+    //float2 invTileSize2X = float2(ViewportWidth, ViewportHeight) * InvTileDim;
     // D3D-specific [0, 1] depth range ortho projection
     // (but without negation of Z, since we already have that from the projection matrix)
-    float3 tileBias = float3(-2.0 * float(group.x) + invTileSize2X.x - 1.0,
-                             -2.0 * float(group.y) + invTileSize2X.y - 1.0,
-                             -tileMinDepth * invTileDepthRange);
+    //float3 tileBias = float3(-2.0 * float(group.x) + invTileSize2X.x - 1.0,
+    //                         -2.0 * float(group.y) + invTileSize2X.y - 1.0,
+    //                         -tileMinDepth * invTileDepthRange);
+
+    //tileBias = float3(0, 0, 0);
     // tile bias is scale?
     // ortho projection matrix for a section of the screen?
-    float4x4 projToTile = float4x4(invTileSize2X.x, 0, 0, tileBias.x,
-                                   0, -invTileSize2X.y, 0, tileBias.y,
-                                   0, 0, invTileDepthRange, tileBias.z,
-                                   0, 0, 0, 1);
+    //float4x4 projToTile = float4x4(invTileSize2X.x, 0, 0, tileBias.x,
+    //                               0, -invTileSize2X.y, 0, tileBias.y,
+    //                               0, 0, invTileDepthRange, tileBias.z,
+    //                               0, 0, 0, 1);
 
-    float4x4 tileMVP = mul(projToTile, ViewProjMatrix);
+    //float4x4 tileMVP = mul(projToTile, ViewProjMatrix);
 
     // extract frustum planes (these will be in world space)
     // create normals for each plane
-    float4 frustumPlanes[6];
-    float4 tilePos = tileMVP[3];
-    frustumPlanes[0] = tilePos + tileMVP[0];
-    frustumPlanes[1] = tilePos - tileMVP[0];
-    frustumPlanes[2] = tilePos + tileMVP[1];
-    frustumPlanes[3] = tilePos - tileMVP[1];
-    frustumPlanes[4] = tilePos + tileMVP[2];
-    frustumPlanes[5] = tilePos - tileMVP[2];
-    for (int n = 0; n < 6; n++) {
-        // 1 / sqrt(n * n) -> 1 / (sqrt(length^2)) -> 1 / len
-        // normalize
-        frustumPlanes[n] *= rsqrt(dot(frustumPlanes[n].xyz, frustumPlanes[n].xyz));
-    }
+    //float4 frustumPlanes[6];
+    //float4 tilePos = tileMVP[3];
+    //frustumPlanes[0] = tilePos + tileMVP[0];
+    //frustumPlanes[1] = tilePos - tileMVP[0];
+    //frustumPlanes[2] = tilePos + tileMVP[1];
+    //frustumPlanes[3] = tilePos - tileMVP[1];
+    //frustumPlanes[4] = tilePos + tileMVP[2];
+    //frustumPlanes[5] = tilePos - tileMVP[2];
+    //for (int n = 0; n < 6; n++) {
+    //    // 1 / sqrt(n * n) -> 1 / (sqrt(length^2)) -> 1 / len
+    //    // normalize
+    //    frustumPlanes[n] *= rsqrt(dot(frustumPlanes[n].xyz, frustumPlanes[n].xyz));
+    //}
 
     uint tileIndex = GetTileIndex(group.xy, TileCountX);
     uint tileOffset = GetTileOffset(tileIndex);
 
     // find set of lights that overlap this tile
-    for (uint lightIndex = groupIndex; lightIndex < MAX_LIGHTS; lightIndex += 64) {
+    for (uint lightIndex = groupIndex; lightIndex < MAX_LIGHTS; lightIndex += BLOCK_SIZE * BLOCK_SIZE) {
         LightData lightData = Lights[lightIndex];
-        float3 lightWorldPos = lightData.pos;
+        //float3 lightWorldPos = lightData.pos;
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
-        float lightCullRadius = sqrt(lightData.radiusSq);
-        bool overlapping = true;
-        for (int p = 0; p < 6; p++) {
-            float3 planeNormal = frustumPlanes[p].xyz;
-            float planeDist = frustumPlanes[p].w;
-            float d = dot(lightWorldPos, planeNormal) + planeDist;
-            //float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
-            if (d < -lightCullRadius) {
-                overlapping = false;
+        const float lightRadius = sqrt(lightData.radiusSq);
+
+        if (lightRadius <= 0)
+            continue;
+
+        bool inside = true;
+        //for (int p = 0; p < 6; p++) {
+        //    float3 planeNormal = frustumPlanes[p].xyz;
+        //    float planeDist = frustumPlanes[p].w;
+        //    //float d = dot(lightData.pos, planeNormal) + planeDist;
+        //    float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
+        //    if (d < -lightCullRadius) {
+        //        overlapping = false;
+        //    }
+        //}
+
+        // project light from world to view space
+        float3 lightPos = mul(ViewMatrix, float4(lightData.pos, 1)).xyz;
+
+        for (int i = 0; i < 4; i++) {
+            Plane plane = planes[i];
+            float dist = PlaneDist(plane, lightPos); // positive value is inside
+            if (dist < -lightRadius) {
+                inside = false; 
             }
         }
 
-        if (!overlapping)
+        if (!inside)
             continue;
 
         uint slot;

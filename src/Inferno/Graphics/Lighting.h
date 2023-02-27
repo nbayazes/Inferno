@@ -4,8 +4,13 @@
 //namespace Inferno::Render {
 //    extern Inferno::Camera Camera;
 //}
+namespace Inferno::Debug {
+    inline Vector3 LightPosition;
+    inline bool InsideFrustum;
+}
 
 namespace Inferno::Graphics {
+
     constexpr int MAX_LIGHTS = 128; // todo: this is too low
     constexpr int LIGHT_GRID = 16;
     constexpr int LIGHT_GRID_MIN_DIM = 8;
@@ -50,6 +55,7 @@ namespace Inferno::Graphics {
         uint32_t FrameIndexMod2;
     };
 
+
     //LightData m_LightData[MAX_LIGHTS];
     //ComputePSO m_FillLightGridCS_16(L"Fill Light Grid 16 CS");
     //RootSignature m_FillLightRootSig;
@@ -70,14 +76,18 @@ namespace Inferno::Graphics {
             float InvTileDim;
             float RcpZMagic;
             uint32_t TileCount;
-            alignas(16) Matrix ViewProjMatrix;
+            alignas(16) Matrix ViewMatrix;
+            alignas(16) Matrix InverseProjection;
         };
+
         UploadBuffer<CSConstants> _csConstants{ 1 };
 
         enum RootSig { B0_Constants, T0_LightBuffer, T1_LinearDepth, U0_Grid, U1_GridMask };
+
         uint32 _width = 1, _height = 1;
+
     public:
-        FillLightGridCS() : ComputeShader(LIGHT_GRID, LIGHT_GRID), _lightUploadBuffer(MAX_LIGHTS) {  }
+        FillLightGridCS() : ComputeShader(LIGHT_GRID, LIGHT_GRID), _lightUploadBuffer(MAX_LIGHTS) { }
 
         const ByteAddressBuffer& GetBitMask() { return _bitMask; }
         const ByteAddressBuffer& GetLightGrid() { return _lightGrid; }
@@ -135,7 +145,8 @@ namespace Inferno::Graphics {
             //LightData light{};
 
             constexpr float radiusSq = 30 * 30;
-            lights[0].pos = { 0, 0, 40 };
+            lights[0].pos = { 0, 0, 45 };
+            lights[0].pos = { -25, 2, 70 };
             lights[0].color = { 1, 0, 0 };
             lights[0].radiusSq = radiusSq;
             //lights.push_back(light);
@@ -150,6 +161,18 @@ namespace Inferno::Graphics {
             lights[2].pos = { -20, 0, 45 };
             lights[2].color = { 0, 0, 1 };
             lights[2].radiusSq = radiusSq;
+
+            lights[3].pos = { -40, 0, 120 };
+            lights[3].color = { 1, 0, 1 };
+            lights[3].radiusSq = 50 * 50;
+
+            lights[4].pos = { 0, 0, 120 };
+            lights[4].color = { 0, 1, 1 };
+            lights[4].radiusSq = 50 * 50;
+
+            lights[5].pos = { 40, 0, 120 };
+            lights[5].color = { 1, 1, 1 };
+            lights[5].radiusSq = 50 * 50;
             //lights.push_back(light);
 
             //light.pos = Vector3{-661.167603, 1413.05164, -584.823120};
@@ -179,7 +202,6 @@ namespace Inferno::Graphics {
             //TransitionResource(Src, D3D12_RESOURCE_STATE_COPY_SOURCE);
             //FlushResourceBarriers();
             //m_CommandList->CopyResource(Dest.GetResource(), Src.GetResource());
-
         }
 
         Matrix GetProjMatrixTest(float yFov, float aspect, float nearClip, float farClip) {
@@ -234,6 +256,145 @@ namespace Inferno::Graphics {
             //m_CameraToWorld.SetRotation(Quaternion(m_Basis));
         }
 
+        bool Compute(const CSConstants& c) {
+            constexpr Vector2 group{ 4, 4 };
+
+            float tileMinDepth = 0.01f;
+            float tileMaxDepth = 0.05f;
+            float tileDepthRange = std::max(tileMaxDepth - tileMinDepth, FLT_MIN);
+            float invTileDepthRange = 1 / tileDepthRange;
+            Vector2 invTileSize2X = Vector2(c.ViewportWidth, c.ViewportHeight) * c.InvTileDim;
+
+            Vector3 tileBias = {
+                -2.0f * float(group.x) + invTileSize2X.x - 1.0f,
+                -2.0f * float(group.y) + invTileSize2X.y - 1.0f,
+                -tileMinDepth * invTileDepthRange
+            };
+
+            Matrix projToTile = {
+                invTileSize2X.x, 0, 0, tileBias.x,
+                0, -invTileSize2X.y, 0, tileBias.y,
+                0, 0, invTileDepthRange, tileBias.z,
+                0, 0, 0, 1
+            };
+
+            Matrix tileMVP = projToTile * c.ViewMatrix;
+
+            Vector4 frustumPlanes[6];
+            Vector4 tilePos(tileMVP.m[3]);
+            auto pos = tileMVP.Translation(); // maybe?
+            frustumPlanes[0] = tilePos + Vector4(tileMVP.m[0]);
+            frustumPlanes[1] = tilePos - Vector4(tileMVP.m[0]);
+            frustumPlanes[2] = tilePos + Vector4(tileMVP.m[1]);
+            frustumPlanes[3] = tilePos - Vector4(tileMVP.m[1]);
+            frustumPlanes[4] = tilePos + Vector4(tileMVP.m[2]);
+            frustumPlanes[5] = tilePos - Vector4(tileMVP.m[2]);
+            // normalize
+            for (int n = 0; n < 6; n++)
+                frustumPlanes[n] *= 1 / std::sqrt(Vector3(frustumPlanes[n]).Dot(Vector3(frustumPlanes[n])));
+
+            LightData lightData{};
+            lightData.pos = { 0, 0, 40 };
+            lightData.color = { 1, 0, 0 };
+            lightData.radiusSq = 30 * 30;
+
+            //auto lightWorldPos = lightData.pos;
+            float lightCullRadius = sqrt(lightData.radiusSq);
+
+            bool overlapping = true;
+            for (int p = 0; p < 6; p++) {
+                Vector3 planeNormal(frustumPlanes[p]);
+                float planeDist = frustumPlanes[p].w;
+                float d = Vector3(lightData.pos.data()).Dot(planeNormal) + planeDist;
+                //float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
+                if (d < -lightCullRadius) {
+                    overlapping = false;
+                }
+            }
+
+            //if (!overlapping)
+            //continue;
+
+            return overlapping;
+        }
+
+        Vector4 ClipToView(const Vector4& clip, const Matrix& inverseProj) {
+            Vector4 view = Vector4::Transform(clip, inverseProj);
+            return view / view.w;
+        }
+
+        Vector4 ScreenToView(const Vector4& screen, const Matrix& inverseProj) {
+            Vector2 texCoord(screen.x / Render::Camera.Viewport.width, screen.y / Render::Camera.Viewport.height);
+            texCoord.y = 1 - texCoord.y; // flip y
+            // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
+            Vector4 clip(texCoord.x * 2.0f - 1.0f, texCoord.y * 2.0f - 1.0f, screen.z, screen.w);
+            return ClipToView(clip, inverseProj);
+        }
+
+        bool Compute2(const CSConstants& c, Vector2 threadId) {
+            Vector4 screenSpace[4]{};
+            constexpr int BLOCK_SIZE = 8; // 8
+            //threadId = Vector2{ std::floorf(c.ViewportWidth / 2 / BLOCK_SIZE), std::floorf(c.ViewportHeight / 2 / BLOCK_SIZE) };
+            threadId = Vector2{ 152, 88 };
+            constexpr float z = -1.0f;
+            constexpr float w = 1.0f;
+            // Top left
+            screenSpace[0] = Vector4(threadId.x * BLOCK_SIZE, threadId.y * BLOCK_SIZE, z, w);
+            // Top right
+            screenSpace[1] = Vector4((threadId.x + 1) * BLOCK_SIZE, threadId.y * BLOCK_SIZE, z, w);
+            // Bottom left
+            screenSpace[2] = Vector4(threadId.x * BLOCK_SIZE, (threadId.y + 1) * BLOCK_SIZE, z, w);
+            // Bottom right
+            screenSpace[3] = Vector4((threadId.x + 1) * BLOCK_SIZE, (threadId.y + 1) * BLOCK_SIZE, z, w);
+
+            Vector3 viewSpace[4];
+
+            for (int i = 0; i < 4; i++) {
+                viewSpace[i] = Vector3(ScreenToView(screenSpace[i], c.InverseProjection));
+            }
+
+            const Vector3 eyePos = Vector3::Zero;
+            Plane planes[4];
+            planes[0] = Plane(eyePos, viewSpace[0], viewSpace[2]); // Left
+            planes[1] = Plane(eyePos, viewSpace[3], viewSpace[1]); // Right
+            planes[2] = Plane(eyePos, viewSpace[1], viewSpace[0]); // Top
+            planes[3] = Plane(eyePos, viewSpace[2], viewSpace[3]); // Bottom
+
+            LightData light{};
+            light.pos = { -25, 2, 70 };
+            light.color = { 1, 0, 0 };
+            light.radiusSq = 30 * 30;
+
+            float radius = std::sqrt(light.radiusSq);
+            bool inside = true;
+            // project light pos into view space
+            auto lightPos = Vector3::Transform(Vector3(light.pos.data()), c.ViewMatrix);
+
+            DirectX::BoundingFrustum frustum(Render::Camera.Projection);
+            bool contains = frustum.Contains(Vector3(light.pos.data()));
+
+            for (int i = 0; i < 4; i++) {
+                auto& plane = planes[i];
+                auto dist = plane.Normal().Dot(lightPos) - plane.D();
+                auto dist2 = plane.DotCoordinate(lightPos);
+                auto dist3 = plane.DotNormal(lightPos);
+
+                if (dist < -radius)
+                //if (dist < 0)
+                    inside = false; // too far
+            }
+
+            Vector3 normal(0.9, 0, 0.25);
+            normal.Normalize();
+            Plane p(normal, 0);
+            Vector3 lp(0, 2, 35);
+            float dist4 = p.DotNormal(lp);
+
+            Debug::InsideFrustum = inside;
+            Debug::LightPosition = lightPos;
+            return inside;
+        }
+
         void Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth) {
             //ScopedTimer _prof(L"FillLightGrid", gfxContext);
             PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Fill Light Grid");
@@ -264,22 +425,60 @@ namespace Inferno::Graphics {
             constants.TileCount = tileCountX;
 
             auto& camera = Inferno::Render::Camera;
-            constants.ViewProjMatrix = camera.ViewProj();
-            constants.ViewProjMatrix = camera.Projection * camera.View;
-            auto proj = camera.Projection;
-            auto view = camera.View;
-            auto projView = camera.Projection * camera.View;
-            auto viewProj = camera.ViewProj();
+            //constants.ViewProjMatrix = camera.ViewProj();
+            constants.ViewMatrix = camera.View;
+            //constants.ViewProjMatrix = camera.Projection * camera.View;
+            constants.InverseProjection = camera.Projection.Invert();
+
+            Vector3 v0 = { -0.730262637, -0.414881557, 0.500083327 };
+            Vector3 v2 = { -0.730262637, -0.410143405, 0.500083327 };
+            //auto proj = camera.Projection;
+            //auto view = camera.View;
+            //auto projView = camera.Projection * camera.View;
+            //auto viewProj = camera.ViewProj();
 
             //Matrix lhView = DirectX::XMMatrixPerspectiveFovLH(0.785398185, 1.35799503, 1, 1000);
-            Matrix proj2 = GetProjMatrixTest(0.785398185, 1.35799503, 1, 1000);
+            //Matrix proj2 = GetProjMatrixTest(0.785398185, 1.35799503, 1, 1000);
+            //Matrix proj2 = GetProjMatrixTest(Settings::Editor.FieldOfView * DegToRad, camera.Viewport.AspectRatio(), camera.NearClip, camera.FarClip);
             //Matrix rhView = DirectX::XMMatrixPerspectiveFovRH(0.785398185, 1.35799503, 1, 1000);
             // lhview2 aspect width is 3.278 instead of 1.7777
 
             //Matrix view2 = DirectX::XMMatrixLookAtLH(camera.Position, camera.Target, camera.Up);
-            Matrix view2 = SetLookDirection(camera.Target - camera.Position, camera.Up);
+            //Matrix view2 = SetLookDirection(camera.Target - camera.Position, camera.Up);
 
-            auto viewProj2 = proj2 * view2;
+            //auto viewProj2 = proj2 * view2;
+            //auto viewProj3 = view2 * proj2;
+
+            //DirectX::XMMATRIX mat{};
+            //mat.r[0] = { -0.0351921320, -0.468572199, 0.882723868, 0.00000000 };
+            //mat.r[1] = { 0.00000000, 0.883271098, 0.468862653, 0.00000000 };
+            //mat.r[2] = { -0.999380529, 0.0165002793, -0.0310841799, 0.00000000 };
+            //mat.r[3] = { -0.000122070312, -59.9769287, -1276.53467, 1.00000000 };
+
+            //DirectX::XMMATRIX projMat{};
+            //projMat.r[0] = { 1.35799503, 0.00000000, 0.00000000, 0.00000000 };
+            //projMat.r[1] = { 0.00000000, 2.41421342, 0.00000000, 0.00000000 };
+            //projMat.r[2] = { 0.00000000, 0.00000000, 0.000100010002, -1.00000000 };
+            //projMat.r[3] = { 0.00000000, 0.00000000, 1.00010002, 0.00000000 };
+
+            //auto xmViewProj = DirectX::XMMatrixMultiply(mat, projMat);
+            //Matrix xmViewProj_(xmViewProj);
+
+            //Matrix mat2{
+            //    -0.0351921320, -0.468572199, 0.882723868, 0.00000000,
+            //    0.00000000, 0.883271098, 0.468862653, 0.00000000,
+            //    -0.999380529, 0.0165002793, -0.0310841799, 0.00000000,
+            //    -0.000122070312, -59.9769287, -1276.53467, 1.00000000
+            //};
+
+            //Matrix projMat2{
+            //    1.35799503, 0.00000000, 0.00000000, 0.00000000,
+            //    0.00000000, 2.41421342, 0.00000000, 0.00000000,
+            //    0.00000000, 0.00000000, 0.000100010002, -1.00000000,
+            //    0.00000000, 0.00000000, 1.00010002, 0.00000000
+            //};
+
+            //auto xmProjMat3 = mat2 * projMat2;
 
             // for look at
             // this matches
@@ -314,7 +513,10 @@ namespace Inferno::Graphics {
             //constants.ViewProjMatrix.m[3][2] = 0.872433782;
             //constants.ViewProjMatrix.m[3][3] = 1276.53467;
 
-            constants.ViewProjMatrix = viewProj2;
+            //constants.ViewProjMatrix = viewProj3;
+
+            //Compute(constants);
+            Compute2(constants, { 0, 0 });
 
             _csConstants.Begin();
             _csConstants.Copy({ &constants, 1 });

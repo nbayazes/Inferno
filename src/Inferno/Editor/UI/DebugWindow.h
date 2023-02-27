@@ -3,6 +3,7 @@
 #include "WindowBase.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Debug.h"
+#include "Graphics/Lighting.h"
 #include "Input.h"
 #include "../Editor.h"
 #include "Physics.h"
@@ -14,12 +15,15 @@ namespace Inferno::Editor {
         DebugWindow() : WindowBase("Debug") { IsOpen(false); }
     protected:
         void OnUpdate() override {
-            _timeCounter += (float)Render::FrameTime;
+            _timeCounter += Render::FrameTime;
 
             if (_timeCounter > 0.5f) {
-                _frameTime = (float)Render::FrameTime;
+                _frameTime = Render::FrameTime;
                 _timeCounter = 0;
             }
+
+            ImGui::Text("Light View pos: %.2f, %.2f, %.2f", Debug::LightPosition.x, Debug::LightPosition.y, Debug::LightPosition.z);
+            ImGui::Text("Inside frustum: %i", Debug::InsideFrustum);
 
             ImGui::Text("Ship pos: %.2f, %.2f, %.2f", Debug::ShipPosition.x, Debug::ShipPosition.y, Debug::ShipPosition.z);
             ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
