@@ -139,7 +139,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_ACTIVATEAPP:
             if (app) {
-                Shell::HasFocus = (bool)wParam;
+                Inferno::Shell::HasFocus = (bool)wParam;
 
                 if (wParam)
                     app->OnActivated();
@@ -242,7 +242,7 @@ bool RegisterWindowClass(HINSTANCE hInstance) {
     return RegisterClassEx(&wc) != 0;
 }
 
-int Shell::Show(int width, int height, int nCmdShow) const {
+int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
     if (!RegisterWindowClass(_hInstance))
         throw std::exception("Failed to register window class");
 

@@ -187,7 +187,7 @@ int main() {
     InitRandom();
 
     try {
-        Shell shell;
+        Inferno::Shell shell;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
         Editor::Bindings::LoadDefaults();
