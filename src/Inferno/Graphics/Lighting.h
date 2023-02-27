@@ -416,7 +416,6 @@ namespace Inferno::Graphics {
             float nearClip = Inferno::Render::Camera.NearClip;
             const float rcpZMagic = nearClip / (farClip - nearClip);
 
-
             CSConstants constants{};
             constants.ViewportWidth = _width;
             constants.ViewportHeight = _height;

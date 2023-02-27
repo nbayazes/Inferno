@@ -27,7 +27,7 @@ float InvTileDim; // 1 / LIGHT_GRID_DIM = 1 / 16
 float RcpZMagic;
 uint TileCountX;
 float4x4 ViewMatrix;
-    float4x4 InverseProjection;
+float4x4 InverseProjection;
 };
 
 StructuredBuffer<LightData> Lights : register(t0);
@@ -93,7 +93,7 @@ Plane ComputePlane(float3 p0, float3 p1, float3 p2) {
     float3 v0 = p1 - p0;
     float3 v2 = p2 - p0;
     plane.N = normalize(cross(v0, v2));
- 
+
     // Compute the distance to the origin using p0.
     //plane.d = dot(plane.N, p0);
     plane.d = 0;
@@ -175,15 +175,12 @@ void main(uint2 group : SV_GroupID,
     // this assumes inverted depth buffer
     //float tileMinDepth = (rcp(asfloat(maxDepthUInt)) - 1.0) * RcpZMagic;
     //float tileMaxDepth = (rcp(asfloat(minDepthUInt)) - 1.0) * RcpZMagic;
-    float tileMinDepth = asfloat(maxDepthUInt);
-    float tileMaxDepth = asfloat(minDepthUInt);
-    //float near = 1;
-    //float far = 3000;
-    //float tileMinDepth = near / (far + asfloat(minDepthUInt) * (near - far));
-    //float tileMaxDepth = near / (far + asfloat(maxDepthUInt) * (near - far));
-    //near / (far + Depth[DTid.xy] * (near - far));
-    //float tileDepthRange = tileMaxDepth - tileMinDepth;
-    //tileDepthRange = max(tileDepthRange, FLT_MIN); // don't allow a depth range of 0
+    float tileMinDepth = asfloat(minDepthUInt);
+    float tileMaxDepth = asfloat(maxDepthUInt);
+    //float zNear= lerp(1, 3000, tileMinDepth);
+    float zNear = tileMinDepth / RcpZMagic;
+    float zFar = tileMaxDepth / RcpZMagic;
+    zNear = max(zNear, FLT_MIN); // don't allow a depth range of 0
     //float invTileDepthRange = rcp(tileDepthRange);
     // TODO: near/far clipping planes seem to be falling apart at or near the max depth with infinite projections
 
@@ -231,28 +228,21 @@ void main(uint2 group : SV_GroupID,
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
         const float lightRadius = sqrt(lightData.radiusSq);
 
-        if (lightRadius <= 0)
-            continue;
-
         bool inside = true;
-        //for (int p = 0; p < 6; p++) {
-        //    float3 planeNormal = frustumPlanes[p].xyz;
-        //    float planeDist = frustumPlanes[p].w;
-        //    //float d = dot(lightData.pos, planeNormal) + planeDist;
-        //    float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
-        //    if (d < -lightCullRadius) {
-        //        overlapping = false;
-        //    }
-        //}
 
         // project light from world to view space
         float3 lightPos = mul(ViewMatrix, float4(lightData.pos, 1)).xyz;
+
+        // cull the light if is behind the camera (negative z is behind)
+        if (lightPos.z + lightRadius < zNear || lightPos.z - lightRadius > zFar) {
+            inside = false;
+        }
 
         for (int i = 0; i < 4; i++) {
             Plane plane = planes[i];
             float dist = PlaneDist(plane, lightPos); // positive value is inside
             if (dist < -lightRadius) {
-                inside = false; 
+                inside = false;
             }
         }
 
