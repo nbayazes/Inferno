@@ -85,6 +85,7 @@
       <Optimization>
       </Optimization>
       <ExternalTemplatesDiagnostics>false</ExternalTemplatesDiagnostics>
+      <DisableSpecificWarnings>4324</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -183,6 +184,7 @@
     <ClCompile Include="Editor\UI\PropertyEditor.Segment.cpp" />
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
+    <ClCompile Include="Graphics\Lighting.cpp" />
     <ClCompile Include="Graphics\Render.Canvas.cpp" />
     <ClCompile Include="Graphics\Render.Level.cpp" />
     <ClCompile Include="Graphics\Render.Object.cpp" />

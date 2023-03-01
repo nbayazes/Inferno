@@ -35,9 +35,10 @@ namespace Inferno {
         uv.y = std::fmodf(uv.y, 1);
     }
 
-    Vector2 IntersectFaceUVs(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
-        auto indices = seg.GetSide(tag.Side).GetRenderIndices();
+    // Returns the UVs on a face closest to a point in world coordinates
+    Vector2 IntersectFaceUVs(Level& level, const Vector3& point, Segment& seg, Tag tag, int tri) {
         auto face = Face::FromSide(level, seg, tag.Side);
+        auto indices = face.Side.GetRenderIndices();
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
         auto& v2 = face[indices[tri * 3 + 2]];
@@ -46,17 +47,18 @@ namespace Inferno {
         for (int i = 0; i < 3; i++)
             uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
 
-        // Project triangle to 2D
+        // Vectors of two edges
         auto xAxis = v1 - v0;
         xAxis.Normalize();
         auto zAxis = xAxis.Cross(v2 - v0);
         zAxis.Normalize();
         auto yAxis = xAxis.Cross(zAxis);
 
+        // Project triangle to 2D
         Vector2 z0(0, 0);
         Vector2 z1((v1 - v0).Length(), 0);
         Vector2 z2((v2 - v0).Dot(xAxis), (v2 - v0).Dot(yAxis));
-        Vector2 hit((pnt - v0).Dot(xAxis), (pnt - v0).Dot(yAxis));
+        Vector2 hit((point - v0).Dot(xAxis), (point - v0).Dot(yAxis)); // project point onto plane
 
         // barycentric coords of hit
         auto bx = (z1 - z0).Cross(hit - z0).x;

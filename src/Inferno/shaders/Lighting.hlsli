@@ -57,6 +57,7 @@ float3 ApplyPointLight(
     // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
     float distanceFalloff = lightRadiusSq * (invLightDist * invLightDist);
     distanceFalloff = max(0, distanceFalloff - rsqrt(distanceFalloff));
+    distanceFalloff = clamp(distanceFalloff, 0, 30); // clamp multiplier to prevent extreme highlights
 
     return distanceFalloff * ApplyLightCommon(
         diffuseColor,

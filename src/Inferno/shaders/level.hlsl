@@ -153,12 +153,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
-    float4 specular = Specular(-viewDir, viewDir, input.normal, 4);
+    //float4 specular = Specular(-viewDir, viewDir, input.normal, 4);
+    float4 specular = float4(0, 0, 0, 0);
     // adding noise fixes dithering, but this is expensive. sample a texture instead
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
     
     float4 lighting = lerp(1, max(0, input.col), LightingScale);
-    //lighting = float4(0, 0, 0, 0);
+    lighting = float4(0, 0, 0, 0);
     //float d = dot(input.normal, viewDir);
     //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
     //return float4((input.normal + 1) / 2, 1);
@@ -222,8 +223,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     uint2 pixelPos = uint2(input.pos.xy);
     float3 colorSum = float3(0, 0, 0);
     //ShadeLights(colorSum, pixelPos, diffuse.rgb, float3(0, 0, 0), 0, 0, input.normal, viewDir, input.world);
-    ShadeLights(colorSum, pixelPos, diffuse.rgb, float3(0, 0, 0), 0, 0, input.normal, viewDir, input.world);
-    lighting.rgb += colorSum * 0.65;
+    ShadeLights(colorSum, pixelPos, diffuse.rgb, float3(1, 1, 1), 0, 0, input.normal, viewDir, input.world);
+    lighting.rgb += colorSum;
 
     return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
 }

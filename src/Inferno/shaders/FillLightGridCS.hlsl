@@ -178,9 +178,10 @@ void main(uint2 group : SV_GroupID,
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
     //float zNear= lerp(1, 3000, tileMinDepth);
-    float zNear = tileMinDepth / RcpZMagic;
+    //float zNear = tileMinDepth / RcpZMagic;
     float zFar = tileMaxDepth / RcpZMagic;
-    zNear = max(zNear, FLT_MIN); // don't allow a depth range of 0
+    //zNear = max(zNear, FLT_MIN); // don't allow a depth range of 0
+    float zNear = 1; // strange artifacts on transparent objects if using tileMinDepth / zMagic
     //float invTileDepthRange = rcp(tileDepthRange);
     // TODO: near/far clipping planes seem to be falling apart at or near the max depth with infinite projections
 
