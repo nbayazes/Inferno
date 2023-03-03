@@ -163,7 +163,7 @@ namespace Inferno::PostFx {
         ToneMapCS() : ComputeShader(8, 8) {}
 
         float Exposure = 1.0f; // final scene exposure
-        float BloomStrength = 2.25f;
+        float BloomStrength = 1.00f;
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) {
             bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

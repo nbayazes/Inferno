@@ -11,6 +11,15 @@ namespace Inferno {
 
     enum class OverlayRotation : uint16 { Rotate0, Rotate90, Rotate180, Rotate270 };
 
+    constexpr float GetOverlayRotationAngle(OverlayRotation rotation) {
+        switch (rotation) {
+            case OverlayRotation::Rotate0: default: return 0.0f;
+            case OverlayRotation::Rotate90: return DirectX::XM_PIDIV2;
+            case OverlayRotation::Rotate180: return DirectX::XM_PI;
+            case OverlayRotation::Rotate270: return DirectX::XM_PI * 1.5f;
+        }
+    }
+
     struct SegmentSide {
         SideSplitType Type = SideSplitType::Quad;
         WallID Wall = WallID::None;

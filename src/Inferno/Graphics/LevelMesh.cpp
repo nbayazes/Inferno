@@ -91,16 +91,8 @@ namespace Inferno {
         return { indices, vertices };
     }
 
-    Vector2 GetOverlayRotation(SegmentSide& side, Vector2 uv) {
-        float overlayAngle = [&side]() {
-            switch (side.OverlayRotation) {
-                case OverlayRotation::Rotate0: default: return 0.0f;
-                case OverlayRotation::Rotate90: return XM_PIDIV2;
-                case OverlayRotation::Rotate180: return XM_PI;
-                case OverlayRotation::Rotate270: return XM_PI * 1.5f;
-            };
-        }();
-
+    Vector2 ApplyOverlayRotation(const SegmentSide& side, Vector2 uv) {
+        float overlayAngle = GetOverlayRotationAngle(side.OverlayRotation);
         return Vector2::Transform(uv, Matrix::CreateRotationZ(overlayAngle));
     }
 
@@ -109,7 +101,7 @@ namespace Inferno {
                     const Array<Color, 4>& lt,
                     LevelGeometry& geo,
                     LevelChunk& chunk,
-                    SegmentSide& side) {
+                    const SegmentSide& side) {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex, side);
 
@@ -131,7 +123,7 @@ namespace Inferno {
                 if (i == 2) normal = side.Normals[1];
             }
 
-            Vector2 uv2 = side.HasOverlay() ? GetOverlayRotation(side, uv[i]) : Vector2();
+            Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv[i]) : Vector2();
             LevelVertex vertex = { pos, uv[i], lt[i], uv2, normal };
             geo.Vertices.push_back(vertex);
         }
@@ -288,7 +280,7 @@ namespace Inferno {
 
                 // Overlays should slide in the same direction as the base texture regardless of their rotation
                 if (needsOverlaySlide)
-                    chunk.OverlaySlide = GetOverlayRotation(side, ti.Slide);
+                    chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
 
                 if (isWall) {
                     // Adjust wall positions to the center of the segment so objects and walls of a segment can be sorted correctly

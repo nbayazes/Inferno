@@ -112,7 +112,7 @@ namespace Inferno::Graphics {
 
         // Create transform to unproject the source
         const float d = 1.0f / sqrtf(srcNorm.LengthSquared());
-        Vector3 r0(srcNorm.y * d, - srcNorm.x * d, 0);
+        Vector3 r0(srcNorm.y * d, -srcNorm.x * d, 0);
         Vector3 r1(-srcNorm.z * r0.x, srcNorm.z * r0.x, srcNorm.x * r0.x - srcNorm.y * r0.y);
         Matrix m(r0, r1, srcNorm);
 
@@ -141,27 +141,27 @@ namespace Inferno::Graphics {
         return weights;
     }
 
-    Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv) {
+    Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv, float overlayAngle) {
         auto indices = face.Side.GetRenderIndices();
 
         Vector2 uvs[3]{};
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++) {
             uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
+            //if (overlayAngle != 0) uvs[i] = RotateVector(uvs[i], -overlayAngle);
+        }
 
         // Vectors of two edges
         auto vec0 = uvs[1] - uvs[0];
         auto vec1 = uvs[2] - uvs[0];
         auto vecPt = uv - uvs[0];
 
-        // don't need Abs() for the denominator
         auto normal = vec0.Cross(vec1);
-        //normal.Normalize();
 
         // solve barycentric weights
         auto g = (vecPt.Cross(vec0) / -normal).x;
         auto f = (vecPt.Cross(vec1) / normal).x;
 
-        if (g < 0 || f < 0 || g + f > 1) 
+        if (g < 0 || f < 0 || g + f > 1)
             return {}; // point was outside of triangle
 
         // project UV to world using barycentric weights
@@ -171,16 +171,33 @@ namespace Inferno::Graphics {
         return Vector3::Barycentric(v0, v1, v2, f, g);
     }
 
+    struct TextureLightInfo {
+        List<Vector2> UVs = { { 0.5f, 0.5f } }; // UV positions for each light
+        float Offset = 3.5; // light surface offset
+        float Radius = 60; // light radius
+        Color Color = { 1, 1, 1 };
+    };
+
+    // 0.25, 0.75, 1.25 - continuous spacing of two
+    // 0.166, 0.5, 0.833 - spacing of three
+    const List<Vector2> LeftJustifiedUVs = { { 0.125f, 1.0f / 6 }, { 0.125f, 3.0f / 6 }, { 0.125f, 5.0f / 6 } };
+
+    Dictionary<LevelTexID, TextureLightInfo> TextureInfoD1 = {
+        { LevelTexID(212), { .UVs = { { 0.25, 0.75 }, { 0.75, 0.75 } } } },
+        { LevelTexID(250), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 30 } },
+        { LevelTexID(251), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 30 } },
+        { LevelTexID(286), { .UVs = { { 0.25f, 0.25f }, { 0.25f, 0.75f }, { 0.75f, 0.25f }, { 0.75f, 0.75f } }, .Offset = 3, .Radius = 30, .Color = Color(0.3, 0.3, 0.3) }, },
+    };
+
     List<LightSource> GatherLightSources(Level& level, float multiplier = 1, float defaultRadius = 20) {
         List<LightSource> sources;
+
+        TextureLightInfo defaultInfo{ .Radius = defaultRadius };
 
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
 
             for (auto& sideId : SideIDs) {
-                constexpr float LIGHT_SPACING = 20;
-                constexpr float FACE_OFFSET = 3.5;
-
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& side = face.Side;
@@ -188,24 +205,13 @@ namespace Inferno::Graphics {
                 if (!CheckMinLight(color)) continue;
 
                 // use the longest edge as X axis
-                // check angle between adjacent edge, if near 90 divide into grid
                 auto edge = face.GetLongestEdge();
-                auto xEdge = face[edge + 1] - face[edge]; // Right
-                auto yEdge = face[edge + 3] - face[edge]; // Up
-                Vector3 xVec, yVec;
-                xEdge.Normalize(xVec);
-                yEdge.Normalize(yVec);
-                //auto angle = AngleBetweenVectors(xVec, yVec) * RadToDeg;
 
                 Vector2 uvX = side.UVs[(edge + 1) % 4] - side.UVs[edge];
                 Vector2 uvY = side.UVs[(edge + 3) % 4] - side.UVs[edge];
                 Vector2 uvVecX, uvVecY;
                 uvX.Normalize(uvVecX);
                 uvY.Normalize(uvVecY);
-
-                // project each point onto the uv axis
-                // un-rotate?
-                // bounds
 
                 Vector2 minUV(FLT_MAX, FLT_MAX), maxUV(-FLT_MAX, -FLT_MAX);
                 for (int j = 0; j < 4; j++) {
@@ -214,141 +220,55 @@ namespace Inferno::Graphics {
                     maxUV = Vector2::Max(maxUV, uv);
                 }
 
-                //Vector2 bounds = maxUV - minUV;
-                constexpr int LIGHT_STEPS = 2; // "divisions" across a UV 1,1 area. a value of 2 means 1 light in the center.
-                constexpr float STEP_SIZE = 1.0f / LIGHT_STEPS;
-                constexpr float MARGIN = 0.1f; // don't allow lights within the margin
+                auto xMin = (int)std::round(minUV.x);
+                auto yMin = (int)std::round(minUV.y);
+                auto xMax = (int)std::round(maxUV.x);
+                auto yMax = (int)std::round(maxUV.y);
+                auto isFar = [](float f) {
+                    auto diff = std::abs(f - std::round(f));
+                    return diff > 0.01f;
+                };
+                if (isFar(minUV.x)) xMin -= 1;
+                if (isFar(minUV.y)) yMin -= 1;
+                if (isFar(maxUV.x)) xMax += 1;
+                if (isFar(maxUV.y)) yMax += 1;
 
-                // round x/y min to grid
-                // with a division of 2, should always have a value of .5
-                auto xMin = std::round(minUV.x) + STEP_SIZE;
-                auto yMin = std::round(minUV.y) + STEP_SIZE;
-                if (xMin <= minUV.x + MARGIN) xMin += STEP_SIZE;
-                if (yMin <= minUV.y + MARGIN) yMin += STEP_SIZE;
+                bool useOverlay = side.TMap2 > LevelTexID::Unset;
+                float overlayAngle = GetOverlayRotationAngle(side.OverlayRotation);
+                auto tmap = useOverlay ? side.TMap2 : side.TMap;
 
-                auto xMax = std::round(maxUV.x) + STEP_SIZE;
-                auto yMax = std::round(maxUV.y) + STEP_SIZE;
-                if (xMax >= maxUV.x - MARGIN) xMax -= STEP_SIZE;
-                if (yMax >= maxUV.y - MARGIN) yMax -= STEP_SIZE;
+                auto& info = TextureInfoD1.contains(tmap) ? TextureInfoD1[tmap] : defaultInfo;
 
-                auto xSteps = int(std::abs(xMax - xMin) * LIGHT_STEPS) / LIGHT_STEPS + 1;
-                auto ySteps = int(std::abs(yMax - yMin) * LIGHT_STEPS) / LIGHT_STEPS + 1;
+                // iterate each tile, checking the defined UVs
+                for (int ix = xMin; ix < xMax; ix++) {
+                    for (int iy = yMin; iy < yMax; iy++) {
+                        for (auto lt : info.UVs) {
+                            if (overlayAngle != 0) {
+                                constexpr Vector2 offset(0.5, 0.5);
+                                lt = RotateVector(lt - offset, -overlayAngle) + offset;
+                            }
 
+                            // todo: special case when uv is aligned to whole number and index equals min/max range
+                            Vector2 uv = { ix + lt.x, iy + lt.y };
 
-                //auto n0 = std::round(-2.2f * LIGHT_STEPS) / LIGHT_STEPS;
-                //auto n1 = std::round(2.2f * LIGHT_STEPS) / LIGHT_STEPS;
+                            // Check both faces
+                            auto pos = TriangleContainsUV(face, 0, uv, overlayAngle);
+                            if (!pos) pos = TriangleContainsUV(face, 1, uv, overlayAngle);
 
-                //auto startUVx = std::trunc(minUV.x * LIGHT_STEPS + STEP_SIZE) / LIGHT_STEPS;
-                //auto minUVx = std::trunc(minUV.x * LIGHT_STEPS + STEP_SIZE) / LIGHT_STEPS;
-                //auto minUVy = std::trunc(minUV.y * LIGHT_STEPS + STEP_SIZE) / LIGHT_STEPS;
+                            if (pos) {
+                                *pos += face.AverageNormal() * info.Offset;
 
-                //auto maxUVx = std::trunc(maxUV.x * LIGHT_STEPS + STEP_SIZE) / LIGHT_STEPS;
-                //auto maxUVy = std::trunc(maxUV.y * LIGHT_STEPS + STEP_SIZE) / LIGHT_STEPS;
-
-                //int xSteps = (maxUVx - minUVx) / STEP_SIZE;
-                //int ySteps = (maxUVy - minUVy) / STEP_SIZE;
-
-                /*for (float i = 0; i < maxUV.x; i += LIGHT_SPACING) {
-
-                }*/
-                // generate pairs between min and max uv that match the interval
-
-                for (int ix = 0; ix < xSteps; ix++) {
-                    for (int iy = 0; iy < ySteps; iy++) {
-                        Vector2 uv = { xMin + STEP_SIZE * 2 * (float)ix, yMin + STEP_SIZE * 2 * (float)iy };
-
-                        auto pos = TriangleContainsUV(face, 0, uv);
-                        if (!pos) pos = TriangleContainsUV(face, 1, uv);
-                        if (pos) {
-                            *pos += face.AverageNormal() * FACE_OFFSET;
-
-                            LightSource light = {
-                                //.Indices = seg.GetVertexIndices(sideId),
-                                .Position = *pos,
-                                .Color = color * multiplier,
-                                .Radius = side.LightRadiusOverride.value_or(defaultRadius),
-                            };
-                            sources.push_back(light);
+                                LightSource light = {
+                                    //.Indices = seg.GetVertexIndices(sideId),
+                                    .Position = *pos,
+                                    .Color = color * multiplier,
+                                    .Radius = side.LightRadiusOverride.value_or(info.Radius),
+                                };
+                                sources.push_back(light);
+                            }
                         }
-
-                        //int tri = 0;
-                        //auto indices = face.Side.GetRenderIndices();
-                        //auto& v0 = face[indices[tri * 3 + 0]];
-                        //auto& v1 = face[indices[tri * 3 + 1]];
-                        //auto& v2 = face[indices[tri * 3 + 2]];
-
-                        //Vector2 uvs[3]{};
-                        //for (int i = 0; i < 3; i++)
-                        //    uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
-
-                        //// Vectors of two edges
-                        //auto vec0 = uvs[1] - uvs[0];
-                        //auto vec1 = uvs[2] - uvs[0];
-                        //auto vecPt = uv - uvs[0];
-
-                        //// don't need Abs() for the denominator
-                        //auto normal = vec0.Cross(vec1);
-                        ////normal.Normalize();
-
-                        //// solve barycentric weights
-
-                        //auto g = (vecPt.Cross(vec0) / -normal).x;
-                        //auto f = (vecPt.Cross(vec1) / normal).x;
-
-                        //// todo: check if UV is within the bounds of the face. negative f/g will indicate outside
-                        //// but the code needs to be changed to check both faces and not just one
-                        ////if (g < 0 || f < 0) continue;
-
-                        //// project UV to world using barycentrics
-                        //// Position0 + f * (Position1 - Position0) + g * (Position2 - Position0)
-                        //auto pos = Vector3::Barycentric(v0, v1, v2, f, g);
-                        //auto edge1 = v1 - v0;
-                        //auto edge2 = v2 - v0;
-                        //auto pos2 = v0 + f * edge1 + g * edge2;
-                        //auto q = pos;
-
-                        //pos += face.AverageNormal() * FACE_OFFSET;
-
-                        //LightSource light = {
-                        //    //.Indices = seg.GetVertexIndices(sideId),
-                        //    .Position = pos,
-                        //    .Color = color * multiplier,
-                        //    .Radius = side.LightRadiusOverride.value_or(defaultRadius),
-                        //};
-                        //sources.push_back(light);
                     }
                 }
-
-
-                //int xLights = 1;
-                //int yLights = 1;
-
-                //if (angle > 80 && angle < 100) {
-                //    // Mostly square edge
-                //    xLights = 1 + int((xEdge.Length() - 9) / LIGHT_SPACING);
-                //    yLights = 1 + int((yEdge.Length() - 9) / LIGHT_SPACING);
-                //}
-
-                //for (int ix = 0; ix < xLights; ix++) {
-                //    for (int iy = 0; iy < yLights; iy++) {
-                //        auto pos = face[edge];
-
-                //        float xOffset = xEdge.Length() < LIGHT_SPACING ? xEdge.Length() / 2 : LIGHT_SPACING / 2;
-                //        float yOffset = yEdge.Length() < LIGHT_SPACING ? yEdge.Length() / 2 : LIGHT_SPACING / 2;
-
-                //        pos += xVec * xOffset + xVec * LIGHT_SPACING * (float)ix;
-                //        pos += yVec * yOffset + yVec * LIGHT_SPACING * (float)iy;
-                //        pos += face.AverageNormal() * FACE_OFFSET;
-
-                //        LightSource light = {
-                //            //.Indices = seg.GetVertexIndices(sideId),
-                //            .Position = pos,
-                //            .Color = color * multiplier,
-                //            .Radius = side.LightRadiusOverride.value_or(defaultRadius),
-                //        };
-                //        sources.push_back(light);
-                //    }
-                //}
             }
         }
 
