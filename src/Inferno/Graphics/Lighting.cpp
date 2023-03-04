@@ -150,6 +150,7 @@ namespace Inferno::Graphics {
             //if (overlayAngle != 0) uvs[i] = RotateVector(uvs[i], -overlayAngle);
         }
 
+        // https://math.stackexchange.com/a/28552
         // Vectors of two edges
         auto vec0 = uvs[1] - uvs[0];
         auto vec1 = uvs[2] - uvs[0];
@@ -173,20 +174,30 @@ namespace Inferno::Graphics {
 
     struct TextureLightInfo {
         List<Vector2> UVs = { { 0.5f, 0.5f } }; // UV positions for each light
-        float Offset = 3.5; // light surface offset
+        float Offset = 3; // light surface offset
         float Radius = 60; // light radius
-        Color Color = { 1, 1, 1 };
+        Color Color = { 0, 0, 0 };
     };
 
     // 0.25, 0.75, 1.25 - continuous spacing of two
     // 0.166, 0.5, 0.833 - spacing of three
     const List<Vector2> LeftJustifiedUVs = { { 0.125f, 1.0f / 6 }, { 0.125f, 3.0f / 6 }, { 0.125f, 5.0f / 6 } };
+    //const List<Vector2> VerticalLightStack = { { 0.25f, 0.25f }, { 0.25f, 0.75f }, { 0.75f, 0.25f }, { 0.75f, 0.75f } };
+    const List<Vector2> VerticalLightStack = { { 0.5f, 0.25f }, { 0.5f, 0.75f } };
 
+    // V = 0 is top?
     Dictionary<LevelTexID, TextureLightInfo> TextureInfoD1 = {
-        { LevelTexID(212), { .UVs = { { 0.25, 0.75 }, { 0.75, 0.75 } } } },
-        { LevelTexID(250), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 30 } },
-        { LevelTexID(251), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 30 } },
-        { LevelTexID(286), { .UVs = { { 0.25f, 0.25f }, { 0.25f, 0.75f }, { 0.75f, 0.25f }, { 0.75f, 0.75f } }, .Offset = 3, .Radius = 30, .Color = Color(0.3, 0.3, 0.3) }, },
+        { LevelTexID(212), { .UVs = { { 0.25, 0.25 }, { 0.75, 0.25 } }, .Radius = 45, .Color = Color(0.25, 0.25, 0.30) } },
+        { LevelTexID(213), { .UVs = { { 0.75, 0.25 } }, .Radius = 45, .Color = Color(0.25, 0.25, 0.30) } },
+        { LevelTexID(214), { .UVs = { { 0.25, 0.25 } }, .Radius = 45, .Color = Color(0.25, 0.25, 0.30) } },
+        { LevelTexID(250), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
+        { LevelTexID(251), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
+        { LevelTexID(252), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
+        { LevelTexID(253), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
+        { LevelTexID(285), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.25, 0.25, 0.30) }, },
+        { LevelTexID(286), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.3, 0.3, 0.3) }, },
+        { LevelTexID(287), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
+        { LevelTexID(288), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
     };
 
     List<LightSource> GatherLightSources(Level& level, float multiplier = 1, float defaultRadius = 20) {
@@ -201,17 +212,11 @@ namespace Inferno::Graphics {
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& side = face.Side;
-                auto color = GetLightColor(side);
+                bool useOverlay = side.TMap2 > LevelTexID::Unset;
+                auto tmap = useOverlay ? side.TMap2 : side.TMap;
+                auto& info = TextureInfoD1.contains(tmap) ? TextureInfoD1[tmap] : defaultInfo;
+                auto color = info.Color == Color(0, 0, 0) ? GetLightColor(side) : info.Color;
                 if (!CheckMinLight(color)) continue;
-
-                // use the longest edge as X axis
-                auto edge = face.GetLongestEdge();
-
-                Vector2 uvX = side.UVs[(edge + 1) % 4] - side.UVs[edge];
-                Vector2 uvY = side.UVs[(edge + 3) % 4] - side.UVs[edge];
-                Vector2 uvVecX, uvVecY;
-                uvX.Normalize(uvVecX);
-                uvY.Normalize(uvVecY);
 
                 Vector2 minUV(FLT_MAX, FLT_MAX), maxUV(-FLT_MAX, -FLT_MAX);
                 for (int j = 0; j < 4; j++) {
@@ -233,17 +238,13 @@ namespace Inferno::Graphics {
                 if (isFar(maxUV.x)) xMax += 1;
                 if (isFar(maxUV.y)) yMax += 1;
 
-                bool useOverlay = side.TMap2 > LevelTexID::Unset;
-                float overlayAngle = GetOverlayRotationAngle(side.OverlayRotation);
-                auto tmap = useOverlay ? side.TMap2 : side.TMap;
-
-                auto& info = TextureInfoD1.contains(tmap) ? TextureInfoD1[tmap] : defaultInfo;
+                float overlayAngle = useOverlay ? GetOverlayRotationAngle(side.OverlayRotation) : 0;
 
                 // iterate each tile, checking the defined UVs
                 for (int ix = xMin; ix < xMax; ix++) {
                     for (int iy = yMin; iy < yMax; iy++) {
                         for (auto lt : info.UVs) {
-                            if (overlayAngle != 0) {
+                            if (useOverlay && overlayAngle != 0) {
                                 constexpr Vector2 offset(0.5, 0.5);
                                 lt = RotateVector(lt - offset, -overlayAngle) + offset;
                             }
@@ -294,19 +295,25 @@ namespace Inferno::Graphics {
         _lightingConstantsBuffer.End();
     }
 
+    std::array<LightData, MAX_LIGHTS> LIGHT_BUFFER{};
+
     void FillLightGridCS::SetLights(ID3D12GraphicsCommandList* cmdList) {
-        std::array<LightData, MAX_LIGHTS> lights{};
         auto sources = GatherLightSources(Game::Level, 0.18f, 60);
 
-        for (int i = 0; i < MAX_LIGHTS && i < sources.size(); i++) {
-            auto& source = sources[i];
-            lights[i].pos = { source.Position.x, source.Position.y, source.Position.z };
-            lights[i].color = { source.Color.R(), source.Color.G(), source.Color.B() };
-            lights[i].radiusSq = source.Radius * source.Radius;
+        for (int i = 0; i < MAX_LIGHTS; i++) {
+            if (i < sources.size()) {
+                auto& source = sources[i];
+                LIGHT_BUFFER[i].pos = { source.Position.x, source.Position.y, source.Position.z };
+                LIGHT_BUFFER[i].color = { source.Color.R(), source.Color.G(), source.Color.B() };
+                LIGHT_BUFFER[i].radiusSq = source.Radius * source.Radius;
+            }
+            else {
+                LIGHT_BUFFER[i].radiusSq = 0;
+            }
         }
 
         _lightUploadBuffer.Begin();
-        for (auto& light : lights) {
+        for (auto& light : LIGHT_BUFFER) {
             _lightUploadBuffer.Copy(light);
         }
         _lightUploadBuffer.End();
@@ -475,8 +482,8 @@ namespace Inferno::Graphics {
         //constants.ViewProjMatrix = camera.Projection * camera.View;
         constants.InverseProjection = camera.Projection.Invert();
 
-        Vector3 v0 = { -0.730262637, -0.414881557, 0.500083327 };
-        Vector3 v2 = { -0.730262637, -0.410143405, 0.500083327 };
+        //Vector3 v0 = { -0.730262637, -0.414881557, 0.500083327 };
+        //Vector3 v2 = { -0.730262637, -0.410143405, 0.500083327 };
         //auto proj = camera.Projection;
         //auto view = camera.View;
         //auto projView = camera.Projection * camera.View;
@@ -561,7 +568,7 @@ namespace Inferno::Graphics {
         //constants.ViewProjMatrix = viewProj3;
 
         //Compute(constants);
-        Compute2(constants, { 0, 0 });
+        //Compute2(constants, { 0, 0 });
 
         _csConstants.Begin();
         _csConstants.Copy({ &constants, 1 });

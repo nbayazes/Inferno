@@ -130,7 +130,7 @@ float hash12(float2 p) {
     return frac((p3.x + p3.y) * p3.z).xxx;
 }
 
-float noise(in float2 st) {
+float Noise(float2 st) {
     float2 i = floor(st);
     float2 f = frac(st);
 
@@ -149,6 +149,60 @@ float noise(in float2 st) {
             (d - b) * u.x * u.y;
 }
 
+float3 hash(float3 p) // replace this by something better
+{
+    p = float3(dot(p, float3(127.1, 311.7, 74.7)),
+			  dot(p, float3(269.5, 183.3, 246.1)),
+			  dot(p, float3(113.5, 271.9, 124.6)));
+
+    return -1.0 + 2.0 * frac(sin(p) * 43758.5453123);
+}
+
+float Noise3D(in float3 p) {
+    float3 i = floor(p);
+    float3 f = frac(p);
+	
+    float3 u = f * f * (3.0 - 2.0 * f);
+
+    return lerp(lerp(lerp(dot(hash(i + float3(0.0, 0.0, 0.0)), f - float3(0.0, 0.0, 0.0)),
+                          dot(hash(i + float3(1.0, 0.0, 0.0)), f - float3(1.0, 0.0, 0.0)), u.x),
+                     lerp(dot(hash(i + float3(0.0, 1.0, 0.0)), f - float3(0.0, 1.0, 0.0)),
+                          dot(hash(i + float3(1.0, 1.0, 0.0)), f - float3(1.0, 1.0, 0.0)), u.x), u.y),
+                lerp(lerp(dot(hash(i + float3(0.0, 0.0, 1.0)), f - float3(0.0, 0.0, 1.0)),
+                          dot(hash(i + float3(1.0, 0.0, 1.0)), f - float3(1.0, 0.0, 1.0)), u.x),
+                     lerp(dot(hash(i + float3(0.0, 1.0, 1.0)), f - float3(0.0, 1.0, 1.0)),
+                          dot(hash(i + float3(1.0, 1.0, 1.0)), f - float3(1.0, 1.0, 1.0)), u.x), u.y), u.z);
+}
+
+// Samples a texture randomly to make tiling less obvious
+float3 TextureNoTile(Texture2D tex, float2 uv, float3 pos, float v) {
+    //float k = texture(iChannel1, 0.005 * x).x; // cheap (cache friendly) lookup
+
+    float2 duvdx = ddx(uv);
+    float2 duvdy = ddy(uv);
+    
+    float k = Noise3D(pos);
+    float l = k * 8.0;
+    float f = frac(l);
+    
+    float ia = floor(l); // my method
+    float ib = ia + 1.0;
+    
+    float2 offa = sin(float2(3.0, 7.0) * ia); // can replace with any other hash
+    float2 offb = sin(float2(3.0, 7.0) * ib); // can replace with any other hash
+
+    //float3 cola = tex.SampleGrad(LinearSampler, uv + v * offa, duvdx, duvdy);
+    //float3 colb = tex.SampleGrad(LinearSampler, uv + v * offb, duvdx, duvdy);
+    //float3 cola = Sample2DAA(tex, uv + v * offa);
+    //float3 colb = Sample2DAA(tex, uv + v * offb);
+    float3 cola = tex.Sample(Sampler, uv + v * offa);
+    float3 colb = tex.Sample(Sampler, uv + v * offb);
+
+    float3 diff = cola - colb;
+    float sum = diff.x + diff.y + diff.z;
+    return lerp(cola, colb, smoothstep(0.2, 0.8, f - 0.1 * sum));
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
@@ -163,8 +217,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
     //return float4((input.normal + 1) / 2, 1);
 
-
     float4 base = Sample2DAA(Diffuse, input.uv);
+    //base.rgb = TextureNoTile(Diffuse, input.uv, input.world / 20, 1);
     float4 emissive = Sample2DAA(Emissive, input.uv) * base;
     emissive.a = 0;
     base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
@@ -226,13 +280,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
 #if 0
     lighting += lerp(1, max(0, input.col), LightingScale);
 #else
-    float gloss = 1;
-    float specularMask = 0;
-    float3 specularAlbedo = float3(0, 0, 0);
+    float gloss = 50;
+    float specularMask = 0.0;
+    float3 specularAlbedo = float3(0.6, 0.6, 0.6);
+    //diffuse.rgb = 0.5;
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
-    lighting.rgb += colorSum;
-
-    lighting.rgb = max(lighting.rgb, vertexLighting * 0.2);
+    lighting.rgb = colorSum * 1.0;
+    //lighting.rgb = max(lighting.rgb, vertexLighting * 0.25);
+    //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
 #endif
 
     return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);

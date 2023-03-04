@@ -49,9 +49,6 @@ float3 ITM_Reinhard(float3 sdr, float k = 1.0) {
     return k * sdr / (k - sdr);
 }
 
-float luminance(float3 v) {
-    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
-}
 
 // This is the new tone operator.  It resembles ACES in many ways, but it is simpler to evaluate with ALU.  One
 // advantage it has over Reinhard-Squared is that the shoulder goes to white more quickly and gives more overall
@@ -65,6 +62,50 @@ float3 ITM_Stanard(float3 sdr) {
     return pow(ITM_Reinhard(sdr, sqrt(4.0 / 27.0)), 2.0 / 3.0);
 }
 
+float Luminance(float3 v) {
+    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
+}
+
+float3 ChangeLuma(float3 color, float lumaOut) {
+    float luma = Luminance(color);
+    return color * (lumaOut / luma);
+}
+
+float3 reinhard_extended_luminance(float3 v, float max_white_l) {
+    float luma = Luminance(v);
+    float numerator = luma * (1.0f + (luma / (max_white_l * max_white_l)));
+    float destLuma = numerator / (1.0f + luma);
+    return ChangeLuma(v, destLuma);
+}
+
+float3 GammaRamp(float3 color, float gamma) {
+    return pow(color, float3(1.0 / gamma, 1.0 / gamma, 1.0 / gamma));
+}
+
+float3 Uncharted2ToneMapping(float3 color, float gamma) {
+    float A = 0.15;
+    float B = 0.50;
+    float C = 0.10;
+    float D = 0.20;
+    float E = 0.02;
+    float F = 0.30;
+    float W = 11.2;
+    float exposure = 2.0;
+    color *= exposure;
+    color = ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
+    float white = ((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E / F;
+    color /= white;
+    return GammaRamp(color, gamma);
+}
+
+float3 lumaBasedReinhardToneMapping(float3 color, float gamma = 1) {
+    float luma = Luminance(color);
+    float toneMappedLuma = luma / (1. + luma);
+    color *= toneMappedLuma / luma;
+    color = pow(color, float3(1. / gamma, 1. / gamma, 1. / gamma));
+    return color;
+}
+
 [RootSignature(RS)]
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID) {
@@ -72,13 +113,16 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     // Load HDR and bloom
     float3 hdrColor = ColorRW[DTid.xy];
-    float l = luminance(hdrColor);
-    if (l > 1.00)
-        hdrColor += (l - 1) / 3;
+    //float l = Luminance(hdrColor);
+    //if (l > 1.00)
+    //    hdrColor += (l - 1) / 3;
     hdrColor += g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
     hdrColor *= g_Exposure;
 
     // Tone map to SDR
+    hdrColor = reinhard_extended_luminance(hdrColor, 2.0);
     ColorRW[DTid.xy] = hdrColor;
+    //ColorRW[DTid.xy] = Uncharted2ToneMapping(hdrColor, 1.1);
+    //ColorRW[DTid.xy] = hdrColor;
 
 }

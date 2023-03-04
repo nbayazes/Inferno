@@ -11,7 +11,7 @@ namespace Inferno::Debug {
 
 namespace Inferno::Graphics {
 
-    constexpr int MAX_LIGHTS = 128; // todo: this is too low
+    constexpr int MAX_LIGHTS = 256;
     constexpr int LIGHT_GRID = 16;
     constexpr int LIGHT_GRID_MIN_DIM = 8;
 

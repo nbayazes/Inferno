@@ -29,7 +29,6 @@ float3 ApplyLightCommon(
     FSchlick(specularColor, diffuseColor, lightDir, halfVec);
 
     float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
-
     float nDotL = saturate(dot(normal, lightDir));
 
     return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
@@ -50,14 +49,22 @@ float3 ApplyPointLight(
 ) {
     float3 lightDir = lightPos - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
+    
+    // Modifying the normal requires the original distance
     float invLightDist = rsqrt(lightDistSq);
     lightDir *= invLightDist;
+
+    // clamp the distance to prevent pinpoint hotspots near surfaces
+    float lightDistSq2 = max(lightDistSq, lightRadiusSq * 0.01);
+    invLightDist = rsqrt(lightDistSq2);
 
     // modify 1/d^2 * R^2 to fall off at a fixed radius
     // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
     float distanceFalloff = lightRadiusSq * (invLightDist * invLightDist);
     distanceFalloff = max(0, distanceFalloff - rsqrt(distanceFalloff));
-    distanceFalloff = clamp(distanceFalloff, 0, 30); // clamp multiplier to prevent extreme highlights
+
+    // scale gloss down to 0 when light is close to prevent hotspots
+    gloss = smoothstep(0, 125, lightDistSq) * gloss;
 
     return distanceFalloff * ApplyLightCommon(
         diffuseColor,

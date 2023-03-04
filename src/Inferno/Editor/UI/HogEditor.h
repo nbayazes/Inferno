@@ -326,7 +326,7 @@ namespace Inferno::Editor {
         // Imports a robot or texture file to all levels in the mission
         void OnImportToLevels() {
             try {
-                static const COMDLG_FILTERSPEC filter[] = {
+                static constexpr COMDLG_FILTERSPEC filter[] = {
                     { L"Custom Data", L"*.HXM;*.POG;*.DTX" },
                     { L"Robots", L"*.HXM" },
                     { L"Textures", L"*.POG" },
