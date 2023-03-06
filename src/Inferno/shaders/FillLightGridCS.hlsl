@@ -149,13 +149,13 @@ void main(uint2 group : SV_GroupID,
     const float w = 1.0f;
     float4 screenSpace[4];
     // Top left point
-    screenSpace[0] = float4(float2(dispatchThreadID.x, dispatchThreadID.y) * BLOCK_SIZE, z, w);
+    screenSpace[0] = float4(float2(group.x, group.y) * WORK_GROUP_SIZE_X, z, w);
     // Top right point
-    screenSpace[1] = float4(float2(dispatchThreadID.x + 1, dispatchThreadID.y) * BLOCK_SIZE, z, w);
+    screenSpace[1] = float4(float2(group.x + 1, group.y) * WORK_GROUP_SIZE_X, z, w);
     // Bottom left point
-    screenSpace[2] = float4(float2(dispatchThreadID.x, dispatchThreadID.y + 1) * BLOCK_SIZE, z, w);
+    screenSpace[2] = float4(float2(group.x, group.y + 1) * WORK_GROUP_SIZE_X, z, w);
     // Bottom right point
-    screenSpace[3] = float4(float2(dispatchThreadID.x + 1, dispatchThreadID.y + 1) * BLOCK_SIZE, z, w);
+    screenSpace[3] = float4(float2(group.x + 1, group.y + 1) * WORK_GROUP_SIZE_X, z, w);
 
     float3 viewSpace[4];
     // Now convert the screen space points to view space
@@ -168,9 +168,9 @@ void main(uint2 group : SV_GroupID,
 
     Plane planes[4]; // planes are in view space
     planes[0] = ComputePlane(eyePos, viewSpace[2], viewSpace[0]); // Left plane
-    planes[1] = ComputePlane(eyePos, viewSpace[3], viewSpace[1]); // Right plane
+    planes[1] = ComputePlane(eyePos, viewSpace[1], viewSpace[3]); // Right plane
     planes[2] = ComputePlane(eyePos, viewSpace[0], viewSpace[1]); // Top plane
-    planes[3] = ComputePlane(eyePos, viewSpace[2], viewSpace[3]); // Bottom plane
+    planes[3] = ComputePlane(eyePos, viewSpace[3], viewSpace[2]); // Bottom plane
 
     // this assumes inverted depth buffer
     //float tileMinDepth = (rcp(asfloat(maxDepthUInt)) - 1.0) * RcpZMagic;
@@ -178,12 +178,10 @@ void main(uint2 group : SV_GroupID,
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
     //float zNear= lerp(1, 3000, tileMinDepth);
-    //float zNear = tileMinDepth / RcpZMagic;
     float zFar = tileMaxDepth / RcpZMagic;
-    //zNear = max(zNear, FLT_MIN); // don't allow a depth range of 0
-    float zNear = 1; // strange artifacts on transparent objects if using tileMinDepth / zMagic
+    float zNear = tileMinDepth / RcpZMagic;
+    zNear = max(zNear, FLT_MIN); // don't allow a zNear of 0
     //float invTileDepthRange = rcp(tileDepthRange);
-    // TODO: near/far clipping planes seem to be falling apart at or near the max depth with infinite projections
 
     // construct transform from world space to tile space (projection space constrained to tile area)
     //float2 invTileSize2X = float2(ViewportWidth, ViewportHeight) * InvTileDim;
@@ -247,7 +245,7 @@ void main(uint2 group : SV_GroupID,
             }
         }
 
-        if (!inside)
+        if (!inside || lightData.radiusSq <= 0)
             continue;
 
         uint slot;
