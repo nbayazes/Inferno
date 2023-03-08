@@ -174,7 +174,7 @@ namespace Inferno::Graphics {
 
     struct TextureLightInfo {
         List<Vector2> UVs = { { 0.5f, 0.5f } }; // UV positions for each light
-        float Offset = 3; // light surface offset
+        float Offset = 2; // light surface offset
         float Radius = 60; // light radius
         Color Color = { 0, 0, 0 };
     };

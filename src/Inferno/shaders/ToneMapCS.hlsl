@@ -120,7 +120,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     hdrColor *= g_Exposure;
 
     // Tone map to SDR
-    hdrColor = reinhard_extended_luminance(hdrColor, 2.0);
+    hdrColor = reinhard_extended_luminance(hdrColor, 4.0);
     ColorRW[DTid.xy] = hdrColor;
     //ColorRW[DTid.xy] = Uncharted2ToneMapping(hdrColor, 1.1);
     //ColorRW[DTid.xy] = hdrColor;

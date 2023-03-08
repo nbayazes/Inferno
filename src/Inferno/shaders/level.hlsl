@@ -39,7 +39,7 @@ SamplerState LinearSampler : register(s1);
 
 //Texture2DArray<float> lightShadowArrayTex : register(t10);
 
-static const float PI = 3.14159265f;
+//static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
@@ -152,8 +152,8 @@ float Noise(float2 st) {
 float3 hash(float3 p) // replace this by something better
 {
     p = float3(dot(p, float3(127.1, 311.7, 74.7)),
-			  dot(p, float3(269.5, 183.3, 246.1)),
-			  dot(p, float3(113.5, 271.9, 124.6)));
+              dot(p, float3(269.5, 183.3, 246.1)),
+              dot(p, float3(113.5, 271.9, 124.6)));
 
     return -1.0 + 2.0 * frac(sin(p) * 43758.5453123);
 }
@@ -161,7 +161,7 @@ float3 hash(float3 p) // replace this by something better
 float Noise3D(in float3 p) {
     float3 i = floor(p);
     float3 f = frac(p);
-	
+    
     float3 u = f * f * (3.0 - 2.0 * f);
 
     return lerp(lerp(lerp(dot(hash(i + float3(0.0, 0.0, 0.0)), f - float3(0.0, 0.0, 0.0)),
@@ -209,7 +209,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float4 specular = Specular(LightDirection, viewDir, input.normal);
     //float4 specular = Specular(-viewDir, viewDir, input.normal, 4);
     float4 specular = float4(0, 0, 0, 0);
-    // adding noise fixes dithering, but this is expensive. sample a texture instead
+    // adding noise fixes dithering, but this is expensive. sample a noise texture instead
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
     
     float4 lighting = float4(0, 0, 0, 0);
@@ -274,19 +274,21 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
 
     uint2 pixelPos = uint2(input.pos.xy);
-    float3 colorSum = float3(0, 0, 0);
-
+    
     float3 vertexLighting = lerp(1, max(0, input.col), LightingScale);
 #if 0
     lighting += lerp(1, max(0, input.col), LightingScale);
 #else
-    float gloss = 50;
-    float specularMask = 0.0;
+    float gloss = 75;
+    float specularMask = 1.0;
     float3 specularAlbedo = float3(0.6, 0.6, 0.6);
-    //diffuse.rgb = 0.5;
+    diffuse.rgb = 0.5;
+    float3 colorSum = float3(0, 0, 0);
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
-    lighting.rgb = colorSum * 1.0;
-    //lighting.rgb = max(lighting.rgb, vertexLighting * 0.25);
+    lighting.rgb = colorSum * 0.55;
+    //lighting.rgb += vertexLighting * 0.35;
+
+    //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
 #endif
 
