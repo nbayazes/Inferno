@@ -4,7 +4,7 @@
 
 namespace Inferno::Editor {
 
-    class ReactorEditor : public WindowBase {
+    class ReactorEditor final : public WindowBase {
     public:
         ReactorEditor() : WindowBase("Reactor", &Settings::Editor.Windows.Reactor) {}
     protected:
@@ -15,29 +15,31 @@ namespace Inferno::Editor {
                 ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-                bool defaultStrength = Game::Level.ReactorStrength == -1;
-                auto strengthDesc = "Default strength is 200 + 50 per level.\nSecret levels are 200 + 150.";
-                ImGui::TableRowLabelEx("Default strength", strengthDesc);
-                if (ImGui::Checkbox("##defaultstrength", &defaultStrength)) {
-                    Game::Level.ReactorStrength = defaultStrength ? -1 : 200;
-                }
-
-                {
-                    DisableControls disable(defaultStrength);
-                    ImGui::TableRowLabel("Strength");
-                    ImGui::SetNextItemWidth(-1);
-                    if (ImGui::InputInt("##Strength", &Game::Level.ReactorStrength, 10)) {
-                        if (Game::Level.ReactorStrength <= 0)
-                            Game::Level.ReactorStrength = 1;
+                if (!Game::Level.IsDescent1()) {
+                    bool defaultStrength = Game::Level.ReactorStrength == -1;
+                    auto strengthDesc = "Default strength is 200 + 50 per level.\nSecret levels are 200 + 150 per level.";
+                    ImGui::TableRowLabelEx("Default strength", strengthDesc);
+                    if (ImGui::Checkbox("##defaultstrength", &defaultStrength)) {
+                        Game::Level.ReactorStrength = defaultStrength ? -1 : 200;
                     }
-                }
 
-                auto countdownDesc = "Insane: 1x\nAce: 1.5x\nHotshot: 2x\nRookie: 2.5x\nTrainee: 3x";
-                ImGui::TableRowLabelEx("Countdown", countdownDesc);
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::InputInt("##Countdown", &Game::Level.BaseReactorCountdown, 5)) {
-                    if (Game::Level.BaseReactorCountdown <= 0)
-                        Game::Level.BaseReactorCountdown = 1;
+                    {
+                        DisableControls disable(defaultStrength);
+                        ImGui::TableRowLabel("Strength");
+                        ImGui::SetNextItemWidth(-1);
+                        if (ImGui::InputInt("##Strength", &Game::Level.ReactorStrength, 10)) {
+                            if (Game::Level.ReactorStrength <= 0)
+                                Game::Level.ReactorStrength = 1;
+                        }
+                    }
+
+                    auto countdownDesc = "Insane: 1x\nAce: 1.5x\nHotshot: 2x\nRookie: 2.5x\nTrainee: 3x";
+                    ImGui::TableRowLabelEx("Countdown", countdownDesc);
+                    ImGui::SetNextItemWidth(-1);
+                    if (ImGui::InputInt("##Countdown", &Game::Level.BaseReactorCountdown, 5)) {
+                        if (Game::Level.BaseReactorCountdown <= 0)
+                            Game::Level.BaseReactorCountdown = 1;
+                    }
                 }
 
                 ReactorTriggers();
@@ -47,7 +49,7 @@ namespace Inferno::Editor {
         }
 
     private:
-        void ReactorTriggers() {
+        void ReactorTriggers() const {
             ImGui::TableRowLabelEx("Targets to open\nwhen destroyed", "Only doors or destroyable walls are valid targets");
 
             ImGui::BeginChild("##cctriggers", { -1, 200 * Shell::DpiScale }, true);
