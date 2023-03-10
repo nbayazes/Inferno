@@ -24,6 +24,6 @@ namespace Inferno::Editor {
 
     float CheckDegeneracy(const Level& level, const Segment& seg);
 
-    List<SegmentDiagnostic> CheckObjects(Level& level);
+    List<SegmentDiagnostic> CheckObjects(const Level& level);
     List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors);
 }

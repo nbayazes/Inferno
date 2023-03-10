@@ -5,10 +5,11 @@
 #include "Editor.Object.h"
 #include "Editor.Geometry.h"
 #include "Face.h"
+#include "Resources.h"
 
 namespace Inferno::Editor {
     // The three adjacent points of a segment for each corner
-    constexpr ubyte AdjacentPointTable[8][3] = {
+    constexpr ubyte ADJACENT_POINT_TABLE[8][3] = {
         { 1, 3, 4 },
         { 2, 0, 5 },
         { 3, 1, 6 },
@@ -25,7 +26,7 @@ namespace Inferno::Editor {
         if (hasPlayerStart) {
             if (level.Objects[0].Type != ObjectType::Player) {
                 SPDLOG_WARN("Level contains a player start but it was not the first object. Swapping objects.");
-                auto index = Seq::findIndex(level.Objects, [](Object& obj) { return obj.Type == ObjectType::Player; });
+                auto index = Seq::findIndex(level.Objects, [](const Object& obj) { return obj.Type == ObjectType::Player; });
                 std::swap(level.Objects[0], level.Objects[*index]);
                 Events::SelectObject();
             }
@@ -68,7 +69,8 @@ namespace Inferno::Editor {
         for (int id = 0; id < level.Walls.size(); id++) {
             auto& wall = level.GetWall((WallID)id);
             wall.LinkedWall = WallID::None; // Wall links are only valid during runtime
-            if (wall.Clip == WClipID(2)) { // ID 2 is bad and has no animation
+            if (wall.Clip == WClipID(2)) {
+                // ID 2 is bad and has no animation
                 if (FixWallClip(wall))
                     SPDLOG_WARN("Fixed invalid wall clip on {}:{}", wall.Tag.Segment, wall.Tag.Side);
             }
@@ -103,7 +105,7 @@ namespace Inferno::Editor {
         List<Matcen> matcens = level.Matcens;
 
         // Matcens must be sorted ascending order
-        Seq::sortBy(matcens, [](Matcen& a, Matcen& b) { return a.Segment < b.Segment; });
+        Seq::sortBy(matcens, [](const Matcen& a, const Matcen& b) { return a.Segment < b.Segment; });
 
         level.Matcens.clear();
 
@@ -305,9 +307,9 @@ namespace Inferno::Editor {
         for (short n = 0; n < 8; n++) {
             // define vert numbers
             const auto& v0 = level.Vertices[seg.Indices[n]];
-            const auto& v1 = level.Vertices[seg.Indices[AdjacentPointTable[n][0]]];
-            const auto& v2 = level.Vertices[seg.Indices[AdjacentPointTable[n][1]]];
-            const auto& v3 = level.Vertices[seg.Indices[AdjacentPointTable[n][2]]];
+            const auto& v1 = level.Vertices[seg.Indices[ADJACENT_POINT_TABLE[n][0]]];
+            const auto& v2 = level.Vertices[seg.Indices[ADJACENT_POINT_TABLE[n][1]]];
+            const auto& v3 = level.Vertices[seg.Indices[ADJACENT_POINT_TABLE[n][2]]];
 
             auto a1 = AngleBetweenThreeVectors(v0, v1, v2, v3);
             auto a2 = AngleBetweenThreeVectors(v0, v2, v3, v1);
@@ -360,7 +362,7 @@ namespace Inferno::Editor {
         return false;
     }
 
-    List<SegmentDiagnostic> CheckObjects(Level& level) {
+    List<SegmentDiagnostic> CheckObjects(const Level& level) {
         List<SegmentDiagnostic> results;
 
         if (GetObjectCount(level, ObjectType::Player) == 0) {
@@ -386,6 +388,15 @@ namespace Inferno::Editor {
         }
 
         return results;
+    }
+
+    // returns false if the base and overlay textures have a different size
+    bool CheckOverlayTextureSize(const SegmentSide& side) {
+        if (!side.HasOverlay()) return true;
+
+        auto& ti1 = Resources::GetTextureInfo(side.TMap);
+        auto& ti2 = Resources::GetTextureInfo(side.TMap2);
+        return ti1.Width == ti2.Width && ti1.Height == ti2.Height;
     }
 
     List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors) {
@@ -414,6 +425,10 @@ namespace Inferno::Editor {
             }
 
             for (auto& side : SideIDs) {
+                if (!CheckOverlayTextureSize(seg.GetSide(side))) {
+                    results.push_back({ 0, { segid, side }, "Overlay and base texture size are different. This will crash most ports." });
+                }
+
                 auto connId = seg.GetConnection(side);
                 if (connId == SegID::Exit || connId == SegID::None) continue;
 
