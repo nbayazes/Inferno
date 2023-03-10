@@ -44,6 +44,6 @@ namespace Inferno::Editor {
         extern Command JoinPoints, ConnectSides;
         extern Command DetachSegments, DetachSides;
         extern Command JoinSides, MergeSegment;
-        extern Command SplitSegment2, SplitSegment5, SplitSegment7, SplitSegment8;
+        extern Command SplitSegment2, SplitSegment3, SplitSegment5, SplitSegment7, SplitSegment8;
     }
 }

@@ -428,8 +428,6 @@ namespace Inferno::Editor {
         seg.UpdateGeometricProps(level);
 
         level.Segments.push_back(seg);
-        Events::SegmentsChanged();
-        Events::LevelChanged();
         return id;
     }
 
@@ -1141,7 +1139,7 @@ namespace Inferno::Editor {
         for (int i = 0; i < 4; i++)
             newFace[i] = original[i];
 
-        // Lazy way to handle UVs
+        // Reset UVs
         for (auto& side : SideIDs) {
             if (side == tag.Side || side == opposite.Side) continue;
             ResetUVs(level, { tag.Segment, side });
@@ -1164,6 +1162,76 @@ namespace Inferno::Editor {
 
         Events::LevelChanged();
         return "Split Segment 2";
+    }
+
+    bool SplitSegment3(Level& level, Tag tag) {
+        if (!level.SegmentExists(tag)) return false;
+        Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
+        auto connected = level.GetConnectedSide(tag);
+
+        // Detach all sides except the one opposite to the selection
+        for (auto& side : SideIDs) {
+            if (side == opposite.Side) continue;
+            DetachSide(Game::Level, { tag.Segment, side });
+        }
+
+        auto srcFace = Face::FromSide(level, tag);
+        auto oppFace = Face::FromSide(level, opposite);
+
+        // find midpoints of each edge
+        Vector3 midpoints[4]{};
+        Vector3 midpoints2[4]{};
+        for (int i = 0; i < 4; i++) {
+            auto vec = (srcFace[i] - oppFace[3 - i]) / 3;
+            midpoints[i] = oppFace[3 - i] + vec;
+            midpoints2[i] = oppFace[3 - i] + vec * 2;
+        }
+
+        auto endpoints = srcFace.CopyPoints();
+
+        // move the selected face back to the midpoints
+        for (int i = 0; i < 4; i++)
+            srcFace[i] = midpoints[i];
+
+        // Insert new segment and move it to the second set of midpoints
+        auto newid = InsertSegment(level, tag, 0, InsertMode::Extrude, &Vector3::Zero);
+        if (!level.SegmentExists(newid)) return false;
+        auto newFace = Face::FromSide(level, { newid, tag.Side });
+        for (int i = 0; i < 4; i++)
+            newFace[i] = midpoints2[i];
+
+        // Insert a second new segment and move it to the end
+        auto newid2 = InsertSegment(level, { newid, tag.Side }, 0, InsertMode::Extrude, &Vector3::Zero);
+        if (!level.SegmentExists(newid2)) return false;
+        auto newFace2 = Face::FromSide(level, { newid2, tag.Side });
+        for (int i = 0; i < 4; i++)
+            newFace2[i] = endpoints[i];
+
+        // Reset UVs
+        for (auto& side : SideIDs) {
+            if (side == tag.Side || side == opposite.Side) continue;
+            ResetUVs(level, { tag.Segment, side });
+            ResetUVs(level, { newid, side });
+            ResetUVs(level, { newid2, side });
+        }
+
+        if (connected) {
+            // Connect the last segment to the original selection
+            level.GetSegment(newid2).GetConnection(tag.Side) = connected.Segment;
+            level.GetSegment(connected.Segment).GetConnection(connected.Side) = newid2;
+            WeldConnection(level, { newid2, tag.Side }, Settings::Editor.CleanupTolerance);
+        }
+
+        level.UpdateAllGeometricProps();
+        return true;
+    }
+
+    string OnSplitSegment3() {
+        if (!SplitSegment3(Game::Level, Editor::Selection.Tag()))
+            return {};
+
+        Events::LevelChanged();
+        return "Split Segment 3";
     }
 
     bool SplitSegment5(Level& level, Tag tag) {
@@ -1388,6 +1456,7 @@ namespace Inferno::Editor {
         Command ConnectSides{ .SnapshotAction = OnConnectSegments, .Name = "Connect Sides" };
 
         Command SplitSegment2{ .SnapshotAction = OnSplitSegment2, .Name = "Split Segment in 2" };
+        Command SplitSegment3{ .SnapshotAction = OnSplitSegment3, .Name = "Split Segment in 3" };
         Command SplitSegment5{ .SnapshotAction = OnSplitSegment5, .Name = "Split Segment in 5" };
         Command SplitSegment7{ .SnapshotAction = OnSplitSegment7, .Name = "Split Segment in 7" };
         Command SplitSegment8{ .SnapshotAction = OnSplitSegment8, .Name = "Split Segment in 8" };

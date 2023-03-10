@@ -46,6 +46,7 @@ namespace Inferno::Editor {
     void SplitMenu() {
         if (ImGui::BeginMenu("Split Segment")) {
             MenuCommand(Commands::SplitSegment2, EditorAction::SplitSegment2);
+            MenuCommand(Commands::SplitSegment3);
             MenuCommand(Commands::SplitSegment5);
             MenuCommand(Commands::SplitSegment7);
             MenuCommand(Commands::SplitSegment8);
