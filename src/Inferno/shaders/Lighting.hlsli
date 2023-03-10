@@ -481,7 +481,7 @@ void ShadeLights(inout float3 colorSum,
         LightData lightData = LightBuffer[lightIndex];
         //LightData lightData = LightBuffer[0];
 
-#if 0
+#if 1
         colorSum += ApplyPointLight(
             diffuseAlbedo, specularAlbedo, specularMask, gloss,
             normal, viewDir, worldPos, lightData.pos, 

@@ -121,7 +121,9 @@ float4 Sample2DAA(Texture2D tex, float2 uv) {
     float2 seam = floor(uv_texspace + .5);
     uv_texspace = (uv_texspace - seam) / fwidth(uv_texspace) + seam;
     uv_texspace = clamp(uv_texspace, seam - .5, seam + .5);
-    return tex.Sample(LinearSampler, uv_texspace / texsize);
+    float4 color = tex.Sample(LinearSampler, uv_texspace / texsize);
+    color.rgb = pow(color.rgb, 2.2); // sRGB to linear
+    return color;
 }
 
 float hash12(float2 p) {
@@ -274,20 +276,21 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
 
     uint2 pixelPos = uint2(input.pos.xy);
-    
-    float3 vertexLighting = lerp(1, max(0, input.col), LightingScale);
+    float3 vertexLighting = max(0, input.col.rgb);
+    vertexLighting = lerp(1, vertexLighting, LightingScale);
+    vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
 #if 0
-    lighting += lerp(1, max(0, input.col), LightingScale);
+    lighting.rgb += vertexLighting;
 #else
     float gloss = 75;
     float specularMask = 1.0;
     float3 specularAlbedo = float3(0.6, 0.6, 0.6);
-    diffuse.rgb = 0.5;
+    //diffuse.rgb = 0.5;
     float3 colorSum = float3(0, 0, 0);
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
     lighting.rgb = colorSum * 0.55;
-    //lighting.rgb += vertexLighting * 0.35;
-
+    //lighting.rgb += vertexLighting * 0.10;
+    lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
 #endif
