@@ -475,7 +475,7 @@ namespace Inferno::Editor {
             auto& trigger = level.Triggers[tid];
 
             // In reverse to preserve order while removing
-            for (int i = trigger.Targets.Count() - 1; i >= 0; i--) {
+            for (int i = (int)trigger.Targets.Count() - 1; i >= 0; i--) {
                 auto& target = trigger.Targets[i];
                 if (target.Side > SideID::Front || target.Side <= SideID::None) {
                     SPDLOG_WARN("Removing invalid trigger target {}:{} from trigger {}", target.Segment, target.Side, tid);
