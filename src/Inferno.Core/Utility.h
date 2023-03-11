@@ -448,21 +448,24 @@ namespace Inferno {
     namespace Seq {
         // Converts a std::set to a std::vector
         template<class T>
-        constexpr auto ofSet(const Set<T>& set) {
-            return List<T>(set.begin(), set.end());
+        constexpr auto ofSet(const std::set<T>& set) {
+            return std::vector<T>(set.begin(), set.end());
         }
 
+        // Converts a span to a std::vector
         template<class T>
-        constexpr auto toList(const span<T> xs) {
-            return List<T>(xs.begin(), xs.end());
+        constexpr auto toList(const std::span<T> xs) {
+            return std::vector<T>(xs.begin(), xs.end());
         }
 
+        // Returns true if the index is valid for a container
         constexpr bool inRange(auto&& xs, size_t index) {
             return index < xs.size();
         }
 
+        // Inserts a container into a set
         template<class T>
-        constexpr void insert(Set<T>& dest, auto&& src) {
+        constexpr void insert(std::set<T>& dest, auto&& src) {
             dest.insert(src.begin(), src.end());
         }
 
