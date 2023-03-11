@@ -109,6 +109,8 @@ namespace Inferno {
                 throw Exception("Descent 2 POG files support a max resolution of 4095 x 4095");
         }
 
+        stream.Seek(sizeof(BITMAPFILEHEADER) + bmih.biSize);
+
         // read palette
         Palette bmpPalette;
         for (auto& color : bmpPalette.Data) {
