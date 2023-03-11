@@ -61,7 +61,7 @@ struct LevelVertex {
 
 struct PS_INPUT {
     float4 pos : SV_POSITION;
-    float4 col : COLOR0;
+    centroid float4 col : COLOR0;
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
