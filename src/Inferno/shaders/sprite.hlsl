@@ -1,3 +1,4 @@
+
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -42,6 +43,7 @@ float SaturateSoft(float depth, float contrast) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     float4 diffuse = Diffuse.Sample(Sampler, input.uv);
+    diffuse.xyz = pow(diffuse.xyz, 2.2);
     diffuse *= input.col;
     diffuse.a = clamp(diffuse.a, 0, 1);
     if (diffuse.a <= 0.0)

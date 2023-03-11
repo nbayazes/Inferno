@@ -72,6 +72,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float3 shadow = 1 - saturate(dot(input.normal, lightDir)) * 0.5;
 
     float4 diffuse = Diffuse.Sample(Sampler, input.uv) * input.col;
+    diffuse.xyz = pow(diffuse.xyz, 2.2);
     float3 emissive = Emissive.Sample(Sampler, input.uv).rgb;
     emissive = EmissiveLight + emissive * diffuse.rgb;
     //emissive.rgb = float3(0.8, 0, 0.5);

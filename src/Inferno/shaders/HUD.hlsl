@@ -45,6 +45,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     
     
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0) * input.col;
+    color.xyz = pow(color.xyz, 2.2);
     if (ScanlinePitch > 0.1) {
         //dc *= dc;
         // warp the fragment coordinates
