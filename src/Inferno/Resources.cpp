@@ -185,16 +185,18 @@ namespace Inferno::Resources {
     }
 
     const PigEntry& GetTextureInfo(TexID id) {
+        if (auto bmp = CustomTextures.Get(id)) return bmp->Info;
         return Pig.Get(id);
     }
 
     const PigEntry* TryGetTextureInfo(TexID id) {
         if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return nullptr;
+        if (auto bmp = CustomTextures.Get(id)) return &bmp->Info;
         return &Pig.Get(id);
     }
 
     const PigEntry& GetTextureInfo(LevelTexID id) {
-        return Pig.Get(LookupLevelTexID(id));
+        return GetTextureInfo(LookupLevelTexID(id));
     }
 
     const PigEntry* TryGetTextureInfo(LevelTexID id) {
