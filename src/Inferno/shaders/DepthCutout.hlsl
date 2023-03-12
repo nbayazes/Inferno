@@ -4,14 +4,22 @@
     "DescriptorTable(SRV(t0, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t1, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t2, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), "\
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)," \
+    "StaticSampler(s1," \
+        "addressU = TEXTURE_ADDRESS_WRAP," \
+        "addressV = TEXTURE_ADDRESS_WRAP," \
+        "addressW = TEXTURE_ADDRESS_WRAP," \
+        "maxAnisotropy = 16," \
+        "filter = FILTER_ANISOTROPIC)"
 
 Texture2D Diffuse : register(t0);
 Texture2D Overlay : register(t1);
 Texture2D StMask : register(t2);
 SamplerState Sampler : register(s0);
+SamplerState LinearSampler : register(s1);
 
 #include "FrameConstants.hlsli"
+#include "Common.hlsli"
 
 cbuffer InstanceConstants : register(b1) {
     // Instance constants
@@ -48,17 +56,17 @@ float LinearizeDepth(float near, float far, float depth) {
 }
 
 float psmain(PS_INPUT input) : SV_Target {
-    float alpha = Diffuse.Sample(Sampler, input.uv).a;
+    float alpha = Sample2DAA(Diffuse, input.uv, LinearSampler).a;
     
     if (HasOverlay) {
-        float mask = StMask.Sample(Sampler, input.uv2).r; // only need a single channel
+        float mask = Sample2DAA(StMask, input.uv2, LinearSampler).r; // only need a single channel
         alpha *= mask.r > 0 ? (1 - mask.r) : 1;
         
-        float4 src = Overlay.Sample(Sampler, input.uv2);
+        float4 src = Sample2DAA(Overlay, input.uv2, LinearSampler);
         alpha = src.a + alpha * (1 - src.a); // Add overlay texture
     }
     
-    if (alpha <= 0.01) /*Threshold*/
+    if (alpha < 1) // alpha of 1 so that AA works properly
         discard;
     
     return LinearizeDepth(NearClip, FarClip, input.pos.z);

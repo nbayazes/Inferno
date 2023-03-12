@@ -607,5 +607,8 @@
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\LightGrid.hlsli" />
     <CopyFileToFolders Include="shaders\Lighting.hlsli" />
+    <CopyFileToFolders Include="shaders\Common.hlsli">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

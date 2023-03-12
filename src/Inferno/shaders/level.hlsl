@@ -1,5 +1,6 @@
 #include "FrameConstants.hlsli"
 #include "Lighting.hlsli"
+#include "Common.hlsli"
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
@@ -110,22 +111,6 @@ float rand2(float2 co) {
     return frac(sin(dot(co.xy, float2(12.9898, 78.233))) * 43758.5453);
 }
 
-// Samples a texture with anti-aliasing. Intended for low resolution textures.
-float4 Sample2DAA(Texture2D tex, float2 uv) {
-    // if (disabled)
-    // return tex.Sample(Sampler, uv);
-    float width, height;
-    tex.GetDimensions(width, height);
-    float2 texsize = float2(width, height);
-    float2 uv_texspace = uv * texsize;
-    float2 seam = floor(uv_texspace + .5);
-    uv_texspace = (uv_texspace - seam) / fwidth(uv_texspace) + seam;
-    uv_texspace = clamp(uv_texspace, seam - .5, seam + .5);
-    float4 color = tex.Sample(LinearSampler, uv_texspace / texsize);
-    color.rgb = pow(color.rgb, 2.2); // sRGB to linear
-    return color;
-}
-
 float hash12(float2 p) {
     float3 p3 = frac(float3(p.xyx) * .1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -208,78 +193,56 @@ float3 TextureNoTile(Texture2D tex, float2 uv, float3 pos, float v) {
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
-    //float4 specular = Specular(LightDirection, viewDir, input.normal);
-    //float4 specular = Specular(-viewDir, viewDir, input.normal, 4);
-    float4 specular = float4(0, 0, 0, 0);
     // adding noise fixes dithering, but this is expensive. sample a noise texture instead
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
     
     float4 lighting = float4(0, 0, 0, 0);
-    //float d = dot(input.normal, viewDir);
-    //lighting.rgb *= smoothstep(-0.005, -0.015, d); // remove lighting if surface points away from camera
-    //return float4((input.normal + 1) / 2, 1);
-
-    float4 base = Sample2DAA(Diffuse, input.uv);
+    float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
     //base.rgb = TextureNoTile(Diffuse, input.uv, input.world / 20, 1);
-    float4 emissive = Sample2DAA(Emissive, input.uv) * base;
-    emissive.a = 0;
-    base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
-    float4 diffuse;
+    float3 emissive = (Sample2DAA(Emissive, input.uv, LinearSampler) * base).rgb;
+    //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
+    float4 diffuse = base;
 
+    const float EMISSIVE_MULT = 3;
+    lighting.rgb += emissive * EMISSIVE_MULT;
+    
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = Sample2DAA(StMask, input.uv2).r; // only need a single channel
+        float mask = Sample2DAA(StMask, input.uv2, LinearSampler).r; // only need a single channel
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
-        float4 src = Sample2DAA(Diffuse2, input.uv2);
+        float4 src = Sample2DAA(Diffuse2, input.uv2, LinearSampler);
         
         float out_a = src.a + base.a * (1 - src.a);
         float3 out_rgb = src.a * src.rgb + (1 - src.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
         
-        if (diffuse.a < 0.01f)
-            discard;
-        
         // layer the emissive over the base emissive
-        float4 emissive2 = Sample2DAA(Emissive2, input.uv2) * diffuse;
-        emissive2.a = 0;
-        emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
-
-        lighting += diffuse * specular * src.a * 1.5;
-        //lighting = max(lighting, emissive); // lighting should always be at least as bright as the emissive texture
-        lighting += emissive2 * 3;
+        float3 emissive2 = (Sample2DAA(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
+        //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
+        lighting.rgb += emissive2 * EMISSIVE_MULT;
         // Boost the intensity of single channel colors
         // 2 / 1 -> 2, 2 / 0.33 -> 6
         //emissive *= 1.0 / max(length(emissive), 0.5); // white -> 1, single channel -> 0.33
         //float multiplier = length(emissive.rgb); 
         //lighting.a = saturate(lighting.a);
         //output.Color = diffuse * lighting;
-        //return ApplyLinearFog(diffuse * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
         
         // assume overlay is only emissive source for now
         //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
         //output.Emissive = diffuse * (1 + lighting);
         //output.Emissive = float4(diffuse.rgb * src.a * emissive.rgb, out_a);
     }
-    else {
-        //lighting = max(lighting, emissive); // lighting should always be at least as bright as the emissive texture
-        lighting += emissive * 3;
-        //output.Color = base * lighting;
-        diffuse = base;
 
-        //base.rgb *= emissive.rgb * 0.5;
-        //output.Emissive = base * lighting;
-        if (diffuse.a < 0.01f)
-            discard;
-        
-        //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
-    }
+    //if (diffuse.a < 0.01f)
+    //    discard;
 
-    uint2 pixelPos = uint2(input.pos.xy);
+    //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
+
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
     vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
-#if 0
+#if 1
     lighting.rgb += vertexLighting;
 #else
     float gloss = 75;
@@ -287,13 +250,16 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 specularAlbedo = float3(0.6, 0.6, 0.6);
     //diffuse.rgb = 0.5;
     float3 colorSum = float3(0, 0, 0);
+    uint2 pixelPos = uint2(input.pos.xy);
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
-    lighting.rgb = colorSum * 0.55;
+    lighting.rgb += colorSum * 1.0;
     //lighting.rgb += vertexLighting * 0.10;
     lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
 #endif
+    //diffuse.a = 0.5;
 
     return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
+
 }
