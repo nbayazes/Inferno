@@ -221,7 +221,7 @@ namespace Inferno::Resources {
         return GameData.ObjectBitmaps[ptr];
     }
 
-    Weapon DefaultWeapon{};
+    Weapon DefaultWeapon{ .AmmoUsage = 1 };
 
     Weapon& GetWeapon(WeaponID id) {
         if (!Seq::inRange(GameData.Weapons, (int)id)) return DefaultWeapon;

@@ -1117,8 +1117,11 @@ namespace Inferno::Game {
 
         Player.PrimaryWeapons = 0xffff;
         Player.SecondaryWeapons = 0xffff;
-        std::ranges::generate(Player.SecondaryAmmo, [] { return 10; });
-        std::ranges::generate(Player.PrimaryAmmo, [] { return 5000; });
+        int weaponCount = Level.IsDescent2() ? 10 : 5;
+        for (int i = 0; i < weaponCount; ++i) {
+            Player.SecondaryAmmo[i] = 10;
+            Player.PrimaryAmmo[i] = 5000;
+        }
     }
 
     void SetState(GameState state) {
