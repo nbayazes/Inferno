@@ -103,7 +103,7 @@ namespace Inferno {
                 case DepthMode::ReadWrite: return CommonStates::DepthDefault;
                 case DepthMode::Read: default: return CommonStates::DepthRead;
                 //case DepthMode::ReadEqual: return DepthEqual;
-            };
+            }
         }();
         
         psoDesc.SampleMask = UINT_MAX;

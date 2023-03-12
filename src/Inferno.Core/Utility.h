@@ -138,7 +138,7 @@ namespace Inferno {
 
 
     // Modulus division without negative numbers
-    constexpr auto mod(std::integral auto k, std::integral auto n) {
+    constexpr auto Mod(std::integral auto k, std::integral auto n) {
         return (k %= n) < 0 ? k + n : k;
     }
 
