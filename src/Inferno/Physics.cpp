@@ -101,24 +101,28 @@ namespace Inferno {
         auto& side = seg.GetSide(tag.Side);
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::ReadBitmap(Resources::LookupTexID(tmap));
-        auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
-        auto y = uint(uv.y * bitmap.Height) % bitmap.Height;
+        auto wrap = [](float x, uint16 size) {
+            // -1 so that x = 1.0 results in width - 1, correcting for the array index
+            return (uint)Mod(uint16(x * (float)size - 1.0f), size);
+        };
+        auto x = wrap(uv.x, bitmap.Width);
+        auto y = wrap(uv.y, bitmap.Height);
 
         // for overlay textures, check the supertransparent mask
         if (side.TMap2 > LevelTexID::Unset) {
             FixOverlayRotation(x, y, bitmap.Width, bitmap.Height, side.OverlayRotation);
-
-            if (!bitmap.Mask.empty() && bitmap.Mask[y * bitmap.Width + x] == Palette::SUPER_MASK)
+            const int idx = y * bitmap.Width + x;
+            if (!bitmap.Mask.empty() && bitmap.Mask[idx] == Palette::SUPER_MASK)
                 return true; // supertransparent overlay
 
-            if (bitmap.Data[y * bitmap.Width + x].a != 0)
+            if (bitmap.Data[idx].a != 0)
                 return false; // overlay wasn't transparent
 
             // Check the base texture
             auto& tmap1 = Resources::ReadBitmap(Resources::LookupTexID(side.TMap));
-            x = uint(uv.x * tmap1.Width) % tmap1.Width;
-            y = uint(uv.y * tmap1.Height) % tmap1.Height;
-            return tmap1.Data[y * bitmap.Width + x].a == 0;
+            x = wrap(uv.x, tmap1.Width);
+            y = wrap(uv.y, tmap1.Height);
+            return tmap1.Data[idx].a == 0;
         }
         else {
             return bitmap.Data[y * bitmap.Width + x].a == 0;

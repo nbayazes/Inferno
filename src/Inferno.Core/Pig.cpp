@@ -164,7 +164,7 @@ namespace Inferno {
     // Permanently flips image data along Y axis
     void FlipBitmapY(PigBitmap& bmp) {
         List<ubyte> buffer(bmp.Width * bmp.Height * 4);
-        int rowLen = sizeof(ubyte) * 4 * bmp.Width;
+        int rowLen = (int)sizeof(ubyte) * 4 * bmp.Width;
         int i = 0;
         for (int row = bmp.Height - 1; row >= 0; row--) {
             memcpy(&buffer[i], &bmp.Data[(size_t)row * bmp.Width], rowLen);
@@ -203,7 +203,7 @@ namespace Inferno {
                       const Palette& palette,
                       const PigEntry& entry) {
         reader.Seek(dataStart + entry.DataOffset);
-        /*auto size = */reader.ReadInt32();
+        reader.ReadInt32(); // size
 
         PigBitmap bmp(entry.Width, entry.Height, entry.Name);
         List<uint16> rowSize(bmp.Height);
@@ -246,9 +246,9 @@ namespace Inferno {
     }
 
     PigBitmap ReadBMP(StreamReader& reader,
-                       size_t dataStart,
-                       const Palette& palette,
-                       const PigEntry& entry) {
+                      size_t dataStart,
+                      const Palette& palette,
+                      const PigEntry& entry) {
         reader.Seek(dataStart + entry.DataOffset);
 
         PigBitmap bmp(entry.Width, entry.Height, entry.Name);
@@ -266,9 +266,9 @@ namespace Inferno {
     }
 
     PigBitmap ReadBitmapEntry(StreamReader& reader,
-                               size_t dataStart,
-                               const PigEntry& entry,
-                               const Palette& palette) {
+                              size_t dataStart,
+                              const PigEntry& entry,
+                              const Palette& palette) {
         auto bmp = entry.UsesRle ?
             ReadRLE(reader, dataStart, palette, entry) :
             ReadBMP(reader, dataStart, palette, entry);
