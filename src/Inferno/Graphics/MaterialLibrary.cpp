@@ -177,6 +177,58 @@ namespace Inferno::Render {
         return ids;
     }
 
+    // Expands a supertransparent mask by 1 pixel. Fixes artifacts around supertransparent pixels.
+    void ExpandMask(const PigBitmap& bmp, List<Palette::Color>& data) {
+        auto getPixel = [&](int x, int y) -> Palette::Color& {
+            if (x < 0) x += bmp.Width;
+            if (x > bmp.Width - 1) x -= bmp.Width;
+            if (y < 0) y += bmp.Height;
+            if (y > bmp.Height - 1) y -= bmp.Height;
+
+            int offset = bmp.Width * y + x;
+            return data[offset];
+        };
+
+        auto markMask = [](Palette::Color& dst) {
+            dst.r = 128;
+            dst.g = 0;
+            dst.b = 0;
+        };
+
+        // row pass. starts at top left.
+        for (int y = 0; y < bmp.Height; y++) {
+            for (int x = 0; x < bmp.Width; x++) {
+                auto& px = data[bmp.Width * y + x];
+                auto& below = getPixel(x, y + 1);
+                auto& above = getPixel(x, y - 1);
+                // row below is masked and this one isn't
+                if (below.r == 255 && px.r != 255) markMask(px);
+
+                // row above is masked and this one isn't
+                if (above.r == 255 && px.r != 255) markMask(px);
+            }
+        }
+
+        // column pass. starts at top left.
+        for (int x = 0; x < bmp.Width; x++) {
+            for (int y = 0; y < bmp.Height; y++) {
+                auto& px = data[bmp.Width * y + x];
+                auto& left = getPixel(x - 1, y);
+                auto& right = getPixel(x + 1, y);
+                // column left is masked and this one isn't
+                if (left.r == 255 && px.r != 255) markMask(px);
+
+                // column right is masked and this one isn't
+                if (right.r == 255 && px.r != 255) markMask(px);
+            }
+        }
+
+        // Update the marked pixels to 255
+        for (auto& px : data) {
+            if (px.r > 0) px.r = 255;
+        }
+    }
+
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
                                       MaterialUpload& upload,
                                       Texture2D& blackTex,
@@ -213,8 +265,11 @@ namespace Inferno::Render {
         if (!loadedDiffuse)
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
 
-        if (!loadedST && upload.SuperTransparent)
-            material.Textures[Material2D::SuperTransparency].Load(batch, upload.Bitmap->Mask.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
+        if (!loadedST && upload.SuperTransparent) {
+            List<Palette::Color> mask = upload.Bitmap->Mask; // copy mask, as modifying the original would affect collision
+            ExpandMask(*upload.Bitmap, mask);
+            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
+        }
 
         if (auto path = FileSystem::TryFindFile(baseName + "_e.DDS"))
             material.Textures[Material2D::Emissive].LoadDDS(batch, *path);
