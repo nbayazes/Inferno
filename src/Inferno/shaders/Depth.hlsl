@@ -12,8 +12,8 @@ struct LevelVertex {
 };
 
 struct PS_INPUT {
-    float4 pos : SV_POSITION;
-    float depth : COLOR0;
+    centroid float4 pos : SV_POSITION;
+    centroid float depth : COLOR0;
 };
 
 [RootSignature(RS)]

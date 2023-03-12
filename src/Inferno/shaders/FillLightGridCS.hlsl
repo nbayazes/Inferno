@@ -67,22 +67,15 @@ struct Frustum {
     Plane planes[4]; // left, right, top, bottom frustum planes.
 };
 
-// Convert clip space coordinates to view space
-float4 ClipToView(float4 clip) {
-    // View space position.
-    float4 view = mul(InverseProjection, clip);
-    // Perspective projection (undivide)
-    return view / view.w;
-}
-
 // Convert screen space coordinates to view space.
-float4 ScreenToView(float4 screen) {
+float3 ScreenToView(float4 screen) {
     // Convert to normalized texture coordinates
     float2 texCoord = screen.xy / float2(ViewportWidth, ViewportHeight);
-    texCoord.y = 1 - texCoord.y;
+    texCoord.y = 1 - texCoord.y; // flip y axis
     // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
-    float4 clip = float4(float2(texCoord.x, texCoord.y) * 2.0f - 1.0f, screen.z, screen.w);
-    return ClipToView(clip);
+    float4 clip = float4(texCoord * 2.0f - 1.0f, screen.z, screen.w);
+    float4 view = mul(InverseProjection, clip);
+    return view.xyz / view.w;
 }
 
 // Compute a plane from 3 noncollinear points that form a triangle.
@@ -160,7 +153,7 @@ void main(uint2 group : SV_GroupID,
     float3 viewSpace[4];
     // Now convert the screen space points to view space
     for (int i = 0; i < 4; i++) {
-        viewSpace[i] = ScreenToView(screenSpace[i]).xyz;
+        viewSpace[i] = ScreenToView(screenSpace[i]);
     }
 
     // View space eye position is always at the origin.
@@ -177,7 +170,7 @@ void main(uint2 group : SV_GroupID,
     //float tileMaxDepth = (rcp(asfloat(minDepthUInt)) - 1.0) * RcpZMagic;
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
-    //float zNear= lerp(1, 3000, tileMinDepth);
+
     float zFar = tileMaxDepth / RcpZMagic;
     float zNear = tileMinDepth / RcpZMagic;
     zNear = max(zNear, FLT_MIN); // don't allow a zNear of 0
