@@ -48,15 +48,15 @@ RWByteAddressBuffer lightGridBitMask : register(u1);
 groupshared uint minDepthUInt;
 groupshared uint maxDepthUInt;
 
-groupshared uint tileLightCountSphere;
-groupshared uint tileLightCountCone;
-groupshared uint tileLightCountConeShadowed;
+groupshared uint pointLightCount;
+groupshared uint tubeLightCount;
+groupshared uint rectLightCount;
 
-groupshared uint tileLightIndicesSphere[MAX_LIGHTS];
-groupshared uint tileLightIndicesCone[MAX_LIGHTS];
-groupshared uint tileLightIndicesConeShadowed[MAX_LIGHTS];
+groupshared uint pointLightIndices[MAX_LIGHTS];
+groupshared uint tubeLightIndices[MAX_LIGHTS];
+groupshared uint rectLightIndices[MAX_LIGHTS];
 
-groupshared uint4 tileLightBitMask;
+//groupshared uint4 tileLightBitMask;
 
 struct Plane {
     float3 N; // Plane normal.
@@ -89,7 +89,7 @@ Plane ComputePlane(float3 p0, float3 p1, float3 p2) {
 
     // Compute the distance to the origin using p0.
     //plane.d = dot(plane.N, p0);
-    plane.d = 0;
+    plane.d = 0; // view plane always crosses origin
     return plane;
 }
 
@@ -110,10 +110,10 @@ void main(uint2 group : SV_GroupID,
           uint3 dispatchThreadID : SV_DispatchThreadID) {
     // initialize shared data
     if (groupIndex == 0) {
-        tileLightCountSphere = 0;
-        tileLightCountCone = 0;
-        tileLightCountConeShadowed = 0;
-        tileLightBitMask = 0;
+        pointLightCount = 0;
+        tubeLightCount = 0;
+        rectLightCount = 0;
+        //tileLightBitMask = 0;
         minDepthUInt = 0xffffffff;
         maxDepthUInt = 0;
     }
@@ -165,50 +165,12 @@ void main(uint2 group : SV_GroupID,
     planes[2] = ComputePlane(eyePos, viewSpace[0], viewSpace[1]); // Top plane
     planes[3] = ComputePlane(eyePos, viewSpace[3], viewSpace[2]); // Bottom plane
 
-    // this assumes inverted depth buffer
-    //float tileMinDepth = (rcp(asfloat(maxDepthUInt)) - 1.0) * RcpZMagic;
-    //float tileMaxDepth = (rcp(asfloat(minDepthUInt)) - 1.0) * RcpZMagic;
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
 
     float zFar = tileMaxDepth / RcpZMagic;
     float zNear = tileMinDepth / RcpZMagic;
     zNear = max(zNear, FLT_MIN); // don't allow a zNear of 0
-    //float invTileDepthRange = rcp(tileDepthRange);
-
-    // construct transform from world space to tile space (projection space constrained to tile area)
-    //float2 invTileSize2X = float2(ViewportWidth, ViewportHeight) * InvTileDim;
-    // D3D-specific [0, 1] depth range ortho projection
-    // (but without negation of Z, since we already have that from the projection matrix)
-    //float3 tileBias = float3(-2.0 * float(group.x) + invTileSize2X.x - 1.0,
-    //                         -2.0 * float(group.y) + invTileSize2X.y - 1.0,
-    //                         -tileMinDepth * invTileDepthRange);
-
-    //tileBias = float3(0, 0, 0);
-    // tile bias is scale?
-    // ortho projection matrix for a section of the screen?
-    //float4x4 projToTile = float4x4(invTileSize2X.x, 0, 0, tileBias.x,
-    //                               0, -invTileSize2X.y, 0, tileBias.y,
-    //                               0, 0, invTileDepthRange, tileBias.z,
-    //                               0, 0, 0, 1);
-
-    //float4x4 tileMVP = mul(projToTile, ViewProjMatrix);
-
-    // extract frustum planes (these will be in world space)
-    // create normals for each plane
-    //float4 frustumPlanes[6];
-    //float4 tilePos = tileMVP[3];
-    //frustumPlanes[0] = tilePos + tileMVP[0];
-    //frustumPlanes[1] = tilePos - tileMVP[0];
-    //frustumPlanes[2] = tilePos + tileMVP[1];
-    //frustumPlanes[3] = tilePos - tileMVP[1];
-    //frustumPlanes[4] = tilePos + tileMVP[2];
-    //frustumPlanes[5] = tilePos - tileMVP[2];
-    //for (int n = 0; n < 6; n++) {
-    //    // 1 / sqrt(n * n) -> 1 / (sqrt(length^2)) -> 1 / len
-    //    // normalize
-    //    frustumPlanes[n] *= rsqrt(dot(frustumPlanes[n].xyz, frustumPlanes[n].xyz));
-    //}
 
     uint tileIndex = GetTileIndex(group.xy, TileCountX);
     uint tileOffset = GetTileOffset(tileIndex);
@@ -242,25 +204,23 @@ void main(uint2 group : SV_GroupID,
             continue;
 
         uint slot;
-        InterlockedAdd(tileLightCountSphere, 1, slot);
-        tileLightIndicesSphere[slot] = lightIndex;
 
-        //switch (lightData.type) {
-        //    case 0: // sphere
-        //        InterlockedAdd(tileLightCountSphere, 1, slot);
-        //        tileLightIndicesSphere[slot] = lightIndex;
-        //        break;
+        switch (lightData.type) {
+            case 0: // point
+                InterlockedAdd(pointLightCount, 1, slot);
+                pointLightIndices[slot] = lightIndex;
+                break;
 
-        //    case 1: // cone
-        //        InterlockedAdd(tileLightCountCone, 1, slot);
-        //        tileLightIndicesCone[slot] = lightIndex;
-        //        break;
+            case 1: // tube
+                InterlockedAdd(tubeLightCount, 1, slot);
+                tubeLightIndices[slot] = lightIndex;
+                break;
 
-        //    case 2: // cone w/ shadow map
-        //        InterlockedAdd(tileLightCountConeShadowed, 1, slot);
-        //        tileLightIndicesConeShadowed[slot] = lightIndex;
-        //        break;
-        //}
+            case 2: // rect
+                InterlockedAdd(rectLightCount, 1, slot);
+                rectLightIndices[slot] = lightIndex;
+                break;
+        }
 
         // update bitmask
         //InterlockedOr(tileLightBitMask[lightIndex / 32], 1 << (lightIndex % 32));
@@ -269,26 +229,28 @@ void main(uint2 group : SV_GroupID,
     GroupMemoryBarrierWithGroupSync();
 
     if (groupIndex == 0) {
-        uint lightCount =
-            ((tileLightCountSphere & 0xff) << 0) |
-            ((tileLightCountCone & 0xff) << 8) |
-            ((tileLightCountConeShadowed & 0xff) << 16);
-        lightGrid.Store(tileOffset + 0, lightCount); // tile light count
+        // store the light counts for each type
+        lightGrid.Store(tileOffset, pointLightCount);
+        lightGrid.Store(tileOffset + 4, tubeLightCount);
+        lightGrid.Store(tileOffset + 8, rectLightCount);
 
-        uint storeOffset = tileOffset + 4;
-        uint n;
-        for (n = 0; n < tileLightCountSphere; n++) {
-            lightGrid.Store(storeOffset, tileLightIndicesSphere[n]);
+        // store the index for each light type
+        uint storeOffset = tileOffset + TILE_HEADER_SIZE;
+
+        for (uint n = 0; n < pointLightCount; n++) {
+            lightGrid.Store(storeOffset, pointLightIndices[n]);
             storeOffset += 4;
         }
-        //for (n = 0; n < tileLightCountCone; n++) {
-        //    lightGrid.Store(storeOffset, tileLightIndicesCone[n]);
-        //    storeOffset += 4;
-        //}
-        //for (n = 0; n < tileLightCountConeShadowed; n++) {
-        //    lightGrid.Store(storeOffset, tileLightIndicesConeShadowed[n]);
-        //    storeOffset += 4;
-        //}
+
+        for (uint n = 0; n < tubeLightCount; n++) {
+            lightGrid.Store(storeOffset, tubeLightIndices[n]);
+            storeOffset += 4;
+        }
+
+        for (uint n = 0; n < rectLightCount; n++) {
+            lightGrid.Store(storeOffset, rectLightIndices[n]);
+            storeOffset += 4;
+        }
 
         //lightGridBitMask.Store4(tileIndex * 16, tileLightBitMask);
     }

@@ -199,28 +199,26 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 lighting = float4(0, 0, 0, 0);
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
     //base.rgb = TextureNoTile(Diffuse, input.uv, input.world / 20, 1);
-    float3 emissive = (Sample2DAA(Emissive, input.uv, LinearSampler) * base).rgb;
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    const float EMISSIVE_MULT = 3;
-    lighting.rgb += emissive * EMISSIVE_MULT;
+    float3 emissive = (Sample2DAA(Emissive, input.uv, LinearSampler)).rgb;
     
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = Sample2DAA(StMask, input.uv2, LinearSampler).r; // only need a single channel
+        float mask = Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
+        //float mask = StMask.Sample(Sampler, input.uv2).r;
         base *= mask.r > 0 ? (1 - mask.r) : 1;
 
-        float4 src = Sample2DAA(Diffuse2, input.uv2, LinearSampler);
-        
-        float out_a = src.a + base.a * (1 - src.a);
-        float3 out_rgb = src.a * src.rgb + (1 - src.a) * base.rgb;
+        float4 overlay = Sample2DAA(Diffuse2, input.uv2, LinearSampler);
+        //return float4(mask.rrr, 1);
+        float out_a = overlay.a + base.a * (1 - overlay.a);
+        float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
         
         // layer the emissive over the base emissive
-        float3 emissive2 = (Sample2DAA(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
         //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
-        lighting.rgb += emissive2 * EMISSIVE_MULT;
         // Boost the intensity of single channel colors
         // 2 / 1 -> 2, 2 / 0.33 -> 6
         //emissive *= 1.0 / max(length(emissive), 0.5); // white -> 1, single channel -> 0.33
@@ -234,19 +232,21 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //output.Emissive = float4(diffuse.rgb * src.a * emissive.rgb, out_a);
     }
 
-    //if (diffuse.a < 0.01f)
-    //    discard;
+    if (diffuse.a < 0.01f)
+        discard;
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
+    //lighting.rgb += emissive * diffuse;
 
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
     vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
-#if 1
+#if 0
     lighting.rgb += vertexLighting;
 #else
     float gloss = 75;
     float specularMask = 1.0;
+    //float3 specularAlbedo = float3(0.6, 0.6, 0.6);
     float3 specularAlbedo = float3(0.6, 0.6, 0.6);
     //diffuse.rgb = 0.5;
     float3 colorSum = float3(0, 0, 0);
@@ -254,7 +254,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
     lighting.rgb += colorSum * 1.0;
     //lighting.rgb += vertexLighting * 0.10;
-    lighting.rgb += vertexLighting * 1.0;
+    //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
 #endif

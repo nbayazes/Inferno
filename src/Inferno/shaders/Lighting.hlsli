@@ -165,11 +165,7 @@ float3 ApplySphereLight(
     );
 }
 
-float4 LineLight(float3 p, float3 n, float3 v, float3 r, float3 f0, float NdotV, float roughness, float lightRadius, out float3 fresnel) {
-    float3 lineStart = float3(-20, 0, 0);
-    float3 lineEnd = float3(20, 0, 0);
-    float tubeRadius = 3.25f;
-
+float4 LineLight(float3 p, float3 n, float3 v, float3 r, float3 f0, float roughness, float lightRadius, float tubeRadius, float3 lineStart, float3 lineEnd, out float3 fresnel) {
     float4 result = float4(0, 0, 0, 0);
     float3 l0 = lineStart - p;
     float3 l1 = lineEnd - p;
@@ -188,12 +184,17 @@ float4 LineLight(float3 p, float3 n, float3 v, float3 r, float3 f0, float NdotV,
 
     // point on the line
     float t = (RdotL0 * RdotLd - L0dotLd) / (distLd * distLd - RdotLd * RdotLd);
+
     result.xyz = float3(0, 0, 0);
-    float3 closestPoint = l0 + ld * t;
+    float3 closestPoint = l0 + ld * saturate(t);
+    // point on the tube based on its radius
+    float3 centerToRay = dot(closestPoint, r) * r - closestPoint;
+    closestPoint += centerToRay * saturate(tubeRadius / length(centerToRay));
 
     // taper the ends
     float endMult = smoothstep(1, 0, (t - 1) * distLd * 0.75);
     endMult *= smoothstep(0, 1, t * distLd * 0.75);
+    endMult = 1;
 
     float3 l = normalize(closestPoint);
     float3 h = normalize(l - v);
@@ -225,7 +226,7 @@ float4 LineLight(float3 p, float3 n, float3 v, float3 r, float3 f0, float NdotV,
     result.xyz = normalDistributionGGXLine(nDotH, alpha, alphaPrime)
         * geometrySmith(nDotV, nDotL, roughness)
         * fresnel * endMult * specFactor;
-    
+
     return result;
 }
 
@@ -350,20 +351,31 @@ float3 ApplyRectLight(
     float3 worldPos, // World-space fragment position
     float3 lightPos, // World-space light position
     float lightRadiusSq,
-    float3 lightColor // Radiance of light
+    float3 lightColor, // Radiance of light
+    float3 planeNormal,
+    float3 planeRight,
+    float3 planeUp
 ) {
-    float3 planeNormal = float3(0, -1, 0);
-    float3 planeRight = float3(1, 0, 0);
-    float3 planeUp = float3(0, 0, 1);
     Rect rect;
-    float vWidth = 2;
-    float vHeight = 20.0;
+
+    // shift the rectangle off of the surface so it lights it more evenly
+    // note that this does not affect the position of the reflection
+    float3 surfaceOffset = planeNormal *0;
 
     // reconstruct the rectangle
-    rect.a = lightPos + planeRight * vWidth + planeUp * vHeight;
-    rect.b = lightPos - planeRight * vWidth + planeUp * vHeight;
-    rect.c = lightPos - planeRight * vWidth - planeUp * vHeight;
-    rect.d = lightPos + planeRight * vWidth - planeUp * vHeight;
+    rect.a = lightPos + planeRight + planeUp + surfaceOffset;
+    rect.b = lightPos - planeRight + planeUp + surfaceOffset;
+    rect.c = lightPos - planeRight - planeUp + surfaceOffset;
+    rect.d = lightPos + planeRight - planeUp + surfaceOffset;
+
+    //planeRight = float3(0, 0, -3);
+    //planeUp = float3(0, 3, 0);
+    //planeUp = -planeUp;
+    //planeNormal = float3(-1, 0, 0);
+    float vWidth = length(planeRight);
+    float vHeight = length(planeUp);
+    planeRight = normalize(planeRight);
+    planeUp = normalize(planeUp);
 
     const float3 v0 = rect.a - worldPos;
     const float3 v1 = rect.b - worldPos;
@@ -371,12 +383,11 @@ float3 ApplyRectLight(
     const float3 v3 = rect.d - worldPos;
     const float3 vLight = lightPos - worldPos;
 
-    lightColor = float3(1, 0, 0);
     // Next, we approximate the solid angle (visible portion of rectangle) of lighting by taking the average of the
     // four corners and center point of the rectangle.
     // See the Frostbite paper for different ways of doing this with varying degrees of accuracy.
     float solidAngle = rectSolidAngle(v0, v1, v2, v3);
-
+    
     // Average each point
     float nDotL = solidAngle * 0.2 * (
         saturate(dot(normalize(v0), normal)) +
@@ -385,15 +396,17 @@ float3 ApplyRectLight(
         saturate(dot(normalize(v3), normal)) +
         saturate(dot(normalize(vLight), normal)));
 
-    specularColor = float3(0, 1, 0); // testing
+    //specularColor = float3(0, 1, 0); // testing
     // specular
     float3 specularFactor = float3(0, 0, 0);
     float falloff = 1;
     float2 nearest2DPoint = float2(0, 0);
-    float roughness = 0.30;
+    float roughness = 0.20;
     float lightRadius = sqrt(lightRadiusSq);
     float dist = distance(worldPos, lightPos);
 
+    //if (length(lightPos - worldPos) < 5)
+    //    nDotL = 1;
     {
         // find the closest point on the rectangle
         float3 r = reflect(viewDir, normal);
@@ -419,7 +432,6 @@ float3 ApplyRectLight(
         //float3 nearestPoint = input.lightPositionViewCenter.xyz + (right * nearest2DPoint.x + up * nearest2DPoint.y);
         //float dist = distance(positionView, nearestPoint);
         //float falloff = 1.0 - saturate(dist / lightRadius);
-
         //}
 
         // specular cutoff
@@ -427,16 +439,21 @@ float3 ApplyRectLight(
         if (dist > specCutoff) {
             specFactor = saturate(lerp(specFactor, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
         }
+
+        float windingCheck = dot(cross(planeRight, planeUp), lightPos - worldPos);
+        if (windingCheck < 0)
+            specFactor = 0; // Don't put specular on surfaces behind the light
+            
         specularFactor += specularColor * specFactor * specularAmount * nDotL;
     }
 
     // Distance falloff
-    float cutoff = lightRadius * 0.60; // cutoff distance for fading to black
+    float cutoff = lightRadius * 0.80; // cutoff distance for fading to black
     if (dist > cutoff) {
         falloff = lerp(falloff, 0, (dist - cutoff) / (lightRadius - cutoff));
     }
 
-    float3 color = diffuseColor * nDotL * lightRadius * 0.25 * falloff * lightColor + specularFactor;
+    float3 color = diffuseColor * nDotL * lightRadius * falloff * lightColor + specularFactor;
     // float3 light = (specularFactor + diffuseFactor) * falloff * lightColor * luminosity;	
     return max(0, color); // goes to inf when behind the light
 }
@@ -467,26 +484,23 @@ void ShadeLights(inout float3 colorSum,
     uint2 tilePos = GetTilePos(pixelPos, InvTileDim.xy);
     uint tileIndex = GetTileIndex(tilePos, TileCount.x);
     uint tileOffset = GetTileOffset(tileIndex);
-    uint tileLightCount = LightGrid.Load(tileOffset + 0);
-    uint tileLightCountSphere = (tileLightCount >> 0) & 0xff;
-    //uint tileLightCountCone = (tileLightCount >> 8) & 0xff;
-    //uint tileLightCountConeShadowed = (tileLightCount >> 16) & 0xff;
+    uint pointLightCount = LightGrid.Load(tileOffset);
+    uint tubeLightCount = LightGrid.Load(tileOffset + 4);
+    uint rectLightCount = LightGrid.Load(tileOffset + 8);
 
-    uint tileLightLoadOffset = tileOffset + 4;
+    uint tileLightLoadOffset = tileOffset + TILE_HEADER_SIZE;
 
-    // sphere
-    for (uint n = 0; n < tileLightCountSphere; n++, tileLightLoadOffset += 4) {
+    for (uint n = 0; n < pointLightCount; n++, tileLightLoadOffset += 4) {
         //uint g = LightGrid.Load(0);
         uint lightIndex = LightGrid.Load(tileLightLoadOffset);
         LightData lightData = LightBuffer[lightIndex];
         //LightData lightData = LightBuffer[0];
-
 #if 1
         colorSum += ApplyPointLight(
             diffuseAlbedo, specularAlbedo, specularMask, gloss,
-            normal, viewDir, worldPos, lightData.pos, 
+            normal, viewDir, worldPos, lightData.pos,
             lightData.radiusSq, lightData.color
-        );
+        ) * 1.00;
 #elif 0
         float sphereRadius = 5;
         lightData.pos += float3(0, -6, 0); // shift to center
@@ -503,26 +517,36 @@ void ShadeLights(inout float3 colorSum,
             normal, viewDir, worldPos, lightData.pos, lightEnd,
             lightData.radiusSq, lightData.color
         );
-#elif 1
+#endif
+    }
+
+    for (uint n = 0; n < tubeLightCount; n++, tileLightLoadOffset += 4) {
+        uint lightIndex = LightGrid.Load(tileLightLoadOffset);
+        LightData lightData = LightBuffer[lightIndex];
+
         float3 fresnel = float3(0, 0, 0);
-        float nDotV = max(dot(normal, viewDir), 0);
+        //float nDotV = max(dot(normal, viewDir), 0);
         float3 r = reflect(viewDir, normal);
-        float roughness = 0.125;
-        float4 diffSpec = LineLight(worldPos, normal, viewDir, r, float3(1, 1, 1), nDotV, roughness, sqrt(lightData.radiusSq), fresnel);
+        float roughness = 0.125 * 2;
+        float4 diffSpec = LineLight(worldPos, normal, viewDir, r, float3(1, 1, 1), roughness, sqrt(lightData.radiusSq), lightData.tubeRadius * 2, lightData.pos, lightData.pos2, fresnel);
 
         float metalness = 0;
         float3 lineLightKd = 1. - fresnel;
         lineLightKd *= 1. - metalness;
-        float LINE_LIGHT_INTENSITY = 512;
-        lineLightKd = 1;
-        diffuseAlbedo = float3(10, 0, 0);
-        colorSum += (lineLightKd * PI_INV * diffuseAlbedo + diffSpec.xyz) * LINE_LIGHT_INTENSITY * diffSpec.w /** lineLightAttenuation*/;
-#elif 1
+        float LINE_LIGHT_INTENSITY = 25;
+
+        colorSum += (lineLightKd * PI_INV * lightData.color + diffSpec.xyz) * LINE_LIGHT_INTENSITY * diffSpec.w /** lineLightAttenuation*/;
+    }
+
+    for (uint n = 0; n < rectLightCount; n++, tileLightLoadOffset += 4) {
+        uint lightIndex = LightGrid.Load(tileLightLoadOffset);
+        LightData light = LightBuffer[lightIndex];
+        float3 lightColor = light.color * 100;
+        specularAlbedo = lightColor * 0;
         colorSum += ApplyRectLight(
             diffuseAlbedo, specularAlbedo, specularMask, gloss,
-            normal, viewDir, worldPos, lightData.pos,
-            lightData.radiusSq, lightData.color
+            normal, viewDir, worldPos, light.pos,
+            light.radiusSq, lightColor, light.normal, light.right, light.up
         );
-#endif
     }
 }

@@ -1,9 +1,6 @@
 #pragma once
 #include "ComputeShader.h"
 
-//namespace Inferno::Render {
-//    extern Inferno::Camera Camera;
-//}
 namespace Inferno::Debug {
     inline Vector3 LightPosition;
     inline bool InsideFrustum;
@@ -12,34 +9,38 @@ namespace Inferno::Debug {
 namespace Inferno::Graphics {
 
     constexpr int MAX_LIGHTS = 256;
+
+    // First four bytes is the number of lights in the tile
+    // size per light must be a multiple of 4
+    constexpr int TILE_SIZE = 12 + MAX_LIGHTS * 4;
     constexpr int LIGHT_GRID = 16;
-    constexpr int LIGHT_GRID_MIN_DIM = 8;
+    constexpr uint32 LIGHT_GRID_MIN_DIM = 8;
+
+    enum class LightType : uint32 {
+        Point,
+        Tube,
+        Rectangle
+    };
 
     // must keep in sync with HLSL
     struct LightData {
-        std::array<float, 3> pos;
+        Vector3 pos;
         float radiusSq;
-        std::array<float, 3> color;
 
-        uint32_t type;
-        //std::array<float, 3> coneDir[3];
-        //float pad;
-        //std::array<float, 2> coneAngles[2];
+        Vector3 color;
+        LightType type;
 
-        //std::array<float, 16> shadowTextureMatrix;
+        Vector3 pos2;
+        float tubeRadius;
 
-        //Vector3 pos;
-        //float radiusSq;
+        Vector3 normal;
+        float _pad0;
 
-        //DirectX::XMFLOAT3A color;
-        //uint32_t type;
+        Vector3 right;
+        float _pad1;
 
-        ////DirectX::XMFLOAT3A coneDir;
-        ////DirectX::XMFLOAT2A coneDir;
-        //float coneDir[3];
-        //float coneAngles[2];
-
-        //float shadowTextureMatrix[16];
+        Vector3 up;
+        float _pad2;
     };
 
     struct LightingConstants {
@@ -100,13 +101,11 @@ namespace Inferno::Graphics {
             _width = width;
             _height = height;
 
-            // Assumes max resolution of 3840x2160
-            // todo: use width / height
-            constexpr uint32_t lightGridCells = AlignedCeil(3840, LIGHT_GRID_MIN_DIM) * AlignedCeil(2160, LIGHT_GRID_MIN_DIM);
-            uint32_t lightGridSizeBytes = lightGridCells * (4 + MAX_LIGHTS * 4);
+            const uint32 lightGridCells = AlignedCeil(width, LIGHT_GRID_MIN_DIM) * AlignedCeil(height, LIGHT_GRID_MIN_DIM);
+            uint32 lightGridSizeBytes = lightGridCells * TILE_SIZE;
             _lightGrid.Create(L"Light Grid", 1, lightGridSizeBytes);
 
-            uint32_t lightGridBitMaskSizeBytes = lightGridCells * 4 * 4;
+            uint32 lightGridBitMaskSizeBytes = lightGridCells * 4 * 4;
             _bitMask.Create(L"Light Bit Mask", 1, lightGridBitMaskSizeBytes);
             _lightData.Create(L"Light Data", sizeof LightData, MAX_LIGHTS);
 

@@ -13,14 +13,27 @@
 
 // keep in sync with C code
 #define MAX_LIGHTS 256
-#define TILE_SIZE (4 + MAX_LIGHTS * 4)
+#define TILE_HEADER_SIZE 12
+#define TILE_SIZE (TILE_HEADER_SIZE + MAX_LIGHTS * 4)
 
 struct LightData {
     float3 pos;
     float radiusSq;
 
-    float3 color;
+    float3 color; // color and intensity
     uint type;
+
+    float3 pos2; // for tube lights
+    float tubeRadius;
+
+    float3 normal; // rectangular and cone lights
+    float _pad0;
+
+    float3 right; // rectangular light
+    float _pad1;
+
+    float3 up; // rectangular light
+    float _pad2;
 
     //float3 coneDir;
     //float pad;
@@ -32,9 +45,11 @@ struct LightData {
 uint2 GetTilePos(float2 pos, float2 invTileDim) {
     return pos * invTileDim;
 }
+
 uint GetTileIndex(uint2 tilePos, uint tileCountX) {
     return tilePos.y * tileCountX + tilePos.x;
 }
+
 uint GetTileOffset(uint tileIndex) {
     return tileIndex * TILE_SIZE;
 }

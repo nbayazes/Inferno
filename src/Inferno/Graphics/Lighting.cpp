@@ -4,15 +4,6 @@
 #include "Game.h"
 
 namespace Inferno::Graphics {
-    namespace {
-        struct LightSource {
-            Vector3 Position;
-            Color Color;
-            float Radius = 20;
-        };
-    }
-
-
     Vector4 ClipToView(const Vector4& clip, const Matrix& inverseProj) {
         Vector4 view = Vector4::Transform(clip, inverseProj);
         return view / view.w;
@@ -141,13 +132,12 @@ namespace Inferno::Graphics {
         return weights;
     }
 
-    Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv, float overlayAngle) {
+    Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv) {
         auto indices = face.Side.GetRenderIndices();
 
-        Vector2 uvs[3]{};
+        Vector2 uvs[3];
         for (int i = 0; i < 3; i++) {
             uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
-            //if (overlayAngle != 0) uvs[i] = RotateVector(uvs[i], -overlayAngle);
         }
 
         // https://math.stackexchange.com/a/28552
@@ -172,36 +162,69 @@ namespace Inferno::Graphics {
         return Vector3::Barycentric(v0, v1, v2, f, g);
     }
 
+    Option<Vector3> FaceContainsUV(const Face& face, Vector2 uv) {
+        auto pos = TriangleContainsUV(face, 0, uv);
+        if (!pos) pos = TriangleContainsUV(face, 1, uv);
+        return pos;
+    }
+
     struct TextureLightInfo {
+        LightType Type = LightType::Point;
         List<Vector2> UVs = { { 0.5f, 0.5f } }; // UV positions for each light
         float Offset = 2; // light surface offset
         float Radius = 60; // light radius
+        float Width = 0.25f; // UV Width for rectangular lights
+        float Height = 0.25f; // UV Height for rectangular lights
         Color Color = { 0, 0, 0 };
+
+        bool IsContinuous() const {
+            if (UVs.size() != 2 || Type == LightType::Point) return false;
+            return (UVs[0].x == 0 && UVs[1].x == 1) || (UVs[0].y == 0 && UVs[1].y == 1);
+        }
     };
 
     // 0.25, 0.75, 1.25 - continuous spacing of two
     // 0.166, 0.5, 0.833 - spacing of three
-    const List<Vector2> LeftJustifiedUVs = { { 0.125f, 1.0f / 6 }, { 0.125f, 3.0f / 6 }, { 0.125f, 5.0f / 6 } };
+    //const List<Vector2> LeftJustifiedUVs = { { 0.125f, 1.0f / 6 }, { 0.125f, 3.0f / 6 }, { 0.125f, 5.0f / 6 } };
+    const List<Vector2> LeftJustifiedUVs = { { 0.125f, 0 }, { 0.125f, 1 } };
     //const List<Vector2> VerticalLightStack = { { 0.25f, 0.25f }, { 0.25f, 0.75f }, { 0.75f, 0.25f }, { 0.75f, 0.75f } };
     const List<Vector2> VerticalLightStack = { { 0.5f, 0.25f }, { 0.5f, 0.75f } };
 
+    // .Color = Color(0.25, 0.25, 0.30) }
     // V = 0 is top?
     Dictionary<LevelTexID, TextureLightInfo> TextureInfoD1 = {
-        { LevelTexID(212), { .UVs = { { 0.25, 0.25 }, { 0.75, 0.25 } }, .Radius = 45, .Color = Color(0.25, 0.25, 0.30) } },
-        { LevelTexID(213), { .UVs = { { 0.75, 0.25 } }, .Radius = 45, .Color = Color(0.25, 0.25, 0.30) } },
-        { LevelTexID(214), { .UVs = { { 0.25, 0.25 } }, .Radius = 45, .Color = Color(0.25, 0.25, 0.30) } },
-        { LevelTexID(250), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
-        { LevelTexID(251), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
-        { LevelTexID(252), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
-        { LevelTexID(253), { .UVs = LeftJustifiedUVs, .Offset = 1, .Radius = 45 } },
+        { LevelTexID(212), { .UVs = { { 0.25, 0.25 }, { 0.75, 0.25 } }, .Radius = 45 } },
+        { LevelTexID(213), { .UVs = { { 0.75, 0.25 } }, .Radius = 45 } },
+        { LevelTexID(214), { .UVs = { { 0.25, 0.25 } }, .Radius = 45 } },
+        { LevelTexID(250), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
+        { LevelTexID(251), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
+        { LevelTexID(252), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
+        { LevelTexID(253), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
+        { LevelTexID(281), { .Type = LightType::Rectangle, .UVs = { { 0.5, 0.5 } }, .Offset = 0.4, .Radius = 45, .Width = 4, .Height = 4 } },
         { LevelTexID(285), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.25, 0.25, 0.30) }, },
         { LevelTexID(286), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.3, 0.3, 0.3) }, },
         { LevelTexID(287), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
         { LevelTexID(288), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
     };
 
-    List<LightSource> GatherLightSources(Level& level, float multiplier = 1, float defaultRadius = 20) {
-        List<LightSource> sources;
+    Option<Vector2> IntersectLines(Vector2 a, Vector2 b, Vector2 c, Vector2 d) {
+        auto r = b - a;
+        auto s = d - c;
+        auto den = r.Cross(s).x;
+        if (den == 0) return {};
+
+        auto u = ((c - a).Cross(r) / den).x;
+        auto t = ((c - a).Cross(s) / den).x;
+
+        constexpr float eps = 0.001;
+        if (t >= -eps && t <= 1 + eps && u >= -eps && u <= 1 + eps)
+            return a + t * r; // intersects
+
+        return {};
+    }
+
+    List<LightData> GatherLightSources(Level& level, float multiplier = 1, float defaultRadius = 20) {
+        List<LightData> sources;
 
         TextureLightInfo defaultInfo{ .Radius = defaultRadius };
 
@@ -229,43 +252,131 @@ namespace Inferno::Graphics {
                 auto yMin = (int)std::round(minUV.y);
                 auto xMax = (int)std::round(maxUV.x);
                 auto yMax = (int)std::round(maxUV.y);
-                auto isFar = [](float f) {
+                auto isFarFromEdge = [](float f) {
                     auto diff = std::abs(f - std::round(f));
                     return diff > 0.01f;
                 };
-                if (isFar(minUV.x)) xMin -= 1;
-                if (isFar(minUV.y)) yMin -= 1;
-                if (isFar(maxUV.x)) xMax += 1;
-                if (isFar(maxUV.y)) yMax += 1;
+                if (isFarFromEdge(minUV.x)) xMin -= 1;
+                if (isFarFromEdge(minUV.y)) yMin -= 1;
+                if (isFarFromEdge(maxUV.x)) xMax += 1;
+                if (isFarFromEdge(maxUV.y)) yMax += 1;
 
                 float overlayAngle = useOverlay ? GetOverlayRotationAngle(side.OverlayRotation) : 0;
+
+                Vector2 prevIntersects[2];
 
                 // iterate each tile, checking the defined UVs
                 for (int ix = xMin; ix < xMax; ix++) {
                     for (int iy = yMin; iy < yMax; iy++) {
-                        for (auto lt : info.UVs) {
+                        if (info.IsContinuous()) {
+                            // project the uv to the edge and create two points offset by the light radius
+                            Vector2 uvOffset{ (float)ix, (float)iy };
+
+                            auto uv0 = info.UVs[0];
+                            auto uv1 = info.UVs[1];
+
                             if (useOverlay && overlayAngle != 0) {
                                 constexpr Vector2 offset(0.5, 0.5);
-                                lt = RotateVector(lt - offset, -overlayAngle) + offset;
+                                uv0 = RotateVector(uv0 - offset, -overlayAngle) + offset;
+                                uv1 = RotateVector(uv1 - offset, -overlayAngle) + offset;
                             }
 
-                            // todo: special case when uv is aligned to whole number and index equals min/max range
-                            Vector2 uv = { ix + lt.x, iy + lt.y };
+                            uv0 += uvOffset;
+                            uv1 += uvOffset;
 
-                            // Check both faces
-                            auto pos = TriangleContainsUV(face, 0, uv, overlayAngle);
-                            if (!pos) pos = TriangleContainsUV(face, 1, uv, overlayAngle);
+                            // Extend the begin/end uvs so they should always cross
+                            auto uvVec = uv1 - uv0;
+                            uvVec.Normalize();
+                            //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
+                            //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
 
-                            if (pos) {
-                                *pos += face.AverageNormal() * info.Offset;
+                            uv0 -= uvVec * Vector2(10, 10);
+                            uv1 += uvVec * Vector2(10, 10);
 
-                                LightSource light = {
-                                    //.Indices = seg.GetVertexIndices(sideId),
-                                    .Position = *pos,
-                                    .Color = color * multiplier,
-                                    .Radius = side.LightRadiusOverride.value_or(info.Radius),
-                                };
-                                sources.push_back(light);
+                            int found = 0;
+                            Vector2 intersects[2];
+
+                            // there should always be two intersections
+                            for (int i = 0; i < 4; i++) {
+                                if (auto intersect = IntersectLines(uv0, uv1, side.UVs[i], side.UVs[(i + 1) % 4])) {
+                                    intersects[found++] = *intersect;
+                                    if (found > 1) break;
+                                }
+                            }
+
+                            if (found == 2) {
+                                // Check if the previous intersections are on top of this one
+                                if ((intersects[0] - prevIntersects[0]).Length() < 0.1 &&
+                                    (intersects[1] - prevIntersects[1]).Length() < 0.1)
+                                    continue; // Skip overlap
+
+                                prevIntersects[0] = intersects[0];
+                                prevIntersects[1] = intersects[1];
+
+                                auto uvIntVec = intersects[1] - intersects[0];
+                                uvIntVec.Normalize();
+                                constexpr float uvIntOffset = 0.1;
+
+                                auto pos = FaceContainsUV(face, intersects[0] + uvIntVec * uvIntOffset);
+                                auto pos2 = FaceContainsUV(face, intersects[1] - uvIntVec * uvIntOffset);
+
+                                if (pos && pos2) {
+                                    // 'up' is the wrapped axis
+                                    auto up = (*pos2 - *pos) / 2;
+                                    auto center = (*pos2 + *pos) / 2;
+                                    Vector3 upVec;
+                                    up.Normalize(upVec);
+                                    auto rightVec = side.AverageNormal.Cross(upVec);
+
+                                    LightData light{};
+                                    light.type = LightType::Rectangle;
+                                    light.pos = center + side.AverageNormal * info.Offset;
+                                    light.color = color.ToVector3() * multiplier;
+                                    light.radiusSq = side.LightRadiusOverride.value_or(info.Radius);
+                                    light.radiusSq *= light.radiusSq;
+                                    light.right = rightVec * info.Width;
+                                    light.up = up - upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
+                                    light.normal = side.AverageNormal;
+                                    //light.pos2 = *pos2 + faceOffset;
+                                    //light.tubeRadius = 0.5;
+                                    sources.push_back(light);
+                                }
+                            }
+                        }
+                        else {
+                            for (auto lt : info.UVs) {
+                                if (useOverlay && overlayAngle != 0) {
+                                    constexpr Vector2 offset(0.5, 0.5);
+                                    lt = RotateVector(lt - offset, -overlayAngle) + offset;
+                                }
+
+                                Vector2 uv = { ix + lt.x, iy + lt.y };
+
+                                // Check both faces
+                                auto pos = FaceContainsUV(face, uv);
+                                auto rightPos = FaceContainsUV(face, uv + Vector2(0.1, 0));
+
+                                if (pos && rightPos) {
+                                    // todo: scale right / up as a UV on the face
+                                    auto rightVec = *rightPos - *pos;
+                                    rightVec.Normalize();
+                                    auto upVec = side.AverageNormal.Cross(rightVec);
+                                    //auto upVec = rightVec.Cross(side.AverageNormal);
+                                    upVec.Normalize();
+
+                                    // sample points close to the uv to get up/right axis
+                                    LightData light{};
+                                    light.type = info.Type;
+                                    light.pos = *pos + side.AverageNormal * info.Offset;
+                                    light.color = color.ToVector3() * multiplier;
+                                    light.radiusSq = side.LightRadiusOverride.value_or(info.Radius);
+                                    light.radiusSq *= light.radiusSq;
+                                    light.normal = side.AverageNormal;
+                                    light.right = rightVec * info.Width;
+                                    light.up = -upVec * info.Height; // reverse for some reason
+
+                                    sources.push_back(light);
+                                }
                             }
                         }
                     }
@@ -298,14 +409,12 @@ namespace Inferno::Graphics {
     std::array<LightData, MAX_LIGHTS> LIGHT_BUFFER{};
 
     void FillLightGridCS::SetLights(ID3D12GraphicsCommandList* cmdList) {
-        auto sources = GatherLightSources(Game::Level, 0.18f, 60);
+        auto sources = GatherLightSources(Game::Level, 1, 60);
 
         for (int i = 0; i < MAX_LIGHTS; i++) {
             if (i < sources.size()) {
                 auto& source = sources[i];
-                LIGHT_BUFFER[i].pos = { source.Position.x, source.Position.y, source.Position.z };
-                LIGHT_BUFFER[i].color = { source.Color.R(), source.Color.G(), source.Color.B() };
-                LIGHT_BUFFER[i].radiusSq = source.Radius * source.Radius;
+                LIGHT_BUFFER[i] = source;
             }
             else {
                 LIGHT_BUFFER[i].radiusSq = 0;
@@ -371,7 +480,7 @@ namespace Inferno::Graphics {
         for (int p = 0; p < 6; p++) {
             Vector3 planeNormal(frustumPlanes[p]);
             float planeDist = frustumPlanes[p].w;
-            float d = Vector3(lightData.pos.data()).Dot(planeNormal) + planeDist;
+            float d = Vector3(lightData.pos).Dot(planeNormal) + planeDist;
             //float d = dot(lightWorldPos, frustumPlanes[p].xyz) + frustumPlanes[p].w;
             if (d < -lightCullRadius) {
                 overlapping = false;
@@ -421,10 +530,10 @@ namespace Inferno::Graphics {
         float radius = std::sqrt(light.radiusSq);
         bool inside = true;
         // project light pos into view space
-        auto lightPos = Vector3::Transform(Vector3(light.pos.data()), c.ViewMatrix);
+        auto lightPos = Vector3::Transform(Vector3(light.pos), c.ViewMatrix);
 
         DirectX::BoundingFrustum frustum(Render::Camera.Projection);
-        bool contains = frustum.Contains(Vector3(light.pos.data()));
+        bool contains = frustum.Contains(Vector3(light.pos));
 
         for (int i = 0; i < 4; i++) {
             auto& plane = planes[i];
