@@ -116,7 +116,8 @@ namespace Inferno {
             SetDoorClip(level, wall.Tag, clip, i);
         }
 
-        if (i > clip.NumFrames / 2) { // half way open
+        if (i > clip.NumFrames / 2) {
+            // half way open
             wall.SetFlag(WallFlag::DoorOpened);
             if (cwall) cwall->SetFlag(WallFlag::DoorOpened);
         }
@@ -164,7 +165,8 @@ namespace Inferno {
 
         auto& clip = Resources::GetDoorClip(wall.Clip);
 
-        if (door.Time == 0) { // play sound at start of closing
+        if (door.Time == 0) {
+            // play sound at start of closing
             //auto sound = Resources::GetSoundIndex(clip.CloseSound);
             Sound3D sound(side.Center, wall.Tag.Segment);
             sound.Resource = Resources::GetSoundResource(clip.CloseSound);
@@ -175,7 +177,8 @@ namespace Inferno {
         auto frameTime = clip.PlayTime / clip.NumFrames;
         auto i = int(clip.NumFrames - door.Time / frameTime - 1);
 
-        if (i < clip.NumFrames / 2) { // Half way closed
+        if (i < clip.NumFrames / 2) {
+            // Half way closed
             //SPDLOG_INFO("Set door {}:{} state to opened", wall.Tag.Segment, wall.Tag.Side);
             front->ClearFlag(WallFlag::DoorOpened);
             if (back) back->ClearFlag(WallFlag::DoorOpened);
@@ -284,8 +287,6 @@ namespace Inferno {
         PrintHudMessage(msg);
     }
 
-    void ActivateTriggerD1(Level& /*level*/, Trigger& /*trigger*/) {}
-
     bool WallIsForcefield(Level& level, Trigger& trigger) {
         for (auto& tag : trigger.Targets) {
             if (auto side = level.TryGetSide(tag)) {
@@ -381,9 +382,7 @@ namespace Inferno {
 
     void EnterSecretLevel() {}
 
-    void ToggleWall(Segment& /*seg*/, SideID /*side*/) {
-
-    }
+    void ToggleWall(Segment& /*seg*/, SideID /*side*/) { }
 
     Option<SideID> GetConnectedSide(Segment& base, SegID conn) {
         for (auto& side : SideIDs) {
@@ -495,7 +494,8 @@ namespace Inferno {
         if (!wall) return;
 
         if (wall->Type != WallType::Destroyable ||
-            wall->HasFlag(WallFlag::Destroyed)) return;
+            wall->HasFlag(WallFlag::Destroyed))
+            return;
 
         wall->HitPoints -= damage;
         auto cwall = level.TryGetConnectedWall(tag);
@@ -524,7 +524,8 @@ namespace Inferno {
 
     void DamageWall(Level& level, Wall& wall, float damage) {
         if (wall.Type != WallType::Destroyable ||
-            wall.HasFlag(WallFlag::Destroyed)) return;
+            wall.HasFlag(WallFlag::Destroyed))
+            return;
 
         wall.HitPoints -= damage;
 
@@ -623,6 +624,42 @@ namespace Inferno {
             sound.Resource = Resources::GetSoundResource(SoundID::CloakOn);
             Sound::Play(sound);
         }
+    }
+
+    void ActivateTriggerD1(Level& level, Trigger& trigger) {
+        if (trigger.HasFlag(TriggerFlagD1::OneShot)) {
+            if (!trigger.HasFlag(TriggerFlagD1::On))
+                return;
+            // should also disable the other side
+            ClearFlag(trigger.FlagsD1, TriggerFlagD1::On);
+        }
+
+        if (trigger.HasFlag(TriggerFlagD1::Exit)) {
+            StartExitSequence(level);
+        }
+
+        if (trigger.HasFlag(TriggerFlagD1::OpenDoor)) {
+            OpenDoorTrigger(level, trigger);
+            PrintTriggerMessage(trigger, "Door{} opened");
+        }
+
+        if (trigger.HasFlag(TriggerFlagD1::Matcen)) {
+            // todo: matcen trigger
+        }
+
+        if (trigger.HasFlag(TriggerFlagD1::IllusionOn)) {
+            PrintTriggerMessage(trigger, "Illusion{} on!");
+            for (auto& tag : trigger.Targets)
+                IllusionOn(level, tag);
+        }
+
+        if (trigger.HasFlag(TriggerFlagD1::IllusionOff)) {
+            PrintTriggerMessage(trigger, "Illusion{} off!");
+            for (auto& tag : trigger.Targets)
+                IllusionOff(level, tag);
+        }
+
+        // omitted: energy and shield drain
     }
 
     void ActivateTriggerD2(Level& level, Trigger& trigger) {
@@ -774,4 +811,3 @@ namespace Inferno {
         }
     }
 }
-
