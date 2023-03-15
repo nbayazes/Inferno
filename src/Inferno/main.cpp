@@ -180,7 +180,12 @@ void TestSegID() {
     assert(id == SegID(6));
 }
 
-int main() {
+int APIENTRY WinMain(HINSTANCE /*hInstance*/,
+                     HINSTANCE /*hPrevInstance*/,
+                     LPSTR     /*lpCmdLine*/,
+                     int       /*nCmdShow*/) {
+    AllocConsole();
+//int main() {
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
