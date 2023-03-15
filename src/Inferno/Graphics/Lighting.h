@@ -175,11 +175,6 @@ namespace Inferno::Graphics {
             //m_CameraToWorld.SetRotation(Quaternion(m_Basis));
         }
 
-        bool Compute(const CSConstants& c);
-
-
-        bool Compute2(const CSConstants& c, Vector2 threadId);
-
         void Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth);
     };
 }

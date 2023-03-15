@@ -272,7 +272,7 @@ namespace Inferno {
                 }
             }
 
-            return index;
+            return (PointID)index;
         }
     };
 }
