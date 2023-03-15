@@ -253,7 +253,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     uint2 pixelPos = uint2(input.pos.xy);
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
     lighting.rgb += colorSum * 1.0;
-    //lighting.rgb += vertexLighting * 0.10;
+    lighting.rgb += vertexLighting * 0.20;
     //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
