@@ -44,7 +44,9 @@ namespace Inferno {
         DontHave = 145, // For primary weapons
         HaveNo = 147, // For secondary weapons
         Sx = 149,
-        CantOpenDoor = 152, // 132 for d1
+
+        CantOpenDoorD1 = 132,
+        CantOpenDoor = 152,
 
         Lvl = 329, // Laser lvl
         Quad = 330,

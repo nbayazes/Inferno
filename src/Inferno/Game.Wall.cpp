@@ -574,7 +574,7 @@ namespace Inferno {
                         else if (HasFlag(wall.Keys, WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
                             msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), accessDenied);
                         else if (wall.HasFlag(WallFlag::DoorLocked))
-                            msg = Resources::GetString(GameString::CantOpenDoor);
+                            msg = Resources::GetString(level.IsDescent1() ? GameString::CantOpenDoorD1 : GameString::CantOpenDoor);
 
                         if (!msg.empty())
                             PrintHudMessage(msg);
