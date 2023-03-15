@@ -130,7 +130,6 @@ namespace Inferno {
     // General purpose buffer
     class GpuBuffer : public GpuResource {
     public:
-
         void CreateGenericBuffer(wstring_view name, uint32 elementSize, uint32 elementCount) {
             _desc = CD3DX12_RESOURCE_DESC::Buffer(elementSize * elementCount);
             _state = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -264,7 +263,6 @@ namespace Inferno {
 
             //if (m_UAV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
             //m_UAV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
         }
     };
 
@@ -292,20 +290,22 @@ namespace Inferno {
     class Texture2D final : public PixelBuffer {
     public:
         Texture2D() = default;
+
         Texture2D(ComPtr<ID3D12Resource> resource) {
             _resource = std::move(resource);
             _desc = _resource->GetDesc();
         }
 
-        // Uploads a resource with no mip-mapping. Intended for use with low res textures.
+        // Uploads a resource with no mip-maps. Intended for use with low res textures.
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
                   int width, int height,
                   wstring name,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
             assert(data);
-            //auto mips = width == 64 && height == 64 ? 7 : 1;
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
+            auto mips = width == 64 && height == 64 ? 7 : 1; // enable mips on standard level textures
+            mips = 1;
+            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mips);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -325,7 +325,8 @@ namespace Inferno {
             batch.Upload(resource, 0, &upload, 1);
             batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-            //batch.GenerateMips(resource);
+            if (mips > 1)
+                batch.GenerateMips(resource);
         }
 
         void Create(int width, int height, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
