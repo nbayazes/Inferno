@@ -229,6 +229,9 @@ namespace Inferno::Graphics {
                     defaultInfo;
 
                 auto color = info.Color == Color(0, 0, 0) ? GetLightColor(side) : info.Color;
+                auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info.Radius;
+
+                if (side.LightOverride) color = *side.LightOverride;
                 if (!CheckMinLight(color)) continue;
 
                 Vector2 minUV(FLT_MAX, FLT_MAX), maxUV(-FLT_MAX, -FLT_MAX);
@@ -258,91 +261,88 @@ namespace Inferno::Graphics {
                 // iterate each tile, checking the defined UVs
                 for (int ix = xMin; ix < xMax; ix++) {
                     for (int iy = yMin; iy < yMax; iy++) {
-                        if (info.Wrap == LightWrapMode::U || info.Wrap == LightWrapMode::V) {
-                            //if (info.IsContinuous()) {
-                            // project the uv to the edge and create two points offset by the light radius
-                            Vector2 uvOffset{ (float)ix, (float)iy };
+                        for (const auto& lt : info.Points) {
+                            LightData light{};
+                            light.color = color.ToVector3() * multiplier;
+                            light.radiusSq = radius * radius;
+                            light.normal = side.AverageNormal;
+                            light.type = info.Type;
 
-                            auto uv0 = info.Points[0];
-                            auto uv1 = info.Points[0];
-                            if (info.Wrap == LightWrapMode::U)
-                                uv1 += Vector2(1, 0);
-                            
-                            if (info.Wrap == LightWrapMode::V)
-                                uv1 += Vector2(0, 1);
+                            if (info.Wrap == LightWrapMode::U || info.Wrap == LightWrapMode::V) {
+                                //if (info.IsContinuous()) {
+                                // project the uv to the edge and create two points offset by the light radius
+                                Vector2 uvOffset{ (float)ix, (float)iy };
 
-                            //auto uv1 = info.Points[1];
+                                auto uv0 = lt;
+                                auto uv1 = lt;
+                                if (info.Wrap == LightWrapMode::U)
+                                    uv1 += Vector2(1, 0);
 
-                            if (useOverlay && overlayAngle != 0) {
-                                constexpr Vector2 offset(0.5, 0.5);
-                                uv0 = RotateVector(uv0 - offset, -overlayAngle) + offset;
-                                uv1 = RotateVector(uv1 - offset, -overlayAngle) + offset;
-                            }
+                                if (info.Wrap == LightWrapMode::V)
+                                    uv1 += Vector2(0, 1);
 
-                            uv0 += uvOffset;
-                            uv1 += uvOffset;
+                                if (useOverlay && overlayAngle != 0) {
+                                    constexpr Vector2 offset(0.5, 0.5);
+                                    uv0 = RotateVector(uv0 - offset, -overlayAngle) + offset;
+                                    uv1 = RotateVector(uv1 - offset, -overlayAngle) + offset;
+                                }
 
-                            // Extend the begin/end uvs so they should always cross
-                            auto uvVec = uv1 - uv0;
-                            uvVec.Normalize();
-                            //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
-                            //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
+                                uv0 += uvOffset;
+                                uv1 += uvOffset;
 
-                            uv0 -= uvVec * Vector2(10, 10);
-                            uv1 += uvVec * Vector2(10, 10);
+                                // Extend the begin/end uvs so they should always cross
+                                auto uvVec = uv1 - uv0;
+                                uvVec.Normalize();
+                                //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
+                                //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
 
-                            int found = 0;
-                            Vector2 intersects[2];
+                                uv0 -= uvVec * Vector2(10, 10);
+                                uv1 += uvVec * Vector2(10, 10);
 
-                            // there should always be two intersections
-                            for (int i = 0; i < 4; i++) {
-                                if (auto intersect = IntersectLines(uv0, uv1, side.UVs[i], side.UVs[(i + 1) % 4])) {
-                                    intersects[found++] = *intersect;
-                                    if (found > 1) break;
+                                int found = 0;
+                                Vector2 intersects[2];
+
+                                // there should always be two intersections
+                                for (int i = 0; i < 4; i++) {
+                                    if (auto intersect = IntersectLines(uv0, uv1, side.UVs[i], side.UVs[(i + 1) % 4])) {
+                                        intersects[found++] = *intersect;
+                                        if (found > 1) break;
+                                    }
+                                }
+
+                                if (found == 2) {
+                                    // Check if the previous intersections are on top of this one
+                                    if ((intersects[0] - prevIntersects[0]).Length() < 0.1 &&
+                                        (intersects[1] - prevIntersects[1]).Length() < 0.1)
+                                        continue; // Skip overlap
+
+                                    prevIntersects[0] = intersects[0];
+                                    prevIntersects[1] = intersects[1];
+
+                                    auto uvIntVec = intersects[1] - intersects[0];
+                                    uvIntVec.Normalize();
+                                    constexpr float uvIntOffset = 0.1;
+
+                                    auto pos = FaceContainsUV(face, intersects[0] + uvIntVec * uvIntOffset);
+                                    auto pos2 = FaceContainsUV(face, intersects[1] - uvIntVec * uvIntOffset);
+
+                                    if (pos && pos2) {
+                                        // 'up' is the wrapped axis
+                                        auto up = (*pos2 - *pos) / 2;
+                                        auto center = (*pos2 + *pos) / 2;
+                                        Vector3 upVec;
+                                        up.Normalize(upVec);
+                                        auto rightVec = side.AverageNormal.Cross(upVec);
+
+                                        light.type = LightType::Rectangle;
+                                        light.pos = center + side.AverageNormal * info.Offset;
+                                        light.right = rightVec * info.Width;
+                                        light.up = up - upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
+                                        sources.push_back(light);
+                                    }
                                 }
                             }
-
-                            if (found == 2) {
-                                // Check if the previous intersections are on top of this one
-                                if ((intersects[0] - prevIntersects[0]).Length() < 0.1 &&
-                                    (intersects[1] - prevIntersects[1]).Length() < 0.1)
-                                    continue; // Skip overlap
-
-                                prevIntersects[0] = intersects[0];
-                                prevIntersects[1] = intersects[1];
-
-                                auto uvIntVec = intersects[1] - intersects[0];
-                                uvIntVec.Normalize();
-                                constexpr float uvIntOffset = 0.1;
-
-                                auto pos = FaceContainsUV(face, intersects[0] + uvIntVec * uvIntOffset);
-                                auto pos2 = FaceContainsUV(face, intersects[1] - uvIntVec * uvIntOffset);
-
-                                if (pos && pos2) {
-                                    // 'up' is the wrapped axis
-                                    auto up = (*pos2 - *pos) / 2;
-                                    auto center = (*pos2 + *pos) / 2;
-                                    Vector3 upVec;
-                                    up.Normalize(upVec);
-                                    auto rightVec = side.AverageNormal.Cross(upVec);
-
-                                    LightData light{};
-                                    light.type = LightType::Rectangle;
-                                    light.pos = center + side.AverageNormal * info.Offset;
-                                    light.color = color.ToVector3() * multiplier;
-                                    light.radiusSq = side.LightRadiusOverride.value_or(info.Radius);
-                                    light.radiusSq *= light.radiusSq;
-                                    light.right = rightVec * info.Width;
-                                    light.up = up - upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
-                                    light.normal = side.AverageNormal;
-                                    //light.pos2 = *pos2 + faceOffset;
-                                    //light.tubeRadius = 0.5;
-                                    sources.push_back(light);
-                                }
-                            }
-                        }
-                        else {
-                            for (auto lt : info.Points) {
+                            else {
                                 if (useOverlay && overlayAngle != 0) {
                                     constexpr Vector2 offset(0.5, 0.5);
                                     lt = RotateVector(lt - offset, -overlayAngle) + offset;
@@ -363,16 +363,9 @@ namespace Inferno::Graphics {
                                     upVec.Normalize();
 
                                     // sample points close to the uv to get up/right axis
-                                    LightData light{};
-                                    light.type = info.Type;
                                     light.pos = *pos + side.AverageNormal * info.Offset;
-                                    light.color = color.ToVector3() * multiplier;
-                                    light.radiusSq = side.LightRadiusOverride.value_or(info.Radius);
-                                    light.radiusSq *= light.radiusSq;
-                                    light.normal = side.AverageNormal;
                                     light.right = rightVec * info.Width;
                                     light.up = -upVec * info.Height; // reverse for some reason
-
                                     sources.push_back(light);
                                 }
                             }
