@@ -1,5 +1,6 @@
 #pragma once
 #include "ComputeShader.h"
+#include "LightInfo.h"
 
 namespace Inferno::Debug {
     inline Vector3 LightPosition;
@@ -7,7 +8,6 @@ namespace Inferno::Debug {
 }
 
 namespace Inferno::Graphics {
-
     constexpr int MAX_LIGHTS = 256;
 
     // First four bytes is the number of lights in the tile
@@ -15,12 +15,6 @@ namespace Inferno::Graphics {
     constexpr int TILE_SIZE = 12 + MAX_LIGHTS * 4;
     constexpr int LIGHT_GRID = 16;
     constexpr uint32 LIGHT_GRID_MIN_DIM = 8;
-
-    enum class LightType : uint32 {
-        Point,
-        Tube,
-        Rectangle
-    };
 
     // must keep in sync with HLSL
     struct LightData {

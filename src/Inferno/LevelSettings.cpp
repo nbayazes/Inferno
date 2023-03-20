@@ -1,5 +1,4 @@
 #include "pch.h"
-#include <streambuf>
 #include "LevelSettings.h"
 #include "Yaml.h"
 #include "Resources.h"
@@ -152,7 +151,7 @@ namespace Inferno {
         if (!node.valid() || node.is_seed()) return;
 
         for (const auto& child : node.children()) {
-            WallID id = WallID::None;
+            auto id = WallID::None;
             ReadValue(child["ID"], (int16&)id);
 
             if (auto wall = level.TryGetWall(id)) {

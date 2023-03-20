@@ -18,7 +18,7 @@
         "addressV = TEXTURE_ADDRESS_WRAP," \
         "addressW = TEXTURE_ADDRESS_WRAP," \
         "maxAnisotropy = 16," \
-        "filter = FILTER_ANISOTROPIC)" // FILTER_MIN_MAG_MIP_LINEAR
+        "filter = FILTER_ANISOTROPIC)" // FILTER_MIN_MAG_MIP_LINEAR, FILTER_MIN_MAG_MIP_POINT
 
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used
@@ -95,7 +95,7 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal, float power) {
 }
 
 float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
-    float depth = Depth.Sample(Sampler, (pos.xy + 0.5) / FrameSize);
+    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / FrameSize);
     float f = saturate((((end - start) / FarClip) - depth) / ((end - start) / FarClip));
     //float f = saturate(1 / exp(pow(depth * 5, 2)));
     return f * pixel + (1 - f) * fogColor;

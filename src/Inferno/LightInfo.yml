@@ -1,0 +1,178 @@
+Textures:
+    # Lab textures
+    - ID: 212
+      Type: 2
+      Points: '0.5, 0.25'
+      Radius: 60
+      Width: 0.05
+      Wrap: 1
+      Color: '0.05, 0.05, 0.15' # cooler
+  
+    - ID: 213
+      Type: 2
+      Points: '0.75, 0.25'
+      Width: 0.25
+      Height: 0.05
+      Radius: 60
+      Color: '0.05, 0.05, 0.15' # cooler
+  
+    - ID: 214
+      Type: 2
+      Points: '0.25, 0.25'
+      Width: 5
+      Height: 0.25
+      Radius: 60
+      Color: '0.05, 0.05, 0.15' # cooler
+  
+    - ID: 221
+      Type: 2
+      Points: '0.75, 0.25'
+      Width: 0.25
+      Height: 0.05
+      Radius: 60
+      Color: '0.05, 0.05, 0.15' # cooler
+  
+    - ID: 222
+      Type: 2
+      Points: '0.25, 0.25'
+      Width: 0.25
+      Height: 0.05
+      Radius: 60
+      Color: '0.05, 0.05, 0.15' # cooler
+  
+    ## Door strips
+    - ID: 250
+      Type: 2
+      Points: '0.15, 0'
+      Wrap: 2
+      Width: 0.5
+      Offset: 0.01
+      Color: '0.225, 0.20, 0.20'
+      Radius: 50
+  
+    - ID: 251
+      Type: 2
+      Points: '0.125, 0'
+      Wrap: 2
+      Width: 0.5
+      Offset: 0.01
+      Color: '0.5, 0.05, 0.05'
+      Radius: 50
+  
+    - ID: 252
+      Type: 2
+      Points: '0.125, 0'
+      Wrap: 2
+      Width: 0.5
+      Offset: 0.01
+      Color: '0.10, 0.10, 0.6'
+      Radius: 50
+  
+    - ID: 253
+      Type: 2
+      Points: '0.125, 0'
+      Wrap: 2
+      Width: 0.5
+      Offset: 0.01
+      Radius: 50
+
+    # Ceiling lights
+    - ID: 281
+      Type: 2
+      Points: '0.5, 0.5'
+      Width: 4
+      Height: 4
+      Radius: 50
+      Color: '0.34, 0.34, 0.5' # very cool
+      Offset: 0.1
+
+    - ID: 283
+      Points: '0.5, 0.5'
+      Color: '0.25, 0.25, 0.35' # cooler
+
+    - ID: 284
+      Color: '0.25, 0.25, 0.28' # warmer
+
+    # Stacked lights
+    - ID: 285
+      Type: 2
+      Points:
+        - '0.5, 0.25'
+        - '0.5, 0.75'
+      Width: 4
+      Height: 2
+      Color: '0.25, 0.25, 0.28' # cooler
+
+    # Double edge wrapped lights
+    - ID: 278
+      Type: 2
+      Points:
+        - '0.05, 0.5'
+        - '0.95, 0.5'
+      Width: 0.05
+      Wrap: 2
+  
+    - ID: 279
+      Type: 2
+      Points:
+        - '0.05, 0.5'
+        - '0.95, 0.5'
+      Width: 0.05
+      Wrap: 2
+  
+    - ID: 280
+      Type: 2
+      Points:
+        - '0.05, 0.4'
+        - '0.95, 0.4'
+      Width: 0.05
+      Height: 0.4
+  
+    # Strip lights with the same heights
+    - ID: 286
+      Type: 2
+      Points:
+        - '0.5, 0.24'
+        - '0.5, 0.76'
+      Width: 6
+      Height: 0.5
+      Color: '0.2, 0.2, 0.25'
+  
+    - ID: 287
+      Type: 2
+      Points: 
+        - '0.5, 0.30'
+        - '0.5, 0.70'
+      Width: 4
+      Height: 1 
+      Color: '0.2, 0.2, 0.25'
+  
+    - ID: 288
+      Type: 2
+      Points:
+        - '0.5, 0.30'
+        - '0.5, 0.70'
+      Width: 2
+      Height: 0.5  
+      Wrap: 1
+      Color: '0.2, 0.2, 0.25'
+  
+    - ID: 292
+      Type: 2
+      Points:
+        - '0.5, 0.30'
+        - '0.5, 0.70'
+      Width: 2
+      Height: 0.5  
+      Color: '0.2, 0.2, 0.25'
+  
+    # lava
+    - ID: 333
+      Offset: 10
+  
+    # remove lights from reactor walls as emissives work better
+    - ID: 335
+      Points: []
+
+    - ID: 289 # blank light texture. only use ambient lighting
+      Points: []  

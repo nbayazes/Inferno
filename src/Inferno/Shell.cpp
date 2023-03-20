@@ -263,7 +263,7 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
     if (!hwnd)
         return 1;
 
-    Shell::DpiScale = GetDpiForWindow(hwnd) / 96.0f;
+    Shell::DpiScale = (float)GetDpiForWindow(hwnd) / 96.0f;
 
     EnableDarkMode(hwnd);
     Shell::Hwnd = hwnd;
@@ -281,10 +281,10 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
         if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-            continue;
         }
-
-        app.Tick();
+        else {
+            app.Tick();
+        }
     }
 
     app.OnShutdown();

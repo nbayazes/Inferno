@@ -8,6 +8,8 @@
 #include "Mission.h"
 #include "HogFile.h"
 #include "Settings.h"
+#include "ryml/ryml.hpp"
+#include "ryml/ryml_std.hpp"
 
 using namespace Inferno;
 
@@ -180,6 +182,16 @@ void TestSegID() {
     assert(id == SegID(6));
 }
 
+struct RymlExceptionHandler {
+    ryml::Callbacks CreateCallbacks() {
+        return { this, nullptr, nullptr, RymlExceptionHandler::ThrowException };
+    }
+
+    static void ThrowException(const char* msg, size_t /*len*/, ryml::Location /*loc*/, void* /*this_*/) {
+        throw std::runtime_error(msg);
+    }
+};
+
 int APIENTRY WinMain(HINSTANCE /*hInstance*/,
                      HINSTANCE /*hPrevInstance*/,
                      LPSTR     /*lpCmdLine*/,
@@ -190,6 +202,10 @@ int APIENTRY WinMain(HINSTANCE /*hInstance*/,
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
     InitRandom();
+
+    // Replace ryml abort with exceptions
+    RymlExceptionHandler handler;
+    ryml::set_callbacks(handler.CreateCallbacks());
 
     try {
         Inferno::Shell shell;

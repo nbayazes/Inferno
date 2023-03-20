@@ -191,6 +191,7 @@
     <ClCompile Include="Graphics\Render.Particles.cpp" />
     <ClCompile Include="HUD.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
+    <ClCompile Include="LightInfo.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Graphics\Render.Queue.cpp" />
     <ClCompile Include="Settings.cpp" />
@@ -268,6 +269,7 @@
     <ClInclude Include="Graphics\Render.Queue.h" />
     <ClInclude Include="HUD.h" />
     <ClInclude Include="LevelSettings.h" />
+    <ClInclude Include="LightInfo.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Physics.Math.h" />
     <ClInclude Include="Room.h" />
@@ -361,6 +363,7 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
+    <None Include="LightInfo.yml" />
     <None Include="packages.config" />
     <CopyFileToFolders Include="shaders\Common.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

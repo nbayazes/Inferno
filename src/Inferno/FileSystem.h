@@ -7,8 +7,9 @@
 */
 namespace Inferno::FileSystem {
     void Init();
-    void AddDataDirectory(std::filesystem::path);
-    Option<std::filesystem::path> TryFindFile(std::filesystem::path);
-    wstring FindFile(std::filesystem::path);
-    List<char> ReadFileBytes(std::filesystem::path);
+    void AddDataDirectory(filesystem::path);
+    Option<filesystem::path> TryFindFile(filesystem::path);
+    wstring FindFile(filesystem::path);
+    List<char> ReadFileBytes(filesystem::path);
+    string ReadFileText(filesystem::path);
 }

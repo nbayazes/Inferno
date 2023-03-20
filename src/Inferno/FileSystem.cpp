@@ -70,9 +70,23 @@ namespace Inferno::FileSystem {
         return {};
     }
 
-    List<char> ReadFileBytes(std::filesystem::path path) {
-        if (std::filesystem::exists(path)) return {};
+    List<char> ReadFileBytes(filesystem::path path) {
         std::ifstream stream(path, std::ios::binary);
+        if (!stream) {
+            SPDLOG_WARN("Unable to open file `{}`", path.string());
+            return {};
+        }
+
+        return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
+    }
+
+    string ReadFileText(filesystem::path path) {
+        std::ifstream stream(path);
+        if (!stream) {
+            SPDLOG_WARN("Unable to open file `{}`", path.string());
+            return {};
+        }
+
         return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
     }
 }

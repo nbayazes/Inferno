@@ -519,6 +519,7 @@ namespace Inferno::Resources {
         Pig = {};
         Hog = {};
         GameData = {};
+        LightInfo = {};
         CustomTextures.clear();
         Textures.clear();
     }
@@ -550,15 +551,23 @@ namespace Inferno::Resources {
         LoadGameTable("game.yml", GameData);
     }
 
+    void LoadLightInfo(filesystem::path path) {
+        auto file = FileSystem::ReadFileText(path);
+        if (file.empty()) return;
+        LightInfo = LevelLightInfo::Load(file);
+    }
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
 
             if (level.IsDescent2()) {
                 LoadDescent2Resources(level);
+                LoadLightInfo("LightInfo2.yml");
             }
             else if (level.IsDescent1()) {
                 LoadDescent1Resources(level);
+                LoadLightInfo("LightInfo.yml");
             }
             else {
                 throw Exception("Unsupported level version");

@@ -11,7 +11,7 @@ ByteAddressBuffer LightGridBitMask : register(t11);
 
 // Apply fresnel to modulate the specular albedo
 void FSchlick(inout float3 specular, inout float3 diffuse, float3 lightDir, float3 halfVec) {
-    float fresnel = pow(1.0 - saturate(dot(lightDir, halfVec)), 5.0);
+    float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
     specular = lerp(specular, 1, fresnel);
     diffuse = lerp(diffuse, 0, fresnel);
 }
@@ -80,6 +80,12 @@ float ClampGloss(float gloss, float lightDistSq) {
     return smoothstep(0, 125, lightDistSq) * gloss;
 }
 
+void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float value) {
+    float specCutoff = lightRadius * cutoff; // cutoff distance for fading to black
+    if (dist > specCutoff)
+        value = saturate(lerp(value, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
+}
+
 float3 ApplyPointLight(
     float3 diffuseColor, // Diffuse albedo
     float3 specularColor, // Specular albedo
@@ -103,16 +109,14 @@ float3 ApplyPointLight(
     distanceFalloff = max(0, distanceFalloff - rsqrt(distanceFalloff));
     gloss = ClampGloss(gloss, lightDistSq);
 
-    return distanceFalloff * ApplyLightCommon(
-        diffuseColor,
-        specularColor,
-        specularMask,
-        gloss,
-        normal,
-        viewDir,
-        lightDir,
-        lightColor
-    );
+    float3 halfVec = normalize(lightDir - viewDir);
+    float nDotH = saturate(dot(halfVec, normal));
+    float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
+    specularFactor *= 0.4;
+    FSchlick(specularColor, diffuseColor, lightDir, halfVec);
+    float nDotL = saturate(dot(normal, lightDir));
+    // No diffuse color because game textures are not albedo
+    return max(0, distanceFalloff * (lightColor /* diffuseColor*/ * nDotL + specularFactor * specularColor));
 }
 
 
@@ -421,11 +425,13 @@ float3 ApplyRectLight2(
     float3 planeRight,
     float3 planeUp
 ) {
+    // https://alextardif.com/arealights.html
+    // https://www.shadertoy.com/view/3dsBD4
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
     float3 surfaceOffset = planeNormal * 2;
-    
+
     float vWidth = length(planeRight);
     float vHeight = length(planeUp);
     float3 closestDiffusePoint = ClosestPointOnRectangle(worldPos, lightPos + surfaceOffset, planeNormal, planeRight, planeUp);
@@ -436,11 +442,10 @@ float3 ApplyRectLight2(
     float windingCheck = dot(cross(planeRight, planeUp), lightPos - worldPos);
 
     float lightRadius = sqrt(lightRadiusSq);
-    lightRadiusSq = pow(lightRadius - max(vWidth, vHeight), 2);
-    //float dist = distance(worldPos, lightPos);
-    float dist2 = distance(closestDiffusePoint, worldPos);
-
-    float lightDistSq = dist2 * dist2; //dot(lightDir, lightDir);
+    // subtract the light's rectangular area from the light radius so it doesn't extend past the cull radius. 1.5 is diagonal distance.
+    lightRadiusSq = pow(lightRadius - max(vWidth, vHeight) * 1.5, 2);
+    float3 lightDir = closestDiffusePoint - worldPos;
+    float lightDistSq = dot(lightDir, lightDir);
 
     // modify 1/d^2 * R^2 to fall off at a fixed radius
     // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
@@ -450,11 +455,9 @@ float3 ApplyRectLight2(
     distanceFalloff = clamp(distanceFalloff, 0, 10);
 
     float3 specular = float3(0, 0, 0);
-    float roughness = 0.20; // todo: derive or replace with gloss
 
     {
         // Calculate specular
-
         // reconstruct the rectangle
         Rect rect;
         rect.a = lightPos + planeRight + planeUp;
@@ -471,48 +474,93 @@ float3 ApplyRectLight2(
         // Next, we approximate the solid angle (visible portion of rectangle) of lighting by taking the average of the
         // four corners and center point of the rectangle.
         // See the Frostbite paper for different ways of doing this with varying degrees of accuracy.
-        float solidAngle = rectSolidAngle(v0, v1, v2, v3);
-    
+        //float solidAngle = rectSolidAngle(v0, v1, v2, v3);
+        //solidAngle = saturate(solidAngle);
+        //return float3(solidAngle, solidAngle, solidAngle);
+
         // Average each point
-        float nDotL = solidAngle * 0.2 * (
-        saturate(dot(normalize(v0), normal)) +
-        saturate(dot(normalize(v1), normal)) +
-        saturate(dot(normalize(v2), normal)) +
-        saturate(dot(normalize(v3), normal)) +
-        saturate(dot(normalize(vLight), normal)));
+        float nDotL = /*solidAngle **/ 0.2 * (
+            saturate(dot(normalize(v0), normal)) +
+            saturate(dot(normalize(v1), normal)) +
+            saturate(dot(normalize(v2), normal)) +
+            saturate(dot(normalize(v3), normal)) +
+            saturate(dot(normalize(vLight), normal)));
 
         // find the closest point on the rectangle
         float3 r = reflect(viewDir, normal);
-        float3 intersectPoint = CalculatePlaneIntersection(worldPos, r, planeNormal, lightPos);
+        float3 reflectedIntersect = CalculatePlaneIntersection(worldPos, r, planeNormal, lightPos);
 
         // We then find the difference between that point and the center of the light,
         // and find that result represented in the 2D space on the light's plane in view space.
-        float3 intersectionVector = intersectPoint - lightPos;
-        float2 intersectPlanePoint = float2(dot(intersectionVector, planeRight), dot(intersectionVector, planeUp));
+        float3 reflectedDir = reflectedIntersect - lightPos;
+        float2 reflectedPlanePoint = float2(dot(reflectedDir, planeRight),
+                                            dot(reflectedDir, planeUp));
         //bool outside =
         //    intersectPlanePoint.x > vWidth || intersectPlanePoint.x < -vWidth ||
         //    intersectPlanePoint.y > vHeight || intersectPlanePoint.y < -vHeight;
 
-        float2 nearestReflectedPoint = float2(clamp(intersectPlanePoint.x, -vWidth, vWidth), clamp(intersectPlanePoint.y, -vHeight, vHeight));
+        float2 nearestReflectedPoint = float2(clamp(reflectedPlanePoint.x, -vWidth, vWidth),
+                                              clamp(reflectedPlanePoint.y, -vHeight, vHeight));
+        //float2 c = min(abs(reflectedPlanePoint), float2(vWidth, vHeight)) * sign(reflectedPlanePoint);
         float rDotL = dot(r, vLight);
-        float specFactor = 1.0 - saturate(length(nearestReflectedPoint - intersectPlanePoint) * pow(1 - roughness, 4));
+        
+        float roughness = 0.4;
+        // fade out the specularity as it gets further from the reflected plane
+        float specFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * pow(1 - roughness, 2));
+        //float specFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * smoothstep(0, 1, roughness));
+
+        //float fresnel = F0 + (1 - F0) * pow(1 - dotProd, 5);
+        float3 L = lightPos + planeRight * nearestReflectedPoint.x + planeUp * nearestReflectedPoint.y - worldPos;
+        float3 l = normalize(L);
+        float3 h = normalize(viewDir - l); // half angle
+        float lightDist = length(L);
+
+        //float nDotH = max(dot(normal, h), 0); // half angle
+        float vDotH = dot(h, viewDir);
+        specFactor *= 1 + pow(1 - vDotH, 5) * 2; // fresnel (boosted)
+        specFactor *= pow(1 - roughness, 4); // fade specular based on roughness (empirical)
+
+        //float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
+        //float3 lightDir = normalize(lightPos - worldPos);
+
+        //float3 halfVec = normalize(lightDir - viewDir);
+        //float fresnel = 1 + pow(1 - saturate(dot(lightDir, halfVec)), 5);
+        //specFactor *= specularMask * pow(vDotH, gloss) * (gloss + 2) / 8;
+
+        float3 halfVec = normalize(L - viewDir);
+        float nDotH = saturate(dot(-h, normal));
+        gloss = 50;
+        //specFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
+        //float nDotL = saturate(dot(normal, lightDir));
 
         if (windingCheck < 0)
             specFactor = 0; // Don't put specular on surfaces behind the light
-            
-        specular += specularColor * specFactor * rDotL * nDotL * distanceFalloff;
-        specular = max(0, specular * 4);
+
+        // fade out specular as it gets closer to view angle
+        float viewFactor = dot(cross(planeRight, planeUp), L);
+
+        //specFactor *= saturate(lerp(0, 1, viewFactor * 5));
+        specFactor *= saturate(viewFactor - 1.3);
+
+
+        float alpha = roughness * roughness;
+        float alphaPrime = saturate(alpha + lightRadius / (2 * lightDist));
+        //float ggx = normalDistributionGGXRect(nDotH, alpha, alphaPrime);
+        float nDotV = dot(-normal, viewDir);
+        float smith = geometrySmith(nDotV, nDotL, roughness);
+        //smith = 1;
+        specular += specularMask * specularColor * smith * specFactor * rDotL * nDotL /** distanceFalloff*/;
+        specular = max(0, specular * 2); // todo: specular power/gloss
     }
     // float3 light = (specular + diffuseFactor) * falloff * lightColor * luminosity;	
 
-
     //gloss = ClampGloss(gloss, lightDistSq);
-    //return max(0, (specular * 8 + lightColor * 0.25) * distanceFalloff * nDotL2);
     float nDotL2 = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
-    return max(0, lightColor * diffuseColor * distanceFalloff * nDotL2 + specular);
+    // No diffuse color because game textures are not albedo
+    return max(0, distanceFalloff * (lightColor * nDotL2) + distanceFalloff * specular);
 }
 
-    float3 ApplyRectLight(
+float3 ApplyRectLight(
     float3 diffuseColor, // Diffuse albedo
     float3 specularColor, // Specular albedo
     float specularMask, // Where is it shiny or dingy?
@@ -527,13 +575,12 @@ float3 ApplyRectLight2(
     float3 planeRight,
     float3 planeUp
 ) {
-    Rect rect;
-
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
-    float3 surfaceOffset = planeNormal *0;
+    float3 surfaceOffset = planeNormal * 0;
 
     // reconstruct the rectangle
+    Rect rect;
     rect.a = lightPos + planeRight + planeUp + surfaceOffset;
     rect.b = lightPos - planeRight + planeUp + surfaceOffset;
     rect.c = lightPos - planeRight - planeUp + surfaceOffset;
@@ -557,7 +604,7 @@ float3 ApplyRectLight2(
     // four corners and center point of the rectangle.
     // See the Frostbite paper for different ways of doing this with varying degrees of accuracy.
     float solidAngle = rectSolidAngle(v0, v1, v2, v3);
-    
+
     // Average each point
     float nDotL = solidAngle * 0.2 * (
         saturate(dot(normalize(v0), normal)) +
@@ -570,12 +617,9 @@ float3 ApplyRectLight2(
     float falloff = 1;
     float roughness = 0.20;
 
-    // todo: reduce light radius by width of rectangular light
     float lightRadius = sqrt(lightRadiusSq);
     float dist = distance(worldPos, lightPos);
 
-    //if (length(lightPos - worldPos) < 5)
-    //    nDotL = 1;
     {
         // find the closest point on the rectangle
         float3 r = reflect(viewDir, normal);
@@ -594,8 +638,6 @@ float3 ApplyRectLight2(
         //float specDist = length(nearest2DPoint - intersectPlanePoint);
         //specDist = max(specDist, lightRadiusSq * 0.01); // clamp the nearby spec dist to prevent point highlights
         float specFactor = 1.0 - saturate(length(nearestReflectedPoint - intersectPlanePoint) * pow(1 - roughness, 4));
-        //if (dist < 10)
-        //    specFactor = 0;
 
         //if (outside) {
         //float3 nearestPoint = input.lightPositionViewCenter.xyz + (right * nearest2DPoint.x + up * nearest2DPoint.y);
@@ -603,15 +645,11 @@ float3 ApplyRectLight2(
         //float falloff = 1.0 - saturate(dist / lightRadius);
         //}
 
-        // specular cutoff
-        float specCutoff = lightRadius * 0.80; // cutoff distance for fading to black
-        if (dist > specCutoff) {
-            specFactor = saturate(lerp(specFactor, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
-        }
+        CutoffLightValue(lightRadius, dist, 0.8, specFactor);
 
         if (windingCheck < 0)
-            specFactor = 0; // Don't put specular on surfaces behind the light
-            
+            specFactor = 0; // Don't show specular on surfaces behind the light
+
         specularFactor += specularColor * specFactor * specularAmount * nDotL;
     }
     // float3 light = (specularFactor + diffuseFactor) * falloff * lightColor * luminosity;	
@@ -665,11 +703,12 @@ void ShadeLights(inout float3 colorSum,
         //LightData lightData = LightBuffer[0];
 #if 1
         //colorSum += diffuseAlbedo * 4;
+        specularAlbedo = lightData.color;
         colorSum += ApplyPointLight(
             diffuseAlbedo, specularAlbedo, specularMask, gloss,
             normal, viewDir, worldPos, lightData.pos,
             lightData.radiusSq, lightData.color
-        ) * 1.00;
+        ) * 0.25;
 #elif 0
         float sphereRadius = 5;
         lightData.pos += float3(0, -6, 0); // shift to center
@@ -710,8 +749,8 @@ void ShadeLights(inout float3 colorSum,
     for (uint n = 0; n < rectLightCount; n++, tileLightLoadOffset += 4) {
         uint lightIndex = LightGrid.Load(tileLightLoadOffset);
         LightData light = LightBuffer[lightIndex];
-        float3 lightColor = light.color;
-        specularAlbedo = lightColor * 1;
+        float3 lightColor = light.color * .5;
+        specularAlbedo = light.color * 1;
         colorSum += ApplyRectLight2(
             diffuseAlbedo, specularAlbedo, specularMask, gloss,
             normal, viewDir, worldPos, light.pos,

@@ -209,6 +209,9 @@
     <ClCompile Include="Graphics\Lighting.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LightInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -517,12 +520,16 @@
     <ClInclude Include="Graphics\ComputeShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LightInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">
       <Filter>Source Files</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="LightInfo.yml" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="shaders\BloomCS.hlsl">

@@ -39,6 +39,12 @@ namespace Yaml {
     }
 
     template<>
+    inline void ReadValue(ryml::NodeRef node, Inferno::TexID& id) {
+        if (node.is_seed() || !node.has_val()) return;
+        node >> (Inferno::int16&)id;
+    }
+
+    template<>
     inline void ReadValue(ryml::NodeRef node, std::filesystem::path& value) {
         if (node.is_seed() || !node.has_val()) return;
         std::string path;
@@ -72,7 +78,7 @@ namespace Yaml {
         if (token.size() != 4 && token.size() != 3)
             return;
 
-        float r{}, g{}, b{}, a{};
+        float r{}, g{}, b{}, a{1};
         ParseFloat(token[0], r);
         ParseFloat(token[1], g);
         ParseFloat(token[2], b);
@@ -96,6 +102,21 @@ namespace Yaml {
         ParseFloat(token[1], y);
         ParseFloat(token[2], z);
         value = DirectX::SimpleMath::Vector3{ x, y, z };
+    }
+
+    template<>
+    inline void ReadValue(ryml::NodeRef node, DirectX::SimpleMath::Vector2& value) {
+        if (node.is_seed() || !node.has_val()) return;
+        std::string str;
+        node >> str;
+        auto token = Inferno::String::Split(str, ',', true);
+        if (token.size() != 2)
+            return;
+
+        float x{}, y{};
+        ParseFloat(token[0], x);
+        ParseFloat(token[1], y);
+        value = DirectX::SimpleMath::Vector2{ x, y };
     }
 
     template<>

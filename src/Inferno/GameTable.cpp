@@ -79,7 +79,10 @@ namespace Inferno {
     void LoadGameTable(filesystem::path path, HamFile& ham) {
         try {
             std::ifstream file(path);
-            if (!file) return;
+            if (!file) {
+                SPDLOG_ERROR(L"Unable to open game table `{}`", path.c_str());
+                return;
+            }
 
             std::stringstream buffer;
             buffer << file.rdbuf();
@@ -108,7 +111,7 @@ namespace Inferno {
 
         }
         catch (const std::exception& e) {
-            SPDLOG_ERROR("Error loading config file:\n{}", e.what());
+            SPDLOG_ERROR("Error loading game table:\n{}", e.what());
         }
     }
 }

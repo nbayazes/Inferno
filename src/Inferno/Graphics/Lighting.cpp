@@ -168,20 +168,6 @@ namespace Inferno::Graphics {
         return pos;
     }
 
-    struct TextureLightInfo {
-        LightType Type = LightType::Point;
-        List<Vector2> UVs = { { 0.5f, 0.5f } }; // UV positions for each light
-        float Offset = 2; // light surface offset
-        float Radius = 60; // light radius
-        float Width = 0.25f; // UV Width for rectangular lights
-        float Height = 0.25f; // UV Height for rectangular lights
-        Color Color = { 0, 0, 0 };
-
-        bool IsContinuous() const {
-            if (UVs.size() != 2 || Type == LightType::Point) return false;
-            return (UVs[0].x == 0 && UVs[1].x == 1) || (UVs[0].y == 0 && UVs[1].y == 1);
-        }
-    };
 
     // 0.25, 0.75, 1.25 - continuous spacing of two
     // 0.166, 0.5, 0.833 - spacing of three
@@ -192,20 +178,20 @@ namespace Inferno::Graphics {
 
     // .Color = Color(0.25, 0.25, 0.30) }
     // V = 0 is top?
-    Dictionary<LevelTexID, TextureLightInfo> TextureInfoD1 = {
-        { LevelTexID(212), { .UVs = { { 0.25, 0.25 }, { 0.75, 0.25 } }, .Radius = 45 } },
-        { LevelTexID(213), { .UVs = { { 0.75, 0.25 } }, .Radius = 45 } },
-        { LevelTexID(214), { .UVs = { { 0.25, 0.25 } }, .Radius = 45 } },
-        { LevelTexID(250), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
-        { LevelTexID(251), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
-        { LevelTexID(252), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
-        { LevelTexID(253), { .Type = LightType::Rectangle, .UVs = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
-        { LevelTexID(281), { .Type = LightType::Rectangle, .UVs = { { 0.5, 0.5 } }, .Offset = 0.4, .Radius = 45, .Width = 4, .Height = 4 } },
-        { LevelTexID(285), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.25, 0.25, 0.30) }, },
-        { LevelTexID(286), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.3, 0.3, 0.3) }, },
-        { LevelTexID(287), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
-        { LevelTexID(288), { .UVs = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
-    };
+    //Dictionary<LevelTexID, TextureLightInfo> TextureInfoD1 = {
+    //    { LevelTexID(212), { .Points = { { 0.25, 0.25 }, { 0.75, 0.25 } }, .Radius = 60 } },
+    //    { LevelTexID(213), { .Points = { { 0.75, 0.25 } }, .Radius = 60 } },
+    //    { LevelTexID(214), { .Points = { { 0.25, 0.25 } }, .Radius = 60 } },
+    //    { LevelTexID(250), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
+    //    { LevelTexID(251), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 60, .Width = 0.05 } },
+    //    { LevelTexID(252), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 60, .Width = 0.05 } },
+    //    { LevelTexID(253), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 60, .Width = 0.05 } },
+    //    { LevelTexID(281), { .Type = LightType::Rectangle, .Points = { { 0.5, 0.5 } }, .Offset = 0.4, .Radius = 45, .Width = 4, .Height = 4 } },
+    //    { LevelTexID(285), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.25, 0.25, 0.30) }, },
+    //    { LevelTexID(286), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.3, 0.3, 0.3) }, },
+    //    { LevelTexID(287), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
+    //    { LevelTexID(288), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
+    //};
 
     Option<Vector2> IntersectLines(Vector2 a, Vector2 b, Vector2 c, Vector2 d) {
         auto r = b - a;
@@ -237,7 +223,11 @@ namespace Inferno::Graphics {
                 auto& side = face.Side;
                 bool useOverlay = side.TMap2 > LevelTexID::Unset;
                 auto tmap = useOverlay ? side.TMap2 : side.TMap;
-                auto& info = TextureInfoD1.contains(tmap) ? TextureInfoD1[tmap] : defaultInfo;
+                auto& info =
+                    Resources::LightInfo.Textures.contains(tmap) ?
+                    Resources::LightInfo.Textures[tmap] :
+                    defaultInfo;
+
                 auto color = info.Color == Color(0, 0, 0) ? GetLightColor(side) : info.Color;
                 if (!CheckMinLight(color)) continue;
 
@@ -268,12 +258,20 @@ namespace Inferno::Graphics {
                 // iterate each tile, checking the defined UVs
                 for (int ix = xMin; ix < xMax; ix++) {
                     for (int iy = yMin; iy < yMax; iy++) {
-                        if (info.IsContinuous()) {
+                        if (info.Wrap == LightWrapMode::U || info.Wrap == LightWrapMode::V) {
+                            //if (info.IsContinuous()) {
                             // project the uv to the edge and create two points offset by the light radius
                             Vector2 uvOffset{ (float)ix, (float)iy };
 
-                            auto uv0 = info.UVs[0];
-                            auto uv1 = info.UVs[1];
+                            auto uv0 = info.Points[0];
+                            auto uv1 = info.Points[0];
+                            if (info.Wrap == LightWrapMode::U)
+                                uv1 += Vector2(1, 0);
+                            
+                            if (info.Wrap == LightWrapMode::V)
+                                uv1 += Vector2(0, 1);
+
+                            //auto uv1 = info.Points[1];
 
                             if (useOverlay && overlayAngle != 0) {
                                 constexpr Vector2 offset(0.5, 0.5);
@@ -344,7 +342,7 @@ namespace Inferno::Graphics {
                             }
                         }
                         else {
-                            for (auto lt : info.UVs) {
+                            for (auto lt : info.Points) {
                                 if (useOverlay && overlayAngle != 0) {
                                     constexpr Vector2 offset(0.5, 0.5);
                                     lt = RotateVector(lt - offset, -overlayAngle) + offset;

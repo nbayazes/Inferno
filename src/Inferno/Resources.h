@@ -10,6 +10,7 @@
 #include "OutrageTable.h"
 #include "SoundSystem.h"
 #include "StringTable.h"
+#include "LightInfo.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {
@@ -74,6 +75,7 @@ namespace Inferno::Resources {
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
     inline List<Outrage::VClip> VClips; // Expanded from OAF headers
+    inline LevelLightInfo LightInfo;
 
     void MountDescent3();
 
