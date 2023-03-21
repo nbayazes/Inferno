@@ -213,6 +213,8 @@ namespace Inferno::Graphics {
         List<LightData> sources;
 
         TextureLightInfo defaultInfo{ .Radius = defaultRadius };
+        // The empty light texture is only used for ambient lighting
+        const auto ambientLightTexture = level.IsDescent1() ? LevelTexID(289) : LevelTexID(302);
 
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
@@ -221,7 +223,12 @@ namespace Inferno::Graphics {
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& side = face.Side;
-                bool useOverlay = side.TMap2 > LevelTexID::Unset;
+
+                bool useOverlay = side.TMap2 > LevelTexID::Unset && side.TMap2 != ambientLightTexture;
+
+                auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
+                if (tmap2.Lighting == 0) useOverlay = false; // only use overlay textures that emit light
+
                 auto tmap = useOverlay ? side.TMap2 : side.TMap;
                 auto& info =
                     Resources::LightInfo.Textures.contains(tmap) ?
@@ -261,7 +268,7 @@ namespace Inferno::Graphics {
                 // iterate each tile, checking the defined UVs
                 for (int ix = xMin; ix < xMax; ix++) {
                     for (int iy = yMin; iy < yMax; iy++) {
-                        for (const auto& lt : info.Points) {
+                        for (Vector2 lt : info.Points) {
                             LightData light{};
                             light.color = color.ToVector3() * multiplier;
                             light.radiusSq = radius * radius;
@@ -337,7 +344,8 @@ namespace Inferno::Graphics {
                                         light.type = LightType::Rectangle;
                                         light.pos = center + side.AverageNormal * info.Offset;
                                         light.right = rightVec * info.Width;
-                                        light.up = up - upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
+                                        light.up = up;
+                                        //light.up += upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
                                         sources.push_back(light);
                                     }
                                 }
