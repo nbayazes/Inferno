@@ -206,15 +206,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
-        //float mask = StMask.Sample(Sampler, input.uv2).r;
-        base *= mask.r > 0 ? (1 - mask.r) : 1;
+        float mask = 1 - Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
+        base *= mask;
 
         float4 overlay = Sample2DAA(Diffuse2, input.uv2, LinearSampler);
-        //return float4(mask.rrr, 1);
         float out_a = overlay.a + base.a * (1 - overlay.a);
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
+        emissive *= 1 - overlay.a; // Remove covered portion of emissive
         
         // layer the emissive over the base emissive
         emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
@@ -236,7 +235,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         discard;
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
-    //lighting.rgb += emissive * diffuse;
+    lighting.rgb += emissive * diffuse.rgb * 1.00;
 
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
