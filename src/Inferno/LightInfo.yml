@@ -2,11 +2,12 @@ Textures:
     # Lab textures
     - ID: 212
       Type: 2
-      Points: '0.5, 0.25'
-      Radius: 60
-      Width: 0.05
+      Points: '0.5, 0.23'
+      Radius: 80
+      Width: 0.1
       Wrap: 1
-      Color: '0.05, 0.05, 0.15' # cooler
+      Color: '0.05, 0.05, 0.25' # cooler
+      Offset: 0.01
   
     - ID: 213
       Type: 2
@@ -15,6 +16,7 @@ Textures:
       Height: 0.05
       Radius: 60
       Color: '0.05, 0.05, 0.15' # cooler
+      Offset: 0.01
   
     - ID: 214
       Type: 2
@@ -23,6 +25,7 @@ Textures:
       Height: 0.25
       Radius: 60
       Color: '0.05, 0.05, 0.15' # cooler
+      Offset: 0.01
   
     - ID: 221
       Type: 2
@@ -31,6 +34,7 @@ Textures:
       Height: 0.05
       Radius: 60
       Color: '0.05, 0.05, 0.15' # cooler
+      Offset: 0.01
   
     - ID: 222
       Type: 2
@@ -39,6 +43,7 @@ Textures:
       Height: 0.05
       Radius: 60
       Color: '0.05, 0.05, 0.15' # cooler
+      Offset: 0.01
   
     ## Door strips
     - ID: 250
@@ -49,6 +54,7 @@ Textures:
       Offset: 0.01
       Color: '0.225, 0.20, 0.20'
       Radius: 50
+      Offset: 0.01
   
     - ID: 251
       Type: 2
@@ -56,8 +62,9 @@ Textures:
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Color: '0.5, 0.05, 0.05'
+      Color: '0.4, 0.05, 0.05'
       Radius: 50
+      Offset: 0.01
   
     - ID: 252
       Type: 2
@@ -67,6 +74,7 @@ Textures:
       Offset: 0.01
       Color: '0.10, 0.10, 0.6'
       Radius: 50
+      Offset: 0.01
   
     - ID: 253
       Type: 2
@@ -75,8 +83,17 @@ Textures:
       Width: 0.5
       Offset: 0.01
       Radius: 50
+      Offset: 0.01
 
     # Ceiling lights
+    - ID: 264
+      Type: 2
+      Points: '0.5, 0.5'
+      Width: 4
+      Height: 4
+      Radius: 50
+      Offset: 0.01
+
     - ID: 281
       Type: 2
       Points: '0.5, 0.5'
@@ -84,7 +101,7 @@ Textures:
       Height: 4
       Radius: 50
       Color: '0.34, 0.34, 0.5' # very cool
-      Offset: 0.1
+      Offset: 0.01
 
     - ID: 283
       Points: '0.5, 0.5'
@@ -102,6 +119,7 @@ Textures:
       Width: 4
       Height: 2
       Color: '0.25, 0.25, 0.28' # cooler
+      Offset: 0.01
 
     # Double edge wrapped lights
     - ID: 278
@@ -111,14 +129,17 @@ Textures:
         - '0.95, 0.5'
       Width: 0.05
       Wrap: 2
+      Offset: 0.01
   
     - ID: 279
       Type: 2
       Points:
-        - '0.05, 0.5'
-        - '0.95, 0.5'
+        - '0.075, 0.5'
+        - '0.925, 0.5'
       Width: 0.05
       Wrap: 2
+      Offset: 0.01
+      Color: '0.2, 0.2, 0.25'
   
     - ID: 280
       Type: 2
@@ -127,6 +148,7 @@ Textures:
         - '0.95, 0.4'
       Width: 0.05
       Height: 0.4
+      Offset: 0.01
   
     # Strip lights with the same heights
     - ID: 286
@@ -137,6 +159,7 @@ Textures:
       Width: 6
       Height: 0.5
       Color: '0.2, 0.2, 0.25'
+      Offset: 0.01
   
     - ID: 287
       Type: 2
@@ -146,6 +169,7 @@ Textures:
       Width: 4
       Height: 1 
       Color: '0.2, 0.2, 0.25'
+      Offset: 0.01
   
     - ID: 288
       Type: 2
@@ -156,6 +180,7 @@ Textures:
       Height: 0.5  
       Wrap: 1
       Color: '0.2, 0.2, 0.25'
+      Offset: 0.01
   
     - ID: 292
       Type: 2
@@ -164,7 +189,8 @@ Textures:
         - '0.5, 0.70'
       Width: 2
       Height: 0.5  
-      Color: '0.2, 0.2, 0.25'
+      Color: '0.15, 0.15, 0.20'
+      Offset: 0.01
   
     # lava
     - ID: 333
@@ -174,5 +200,8 @@ Textures:
     - ID: 335
       Points: []
 
-    - ID: 289 # blank light texture. only use ambient lighting
-      Points: []  
+    - ID: 289 # blank light texture. only used for ambient lighting
+      Points: []
+
+    - ID: 328 # energy field
+      Points: []      

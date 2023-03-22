@@ -523,6 +523,9 @@
     <ClInclude Include="LightInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NormalMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">

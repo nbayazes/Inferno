@@ -5,9 +5,9 @@ static const float PI = 3.14159265f;
 
 // Inputs
 // DescriptorTable(SRV(t9, numDescriptors = 3), visibility=SHADER_VISIBILITY_PIXEL)
-StructuredBuffer<LightData> LightBuffer : register(t9);
-ByteAddressBuffer LightGrid : register(t10);
-ByteAddressBuffer LightGridBitMask : register(t11);
+StructuredBuffer<LightData> LightBuffer : register(t11);
+ByteAddressBuffer LightGrid : register(t12);
+ByteAddressBuffer LightGridBitMask : register(t13);
 
 // Apply fresnel to modulate the specular albedo
 void FSchlick(inout float3 specular, inout float3 diffuse, float3 lightDir, float3 halfVec) {
@@ -87,7 +87,7 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
 }
 
 float3 ApplyPointLight(
-    float3 diffuseColor, // Diffuse albedo
+    float3 diffuse,
     float3 specularColor, // Specular albedo
     float specularMask, // Where is it shiny or dingy?
     float gloss, // Specular power
@@ -112,11 +112,10 @@ float3 ApplyPointLight(
     float3 halfVec = normalize(lightDir - viewDir);
     float nDotH = saturate(dot(halfVec, normal));
     float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8;
-    specularFactor *= 0.4;
-    FSchlick(specularColor, diffuseColor, lightDir, halfVec);
+    FSchlick(specularColor, diffuse, lightDir, halfVec);
     float nDotL = saturate(dot(normal, lightDir));
     // No diffuse color because game textures are not albedo
-    return max(0, distanceFalloff * (lightColor /* diffuseColor*/ * nDotL + specularFactor * specularColor));
+    return max(0, distanceFalloff * (lightColor * diffuse * nDotL + specularFactor * specularColor * diffuse));
 }
 
 
@@ -411,7 +410,7 @@ float3 ClosestPointOnRectangle(float3 pt, float3 origin, float3 normal, float3 r
 }
 
 float3 ApplyRectLight2(
-    float3 diffuseColor, // Diffuse albedo
+    float3 diffuse,
     float3 specularColor, // Specular albedo
     float specularMask, // Where is it shiny or dingy?
     float gloss, // Specular power
@@ -430,7 +429,7 @@ float3 ApplyRectLight2(
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
-    float3 surfaceOffset = planeNormal * 2;
+    float3 surfaceOffset = planeNormal * 4;
 
     float vWidth = length(planeRight);
     float vHeight = length(planeUp);
@@ -504,7 +503,7 @@ float3 ApplyRectLight2(
         //float2 c = min(abs(reflectedPlanePoint), float2(vWidth, vHeight)) * sign(reflectedPlanePoint);
         float rDotL = dot(r, vLight);
         
-        float roughness = 0.4;
+        float roughness = 0.6;
         // fade out the specularity as it gets further from the reflected plane
         float specFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * pow(1 - roughness, 2));
         //float specFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * smoothstep(0, 1, roughness));
@@ -548,16 +547,16 @@ float3 ApplyRectLight2(
         //float ggx = normalDistributionGGXRect(nDotH, alpha, alphaPrime);
         float nDotV = dot(-normal, viewDir);
         float smith = geometrySmith(nDotV, nDotL, roughness);
-        //smith = 1;
+        smith = 1;
         specular += specularMask * specularColor * smith * specFactor * rDotL * nDotL /** distanceFalloff*/;
-        specular = max(0, specular * 2); // todo: specular power/gloss
+        specular = max(0, specular * diffuse * 4); // todo: specular power/gloss
     }
     // float3 light = (specular + diffuseFactor) * falloff * lightColor * luminosity;	
 
     //gloss = ClampGloss(gloss, lightDistSq);
     float nDotL2 = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
     // No diffuse color because game textures are not albedo
-    return max(0, distanceFalloff * (lightColor * nDotL2) + distanceFalloff * specular);
+    return max(0, distanceFalloff * lightColor * nDotL2 * diffuse + distanceFalloff * specular);
 }
 
 float3 ApplyRectLight(
@@ -679,7 +678,7 @@ uint FrameIndexMod2;
 
 void ShadeLights(inout float3 colorSum,
                  uint2 pixelPos,
-                 float3 diffuseAlbedo, // Diffuse albedo
+                 float3 diffuse,
                  float3 specularAlbedo, // Specular albedo
                  float specularMask, // Where is it shiny or dingy?
                  float gloss,
@@ -703,11 +702,11 @@ void ShadeLights(inout float3 colorSum,
         //LightData lightData = LightBuffer[0];
 #if 1
         //colorSum += diffuseAlbedo * 4;
-        specularAlbedo = lightData.color;
+        specularAlbedo = lightData.color * 0.25;
         colorSum += ApplyPointLight(
-            diffuseAlbedo, specularAlbedo, specularMask, gloss,
+            diffuse, specularAlbedo, specularMask, gloss,
             normal, viewDir, worldPos, lightData.pos,
-            lightData.radiusSq, lightData.color
+            lightData.radiusSq, lightData.color * 0.25
         ) * 0.25;
 #elif 0
         float sphereRadius = 5;
@@ -752,7 +751,7 @@ void ShadeLights(inout float3 colorSum,
         float3 lightColor = light.color * .5;
         specularAlbedo = light.color * 1;
         colorSum += ApplyRectLight2(
-            diffuseAlbedo, specularAlbedo, specularMask, gloss,
+            diffuse, specularAlbedo, specularMask, gloss,
             normal, viewDir, worldPos, light.pos,
             light.radiusSq, lightColor, light.normal, light.right, light.up
         ) * 1;

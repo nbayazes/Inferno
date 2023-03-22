@@ -61,14 +61,14 @@ namespace Inferno {
             return Type == SideSplitType::Tri13 ? tri13 : tri02;
         }
 
-        const Vector3& NormalForEdge(int edge) {
+        const Vector3& NormalForEdge(int edge) const {
             if (Type == SideSplitType::Tri02)
                 return (edge == 0 || edge == 1) ? Normals[0] : Normals[1];
             else
                 return (edge == 0 || edge == 3) ? Normals[0] : Normals[1];
         }
 
-        const Vector3& CenterForEdge(int edge) {
+        const Vector3& CenterForEdge(int edge) const {
             if (Type == SideSplitType::Tri02)
                 return (edge == 0 || edge == 1) ? Centers[0] : Centers[1];
             else

@@ -213,10 +213,10 @@ namespace Inferno {
         // Static CBV SRV UAV for buffers
         DescriptorRange<1> Reserved;
         // Dynamic CBV SRV UAV for shader texture resources
-        DescriptorRange<4> Shader;
+        DescriptorRange<5> Shader; // Material2D::Count
         UserDescriptorHeap RenderTargets, DepthStencil;
 
-        void SetDescriptorHeaps(ID3D12GraphicsCommandList* cmdList) {
+        void SetDescriptorHeaps(ID3D12GraphicsCommandList* cmdList) const {
             ID3D12DescriptorHeap* heaps[] = { _shader.Heap(), States.Heap() };
             cmdList->SetDescriptorHeaps((uint)std::size(heaps), heaps);
         }

@@ -63,6 +63,13 @@ namespace Inferno {
         return { sin(z) * cos(a), sin(z) * sin(a), cos(z) };
     }
 
+    inline bool VectorNear(const Vector3& v1, const Vector3& v2, float epsilon) {
+        return ((abs(v1.x - v2.x) <= epsilon) &&
+         (abs(v1.y - v2.y) <= epsilon) &&
+         (abs(v1.z - v2.z) <= epsilon));
+        //return XMVector2NearEqual(a, b, { epsilon, epsilon, epsilon });
+    }
+
     template<class T>
     struct NumericRange {
         T Min{}, Max{};

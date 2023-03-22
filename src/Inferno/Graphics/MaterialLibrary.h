@@ -19,7 +19,7 @@ namespace Inferno::Render {
     }
 
     struct Material2D {
-        enum { Diffuse, SuperTransparency, Emissive, Specular, Count };
+        enum { Diffuse, SuperTransparency, Emissive, Specular, Normal, Count };
 
         Texture2D Textures[Count]{};
         // SRV handles
@@ -42,7 +42,7 @@ namespace Inferno::Render {
         Material2D _defaultMaterial;
 
         bool _requestPrune = false;
-        Texture2D _black, _white, _purple;
+        Texture2D _black, _white, _purple, _normal;
         ConcurrentList<Material2D> _materials, PendingCopies;
         ConcurrentList<MaterialUpload> RequestedUploads;
         Dictionary<string, Material2D> _unpackedMaterials;
@@ -141,7 +141,7 @@ namespace Inferno::Render {
         List<Material2D> _materials; // materials indexed by TexID
 
         bool _requestPrune = false;
-        Texture2D _black, _white, _purple;
+        Texture2D _black, _white, _purple, _normal;
         Dictionary<string, Material2D> _nameLookup;
 
         List<ComPtr<ID3D12Resource>> _intermediates;
@@ -345,14 +345,19 @@ namespace Inferno::Render {
             List<uint8> purple(64 * 64 * 4);
             FillTexture(purple, 255, 0, 255, 255);
 
+            List<uint8> normal(64 * 64 * 4);
+            FillTexture(normal, 0, 0, 255, 255);
+
             uploads.push_back(LoadBitmapPlaced(black.data(), L"black", 64, 64));
             uploads.push_back(LoadBitmapPlaced(white.data(), L"white", 64, 64));
             uploads.push_back(LoadBitmapPlaced(purple.data(), L"purple", 64, 64));
+            uploads.push_back(LoadBitmapPlaced(normal.data(), L"normal", 64, 64));
             LoadTextures(uploads);
 
             _black = std::move(uploads[0].Texture);
             _white = std::move(uploads[1].Texture);
             _purple = std::move(uploads[2].Texture);
+            _normal = std::move(uploads[3].Texture);
 
 
             //{

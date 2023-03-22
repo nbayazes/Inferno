@@ -270,6 +270,7 @@
     <ClInclude Include="HUD.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="LightInfo.h" />
+    <ClInclude Include="NormalMap.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Physics.Math.h" />
     <ClInclude Include="Room.h" />

@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Convert.h"
 #include "ScopedTimer.h"
+#include "NormalMap.h"
 
 using namespace DirectX;
 
@@ -83,7 +84,6 @@ namespace Inferno::Render {
                     ids.insert(Resources::LookupTexID(side.TMap));
                     auto& eclip = Resources::GetEffectClip(side.TMap);
                     Seq::insert(ids, eclip.VClip.GetFrames());
-
                 }
 
                 if (side.HasOverlay()) {
@@ -232,7 +232,8 @@ namespace Inferno::Render {
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
                                       MaterialUpload& upload,
                                       Texture2D& blackTex,
-                                      Texture2D& whiteTex) {
+                                      Texture2D& whiteTex,
+                                      Texture2D& normalTex) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.Index = Render::Heaps->Shader.AllocateIndex();
@@ -278,11 +279,26 @@ namespace Inferno::Render {
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
         auto& info = Resources::GetTextureInfo(material.ID);
+        if (info.Width == 64 && info.Height == 64 && !info.Transparent) {
+            NormalMapOptions options{};
+            auto normal = CreateNormalMap2(*upload.Bitmap, options);
+            material.Textures[Material2D::Normal].Load(batch, normal.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
+        }
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
-            auto texture = material.Textures[i] ? &material.Textures[i] :
-                (info.Transparent && i == Material2D::Specular ? &whiteTex : &blackTex);
+            Texture2D* texture;
+            if (material.Textures[i]) {
+                texture = &material.Textures[i];
+            }
+            else {
+                if (i == Material2D::Normal) {
+                    texture = &normalTex;
+                }
+                else {
+                    texture = info.Transparent && i == Material2D::Specular ? &whiteTex : &blackTex;
+                }
+            }
 
             texture->CreateShaderResourceView(handle);
         }
@@ -338,8 +354,10 @@ namespace Inferno::Render {
 
     class MaterialUploadWorker : public WorkerThread {
         MaterialLibrary* _lib;
+
     public:
         MaterialUploadWorker(MaterialLibrary* lib) : _lib(lib) {}
+
     protected:
         void Work() override {
             auto batch = BeginTextureUpload();
@@ -355,7 +373,7 @@ namespace Inferno::Render {
                 if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                     continue;
 
-                if (auto material = UploadMaterial(batch, upload, _lib->_black, _lib->_white))
+                if (auto material = UploadMaterial(batch, upload, _lib->_black, _lib->_white, _lib->_normal))
                     uploads.emplace_back(std::move(material.value()));
             }
 
@@ -376,7 +394,6 @@ namespace Inferno::Render {
                 Render::Adapter->PrintMemoryUsage();
                 Render::Heaps->Shader.GetFreeDescriptors();
             }
-
         }
     };
 
@@ -406,7 +423,7 @@ namespace Inferno::Render {
             if (!upload.Bitmap || upload.Bitmap->Width == 0 || upload.Bitmap->Height == 0)
                 continue;
 
-            if (auto material = UploadMaterial(batch, upload, _black, _white))
+            if (auto material = UploadMaterial(batch, upload, _black, _white, _normal))
                 uploads.emplace_back(std::move(material.value()));
         }
 
@@ -464,10 +481,10 @@ namespace Inferno::Render {
             {
                 PendingCopies.ForEach([this, &trash](Material2D& pending) {
                     int id = (int)pending.ID;
-                if (_materials[id].ID > TexID::Invalid)
-                    trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
+                    if (_materials[id].ID > TexID::Invalid)
+                        trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
 
-                _materials[id] = std::move(pending);
+                    _materials[id] = std::move(pending);
                 });
 
                 PendingCopies.Clear();
@@ -541,7 +558,7 @@ namespace Inferno::Render {
 
         _materials.ForEach([&ids](auto& material) {
             if (material.ID > TexID::Invalid)
-            ids.push_back(material.ID);
+                ids.push_back(material.ID);
         });
 
         LoadMaterialsAsync(ids, true);
@@ -556,8 +573,8 @@ namespace Inferno::Render {
 
         _materials.ForEach([&trash, &ids](auto& material) {
             if (material.ID <= TexID::Invalid || ids.contains(material.ID)) return;
-        trash.emplace_back(std::move(material));
-        material = {}; // mark the material as unused
+            trash.emplace_back(std::move(material));
+            material = {}; // mark the material as unused
         });
 
         TrashTextures(std::move(trash));
@@ -570,8 +587,8 @@ namespace Inferno::Render {
         List<Material2D> trash;
         _materials.ForEach([&trash](auto& material) {
             if (material.ID <= TexID::Invalid) return;
-        trash.emplace_back(std::move(material));
-        material = {}; // mark the material as unused
+            trash.emplace_back(std::move(material));
+            material = {}; // mark the material as unused
         });
 
         TrashTextures(std::move(trash));
@@ -589,6 +606,9 @@ namespace Inferno::Render {
 
         FillTexture(bmp, 255, 0, 255, 255);
         _purple.Load(batch, bmp.data(), 64, 64, L"purple");
+
+        FillTexture(bmp, 0, 0, 255, 255);
+        _normal.Load(batch, bmp.data(), 64, 64, L"normal");
 
         {
             _defaultMaterial.Name = "default";
@@ -866,5 +886,4 @@ namespace Inferno::Render {
     //    // todo: create a future that returns false until pending completes
     //    return UploadHandle;
     //}
-
 }

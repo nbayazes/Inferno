@@ -32,7 +32,7 @@ namespace Inferno {
 
         // Discover all segments that touch
         Set<SegID> heatSegs;
-        for (int sid = -1; auto & seg : level.Segments) {
+        for (int sid = -1; auto& seg : level.Segments) {
             sid++;
             for (auto i : seg.Indices)
                 if (Seq::contains(heatIndices, i))
@@ -50,17 +50,15 @@ namespace Inferno {
                 // cull faces that connect to another segment containing lava. UNLESS has a wall
                 // to do this properly, external facing should be culled on lava falls, otherwise Z fighting will occur
                 // ALSO: only closed walls / doors should count (not triggers)
-                if (auto cseg = level.TryGetSegment(seg.GetConnection(sideId))) {
-                    if (Seq::contains(heatSegs, segId) &&
-                        !level.TryGetWall({ (SegID)segId, sideId }))
-                        continue;
-                }
+                if (Seq::contains(heatSegs, segId) &&
+                    !level.TryGetWall({ (SegID)segId, sideId }))
+                    continue;
 
                 Array<FlatVertex, 4> sideVerts;
 
                 bool isLit = false;
 
-                for (int i = 0; auto & v : seg.GetVertexIndices(sideId)) {
+                for (int i = 0; auto& v : seg.GetVertexIndices(sideId)) {
                     sideVerts[i].Position = level.Vertices[v];
                     if (Seq::contains(heatIndices, v)) {
                         sideVerts[i].Color = { 1, 1, 1, 1 };
@@ -96,35 +94,51 @@ namespace Inferno {
         return Vector2::Transform(uv, Matrix::CreateRotationZ(overlayAngle));
     }
 
+    Tuple<Vector3, Vector3> GetTangentBitangent(const Array<Vector3, 4>& verts,
+                                                const Array<Vector2, 4>& uvs,
+                                                const Array<uint16, 6>& indices,
+                                                int tri) {
+        auto j = tri == 1 ? 3 : 0;
+        auto edge1 = verts[indices[1 + j]] - verts[indices[j]];
+        auto edge2 = verts[indices[2 + j]] - verts[indices[j]];
+        auto deltaUV1 = uvs[indices[1 + j]] - uvs[indices[j]];
+        auto deltaUV2 = uvs[indices[2 + j]] - uvs[indices[j]];
+
+        float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+        Vector3 tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * f;
+        tangent.Normalize();
+
+        Vector3 bitangent = (edge2 * deltaUV1.x - edge1 * deltaUV2.x) * f;
+        bitangent.Normalize();
+
+        return { tangent, bitangent };
+    }
+
     void AddPolygon(const Array<Vector3, 4>& verts,
-                    const Array<Vector2, 4>& uv,
-                    const Array<Color, 4>& lt,
+                    const Array<Vector2, 4>& uvs,
+                    const Array<Color, 4>& colors,
                     LevelGeometry& geo,
                     LevelChunk& chunk,
                     const SegmentSide& side) {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex, side);
 
+        auto indices = side.GetRenderIndices();
+        auto [tangent1, bitangent1] = GetTangentBitangent(verts, uvs, indices, 0);
+        auto [tangent2, bitangent2] = GetTangentBitangent(verts, uvs, indices, 1);
+
         // create vertices for this face
-        for (int i = 0; i < 4; i++) {
-            Vector3 pos = verts[i];
+        for (int i = 0; i < 6; i++) {
+            auto pos = verts[indices[i]];
+            auto normal = side.NormalForEdge(indices[i]);
+            auto uv = uvs[indices[i]];
+            auto color = colors[indices[i]];
+            Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv) : Vector2();
             chunk.Center += pos;
 
-            Vector3 normal;
-            if (side.Type == SideSplitType::Tri02) {
-                if (i == 0 || i == 2) normal = side.AverageNormal;
-                if (i == 1) normal = side.Normals[0];
-                if (i == 3) normal = side.Normals[1];
-            }
-            else {
-                // 1-3 split
-                if (i == 1 || i == 3) normal = side.AverageNormal;
-                if (i == 0) normal = side.Normals[0];
-                if (i == 2) normal = side.Normals[1];
-            }
-
-            Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv[i]) : Vector2();
-            LevelVertex vertex = { pos, uv[i], lt[i], uv2, normal };
+            auto& tangent = i < 3 ? tangent1 : tangent2;
+            auto& bitangent = i < 3 ? bitangent1 : bitangent2;
+            LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent };
             geo.Vertices.push_back(vertex);
         }
 

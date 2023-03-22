@@ -36,16 +36,20 @@ namespace Inferno {
         Vector4 Color;
         Vector2 UV2; // for overlay texture
         Vector3 Normal;
+        Vector3 Tangent;
+        Vector3 Bitangent;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",     0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD",  1, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
         };
 
-        static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     struct FlatVertex {
@@ -57,7 +61,7 @@ namespace Inferno {
             { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     // this should match imgui shader
@@ -72,7 +76,7 @@ namespace Inferno {
             { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     //struct HudVertex {
@@ -102,17 +106,17 @@ namespace Inferno {
             { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
-        static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
     // Shaders can be combined with different PSOs to create several effects
     class IShader {
     public:
-        IShader(ShaderInfo info) : Info(info) {}
+        IShader(ShaderInfo info) : Info(std::move(info)) {}
         virtual ~IShader() = default;
 
         ShaderInfo Info;
-        D3D12_INPUT_LAYOUT_DESC InputLayout;
+        D3D12_INPUT_LAYOUT_DESC InputLayout{};
         DXGI_FORMAT Format = DXGI_FORMAT_R11G11B10_FLOAT;
 
         ComPtr<ID3DBlob> VertexShader;

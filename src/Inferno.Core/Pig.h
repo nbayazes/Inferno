@@ -7,8 +7,18 @@ namespace Inferno {
     struct Palette {
         struct Color {
             ubyte r = 0, g = 0, b = 0, a = 255;
-            bool operator == (const Color& rhs) const {
-                return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a; 
+
+            bool operator ==(const Color& rhs) const {
+                return r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+            }
+
+            static constexpr Color FromColor(const DirectX::SimpleMath::Color& color) {
+                Color c;
+                c.r = ubyte(color.x * 255.0f);
+                c.g = ubyte(color.y * 255.0f);
+                c.b = ubyte(color.z * 255.0f);
+                c.a = ubyte(color.w * 255.0f);
+                return c;
             }
         };
 
@@ -72,8 +82,10 @@ namespace Inferno {
         string Name;
 
         PigBitmap() : Width(0), Height(0) {}
-        PigBitmap(uint16 width, uint16 height, string name) 
+
+        PigBitmap(uint16 width, uint16 height, string name)
             : Width(width), Height(height), Name(std::move(name)) {}
+
         ~PigBitmap() = default;
         PigBitmap(const PigBitmap&) = delete;
         PigBitmap(PigBitmap&&) = default;
@@ -111,6 +123,7 @@ namespace Inferno {
             if (Animated)
                 Name = fmt::format("{}#{}", Name, Frame);
         }
+
     private:
         static constexpr uint8 FrameMask = 63;
         static constexpr uint8 AnimatedFlag = 64;
@@ -147,5 +160,4 @@ namespace Inferno {
     PigFile ReadPigFile(wstring file);
     PigEntry ReadD2BitmapHeader(StreamReader&, TexID);
     PigEntry ReadD1BitmapHeader(StreamReader&, TexID);
-
 }

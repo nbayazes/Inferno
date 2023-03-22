@@ -22,8 +22,9 @@ namespace Inferno {
         bool Cloaked = false;
 
         void AddQuad(uint16 index, const SegmentSide& side) {
-            for (auto i : side.GetRenderIndices())
+            for (int i = 0; i < 6; i++) {
                 Indices.push_back(index + i);
+            }
         }
     };
 

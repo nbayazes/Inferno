@@ -5,13 +5,13 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 9), "\
-    "DescriptorTable(SRV(t0, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t4, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t8, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t9, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b2),"\
     "StaticSampler(s1," \
         "addressU = TEXTURE_ADDRESS_WRAP," \
@@ -21,15 +21,18 @@
         "filter = FILTER_ANISOTROPIC)" // FILTER_MIN_MAG_MIP_LINEAR, FILTER_MIN_MAG_MIP_POINT
 
 Texture2D Diffuse : register(t0);
-//Texture2D StMask : register(t1); // not used
+//Texture2D StMask : register(t1); // not used but reserved for descriptor table
 Texture2D Emissive : register(t2);
 Texture2D Specular1 : register(t3);
+Texture2D Normal1 : register(t4);
 
-Texture2D Diffuse2 : register(t4);
-Texture2D StMask : register(t5);
-Texture2D Emissive2 : register(t6);
-Texture2D Specular2 : register(t7);
-Texture2D Depth : register(t8);
+Texture2D Diffuse2 : register(t5);
+Texture2D StMask : register(t6);
+Texture2D Emissive2 : register(t7);
+Texture2D Specular2 : register(t8);
+Texture2D Normal2 : register(t9);
+
+Texture2D Depth : register(t10);
 //StructuredBuffer<LightData> LightBuffer : register(t9);
 //ByteAddressBuffer LightGrid : register(t10);
 //ByteAddressBuffer LightGridBitMask : register(t11);
@@ -45,19 +48,20 @@ static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
 cbuffer InstanceConstants : register(b1) {
-    float2 Scroll, Scroll2;
-    float LightingScale; // for unlit mode
-    bool Distort;
-    bool HasOverlay;
+float2 Scroll, Scroll2;
+float LightingScale; // for unlit mode
+bool Distort;
+bool HasOverlay;
 };
 
 struct LevelVertex {
     float3 pos : POSITION;
-    float4 col : COLOR0;
     float2 uv : TEXCOORD0;
+    float4 col : COLOR0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
-    // tangent, bitangent
+    float3 tangent : TANGENT;
+    float3 bitangent : BITANGENT;
 };
 
 struct PS_INPUT {
@@ -66,13 +70,14 @@ struct PS_INPUT {
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
-    // tangent, bitangent
 };
 
 /*
     Combined level shader
-*/ 
+*/
 [RootSignature(RS)]
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
@@ -83,6 +88,8 @@ PS_INPUT vsmain(LevelVertex input) {
     output.uv = input.uv + Scroll * Time * 200;
     output.uv2 = input.uv2 + Scroll2 * Time * 200;
     output.normal = input.normal;
+    output.tangent = input.tangent;
+    output.bitangent = input.bitangent;
     output.world = input.pos; // level geometry is already in world coordinates
     return output;
 }
@@ -132,15 +139,15 @@ float Noise(float2 st) {
 
     // Mix 4 coorners percentages
     return lerp(a, b, u.x) +
-            (c - a) * u.y * (1.0 - u.x) +
-            (d - b) * u.x * u.y;
+        (c - a) * u.y * (1.0 - u.x) +
+        (d - b) * u.x * u.y;
 }
 
 float3 hash(float3 p) // replace this by something better
 {
     p = float3(dot(p, float3(127.1, 311.7, 74.7)),
-              dot(p, float3(269.5, 183.3, 246.1)),
-              dot(p, float3(113.5, 271.9, 124.6)));
+               dot(p, float3(269.5, 183.3, 246.1)),
+               dot(p, float3(113.5, 271.9, 124.6)));
 
     return -1.0 + 2.0 * frac(sin(p) * 43758.5453123);
 }
@@ -148,7 +155,7 @@ float3 hash(float3 p) // replace this by something better
 float Noise3D(in float3 p) {
     float3 i = floor(p);
     float3 f = frac(p);
-    
+
     float3 u = f * f * (3.0 - 2.0 * f);
 
     return lerp(lerp(lerp(dot(hash(i + float3(0.0, 0.0, 0.0)), f - float3(0.0, 0.0, 0.0)),
@@ -167,14 +174,14 @@ float3 TextureNoTile(Texture2D tex, float2 uv, float3 pos, float v) {
 
     float2 duvdx = ddx(uv);
     float2 duvdy = ddy(uv);
-    
+
     float k = Noise3D(pos);
     float l = k * 8.0;
     float f = frac(l);
-    
+
     float ia = floor(l); // my method
     float ib = ia + 1.0;
-    
+
     float2 offa = sin(float2(3.0, 7.0) * ia); // can replace with any other hash
     float2 offb = sin(float2(3.0, 7.0) * ib); // can replace with any other hash
 
@@ -195,15 +202,30 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Eye);
     // adding noise fixes dithering, but this is expensive. sample a noise texture instead
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
-    
-    float4 lighting = float4(0, 0, 0, 0);
+
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
+    //float3 normal = Sample2DAAData(Normal1, input.uv, LinearSampler).rgb;
+    float3 normal = Normal1.Sample(Sampler, input.uv).rgb * 2 - 1; // map from 0..1 to -1..1
+    //normal = float3(0, 0, 1);
+    //return float4(pow(normal, 2.2), 1);
+    //return float4(normal * 0.5 + 0.5, 1);
+    //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
+    float normalStrength = 0.6;
+    normal.xy *= normalStrength;
+    normal = normalize(normal);
+
+    float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
+    normal = normalize(mul(normal, tbn));
+    //return float4(normal * 0.5 + 0.5, 1);
+    //normal = input.normal;
+    //return float4(input.normal * 0.5 + 0.5, 1);
+    
     //base.rgb = TextureNoTile(Diffuse, input.uv, input.world / 20, 1);
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
     float3 emissive = (Sample2DAA(Emissive, input.uv, LinearSampler)).rgb;
-    
+
     if (HasOverlay) {
         // Apply supertransparency mask
         float mask = 1 - Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
@@ -214,7 +236,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
         emissive *= 1 - overlay.a; // Remove covered portion of emissive
-        
+        normal = normalize(lerp(normal, input.normal, overlay.a));
         // layer the emissive over the base emissive
         emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
         //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
@@ -224,41 +246,40 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float multiplier = length(emissive.rgb); 
         //lighting.a = saturate(lighting.a);
         //output.Color = diffuse * lighting;
-        
+
         // assume overlay is only emissive source for now
         //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
         //output.Emissive = diffuse * (1 + lighting);
         //output.Emissive = float4(diffuse.rgb * src.a * emissive.rgb, out_a);
     }
 
-    if (diffuse.a < 0.01f)
-        discard;
+    if (diffuse.a <= 0)
+        discard; // discarding speeds up large transparent walls
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
-    lighting.rgb += emissive * diffuse.rgb * 1.00;
+    float3 lighting = float3(0, 0, 0);
+    lighting += emissive * diffuse.rgb * 1.00;
 
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
     vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
 #if 0
     lighting.rgb += vertexLighting;
+    return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
 #else
-    float gloss = 75;
+    float gloss = 32;
     float specularMask = 1.0;
     //float3 specularAlbedo = float3(0.6, 0.6, 0.6);
     float3 specularAlbedo = float3(0.6, 0.6, 0.6);
     //diffuse.rgb = 0.5;
     float3 colorSum = float3(0, 0, 0);
     uint2 pixelPos = uint2(input.pos.xy);
-    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, input.normal, viewDir, input.world);
-    lighting.rgb += colorSum * 1.0;
-    lighting.rgb += vertexLighting * 0.20;
+    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, normal, viewDir, input.world);
+    lighting += colorSum * 1.0;
+    lighting += diffuse.rgb * vertexLighting * 0.20; // ambient
     //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
+    return float4(lighting * GlobalDimming, diffuse.a);
 #endif
-    //diffuse.a = 0.5;
-
-    return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
-
 }

@@ -29,7 +29,7 @@ namespace Inferno {
     }
 
     // Orgb = srgb * Srgb + drgb * Drgb
-    const D3D12_RENDER_TARGET_BLEND_DESC BLEND_DESC_MULTIPLY_RT = {
+    constexpr D3D12_RENDER_TARGET_BLEND_DESC BLEND_DESC_MULTIPLY_RT = {
         .BlendEnable = true,
         .LogicOpEnable = false,
         .SrcBlend = D3D12_BLEND_DEST_COLOR, // O = S * D
@@ -42,7 +42,7 @@ namespace Inferno {
         .RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL
     };
 
-    const D3D12_BLEND_DESC BLEND_DESC_MULTIPLY = {
+    constexpr D3D12_BLEND_DESC BLEND_DESC_MULTIPLY = {
         .RenderTarget = { BLEND_DESC_MULTIPLY_RT }
     };
 
