@@ -1,4 +1,387 @@
-Textures:
+Materials:
+    - TexID: 722 # white rock
+      NormalStrength: 0.30
+      SpecularStrength: 0.8
+      Roughness: 0.80
+
+    - TexID: 786 # white rock
+      NormalStrength: 1.5
+      SpecularStrength: 0.7
+      Roughness: 0.60
+
+    - TexID: 742 # white rock
+      NormalStrength: 0.6
+      SpecularStrength: 0.7
+      Roughness: 0.7
+
+    - TexID: 790 # green rock
+      NormalStrength: 1
+      SpecularStrength: 0.7
+      Roughness: 0.60
+
+    - TexID: 817 # green rock
+      NormalStrength: 1
+      Roughness: 0.7
+      Metalness: 0.3
+
+    - TexID: 832 # green rock
+      NormalStrength: 0.7
+      Roughness: 0.7
+
+    - TexID: 835 # green rock
+      NormalStrength: 0.7
+      Roughness: 0.85
+
+    - TexID: 809 # bluish rock
+      NormalStrength: 1.4
+      Roughness: 0.8
+      Metalness: 0.3
+
+    - TexID: 768 # grey rock
+      NormalStrength: 0.4
+      SpecularStrength: .6
+      Roughness: 0.7
+
+    - TexID: 723 # grey rock
+      NormalStrength: 0.6
+      SpecularStrength: .5
+      Roughness: 0.5
+
+    - TexID: 839 # grey rock
+      NormalStrength: 0.6
+      SpecularStrength: .5
+      Roughness: 0.85
+
+    - TexID: 724 # grey rock
+      NormalStrength: 1
+      SpecularStrength: .5
+      Roughness: 0.7
+
+    - TexID: 780 # grey rock
+      NormalStrength: 0.4
+      SpecularStrength: 1
+      Roughness: 0.85
+
+    - TexID: 733 # smooth grey rock
+      NormalStrength: 1
+      SpecularStrength: .5
+      Roughness: 0.65
+
+    - TexID: 727 # smooth grey rock
+      NormalStrength: 1.2
+      SpecularStrength: .7
+      Roughness: 0.65
+
+    - TexID: 741 # black rock
+      NormalStrength: 1.3
+      SpecularStrength: 1
+      Roughness: 0.7
+
+    - TexID: 777 # black rock
+      NormalStrength: 1
+      SpecularStrength: 0.5
+      Roughness: 0.9
+
+    - TexID: 804 # black rock
+      NormalStrength: 1.1
+      SpecularStrength: 1
+      Roughness: 0.4
+      Metalness: 0.0
+
+    - TexID: 811 # reddish
+      NormalStrength: 1
+      SpecularStrength: 0.5
+      Roughness: 0.93
+
+    - TexID: 861 # reddish
+      NormalStrength: 1
+      SpecularStrength: 0.5
+      Roughness: 0.93
+
+    - TexID: 870 # brownish
+      NormalStrength: .5
+      SpecularStrength: 1
+      Roughness: 0.95
+
+    - TexID: 1487 # brownish
+      NormalStrength: 0.4
+      SpecularStrength: 1
+      Roughness: 0.90
+
+    - TexID: 807 # brownish
+      NormalStrength: 0.4
+      SpecularStrength: 1
+      Roughness: 0.90
+
+    - TexID: 813 # brownish
+      NormalStrength: 0.4
+      SpecularStrength: 1
+      Roughness: 0.95
+
+    - TexID: 814 # brownish
+      NormalStrength: 0.8
+      SpecularStrength: 1
+      Roughness: 0.95
+
+    - TexID: 784 # brown
+      NormalStrength: 0.3
+      SpecularStrength: 1
+      Roughness: 0.9
+
+    - TexID: 785 # brown
+      NormalStrength: 1
+      SpecularStrength: 0.6
+      Roughness: 0.85
+
+    - TexID: 852 # brownish
+      NormalStrength: 1.1
+      SpecularStrength: 1
+      Roughness: 0.75
+
+    - TexID: 854 # brownish
+      NormalStrength: 1
+      SpecularStrength: 0.4
+      Roughness: 0.7
+
+    - TexID: 849 # brownish
+      NormalStrength: 0.5
+      SpecularStrength: 0.3
+      Roughness: 0.85
+
+    - TexID: 868 # brownish
+      NormalStrength: 1.3
+      SpecularStrength: 1
+      Roughness: 0.92
+
+    - TexID: 779 # pink cracked rock
+      NormalStrength: 1.2
+      SpecularStrength: 0.7
+      Roughness: 0.7
+
+    - TexID: 773 # pink
+      NormalStrength: 0.5
+      SpecularStrength: 0.7
+      Roughness: 0.85
+
+    - TexID: 793 # pink
+      NormalStrength: 0.8
+      SpecularStrength: 0.7
+      Roughness: 0.75
+
+    - TexID: 794 # pink
+      NormalStrength: 0.1
+      SpecularStrength: 0.6
+      Roughness: 0.85
+
+    - TexID: 859 # pink
+      NormalStrength: 0.6
+      SpecularStrength: 0.7
+      Roughness: 0.75
+
+    - TexID: 843 # brown
+      NormalStrength: 0.8
+      SpecularStrength: 0.7
+      Roughness: 0.9
+
+    - TexID: 819 # blackish
+      NormalStrength: 0.4
+      SpecularStrength: 1.3
+      Roughness: 0.9
+      Metalness: 0.3
+
+    - TexID: 795 # blue rock
+      NormalStrength: 0.7
+      SpecularStrength: 0.8
+      Roughness: 0.80
+
+    - TexID: 846 # blue rock
+      NormalStrength: 0.5
+      SpecularStrength: 0.8
+      Roughness: 0.75
+
+    - TexID: 1472 # blue door
+      NormalStrength: 0.7
+      SpecularStrength: 0.8
+      Roughness: 0.80
+
+    - TexID: 1458 # white rock door
+      NormalStrength: 0.4
+      SpecularStrength: 0.7
+      Roughness: 0.80
+
+    - TexID: 732 # Dark rock
+      NormalStrength: 1
+      SpecularStrength: 1.3
+      Roughness: 0.90
+
+    - TexID: 821 # Dark rock
+      NormalStrength: 1.6
+      SpecularStrength: 1
+      Roughness: 0.90
+
+    - TexID: 801 # Dark rock
+      NormalStrength: 0.6
+      SpecularStrength: 1
+      Roughness: 0.92
+
+    - TexID: 736 # Purple rock
+      NormalStrength: 1.3
+      SpecularStrength: 0.7
+      Roughness: 0.6
+      Metalness: 0.3
+
+    - TexID: 735 # Blueish rock
+      NormalStrength: 0.6
+      SpecularStrength: 0.5
+      Roughness: 0.85
+
+    - TexID: 802 # dark blue rock
+      NormalStrength: 1.2
+      SpecularStrength: 1
+      Roughness: 0.9
+
+    - TexID: 986 # tile floor
+      NormalStrength: 1.2
+      SpecularStrength: 0.8
+      Roughness: 0.65
+      
+    - TexID: 987 # rect tile floor
+      NormalStrength: 1.5
+      SpecularStrength: 0.5
+      Roughness: 0.7
+
+    - TexID: 992 # tile floor
+      NormalStrength: 0.6
+      SpecularStrength: 0.5
+      Roughness: 0.85
+      Metalness: 0.4
+
+    - TexID: 875 # dark metal wall
+      NormalStrength: 0.35
+      Roughness: 0.6
+      SpecularStrength: 12
+      Metalness: 1
+
+    - TexID: 972 # dark metal wall
+      NormalStrength: 0.1
+      Roughness: 0.75
+      SpecularStrength: 10
+      Metalness: 1
+
+    - TexID: 902 # dark metal wall
+      NormalStrength: 0.35
+      Roughness: 0.6
+      SpecularStrength: 15
+      Metalness: 1
+
+    - TexID: 919 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 922 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 26 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 907 # metal wall
+      NormalStrength: 0.25
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 882 # metal wall with stripes
+      NormalStrength: 0.15
+      Roughness: 0.7
+      Metalness: 0.8
+
+    - TexID: 880 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+      InvertNormal: true # conflicts...
+
+    - TexID: 881 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 887 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 888 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 897 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 892 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+      
+    - TexID: 894 # tech metal wall
+      NormalStrength: 0.5
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 883 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 921 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 923 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 925 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 928 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 929 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 930 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 935 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 1092 # reactor wall
+      NormalStrength: 0.3
+      SpecularStrength: 1
+      Roughness: 0.6
+      Metalness: 0.9
+
+LevelTextures:
     # Lab textures
     - ID: 212
       Type: 2
@@ -6,7 +389,7 @@ Textures:
       Radius: 80
       Width: 0.1
       Wrap: 1
-      Color: '0.05, 0.05, 0.25' # cooler
+      Color: '0.1, 0.1, 0.3' # cooler
       Offset: 0.01
   
     - ID: 213
@@ -15,7 +398,7 @@ Textures:
       Width: 0.25
       Height: 0.05
       Radius: 60
-      Color: '0.05, 0.05, 0.15' # cooler
+      Color: '0.1, 0.1, 0.3' # cooler
       Offset: 0.01
   
     - ID: 214
@@ -24,7 +407,7 @@ Textures:
       Width: 5
       Height: 0.25
       Radius: 60
-      Color: '0.05, 0.05, 0.15' # cooler
+      Color: '0.1, 0.1, 0.3' # cooler
       Offset: 0.01
   
     - ID: 221
@@ -33,7 +416,7 @@ Textures:
       Width: 0.25
       Height: 0.05
       Radius: 60
-      Color: '0.05, 0.05, 0.15' # cooler
+      Color: '0.1, 0.1, 0.3' # cooler
       Offset: 0.01
   
     - ID: 222
@@ -42,19 +425,18 @@ Textures:
       Width: 0.25
       Height: 0.05
       Radius: 60
-      Color: '0.05, 0.05, 0.15' # cooler
+      Color: '0.1, 0.1, 0.3' # cooler
       Offset: 0.01
   
-    ## Door strips
+    # Door strips
     - ID: 250
       Type: 2
       Points: '0.15, 0'
       Wrap: 2
-      Width: 0.5
-      Offset: 0.01
-      Color: '0.225, 0.20, 0.20'
+      Width: 0.25
+      Offset: 0.0
+      Color: '0.45, 0.40, 0.40'
       Radius: 50
-      Offset: 0.01
   
     - ID: 251
       Type: 2
@@ -62,9 +444,8 @@ Textures:
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Color: '0.4, 0.05, 0.05'
+      Color: '0.5, 0.05, 0.05'
       Radius: 50
-      Offset: 0.01
   
     - ID: 252
       Type: 2
@@ -74,7 +455,6 @@ Textures:
       Offset: 0.01
       Color: '0.10, 0.10, 0.6'
       Radius: 50
-      Offset: 0.01
   
     - ID: 253
       Type: 2
@@ -83,7 +463,7 @@ Textures:
       Width: 0.5
       Offset: 0.01
       Radius: 50
-      Offset: 0.01
+      Color: '0.25, 0.25, 0.025'
 
     # Ceiling lights
     - ID: 264
@@ -100,15 +480,15 @@ Textures:
       Width: 4
       Height: 4
       Radius: 50
-      Color: '0.34, 0.34, 0.5' # very cool
-      Offset: 0.01
+      Color: '0.7, 0.7, 0.875' # very cool
+      Offset: 0
 
     - ID: 283
       Points: '0.5, 0.5'
-      Color: '0.25, 0.25, 0.35' # cooler
+      Color: '0.6, 0.6, 0.63' # cooler
 
     - ID: 284
-      Color: '0.25, 0.25, 0.28' # warmer
+      #Color: '0.5, 0.5, 0.60' # warmer
 
     # Stacked lights
     - ID: 285
@@ -139,7 +519,7 @@ Textures:
       Width: 0.05
       Wrap: 2
       Offset: 0.01
-      Color: '0.2, 0.2, 0.25'
+      Color: '0.3, 0.3, 0.4'
   
     - ID: 280
       Type: 2
@@ -158,7 +538,7 @@ Textures:
         - '0.5, 0.76'
       Width: 6
       Height: 0.5
-      Color: '0.2, 0.2, 0.25'
+      Color: '0.3, 0.3, 0.4'
       Offset: 0.01
   
     - ID: 287
@@ -179,7 +559,7 @@ Textures:
       Width: 2
       Height: 0.5  
       Wrap: 1
-      Color: '0.2, 0.2, 0.25'
+      Color: '0.15, 0.15, 0.20'
       Offset: 0.01
   
     - ID: 292
@@ -192,6 +572,9 @@ Textures:
       Color: '0.15, 0.15, 0.20'
       Offset: 0.01
   
+    - ID: 294
+      Offset: 1
+
     # lava
     - ID: 333
       Offset: 10

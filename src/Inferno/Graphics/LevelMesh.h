@@ -21,8 +21,8 @@ namespace Inferno {
         BlendMode Blend = BlendMode::Opaque;
         bool Cloaked = false;
 
-        void AddQuad(uint16 index, const SegmentSide& side) {
-            for (int i = 0; i < 6; i++) {
+        void AddQuad(uint16 index) {
+            for (uint16 i = 0; i < 6; i++) {
                 Indices.push_back(index + i);
             }
         }

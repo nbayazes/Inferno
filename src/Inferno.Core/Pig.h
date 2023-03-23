@@ -20,6 +20,10 @@ namespace Inferno {
                 c.a = ubyte(color.w * 255.0f);
                 return c;
             }
+
+            DirectX::SimpleMath::Color ToColor() const {
+                return { (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, (float)a / 255.0f };
+            }
         };
 
         // Value for supertransparent values in the mask
@@ -62,15 +66,19 @@ namespace Inferno {
         Transparent = 1,
         SuperTransparent = 2,
         NoLighting = 4,
-        Rle = 8,        // A run-length encoded bitmap.
-        PagedOut = 16,  // This bitmap's data is paged out.
-        RleBig = 32     // for bitmaps that RLE to > 255 per row (i.e. cockpits)
+        Rle = 8,
+        // A run-length encoded bitmap.
+        PagedOut = 16,
+        // This bitmap's data is paged out.
+        RleBig = 32 // for bitmaps that RLE to > 255 per row (i.e. cockpits)
     };
 
     enum class BitmapType {
-        Level, // walls, wall clips
+        Level,
+        // walls, wall clips
         Object,
-        Effect, // vclips
+        Effect,
+        // vclips
         UI // menus, HUD
     };
 

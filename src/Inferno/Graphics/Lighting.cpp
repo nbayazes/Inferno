@@ -231,8 +231,8 @@ namespace Inferno::Graphics {
 
                 auto tmap = useOverlay ? side.TMap2 : side.TMap;
                 auto& info =
-                    Resources::LightInfo.Textures.contains(tmap) ?
-                    Resources::LightInfo.Textures[tmap] :
+                    Resources::MaterialInfo.LevelTextures.contains(tmap) ?
+                    Resources::MaterialInfo.LevelTextures[tmap] :
                     defaultInfo;
 
                 auto color = info.Color == Color(0, 0, 0) ? GetLightColor(side) : info.Color;
@@ -328,7 +328,7 @@ namespace Inferno::Graphics {
 
                                     auto uvIntVec = intersects[1] - intersects[0];
                                     uvIntVec.Normalize();
-                                    constexpr float uvIntOffset = 0.1;
+                                    constexpr float uvIntOffset = 0.01;
 
                                     auto pos = FaceContainsUV(face, intersects[0] + uvIntVec * uvIntOffset);
                                     auto pos2 = FaceContainsUV(face, intersects[1] - uvIntVec * uvIntOffset);

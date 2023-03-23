@@ -237,17 +237,18 @@ void main(uint2 group : SV_GroupID,
         // store the index for each light type
         uint storeOffset = tileOffset + TILE_HEADER_SIZE;
 
-        for (uint n = 0; n < pointLightCount; n++) {
+        uint n = 0;
+        for (n = 0; n < pointLightCount; n++) {
             lightGrid.Store(storeOffset, pointLightIndices[n]);
             storeOffset += 4;
         }
 
-        for (uint n = 0; n < tubeLightCount; n++) {
+        for (n = 0; n < tubeLightCount; n++) {
             lightGrid.Store(storeOffset, tubeLightIndices[n]);
             storeOffset += 4;
         }
 
-        for (uint n = 0; n < rectLightCount; n++) {
+        for (n = 0; n < rectLightCount; n++) {
             lightGrid.Store(storeOffset, rectLightIndices[n]);
             storeOffset += 4;
         }

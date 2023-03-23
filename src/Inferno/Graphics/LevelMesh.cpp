@@ -121,7 +121,7 @@ namespace Inferno {
                     LevelChunk& chunk,
                     const SegmentSide& side) {
         auto startIndex = geo.Vertices.size();
-        chunk.AddQuad((uint16)startIndex, side);
+        chunk.AddQuad((uint16)startIndex);
 
         auto indices = side.GetRenderIndices();
         auto [tangent1, bitangent1] = GetTangentBitangent(verts, uvs, indices, 0);
@@ -129,10 +129,10 @@ namespace Inferno {
 
         // create vertices for this face
         for (int i = 0; i < 6; i++) {
-            auto pos = verts[indices[i]];
-            auto normal = side.NormalForEdge(indices[i]);
-            auto uv = uvs[indices[i]];
-            auto color = colors[indices[i]];
+            auto& pos = verts[indices[i]];
+            auto& normal = side.NormalForEdge(indices[i]);
+            auto& uv = uvs[indices[i]];
+            auto& color = colors[indices[i]];
             Vector2 uv2 = side.HasOverlay() ? ApplyOverlayRotation(side, uv) : Vector2();
             chunk.Center += pos;
 
@@ -304,7 +304,7 @@ namespace Inferno {
             }
         }
 
-        for (auto& [key, chunk] : chunks)
+        for (auto& chunk : chunks | views::values)
             geo.Chunks.push_back(chunk);
     }
 

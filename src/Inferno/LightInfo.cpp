@@ -5,7 +5,7 @@
 using namespace Yaml;
 
 namespace Inferno {
-    TextureLightInfo LoadTextureLightInfo(ryml::NodeRef node) {
+    TextureLightInfo ReadLightInfo(ryml::NodeRef node) {
         TextureLightInfo info;
         ReadValue(node["ID"], (int&)info.Id);
         ReadValue(node["Type"], (int&)info.Type);
@@ -39,22 +39,45 @@ namespace Inferno {
         return info;
     }
 
-    LevelLightInfo LevelLightInfo::Load(const string& data) {
-        LevelLightInfo lightInfo;
+    void ReadMaterialInfo(ryml::NodeRef node, Dictionary<TexID, MaterialInfo>& materials) {
+        if (!node.valid() || node.is_seed()) return;
+
+        MaterialInfo info{};
+        TexID id;
+        ReadValue(node["TexID"], id);
+        if (materials.contains(id))
+            SPDLOG_WARN("Redefined material {} due to duplicate entry", (int)id);
+
+        ReadValue(node["NormalStrength"], info.NormalStrength);
+        ReadValue(node["SpecularStrength"], info.SpecularStrength);
+        ReadValue(node["Metalness"], info.Metalness);
+        ReadValue(node["Roughness"], info.Roughness);
+        materials[id] = info;
+    }
+
+    ExtendedTextureInfo ExtendedTextureInfo::Load(const string& data) {
+        ExtendedTextureInfo extendedInfo;
         try {
             ryml::Tree doc = ryml::parse(ryml::to_csubstr(data));
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
-                auto textureNode = root["Textures"];
-                if (textureNode.valid() && !textureNode.is_seed()) {
-                    for (const auto& node : textureNode.children()) {
+                auto materialNode = root["Materials"];
+                if (materialNode.valid() && !materialNode.is_seed()) {
+                    for (const auto& node : materialNode.children()) {
+                        ReadMaterialInfo(node, extendedInfo.Materials);
+                    }
+                }
+
+                auto levelTextureNode = root["LevelTextures"];
+                if (levelTextureNode.valid() && !levelTextureNode.is_seed()) {
+                    for (const auto& node : levelTextureNode.children()) {
                         if (!node.valid() || node.is_seed()) continue;
-                        auto info = LoadTextureLightInfo(node);
-                        if (lightInfo.Textures.contains(info.Id))
+                        auto info = ReadLightInfo(node);
+                        if (extendedInfo.LevelTextures.contains(info.Id))
                             SPDLOG_WARN("Redefined texture {} due to duplicate entry", (int)info.Id);
 
-                        lightInfo.Textures[info.Id] = info;
+                        extendedInfo.LevelTextures[info.Id] = info;
                     }
                 }
             }
@@ -63,6 +86,8 @@ namespace Inferno {
             SPDLOG_ERROR("Error loading light info:\n{}", e.what());
         }
 
-        return lightInfo;
+        SPDLOG_INFO("Loaded {} materials and {} light definitions", extendedInfo.Materials.size(), extendedInfo.LevelTextures.size());
+
+        return extendedInfo;
     }
 }

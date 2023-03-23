@@ -278,10 +278,15 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
+        if (!material.Textures[Material2D::Specular]) {
+            auto specular = CreateSpecularMap(*upload.Bitmap);
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
+        }
+
         auto& info = Resources::GetTextureInfo(material.ID);
         if (info.Width == 64 && info.Height == 64 && !info.Transparent) {
             NormalMapOptions options{};
-            auto normal = CreateNormalMap2(*upload.Bitmap, options);
+            auto normal = CreateNormalMap(*upload.Bitmap, options);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
         }
 

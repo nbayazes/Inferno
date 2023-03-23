@@ -37,10 +37,22 @@ namespace Inferno {
         }
     };
 
-    struct LevelLightInfo {
-        Dictionary<LevelTexID, TextureLightInfo> Textures;
+    // Must match MaterialInfo HLSL
+    struct MaterialInfo {
+        float NormalStrength = 1; // multiplier on normal map
+        float SpecularStrength = 1; // multiplier on specular
+        // other map generation options like contrast, brightness?
+        float Metalness = 0; // How much diffuse to apply to specular
+        float Roughness = 0.5; // 0 is sharp specular, 1 is no specular
+        //TextureLightInfo Light; // this only applies to level textures
+    };
+
+    // Lighting and material info for textures
+    struct ExtendedTextureInfo {
+        Dictionary<LevelTexID, TextureLightInfo> LevelTextures;
+        Dictionary<TexID, MaterialInfo> Materials;
 
         // Loads light data from a YAML file
-        static LevelLightInfo Load(const string& data);
+        static ExtendedTextureInfo Load(const string& data);
     };
 }

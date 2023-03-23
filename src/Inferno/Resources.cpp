@@ -397,7 +397,7 @@ namespace Inferno::Resources {
         getWeapon(WeaponID::Flare).Lifetime = 30.0f;
         getWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
 
-        auto& mega = getWeapon(WeaponID::Mega).Extended;
+        //auto& mega = getWeapon(WeaponID::Mega).Extended;
 
         if (GameData.Weapons.size() < 35) return;
         // D2 WEAPONS BELOW!
@@ -424,7 +424,7 @@ namespace Inferno::Resources {
         gauss.Model = ModelID::None;
         gauss.RenderType = WeaponRenderType::None;
 
-        auto& shaker = getWeapon(WeaponID::Shaker).Extended;
+        //auto& shaker = getWeapon(WeaponID::Shaker).Extended;
 
         GameData.Robots[37].Mass = 2; // IT droid
     }
@@ -519,7 +519,7 @@ namespace Inferno::Resources {
         Pig = {};
         Hog = {};
         GameData = {};
-        LightInfo = {};
+        MaterialInfo = {};
         CustomTextures.clear();
         Textures.clear();
     }
@@ -552,9 +552,21 @@ namespace Inferno::Resources {
     }
 
     void LoadLightInfo(filesystem::path path) {
-        auto file = FileSystem::ReadFileText(path);
-        if (file.empty()) return;
-        LightInfo = LevelLightInfo::Load(file);
+        try {
+            auto file = FileSystem::ReadFileText(path);
+            if (file.empty()) return;
+            MaterialInfo = ExtendedTextureInfo::Load(file);
+        }
+        catch (...) {
+            SPDLOG_ERROR("Unable to read light info from {}", path.string());
+        }
+    }
+
+    void LoadLightInfo(const Level& level) {
+        if (level.IsDescent2())
+            LoadLightInfo("LightInfo2.yml");
+        else
+            LoadLightInfo("LightInfo.yml");
     }
 
     void LoadLevel(Level& level) {
@@ -563,15 +575,15 @@ namespace Inferno::Resources {
 
             if (level.IsDescent2()) {
                 LoadDescent2Resources(level);
-                LoadLightInfo("LightInfo2.yml");
             }
             else if (level.IsDescent1()) {
                 LoadDescent1Resources(level);
-                LoadLightInfo("LightInfo.yml");
             }
             else {
                 throw Exception("Unsupported level version");
             }
+
+            LoadLightInfo(level);
 
             LoadStringTable();
             UpdateAverageTextureColor();

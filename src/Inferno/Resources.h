@@ -53,6 +53,8 @@ namespace Inferno::Resources {
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
 
+    void LoadLightInfo(const Level& level);
+
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
 
@@ -75,7 +77,7 @@ namespace Inferno::Resources {
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
     inline List<Outrage::VClip> VClips; // Expanded from OAF headers
-    inline LevelLightInfo LightInfo;
+    inline ExtendedTextureInfo MaterialInfo;
 
     void MountDescent3();
 

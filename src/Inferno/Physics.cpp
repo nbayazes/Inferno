@@ -1640,7 +1640,7 @@ namespace Inferno {
         }
     }
 
-    void UpdatePhysics(Level& level, double t, float dt) {
+    void UpdatePhysics(Level& level, double /*t*/, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
 
@@ -1658,7 +1658,7 @@ namespace Inferno {
             FixedPhysics(obj, dt);
 
             if (obj.Physics.Wiggle > 0) {
-                auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
+                //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
                 //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
             }
 

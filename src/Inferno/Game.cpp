@@ -179,8 +179,10 @@ namespace Inferno::Game {
         if (Input::IsKeyPressed(Keys::F3))
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
 
-        if (Input::IsKeyPressed(Keys::F5))
+        if (Input::IsKeyPressed(Keys::F5)) {
+            Resources::LoadLightInfo(Game::Level);
             Render::Adapter->ReloadResources();
+        }
 
         if (Input::IsKeyPressed(Keys::F6))
             Render::ReloadTextures();

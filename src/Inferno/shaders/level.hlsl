@@ -4,7 +4,7 @@
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 9), "\
+    "RootConstants(b1, num32BitConstants = 11), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -48,6 +48,7 @@ static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
 cbuffer InstanceConstants : register(b1) {
+MaterialInfo Mat1;
 float2 Scroll, Scroll2;
 float LightingScale; // for unlit mode
 bool Distort;
@@ -204,14 +205,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
-    //float3 normal = Sample2DAAData(Normal1, input.uv, LinearSampler).rgb;
-    float3 normal = Normal1.Sample(Sampler, input.uv).rgb * 2 - 1; // map from 0..1 to -1..1
+    float3 normal = Sample2DAAData(Normal1, input.uv, LinearSampler).rgb * 2 - 1;
+    //float3 normal = Normal1.Sample(Sampler, input.uv).rgb * 2 - 1; // map from 0..1 to -1..1
     //normal = float3(0, 0, 1);
     //return float4(pow(normal, 2.2), 1);
     //return float4(normal * 0.5 + 0.5, 1);
     //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
-    float normalStrength = 0.6;
-    normal.xy *= normalStrength;
+    //float normalStrength = 0.60;
+    normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
 
     float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
@@ -219,7 +220,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(normal * 0.5 + 0.5, 1);
     //normal = input.normal;
     //return float4(input.normal * 0.5 + 0.5, 1);
-    
+
     //base.rgb = TextureNoTile(Diffuse, input.uv, input.world / 20, 1);
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
@@ -267,15 +268,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
     lighting.rgb += vertexLighting;
     return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
 #else
-    float gloss = 32;
-    float specularMask = 1.0;
-    //float3 specularAlbedo = float3(0.6, 0.6, 0.6);
-    float3 specularAlbedo = float3(0.6, 0.6, 0.6);
     //diffuse.rgb = 0.5;
     float3 colorSum = float3(0, 0, 0);
     uint2 pixelPos = uint2(input.pos.xy);
-    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularAlbedo, specularMask, gloss, normal, viewDir, input.world);
-    lighting += colorSum * 1.0;
+    float specularMask = Sample2DAAData(Specular1, input.uv, LinearSampler).r;
+    //return float4(specularMask, specularMask, specularMask, 1);
+    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, Mat1);
+    lighting += colorSum;
     lighting += diffuse.rgb * vertexLighting * 0.20; // ambient
     //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
