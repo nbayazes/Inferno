@@ -897,9 +897,9 @@ namespace Inferno::Editor {
             ImGui::AlignTextToFramePadding();
             ImGui::Text("%i", ti.ID);
 
-            //ImGui::TableRowLabel("Size");
-            //ImGui::AlignTextToFramePadding();
-            //ImGui::Text("%i x %i", ti->Width, ti->Height);
+            ImGui::TableRowLabel("Size");
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("%i x %i", ti.Width, ti.Height);
 
             ImGui::TableRowLabel("Average Color");
             ImGui::AlignTextToFramePadding();
