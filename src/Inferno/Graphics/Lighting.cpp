@@ -214,7 +214,6 @@ namespace Inferno::Graphics {
 
         TextureLightInfo defaultInfo{ .Radius = defaultRadius };
         // The empty light texture is only used for ambient lighting
-        const auto ambientLightTexture = level.IsDescent1() ? LevelTexID(289) : LevelTexID(302);
 
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
@@ -224,19 +223,31 @@ namespace Inferno::Graphics {
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& side = face.Side;
 
-                bool useOverlay = side.TMap2 > LevelTexID::Unset && side.TMap2 != ambientLightTexture;
+                bool useOverlay = side.TMap2 > LevelTexID::Unset;
 
-                auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
-                if (tmap2.Lighting == 0) useOverlay = false; // only use overlay textures that emit light
+                TextureLightInfo* info = nullptr;
 
-                auto tmap = useOverlay ? side.TMap2 : side.TMap;
-                auto& info =
-                    Resources::MaterialInfo.LevelTextures.contains(tmap) ?
-                    Resources::MaterialInfo.LevelTextures[tmap] :
-                    defaultInfo;
+                // priority: mat2, tmap2, mat1, tmap1
+                auto mat2 = TryGetValue(Resources::MaterialInfo.LevelTextures, side.TMap2);
+                if (mat2) {
+                    info = &mat2.value();
+                }
+                else {
+                    auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
+                    if (tmap2.Lighting <= 0)
+                        useOverlay = false;
+                }
 
-                auto color = info.Color == Color(0, 0, 0) ? GetLightColor(side) : info.Color;
-                auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info.Radius;
+                if (!useOverlay) {
+                    auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, side.TMap);
+                    if (mat)
+                        info = &mat.value();
+                }
+
+
+                if (!info) info = &defaultInfo;
+                auto color = info->Color == Color(0, 0, 0) ? GetLightColor(side) : info->Color;
+                auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
 
                 if (side.LightOverride) color = *side.LightOverride;
                 if (!CheckMinLight(color)) continue;
@@ -268,24 +279,24 @@ namespace Inferno::Graphics {
                 // iterate each tile, checking the defined UVs
                 for (int ix = xMin; ix < xMax; ix++) {
                     for (int iy = yMin; iy < yMax; iy++) {
-                        for (Vector2 lt : info.Points) {
+                        for (Vector2 lt : info->Points) {
                             LightData light{};
                             light.color = color.ToVector3() * multiplier;
                             light.radiusSq = radius * radius;
                             light.normal = side.AverageNormal;
-                            light.type = info.Type;
+                            light.type = info->Type;
 
-                            if (info.Wrap == LightWrapMode::U || info.Wrap == LightWrapMode::V) {
+                            if (info->Wrap == LightWrapMode::U || info->Wrap == LightWrapMode::V) {
                                 //if (info.IsContinuous()) {
                                 // project the uv to the edge and create two points offset by the light radius
                                 Vector2 uvOffset{ (float)ix, (float)iy };
 
                                 auto uv0 = lt;
                                 auto uv1 = lt;
-                                if (info.Wrap == LightWrapMode::U)
+                                if (info->Wrap == LightWrapMode::U)
                                     uv1 += Vector2(1, 0);
 
-                                if (info.Wrap == LightWrapMode::V)
+                                if (info->Wrap == LightWrapMode::V)
                                     uv1 += Vector2(0, 1);
 
                                 if (useOverlay && overlayAngle != 0) {
@@ -342,8 +353,8 @@ namespace Inferno::Graphics {
                                         auto rightVec = side.AverageNormal.Cross(upVec);
 
                                         light.type = LightType::Rectangle;
-                                        light.pos = center + side.AverageNormal * info.Offset;
-                                        light.right = rightVec * info.Width;
+                                        light.pos = center + side.AverageNormal * info->Offset;
+                                        light.right = rightVec * info->Width;
                                         light.up = up;
                                         //light.up += upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
                                         sources.push_back(light);
@@ -371,9 +382,9 @@ namespace Inferno::Graphics {
                                     upVec.Normalize();
 
                                     // sample points close to the uv to get up/right axis
-                                    light.pos = *pos + side.AverageNormal * info.Offset;
-                                    light.right = rightVec * info.Width;
-                                    light.up = -upVec * info.Height; // reverse for some reason
+                                    light.pos = *pos + side.AverageNormal * info->Offset;
+                                    light.right = rightVec * info->Width;
+                                    light.up = -upVec * info->Height; // reverse for some reason
                                     sources.push_back(light);
                                 }
                             }

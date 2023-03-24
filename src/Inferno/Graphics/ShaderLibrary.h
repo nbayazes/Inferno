@@ -233,6 +233,7 @@ namespace Inferno {
     public:
         struct InstanceConstants {
             MaterialInfo Mat1;
+            MaterialInfo Mat2;
             Vector2 Scroll, Scroll2; // For UV scrolling
             float LightingScale;
             HlslBool Distort;

@@ -1,4 +1,120 @@
 Materials:
+    - TexID: 1000 # light
+      NormalStrength: 0.5
+      SpecularStrength: 0.5
+      Roughness: 0.1
+
+    - TexID: 1003 # light
+      NormalStrength: 0
+      SpecularStrength: 0.2
+      Roughness: 0.1
+
+    - TexID: 1030 # stripe
+      NormalStrength: 0.25
+      Roughness: 0.98
+
+    - TexID: 1159 # monitor
+      NormalStrength: 0.25
+      Roughness: 0.2
+      Metalness: 0.2
+
+    - TexID: 1141 # monitor
+      NormalStrength: 0.25
+      Roughness: 0.2
+      Metalness: 0.2
+
+    - TexID: 1024 # sign
+      NormalStrength: 0.25
+      Roughness: 0.7
+      Metalness: 0.9
+      SpecularStrength: 3
+
+    - TexID: 1018 # sign
+      NormalStrength: 0.25
+      Roughness: 0.7
+      Metalness: 0.9
+
+    - TexID: 1020 # sign
+      NormalStrength: 0.25
+      Roughness: 0.7
+      Metalness: 0.9
+
+    - TexID: 1021 # sign
+      NormalStrength: 0.05
+      Roughness: 0.7
+      Metalness: 0.9
+      SpecularStrength: 3
+
+    - TexID: 962 # grate
+      NormalStrength: 0.5
+      Roughness: 0.7
+      Metalness: 0.9
+      SpecularStrength: 3
+
+    - TexID: 1015 # metal bar
+      NormalStrength: 0.5
+      Roughness: 0.8
+      Metalness: 0.3
+      SpecularStrength: 3
+
+    - TexID: 1016 # metal bar
+      NormalStrength: 0.5
+      Roughness: 0.8
+      Metalness: 0.3
+      SpecularStrength: 3
+
+    - TexID: 967 # light strip
+      NormalStrength: 0.75
+      Roughness: 0.5
+      Metalness: 0.5
+      SpecularStrength: 2
+
+    - TexID: 1444 # door
+      NormalStrength: 1.5
+      Roughness: 0.65
+      Metalness: 0.8
+      SpecularStrength: 3
+
+    - TexID: 1371 # door
+      NormalStrength: 0.12
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 1348 # door
+      NormalStrength: 0.5
+      Roughness: 0.6
+      Metalness: 0.3
+      SpecularStrength: 2
+
+    - TexID: 1359 # door
+      NormalStrength: 0.5
+      Roughness: 0.6
+      Metalness: 0.3
+      SpecularStrength: 2
+
+    - TexID: 1391 # prison door
+      NormalStrength: 1.5
+      Roughness: 0.6
+      Metalness: 0.9
+      SpecularStrength: 2
+
+    - TexID: 1416 # exit door
+      NormalStrength: 0.5
+      Roughness: 0.8
+      Metalness: 0.8
+
+    - TexID: 977 # exit wall
+      NormalStrength: 0.5
+      Roughness: 0.8
+      Metalness: 0.8
+      SpecularStrength: 4
+
+    - TexID: 1065 # fan
+      NormalStrength: 1
+      Roughness: 0.6
+      Metalness: 0.9
+      SpecularStrength: 2
+
     - TexID: 722 # white rock
       NormalStrength: 0.30
       SpecularStrength: 0.8
@@ -13,6 +129,27 @@ Materials:
       NormalStrength: 0.6
       SpecularStrength: 0.7
       Roughness: 0.7
+
+    - TexID: 755 # red rock
+      Roughness: 0.9
+
+    - TexID: 765 # red rock
+      Roughness: 0.95
+      
+    - TexID: 762 # red rock
+      Roughness: 0.9
+
+    - TexID: 1464 # red rock secret door
+      Roughness: 0.9
+
+    - TexID: 764 # red rock
+      NormalStrength: 1.5
+      SpecularStrength: 0.6
+      Roughness: 0.97
+
+    - TexID: 748
+      NormalStrength: 1
+      Roughness: 0.55
 
     - TexID: 790 # green rock
       NormalStrength: 1
@@ -236,19 +373,24 @@ Materials:
       Roughness: 0.85
 
     - TexID: 802 # dark blue rock
-      NormalStrength: 1.2
-      SpecularStrength: 1
+      NormalStrength: 0.5
+      SpecularStrength: 0.3
       Roughness: 0.9
 
     - TexID: 986 # tile floor
       NormalStrength: 1.2
       SpecularStrength: 0.8
       Roughness: 0.65
-      
-    - TexID: 987 # rect tile floor
-      NormalStrength: 1.5
+
+    - TexID: 979 # rect tile floor
+      NormalStrength: 0.6
       SpecularStrength: 0.5
-      Roughness: 0.7
+      Roughness: 0.6
+
+    - TexID: 987 # rect tile floor
+      NormalStrength: 0.6
+      SpecularStrength: 0.5
+      Roughness: 0.6
 
     - TexID: 992 # tile floor
       NormalStrength: 0.6
@@ -274,12 +416,27 @@ Materials:
       SpecularStrength: 15
       Metalness: 1
 
+    - TexID: 877 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 910 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
     - TexID: 919 # metal wall
       NormalStrength: 0.3
       Roughness: 0.6
       Metalness: 0.9
 
     - TexID: 922 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
+      Metalness: 0.9
+
+    - TexID: 934 # metal wall
       NormalStrength: 0.3
       Roughness: 0.6
       Metalness: 0.9
@@ -373,6 +530,12 @@ Materials:
     - TexID: 935 # metal wall
       NormalStrength: 0.3
       Roughness: 0.6
+      Metalness: 0.5
+
+    - TexID: 1084 # reactor wall
+      NormalStrength: 0.6
+      SpecularStrength: 1
+      Roughness: 0.6
       Metalness: 0.9
 
     - TexID: 1092 # reactor wall
@@ -444,7 +607,7 @@ LevelTextures:
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Color: '0.5, 0.05, 0.05'
+      Color: '0.5, 0.0, 0.0'
       Radius: 50
   
     - ID: 252
@@ -580,11 +743,50 @@ LevelTextures:
       Offset: 10
   
     # remove lights from reactor walls as emissives work better
-    - ID: 335
+    - ID: 334
       Points: []
 
+    - ID: 335
+      Points: []
+      
     - ID: 289 # blank light texture. only used for ambient lighting
       Points: []
 
     - ID: 328 # energy field
       Points: []      
+
+#    - ID: 343 # paired monitor
+#      Points:
+#        - '0.29, 0.35'
+#        - '0.7, 0.7'
+#      Color: '0.00, 0.15, 0.00'
+#      Radius: 40
+#
+#    - ID: 341 # monitor
+#      Points:
+#        - '0.5, 0.5'
+#      Color: '0.05, 0.25, 0.05'
+#      Radius: 20
+#      Offset: 4
+#
+#    - ID: 345 # monitor
+#      Points:
+#        - '0.3, 0.5'
+#      Color: '0.1, 0.1, 0.25'
+#      Radius: 20
+#      Offset: 4
+#
+#    - ID: 347 # monitor
+#      Points:
+#        - '0.5, 0.55'
+#      Color: '0.15, 0.15, 0.15'
+#      Radius: 20
+#      Offset: 4
+#
+#    - ID: 349 # monitor
+#      Points:
+#        - '0.5, 0.5'
+#      Color: '0.25, 0.25, 0.25'
+#      Radius: 20
+#      Offset: 4
+

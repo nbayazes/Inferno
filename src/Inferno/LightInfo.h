@@ -43,7 +43,7 @@ namespace Inferno {
         float SpecularStrength = 1; // multiplier on specular
         // other map generation options like contrast, brightness?
         float Metalness = 0; // How much diffuse to apply to specular
-        float Roughness = 0.5; // 0 is sharp specular, 1 is no specular
+        float Roughness = 0.9; // 0 is sharp specular, 1 is no specular
         //TextureLightInfo Light; // this only applies to level textures
     };
 

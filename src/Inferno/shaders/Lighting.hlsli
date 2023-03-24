@@ -438,7 +438,7 @@ float3 ApplyRectLight2(
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
-    float3 surfaceOffset = planeNormal * 5;
+    float3 surfaceOffset = planeNormal * 3;
     planeUp *= 0.8; // shrink the diffuse plane slightly to prevent-near wall hotspots
     float vWidth = length(planeRight);
     float vHeight = length(planeUp);
@@ -707,12 +707,14 @@ void ShadeLights(inout float3 colorSum,
     for (n = 0; n < pointLightCount; n++, tileLightLoadOffset += 4) {
         uint lightIndex = LightGrid.Load(tileLightLoadOffset);
         LightData light = LightBuffer[lightIndex];
-        float3 specularAlbedo = lerp(light.color, diffuse, material.Metalness);
-
+        //float3 specularColor = lerp(light.color , diffuse, material.Metalness) * material.SpecularStrength;
+        float3 specularColor = lerp(light.color, 0, material.Metalness) + lerp(diffuse * light.color, 0, material.Metalness) * material.SpecularStrength;
+        //float3 specularColor = lerp(float3(0.04, 0.04, 0.04), diffuse, material.Metalness) * material.SpecularStrength;
+        //specularAlbedo = light.color;
 #if 1
-        float gloss = 32; // todo: derive from roughness
+        float gloss = 2 / pow(material.Roughness, 4) - 2;
         colorSum += ApplyPointLight(
-            diffuse, specularAlbedo, specularMask, gloss,
+            diffuse, specularColor, specularMask, gloss,
             normal, viewDir, worldPos, light.pos,
             light.radiusSq, light.color * diffuseMult
         );
@@ -754,10 +756,10 @@ void ShadeLights(inout float3 colorSum,
     for (n = 0; n < rectLightCount; n++, tileLightLoadOffset += 4) {
         uint lightIndex = LightGrid.Load(tileLightLoadOffset);
         LightData light = LightBuffer[lightIndex];
-        float3 specularAlbedo = lerp(light.color, diffuse, material.Metalness) * material.SpecularStrength;
+        float3 specularColor = lerp(light.color, 0, material.Metalness) + lerp(diffuse * light.color, 0, material.Metalness) * material.SpecularStrength;
 
         colorSum += ApplyRectLight2(
-            diffuse, specularAlbedo, specularMask, material.Roughness,
+            diffuse, specularColor, specularMask, material.Roughness,
             normal, viewDir, worldPos, light.pos,
             light.radiusSq, light.color * diffuseMult, light.normal, light.right, light.up
         );

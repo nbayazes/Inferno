@@ -301,9 +301,10 @@ namespace Inferno {
                   const void* data,
                   int width, int height,
                   wstring name,
+                  bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
             assert(data);
-            auto mips = width == 64 && height == 64 ? 7 : 1; // enable mips on standard level textures
+            auto mips = enableMips && width == 64 && height == 64 ? 7 : 1; // enable mips on standard level textures
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, (UINT16)mips);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;

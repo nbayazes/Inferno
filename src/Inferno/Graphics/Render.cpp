@@ -406,9 +406,9 @@ namespace Inferno::Render {
         auto commandQueue = Adapter->GetCommandQueue();
         {
             ScopedTimer presentCallTimer(&Metrics::PresentCall);
-            PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
+            //PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
             Adapter->Present();
-            PIXEndEvent(commandQueue);
+            //PIXEndEvent(commandQueue);
         }
 
         Materials->Dispatch();

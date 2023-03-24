@@ -4,7 +4,7 @@
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 11), "\
+    "RootConstants(b1, num32BitConstants = 15), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -49,6 +49,7 @@ static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
 cbuffer InstanceConstants : register(b1) {
 MaterialInfo Mat1;
+MaterialInfo Mat2;
 float2 Scroll, Scroll2;
 float LightingScale; // for unlit mode
 bool Distort;
@@ -205,18 +206,19 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
-    float3 normal = Sample2DAAData(Normal1, input.uv, LinearSampler).rgb * 2 - 1;
-    //float3 normal = Normal1.Sample(Sampler, input.uv).rgb * 2 - 1; // map from 0..1 to -1..1
-    //normal = float3(0, 0, 1);
-    //return float4(pow(normal, 2.2), 1);
-    //return float4(normal * 0.5 + 0.5, 1);
-    //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
-    //float normalStrength = 0.60;
+    float3 normal = clamp(Sample2DAAData(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
+    // Scale normal
     normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
 
-    float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
-    normal = normalize(mul(normal, tbn));
+    float specularMask = Sample2DAAData(Specular1, input.uv, LinearSampler).r;
+
+    //normal = float3(0, 0, 1);
+    //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
+    //return float4(pow(normal, 2.2), 1);
+    //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
+    //float normalStrength = 0.60;
+
     //return float4(normal * 0.5 + 0.5, 1);
     //normal = input.normal;
     //return float4(input.normal * 0.5 + 0.5, 1);
@@ -227,19 +229,36 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     float3 emissive = (Sample2DAA(Emissive, input.uv, LinearSampler)).rgb;
 
+    MaterialInfo material = Mat1;
+
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = 1 - Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
+        float mask = 1 - Sample2DAAData(StMask, input.uv2, Sampler).r; // only need a single channel
         base *= mask;
 
-        float4 overlay = Sample2DAA(Diffuse2, input.uv2, LinearSampler);
+        float4 overlay = Sample2DAA(Diffuse2, input.uv2, Sampler); // linear sampler causes artifacts
         float out_a = overlay.a + base.a * (1 - overlay.a);
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
         emissive *= 1 - overlay.a; // Remove covered portion of emissive
-        normal = normalize(lerp(normal, input.normal, overlay.a));
+
+        // linear sampler causes artifacts
+        float3 overlayNormal = clamp(Sample2DAAData(Normal2, input.uv2, Sampler).rgb * 2 - 1, -1, 1); 
+        //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
+        overlayNormal.xy *= Mat2.NormalStrength;
+        overlayNormal = normalize(overlayNormal);
+
+        normal = normalize(lerp(normal, overlayNormal, overlay.a));
+
+        material.SpecularStrength = lerp(Mat1.SpecularStrength, Mat2.SpecularStrength, overlay.a);
+        material.Metalness = lerp(Mat1.Metalness, Mat2.Metalness, overlay.a);
+        material.NormalStrength = normalize(lerp(Mat1.NormalStrength, Mat2.NormalStrength, overlay.a));
+        material.Roughness = lerp(Mat1.Roughness, Mat2.Roughness, overlay.a);
+        
+        float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, Sampler).r;
+        specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, Sampler) * diffuse).rgb;
         //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
         // Boost the intensity of single channel colors
         // 2 / 1 -> 2, 2 / 0.33 -> 6
@@ -257,6 +276,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
     if (diffuse.a <= 0)
         discard; // discarding speeds up large transparent walls
 
+
+    // align normals
+    float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
+    normal = normalize(mul(normal, tbn));
+
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
     lighting += emissive * diffuse.rgb * 1.00;
@@ -271,9 +295,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //diffuse.rgb = 0.5;
     float3 colorSum = float3(0, 0, 0);
     uint2 pixelPos = uint2(input.pos.xy);
-    float specularMask = Sample2DAAData(Specular1, input.uv, LinearSampler).r;
     //return float4(specularMask, specularMask, specularMask, 1);
-    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, Mat1);
+    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
     lighting += colorSum;
     lighting += diffuse.rgb * vertexLighting * 0.20; // ambient
     //lighting.rgb += vertexLighting * 1.0;

@@ -164,13 +164,6 @@ namespace Inferno::Render {
         ctx.EndEvent();
     }
 
-    template <class T, class TKey>
-    Option<T> TryGetItem(Dictionary<TKey, T>& src, TKey key) {
-        if (src.contains(key)) 
-            return src[key];
-        return {};
-    }
-
     void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
@@ -211,11 +204,16 @@ namespace Inferno::Render {
         constants.Scroll2 = chunk.OverlaySlide;
         constants.Distort = ti.Slide != Vector2::Zero;
 
-        MaterialInfo mi{};
-        if (auto xti = TryGetItem(Resources::MaterialInfo.Materials, ti.TexID))
-            mi = *xti;
+        constants.Mat1 = {};
+        if (auto mat = TryGetValue(Resources::MaterialInfo.Materials, ti.TexID))
+            constants.Mat1 = *mat;
 
-        constants.Mat1 = mi;
+        constants.Mat2 = {};
+        if (chunk.TMap2 > LevelTexID::Unset) {
+            auto tid2 = Resources::LookupTexID(chunk.TMap2);
+            if (auto mat = TryGetValue(Resources::MaterialInfo.Materials, tid2))
+                constants.Mat2 = *mat;
+        }
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLights(cmdList, Render::LightGrid->GetSRVTable());

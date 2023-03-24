@@ -84,6 +84,13 @@ namespace Inferno {
         }
     };
 
+    template <class T, class TKey>
+    Option<T> TryGetValue(Dictionary<TKey, T>& src, TKey key) {
+        if (src.contains(key))
+            return src[key];
+        return {};
+    }
+
     // defined in C++23
     template <class T>
     inline constexpr bool is_scoped_enum_v = std::conjunction_v<std::is_enum<T>, std::negation<std::is_convertible<T, int>>>;

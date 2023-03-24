@@ -245,9 +245,6 @@ namespace Inferno::Render {
         material.Name = upload.Bitmap->Name;
         material.ID = upload.ID;
 
-        bool loadedDiffuse = false;
-        bool loadedST = false;
-
         // remove the frame number when loading special textures, as they should share.
         string baseName = material.Name;
         if (auto i = baseName.find("#"); i > 0)
@@ -256,17 +253,17 @@ namespace Inferno::Render {
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
         if (Settings::Graphics.HighRes) {
             if (auto path = FileSystem::TryFindFile(upload.Bitmap->Name + ".DDS"))
-                loadedDiffuse = material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
+                material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
 
             if (upload.SuperTransparent)
                 if (auto path = FileSystem::TryFindFile(baseName + "_st.DDS"))
-                    loadedST = material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
+                    material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        if (!loadedDiffuse)
+        if (!material.Textures[Material2D::Diffuse])
             material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
 
-        if (!loadedST && upload.SuperTransparent) {
+        if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
             List<Palette::Color> mask = upload.Bitmap->Mask; // copy mask, as modifying the original would affect collision
             ExpandMask(*upload.Bitmap, mask);
             material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
@@ -280,15 +277,17 @@ namespace Inferno::Render {
 
         if (!material.Textures[Material2D::Specular]) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
-            material.Textures[Material2D::Specular].Load(batch, specular.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name), false);
         }
-
+        
         auto& info = Resources::GetTextureInfo(material.ID);
-        if (info.Width == 64 && info.Height == 64 && !info.Transparent) {
+        // what if this really is 255?
+        // need a way to determine if a texture is a level texture
+        //if (Resources::LookupLevelTexID(upload.ID) != LevelTexID(255)) {
             NormalMapOptions options{};
             auto normal = CreateNormalMap(*upload.Bitmap, options);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
-        }
+        //}
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
@@ -297,12 +296,10 @@ namespace Inferno::Render {
                 texture = &material.Textures[i];
             }
             else {
-                if (i == Material2D::Normal) {
+                if (i == Material2D::Normal)
                     texture = &normalTex;
-                }
-                else {
+                else
                     texture = info.Transparent && i == Material2D::Specular ? &whiteTex : &blackTex;
-                }
             }
 
             texture->CreateShaderResourceView(handle);
@@ -610,7 +607,7 @@ namespace Inferno::Render {
         _white.Load(batch, bmp.data(), 64, 64, L"white");
 
         FillTexture(bmp, 255, 0, 255, 255);
-        _purple.Load(batch, bmp.data(), 64, 64, L"purple");
+        _purple.Load(batch, bmp.data(), 64, 64, L"purple", false);
 
         FillTexture(bmp, 0, 0, 255, 255);
         _normal.Load(batch, bmp.data(), 64, 64, L"normal");
