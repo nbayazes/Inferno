@@ -230,7 +230,7 @@ namespace Inferno::Graphics {
                 // priority: mat2, tmap2, mat1, tmap1
                 auto mat2 = TryGetValue(Resources::MaterialInfo.LevelTextures, side.TMap2);
                 if (mat2) {
-                    info = &mat2.value();
+                    info = mat2;
                 }
                 else {
                     auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
@@ -241,9 +241,8 @@ namespace Inferno::Graphics {
                 if (!useOverlay) {
                     auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, side.TMap);
                     if (mat)
-                        info = &mat.value();
+                        info = mat;
                 }
-
 
                 if (!info) info = &defaultInfo;
                 auto color = info->Color == Color(0, 0, 0) ? GetLightColor(side) : info->Color;

@@ -206,14 +206,15 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
-    float3 normal = clamp(Sample2DAAData(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
+    float3 normal = clamp(Sample2DAAData(Normal1, input.uv /*+ float2(0.003, 0.003)*/, LinearSampler).rgb * 2 - 1, -1, 1);
+    //normal = clamp(Normal1.Sample(LinearSampler, input.uv) * 2 - 1, -1, 1);
     // Scale normal
     normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
+    //normal = float3(0, 0, 1);
 
     float specularMask = Sample2DAAData(Specular1, input.uv, LinearSampler).r;
 
-    //normal = float3(0, 0, 1);
     //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
     //return float4(pow(normal, 2.2), 1);
     //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
