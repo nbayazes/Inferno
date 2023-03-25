@@ -274,16 +274,18 @@ namespace Inferno {
         if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel))
             pd.AngularVelocity *= 1 - drag;
 
-        if (pd.TurnRoll > 0) // unrotate object for bank caused by turn
+        // unrotate object for bank caused by turn
+        if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll))
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(pd.TurnRoll) * obj.Rotation);
 
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
-        if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll))
+        if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll)) {
             TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate * dt);
 
-        if (pd.TurnRoll > 0) // re-rotate object for bank caused by turn
+            // re-rotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
+        }
     }
 
     void LinearPhysics(Object& obj) {
@@ -777,10 +779,10 @@ namespace Inferno {
             case ObjectType::Robot:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                        //case ObjectType::Robot:
+                    //case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Coop:
-                        //case ObjectType::Weapon:
+                    //case ObjectType::Weapon:
                     case ObjectType::Clutter:
                         return true;
                     default:
@@ -806,8 +808,8 @@ namespace Inferno {
                     case ObjectType::Reactor:
                     case ObjectType::Clutter:
                     case ObjectType::Hostage:
-                        //case ObjectType::Player: // player can hit other players, but not in singleplayer
-                        //case ObjectType::Coop:
+                    //case ObjectType::Player: // player can hit other players, but not in singleplayer
+                    //case ObjectType::Coop:
                     case ObjectType::Marker:
                         return true;
                     default:
@@ -855,7 +857,7 @@ namespace Inferno {
             case ObjectType::Reactor:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                        //case ObjectType::Robot:
+                    //case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Clutter:
                     case ObjectType::Coop:
