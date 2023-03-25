@@ -19,6 +19,7 @@
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
+    "DescriptorTable(SRV(t1))," \
     "StaticSampler(s0," \
         "addressU = TEXTURE_ADDRESS_CLAMP," \
         "addressV = TEXTURE_ADDRESS_CLAMP," \
@@ -26,6 +27,7 @@
         "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
 Texture2D<float3> Bloom : register(t0);
+Texture3D<float3> tony_mc_mapface_lut : register(t1);
 
 RWTexture2D<float3> ColorRW : register(u0);
 RWTexture2D<float> OutLuma : register(u1);
@@ -106,6 +108,17 @@ float3 lumaBasedReinhardToneMapping(float3 color, float gamma = 1) {
     return color;
 }
 
+// https://github.com/h3r2tic/tony-mc-mapface
+float3 tony_mc_mapface(float3 stimulus) {
+    // Apply a non-linear transform that the LUT is encoded with.
+    const float3 encoded = stimulus / (stimulus + 1.0);
+
+    // Align the encoded range to texel centers.
+    const float LUT_DIMS = 48.0;
+    const float3 uv = encoded * ((LUT_DIMS - 1.0) / LUT_DIMS) + 0.5 / LUT_DIMS;
+    return tony_mc_mapface_lut.SampleLevel(LinearSampler, uv, 0);
+}
+
 [RootSignature(RS)]
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID) {
@@ -120,9 +133,11 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     hdrColor *= g_Exposure;
 
     // Tone map to SDR
-    hdrColor = reinhard_extended_luminance(hdrColor, 1.0);
+    //hdrColor = reinhard_extended_luminance(hdrColor, 8.0);
+    hdrColor = tony_mc_mapface(hdrColor);
     hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
     ColorRW[DTid.xy] = hdrColor;
+
     //ColorRW[DTid.xy] = Uncharted2ToneMapping(hdrColor, 1.1);
     //ColorRW[DTid.xy] = hdrColor;
 

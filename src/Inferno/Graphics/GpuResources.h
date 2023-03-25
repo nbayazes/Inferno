@@ -375,6 +375,99 @@ namespace Inferno {
         }
     };
 
+    // 3D Texture resource
+    class Texture3D final : public PixelBuffer {
+    public:
+        Texture3D() = default;
+
+        Texture3D(ComPtr<ID3D12Resource> resource) {
+            _resource = std::move(resource);
+            _desc = _resource->GetDesc();
+        }
+
+        void Load(DirectX::ResourceUploadBatch& batch,
+                  const void* data,
+                  int width, int height, int depth,
+                  wstring name,
+                  DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+            assert(data);
+            _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, 1);
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+
+            D3D12_SUBRESOURCE_DATA upload = {};
+            upload.pData = data;
+            upload.RowPitch = GetWidth() * 4;
+            upload.SlicePitch = upload.RowPitch * GetHeight();
+
+            if (!_resource)
+                CreateOnDefaultHeap(name);
+
+            auto resource = _resource.Get();
+            batch.Transition(resource, _state, D3D12_RESOURCE_STATE_COPY_DEST);
+            batch.Upload(resource, 0, &upload, 1);
+            batch.Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+
+        void Create(int width, int height, int depth, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+            CreateNoHeap(width, height, depth, format);
+            CreateOnDefaultHeap(name, nullptr);
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+
+        void CreateNoHeap(int width, int height, int depth, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+            _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, 1);
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+        }
+
+        // Returns the small placement alignment size in bytes
+        D3D12_RESOURCE_ALLOCATION_INFO GetPlacementAlignment(ID3D12Device* device) {
+            _desc.Alignment = D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT;
+            auto info = device->GetResourceAllocationInfo(0, 1, &_desc);
+            if (info.Alignment != D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT) {
+                // If the alignment requested is not granted, then let D3D tell us
+                // the alignment that needs to be used for these resources.
+                _desc.Alignment = 0;
+                info = device->GetResourceAllocationInfo(0, 1, &_desc);
+            }
+
+            return info;
+        }
+
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, filesystem::path path) {
+            ThrowIfFailed(DirectX::CreateDDSTextureFromFile(Render::Device, batch, path.c_str(), _resource.ReleaseAndGetAddressOf()));
+            _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
+            //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            _desc = _resource->GetDesc();
+            _uavDesc.Format = _desc.Format;
+            _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+            _uavDesc.Texture3D.WSize = _desc.DepthOrArraySize;
+
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+            return true;
+        }
+
+        // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
+        void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
+            ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
+            _resource->SetName(path.c_str());
+            _state = D3D12_RESOURCE_STATE_COPY_DEST;
+        }
+    };
+
     // Color buffer for render targets or compute shaders
     class ColorBuffer : public PixelBuffer {
         uint32 _sampleCount = 0;

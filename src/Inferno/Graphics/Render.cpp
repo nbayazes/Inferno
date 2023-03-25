@@ -153,6 +153,26 @@ namespace Inferno::Render {
         Camera.SetViewport((float)width, (float)height);
         _levelMeshBuffer = MakePtr<PackedBuffer>(1024 * 1024 * 10);
 
+        try {
+            DirectX::ResourceUploadBatch uploadBatch(Adapter->Device());
+            if(!filesystem::exists("tony_mc_mapface.dds")) {
+                SPDLOG_ERROR("tony_mc_mapface.dds not found");
+            }
+            uploadBatch.Begin();
+            Bloom->LoadResources(uploadBatch);
+
+            D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+            queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+            queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+            ComPtr<ID3D12CommandQueue> cmdQueue;
+            ThrowIfFailed(Render::Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
+            auto task = uploadBatch.End(cmdQueue.Get());
+            task.wait();
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR(e.what());
+        }
+
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {
             //PendingTextures.push_back(id);

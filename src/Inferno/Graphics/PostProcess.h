@@ -158,15 +158,16 @@ namespace Inferno::PostFx {
     };
 
     class ToneMapCS : public ComputeShader {
-        enum RootSig { B0_Constants, U0_Color, U1_Luma, T0_Bloom };
+        enum RootSig { B0_Constants, U0_Color, U1_Luma, T0_Bloom, T1_LUT };
     public:
         ToneMapCS() : ComputeShader(8, 8) {}
 
         float Exposure = 1.0f; // final scene exposure
         float BloomStrength = 0.5f;
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) {
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) {
             bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            tonyMcMapface.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             colorDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
             lumaDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
@@ -180,6 +181,7 @@ namespace Inferno::PostFx {
             commandList->SetComputeRootDescriptorTable(U0_Color, colorDest.GetUAV());
             commandList->SetComputeRootDescriptorTable(U1_Luma, lumaDest.GetUAV());
             commandList->SetComputeRootDescriptorTable(T0_Bloom, bloom.GetSRV());
+            commandList->SetComputeRootDescriptorTable(T1_LUT, tonyMcMapface.GetSRV());
             commandList->SetPipelineState(_pso.Get());
 
             Dispatch2D(commandList, colorDest);
@@ -250,9 +252,15 @@ namespace Inferno::PostFx {
         UpsampleAndBlurCS Upsample;
         ToneMapCS ToneMap;
         BlurCS Blur;
+        Texture3D TonyMcMapFace;
 
         void Create(UINT width, UINT height, UINT scale = 3) {
             Buffers.Create(width / scale, height / scale);
+        }
+
+        void LoadResources(DirectX::ResourceUploadBatch& batch) {
+            TonyMcMapFace.LoadDDS(batch, "tony_mc_mapface.dds");
+            TonyMcMapFace.AddShaderResourceView();
         }
 
         void ReloadShaders() {
@@ -274,7 +282,7 @@ namespace Inferno::PostFx {
             Upsample.Execute(commandList, Buffers.Downsample[1], Buffers.Upsample[3], Buffers.Upsample[2]);
             Upsample.Execute(commandList, Buffers.Downsample[0], Buffers.Upsample[2], Buffers.Upsample[1]);
             Upsample.Execute(commandList, Buffers.DownsampleBlur, Buffers.Upsample[1], Buffers.Upsample[0]);
-            ToneMap.Execute(commandList, Buffers.Upsample[0], source, Buffers.OutputLuma);
+            ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], source, Buffers.OutputLuma);
             PIXEndEvent(commandList);
         }
     };

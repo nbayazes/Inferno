@@ -634,6 +634,10 @@ namespace Inferno {
 
         // Order of buffer creation matters
         Color clearColor(0.1f, 0.1f, 0.1f);
+        clearColor.x = std::pow(clearColor.x, 2.2f);
+        clearColor.y = std::pow(clearColor.y, 2.2f);
+        clearColor.z = std::pow(clearColor.z, 2.2f);
+
         //constexpr auto linearBufferFormat = IntermediateFormat;
         LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
         LinearizedDepthBuffer.AddShaderResourceView();
