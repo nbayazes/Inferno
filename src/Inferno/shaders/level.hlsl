@@ -199,6 +199,15 @@ float3 TextureNoTile(Texture2D tex, float2 uv, float3 pos, float v) {
     return lerp(cola, colb, smoothstep(0.2, 0.8, f - 0.1 * sum));
 }
 
+void AntiAliasSpecular(inout float3 texNormal, inout float gloss) {
+    float normalLenSq = dot(texNormal, texNormal);
+    float invNormalLen = rsqrt(normalLenSq);
+    texNormal *= invNormalLen;
+    float normalLen = normalLenSq * invNormalLen;
+    float flatness = saturate(1 - abs(ddx(normalLen)) - abs(ddy(normalLen)));
+    gloss = exp2(lerp(0, log2(gloss), flatness));
+}
+
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
@@ -206,17 +215,24 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
-    float3 normal = clamp(Sample2DAAData(Normal1, input.uv /*+ float2(0.003, 0.003)*/, LinearSampler).rgb * 2 - 1, -1, 1);
-    //normal = clamp(Normal1.Sample(LinearSampler, input.uv) * 2 - 1, -1, 1);
+    float3 normal = clamp(Sample2DAAData2(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
+    normal = clamp(Normal1.Sample(Sampler, input.uv) * 2 - 1, -1, 1);
     // Scale normal
     normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
+    //return float4(pow(normal * .5 + .5, 2.2), 1);
     //normal = float3(0, 0, 1);
+
+    // 'automap' shader?
+    //float2 fw = fwidth(input.uv);
+    //float fwd = pow(1 + (fw.x * fw.x + fw.y * fw.y), 0.4) - 1;
+    //float fxy = fw.x + fw.y / 4;
+    //float gx = clamp(fwd * 100, 0.01, 4);
+    //return float4(0, gx * 1, 0, 1);
 
     float specularMask = Sample2DAAData(Specular1, input.uv, LinearSampler).r;
 
     //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
-    //return float4(pow(normal, 2.2), 1);
     //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
     //float normalStrength = 0.60;
 
@@ -234,17 +250,18 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     if (HasOverlay) {
         // Apply supertransparency mask
-        float mask = 1 - Sample2DAAData(StMask, input.uv2, Sampler).r; // only need a single channel
+        float mask = 1 - Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
         base *= mask;
 
-        float4 overlay = Sample2DAA(Diffuse2, input.uv2, Sampler); // linear sampler causes artifacts
+        float4 overlay = Sample2DAA(Diffuse2, input.uv2, LinearSampler); // linear sampler causes artifacts
         float out_a = overlay.a + base.a * (1 - overlay.a);
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
         emissive *= 1 - overlay.a; // Remove covered portion of emissive
 
         // linear sampler causes artifacts
-        float3 overlayNormal = clamp(Sample2DAAData(Normal2, input.uv2, Sampler).rgb * 2 - 1, -1, 1); 
+        float3 overlayNormal = clamp(Sample2DAAData2(Normal2, input.uv2, LinearSampler).rgb * 2 - 1, -1, 1);
+        overlayNormal = clamp(Normal2.Sample(Sampler, input.uv2).rgb * 2 - 1, -1, 1);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
         overlayNormal.xy *= Mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
@@ -256,10 +273,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.NormalStrength = normalize(lerp(Mat1.NormalStrength, Mat2.NormalStrength, overlay.a));
         material.Roughness = lerp(Mat1.Roughness, Mat2.Roughness, overlay.a);
         
-        float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, Sampler).r;
+        float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, LinearSampler).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += (Sample2DAAData(Emissive2, input.uv2, Sampler) * diffuse).rgb;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
         //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
         // Boost the intensity of single channel colors
         // 2 / 1 -> 2, 2 / 0.33 -> 6
@@ -284,7 +301,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
-    lighting += emissive * diffuse.rgb * 1.00;
+    lighting += emissive * diffuse.rgb * 3.00;
 
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
@@ -298,7 +315,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     uint2 pixelPos = uint2(input.pos.xy);
     //return float4(specularMask, specularMask, specularMask, 1);
     ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
+    //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
+    //gloss = exp2(lerp(0, log2(gloss), flatness));
+    //colorSum *= flatness;
     lighting += colorSum;
+
+
     lighting += diffuse.rgb * vertexLighting * 0.20; // ambient
     //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);

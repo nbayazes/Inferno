@@ -1,8 +1,7 @@
 Materials:
     - TexID: 722 # white rock
       NormalStrength: 0.30
-      SpecularStrength: 0.8
-      Roughness: 0.80
+      Roughness: 0.60
 
     - TexID: 723 # grey rock
       NormalStrength: 0.6
@@ -22,8 +21,8 @@ Materials:
       NormalStrength: 0.4
     - TexID: 728 # purple rock
       NormalStrength: 0.7
-      Roughness: 0.7
-      SpecularStrength: 0.75
+      Roughness: 0.5
+      SpecularStrength: 1
       Metalness: 0.8
     - TexID: 729
       NormalStrength: 0.6
@@ -115,7 +114,7 @@ Materials:
       SpecularStrength: 0
 
     - TexID: 1030 # stripe
-      NormalStrength: 0.25
+      NormalStrength: 0.05
       Roughness: 0.98
 
     - TexID: 1159 # monitor
@@ -224,10 +223,10 @@ Materials:
       Roughness: 0.96
 
     - TexID: 1065 # fan
-      NormalStrength: 1
-      Roughness: 0.6
-      Metalness: 0.9
-      SpecularStrength: 2
+      NormalStrength: 0.5
+      Roughness: 0.5
+      Metalness: 0.90
+      SpecularStrength: 5
 
     - TexID: 842 # green rock
       NormalStrength: 0.5
@@ -495,6 +494,18 @@ Materials:
       Roughness: 0.6
 
     - TexID: 987 # rect tile floor
+      NormalStrength: 0.5
+      Roughness: 0.5
+      SpecularStrength: 0.5
+    - TexID: 988 # rect tile floor
+      NormalStrength: 0.3
+      Roughness: 0.5
+      SpecularStrength: 0.5
+    - TexID: 989 # rect tile floor
+      NormalStrength: 0.3
+      Roughness: 0.5
+      SpecularStrength: 0.5
+    - TexID: 991 # rect tile floor
       NormalStrength: 0.3
       Roughness: 0.5
       SpecularStrength: 0.5
@@ -524,10 +535,10 @@ Materials:
       Metalness: 1
 
     - TexID: 972 # dark metal wall
-      NormalStrength: 0.1
-      Roughness: 0.75
-      SpecularStrength: 10
-      Metalness: 1
+      NormalStrength: 0.2
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.9
 
     - TexID: 902 # dark metal wall
       NormalStrength: 0.3
@@ -535,11 +546,36 @@ Materials:
       SpecularStrength: 1
       Metalness: 1
 
+    - TexID: 955 # dark metal wall
+      NormalStrength: 0.35
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.85
     - TexID: 913 # dark metal wall
       NormalStrength: 0.35
-      Roughness: 0.55
-      SpecularStrength: 7
-      Metalness: 0.99
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.85
+    - TexID: 961 # dark metal wall
+      NormalStrength: 0.1
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.85
+    - TexID: 963 # dark metal wall
+      NormalStrength: 0.1
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.85
+    - TexID: 964 # dark metal wall
+      NormalStrength: 0.1
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.85
+    - TexID: 965 # dark metal wall
+      NormalStrength: 0.1
+      Roughness: 0.65
+      SpecularStrength: 1
+      Metalness: 0.85
 
     - TexID: 1042 # metal strip
       NormalStrength: 0.3
@@ -589,7 +625,7 @@ Materials:
 
     - TexID: 26 # metal wall
       NormalStrength: 0.20
-      Roughness: 0.45
+      Roughness: 0.6
       Metalness: 1
 
     - TexID: 973 # brig metal wall
@@ -619,7 +655,7 @@ Materials:
 
     - TexID: 880 # metal wall
       NormalStrength: 0.2
-      Roughness: 0.60
+      Roughness: 0.5
       Metalness: 0.9
 
     - TexID: 881 # metal wall
@@ -722,6 +758,47 @@ Materials:
       NormalStrength: 0.2
       SpecularStrength: 0
 
+    - TexID: 1043
+      NormalStrength: 0.25
+      Roughness: 0.5
+
+    - TexID: 947 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5
+    - TexID: 948 # pink metal wall
+      NormalStrength: 0.2
+      Roughness: .5
+      Metalness: .5
+    - TexID: 949 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5
+    - TexID: 950 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5            
+    - TexID: 951 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5
+    - TexID: 952 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5            
+    - TexID: 953 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5
+    - TexID: 954 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5
+    - TexID: 960 # pink metal wall
+      NormalStrength: 0.1
+      Roughness: 0.5
+      Metalness: 0.5
+
 LevelTextures:
     # Lab textures
     - ID: 212
@@ -776,35 +853,35 @@ LevelTextures:
       Wrap: 2
       Width: 0.25
       Offset: 0.0
-      Color: '0.45, 0.40, 0.40'
+      Color: '0.85, 0.80, 0.80'
       Radius: 50
   
-    - ID: 251
+    - ID: 251 # red
       Type: 2
       Points: '0.125, 0'
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Color: '0.5, 0.0, 0.0'
-      Radius: 50
+      Color: '0.9, 0.0, 0.0'
+      Radius: 40
   
-    - ID: 252
+    - ID: 252 # blue
       Type: 2
       Points: '0.125, 0'
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Color: '0.10, 0.10, 0.6'
-      Radius: 50
+      Color: '0.05, 0.05, 1.0'
+      Radius: 40
   
-    - ID: 253
+    - ID: 253 # yellow
       Type: 2
       Points: '0.125, 0'
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Radius: 50
-      Color: '0.25, 0.25, 0.025'
+      Radius: 40
+      Color: '0.85, 0.85, 0.1'
 
     # Ceiling lights
     - ID: 264
@@ -820,15 +897,18 @@ LevelTextures:
       Points: '0.5, 0.5'
       Width: 4
       Height: 4
-      Radius: 50
+      Radius: 40
       Color: '0.7, 0.7, 0.875' # very cool
       Offset: 0
 
     - ID: 283
       Points: '0.5, 0.5'
       Color: '0.6, 0.6, 0.63' # cooler
+      Radius: 40
 
     - ID: 284
+      Radius: 40
+      Offset: 2
       #Color: '0.5, 0.5, 0.60' # warmer
 
     # Stacked lights
@@ -919,6 +999,8 @@ LevelTextures:
     # lava
     - ID: 333
       Offset: 10
+      Color: '0.1, 0.00, 0.00'
+      Radius: 50
   
     # remove lights from reactor walls as emissives work better
     - ID: 334

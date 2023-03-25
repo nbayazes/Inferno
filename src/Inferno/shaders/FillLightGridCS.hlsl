@@ -180,7 +180,10 @@ void main(uint2 group : SV_GroupID,
         LightData lightData = Lights[lightIndex];
         //float3 lightWorldPos = lightData.pos;
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
-        const float lightRadius = sqrt(lightData.radiusSq);
+        float lightRadius = sqrt(lightData.radiusSq);
+        if (lightData.type == 2 && lightData.radiusSq > 0) {
+            lightRadius += max(length(lightData.right), length(lightData.up)) * 2;
+        }
 
         bool inside = true;
 
