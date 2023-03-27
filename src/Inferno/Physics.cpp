@@ -11,8 +11,6 @@
 #include "Editor/Events.h"
 #include "Graphics/Render.Particles.h"
 #include "Game.Wall.h"
-#include "HUD.h"
-#include "Game.Segment.h"
 #include "Editor/Editor.Segment.h"
 
 using namespace DirectX;
@@ -236,26 +234,59 @@ namespace Inferno {
         return true; // was destroyed!
     }
 
-    // Rolls the object when turning
-    void TurnRoll(Object& obj, float rollScale, float rollRate) {
-        auto& pd = obj.Physics;
-        const auto desiredBank = pd.AngularVelocity.y * rollScale;
+    // Animates a value using second order dynamics
+    template <class T>
+    class SecondOrderDynamics {
+        // https://www.youtube.com/watch?v=KPoeNZZ6H4s
+        const float _k1, _k2, _k3;
+        T _prevValue;
+        T _y, _yd = {};
 
-        if (std::abs(pd.TurnRoll - desiredBank) > 0.001f) {
-            auto roll = rollRate;
-            const auto theta = desiredBank - pd.TurnRoll;
-
-            if (std::abs(theta) < roll) {
-                roll = theta;
-            }
-            else {
-                if (theta < 0)
-                    roll = -roll;
-            }
-
-            pd.TurnRoll += roll;
+    public:
+        // f: Frequency response speed
+        // zeta: settling -> 0 is undamped. 0..1 underdamped. 1 > no vibration. 1 is critical dampening
+        // r: response ramping. 0..1 input is delayed. 1: immediate response >1: overshoots target  <0 predicts movement
+        SecondOrderDynamics(float f = 1, float z = 1, float r = 0, T initialValue = {})
+            : _k1(z / (XM_PI * f)),
+              _k2(1 / std::pow(XM_2PI * f, 2)),
+              _k3(r * z / (XM_2PI * f)) {
+            _prevValue = initialValue;
+            _y = initialValue;
         }
-        //Debug::R = pd.TurnRoll;
+
+        // Updates the value
+        T Update(T value, T velocity, float dt /*delta time*/) {
+            _y += dt * _yd; // integrate by velocity
+            _yd += dt * (value + _k3 * velocity - _y - _k1 * _yd) / _k2; // integrate velocity by acceleration
+            return _y;
+        }
+
+        // Updates the value using an estimated velocity
+        T Update(T value, float dt) {
+            T velocity = (value - _prevValue) / dt; // estimate velocity from previous state
+            _prevValue = value;
+            return Update(value, velocity, dt);
+        }
+    };
+
+    SecondOrderDynamics<float> BankState = { 1, 1, 0, 0 }; // hack: only works when there's one object with banking
+
+    // Rolls the object when turning
+    void TurnRoll(PhysicsData& pd, float rollScale, float rollRate, float dt) {
+        const auto desiredBank = pd.AngularVelocity.y * rollScale;
+        const auto theta = desiredBank - pd.TurnRoll;
+
+        auto roll = rollRate;
+
+        if (std::abs(theta) < roll) {
+            roll = theta; // clamp roll to theta
+        }
+        else {
+            if (theta < 0)
+                roll = -roll;
+        }
+
+        pd.TurnRoll = BankState.Update(roll, dt);
     }
 
     // Applies angular physics to the player
@@ -274,6 +305,8 @@ namespace Inferno {
         if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel))
             pd.AngularVelocity *= 1 - drag;
 
+        Debug::R = pd.AngularVelocity.y;
+
         // unrotate object for bank caused by turn
         if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll))
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(pd.TurnRoll) * obj.Rotation);
@@ -281,7 +314,7 @@ namespace Inferno {
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
         if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll)) {
-            TurnRoll(obj, PlayerTurnRollScale, PlayerTurnRollRate * dt);
+            TurnRoll(obj.Physics, PlayerTurnRollScale, PlayerTurnRollRate, dt);
 
             // re-rotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
@@ -1491,7 +1524,7 @@ namespace Inferno {
             decal.Texture = weapon.Extended.Decal;
 
             // check that decal isn't too close to edge due to lack of clipping
-            if (hit.EdgeDistance >= decalSize * 0.75f && addDecal) {
+            if (hit.EdgeDistance >= decalSize * 0.75f) {
                 if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
                     if (Game::Player.CanOpenDoor(*wall))
                         addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame

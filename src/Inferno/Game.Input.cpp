@@ -97,6 +97,8 @@ namespace Inferno {
     }
 
     void HandleInput(float dt) {
+        if (dt <= 0) return;
+
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;
 
@@ -125,7 +127,7 @@ namespace Inferno {
             lateralThrust += maxThrust;
 
         float afterburnerThrust = Game::Player.UpdateAfterburner(dt, Input::IsKeyDown(Keys::LeftControl));
-        if (afterburnerThrust > 1) 
+        if (afterburnerThrust > 1)
             forwardThrust = maxThrust * afterburnerThrust;
 
         forwardThrust = std::clamp(forwardThrust, -maxThrust, afterburnerThrust > 1 ? maxThrust * 2 : maxThrust);
@@ -144,8 +146,9 @@ namespace Inferno {
             physics.AngularThrust.z = maxAngularThrust;
 
         float invertMult = -1;
-        float sensitivity = 1 * 64;
-        float scale = 1 / (sensitivity * dt / Game::TICK_RATE);
+        float sensitivity = 1 / 64.0f;
+        float scale = sensitivity * Game::TICK_RATE / dt;
+
         physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
         physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
 
