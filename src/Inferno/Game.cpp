@@ -182,6 +182,7 @@ namespace Inferno::Game {
         if (Input::IsKeyPressed(Keys::F5)) {
             Resources::LoadLightInfo(Game::Level);
             Render::Adapter->ReloadResources();
+            Editor::Events::LevelChanged();
         }
 
         if (Input::IsKeyPressed(Keys::F6))

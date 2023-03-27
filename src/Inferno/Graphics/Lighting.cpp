@@ -168,31 +168,6 @@ namespace Inferno::Graphics {
         return pos;
     }
 
-
-    // 0.25, 0.75, 1.25 - continuous spacing of two
-    // 0.166, 0.5, 0.833 - spacing of three
-    //const List<Vector2> LeftJustifiedUVs = { { 0.125f, 1.0f / 6 }, { 0.125f, 3.0f / 6 }, { 0.125f, 5.0f / 6 } };
-    const List<Vector2> LeftJustifiedUVs = { { 0.125f, 0 }, { 0.125f, 1 } };
-    //const List<Vector2> VerticalLightStack = { { 0.25f, 0.25f }, { 0.25f, 0.75f }, { 0.75f, 0.25f }, { 0.75f, 0.75f } };
-    const List<Vector2> VerticalLightStack = { { 0.5f, 0.25f }, { 0.5f, 0.75f } };
-
-    // .Color = Color(0.25, 0.25, 0.30) }
-    // V = 0 is top?
-    //Dictionary<LevelTexID, TextureLightInfo> TextureInfoD1 = {
-    //    { LevelTexID(212), { .Points = { { 0.25, 0.25 }, { 0.75, 0.25 } }, .Radius = 60 } },
-    //    { LevelTexID(213), { .Points = { { 0.75, 0.25 } }, .Radius = 60 } },
-    //    { LevelTexID(214), { .Points = { { 0.25, 0.25 } }, .Radius = 60 } },
-    //    { LevelTexID(250), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 45, .Width = 0.05 } },
-    //    { LevelTexID(251), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 60, .Width = 0.05 } },
-    //    { LevelTexID(252), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 60, .Width = 0.05 } },
-    //    { LevelTexID(253), { .Type = LightType::Rectangle, .Points = LeftJustifiedUVs, .Offset = 0.125, .Radius = 60, .Width = 0.05 } },
-    //    { LevelTexID(281), { .Type = LightType::Rectangle, .Points = { { 0.5, 0.5 } }, .Offset = 0.4, .Radius = 45, .Width = 4, .Height = 4 } },
-    //    { LevelTexID(285), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.25, 0.25, 0.30) }, },
-    //    { LevelTexID(286), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.3, 0.3, 0.3) }, },
-    //    { LevelTexID(287), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
-    //    { LevelTexID(288), { .Points = VerticalLightStack, .Offset = 3, .Radius = 60, .Color = Color(0.35, 0.35, 0.35) }, },
-    //};
-
     Option<Vector2> IntersectLines(Vector2 a, Vector2 b, Vector2 c, Vector2 d) {
         auto r = b - a;
         auto s = d - c;
@@ -355,7 +330,7 @@ namespace Inferno::Graphics {
                                         light.pos = center + side.AverageNormal * info->Offset;
                                         light.right = rightVec * info->Width;
                                         light.up = up;
-                                        //light.up += upVec * 0.5; // move the end of the wrapped axis off the edge by 0.5 units
+                                        light.up -= upVec * 1; // offset the ends to prevent hotspots
                                         sources.push_back(light);
                                     }
                                 }

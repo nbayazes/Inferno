@@ -124,6 +124,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
       <FloatingPointModel>Fast</FloatingPointModel>
       <ExternalTemplatesDiagnostics>false</ExternalTemplatesDiagnostics>
+      <DisableSpecificWarnings>4324</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

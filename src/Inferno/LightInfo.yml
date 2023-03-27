@@ -1,7 +1,7 @@
 Materials:
     - TexID: 722 # white rock
       NormalStrength: 0.30
-      Roughness: 0.60
+      Roughness: 0.7
 
     - TexID: 723 # grey rock
       NormalStrength: 0.6
@@ -143,6 +143,11 @@ Materials:
       Roughness: 0.7
       Metalness: 0.6
 
+    - TexID: 1037 # sign
+      NormalStrength: 0.25
+      Roughness: 0.7
+      Metalness: 0.6
+
     - TexID: 1020 # sign
       NormalStrength: 0.25
       Roughness: 0.7
@@ -202,10 +207,10 @@ Materials:
       SpecularStrength: 1
 
     - TexID: 1391 # prison door
-      NormalStrength: 1
-      Roughness: 0.6
+      NormalStrength: 0.75
+      Roughness: 0.8
       Metalness: 0.9
-      SpecularStrength: 2
+      SpecularStrength: 1
 
     - TexID: 1416 # exit door
       NormalStrength: 0.5
@@ -223,10 +228,10 @@ Materials:
       Roughness: 0.96
 
     - TexID: 1065 # fan
-      NormalStrength: 0.5
+      NormalStrength: 0.25
       Roughness: 0.5
-      Metalness: 0.90
-      SpecularStrength: 5
+      Metalness: 0.9
+      SpecularStrength: 1
 
     - TexID: 842 # green rock
       NormalStrength: 0.5
@@ -655,8 +660,8 @@ Materials:
 
     - TexID: 880 # metal wall
       NormalStrength: 0.2
-      Roughness: 0.5
-      Metalness: 0.9
+      Roughness: 0.7
+      Metalness: 1
 
     - TexID: 881 # metal wall
       NormalStrength: 0.3
@@ -804,10 +809,10 @@ LevelTextures:
     - ID: 212
       Type: 2
       Points: '0.5, 0.23'
-      Radius: 80
+      Radius: 40
       Width: 0.1
       Wrap: 1
-      Color: '0.1, 0.1, 0.3' # cooler
+      Color: '0.15, 0.15, 0.4' # cooler
       Offset: 0
   
     - ID: 213
@@ -847,14 +852,14 @@ LevelTextures:
       Offset: 0.01
   
     # Door strips
-    - ID: 250
+    - ID: 250 # white
       Type: 2
       Points: '0.15, 0'
       Wrap: 2
       Width: 0.25
       Offset: 0.0
       Color: '0.85, 0.80, 0.80'
-      Radius: 50
+      Radius: 25
   
     - ID: 251 # red
       Type: 2
@@ -863,7 +868,7 @@ LevelTextures:
       Width: 0.5
       Offset: 0.01
       Color: '0.9, 0.0, 0.0'
-      Radius: 40
+      Radius: 25
   
     - ID: 252 # blue
       Type: 2
@@ -872,7 +877,7 @@ LevelTextures:
       Width: 0.5
       Offset: 0.01
       Color: '0.05, 0.05, 1.0'
-      Radius: 40
+      Radius: 25
   
     - ID: 253 # yellow
       Type: 2
@@ -880,7 +885,7 @@ LevelTextures:
       Wrap: 2
       Width: 0.5
       Offset: 0.01
-      Radius: 40
+      Radius: 25
       Color: '0.85, 0.85, 0.1'
 
     # Ceiling lights
@@ -921,6 +926,7 @@ LevelTextures:
       Height: 2
       Color: '0.25, 0.25, 0.28' # cooler
       Offset: 0.01
+      Radius: 40
 
     # Double edge wrapped lights
     - ID: 278
@@ -940,7 +946,8 @@ LevelTextures:
       Width: 0.05
       Wrap: 2
       Offset: 0.01
-      Color: '0.3, 0.3, 0.4'
+      Color: '0.1, 0.1, 0.15'
+      Radius: 15
   
     - ID: 280
       Type: 2
@@ -961,6 +968,7 @@ LevelTextures:
       Height: 0.5
       Color: '0.3, 0.3, 0.4'
       Offset: 0.01
+      Radius: 30
   
     - ID: 287
       Type: 2

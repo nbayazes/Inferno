@@ -277,7 +277,7 @@ namespace Inferno::Render {
 
         if (!material.Textures[Material2D::Specular]) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
-            material.Textures[Material2D::Specular].Load(batch, specular.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name), false);
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), upload.Bitmap->Width, upload.Bitmap->Height, Convert::ToWideString(upload.Bitmap->Name));
         }
         
         auto& info = Resources::GetTextureInfo(material.ID);

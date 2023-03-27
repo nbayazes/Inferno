@@ -303,6 +303,7 @@ namespace Inferno::Render {
 
         if (LevelChanged) {
             Adapter->WaitForGpu();
+            LightGrid->SetLights(ctx.CommandList());
             _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
             LevelChanged = false;
         }
@@ -314,7 +315,6 @@ namespace Inferno::Render {
         DepthPrepass(ctx);
 
         /* if lights changed */
-        LightGrid->SetLights(ctx.CommandList());
         LightGrid->Dispatch(ctx.CommandList(), Adapter->LinearizedDepthBuffer);
 
         {

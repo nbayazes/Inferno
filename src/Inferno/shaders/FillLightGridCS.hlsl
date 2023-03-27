@@ -182,7 +182,10 @@ void main(uint2 group : SV_GroupID,
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
         float lightRadius = sqrt(lightData.radiusSq);
         if (lightData.type == 2 && lightData.radiusSq > 0) {
-            lightRadius += max(length(lightData.right), length(lightData.up)) * 2;
+            float maxLen = max(length(lightData.right), length(lightData.up));
+            lightRadius += maxLen * maxLen;
+        } else {
+            //lightRadius *= 1.2; // hack for point light comparison not being correct at a distance
         }
 
         bool inside = true;
@@ -198,7 +201,7 @@ void main(uint2 group : SV_GroupID,
         for (int i = 0; i < 4; i++) {
             Plane plane = planes[i];
             float dist = PlaneDist(plane, lightPos); // positive value is inside
-            if (dist < -lightRadius) {
+            if (dist < -lightRadius - 1) {
                 inside = false;
             }
         }

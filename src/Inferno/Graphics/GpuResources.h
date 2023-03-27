@@ -391,7 +391,7 @@ namespace Inferno {
                   wstring name,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
             assert(data);
-            _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, 1);
+            _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, (uint16)depth, 1);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -420,7 +420,7 @@ namespace Inferno {
         }
 
         void CreateNoHeap(int width, int height, int depth, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
-            _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, depth, 1);
+            _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, (uint16)depth, 1);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
