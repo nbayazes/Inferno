@@ -526,6 +526,9 @@
     <ClInclude Include="NormalMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">
@@ -620,5 +623,10 @@
     <CopyFileToFolders Include="shaders\Common.hlsli">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Inferno.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

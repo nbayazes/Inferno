@@ -274,6 +274,7 @@
     <ClInclude Include="NormalMap.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Physics.Math.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />
@@ -586,6 +587,9 @@
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)\shaders</DestinationFolders>
       <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)\shaders</DestinationFolders>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Inferno.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
