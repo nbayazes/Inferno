@@ -391,6 +391,7 @@ namespace Inferno::Editor {
                         if (auto marked = level.TryGetSide(tag))
                             marked->LightRadiusOverride = side.LightRadiusOverride;
                     }
+                    Events::LevelChanged();
                 }
             }
 
