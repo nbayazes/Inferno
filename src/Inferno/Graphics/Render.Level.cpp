@@ -296,8 +296,6 @@ namespace Inferno::Render {
     }
 
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
-        ctx.BeginEvent(L"Level");
-
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)ElapsedTime, FrameTime);
 
@@ -311,10 +309,8 @@ namespace Inferno::Render {
         _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes());
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
         DepthPrepass(ctx);
 
-        /* if lights changed */
         LightGrid->Dispatch(ctx.CommandList(), Adapter->LinearizedDepthBuffer);
 
         {
@@ -367,7 +363,5 @@ namespace Inferno::Render {
             }
             Debug::EndFrame(ctx.CommandList());
         }
-
-        ctx.EndEvent();
     }
 }
