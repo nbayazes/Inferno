@@ -373,8 +373,6 @@ namespace Inferno::Editor {
 
         for (auto& v : points) {
             constexpr auto MinimumPlaneDistance = 0.1f;
-            if (std::abs(PointToPlaneDistance(level.Vertices[v], origin, dir)) < MinimumPlaneDistance)
-                continue; // don't scale point directly on the plane
 
             // is this point on the left or right of the plane?
             auto relative = level.Vertices[v] - origin;
