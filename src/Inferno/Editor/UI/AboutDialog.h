@@ -15,15 +15,15 @@ namespace Inferno::Editor {
             ImVec4 color = { 1, 0.3f * mult, 0.3f * mult, 1 };
             auto pos = ImGui::GetCursorPos();
             ImGui::SetCursorPos({ pos.x + 1, pos.y /*+ 1 */});
-            ImGui::TextColored({ color.x, color.y, color.z, color.w }, AppTitle);
+            ImGui::TextColored({ color.x, color.y, color.z, color.w }, APP_TITLE);
             ImGui::SetCursorPos(pos);
-            ImGui::TextColored(color, AppTitle);
+            ImGui::TextColored(color, APP_TITLE);
             ImGui::SetWindowFontScale(1);
 
-            ImGui::Text("Version %s", VersionString);
+            ImGui::Text("Version %s", VERSION_STRING);
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
-            ImGui::Text((char*)u8"© 2022 Nicholas Bayazes");
+            ImGui::Text((char*)u8"© 2023 Nicholas Bayazes");
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });

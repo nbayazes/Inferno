@@ -98,18 +98,20 @@ namespace Inferno {
         auto uv = IntersectFaceUVs(level, pnt, seg, tag, tri);
         auto& side = seg.GetSide(tag.Side);
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
-        auto& bitmap = Resources::ReadBitmap(Resources::LookupTexID(tmap));
+        auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
         auto wrap = [](float x, uint16 size) {
             // -1 so that x = 1.0 results in width - 1, correcting for the array index
             return (uint)Mod(uint16(x * (float)size - 1.0f), size);
         };
-        auto x = wrap(uv.x, bitmap.Width);
-        auto y = wrap(uv.y, bitmap.Height);
+
+        auto& info = bitmap.Info;
+        auto x = wrap(uv.x, info.Width);
+        auto y = wrap(uv.y, info.Height);
 
         // for overlay textures, check the supertransparent mask
         if (side.TMap2 > LevelTexID::Unset) {
-            FixOverlayRotation(x, y, bitmap.Width, bitmap.Height, side.OverlayRotation);
-            const int idx = y * bitmap.Width + x;
+            FixOverlayRotation(x, y, info.Width, info.Height, side.OverlayRotation);
+            const int idx = y * info.Width + x;
             if (!bitmap.Mask.empty() && bitmap.Mask[idx] == Palette::SUPER_MASK)
                 return true; // supertransparent overlay
 
@@ -117,13 +119,13 @@ namespace Inferno {
                 return false; // overlay wasn't transparent
 
             // Check the base texture
-            auto& tmap1 = Resources::ReadBitmap(Resources::LookupTexID(side.TMap));
-            x = wrap(uv.x, tmap1.Width);
-            y = wrap(uv.y, tmap1.Height);
+            auto& tmap1 = Resources::GetBitmap(Resources::LookupTexID(side.TMap));
+            x = wrap(uv.x, info.Width);
+            y = wrap(uv.y, info.Height);
             return tmap1.Data[idx].a == 0;
         }
         else {
-            return bitmap.Data[y * bitmap.Width + x].a == 0;
+            return bitmap.Data[y * info.Width + x].a == 0;
         }
     }
 
@@ -158,15 +160,16 @@ namespace Inferno {
 
         auto uv = IntersectFaceUVs(level, point, *seg, tag, tri);
 
-        auto& bitmap = Resources::ReadBitmap(Resources::LookupTexID(side.TMap2));
-        auto x = uint(uv.x * bitmap.Width) % bitmap.Width;
-        auto y = uint(uv.y * bitmap.Height) % bitmap.Height;
-        FixOverlayRotation(x, y, bitmap.Width, bitmap.Height, side.OverlayRotation);
+        auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(side.TMap2));
+        auto& info = bitmap.Info;
+        auto x = uint(uv.x * info.Width) % info.Width;
+        auto y = uint(uv.y * info.Height) % info.Height;
+        FixOverlayRotation(x, y, info.Width, info.Height, side.OverlayRotation);
 
-        if (!bitmap.Mask.empty() && bitmap.Mask[y * bitmap.Width + x] == Palette::SUPER_MASK)
+        if (!bitmap.Mask.empty() && bitmap.Mask[y * info.Width + x] == Palette::SUPER_MASK)
             return false; // portion hit was supertransparent
 
-        if (bitmap.Data[y * bitmap.Width + x].a == 0)
+        if (bitmap.Data[y * info.Width + x].a == 0)
             return false; // portion hit was transparent
 
         // Hit opaque overlay!
@@ -248,7 +251,7 @@ namespace Inferno {
         // r: response ramping. 0..1 input is delayed. 1: immediate response >1: overshoots target  <0 predicts movement
         SecondOrderDynamics(float f = 1, float z = 1, float r = 0, T initialValue = {})
             : _k1(z / (XM_PI * f)),
-              _k2(1 / std::pow(XM_2PI * f, 2)),
+              _k2(1 / std::pow(XM_2PI * f, 2.0f)),
               _k3(r * z / (XM_2PI * f)) {
             _prevValue = initialValue;
             _y = initialValue;

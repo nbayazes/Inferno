@@ -8,7 +8,7 @@ namespace Inferno::Editor {
     const char* GetObjectTypeName(ObjectType type) {
         if (type == ObjectType::None) return "None";
 
-        constexpr std::array objectTypeLabels = {
+        static constexpr std::array objectTypeLabels = {
             "None", // or "Wall"
             "Fireball",
             "Robot",
@@ -309,9 +309,11 @@ namespace Inferno::Editor {
 
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-            o.ID = obj.ID;
-            o.Render.Model.ID = obj.Render.Model.ID;
-            o.Radius = GetObjectRadius(obj);
+                o.ID = obj.ID;
+                o.Render.Model.ID = obj.Render.Model.ID;
+                o.Radius = GetObjectRadius(obj);
+                o.Physics.Mass = obj.Physics.Mass;
+                o.Physics.Drag = obj.Physics.Drag;
             });
 
             Render::LoadModelDynamic(robot.Model);
@@ -471,12 +473,12 @@ namespace Inferno::Editor {
 
         Seq::sortBy(sorted, [](auto& a, auto& b) {
             auto p0 = GetObjectTypePriority(a.Obj->Type);
-        auto p1 = GetObjectTypePriority(b.Obj->Type);
-        if (p0 < p1) return true;
-        if (p1 < p0) return false;
-        if (a.Name < b.Name) return true;
-        if (b.Name < a.Name) return false;
-        return false;
+            auto p1 = GetObjectTypePriority(b.Obj->Type);
+            if (p0 < p1) return true;
+            if (p1 < p0) return false;
+            if (a.Name < b.Name) return true;
+            if (b.Name < a.Name) return false;
+            return false;
         });
 
         return sorted;
@@ -556,7 +558,8 @@ namespace Inferno::Editor {
     void PropertyEditor::ObjectProperties() const {
         DisableControls disable(!Resources::HasGameData());
 
-        ImGui::TableRowLabel("Object");
+        auto label = fmt::format("Object {}", (int)Editor::Selection.Object);
+        ImGui::TableRowLabel(label.c_str());
         if (ObjectDropdown(Game::Level, Selection.Object))
             Editor::Selection.SetSelection(Selection.Object);
 
@@ -610,8 +613,9 @@ namespace Inferno::Editor {
                 if (PowerupDropdown("##Powerup", obj.ID, &obj)) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                    o.Render.VClip.ID = obj.Render.VClip.ID;
-                    o.Radius = obj.Radius;
+                        o.ID = obj.ID;
+                        o.Render.VClip.ID = obj.Render.VClip.ID;
+                        o.Radius = obj.Radius;
                     });
                     Editor::History.SnapshotLevel("Change object");
                 }
@@ -636,7 +640,7 @@ namespace Inferno::Editor {
                 if (ImGui::SliderFloat3("##angular", &obj.Physics.AngularVelocity.x, -1.57f, 1.57f, "%.2f")) {
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                    o.Physics.AngularVelocity = obj.Physics.AngularVelocity;
+                        o.Physics.AngularVelocity = obj.Physics.AngularVelocity;
                     });
                 }
 
@@ -659,7 +663,7 @@ namespace Inferno::Editor {
                 Render::LoadTextureDynamic(obj.Render.Model.TextureOverride);
                 ForMarkedObjects([&obj](Object& o) {
                     if (o.Render.Type != obj.Render.Type) return;
-                o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;
+                    o.Render.Model.TextureOverride = obj.Render.Model.TextureOverride;
                 });
                 Editor::History.SnapshotLevel("Change object");
             }

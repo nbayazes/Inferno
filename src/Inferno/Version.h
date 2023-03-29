@@ -1,6 +1,6 @@
 #pragma once
 
 namespace Inferno {
-    constexpr const char* VersionString = "1.0.6";
-    constexpr const char* AppTitle = "Inferno Editor";
+    constexpr auto VERSION_STRING = "1.0.13";
+    constexpr auto APP_TITLE = "Inferno Editor";
 }

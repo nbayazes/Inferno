@@ -173,13 +173,14 @@ namespace Inferno::Editor {
         // center the verts on the source face
         {
             auto center = AverageVectors(points);
-            auto face = Face::FromSide(level, src.Segment, src.Side);
+            auto face = Face::FromSide(level, src);
             auto projectedCenter = face.Center() - offset;
             auto dist = projectedCenter - center;
             for (auto& p : points) p += dist;
         }
 
-        for (auto& p : points) level.Vertices.push_back(p);
+        for (auto& p : points)
+            level.Vertices.push_back(p);
     }
 
     // Removes any walls or connections on this side and other side
@@ -393,8 +394,8 @@ namespace Inferno::Editor {
         seg.Connections[oppositeSide] = src.Segment;
         srcSeg.Connections[(int)src.Side] = id;
 
-        auto& srcVertIndices = SideIndices[oppositeSide];
-        auto& destSideIndices = SideIndices[(int)src.Side];
+        auto& srcVertIndices = SIDE_INDICES[oppositeSide];
+        auto& destSideIndices = SIDE_INDICES[(int)src.Side];
 
         // Existing face
         seg.Indices[srcVertIndices[3]] = srcIndices[0];
@@ -427,25 +428,30 @@ namespace Inferno::Editor {
         seg.UpdateGeometricProps(level);
 
         level.Segments.push_back(seg);
-        Events::SegmentsChanged();
-        Events::LevelChanged();
         return id;
     }
 
-    SegID AddDefaultSegment(Level& level) {
+    SegID AddDefaultSegment(Level& level, const Matrix& transform) {
         Segment seg = {};
 
+        std::array verts = {
+            // Back
+            Vector3{ 10, 10, -10 },
+            Vector3{ 10, -10, -10 },
+            Vector3{ -10, -10, -10 },
+            Vector3{ -10, 10, -10 },
+            // Front
+            Vector3{ 10, 10, 10 },
+            Vector3{ 10, -10, 10 },
+            Vector3{ -10, -10, 10 },
+            Vector3{ -10, 10, 10 }
+        };
+
         auto offset = (uint16)level.Vertices.size();
-        // Back
-        level.Vertices.push_back({ 10,  10, -10 });
-        level.Vertices.push_back({ 10, -10, -10 });
-        level.Vertices.push_back({ -10, -10, -10 });
-        level.Vertices.push_back({ -10,  10, -10 });
-        // Front
-        level.Vertices.push_back({ 10,  10,  10 });
-        level.Vertices.push_back({ 10, -10,  10 });
-        level.Vertices.push_back({ -10, -10,  10 });
-        level.Vertices.push_back({ -10,  10,  10 });
+
+        for (auto& v : verts) {
+            level.Vertices.push_back(Vector3::Transform(v, transform));
+        }
 
         for (uint16 i = 0; i < 8; i++)
             seg.Indices[i] = offset + i;
@@ -471,31 +477,6 @@ namespace Inferno::Editor {
         return id;
     }
 
-    // Simple approach to aligning sides from OLE but isn't reliable.
-    // Moves src onto dest
-    void AlignFaces(const Face& src, const Face& dest) {
-        float minDist = FLT_MAX;
-        int srcVert = 0;
-        int dstVert = 0;
-
-        // Find the closest pair of verts on each face
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                auto diff = src[i] - dest[j];
-                auto dist = diff.LengthSquared();
-                if (dist < minDist) {
-                    minDist = dist;
-                    srcVert = i;
-                    dstVert = j;
-                }
-            }
-        }
-
-        // Align the verts
-        for (int i = 0; i < 4; i++)
-            src[(srcVert + i) % 4] = dest[(dstVert + (4 - i)) % 4];
-    }
-
     // Projects a ray from the center of src face to dest face and checks the flatness ratio
     bool RayCheckDegenerate(Level& level, Tag tag) {
         auto opposite = GetOppositeSide(tag.Side);
@@ -505,19 +486,23 @@ namespace Inferno::Editor {
         auto vec = destFace.Center() - srcFace.Center();
         auto maxDist = vec.Length();
         vec.Normalize();
-        if (vec == Vector3::Zero) return true;
+        if (vec == Vector3::Zero)
+            return true;
 
         Ray ray(srcFace.Center(), vec);
         for (auto side : SideIDs) {
-            if (side == tag.Side || side == opposite) continue;
+            if (side == tag.Side || side == opposite)
+                continue;
+
             auto tface = Face::FromSide(level, { tag.Segment, side });
             auto flatness = tface.FlatnessRatio();
-            if (flatness <= 0.80f) return true;
+            if (flatness <= 0.90f)
+                return true;
 
             float dist{};
-            if (tface.Intersects(ray, dist, true) != -1 && dist > 0.01f/*&& dist < maxDist*/)
-                if (dist < maxDist)
-                    return true;
+            if (tface.Intersects(ray, dist, true) && dist > 0.01f && dist < maxDist) {
+                return true;
+            }
         }
 
         return false;
@@ -534,38 +519,48 @@ namespace Inferno::Editor {
             return false;
 
         auto& seg = level.GetSegment(srcTag);
-        auto srcFace = Face::FromSide(level, seg, srcTag.Side);
+        auto srcFace = Face::FromSide(level, srcTag);
         auto destFace = Face::FromSide(level, destId);
         auto original = srcFace.CopyPoints();
 
-        // Use a simple approach to begin with
-        AlignFaces(srcFace, destFace);
-        seg.UpdateGeometricProps(level);
+        static const std::array forward = { 0, 1, 2, 3 };
+        static const std::array reverse = { 3, 2, 1, 0 };
 
-        if (SegmentIsDegenerate(level, seg) || RayCheckDegenerate(level, srcTag)) {
-            static const std::array forward = { 0, 1, 2, 3 };
-            static const std::array reverse = { 3, 2, 1, 0 };
-            bool foundValid = false;
+        float minCornerAngle = 1000;
+        int bestMatch = -1;
 
-            // try attaching the segment to the dest in each orientation until one isn't degenerate
-            for (int i = 0; i < 8; i++) {
-                auto order = i < 4 ? forward : reverse;
+        // try attaching the segment to the dest in each orientation until one isn't degenerate
+        for (int i = 0; i < 8; i++) {
+            auto order = i < 4 ? forward : reverse;
 
-                // copy point locations from dest to dest
-                for (int f = 0; f < 4; f++)
-                    srcFace[f] = destFace[order[(f + i) % 4]];
+            // copy point locations from dest
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = destFace[order[(f + i) % 4]];
 
-                if (!SegmentIsDegenerate(level, seg) && !RayCheckDegenerate(level, srcTag)) {
-                    foundValid = true;
-                    break;
-                }
+            seg.UpdateGeometricProps(level);
+            auto rayCheck = !RayCheckDegenerate(level, srcTag);
+            auto angle = CheckDegeneracy(level, seg);
+
+            if (rayCheck && angle < minCornerAngle) {
+                minCornerAngle = angle;
+                bestMatch = i;
             }
 
-            if (!foundValid) {
-                for (int f = 0; f < 4; f++)
-                    srcFace[f] = original[f]; // restore original location
-                return false;
-            }
+            // restore location between each iteration because src and dest might share an edge
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = original[f];
+        }
+
+        if (bestMatch == -1) {
+            seg.UpdateGeometricProps(level);
+            return false;
+        }
+        else {
+            // Move to the best match
+            auto order = bestMatch < 4 ? forward : reverse;
+
+            for (int f = 0; f < 4; f++)
+                srcFace[f] = destFace[order[(f + bestMatch) % 4]];
         }
 
         level.TryAddConnection(srcTag, destId);
@@ -842,15 +837,10 @@ namespace Inferno::Editor {
         }
     }
 
-    void Commands::AddDefaultSegment() {
-        Editor::AddDefaultSegment(Game::Level);
-        Editor::History.SnapshotLevel("Add default segment");
-    }
-
     // Tries to delete a segment. Returns a new selection if possible.
     Tag TryDeleteSegment(Level& level, SegID id) {
         auto seg = level.TryGetSegment(id);
-        if (!seg) return{};
+        if (!seg) return {};
         SegID newSeg{};
         SideID newSide{};
 
@@ -905,26 +895,41 @@ namespace Inferno::Editor {
     string OnDetachSegments() {
         Editor::History.SnapshotSelection();
         auto segs = GetSelectedSegments();
-        auto faces = GetBoundary(Game::Level, segs);
-        if (faces.empty()) return {};
+        auto copy = CopySegments(Game::Level, segs);
+        DeleteSegments(Game::Level, segs);
+        PasteSegmentsInPlace(Game::Level, copy);
 
-        for (auto& face : faces)
-            DetachSide(Game::Level, face);
+        bool inSelection = false;
+        int offset = 0;
+        for (auto& seg : segs) {
+            if (Editor::Selection.Segment > seg) offset--;
+            if (seg == Editor::Selection.Segment)
+                inSelection = true;
+        }
 
-        auto nearby = GetNearbySegmentsExclusive(Game::Level, segs);
-        WeldVerticesOfOpenSides(Game::Level, nearby, Settings::Editor.CleanupTolerance);
+        if (inSelection) {
+            // the selection was in a detached segment, recalculate it
+            auto start = SegID(Game::Level.Segments.size() - segs.size());
+            Editor::Selection.SetSelection(start - (SegID)offset);
+        }
+        else {
+            Editor::Selection.SetSelection(Editor::Selection.Segment + (SegID)offset);
+        }
+
         Events::LevelChanged();
         return "Detach segments";
     }
 
-    std::array<std::array<SideID, 4>, 6> SidesForSide = { {
-        { (SideID)4, (SideID)3, (SideID)5, (SideID)1 },
-        { (SideID)2, (SideID)4, (SideID)3, (SideID)5 },
-        { (SideID)5, (SideID)3, (SideID)4, (SideID)1 },
-        { (SideID)0, (SideID)4, (SideID)2, (SideID)5 },
-        { (SideID)2, (SideID)3, (SideID)0, (SideID)1 },
-        { (SideID)0, (SideID)3, (SideID)2, (SideID)1 }
-    } };
+    std::array<std::array<SideID, 4>, 6> SidesForSide = {
+        {
+            { (SideID)4, (SideID)3, (SideID)5, (SideID)1 },
+            { (SideID)2, (SideID)4, (SideID)3, (SideID)5 },
+            { (SideID)5, (SideID)3, (SideID)4, (SideID)1 },
+            { (SideID)0, (SideID)4, (SideID)2, (SideID)5 },
+            { (SideID)2, (SideID)3, (SideID)0, (SideID)1 },
+            { (SideID)0, (SideID)3, (SideID)2, (SideID)1 }
+        }
+    };
 
     string OnDetachSides() {
         Editor::History.SnapshotSelection();
@@ -962,6 +967,7 @@ namespace Inferno::Editor {
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
         JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Extrude Segment";
     }
 
@@ -972,6 +978,7 @@ namespace Inferno::Editor {
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
         JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Insert Segment";
     }
 
@@ -982,6 +989,7 @@ namespace Inferno::Editor {
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
         JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Mirror Segment";
     }
 
@@ -998,7 +1006,8 @@ namespace Inferno::Editor {
             }
         }
 
-        if (i == 0) { // In case no faces are valid
+        if (i == 0) {
+            // In case no faces are valid
             offset = Vector3::Up;
             i = 1;
         }
@@ -1011,17 +1020,23 @@ namespace Inferno::Editor {
         ResetSegmentUVs(Game::Level, newSegs);
         auto segFaces = FacesForSegments(newSegs);
         JoinTouchingSegmentsExclusive(Game::Level, segFaces, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Extrude Faces";
     }
 
     string OnJoinSides() {
         if (Editor::Marked.Faces.size() != 1) {
-            SetStatusMessageWarn("Exactly one face must be marked to use Join Sides");
+            SetStatusMessageWarn("Exactly one face must be marked to Join Sides");
             return {};
         }
 
         auto src = Editor::Selection.Tag();
         Tag dest = *Editor::Marked.Faces.begin();
+        if (src == dest) {
+            SetStatusMessageWarn("The marked face must be different than the selected face to Join Sides");
+            return {};
+        }
+
         if (!JoinSides(Game::Level, src, dest)) {
             SetStatusMessage("Unable to join sides");
             return {};
@@ -1049,14 +1064,14 @@ namespace Inferno::Editor {
         auto endFace = Face::FromSide(level, opposite);
         auto selFace = Face::FromSide(level, tag);
 
-        static const std::array forward = { 0, 1, 2, 3 };
-        static const std::array reverse = { 3, 2, 1, 0 };
+        static const std::array FORWARD = { 0, 1, 2, 3 };
+        static const std::array REVERSE = { 3, 2, 1, 0 };
         bool foundValid = false;
 
         // try attaching the segment to the dest in each orientation until one isn't degenerate
         for (int i = 0; i < 8; i++) {
             //int i = 0;
-            auto order = i < 4 ? forward : reverse;
+            auto order = i < 4 ? FORWARD : REVERSE;
 
             // copy point locations from dest to src
             for (int f = 0; f < 4; f++) {
@@ -1128,7 +1143,7 @@ namespace Inferno::Editor {
         for (int i = 0; i < 4; i++)
             newFace[i] = original[i];
 
-        // Lazy way to handle UVs
+        // Reset UVs
         for (auto& side : SideIDs) {
             if (side == tag.Side || side == opposite.Side) continue;
             ResetUVs(level, { tag.Segment, side });
@@ -1151,6 +1166,76 @@ namespace Inferno::Editor {
 
         Events::LevelChanged();
         return "Split Segment 2";
+    }
+
+    bool SplitSegment3(Level& level, Tag tag) {
+        if (!level.SegmentExists(tag)) return false;
+        Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
+        auto connected = level.GetConnectedSide(tag);
+
+        // Detach all sides except the one opposite to the selection
+        for (auto& side : SideIDs) {
+            if (side == opposite.Side) continue;
+            DetachSide(Game::Level, { tag.Segment, side });
+        }
+
+        auto srcFace = Face::FromSide(level, tag);
+        auto oppFace = Face::FromSide(level, opposite);
+
+        // find midpoints of each edge
+        Vector3 midpoints[4]{};
+        Vector3 midpoints2[4]{};
+        for (int i = 0; i < 4; i++) {
+            auto vec = (srcFace[i] - oppFace[3 - i]) / 3;
+            midpoints[i] = oppFace[3 - i] + vec;
+            midpoints2[i] = oppFace[3 - i] + vec * 2;
+        }
+
+        auto endpoints = srcFace.CopyPoints();
+
+        // move the selected face back to the midpoints
+        for (int i = 0; i < 4; i++)
+            srcFace[i] = midpoints[i];
+
+        // Insert new segment and move it to the second set of midpoints
+        auto newid = InsertSegment(level, tag, 0, InsertMode::Extrude, &Vector3::Zero);
+        if (!level.SegmentExists(newid)) return false;
+        auto newFace = Face::FromSide(level, { newid, tag.Side });
+        for (int i = 0; i < 4; i++)
+            newFace[i] = midpoints2[i];
+
+        // Insert a second new segment and move it to the end
+        auto newid2 = InsertSegment(level, { newid, tag.Side }, 0, InsertMode::Extrude, &Vector3::Zero);
+        if (!level.SegmentExists(newid2)) return false;
+        auto newFace2 = Face::FromSide(level, { newid2, tag.Side });
+        for (int i = 0; i < 4; i++)
+            newFace2[i] = endpoints[i];
+
+        // Reset UVs
+        for (auto& side : SideIDs) {
+            if (side == tag.Side || side == opposite.Side) continue;
+            ResetUVs(level, { tag.Segment, side });
+            ResetUVs(level, { newid, side });
+            ResetUVs(level, { newid2, side });
+        }
+
+        if (connected) {
+            // Connect the last segment to the original selection
+            level.GetSegment(newid2).GetConnection(tag.Side) = connected.Segment;
+            level.GetSegment(connected.Segment).GetConnection(connected.Side) = newid2;
+            WeldConnection(level, { newid2, tag.Side }, Settings::Editor.CleanupTolerance);
+        }
+
+        level.UpdateAllGeometricProps();
+        return true;
+    }
+
+    string OnSplitSegment3() {
+        if (!SplitSegment3(Game::Level, Editor::Selection.Tag()))
+            return {};
+
+        Events::LevelChanged();
+        return "Split Segment 3";
     }
 
     bool SplitSegment5(Level& level, Tag tag) {
@@ -1337,7 +1422,29 @@ namespace Inferno::Editor {
         return "Split Segment 8";
     }
 
+    string OnInsertAlignedSegment() {
+        auto transform = Editor::Gizmo.Transform;
+        if (Editor::Marked.HasSelection(Settings::Editor.SelectionMode)) {
+            auto center = Editor::Marked.GetMarkedCenter(Settings::Editor.SelectionMode, Game::Level);
+            transform.Translation(center);
+        }
+
+        transform.Forward(-transform.Forward()); // flip z axis
+
+        auto id = Editor::AddDefaultSegment(Game::Level, transform);
+        Selection.SetSelection(id);
+        return "Insert Aligned Segment";
+    }
+
+    string OnInsertSegmentAtOrigin() {
+        auto id = Editor::AddDefaultSegment(Game::Level);
+        Selection.SetSelection(id);
+        return "Insert Segment at Origin";
+    }
+
     namespace Commands {
+        Command InsertAlignedSegment{ .SnapshotAction = OnInsertAlignedSegment, .Name = "Aligned Segment" };
+        Command InsertSegmentAtOrigin{ .SnapshotAction = OnInsertSegmentAtOrigin, .Name = "Segment at Origin" };
         Command JoinSides{ .SnapshotAction = OnJoinSides, .Name = "Join Sides" };
 
         Command InsertMirrored{ .SnapshotAction = OnInsertMirroredSegment, .Name = "Insert Mirrored Segment" };
@@ -1353,9 +1460,9 @@ namespace Inferno::Editor {
         Command ConnectSides{ .SnapshotAction = OnConnectSegments, .Name = "Connect Sides" };
 
         Command SplitSegment2{ .SnapshotAction = OnSplitSegment2, .Name = "Split Segment in 2" };
+        Command SplitSegment3{ .SnapshotAction = OnSplitSegment3, .Name = "Split Segment in 3" };
         Command SplitSegment5{ .SnapshotAction = OnSplitSegment5, .Name = "Split Segment in 5" };
         Command SplitSegment7{ .SnapshotAction = OnSplitSegment7, .Name = "Split Segment in 7" };
         Command SplitSegment8{ .SnapshotAction = OnSplitSegment8, .Name = "Split Segment in 8" };
     }
 }
-

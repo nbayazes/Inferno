@@ -18,14 +18,14 @@ namespace Inferno {
     inline List<Palette::Color> CreateSpecularMap(const PigBitmap& image, float brightness = 0.5, float contrast = 1, float saturation = 1, bool invert = false) {
         List<Palette::Color> specularMap(image.Data.size());
 
-        for (int y = 0; y < image.Height; y++) {
-            for (int x = 0; x < image.Width; x++) {
-                auto color = image.Data[y * image.Width + x].ToColor();
+        for (int y = 0; y < image.Info.Height; y++) {
+            for (int x = 0; x < image.Info.Width; x++) {
+                auto color = image.Data[y * image.Info.Width + x].ToColor();
                 if (invert) color.Negate();
                 color.AdjustContrast(contrast);
                 color.AdjustSaturation(saturation);
                 color *= brightness;
-                specularMap[y * image.Width + x] = Palette::Color::FromColor(color);
+                specularMap[y * image.Info.Width + x] = Palette::Color::FromColor(color);
             }
         }
 
@@ -42,23 +42,23 @@ namespace Inferno {
     inline List<Palette::Color> CreateNormalMap(const PigBitmap& image, const NormalMapOptions& options) {
         List<Palette::Color> normalMap(image.Data.size());
 
-        const auto width = image.Width;
-        const auto height = image.Height;
+        const auto width = image.Info.Width;
+        const auto height = image.Info.Height;
         const float strengthInv = 1 / options.Strength;
 
         auto pixelAt = [&](int x, int y) {
-            if (x >= image.Width) {
-                x = options.Tileable ? 0 : image.Width - 1;
+            if (x >= image.Info.Width) {
+                x = options.Tileable ? 0 : image.Info.Width - 1;
             }
             else if (x < 0) {
-                x = options.Tileable ? image.Width - 1 : 0;
+                x = options.Tileable ? image.Info.Width - 1 : 0;
             }
 
-            if (y >= image.Height) {
-                y = options.Tileable ? 0 : image.Height - 1;
+            if (y >= image.Info.Height) {
+                y = options.Tileable ? 0 : image.Info.Height - 1;
             }
             else if (y < 0) {
-                y = options.Tileable ? image.Height - 1 : 0;
+                y = options.Tileable ? image.Info.Height - 1 : 0;
             }
 
             return image.Data[y * width + x];

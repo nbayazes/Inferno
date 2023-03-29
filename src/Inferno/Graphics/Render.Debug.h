@@ -45,9 +45,9 @@ namespace Inferno::Render::Debug {
     void DrawCrosshair(float size);
 
     void DrawSide(Level&, Tag, const Color&);
-    void DrawSide(Level& level, Segment& seg, SideID side, const Color& color);
+    void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color);
     void DrawSideOutline(Level&, Tag, const Color&);
-    void DrawSideOutline(Level& level, Segment& seg, SideID side, const Color& color);
+    void DrawSideOutline(const Level& level, Segment& seg, SideID side, const Color& color);
     void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 }
 

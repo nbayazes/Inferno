@@ -36,6 +36,7 @@ namespace Inferno {
         bool EnableColor = false;
         bool SkipFirstPass = false;
         float LightPlaneTolerance = -0.45f;
+        bool Multithread = true;
 
         // Retired settings
         bool CheckCoplanar = true;
@@ -61,6 +62,9 @@ namespace Inferno {
         bool SelectMarkedSegment = false;
         bool ResetUVsOnAlign = true;
         bool EnablePhysics = false;
+        bool PasteSegmentObjects = true;
+        bool PasteSegmentWalls = true;
+        bool PasteSegmentSpecial = true;
 
         float ObjectRenderDistance = 300.0f;
 
@@ -106,6 +110,8 @@ namespace Inferno {
             bool Sound = false;
             bool Diagnostics = false;
             bool BriefingEditor = false;
+            bool TextureEditor = false;
+            bool Scale = false;
         } Windows;
 
         bool ShowWireframe = false;

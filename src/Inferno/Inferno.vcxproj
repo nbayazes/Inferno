@@ -157,8 +157,10 @@
     <ClCompile Include="Audio\SoundEffect.cpp" />
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
+    <ClCompile Include="CustomTextureLibrary.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
+    <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.Input.cpp" />
     <ClCompile Include="Game.Player.cpp" />
     <ClCompile Include="Game.Text.cpp" />
@@ -222,6 +224,7 @@
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
     <ClInclude Include="BitmapCache.h" />
+    <ClInclude Include="CustomTextureLibrary.h" />
     <ClInclude Include="DirectX.h" />
     <ClInclude Include="Editor\Command.h" />
     <ClInclude Include="Concurrent.h" />
@@ -231,6 +234,8 @@
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Game.Input.h" />
     <ClInclude Include="Game.Player.h" />
+    <ClInclude Include="Editor\UI\ScaleWindow.h" />
+    <ClInclude Include="Editor\UI\TextureEditor.h" />
     <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />

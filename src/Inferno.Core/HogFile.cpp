@@ -70,14 +70,6 @@ namespace Inferno {
         throw Exception("File not found in hog file");
     }
 
-
-
-
-
-
-
-
-
     HogFile HogFile::Read(filesystem::path file) {
         HogFile hog{};
         hog.Path = file;

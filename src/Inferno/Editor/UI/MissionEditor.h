@@ -2,6 +2,7 @@
 #include "WindowBase.h"
 #include "Mission.h"
 #include "WindowsDialogs.h"
+#include "Editor/Editor.Undo.h"
 
 namespace Inferno::Editor {
     class MissionEditor : public ModalWindowBase {
@@ -285,6 +286,7 @@ namespace Inferno::Editor {
 
         void OnAccept() override {
             Game::Level.Name = LevelName;
+            Inferno::Editor::History.SnapshotLevel("Rename Level");
         }
 
         void OnUpdate() override {

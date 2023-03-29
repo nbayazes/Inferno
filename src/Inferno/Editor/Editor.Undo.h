@@ -27,13 +27,13 @@ namespace Inferno::Editor {
                 Level = BIT(1)
             } Data;
 
-            void RestoreSelections() const {
+            void RestoreSelection() const {
                 // Directly set selection to prevent echoing select actions
                 Editor::Selection.SetSelection(Selection);
                 Editor::Marked = Marked;
             }
 
-            void Restore(Inferno::Level* level) {
+            void Restore(Inferno::Level* level) const {
                 if (Apply && level) Apply(*level);
                 Events::LevelChanged();
             }
@@ -99,6 +99,7 @@ namespace Inferno::Editor {
             if (!CanUndo()) return;
             SetStatusMessage("Restoring {}", _snapshot->Name);
             _snapshot->Restore(_level);
+            _snapshot->RestoreSelection();
         }
 
         bool CanUndo() {
@@ -129,7 +130,7 @@ namespace Inferno::Editor {
             // Snapshots can delete the current segment, try to find a valid selection
             for (std::list<Snapshot>::reverse_iterator snapshot(_snapshot); snapshot != _snapshots.rend(); snapshot++) {
                 if (_level->SegmentExists(snapshot->Selection)) {
-                    snapshot->RestoreSelections();
+                    snapshot->RestoreSelection();
                     break;
                 }
             }
@@ -144,12 +145,12 @@ namespace Inferno::Editor {
             _snapshot++;
             SetStatusMessage("Redo: {}", _snapshot->Name);
             _snapshot->Restore(_level);
-            _snapshot->RestoreSelections();
+            _snapshot->RestoreSelection();
             UpdateWindowTitle();
             Events::SnapshotChanged();
         }
 
-        auto Snapshots() { return _snapshots.size(); }
+        auto Snapshots() const { return _snapshots.size(); }
 
         bool Dirty() {
             if (_cleanId == -1) return true;

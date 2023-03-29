@@ -30,7 +30,7 @@ namespace Inferno {
         }
 
         static Face FromSide(Level& level, Segment& seg, SideID side) {
-            auto& sideVerts = SideIndices[(int)side];
+            auto& sideVerts = SIDE_INDICES[(int)side];
             auto& v0 = level.Vertices[seg.Indices[sideVerts[0]]];
             auto& v1 = level.Vertices[seg.Indices[sideVerts[1]]];
             auto& v2 = level.Vertices[seg.Indices[sideVerts[2]]];

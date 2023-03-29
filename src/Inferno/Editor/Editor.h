@@ -40,6 +40,16 @@ namespace Inferno::Editor {
 
     void SetMode(SelectionMode);
 
+    inline void ToggleWallMode() {
+        Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
+    }
+
+    inline void ToggleTextureMode() {
+        Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
+        Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
+        Editor::Gizmo.UpdatePosition();
+    }
+
     // Text to show in status bar. Limited to string due to imgui.
     inline string StatusText = "Ready";
 
@@ -75,7 +85,7 @@ namespace Inferno::Editor {
 
     void UpdateWindowTitle();
 
-    void OnLevelLoad(bool resetCamera);
+    void OnLevelLoad(bool reload);
 
     void LoadFile(filesystem::path path);
 
@@ -83,7 +93,7 @@ namespace Inferno::Editor {
     void LoadLevelFromHOG(string name);
     void LoadMission(std::filesystem::path);
 
-    void OnSelectTexture(LevelTexID tmap, LevelTexID tmap2);
+    void OnSelectTexture(LevelTexID tmap1, LevelTexID tmap2);
 
     // Checks if the current file is dirty. Returns true if the file can be closed.
     bool CanCloseCurrentFile();
@@ -179,7 +189,8 @@ namespace Inferno::Editor {
         inline Command Redo{ .Action = [] { History.Redo(); }, .CanExecute = [] { return History.CanRedo(); }, .Name = "Redo" };
         extern Command Insert, Delete;
         inline Command DisableFlickeringLights{ .Action = [] { Editor::DisableFlickeringLights(Game::Level); } };
-        extern Command AlignViewToFace, FocusSegment, FocusObject, ZoomExtents;
+        extern Command AlignViewToFace, ZoomExtents;
+        extern Command FocusSegment, FocusObject, FocusSelection;
         extern Command CycleRenderMode, ToggleWireframe;
     }
 }

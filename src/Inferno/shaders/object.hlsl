@@ -55,10 +55,8 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
 }
 
 float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
-
-    float fresnel = dot(eyeDir, normal);
-    fresnel = saturate(1 - fresnel);
-    return 1 + pow(color * fresnel, power);
+    float f = saturate(1 - dot(eyeDir, normal));
+    return float4((pow(f, power) * color).xyz, 0);
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
@@ -114,7 +112,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //    //color *= float4(light, 1) * lightColor * specular;
     //}
 
-    // * Fresnel(viewDir, input.normal, float4(0.2, 0, 2, 1), 2)
+    //float4 fresnel = Fresnel(viewDir, input.normal, float4(1, -0.5, -0.5, 1), 4);
     //output.Color = color * (1 + float4(light, 1));
     //emissive *= 1;
     //output.Color = diffuse * light + emissive + pow(emissive, 3);

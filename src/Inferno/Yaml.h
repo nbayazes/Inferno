@@ -26,6 +26,7 @@ namespace Yaml {
         if (!node.is_seed() && node.has_val()) node >> value;
     }
 
+    // Specification for bools. Reading them as bools has undeseriable behavior.
     template<>
     inline void ReadValue(ryml::NodeRef node, Inferno::VClipID& id) {
         if (node.is_seed() || !node.has_val()) return;
@@ -42,6 +43,15 @@ namespace Yaml {
     inline void ReadValue(ryml::NodeRef node, Inferno::TexID& id) {
         if (node.is_seed() || !node.has_val()) return;
         node >> (Inferno::int16&)id;
+    }
+
+    template<>
+    inline void ReadValue(ryml::NodeRef node, bool& value) {
+        int val = 0;
+        if (!node.is_seed() && node.has_val()) {
+            node >> val;
+            value = val;
+        }
     }
 
     template<>

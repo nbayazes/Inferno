@@ -3,6 +3,7 @@
 #include "HogFile.h"
 #include "Mission.h"
 #include "Game.Player.h"
+#include "Room.h"
 
 namespace Inferno {
     enum class GameState {
@@ -117,6 +118,7 @@ namespace Inferno::Game {
     void SetState(GameState);
     GameState GetState();
 
+    inline List<Room> Rooms;
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;
     //    segs.reserve(1 + 6 * depth);

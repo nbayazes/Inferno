@@ -344,10 +344,7 @@ namespace Inferno::Editor {
         if (!PointInSegment(level, obj.Segment, obj.Position)) {
             auto id = FindContainingSegment(level, obj.Position);
             // Leave the last good ID if nothing contains the object
-            if (id != SegID::None) {
-                obj.Segment = id;
-                //auto& seg = level.GetSegment(id);
-            }
+            if (id != SegID::None) obj.Segment = id;
         }
     }
 

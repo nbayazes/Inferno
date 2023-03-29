@@ -58,6 +58,8 @@ namespace Inferno {
         node["TunnelBuilder"] << w.TunnelBuilder;
         node["Sound"] << w.Sound;
         node["BriefingEditor"] << w.BriefingEditor;
+        node["TextureEditor"] << w.TextureEditor;
+        node["Scale"] << w.Scale;
     }
 
     EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
@@ -72,6 +74,8 @@ namespace Inferno {
         ReadValue(node["TunnelBuilder"], w.TunnelBuilder);
         ReadValue(node["Sound"], w.Sound);
         ReadValue(node["BriefingEditor"], w.BriefingEditor);
+        ReadValue(node["TextureEditor"], w.TextureEditor);
+        ReadValue(node["Scale"], w.Scale);
         return w;
     }
 
@@ -106,6 +110,7 @@ namespace Inferno {
         node["Multiplier"] << s.Multiplier;
         node["Radius"] << s.Radius;
         node["Reflectance"] << s.Reflectance;
+        node["Multithread"] << s.Multithread;
     }
 
     LightSettings LoadLightSettings(ryml::NodeRef node) {
@@ -123,6 +128,7 @@ namespace Inferno {
         ReadValue(node["Multiplier"], settings.Multiplier);
         ReadValue(node["Radius"], settings.Radius);
         ReadValue(node["Reflectance"], settings.Reflectance);
+        ReadValue(node["Multithread"], settings.Multithread);
         return settings;
     }
 
@@ -230,6 +236,9 @@ namespace Inferno {
         node["AutosaveMinutes"] << s.AutosaveMinutes;
         node["CoordinateSystem"] << (int)s.CoordinateSystem;
         node["EnablePhysics"] << s.EnablePhysics;
+        node["PasteSegmentObjects"] << s.PasteSegmentObjects;
+        node["PasteSegmentWalls"] << s.PasteSegmentWalls;
+        node["PasteSegmentSpecial"] << s.PasteSegmentSpecial;
         node["TexturePreviewSize"] << (int)s.TexturePreviewSize;
         node["ShowLevelTitle"] << s.ShowLevelTitle;
 
@@ -297,7 +306,10 @@ namespace Inferno {
         ReadValue(node["Undos"], s.UndoLevels);
         ReadValue(node["AutosaveMinutes"], s.AutosaveMinutes);
         ReadValue(node["CoordinateSystem"], (int&)s.CoordinateSystem);
-        ReadValue(node["EnablePhysics"], (int&)s.EnablePhysics);
+        ReadValue(node["EnablePhysics"], s.EnablePhysics);
+        ReadValue(node["PasteSegmentObjects"], s.PasteSegmentObjects);
+        ReadValue(node["PasteSegmentWalls"], s.PasteSegmentWalls);
+        ReadValue(node["PasteSegmentSpecial"], s.PasteSegmentSpecial);
         ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
         ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
 

@@ -69,6 +69,16 @@ namespace Inferno::Editor {
             .Name = "Mode: Object"
         };
 
+        Command ToggleWallMode{
+            .Action = [] { Editor::ToggleWallMode(); },
+            .Name = "Toggle Wall Mode"
+        };
+
+        Command ToggleTextureMode{
+            .Action = [] { Editor::ToggleTextureMode(); },
+            .Name = "Toggle Texture Mode"
+        };
+
         Command CameraForward{
             .Action = [] { Render::Camera.MoveForward(Render::FrameTime * Settings::Editor.MoveSpeed); },
             .Name = "Camera: Forward"
@@ -127,9 +137,12 @@ namespace Inferno::Editor {
         };
 
         Command GotoSegment{
-            .Action = [] { Events::ShowDialog(DialogType::HogEditor); },
+            .Action = [] { Events::ShowDialog(DialogType::GotoSegment); },
             .Name = "Go to Segment"
         };
+
+        Command HideMarks{ .Action = [] {}, .Name = "Hide Marks" };
+        Command HoldMouselook{ .Action = [] {}, .Name = "Hold Mouselook" };
     }
 
     const Command& GetCommandForAction(EditorAction action) {
@@ -144,6 +157,8 @@ namespace Inferno::Editor {
             case EditorAction::EdgeMode: return Commands::SetEdgeMode;
             case EditorAction::SegmentMode: return Commands::SetSegmentMode;
             case EditorAction::ObjectMode: return Commands::SetObjectMode;
+            case EditorAction::ToggleWallMode: return Commands::ToggleWallMode;
+            case EditorAction::ToggleTextureMode: return Commands::ToggleTextureMode;
             case EditorAction::CameraForward: return Commands::CameraForward;
             case EditorAction::CameraBack: return Commands::CameraBack;
             case EditorAction::CameraLeft: return Commands::CameraLeft;
@@ -166,7 +181,7 @@ namespace Inferno::Editor {
             case EditorAction::Undo: return Commands::Undo;
             case EditorAction::Redo: return Commands::Redo;
             case EditorAction::AlignViewToFace: return Commands::AlignViewToFace;
-            case EditorAction::FocusSelection: return Commands::FocusSegment;
+            case EditorAction::FocusSelection: return Commands::FocusSelection;
             case EditorAction::ZoomExtents: return Commands::ZoomExtents;
             case EditorAction::ShowHogEditor: return Commands::OpenHogEditor;
             case EditorAction::ShowMissionEditor: return Commands::OpenMissionEditor;
@@ -191,6 +206,9 @@ namespace Inferno::Editor {
             case EditorAction::NewLevel: return Commands::NewLevel;
             case EditorAction::InvertMarked: return Commands::InvertMarked;
             case EditorAction::MakeCoplanar: return Commands::MakeCoplanar;
+            case EditorAction::HideMarks: return Commands::HideMarks;
+            case EditorAction::HoldMouselook: return Commands::HoldMouselook;
+            case EditorAction::InsertAlignedSegment: return Commands::InsertAlignedSegment;
         }
 
         return Commands::NullCommand;
@@ -299,7 +317,7 @@ namespace Inferno::Editor {
         }
     }
 
-    string EditorBinding::GetShortcutLabel() {
+    string EditorBinding::GetShortcutLabel() const {
         if (!Shift && !Control && !Alt) return KeyToString(Key);
         string modifiers;
         if (Control) modifiers = "Ctrl";
@@ -326,7 +344,7 @@ namespace Inferno::Editor {
 
         UnbindExisting(binding);
 
-        if (!binding.Command || binding.Command == &Commands::NullCommand) 
+        if (!binding.Command || binding.Command == &Commands::NullCommand)
             binding.Command = &GetCommandForAction(binding.Action);
         _bindings.push_back(binding);
     }
@@ -341,9 +359,9 @@ namespace Inferno::Editor::Bindings {
             if (binding.Realtime) {
                 // Realtime bindings are executed constantly
                 if (Input::IsKeyDown(binding.Key) &&
-                binding.Shift == Input::ShiftDown &&
-                binding.Alt == Input::AltDown &&
-                binding.Control == Input::ControlDown) {
+                    binding.Shift == Input::ShiftDown &&
+                    binding.Alt == Input::AltDown &&
+                    binding.Control == Input::ControlDown) {
                     if (binding.Command)
                         binding.Command->Execute();
                 }
@@ -383,6 +401,8 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ EditorAction::SideMode, Keys::D3 });
         bindings.Add({ EditorAction::SegmentMode, Keys::D4 });
         bindings.Add({ EditorAction::ObjectMode, Keys::D5 });
+        bindings.Add({ EditorAction::ToggleWallMode, Keys::D6 });
+        bindings.Add({ EditorAction::ToggleTextureMode, Keys::D7 });
         bindings.Add({ EditorAction::NextItem, Keys::Right });
         bindings.Add({ EditorAction::PreviousItem, Keys::Left });
         bindings.Add({ EditorAction::SelectLinked, Keys::Tab });
@@ -451,7 +471,36 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ShowHogEditor, .Key = Keys::H, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowMissionEditor, .Key = Keys::M, .Control = true });
         bindings.Add({ .Action = EditorAction::ShowGotoDialog, .Key = Keys::G, .Control = true });
+        bindings.Add({ .Action = EditorAction::HoldMouselook });
+        bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
+        bindings.Add({ .Action = EditorAction::InsertAlignedSegment, .Key = Keys::Insert, .Control = true });
 
         Active = Default;
+    }
+
+    bool IsReservedKey(DirectX::Keyboard::Keys key) {
+        switch (key) {
+            case Keys::LeftWindows:
+            case Keys::RightWindows:
+            case Keys::Pause:
+            case Keys::Scroll:
+            case Keys::PrintScreen:
+            case Keys::LeftAlt:
+            case Keys::RightAlt:
+            case Keys::LeftShift:
+            case Keys::RightShift:
+            case Keys::LeftControl:
+            case Keys::RightControl:
+            case Keys::NumLock:
+            case Keys::F1:
+            case Keys::F2:
+            case Keys::F5:
+            case Keys::F6:
+            case Keys::F7:
+            case Keys::F8:
+                return true;
+            default:
+                return false;
+        }
     }
 }

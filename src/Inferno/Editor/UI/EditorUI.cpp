@@ -46,6 +46,7 @@ namespace Inferno::Editor {
     void SplitMenu() {
         if (ImGui::BeginMenu("Split Segment")) {
             MenuCommand(Commands::SplitSegment2, EditorAction::SplitSegment2);
+            MenuCommand(Commands::SplitSegment3);
             MenuCommand(Commands::SplitSegment5);
             MenuCommand(Commands::SplitSegment7);
             MenuCommand(Commands::SplitSegment8);
@@ -207,6 +208,12 @@ namespace Inferno::Editor {
 
                 ClipboardMenu();
                 MenuCommand(Commands::PasteMirrored, EditorAction::PasteMirrored);
+                if (ImGui::BeginMenu("Include Segment")) {
+                    ImGui::MenuItem("Walls", nullptr, &Settings::Editor.PasteSegmentWalls);
+                    ImGui::MenuItem("Objects", nullptr, &Settings::Editor.PasteSegmentObjects);
+                    ImGui::MenuItem("Types", nullptr, &Settings::Editor.PasteSegmentSpecial);
+                    ImGui::EndMenu();
+                }
 
                 ImGui::Separator();
 
@@ -267,18 +274,17 @@ namespace Inferno::Editor {
             if (ImGui::BeginMenu("Insert")) {
                 MenuCommandEx(Commands::Insert, "Segment or Object", EditorAction::Insert);
                 MenuCommandEx(Commands::InsertMirrored, "Mirrored Segment", EditorAction::InsertMirrored);
-                if (ImGui::MenuItem("Default Segment")) Commands::AddDefaultSegment();
+                MenuCommand(Commands::InsertSegmentAtOrigin);
+                MenuCommand(Commands::InsertAlignedSegment, EditorAction::InsertAlignedSegment);
                 ImGui::Separator();
                 InsertMenuItems();
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("View")) {
-                if (ImGui::MenuItem("Focus Selection", "F"))
-                    Commands::FocusSegment();
+                MenuCommand(Commands::FocusSelection, EditorAction::FocusSelection);
                 MenuCommand(Commands::AlignViewToFace, EditorAction::AlignViewToFace);
-                if (ImGui::MenuItem("Mouselook mode", "Z"))
-                    Input::SetMouselook(true);
+                MenuCommand(Commands::ToggleMouselook, EditorAction::ToggleMouselook);
                 ImGui::Separator();
 
                 //if (ImGui::MenuItem("Wireframe", nullptr, Settings::Editor.RenderMode == RenderMode::Wireframe))
@@ -317,16 +323,18 @@ namespace Inferno::Editor {
 
             if (ImGui::BeginMenu("Tools")) {
                 ImGui::MenuItem("Textures", nullptr, &Settings::Editor.Windows.Textures);
+                ImGui::MenuItem("Texture Editor", nullptr, &Settings::Editor.Windows.TextureEditor);
                 ImGui::MenuItem("Properties", nullptr, &Settings::Editor.Windows.Properties);
                 ImGui::MenuItem("Reactor", nullptr, &Settings::Editor.Windows.Reactor);
                 ImGui::MenuItem("Lighting", nullptr, &Settings::Editor.Windows.Lighting);
                 ImGui::MenuItem("Diagnostics", nullptr, &Settings::Editor.Windows.Diagnostics);
                 ImGui::MenuItem("Noise", nullptr, &Settings::Editor.Windows.Noise);
                 ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
+                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
+                ImGui::MenuItem("Scale", nullptr, &Settings::Editor.Windows.Scale);
                 
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
-                ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
 #endif
 
                 ImGui::Separator();
@@ -338,10 +346,10 @@ namespace Inferno::Editor {
                 if (ImGui::MenuItem("Bloom", nullptr, _bloomWindow.IsOpen()))
                     _bloomWindow.ToggleIsOpen();
 
+#ifdef _DEBUG
                 if (ImGui::MenuItem("Debug", nullptr, _debugWindow.IsOpen()))
                     _debugWindow.ToggleIsOpen();
 
-#ifdef _DEBUG
                 ImGui::Separator();
                 ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
@@ -362,7 +370,7 @@ namespace Inferno::Editor {
                 if (ImGui::MenuItem("User Guide"))
                     Events::ShowDialog(DialogType::Help);
 
-                if (ImGui::MenuItem(fmt::format("About {}", AppTitle).c_str()))
+                if (ImGui::MenuItem(fmt::format("About {}", APP_TITLE).c_str()))
                     Events::ShowDialog(DialogType::About);
 
                 ImGui::EndMenu();
@@ -383,10 +391,6 @@ namespace Inferno::Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::Begin("TopToolbar", nullptr, ToolbarFlags);
-
-        const ImVec2 buttonSize = { 75 * Shell::DpiScale, 0 };
-
-        //auto startY = ImGui::GetCursorPosY();
 
         {
             ImGui::AlignTextToFramePadding();
@@ -712,7 +716,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void DrawMainToolbar(ImGuiViewport* node) {
+    void DrawMainToolbar(const ImGuiViewport* node) {
         //statusPos.y += dock->CentralNode->Size.y;
         //_statusBar.Position = statusPos;
         //_statusBar.Width = dock->CentralNode->Size.x;
@@ -766,14 +770,11 @@ namespace Inferno::Editor {
             // Toggle features
             ImGui::SameLine();
             if (ImGui::ToggleButton("Wall", Settings::Editor.EnableWallMode, 0, size, 3))
-                Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
+                ToggleWallMode();
 
             ImGui::SameLine(0, 10);
-            if (ImGui::ToggleButton("Texture", Settings::Editor.EnableTextureMode, 0, size, 3)) {
-                Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
-                Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
-                Editor::Gizmo.UpdatePosition();
-            }
+            if (ImGui::ToggleButton("Texture", Settings::Editor.EnableTextureMode, 0, size, 3))
+                ToggleTextureMode();
 
             ImGui::PopStyleColor(4);
             ImGui::End();
@@ -783,17 +784,17 @@ namespace Inferno::Editor {
         ImGui::PopStyleColor();
     }
 
-    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspace_id, ImGuiViewport* viewport) {
-        auto dockspaceNode = ImGui::DockBuilderGetNode(dockspace_id);
+    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) {
+        auto dockspaceNode = ImGui::DockBuilderGetNode(dockspaceId);
 
         if (!dockspaceNode) {
-            ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
-            ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
-            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->WorkSize);
+            ImGui::DockBuilderRemoveNode(dockspaceId); // Clear out existing layout
+            ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace); // Add empty node
+            ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->WorkSize);
 
-            ImGuiID dock_main_id = dockspace_id;
-            ImGuiID leftPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.20f, nullptr, &dock_main_id);
-            ImGuiID rightPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, nullptr, &dock_main_id);
+            ImGuiID dockMainId = dockspaceId;
+            ImGuiID leftPanel = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Left, 0.20f, nullptr, &dockMainId);
+            ImGuiID rightPanel = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.20f, nullptr, &dockMainId);
             //ImGuiID bottomPanel = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.20f, nullptr, &dock_main_id);
             //ImGuiID leftTopSplit, leftBottomSplit;
 
@@ -803,15 +804,15 @@ namespace Inferno::Editor {
             //ImGui::DockBuilderSplitNode(rightPanel, ImGuiDir_Down, 0.5f, &leftBottomSplit, &leftTopSplit);
             ImGui::DockBuilderDockWindow(_textureBrowser.Name(), leftPanel);
             ImGui::DockBuilderDockWindow(_propertyEditor.Name(), rightPanel);
-            ImGui::DockBuilderFinish(dockspace_id);
-            return ImGui::DockBuilderGetNode(dockspace_id);
+            ImGui::DockBuilderFinish(dockspaceId);
+            return ImGui::DockBuilderGetNode(dockspaceId);
         }
         else {
             return dockspaceNode;
         }
     }
 
-    void EditorUI::DrawDockspace(ImGuiViewport* viewport) {
+    void EditorUI::DrawDockspace(const ImGuiViewport* viewport) {
         float toolbarWidth = 0; // = ToolbarWidth;
         ImGui::SetNextWindowPos({ toolbarWidth, 0 });
         ImGui::SetNextWindowSize({ viewport->WorkSize.x - toolbarWidth, viewport->WorkSize.y + _mainMenuHeight - _statusBar.Height });
@@ -864,8 +865,7 @@ namespace Inferno::Editor {
         ImGui::PopStyleColor(1);
     }
 
-    void DrawSelectionBox(const ImGuiViewport* viewport) {
-        ImVec2 window_center = ImVec2(viewport->Size.x * 0.5f, viewport->Size.y * 0.5f);
+    void DrawSelectionBox() {
         ImVec2 p0 = { Input::DragStart.x, Input::DragStart.y };
         ImVec2 p1 = { Input::MousePosition.x, Input::MousePosition.y };
         ImGui::GetBackgroundDrawList()->AddRect(p0, p1, IM_COL32(0, 255, 0, 255), 0, 0, 2);
@@ -887,7 +887,7 @@ namespace Inferno::Editor {
 
         DrawMainToolbar(viewport);
 
-        for (auto& [_, dialog] : _dialogs)
+        for (auto& dialog : _dialogs | views::values)
             dialog->Update();
 
         _reactorEditor.Update();
@@ -896,18 +896,20 @@ namespace Inferno::Editor {
         _noise.Update();
         _lightingWindow.Update();
         _textureBrowser.Update();
+        _textureEditor.Update();
         _propertyEditor.Update();
         _tunnelBuilder.Update();
         _sounds.Update();
         _diagnosticWindow.Update();
         _briefingEditor.Update();
+        _scaleWindow.Update();
 
         if (Editor::Gizmo.State == GizmoState::Dragging) {
             DrawGizmoTooltip();
         }
         else if (Input::LeftDragState == Input::SelectionState::Dragging &&
                  !ImGui::GetIO().WantCaptureMouse) {
-            DrawSelectionBox(viewport);
+            DrawSelectionBox();
         }
 
         if (_showImguiDemo) ImGui::ShowDemoWindow();

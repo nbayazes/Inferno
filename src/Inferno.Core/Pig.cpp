@@ -8,15 +8,9 @@
 namespace Inferno {
     constexpr auto PIGFILE_VERSION = 2;
 
-    constexpr auto DBM_NUM_FRAMES = 63;
-    constexpr auto DBM_FLAG_ABM = 64; // animated bitmap
-    constexpr auto DBM_FLAG_LARGE = 128; // d1 bitmaps wider than 256
-
     constexpr uint8 RLE_CODE = 0xe0; // marks the end of RLE
     constexpr uint8 NOT_RLE_CODE = 0x1f;
     static_assert((RLE_CODE | NOT_RLE_CODE) == 0xff, "RLE mask error");
-
-    constexpr uint8 SUPER_ALPHA = 128;
 
     constexpr int IsRleCode(uint8 x) {
         return (x & RLE_CODE) == RLE_CODE;
@@ -95,6 +89,7 @@ namespace Inferno {
         for (auto& id : ids) {
             auto& entry = pigEntries[(int)id];
             bitmaps[id] = ReadBitmapEntry(reader, dataStart, entry, palette);
+            bitmaps[id].Info.Custom = true;
         }
 
         return bitmaps;
@@ -112,6 +107,7 @@ namespace Inferno {
 
         for (auto& entry : entries) {
             entry = ReadD1BitmapHeader(reader, (TexID)0);
+            // Unfortunately textures are replaced by name instead of index
             auto existing = Seq::find(pigEntries, [&entry](PigEntry& e) { return e.Name == entry.Name; });
             if (existing) {
                 entry.ID = existing->ID;
@@ -129,8 +125,10 @@ namespace Inferno {
 
         Dictionary<TexID, PigBitmap> bitmaps;
 
-        for (auto& entry : entries)
+        for (auto& entry : entries) {
             bitmaps[entry.ID] = ReadBitmapEntry(reader, dataStart, entry, palette);
+            bitmaps[entry.ID].Info.Custom = true;
+        }
 
         // There's sound data here but we don't care
 
@@ -163,37 +161,41 @@ namespace Inferno {
 
     // Permanently flips image data along Y axis
     void FlipBitmapY(PigBitmap& bmp) {
-        List<ubyte> buffer(bmp.Width * bmp.Height * 4);
-        int rowLen = (int)sizeof(ubyte) * 4 * bmp.Width;
+        List<ubyte> buffer(bmp.Info.Width * bmp.Info.Height * 4);
+        List<ubyte> indexBuffer(bmp.Info.Width * bmp.Info.Height);
+        //const int rowLen = bmp.Info.Width * 4;
         int i = 0;
-        for (int row = bmp.Height - 1; row >= 0; row--) {
-            memcpy(&buffer[i], &bmp.Data[(size_t)row * bmp.Width], rowLen);
-            i += rowLen;
+        for (int row = bmp.Info.Height - 1; row >= 0; row--) {
+            auto offset = (uint)row * bmp.Info.Width;
+            memcpy(&buffer[i * 4], &bmp.Data[offset], bmp.Info.Width * 4);
+            memcpy(&indexBuffer[i], &bmp.Indexed[offset], bmp.Info.Width);
+            i += bmp.Info.Width;
         }
 
         memcpy(bmp.Data.data(), buffer.data(), buffer.size());
+        memcpy(bmp.Indexed.data(), indexBuffer.data(), indexBuffer.size());
     }
 
-    void ExtractMask(PigBitmap& bmp) {
-        auto size = bmp.Data.size();
-        bmp.Mask.resize(size);
+    void PigBitmap::ExtractMask() {
+        if (!Info.SuperTransparent) return;
+        Mask.resize(Data.size());
 
-        for (size_t i = 0; i < size; i++) {
-            if (bmp.Data[i].a == SUPER_ALPHA) {
-                bmp.Mask[i] = Palette::SUPER_MASK;
-                bmp.Data[i] = { 0, 0, 0, 0 }; // clear the source pixel
+        for (size_t i = 0; i < Data.size(); i++) {
+            if (Data[i].a == Palette::SUPER_ALPHA) {
+                Mask[i] = Palette::SUPER_MASK;
+                Data[i] = { 0, 0, 0, 0 }; // clear the source pixel
             }
             else {
-                bmp.Mask[i] = Palette::TRANSPARENT_MASK;
+                Mask[i] = Palette::TRANSPARENT_MASK;
             }
         }
     }
 
-    void CheckTransparency(Palette::Color& color, ubyte palIndex) {
-        if (palIndex >= 254) {
-            color = { 0, 0, 0, 0 }; // Using premultiplied alpha...
-            if (palIndex == 254) {
-                color.a = SUPER_ALPHA;
+    void Palette::CheckTransparency(Palette::Color& color, ubyte palIndex) {
+        if (palIndex >= Palette::ST_INDEX) {
+            color = { 0, 0, 0, 0 }; // Using premultiplied alpha
+            if (palIndex == Palette::ST_INDEX) {
+                color.a = Palette::SUPER_ALPHA;
             }
         }
     }
@@ -202,41 +204,46 @@ namespace Inferno {
                       size_t dataStart,
                       const Palette& palette,
                       const PigEntry& entry) {
+        PigBitmap bmp(entry);
         reader.Seek(dataStart + entry.DataOffset);
         reader.ReadInt32(); // size
 
-        PigBitmap bmp(entry.Width, entry.Height, entry.Name);
-        List<uint16> rowSize(bmp.Height);
-        List<uint8> buffer(bmp.Width * 3);
-        bmp.Data.resize((size_t)bmp.Width * bmp.Height);
+        List<uint16> rowSize(bmp.Info.Height);
+        List<uint8> buffer(bmp.Info.Width * 3);
+        bmp.Data.resize((size_t)bmp.Info.Width * bmp.Info.Height);
+        bmp.Indexed.resize((size_t)bmp.Info.Width * bmp.Info.Height);
 
         if (entry.UsesBigRle) {
             // long scan lines (>= 256 bytes), row lengths are stored as shorts
-            reader.ReadBytes(rowSize.data(), bmp.Height * sizeof(int16));
+            reader.ReadBytes(rowSize.data(), entry.Height * sizeof(int16));
         }
         else {
             // row lengths are stored as bytes
-            for (int i = 0; i < bmp.Height; i++)
+            for (int i = 0; i < entry.Height; i++)
                 rowSize[i] = reader.ReadByte() & 0xff;
         }
 
-        for (int y = bmp.Height - 1, row = 0; y >= 0; y--, row++) {
+        for (int y = entry.Height - 1, row = 0; y >= 0; y--, row++) {
             reader.ReadBytes(buffer.data(), rowSize[row]);
-            int h = y * bmp.Width;
-            for (int x = 0, offset = 0; x < bmp.Width;) {
+            int h = y * entry.Width;
+            for (int x = 0, offset = 0; x < entry.Width;) {
                 auto palIndex = buffer[offset++]; // palette index
+
                 if (IsRleCode(palIndex)) {
-                    auto runLength = std::min(palIndex & ~RLE_CODE, bmp.Width - x);
+                    auto runLength = std::min(palIndex & ~RLE_CODE, entry.Width - x);
                     palIndex = buffer[offset++];
                     Palette::Color color = palette.Data[palIndex];
-                    CheckTransparency(color, palIndex);
+                    Palette::CheckTransparency(color, palIndex);
 
-                    for (int j = 0; j < runLength; j++, x++, h++)
+                    for (int j = 0; j < runLength; j++, x++, h++) {
                         bmp.Data[h] = color;
+                        bmp.Indexed[h] = palIndex;
+                    }
                 }
                 else {
                     bmp.Data[h] = palette.Data[palIndex];
-                    CheckTransparency(bmp.Data[h], palIndex);
+                    bmp.Indexed[h] = palIndex;
+                    Palette::CheckTransparency(bmp.Data[h], palIndex);
                     x++, h++;
                 }
             }
@@ -251,14 +258,17 @@ namespace Inferno {
                       const PigEntry& entry) {
         reader.Seek(dataStart + entry.DataOffset);
 
-        PigBitmap bmp(entry.Width, entry.Height, entry.Name);
-        bmp.Data.resize((size_t)bmp.Width * bmp.Height);
-        for (int y = bmp.Height - 1; y >= 0; y--) {
-            int h = y * bmp.Width;
-            for (int x = 0; x < bmp.Width; x++, h++) {
+        PigBitmap bmp(entry);
+        bmp.Data.resize((size_t)entry.Width * entry.Height);
+        bmp.Indexed.resize((size_t)entry.Width * entry.Height);
+
+        for (int y = entry.Height - 1; y >= 0; y--) {
+            int h = y * entry.Width;
+            for (int x = 0; x < entry.Width; x++, h++) {
                 auto palIndex = reader.ReadByte();
+                bmp.Indexed[h] = palIndex;
                 bmp.Data[h] = palette.Data[palIndex];
-                CheckTransparency(bmp.Data[h], palIndex);
+                Palette::CheckTransparency(bmp.Data[h], palIndex);
             }
         }
 
@@ -275,14 +285,14 @@ namespace Inferno {
 
         FlipBitmapY(bmp);
         if (entry.SuperTransparent)
-            ExtractMask(bmp);
+            bmp.ExtractMask();
 
         return bmp;
     }
 
     PigBitmap ReadBitmap(const PigFile& pig, const Palette& palette, TexID id) {
         auto index = (int)id;
-        if (pig.Entries.empty()) return { 0, 0, "" };
+        if (pig.Entries.empty()) return {};
         if (index >= pig.Entries.size() || index < 0) index = 0;
 
         auto& entry = pig.Entries[index];
@@ -313,7 +323,7 @@ namespace Inferno {
             palette.Data[i].b = data[j++] * 4;
         }
 
-        palette.SuperTransparent = palette.Data[254];
+        palette.SuperTransparent = palette.Data[Palette::ST_INDEX];
         auto FadeValue = [](ubyte c, int f) { return (ubyte)(((int)c * f) / 34); };
 
         //create fade table

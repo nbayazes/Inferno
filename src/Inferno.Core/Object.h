@@ -140,6 +140,8 @@ namespace Inferno {
         Light = 13,     // Unused
         Coop = 14,      // Co-op player
         Marker = 15,    // A marker placed by the player
+        Building = 16,  // D3
+        Door = 17       // D3
     };
 
     enum class MovementType : uint8 {

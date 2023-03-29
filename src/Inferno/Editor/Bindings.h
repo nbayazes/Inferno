@@ -11,6 +11,8 @@ namespace Inferno::Editor {
         SegmentMode,
         EdgeMode,
         ObjectMode,
+        ToggleWallMode,
+        ToggleTextureMode,
         NextItem,
         PreviousItem,
         SegmentForward,
@@ -35,6 +37,7 @@ namespace Inferno::Editor {
         CameraRollRight,
 
         ToggleMouselook,
+        HoldMouselook,
         ClearSelection,
         Copy,
         Paste,
@@ -66,12 +69,15 @@ namespace Inferno::Editor {
         ToggleWireframe,
         NewLevel,
         InvertMarked,
-        MakeCoplanar
+        MakeCoplanar,
+        HideMarks,
+        InsertAlignedSegment
     };
 
     const Command& GetCommandForAction(EditorAction action);
     namespace Commands {
         extern Command NullCommand;
+        extern Command ToggleMouselook;
     }
 
     struct EditorBinding {
@@ -84,7 +90,7 @@ namespace Inferno::Editor {
         bool Realtime = false;
         const Command* Command = &Commands::NullCommand; // To avoid looking up command every time
 
-        bool operator==(const EditorBinding& rhs) {
+        bool operator==(const EditorBinding& rhs) const {
             return Key == rhs.Key && Shift == rhs.Shift && Control == rhs.Control && Alt == rhs.Alt;
         }
 
@@ -93,7 +99,7 @@ namespace Inferno::Editor {
             Key = {};
         }
 
-        string GetShortcutLabel();
+        string GetShortcutLabel() const;
     };
 
     class EditorBindings {
@@ -109,7 +115,7 @@ namespace Inferno::Editor {
         }
 
         // Gets the text to display for a shortcut
-        string GetShortcut(EditorAction bind) {
+        string GetShortcut(EditorAction bind) const {
             for (auto& binding : _bindings) {
                 if (binding.Action == bind)
                     return binding.GetShortcutLabel();
@@ -130,6 +136,16 @@ namespace Inferno::Editor {
                 existing->ClearShortcut();
             }
         }
+
+        bool IsBindingHeld(Editor::EditorAction action) {
+            auto binding = GetBinding(action);
+            return binding ? Input::IsKeyDown(binding->Key) : false;
+        }
+
+        DirectX::Keyboard::Keys GetBindingKey(Editor::EditorAction action) {
+            auto binding = GetBinding(action);
+            return binding ? binding->Key : DirectX::Keyboard::Keys::None;
+        }
     };
 
     namespace Bindings {
@@ -137,5 +153,6 @@ namespace Inferno::Editor {
 
         void Update();
         void LoadDefaults();
+        bool IsReservedKey(DirectX::Keyboard::Keys);
     }
 }

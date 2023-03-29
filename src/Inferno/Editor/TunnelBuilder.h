@@ -2,46 +2,69 @@
 #include "Level.h"
 
 namespace Inferno::Editor {
+
     struct BezierCurve {
         Array<Vector3, 4> Points{};
-        Array<float, 2> Length = { 1, 1 };
 
-        Vector3 Compute(float u);
-        void Transform(const Matrix& m);
+        float EstimateLength(int steps) const;
     };
 
     struct PathNode {
         Matrix Rotation;
-        Vector3 Vertex; // absolute and unrotated vertices
+        Vector3 Position; // absolute and unrotated vertices
+        Array<Vector3, 4> Vertices;
         Vector3 Axis; // axis of rotation from last node to this node
         float Angle; // rotation angle around z axis
     };
 
     struct TunnelNode {
-        //PointTag Tag;
-
         Vector3 Point;
         Vector3 Normal;
+        Vector3 Up;
         Array<Vector3, 4> Vertices;
-        //Array<ubyte, 4> OppVertexIndex;
-        Matrix Rotation; // orientation of tunnel end side
-        //double Sign;
-        //eUpdateStatus	m_updateStatus;
+        Matrix Rotation;
     };
 
     struct TunnelPath {
-        BezierCurve Curve;
         TunnelNode Start, End;
         List<PathNode> Nodes;
+        BezierCurve Curve; // For previews
     };
 
-    void CreateTunnel(Level& level, PointTag start, PointTag end, int steps, float startLength, float endLength);
+    // A begin or end selection of a tunnel
+    struct TunnelHandle {
+        PointTag Tag = { SegID::None };
+        float Length = MIN_LENGTH;
 
-    inline List<Vector3> TunnelBuilderPath;
-    inline List<Vector3> TunnelBuilderPoints;
-    inline List<Vector3> DebugTunnelPoints;
-    inline TunnelPath DebugTunnel;
+        static constexpr float MIN_LENGTH = 5, MAX_LENGTH = 400;
 
-    constexpr float MinTunnelLength = 10;
-    constexpr float MaxTunnelLength = 200;
+        void Clamp() {
+            Length = std::clamp(Length, MIN_LENGTH, MAX_LENGTH);
+        }
+    };
+
+    struct TunnelArgs {
+        TunnelHandle Start, End;
+        int Steps = 5;
+        bool Twist = true;
+
+        static constexpr int MIN_STEPS = 2, MAX_STEPS = 100;
+
+        void ClampInputs() {
+            Steps = std::clamp(Steps, MIN_STEPS, MAX_STEPS);
+            Start.Clamp();
+            End.Clamp();
+        }
+
+        bool IsValid() const {
+            return Steps >= MIN_STEPS && Start.Tag && End.Tag && Start.Tag != End.Tag;
+        }
+    };
+
+    TunnelPath CreateTunnel(Level&, TunnelArgs&);
+    void CreateTunnelSegments(Level&, TunnelArgs&);
+
+    inline List<Vector3> DebugTunnelLines;
+    inline TunnelPath PreviewTunnel;
+    inline TunnelHandle PreviewTunnelStart, PreviewTunnelEnd;
 }

@@ -5,10 +5,11 @@
 #include "Editor.Object.h"
 #include "Editor.Geometry.h"
 #include "Face.h"
+#include "Resources.h"
 
 namespace Inferno::Editor {
     // The three adjacent points of a segment for each corner
-    constexpr ubyte AdjacentPointTable[8][3] = {
+    constexpr ubyte ADJACENT_POINT_TABLE[8][3] = {
         { 1, 3, 4 },
         { 2, 0, 5 },
         { 3, 1, 6 },
@@ -25,7 +26,7 @@ namespace Inferno::Editor {
         if (hasPlayerStart) {
             if (level.Objects[0].Type != ObjectType::Player) {
                 SPDLOG_WARN("Level contains a player start but it was not the first object. Swapping objects.");
-                auto index = Seq::findIndex(level.Objects, [](Object& obj) { return obj.Type == ObjectType::Player; });
+                auto index = Seq::findIndex(level.Objects, [](const Object& obj) { return obj.Type == ObjectType::Player; });
                 std::swap(level.Objects[0], level.Objects[*index]);
                 Events::SelectObject();
             }
@@ -104,7 +105,7 @@ namespace Inferno::Editor {
         List<Matcen> matcens = level.Matcens;
 
         // Matcens must be sorted ascending order
-        Seq::sortBy(matcens, [](Matcen& a, Matcen& b) { return a.Segment < b.Segment; });
+        Seq::sortBy(matcens, [](const Matcen& a, const Matcen& b) { return a.Segment < b.Segment; });
 
         level.Matcens.clear();
 
@@ -279,47 +280,46 @@ namespace Inferno::Editor {
         auto line2 = v2 - v0;
         auto line3 = v3 - v0;
         // use cross product to calcluate orthogonal vector
-        auto orthog = -line1.Cross(line2);
+        auto ortho = -line1.Cross(line2);
 
-        // use dot product to determine angle A dot B = |A|*|B| * cos (angle)
-        // therefore: angle = acos (A dot B / |A|*|B|)
-        auto dot = line3.Dot(orthog);
-        auto magnitude1 = line3.Length();
-        auto magnitude2 = orthog.Length();
+        auto len1 = line3.Length();
+        auto len2 = ortho.Length();
+        auto dot = line3.Dot(ortho);
 
-        if (dot == 0 || magnitude1 == 0 || magnitude2 == 0) {
-            return 200 * DegToRad; // degenerate length
+        if (dot == 0 || len1 == 0 || len2 == 0) {
+            return 1000; // degenerate length
         }
         else {
-            auto ratio = dot / (magnitude1 * magnitude2);
+            auto ratio = dot / (len1 * len2);
             ratio = float((int)(ratio * 1000.0f)) / 1000.0f; // round
 
             if (ratio < -1.0f || ratio > 1.0f)
-                return 199 * DegToRad; // too skewed
+                return 1000; // too skewed
             else
                 return acos(ratio);
         }
     }
 
-    // returns true if segment is degenerate. Compares the angles between the edges of each corner.
-    bool SegmentIsDegenerate(Level& level, Segment& seg) {
+    // Returns the maximum angle between all sides in the segment. Smaller values are better.
+    // Compare value to MAX_DEGENERACY to check for failure.
+    float CheckDegeneracy(const Level& level, const Segment& seg) {
+        float max = 0;
         for (short n = 0; n < 8; n++) {
             // define vert numbers
             const auto& v0 = level.Vertices[seg.Indices[n]];
-            const auto& v1 = level.Vertices[seg.Indices[AdjacentPointTable[n][0]]];
-            const auto& v2 = level.Vertices[seg.Indices[AdjacentPointTable[n][1]]];
-            const auto& v3 = level.Vertices[seg.Indices[AdjacentPointTable[n][2]]];
+            const auto& v1 = level.Vertices[seg.Indices[ADJACENT_POINT_TABLE[n][0]]];
+            const auto& v2 = level.Vertices[seg.Indices[ADJACENT_POINT_TABLE[n][1]]];
+            const auto& v3 = level.Vertices[seg.Indices[ADJACENT_POINT_TABLE[n][2]]];
 
-            // Lowered from 90 degrees to 80 degrees due to false negatives
-            constexpr auto minAngle = 80 * DegToRad;
             auto a1 = AngleBetweenThreeVectors(v0, v1, v2, v3);
             auto a2 = AngleBetweenThreeVectors(v0, v2, v3, v1);
             auto a3 = AngleBetweenThreeVectors(v0, v3, v1, v2);
-            if (a1 > minAngle || a2 > minAngle || a3 > minAngle)
-                return true;
+            max = std::max({ max, a1, a2, a3 });
+            if (a1 > MAX_DEGENERACY || a2 > MAX_DEGENERACY || a3 > MAX_DEGENERACY)
+                return max;
         }
 
-        return false;
+        return max;
     }
 
     // Returns false is flatness is invalid
@@ -362,7 +362,7 @@ namespace Inferno::Editor {
         return false;
     }
 
-    List<SegmentDiagnostic> CheckObjects(Level& level) {
+    List<SegmentDiagnostic> CheckObjects(const Level& level) {
         List<SegmentDiagnostic> results;
 
         if (GetObjectCount(level, ObjectType::Player) == 0) {
@@ -390,6 +390,15 @@ namespace Inferno::Editor {
         return results;
     }
 
+    // returns false if the base and overlay textures have a different size
+    bool CheckOverlayTextureSize(const SegmentSide& side) {
+        if (!side.HasOverlay()) return true;
+
+        auto& ti1 = Resources::GetTextureInfo(side.TMap);
+        auto& ti2 = Resources::GetTextureInfo(side.TMap2);
+        return ti1.Width == ti2.Width && ti1.Height == ti2.Height;
+    }
+
     List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors) {
         List<SegmentDiagnostic> results;
         bool changedLevel = false;
@@ -405,7 +414,7 @@ namespace Inferno::Editor {
                 }
             }
 
-            if (SegmentIsDegenerate(level, seg)) {
+            if (CheckDegeneracy(level, seg) > MAX_DEGENERACY) {
                 results.push_back({ 0, { segid, SideID::None }, "Degenerate geometry" });
                 continue; // Geometry is too deformed to bother reporting the other checks
             }
@@ -416,6 +425,10 @@ namespace Inferno::Editor {
             }
 
             for (auto& side : SideIDs) {
+                if (!CheckOverlayTextureSize(seg.GetSide(side))) {
+                    results.push_back({ 0, { segid, side }, "Overlay and base texture size are different. This will crash most ports." });
+                }
+
                 auto connId = seg.GetConnection(side);
                 if (connId == SegID::Exit || connId == SegID::None) continue;
 

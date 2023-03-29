@@ -51,7 +51,9 @@ namespace Inferno::Editor {
 
         ImGui::EndChild();
 
-        if (ImGui::Button("Add##TriggerTarget", { 100 * Shell::DpiScale, 0 })) {
+        ImVec2 btnSize = { 100 * Shell::DpiScale, 0 };
+
+        if (ImGui::Button("Add##TriggerTarget", btnSize)) {
             if (Editor::Marked.Faces.empty())
                 ShowWarningMessage(L"Please mark faces to add as targets.");
 
@@ -61,8 +63,12 @@ namespace Inferno::Editor {
             }
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button("Remove##TriggerTarget", { 100 * Shell::DpiScale, 0 })) {
+        float contentWidth = ImGui::GetWindowContentRegionMax().x;
+
+        if (ImGui::GetCursorPosX() + btnSize.x * 2 + 5 < contentWidth )
+            ImGui::SameLine();
+
+        if (ImGui::Button("Remove##TriggerTarget", btnSize)) {
             RemoveTriggerTarget(level, tid, selectedIndex);
             if (selectedIndex > trigger.Targets.Count()) selectedIndex--;
             changed = true;
@@ -272,6 +278,10 @@ namespace Inferno::Editor {
     }
 
     bool SegmentTypeDropdown(SegmentType& type) {
+        static constexpr const char* SegmentTypeLabels[] = {
+            "None", "Energy", "Repair", "Reactor", "Matcen", "Blue Goal", "Red Goal"
+        };
+
         bool changed = false;
 
         ImGui::SetNextItemWidth(-1);
@@ -338,12 +348,12 @@ namespace Inferno::Editor {
                 // Emission override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightOverride.has_value();
-                auto light = side.LightOverride.value_or(GetLightColor(side));
+                auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Emission", &hasOverride)) {
-                    side.LightOverride = hasOverride ? Option<Color>(light) : std::nullopt;
+                    side.LightOverride = hasOverride ? Option(light) : std::nullopt;
                     overrideChanged = true;
                 }
 
@@ -482,14 +492,22 @@ namespace Inferno::Editor {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Dynamic multiplier", &hasOverride)) {
-                    side.DynamicMultiplierOverride = hasOverride ? Option<float>(mult) : std::nullopt;
+                    side.DynamicMultiplierOverride = hasOverride ? Option(mult) : std::nullopt;
                     overrideChanged = true;
+                }
+
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                    ImGui::TextUnformatted("Adjusts the light subtracted by breakable or flickering lights.\nA value of 0.5 would halve the subtracted light.\n\nIntended to make flickering lights less intense.");
+                    ImGui::PopTextWrapPos();
+                    ImGui::EndTooltip();
                 }
 
                 ImGui::TableNextColumn();
                 DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##dynmult", &mult, 0, 1)) {
+                if (ImGui::SliderFloat("##dynmult", &mult, 0, 1, "%.2f")) {
                     side.DynamicMultiplierOverride = mult;
                     overrideChanged = true;
                 }
@@ -582,7 +600,7 @@ namespace Inferno::Editor {
         bool changed = false;
 
         ImGui::SetNextItemWidth(-1);
-        if (ImGui::BeginCombo("##Key", KeyLabels[(int)selection])) {
+        if (ImGui::BeginCombo("##Key", KeyLabels[selection])) {
             for (int i = 0; i < std::size(KeyLabels); i++) {
                 const bool isSelected = selection == i;
                 if (ImGui::Selectable(KeyLabels[i], isSelected)) {

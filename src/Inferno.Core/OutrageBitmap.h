@@ -5,10 +5,10 @@
 namespace Inferno::Outrage {
     // Descent 3 Outrage Graphics File (OGF)
     struct Bitmap {
-        int Width{}, Height{};
-        int Type{};
+        int Width = 0, Height = 0;
+        int Type = 0;
         List<List<uint>> Mips;
-        int BitsPerPixel{};
+        int BitsPerPixel = 0;
         string Name;
         
         static Bitmap Read(StreamReader& r); // Read OGF
@@ -24,5 +24,4 @@ namespace Inferno::Outrage {
 
         static VClip Read(StreamReader& r);
     };
-
 }

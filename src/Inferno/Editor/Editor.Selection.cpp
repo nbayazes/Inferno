@@ -31,20 +31,18 @@ namespace Inferno::Editor {
                     if (seg.SideHasConnection(side) && !visibleWall) continue;
                 }
 
-                for (int i = 0; i < 2; i++) {
-                    auto face = Face::FromSide(level, seg, side);
-                    float dist;
-                    if (face.Intersects(ray, dist) != -1) {
-                        auto intersect = ray.position + dist * ray.direction;
-                        int16 edge = 0;
-                        if (mode == SelectionMode::Point)
-                            // find the point on this face closest to the intersect
-                            edge = face.GetClosestPoint(intersect);
-                        else
-                            edge = face.GetClosestEdge(intersect);
+                auto face = Face::FromSide(level, seg, side);
+                float dist;
+                if (face.Intersects(ray, dist) != -1) {
+                    auto intersect = ray.position + dist * ray.direction;
+                    int16 edge = 0;
+                    if (mode == SelectionMode::Point)
+                        // find the point on this face closest to the intersect
+                        edge = face.GetClosestPoint(intersect);
+                    else
+                        edge = face.GetClosestEdge(intersect);
 
-                        hits.push_back({ { SegID(segid), side }, edge, face.Side.AverageNormal, dist });
-                    }
+                    hits.push_back({ { SegID(segid), side }, edge, face.Side.AverageNormal, dist });
                 }
             }
 
@@ -91,8 +89,6 @@ namespace Inferno::Editor {
             }
 
             _selection = hits[_cycleDepth];
-
-            //auto intersectPoint = ray.position + _selection.Distance * ray.direction;
 
             if (_selection.Tag.HasValue()) {
                 Point = _selection.Edge;
@@ -153,6 +149,7 @@ namespace Inferno::Editor {
         switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
+                auto segVerts = segment.GetVertices(level);
                 auto front = segment.GetVertexIndices(SideID::Front);
                 auto back = segment.GetVertexIndices(SideID::Back);
                 for (auto& i : front) points.push_back(i);
@@ -187,6 +184,7 @@ namespace Inferno::Editor {
         }
     }
 
+    // Gets the vertices of marked geometry
     List<PointID> MultiSelection::GetVertexHandles(Level& level) {
         Set<PointID> points;
 
@@ -400,6 +398,7 @@ namespace Inferno::Editor {
             }
         }
     }
+
     void EditorSelection::SelectByWall(WallID id) {
         if (auto wall = Game::Level.TryGetWall(id)) {
             Segment = wall->Tag.Segment;
@@ -585,7 +584,8 @@ namespace Inferno::Editor {
                         Seq::insert(Marked.Points, seg.Indices);
                     }
                 }
-                else { // Control
+                else {
+                    // Control
                     auto maxDist = FLT_MAX;
                     Option<PointID> point;
 
@@ -630,7 +630,7 @@ namespace Inferno::Editor {
             }
         };
 
-        auto frustum = Render::Camera.GetFrustum();
+        auto frustum = camera.GetFrustum();
 
         switch (Settings::Editor.SelectionMode) {
             default:

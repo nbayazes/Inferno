@@ -143,6 +143,11 @@ namespace Inferno::Editor {
         }
     }
 
+    void ResetUVs(Level& level, SegID seg) {
+        for (auto& side : SideIDs)
+            ResetUVs(level, Tag{seg, side});
+    }
+
     // Remaps UVs to their minimum values. i.e. u: 4-5 becomes u: 0-1
     void RemapUVs(SegmentSide& side) {
         Vector2 min = { FLT_MIN, FLT_MAX };
@@ -255,9 +260,13 @@ namespace Inferno::Editor {
             auto& side = Game::Level.GetSide(tag);
             auto dclip = DClipID::None;
 
-            if (tmap2 != LevelTexID::None) {
-                side.TMap2 = tmap2;
+            if (tmap2 == side.TMap) {
+                dclip = Resources::GetDoorClipID(tmap2);
+                tmap2 = LevelTexID::Unset; // Clear tmap2 if it is the same as the base texture
             }
+
+            if (tmap2 != LevelTexID::None)
+                side.TMap2 = tmap2;
 
             if (tmap1 != LevelTexID::None) {
                 side.TMap = tmap1;

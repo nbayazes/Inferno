@@ -123,7 +123,6 @@ namespace Inferno {
             List<char> b(maxLen + 1);
             for (int i = 0; i < maxLen; i++) {
                 _stream->read(&b[i], sizeof(char));
-                if (b[i] == '\n') b[i] = '\0';
                 if (b[i] == '\0') break;
             }
             return { b.data() };
@@ -255,7 +254,6 @@ namespace Inferno {
         }
 
         void WriteFix(float f) {
-
             Write(FloatToFix(f));
         }
 
@@ -283,7 +281,7 @@ namespace Inferno {
             WriteAngle(angles.z);
         }
 
-        void WriteBytes(span<ubyte> data) const {
+        void WriteBytes(span<const ubyte> data) const {
             _stream.write((char*)data.data(), data.size());
         }
 

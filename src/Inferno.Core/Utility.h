@@ -22,6 +22,22 @@ namespace Inferno {
     //    return cc;
     //}
 
+    constexpr float SmoothStep(float a, float b, float x) {
+        x = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
+        return x * x * (3.0f - 2.0f * x);
+    }
+
+    // Polynomial smooth min between two values.
+    // https://iquilezles.org/articles/smin/
+    constexpr float SmoothMin(float a, float b, float k) {
+        float h = std::clamp(0.5f + 0.5f * (a - b) / k, 0.0f, 1.0f);
+        return SmoothStep(a, b, h) - k * h * (1.0f - h);
+    }
+
+    constexpr bool IsPowerOfTwo(int v) {
+        return v != 0 && (v & (v - 1)) == 0;
+    }
+
     void InitRandom();
 
     // Returns a random float between 0 and 1
@@ -236,17 +252,33 @@ namespace Inferno {
         return Color(average);
     }
 
-    constexpr DirectX::XMVECTORF32 g_UnitVectorEpsilon = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
+    inline Vector3 VectorMin(const Vector3& a, const Vector3& b) {
+        Vector3 r;
+        r.x = a.x < b.x ? a.x : b.x;
+        r.y = a.y < b.y ? a.y : b.y;
+        r.z = a.z < b.z ? a.z : b.z;
+        return r;
+    }
+
+    inline Vector3 VectorMax(const Vector3& a, const Vector3& b) {
+        Vector3 r;
+        r.x = a.x > b.x ? a.x : b.x;
+        r.y = a.y > b.y ? a.y : b.y;
+        r.z = a.z > b.z ? a.z : b.z;
+        return r;
+    }
+
+    constexpr DirectX::XMVECTORF32 UNIT_VECTOR_EPSILON = { { { 1.0e-4f, 1.0e-4f, 1.0e-4f, 1.0e-4f } } };
 
     inline bool IsNormalized(const Vector3& v) {
         using namespace DirectX;
         auto difference = XMVectorSubtract(XMVector3Length(v), XMVectorSplatOne());
-        return XMVector4Less(XMVectorAbs(difference), g_UnitVectorEpsilon);
+        return XMVector4Less(XMVectorAbs(difference), UNIT_VECTOR_EPSILON);
     }
 
     inline bool IsZero(const Vector3& v) {
         using namespace DirectX;
-        return XMVector4Less(XMVectorAbs(v), g_UnitVectorEpsilon);
+        return XMVector4Less(XMVectorAbs(v), UNIT_VECTOR_EPSILON);
     }
 
     // Converts a direction vector into a rotation matrix
@@ -369,6 +401,12 @@ namespace Inferno {
             return str.find(value) != string::npos;
         }
 
+        constexpr Option<size_t> IndexOf(const std::string_view str, const std::string_view value) {
+            auto p = str.find(value);
+            if (p == string::npos) return {};
+            return p;
+        }
+
         //inline bool InvariantContains(const std::wstring_view str, const std::wstring_view value) {
         //    int found;
         //    FindNLSString(LOCALE_NAME_USER_DEFAULT, LINGUISTIC_IGNORECASE, str.data(), -1, value.data(), -1, &found);
@@ -378,6 +416,11 @@ namespace Inferno {
         // Returns true if two strings are equal ignoring capitalization
         inline bool InvariantEquals(const std::string_view s1, const std::string_view s2) {
             return _stricmp(s1.data(), s2.data()) == 0;
+        }
+
+        // Returns true if two strings are equal ignoring capitalization, up to a number of characters
+        inline bool InvariantEquals(const std::string_view s1, const std::string_view s2, size_t maxCount) {
+            return _strnicmp(s1.data(), s2.data(), maxCount) == 0;
         }
 
         // Returns true if two strings are equal ignoring capitalization
@@ -472,21 +515,23 @@ namespace Inferno {
         // Converts a std::set to a std::vector
         template<class T>
         constexpr auto ofSet(const Set<T>& set) {
-            return List<T>(set.begin(), set.end());
+            return std::vector<T>(set.begin(), set.end());
         }
 
+        // Converts a span to a std::vector
         template<class T>
-        constexpr auto toList(const span<T> xs) {
-            return List<T>(xs.begin(), xs.end());
+        constexpr auto toList(const std::span<T> xs) {
+            return std::vector<T>(xs.begin(), xs.end());
         }
 
+        // Returns true if the index is valid for a container
         constexpr bool inRange(auto&& xs, size_t index) {
             return index < xs.size();
         }
 
-        // Use append() for lists
+        // Inserts a container into a set
         template<class T>
-        constexpr void insert(Set<T>& dest, auto&& src) {
+        constexpr void insert(std::set<T>& dest, auto&& src) {
             dest.insert(src.begin(), src.end());
         }
 

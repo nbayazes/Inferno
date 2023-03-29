@@ -6,6 +6,30 @@
 #include "Settings.h"
 #include "Convert.h"
 
+Inferno::List<Inferno::ubyte> Inferno::File::ReadAllBytes(std::filesystem::path path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+        auto msg = fmt::format(L"File not found: {}", path.wstring());
+        throw Exception(Convert::ToString(msg).c_str());
+    }
+
+    auto size = filesystem::file_size(path);
+    List<ubyte> buffer(size);
+    if (!file.read((char*)buffer.data(), size)) {
+        auto msg = fmt::format(L"File read error: {}", path.wstring());
+        throw Exception(Convert::ToString(msg).c_str());
+    }
+
+    return buffer;
+}
+
+void Inferno::File::WriteAllBytes(std::filesystem::path path, span<ubyte> data) {
+    std::ofstream file(path, std::ios::binary);
+    StreamWriter writer(file, false);
+    writer.WriteBytes(data);
+    SPDLOG_INFO("Wrote {} bytes to {}", data.size(), path.string());
+}
+
 namespace Inferno::FileSystem {
     List<filesystem::path> Directories;
 
@@ -90,4 +114,3 @@ namespace Inferno::FileSystem {
         return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
     }
 }
-

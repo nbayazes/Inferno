@@ -422,7 +422,7 @@ namespace Inferno::Editor {
                 auto entry = Seq::tryItem(_entries, _selections[0]);
                 if (!entry) return;
 
-                static const COMDLG_FILTERSPEC filter[] = {
+                static constexpr COMDLG_FILTERSPEC filter[] = {
                     { L"All Files", L"*.*" }
                 };
 

@@ -437,7 +437,7 @@ namespace Inferno::Render::Debug {
         DrawTriangle(v[si[i[3]]], v[si[i[4]]], v[si[i[5]]], color);
     }
 
-    void DrawSide(Level& level, Segment& seg, SideID side, const Color& color) {
+    void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color) {
         auto i = seg.GetSide(side).GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(side);
@@ -457,7 +457,7 @@ namespace Inferno::Render::Debug {
         DrawLine(v[si[3]], v[si[0]], color);
     }
 
-    void DrawSideOutline(Level& level, Segment& seg, SideID side, const Color& color) {
+    void DrawSideOutline(const Level& level, Segment& seg, SideID side, const Color& color) {
         auto i = seg.GetSide(side).GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(side);

@@ -32,7 +32,7 @@ namespace Inferno {
         LevelTexID TMap, TMap2{};
         OverlayRotation OverlayRotation = OverlayRotation::Rotate0;
         Array<Vector2, 4> UVs = { Vector2(0, 0), Vector2(0, 1), Vector2(1, 1), Vector2(1, 0) };
-        Array<Color, 4> Light = { Color(1,1,1), Color(1,1,1), Color(1,1,1), Color(1,1,1) };
+        Array<Color, 4> Light = { Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1), Color(1, 1, 1) };
         Array<bool, 4> LockLight = { false, false, false, false }; // Locks light values from being updated from the light algorithm
 
         Option<Color> LightOverride; // Editor defined override for amount of light emitted
@@ -56,9 +56,9 @@ namespace Inferno {
         }
 
         const Array<uint16, 6> GetRenderIndices() const {
-            static const Array<uint16, 6> tri02 = { 0u, 1u, 2u, 0u, 2u, 3u };
-            static const Array<uint16, 6> tri13 = { 0u, 1u, 3u, 3u, 1u, 2u };
-            return Type == SideSplitType::Tri13 ? tri13 : tri02;
+            static const Array<uint16, 6> TRI02 = { 0u, 1u, 2u, 0u, 2u, 3u };
+            static const Array<uint16, 6> TRI13 = { 0u, 1u, 3u, 3u, 1u, 2u };
+            return Type == SideSplitType::Tri13 ? TRI13 : TRI02;
         }
 
         const Vector3& NormalForEdge(int edge) const {
@@ -80,39 +80,45 @@ namespace Inferno {
     constexpr uint16 MAX_VERTICES = 8;
 
     // Segment point ids for a segment side
-    static constexpr Array<Array<int16, 4>, MAX_SIDES> SideIndices{ {
-            {{ 7, 6, 2, 3 }}, // left
-            {{ 0, 4, 7, 3 }}, // top
-            {{ 0, 1, 5, 4 }}, // right
-            {{ 2, 6, 5, 1 }}, // bottom
-            {{ 4, 5, 6, 7 }}, // back
-            {{ 3, 2, 1, 0 }}, // front
-    } };
+    inline constexpr Array<Array<int16, 4>, MAX_SIDES> SIDE_INDICES{
+        {
+            { { 7, 6, 2, 3 } }, // left
+            { { 0, 4, 7, 3 } }, // top
+            { { 0, 1, 5, 4 } }, // right
+            { { 2, 6, 5, 1 } }, // bottom
+            { { 4, 5, 6, 7 } }, // back
+            { { 3, 2, 1, 0 } }, // front
+        }
+    };
 
     // Lookup for the edges of each side. Uses the same order / winding as the vertex lookup.
-    constexpr Array<Array<int16, 4>, MAX_SIDES> EdgesOfSide{ {
-        {{ 4, 9, 0, 8  }}, // right
-        {{ 11, 7, 8, 3 }}, // top
-        {{ 2, 10, 6, 11 }}, // left
-        {{ 9, 5, 10, 1 }}, // bottom
-        {{ 6, 5, 4, 7 }}, // back
-        {{ 0, 1, 2, 3 }}, // front
-    } };
+    inline constexpr Array<Array<int16, 4>, MAX_SIDES> EDGES_OF_SIDE{
+        {
+            { { 4, 9, 0, 8 } }, // right
+            { { 11, 7, 8, 3 } }, // top
+            { { 2, 10, 6, 11 } }, // left
+            { { 9, 5, 10, 1 } }, // bottom
+            { { 6, 5, 4, 7 } }, // back
+            { { 0, 1, 2, 3 } }, // front
+        }
+    };
 
-    constexpr Array<Array<int16, 2>, 12> VertsOfEdge{ {
-        {{ 0, 1 }}, // 0 // front
-        {{ 1, 2 }}, // 1
-        {{ 2, 3 }}, // 2
-        {{ 3, 0 }}, // 3
-        {{ 6, 7 }}, // 6
-        {{ 5, 6 }}, // 5
-        {{ 4, 5 }}, // 4 // back
-        {{ 7, 4 }}, // 7
-        {{ 0, 7 }}, // 8
-        {{ 1, 6 }}, // 9
-        {{ 2, 5 }}, // 10
-        {{ 3, 4 }}  // 11
-    } };
+    inline constexpr Array<Array<int16, 2>, 12> VERTS_OF_EDGE{
+        {
+            { { 0, 1 } }, // 0 // front
+            { { 1, 2 } }, // 1
+            { { 2, 3 } }, // 2
+            { { 3, 0 } }, // 3
+            { { 6, 7 } }, // 6
+            { { 5, 6 } }, // 5
+            { { 4, 5 } }, // 4 // back
+            { { 7, 4 } }, // 7
+            { { 0, 7 } }, // 8
+            { { 1, 6 } }, // 9
+            { { 2, 5 } }, // 10
+            { { 3, 4 } } // 11
+        }
+    };
 
     enum class SegmentType : uint8 {
         None = 0,
@@ -123,10 +129,6 @@ namespace Inferno {
         GoalBlue = 5,
         GoalRed = 6,
         Count
-    };
-
-    constexpr const char* SegmentTypeLabels[] = {
-        "None", "Energy", "Repair", "Reactor", "Matcen", "Blue Goal", "Red Goal"
     };
 
     struct Level;
@@ -182,7 +184,7 @@ namespace Inferno {
         }
 
         bool SideContainsPoint(SideID side, PointID point) const {
-            for (auto& si : Inferno::SideIndices[(int)side]) {
+            for (auto& si : SIDE_INDICES[(int)side]) {
                 if (point == Indices[si]) return true;
             }
 
@@ -192,7 +194,7 @@ namespace Inferno {
         // Vertex indices for a side in the vertex buffer
         Array<PointID, 4> GetVertexIndices(SideID side) const {
             Array<PointID, 4> indices{};
-            auto& sideVerts = Inferno::SideIndices[(int)side];
+            auto& sideVerts = SIDE_INDICES[(int)side];
             for (int i = 0; i < indices.size(); i++)
                 indices[i] = Indices[sideVerts[i]];
 
@@ -200,7 +202,7 @@ namespace Inferno {
         }
 
         Array<PointID*, 4> GetVertexIndicesRef(SideID side) {
-            auto& sideVerts = Inferno::SideIndices[(int)side];
+            auto& sideVerts = SIDE_INDICES[(int)side];
             return {
                 &Indices[sideVerts[0]],
                 &Indices[sideVerts[1]],
@@ -210,7 +212,7 @@ namespace Inferno {
         }
 
         PointID GetVertexIndex(SideID side, uint16 point) const {
-            auto& indices = Inferno::SideIndices[(int)side];
+            auto& indices = SIDE_INDICES[(int)side];
             return Indices[indices[point % 4]];
         }
 

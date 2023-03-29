@@ -74,15 +74,21 @@ namespace Inferno::Editor {
         switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Object:
             {
+                auto newSelection = Selection.Object;
                 auto objs = Seq::ofSet(Editor::Marked.Objects);
-                objs.push_back(Selection.Object);
-                Seq::sortDescending(objs);
-                for (auto& obj : objs)
-                    DeleteObject(Game::Level, obj);
+                if (objs.empty())
+                    objs.push_back(Selection.Object);
 
-                Selection.SetSelection(ObjID(0));
+                Seq::sortDescending(objs);
+                for (auto& obj : objs) {
+                    if (obj < Selection.Object) newSelection--;
+                    DeleteObject(Game::Level, obj);
+                }
+
+                Selection.SetSelection(newSelection);
                 Editor::Marked.Objects.clear();
-                Editor::History.SnapshotLevel("Delete Object");
+                Editor::History.SnapshotLevel("Delete Object(s)");
+                Editor::History.SnapshotSelection();
                 SetStatusMessage("Deleted {} object(s)", objs.size());
             }
             break;
@@ -95,6 +101,7 @@ namespace Inferno::Editor {
 
                 Editor::Marked.Segments.clear();
                 Editor::History.SnapshotLevel("Delete Segments");
+                Editor::History.SnapshotSelection();
                 SetStatusMessage("Deleted {} segments", segs.size());
             }
             break;
@@ -104,6 +111,7 @@ namespace Inferno::Editor {
                     Selection.SetSelection(newSelection);
                     PruneVertices(Game::Level);
                     Editor::History.SnapshotLevel("Delete Segment");
+                    Editor::History.SnapshotSelection();
                 }
                 break;
         }
@@ -206,7 +214,7 @@ namespace Inferno::Editor {
                         Events::LevelChanged();
                     }
                     else {
-                        Editor::History.Undo();
+                        Editor::History.Restore();
                         SetStatusMessage("Tried to extrude a zero length segment");
                     }
                 }
@@ -227,10 +235,14 @@ namespace Inferno::Editor {
 
     // Enables mouselook while middle mouse is down
     void CheckForMouselook() {
-        if (Input::Mouse.middleButton == Input::MouseState::PRESSED)
+        auto mouselookKey = Bindings::Active.GetBindingKey(EditorAction::HoldMouselook);
+
+        if (Input::Mouse.middleButton == Input::MouseState::PRESSED ||
+            Input::Keyboard.IsKeyPressed(mouselookKey))
             Input::SetMouselook(true);
 
-        if (Input::Mouse.middleButton == Input::MouseState::RELEASED)
+        if (Input::Mouse.middleButton == Input::MouseState::RELEASED ||
+            Input::Keyboard.IsKeyReleased(mouselookKey))
             Input::SetMouselook(false);
     }
 
@@ -381,16 +393,16 @@ namespace Inferno::Editor {
         if (lti.EffectClip != EClipID::None) {
             auto& eclip = Resources::GetEffectClip(lti.EffectClip);
             for (auto& frame : eclip.VClip.GetFrames()) {
-                auto& bmp = Resources::ReadBitmap(frame);
-                SPDLOG_INFO("Exporting {}", bmp.Name);
-                std::filesystem::remove(bmp.Name + ".png");
-                lodepng::encode(bmp.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Width, bmp.Height);
+                auto& bmp = Resources::GetBitmap(frame);
+                SPDLOG_INFO("Exporting {}", bmp.Info.Name);
+                std::filesystem::remove(bmp.Info.Name + ".png");
+                lodepng::encode(bmp.Info.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Info.Width, bmp.Info.Height);
             }
         }
         else {
-            auto& bmp = Resources::ReadBitmap(lti.TexID);
-            SPDLOG_INFO("Exporting {}", bmp.Name);
-            lodepng::encode(bmp.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Width, bmp.Height);
+            auto& bmp = Resources::GetBitmap(lti.TexID);
+            SPDLOG_INFO("Exporting {}", bmp.Info.Name);
+            lodepng::encode(bmp.Info.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Info.Width, bmp.Info.Height);
         }
         //lodepng::encode("st/" + bmp.Name + ".png", (ubyte*)bmp.Data.data(), bmp.Width, bmp.Height);
         //lodepng::encode("st/" + bmp.Name + "_st.png", (ubyte*)bmp.Mask.data(), bmp.Width, bmp.Height);
@@ -402,8 +414,8 @@ namespace Inferno::Editor {
 
         string title =
             Game::Mission
-            ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), AppTitle)
-            : fmt::format("{} - {}", levelName, AppTitle);
+            ? fmt::format("{} [{}] - {}", levelName, Game::Mission->Path.filename().string(), APP_TITLE)
+            : fmt::format("{} - {}", levelName, APP_TITLE);
 
         SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
     }
@@ -443,6 +455,21 @@ namespace Inferno::Editor {
         }
     }
 
+    void CheckTriggers(Level& level) {
+        for (int tid = 0; tid < level.Triggers.size(); tid++) {
+            auto& trigger = level.Triggers[tid];
+
+            // In reverse to preserve order while removing
+            for (int i = (int)trigger.Targets.Count() - 1; i >= 0; i--) {
+                auto& target = trigger.Targets[i];
+                if (target.Side > SideID::Front || target.Side <= SideID::None) {
+                    SPDLOG_WARN("Removing invalid trigger target {}:{} from trigger {}", target.Segment, target.Side, tid);
+                    trigger.Targets.Remove(i);
+                }
+            }
+        }
+    }
+
     void OnLevelLoad(bool reload) {
         if (!reload)
             Commands::ZoomExtents();
@@ -460,6 +487,7 @@ namespace Inferno::Editor {
         for (auto& obj : Game::Level.Objects)
             obj.Radius = GetObjectRadius(obj);
 
+        CheckTriggers(Game::Level);
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
         Editor::History = { &Game::Level, Settings::Editor.UndoLevels };

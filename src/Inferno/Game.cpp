@@ -53,9 +53,10 @@ namespace Inferno::Game {
             Editor::LoadTextureFilter(level);
             bool forceReload =
                 level.IsDescent2() != Level.IsDescent2() ||
-                Resources::HasCustomTextures() ||
+                Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 
+            //Rooms.clear();
             IsLoading = true;
 
             Level = std::move(level); // Move to global so resource loading works properly
@@ -68,22 +69,18 @@ namespace Inferno::Game {
                 obj.Signature = GetObjectSig();
             }
 
-            if (forceReload || Resources::HasCustomTextures()) // Check for custom textures before or after load
+            if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Render::Materials->Unload();
 
             Render::Materials->LoadLevelTextures(Level, forceReload);
             Render::LoadLevel(Level);
             IsLoading = false;
 
-            //Sound::Reset();
+            //Rooms = CreateRooms(Level);
+
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();
-
-            //List<TexID> ids(Resources::GetTextureCount());
-            //for (size_t i = 0; i < ids.size(); i++)
-            //    ids[i] = TexID(i);
-            //Render::Materials2->LoadMaterials(ids, false);
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

@@ -137,7 +137,7 @@ namespace Inferno::Editor {
         bool* _pIsOpen = nullptr;
     public:
         WindowBase(string name, bool* open = nullptr, ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse)
-            : _name(name), _flags(flags), _pIsOpen(open) {
+            : _name(std::move(name)), _flags(flags), _pIsOpen(open) {
             if (!open) _pIsOpen = &_isOpen;
         }
 
@@ -159,16 +159,16 @@ namespace Inferno::Editor {
             AfterUpdate();
         }
 
-        bool IsOpen() { return *_pIsOpen; }
+        bool IsOpen() const { return *_pIsOpen; }
         void IsOpen(bool open) {
             *_pIsOpen = open;
             OnOpen(open);
         }
 
         void ToggleIsOpen() { IsOpen(!IsOpen()); }
-        const char* Name() { return _name.c_str(); }
+        const char* Name() const { return _name.c_str(); }
 
-        ImGuiWindow* GetHandle() {
+        ImGuiWindow* GetHandle() const {
             return ImGui::FindWindowByName(Name());
         }
 
@@ -182,20 +182,20 @@ namespace Inferno::Editor {
     class ModalWindowBase {
         ImGuiWindowFlags _flags;
         bool _focused = false;
-        bool IsOpen = false;
+        bool _isOpen = false;
     public:
         ModalWindowBase(string name, ImGuiWindowFlags flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse)
-            : Name(name), _flags(flags) {}
+            : _flags(flags), Name(std::move(name)) {}
         virtual ~ModalWindowBase() = default;
 
         bool EnableCloseHotkeys = true; // Enables enter and escape to close the window
 
         void Update() {
-            if (IsOpen)
+            if (_isOpen)
                 ImGui::OpenPopup(Name.c_str());
 
             ImGui::SetNextWindowSize({ Width, Height });
-            if (ImGui::BeginPopupModal(Name.c_str(), &IsOpen, _flags)) {
+            if (ImGui::BeginPopupModal(Name.c_str(), &_isOpen, _flags)) {
                 OnUpdate();
 
                 if (EnableCloseHotkeys) {
@@ -215,12 +215,12 @@ namespace Inferno::Editor {
         float Height = -1;
 
         void Show() {
-            IsOpen = OnOpen();
+            _isOpen = OnOpen();
             _focused = false;
         }
 
         void Close(bool accepted = false) {
-            IsOpen = false;
+            _isOpen = false;
             ImGui::CloseCurrentPopup();
             if (accepted) OnAccept();
             else OnCancel();
@@ -272,7 +272,7 @@ namespace Inferno::Editor {
         }
 
         // Sets the next element to get focus when the modal opens
-        void SetInitialFocus() {
+        void SetInitialFocus() const {
             if (!_focused) ImGui::SetKeyboardFocusHere();
         }
 

@@ -1,56 +1,139 @@
 #include "pch.h"
 #include "TunnelBuilder.h"
 #include "Face.h"
+#include "Events.h"
+#include "Resources.h"
+#include "Editor.Texture.h"
+#include "Editor.Undo.h"
+#include "Game.h"
+#include "Editor.Geometry.h"
 
 namespace Inferno::Editor {
-    constexpr long Factorial(const int n) {
-        long f = 1;
-        for (int i = 1; i <= n; ++i)
-            f *= i;
-        return f;
+    Vector3 DeCasteljausAlgorithm(float t, Array<Vector3, 4> points) {
+        auto q = Vector3::Lerp(points[0], points[1], t);
+        auto r = Vector3::Lerp(points[1], points[2], t);
+        auto s = Vector3::Lerp(points[2], points[3], t);
+
+        auto p2 = Vector3::Lerp(q, r, t);
+        auto t2 = Vector3::Lerp(r, s, t);
+
+        return Vector3::Lerp(p2, t2, t);
     }
 
-    // returns n! / (i! * (n - i)!)
-    constexpr float Coeff(int n, int i) {
-        return (float)Factorial(n) / ((float)Factorial(i) * (float)Factorial(n - i));
-    }
+    // Estimate the length of a curve by taking segment lengths
+    float BezierCurve::EstimateLength(int steps) const {
+        float delta = 1 / (float)steps;
+        Vector3 prevPos = Points[0];
+        float length = 0;
 
-    // returns a weighted coefficient for each point
-    float Blend(int i, int n, float u) {
-        return Coeff(n, i) * powf(u, float(i)) * powf(1 - u, float(n - i));
-    }
-
-    Vector3 BezierCurve::Compute(float u) {
-        Vector3 v;
-
-        for (int i = 0; i < 4; i++) {
-            auto b = Blend(i, 3, u);
-            v += Points[i] * b;
+        // Move along the curve
+        for (int i = 1; i <= steps; i++) {
+            float t = delta * (float)i;
+            auto pos = DeCasteljausAlgorithm(t, Points);
+            length += Vector3::Distance(pos, prevPos);
+            prevPos = pos;
         }
 
-        return v;
+        return length;
     }
 
-    void BezierCurve::Transform(const Matrix& m) {
-        for (int i = 0; i < 4; i++)
-            Vector3::Transform(Points[i], m);
+    Vector3 DeCasteljausDerivative(const Array<Vector3, 4>& curve, float t) {
+        Vector3 dU = t * t * (-3.0f * (curve[0] - 3.0f * (curve[1] - curve[2]) - curve[3]));
+        dU += t * (6.0f * (curve[0] - 2.0f * curve[1] + curve[2]));
+        dU += -3.0f * (curve[0] - curve[1]);
+        return dU;
+    }
+
+    // Get an infinitely small length from the derivative of the curve at position t
+    float GetArcLengthIntegrand(const Array<Vector3, 4>& curve, float t) {
+        return DeCasteljausDerivative(curve, t).Length();
+    }
+
+    float GetLengthSimpsons(const Array<Vector3, 4>& curve, float tStart, float tEnd) {
+        //This is the resolution and has to be even
+        constexpr int n = 20;
+
+        //Now we need to divide the curve into sections
+        float delta = (tEnd - tStart) / (float)n;
+
+        float endPoints = GetArcLengthIntegrand(curve, tStart) + GetArcLengthIntegrand(curve, tEnd);
+
+        //Everything multiplied by 4
+        float x4 = 0;
+        for (int i = 1; i < n; i += 2) {
+            float t = tStart + delta * i;
+            x4 += GetArcLengthIntegrand(curve, t);
+        }
+
+        //Everything multiplied by 2
+        float x2 = 0;
+        for (int i = 2; i < n; i += 2) {
+            float t = tStart + delta * i;
+            x2 += GetArcLengthIntegrand(curve, t);
+        }
+
+        float length = (delta / 3.0f) * (endPoints + 4.0f * x4 + 2.0f * x2);
+        return length;
+    }
+
+    //Use Newton–Raphsons method to find the t value at the end of this distance d
+    float FindTValue(const Array<Vector3, 4>& curve, float dist, float totalLength) {
+        float t = dist / totalLength;
+
+        //Need an error so we know when to stop the iteration
+        constexpr float error = 0.001f;
+        int iterations = 0;
+
+        while (true) {
+            //Newton's method
+            float tNext = t - (GetLengthSimpsons(curve, 0, t) - dist) / GetArcLengthIntegrand(curve, t);
+
+            //Have we reached the desired accuracy?
+            if (std::abs(tNext - t) < error)
+                break;
+
+            t = tNext;
+            iterations += 1;
+
+            if (iterations > 1000)
+                break;
+        }
+
+        return t;
+    }
+
+    // Finds equally divided points along a Bezier curve regardless of handle positions
+    List<Vector3> DivideCurveIntoSteps(const Array<Vector3, 4>& curve, int steps) {
+        List<Vector3> result;
+        float totalLength = GetLengthSimpsons(curve, 0, 1);
+
+        float sectionLength = totalLength / (float)steps;
+        float currentDistance = sectionLength;
+        result.push_back(curve[0]); // start point
+
+        for (int i = 1; i < steps; i++) {
+            //Use Newton–Raphsons method to find the t value from the start of the curve 
+            //to the end of the distance we have
+            float t = FindTValue(curve, currentDistance, totalLength);
+
+            //Get the coordinate on the Bezier curve at this t value
+            Vector3 pos = DeCasteljausAlgorithm(t, curve);
+            result.push_back(pos);
+
+            //Add to the distance traveled on the line so far
+            currentDistance += sectionLength;
+        }
+
+        result.push_back(curve[3]); // end point
+        return result;
     }
 
     TunnelNode CreateNode(Level& level, PointTag source, float sign) {
         TunnelNode node;
-
-        //node.Tag = source;
         auto face = Face::FromSide(level, source);
         node.Normal = face.AverageNormal() * sign;
         node.Vertices = face.CopyPoints();
         node.Point = face.Center();
-
-        // get the opposite vertex of the side?
-        //pSegment->CreateOppVertexIndex(m_sideKey.m_nSide, m_oppVertexIndex);
-        //auto m_point = pSegment->ComputeCenter(m_sideKey.m_nSide);
-
-        //auto forward = node.Normal;
-        //auto r = face.VectorForEdge(source.Point) * sign;
         auto right = face[(source.Point + 1) % 4] - face[source.Point];
         right.Normalize();
 
@@ -60,10 +143,11 @@ namespace Inferno::Editor {
 
         auto up = node.Normal.Cross(right);
         up.Normalize();
+        node.Up = up;
 
         node.Rotation.Forward(node.Normal);
         node.Rotation.Right(right);
-        node.Rotation.Up(up);
+        node.Rotation.Up(node.Up);
         return node;
     }
 
@@ -72,20 +156,20 @@ namespace Inferno::Editor {
         float length = 0.0;
 
         for (int i = 1; i <= steps; i++)
-            length += (nodes[i].Vertex - nodes[i - 1].Vertex).Length();
+            length += (nodes[i].Position - nodes[i - 1].Position).Length();
 
         return length;
     }
 
-    // Used to modify the end rotation...
     float TotalTwist(const TunnelNode& start, const TunnelNode& end) {
         // revert the end orientation's z rotation in regard to the start orientation by 
         // determining the angle of the two matrices' z axii (forward vectors) and rotating
         // the end matrix around the perpendicular of the two matrices' z axii.
 
-        // Angle between vectors?
-        auto dot = end.Rotation.Forward().Dot(start.Rotation.Forward());
-        dot = std::clamp(dot, -1.0f, 1.0f);
+        auto endRot = end.Rotation;
+        const auto startRot = start.Rotation;
+
+        auto dot = endRot.Forward().Dot(startRot.Forward());
         auto bendAngle = acos(dot);
 
         Vector3 rotAxis;
@@ -95,97 +179,88 @@ namespace Inferno::Editor {
             // displacement between the two ends of the corridor.
             Vector3 displacement = end.Point - start.Point;
             if (displacement.Length() > 1e-3) {
-                rotAxis = displacement.Cross(-start.Rotation.Forward());
+                rotAxis = displacement.Cross(-startRot.Forward());
             }
             else {
                 // No or small displacement - the tunnel maker probably shouldn't be started
-                // but just in case - we could pick anything so we'll just pick the start
-                // end's up vector
-                rotAxis = start.Rotation.Up();
+                // but just in case - we could pick anything so we'll just pick the start up vector
+                rotAxis = startRot.Up();
             }
         }
         else if (bendAngle > 1e-6) {
-            rotAxis = end.Rotation.Forward().Cross(-start.Rotation.Forward());
+            rotAxis = endRot.Forward().Cross(-startRot.Forward());
         }
 
-        auto endRotation = end.Rotation.Right();
-
-        if (bendAngle > 1e-6 && rotAxis.Length() > 1e-6) { // dot >= 0.999999 ~ parallel
+        if (bendAngle > 1e-6 && rotAxis.Length() > 1e-6) {
             // Construct quaternion from the axis and angle, and "undo" the end orientation's
             // bend so it is parallel with the start face. We only need the R vector to
             // determine rotation.
             auto q = Quaternion::CreateFromAxisAngle(rotAxis, -bendAngle);
-            auto right = Vector3::Transform(endRotation, q);
-            right.Normalize();
-            endRotation = right;
-            // previously would modify the end rotation here but that seems suspicious
-            //end.Rotation.Right(right);
+            auto r = Vector3::Transform(endRot.Right(), q);
+            r.Normalize();
+            endRot.Right(r);
         }
 
         // Calculate rotation using atan2 (so we can get the direction at the same time).
         // y = projection of transformed R vector on start U vector
         // x = projection of transformed R vector on start R vector
-        auto y = end.Rotation.Right().Dot(start.Rotation.Up());
-        auto x = end.Rotation.Right().Dot(start.Rotation.Right());
+        auto y = endRot.Right().Dot(startRot.Up());
+        auto x = endRot.Right().Dot(startRot.Right());
         return atan2(y, x);
     }
 
+    // Rotates n0's matrix around the perpendicular of n0's and n1's vector.
+    // Updates n1 right and up vector.
     void Bend(const PathNode& n0, PathNode& n1) {
-        // rotate the previous matrix around the perpendicular of the previous and the current forward vector
-    // to orient it properly for the current path node
-        auto dot = n0.Rotation.Forward().Dot(n1.Rotation.Forward()); // angle of current and previous forward vectors
-        if (dot >= 0.999999f) { // dot >= 1e-6 ~ parallel
-            n1.Rotation.Right(n0.Rotation.Right()); // rotate right and up vectors accordingly
+        // angle between forward vectors
+        auto dot = n1.Rotation.Forward().Dot(n0.Rotation.Forward());
+
+        if (dot >= 0.999999f) {
+            // Facing same direction, copy
+            n1.Rotation.Right(n0.Rotation.Right());
             n1.Rotation.Up(n0.Rotation.Up());
         }
-        else if (dot <= -0.999999f) { // dot >= 1e-6 ~ parallel
-            n1.Rotation.Right(-n0.Rotation.Right()); // rotate right and up vectors accordingly
+        else if (dot <= -0.999999f) {
+            // Facing directly away, copy inverse
+            n1.Rotation.Right(-n0.Rotation.Right());
             n1.Rotation.Up(n0.Rotation.Up());
         }
         else {
-            //#ifdef _DEBUG
-            //            CDoubleVector v0(n1->m_rotation.F());
-            //            CDoubleVector v1(/*(dot < 0.0) ? n0->m_rotation.F () :*/ -n0->m_rotation.F());
-            //            double a = acos(dot);
-            //            CDoubleVector axis = CrossProduct(v0, v1);
-            //            axis.Normalize();
-            //            CDoubleVector vi;
-            //            axis = Perpendicular(vi, v0, v1);
-            //            axis.Normalize();
-            //#endif
-
-            auto bendAngle = acos(dot);
-
+            // Get the axis of rotation between the two nodes
             n1.Axis = n1.Rotation.Forward().Cross(-n0.Rotation.Forward());
             n1.Axis.Normalize();
-            if (n1.Axis.Length() > 0) {
-                auto q = Quaternion::CreateFromAxisAngle(n1.Axis, bendAngle);
-                auto fVec = Vector3::Transform(n0.Rotation.Forward(), q);
-                dot = fVec.Dot(n1.Rotation.Forward());
-                if (dot < 0.999f)
-                    bendAngle += acos(dot);
 
-                q = Quaternion::CreateFromAxisAngle(n1.Axis, bendAngle);
+            if (n1.Axis.Length() == 0)
+                return; // error likely due to points on top of each other
 
-                // rotate right and up vectors accordingly
-                auto right = Vector3::Transform(n0.Rotation.Right(), q);
-                auto up = Vector3::Transform(n0.Rotation.Up(), q);
-                right.Normalize();
-                up.Normalize();
-                n1.Rotation.Right(right);
-                n1.Rotation.Up(up);
-            }
+            auto bendAngle = acos(dot);
+            auto q = Quaternion::CreateFromAxisAngle(n1.Axis, bendAngle);
+            auto fVec = Vector3::Transform(n0.Rotation.Forward(), q);
+            auto dot2 = fVec.Dot(n1.Rotation.Forward());
+            if (dot2 < 0.999f)
+                bendAngle += acos(dot2);
+
+            q = Quaternion::CreateFromAxisAngle(n1.Axis, bendAngle);
+
+            // rotate right and up vectors accordingly
+            auto right = Vector3::Transform(n0.Rotation.Right(), q);
+            auto up = Vector3::Transform(n0.Rotation.Up(), q);
+            right.Normalize();
+            up.Normalize();
+            n1.Rotation.Right(right);
+            n1.Rotation.Up(up);
         }
     }
 
     void Twist(const PathNode& n0, PathNode& n1, float pathDeltaAngle, float scale) {
-        // if !twist return
-
         // twist the current matrix around the forward vector 
         n1.Angle = pathDeltaAngle * scale;
-        auto axis = n1.Rotation.Forward();
+        auto axis = n1.Rotation.Backward();
 
-        if (fabs(n1.Angle - n0.Angle) > 1e-6 && axis.Length() > 0) {
+        if (axis.Length() == 0)
+            return;
+
+        if (fabs(n1.Angle - n0.Angle) > 1e-6) {
             auto q = Quaternion::CreateFromAxisAngle(axis, n1.Angle - n0.Angle);
             auto right = Vector3::Transform(n1.Rotation.Right(), q);
             auto up = Vector3::Transform(n1.Rotation.Up(), q);
@@ -196,18 +271,19 @@ namespace Inferno::Editor {
         }
     }
 
-    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, int steps, float startLength, float endLength) {
-        BezierCurve curve{};
-        curve.Length[0] = startLength;
-        curve.Length[1] = endLength;
+    BezierCurve CreateCurve(const TunnelNode& start, const TunnelNode& end, const TunnelArgs& args) {
+        BezierCurve curve;
+        curve.Points[0] = start.Point;
+        curve.Points[1] = start.Point + start.Normal * args.Start.Length;
+        curve.Points[2] = end.Point - end.Normal * args.End.Length;
+        curve.Points[3] = end.Point;
+        return curve;
+    }
 
-        // setup intermediate points for a cubic bezier curve
-        curve.Points = {
-            start.Point,
-            start.Point + start.Normal * startLength,
-            end.Point - end.Normal * endLength,
-            end.Point
-        };
+    TunnelPath CreatePath(const TunnelNode& start, const TunnelNode& end, TunnelArgs& args) {
+        auto steps = args.Steps;
+        auto curve = CreateCurve(start, end, args);
+        auto bezierPoints = DivideCurveIntoSteps(curve.Points, steps);
 
         TunnelPath path{};
         path.Curve = curve;
@@ -215,42 +291,61 @@ namespace Inferno::Editor {
         auto& nodes = path.Nodes;
         nodes.resize(steps + 1);
 
-        for (int i = 0; i <= steps; i++)
-            nodes[i].Vertex = curve.Compute((float)i / (float)steps);
+        for (int i = 0; i < nodes.size(); i++)
+            nodes[i].Position = bezierPoints[i];
 
         nodes[0].Rotation = start.Rotation;
-        nodes[steps].Rotation = end.Rotation;
         nodes[0].Axis = start.Rotation.Right();
+        nodes[0].Vertices = start.Vertices;
+        nodes[steps].Rotation = end.Rotation;
 
-        auto deltaAngle = TotalTwist(start, end);
+        // change of basis
+        auto startTransform = Matrix::CreateWorld(Vector3::Zero, start.Normal, start.Up);
+        auto endTransform = Matrix::CreateWorld(Vector3::Zero, end.Normal, end.Up) /** Matrix::CreateFromAxisAngle(end.Normal, DirectX::XM_PI)*/;
+        auto rotation = endTransform.Invert() * startTransform;
+        Matrix transform = Matrix::CreateTranslation(-end.Point) * rotation * Matrix::CreateTranslation(start.Point);
+
         auto totalLength = PathLength(nodes, steps);
+        auto totalTwist = TotalTwist(start, end);
 
-        //PathNode* n0 = nullptr;
-        //PathNode* n1 = &nodes[0];
+        std::array<Vector3, 4> deltaShift{}; // amount of vertex change between each frame
+        std::array<Vector3, 4> baseFrame{}; // start frame shifted to origin
+        std::array<Vector3, 4> startFrame{}; // end points ordered correctly for edge selections
 
-        //for (int i = 1; i <= steps; i++) {
-        //    n0 = n1;
-        //    n1 = &nodes[i];
+        for (int i = 0; i < 4; i++) {
+            auto ia = (3 + i + args.Start.Tag.Point) % 4;
+            auto ib = (6 - i + args.End.Tag.Point) % 4; // reverse order to correct for flipped normal
 
-        //    if (i < steps) { // last matrix is the end side's matrix - use it's forward vector
-        //        auto forward = nodes[i + 1].Vertex - nodes[i - 1].Vertex;
-        //        forward.Normalize();
-        //        n1->Rotation.Forward(forward);
-        //    }
-        //    Bend(*n0, *n1);
-        //    Twist(*n0, *n1, deltaAngle, PathLength(nodes, i) / totalLength);
-        //}
+            baseFrame[i] = start.Vertices[ia] - start.Point;
+            startFrame[i] = start.Vertices[ia];
+            deltaShift[i] = Vector3::Transform(end.Vertices[ib], transform) - start.Vertices[ia];
+
+            //// Connecting lines showing delta
+            //DebugTunnelLines.push_back(start.Vertices[ia] + deltaShift[i]);
+            //DebugTunnelLines.push_back(start.Vertices[ia]);
+
+            //// Frame used to build delta
+            //DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[ib], transform));
+            //DebugTunnelLines.push_back(Vector3::Transform(end.Vertices[(ib + 1) % 4], transform));
+        }
+
+        nodes[0].Vertices = startFrame;
+        //nodes[steps].Vertices = endFrame;
 
         for (int i = 1; i <= steps; i++) {
             auto& n0 = nodes[i - 1];
             auto& n1 = nodes[i];
-            if (i < steps) { // last matrix is the end side's matrix - use it's forward vector
-                auto forward = nodes[i + 1].Vertex - nodes[i - 1].Vertex;
+
+            if (i < steps) {
+                auto forward = nodes[i + 1].Position - nodes[i - 1].Position;
                 forward.Normalize();
                 n1.Rotation.Forward(forward);
             }
+
             Bend(n0, n1);
-            Twist(n0, n1, deltaAngle, PathLength(nodes, i) / totalLength);
+            if (args.Twist)
+                Twist(n0, n1, totalTwist / steps, PathLength(nodes, i) / totalLength);
+            //auto twist = Matrix::CreateFromAxisAngle(start.Normal, -totalTwist * (float)i / (float)steps);
         }
 
         // Rotating the r and u vectors can cause an error because a x and y rotation may be applied. It would certainly
@@ -276,155 +371,114 @@ namespace Inferno::Editor {
             }
 
             if (maxIter-- <= 0) {
-                SPDLOG_WARN("Reached max iterations in CreatePath()");
+                //SPDLOG_WARN("Reached max iterations in CreatePath()");
+                break;
             }
         }
 
-        for (int i = 0; i <= steps; i++)
-            nodes[i].Rotation = nodes[i].Rotation.Invert();
+        for (int i = 1; i <= steps; i++) {
+            auto& node = nodes[i];
+
+            // Set verts from rotation and position
+            for (int j = 0; j < 4; j++) {
+                auto& vert = node.Vertices[j];
+
+                // 1. Morph the section
+                vert = baseFrame[j] + deltaShift[j] * (float)i / (float)steps;
+
+                // 2. Rotate section to match node
+                vert = Vector3::Transform(vert, start.Rotation.Invert() * node.Rotation);
+
+                // 3. Move section onto node
+                vert += node.Position;
+            }
+        }
 
         return path;
     }
 
-    // member variables are Tunnel
-    //void CreateSegments(List<TunnelSegment>& segments, TunnelPath& path, int steps) {
-    //    ushort nVertex = 0;
-    //    auto nElements = (short)segments.size();
+    void CreateTunnelSegments(Level& level, TunnelArgs& args) {
+        auto start = args.Start.Tag;
 
-    //    for (short nSegment = 1; nSegment <= steps; nSegment++) {
-    //        auto nStartSide = path.Start.Tag.Side;
-
-    //        for (short iElement = 0; iElement < nElements; iElement++) {
-    //            auto nStartSeg = path.StartSides[iElement].Segment;
-    //            //CSegment* pStartSeg = segmentManager.Segment(nStartSeg);
-    //            //CTunnelElement& e0 = m_segments[nSegment].m_elements[iElement];
-    //            //CSegment* pSegment = segmentManager.Segment(e0.m_nSegment);
-
-
-    //            //CSide* pSide = pSegment->Side(0);
-    //            //for (short nSide = 0; nSide < 6; nSide++, pSide++) {
-    //            //    pSegment->SetUV(nSide, 0.0, 0.0);
-    //            //    pSide->m_info.nBaseTex = pStartSeg->m_sides[nSide].m_info.nBaseTex;
-    //            //    pSide->m_info.nOvlTex = pStartSeg->m_sides[nSide].m_info.nOvlTex;
-    //            //    pSide->m_nShape = pStartSeg->m_sides[nSide].m_nShape;
-    //            //}
-
-    //            //for (int j = 0; j < 6; j++)
-    //            //    pSegment->SetChild(j, -1);
-
-    //            //if (nSegment > 1)
-    //            //    pSegment->SetChild(oppSideTable[nStartSide], m_segments[nSegment - 1].m_elements[iElement].m_nSegment); // previous tunnel segment
-    //            //else if (bFinalize) {
-    //            //    pStartSeg->SetChild(nStartSide, e0.m_nSegment);
-    //            //    pSegment->SetChild(oppSideTable[nStartSide], nStartSeg);
-    //            //}
-
-    //            //if (nSegment < steps)
-    //                //pSegment->SetChild(nStartSide, m_segments[nSegment + 1].m_elements[iElement].m_nSegment); // next tunnel segment
-    //        }
-    //    }
-    //}
-
-    void CreateDebugPath(TunnelPath& path) {
-        TunnelBuilderPath.clear();
-
-        for (auto& node : path.Nodes) {
-            TunnelBuilderPath.push_back(node.Vertex);
-        }
-    }
-
-    void CreateTunnel(Level& level, PointTag start, PointTag end, int steps, float startLength, float endLength) {
-        if (!level.SegmentExists(start) || !level.SegmentExists(end))
+        if (!level.SegmentExists(args.Start.Tag) || !level.SegmentExists(args.End.Tag) || !args.IsValid())
             return;
 
-        TunnelBuilderPath.clear();
-        TunnelBuilderPoints.clear();
-        DebugTunnelPoints.clear();
+        auto path = CreateTunnel(level, args);
+        auto prev = start;
+        auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
 
-        // clamp inputs
-        if (steps < 1) steps = 1;
-        startLength = std::clamp(startLength, MinTunnelLength, MaxTunnelLength);
-        endLength = std::clamp(endLength, MinTunnelLength, MaxTunnelLength);
+        Marked.Segments.clear();
+        auto vertIndex = (uint16)level.Vertices.size(); // take index before adding new points
+        auto lastId = SegID::None;
 
-        auto startNode = CreateNode(level, start, -1);
-        auto endNode = CreateNode(level, end, 1);
-        auto path = CreatePath(startNode, endNode, steps, startLength, endLength);
-        //path.StartVertices = startNode.Vertices; 
-        auto startVertices = startNode.Vertices; // should be verts of all selected faces, not just the first
+        for (size_t nNode = 1; nNode < path.Nodes.size(); nNode++) {
+            auto& lastSeg = level.GetSegment(prev);
 
-        // Pre-calculate morph vectors if necessary since we'll need to use them a lot
-        List<Vector3> vMorph;
-        List<ushort> nVertexMap;
-        nVertexMap.resize(4);
+            Segment newSeg = {};
+            auto id = (SegID)level.Segments.size();
 
-        bool morph = startVertices.size() == 4; // morph only works with single selected face
-        //morph = false;
-        //auto startIndices = level.GetSegment(start).GetVertexIndices(start.Side);
+            auto oppositeSide = (int)GetOppositeSide(prev.Side);
+            // attach the previous seg to the new one
+            newSeg.Connections[oppositeSide] = prev.Segment;
+            lastSeg.Connections[(int)prev.Side] = id;
 
-        if (morph) {
-            //Matrix startRotation = startNode.Rotation.Invert();
-            Matrix startRotation =  startNode.Rotation;
-            Matrix endRotation = endNode.Rotation;
-            //endRotation.Right(-endRotation.Right());
-            //endRotation.Up(-endRotation.Up());
+            auto srcIndices = lastSeg.GetVertexIndices(prev.Side);
+            auto& oppIndices = SIDE_INDICES[oppositeSide];
+            auto& prevIndices = SIDE_INDICES[(int)prev.Side];
 
-            for (ushort i = 0; i < 4; i++) {
-                ushort startIndex = (start.Point + i) % 4;
-                Vector3 vStart = startNode.Vertices[startIndex];
-                DebugTunnelPoints.push_back(vStart);
-                vStart -= startNode.Point; // shift to tunnel start
-                vStart = Vector3::Transform(vStart, startRotation.Invert()); // un-rotate
+            for (uint16 i = 0; i < 4; i++) {
+                // terrible hack to fix winding
+                auto offset = start.Point == 1 || start.Point == 3 ? 3 : 1;
+                auto v = (offset + i + start.Point) % 4;
 
-                ushort endIndex = (end.Point + 5 - i) % 4;
-                Vector3 vEnd = endNode.Vertices[endIndex];
-                DebugTunnelPoints.push_back(vEnd);
-                vEnd -= endNode.Point; // shift to tunnel end
-                vEnd = Vector3::Transform(vEnd, endRotation.Invert() /** startRotation*/); // un-rotate
-
-                vMorph.push_back(vEnd - vStart);
-                DebugTunnelPoints.push_back(vStart);
-                DebugTunnelPoints.push_back(vEnd + Vector3::UnitZ * 10);
-
-                nVertexMap[startIndex] = endIndex;
-
-                // map the vertex back to the starting vertex
-                //for (ushort nStartVertex = 0; nStartVertex < 4; nStartVertex++)
-                //    if (startIndex == startIndices[nStartVertex]) {
-                //        nVertexMap[nStartVertex] = i;
-                //        break;
-                //    }
+                newSeg.Indices[prevIndices[i]] = vertIndex + i;
+                newSeg.Indices[oppIndices[3 - i]] = srcIndices[i];
+                level.Vertices.push_back(path.Nodes[nNode].Vertices[v]);
             }
+
+            vertIndex += (uint16)startIndices.size();
+
+            // copy textures
+            for (int i = 0; i < 6; i++) {
+                auto& side = newSeg.Sides[i];
+                side.TMap = lastSeg.Sides[i].TMap;
+                side.TMap2 = lastSeg.Sides[i].TMap2;
+                side.OverlayRotation = lastSeg.Sides[i].OverlayRotation;
+                //side.UVs = lastSeg.Sides[i].UVs;
+
+                // Clear door textures
+                if (Resources::GetDoorClipID(side.TMap) != DClipID::None)
+                    side.TMap = LevelTexID::Unset;
+
+                if (Resources::GetDoorClipID(side.TMap2) != DClipID::None)
+                    side.TMap2 = LevelTexID::Unset;
+            }
+
+            newSeg.UpdateGeometricProps(level);
+
+            level.Segments.push_back(newSeg);
+            prev.Segment = id;
+            ResetUVs(level, id);
+            Marked.Segments.insert(id);
+            lastId = id;
         }
 
-        // Compute all tunnel vertices by rotating the base vertices using each path node's orientation (== rotation matrix)
-        // The rotation is relative to the base coordinate system (identity matrix), but the vertices are relative to the 
-        // start point and start rotation, so each vertex has to be un-translated and un-rotated before rotating and translating
-        // it with the current path node's orientation matrix and position.
-        List<Vector3> vertices;
+        // join the end segment
+        auto nearby = Editor::GetNearbySegments(level, lastId, 100);
+        Editor::JoinTouchingSegments(level, lastId, nearby, 0.1f);
 
-        for (int nSegment = 0; nSegment <= steps; nSegment++) {
-            Matrix rotation = path.Nodes[nSegment].Rotation.Invert();
-            auto& translation = path.Nodes[nSegment].Vertex;
+        Editor::History.SnapshotLevel("Create Tunnel");
+        Events::SegmentsChanged();
+        Events::LevelChanged();
+    }
 
-            for (uint nVertex = 0; nVertex < startVertices.size(); nVertex++) {
-                Vector3 v = startVertices[nVertex];
-                v -= startNode.Point; // un-translate (make relative to tunnel start)
-                v = Vector3::Transform(v, startNode.Rotation); // un-rotate
+    TunnelPath CreateTunnel(Level& level, TunnelArgs& args) {
+        if (!level.SegmentExists(args.Start.Tag) || !level.SegmentExists(args.End.Tag) || !args.IsValid())
+            return {};
 
-                if (morph) {
-                    float amount = (float)nSegment / (float)steps;
-                    //v += vMorph[nVertexMap[nVertex]] * amount;
-                    v += vMorph[nVertex] * amount;
-                }
-
-                v = Vector3::Transform(v, rotation);
-                v += translation;
-                vertices.push_back(v);
-                TunnelBuilderPoints.push_back(v);
-            }
-        }
-
-        CreateDebugPath(path);
-        DebugTunnel = path;
+        args.ClampInputs();
+        auto startNode = CreateNode(level, args.Start.Tag, -1);
+        auto endNode = CreateNode(level, args.End.Tag, 1);
+        return CreatePath(startNode, endNode, args);
     }
 }

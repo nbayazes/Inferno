@@ -19,9 +19,12 @@ namespace Inferno::Editor {
     // Fixes common errors in a level
     void FixLevel(Level&);
 
-    bool SegmentIsDegenerate(Level& level, Segment& seg);
+    // Lowered from 90 degrees to 80 degrees due to false negatives
+    constexpr float MAX_DEGENERACY = 80 * DegToRad;
 
-    List<SegmentDiagnostic> CheckObjects(Level& level);
+    float CheckDegeneracy(const Level& level, const Segment& seg);
+
+    List<SegmentDiagnostic> CheckObjects(const Level& level);
     List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors);
     void SetPlayerStartIDs(Level& level);
 }

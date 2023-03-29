@@ -253,7 +253,7 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
-    HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(AppTitle).c_str(),
+    HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
                                WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
                                rc.right - rc.left, rc.bottom - rc.top,
                                nullptr, nullptr, _hInstance, nullptr);

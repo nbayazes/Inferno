@@ -1,9 +1,9 @@
 #pragma once
+#include "CustomTextureLibrary.h"
 #include "Level.h"
 #include "Pig.h"
 #include "HamFile.h"
 #include "Mission.h"
-#include "HogFile.h"
 #include "Hog2.h"
 #include "OutrageBitmap.h"
 #include "OutrageModel.h"
@@ -18,9 +18,12 @@ namespace Inferno::Resources {
 
     void Init();
 
+    inline CustomTextureLibrary CustomTextures;
+
     extern SoundFile SoundsD1, SoundsD2;
     SoundResource GetSoundResource(SoundID id);
     string_view GetSoundName(SoundID id);
+    const Palette& GetPalette();
 
     DClipID GetDoorClipID(LevelTexID);
     const DoorClip& GetDoorClip(DClipID);
@@ -58,8 +61,12 @@ namespace Inferno::Resources {
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
 
-    const PigBitmap& ReadBitmap(TexID);
     int GetTextureCount();
+    // Returns bitmap data for a TexID
+    const PigBitmap& GetBitmap(TexID);
+
+    // Returns a modifiable bitmap
+    PigBitmap& AccessBitmap(TexID);
 
     // Reads a file from the mission or game HOG
     List<ubyte> ReadFile(string file);
@@ -72,7 +79,6 @@ namespace Inferno::Resources {
     bool FoundDescent1();
     bool FoundDescent2();
     bool FoundVertigo();
-    bool HasCustomTextures();
 
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;

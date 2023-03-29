@@ -271,8 +271,7 @@ namespace Inferno::Editor {
 
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
-                    auto& cmd = GetCommandForAction(binding.Action);
-                    ImGui::Text(cmd.Name.c_str());
+                    ImGui::Text(binding.Label.c_str());
                     ImGui::TableNextColumn();
                     ImVec2 bindBtnSize = { 150 * Shell::DpiScale, 0 };
 
@@ -298,30 +297,32 @@ namespace Inferno::Editor {
                             binding.Primary.ClearShortcut();
                     }
 
-                    ImGui::PushID(10);
                     ImGui::TableNextColumn();
-                    if (i == selectedBinding && editAlt) {
-                        if (ImGui::Button("Press a key...", bindBtnSize))
-                            selectedBinding = -1;
-                    }
-                    else {
-                        auto label = binding.Secondary.Key == Keys::None ? "None" : binding.Secondary.GetShortcutLabel();
-                        if (ImGui::Button(label.c_str(), bindBtnSize)) {
-                            selectedBinding = i;
-                            editAlt = true;
+                    if (binding.Action != EditorAction::HoldMouselook) {
+                        ImGui::PushID(10);
+                        if (i == selectedBinding && editAlt) {
+                            if (ImGui::Button("Press a key...", bindBtnSize))
+                                selectedBinding = -1;
                         }
-                    }
+                        else {
+                            auto label = binding.Secondary.Key == Keys::None ? "None" : binding.Secondary.GetShortcutLabel();
+                            if (ImGui::Button(label.c_str(), bindBtnSize)) {
+                                selectedBinding = i;
+                                editAlt = true;
+                            }
+                        }
 
-                    ImGui::SameLine(0, 1);
-                    if (binding.Secondary.Key == Keys::None) {
-                        ImGui::Dummy(clearBtnSize);
-                    }
-                    else {
-                        if (ImGui::Button("X", clearBtnSize))
-                            binding.Secondary.ClearShortcut();
-                    }
+                        ImGui::SameLine(0, 1);
+                        if (binding.Secondary.Key == Keys::None) {
+                            ImGui::Dummy(clearBtnSize);
+                        }
+                        else {
+                            if (ImGui::Button("X", clearBtnSize))
+                                binding.Secondary.ClearShortcut();
+                        }
 
-                    ImGui::PopID();
+                        ImGui::PopID();
+                    }
 
                     ImGui::TableNextColumn();
                     ImVec2 editBtnSize = { 100 * Shell::DpiScale, 0 };
@@ -333,18 +334,7 @@ namespace Inferno::Editor {
                 // In bind mode - capture the next pressed key
                 if (selectedBinding != -1) {
                     for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys(((unsigned char)key) + 1)) {
-                        if (key == Keys::LeftWindows ||
-                            key == Keys::RightWindows ||
-                            key == Keys::Pause ||
-                            key == Keys::Scroll ||
-                            key == Keys::PrintScreen ||
-                            key == Keys::LeftAlt ||
-                            key == Keys::RightAlt ||
-                            key == Keys::LeftShift ||
-                            key == Keys::RightShift ||
-                            key == Keys::LeftControl ||
-                            key == Keys::RightControl ||
-                            key == Keys::NumLock) continue;
+                        if (Bindings::IsReservedKey(key)) continue;
 
                         if (Input::IsKeyDown(key)) {
                             // assign the new binding
@@ -354,6 +344,8 @@ namespace Inferno::Editor {
                             binding.Alt = Input::AltDown;
                             binding.Shift = Input::ShiftDown;
                             binding.Control = Input::ControlDown;
+                            if (binding.Action == EditorAction::HoldMouselook)
+                                binding.Alt = binding.Shift = binding.Control = false;
 
                             UnbindExisting(_bindingEntries, binding);
 
@@ -523,6 +515,10 @@ namespace Inferno::Editor {
 
                 if (entry.Secondary.Key != Keys::None)
                     Bindings::Active.Add(entry.Secondary);
+
+                // Save bindings set to 'none' in case the user unbinds them
+                if (entry.Primary.Key == Keys::None && entry.Secondary.Key == Keys::None)
+                    Bindings::Active.Add(entry.Primary);
             }
         }
     };

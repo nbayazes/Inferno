@@ -59,8 +59,8 @@ namespace Inferno::Editor {
         srcSeg.GetConnection(src.Side) = dest.Segment;
         destSeg.GetConnection(dest.Side) = src.Segment;
 
-        auto& srcIndices = SideIndices[(int)src.Side];
-        auto& destIndices = SideIndices[(int)dest.Side];
+        auto& srcIndices = SIDE_INDICES[(int)src.Side];
+        auto& destIndices = SIDE_INDICES[(int)dest.Side];
 
         List<VertexReplacement> replacements;
 
@@ -180,13 +180,11 @@ namespace Inferno::Editor {
     List<SegID> ExtrudeFaces(Level& level, span<Tag> faces, const Vector3& offset) {
         List<Tag> toAdd, toRemove;
         List<SegID> newSegs;
-        bool isExtruding = false;
 
         for (auto& tag : faces) {
             auto newSeg = InsertSegment(level, { tag.Segment, tag.Side }, 0, InsertMode::Extrude, &offset);
 
             if (newSeg != SegID::None) {
-                isExtruding = true;
                 TriedMergingNewSegments = false;
                 toAdd.push_back({ newSeg, tag.Side });
                 toRemove.push_back(tag);
@@ -374,7 +372,7 @@ namespace Inferno::Editor {
         bool crossedPlane = true;
 
         for (auto& v : points) {
-            constexpr auto MinimumPlaneDistance = 1.0f;
+            constexpr auto MinimumPlaneDistance = 0.1f;
             if (std::abs(PointToPlaneDistance(level.Vertices[v], origin, dir)) < MinimumPlaneDistance)
                 continue; // don't scale point directly on the plane
 
@@ -395,7 +393,7 @@ namespace Inferno::Editor {
             level.Vertices[v] = offset;
         }
 
-        // discard the last increment if no movement happened due to everything crossing plane
+        // discard the last increment if no movement happened due to anything crossing plane
         if (crossedPlane)
             Editor::Gizmo.TotalDelta += dist;
     }

@@ -6,7 +6,6 @@
 #include "Editor.Wall.h"
 
 namespace Inferno::Editor {
-
     struct SideClipboardData {
         SegmentSide Side;
         Option<Wall> Wall;
@@ -28,8 +27,8 @@ namespace Inferno::Editor {
             auto verts = seg.CopyVertices(level); // grabs front then back
             Seq::move(copy.Vertices, verts);
 
-            auto& front = SideIndices[(int)SideID::Front];
-            auto& back = SideIndices[(int)SideID::Back];
+            auto& front = SIDE_INDICES[(int)SideID::Front];
+            auto& back = SIDE_INDICES[(int)SideID::Back];
 
             for (int i = 0; i < 4; i++) {
                 seg.Indices[i] = offset + front[i];
@@ -126,43 +125,62 @@ namespace Inferno::Editor {
             newIds.push_back((SegID)level.Segments.size());
 
             for (auto& side : seg.Sides) {
-                if (side.Wall != WallID::None) {
-                    auto woffset = (int)side.Wall + wallOffset;
-                    if (woffset >= level.Limits.Walls) {
-                        SPDLOG_WARN("Wall id is out of range!");
-                        break;
+                if (Settings::Editor.PasteSegmentWalls) {
+                    if (side.Wall != WallID::None) {
+                        auto woffset = (int)side.Wall + wallOffset;
+                        if (woffset >= level.Limits.Walls) {
+                            SPDLOG_WARN("Wall id is out of range!");
+                            break;
+                        }
+                        side.Wall = WallID(woffset);
                     }
-                    side.Wall = WallID(woffset);
+                }
+                else {
+                    side.Wall = WallID::None;
                 }
             }
 
-            if (seg.Matcen != MatcenID::None) seg.Matcen = MatcenID((int)seg.Matcen + matcenOffset);
+            if (Settings::Editor.PasteSegmentSpecial) {
+                if (seg.Matcen != MatcenID::None)
+                    seg.Matcen = MatcenID((int)seg.Matcen + matcenOffset);
+            }
+            else {
+                seg.Matcen = MatcenID::None;
+                seg.Type = SegmentType::None;
+            }
+
             level.Segments.push_back(std::move(seg));
         }
 
-        for (auto& o : copy.Objects) {
-            if (level.Objects.size() >= level.Limits.Objects) {
-                SPDLOG_WARN("Ran out of space for objects!");
-                break;
-            }
+        if (Settings::Editor.PasteSegmentObjects) {
+            for (auto& o : copy.Objects) {
+                if (level.Objects.size() >= level.Limits.Objects) {
+                    SPDLOG_WARN("Ran out of space for objects!");
+                    break;
+                }
 
-            o.Segment += segIdOffset;
-            level.Objects.push_back(std::move(o));
+                o.Segment += segIdOffset;
+                level.Objects.push_back(std::move(o));
+            }
         }
 
-        for (auto& wall : copy.Walls) {
-            if (level.Walls.size() >= level.Limits.Walls) {
-                SPDLOG_WARN("Ran out of space for walls!");
-                break;
-            }
+        if (Settings::Editor.PasteSegmentWalls) {
+            for (auto& wall : copy.Walls) {
+                if (level.Walls.size() >= level.Limits.Walls) {
+                    SPDLOG_WARN("Ran out of space for walls!");
+                    break;
+                }
 
-            wall.Tag.Segment += segIdOffset;
-            level.Walls.push_back(std::move(wall));
+                wall.Tag.Segment += segIdOffset;
+                level.Walls.push_back(std::move(wall));
+            }
         }
 
-        for (auto& matcen : copy.Matcens) {
-            matcen.Segment += segIdOffset;
-            level.Matcens.push_back(std::move(matcen));
+        if (Settings::Editor.PasteSegmentSpecial) {
+            for (auto& matcen : copy.Matcens) {
+                matcen.Segment += segIdOffset;
+                level.Matcens.push_back(std::move(matcen));
+            }
         }
 
         level.UpdateAllGeometricProps();
@@ -171,7 +189,7 @@ namespace Inferno::Editor {
         for (auto& id : newIds)
             for (auto& side : SideIDs)
                 WeldConnection(level, { id, side }, 0.01f);
-        
+
         return newIds;
     }
 
@@ -181,6 +199,10 @@ namespace Inferno::Editor {
         auto selectionTransform = GetTransformFromSelection(level, dest, SelectionMode::Face);
         auto srcTranslation = copy.Reference.Translation();
         auto positionDelta = selectionTransform.Translation() - srcTranslation;
+
+        // flip transform to place segments on the other side
+        srcTransform.Right(-srcTransform.Right());
+        srcTransform.Forward(-srcTransform.Forward());
 
         // change of basis
         Matrix m0 = srcTransform.Invert(), m1 = selectionTransform;
@@ -224,12 +246,12 @@ namespace Inferno::Editor {
             JoinTouchingSegments(level, newIds[0], newIds, 0.01f); // try joining the segment we pasted onto
     }
 
-    void MirrorSelection(Level& level, SegmentClipboardData& copy) {
+    using DirectX::SimpleMath::Plane;
+
+    void MirrorSelection(SegmentClipboardData& copy, const Plane& plane) {
         if (copy.Segments.empty()) return;
 
-        auto selectionTransform = GetTransformFromSelection(level, Selection.Tag(), SelectionMode::Face);
-        auto reflectionPlane = DirectX::SimpleMath::Plane(selectionTransform.Translation(), selectionTransform.Forward());
-        auto reflection = Matrix::CreateReflection(reflectionPlane);
+        auto reflection = Matrix::CreateReflection(plane);
 
         for (auto& v : copy.Vertices)
             v = Vector3::Transform(v, reflection);
@@ -260,35 +282,35 @@ namespace Inferno::Editor {
             std::swap(seg.Connections[0], seg.Connections[1]);
             std::swap(seg.Connections[2], seg.Connections[3]);
 
-            auto RotateUVs = [&seg](int i, int j) {
-                std::rotate(seg.Sides[i].UVs.begin(), seg.Sides[i].UVs.begin() + j, seg.Sides[i].UVs.end());
-                std::rotate(seg.Sides[i].Light.begin(), seg.Sides[i].Light.begin() + j, seg.Sides[i].Light.end());
+            auto rotateUVs = [&seg](int i, int j) {
+                ranges::rotate(seg.Sides[i].UVs, seg.Sides[i].UVs.begin() + j);
+                ranges::rotate(seg.Sides[i].Light, seg.Sides[i].Light.begin() + j);
             };
 
-            auto SwapUVs = [&seg](int side, int i, int j) {
+            auto swapUVs = [&seg](int side, int i, int j) {
                 std::swap(seg.Sides[side].UVs[i], seg.Sides[side].UVs[j]);
                 std::swap(seg.Sides[side].Light[i], seg.Sides[side].Light[j]);
             };
 
-            SwapUVs(0, 0, 2);
+            swapUVs(0, 0, 2);
 
-            RotateUVs(1, 1);
-            SwapUVs(1, 3, 2); // mirror x
-            SwapUVs(1, 1, 0);
+            rotateUVs(1, 1);
+            swapUVs(1, 3, 2); // mirror x
+            swapUVs(1, 1, 0);
 
-            SwapUVs(2, 3, 1);
+            swapUVs(2, 3, 1);
 
-            RotateUVs(3, 1);
-            SwapUVs(3, 1, 2); // mirror y
-            SwapUVs(3, 3, 0);
+            rotateUVs(3, 1);
+            swapUVs(3, 1, 2); // mirror y
+            swapUVs(3, 3, 0);
 
-            RotateUVs(4, 1);
-            SwapUVs(4, 3, 2); // mirror x
-            SwapUVs(4, 1, 0);
+            rotateUVs(4, 1);
+            swapUVs(4, 3, 2); // mirror x
+            swapUVs(4, 1, 0);
 
-            RotateUVs(5, 3);
-            SwapUVs(5, 3, 2); // mirror x
-            SwapUVs(5, 1, 0);
+            rotateUVs(5, 3);
+            swapUVs(5, 3, 2); // mirror x
+            swapUVs(5, 1, 0);
         }
     }
 
@@ -338,7 +360,7 @@ namespace Inferno::Editor {
     void OnCopySide(Level& level, Tag tag) {
         SideClipboard1 = CopySide(level, tag);
         if (auto otherSide = level.GetConnectedSide(tag)) {
-            SideClipboard2 = CopySide(level, tag);
+            SideClipboard2 = CopySide(level, otherSide);
         }
         else {
             SideClipboard2 = {};
@@ -365,26 +387,38 @@ namespace Inferno::Editor {
         for (auto& id : ids) {
             PasteSide(level, id, *SideClipboard1);
 
-            auto otherSide = level.GetConnectedSide(id);
-            if (otherSide && SideClipboard2)
-                PasteSide(level, otherSide, *SideClipboard2);
+            if (Settings::Editor.EditBothWallSides) {
+                auto otherSide = level.GetConnectedSide(id);
+                if (otherSide && SideClipboard2)
+                    PasteSide(level, otherSide, *SideClipboard2);
+            }
         }
 
         Events::LevelChanged();
     }
 
     string OnMirrorSegments() {
+        auto side = Game::Level.TryGetSide(Editor::Selection.Tag());
+        if (!side) return {};
+
         auto segs = GetSelectedSegments();
         auto copy = CopySegments(Game::Level, segs);
-        MirrorSelection(Game::Level, copy);
+        auto plane = Plane(side->Center, side->AverageNormal);
+        MirrorSelection(copy, plane);
         InsertCopiedSegments(Game::Level, copy);
         return "Mirror Segments";
     }
 
     string OnPasteMirrored() {
+        if (!Game::Level.SegmentExists(Editor::Selection.Tag())) return {};
+
+        auto face = Face::FromSide(Game::Level, Editor::Selection.Tag());
+        auto normal = face.VectorForEdge(Editor::Selection.Point);
+
         SegmentClipboardData copy = SegmentClipboard;
-        TransformSegmentsToSelection(Game::Level, copy, Editor::Selection.Tag(), false);
-        MirrorSelection(Game::Level, copy);
+        TransformSegmentsToSelection(Game::Level, copy, Editor::Selection.Tag(), true);
+        auto plane = Plane(face.Center(), normal);
+        MirrorSelection(copy, plane);
         InsertCopiedSegments(Game::Level, copy);
         Editor::Selection.Forward();
         return "Paste Mirrored Segments";

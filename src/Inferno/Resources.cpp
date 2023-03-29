@@ -20,7 +20,7 @@ namespace Inferno::Resources {
         HogFile Hog;
         Palette LevelPalette;
         PigFile Pig;
-        Dictionary<TexID, PigBitmap> CustomTextures;
+        //Dictionary<TexID, PigBitmap> CustomTextures;
         List<PigBitmap> Textures;
         List<string> StringTable; // Text for the UI
 
@@ -40,6 +40,9 @@ namespace Inferno::Resources {
 
         List<ModelEntry> OutrageModels;
     }
+
+    int GetTextureCount() { return (int)Textures.size(); }
+    const Palette& GetPalette() { return LevelPalette; }
 
     void LoadRobotNames(filesystem::path path) {
         try {
@@ -189,8 +192,14 @@ namespace Inferno::Resources {
     PigEntry DefaultPigEntry = { .Name = "Unknown", .Width = 64, .Height = 64 };
 
     const PigEntry& GetTextureInfo(TexID id) {
-        if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return DefaultPigEntry;
+        if (auto bmp = CustomTextures.Get(id)) return bmp->Info;
         return Pig.Get(id);
+    }
+
+    const PigEntry* TryGetTextureInfo(TexID id) {
+        if (id <= TexID::Invalid || (int)id >= Pig.Entries.size()) return nullptr;
+        if (auto bmp = CustomTextures.Get(id)) return &bmp->Info;
+        return &Pig.Get(id);
     }
 
     const PigEntry& GetTextureInfo(LevelTexID id) {
@@ -239,7 +248,7 @@ namespace Inferno::Resources {
         SPDLOG_INFO("Update average texture color");
 
         for (auto& entry : Pig.Entries) {
-            auto& bmp = ReadBitmap(entry.ID);
+            auto& bmp = GetBitmap(entry.ID);
             entry.AverageColor = GetAverageColor(bmp.Data);
         }
         //for (auto& tid : GameData.LevelTexIdx) {
@@ -250,6 +259,21 @@ namespace Inferno::Resources {
         //    auto& bmp = ReadBitmap(id);
         //    entry.AverageColor = GetAverageColor(bmp.Data);
         //}
+    }
+
+    // Reads a file from the current mission or the file system
+    // Returns empty list if not found
+    List<ubyte> TryReadFile(filesystem::path path) {
+        auto fileName = path.filename().string();
+        if (Game::Mission && Game::Mission->Exists(fileName)) {
+            return Game::Mission->ReadEntry(fileName);
+        }
+
+        if (filesystem::exists(path)) {
+            return File::ReadAllBytes(path);
+        }
+
+        return {};
     }
 
     void LoadDescent2Resources(Level& level) {
@@ -266,17 +290,20 @@ namespace Inferno::Resources {
         auto textures = ReadAllBitmaps(pig, palette);
 
         if (level.IsVertigo()) {
-            auto d2xhog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
-            auto data = d2xhog.ReadEntry("d2x.ham");
-            StreamReader d2xreader(data);
-            AppendVHam(d2xreader, ham);
+            auto vHog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
+            auto data = vHog.ReadEntry("d2x.ham");
+            StreamReader vReader(data);
+            AppendVHam(vReader, ham);
         }
 
+        filesystem::path folder = level.Path;
+        folder.remove_filename();
+
         auto pog = ReplaceExtension(level.FileName, ".pog");
-        if (Game::Mission && Game::Mission->Exists(pog)) {
-            SPDLOG_INFO("POG data found");
-            auto data = Game::Mission->ReadEntry(pog);
-            CustomTextures = ReadPoggies(pig.Entries, data, palette);
+        auto pogData = TryReadFile(folder / pog);
+        if (!pogData.empty()) {
+            SPDLOG_INFO("Loading POG data");
+            CustomTextures.LoadPog(pig.Entries, pogData, palette);
         }
 
         // Everything loaded okay, set the internal data
@@ -290,10 +317,9 @@ namespace Inferno::Resources {
 
         // Read hxm
         auto hxm = ReplaceExtension(level.FileName, ".hxm");
-
-        if (Game::Mission && Game::Mission->Exists(hxm)) {
-            SPDLOG_INFO("Loading HXM data...");
-            auto hxmData = Game::Mission->ReadEntry(hxm);
+        auto hxmData = TryReadFile(folder / hxm);
+        if (!hxmData.empty()) {
+            SPDLOG_INFO("Loading HXM data");
             StreamReader hxmReader(hxmData);
             ReadHXM(hxmReader, GameData);
         }
@@ -454,11 +480,13 @@ namespace Inferno::Resources {
         //ReadBitmap(pig, palette, TexID(61)); // cockpit
         auto textures = ReadAllBitmaps(pig, palette);
 
+        filesystem::path folder = level.Path;
+        folder.remove_filename();
         auto dtx = ReplaceExtension(level.FileName, ".dtx");
-        if (Game::Mission && Game::Mission->Exists(dtx)) {
+        auto dtxData = TryReadFile(folder / dtx);
+        if (!dtxData.empty()) {
             SPDLOG_INFO("DTX data found");
-            auto data = Game::Mission->ReadEntry(dtx);
-            CustomTextures = ReadDTX(pig.Entries, data, palette);
+            CustomTextures.LoadDtx(pig.Entries, dtxData, palette);
         }
 
         FixD1ReactorModel(level);
@@ -520,7 +548,7 @@ namespace Inferno::Resources {
         Hog = {};
         GameData = {};
         MaterialInfo = {};
-        CustomTextures.clear();
+        CustomTextures.Clear();
         Textures.clear();
     }
 
@@ -597,19 +625,16 @@ namespace Inferno::Resources {
         }
     }
 
-    const PigBitmap& ReadBitmap(TexID id) {
-        //std::scoped_lock lock(PigMutex);
-        if (Textures.empty()) {
-            static const PigBitmap EMPTY(64, 64, "default");
-            return EMPTY;
-        }
+    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64  } };
 
-        if (CustomTextures.contains(id)) return CustomTextures[id];
+    const PigBitmap& GetBitmap(TexID id) {
+        if (Textures.empty())
+            return DEFAULT_BITMAP;
+
+        if (auto bmp = CustomTextures.Get(id)) return *bmp;
         if (!Seq::inRange(Textures, (int)id)) id = (TexID)0;
         return Textures[(int)id];
     }
-
-    int GetTextureCount() { return (int)Textures.size(); }
 
     List<ubyte> ReadFile(string file) {
         // Search mounted mission first
@@ -637,10 +662,6 @@ namespace Inferno::Resources {
     bool FoundDescent3() { return FileSystem::TryFindFile("d3.hog").has_value(); }
     bool FoundVertigo() { return FileSystem::TryFindFile("d2x.hog").has_value(); }
     bool FoundMercenary() { return FileSystem::TryFindFile("merc.hog").has_value(); }
-
-    bool HasCustomTextures() {
-        return !CustomTextures.empty();
-    }
 
     // Opens a file stream from the data paths or the loaded hogs
     Option<StreamReader> OpenFile(const string& name) {

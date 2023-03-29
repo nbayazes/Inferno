@@ -27,3 +27,6 @@ There is a user guide in the help menu.
 Requires Visual Studio 2022 with VCPKG integration
 
 Open `Inferno.sln` file and build. If set up correctly dependencies will be fetched automatically using the VCPKG manifest.
+
+# Linux
+Should run in Wine after installing `vkd3d-proton`, `d3dcompiler_47` (with winetricks) and copying `segoeui.ttf` to `c:\windows\fonts`

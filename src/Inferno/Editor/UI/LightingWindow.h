@@ -93,6 +93,10 @@ namespace Inferno::Editor {
                 ImGui::Checkbox("Color", &settings.EnableColor);
                 ImGui::HelpMarker("Enables colored lighting. Currently is not saved to the level.");
 
+                ImGui::SameLine();
+                ImGui::Checkbox("Multithread", &settings.Multithread);
+                ImGui::HelpMarker("Enables multithread calculations");
+
                 /*ImGui::Checkbox("Check Coplanar", &_settings.CheckCoplanar);
                 ImGui::HelpMarker("Causes co-planar light sources to have a consistent brightness");*/
             }
@@ -103,10 +107,10 @@ namespace Inferno::Editor {
                 Events::LevelChanged();
             }
 
-            ImGui::Text("Time: %.3f s", Metrics::LightCalculationTime / 1000000.0f);
-            ImGui::Text("Ray Casts: %d", Metrics::RaysCast);
-            ImGui::Text("Ray Hits: %d", Metrics::RayHits);
-            ImGui::Text("Cache hits: %d", Metrics::CacheHits);
+            ImGui::Text("Time: %.3f s", (float)Metrics::LightCalculationTime / 1000000.0f);
+            ImGui::Text("Ray Casts: %s", std::to_string(Metrics::RaysCast).c_str());
+            ImGui::Text("Ray Hits: %s", std::to_string(Metrics::RayHits).c_str());
+            ImGui::Text("Cache hits: %s", std::to_string(Metrics::CacheHits).c_str());
 
             ToggleLight();
 #ifdef _DEBUG

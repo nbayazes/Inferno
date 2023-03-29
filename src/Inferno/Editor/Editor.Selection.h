@@ -131,7 +131,7 @@ namespace Inferno::Editor {
         Set<PointID> Points;
         Set<ObjID> Objects;
 
-        bool operator==(const MultiSelection& rhs) {
+        bool operator==(const MultiSelection& rhs) const {
             return
                 Faces == rhs.Faces &&
                 Segments == rhs.Segments &&
@@ -139,7 +139,7 @@ namespace Inferno::Editor {
                 Objects == rhs.Objects;
         }
 
-        bool HasSelection(SelectionMode mode) {
+        bool HasSelection(SelectionMode mode) const {
             switch (mode) {
                 case SelectionMode::Segment:
                     return !Segments.empty();
@@ -154,7 +154,7 @@ namespace Inferno::Editor {
         }
 
         // Gets the marked faces or converts segments into selected faces
-        List<Tag> GetMarkedFaces(SelectionMode mode) {
+        List<Tag> GetMarkedFaces(SelectionMode mode) const {
             List<Tag> faces;
 
             switch (mode) {
@@ -177,7 +177,55 @@ namespace Inferno::Editor {
             return faces;
         }
 
-        List<Tag> GetMarkedFaces() { return GetMarkedFaces(Settings::Editor.SelectionMode); }
+        List<Tag> GetMarkedFaces() const { return GetMarkedFaces(Settings::Editor.SelectionMode); }
+
+        // Returns the geometric center of the active marks
+        Vector3 GetMarkedCenter(SelectionMode mode, Level& level) const {
+            Vector3 center;
+            int count = 0;
+
+            switch (mode) {
+                case SelectionMode::Segment:
+                    for (auto& id : Segments) {
+                        if (auto seg = level.TryGetSegment(id)) {
+                            center += seg->Center;
+                            count++;
+                        }
+                    }
+                    break;
+                case SelectionMode::Edge:
+                case SelectionMode::Point:
+                    for (auto& id : Points) {
+                        if (auto v = level.TryGetVertex(id)) {
+                            center += *v;
+                            count++;
+                        }
+                    }
+                    break;
+                case SelectionMode::Face:
+                    for (auto& face : Faces) {
+                        if (auto f = level.TryGetSide(face)) {
+                            center += f->Center;
+                            count++;
+                        }
+                    }
+                    break;
+
+                case SelectionMode::Object:
+                    for (auto& id : Objects) {
+                        if (auto o = level.TryGetObject(id)) {
+                            center += o->Position;
+                            count++;
+                        }
+                    }
+                    break;
+            }
+
+            if (count > 0)
+                center /= (float)count;
+
+            return center;
+        }
 
         // Adjusts remaining selection after removing a segment
         void RemoveSegment(SegID id) {
