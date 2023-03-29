@@ -967,6 +967,7 @@ namespace Inferno::Editor {
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
         JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Extrude Segment";
     }
 
@@ -977,6 +978,7 @@ namespace Inferno::Editor {
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
         JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Insert Segment";
     }
 
@@ -987,6 +989,7 @@ namespace Inferno::Editor {
         Selection.SetSelection({ newSeg, Selection.Side });
         auto nearby = GetNearbySegments(Game::Level, newSeg);
         JoinTouchingSegments(Game::Level, Selection.Segment, nearby, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Mirror Segment";
     }
 
@@ -1017,6 +1020,7 @@ namespace Inferno::Editor {
         ResetSegmentUVs(Game::Level, newSegs);
         auto segFaces = FacesForSegments(newSegs);
         JoinTouchingSegmentsExclusive(Game::Level, segFaces, Settings::Editor.CleanupTolerance);
+        Events::LevelChanged();
         return "Extrude Faces";
     }
 
