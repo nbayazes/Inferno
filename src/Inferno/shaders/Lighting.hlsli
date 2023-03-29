@@ -29,14 +29,14 @@ float3 fresnelSchlick(float3 F0, float dotProd) {
 }
 
 float3 ApplyLightCommon(
-    float3 diffuseColor, // Diffuse albedo
+    float3 diffuseColor,  // Diffuse albedo
     float3 specularColor, // Specular albedo
-    float specularMask, // Where is it shiny or dingy?
-    float gloss, // Specular power
-    float3 normal, // World-space normal
-    float3 viewDir, // World-space vector from eye to point
-    float3 lightDir, // World-space vector from point to light
-    float3 lightColor // Radiance of light
+    float specularMask,   // Where is it shiny or dingy?
+    float gloss,          // Specular power
+    float3 normal,        // World-space normal
+    float3 viewDir,       // World-space vector from eye to point
+    float3 lightDir,      // World-space vector from point to light
+    float3 lightColor     // Radiance of light
 ) {
     float3 halfVec = normalize(lightDir - viewDir);
     float nDotH = saturate(dot(halfVec, normal));
@@ -112,12 +112,12 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
 float3 ApplyPointLight(
     float3 diffuse,
     float3 specularColor, // Specular albedo
-    float specularMask, // Where is it shiny or dingy?
-    float roughness, // Specular power
-    float3 normal, // World-space normal
-    float3 viewDir, // World-space vector from eye to point
-    float3 worldPos, // World-space fragment position
-    float3 lightPos, // World-space light position
+    float specularMask,   // Where is it shiny or dingy?
+    float roughness,      // Specular power
+    float3 normal,        // World-space normal
+    float3 viewDir,       // World-space vector from eye to point
+    float3 worldPos,      // World-space fragment position
+    float3 lightPos,      // World-space light position
     float lightRadiusSq,
     float3 lightColor // Radiance of directional light
 ) {
@@ -134,7 +134,7 @@ float3 ApplyPointLight(
 
     float3 halfVec = normalize(lightDir - viewDir);
     float nDotH = saturate(dot(halfVec, normal));
-    
+
     float gloss = RoughnessToGloss(pow(roughness, 1.5));
     float nDotL = saturate(dot(normal, lightDir));
 
@@ -147,14 +147,14 @@ float3 ApplyPointLight(
 
 
 float3 ApplySphereLight(
-    float3 diffuseColor, // Diffuse albedo
+    float3 diffuseColor,  // Diffuse albedo
     float3 specularColor, // Specular albedo
-    float specularMask, // Where is it shiny or dingy?
-    float gloss, // Specular power
-    float3 normal, // World-space normal
-    float3 viewDir, // World-space vector from eye to point
-    float3 worldPos, // World-space fragment position
-    float3 lightPos, // World-space light position
+    float specularMask,   // Where is it shiny or dingy?
+    float gloss,          // Specular power
+    float3 normal,        // World-space normal
+    float3 viewDir,       // World-space vector from eye to point
+    float3 worldPos,      // World-space fragment position
+    float3 lightPos,      // World-space light position
     float sphereRadius,
     float lightRadiusSq,
     float3 lightColor // Radiance of directional light
@@ -261,15 +261,15 @@ float4 LineLight(float3 p, float3 n, float3 v, float3 r, float3 f0, float roughn
 
 
 float3 ApplyCylinderLight(
-    float3 diffuseColor, // Diffuse albedo
+    float3 diffuseColor,  // Diffuse albedo
     float3 specularColor, // Specular albedo
-    float specularMask, // Where is it shiny or dingy?
-    float gloss, // Specular power
-    float3 normal, // World-space normal
-    float3 viewDir, // World-space vector from eye to point
-    float3 worldPos, // World-space fragment position
-    float3 lightPos, // World-space light position start
-    float3 lightPos2, // World-space light position end
+    float specularMask,   // Where is it shiny or dingy?
+    float gloss,          // Specular power
+    float3 normal,        // World-space normal
+    float3 viewDir,       // World-space vector from eye to point
+    float3 worldPos,      // World-space fragment position
+    float3 lightPos,      // World-space light position start
+    float3 lightPos2,     // World-space light position end
     float lightRadiusSq,
     float3 lightColor // Radiance of directional light
 ) {
@@ -366,8 +366,8 @@ float normalDistributionGGXRect(float NdotH, float alpha, float alphaPrime) {
     return (alpha2 * alphaPrime3) / (pow(NdotH2 * (alpha2 - 1.) + 1., 2.));
 }
 
-float3 CalculatePlaneIntersection(float3 viewPosition, float3 reflectionVector, float3 lightDirection, float3 rectangleLightCenter) {
-    return viewPosition + reflectionVector * (dot(lightDirection, rectangleLightCenter - viewPosition) / dot(lightDirection, reflectionVector));
+float3 IntersectPlane(float3 rayPos, float3 rayDir, float3 lightDir, float3 lightPos) {
+    return rayPos + rayDir * (dot(lightDir, lightPos - rayPos) / dot(lightDir, rayDir));
 }
 
 float PlaneDistance(float3 pt, float3 origin, float3 normal) {
@@ -384,6 +384,7 @@ float3 ClosestPointOnLine(float3 p, float3 a, float3 b) {
 float3 LengthSq(float3 v) {
     return dot(v, v);
 }
+
 
 float3 ClosestPointOnRectangle(float3 pt, float3 origin, float3 normal, float3 right, float3 up) {
     //normal = float3(-1, 0, 0);
@@ -439,10 +440,10 @@ float3 ClosestPointOnRectangle(float3 pt, float3 origin, float3 normal, float3 r
 float3 ApplyRectLight2(
     float3 diffuse,
     float3 specularColor, // Specular albedo
-    float specularMask, // Where is it shiny or dingy?
+    float specularMask,   // Where is it shiny or dingy?
     float roughness,
-    float3 normal, // World-space normal
-    float3 viewDir, // World-space vector from eye to point
+    float3 normal,   // World-space normal
+    float3 viewDir,  // World-space vector from eye to point
     float3 worldPos, // World-space fragment position
     float3 lightPos, // World-space light position
     float lightRadiusSq,
@@ -462,35 +463,34 @@ float3 ApplyRectLight2(
     float3 surfaceOffset = planeNormal * 3;
     float vWidth = length(planeRight);
     float vHeight = length(planeUp);
-    float3 closestDiffusePoint = ClosestPointOnRectangle(worldPos, lightPos + surfaceOffset, planeNormal, planeRight, planeUp);
-
     planeRight = normalize(planeRight);
     planeUp = normalize(planeUp);
 
-    //float windingCheck = dot(cross(planeRight, planeUp), lightPos - worldPos);
+    // find the closest point on the rectangle
+    float3 diffPlaneIntersect = IntersectPlane(worldPos, planeNormal, planeNormal, lightPos);
+    float3 diffDir = diffPlaneIntersect - lightPos;
+    float2 diffPlanePoint = float2(dot(diffDir, planeRight),
+                                   dot(diffDir, planeUp));
+    float2 nearestDiffPoint = float2(clamp(diffPlanePoint.x, -vWidth, vWidth),
+                                     clamp(diffPlanePoint.y, -vHeight, vHeight));
+    float3 closestDiffusePoint = lightPos + planeRight * nearestDiffPoint.x + planeUp * nearestDiffPoint.y;
+    closestDiffusePoint += surfaceOffset;
 
     float3 specular = float3(0, 0, 0);
 
     {
         // Calculate specular
-        const float3 vLight = lightPos - worldPos;
-
-        // find the closest point on the rectangle
         float3 r = reflect(viewDir, normal);
-        float3 reflectedIntersect = CalculatePlaneIntersection(worldPos, r, planeNormal, lightPos);
+        float3 reflectedIntersect = IntersectPlane(worldPos, r, planeNormal, lightPos);
 
         // We then find the difference between that point and the center of the light,
         // and find that result represented in the 2D space on the light's plane in view space.
         float3 reflectedDir = reflectedIntersect - lightPos;
         float2 reflectedPlanePoint = float2(dot(reflectedDir, planeRight),
                                             dot(reflectedDir, planeUp));
-        //bool outside =
-        //    intersectPlanePoint.x > vWidth || intersectPlanePoint.x < -vWidth ||
-        //    intersectPlanePoint.y > vHeight || intersectPlanePoint.y < -vHeight;
 
         float2 nearestReflectedPoint = float2(clamp(reflectedPlanePoint.x, -vWidth, vWidth),
                                               clamp(reflectedPlanePoint.y, -vHeight, vHeight));
-        //float2 c = min(abs(reflectedPlanePoint), float2(vWidth, vHeight)) * sign(reflectedPlanePoint);
 
         // fade out the specularity as it gets further from the reflected plane
         float planeFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * pow(1 - roughness, 2.2));
@@ -500,7 +500,6 @@ float3 ApplyRectLight2(
         float3 h = normalize(viewDir - normalize(l)); // half angle
         //float lightDist = length(L);
 
-        //specFactor *= 1 + pow(1 - vDotH, 5) * 2; // fresnel (boosted)
         //float nDotH = max(dot(normal, h), 0); // half angle
         //float vDotH = dot(h, viewDir);
 
@@ -515,11 +514,12 @@ float3 ApplyRectLight2(
 
         //float3 halfVec = normalize(lightDir - viewDir);
         specFactor *= 1 + pow(1 - saturate(dot(viewDir, h)), 5); // fresnel
-        
+
         // fade out specular as it gets closer to view angle
         float viewFactor = dot(cross(planeRight, planeUp), l);
         specFactor *= saturate(viewFactor - 1.3);
 
+        const float3 vLight = lightPos - worldPos;
         float rDotL = dot(r, normalize(vLight));
         specFactor *= SpecularMultFromRoughness(roughness);
         specular = specFactor * rDotL * specularColor;
@@ -529,7 +529,7 @@ float3 ApplyRectLight2(
     //    falloff = 0; // Don't show specular on surfaces behind the light
 
     //gloss = ClampGloss(gloss, lightDistSq);
-    float nDotL2 = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
+    float nDotL = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
     float lightRadius = sqrt(lightRadiusSq);
     // subtract the light's rectangular area from the light radius so it doesn't extend past the cull radius. 1.5 is diagonal distance.
     lightRadiusSq = pow(lightRadius + max(vWidth, vHeight), 2);
@@ -543,19 +543,18 @@ float3 ApplyRectLight2(
     falloff = falloff - rsqrt(falloff);
     falloff = clamp(falloff, 0, 15); // clamp nearby surface distance to prevent hotspots
 
-    //falloff * nDotL * lightColor * diffuse
-    return max(0, falloff * (lightColor * nDotL2 * diffuse + specular));
+    return max(0, falloff * (lightColor * nDotL * diffuse + specular));
 }
 
 float3 ApplyRectLight(
-    float3 diffuseColor, // Diffuse albedo
+    float3 diffuseColor,  // Diffuse albedo
     float3 specularColor, // Specular albedo
-    float specularMask, // Where is it shiny or dingy?
-    float gloss, // Specular power
-    float3 normal, // World-space normal
-    float3 viewDir, // World-space vector from eye to point
-    float3 worldPos, // World-space fragment position
-    float3 lightPos, // World-space light position
+    float specularMask,   // Where is it shiny or dingy?
+    float gloss,          // Specular power
+    float3 normal,        // World-space normal
+    float3 viewDir,       // World-space vector from eye to point
+    float3 worldPos,      // World-space fragment position
+    float3 lightPos,      // World-space light position
     float lightRadiusSq,
     float3 lightColor, // Radiance of light
     float3 planeNormal,
@@ -610,7 +609,7 @@ float3 ApplyRectLight(
     {
         // find the closest point on the rectangle
         float3 r = reflect(viewDir, normal);
-        float3 intersectPoint = CalculatePlaneIntersection(worldPos, r, planeNormal, lightPos);
+        float3 intersectPoint = IntersectPlane(worldPos, r, planeNormal, lightPos);
 
         // We then find the difference between that point and the center of the light,
         // and find that result represented in the 2D space on the light's plane in view space.
