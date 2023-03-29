@@ -23,7 +23,7 @@ namespace Inferno::Editor {
             ImGui::Text("Version %s", VERSION_STRING);
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
-            ImGui::Text((char*)u8"© 2022 Nicholas Bayazes");
+            ImGui::Text((char*)u8"© 2023 Nicholas Bayazes");
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::PushStyleColor(ImGuiCol_Button, { 0, 0, 0, 0 });
