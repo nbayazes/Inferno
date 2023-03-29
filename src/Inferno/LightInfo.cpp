@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Yaml.h"
 #include "LightInfo.h"
+#include "Resources.h"
 
 using namespace Yaml;
 
@@ -53,6 +54,17 @@ namespace Inferno {
         ReadValue(node["Metalness"], info.Metalness);
         ReadValue(node["Roughness"], info.Roughness);
         materials[id] = info;
+
+        //auto& eclip = Resources::GetEffectClip(id);
+        //for (auto frame : eclip.VClip.GetFrames()) {
+        //    materials[frame] = info; // copy info to frames of the effect if present
+        //}
+
+        auto dclipId = Resources::GetDoorClipID(Resources::LookupLevelTexID(id));
+        auto& dclip = Resources::GetDoorClip(dclipId);
+        for (auto frame : dclip.GetFrames()) {
+            materials[Resources::LookupTexID(frame)] = info; // copy info to frames of door
+        }
     }
 
     ExtendedTextureInfo ExtendedTextureInfo::Load(const string& data) {

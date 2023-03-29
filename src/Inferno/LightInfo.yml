@@ -167,15 +167,15 @@ Materials:
 
     - TexID: 1015 # metal bar
       NormalStrength: 0.5
-      Roughness: 0.8
-      Metalness: 0.3
-      SpecularStrength: 3
+      Roughness: 0.6
+      Metalness: 0.9
+      SpecularStrength: 1
 
     - TexID: 1016 # metal bar
       NormalStrength: 0.5
-      Roughness: 0.8
-      Metalness: 0.3
-      SpecularStrength: 3
+      Roughness: 0.6
+      Metalness: 0.9
+      SpecularStrength: 1
 
     - TexID: 967 # light strip
       NormalStrength: 0.25
@@ -589,12 +589,32 @@ Materials:
 
     - TexID: 18 # metal wall
       NormalStrength: 0.2
-      Roughness: 0.6
+      Roughness: 0.7
       Metalness: 1
+
+    - TexID: 941 # metal wall
+      NormalStrength: 0.2
+      Roughness: 0.7
+      Metalness: 0.9      
 
     - TexID: 877 # metal wall
       NormalStrength: 0.2
       Roughness: 0.6
+      Metalness: 1
+
+    - TexID: 878 # metal wall
+      NormalStrength: 0.2
+      Roughness: 0.7
+      Metalness: 1
+
+    - TexID: 1011 # ladder
+      NormalStrength: 0.2
+      Roughness: 0.65
+      Metalness: 1
+
+    - TexID: 1012 # ladder
+      NormalStrength: 0.2
+      Roughness: 0.65
       Metalness: 1
 
     - TexID: 907 # metal wall
@@ -741,15 +761,88 @@ Materials:
 
     - TexID: 1084 # reactor wall
       NormalStrength: 0.2
-      SpecularStrength: 1
       Roughness: 0.7
       Metalness: 0.9
 
     - TexID: 1092 # reactor wall
       NormalStrength: 0.2
-      SpecularStrength: 1
-      Roughness: 0.6
+      Roughness: 0.7
       Metalness: 0.9
+
+    - TexID: 1100 # reactor wall
+      NormalStrength: 0.2
+      Roughness: 0.7
+      Metalness: 0.9
+    - TexID: 1108 # reactor wall
+      NormalStrength: 0.2
+      Roughness: 0.7
+      Metalness: 0.9
+
+    - TexID: 940 # pipes
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.7
+
+    - TexID: 942 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+    - TexID: 943 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+    - TexID: 944 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+    - TexID: 945 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+    - TexID: 946 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5                        
+    - TexID: 956 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5      
+    - TexID: 957 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+    - TexID: 958 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+    - TexID: 959 # color metal wall
+      NormalStrength: 0.8
+      Roughness: 0.6
+      Metalness: 0.5
+
+    - TexID: 1038 # energy center gold
+      NormalStrength: 1
+      Roughness: 0.5
+      Metalness: 1
+      SpecularStrength: 1
+    - TexID: 1017 # energy center grey
+      NormalStrength: 1
+      Roughness: 0.5
+      Metalness: 1
+      SpecularStrength: 1
+
+    - TexID: 1124 # Matcen
+      NormalStrength: 0.5
+      Roughness: 0.7
+      Metalness: 0.4
+    - TexID: 1116 # Matcen
+      NormalStrength: 0.5
+      Roughness: 0.7
+      Metalness: 0.4
+    - TexID: 1031 # Matcen
+      NormalStrength: 0.5
+      Roughness: 0.7
+      Metalness: 0.4
 
     - TexID: 1080 # Lava
       NormalStrength: 0.2
