@@ -947,9 +947,9 @@ LevelTextures:
     # Door strips
     - ID: 250 # white
       Type: 2
-      Points: '0.15, 0'
+      Points: '0.125, 0'
       Wrap: 2
-      Width: 0.25
+      Width: 0.02
       Offset: 0.0
       Color: '0.85, 0.80, 0.80'
       Radius: 25
@@ -958,7 +958,7 @@ LevelTextures:
       Type: 2
       Points: '0.125, 0'
       Wrap: 2
-      Width: 0.5
+      Width: 0.2
       Offset: 0.01
       Color: '0.9, 0.0, 0.0'
       Radius: 25
@@ -967,7 +967,7 @@ LevelTextures:
       Type: 2
       Points: '0.125, 0'
       Wrap: 2
-      Width: 0.5
+      Width: 0.02
       Offset: 0.01
       Color: '0.05, 0.05, 1.0'
       Radius: 25
@@ -976,7 +976,7 @@ LevelTextures:
       Type: 2
       Points: '0.125, 0'
       Wrap: 2
-      Width: 0.5
+      Width: 0.02
       Offset: 0.01
       Radius: 25
       Color: '0.85, 0.85, 0.1'
@@ -985,16 +985,16 @@ LevelTextures:
     - ID: 264
       Type: 2
       Points: '0.5, 0.5'
-      Width: 4
-      Height: 4
+      Width: .2
+      Height: .2
       Radius: 50
       Offset: 0.01
 
     - ID: 281
       Type: 2
       Points: '0.5, 0.5'
-      Width: 4
-      Height: 4
+      Width: 0.2
+      Height: 0.2
       Radius: 40
       Color: '0.7, 0.7, 0.875' # very cool
       Offset: 0
@@ -1015,8 +1015,8 @@ LevelTextures:
       Points:
         - '0.5, 0.25'
         - '0.5, 0.75'
-      Width: 4
-      Height: 2
+      Width: .2
+      Height: .1
       Color: '0.25, 0.25, 0.28' # cooler
       Offset: 0.01
       Radius: 40
@@ -1036,9 +1036,9 @@ LevelTextures:
       Points:
         - '0.075, 0.5'
         - '0.925, 0.5'
-      Width: 0.05
+      Width: 0.015
       Wrap: 2
-      Offset: 0.01
+      Offset: 0.05
       Color: '0.1, 0.1, 0.15'
       Radius: 15
   
@@ -1048,17 +1048,17 @@ LevelTextures:
         - '0.05, 0.4'
         - '0.95, 0.4'
       Width: 0.05
-      Height: 0.4
+      Height: 0.02
       Offset: 0.01
   
     # Strip lights with the same heights
     - ID: 286
       Type: 2
       Points:
-        - '0.5, 0.24'
-        - '0.5, 0.76'
-      Width: 6
-      Height: 0.5
+        - '0.5, 0.23'
+        - '0.5, 0.75'
+      Width: .32
+      Height: 0.05
       Color: '0.3, 0.3, 0.4'
       Offset: 0.01
       Radius: 30
@@ -1066,20 +1066,20 @@ LevelTextures:
     - ID: 287
       Type: 2
       Points: 
-        - '0.5, 0.30'
-        - '0.5, 0.70'
-      Width: 4
-      Height: 1 
+        - '0.55, 0.23'
+        - '0.55, 0.75'
+      Width: .35
+      Height: .05 
       Color: '0.15, 0.15, 0.20'
       Offset: 0.01
   
     - ID: 288
       Type: 2
       Points:
-        - '0.5, 0.30'
-        - '0.5, 0.70'
-      Width: 2
-      Height: 0.5  
+        - '0.5, 0.23'
+        - '0.5, 0.75'
+      Width: .2
+      Height: 0.025
       Wrap: 1
       Color: '0.15, 0.15, 0.20'
       Offset: 0.01
@@ -1087,10 +1087,10 @@ LevelTextures:
     - ID: 292
       Type: 2
       Points:
-        - '0.5, 0.30'
-        - '0.5, 0.70'
-      Width: 2
-      Height: 0.5  
+        - '0.75, 0.23'
+        - '0.75, 0.75'
+      Width: .2
+      Height: 0.05
       Color: '0.15, 0.15, 0.20'
       Offset: 0.01
   
@@ -1102,7 +1102,15 @@ LevelTextures:
       Offset: 10
       Color: '0.1, 0.00, 0.00'
       Radius: 50
-  
+
+    - ID: 355 # lavafall
+      Type: 2
+      Width: .2
+      Wrap: 2
+      Color: '0.1, 0.00, 0.00'
+      Offset: 0
+      #Radius: 50
+
     # remove lights from reactor walls as emissives work better
     - ID: 334
       Points: []

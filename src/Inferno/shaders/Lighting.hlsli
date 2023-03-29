@@ -455,7 +455,7 @@ float3 ApplyRectLight2(
     // https://www.shadertoy.com/view/3dsBD4
     specularColor *= 0.2; // tweak to match point lights
 
-    lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
+    //lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
@@ -665,7 +665,7 @@ uint FrameIndexMod2;
 }
 
 static const float DIFFUSE_MULT = 0.5;
-static const float METAL_DIFFUSE_FACTOR = 0.7;
+static const float METAL_DIFFUSE_FACTOR = 1;
 static const float METAL_SPECULAR_FACTOR = 10;
 
 void ShadeLights(inout float3 colorSum,

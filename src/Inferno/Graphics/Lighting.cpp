@@ -132,6 +132,33 @@ namespace Inferno::Graphics {
         return weights;
     }
 
+    Vector3 PositionAtUV(const Face& face, int tri, Vector2 uv) {
+        auto indices = face.Side.GetRenderIndices();
+
+        Vector2 uvs[3];
+        for (int i = 0; i < 3; i++) {
+            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
+        }
+
+        // https://math.stackexchange.com/a/28552
+        // Vectors of two edges
+        auto vec0 = uvs[1] - uvs[0];
+        auto vec1 = uvs[2] - uvs[0];
+        auto vecPt = uv - uvs[0];
+
+        auto normal = vec0.Cross(vec1);
+
+        // solve barycentric weights
+        auto g = (vecPt.Cross(vec0) / -normal).x;
+        auto f = (vecPt.Cross(vec1) / normal).x;
+
+        // project UV to world using barycentric weights
+        auto& v0 = face[indices[tri * 3 + 0]];
+        auto& v1 = face[indices[tri * 3 + 1]];
+        auto& v2 = face[indices[tri * 3 + 2]];
+        return Vector3::Barycentric(v0, v1, v2, f, g);
+    }
+
     Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv) {
         auto indices = face.Side.GetRenderIndices();
 
@@ -187,8 +214,8 @@ namespace Inferno::Graphics {
     List<LightData> GatherLightSources(Level& level, float multiplier = 1, float defaultRadius = 20) {
         List<LightData> sources;
 
-        TextureLightInfo defaultInfo{ .Radius = defaultRadius };
         // The empty light texture is only used for ambient lighting
+        TextureLightInfo defaultInfo{ .Radius = defaultRadius };
 
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
@@ -247,6 +274,16 @@ namespace Inferno::Graphics {
                 if (isFarFromEdge(maxUV.y)) yMax += 1;
 
                 float overlayAngle = useOverlay ? GetOverlayRotationAngle(side.OverlayRotation) : 0;
+
+                constexpr float SAMPLE_DIST = 0.1f;
+                auto getUVScale = [&face](const Vector3& pos, Vector2 uv) {
+                    auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
+                    auto upPos = FaceContainsUV(face, uv + Vector2(0, SAMPLE_DIST));
+                    if (!rightPos || !upPos) return Vector2(1, 1);
+                    auto widthScale = (*rightPos - pos).Length() / SAMPLE_DIST;
+                    auto heightScale = (*upPos - pos).Length() / SAMPLE_DIST;
+                    return Vector2(widthScale, heightScale);
+                };
 
                 Vector2 prevIntersects[2];
 
@@ -315,20 +352,25 @@ namespace Inferno::Graphics {
                                     uvIntVec.Normalize();
                                     constexpr float uvIntOffset = 0.01;
 
-                                    auto pos = FaceContainsUV(face, intersects[0] + uvIntVec * uvIntOffset);
-                                    auto pos2 = FaceContainsUV(face, intersects[1] - uvIntVec * uvIntOffset);
+                                    auto uvEdge0 = intersects[0] + uvIntVec * uvIntOffset;
+                                    auto uvEdge1 = intersects[1] - uvIntVec * uvIntOffset;
+                                    auto pos = FaceContainsUV(face, uvEdge0);
+                                    auto pos2 = FaceContainsUV(face, uvEdge1);
 
                                     if (pos && pos2) {
                                         // 'up' is the wrapped axis
-                                        auto up = (*pos2 - *pos) / 2;
+                                        auto delta = *pos2 - *pos;
+                                        auto up = delta / 2;
                                         auto center = (*pos2 + *pos) / 2;
                                         Vector3 upVec;
                                         up.Normalize(upVec);
                                         auto rightVec = side.AverageNormal.Cross(upVec);
+                                        auto centerUv = (uvEdge0 + uvEdge1) / 2;
+                                        auto uvScale = getUVScale(*pos, centerUv);
 
                                         light.type = LightType::Rectangle;
                                         light.pos = center + side.AverageNormal * info->Offset;
-                                        light.right = rightVec * info->Width;
+                                        light.right = rightVec * info->Width * uvScale.x;
                                         light.up = up;
                                         light.up -= upVec * 1; // offset the ends to prevent hotspots
                                         sources.push_back(light);
@@ -345,20 +387,30 @@ namespace Inferno::Graphics {
 
                                 // Check both faces
                                 auto pos = FaceContainsUV(face, uv);
-                                auto rightPos = FaceContainsUV(face, uv + Vector2(0.1, 0));
+      
+                                // Sample points near the light position to determine UV scale
+                                auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
 
                                 if (pos && rightPos) {
-                                    // todo: scale right / up as a UV on the face
                                     auto rightVec = *rightPos - *pos;
                                     rightVec.Normalize();
+
                                     auto upVec = side.AverageNormal.Cross(rightVec);
-                                    //auto upVec = rightVec.Cross(side.AverageNormal);
                                     upVec.Normalize();
+
+                                    // Rotate the direction vectors to match the overlay
+                                    if (useOverlay && overlayAngle != 0) {
+                                        auto rotation = Matrix::CreateFromAxisAngle(side.AverageNormal, -overlayAngle);
+                                        upVec = Vector3::Transform(upVec, rotation);
+                                        rightVec = Vector3::Transform(rightVec, rotation);
+                                    }
+
+                                    auto uvScale = getUVScale(*pos, uv);
 
                                     // sample points close to the uv to get up/right axis
                                     light.pos = *pos + side.AverageNormal * info->Offset;
-                                    light.right = rightVec * info->Width;
-                                    light.up = -upVec * info->Height; // reverse for some reason
+                                    light.right = rightVec * info->Width * uvScale.x;
+                                    light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
                                     sources.push_back(light);
                                 }
                             }
