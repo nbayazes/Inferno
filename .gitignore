@@ -352,3 +352,4 @@ healthchecksdb
 /vcpkg_installed/x64-windows
 inferno.cfg
 imgui.ini
+/src/Inferno/tony_mc_mapface.dds

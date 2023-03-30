@@ -58,17 +58,16 @@ cbuffer InstanceConstants : register(b1) {
 };
 
 struct LevelVertex {
-    float3 pos : POSITION;
-    float4 col : COLOR0;
+    centroid float3 pos : POSITION;
+    centroid float4 col : COLOR0;
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
-    // tangent, bitangent
 };
 
 struct PS_INPUT {
-    float4 pos : SV_POSITION;
-    float4 col : COLOR0;
+    centroid float4 pos : SV_POSITION;
+    centroid float4 col : COLOR0;
     float2 uv : TEXCOORD0;
     float2 uv2 : TEXCOORD1;
     float3 normal : NORMAL;
