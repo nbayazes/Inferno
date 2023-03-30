@@ -373,6 +373,13 @@ namespace Inferno::Editor {
             side->TMap2 = data.Side.TMap2;
             side->OverlayRotation = data.Side.OverlayRotation;
 
+            side->LockLight = data.Side.LockLight;
+            side->LightOverride = data.Side.LightOverride;
+            side->LightRadiusOverride = data.Side.LightRadiusOverride;
+            side->LightPlaneOverride = data.Side.LightPlaneOverride;
+            side->DynamicMultiplierOverride = data.Side.DynamicMultiplierOverride;
+            side->EnableOcclusion = data.Side.EnableOcclusion;
+
             if (data.Wall)
                 AddWall(level, id, data.Wall->Type, side->TMap, side->TMap2, data.Wall->Flags);
 
