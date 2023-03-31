@@ -47,11 +47,10 @@ PS_INPUT vsmain(VS_INPUT input) {
     return output;
 }
 
-float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
+float3 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
     float3 r = reflect(lightDir, normal);
     float3 theta = dot(r, eyeDir);
-    float3 specular = 1 + pow(saturate(theta), 4);
-    return float4(specular, 1);
+    return 1 + pow(saturate(theta), 4);
 }
 
 float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {

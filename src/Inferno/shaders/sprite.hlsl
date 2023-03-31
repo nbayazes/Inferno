@@ -56,7 +56,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //(1 - (1 - 2 * target - 0.5)) * (1 - blend)
     //diffuse.rgb += clamp(diffuse.rgb - 0.5, 0, 1) * clamp(diffuse.rgb - 0.5, 0, 1);
     
-    float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize);
+    float sceneDepth = Depth.Sample(Sampler, (input.pos.xy + 0.5) / FrameSize).x;
     if (sceneDepth <= 0.0f)
         return diffuse; // don't apply softening to particles against the background
     

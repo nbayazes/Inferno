@@ -104,7 +104,7 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal, float power) {
 }
 
 float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
-    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / FrameSize);
+    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / FrameSize).x;
     float f = saturate((((end - start) / FarClip) - depth) / ((end - start) / FarClip));
     //float f = saturate(1 / exp(pow(depth * 5, 2)));
     return f * pixel + (1 - f) * fogColor;
@@ -123,7 +123,7 @@ float rand2(float2 co) {
 float hash12(float2 p) {
     float3 p3 = frac(float3(p.xyx) * .1031);
     p3 += dot(p3, p3.yzx + 33.33);
-    return frac((p3.x + p3.y) * p3.z).xxx;
+    return frac((p3.x + p3.y) * p3.z).x;
 }
 
 float Noise(float2 st) {
@@ -191,8 +191,8 @@ float3 TextureNoTile(Texture2D tex, float2 uv, float3 pos, float v) {
     //float3 colb = tex.SampleGrad(LinearSampler, uv + v * offb, duvdx, duvdy);
     //float3 cola = Sample2DAA(tex, uv + v * offa);
     //float3 colb = Sample2DAA(tex, uv + v * offb);
-    float3 cola = tex.Sample(Sampler, uv + v * offa);
-    float3 colb = tex.Sample(Sampler, uv + v * offb);
+    float3 cola = tex.Sample(Sampler, uv + v * offa).rgb;
+    float3 colb = tex.Sample(Sampler, uv + v * offb).rgb;
 
     float3 diff = cola - colb;
     float sum = diff.x + diff.y + diff.z;

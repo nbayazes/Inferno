@@ -418,11 +418,11 @@ float3 ClosestPointOnRectangle(float3 pt, float3 origin, float3 normal, float3 r
     float3 p2 = ClosestPointOnLine(pt, v2, v3);
     float3 p3 = ClosestPointOnLine(pt, v3, v0);
 
-    float len0 = LengthSq(p0 - pt);
-    float len1 = LengthSq(p1 - pt);
-    float len2 = LengthSq(p2 - pt);
-    float len3 = LengthSq(p3 - pt);
-    float len4 = LengthSq(origin - pt);
+    float len0 = LengthSq(p0 - pt).x;
+    float len1 = LengthSq(p1 - pt).x;
+    float len2 = LengthSq(p2 - pt).x;
+    float len3 = LengthSq(p3 - pt).x;
+    float len4 = LengthSq(origin - pt).x;
 
     float minLen = min(len0, min(len1, min(len2, min(len3, len4))));
     if (minLen == len0)

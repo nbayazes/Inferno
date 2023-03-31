@@ -25,7 +25,6 @@ float4 Sample2DAAData2(Texture2D tex, float2 uv, SamplerState texSampler) {
     float width, height;
     tex.GetDimensions(width, height);
     float2 texsize = float2(width, height);
-    float offset = 1 / (texsize * 2);
     float2 uvTex = uv * texsize;
     float2 seam = floor(uvTex + .5) + .5;
     //float2 dd = abs(ddx(uvTex)) + abs(ddy(uvTex));
@@ -36,13 +35,12 @@ float4 Sample2DAAData2(Texture2D tex, float2 uv, SamplerState texSampler) {
     uvTex = clamp(uvTex, seam - 1 , seam );
     //uv *= 0.5;
 
-    offset = 0;
     // what is half a pixel in uvs?
     // 1 / width
-    float4 color = tex.Sample(texSampler, uvTex / texsize + offset);
-    float4 x = tex.GatherRed(texSampler, uv + offset);
-    float4 y = tex.GatherGreen(texSampler, uv + offset);
-    float4 z = tex.GatherBlue(texSampler, uv + offset);
+    float4 color = tex.Sample(texSampler, uvTex / texsize);
+    float4 x = tex.GatherRed(texSampler, uv);
+    float4 y = tex.GatherGreen(texSampler, uv);
+    float4 z = tex.GatherBlue(texSampler, uv);
     color.r = (x.x + x.y + x.z + x.w) / 4;
     color.g = (y.x + y.y + y.z + y.w) / 4;
     color.b = (z.x + z.y + z.z + z.w) / 4;
