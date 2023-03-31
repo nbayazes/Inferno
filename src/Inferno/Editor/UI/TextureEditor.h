@@ -77,7 +77,7 @@ namespace Inferno::Editor {
                     ImGui::TableHeadersRow();
 
                     for (auto& id : _visibleTextures) {
-                        auto ti = Resources::GetTextureInfo(id);
+                        auto& ti = Resources::GetTextureInfo(id);
 
                         if (!searchstr.empty()) {
                             if (!String::Contains(String::ToLower(ti.Name), searchstr))

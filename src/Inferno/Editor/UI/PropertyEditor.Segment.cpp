@@ -371,6 +371,7 @@ namespace Inferno::Editor {
                         if (auto marked = level.TryGetSide(tag))
                             marked->LightOverride = side.LightOverride;
                     }
+                    Events::LevelChanged();
                 }
             }
 
@@ -948,6 +949,35 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Flags");
             ImGui::AlignTextToFramePadding();
             ImGui::Text(TextureFlagToString(lti.Flags).c_str());
+
+            if (auto material = TryGetValue(Resources::MaterialInfo.Materials, ti.ID)) {
+                ImGui::TableRowLabel("Roughness");
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::SliderFloat("##Roughness", &material->Roughness, 0, 1)) {
+                    material->Roughness = std::clamp(material->Roughness, 0.0f, 1.0f);
+                    Events::LevelChanged();
+                }
+
+                ImGui::TableRowLabel("Metalness");
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::SliderFloat("##Metalness", &material->Metalness, 0, 1)) {
+                    material->Metalness = std::clamp(material->Metalness, 0.0f, 1.0f);
+                    Events::LevelChanged();
+                }
+
+                ImGui::TableRowLabel("Normal");
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::SliderFloat("##Normal", &material->NormalStrength, -2, 2)) {
+                    Events::LevelChanged();
+                }
+
+                ImGui::TableRowLabel("Specular");
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::SliderFloat("##SpecularStrength", &material->SpecularStrength, 0, 2)) {
+                    material->SpecularStrength = std::max(material->SpecularStrength, 0.0f);
+                    Events::LevelChanged();                   
+                }
+            }
 
             ImGui::TreePop();
         }
