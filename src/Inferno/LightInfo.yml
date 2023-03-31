@@ -83,6 +83,8 @@ Materials:
       SpecularStrength: 1
       Metalness: 0.7
 
+    - TexID: 982 # broken light
+      NormalStrength: 0.2
     - TexID: 997 # light
       NormalStrength: 0.3
       SpecularStrength: 0
@@ -116,6 +118,7 @@ Materials:
     - TexID: 1030 # stripe
       NormalStrength: 0.05
       Roughness: 0.98
+      Metalness: 0.5
 
     - TexID: 1159 # monitor
       NormalStrength: 0.25
@@ -474,9 +477,9 @@ Materials:
 
     - TexID: 736 # Purple rock
       NormalStrength: 1.3
-      SpecularStrength: 0.6
+      SpecularStrength: 1
       Roughness: 0.6
-      Metalness: 0.75
+      Metalness: 0.9
 
     - TexID: 735 # Blueish rock
       NormalStrength: 0.6
@@ -484,40 +487,58 @@ Materials:
       Roughness: 0.85
 
     - TexID: 802 # dark blue rock
-      NormalStrength: 0.7
-      SpecularStrength: 1
-      Roughness: 0.85
-
-    - TexID: 986 # tile floor
-      NormalStrength: 1.2
-      SpecularStrength: 0.8
+      NormalStrength: -1
       Roughness: 0.65
 
+    - TexID: 986 # tile floor a
+      NormalStrength: 1.2
+      SpecularStrength: 0.8
+      Roughness: 0.60
+
+    - TexID: 990 # tile floor b
+      NormalStrength: 1.2
+      SpecularStrength: 0.8
+      Roughness: 0.60
+
+    - TexID: 1006 # tile floor a
+      NormalStrength: 1.0
+      SpecularStrength: 0.8
+      Roughness: 0.55
+
+    - TexID: 1007 # tile floor b
+      NormalStrength: 1.0
+      SpecularStrength: 0.8
+      Roughness: 0.55
+
     - TexID: 979 # rect tile floor
-      NormalStrength: 0.6
+      NormalStrength: 0.7
       SpecularStrength: 0.5
-      Roughness: 0.6
+      Roughness: 0.5
 
     - TexID: 987 # rect tile floor
-      NormalStrength: 0.5
+      NormalStrength: 0.2
       Roughness: 0.5
-      SpecularStrength: 0.5
     - TexID: 988 # rect tile floor
-      NormalStrength: 0.3
+      NormalStrength: 0.2
       Roughness: 0.5
-      SpecularStrength: 0.5
     - TexID: 989 # rect tile floor
-      NormalStrength: 0.3
+      NormalStrength: 0.2
       Roughness: 0.5
-      SpecularStrength: 0.5
     - TexID: 991 # rect tile floor
-      NormalStrength: 0.3
+      NormalStrength: 0.2
       Roughness: 0.5
-      SpecularStrength: 0.5
+
+    - TexID: 758 # brown tile floor
+      NormalStrength: 0.6
+      Roughness: 0.65
+      # invert
+
+    - TexID: 760 # tile floor
+      NormalStrength: 0.7
+      Roughness: 0.55
 
     - TexID: 992 # tile floor
       NormalStrength: 1
-      SpecularStrength: 1
       Roughness: 0.50
       Metalness: 0.3
 
@@ -548,6 +569,12 @@ Materials:
     - TexID: 902 # dark metal wall
       NormalStrength: 0.3
       Roughness: 0.5
+      SpecularStrength: 1
+      Metalness: 1
+
+    - TexID: 903 # dark metal wall
+      NormalStrength: 0.3
+      Roughness: 0.45
       SpecularStrength: 1
       Metalness: 1
 
@@ -605,6 +632,11 @@ Materials:
     - TexID: 878 # metal wall
       NormalStrength: 0.2
       Roughness: 0.7
+      Metalness: 1
+
+    - TexID: 879 # metal wall
+      NormalStrength: 0.3
+      Roughness: 0.6
       Metalness: 1
 
     - TexID: 1011 # ladder
@@ -674,24 +706,24 @@ Materials:
       Metalness: 0.9
 
     - TexID: 882 # metal wall with stripes
-      NormalStrength: 0.15
+      NormalStrength: 0.2
       Roughness: 0.7
-      Metalness: 0.8
+      Metalness: 0.9
 
     - TexID: 880 # metal wall
       NormalStrength: 0.2
-      Roughness: 0.7
+      Roughness: 0.6
       Metalness: 1
 
     - TexID: 881 # metal wall
-      NormalStrength: 0.3
+      NormalStrength: 0.2
       Roughness: 0.6
-      Metalness: 0.9
+      Metalness: 1
 
     - TexID: 887 # metal wall
-      NormalStrength: 0.3
-      Roughness: 0.6
-      Metalness: 0.9
+      NormalStrength: 0.10
+      Roughness: 0.45
+      Metalness: 1
 
     - TexID: 888 # metal wall
       NormalStrength: 0.3
@@ -709,7 +741,7 @@ Materials:
       Metalness: 0.9
       
     - TexID: 894 # tech metal wall
-      NormalStrength: 0.3
+      NormalStrength: -0.3
       Roughness: 0.5
       Metalness: 0.9
       SpecularStrength: 10
@@ -736,7 +768,7 @@ Materials:
 
     - TexID: 925 # metal wall
       NormalStrength: 0.20
-      Roughness: 0.7
+      Roughness: 0.55
       Metalness: 1
 
     - TexID: 928 # metal wall
@@ -746,12 +778,12 @@ Materials:
 
     - TexID: 929 # metal wall
       NormalStrength: 0.20
-      Roughness: 0.7
+      Roughness: 0.55
       Metalness: 1
 
     - TexID: 930 # metal wall
       NormalStrength: 0.20
-      Roughness: 0.7
+      Roughness: 0.55
       Metalness: 1
 
     - TexID: 935 # metal wall
@@ -856,9 +888,10 @@ Materials:
       NormalStrength: 0.2
       SpecularStrength: 0
 
-    - TexID: 1043
-      NormalStrength: 0.25
-      Roughness: 0.5
+    - TexID: 1043 # arrow
+      NormalStrength: -0.25
+      Roughness: 0.8
+      Metalness: 0.8
 
     - TexID: 947 # pink metal wall
       NormalStrength: 0.1
@@ -910,8 +943,8 @@ LevelTextures:
   
     - ID: 213
       Type: 2
-      Points: '0.75, 0.25'
-      Width: 0.25
+      Points: '0.775, 0.25'
+      Width: 0.1
       Height: 0.01
       Radius: 40
       Color: '0.1, 0.1, 0.3' # cooler
@@ -919,8 +952,8 @@ LevelTextures:
   
     - ID: 214
       Type: 2
-      Points: '0.25, 0.25'
-      Width: 0.25
+      Points: '0.225, 0.25'
+      Width: 0.1
       Height: 0.01
       Radius: 40
       Color: '0.1, 0.1, 0.3' # cooler
@@ -950,8 +983,8 @@ LevelTextures:
       Points: '0.125, 0'
       Wrap: 2
       Width: 0.01
-      Offset: 0.0
-      Color: '0.85, 0.80, 0.80'
+      Offset: 0
+      Color: '0.35, 0.30, 0.30'
       Radius: 25
   
     - ID: 251 # red
@@ -960,7 +993,7 @@ LevelTextures:
       Wrap: 2
       Width: 0.01
       Offset: 0.01
-      Color: '0.9, 0.0, 0.0'
+      Color: '0.8, 0.0, 0.0'
       Radius: 25
   
     - ID: 252 # blue
@@ -969,7 +1002,7 @@ LevelTextures:
       Wrap: 2
       Width: 0.01
       Offset: 0.01
-      Color: '0.05, 0.05, 1.0'
+      Color: '0.05, 0.05, .8'
       Radius: 25
   
     - ID: 253 # yellow
@@ -979,7 +1012,7 @@ LevelTextures:
       Width: 0.02
       Offset: 0.01
       Radius: 25
-      Color: '0.85, 0.85, 0.1'
+      Color: '0.45, 0.35, 0'
 
     # Ceiling lights
     - ID: 264
@@ -1039,8 +1072,8 @@ LevelTextures:
       Width: 0.015
       Wrap: 2
       Offset: 0.05
-      Color: '0.1, 0.1, 0.15'
-      Radius: 15
+      Color: '0.15, 0.15, 0.225'
+      Radius: 20
   
     - ID: 280
       Type: 2
@@ -1078,8 +1111,7 @@ LevelTextures:
       Points:
         - '0.5, 0.23'
         - '0.5, 0.75'
-      Width: .01
-      Height: 0.025
+      Width: .001
       Wrap: 1
       Color: '0.15, 0.15, 0.20'
       Offset: 0.01
@@ -1101,8 +1133,8 @@ LevelTextures:
     # lava
     - ID: 333
       Offset: 10
-      Color: '0.1, 0.00, 0.00'
-      Radius: 50
+      Color: '0.2, 0.00, 0.00'
+      Radius: 40
 
     - ID: 355 # lavafall
       Type: 2
@@ -1123,6 +1155,7 @@ LevelTextures:
       Points: []
 
     - ID: 328 # energy field
+      Color: '0.75f, 0.245f, 0.020f'
       Points: []      
 
 #    - ID: 343 # paired monitor
@@ -1160,3 +1193,9 @@ LevelTextures:
 #      Radius: 20
 #      Offset: 4
 
+    # - ID: 166 # monitor
+    #   Points:
+    #     - '0.5, 0.5'
+    #   Color: '0.05, 0.05, 0.05'
+    #   Radius: 15
+    #   Offset: 2

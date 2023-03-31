@@ -220,6 +220,24 @@ namespace Inferno::Graphics {
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
 
+            if(seg.Type == SegmentType::Energy) {
+                auto len = std::cbrt(seg.GetEstimatedVolume(level));
+
+                auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
+                auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, energyId);
+                auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
+
+                LightData light{};
+                light.color = color.ToVector3();
+                light.radiusSq = len * len;
+                light.type = LightType::Point;
+                light.pos = seg.Center;
+                light.normal = Vector3::Up;
+                light.right = Vector3::Right;
+                light.up = Vector3::Forward;
+                sources.push_back(light);
+            }
+
             for (auto& sideId : SideIDs) {
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
                 auto face = Face::FromSide(level, seg, sideId);
@@ -325,8 +343,8 @@ namespace Inferno::Graphics {
                                 //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
                                 //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
 
-                                uv0 -= uvVec * Vector2(10, 10);
-                                uv1 += uvVec * Vector2(10, 10);
+                                uv0 -= uvVec * Vector2(100, 100);
+                                uv1 += uvVec * Vector2(100, 100);
 
                                 int found = 0;
                                 Vector2 intersects[2];

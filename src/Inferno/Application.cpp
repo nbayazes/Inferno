@@ -64,7 +64,7 @@ void Application::Initialize(int width, int height) {
     Render::Initialize(Shell::Hwnd, width, height);
 
     Resources::LoadSounds();
-    //Resources::MountDescent3();
+    Resources::MountDescent3();
 
     Editor::Initialize();
 

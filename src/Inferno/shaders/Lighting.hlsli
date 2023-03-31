@@ -456,7 +456,7 @@ float3 ApplyRectLight2(
     // https://www.shadertoy.com/view/3dsBD4
     specularColor *= 0.2; // tweak to match point lights
 
-    //lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
+    lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
@@ -531,8 +531,8 @@ float3 ApplyRectLight2(
     //gloss = ClampGloss(gloss, lightDistSq);
     float nDotL = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
     float lightRadius = sqrt(lightRadiusSq);
-    // subtract the light's rectangular area from the light radius so it doesn't extend past the cull radius. 1.5 is diagonal distance.
-    lightRadiusSq = pow(lightRadius + max(vWidth, vHeight), 2);
+    // add the light's rectangular area to light radius so it doesn't extend past the cull radius. 1.5 is diagonal distance.
+    //lightRadiusSq = pow(lightRadius + sqrt(vWidth * vWidth + vHeight * vHeight), 2);
     float3 lightDir = closestDiffusePoint - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
 
@@ -543,6 +543,12 @@ float3 ApplyRectLight2(
     falloff = falloff - rsqrt(falloff);
     falloff = clamp(falloff, 0, 15); // clamp nearby surface distance to prevent hotspots
 
+    //float factor = lightDistSq / lightRadiusSq;
+    //float smoothFactor = max(1 - factor * factor, 0.0);
+    //falloff = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4);
+    //falloff = clamp(falloff * 200, 0, 15); // clamp nearby surface distance to prevent hotspots
+
+    //return falloff * lightColor;
     return max(0, falloff * (lightColor * nDotL * diffuse + specular));
 }
 
@@ -699,6 +705,8 @@ void ShadeLights(inout float3 colorSum,
             normal, viewDir, worldPos, light.pos,
             light.radiusSq, light.color * DIFFUSE_MULT
         );
+
+        //colorSum += float3(0.05, 0, 0);
 #elif 0
         float sphereRadius = 5;
         lightData.pos += float3(0, -6, 0); // shift to center
@@ -740,5 +748,6 @@ void ShadeLights(inout float3 colorSum,
             normal, viewDir, worldPos, light.pos,
             light.radiusSq, lightColor * DIFFUSE_MULT, light.normal, light.right, light.up
         );
+        //colorSum += float3(0.05, 0, 0);
     }
 }

@@ -215,8 +215,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
-    float3 normal = clamp(Sample2DAAData2(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
-    normal = clamp(Normal1.Sample(Sampler, input.uv) * 2 - 1, -1, 1);
+    //float3 normal = clamp(Sample2DAAData2(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
+    float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1);
     // Scale normal
     normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
@@ -244,7 +244,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float3 emissive = (Sample2DAA(Emissive, input.uv, LinearSampler)).rgb;
+    float3 emissive = (Sample2DAAData(Emissive, input.uv, LinearSampler)).rgb;
 
     MaterialInfo material = Mat1;
 
@@ -260,8 +260,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         emissive *= 1 - overlay.a; // Remove covered portion of emissive
 
         // linear sampler causes artifacts
-        float3 overlayNormal = clamp(Sample2DAAData2(Normal2, input.uv2, LinearSampler).rgb * 2 - 1, -1, 1);
-        overlayNormal = clamp(Normal2.Sample(Sampler, input.uv2).rgb * 2 - 1, -1, 1);
+        //float3 overlayNormal = clamp(Sample2DAAData2(Normal2, input.uv2, LinearSampler).rgb * 2 - 1, -1, 1);
+        float3 overlayNormal = clamp(Normal2.Sample(Sampler, input.uv2).rgb * 2 - 1, -1, 1);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
         overlayNormal.xy *= Mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
@@ -276,7 +276,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, LinearSampler).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb * 5;
         //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
         // Boost the intensity of single channel colors
         // 2 / 1 -> 2, 2 / 0.33 -> 6
@@ -319,9 +319,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //gloss = exp2(lerp(0, log2(gloss), flatness));
     //colorSum *= flatness;
     lighting += colorSum;
-
-
     lighting += diffuse.rgb * vertexLighting * 0.20; // ambient
+
     //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
     //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
