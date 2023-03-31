@@ -66,18 +66,24 @@ namespace Inferno {
 
     // Configures the Direct3D device, and stores handles to it and the device context.
     void DeviceResources::CreateDeviceResources() {
+
 #ifdef _DEBUG
         // Enable the debug layer (requires the Graphics Tools "optional feature").
         //
         // NOTE: Enabling the debug layer after device creation will invalidate the active device.
         {
-            ComPtr<ID3D12Debug> debugController;
-            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
-                debugController->EnableDebugLayer();
-            }
-            else {
-                OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
-            }
+            //ComPtr<IDXGraphicsAnalysis> graphics_analysis;
+            //const auto result = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphics_analysis));
+            //if (FAILED(result)) {
+                // Not running in PIX, enable the debug layer
+                ComPtr<ID3D12Debug> debugController;
+                if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
+                    debugController->EnableDebugLayer();
+                }
+                else {
+                    OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
+                }
+            //}
 
             ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
             if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf())))) {
@@ -625,7 +631,6 @@ namespace Inferno {
             && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)) {
             ThrowIfFailed(m_swapChain->SetColorSpace1(colorSpace));
         }
-
     }
 
     void DeviceResources::CreateBuffers(UINT width, UINT height) {

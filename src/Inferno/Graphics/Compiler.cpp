@@ -3,147 +3,192 @@
 #include "Compiler.h"
 #include "Render.h"
 #include "logging.h"
-#include <D3Dcompiler.h>
 #include <filesystem>
+#include <dxcapi.h>
+
+namespace Inferno {
+    namespace {
+        ComPtr<IDxcUtils> Utils;
+        ComPtr<IDxcCompiler3> Compiler;
+        ComPtr<IDxcIncludeHandler> IncludeHandler;
+    }
+
+    void LogComException(const com_exception& e, ID3DBlob* error) {
+        SPDLOG_ERROR(e.what());
+        if (error) {
+            auto size = error->GetBufferSize();
+            auto* msgs = error->GetBufferPointer();
+            std::string msg((const char*)msgs, size);
+            SPDLOG_ERROR(msg);
+        }
+    }
+
+    // Load Root Signature from the shader (must be defined in hlsl)
+    void LoadShaderRootSig(ID3DBlob& shader, ComPtr<ID3D12RootSignature>& rootSignature) {
+        ThrowIfFailed(Inferno::Render::Device->CreateRootSignature(
+            0,
+            shader.GetBufferPointer(),
+            shader.GetBufferSize(),
+            IID_PPV_ARGS(&rootSignature)
+        ));
+    }
+
+    // Load Root Signature from the shader (must be defined in hlsl)
+    void LoadShaderRootSig(IDxcBlob& shader, ComPtr<ID3D12RootSignature>& rootSignature) {
+        ThrowIfFailed(Inferno::Render::Device->CreateRootSignature(
+            0,
+            shader.GetBufferPointer(),
+            shader.GetBufferSize(),
+            IID_PPV_ARGS(&rootSignature)
+        ));
+    }
+
+    std::filesystem::path GetBinaryPath(std::filesystem::path file, std::string ext) {
+        auto name = file.stem().string() + ext;
+        return file.parent_path() / "bin" / name;
+    }
+
+    void CheckCompilerResult(IDxcResult* result/*, const std::filesystem::path& file*/) {
+        ComPtr<IDxcBlobUtf8> pErrors;
+        result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(pErrors.GetAddressOf()), nullptr);
+        if (pErrors && pErrors->GetStringLength() > 0) {
+            throw Inferno::Exception((char*)pErrors->GetBufferPointer());
+        }
+    }
+
+    void AddCommonArgs(std::vector<LPCWSTR>& args, LPCWSTR entryPoint, LPCWSTR profile) {
+        args.push_back(L"-E"); // Entrypoint
+        args.push_back(entryPoint);
+
+        args.push_back(L"-T"); // Target profile
+        args.push_back(profile);
+
+        args.push_back(L"-I"); // Include directory
+        args.push_back(L"shaders");
+
+        //args.push_back(L"-no-warnings"); // warnings are grouped with errors and cause compilation to abort
+
+        // -Fd pdb path to helper debuggers
+
+        args.push_back(L"-Qstrip_debug");
+        args.push_back(L"-Qstrip_reflect");
 
 #if defined(_DEBUG)
-// Enable better shader debugging with the graphics debugging tools.
-constexpr UINT COMPILE_FLAGS = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+        args.push_back(DXC_ARG_DEBUG);
+        args.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
 #else
-constexpr UINT COMPILE_FLAGS = 0;
 #endif
-
-void Inferno::LogComException(const com_exception& e, ID3DBlob* error) {
-    SPDLOG_ERROR(e.what());
-    if (error) {
-        auto size = error->GetBufferSize();
-        auto* msgs = error->GetBufferPointer();
-        string msg((const char*)msgs, size);
-        SPDLOG_ERROR(msg);
     }
-}
 
-// Load Root Signature from the shader (must be defined in hlsl)
-void Inferno::LoadShaderRootSig(ID3DBlob& shader, ComPtr<ID3D12RootSignature>& rootSignature) {
-    ThrowIfFailed(Render::Device->CreateRootSignature(
-        0,
-        shader.GetBufferPointer(),
-        shader.GetBufferSize(),
-        IID_PPV_ARGS(&rootSignature)
-    ));
-}
+    void LoadFile(const filesystem::path& file, ComPtr<ID3DBlob>& result) {
+        uint32_t codePage = CP_UTF8;
+        ComPtr<IDxcBlobEncoding> sourceBlob;
+        ThrowIfFailed(Utils->LoadFile(file.c_str(), &codePage, &sourceBlob));
+        sourceBlob.As(&result);
+    }
 
-std::filesystem::path GetBinaryPath(std::filesystem::path file, std::string ext) {
-    auto name = file.stem().string() + ext;
-    return file.parent_path() / "bin" / name;
-}
+    void CompileShader(const filesystem::path& file, span<LPCWSTR> args, ComPtr<ID3DBlob>& result) {
+        uint32_t codePage = CP_UTF8;
+        ComPtr<IDxcBlobEncoding> source;
+        ThrowIfFailed(Utils->LoadFile(file.c_str(), &codePage, &source));
 
-ComPtr<ID3DBlob> CreateBlobFromBytes(std::span<char> src) {
-    ComPtr<ID3DBlob> blob;
-    ThrowIfFailed(D3DCreateBlob(src.size(), &blob)); // allocate D3DBlob
-    memcpy(blob->GetBufferPointer(), src.data(), src.size()); // Copy shader data
-    return blob;
-}
+        DxcBuffer sourceBuffer{};
+        sourceBuffer.Ptr = source->GetBufferPointer();
+        sourceBuffer.Size = source->GetBufferSize();
 
-ComPtr<ID3DBlob> Inferno::LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, string entryPoint) {
-    ComPtr<ID3DBlob> shader, error;
-    try {
+        ComPtr<IDxcResult> dxcResult;
+        Compiler->Compile(&sourceBuffer, args.data(), (uint32)args.size(), IncludeHandler.Get(), IID_PPV_ARGS(&dxcResult));
+        CheckCompilerResult(dxcResult.Get());
+
+        ComPtr<IDxcBlob> resultBlob;
+        dxcResult->GetResult(&resultBlob);
+        resultBlob.As(&result);
+    }
+
+    ComPtr<ID3DBlob> LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, wstring entryPoint) {
+        ComPtr<ID3DBlob> shader;
+
         auto binaryPath = GetBinaryPath(file, ".bin");
         if (std::filesystem::exists(binaryPath)) {
             SPDLOG_INFO(L"Loading compute shader {}", binaryPath.wstring());
-            ThrowIfFailed(D3DReadFileToBlob(binaryPath.c_str(), &shader));
+            LoadFile(binaryPath, shader);
         }
         else {
-            SPDLOG_INFO(L"Compiling compute shader {}:{}", file.wstring(), Convert::ToWideString(entryPoint));
-            
-            ThrowIfFailed(D3DCompileFromFile(
-                file.c_str(), nullptr,
-                D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                entryPoint.c_str(),
-                "cs_5_1", COMPILE_FLAGS,
-                0, &shader, &error
-            ));
+            SPDLOG_INFO(L"Compiling compute shader {}:{}", file.wstring(), entryPoint);
+            List<LPCWSTR> args;
+            AddCommonArgs(args, entryPoint.c_str(), L"cs_6_0");
+            CompileShader(file, args, shader);
         }
 
         LoadShaderRootSig(*shader.Get(), rootSignature);
+
+        D3D12_COMPUTE_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = rootSignature.Get();
+        psoDesc.CS.pShaderBytecode = shader->GetBufferPointer();
+        psoDesc.CS.BytecodeLength = shader->GetBufferSize();
+
         rootSignature->SetName(file.c_str());
-
-        D3D12_COMPUTE_PIPELINE_STATE_DESC descComputePSO = {};
-        descComputePSO.pRootSignature = rootSignature.Get();
-        descComputePSO.CS.pShaderBytecode = shader->GetBufferPointer();
-        descComputePSO.CS.BytecodeLength = shader->GetBufferSize();
-
         ThrowIfFailed(Render::Device->CreateComputePipelineState(
-            &descComputePSO,
+            &psoDesc,
             IID_PPV_ARGS(pso.ReleaseAndGetAddressOf())
         ));
         pso->SetName(file.c_str());
-    }
-    catch (const com_exception& e) {
-        LogComException(e, error.Get());
+
+        return shader;
     }
 
-    return shader;
-}
+    ComPtr<ID3DBlob> LoadVertexShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, wstring entryPoint) {
+        ComPtr<ID3DBlob> shader;
 
-ComPtr<ID3DBlob> Inferno::LoadVertexShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, string entryPoint) {
-    ComPtr<ID3DBlob> shader, error;
-    try {
         auto binaryPath = GetBinaryPath(file, ".vs.bin");
         if (filesystem::exists(binaryPath)) {
             SPDLOG_INFO(L"Loading vertex shader {}", binaryPath.wstring());
-            ThrowIfFailed(D3DReadFileToBlob(binaryPath.c_str(), &shader));
+            LoadFile(binaryPath, shader);
         }
         else {
             if (!filesystem::exists(file))
                 throw Exception(fmt::format("Shader file not found:\n{}", file.string()));
 
-            SPDLOG_INFO(L"Compiling vertex shader {}:{}", file.wstring(), Convert::ToWideString(entryPoint));
-            ThrowIfFailed(D3DCompileFromFile(
-                file.c_str(), 
-                nullptr, 
-                D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                entryPoint.c_str(),
-                "vs_5_1", COMPILE_FLAGS,
-                0, &shader, &error));
+            SPDLOG_INFO(L"Compiling vertex shader {}:{}", file.wstring(), entryPoint);
+
+            List<LPCWSTR> args;
+            AddCommonArgs(args, entryPoint.c_str(), L"vs_6_0");
+            CompileShader(file, args, shader);
         }
 
         // load root sig from the shader hlsl
         LoadShaderRootSig(*shader.Get(), rootSignature);
         rootSignature->SetName(file.c_str());
-    }
-    catch (const com_exception& e) {
-        LogComException(e, error.Get());
-    }
-    catch (const Exception& e) {
-        SPDLOG_ERROR(e.what());
+
+        return shader;
     }
 
-    return shader;
-}
-
-ComPtr<ID3DBlob> Inferno::LoadPixelShader(const filesystem::path& file, string entryPoint) {
-    ComPtr<ID3DBlob> shader, error;
-    try {
+    ComPtr<ID3DBlob> LoadPixelShader(const filesystem::path& file, wstring entryPoint) {
+        ComPtr<ID3DBlob> shader;
         auto binaryPath = GetBinaryPath(file, ".ps.bin");
         if (filesystem::exists(binaryPath)) {
             SPDLOG_INFO(L"Loading pixel shader {}", binaryPath.wstring());
-            ThrowIfFailed(D3DReadFileToBlob(binaryPath.c_str(), &shader));
+            LoadFile(binaryPath, shader);
         }
         else {
-            SPDLOG_INFO(L"Compiling pixel shader {}:{}", file.wstring(), Convert::ToWideString(entryPoint));
-            ThrowIfFailed(D3DCompileFromFile(
-                file.c_str(), 
-                nullptr, 
-                D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                entryPoint.c_str(),
-                "ps_5_1", COMPILE_FLAGS,
-                0, &shader, &error));
+            SPDLOG_INFO(L"Compiling pixel shader {}:{}", file.wstring(), entryPoint);
+
+            List<LPCWSTR> args;
+            AddCommonArgs(args, entryPoint.c_str(), L"ps_6_0");
+            CompileShader(file, args, shader);
         }
-    }
-    catch (const com_exception& e) {
-        LogComException(e, error.Get());
+
+        return shader;
     }
 
-    return shader;
+    void InitShaderCompiler() {
+        try {
+            ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&Utils)));
+            ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&Compiler)));
+            Utils->CreateDefaultIncludeHandler(&IncludeHandler);
+        }
+        catch (...) {
+            SPDLOG_ERROR("Error creating DXC compiler");
+        }
+    }
 }

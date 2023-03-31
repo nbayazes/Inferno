@@ -18,10 +18,13 @@ namespace Inferno {
         ComputeShader(UINT numThreadsX, UINT numThreadsY)
             : _numThreadsX(numThreadsX), _numThreadsY(numThreadsY) {}
 
-        void Load(const filesystem::path& file, string entryPoint = "main") {
-            LoadComputeShader(file, _rootSignature, _pso, entryPoint);
-            if (!_rootSignature || !_pso)
-                throw Exception(fmt::format("Unable to load compute shader:\n{}", file.string()));
+        void Load(const filesystem::path& file, wstring entryPoint = L"main") {
+            try {
+                LoadComputeShader(file, _rootSignature, _pso, entryPoint);
+            }
+            catch (const std::exception& e) {
+                SPDLOG_ERROR(e.what());
+            }
         }
 
         void Dispatch2D(ID3D12GraphicsCommandList* commandList, UINT width, UINT height) const {

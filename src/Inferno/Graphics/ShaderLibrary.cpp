@@ -2,15 +2,6 @@
 #include "ShaderLibrary.h"
 #include "Compiler.h"
 
-#pragma comment(lib, "d3dcompiler") // Automatically link with d3dcompiler.lib as we are using D3DCompile() below.
-
-//#if defined(_DEBUG)
-//// Enable better shader debugging with the graphics debugging tools.
-//constexpr UINT COMPILE_FLAGS = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-//#else
-//constexpr UINT COMPILE_FLAGS = 0;
-//#endif
-
 namespace Inferno {
     using namespace DirectX;
     using namespace DirectX::SimpleMath;
@@ -19,12 +10,18 @@ namespace Inferno {
 
     // Recompiles a shader
     void CompileShader(IShader* shader) noexcept {
-        auto vertexShader = LoadVertexShader(shader->Info.File, shader->RootSignature, shader->Info.VSEntryPoint);
-        auto pixelShader = LoadPixelShader(shader->Info.File, shader->Info.PSEntryPoint);
-        // Only assign shaders if they compiled successfully
-        if (vertexShader && pixelShader) {
-            shader->VertexShader = vertexShader;
-            shader->PixelShader = pixelShader;
+        try {
+            auto vertexShader = LoadVertexShader(shader->Info.File, shader->RootSignature, shader->Info.VSEntryPoint);
+            auto pixelShader = LoadPixelShader(shader->Info.File, shader->Info.PSEntryPoint);
+
+            // Only assign shaders if they compiled successfully
+            if (vertexShader && pixelShader) {
+                shader->VertexShader = vertexShader;
+                shader->PixelShader = pixelShader;
+            }
+        }
+        catch (std::exception(e)) {
+            SPDLOG_ERROR(e.what());    
         }
     }
 

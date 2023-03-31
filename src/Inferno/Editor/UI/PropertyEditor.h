@@ -1,7 +1,5 @@
 #pragma once
 
-#include <map>
-
 #include "WindowBase.h"
 #include "Level.h"
 #include "Graphics/MaterialLibrary.h"
@@ -17,7 +15,7 @@ namespace Inferno::Editor {
         if (ImGui::BeginCombo("##segs", label.c_str())) {
             for (int i = 0; i < Game::Level.Segments.size(); i++) {
                 const bool isSelected = (int)id == i;
-                auto itemLabel = std::to_string((int)i);
+                auto itemLabel = std::to_string(i);
                 if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
                     changed = true;
                     id = (SegID)i;

@@ -11,8 +11,8 @@ namespace Inferno {
     // Shader definition to allow recompilation
     struct ShaderInfo {
         std::wstring File;
-        string VSEntryPoint = "vsmain";
-        string PSEntryPoint = "psmain";
+        wstring VSEntryPoint = L"vsmain";
+        wstring PSEntryPoint = L"psmain";
     };
 
     struct FrameConstants {
