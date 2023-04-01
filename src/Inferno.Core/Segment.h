@@ -221,9 +221,17 @@ namespace Inferno {
             return { s.TMap, s.TMap2 };
         }
 
+        // Returns the longest distance between two sides
+        float GetLongestSide() const {
+            auto d0 = Vector3::Distance(Sides[0].Center, Sides[2].Center);
+            auto d1 = Vector3::Distance(Sides[1].Center, Sides[3].Center);
+            auto d2 = Vector3::Distance(Sides[4].Center, Sides[5].Center);
+            return std::max({ d0, d1, d2 });
+        }
+
         // Updates the normals and centers
         void UpdateGeometricProps(const Level&);
-        float GetEstimatedVolume(Level&);
+        float GetEstimatedVolume() const;
         bool IsZeroVolume(Level&);
 
         // Returns the vertices of the segment

@@ -17,8 +17,8 @@ namespace Inferno::Editor {
 
             ImGui::SliderFloat("Blur Factor", &Render::Bloom->Upsample.UpsampleBlendFactor, 0.0f, 1.0f);
 
-            ImGui::SliderFloat("Bloom Strength", &Render::Bloom->ToneMap.BloomStrength, 0.0f, 10.0f);
-            ImGui::SliderFloat("Tone Map Exposure", &Render::Bloom->ToneMap.Exposure, 0.0f, 10.0f);
+            ImGui::SliderFloat("Bloom Strength", &Render::Bloom->ToneMap.BloomStrength, 0.0f, 5.0f);
+            ImGui::SliderFloat("Tone Map Exposure", &Render::Bloom->ToneMap.Exposure, 0.0f, 3.0f);
             ImGui::Checkbox("Debug Emissive", &Render::DebugEmissive);
         }
     };

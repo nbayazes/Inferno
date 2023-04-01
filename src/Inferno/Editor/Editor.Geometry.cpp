@@ -104,7 +104,7 @@ namespace Inferno::Editor {
         auto srcSeg = level.TryGetSegment(srcId);
         if (!srcSeg) return;
 
-        if (!skipValidation && srcSeg->GetEstimatedVolume(level) < 10) return; // malformed seg check
+        if (!skipValidation && srcSeg->GetEstimatedVolume() < 10) return; // malformed seg check
 
         for (auto& srcSideId : SideIDs) {
             auto srcFace = Face::FromSide(level, *srcSeg, srcSideId);

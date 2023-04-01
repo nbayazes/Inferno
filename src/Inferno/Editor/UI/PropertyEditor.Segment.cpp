@@ -965,7 +965,7 @@ namespace Inferno::Editor {
                     Events::LevelChanged();
                 }
 
-                ImGui::TableRowLabel("Normal");
+                ImGui::TableRowLabel("Normal Strength");
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::SliderFloat("##Normal", &material->NormalStrength, -2, 2)) {
                     Events::LevelChanged();

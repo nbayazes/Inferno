@@ -220,8 +220,9 @@ namespace Inferno::Graphics {
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
 
-            if(seg.Type == SegmentType::Energy) {
-                auto len = std::cbrt(seg.GetEstimatedVolume(level));
+
+            if (seg.Type == SegmentType::Energy) {
+                auto len = seg.GetLongestSide();
 
                 auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
                 auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, energyId);
@@ -229,13 +230,91 @@ namespace Inferno::Graphics {
 
                 LightData light{};
                 light.color = color.ToVector3();
-                light.radiusSq = len * len;
+                light.radiusSq = len * len * 4;
                 light.type = LightType::Point;
                 light.pos = seg.Center;
-                light.normal = Vector3::Up;
-                light.right = Vector3::Right;
-                light.up = Vector3::Forward;
                 sources.push_back(light);
+            }
+
+            //if (HasFlag(seg.AmbientSound, SoundFlag::AmbientLava)) {
+            {
+                // todo: only do this on segments containing lava
+                auto lavaId = LevelTexID::None;
+
+                Vector3 center;
+                int sideCount = 0;
+                float maxArea = 0;
+                auto lavaSide = SideID::None;
+
+                // there might be lava on a side, check them
+                for (auto& sideId : SideIDs) {
+                    if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
+
+                    auto& side = seg.GetSide(sideId);
+                    auto tmap = LevelTexID::None;
+
+                    if (Resources::GetLevelTextureInfo(side.TMap).HasFlag(TextureFlag::Volatile)) {
+                        tmap = side.TMap;
+                        center += side.Center + side.AverageNormal; // center + offset
+                        sideCount++;
+                    }
+
+                    if (Resources::GetLevelTextureInfo(side.TMap2).HasFlag(TextureFlag::Volatile)) {
+                        tmap = side.TMap2;
+                        center += side.Center + side.AverageNormal; // center + offset
+                        sideCount++;
+                    }
+
+                    if (tmap != LevelTexID::None) {
+                        // check if this side is the biggest
+                        auto face = Face::FromSide(level, seg, sideId);
+                        auto v0 = face[1] - face[0];
+                        auto v1 = face[3] - face[0];
+                        auto area = v0.Cross(v1).Length();
+
+                        if (area > maxArea) {
+                            maxArea = area;
+                            lavaSide = sideId;
+                            lavaId = tmap;
+                        }
+                    }
+                }
+
+                if (lavaSide != SideID::None && lavaId != LevelTexID::None && sideCount > 0) {
+                    // Lava in this seg, add point lights
+                    center /= (float)sideCount;
+
+                    auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, lavaId);
+                    auto color = mat ? mat->Color : Color(1.0f, 0.0f, 0.0f);
+
+                    auto face = Face::FromSide(level, seg, lavaSide);
+                    auto iLongest = face.GetLongestEdge();
+                    auto longestVec = face[iLongest + 1] - face[iLongest];
+                    auto maxLen = longestVec.Length();
+                    auto iShortest = face.GetShortestEdge();
+                    auto shortestLen = (face[iShortest + 1] - face[iShortest]).Length();
+                    auto ratio = longestVec.Length() / std::max(0.1f, shortestLen);
+
+                    auto addLavaPoint = [&sources, &color](const Vector3& p, float radius) {
+                        LightData light{};
+                        light.color = color.ToVector3();
+                        light.radiusSq = radius * radius * 2.0f;
+                        light.type = LightType::Point;
+                        light.pos = p;
+                        sources.push_back(light);
+                    };
+
+                    maxLen = std::clamp(maxLen, 0.0f, 60.0f); // clamp for perf reasons
+
+                    constexpr float SPLIT_RATIO = 2.5f;
+                    if (ratio > SPLIT_RATIO) {
+                        addLavaPoint(center + longestVec / 4, maxLen * 0.5f);
+                        addLavaPoint(center - longestVec / 4, maxLen * 0.5f);
+                    }
+                    else {
+                        addLavaPoint(center, maxLen * 1.25f);
+                    }
+                }
             }
 
             for (auto& sideId : SideIDs) {
@@ -405,7 +484,7 @@ namespace Inferno::Graphics {
 
                                 // Check both faces
                                 auto pos = FaceContainsUV(face, uv);
-      
+
                                 // Sample points near the light position to determine UV scale
                                 auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
 

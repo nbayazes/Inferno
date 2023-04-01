@@ -274,5 +274,20 @@ namespace Inferno {
 
             return (PointID)index;
         }
+
+        PointID GetShortestEdge() {
+            float indexLen = FLT_MAX;
+            int index = 0;
+
+            for (int i = 0; i < 4; i++) {
+                auto len = (GetPoint(i + 1) - GetPoint(i)).LengthSquared();
+                if (len < indexLen) {
+                    index = i;
+                    indexLen = len;
+                }
+            }
+
+            return (PointID)index;
+        }
     };
 }

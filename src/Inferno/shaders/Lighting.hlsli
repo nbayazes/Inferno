@@ -673,7 +673,7 @@ uint FrameIndexMod2;
 }
 
 static const float DIFFUSE_MULT = 0.5;
-static const float METAL_DIFFUSE_FACTOR = 1;
+static const float METAL_DIFFUSE_FACTOR = 3;
 static const float METAL_SPECULAR_FACTOR = 10;
 
 void ShadeLights(inout float3 colorSum,

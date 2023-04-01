@@ -277,7 +277,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
         //float3 emissive2 = (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).rgb * Mat2.EmissiveStrength;
-        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).r * Mat2.EmissiveStrength;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).r * Mat2.EmissiveStrength * overlay.a;
     }
 
     if (diffuse.a <= 0)

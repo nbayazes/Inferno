@@ -25,7 +25,7 @@ namespace Inferno {
         LightType Type = LightType::Point;
         List<Vector2> Points = { { 0.5f, 0.5f } }; // UV positions for each light
         float Offset = 2; // light surface offset
-        float Radius = 60; // light radius
+        float Radius = 40; // light radius
         float Width = 0.25f; // U Width for rectangular lights. For wrapped lights this is aligned to the wrap direction.
         float Height = 0.25f; // V Height for rectangular lights. Unused for wrapped lights.
         Color Color = { 0, 0, 0 };
@@ -43,7 +43,7 @@ namespace Inferno {
         float SpecularStrength = 1; // multiplier on specular
         // other map generation options like contrast, brightness?
         float Metalness = 0; // How much diffuse to apply to specular
-        float Roughness = 0.9; // 0 is sharp specular, 1 is no specular
+        float Roughness = 0.8; // 0 is sharp specular, 1 is no specular
         float EmissiveStrength = 1;
         float LightReceived = 1; // 0 for unlit
         float pad0, pad1;

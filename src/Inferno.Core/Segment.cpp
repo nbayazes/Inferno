@@ -78,10 +78,14 @@ namespace Inferno {
         Center = center / (float)verts.size();
     }
 
-    float Segment::GetEstimatedVolume(Level& level) {
-        auto front = Face::FromSide(level, *this, SideID::Front);
-        auto bottom = Face::FromSide(level, *this, SideID::Bottom);
-        return front.Area() * bottom.Area();
+    float Segment::GetEstimatedVolume() const {
+        auto d0 = Vector3::Distance(Sides[0].Center, Sides[2].Center);
+        auto d1 = Vector3::Distance(Sides[1].Center, Sides[3].Center);
+        auto d2 = Vector3::Distance(Sides[4].Center, Sides[5].Center);
+        return d0 * d1 * d2;
+        //auto front = Face::FromSide(level, *this, SideID::Front);
+        //auto bottom = Face::FromSide(level, *this, SideID::Bottom);
+        //return front.Area() * bottom.Area();
     }
 
     bool Segment::IsZeroVolume(Level& level) {
