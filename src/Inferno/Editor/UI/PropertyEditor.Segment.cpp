@@ -953,7 +953,7 @@ namespace Inferno::Editor {
             if (auto material = TryGetValue(Resources::MaterialInfo.Materials, ti.ID)) {
                 ImGui::TableRowLabel("Roughness");
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##Roughness", &material->Roughness, 0, 1)) {
+                if (ImGui::SliderFloat("##Roughness", &material->Roughness, 0.3, 1)) {
                     material->Roughness = std::clamp(material->Roughness, 0.0f, 1.0f);
                     Events::LevelChanged();
                 }
@@ -971,11 +971,18 @@ namespace Inferno::Editor {
                     Events::LevelChanged();
                 }
 
-                ImGui::TableRowLabel("Specular");
+                ImGui::TableRowLabel("Specular Strength");
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::SliderFloat("##SpecularStrength", &material->SpecularStrength, 0, 2)) {
                     material->SpecularStrength = std::max(material->SpecularStrength, 0.0f);
                     Events::LevelChanged();                   
+                }
+
+                ImGui::TableRowLabel("Emissive Strength");
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::SliderFloat("##EmissiveStrength", &material->EmissiveStrength, 0, 10)) {
+                    material->EmissiveStrength = std::max(material->EmissiveStrength, 0.0f);
+                    Events::LevelChanged();
                 }
             }
 

@@ -53,6 +53,8 @@ namespace Inferno {
         ReadValue(node["SpecularStrength"], info.SpecularStrength);
         ReadValue(node["Metalness"], info.Metalness);
         ReadValue(node["Roughness"], info.Roughness);
+        ReadValue(node["EmissiveStrength"], info.EmissiveStrength);
+        ReadValue(node["LightReceived"], info.LightReceived);
         materials[id] = info;
 
         //auto& eclip = Resources::GetEffectClip(id);

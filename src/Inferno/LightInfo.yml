@@ -115,6 +115,10 @@ Materials:
       NormalStrength: 0.0
       SpecularStrength: 0
 
+    - TexID: 1029 # stripe
+      NormalStrength: 0.05
+      Roughness: 0.98
+      Metalness: 0.5
     - TexID: 1030 # stripe
       NormalStrength: 0.05
       Roughness: 0.98
@@ -124,11 +128,35 @@ Materials:
       NormalStrength: 0.25
       Roughness: 0.6
       Metalness: 0.2
+      EmissiveStrength: 3
 
     - TexID: 1141 # monitor
       NormalStrength: 0.25
       Roughness: 0.2
       Metalness: 0.2
+      EmissiveStrength: 5
+
+    - TexID: 1137 # monitor
+      NormalStrength: 0.5
+      Roughness: 0.5
+      Metalness: 0.2
+      EmissiveStrength: 5
+
+    - TexID: 1147 # monitor
+      NormalStrength: 0.5
+      Roughness: 0.5
+      Metalness: 0.2
+      EmissiveStrength: 5
+    - TexID: 1151 # monitor
+      NormalStrength: 0.5
+      Roughness: 0.5
+      Metalness: 0.2
+      EmissiveStrength: 5
+    - TexID: 1178 # monitor
+      NormalStrength: 0.5
+      Roughness: 0.5
+      Metalness: 0.2
+      EmissiveStrength: 5
 
     - TexID: 1024 # sign
       NormalStrength: 0.25
@@ -140,7 +168,12 @@ Materials:
       NormalStrength: 0.25
       Roughness: 0.7
       Metalness: 0.9
-      
+
+    - TexID: 1039 # sign
+      NormalStrength: 0.25
+      Roughness: 0.7
+      Metalness: 0.8
+
     - TexID: 1035 # sign
       NormalStrength: 0.25
       Roughness: 0.7
@@ -233,7 +266,7 @@ Materials:
     - TexID: 1065 # fan
       NormalStrength: 0.25
       Roughness: 0.5
-      Metalness: 0.9
+      Metalness: 0.75
       SpecularStrength: 1
 
     - TexID: 842 # green rock
@@ -488,7 +521,8 @@ Materials:
 
     - TexID: 802 # dark blue rock
       NormalStrength: -1
-      Roughness: 0.65
+      Roughness: 0.60
+      SpecularStrength: 0.8
 
     - TexID: 986 # tile floor a
       NormalStrength: 1.2
@@ -683,7 +717,13 @@ Materials:
     - TexID: 26 # metal wall
       NormalStrength: 0.20
       Roughness: 0.6
-      Metalness: 1
+      Metalness: 0.9
+      
+    - TexID: 936 # metal wall
+      NormalStrength: 0.20
+      Roughness: 0.6
+      Metalness: 0.9
+      EmissiveStrength: 2
 
     - TexID: 973 # brig metal wall
       NormalStrength: 0.20
@@ -800,6 +840,7 @@ Materials:
       NormalStrength: 0.2
       Roughness: 0.7
       Metalness: 0.9
+      EmissiveStrength: 0.75
 
     - TexID: 1100 # reactor wall
       NormalStrength: 0.2
@@ -877,8 +918,13 @@ Materials:
       Metalness: 0.4
 
     - TexID: 1080 # Lava
+      LightReceived: 0
+      EmissiveStrength: 5
+
+    - TexID: 1049 # Energy sparkles
       NormalStrength: 0.2
-      SpecularStrength: 0
+      LightReceived: 0
+      EmissiveStrength: 5
 
     - TexID: 1219 # Lava
       NormalStrength: 0.2
@@ -892,6 +938,7 @@ Materials:
       NormalStrength: -0.25
       Roughness: 0.8
       Metalness: 0.8
+      EmissiveStrength: 10
 
     - TexID: 947 # pink metal wall
       NormalStrength: 0.1
@@ -1132,8 +1179,8 @@ LevelTextures:
 
     # lava
     - ID: 333
-      Offset: 10
-      Color: '0.2, 0.00, 0.00'
+      Offset: 0
+      Color: '1.5, 0.00, 0.00'
       Radius: 40
 
     - ID: 355 # lavafall

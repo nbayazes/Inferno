@@ -4,7 +4,7 @@
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 15), "\
+    "RootConstants(b1, num32BitConstants = 23), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -244,8 +244,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float3 emissive = (Sample2DAAData(Emissive, input.uv, LinearSampler)).rgb;
-
+    float emissive = (Sample2DAAData(Emissive, input.uv, LinearSampler)).r * Mat1.EmissiveStrength;
     MaterialInfo material = Mat1;
 
     if (HasOverlay) {
@@ -272,28 +271,17 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.Metalness = lerp(Mat1.Metalness, Mat2.Metalness, overlay.a);
         material.NormalStrength = normalize(lerp(Mat1.NormalStrength, Mat2.NormalStrength, overlay.a));
         material.Roughness = lerp(Mat1.Roughness, Mat2.Roughness, overlay.a);
-        
+        material.LightReceived = lerp(Mat1.LightReceived, Mat2.LightReceived, overlay.a);
+
         float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, LinearSampler).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler) * diffuse).rgb * 5;
-        //emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
-        // Boost the intensity of single channel colors
-        // 2 / 1 -> 2, 2 / 0.33 -> 6
-        //emissive *= 1.0 / max(length(emissive), 0.5); // white -> 1, single channel -> 0.33
-        //float multiplier = length(emissive.rgb); 
-        //lighting.a = saturate(lighting.a);
-        //output.Color = diffuse * lighting;
-
-        // assume overlay is only emissive source for now
-        //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
-        //output.Emissive = diffuse * (1 + lighting);
-        //output.Emissive = float4(diffuse.rgb * src.a * emissive.rgb, out_a);
+        //float3 emissive2 = (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).rgb * Mat2.EmissiveStrength;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).r * Mat2.EmissiveStrength;
     }
 
     if (diffuse.a <= 0)
         discard; // discarding speeds up large transparent walls
-
 
     // align normals
     float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
@@ -301,7 +289,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
-    lighting += emissive * diffuse.rgb * 3.00;
+    lighting += emissive * diffuse.rgb;
 
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
@@ -318,8 +306,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
     //gloss = exp2(lerp(0, log2(gloss), flatness));
     //colorSum *= flatness;
-    lighting += colorSum;
-    lighting += diffuse.rgb * vertexLighting * 0.20; // ambient
+    lighting += colorSum * material.LightReceived;
+    lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
 
     //lighting.rgb += vertexLighting * 1.0;
     //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);

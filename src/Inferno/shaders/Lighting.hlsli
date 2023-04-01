@@ -14,6 +14,9 @@ struct MaterialInfo {
     float SpecularStrength;
     float Metalness;
     float Roughness;
+    float EmissiveStrength;
+    float LightReceived; // 0 for unlit
+    float pad0, pad1;
 };
 
 // Apply fresnel to modulate the specular albedo
