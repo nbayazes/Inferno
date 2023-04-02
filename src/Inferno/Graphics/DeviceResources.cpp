@@ -467,7 +467,7 @@ namespace Inferno {
             auto height = m_outputSize.bottom;
 
             Render::Effects->Compile(m_d3dDevice.Get(), IntermediateFormat, Settings::Graphics.MsaaSamples);
-            PostFx::Scanline.Load(L"shaders/ScanlineCS.hlsl");
+            Render::Scanline->Load(L"shaders/ScanlineCS.hlsl");
             Render::Bloom->ReloadShaders();
 
             CreateBuffers(width, height);

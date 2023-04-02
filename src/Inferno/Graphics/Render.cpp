@@ -433,6 +433,7 @@ namespace Inferno::Render {
         BriefingCanvas = MakePtr<Canvas2D>(Device);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         Bloom = MakePtr<PostFx::Bloom>();
+        Scanline = MakePtr<PostFx::ScanlineCS>();
         NewTextureCache = MakePtr<TextureCache>();
 
         Debug::Initialize();
@@ -508,6 +509,8 @@ namespace Inferno::Render {
 
         Adapter.reset();
         Bloom.reset();
+        Scanline.reset();
+        
         _tempBatch.reset();
         Debug::Shutdown();
         DeviceResources::ReportLiveObjects();
@@ -866,7 +869,7 @@ namespace Inferno::Render {
         }
         BriefingCanvas->Render(ctx, { (float)target.GetWidth(), (float)target.GetHeight() });
 
-        PostFx::Scanline.Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
+        Scanline->Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
         Adapter->BriefingScanlineBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         target.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
