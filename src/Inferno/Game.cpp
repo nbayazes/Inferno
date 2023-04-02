@@ -193,6 +193,11 @@ namespace Inferno::Game {
         if (Input::IsKeyPressed(Keys::F9)) {
             Settings::Graphics.NewLightMode = !Settings::Graphics.NewLightMode;
         }
+
+        if (Input::IsKeyPressed(Keys::F10)) {
+            Settings::Graphics.ToneMapper++;
+            if (Settings::Graphics.ToneMapper > 2) Settings::Graphics.ToneMapper = 0;
+        }
     }
 
     Object& AllocObject() {
@@ -508,7 +513,7 @@ namespace Inferno::Game {
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
                     debris.PrevTransform = world;
-                    debris.Mass = 1; // obj.Movement.Physics.Mass;
+                    debris.Mass = 1;       // obj.Movement.Physics.Mass;
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
                     debris.Life = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
@@ -1130,9 +1135,7 @@ namespace Inferno::Game {
 
     void SetState(GameState state) {
         RequestedState = state;
-
     }
 
     GameState GetState() { return State; }
-
 }

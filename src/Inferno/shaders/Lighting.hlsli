@@ -112,6 +112,14 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
         value = saturate(lerp(value, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
 }
 
+float Attenuate(float lightDistSq, float lightRadiusSq) {
+    float factor = lightDistSq / lightRadiusSq; // 0 to 1
+    float smoothFactor = max(1 - factor * factor, 0); // 0 to 1
+    float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
+    return clamp(falloff * 100, 0, 20); // clamp nearby surface distance to prevent hotspots
+    //return falloff * 100;
+}
+
 float3 ApplyPointLight(
     float3 diffuse,
     float3 specularColor, // Specular albedo
@@ -132,8 +140,15 @@ float3 ApplyPointLight(
 
     // modify 1/d^2 * R^2 to fall off at a fixed radius
     // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
-    float falloff = lightRadiusSq * (invLightDist * invLightDist);
-    falloff = max(0, falloff - rsqrt(falloff));
+    //float falloff = lightRadiusSq * (invLightDist * invLightDist);
+    //falloff = max(0, falloff - rsqrt(falloff));
+
+    //falloff = max(0, (sqrt(lightRadiusSq) - pow(sqrt(lightDistSq), 1.00)) / sqrt(lightRadiusSq));
+    //falloff *= 6;
+    // 1 / d^2 : quadratic
+
+    // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
+    float falloff = Attenuate(lightDistSq, lightRadiusSq);
 
     float3 halfVec = normalize(lightDir - viewDir);
     float nDotH = saturate(dot(halfVec, normal));
@@ -541,15 +556,12 @@ float3 ApplyRectLight2(
 
     // modify 1/d^2 * R^2 to fall off at a fixed radius
     // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
-    float invLightDist = InvLightDist(lightDistSq, lightRadiusSq);
-    float falloff = lightRadiusSq * (invLightDist * invLightDist);
-    falloff = falloff - rsqrt(falloff);
-    falloff = clamp(falloff, 0, 15); // clamp nearby surface distance to prevent hotspots
+    //float invLightDist = InvLightDist(lightDistSq, lightRadiusSq);
+    //float falloff = lightRadiusSq * (invLightDist * invLightDist);
+    //falloff = falloff - rsqrt(falloff);
+    //falloff = clamp(falloff, 0, 15); // clamp nearby surface distance to prevent hotspots
 
-    //float factor = lightDistSq / lightRadiusSq;
-    //float smoothFactor = max(1 - factor * factor, 0.0);
-    //falloff = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4);
-    //falloff = clamp(falloff * 200, 0, 15); // clamp nearby surface distance to prevent hotspots
+    float falloff = Attenuate(lightDistSq, lightRadiusSq);
 
     //return falloff * lightColor;
     return max(0, falloff * (lightColor * nDotL * diffuse + specular));

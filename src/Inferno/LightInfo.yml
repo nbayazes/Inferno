@@ -69,8 +69,8 @@ Materials:
       Metalness: 0.3
     - TexID: 766
       NormalStrength: 0.5
-      Roughness: 0.55
-      SpecularStrength: 0.75
+      Roughness: 0.49
+      SpecularStrength: .5
     - TexID: 769
       NormalStrength: 0.5
       Roughness: 0.6
@@ -80,8 +80,8 @@ Materials:
       Roughness: 0.85
     - TexID: 774
       NormalStrength: 0.25
-      Roughness: 0.65
-      SpecularStrength: 0.75
+      Roughness: 0.5
+      SpecularStrength: 0.5
 
     - TexID: 1032
       NormalStrength: 1.2
@@ -999,7 +999,7 @@ Materials:
 
     - TexID: 1080 # Lava
       LightReceived: 0
-      EmissiveStrength: 4
+      EmissiveStrength: 5
 
     - TexID: 1219 # Lava
       LightReceived: 0
@@ -1122,7 +1122,7 @@ LevelTextures:
       Wrap: 2
       Width: 0.01
       Offset: 0.01
-      Color: '0.8, 0.0, 0.0'
+      Color: '0.5, 0.0, 0.0'
       Radius: 25
   
     - ID: 252 # blue
@@ -1274,7 +1274,7 @@ LevelTextures:
     # lava
     - ID: 333
       Points: []
-      Color: '0.2, 0.00, 0.00'
+      Color: '0.175, 0.00, 0.0'
 
     - ID: 356
       Points: []

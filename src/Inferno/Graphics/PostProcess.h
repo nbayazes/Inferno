@@ -183,12 +183,14 @@ namespace Inferno::PostFx {
                 float BloomStrength;
                 float Exposure;
                 HlslBool NewLightMode;
+                int32 ToneMapper;
             };
 
             ToneMapConstants constants = {
                 { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
                 BloomStrength, Exposure,
-                (HlslBool)Settings::Graphics.NewLightMode
+                (HlslBool)Settings::Graphics.NewLightMode,
+                Settings::Graphics.ToneMapper
             };
 
             commandList->SetComputeRootSignature(_rootSignature.Get());

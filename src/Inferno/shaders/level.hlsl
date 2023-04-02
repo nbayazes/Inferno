@@ -289,7 +289,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
-    lighting += emissive * diffuse.rgb;
 
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
@@ -310,6 +309,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //colorSum *= flatness;
         lighting += colorSum * material.LightReceived * 0.7;
         lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
+        lighting += emissive * diffuse.rgb;
 
         //lighting.rgb += vertexLighting * 1.0;
         //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);

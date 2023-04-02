@@ -15,7 +15,7 @@
 #include "utility.hlsli"
 
 #define RS \
-    "RootConstants(b0, num32BitConstants = 5), " \
+    "RootConstants(b0, num32BitConstants = 6), " \
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
@@ -35,10 +35,11 @@ RWTexture2D<float> OutLuma : register(u1);
 SamplerState LinearSampler : register(s0);
 
 cbuffer CB0 : register(b0) {
-    float2 g_RcpBufferDim;
-    float g_BloomStrength;
-    float g_Exposure;
-    bool NewLightMode;
+float2 g_RcpBufferDim;
+float g_BloomStrength;
+float g_Exposure;
+bool NewLightMode;
+int ToneMapper;
 };
 
 // The Reinhard tone operator.  Typically, the value of k is 1.0, but you can adjust exposure by 1/k.
@@ -82,10 +83,10 @@ float3 reinhard_extended_luminance(float3 v, float max_white_l) {
 }
 
 float3 GammaRamp(float3 color, float gamma) {
-    return pow(color, float3(1.0 / gamma, 1.0 / gamma, 1.0 / gamma));
+    return pow(color, 1/gamma);
 }
 
-float3 Uncharted2ToneMapping(float3 color, float gamma) {
+float3 Uncharted2ToneMapping(float3 color) {
     float A = 0.15;
     float B = 0.50;
     float C = 0.10;
@@ -98,7 +99,7 @@ float3 Uncharted2ToneMapping(float3 color, float gamma) {
     color = ((color * (A * color + C * B) + D * E) / (color * (A * color + B) + D * F)) - E / F;
     float white = ((W * (A * W + C * B) + D * E) / (W * (A * W + B) + D * F)) - E / F;
     color /= white;
-    return GammaRamp(color, gamma);
+    return color;
 }
 
 float3 lumaBasedReinhardToneMapping(float3 color, float gamma = 1) {
@@ -134,15 +135,23 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     hdrColor *= g_Exposure;
 
     // Tone map to SDR
-    if (NewLightMode)
-        hdrColor = tony_mc_mapface(hdrColor);
-    else
-        hdrColor = reinhard_extended_luminance(hdrColor, 8.0);
-    
+    if (NewLightMode) {
+        switch (ToneMapper) {
+            case 0:
+                hdrColor = Uncharted2ToneMapping(hdrColor);
+                break;
+            case 1:
+                hdrColor = tony_mc_mapface(hdrColor);
+                break;
+            case 2:
+                hdrColor = reinhard_extended_luminance(hdrColor, 8.0);
+                break;
+        }
+    }
+
     hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
     ColorRW[DTid.xy] = hdrColor;
 
     //ColorRW[DTid.xy] = Uncharted2ToneMapping(hdrColor, 1.1);
     //ColorRW[DTid.xy] = hdrColor;
-
 }

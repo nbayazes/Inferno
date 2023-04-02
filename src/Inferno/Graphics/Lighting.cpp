@@ -307,7 +307,7 @@ namespace Inferno::Graphics {
                     maxLen = std::clamp(maxLen, 0.0f, 60.0f); // clamp for perf reasons
 
                     constexpr float SPLIT_RATIO = 2.5f;
-                    if (ratio > SPLIT_RATIO) {
+                    if (ratio > SPLIT_RATIO && maxLen > 45) {
                         addLavaPoint(center + longestVec / 4, maxLen * 0.5f);
                         addLavaPoint(center - longestVec / 4, maxLen * 0.5f);
                     }
