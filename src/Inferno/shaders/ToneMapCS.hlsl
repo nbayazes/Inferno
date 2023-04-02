@@ -15,7 +15,7 @@
 #include "utility.hlsli"
 
 #define RS \
-    "RootConstants(b0, num32BitConstants = 4), " \
+    "RootConstants(b0, num32BitConstants = 5), " \
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
@@ -38,6 +38,7 @@ cbuffer CB0 : register(b0) {
     float2 g_RcpBufferDim;
     float g_BloomStrength;
     float g_Exposure;
+    bool NewLightMode;
 };
 
 // The Reinhard tone operator.  Typically, the value of k is 1.0, but you can adjust exposure by 1/k.
@@ -133,8 +134,11 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     hdrColor *= g_Exposure;
 
     // Tone map to SDR
-    //hdrColor = reinhard_extended_luminance(hdrColor, 8.0);
-    hdrColor = tony_mc_mapface(hdrColor);
+    if (NewLightMode)
+        hdrColor = tony_mc_mapface(hdrColor);
+    else
+        hdrColor = reinhard_extended_luminance(hdrColor, 8.0);
+    
     hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
     ColorRW[DTid.xy] = hdrColor;
 

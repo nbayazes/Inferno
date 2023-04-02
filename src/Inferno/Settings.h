@@ -127,6 +127,7 @@ namespace Inferno {
         bool EnableBloom = false; // Enables bloom post-processing
         int MsaaSamples = 1;
         int ForegroundFpsLimit = -1, BackgroundFpsLimit = 20;
+        bool NewLightMode = true;
     };
 
     struct InfernoSettings {

@@ -8,6 +8,8 @@
 namespace Inferno {
     using Inferno::Render::Material2D;
 
+    using HlslBool = int32; // For alignment on GPU
+
     // Shader definition to allow recompilation
     struct ShaderInfo {
         std::wstring File;
@@ -22,9 +24,8 @@ namespace Inferno {
         Vector2 FrameSize;
         float NearClip, FarClip;
         float GlobalDimming;
+        HlslBool NewLightMode;
     };
-
-    using HlslBool = int32; // For alignment on GPU
 
     constexpr D3D12_INPUT_LAYOUT_DESC CreateLayout(span<const D3D12_INPUT_ELEMENT_DESC> desc) {
         return { desc.data(), (uint)desc.size() };

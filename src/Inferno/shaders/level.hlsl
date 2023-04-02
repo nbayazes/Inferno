@@ -294,24 +294,26 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 vertexLighting = max(0, input.col.rgb);
     vertexLighting = lerp(1, vertexLighting, LightingScale);
     vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
-#if 0
-    lighting.rgb += vertexLighting;
-    return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
-#else
-    //diffuse.rgb = 0.5;
-    float3 colorSum = float3(0, 0, 0);
-    uint2 pixelPos = uint2(input.pos.xy);
-    //return float4(specularMask, specularMask, specularMask, 1);
-    ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-    //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
-    //gloss = exp2(lerp(0, log2(gloss), flatness));
-    //colorSum *= flatness;
-    lighting += colorSum * material.LightReceived;
-    lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
 
-    //lighting.rgb += vertexLighting * 1.0;
-    //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
-    //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
-    return float4(lighting * GlobalDimming, diffuse.a);
-#endif
+    if (!NewLightMode) {
+        lighting.rgb += vertexLighting;
+        return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
+    }
+    else {
+        //diffuse.rgb = 0.5;
+        float3 colorSum = float3(0, 0, 0);
+        uint2 pixelPos = uint2(input.pos.xy);
+        //return float4(specularMask, specularMask, specularMask, 1);
+        ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
+        //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
+        //gloss = exp2(lerp(0, log2(gloss), flatness));
+        //colorSum *= flatness;
+        lighting += colorSum * material.LightReceived * 0.7;
+        lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
+
+        //lighting.rgb += vertexLighting * 1.0;
+        //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
+        //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
+        return float4(lighting * GlobalDimming, diffuse.a);
+    }
 }

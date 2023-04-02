@@ -12,6 +12,7 @@ namespace Inferno::Render {
 namespace Inferno::PostFx {
     class ScanlineCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_Result, T0_Source };
+
     public:
         ScanlineCS() : ComputeShader(8, 8) {}
 
@@ -34,6 +35,7 @@ namespace Inferno::PostFx {
 
     class LinearizeDepthCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_Result, T0_Source };
+
     public:
         LinearizeDepthCS() : ComputeShader(16, 16) {}
 
@@ -64,11 +66,12 @@ namespace Inferno::PostFx {
 
     class BloomExtractDownsampleCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_Bloom, U1_Luma, T0_Source, T1_Emissive };
+
     public:
         BloomExtractDownsampleCS() : ComputeShader(8, 8) { }
 
         float BloomThreshold = 1.35f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
-        float Exposure = 1.4f; // exposure adjustment on source image for bloom sampling
+        float Exposure = 1.4f;        // exposure adjustment on source image for bloom sampling
         const float InitialMinLog = -12.0f;
         const float InitialMaxLog = 4.0f;
 
@@ -95,8 +98,9 @@ namespace Inferno::PostFx {
 
     class DownsampleBloomCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_4Results, T0_Bloom };
+
     public:
-        DownsampleBloomCS() : ComputeShader(8, 8) { } 
+        DownsampleBloomCS() : ComputeShader(8, 8) { }
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -116,8 +120,9 @@ namespace Inferno::PostFx {
 
     class BlurCS : public ComputeShader {
         enum RootSig { U0_Result, T0_Source };
+
     public:
-        BlurCS() : ComputeShader(8, 8) { } 
+        BlurCS() : ComputeShader(8, 8) { }
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& dest) {
             source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -134,6 +139,7 @@ namespace Inferno::PostFx {
 
     class UpsampleAndBlurCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_Result, T0_HigherRes, T1_LowerRes };
+
     public:
         UpsampleAndBlurCS() : ComputeShader(8, 8) { }
 
@@ -159,21 +165,30 @@ namespace Inferno::PostFx {
 
     class ToneMapCS : public ComputeShader {
         enum RootSig { B0_Constants, U0_Color, U1_Luma, T0_Bloom, T1_LUT };
+
     public:
         ToneMapCS() : ComputeShader(8, 8) {}
 
         float Exposure = 1.0f; // final scene exposure
         float BloomStrength = 0.5f;
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) {
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) const {
             bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             tonyMcMapface.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             colorDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
             lumaDest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-            DirectX::XMFLOAT4 constants = {
-                1.0f / colorDest.GetWidth(), 1.0f / colorDest.GetHeight(),
-                BloomStrength, Exposure
+            struct ToneMapConstants {
+                DirectX::XMFLOAT2 RcpBufferDim;
+                float BloomStrength;
+                float Exposure;
+                HlslBool NewLightMode;
+            };
+
+            ToneMapConstants constants = {
+                { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
+                BloomStrength, Exposure,
+                (HlslBool)Settings::Graphics.NewLightMode
             };
 
             commandList->SetComputeRootSignature(_rootSignature.Get());
@@ -191,15 +206,14 @@ namespace Inferno::PostFx {
 
     struct BloomBuffers {
         ColorBuffer Downsample[4]; // 8x8, 4x4, 2x2 and 1x1
-        ColorBuffer Upsample[4]; // 8x8, 4x4, 2x2 and 1x1
+        ColorBuffer Upsample[4];   // 8x8, 4x4, 2x2 and 1x1
         ColorBuffer OutputLuma, DownsampleBlur, DownsampleLuma, Blur;
 
         BloomBuffers() = default;
         BloomBuffers(const BloomBuffers&) = delete;
-        BloomBuffers& operator= (const BloomBuffers&) = delete;
+        BloomBuffers& operator=(const BloomBuffers&) = delete;
 
-        void Create(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R11G11B10_FLOAT)
-        {
+        void Create(UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_R11G11B10_FLOAT) {
             Blur.Create(L"Blur Result", width / 16, height / 16, format);
             DownsampleBlur.Create(L"Bloom extract downsample", width, height, format);
             DownsampleLuma.Create(L"Downsample Luma", width, height, DXGI_FORMAT_R8_UINT);

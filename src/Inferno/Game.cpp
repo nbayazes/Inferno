@@ -189,6 +189,10 @@ namespace Inferno::Game {
             Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
             Render::ReloadTextures();
         }
+
+        if (Input::IsKeyPressed(Keys::F9)) {
+            Settings::Graphics.NewLightMode = !Settings::Graphics.NewLightMode;
+        }
     }
 
     Object& AllocObject() {

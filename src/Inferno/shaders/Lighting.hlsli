@@ -673,8 +673,17 @@ uint FrameIndexMod2;
 }
 
 static const float DIFFUSE_MULT = 0.5;
-static const float METAL_DIFFUSE_FACTOR = 3;
-static const float METAL_SPECULAR_FACTOR = 10;
+static const float METAL_DIFFUSE_FACTOR = 2;
+static const float METAL_SPECULAR_FACTOR = 0.5;
+static const float METAL_SPECULAR_EXP = 8;
+
+void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
+    lightColor = lerp(light.color, 0, material.Metalness);
+    specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
+    specularColor *= material.SpecularStrength;
+    lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
+    lightColor *= DIFFUSE_MULT;
+}
 
 void ShadeLights(inout float3 colorSum,
                  uint2 pixelPos,
@@ -699,14 +708,18 @@ void ShadeLights(inout float3 colorSum,
         uint lightIndex = LightGrid.Load(tileLightLoadOffset);
         LightData light = LightBuffer[lightIndex];
 
-        float3 specularColor = lerp(light.color, 0, material.Metalness) + lerp(0, diffuse * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
-        specularColor *= material.SpecularStrength;
-        light.color = lerp(light.color, 0, material.Metalness) + lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
+        float3 lightColor, specularColor;
+        GetLightColors(light, material, diffuse, specularColor, lightColor);
+
+        //float3 lightColor = lerp(light.color, 0, material.Metalness);
+        //float3 specularColor = lightColor + lerp(0, (pow(diffuse + 1, 16) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
+        //specularColor *= material.SpecularStrength;
+        //lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
 #if 1
         colorSum += ApplyPointLight(
             diffuse, specularColor, specularMask, material.Roughness,
             normal, viewDir, worldPos, light.pos,
-            light.radiusSq, light.color * DIFFUSE_MULT
+            light.radiusSq, lightColor
         );
 
         //colorSum += float3(0.05, 0, 0);
@@ -741,15 +754,17 @@ void ShadeLights(inout float3 colorSum,
         uint lightIndex = LightGrid.Load(tileLightLoadOffset);
         LightData light = LightBuffer[lightIndex];
 
-        float3 lightColor = lerp(light.color, 0, material.Metalness);
-        float3 specularColor = lightColor + lerp(0, diffuse * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
-        specularColor *= material.SpecularStrength;
-        lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
+        float3 lightColor, specularColor;
+        GetLightColors(light, material, diffuse, specularColor, lightColor);
+        //float3 lightColor = lerp(light.color, 0, material.Metalness);
+        //float3 specularColor = lightColor + lerp(0, (pow(diffuse + 1, 16) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
+        //specularColor *= material.SpecularStrength;
+        //lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
 
         colorSum += ApplyRectLight2(
             diffuse, specularColor, specularMask, material.Roughness,
             normal, viewDir, worldPos, light.pos,
-            light.radiusSq, lightColor * DIFFUSE_MULT, light.normal, light.right, light.up
+            light.radiusSq, lightColor, light.normal, light.right, light.up
         );
         //colorSum += float3(0.05, 0, 0);
     }
