@@ -8,11 +8,13 @@ namespace Inferno::Editor {
     void RemoveTrigger(Level&, TriggerID);
     //void RemoveTriggerTarget(Trigger&, Tag target);
     //bool AddTriggerTarget(Trigger& trigger, Tag tag);
-    void AddTriggerTarget(Level& level, TriggerID tid, Tag tag);
+    void AddTriggerTarget(Level& level, TriggerID id, Tag target);
     void RemoveTriggerTarget(Level& level, TriggerID id, int index);
 
     WallID AddWall(Level&, Tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags = WallFlag::None);
     bool RemoveWall(Level& level, WallID id);
+
+    void InitWall(Level& level, Wall& wall, WallType type);
 
     void AddTriggerTargets(Level& level, TriggerID tid, auto tags) {
         for (auto& tag : tags)
@@ -21,10 +23,13 @@ namespace Inferno::Editor {
 
     TriggerID AddTrigger(Level&, WallID, TriggerType);
     TriggerID AddTrigger(Level&, WallID, TriggerFlagD1);
-    bool FixWallClip(Wall&);
+    bool FixWallClip(Level& level, Wall&);
 
     // Returns ID of the first wall (the one on the source tag)
     WallID AddPairedWall(Level& level, Tag tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags = WallFlag::None);
+
+    // Adds a wall, picking textures and triggers based on the type
+    WallID AddWallHelper(Level& level, Tag tag, WallType type);
 
     namespace Commands {
         inline Command RemoveWall{
@@ -60,7 +65,7 @@ namespace Inferno::Editor {
             .SnapshotAction = [] {
                 if (AddPairedWall(Game::Level, Editor::Selection.Tag(), WallType::Cloaked, {}, {}) == WallID::None)
                     return "";
-                    
+
                 return "Add Cloaked Wall";
             },
             .Name = "Add Cloaked Wall"
@@ -144,17 +149,5 @@ namespace Inferno::Editor {
         };
 
         extern Command AddGuidebotDoor, AddForceField;
-
-        inline void AddWallType(WallType type) {
-            switch (type) {
-                case WallType::Destroyable: AddHostageDoor(); break;
-                case WallType::Door: AddDoor(); break;
-                case WallType::Illusion: AddEnergyWall(); break;
-                case WallType::FlyThroughTrigger: AddFlythroughTrigger(); break;
-                case WallType::Closed: AddGrate(); break;
-                case WallType::WallTrigger: AddWallTrigger(); break;
-                case WallType::Cloaked: AddCloaked(); break;
-            }
-        }
     }
 }

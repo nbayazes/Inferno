@@ -13,7 +13,7 @@
 namespace Inferno::Editor {
     using Input::SelectionState;
 
-    short GetPairedEdge(Level& level, Tag tag, short point) {
+    short GetPairedEdge(Level& level, Tag tag, uint16 point) {
         auto other = level.GetConnectedSide(tag);
         if (!level.SegmentExists(tag) || !other) return 0;
 
@@ -26,7 +26,7 @@ namespace Inferno::Editor {
         auto& otherSeg = level.GetSegment(other);
         auto otherIndices = otherSeg.GetVertexIndices(other.Side);
 
-        for (short i = 0; i < 4; i++) {
+        for (uint16 i = 0; i < 4; i++) {
             if ((i0 == otherIndices[i] && i1 == otherIndices[(i + 1) % 4]) ||
                 (i1 == otherIndices[i] && i0 == otherIndices[(i + 1) % 4]))
                 return i;

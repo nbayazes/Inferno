@@ -5,9 +5,9 @@
 #include "Editor.Texture.h"
 
 namespace Inferno::Editor {
-    bool FixWallClip(Wall& wall) {
-        if (!Game::Level.SegmentExists(wall.Tag)) return false;
-        auto& side = Game::Level.GetSide(wall.Tag);
+    bool FixWallClip(Level& level, Wall& wall) {
+        if (!level.SegmentExists(wall.Tag)) return false;
+        auto& side = level.GetSide(wall.Tag);
 
         if (wall.Type == WallType::Door || wall.Type == WallType::Destroyable) {
             // If a clip is selected assign it
@@ -180,6 +180,31 @@ namespace Inferno::Editor {
         return true;
     }
 
+    void InitWall(Level& level, Wall& wall, WallType type) {
+        if (wall.Type == type) return;
+
+        if (type == WallType::Destroyable)
+            wall.HitPoints = 100;
+
+        if (type == WallType::Cloaked)
+            wall.CloakValue(0.5f);
+
+        if (type == WallType::Door && wall.Type != WallType::Destroyable) {
+            if (auto side = level.TryGetSide(wall.Tag)) {
+                side->TMap2 = LevelTexID{ level.IsDescent1() ? 376 : 687 }; // Door
+            }
+        }
+
+        if (type == WallType::Destroyable && wall.Type != WallType::Door) {
+            if (auto side = level.TryGetSide(wall.Tag)) {
+                side->TMap2 = LevelTexID{ level.IsDescent1() ? 419 : 483 }; // Prison door
+            }
+        }
+
+        wall.Type = type;
+        FixWallClip(level, wall);
+    }
+
     WallID AddWall(Level& level, Tag tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags) {
         if (level.Walls.size() + 1 >= (int)WallID::Max) {
             SetStatusMessageWarn("Cannot have more than {} walls in a level", WallID::Max);
@@ -214,22 +239,15 @@ namespace Inferno::Editor {
         }
 
         auto& wall = level.GetWall(wallId);
-        wall.Type = type;
         wall.Tag = tag;
         wall.Flags = flags;
-        if (type == WallType::Destroyable)
-            wall.HitPoints = 100;
-
+        InitWall(level, wall, type);
         side.TMap = tmap1;
         side.TMap2 = tmap2;
-
-        if (type == WallType::Cloaked)
-            wall.CloakValue(0.5f);
+        FixWallClip(level, wall);
 
         if (type != WallType::WallTrigger)
             ResetUVs(level, tag, Editor::Selection.Point);
-
-        FixWallClip(wall);
 
         Events::LevelChanged();
         Events::TexturesChanged();
@@ -284,13 +302,11 @@ namespace Inferno::Editor {
         TriggerID tid{};
 
         if (level.IsDescent1()) {
-            auto type = targets.empty() ? TriggerFlagD1::OpenDoor :
-                GetTriggerTypeForTargetD1(level, *targets.begin());
+            auto type = targets.empty() ? TriggerFlagD1::OpenDoor : GetTriggerTypeForTargetD1(level, *targets.begin());
             tid = AddTrigger(level, wallId, type);
         }
         else {
-            auto type = targets.empty() ? TriggerType::OpenDoor :
-                GetTriggerTypeForTargetD2(level, *targets.begin());
+            auto type = targets.empty() ? TriggerType::OpenDoor : GetTriggerTypeForTargetD2(level, *targets.begin());
             tid = AddTrigger(level, wallId, type);
         }
 
@@ -298,19 +314,64 @@ namespace Inferno::Editor {
             AddTriggerTargets(level, tid, targets);
     }
 
-    namespace Commands {
-        Command AddTrigger{
-            .Action = [] {
-                if (auto seg = GetSelectedSegment()) {
-                    if (seg->SideHasConnection(Editor::Selection.Side))
-                        AddFlythroughTrigger();
-                    else
-                        AddWallTrigger();
-                }
-            },
-            .Name = "Add Trigger"
-        };
 
+    WallID AddWallHelper(Level& level, Tag tag, WallType type) {
+        switch (type) {
+            case WallType::Destroyable:
+            {
+                LevelTexID tmap1{ level.IsDescent1() ? 419 : 483 }; // Prison door
+                return AddPairedWall(level, tag, WallType::Destroyable, tmap1, {});
+            }
+            case WallType::Door:
+            {
+                LevelTexID tmap2{ level.IsDescent1() ? 376 : 687 }; // Door
+                return AddPairedWall(level, tag, WallType::Door, {}, tmap2, WallFlag::DoorAuto);
+            }
+            case WallType::Illusion:
+            {
+                LevelTexID tmap1{ level.IsDescent1() ? 328 : 353 }; // Energy field
+                return AddPairedWall(level, tag, WallType::Illusion, tmap1, {});
+            }
+            case WallType::FlyThroughTrigger:
+            {
+                auto seg = level.TryGetSegment(tag);
+                if (!seg) return WallID::None;
+
+                auto& side = seg->GetSide(tag.Side);
+                if (!side.HasWall())
+                    Editor::AddWall(level, tag, WallType::FlyThroughTrigger, {}, {});
+
+                if (!side.HasWall()) return WallID::None;
+
+                SetupTriggerOnWall(level, side.Wall, Marked.Faces);
+                return side.Wall;
+            }
+            case WallType::Closed:
+            {
+                LevelTexID tmap1{ level.IsDescent1() ? 255 : 267 }; // Grate
+                return AddPairedWall(level, tag, WallType::Closed, tmap1, {});
+            }
+            case WallType::WallTrigger:
+            {
+                auto seg = level.TryGetSegment(tag);
+                if (!seg) return WallID::None;
+
+                auto& side = seg->GetSide(tag.Side);
+                auto tmap2 = side.TMap2 == LevelTexID::Unset ? LevelTexID(414) : side.TMap2; // Switch
+                auto wallId = Editor::AddWall(level, tag, WallType::WallTrigger, side.TMap, tmap2);
+                if (wallId == WallID::None) return WallID::None;
+
+                SetupTriggerOnWall(level, wallId, Marked.Faces);
+                return wallId;
+            }
+            case WallType::Cloaked:
+                return AddPairedWall(level, tag, WallType::Cloaked, {}, {});
+        }
+
+        return WallID::None;
+    }
+
+    namespace Commands {
         Command AddFlythroughTrigger{
             .SnapshotAction = [] {
                 auto& level = Game::Level;
@@ -344,6 +405,18 @@ namespace Inferno::Editor {
                 return "Add Wall Trigger";
             },
             .Name = "Add Wall Trigger"
+        };
+
+        Command AddTrigger{
+            .Action = [] {
+                if (auto seg = GetSelectedSegment()) {
+                    if (seg->SideHasConnection(Editor::Selection.Side))
+                        AddFlythroughTrigger();
+                    else
+                        AddWallTrigger();
+                }
+            },
+            .Name = "Add Trigger"
         };
 
         Command AddForceField{

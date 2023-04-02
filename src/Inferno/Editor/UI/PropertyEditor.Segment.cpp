@@ -685,37 +685,60 @@ namespace Inferno::Editor {
         return changed;
     }
 
+    void ChangeWallType(Level& level, Tag src, const WallType& wallType) {
+        auto changeWall = [&](Tag tag) {
+            auto wall = level.TryGetWall(tag);
+
+            if (!wall && wallType != WallType::None) {
+                // No wall on this side, add a new one
+                AddWallHelper(level, tag, wallType);
+            }
+
+            if (wallType == WallType::None) {
+                // Remove the wall when type changes to none
+                auto wallId = level.TryGetWallID(tag);
+                Editor::RemoveWall(level, wallId);
+
+                if (Settings::Editor.EditBothWallSides) {
+                    auto other = level.GetConnectedWall(tag);
+                    Editor::RemoveWall(level, other);
+                }
+
+                wall = nullptr;
+            }
+            else if (wall) {
+                if (wall->Type == wallType) return; // no change
+                InitWall(level, *wall, wallType);
+
+                if (Settings::Editor.EditBothWallSides) {
+                    if (auto other = level.GetConnectedWall(*wall))
+                        InitWall(level, *other, wallType);
+                }
+            }
+        };
+
+        changeWall(src);
+
+        for (auto& marked : GetSelectedFaces())
+            changeWall(marked);
+    }
+
     // Returns true if any wall properties changed
     void WallProperties(Level& level, WallID id) {
         auto wall = level.TryGetWall(id);
-        auto other = level.TryGetWall(level.GetConnectedWall(Editor::Selection.Tag()));
+        auto tag = Editor::Selection.Tag();
+        auto other = level.TryGetWall(level.GetConnectedWall(tag));
         bool open = ImGui::TableBeginTreeNode("Wall type");
 
         auto wallType = wall ? wall->Type : WallType::None;
 
         if (WallTypeDropdown(level, "##WallType", wallType)) {
-            if (!wall && wallType != WallType::None) {
-                Commands::AddWallType(wallType);
-            }
-            else {
-                if (wallType == WallType::None) {
-                    Commands::RemoveWall();
-                }
-                else {
-                    wall->Type = wallType;
-                    if (wallType == WallType::Cloaked)
-                        wall->CloakValue(0.5f);
+            Editor::History.SnapshotSelection();
+            ChangeWallType(level, tag, wallType);
+            Editor::History.SnapshotLevel("Change Wall Type");
 
-                    if (other && Settings::Editor.EditBothWallSides) {
-                        other->Type = wallType;
-                        if (wallType == WallType::Cloaked)
-                            other->CloakValue(0.5f);
-                    }
-                }
-            }
-
-            // Wall might have been added or deleted so fetch it again
-            wall = level.TryGetWall(Editor::Selection.Tag());
+            // Wall might have been added or deleted on this side so fetch it again
+            wall = level.TryGetWall(tag);
         }
 
         if (open) {

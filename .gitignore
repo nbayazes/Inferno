@@ -353,3 +353,6 @@ healthchecksdb
 inferno.cfg
 imgui.ini
 /src/Inferno/tony_mc_mapface.dds
+dxil.dll
+dxcompiler.dll
+dxc.exe

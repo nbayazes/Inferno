@@ -6,12 +6,12 @@
 #include "Game.Segment.h"
 
 namespace Inferno::Editor {
-    class LightingWindow : public WindowBase {
+    class LightingWindow final : public WindowBase {
     public:
         LightingWindow() : WindowBase("Lighting", &Settings::Editor.Windows.Lighting) {}
 
     protected:
-        void BreakLight() {
+        static void BreakLight() {
             if (Editor::Selection.Segment == SegID::None) return;
 
             auto pSeg = Game::Level.TryGetSegment(Editor::Selection.Segment);
@@ -31,7 +31,7 @@ namespace Inferno::Editor {
             }
         }
 
-        void ToggleLight() {
+        void ToggleLight() const {
             if (!Game::Level.SegmentExists(Editor::Selection.Segment)) return;
 
             auto& side = Game::Level.GetSide(Editor::Selection.Tag());
