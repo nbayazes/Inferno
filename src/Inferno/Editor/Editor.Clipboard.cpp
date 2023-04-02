@@ -264,10 +264,22 @@ namespace Inferno::Editor {
         for (auto& wall : copy.Walls) {
             auto& side = wall.Tag.Side;
             // swap sides 2/3 and 0/1
-            if (side == SideID(0)) { side = SideID(1); continue; }
-            if (side == SideID(1)) { side = SideID(0); continue; }
-            if (side == SideID(2)) { side = SideID(3); continue; }
-            if (side == SideID(3)) { side = SideID(2); continue; }
+            if (side == SideID(0)) {
+                side = SideID(1);
+                continue;
+            }
+            if (side == SideID(1)) {
+                side = SideID(0);
+                continue;
+            }
+            if (side == SideID(2)) {
+                side = SideID(3);
+                continue;
+            }
+            if (side == SideID(3)) {
+                side = SideID(2);
+                continue;
+            }
         }
 
         // Reverse face winding and fix the resulting texture mapping
@@ -360,7 +372,10 @@ namespace Inferno::Editor {
     void OnCopySide(Level& level, Tag tag) {
         SideClipboard1 = CopySide(level, tag);
         if (auto otherSide = level.GetConnectedSide(tag)) {
-            SideClipboard2 = CopySide(level, otherSide);
+            // if other side is valid it means this is an open side.
+            // check if there is actually a wall here to copy from to avoid copying blank data
+            if (level.TryGetWall(otherSide))
+                SideClipboard2 = CopySide(level, otherSide);
         }
         else {
             SideClipboard2 = {};
