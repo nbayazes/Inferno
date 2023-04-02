@@ -13,7 +13,6 @@ namespace Inferno::Editor {
         bool changed = false;
 
         if (ImGui::BeginCombo("##triggertype", TriggerTypeLabels[value], ImGuiComboFlags_HeightLarge)) {
-
             for (int i = 0; i < std::size(TriggerTypeLabels); i++) {
                 const bool isSelected = i == value;
                 if (ImGui::Selectable(TriggerTypeLabels[i], isSelected)) {
@@ -65,7 +64,7 @@ namespace Inferno::Editor {
 
         float contentWidth = ImGui::GetWindowContentRegionMax().x;
 
-        if (ImGui::GetCursorPosX() + btnSize.x * 2 + 5 < contentWidth )
+        if (ImGui::GetCursorPosX() + btnSize.x * 2 + 5 < contentWidth)
             ImGui::SameLine();
 
         if (ImGui::Button("Remove##TriggerTarget", btnSize)) {
@@ -223,7 +222,6 @@ namespace Inferno::Editor {
                         else
                             light->Mask &= ~(1 << i);
                     }
-
                 }
 
                 bool changed = false;
@@ -246,14 +244,30 @@ namespace Inferno::Editor {
                     ImGui::OpenPopup("FlickerDefaults");
 
                 ImGui::SetNextWindowSize({ 100 * Shell::DpiScale, -1 });
-                if (ImGui::BeginPopup("FlickerDefaults")) {
-                    if (ImGui::Selectable("On")) { light->Mask = FlickeringLight::Defaults::On; changed = true; }
-                    if (ImGui::Selectable("Off")) { light->Mask = 0; changed = true; }
-                    if (ImGui::Selectable("Strobe / 4")) { light->Mask = FlickeringLight::Defaults::Strobe4; changed = true; }
-                    if (ImGui::Selectable("Strobe / 8")) { light->Mask = FlickeringLight::Defaults::Strobe8; changed = true; }
-                    if (ImGui::Selectable("Flicker")) { light->Mask = FlickeringLight::Defaults::Flicker; changed = true; }
-                    ImGui::EndPopup();
-                }
+                // todo: merge from main
+                //if (ImGui::BeginPopup("FlickerDefaults")) {
+                //    if (ImGui::Selectable("On")) {
+                //        light->Mask = FlickeringLight::Defaults::On;
+                //        changed = true;
+                //    }
+                //    if (ImGui::Selectable("Off")) {
+                //        light->Mask = 0;
+                //        changed = true;
+                //    }
+                //    if (ImGui::Selectable("Strobe / 4")) {
+                //        light->Mask = FlickeringLight::Defaults::Strobe4;
+                //        changed = true;
+                //    }
+                //    if (ImGui::Selectable("Strobe / 8")) {
+                //        light->Mask = FlickeringLight::Defaults::Strobe8;
+                //        changed = true;
+                //    }
+                //    if (ImGui::Selectable("Flicker")) {
+                //        light->Mask = FlickeringLight::Defaults::Flicker;
+                //        changed = true;
+                //    }
+                //    ImGui::EndPopup();
+                //}
 
                 // Update selected faces
                 if (orig.Delay != light->Delay || orig.Mask != light->Mask) {
@@ -950,40 +964,39 @@ namespace Inferno::Editor {
             ImGui::AlignTextToFramePadding();
             ImGui::Text(TextureFlagToString(lti.Flags).c_str());
 
-            if (auto material = TryGetValue(Resources::MaterialInfo.Materials, ti.ID)) {
-                ImGui::TableRowLabel("Roughness");
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##Roughness", &material->Roughness, 0.3, 1)) {
-                    material->Roughness = std::clamp(material->Roughness, 0.0f, 1.0f);
-                    Events::LevelChanged();
-                }
+            auto& material = Render::Materials->GetMaterialInfo(ti.ID);
+            ImGui::TableRowLabel("Roughness");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::SliderFloat("##Roughness", &material.Roughness, 0.3, 1)) {
+                material.Roughness = std::clamp(material.Roughness, 0.0f, 1.0f);
+                Events::LevelChanged();
+            }
 
-                ImGui::TableRowLabel("Metalness");
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##Metalness", &material->Metalness, 0, 1)) {
-                    material->Metalness = std::clamp(material->Metalness, 0.0f, 1.0f);
-                    Events::LevelChanged();
-                }
+            ImGui::TableRowLabel("Metalness");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::SliderFloat("##Metalness", &material.Metalness, 0, 1)) {
+                material.Metalness = std::clamp(material.Metalness, 0.0f, 1.0f);
+                Events::LevelChanged();
+            }
 
-                ImGui::TableRowLabel("Normal Strength");
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##Normal", &material->NormalStrength, -2, 2)) {
-                    Events::LevelChanged();
-                }
+            ImGui::TableRowLabel("Normal Strength");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::SliderFloat("##Normal", &material.NormalStrength, -2, 2)) {
+                Events::LevelChanged();
+            }
 
-                ImGui::TableRowLabel("Specular Strength");
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##SpecularStrength", &material->SpecularStrength, 0, 2)) {
-                    material->SpecularStrength = std::max(material->SpecularStrength, 0.0f);
-                    Events::LevelChanged();                   
-                }
+            ImGui::TableRowLabel("Specular Strength");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::SliderFloat("##SpecularStrength", &material.SpecularStrength, 0, 2)) {
+                material.SpecularStrength = std::max(material.SpecularStrength, 0.0f);
+                Events::LevelChanged();
+            }
 
-                ImGui::TableRowLabel("Emissive Strength");
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##EmissiveStrength", &material->EmissiveStrength, 0, 10)) {
-                    material->EmissiveStrength = std::max(material->EmissiveStrength, 0.0f);
-                    Events::LevelChanged();
-                }
+            ImGui::TableRowLabel("Emissive Strength");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::SliderFloat("##EmissiveStrength", &material.EmissiveStrength, 0, 10)) {
+                material.EmissiveStrength = std::max(material.EmissiveStrength, 0.0f);
+                Events::LevelChanged();
             }
 
             ImGui::TreePop();
@@ -1023,7 +1036,9 @@ namespace Inferno::Editor {
         auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
 
         auto Slider = [&](const char* label, float& value) {
-            ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::Text(label);
+            ImGui::SameLine(30 * Shell::DpiScale);
+            ImGui::SetNextItemWidth(-1);
             ImGui::PushID(label);
             changed |= ImGui::DragFloat("##xyz", &value, speed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();

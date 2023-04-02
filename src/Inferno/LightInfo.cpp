@@ -40,22 +40,21 @@ namespace Inferno {
         return info;
     }
 
-    void ReadMaterialInfo(ryml::NodeRef node, Dictionary<TexID, MaterialInfo>& materials) {
+    void ReadMaterialInfo(ryml::NodeRef node, span<MaterialInfo> materials) {
         if (!node.valid() || node.is_seed()) return;
 
         MaterialInfo info{};
         TexID id;
         ReadValue(node["TexID"], id);
-        if (materials.contains(id))
-            SPDLOG_WARN("Redefined material {} due to duplicate entry", (int)id);
-
         ReadValue(node["NormalStrength"], info.NormalStrength);
         ReadValue(node["SpecularStrength"], info.SpecularStrength);
         ReadValue(node["Metalness"], info.Metalness);
         ReadValue(node["Roughness"], info.Roughness);
         ReadValue(node["EmissiveStrength"], info.EmissiveStrength);
         ReadValue(node["LightReceived"], info.LightReceived);
-        materials[id] = info;
+
+        if (Seq::inRange(materials, (int)id))
+            materials[(int)id] = info;
 
         //auto& eclip = Resources::GetEffectClip(id);
         //for (auto frame : eclip.VClip.GetFrames()) {
@@ -65,11 +64,13 @@ namespace Inferno {
         auto dclipId = Resources::GetDoorClipID(Resources::LookupLevelTexID(id));
         auto& dclip = Resources::GetDoorClip(dclipId);
         for (auto frame : dclip.GetFrames()) {
-            materials[Resources::LookupTexID(frame)] = info; // copy info to frames of door
+            auto frameId = Resources::LookupTexID(frame);
+            if (Seq::inRange(materials, (int)frameId))
+                materials[(int)frameId] = info; // copy info to frames of door
         }
     }
 
-    ExtendedTextureInfo ExtendedTextureInfo::Load(const string& data) {
+    ExtendedTextureInfo ExtendedTextureInfo::Load(const string& data, span<MaterialInfo> materials) {
         ExtendedTextureInfo extendedInfo;
         try {
             ryml::Tree doc = ryml::parse(ryml::to_csubstr(data));
@@ -79,7 +80,7 @@ namespace Inferno {
                 auto materialNode = root["Materials"];
                 if (materialNode.valid() && !materialNode.is_seed()) {
                     for (const auto& node : materialNode.children()) {
-                        ReadMaterialInfo(node, extendedInfo.Materials);
+                        ReadMaterialInfo(node, materials);
                     }
                 }
 
@@ -100,7 +101,7 @@ namespace Inferno {
             SPDLOG_ERROR("Error loading light info:\n{}", e.what());
         }
 
-        SPDLOG_INFO("Loaded {} materials and {} light definitions", extendedInfo.Materials.size(), extendedInfo.LevelTextures.size());
+        SPDLOG_INFO("Loaded {} light definitions", extendedInfo.LevelTextures.size());
 
         return extendedInfo;
     }

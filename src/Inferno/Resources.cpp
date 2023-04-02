@@ -384,7 +384,7 @@ namespace Inferno::Resources {
         auto getWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
         auto& fusion = getWeapon(WeaponID::Fusion);
         fusion.Extended.Chargable = true;
-        fusion.EnergyUsage = 2.0f; // 2.0 matches original behavior
+        fusion.EnergyUsage = 2.0f;    // 2.0 matches original behavior
         fusion.ModelSizeRatio = 2.5f; // Adjust radius to fit model better
 
         constexpr float LASER_MASS = 0.05f;
@@ -582,8 +582,7 @@ namespace Inferno::Resources {
     void LoadLightInfo(filesystem::path path) {
         try {
             auto file = FileSystem::ReadFileText(path);
-            if (file.empty()) return;
-            MaterialInfo = ExtendedTextureInfo::Load(file);
+            MaterialInfo = ExtendedTextureInfo::Load(file, Render::Materials->GetAllMaterialInfo());
         }
         catch (...) {
             SPDLOG_ERROR("Unable to read light info from {}", path.string());
@@ -625,7 +624,7 @@ namespace Inferno::Resources {
         }
     }
 
-    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64  } };
+    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64 } };
 
     const PigBitmap& GetBitmap(TexID id) {
         if (Textures.empty())

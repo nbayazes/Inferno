@@ -877,7 +877,7 @@ namespace Inferno::Editor {
         return tree;
     }
 
-    // Lights the level geometry and volumes. Not thread safe (needs refactoring to not use globals).
+    // Lights the level geometry and volumes
     void Commands::LightLevel(Level& level, const LightSettings& settings) {
         try {
             ScopedCursor cursor(IDC_WAIT);

@@ -52,9 +52,8 @@ namespace Inferno {
     // Lighting and material info for textures
     struct ExtendedTextureInfo {
         Dictionary<LevelTexID, TextureLightInfo> LevelTextures;
-        Dictionary<TexID, MaterialInfo> Materials;
 
         // Loads light data from a YAML file
-        static ExtendedTextureInfo Load(const string& data);
+        static ExtendedTextureInfo Load(const string& data, span<MaterialInfo> materials);
     };
 }

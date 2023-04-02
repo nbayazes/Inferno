@@ -96,7 +96,11 @@ namespace Inferno::Render {
     void CreateDeviceDependentResources() {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
-        Materials = MakePtr<MaterialLibrary>(3000);
+
+        constexpr int MATERIAL_COUNT = 3000;
+        Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
+        MaterialInfoBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
+
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
@@ -198,6 +202,7 @@ namespace Inferno::Render {
         _graphicsMemory.reset();
         g_SpriteBatch.reset();
         g_ImGuiBatch.reset();
+        MaterialInfoBuffer.reset();
 
         ReleaseEditorResources();
         _levelMeshBuffer.reset();

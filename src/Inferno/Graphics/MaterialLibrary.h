@@ -40,6 +40,7 @@ namespace Inferno::Render {
     // Supports loading and unloading materials
     class MaterialLibrary {
         Material2D _defaultMaterial;
+        MaterialInfo _defaultMaterialInfo = {};
 
         bool _requestPrune = false;
         Texture2D _black, _white, _purple, _normal;
@@ -49,7 +50,10 @@ namespace Inferno::Render {
         Set<TexID> _submittedUploads; // textures submitted for async processing. Used to filter future requests.
 
         Ptr<WorkerThread> _worker;
+        List<MaterialInfo> _materialInfo;
+
         friend class MaterialUploadWorker;
+
     public:
         MaterialLibrary(size_t size);
 
@@ -59,6 +63,12 @@ namespace Inferno::Render {
         void LoadMaterials(span<const TexID> tids, bool forceLoad);
         void LoadMaterialsAsync(span<const TexID> ids, bool forceLoad = false);
         void Dispatch();
+
+        span<MaterialInfo> GetAllMaterialInfo() { return _materialInfo; }
+        MaterialInfo& GetMaterialInfo(TexID id) {
+            if (!Seq::inRange(_materialInfo, (int)id)) return _defaultMaterialInfo;
+            return _materialInfo[(int)id];
+        }
 
         // Gets a material based on a D1/D2 texture ID
         const Material2D& Get(TexID id) const {
