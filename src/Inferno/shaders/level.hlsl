@@ -217,7 +217,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
     //float3 normal = clamp(Sample2DAAData2(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
     float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1);
-    // Scale normal
     normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
     //return float4(pow(normal * .5 + .5, 2.2), 1);
@@ -307,7 +306,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
         //gloss = exp2(lerp(0, log2(gloss), flatness));
         //colorSum *= flatness;
-        lighting += colorSum * material.LightReceived * 0.7;
+        lighting += colorSum * material.LightReceived * GLOBAL_LIGHT_MULT;
         lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
         lighting += emissive * diffuse.rgb;
 

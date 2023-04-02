@@ -2,6 +2,7 @@
 
 static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
+static const float GLOBAL_LIGHT_MULT = 0.7;
 
 // Inputs
 // DescriptorTable(SRV(t9, numDescriptors = 3), visibility=SHADER_VISIBILITY_PIXEL)
@@ -542,28 +543,15 @@ float3 ApplyRectLight2(
         specFactor *= SpecularMultFromRoughness(roughness);
         specular = specFactor * rDotL * specularColor;
     }
-    // float3 light = (specular + diffuseFactor) * falloff * lightColor * luminosity;	
-    //if (windingCheck < 0)
-    //    falloff = 0; // Don't show specular on surfaces behind the light
 
-    //gloss = ClampGloss(gloss, lightDistSq);
     float nDotL = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
-    float lightRadius = sqrt(lightRadiusSq);
+
     // add the light's rectangular area to light radius so it doesn't extend past the cull radius. 1.5 is diagonal distance.
     //lightRadiusSq = pow(lightRadius + sqrt(vWidth * vWidth + vHeight * vHeight), 2);
     float3 lightDir = closestDiffusePoint - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
 
-    // modify 1/d^2 * R^2 to fall off at a fixed radius
-    // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
-    //float invLightDist = InvLightDist(lightDistSq, lightRadiusSq);
-    //float falloff = lightRadiusSq * (invLightDist * invLightDist);
-    //falloff = falloff - rsqrt(falloff);
-    //falloff = clamp(falloff, 0, 15); // clamp nearby surface distance to prevent hotspots
-
     float falloff = Attenuate(lightDistSq, lightRadiusSq);
-
-    //return falloff * lightColor;
     return max(0, falloff * (lightColor * nDotL * diffuse + specular));
 }
 
@@ -686,13 +674,14 @@ uint FrameIndexMod2;
 
 static const float DIFFUSE_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 2;
-static const float METAL_SPECULAR_FACTOR = 0.5;
-static const float METAL_SPECULAR_EXP = 8;
+static const float METAL_SPECULAR_FACTOR = 0.5; // reduce this after increasing specular exponent
+static const float METAL_SPECULAR_EXP = 10; // increase this to get more diffuse color contribution
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     lightColor = lerp(light.color, 0, material.Metalness);
     specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
     specularColor *= material.SpecularStrength;
+    specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
     lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
     lightColor *= DIFFUSE_MULT;
 }

@@ -313,6 +313,7 @@ namespace Inferno {
         enum RootParameterIndex : uint {
             FrameConstants,
             RootConstants,
+            //MaterialConstants,
             Material,
             Sampler,
             RootParameterCount
@@ -340,8 +341,12 @@ namespace Inferno {
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
+            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof consts / 4, &consts, 0);
         }
+
+        //static void SetMaterialConstants(ID3D12GraphicsCommandList* commandList, D3D12_GPU_VIRTUAL_ADDRESS cbv) {
+        //    commandList->SetGraphicsRootConstantBufferView(MaterialConstants, cbv);
+        //}
     };
 
     class FlatShader : public IShader {

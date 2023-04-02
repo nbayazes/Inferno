@@ -128,7 +128,6 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     // Load HDR and bloom
     float3 hdrColor = ColorRW[DTid.xy];
-    //float l = Luminance(hdrColor);
     //if (l > 1.00)
     //    hdrColor += (l - 1) / 3;
     hdrColor += g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
@@ -136,17 +135,27 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     // Tone map to SDR
     if (NewLightMode) {
+        float3 toneMappedColor = hdrColor;
+
         switch (ToneMapper) {
             case 0:
-                hdrColor = Uncharted2ToneMapping(hdrColor);
+                toneMappedColor = Uncharted2ToneMapping(hdrColor);
                 break;
             case 1:
-                hdrColor = tony_mc_mapface(hdrColor);
+                toneMappedColor = tony_mc_mapface(hdrColor);
                 break;
             case 2:
-                hdrColor = reinhard_extended_luminance(hdrColor, 8.0);
+                toneMappedColor = reinhard_extended_luminance(hdrColor, 8.0);
                 break;
         }
+
+        // blend with the original color to preserve reds
+        float lum = Luminance(hdrColor);
+        // lowering the lower bound introduces more of the tone mapping, causing reds to be more pink
+        // but also causes bright areas like reactor highlights to be smoother
+        float t0 = max(0, smoothstep(0.5, 1.5, lum));
+        hdrColor = toneMappedColor * t0 + hdrColor * (1 - t0);
+        //hdrColor = toneMappedColor;
     }
 
     hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
