@@ -30,6 +30,7 @@ namespace Inferno::Render {
         PackedBuffer _buffer{ 1024 * 1024 * 10 };
         List<MeshIndex> _handles;
         size_t _capacity, _capacityD3;
+
     public:
         MeshBuffer(size_t capacity, size_t capacityD3)
             : _capacity(capacity), _capacityD3(capacityD3) {
@@ -49,7 +50,7 @@ namespace Inferno::Render {
             //SPDLOG_INFO("Loading model {}", id);
             auto& model = Resources::GetModel(id);
 
-            for (int smIndex = 0; auto & submodel : model.Submodels) {
+            for (int smIndex = 0; auto& submodel : model.Submodels) {
                 int vertexCount = (int)submodel.ExpandedPoints.size();
                 assert(vertexCount % 3 == 0);
                 List<ObjectVertex> verts;
@@ -70,13 +71,16 @@ namespace Inferno::Render {
                     auto normal = v1.Cross(v2);
                     normal.Normalize();
                     verts[i].Normal = verts[i + 1].Normal = verts[i + 2].Normal = normal;
+
+                    GetTangentBitangent(std::span{ &verts[i], 3 });
                 }
 
                 auto vertexView = _buffer.PackVertices(verts);
 
                 // Create meshes
-                for (int16 slot = 0; auto & indices : submodel.ExpandedIndices) {
-                    if (indices.size() != 0) { // don't upload empty indices
+                for (int16 slot = 0; auto& indices : submodel.ExpandedIndices) {
+                    if (indices.size() != 0) {
+                        // don't upload empty indices
                         auto& mesh = _meshes.emplace_back();
                         handle.Meshes[smIndex][slot] = &mesh;
                         mesh.VertexBuffer = vertexView;
@@ -104,7 +108,7 @@ namespace Inferno::Render {
             auto& handle = _handles[_capacity + (int)id];
             if (handle.Loaded) return;
 
-            for (int smIndex = 0; auto & submodel : model.Submodels) {
+            for (int smIndex = 0; auto& submodel : model.Submodels) {
                 struct SubmodelMesh {
                     List<ObjectVertex> Vertices;
                     List<uint16> Indices;
@@ -136,7 +140,7 @@ namespace Inferno::Render {
                                 .UV = uv,
                                 .Color = color,
                                 .Normal = vtx.Normal
-                                                   });
+                            });
                             smm.Indices.push_back(smm.Index++);
                         };
 
@@ -169,6 +173,33 @@ namespace Inferno::Render {
 
         MeshIndex& GetOutrageHandle(ModelID id) {
             return _handles[_capacity + (int)id];
+        }
+
+    private:
+        static void GetTangentBitangent(span<ObjectVertex> verts) {
+            auto edge1 = verts[1].Position - verts[0].Position;
+            auto edge2 = verts[2].Position - verts[0].Position;
+            auto deltaUV1 = verts[1].UV - verts[0].UV;
+            auto deltaUV2 = verts[2].UV - verts[0].UV;
+
+            if (deltaUV1.LengthSquared() == 0 || deltaUV2.LengthSquared() == 0) {
+                // Invalid UVs or untextured side
+                edge1.Normalize(verts[0].Tangent);
+                verts[1].Tangent = verts[2].Tangent = verts[0].Tangent;
+                auto bitangent = verts[0].Tangent.Cross(verts[0].Normal);
+                verts[0].Bitangent = verts[1].Bitangent = verts[2].Bitangent = bitangent;
+            }
+            else {
+                float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+                Vector3 tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * f;
+                tangent.Normalize();
+
+                Vector3 bitangent = (edge2 * deltaUV1.x - edge1 * deltaUV2.x) * f;
+                bitangent.Normalize();
+
+                verts[0].Tangent = verts[1].Tangent = verts[2].Tangent = tangent;
+                verts[0].Bitangent = verts[1].Bitangent = verts[2].Bitangent = bitangent;
+            }
         }
     };
 }

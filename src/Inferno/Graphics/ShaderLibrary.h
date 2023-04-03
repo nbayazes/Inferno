@@ -3,6 +3,7 @@
 #include "DirectX.h"
 #include "Effects.h"
 #include <typeindex>
+#include "Lighting.h"
 #include "MaterialLibrary.h"
 
 namespace Inferno {
@@ -99,12 +100,16 @@ namespace Inferno {
         Vector2 UV;
         Color Color;
         Vector3 Normal;
+        Vector3 Tangent;
+        Vector3 Bitangent;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BITANGENT",0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
@@ -223,13 +228,13 @@ namespace Inferno {
 
     class LevelShader : public IShader {
         enum RootParameterIndex : uint {
-            FrameConstants,
-            RootConstants,
-            Material1,
-            Material2,
-            Depth,
-            Sampler,
-            LightData, // SRV 9, 10, 11
+            FrameConstants, // b0
+            RootConstants, // b1
+            Material1, // t0 - t4
+            Material2, // t5 - t9
+            Depth, // t10
+            Sampler, // s0
+            LightGrid, // b2, t11, t12, t13
         };
     public:
         struct InstanceConstants {
@@ -265,22 +270,12 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
 
-        // SRV must be the light data, grid, and bitmask as contiguous handles
-        static void SetLights(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE lightHandle) {
-            commandList->SetGraphicsRootDescriptorTable(LightData, lightHandle);
+        static void SetLightGrid(ID3D12GraphicsCommandList* commandList, Graphics::FillLightGridCS& lightGrid) {
+            commandList->SetGraphicsRootDescriptorTable(LightGrid, lightGrid.GetSRVTable());
+            commandList->SetGraphicsRootDescriptorTable(LightGrid + 1, lightGrid.GetLightGrid().GetSRV());
+            commandList->SetGraphicsRootDescriptorTable(LightGrid + 2, lightGrid.GetBitMask().GetSRV());
+            commandList->SetGraphicsRootConstantBufferView(LightGrid + 3, lightGrid.GetConstants());
         }
-
-        static void SetLights2(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE lightHandle) {
-            commandList->SetGraphicsRootDescriptorTable(LightData + 1, lightHandle);
-        }
-
-        static void SetLights3(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE lightHandle) {
-            commandList->SetGraphicsRootDescriptorTable(LightData + 2, lightHandle);
-        }
-
-        //static void SetLightConstants(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
-        //    commandList->SetGraphicsRootDescriptorTable(LightData + 3, handle);
-        //}
     };
 
     class SpriteShader : public IShader {

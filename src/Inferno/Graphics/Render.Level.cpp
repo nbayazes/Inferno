@@ -205,13 +205,7 @@ namespace Inferno::Render {
         }
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
-        Shaders->Level.SetLights(cmdList, Render::LightGrid->GetSRVTable());
-        Shaders->Level.SetLights2(cmdList, Render::LightGrid->GetLightGrid().GetSRV());
-        cmdList->SetGraphicsRootDescriptorTable(6, Render::LightGrid->GetSRVTable());
-
-        Shaders->Level.SetLights3(cmdList, Render::LightGrid->GetBitMask().GetSRV());
-        //ctx.SetConstantBuffer(6 + 3, Render::LightGrid->GetConstants());
-        cmdList->SetGraphicsRootConstantBufferView(6 + 3, Render::LightGrid->GetConstants());
+        Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
         mesh.Draw(cmdList);
         Stats::DrawCalls++;
     }
