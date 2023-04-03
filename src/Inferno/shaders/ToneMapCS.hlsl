@@ -153,8 +153,12 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         float lum = Luminance(hdrColor);
         // lowering the lower bound introduces more of the tone mapping, causing reds to be more pink
         // but also causes bright areas like reactor highlights to be smoother
-        float t0 = max(0, smoothstep(0.5, 1.5, lum));
-        hdrColor = toneMappedColor * t0 + hdrColor * (1 - t0);
+        // it also causes bright white areas to blend more smoothly
+        float t0 = max(0, smoothstep(0.2, 0.3, lum));
+        //float t0 = saturate(lum);
+        //float t0 = saturate(1 * lum * lum);
+        //hdrColor = lerp(hdrColor, toneMappedColor, t0);
+        hdrColor = toneMappedColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
         //hdrColor = toneMappedColor;
     }
 

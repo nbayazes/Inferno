@@ -285,7 +285,7 @@ namespace Inferno {
         size_t _gpuCapacity = 0, _requestedCapacity, _gpuElements = 0;
         List<T> _buffer;
         DescriptorHandle _srv, _uav;
-
+        bool _forbidResize = false;
     public:
         UploadBuffer(size_t capacity) : _requestedCapacity(capacity) {
             _buffer.reserve(capacity);
@@ -302,19 +302,20 @@ namespace Inferno {
 
         ID3D12Resource* Get() const { return _resource.Get(); }
 
-        //// note that these views become invalid if the buffer resizes
-        //void CreateShaderResourceView() {
-        //    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-        //    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-        //    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-        //    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        //    srvDesc.Buffer.NumElements = _buffer.size();
-        //    srvDesc.Buffer.StructureByteStride = Stride;
-        //    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+        // note that these views become invalid if the buffer resizes
+        void CreateShaderResourceView() {
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.Buffer.NumElements = _buffer.size();
+            srvDesc.Buffer.StructureByteStride = Stride;
+            srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-        //    if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
-        //    Render::Device->CreateShaderResourceView(_resource.Get(), &srvDesc, _srv.GetCpuHandle());
-        //}
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+            Render::Device->CreateShaderResourceView(_resource.Get(), &srvDesc, _srv.GetCpuHandle());
+            _forbidResize = true;
+        }
 
         //void CreateUnorderedAccessView() {
         //    D3D12_UNORDERED_ACCESS_VIEW_DESC desc{};

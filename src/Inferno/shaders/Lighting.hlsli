@@ -114,11 +114,11 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
 }
 
 float Attenuate(float lightDistSq, float lightRadiusSq) {
+    // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
     float factor = lightDistSq / lightRadiusSq; // 0 to 1
     float smoothFactor = max(1 - factor * factor, 0); // 0 to 1
     float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
     return clamp(falloff * 100, 0, 20); // clamp nearby surface distance to prevent hotspots
-    //return falloff * 100;
 }
 
 float3 ApplyPointLight(
@@ -133,22 +133,11 @@ float3 ApplyPointLight(
     float lightRadiusSq,
     float3 lightColor // Radiance of directional light
 ) {
-    specularColor *= 0.25;
+    specularColor *= 0.25; // tweak to match area lights
     float3 lightDir = lightPos - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
     lightDir = normalize(lightDir);
-    float invLightDist = InvLightDist(lightDistSq, lightRadiusSq);
 
-    // modify 1/d^2 * R^2 to fall off at a fixed radius
-    // (R/d)^2 - d/R = [(1/d^2) - (1/R^2)*(d/R)] * R^2
-    //float falloff = lightRadiusSq * (invLightDist * invLightDist);
-    //falloff = max(0, falloff - rsqrt(falloff));
-
-    //falloff = max(0, (sqrt(lightRadiusSq) - pow(sqrt(lightDistSq), 1.00)) / sqrt(lightRadiusSq));
-    //falloff *= 6;
-    // 1 / d^2 : quadratic
-
-    // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
     float falloff = Attenuate(lightDistSq, lightRadiusSq);
 
     float3 halfVec = normalize(lightDir - viewDir);
@@ -496,7 +485,6 @@ float3 ApplyRectLight2(
     closestDiffusePoint += surfaceOffset;
 
     float3 specular = float3(0, 0, 0);
-
     {
         // Calculate specular
         float3 r = reflect(viewDir, normal);
@@ -552,6 +540,7 @@ float3 ApplyRectLight2(
     float lightDistSq = dot(lightDir, lightDir);
 
     float falloff = Attenuate(lightDistSq, lightRadiusSq);
+    //return max(0, falloff * specular);
     return max(0, falloff * (lightColor * nDotL * diffuse + specular));
 }
 
@@ -672,6 +661,10 @@ uint4 FirstLightIndex;
 uint FrameIndexMod2;
 }
 
+float Luminance(float3 v) {
+    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
+}
+
 static const float DIFFUSE_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 2;
 static const float METAL_SPECULAR_FACTOR = 0.5; // reduce this after increasing specular exponent
@@ -682,7 +675,11 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
     specularColor *= material.SpecularStrength;
     specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
-    lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
+    float luma = Luminance(specularColor);
+    //if (luma > 2)
+    //    specularColor = clamp(specularColor, 0, 2);
+        //specularColor = float3(0, 1, 0);
+        lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
     lightColor *= DIFFUSE_MULT;
 }
 

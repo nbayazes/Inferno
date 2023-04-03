@@ -42,7 +42,7 @@ namespace Inferno {
     };
 
     struct Material {
-        enum { Diffuse, Mask, Emissive, Specular, Count };
+        enum { Diffuse, Mask, Emissive, Specular, Normal, Count };
 
         string Name;
         TexID PigID = TexID::None; // For D1/D2

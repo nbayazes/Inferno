@@ -277,7 +277,7 @@ Materials:
       NormalStrength: 0.75
       Roughness: 0.525
       Metalness: 0.9
-      SpecularStrength: 2
+      SpecularStrength: 1
 
     - TexID: 1416 # exit door
       NormalStrength: 0.5
@@ -1116,7 +1116,7 @@ LevelTextures:
       Wrap: 2
       Width: 0.01
       Offset: 0
-      Color: '0.35, 0.30, 0.30'
+      Color: '0.30, 0.25, 0.25'
       Radius: 25
   
     - ID: 251 # red

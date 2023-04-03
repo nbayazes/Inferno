@@ -70,8 +70,8 @@ namespace Inferno::PostFx {
     public:
         BloomExtractDownsampleCS() : ComputeShader(8, 8) { }
 
-        float BloomThreshold = 1.35f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
-        float Exposure = 1.4f;        // exposure adjustment on source image for bloom sampling
+        float BloomThreshold = 1.25f; // how high value needs to be to bloom. Setting to 0 causes exposure to have no effect.
+        float Exposure = 1.0f;        // exposure adjustment on source image for bloom sampling
         const float InitialMinLog = -12.0f;
         const float InitialMaxLog = 4.0f;
 
@@ -170,7 +170,7 @@ namespace Inferno::PostFx {
         ToneMapCS() : ComputeShader(8, 8) {}
 
         float Exposure = 1.0f; // final scene exposure
-        float BloomStrength = 0.5f;
+        float BloomStrength = 0.45f;
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest) const {
             bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);

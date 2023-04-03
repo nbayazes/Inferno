@@ -229,13 +229,14 @@ namespace Inferno::Render {
                 auto handle = texId >= 0 ?
                     Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) :
                     Materials->White.Handles[0];
-
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
                 effect.Shader->SetSampler(cmd, GetTextureSampler());
                 effect.Shader->SetMaterial(cmd, handle);
+                effect.Shader->SetLightGrid(cmd, *Render::LightGrid);
+                effect.Shader->SetMaterialInfoBuffer(cmd, Render::MaterialInfoBuffer->GetSRV());
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
                     if (material.Saturate())
@@ -317,6 +318,8 @@ namespace Inferno::Render {
 
                 const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
                 effect.Shader->SetMaterial(cmdList, material);
+                effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+                effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
 
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmdList->IASetIndexBuffer(&mesh->IndexBuffer);

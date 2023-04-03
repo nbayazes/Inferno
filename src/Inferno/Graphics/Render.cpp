@@ -100,6 +100,7 @@ namespace Inferno::Render {
         constexpr int MATERIAL_COUNT = 3000;
         Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
         MaterialInfoBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
+        MaterialInfoBuffer->CreateShaderResourceView();
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);

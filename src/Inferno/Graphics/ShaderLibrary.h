@@ -234,7 +234,7 @@ namespace Inferno {
             Material2, // t5 - t9
             Depth, // t10
             Sampler, // s0
-            LightGrid, // b2, t11, t12, t13
+            LightGrid, // t11, t12, t13, b2
         };
     public:
         struct InstanceConstants {
@@ -306,17 +306,18 @@ namespace Inferno {
 
     class ObjectShader : public IShader {
         enum RootParameterIndex : uint {
-            FrameConstants,
-            RootConstants,
-            //MaterialConstants,
-            Material,
-            Sampler,
-            RootParameterCount
+            FrameConstants, // b0
+            RootConstants, // b1
+            Material, // t0 - t4
+            Sampler, // s0
+            //MaterialInfoBuffer, // t5
+            LightGrid, // t11, t12, t13, b2
         };
     public:
         struct Constants {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
+            TexID TexID;
         };
 
         ObjectShader(ShaderInfo info) : IShader(info) {
@@ -339,9 +340,17 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof consts / 4, &consts, 0);
         }
 
-        //static void SetMaterialConstants(ID3D12GraphicsCommandList* commandList, D3D12_GPU_VIRTUAL_ADDRESS cbv) {
-        //    commandList->SetGraphicsRootConstantBufferView(MaterialConstants, cbv);
-        //}
+        static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            //commandList->SetGraphicsRootConstantBufferView(MaterialInfoBuffer, cbv);
+            //commandList->SetGraphicsRootDescriptorTable(MaterialInfoBuffer, handle);
+        }
+
+        static void SetLightGrid(ID3D12GraphicsCommandList* commandList, Graphics::FillLightGridCS& lightGrid) {
+            commandList->SetGraphicsRootDescriptorTable(LightGrid, lightGrid.GetSRVTable());
+            commandList->SetGraphicsRootDescriptorTable(LightGrid + 1, lightGrid.GetLightGrid().GetSRV());
+            commandList->SetGraphicsRootDescriptorTable(LightGrid + 2, lightGrid.GetBitMask().GetSRV());
+            commandList->SetGraphicsRootConstantBufferView(LightGrid + 3, lightGrid.GetConstants());
+        }
     };
 
     class FlatShader : public IShader {
