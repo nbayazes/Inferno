@@ -17,7 +17,7 @@ struct VS_INPUT {
 };
 
 struct PS_INPUT {
-    float4 pos : SV_Position;
+    centroid float4 pos : SV_Position;
 };
 
 [RootSignature(RS)]

@@ -37,9 +37,9 @@ struct LevelVertex {
 };
 
 struct PS_INPUT {
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float2 uv2 : TEXCOORD1;
+    centroid float4 pos : SV_POSITION;
+    centroid float2 uv : TEXCOORD0;
+    centroid float2 uv2 : TEXCOORD1;
 };
 
 [RootSignature(RS)]
