@@ -182,7 +182,10 @@ namespace Inferno::Render {
             auto deltaUV1 = verts[1].UV - verts[0].UV;
             auto deltaUV2 = verts[2].UV - verts[0].UV;
 
-            if (deltaUV1.LengthSquared() == 0 || deltaUV2.LengthSquared() == 0) {
+            static_assert(std::numeric_limits<float>::is_iec559); // Check that nan / inf behavior is defined
+            float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+            if (std::isnan(f) || std::isinf(f)) {
                 // Invalid UVs or untextured side
                 edge1.Normalize(verts[0].Tangent);
                 verts[1].Tangent = verts[2].Tangent = verts[0].Tangent;
@@ -190,7 +193,6 @@ namespace Inferno::Render {
                 verts[0].Bitangent = verts[1].Bitangent = verts[2].Bitangent = bitangent;
             }
             else {
-                float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
                 Vector3 tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * f;
                 tangent.Normalize();
 
