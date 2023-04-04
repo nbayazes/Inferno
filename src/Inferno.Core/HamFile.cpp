@@ -334,7 +334,7 @@ namespace Inferno {
         return model;
     }
 
-    void ReadModelData(StreamReader& r, Model& m, Palette* palette = nullptr) {
+    void ReadModelData(StreamReader& r, Model& m, const Palette* palette = nullptr) {
         List<ubyte> data;
         data.resize(m.DataSize);
         r.ReadBytes(data.data(), data.size());

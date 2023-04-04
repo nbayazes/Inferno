@@ -15,16 +15,17 @@ namespace Inferno {
         return invert ? 1.0f - height : height;
     }
 
-    inline List<Palette::Color> CreateSpecularMap(const PigBitmap& image, float brightness = 0.5, float contrast = 1, float saturation = 1, bool invert = false) {
+    inline List<Palette::Color> CreateSpecularMap(const PigBitmap& image, float brightness = 0.5f, float contrast = 1.0f, float saturation = 1, bool invert = false) {
         List<Palette::Color> specularMap(image.Data.size());
 
         for (int y = 0; y < image.Info.Height; y++) {
             for (int x = 0; x < image.Info.Width; x++) {
                 auto color = image.Data[y * image.Info.Width + x].ToColor();
                 if (invert) color.Negate();
-                color.AdjustContrast(contrast);
-                color.AdjustSaturation(saturation);
+                Desaturate(color);
                 color *= brightness;
+                color.AdjustContrast(contrast);
+                //color.AdjustSaturation(saturation);
                 specularMap[y * image.Info.Width + x] = Palette::Color::FromColor(color);
             }
         }

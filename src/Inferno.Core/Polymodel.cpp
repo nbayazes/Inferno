@@ -64,7 +64,7 @@ namespace Inferno {
         }
     }
 
-    void ReadPolymodel(Model& model, span<ubyte> data, Palette* palette) {
+    void ReadPolymodel(Model& model, span<ubyte> data, const Palette* palette) {
         // 'global' state for the interpreter
         int16 highestTex = -1;
         StreamReader reader(data);
@@ -74,7 +74,7 @@ namespace Inferno {
         auto& angles = model.angles;
 
         // must use std::function instead of auto here to allow recursive calls
-        std::function<void(size_t, Submodel&)> ReadChunk = [&](size_t chunkStart, Submodel& submodel) {
+        std::function<void(size_t, Submodel&)> readChunk = [&](size_t chunkStart, Submodel& submodel) {
             reader.Seek(chunkStart);
             auto op = (OpCode)reader.ReadInt16();
 
@@ -205,8 +205,8 @@ namespace Inferno {
                         reader.Seek(chunkStart + 28);
                         auto offset1 = reader.ReadInt16();
                         auto offset2 = reader.ReadInt16();
-                        ReadChunk(chunkStart + offset2, submodel);
-                        ReadChunk(chunkStart + offset1, submodel);
+                        readChunk(chunkStart + offset2, submodel);
+                        readChunk(chunkStart + offset1, submodel);
                         chunkLen = 32;
                         break;
                     }
@@ -219,7 +219,7 @@ namespace Inferno {
                         angles.push_back(reader.ReadAngleVec());
                         reader.Seek(chunkStart + 16);
                         auto offset = reader.ReadInt16();
-                        ReadChunk(chunkStart + offset, submodel);
+                        readChunk(chunkStart + offset, submodel);
                         chunkLen = 20;
                         break;
                     }
@@ -254,7 +254,7 @@ namespace Inferno {
         // Load the sorted submodels
         for (auto& i : loadOrder) {
             auto& submodel = model.Submodels[i];
-            ReadChunk(submodel.Pointer, submodel);
+            readChunk(submodel.Pointer, submodel);
         }
 
         Expand(model, points);

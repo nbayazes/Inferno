@@ -117,9 +117,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
         normal = normalize(mul(normal, tbn));
+        //return saturate(float4(input.tangent * 0.5 + 0.5, 1));
 
         //return float4(input.normal, 1);
-        //return float4(normal * 0.5 + 0.5, 1);
 
         float3 colorSum = float3(0, 0, 0);
         uint2 pixelPos = uint2(input.pos.xy);

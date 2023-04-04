@@ -70,5 +70,5 @@ namespace Inferno {
     };
 
     // Read parallax object format
-    void ReadPolymodel(Model& m, span<ubyte> data, Palette* palette = nullptr);
+    void ReadPolymodel(Model& model, span<ubyte> data, const Palette* palette = nullptr);
 }
