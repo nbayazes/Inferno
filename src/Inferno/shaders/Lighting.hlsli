@@ -529,7 +529,7 @@ float3 ApplyRectLight2(
         const float3 vLight = lightPos - worldPos;
         float rDotL = dot(r, normalize(vLight));
         specFactor *= SpecularMultFromRoughness(roughness);
-        specular = specFactor * rDotL * specularColor;
+        specular = max(0, specFactor * rDotL * specularColor);
     }
 
     float nDotL = saturate(dot(normal, normalize(closestDiffusePoint - worldPos)));
