@@ -19,6 +19,7 @@
 #include "BriefingEditor.h"
 #include "ScaleWindow.h"
 #include "TextureEditor.h"
+#include "MaterialEditor.h"
 
 namespace Inferno::Editor {
 
@@ -69,6 +70,7 @@ namespace Inferno::Editor {
         DiagnosticWindow _diagnosticWindow;
         BriefingEditor _briefingEditor;
         ScaleWindow _scaleWindow;
+        MaterialEditor _materialEditor;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;
