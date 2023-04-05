@@ -278,19 +278,18 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
-        if (!material.Textures[Material2D::Specular]) {
+        if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
             material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name));
         }
-        
-        auto& info = Resources::GetTextureInfo(material.ID);
-        // what if this really is 255?
-        // need a way to determine if a texture is a level texture
-        //if (Resources::LookupLevelTexID(upload.ID) != LevelTexID(255)) {
+
+        if (!material.Textures[Material2D::Normal] && Resources::IsLevelTexture(upload.ID)) {
             NormalMapOptions options{};
             auto normal = CreateNormalMap(*upload.Bitmap, options);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name));
-        //}
+        }
+
+        auto& info = Resources::GetTextureInfo(material.ID);
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
@@ -493,9 +492,9 @@ namespace Inferno::Render {
                         trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
 
                     _materials[id] = std::move(pending);
-                    _submittedUploads.erase(pending.ID);
                 });
 
+                _submittedUploads.clear();
                 _pendingCopies.Clear();
             }
 

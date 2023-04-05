@@ -340,7 +340,7 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof consts / 4, &consts, 0);
         }
 
-        static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+        static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* /*commandList*/, D3D12_GPU_DESCRIPTOR_HANDLE /*handle*/) {
             //commandList->SetGraphicsRootConstantBufferView(MaterialInfoBuffer, cbv);
             //commandList->SetGraphicsRootDescriptorTable(MaterialInfoBuffer, handle);
         }

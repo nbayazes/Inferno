@@ -177,7 +177,7 @@ namespace Inferno::Game {
             Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
 
         if (Input::IsKeyPressed(Keys::F5)) {
-            Resources::LoadLightInfo(Game::Level);
+            Resources::LoadDataTables(Game::Level);
             Render::Adapter->ReloadResources();
             Editor::Events::LevelChanged();
         }

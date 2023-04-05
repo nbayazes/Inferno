@@ -150,6 +150,11 @@ namespace Yaml {
         return fmt::format("{}, {}, {}, {}", (int)a[0], (int)a[1], (int)a[2], (int)a[3]);
     }
 
+
+    inline std::string EncodeVector(const DirectX::SimpleMath::Vector2& v) {
+        return fmt::format("{}, {}", v.x, v.y);
+    }
+
     inline std::string EncodeColor(const DirectX::SimpleMath::Color& color) {
         return fmt::format("{}, {}, {}, {}", color.R(), color.G(), color.B(), color.A());
     }
@@ -161,7 +166,6 @@ namespace Yaml {
     inline std::string EncodeTag(Inferno::Tag tag) {
         return fmt::format("{}:{}", (int)tag.Segment, (int)tag.Side);
     }
-
 
     inline void ReadString(ryml::NodeRef node, std::string& value) {
         return ReadValue<std::string>(node, value);

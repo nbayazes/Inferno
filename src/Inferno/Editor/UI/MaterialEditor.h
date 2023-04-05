@@ -30,7 +30,22 @@ namespace Inferno::Editor {
             ranges::fill(_search, 0);
         }
 
-        void OnUpdate() {
+        void OnSave() {
+            try {
+                SPDLOG_INFO("Saving materials");
+                // todo: save to hog toggle?
+                auto name = Resources::GetMaterialFileName(Game::Level);
+                std::ofstream stream(name);
+                auto materials = Render::Materials->GetAllMaterialInfo();
+                SaveMaterialTable(stream, materials);
+                _backup = Seq::toList(materials);
+            }
+            catch (const std::exception& e) {
+                ShowErrorMessage(e);
+            }
+        }
+
+        void OnUpdate() override {
             //auto contentMax = ImGui::GetWindowContentRegionMax();
             const float listWidth = 250 * Shell::DpiScale;
             const float topRowHeight = 100 * Shell::DpiScale;
@@ -44,11 +59,11 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(200 * Shell::DpiScale);
             ImGui::InputText("##Search", _search.data(), _search.capacity());
 
-            ImGui::SameLine(contentMax.x - buttonSize.x);
-            ImGui::Button("Save All", { 150 * Shell::DpiScale, 0 });
+            ImGui::SameLine(contentMax.x - 150);
+            if (ImGui::Button("Save All", { 150 * Shell::DpiScale, 0 }))
+                OnSave();
 
             ImGui::Dummy({ 0, 4 });
-
 
             {
                 ImGui::BeginChild("list", { listWidth, contentMax.y - topRowHeight });
@@ -86,13 +101,17 @@ namespace Inferno::Editor {
 
                         ImGui::TableNextRow();
 
-                       
                         ImGui::TableNextColumn();
                         ImGui::PushID((int)id);
                         constexpr auto selectable_flags = ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap;
                         if (ImGui::Selectable("", selected, selectable_flags, ImVec2(0, rowHeight))) {
                             _selection = id;
                         }
+
+                        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                            ApplyTexture(ti.ID);
+
+                        ImGui::GetIO().MouseDown;
                         ImGui::PopID();
 
                         if (material.ID != TexID::Invalid) {
@@ -146,9 +165,14 @@ namespace Inferno::Editor {
                         ImGui::Text(ti.Name.c_str());
                         auto label = fmt::format("Tex ID: {}", ti.ID);
                         ImGui::Text(label.c_str());
+                        if (ImGui::Button("Apply texture", buttonSize))
+                            ApplyTexture(ti.ID);
+
                         ImGui::EndChild();
                     }
 
+                    ImGui::Dummy({ 0, 5 });
+                    ImGui::Separator();
                     ImGui::Dummy({ 0, 5 });
 
                     if (ImGui::Button("Copy", buttonSize)) {
@@ -162,7 +186,7 @@ namespace Inferno::Editor {
 
                     ImGui::SameLine();
                     if (ImGui::Button("Revert", buttonSize)) {
-                        if(Seq::inRange(_backup, (int)ti.ID))
+                        if (Seq::inRange(_backup, (int)ti.ID))
                             material = _backup[(int)ti.ID];
                     }
 
@@ -174,38 +198,50 @@ namespace Inferno::Editor {
                         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
                         ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
+                        auto onMaterialChanged = [&] {
+                            material.ID = (int)ti.ID;
+                            Events::LevelChanged();
+                        };
+
                         ImGui::TableRowLabel("Roughness");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::SliderFloat("##Roughness", &material.Roughness, 0.3, 1)) {
                             material.Roughness = std::clamp(material.Roughness, 0.0f, 1.0f);
-                            Events::LevelChanged();
+                            onMaterialChanged();
                         }
 
                         ImGui::TableRowLabel("Metalness");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::SliderFloat("##Metalness", &material.Metalness, 0, 1)) {
                             material.Metalness = std::clamp(material.Metalness, 0.0f, 1.0f);
-                            Events::LevelChanged();
+                            onMaterialChanged();
                         }
 
                         ImGui::TableRowLabel("Normal Strength");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::SliderFloat("##Normal", &material.NormalStrength, -2, 2)) {
-                            Events::LevelChanged();
+                            onMaterialChanged();
                         }
 
                         ImGui::TableRowLabel("Specular Strength");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::SliderFloat("##SpecularStrength", &material.SpecularStrength, 0, 2)) {
                             material.SpecularStrength = std::max(material.SpecularStrength, 0.0f);
-                            Events::LevelChanged();
+                            onMaterialChanged();
                         }
 
                         ImGui::TableRowLabel("Emissive Strength");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::SliderFloat("##EmissiveStrength", &material.EmissiveStrength, 0, 10)) {
                             material.EmissiveStrength = std::max(material.EmissiveStrength, 0.0f);
-                            Events::LevelChanged();
+                            onMaterialChanged();
+                        }
+
+                        ImGui::TableRowLabel("Light Received");
+                        ImGui::SetNextItemWidth(-1);
+                        if (ImGui::SliderFloat("##LightReceived", &material.LightReceived, 0, 1)) {
+                            material.LightReceived = std::max(material.LightReceived, 0.0f);
+                            onMaterialChanged();
                         }
 
                         ImGui::EndTable();
@@ -216,8 +252,16 @@ namespace Inferno::Editor {
             }
         }
 
-        //void UpdateTextureList() {
-        //    
-        //}
+    private:
+        void ApplyTexture(TexID id) const {
+            auto tid = Resources::LookupLevelTexID(id);
+            auto& info = Resources::GetTextureInfo(id);
+            if (Resources::IsLevelTexture(id)) {
+                if (info.Transparent)
+                    Events::SelectTexture(LevelTexID::None, tid); // overlay
+                else
+                    Events::SelectTexture(tid, LevelTexID::None);
+            }
+        }
     };
 }

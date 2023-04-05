@@ -20,6 +20,7 @@ namespace Inferno {
         EdgeV = 4 // Wraps on V, but combines the first and last light when texture wraps on U
     };
 
+    // Defines dynamic light sources on a texture
     struct TextureLightInfo {
         LevelTexID Id = LevelTexID::None;
         LightType Type = LightType::Point;
@@ -46,14 +47,15 @@ namespace Inferno {
         float Roughness = 0.8; // 0 is sharp specular, 1 is no specular
         float EmissiveStrength = 1;
         float LightReceived = 1; // 0 for unlit
-        float pad0, pad1;
+        int32 ID = -1; // TexID
+        float pad1;
     };
 
-    // Lighting and material info for textures
-    struct ExtendedTextureInfo {
-        Dictionary<LevelTexID, TextureLightInfo> LevelTextures;
+    // Loads light info from a YAML file
+    Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml);
+    // Loads material info from a YAML file
+    void LoadMaterialTable(const string& yaml, span<MaterialInfo> materials);
 
-        // Loads light data from a YAML file
-        static ExtendedTextureInfo Load(const string& data, span<MaterialInfo> materials);
-    };
+    void SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo);
+    void SaveMaterialTable(std::ostream& stream, span<MaterialInfo> materials);
 }

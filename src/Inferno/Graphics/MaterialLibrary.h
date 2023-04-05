@@ -70,6 +70,11 @@ namespace Inferno::Render {
             return _materialInfo[(int)id];
         }
 
+        void ResetMaterials() {
+            for (auto& material : _materialInfo)
+                material = {};
+        }
+
         // Gets a material based on a D1/D2 texture ID
         const Material2D& Get(TexID id) const {
             if ((int)id > _materials.Size()) return _defaultMaterial;

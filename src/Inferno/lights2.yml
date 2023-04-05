@@ -1,0 +1,366 @@
+Lights:
+    # Lab textures
+    - ID: 235 # center
+      Type: 2
+      Points: '0.5, 0.23'
+      Radius: 40
+      Width: 0.01
+      Wrap: 1
+      Color: '0.15, 0.15, 0.4' # cooler
+      Offset: 0
+  
+    - ID: 236 # right
+      Type: 2
+      Points: '0.775, 0.25'
+      Width: 0.1
+      Height: 0.01
+      Radius: 40
+      Color: '0.1, 0.1, 0.3' # cooler
+      Offset: 0.01
+  
+    - ID: 237 # left
+      Type: 2
+      Points: '0.225, 0.25'
+      Width: 0.1
+      Height: 0.01
+      Radius: 40
+      Color: '0.1, 0.1, 0.3' # cooler
+      Offset: 0.01
+  
+    - ID: 243 # right
+      Type: 2
+      Points: '0.75, 0.25'
+      Width: 0.25
+      Height: 0.01
+      Radius: 40
+      Color: '0.1, 0.1, 0.3' # cooler
+      Offset: 0.01
+  
+    - ID: 244 #left
+      Type: 2
+      Points: '0.25, 0.25'
+      Width: 0.25
+      Height: 0.05
+      Radius: 60
+      Color: '0.1, 0.1, 0.3' # cooler
+      Offset: 0.01
+  
+    # Ceiling lights
+    - ID: 275 # big square yellow
+      Type: 2
+      Points: '0.5, 0.5'
+      Width: .2
+      Height: .2
+      Radius: 30
+      Offset: 0.01
+
+    - ID: 276 # small yellow round
+      Radius: 40
+      Color: '0.7, 0.7, 0.4'
+
+    - ID: 278 # small yellow square
+      Radius: 40
+      Color: '0.7, 0.7, 0.4'
+
+    - ID: 291 # big square white
+      Type: 2
+      Points: '0.5, 0.5'
+      Width: .2
+      Height: .2
+      Radius: 30
+
+    - ID: 293 # small white round
+      Radius: 35
+      Offset: 3
+      Color: '0.4, 0.4, 0.4'
+    - ID: 295 # small white square
+      Radius: 40
+      Offset: 3
+      Color: '0.5, 0.5, 0.5'
+    
+    - ID: 296 # Stacked light
+      Type: 2
+      Points:
+        - '0.5, 0.25'
+        - '0.5, 0.75'
+      Width: .2
+      Height: .1
+      Color: '0.25, 0.25, 0.28' # cooler
+      Offset: 0.01
+      Radius: 40
+
+    # Door strips
+    - ID: 340 # white
+      Type: 2
+      Points: '0.1875, 0.5'
+      Width: 0.015
+      Height: 0.45
+      Offset: 0
+      Color: '0.30, 0.25, 0.25'
+      Radius: 25
+    - ID: 341 # white
+      Type: 2
+      Points: '0.1875, 0.5'
+      Width: 0.015
+      Height: 0.45
+      Offset: 0
+      Color: '0.30, 0.25, 0.25'
+      Radius: 25
+
+    - ID: 346 # green
+      Type: 2
+      Points: '0.1875, 0.5'
+      Width: 0.015
+      Height: 0.45
+      Offset: 0
+      Color: '0.20, 0.4, 0.20'
+      Radius: 25
+
+    - ID: 410 # blue
+      Type: 2
+      Points: '0.1875, 0.5'
+      Width: 0.015
+      Height: 0.45
+      Offset: 0
+      Color: '0.15, 0.15, 0.6'
+      Radius: 25
+
+    - ID: 411 # yellow
+      Type: 2
+      Points: '0.1875, 0.5'
+      Width: 0.015
+      Height: 0.45
+      Offset: 0
+      Color: '0.40, 0.40, 0.0'
+      Radius: 25
+
+    - ID: 412 # red
+      Type: 2
+      Points: '0.1875, 0.5'
+      Width: 0.015
+      Height: 0.45
+      Offset: 0
+      Color: '0.50, 0.01, 0.01'
+      Radius: 25
+
+    - ID: 345 # thick white
+      Type: 2
+      Points: '0.22, 0.5'
+      Width: 0.1
+      Height: 0.45
+      Offset: 0
+      Radius: 25
+      Color: '0.2, 0.2, 0.2'
+    - ID: 427 # thick blue
+      Type: 2
+      Points: '0.22, 0.5'
+      Width: 0.1
+      Height: 0.45
+      Offset: 0
+      Radius: 25
+    - ID: 428 # thick yellow
+      Type: 2
+      Points: '0.22, 0.5'
+      Width: 0.1
+      Height: 0.45
+      Offset: 0
+      Radius: 25
+    - ID: 429 # thick red
+      Type: 2
+      Points: '0.22, 0.5'
+      Width: 0.1
+      Height: 0.45
+      Offset: 0
+      Radius: 25
+
+    # forcefields
+    - ID: 343 # forcefield edge
+      Points: []
+    - ID: 344 # forcefield edge
+      Points: []
+    - ID: 420 # forcefield
+      Color: '0.10, 0.10, 0.75'
+      Radius: 55
+
+    # Double edge wrapped lights
+    - ID: 288
+      Type: 2
+      Points:
+        - '0.05, 0.5'
+        - '0.95, 0.5'
+      Width: 0.05
+      Wrap: 2
+      Offset: 0.01
+  
+    - ID: 289
+      Type: 2
+      Points:
+        - '0.075, 0.5'
+        - '0.925, 0.5'
+      Width: 0.015
+      Wrap: 2
+      Offset: 0.05
+      Radius: 20
+  
+    - ID: 290
+      Type: 2
+      Points:
+        - '0.05, 0.4'
+        - '0.95, 0.4'
+      Width: 0.05
+      Height: 0.02
+      Offset: 0.01
+  
+    # Strip lights with the same heights
+    - ID: 298 # stacked long rectangle D1: 286
+      Type: 2
+      Points:
+        - '0.5, 0.23'
+        - '0.5, 0.75'
+      Width: .32
+      Height: 0.05
+      Color: '0.3, 0.3, 0.4'
+      Offset: 0.01
+      Radius: 30
+
+    - ID: 300
+      Type: 2
+      Points: 
+        - '0.55, 0.23'
+        - '0.55, 0.75'
+      Width: .35
+      Height: .05 
+      Color: '0.15, 0.15, 0.20'
+      Offset: 0.01
+  
+    - ID: 301
+      Type: 2
+      Points:
+        - '0.5, 0.23'
+        - '0.5, 0.75'
+      Width: .001
+      Wrap: 1
+      Color: '0.15, 0.15, 0.20'
+      Offset: 0.01
+      Radius: 15
+  
+    - ID: 305
+      Type: 2
+      Points:
+        - '0.75, 0.23'
+        - '0.75, 0.75'
+      Width: .2
+      Height: 0.05
+      Color: '0.15, 0.15, 0.20'
+      Offset: 0.01
+
+    - ID: 306 # small unbreakable square
+      Radius: 40
+      Offset: 3
+      Color: '0.3, 0.3, 0.3'
+
+    - ID: 307 # small unbreakable rectangle
+      Radius: 40
+      Offset: 3
+      Color: '0.4, 0.4, 0.4'
+
+    - ID: 302 # blank light texture. only used for ambient lighting
+      Points: []
+
+    # Misc
+    - ID: 423 # green particles
+      Type: 2
+      Radius: 20
+      Width: 0.001
+      Wrap: 1
+      Color: '0.05, 0.3, 0.05'
+      Offset: 0
+    - ID: 424 # orange particles
+      Type: 2
+      Radius: 20
+      Width: 0.001
+      Wrap: 1
+      Color: '0.35, 0.25, 0.05'
+      Offset: 0
+
+    # remove lights from reactor walls as emissives work better
+    - ID: 356
+      Points: []
+    - ID: 357
+      Points: []
+    - ID: 358
+      Points: []
+    - ID: 359
+      Points: []
+
+    - ID: 353 # energy field
+      Color: '0.75f, 0.245f, 0.020f'
+      Points: []      
+
+    - ID: 355 # ooze
+      Points: []
+
+    # Monitors
+    - ID: 364
+      Points: []
+    - ID: 366
+      Points: []
+    - ID: 368
+      Points: []
+    - ID: 370
+      Points: []
+    - ID: 372
+      Points: []
+    - ID: 374
+      Points: []
+    - ID: 375
+      Points: []
+    - ID: 377
+      Points: []
+    - ID: 380
+      Points: []
+    - ID: 382
+      Points: []      
+    - ID: 391
+      Points: []
+    - ID: 392
+      Points: []
+    - ID: 393
+      Points: []
+    - ID: 394
+      Points: []
+    - ID: 395
+      Points: []  
+    - ID: 396
+      Points: []
+    - ID: 397
+      Points: []
+    - ID: 398
+      Points: []
+    - ID: 430
+      Points: []
+    - ID: 431
+      Points: []  
+
+    # lava
+    - ID: 378
+      Points: []
+      Color: '0.4, 0.00, 0.0'
+    - ID: 404
+      Points: []
+      Color: '0.4, 0.05, 0.0'
+    - ID: 405
+      Points: []
+      Color: '0.4, 0.05, 0.0'
+    - ID: 406
+      Points: []
+      Color: '0.4, 0.05, 0.0'
+    - ID: 407
+      Points: []
+      Color: '0.4, 0.05, 0.0'
+    - ID: 408
+      Points: []
+      Color: '0.4, 0.05, 0.0'
+    - ID: 409 # Dark lava
+      Points: []
+      Color: '0.4, 0.05, 0.0'

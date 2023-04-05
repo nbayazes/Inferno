@@ -50,13 +50,25 @@ namespace Inferno::Resources {
     TexID LookupModelTexID(const Model&, int16);
     inline LevelTexID LookupLevelTexID(TexID id) { return GameData.LevelTexIdx[(int)id]; }
 
+    inline const char* GetMaterialFileName(const Level& level) {
+        return level.IsDescent1() ? "materials.yml" : "materials2.yml";
+    }
+
+    inline const char* GetLightFileName(const Level& level) {
+        return level.IsDescent1() ? "lights.yml" : "lights2.yml";
+    }
+
+
+    // Returns true if the id corresponds to a level texture
+    bool IsLevelTexture(TexID id);
+
     Weapon& GetWeapon(WeaponID);
 
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
 
-    void LoadLightInfo(const Level& level);
+    void LoadDataTables(const Level& level);
 
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
@@ -83,7 +95,7 @@ namespace Inferno::Resources {
     inline Hog2 Descent3Hog, Mercenary;
     inline Outrage::GameTable GameTable;
     inline List<Outrage::VClip> VClips; // Expanded from OAF headers
-    inline ExtendedTextureInfo MaterialInfo;
+    inline Dictionary<LevelTexID, TextureLightInfo> LightInfoTable;
 
     void MountDescent3();
 

@@ -225,7 +225,7 @@ namespace Inferno::Graphics {
                 auto len = seg.GetLongestSide();
 
                 auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
-                auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, energyId);
+                auto mat = TryGetValue(Resources::LightInfoTable, energyId);
                 auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
 
                 LightData light{};
@@ -284,7 +284,7 @@ namespace Inferno::Graphics {
                     // Lava in this seg, add point lights
                     center /= (float)sideCount;
 
-                    auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, lavaId);
+                    auto mat = TryGetValue(Resources::LightInfoTable, lavaId);
                     auto color = mat ? mat->Color : Color(1.0f, 0.0f, 0.0f);
 
                     auto face = Face::FromSide(level, seg, lavaSide);
@@ -327,7 +327,7 @@ namespace Inferno::Graphics {
                 TextureLightInfo* info = nullptr;
 
                 // priority: mat2, tmap2, mat1, tmap1
-                auto mat2 = TryGetValue(Resources::MaterialInfo.LevelTextures, side.TMap2);
+                auto mat2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
                 if (mat2) {
                     info = mat2;
                 }
@@ -338,7 +338,7 @@ namespace Inferno::Graphics {
                 }
 
                 if (!useOverlay) {
-                    auto mat = TryGetValue(Resources::MaterialInfo.LevelTextures, side.TMap);
+                    auto mat = TryGetValue(Resources::LightInfoTable, side.TMap);
                     if (mat)
                         info = mat;
                 }

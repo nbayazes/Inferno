@@ -230,6 +230,13 @@ namespace Inferno::Resources {
         return GameData.ObjectBitmaps[ptr];
     }
 
+    bool IsLevelTexture(TexID id) {
+        auto tex255 = Game::Level.IsDescent1() ? TexID(971) : TexID(1485);
+        auto tid = Resources::LookupLevelTexID(id);
+        // Default tid is 255, so check if the real 255 texid is passed in
+        return tid != LevelTexID(255) || id == tex255;
+    }
+
     Weapon DefaultWeapon{ .AmmoUsage = 1 };
 
     Weapon& GetWeapon(WeaponID id) {
@@ -547,7 +554,7 @@ namespace Inferno::Resources {
         Pig = {};
         Hog = {};
         GameData = {};
-        MaterialInfo = {};
+        LightInfoTable = {};
         CustomTextures.Clear();
         Textures.clear();
     }
@@ -575,25 +582,37 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadGameTable() {
-        LoadGameTable("game.yml", GameData);
-    }
-
     void LoadLightInfo(filesystem::path path) {
         try {
             auto file = FileSystem::ReadFileText(path);
-            MaterialInfo = ExtendedTextureInfo::Load(file, Render::Materials->GetAllMaterialInfo());
+            LightInfoTable = LoadLightTable(file);
         }
         catch (...) {
-            SPDLOG_ERROR("Unable to read light info from {}", path.string());
+            SPDLOG_ERROR("Unable to read light table from {}", path.string());
         }
     }
 
-    void LoadLightInfo(const Level& level) {
-        if (level.IsDescent2())
-            LoadLightInfo("LightInfo2.yml");
-        else
-            LoadLightInfo("LightInfo.yml");
+    void LoadMaterialInfo(filesystem::path path) {
+        try {
+            auto file = FileSystem::ReadFileText(path);
+            LoadMaterialTable(file, Render::Materials->GetAllMaterialInfo());
+        }
+        catch (...) {
+            SPDLOG_ERROR("Unable to read material table from {}", path.string());
+        }
+    }
+
+    void LoadDataTables(const Level& level) {
+        Render::Materials->ResetMaterials();
+
+        // todo: support loading from hog file. note that file names need to be shortened to 8.3
+        LoadLightInfo(GetLightFileName(level));
+        LoadMaterialInfo(GetMaterialFileName(level));
+    }
+
+    void LoadGameTable() {
+        // todo: support handle loading from hog file
+        LoadGameTable("game.yml", GameData);
     }
 
     void LoadLevel(Level& level) {
@@ -610,14 +629,13 @@ namespace Inferno::Resources {
                 throw Exception("Unsupported level version");
             }
 
-            LoadLightInfo(level);
-
+            LoadGameTable();
+            LoadDataTables(level);
             LoadStringTable();
             UpdateAverageTextureColor();
 
             FixObjectModelIds(level);
             LoadExtendedWeaponInfo();
-            LoadGameTable();
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());
