@@ -11,7 +11,10 @@ namespace Inferno {
         // assumes color is clamped 0..1
         //Vector3 rgb = { (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f };
         //auto height = Luminance(rgb);
-        auto height = ((float)color.r + (float)color.g + (float)color.b) / 3.0f / 255.0f;
+        auto c = color.ToColor();
+        c.AdjustSaturation(0);
+        auto height = c.x;
+        //auto height = ((float)color.r + (float)color.g + (float)color.b) / 3.0f / 255.0f;
         return invert ? 1.0f - height : height;
     }
 
