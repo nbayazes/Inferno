@@ -144,22 +144,24 @@ void main(uint3 DTid : SV_DispatchThreadID) {
             case 1:
                 toneMappedColor = tony_mc_mapface(hdrColor);
                 break;
-            case 2:
-                toneMappedColor = reinhard_extended_luminance(hdrColor, 8.0);
-                break;
+            //case 2:
+            //    toneMappedColor = reinhard_extended_luminance(hdrColor, 8.0);
+            //    break;
         }
 
         // blend with the original color to preserve reds
-        float lum = Luminance(hdrColor);
+        //float lum = Luminance(hdrColor);
+        float lum = dot(sqrt(hdrColor), float3(0.5, 0.5, 0.5));
+        // lum = (hdrColor.r + hdrColor.b + hdrColor.g) / 3; // this renders lava correctly but clips very bright light
         // lowering the lower bound introduces more of the tone mapping, causing reds to be more pink
         // but also causes bright areas like reactor highlights to be smoother
         // it also causes bright white areas to blend more smoothly
-        float t0 = max(0, smoothstep(0.2, 0.4, lum));
+        //float t0 = max(0, smoothstep(0.2, 0.4, lum));
+        float t0 = max(0, smoothstep(0, 2, lum));
         //float t0 = saturate(lum);
         //float t0 = saturate(1 * lum * lum);
         //hdrColor = lerp(hdrColor, toneMappedColor, t0);
         hdrColor = toneMappedColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
-        //hdrColor = toneMappedColor;
     }
 
     hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
