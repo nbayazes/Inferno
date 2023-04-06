@@ -278,18 +278,19 @@ namespace Inferno::Render {
         if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
-        if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
+        auto& info = Resources::GetTextureInfo(material.ID);
+
+        //if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
+        if (!material.Textures[Material2D::Specular] && info.Width == 64 && info.Height == 64) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
             material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name));
         }
 
-        if (!material.Textures[Material2D::Normal] && Resources::IsLevelTexture(upload.ID)) {
+        if (!material.Textures[Material2D::Normal] && info.Width == 64 && info.Height == 64) {
             NormalMapOptions options{};
             auto normal = CreateNormalMap(*upload.Bitmap, options);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name));
         }
-
-        auto& info = Resources::GetTextureInfo(material.ID);
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
             auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);

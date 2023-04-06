@@ -211,8 +211,9 @@ namespace Inferno {
         size_t DataStart = 0;
         List<PigEntry> Entries;
 
+
         const PigEntry& Get(TexID id) const {
-            if ((int)id >= Entries.size() || (int)id < 0) return Entries[0];
+            if (!Seq::inRange(Entries, (int)id)) return _defaultEntry;
             return Entries[(int)id];
         }
 
@@ -222,6 +223,9 @@ namespace Inferno {
         PigFile(PigFile&&) = default;
         PigFile& operator=(const PigFile&) = delete;
         PigFile& operator=(PigFile&&) = default;
+
+    private:
+        inline static PigEntry _defaultEntry = {};
     };
 
 

@@ -68,6 +68,7 @@ Lights:
       Width: .2
       Height: .2
       Radius: 30
+      Color: '0.7, 0.7, 0.8'
 
     - ID: 293 # small white round
       Radius: 35
@@ -96,7 +97,7 @@ Lights:
       Width: 0.015
       Height: 0.45
       Offset: 0
-      Color: '0.30, 0.25, 0.25'
+      Color: '0.35, 0.3, 0.3'
       Radius: 25
     - ID: 341 # white
       Type: 2
@@ -104,7 +105,7 @@ Lights:
       Width: 0.015
       Height: 0.45
       Offset: 0
-      Color: '0.30, 0.25, 0.25'
+      Color: '0.35, 0.3, 0.3'
       Radius: 25
 
     - ID: 346 # green
@@ -131,7 +132,7 @@ Lights:
       Width: 0.015
       Height: 0.45
       Offset: 0
-      Color: '0.40, 0.40, 0.0'
+      Color: '0.3, 0.3, 0.0'
       Radius: 25
 
     - ID: 412 # red
@@ -140,7 +141,7 @@ Lights:
       Width: 0.015
       Height: 0.45
       Offset: 0
-      Color: '0.50, 0.01, 0.01'
+      Color: '0.40, 0.01, 0.01'
       Radius: 25
 
     - ID: 345 # thick white
@@ -150,7 +151,7 @@ Lights:
       Height: 0.45
       Offset: 0
       Radius: 25
-      Color: '0.2, 0.2, 0.2'
+      Color: '0.35, 0.3, 0.3'
     - ID: 427 # thick blue
       Type: 2
       Points: '0.22, 0.5'
@@ -191,6 +192,7 @@ Lights:
       Width: 0.05
       Wrap: 2
       Offset: 0.01
+      Color: '0.15, 0.15, 0.05'
   
     - ID: 289
       Type: 2
@@ -219,7 +221,7 @@ Lights:
         - '0.5, 0.75'
       Width: .32
       Height: 0.05
-      Color: '0.3, 0.3, 0.4'
+      Color: '0.5, 0.5, 0.6'
       Offset: 0.01
       Radius: 30
 
@@ -282,6 +284,13 @@ Lights:
       Wrap: 1
       Color: '0.35, 0.25, 0.05'
       Offset: 0
+
+    - ID: 72 # Secret portal
+      Offset: 10
+    - ID: 434 # Red goal
+      Offset: 10
+    - ID: 433 # Blue goal
+      Offset: 10
 
     # remove lights from reactor walls as emissives work better
     - ID: 356
@@ -348,7 +357,7 @@ Lights:
       Color: '0.4, 0.00, 0.0'
     - ID: 404
       Points: []
-      Color: '0.4, 0.05, 0.0'
+      Color: '0.3, 0.025, 0.0'
     - ID: 405
       Points: []
       Color: '0.4, 0.05, 0.0'

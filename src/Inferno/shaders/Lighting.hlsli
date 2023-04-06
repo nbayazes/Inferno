@@ -98,6 +98,10 @@ float RoughnessToGloss(float roughness) {
 }
 
 float SpecularMultFromRoughness(float roughness) {
+    return 1;
+    return roughness > 0.5 ? 1 : 1 - pow(2 - 4 * roughness, 2);
+    //return roughness < 0.6666 ? 1 : 1 - pow(2 - 3 * roughness, 2);
+
     //float mult = 1 * sqrt(1 - roughness);
     //return clamp(mult, 0, 0.4);
     return sqrt(saturate(1 - roughness));
@@ -115,10 +119,10 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
 
 float Attenuate(float lightDistSq, float lightRadiusSq) {
     // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
-    float factor = lightDistSq / lightRadiusSq; // 0 to 1
-    float smoothFactor = max(1 - factor * factor, 0); // 0 to 1
+    float factor = lightDistSq / lightRadiusSq;                                   // 0 to 1
+    float smoothFactor = max(1 - factor * factor, 0);                             // 0 to 1
     float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
-    return clamp(falloff * 100, 0, 20); // clamp nearby surface distance to prevent hotspots
+    return clamp(falloff * 100, 0, 20);                                           // clamp nearby surface distance to prevent hotspots
 }
 
 float3 ApplyPointLight(
@@ -464,7 +468,7 @@ float3 ApplyRectLight2(
     // https://www.shadertoy.com/view/3dsBD4
     specularColor *= 0.2; // tweak to match point lights
 
-    lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
+    //lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
 
     // shift the rectangle off of the surface so it lights it more evenly
     // note that this does not affect the position of the reflection
@@ -668,18 +672,25 @@ float Luminance(float3 v) {
 static const float DIFFUSE_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 2;
 static const float METAL_SPECULAR_FACTOR = 0.5; // reduce this after increasing specular exponent
-static const float METAL_SPECULAR_EXP = 10; // increase this to get more diffuse color contribution
+static const float METAL_SPECULAR_EXP = 5;     // increase this to get more diffuse color contribution
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     lightColor = lerp(light.color, 0, material.Metalness);
-    specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
+
+    float greyscale = dot(diffuse, float3(.222, .707, .071)); // Convert to greyscale numbers with magic luminance numbers
+    //float3 metalDiffuse = lerp(float3(greyscale, greyscale, greyscale), diffuse, 2);
+    float3 intensity = dot(diffuse, float3(0.299, 0.587, 0.114));
+    float3 metalDiffuse = lerp(intensity, diffuse, 2.4); // boost the saturation of the diffuse texture
+
+    //specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
+    specularColor = lightColor + lerp(0, (pow(metalDiffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
     specularColor *= material.SpecularStrength;
     specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
-    float luma = Luminance(specularColor);
+    //float luma = Luminance(specularColor);
     //if (luma > 2)
     //    specularColor = clamp(specularColor, 0, 2);
-        //specularColor = float3(0, 1, 0);
-        lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
+    //specularColor = float3(0, 1, 0);
+    lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
     lightColor *= DIFFUSE_MULT;
 }
 

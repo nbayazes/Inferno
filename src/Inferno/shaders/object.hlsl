@@ -129,7 +129,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         lighting += colorSum * material.LightReceived * GLOBAL_LIGHT_MULT;
         lighting += emissive * diffuse.rgb * 20;
-        lighting += Ambient * diffuse.rgb * 0.15;
+        lighting += Ambient * diffuse.rgb * 0.2;
 
         return float4(lighting * GlobalDimming, diffuse.a);
     }
