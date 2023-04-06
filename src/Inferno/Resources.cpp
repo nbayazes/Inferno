@@ -557,6 +557,7 @@ namespace Inferno::Resources {
         LightInfoTable = {};
         CustomTextures.Clear();
         Textures.clear();
+        Render::Materials->ResetMaterials();
     }
 
     // Some old levels didn't properly set the render model ids.
@@ -603,8 +604,6 @@ namespace Inferno::Resources {
     }
 
     void LoadDataTables(const Level& level) {
-        Render::Materials->ResetMaterials();
-
         // todo: support loading from hog file. note that file names need to be shortened to 8.3
         LoadLightInfo(GetLightFileName(level));
         LoadMaterialInfo(GetMaterialFileName(level));
@@ -613,6 +612,61 @@ namespace Inferno::Resources {
     void LoadGameTable() {
         // todo: support handle loading from hog file
         LoadGameTable("game.yml", GameData);
+    }
+
+    void LoadObjectLightInfo(Level& level) {
+        // todo: load from file
+        if (level.IsDescent2()) {
+            for (auto& obj : level.Objects) {
+                if (obj.Type == ObjectType::Powerup) {
+                    constexpr float POWERUP_LIGHT_RAD = 14.0f;
+
+                    if (obj.ID == 1) {
+                        // energy
+                        obj.LightColor = Color(2, 1.1f, 0.1);
+                        obj.LightRadius = POWERUP_LIGHT_RAD;
+                    }
+
+                    if (obj.ID == 2) {
+                        // shield
+                        obj.LightColor = Color(0.025f, 0.025f, 2);
+                        obj.LightRadius = POWERUP_LIGHT_RAD;
+                    }
+
+                    // ebandit, robot 44 emit 2,1,0 radius 14
+
+                    //if (obj.ID == 5) {
+                    //    // blue key
+                    //    obj.LightColor = Color(2, 0, 0);
+                    //    obj.LightRadius = POWERUP_LIGHT_RAD;
+                    //}
+
+                    //if (obj.ID == 5) {
+                    //    // red key
+                    //    obj.LightColor = Color(2, 0, 0);
+                    //    obj.LightRadius = POWERUP_LIGHT_RAD;
+                    //}
+
+                    //if (obj.ID == 6) {
+                    //    // gold key
+                    //    obj.LightColor = Color(2, 2, 0);
+                    //    obj.LightRadius = POWERUP_LIGHT_RAD;
+                    //}
+
+                    if (obj.ID == 23) {
+                        // cloak
+                        obj.LightColor = Color(1.0f, 0, 2.0f);
+                        obj.LightRadius = POWERUP_LIGHT_RAD;
+                    }
+
+                    if (obj.ID == 25) {
+                        // invuln
+                        obj.LightColor = Color(0.2f, 0, 2.0f);
+                        obj.LightRadius = POWERUP_LIGHT_RAD;
+                    }
+                }
+            }
+        }
     }
 
     void LoadLevel(Level& level) {
@@ -636,6 +690,7 @@ namespace Inferno::Resources {
 
             FixObjectModelIds(level);
             LoadExtendedWeaponInfo();
+            LoadObjectLightInfo(level);
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

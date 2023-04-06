@@ -298,15 +298,17 @@ float4 psmain(PS_INPUT input) : SV_Target {
         return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
     }
     else {
-        //diffuse.rgb = 0.5;
         float3 colorSum = float3(0, 0, 0);
         uint2 pixelPos = uint2(input.pos.xy);
         //return float4(specularMask, specularMask, specularMask, 1);
+        //normal = input.normal; // debug
+        //diffuse.rgb = 0.5; // debug
+        //specularMask = 0; // debug
         ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
         //gloss = exp2(lerp(0, log2(gloss), flatness));
         //colorSum *= flatness;
-        lighting += colorSum * material.LightReceived * GLOBAL_LIGHT_MULT;
+        lighting += colorSum * material.LightReceived;
         lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
         lighting += emissive * diffuse.rgb;
 
@@ -315,4 +317,5 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
         return float4(lighting * GlobalDimming, diffuse.a);
     }
+
 }

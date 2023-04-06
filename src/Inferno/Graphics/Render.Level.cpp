@@ -200,7 +200,8 @@ namespace Inferno::Render {
         if (chunk.TMap2 > LevelTexID::Unset) {
             auto tid2 = Resources::LookupTexID(chunk.TMap2);
             constants.Mat2 = Materials->GetMaterialInfo(tid2);
-        } else {
+        }
+        else {
             constants.Mat2 = {};
         }
 
@@ -284,14 +285,53 @@ namespace Inferno::Render {
         MaterialInfoBuffer->End();
     }
 
+    List<Graphics::LightData> LevelLights;
+    std::array<Graphics::LightData, Graphics::MAX_LIGHTS> LIGHT_BUFFER{};
+
+    void UpdateDynamicLights(const Level& level) {
+        auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
+        for (int i = 0; i < LevelLights.size() && i < reserved; i++) {
+            LIGHT_BUFFER[i] = LevelLights[i];
+        }
+
+        //int litObjects = 0;
+        for (int i = 0; i < Graphics::RESERVED_LIGHTS; i++) {
+            auto& light = LIGHT_BUFFER[reserved + i];
+
+            if (i < level.Objects.size()) {
+                auto& obj = level.Objects[i];
+                if (obj.IsAlive()) {
+                    light.color = obj.LightColor.ToVector3();
+                    light.radiusSq = obj.LightRadius * obj.LightRadius;
+                    light.pos = obj.GetPosition(Game::LerpAmount);
+                    light.type = LightType::Point;
+                } else {
+                    light.radiusSq = 0;
+                }
+            }
+            else {
+                light.radiusSq = 0;
+            }
+        }
+
+        //for (auto& obj : level.Objects) {
+        //    if (obj.LightRadius <= 0) continue;
+
+        //    
+        //    litObjects++;
+
+        //    if (litObjects >= LIGHT_BUFFER.size()) break;
+        //}
+    }
+
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)ElapsedTime, FrameTime);
 
         if (LevelChanged) {
             Adapter->WaitForGpu();
-            LightGrid->SetLights(ctx.CommandList());
             _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
+            LevelLights = Graphics::GatherLightSources(level);
             CopyMaterialData();
             LevelChanged = false;
         }
@@ -301,6 +341,8 @@ namespace Inferno::Render {
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         DepthPrepass(ctx);
 
+        UpdateDynamicLights(level);
+        LightGrid->SetLights(ctx.CommandList(), LIGHT_BUFFER);
         LightGrid->Dispatch(ctx.CommandList(), Adapter->LinearizedDepthBuffer);
 
         {

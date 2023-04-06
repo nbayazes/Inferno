@@ -68,16 +68,16 @@ Lights:
       Width: .2
       Height: .2
       Radius: 30
-      Color: '0.7, 0.7, 0.8'
+      Color: '0.9, 0.9, 1.0'
 
     - ID: 293 # small white round
       Radius: 35
       Offset: 3
-      Color: '0.4, 0.4, 0.4'
+      Color: '0.6, 0.6, 0.6'
     - ID: 295 # small white square
       Radius: 40
       Offset: 3
-      Color: '0.5, 0.5, 0.5'
+      Color: '0.6, 0.6, 0.6'
     
     - ID: 296 # Stacked light
       Type: 2
@@ -98,15 +98,15 @@ Lights:
       Height: 0.45
       Offset: 0
       Color: '0.35, 0.3, 0.3'
-      Radius: 25
+      Radius: 30
     - ID: 341 # white
       Type: 2
       Points: '0.1875, 0.5'
       Width: 0.015
       Height: 0.45
       Offset: 0
-      Color: '0.35, 0.3, 0.3'
-      Radius: 25
+      Color: '0.35, 0.35, 0.30'
+      Radius: 30
 
     - ID: 346 # green
       Type: 2
@@ -115,7 +115,7 @@ Lights:
       Height: 0.45
       Offset: 0
       Color: '0.20, 0.4, 0.20'
-      Radius: 25
+      Radius: 30
 
     - ID: 410 # blue
       Type: 2
@@ -124,7 +124,7 @@ Lights:
       Height: 0.45
       Offset: 0
       Color: '0.15, 0.15, 0.6'
-      Radius: 25
+      Radius: 30
 
     - ID: 411 # yellow
       Type: 2
@@ -142,7 +142,7 @@ Lights:
       Height: 0.45
       Offset: 0
       Color: '0.40, 0.01, 0.01'
-      Radius: 25
+      Radius: 30
 
     - ID: 345 # thick white
       Type: 2
@@ -221,7 +221,7 @@ Lights:
         - '0.5, 0.75'
       Width: .32
       Height: 0.05
-      Color: '0.5, 0.5, 0.6'
+      Color: '0.6, 0.6, 0.7'
       Offset: 0.01
       Radius: 30
 
@@ -259,12 +259,12 @@ Lights:
     - ID: 306 # small unbreakable square
       Radius: 40
       Offset: 3
-      Color: '0.3, 0.3, 0.3'
+      Color: '0.8, 0.8, 0.8'
 
     - ID: 307 # small unbreakable rectangle
       Radius: 40
       Offset: 3
-      Color: '0.4, 0.4, 0.4'
+      Color: '0.8, 0.8, 0.8'
 
     - ID: 302 # blank light texture. only used for ambient lighting
       Points: []
@@ -303,7 +303,7 @@ Lights:
       Points: []
 
     - ID: 353 # energy field
-      Color: '0.75f, 0.245f, 0.020f'
+      Color: '0.75, 0.245, 0.020'
       Points: []      
 
     - ID: 355 # ooze
@@ -311,9 +311,15 @@ Lights:
 
     # Monitors
     - ID: 364
-      Points: []
+      Color: '0, .6, 0.1'
+      Radius: 20
+      Offset: 3
     - ID: 366
-      Points: []
+      Color: '0.15, .15, .5'
+      Radius: 20
+      Offset: 3
+      Points: [ '0.7, 0.4' ]
+
     - ID: 368
       Points: []
     - ID: 370

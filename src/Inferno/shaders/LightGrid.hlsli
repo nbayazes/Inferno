@@ -12,7 +12,7 @@
 //
 
 // keep in sync with C code
-#define MAX_LIGHTS 256
+#define MAX_LIGHTS 512
 #define TILE_HEADER_SIZE 12
 #define TILE_SIZE (TILE_HEADER_SIZE + MAX_LIGHTS * 4)
 

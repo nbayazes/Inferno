@@ -364,6 +364,9 @@ namespace Inferno {
         Vector3 LastPosition; // The position from the previous update. Used for graphics interpolation.
         Matrix3x3 LastRotation; // The rotation from the previous update. Used for graphics interpolation.
 
+        Color LightColor;
+        float LightRadius = 0;
+
         float NextThinkTime = NEVER_THINK;
         float Scale = 1.0;
 

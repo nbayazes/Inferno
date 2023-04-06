@@ -127,7 +127,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //normal = input.normal;
         ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
 
-        lighting += colorSum * material.LightReceived * GLOBAL_LIGHT_MULT;
+        lighting += colorSum * material.LightReceived;
         lighting += emissive * diffuse.rgb * 20;
         lighting += Ambient * diffuse.rgb * 0.2;
 

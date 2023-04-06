@@ -8,7 +8,8 @@ namespace Inferno::Debug {
 }
 
 namespace Inferno::Graphics {
-    constexpr int MAX_LIGHTS = 256;
+    constexpr int MAX_LIGHTS = 512;
+    constexpr int RESERVED_LIGHTS = 128; // for dynamics
 
     // First four bytes is the number of lights in the tile
     // size per light must be a multiple of 4
@@ -86,7 +87,7 @@ namespace Inferno::Graphics {
 
         const ByteAddressBuffer& GetBitMask() { return _bitMask; }
         const ByteAddressBuffer& GetLightGrid() { return _lightGrid; }
-        const StructuredBuffer& GetLights() { return _lightData; }
+        //const StructuredBuffer& GetLights() { return _lightData; }
         auto GetConstants() const { return _lightingConstantsBuffer.GetGPUVirtualAddress(); }
 
         D3D12_GPU_DESCRIPTOR_HANDLE GetSRVTable() const { return _lightData.GetSRV(); }
@@ -115,7 +116,7 @@ namespace Inferno::Graphics {
 
         void SetLightConstants(uint32 width, uint32 height);
 
-        void SetLights(ID3D12GraphicsCommandList* cmdList /*List<LightData> lights*/);
+        void SetLights(ID3D12GraphicsCommandList* cmdList, span<LightData> lights);
 
         Matrix GetProjMatrixTest(float yFov, float aspect, float nearClip, float farClip) {
             //float    SinFov;

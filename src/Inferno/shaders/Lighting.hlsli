@@ -2,7 +2,6 @@
 
 static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
-static const float GLOBAL_LIGHT_MULT = 0.7;
 
 // Inputs
 // DescriptorTable(SRV(t9, numDescriptors = 3), visibility=SHADER_VISIBILITY_PIXEL)
@@ -117,12 +116,14 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
         value = saturate(lerp(value, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
 }
 
+static const float GLOBAL_LIGHT_MULT = 50;
+
 float Attenuate(float lightDistSq, float lightRadiusSq) {
     // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
     float factor = lightDistSq / lightRadiusSq;                                   // 0 to 1
-    float smoothFactor = max(1 - factor * factor, 0);                             // 0 to 1
+    float smoothFactor = max(1 - pow(factor, 1), 0); // 0 to 1
     float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
-    return clamp(falloff * 100, 0, 20);                                           // clamp nearby surface distance to prevent hotspots
+    return clamp(falloff * GLOBAL_LIGHT_MULT, 0, 20); // clamp nearby surface distance to prevent hotspots
 }
 
 float3 ApplyPointLight(
