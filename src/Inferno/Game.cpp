@@ -366,7 +366,7 @@ namespace Inferno::Game {
             Render::SparkEmitter e;
             e.Position = obj.Position;
             e.Segment = obj.Segment;
-            e.Duration = { 0.75f, 2.4f };
+            e.DurationRange = { 0.75f, 2.4f };
             e.Restitution = 0.6f;
             e.Velocity = { 65, 85 };
             e.Count = { 120, 120 };
@@ -388,7 +388,7 @@ namespace Inferno::Game {
             e.Instances = 5;
             e.Variance = obj.Radius * 0.9f;
             e.Delay = { 0, 0 };
-            e.Color = Color{ 1.3f, 1.3f, 1.3f };
+            //e.Color = { 1.3f, 1.3f, 1.3f, 1.0f };
 
             Render::CreateExplosion(e);
         }
@@ -516,7 +516,7 @@ namespace Inferno::Game {
                     debris.Mass = 1;       // obj.Movement.Physics.Mass;
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
-                    debris.Life = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
+                    debris.Duration = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
                     debris.Radius = model.Submodels[i].Radius;
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
                     debris.Model = robot.Model;

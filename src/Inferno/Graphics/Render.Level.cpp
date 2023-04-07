@@ -313,9 +313,11 @@ namespace Inferno::Render {
             if (decal.LightRadius <= 0 || !decal.IsAlive()) continue;
 
             //auto radius = decal.LightRadius;
-            auto t = std::clamp((decal.FadeTime - decal.Life) * 2.0f / decal.FadeTime, 0.0f, 1.0f);
-            if (t <= 1) continue;
+            auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed) * 2.0f / decal.FadeTime, 0.0f, 1.0f);
+            if (t <= 0) continue;
 
+            // 0.4 - 0.4 -> 0
+            // 0 + elapsed / fadeTime
             auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
             auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
 
@@ -337,23 +339,24 @@ namespace Inferno::Render {
 
                 // explosions should fade in then out sharply
                 // TODO: move fade calc to effect
-                constexpr float FADE_TIME = 0.20f;
-                
-                if (effect->Elapsed < FADE_TIME)
-                    t = effect->Elapsed / FADE_TIME;
-                else
-                    t = (FADE_TIME * 2 - effect->Elapsed) / (FADE_TIME * 2);
+                const float duration = effect->Duration * 0.5f;
+                //if (effect->Elapsed < duration * 0.5f)
+                //    t = effect->Elapsed / (duration * 0.5f) ;
+                //else
+                //    t = (duration - effect->Elapsed) / (duration * 0.5f); // reverse direction
 
+                t = (duration - effect->Elapsed) / duration; // reverse direction
                 t = std::clamp(t, 0.0f, 1.0f);
 
                 if (t == 0) continue;
 
                 //auto t = std::clamp((effect->FadeTime - effect->Life) / effect->FadeTime, 0.0f, 1.0f);
                 auto color = Color::Lerp(Color(0, 0, 0), effect->LightColor, t);
-                auto radius = std::lerp(0, effect->LightRadius, t);
+                //auto radius = std::lerp(effect->LightRadius * 0.25f, effect->LightRadius, t);
+                auto radius = effect->LightRadius;
 
                 auto& light = LIGHT_BUFFER[lightIndex++];
-                light.color = effect->LightColor.ToVector3();
+                light.color = color.ToVector3();
                 light.radiusSq = radius * radius;
                 light.pos = effect->Position;
                 light.type = LightType::Point;
@@ -406,7 +409,7 @@ namespace Inferno::Render {
                 ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
             ctx.EndEvent();
 
-            DrawDecals(ctx);
+            DrawDecals(ctx, Render::FrameTime);
 
             ctx.BeginEvent(L"Transparent queue");
             for (auto& cmd : _renderQueue.Transparent() | views::reverse)
@@ -435,6 +438,12 @@ namespace Inferno::Render {
                 Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
             Debug::EndFrame(ctx.CommandList());
+        }
+    }
+
+    void ResetLightCache() {
+        for (auto& light : LIGHT_BUFFER) {
+            light.radiusSq = 0;
         }
     }
 }

@@ -34,13 +34,16 @@ RWTexture2D<float> OutLuma : register(u1);
 
 SamplerState LinearSampler : register(s0);
 
-cbuffer CB0 : register(b0) {
-float2 g_RcpBufferDim;
-float g_BloomStrength;
-float g_Exposure;
-bool NewLightMode;
-int ToneMapper;
+
+struct Constants {
+    float2 g_RcpBufferDim;
+    float g_BloomStrength;
+    float g_Exposure;
+    bool NewLightMode;
+    int ToneMapper;
 };
+
+ConstantBuffer<Constants> constants : register(b0);
 
 // The Reinhard tone operator.  Typically, the value of k is 1.0, but you can adjust exposure by 1/k.
 // I.e. TM_Reinhard(x, 0.5) == TM_Reinhard(x * 2.0, 1.0)
@@ -83,7 +86,7 @@ float3 reinhard_extended_luminance(float3 v, float max_white_l) {
 }
 
 float3 GammaRamp(float3 color, float gamma) {
-    return pow(color, 1/gamma);
+    return pow(color, 1 / gamma);
 }
 
 float3 Uncharted2ToneMapping(float3 color) {
@@ -124,20 +127,20 @@ float3 tony_mc_mapface(float3 stimulus) {
 [RootSignature(RS)]
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID) {
-    float2 TexCoord = (DTid.xy + 0.5) * g_RcpBufferDim;
+    float2 TexCoord = (DTid.xy + 0.5) * constants.g_RcpBufferDim;
 
     // Load HDR and bloom
     float3 hdrColor = ColorRW[DTid.xy];
     //if (l > 1.00)
     //    hdrColor += (l - 1) / 3;
-    hdrColor += g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
-    hdrColor *= g_Exposure;
+    hdrColor += constants.g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
+    hdrColor *= constants.g_Exposure;
 
     // Tone map to SDR
-    if (NewLightMode) {
+    if (constants.NewLightMode) {
         float3 toneMappedColor = hdrColor;
 
-        switch (ToneMapper) {
+        switch (constants.ToneMapper) {
             case 0:
                 toneMappedColor = Uncharted2ToneMapping(hdrColor);
                 break;

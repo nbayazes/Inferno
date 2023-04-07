@@ -264,7 +264,7 @@ namespace Inferno::Editor {
                 p.Clip = VClipID::Matcen;
                 p.Radius = up.Length() / 2;
                 up.Normalize(p.Up);
-                p.Life = vclip.PlayTime;
+                p.Duration = vclip.PlayTime;
                 p.Position = seg.Center;
                 p.RandomRotation = false;
                 Render::AddParticle(p, (SegID)id);

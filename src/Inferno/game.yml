@@ -17,7 +17,7 @@ Weapons:
     Name: laser 2
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.5, 0.1, 0.5
+    Glow: 0.15, 0.15, 0.5
     Model: bluelaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
@@ -25,6 +25,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    LightColor: 0.15, 0.15, 0.6
 
   - id: 2
     Name: laser 3
@@ -38,6 +39,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    LightColor: 0.4, 0.0, 0.2
 
   - id: 3
     Name: laser 4
@@ -51,6 +53,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    LightColor: 0.05, 0.4, 0.05
 
   - id: 30
     Name: laser 5
@@ -82,8 +85,9 @@ Weapons:
     Name: flare
     FireDelay: 0.5
     Lifetime: 30
-    Glow: 0.65, 0.65, 0.1
+    Glow: 0.01, 0.01, 0.01
     LightRadius: 50
+    LightColor: 1.85, 1.5, 0.1
 
   - id: 11
     Name: vulcan
@@ -104,7 +108,8 @@ Weapons:
     ExplosionSize: 1.3
     ExplosionTime: 0.4
     ExplosionSound: ExpEMDHitB
-    LightRadius: 15
+    LightRadius: 14
+    LightColor: 0.2, 0.2, 0.5
 
   - id: 13
     Name: plasma
@@ -132,6 +137,7 @@ Weapons:
     ExplosionSize: 4.6
     ExplosionTime: 0.4
     LightRadius: 20
+    LightColor: 0.6, 0.0, 0.4
 
   - id: 8
     Name: concussion missile
@@ -179,6 +185,7 @@ Weapons:
     ExplosionTime: 0.4
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
+    LightColor: 0.2, 0.5, 0.5
 
   - id: 34
     Name: phoenix
@@ -189,6 +196,7 @@ Weapons:
     ExplosionSize: 2.1
     ExplosionTime: 0.4
     LightRadius: 16
+    LightColor: 0.6, 0.2, 0
 
   - id: 35
     Name: omega cannon

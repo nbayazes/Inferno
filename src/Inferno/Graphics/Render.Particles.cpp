@@ -42,7 +42,7 @@ namespace Inferno::Render {
 
     void AddParticle(Particle& p, SegID seg) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
-        p.Life = vclip.PlayTime;
+        p.Duration = vclip.PlayTime;
         p.Segment = seg;
         if (p.RandomRotation)
             p.Rotation = Random() * DirectX::XM_2PI;
@@ -72,17 +72,17 @@ namespace Inferno::Render {
     }
 
     void Particle::Draw(Graphics::GraphicsContext& ctx) {
-        if (Delay > 0 || Life < 0) return;
+        if (Delay > 0 || Elapsed > Duration) return;
 
         auto& vclip = Resources::GetVideoClip(Clip);
-        auto elapsed = vclip.PlayTime - Life;
 
         auto* up = Up == Vector3::Zero ? nullptr : &Up;
         auto color = Color;
-        if (FadeTime != 0 && Life <= FadeTime) {
-            color.w = 1 - std::clamp((FadeTime - Life) / FadeTime, 0.0f, 1.0f);
+        float remaining = Duration - Elapsed;
+        if (FadeTime != 0 && remaining <= FadeTime) {
+            color.w = 1 - std::clamp((FadeTime - remaining) / FadeTime, 0.0f, 1.0f);
         }
-        auto tid = vclip.GetFrame(elapsed);
+        auto tid = vclip.GetFrame(Elapsed);
         DrawBillboard(ctx, tid, Position, Radius, color, true, Rotation, up);
     }
 
@@ -90,8 +90,6 @@ namespace Inferno::Render {
         EffectBase::Update(dt);
         if (!IsAlive()) return;
         if ((_startDelay -= dt) > 0) return;
-
-        Life -= dt;
 
         if (_info.MaxDelay == 0 && _info.MinDelay == 0 && _info.ParticlesToSpawn > 0) {
             // Create all particles at once if delay is zero
@@ -186,7 +184,7 @@ namespace Inferno::Render {
     void Debris::FixedUpdate(float dt) {
         Velocity += Game::Gravity * dt;
         Velocity *= 1 - Drag;
-        Life -= dt;
+        Duration -= dt;
         PrevTransform = Transform;
         auto position = Transform.Translation() + Velocity * dt;
         //Transform.Translation(Transform.Translation() + Velocity * dt);
@@ -205,7 +203,7 @@ namespace Inferno::Render {
         };
 
         if (IntersectLevelDebris(Game::Level, capsule, Segment, hit)) {
-            Life = -1; // destroy on contact
+            Elapsed = Duration; // destroy on contact
             // todo: scorch marks on walls
         }
 
@@ -214,7 +212,7 @@ namespace Inferno::Render {
             if (id != SegID::None) Segment = id;
         }
 
-        if (Life < 0) {
+        if (Elapsed > Duration) {
             ExplosionInfo e;
             e.Radius = { Radius * 1.0f, Radius * 1.45f };
             e.Position = PrevTransform.Translation();
@@ -538,7 +536,7 @@ namespace Inferno::Render {
             ParentIsLive = obj->IsAlive();
             End = obj->Position;
             if (ParentIsLive)
-                Life = 1;
+                Elapsed = 0; // Reset life
         }
         else {
             ParentIsLive = false;
@@ -546,7 +544,7 @@ namespace Inferno::Render {
 
         parentWasLive = parentWasLive && !ParentIsLive;
         if (parentWasLive)
-            Life = FadeSpeed;
+            Elapsed = Duration - FadeSpeed; // Start fading out the tracer if parent dies
     }
 
     void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {
@@ -633,7 +631,7 @@ namespace Inferno::Render {
             tracer.Signature = obj->Signature;
         }
 
-        tracer.Life = 1;
+        tracer.Elapsed = 0;
         AddEffect(MakePtr<TracerInfo>(tracer));
     }
 
@@ -641,8 +639,8 @@ namespace Inferno::Render {
         std::array tex = { decal.Texture };
         Render::Materials->LoadTextures(tex);
 
-        if (decal.Life == 0)
-            decal.Life = FLT_MAX;
+        if (decal.Duration == 0)
+            decal.Duration = FLT_MAX;
 
         if (decal.Additive) {
             AdditiveDecals[AdditiveDecalIndex++] = decal;
@@ -662,7 +660,8 @@ namespace Inferno::Render {
         auto radius = decal.Radius;
         auto color = decal.Color;
         if (decal.FadeTime > 0) {
-            auto t = std::lerp(1.0f, 0.0f, std::clamp((decal.FadeTime - decal.Life) / decal.FadeTime, 0.0f, 1.0f));
+            float remaining = decal.Duration - decal.Elapsed;
+            auto t = std::lerp(1.0f, 0.0f, std::clamp((decal.FadeTime - remaining) / decal.FadeTime, 0.0f, 1.0f));
             color.w = t;
             radius += (1 - t) * decal.Radius * 0.5f; // expand as fading out
         }
@@ -678,7 +677,7 @@ namespace Inferno::Render {
         batch.DrawQuad(v0, v1, v2, v3);
     }
 
-    void DrawDecals(Graphics::GraphicsContext& ctx) {
+    void DrawDecals(Graphics::GraphicsContext& ctx, float dt) {
         {
             auto& effect = Effects->SpriteMultiply;
             ctx.ApplyEffect(effect);
@@ -687,8 +686,8 @@ namespace Inferno::Render {
             effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
 
             for (auto& decal : Decals) {
-                decal.Life -= Render::FrameTime;
-                if (decal.Life <= 0) continue;
+                decal.Update(dt);
+                if (!decal.IsAlive()) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
                 effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
@@ -707,8 +706,8 @@ namespace Inferno::Render {
             effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
 
             for (auto& decal : AdditiveDecals) {
-                decal.Life -= Render::FrameTime;
-                if (decal.Life <= 0) continue;
+                decal.Update(dt);
+                if (!decal.IsAlive()) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
                 effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
@@ -729,7 +728,7 @@ namespace Inferno::Render {
         for (auto& decal : Decals) {
             Tag decalTag = { decal.Segment, decal.Side };
             if (decalTag == tag || (cside && decalTag == cside))
-                decal.Life = 0;
+                decal.Elapsed = FLT_MAX;
         }
     }
 
@@ -837,7 +836,7 @@ namespace Inferno::Render {
 
     void SparkEmitter::CreateSpark() {
         Spark spark;
-        spark.Life = Duration.GetRandom();
+        spark.Life = DurationRange.GetRandom();
         spark.Position = spark.PrevPosition = Position;
         spark.Segment = Segment;
 
@@ -862,7 +861,7 @@ namespace Inferno::Render {
         std::array tex = { emitter.Texture };
         Render::Materials->LoadTextures(tex);
         assert(emitter.Segment != SegID::None);
-        if (emitter.Life == 0) emitter.Life = emitter.Duration.Max;
+        if (emitter.Duration == 0) emitter.Duration = emitter.DurationRange.Max;
         AddEffect(MakePtr<SparkEmitter>(emitter));
     }
 
@@ -872,7 +871,7 @@ namespace Inferno::Render {
         Explosions.Clear();
 
         for (auto& decal : Decals)
-            decal.Life = 0;
+            decal.Duration = 0;
     }
 
     void UpdateEffects(float dt) {

@@ -17,6 +17,8 @@
 #include "HUD.h"
 #include <ScopedTimer.h>
 
+#include "Render.Level.h"
+
 using namespace DirectX;
 using namespace Inferno::Graphics;
 
@@ -289,7 +291,9 @@ namespace Inferno::Render {
         //    LoadOutrageModel(TEST_MODEL);
         //}
 
+        ResetLightCache();
         InitEffects(level);
+        
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }

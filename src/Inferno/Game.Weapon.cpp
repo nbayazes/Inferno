@@ -45,7 +45,7 @@ namespace Inferno::Game {
         e.Clip = vclip;
         e.Sound = soundId;
         e.Position = obj.Position;
-        e.Color = Color{ 1, 1, 1 };
+        //e.Color = Color{ 1, 1, 1 };
         e.FadeTime = 0.1f;
         e.Segment = obj.Segment;
         Render::CreateExplosion(e);
@@ -410,7 +410,7 @@ namespace Inferno::Game {
         };
 
         Render::SparkEmitter spark;
-        spark.Duration = { 0.35f, 0.85f };
+        spark.DurationRange = { 0.35f, 0.85f };
         spark.Restitution = 0.6f;
         spark.Velocity = { 30, 40 };
         spark.Count = { 13, 20 };
@@ -487,7 +487,7 @@ namespace Inferno::Game {
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
                 expl.Variance = target->Radius * 0.45f;
-                expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+                //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
                 Render::CreateExplosion(expl);
             }

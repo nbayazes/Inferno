@@ -15,20 +15,17 @@ namespace Inferno::Render {
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;
-        float Life = 0; // Remaining life
+        float Duration = 0; // How long the effect lasts
         float Elapsed = 0; // How long the effect has been alive for
         bool IsTransparent = true;
         float LightRadius = 0;
         Color LightColor;
         float FadeTime = 0; // Fade time at the end of the particle's life
 
-        virtual bool IsAlive() { return Life > 0; }
+        virtual bool IsAlive() { return Elapsed < Duration; }
 
         // Called once per frame
-        virtual void Update(float dt) {
-            Life -= dt;
-            Elapsed += dt;
-        }
+        virtual void Update(float dt) { Elapsed += dt; }
 
         // Called per game tick
         virtual void FixedUpdate(float /*dt*/) { }
@@ -85,7 +82,7 @@ namespace Inferno::Render {
             Particle p;
             p.Color = Color;
             p.Clip = Clip;
-            p.Life = vclip.PlayTime;
+            p.Duration = vclip.PlayTime;
             p.Parent = Parent;
             p.ParentOffset = ParentOffset;
             p.Position = Position;
@@ -105,7 +102,7 @@ namespace Inferno::Render {
         DataPool<Particle> _particles;
     public:
         ParticleEmitter(const ParticleEmitterInfo& info, size_t capacity)
-            : _info(info), _particles([](auto& p) { return p.Life > 0; }, capacity) {
+            : _info(info), _particles([](auto& p) { return p.Elapsed < p.Duration; }, capacity) {
             _startDelay = info.StartDelay;
             Position = info.Position;
         }
@@ -116,7 +113,7 @@ namespace Inferno::Render {
         //}
 
         void Update(float dt) override;
-        bool IsAlive() const { return Life > 0; }
+        bool IsAlive() const { return Elapsed < Duration; }
     };
 
     //void AddEmitter(ParticleEmitter& emitter, size_t capacity);
@@ -154,7 +151,7 @@ namespace Inferno::Render {
         int Instances = 1; // how many explosions to create
         NumericRange<float> Delay = { 0.25f, 0.75f }; // how long to wait before creating the next explosion instance
         float InitialDelay = -1; // how long to wait before creating any explosions
-        Color Color = { 1.75f, 1.75f, 1.75f }; // Particle color
+        Color Color = { 2.75f, 2.25f, 2.25f }; // Particle color
         float FadeTime = 0; // How long it takes to fade the particles out
         SegID Segment = SegID::None;
         Vector3 Position;
@@ -215,7 +212,7 @@ namespace Inferno::Render {
         Vector3 End; // Updated in realtime. Used to fade out tracer after object dies.
         float Fade = 0; // For fading the tracer in and out
         bool ParentIsLive = false;
-        static bool IsAlive(const TracerInfo& info) { return info.Life > 0; }
+        //static bool IsAlive(const TracerInfo& info) { return info.Elapsed < info.Duration; }
 
         void Update(float dt) override;
         void Draw(Graphics::GraphicsContext&) override;
@@ -238,7 +235,7 @@ namespace Inferno::Render {
     };
 
     void AddDecal(DecalInfo& decal);
-    void DrawDecals(Graphics::GraphicsContext& ctx);
+    void DrawDecals(Graphics::GraphicsContext& ctx, float dt);
     span<DecalInfo> GetAdditiveDecals();
 
     // Removes decals on a side
@@ -260,7 +257,7 @@ namespace Inferno::Render {
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
 
-        NumericRange<float> Duration = { 1.0, 2.4f }; // Range for individual spark lifespans 
+        NumericRange<float> DurationRange = { 1.0, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };
         Vector3 Direction; // if Zero, random direction

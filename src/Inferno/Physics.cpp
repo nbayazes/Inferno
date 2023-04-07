@@ -211,12 +211,12 @@ namespace Inferno {
         //Render::CreateExplosion(ei);
         Render::SparkEmitter e;
         e.Position = point + side.AverageNormal * 0.1f;
-        e.Life = 5;
+        e.Duration = 5;
         e.Segment = tag.Segment;
         e.Direction = side.AverageNormal;
         e.Up = side.Tangents[0];
         e.ConeRadius = 1;
-        e.Duration = { 0.75f, 2.4f };
+        e.DurationRange = { 0.75f, 2.4f };
         e.Restitution = 0.6f;
         e.Velocity = { 50, 65 };
         e.Count = { 80, 100 };
@@ -1368,7 +1368,7 @@ namespace Inferno {
 
             expl.Clip = vclip;
             expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
-            expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+            //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
             expl.FadeTime = 0.1f;
 
             if (obj.ID == (int)WeaponID::Concussion) {
@@ -1376,7 +1376,7 @@ namespace Inferno {
                 expl.Instances = 2;
                 expl.Delay = { 0, 0 };
                 expl.Clip = weapon.RobotHitVClip;
-                expl.Color = Color{ 1, 1, 1 };
+                //expl.Color = Color{ 1, 1, 1 };
             }
 
             Render::CreateExplosion(expl);
@@ -1508,7 +1508,7 @@ namespace Inferno {
                 // Add the planar explosion effect
                 decal.Texture = weapon.Extended.ExplosionTexture;
                 decal.Radius = weapon.Extended.ExplosionSize;
-                decal.Life = decal.FadeTime = weapon.Extended.ExplosionTime;
+                decal.Duration = decal.FadeTime = weapon.Extended.ExplosionTime;
                 decal.FadeRadius = decalSize * 2.4f;
                 decal.Additive = true;
                 decal.Color = Color{ 1.5f, 1.5f, 1.5f };
@@ -1571,7 +1571,7 @@ namespace Inferno {
             else
                 e.Position = hit.WallPoint - dir * 2.5;
 
-            e.Color = Color{ 1, 1, 1 };
+            //e.Color = Color{ 1, 1, 1 };
             e.FadeTime = 0.1f;
 
             if (obj.ID == (int)WeaponID::Concussion) {
