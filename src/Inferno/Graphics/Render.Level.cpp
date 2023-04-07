@@ -289,39 +289,80 @@ namespace Inferno::Render {
     std::array<Graphics::LightData, Graphics::MAX_LIGHTS> LIGHT_BUFFER{};
 
     void UpdateDynamicLights(const Level& level) {
-        auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
+        constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
         for (int i = 0; i < LevelLights.size() && i < reserved; i++) {
             LIGHT_BUFFER[i] = LevelLights[i];
         }
 
-        //int litObjects = 0;
-        for (int i = 0; i < Graphics::RESERVED_LIGHTS; i++) {
-            auto& light = LIGHT_BUFFER[reserved + i];
 
-            if (i < level.Objects.size()) {
-                auto& obj = level.Objects[i];
-                if (obj.IsAlive()) {
-                    light.color = obj.LightColor.ToVector3();
-                    light.radiusSq = obj.LightRadius * obj.LightRadius;
-                    light.pos = obj.GetPosition(Game::LerpAmount);
-                    light.type = LightType::Point;
-                } else {
-                    light.radiusSq = 0;
-                }
-            }
-            else {
-                light.radiusSq = 0;
+        int lightIndex = reserved;
+
+        for (auto& obj : level.Objects) {
+            if (lightIndex >= LIGHT_BUFFER.size()) break;
+            if (!obj.IsAlive()) continue;
+
+            auto& light = LIGHT_BUFFER[lightIndex++];
+            light.color = obj.LightColor.ToVector3();
+            light.radiusSq = obj.LightRadius * obj.LightRadius;
+            light.pos = obj.GetPosition(Game::LerpAmount);
+            light.type = LightType::Point;
+        }
+
+        for (auto& decal : GetAdditiveDecals()) {
+            if (lightIndex >= LIGHT_BUFFER.size()) break;
+            if (decal.LightRadius <= 0 || !decal.IsAlive()) continue;
+
+            //auto radius = decal.LightRadius;
+            auto t = std::clamp((decal.FadeTime - decal.Life) * 2.0f / decal.FadeTime, 0.0f, 1.0f);
+            if (t <= 1) continue;
+
+            auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
+            auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
+
+            auto& light = LIGHT_BUFFER[lightIndex++];
+            light.color = color.ToVector3();
+            light.radiusSq = radius * radius;
+            light.pos = decal.Position + decal.Normal * 2;
+            light.type = LightType::Point;
+        }
+
+        for (auto& room : _renderQueue.GetVisibleSegments()) {
+            if (lightIndex >= LIGHT_BUFFER.size()) break;
+
+            for (auto& effect : GetEffectsInSegment(room)) {
+                if (lightIndex >= LIGHT_BUFFER.size()) break;
+                if (effect->LightRadius == 0 || !effect->IsAlive()) continue;
+
+                float t = 0;
+
+                // explosions should fade in then out sharply
+                // TODO: move fade calc to effect
+                constexpr float FADE_TIME = 0.20f;
+                
+                if (effect->Elapsed < FADE_TIME)
+                    t = effect->Elapsed / FADE_TIME;
+                else
+                    t = (FADE_TIME * 2 - effect->Elapsed) / (FADE_TIME * 2);
+
+                t = std::clamp(t, 0.0f, 1.0f);
+
+                if (t == 0) continue;
+
+                //auto t = std::clamp((effect->FadeTime - effect->Life) / effect->FadeTime, 0.0f, 1.0f);
+                auto color = Color::Lerp(Color(0, 0, 0), effect->LightColor, t);
+                auto radius = std::lerp(0, effect->LightRadius, t);
+
+                auto& light = LIGHT_BUFFER[lightIndex++];
+                light.color = effect->LightColor.ToVector3();
+                light.radiusSq = radius * radius;
+                light.pos = effect->Position;
+                light.type = LightType::Point;
             }
         }
 
-        //for (auto& obj : level.Objects) {
-        //    if (obj.LightRadius <= 0) continue;
-
-        //    
-        //    litObjects++;
-
-        //    if (litObjects >= LIGHT_BUFFER.size()) break;
-        //}
+        for (int i = lightIndex; i < LIGHT_BUFFER.size(); i++) {
+            LIGHT_BUFFER[i].radiusSq = 0; // clear remaining lights
+        }
     }
 
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {

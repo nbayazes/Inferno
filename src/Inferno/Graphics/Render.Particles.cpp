@@ -13,7 +13,7 @@ namespace Inferno::Render {
     namespace {
         DataPool<BeamInfo> Beams(&BeamInfo::IsAlive, 50);
         Array<DecalInfo, 100> Decals;
-        Array<DecalInfo, 10> AdditiveDecals;
+        Array<DecalInfo, 20> AdditiveDecals;
         uint16 DecalIndex = 0;
         uint16 AdditiveDecalIndex = 0;
 
@@ -59,8 +59,8 @@ namespace Inferno::Render {
     }
 
     void Particle::Update(float dt) {
+        EffectBase::Update(dt);
         if ((Delay -= dt) > 0) return;
-        Life -= dt;
 
         if (auto parent = Game::Level.TryGetObject(Parent)) {
             auto pos = parent->GetPosition(Game::LerpAmount);
@@ -72,7 +72,7 @@ namespace Inferno::Render {
     }
 
     void Particle::Draw(Graphics::GraphicsContext& ctx) {
-        if (Delay > 0) return;
+        if (Delay > 0 || Life < 0) return;
 
         auto& vclip = Resources::GetVideoClip(Clip);
         auto elapsed = vclip.PlayTime - Life;
@@ -87,6 +87,7 @@ namespace Inferno::Render {
     }
 
     void ParticleEmitter::Update(float dt) {
+        EffectBase::Update(dt);
         if (!IsAlive()) return;
         if ((_startDelay -= dt) > 0) return;
 
@@ -148,7 +149,6 @@ namespace Inferno::Render {
             cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
             Stats::DrawCalls++;
         }
-
     }
 
     void Debris::DepthPrepass(Graphics::GraphicsContext& ctx) {
@@ -264,7 +264,8 @@ namespace Inferno::Render {
                 p.Clip = expl.Clip;
                 p.Color = expl.Color;
                 p.FadeTime = expl.FadeTime;
-
+                p.LightColor = Color(4.0f, 1.0f, 0.1f);
+                if (i == 0) p.LightRadius = p.Radius * 4.0f; // only apply light to first explosion instance
                 Render::AddParticle(p, expl.Segment);
 
                 if (expl.Instances > 1 && (expl.Delay.Min > 0 || expl.Delay.Max > 0)) {
@@ -355,7 +356,6 @@ namespace Inferno::Render {
         return perp;
     }
 
-
     void DrawBeams(Graphics::GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
@@ -409,7 +409,6 @@ namespace Inferno::Render {
                 }
                 scale *= 100;
                 length = segments * 0.1f;
-
             }
             else {
                 scale *= length * 2;
@@ -530,7 +529,7 @@ namespace Inferno::Render {
     //}
 
     void TracerInfo::Update(float dt) {
-        Life -= dt;
+        EffectBase::Update(dt);
         auto parentWasLive = ParentIsLive;
 
         const auto obj = Game::Level.TryGetObject(Parent);
@@ -720,6 +719,8 @@ namespace Inferno::Render {
             }
         }
     }
+
+    span<DecalInfo> GetAdditiveDecals() { return AdditiveDecals; }
 
     void RemoveDecals(Tag tag) {
         if (!tag) return;

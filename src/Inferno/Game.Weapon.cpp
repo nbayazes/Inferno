@@ -193,8 +193,8 @@ namespace Inferno::Game {
         bullet.Control.Type = ControlType::Weapon;
         bullet.Control.Weapon = {};
         bullet.Control.Weapon.ParentType = obj.Type;
-        bullet.LightColor = Color(1.0f, 0.0f, 0.0f);
-        bullet.LightRadius = 16.0f;
+        bullet.LightColor = weapon.Extended.LightColor;
+        bullet.LightRadius = weapon.Extended.LightRadius;
 
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path

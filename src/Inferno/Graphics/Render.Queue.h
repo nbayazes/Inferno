@@ -40,6 +40,7 @@ namespace Inferno::Render {
         Set<SegID> _visited;
         std::queue<SegID> _search;
     public:
+        const Set<SegID>& GetVisibleSegments() { return _visited; }
         void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }

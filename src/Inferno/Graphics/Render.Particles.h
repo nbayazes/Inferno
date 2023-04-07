@@ -15,13 +15,20 @@ namespace Inferno::Render {
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;
-        float Life = 0;
+        float Life = 0; // Remaining life
+        float Elapsed = 0; // How long the effect has been alive for
         bool IsTransparent = true;
+        float LightRadius = 0;
+        Color LightColor;
+        float FadeTime = 0; // Fade time at the end of the particle's life
 
         virtual bool IsAlive() { return Life > 0; }
 
         // Called once per frame
-        virtual void Update(float dt) { Life -= dt; }
+        virtual void Update(float dt) {
+            Life -= dt;
+            Elapsed += dt;
+        }
 
         // Called per game tick
         virtual void FixedUpdate(float /*dt*/) { }
@@ -45,7 +52,6 @@ namespace Inferno::Render {
         Color Color = { 1, 1, 1 };
         float Radius = 1;
         float Rotation = 0;
-        float FadeTime = 0; // How long it takes to fade the particle out
         float Delay = 0;
         bool RandomRotation = true;
         //float FadeDuration = 0;
@@ -137,6 +143,7 @@ namespace Inferno::Render {
 
     void AddDebris(Debris&, SegID);
 
+    // An explosion can consist of multiple particles
     struct ExplosionInfo {
         ObjID Parent = ObjID::None;
         VClipID Clip = VClipID::SmallExplosion;
@@ -219,11 +226,10 @@ namespace Inferno::Render {
     void AddTracer(TracerInfo&, SegID);
 
     struct DecalInfo final : EffectBase {
-        Vector3 Tangent, Bitangent;
+        Vector3 Normal, Tangent, Bitangent;
         string Texture = "scorchB";
 
         float Radius = 2;
-        float FadeTime = 0; // How long it takes to fade out the decal
         float FadeRadius = 3.0; // Radius to fade to
 
         Color Color = { 1, 1, 1 };
@@ -233,6 +239,7 @@ namespace Inferno::Render {
 
     void AddDecal(DecalInfo& decal);
     void DrawDecals(Graphics::GraphicsContext& ctx);
+    span<DecalInfo> GetAdditiveDecals();
 
     // Removes decals on a side
     void RemoveDecals(Tag);
@@ -260,7 +267,6 @@ namespace Inferno::Render {
         Vector3 Up; // Used with direction
         float ConeRadius = 1.0f; // Used with direction to spread sparks. Value of 1 is 45 degrees.
         float Drag = 0.02f;
-        float FadeTime = 1.0f; // How long it takes to fade the particle out
         float Restitution = 0.8f; // How much velocity to keep after hitting a wall
 
         float VelocitySmear = 0.04f; // Percentage of velocity to add to spark length

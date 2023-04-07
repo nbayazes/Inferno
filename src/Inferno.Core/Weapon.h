@@ -127,6 +127,10 @@ namespace Inferno {
         bool SilentSelectFail = false; // Hide HUD errors when selecting
         Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
         Color Glow = { 0.01f, 0.01f, 0.01f }; // For emissive glows
+        Color LightColor; // color for projectile environment lighting
+        Color ExplosionColor; // color for contact explosion
+        float LightRadius = 0;
+
         int Bounces = 0;
         bool Sticky = false; // Sticks to surfaces once Bounces = 0
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing

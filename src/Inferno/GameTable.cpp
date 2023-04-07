@@ -5,26 +5,20 @@
 #include "Yaml.h"
 
 namespace Inferno {
-    void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham) {
-        int id;
+    void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham, int &id) {
         Yaml::ReadValue(node["id"], id);
         if (!Seq::inRange(ham.Weapons, id)) return;
 
         auto& weapon = ham.Weapons[id];
-#define ReadProp(name) Yaml::ReadValue(node[#name], weapon.##name)
-        ReadProp(Mass);
-        ReadProp(AmmoUsage);
-        ReadProp(EnergyUsage);
-        ReadProp(ModelSizeRatio);
-        ReadProp(WallHitSound);
-        ReadProp(WallHitVClip);
-        ReadProp(FireDelay);
-
-        //Yaml::ReadValue(node["Mass"], weapon.Mass);
-        //Yaml::ReadValue(node["AmmoUsage"], weapon.AmmoUsage);
-
-        //Yaml::ReadValue(node["ModelSizeRatio"], weapon.ModelSizeRatio);
-        //Yaml::ReadValue(node["EnergyUsage"], weapon.EnergyUsage);
+#define READ_PROP(name) Yaml::ReadValue(node[#name], weapon.##name)
+        READ_PROP(Mass);
+        READ_PROP(AmmoUsage);
+        READ_PROP(EnergyUsage);
+        READ_PROP(ModelSizeRatio);
+        READ_PROP(WallHitSound);
+        READ_PROP(WallHitVClip);
+        READ_PROP(FireDelay);
+#undef READ_PROP
 
         auto damage = node["Damage"];
         if (!damage.is_seed()) {
@@ -35,45 +29,30 @@ namespace Inferno {
             }
         }
 
-#define ReadExtendedProp(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
-        ReadExtendedProp(Name);
-        ReadExtendedProp(Behavior);
-        ReadExtendedProp(Glow);
-        ReadExtendedProp(Model);
-        ReadExtendedProp(ModelScale);
-        ReadExtendedProp(Size);
-        ReadExtendedProp(Chargable);
-        //ReadExtendedProp(MaxCharge);
+#define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
+        READ_PROP_EXT(Name);
+        READ_PROP_EXT(Behavior);
+        READ_PROP_EXT(Glow);
+        READ_PROP_EXT(Model);
+        READ_PROP_EXT(ModelScale);
+        READ_PROP_EXT(Size);
+        READ_PROP_EXT(Chargable);
 
-        ReadExtendedProp(Decal);
-        ReadExtendedProp(DecalRadius);
+        READ_PROP_EXT(Decal);
+        READ_PROP_EXT(DecalRadius);
 
-        ReadExtendedProp(ExplosionSize);
-        ReadExtendedProp(ExplosionSound);
-        ReadExtendedProp(ExplosionTexture);
-        ReadExtendedProp(ExplosionTime);
+        READ_PROP_EXT(ExplosionSize);
+        READ_PROP_EXT(ExplosionSound);
+        READ_PROP_EXT(ExplosionTexture);
+        READ_PROP_EXT(ExplosionTime);
 
-        ReadExtendedProp(RotationalVelocity);
-        ReadExtendedProp(Bounces);
+        READ_PROP_EXT(RotationalVelocity);
+        READ_PROP_EXT(Bounces);
 
-        //Yaml::ReadValue(node["Behavior"], weapon.Extended.Behavior);
-        //Yaml::ReadValue(node["Glow"], weapon.Extended.Glow);
-        //Yaml::ReadValue(node["Model"], weapon.Extended.Model);
-        //Yaml::ReadValue(node["ModelScale"], weapon.Extended.ModelScale);
-        //Yaml::ReadValue(node["Size"], weapon.Extended.Size);
-
-        //Yaml::ReadValue(node["ScorchTexture"], weapon.Extended.ScorchTexture);
-        //Yaml::ReadValue(node["ScorchRadius"], weapon.Extended.ScorchRadius);
-
-
-
-        //Yaml::ReadValue(node["ExplosionSize"], weapon.Extended.ExplosionSize);
-        //Yaml::ReadValue(node["ExplosionSound"], weapon.Extended.ExplosionSound);
-        //Yaml::ReadValue(node["ExplosionTexture"], weapon.Extended.ExplosionTexture);
-        //Yaml::ReadValue(node["ExplosionTime"], weapon.Extended.ExplosionTime);
-
-        //Yaml::ReadValue(node["RotationalVelocity"], weapon.Extended.RotationalVelocity);
-#undef ReadExtendedProp
+        READ_PROP_EXT(LightRadius);
+        READ_PROP_EXT(ExplosionColor);
+        READ_PROP_EXT(LightColor);
+#undef READ_PROP_EXT
     }
 
     void LoadGameTable(filesystem::path path, HamFile& ham) {
@@ -97,15 +76,13 @@ namespace Inferno {
             auto weapons = root["Weapons"];
             if (!weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
+                    int id = -1;
                     try {
-                        ReadWeaponInfo(weapon, ham);
+                        ReadWeaponInfo(weapon, ham, id);
                     }
-                    catch (...) {
-                        SPDLOG_WARN("Error reading weapon");
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading weapon {}\n{}", id, e.what());
                     }
-                    //filesystem::path dataPath;
-                    //ReadValue(c, dataPath);
-                    //if (!dataPath.empty()) Settings::Inferno.DataPaths.push_back(dataPath);
                 }
             }
 

@@ -10,18 +10,21 @@ Weapons:
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    LightRadius: 16
+    LightColor: 0.5, 0, 0
 
   - id: 1
     Name: laser 2
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.7, 0.25, 0.25
+    Glow: 0.5, 0.1, 0.5
     Model: bluelaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: BlueLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    LightRadius: 16
 
   - id: 2
     Name: laser 3
@@ -34,6 +37,7 @@ Weapons:
     ExplosionSound: LazorHitshrt
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    LightRadius: 16
 
   - id: 3
     Name: laser 4
@@ -46,6 +50,7 @@ Weapons:
     ExplosionTexture: GreenLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    LightRadius: 16
 
   - id: 30
     Name: laser 5
@@ -58,6 +63,7 @@ Weapons:
     ExplosionTexture: YellowLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    LightRadius: 16
 
   - id: 31
     Name: laser 6
@@ -70,12 +76,14 @@ Weapons:
     ExplosionTexture: WhiteLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
+    LightRadius: 16
 
   - id: 9
     Name: flare
     FireDelay: 0.5
     Lifetime: 30
-    Glow: 0.05, 0.05, 0.05
+    Glow: 0.65, 0.65, 0.1
+    LightRadius: 50
 
   - id: 11
     Name: vulcan
@@ -96,20 +104,23 @@ Weapons:
     ExplosionSize: 1.3
     ExplosionTime: 0.4
     ExplosionSound: ExpEMDHitB
+    LightRadius: 15
 
   - id: 13
     Name: plasma
     Decal: scorchB
-    Glow: 0.4, 0.5, 0.4
+    Glow: 0.0, 0.5, 0.0
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
     ExplosionSize: 2.3
     ExplosionTime: 0.4
+    LightRadius: 16
+    LightColor: 0.0, 0.5, 0.0
 
   - id: 14
     Name: fusion
-    Chargable: true
+    Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
     Glow: 0.2, 0, 0.45
@@ -120,11 +131,13 @@ Weapons:
     ExplosionTexture: FusionHit
     ExplosionSize: 4.6
     ExplosionTime: 0.4
+    LightRadius: 20
 
   - id: 8
     Name: concussion missile
     Decal: scorchC
     DecalRadius: 4
+    LightRadius: 16
 
   - id: 15
     Name: homing missile
@@ -165,6 +178,7 @@ Weapons:
     ExplosionSize: 1.4
     ExplosionTime: 0.4
     ExplosionSound: ExpEMDHitB
+    LightRadius: 14
 
   - id: 34
     Name: phoenix
@@ -174,6 +188,7 @@ Weapons:
     ExplosionTexture: EMDOrangeHit
     ExplosionSize: 2.1
     ExplosionTime: 0.4
+    LightRadius: 16
 
   - id: 35
     Name: omega cannon

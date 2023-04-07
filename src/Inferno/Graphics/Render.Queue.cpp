@@ -101,7 +101,10 @@ namespace Inferno::Render {
             _visited.insert(id);
             auto* seg = &level.GetSegment(id);
 
-            struct SegDepth { SegID Seg = SegID::None; float Depth = 0; };
+            struct SegDepth {
+                SegID Seg = SegID::None;
+                float Depth = 0;
+            };
             Array<SegDepth, 6> children{};
 
             // Find open sides
@@ -109,7 +112,8 @@ namespace Inferno::Render {
                 if (!WallIsTransparent(level, { id, sideId }))
                     continue; // Can't see through wall
 
-                if (id != startId) { // always add nearby segments
+                if (id != startId) {
+                    // always add nearby segments
                     auto vec = seg->Sides[(int)sideId].Center - Camera.Position;
                     vec.Normalize();
                     if (vec.Dot(seg->Sides[(int)sideId].AverageNormal) >= 0)
@@ -129,8 +133,8 @@ namespace Inferno::Render {
             // Sort connected segments by depth
             Seq::sortBy(children, [](const SegDepth& a, const SegDepth& b) {
                 if (a.Seg == SegID::None) return false;
-            if (b.Seg == SegID::None) return true;
-            return a.Depth < b.Depth;
+                if (b.Seg == SegID::None) return true;
+                return a.Depth < b.Depth;
             });
 
             for (auto& c : children) {
@@ -168,7 +172,6 @@ namespace Inferno::Render {
                 if (obj.Obj) {
                     if (obj.Obj->Render.Type == RenderType::Model &&
                         obj.Obj->Render.Model.ID != ModelID::None) {
-
                         // always submit objects to opaque queue, as the renderer will skip
                         // non-transparent submeshes
                         _opaqueQueue.push_back({ obj.Obj, obj.Depth });
@@ -199,8 +202,8 @@ namespace Inferno::Render {
                 }
             }
 
-            // queue visible walls
-            for (auto& mesh : wallMeshes) { // this does not scale well
+            // queue visible walls (this does not scale well)
+            for (auto& mesh : wallMeshes) {
                 if (mesh.Chunk->Tag.Segment == id)
                     _transparentQueue.push_back({ &mesh, 0 });
             }

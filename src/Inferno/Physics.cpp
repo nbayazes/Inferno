@@ -1246,7 +1246,7 @@ namespace Inferno {
 
             auto dist = Vector3::Distance(obj.Position, explosion.Position);
 
-            // subtract radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
+            // subtract object radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
             // however don't apply it to players due to dramatically increasing the amount of damage taken
             if (obj.Type != ObjectType::Player && obj.Type != ObjectType::Coop)
                 dist -= obj.Radius;
@@ -1261,6 +1261,7 @@ namespace Inferno {
             if (IntersectLevel(level, ray, explosion.Segment, dist, true, true, hit))
                 continue;
 
+            // linear damage falloff
             float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
             float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
 
@@ -1481,6 +1482,7 @@ namespace Inferno {
 
             Render::DecalInfo decal{};
             auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
+            decal.Normal = hit.Normal;
             decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
             decal.Bitangent = decal.Tangent.Cross(hit.Normal);
             decal.Radius = decalSize;
@@ -1510,13 +1512,21 @@ namespace Inferno {
                 decal.FadeRadius = decalSize * 2.4f;
                 decal.Additive = true;
                 decal.Color = Color{ 1.5f, 1.5f, 1.5f };
+
+                if (splashRadius == 0) {
+                    // Don't create light on the decal of explosive weapons, instead use their explosion
+                    decal.LightColor = weapon.Extended.LightColor;
+                    decal.LightRadius = weapon.Extended.LightRadius;
+                }
+                
                 Render::AddDecal(decal);
                 vclip = VClipID::None;
             }
         }
 
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLiquid && !hitForcefield) {
-            //obj.Position += obj.Physics.Velocity * hit.Distance;
+            // sticky flare behavior
+
             Vector3 vec;
             obj.Physics.Velocity.Normalize(vec);
             obj.Position += vec * hit.Distance;
