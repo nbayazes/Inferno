@@ -18,8 +18,8 @@ namespace Inferno::Render {
         float Duration = 0; // How long the effect lasts
         float Elapsed = 0; // How long the effect has been alive for
         bool IsTransparent = true;
-        float LightRadius = 0;
-        Color LightColor;
+        float LightRadius = 0; // Radius of emitted light
+        Color LightColor; // Color of emitted light
         float FadeTime = 0; // Fade time at the end of the particle's life
 
         virtual bool IsAlive() { return Elapsed < Duration; }
@@ -151,6 +151,7 @@ namespace Inferno::Render {
         int Instances = 1; // how many explosions to create
         NumericRange<float> Delay = { 0.25f, 0.75f }; // how long to wait before creating the next explosion instance
         float InitialDelay = -1; // how long to wait before creating any explosions
+        Color LightColor = { 4.0f, 1.0f, 0.1f }; // Color of emitted light
         Color Color = { 2.75f, 2.25f, 2.25f }; // Particle color
         float FadeTime = 0; // How long it takes to fade the particles out
         SegID Segment = SegID::None;

@@ -294,7 +294,6 @@ namespace Inferno::Render {
             LIGHT_BUFFER[i] = LevelLights[i];
         }
 
-
         int lightIndex = reserved;
 
         for (auto& obj : level.Objects) {
@@ -305,26 +304,28 @@ namespace Inferno::Render {
             light.color = obj.LightColor.ToVector3();
             light.radiusSq = obj.LightRadius * obj.LightRadius;
             light.pos = obj.GetPosition(Game::LerpAmount);
+
+            if (obj.Type == ObjectType::Weapon && obj.ID == 9) {
+                // shift light position of flares backwards to move outside of walls
+                light.pos += obj.Rotation.Backward() * 2.5f;
+            }
             light.type = LightType::Point;
         }
 
         for (auto& decal : GetAdditiveDecals()) {
             if (lightIndex >= LIGHT_BUFFER.size()) break;
-            if (decal.LightRadius <= 0 || !decal.IsAlive()) continue;
+            if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive()) continue;
 
-            //auto radius = decal.LightRadius;
-            auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed) * 2.0f / decal.FadeTime, 0.0f, 1.0f);
+            auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed)* 1.5f / decal.FadeTime, 0.0f, 1.0f);
             if (t <= 0) continue;
 
-            // 0.4 - 0.4 -> 0
-            // 0 + elapsed / fadeTime
             auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
             auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
 
             auto& light = LIGHT_BUFFER[lightIndex++];
             light.color = color.ToVector3();
             light.radiusSq = radius * radius;
-            light.pos = decal.Position + decal.Normal * 2;
+            light.pos = decal.Position + decal.Normal * 2; // shift light out of surface
             light.type = LightType::Point;
         }
 
@@ -333,13 +334,12 @@ namespace Inferno::Render {
 
             for (auto& effect : GetEffectsInSegment(room)) {
                 if (lightIndex >= LIGHT_BUFFER.size()) break;
-                if (effect->LightRadius == 0 || !effect->IsAlive()) continue;
+                if (effect->LightRadius == 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive()) continue;
 
                 float t = 0;
 
-                // explosions should fade in then out sharply
                 // TODO: move fade calc to effect
-                const float duration = effect->Duration * 0.5f;
+                const float duration = effect->Duration * 0.75f;
                 //if (effect->Elapsed < duration * 0.5f)
                 //    t = effect->Elapsed / (duration * 0.5f) ;
                 //else
@@ -350,9 +350,7 @@ namespace Inferno::Render {
 
                 if (t == 0) continue;
 
-                //auto t = std::clamp((effect->FadeTime - effect->Life) / effect->FadeTime, 0.0f, 1.0f);
                 auto color = Color::Lerp(Color(0, 0, 0), effect->LightColor, t);
-                //auto radius = std::lerp(effect->LightRadius * 0.25f, effect->LightRadius, t);
                 auto radius = effect->LightRadius;
 
                 auto& light = LIGHT_BUFFER[lightIndex++];

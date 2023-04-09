@@ -12,6 +12,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.5, 0, 0
+    ExplosionColor: 0.5, 0, 0
 
   - id: 1
     Name: laser 2
@@ -26,6 +27,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.15, 0.15, 0.6
+    ExplosionColor: 0.15, 0.15, 0.6
 
   - id: 2
     Name: laser 3
@@ -86,8 +88,8 @@ Weapons:
     FireDelay: 0.5
     Lifetime: 30
     Glow: 0.01, 0.01, 0.01
-    LightRadius: 50
-    LightColor: 1.85, 1.5, 0.1
+    LightRadius: 40
+    LightColor: 4, 2.5, 0.6
 
   - id: 11
     Name: vulcan
@@ -99,6 +101,7 @@ Weapons:
     ExplosionTime: 0.8
     Damage: [ 8, 8, 8, 8, 8 ]
     AmmoUsage: 10
+    ExplosionSound: #WpnVauseHitRicB
     
   - id: 12
     Name: spreadfire
@@ -143,7 +146,9 @@ Weapons:
     Name: concussion missile
     Decal: scorchC
     DecalRadius: 4
-    LightRadius: 16
+    LightRadius: 14
+    LightColor: 1, 0.3, 0.0
+    ExplosionColor: 10, 1, 0.0
 
   - id: 15
     Name: homing missile
@@ -165,6 +170,7 @@ Weapons:
     Name: mega missile
     Decal: scorchC
     DecalRadius: 8
+    ExplosionColor: 15, 0.5, 0.5
 
   - id: 32
     Name: gauss
@@ -175,6 +181,10 @@ Weapons:
     ExplosionTime: 0.6
     Damage: [ 20, 20, 20, 20, 20 ]
     AmmoUsage: 60
+    ExplosionColor: 1.5, 0.6, 0.0
+    LightRadius: 7.5
+    #ExplosionSound: ExpHardBullet
+    ExplosionSound:
 
   - id: 33
     Name: helix
@@ -233,4 +243,6 @@ Weapons:
   - id: 40
     Name: earthshaker
     Decal: scorchC
-    DecalRadius: 8    
+    DecalRadius: 8
+    ExplosionColor: 1, 1, 50.0
+    

@@ -6,6 +6,8 @@
 #include "Room.h"
 
 namespace Inferno {
+    struct LevelHit;
+
     enum class GameState {
         Game, // In first person and running game logic
         Paused, // In game but paused or in a menu
@@ -51,6 +53,8 @@ namespace Inferno::Game {
     inline double Time = 0; // Elapsed game time in seconds. Stops when paused.
     inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
+
+    void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);
 

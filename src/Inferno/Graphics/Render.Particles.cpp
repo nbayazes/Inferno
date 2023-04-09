@@ -262,7 +262,7 @@ namespace Inferno::Render {
                 p.Clip = expl.Clip;
                 p.Color = expl.Color;
                 p.FadeTime = expl.FadeTime;
-                p.LightColor = Color(4.0f, 1.0f, 0.1f);
+                p.LightColor = expl.LightColor;
                 if (i == 0) p.LightRadius = p.Radius * 4.0f; // only apply light to first explosion instance
                 Render::AddParticle(p, expl.Segment);
 
@@ -632,6 +632,7 @@ namespace Inferno::Render {
         }
 
         tracer.Elapsed = 0;
+        tracer.Duration = 5;
         AddEffect(MakePtr<TracerInfo>(tracer));
     }
 

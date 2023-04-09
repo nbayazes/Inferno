@@ -363,12 +363,12 @@ namespace Inferno {
 
     struct HitResult {
         Vector3 Intersect, IntersectVec, Normal; // where the hit occurred
-        float Dot; // Dot product of face normal and object velocity
+        float Dot;                               // Dot product of face normal and object velocity
     };
 
     struct HitResult2 {
         Vector3 Intersect; // where the hit occurred
-        float Distance; // How far along the trajectory
+        float Distance;    // How far along the trajectory
     };
 
     // Closest point on line
@@ -831,7 +831,7 @@ namespace Inferno {
                     }
                     case ObjectType::Player:
                     {
-                        if (target.ID > 0) return false; // Only hit player 0 in singleplayer
+                        if (target.ID > 0) return false;          // Only hit player 0 in singleplayer
                         if (src.Parent == ObjID(0)) return false; // Don't hit the player with their own shots
                         if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
                             return false; // Mines can't hit the player until they arm
@@ -884,7 +884,7 @@ namespace Inferno {
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& other = level.Objects[i];
             if (other.Segment != segId) continue;
-            if (oid == (ObjID)i) continue; // don't hit yourself!
+            if (oid == (ObjID)i) continue;     // don't hit yourself!
             if (oid == other.Parent) continue; // Don't hit your children!
 
             if (!ObjectCanHitTarget(obj, other)) continue;
@@ -1399,201 +1399,6 @@ namespace Inferno {
         }
     }
 
-    void WeaponHitWall(const LevelHit& hit, Object& obj, Level& level, ObjID objId) {
-        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
-
-        auto& weapon = Resources::GameData.Weapons[obj.ID];
-        float damage = weapon.Damage[Game::Difficulty];
-        float splashRadius = weapon.SplashRadius;
-        float force = damage;
-        float impactSize = weapon.ImpactSize;
-
-        // don't use volatile hits on large explosions like megas
-        constexpr float VOLATILE_DAMAGE_RADIUS = 30;
-        bool isLargeExplosion = splashRadius >= VOLATILE_DAMAGE_RADIUS / 2;
-
-        // weapons with splash damage (explosions) always use robot hit effects
-        SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
-        VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
-
-        bool addDecal = !weapon.Extended.Decal.empty();
-        bool hitLiquid = false;
-        bool hitForcefield = false;
-
-        auto& side = level.GetSide(hit.Tag);
-        auto& ti = Resources::GetLevelTextureInfo(side.TMap);
-
-        hitForcefield = ti.HasFlag(TextureFlag::ForceField);
-        if (hitForcefield) {
-            addDecal = false;
-
-            if (!weapon.IsMatter) {
-                // Bounce energy weapons
-                obj.Physics.Bounces++;
-                obj.Parent = ObjID::None; // Make hostile to owner!
-
-                Sound3D sound(hit.Point, hit.Tag.Segment);
-                sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
-                Sound::Play(sound);
-            }
-        }
-
-        if (ti.HasFlag(TextureFlag::Volatile)) {
-            if (!isLargeExplosion) {
-                // add volatile size and damage bonuses to smaller explosions
-                vclip = VClipID::HitLava;
-                constexpr float VOLATILE_DAMAGE = 10;
-                constexpr float VOLATILE_FORCE = 5;
-
-                damage = damage / 4 + VOLATILE_DAMAGE;
-                splashRadius += VOLATILE_DAMAGE_RADIUS;
-                force = force / 2 + VOLATILE_FORCE;
-                impactSize += 1;
-            }
-
-            soundId = SoundID::HitLava;
-            addDecal = false;
-            hitLiquid = true;
-        }
-        else if (ti.HasFlag(TextureFlag::Water)) {
-            if (weapon.IsMatter)
-                soundId = SoundID::MissileHitWater;
-            else
-                soundId = SoundID::HitWater;
-
-            if (isLargeExplosion) {
-                // reduce strength of megas and shakers in water, but don't cancel them
-                splashRadius *= 0.5f;
-                damage *= 0.25f;
-                force *= 0.5f;
-                impactSize *= 0.5f;
-            }
-            else {
-                vclip = VClipID::HitWater;
-                splashRadius = 0; // Cancel explosions when hitting water
-            }
-
-            addDecal = false;
-            hitLiquid = true;
-        }
-
-        if (addDecal) {
-            auto decalSize = weapon.Extended.DecalRadius ? weapon.Extended.DecalRadius : weapon.ImpactSize / 3;
-
-            Render::DecalInfo decal{};
-            auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * XM_2PI);
-            decal.Normal = hit.Normal;
-            decal.Tangent = Vector3::Transform(hit.Tangent, rotation);
-            decal.Bitangent = decal.Tangent.Cross(hit.Normal);
-            decal.Radius = decalSize;
-            decal.Position = hit.Point;
-            decal.Segment = hit.Tag.Segment;
-            decal.Side = hit.Tag.Side;
-            decal.Texture = weapon.Extended.Decal;
-
-            // check that decal isn't too close to edge due to lack of clipping
-            if (hit.EdgeDistance >= decalSize * 0.75f) {
-                if (auto wall = Game::Level.TryGetWall(hit.Tag)) {
-                    if (Game::Player.CanOpenDoor(*wall))
-                        addDecal = false; // don't add decals to unlocked doors, as they will disappear on the next frame
-                    else if (wall->Type != WallType::WallTrigger)
-                        addDecal = wall->State == WallState::Closed; // Only allow decals on closed walls
-                }
-
-                if (addDecal)
-                    Render::AddDecal(decal);
-            }
-
-            if (!weapon.Extended.ExplosionTexture.empty() && !obj.Physics.CanBounce()) {
-                // Add the planar explosion effect
-                decal.Texture = weapon.Extended.ExplosionTexture;
-                decal.Radius = weapon.Extended.ExplosionSize;
-                decal.Duration = decal.FadeTime = weapon.Extended.ExplosionTime;
-                decal.FadeRadius = decalSize * 2.4f;
-                decal.Additive = true;
-                decal.Color = Color{ 1.5f, 1.5f, 1.5f };
-
-                if (splashRadius == 0) {
-                    // Don't create light on the decal of explosive weapons, instead use their explosion
-                    decal.LightColor = weapon.Extended.LightColor;
-                    decal.LightRadius = weapon.Extended.LightRadius;
-                }
-                
-                Render::AddDecal(decal);
-                vclip = VClipID::None;
-            }
-        }
-
-        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLiquid && !hitForcefield) {
-            // sticky flare behavior
-
-            Vector3 vec;
-            obj.Physics.Velocity.Normalize(vec);
-            obj.Position += vec * hit.Distance;
-            obj.Physics.Velocity = Vector3::Zero;
-            //obj.Movement = MovementType::None;
-            //obj.LastPosition = obj.Position;
-            StuckObjects.Add(hit.Tag, objId);
-            obj.Flags |= ObjectFlag::Attached;
-            return;
-        }
-
-        if (obj.Physics.CanBounce() && !hitLiquid) {
-            return; // don't create explosions when bouncing
-        }
-
-        obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting a wall
-
-        auto dir = obj.Physics.Velocity;
-        dir.Normalize();
-
-        if (soundId != SoundID::None) {
-            auto soundRes = Resources::GetSoundResource(soundId);
-            if (!hitLiquid)
-                soundRes.D3 = weapon.Extended.ExplosionSound;
-
-            Sound3D sound(hit.WallPoint, hit.Tag.Segment);
-            sound.Resource = soundRes;
-            sound.Source = obj.Parent;
-            Sound::Play(sound);
-        }
-
-        if (vclip != VClipID::None) {
-            Render::ExplosionInfo e;
-            e.Radius = { impactSize * 0.9f, impactSize * 1.1f };
-            e.Clip = vclip;
-            e.Segment = hit.Tag.Segment;
-            e.Parent = obj.Parent;
-
-            // move explosions out of wall
-            if (impactSize < 5)
-                e.Position = hit.WallPoint - dir * impactSize * 0.5f;
-            else
-                e.Position = hit.WallPoint - dir * 2.5;
-
-            //e.Color = Color{ 1, 1, 1 };
-            e.FadeTime = 0.1f;
-
-            if (obj.ID == (int)WeaponID::Concussion) {
-                e.Instances = 3;
-                e.Delay = { 0, 0 };
-            }
-
-            Render::CreateExplosion(e);
-        }
-
-        if (splashRadius > 0) {
-            GameExplosion ge{};
-            ge.Segment = hit.Tag.Segment;
-            ge.Position = hit.Point + hit.Normal * obj.Radius; // shift explosion out of wall
-            ge.Damage = damage;
-            ge.Force = force;
-            ge.Radius = splashRadius;
-
-            CreateExplosion(level, &obj, ge);
-        }
-    }
-
     // Updates the segment the object is in an activates triggers
     void UpdateObjectSegment(Level& level, ObjID objId) {
         auto& obj = level.Objects[(int)objId];
@@ -1718,10 +1523,13 @@ namespace Inferno {
 
             if (hit) {
                 if (obj.Type == ObjectType::Weapon) {
-                    if (hit.HitObj)
+                    if (hit.HitObj) {
                         WeaponHitObject(hit, obj, level);
-                    else
-                        WeaponHitWall(hit, obj, level, ObjID(id));
+                    }
+                    else {
+                        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
+                        Game::WeaponHitWall(hit, obj, level, ObjID(id));
+                    }
                 }
 
                 if (auto wall = level.TryGetWall(hit.Tag)) {

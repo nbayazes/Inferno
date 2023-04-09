@@ -5,7 +5,6 @@
 
 namespace Inferno {
     struct LevelHit;
-    void WeaponHitWall(const LevelHit& hit, Object& obj, Level& level, ObjID objId);
     void UpdatePhysics(Level& level, double t, float dt);
 
     namespace Debug {
