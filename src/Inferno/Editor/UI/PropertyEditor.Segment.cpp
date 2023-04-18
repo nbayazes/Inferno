@@ -246,8 +246,10 @@ namespace Inferno::Editor {
                 ImGui::SetNextWindowSize({ 100 * Shell::DpiScale, -1 });
                 if (ImGui::BeginPopup("FlickerDefaults")) {
                     auto flickerDefault = [&light, &changed](const char* name, uint32 mask) {
-                        light->Mask = mask;
-                        changed = true;
+                        if (ImGui::Selectable(name)) {
+                            light->Mask = mask;
+                            changed = true;
+                        }
                     };
 
                     flickerDefault("On", FlickeringLight::Defaults::On);
