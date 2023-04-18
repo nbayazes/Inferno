@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "logging.h"
 #include "Graphics/Render.h"
+#include "Editor/Editor.Object.h"
 
 namespace Inferno::Resources {
     List<string> RobotNames;
@@ -232,7 +233,7 @@ namespace Inferno::Resources {
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
-        if (i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
+        if (i >= m.TextureCount || m.FirstTexture + i >= (int16)GameData.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
         return GameData.ObjectBitmaps[ptr];
     }
@@ -392,29 +393,6 @@ namespace Inferno::Resources {
         GameData = std::move(ham);
     }
 
-    void UpdateObjectRadii(Level& level) {
-        SPDLOG_INFO(L"Updating object radii");
-        for (auto& obj : level.Objects) {
-            switch (obj.Type) {
-                case ObjectType::Robot:
-                {
-                    auto& info = Resources::GetRobotInfo(obj.ID);
-                    auto& model = Resources::GetModel(info.Model);
-                    obj.Radius = model.Radius;
-                    break;
-                }
-                case ObjectType::Coop:
-                case ObjectType::Player:
-                case ObjectType::Reactor:
-                {
-                    auto& model = Resources::GetModel(obj.Render.Model.ID);
-                    obj.Radius = model.Radius;
-                    break;
-                }
-            }
-        }
-    }
-
     void ResetResources() {
         LevelPalette = {};
         Pig = {};
@@ -448,6 +426,13 @@ namespace Inferno::Resources {
         }
     }
 
+    // Resets all object sizes to their resource defined values
+    void ResetObjectSizes(Level& level) {
+        for (auto& obj : level.Objects) {
+            obj.Radius = Editor::GetObjectRadius(obj);
+        }
+    }
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
@@ -465,6 +450,7 @@ namespace Inferno::Resources {
             UpdateAverageTextureColor();
 
             FixObjectModelIds(level);
+            ResetObjectSizes(level);
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());
