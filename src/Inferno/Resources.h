@@ -26,6 +26,7 @@ namespace Inferno::Resources {
     const WallClip* TryGetWallClip(WClipID);
     //const WallClip* TryGetWallClip(LevelTexID);
 
+    const Powerup& GetPowerup(int id);
     const VClip& GetVideoClip(VClipID);
     const EffectClip& GetEffectClip(EClipID);
     const EffectClip* TryGetEffectClip(LevelTexID);

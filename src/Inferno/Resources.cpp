@@ -126,6 +126,16 @@ namespace Inferno::Resources {
         return GetEffectClip(tid);
     }
 
+    Powerup DEFAULT_POWERUP = {
+        .VClip = VClipID::None,
+        .Size = 5
+    };
+
+    const Powerup& GetPowerup(int id) {
+        if (!Seq::inRange(GameData.Powerups, id)) return DEFAULT_POWERUP;
+        return GameData.Powerups[id];
+    }
+
     VClip DefaultVClip{};
 
     const VClip& GetVideoClip(VClipID id) {

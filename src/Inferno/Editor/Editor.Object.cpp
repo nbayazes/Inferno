@@ -112,10 +112,7 @@ namespace Inferno::Editor {
                 return 5;
 
             case ObjectType::Powerup:
-            {
-                auto& info = Resources::GameData.Powerups.at(obj.ID);
-                return info.Size;
-            }
+                return Resources::GetPowerup(obj.ID).Size;
 
             case ObjectType::Reactor:
             {
@@ -185,7 +182,7 @@ namespace Inferno::Editor {
             {
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Powerup;
-                auto& info = Resources::GameData.Powerups.at(0);
+                auto& info = Resources::GetPowerup(0);
                 obj.Render.VClip = { .ID = info.VClip };
                 break;
             }
