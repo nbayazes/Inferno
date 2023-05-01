@@ -8,21 +8,25 @@ namespace Inferno {
 
     // Video clip (power ups or animated walls)
     struct VClip {
+        static constexpr auto MAX_FRAMES = 30;
+
         float PlayTime{}; // total time (in seconds) of clip
         int32 NumFrames = 0; // Valid frames in Frames
         float FrameTime = 1; // time (in seconds) of each frame
         VClipFlag Flags{};
         SoundID Sound = SoundID::None;
-        Array<TexID, 30> Frames{};
+        Array<TexID, MAX_FRAMES> Frames{};
         float LightValue{};
 
         // Returns the active frames
         span<const TexID> GetFrames() const { 
+            if (NumFrames <= 0) return {};
             return span<const TexID>(Frames.begin(), NumFrames); 
         }
 
         // Returns the frame for the vclip based on elapsed time
         TexID GetFrame(double t) const {
+            if (NumFrames <= 0) return TexID::None;
             auto frame = (int)(t / FrameTime) % NumFrames;
             assert(frame < NumFrames);
             return Frames[frame];
