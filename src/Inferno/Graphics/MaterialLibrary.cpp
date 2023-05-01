@@ -35,8 +35,8 @@ namespace Inferno::Render {
             ids.push_back(tid);
 
             // Also load effect clip frames
-            if (auto eclip = Resources::TryGetEffectClip(tid)) {
-                for (auto& frame : eclip->VClip.GetFrames())
+            auto& eclip = Resources::GetEffectClip(tid);
+            for (auto& frame : eclip.VClip.GetFrames())
                     ids.push_back(frame);
             }
         }
@@ -82,14 +82,14 @@ namespace Inferno::Render {
                 auto& side = seg.GetSide(sideId);
                 if (!seg.SideHasConnection(sideId) || seg.SideIsWall(sideId)) {
                     ids.insert(Resources::LookupLevelTexID(side.TMap));
-                    if (auto eclip = Resources::TryGetEffectClip(side.TMap))
-                        Seq::insert(ids, eclip->VClip.GetFrames());
+                    auto& eclip = Resources::GetEffectClip(side.TMap);
+                    Seq::insert(ids, eclip.VClip.GetFrames());
                 }
 
                 if (side.HasOverlay()) {
                     ids.insert(Resources::LookupLevelTexID(side.TMap2));
-                    if (auto eclip = Resources::TryGetEffectClip(side.TMap2))
-                        Seq::insert(ids, eclip->VClip.GetFrames());
+                    auto& eclip = Resources::GetEffectClip(side.TMap2);
+                    Seq::insert(ids, eclip.VClip.GetFrames());
                 }
 
                 // Door clips

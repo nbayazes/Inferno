@@ -29,11 +29,11 @@ namespace Inferno::Resources {
     const Powerup& GetPowerup(int id);
     const VClip& GetVideoClip(VClipID);
     const EffectClip& GetEffectClip(EClipID);
-    const EffectClip* TryGetEffectClip(LevelTexID);
-    const EffectClip* TryGetEffectClip(TexID);
+    const EffectClip& GetEffectClip(TexID);
+    const EffectClip& GetEffectClip(LevelTexID);
 
-    EClipID GetEffectClip(LevelTexID);
-    EClipID GetEffectClip(TexID);
+    EClipID GetEffectClipID(LevelTexID);
+    EClipID GetEffectClipID(TexID);
 
     const LevelTexture* TryGetLevelTextureInfo(LevelTexID);
     const LevelTexture& GetLevelTextureInfo(LevelTexID);

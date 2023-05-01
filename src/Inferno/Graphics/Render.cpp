@@ -543,8 +543,8 @@ namespace Inferno::Render {
 
     void LoadTextureDynamic(TexID id) {
         std::vector list{ id };
-        if (auto eclip = Resources::TryGetEffectClip(id))
-            Seq::append(list, eclip->VClip.GetFrames());
+        auto& eclip = Resources::GetEffectClip(id);
+        Seq::append(list, eclip.VClip.GetFrames());
         Materials->LoadMaterials(list, false);
     }
 

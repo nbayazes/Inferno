@@ -74,16 +74,6 @@ namespace Inferno::Resources {
         return &GameData.WallClips[(int)id];
     }
 
-    //const WallClip* TryGetWallClip(LevelTexID id) {
-    //    for (int i = 0; i < GameData.WallClips.size(); i++) {
-    //        if (GameData.WallClips[i].NumFrames < 0) continue;
-    //        if (GameData.WallClips[i].Frames[0] == id)
-    //            return &GameData.WallClips[i];
-    //    }
-
-    //    return nullptr;
-    //}
-
     WClipID GetWallClipID(LevelTexID id) {
         for (int i = 0; i < GameData.WallClips.size(); i++) {
             if (GameData.WallClips[i].Frames[0] == id)
@@ -93,26 +83,30 @@ namespace Inferno::Resources {
         return WClipID::None;
     }
 
+    EffectClip DEFAULT_EFFECT_CLIP = {};
+
     const EffectClip& GetEffectClip(EClipID id) {
+        if (!Seq::inRange(GameData.Effects, (int)id)) return DEFAULT_EFFECT_CLIP;
         return GameData.Effects[(int)id];
     }
 
-    const EffectClip* TryGetEffectClip(LevelTexID id) {
-        auto tid = LookupLevelTexID(id);
-        if (tid == TexID::None) return nullptr;
-        return TryGetEffectClip(tid);
-    }
-
-    const EffectClip* TryGetEffectClip(TexID id) {
+    const EffectClip& GetEffectClip(TexID id) {
         for (auto& clip : GameData.Effects) {
             if (clip.VClip.Frames[0] == id)
-                return &clip;
+                return clip;
         }
 
-        return nullptr;
+        return DEFAULT_EFFECT_CLIP;
     }
 
-    EClipID GetEffectClip(TexID tid) {
+    const EffectClip& GetEffectClip(LevelTexID id) {
+        auto tid = LookupLevelTexID(id);
+        return GetEffectClip(tid);
+    }
+
+    EClipID GetEffectClipID(TexID tid) {
+        if (tid == TexID::None) return EClipID::None;
+
         for (int i = 0; i < GameData.Effects.size(); i++) {
             if (GameData.Effects[i].VClip.Frames[0] == tid)
                 return EClipID(i);
@@ -121,10 +115,9 @@ namespace Inferno::Resources {
         return EClipID::None;
     }
 
-    EClipID GetEffectClip(LevelTexID id) {
+    EClipID GetEffectClipID(LevelTexID id) {
         auto tid = LookupLevelTexID(id);
-        if (tid == TexID::None) return EClipID::None;
-        return GetEffectClip(tid);
+        return GetEffectClipID(tid);
     }
 
     Powerup DEFAULT_POWERUP = {
