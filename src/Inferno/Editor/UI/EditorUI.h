@@ -90,6 +90,8 @@ namespace Inferno::Editor {
             RegisterDialog<AboutDialog>(DialogType::About);
 
             Events::ShowDialog += [this](DialogType type) {
+                // Don't show another dialog if one is already open as it will confuse imgui state
+                if (ImGui::GetTopMostPopupModal()) return;
                 if (auto& dialog = _dialogs[type]) dialog->Show();
             };
 

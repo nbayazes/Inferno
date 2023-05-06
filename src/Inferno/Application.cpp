@@ -72,10 +72,6 @@ void Application::Initialize(int width, int height) {
 
     OnActivated();
 
-    if (Settings::Inferno.Descent1Path.empty() && Settings::Inferno.Descent2Path.empty()) {
-        Events::ShowDialog(DialogType::Settings);
-    }
-
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };
