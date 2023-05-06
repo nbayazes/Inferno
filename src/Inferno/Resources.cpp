@@ -137,16 +137,16 @@ namespace Inferno::Resources {
         return GameData.VClips[(int)id];
     }
 
-    Model DefaultModel{};
-    RobotInfo DefaultRobotInfo{};
+    Model DEFAULT_MODEL{};
+    RobotInfo DEFAULT_ROBOT{};
 
     const Inferno::Model& GetModel(ModelID id) {
-        if ((int)id >= GameData.Models.size()) return DefaultModel;
+        if (!Seq::inRange(GameData.Models, (int)id)) return DEFAULT_MODEL;
         return GameData.Models[(int)id];
     }
 
     const RobotInfo& GetRobotInfo(uint id) {
-        if (id >= GameData.Robots.size()) return DefaultRobotInfo;
+        if (!Seq::inRange(GameData.Robots, id)) return DEFAULT_ROBOT;
         return GameData.Robots[id];
     }
 

@@ -116,8 +116,13 @@ namespace Inferno::Editor {
 
             case ObjectType::Reactor:
             {
-                auto& info = Resources::GameData.Reactors.at(obj.ID);
-                return Resources::GetModel(info.Model).Radius;
+                if (Seq::inRange(Resources::GameData.Reactors, obj.ID)) {
+                    auto& info = Resources::GameData.Reactors.at(obj.ID);
+                    return Resources::GetModel(info.Model).Radius;
+                }
+                else {
+                    return obj.Radius;
+                }
             }
 
             case ObjectType::Weapon:
