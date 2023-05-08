@@ -238,6 +238,7 @@ namespace Inferno::Render {
     void AddDecal(DecalInfo& decal);
     void DrawDecals(Graphics::GraphicsContext& ctx, float dt);
     span<DecalInfo> GetAdditiveDecals();
+    span<DecalInfo> GetDecals();
 
     // Removes decals on a side
     void RemoveDecals(Tag);

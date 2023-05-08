@@ -288,6 +288,23 @@ namespace Inferno::Render {
     List<Graphics::LightData> LevelLights;
     std::array<Graphics::LightData, Graphics::MAX_LIGHTS> LIGHT_BUFFER{};
 
+    void GatherDecalLight(int& lightIndex, DecalInfo& decal) {
+        if (lightIndex >= LIGHT_BUFFER.size()) return;
+        if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive()) return;
+
+        auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed) * 1.5f / decal.FadeTime, 0.0f, 1.0f);
+        if (t <= 0) return;
+
+        auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
+        auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
+
+        auto& light = LIGHT_BUFFER[lightIndex++];
+        light.color = color.ToVector3();
+        light.radiusSq = radius * radius;
+        light.pos = decal.Position + decal.Normal * 2; // shift light out of surface
+        light.type = LightType::Point;
+    }
+
     void UpdateDynamicLights(const Level& level) {
         constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
         for (int i = 0; i < LevelLights.size() && i < reserved; i++) {
@@ -312,22 +329,11 @@ namespace Inferno::Render {
             light.type = LightType::Point;
         }
 
-        for (auto& decal : GetAdditiveDecals()) {
-            if (lightIndex >= LIGHT_BUFFER.size()) break;
-            if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive()) continue;
+        for (auto& decal : GetAdditiveDecals())
+            GatherDecalLight(lightIndex, decal);
 
-            auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed)* 1.5f / decal.FadeTime, 0.0f, 1.0f);
-            if (t <= 0) continue;
-
-            auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
-            auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
-
-            auto& light = LIGHT_BUFFER[lightIndex++];
-            light.color = color.ToVector3();
-            light.radiusSq = radius * radius;
-            light.pos = decal.Position + decal.Normal * 2; // shift light out of surface
-            light.type = LightType::Point;
-        }
+        //for (auto& decal : GetDecals())
+        //    GatherDecalLight(lightIndex, decal);
 
         for (auto& room : _renderQueue.GetVisibleSegments()) {
             if (lightIndex >= LIGHT_BUFFER.size()) break;

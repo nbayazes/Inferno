@@ -241,18 +241,22 @@ namespace Inferno::Game {
 
             //AddPlanarExplosion(weapon, hit);
 
+            //float damageMult = std::clamp(damage / 10.0f, 1.0f, 1.75f);
             Render::SparkEmitter sparks{};
-            //sparks.Color = weapon.Extended.LightColor * 2;
-            sparks.Color = Color{ 3.0f, 2, 1.5f };
-            sparks.Count = { 10, 25 };
+            //sparks.Color = Color{ 3.0f, 2, 1.5f };
+            sparks.Color = Color{ 1.0f, 1, 0.9f } + weapon.Extended.ExplosionColor * 60;
+            sparks.Count = { 10, 15 };
             sparks.Position = hit.Point;
             sparks.Segment = hit.HitObj->Segment;
-            sparks.DurationRange = { 0.45f, 0.95f };
+            sparks.DurationRange = { 0.55f, 1.15f };
             sparks.Restitution = 0.6f;
-            sparks.Velocity = { 20, 30 };
-            sparks.FadeTime = 0.45;
+            sparks.Velocity = { 25, 30 };
+            sparks.FadeTime = 0.55;
             sparks.Texture = "tracer";
-            sparks.Width = 0.20f;
+            sparks.Width = 0.125f;
+            sparks.VelocitySmear = 0.02f;
+            sparks.LightColor = weapon.Extended.ExplosionColor;
+            sparks.LightRadius = weapon.Extended.LightRadius;
             Render::AddSparkEmitter(sparks);
 
             //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {

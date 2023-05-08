@@ -559,7 +559,6 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="LightInfo.yml" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="shaders\BloomCS.hlsl">

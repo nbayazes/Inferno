@@ -720,6 +720,7 @@ namespace Inferno::Render {
     }
 
     span<DecalInfo> GetAdditiveDecals() { return AdditiveDecals; }
+    span<DecalInfo> GetDecals() { return Decals; }
 
     void RemoveDecals(Tag tag) {
         if (!tag) return;

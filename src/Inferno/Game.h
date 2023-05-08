@@ -24,7 +24,7 @@ namespace Inferno::Game {
 
     inline int Difficulty = 0; // 0 to 4 for trainee to insane
 
-    constexpr int DEFAULT_GRAVITY = 100;
+    constexpr int DEFAULT_GRAVITY = 60;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
 
     // The loaded level. Only one level can be active at a time.
@@ -54,6 +54,7 @@ namespace Inferno::Game {
     inline float DeltaTime = 0; // Elapsed game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
+    void WeaponHitObject(const LevelHit& hit, Object& src, Inferno::Level& level);
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);

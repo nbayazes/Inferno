@@ -20,6 +20,7 @@ namespace Inferno::Render {
     void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes) {
         _transparentQueue.clear();
         _opaqueQueue.clear();
+        _visited.clear();
 
         if (Settings::Editor.RenderMode != RenderMode::None) {
             // Queue commands for level meshes

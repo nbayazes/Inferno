@@ -373,7 +373,6 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
-    <None Include="LightInfo.yml" />
     <None Include="packages.config" />
     <CopyFileToFolders Include="shaders\Common.hlsli">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>

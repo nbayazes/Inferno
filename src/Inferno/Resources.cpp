@@ -615,55 +615,53 @@ namespace Inferno::Resources {
     }
 
     void LoadObjectLightInfo(Level& level) {
+        constexpr float POWERUP_LIGHT_RAD = 14.0f;
+        constexpr Color ENERGY_COLOR(2, 1.1f, 0.1);
+        constexpr Color SHIELD_COLOR(0.025f, 0.025f, 2);
+        constexpr Color CLOAK_COLOR(1.0f, 0, 2.0f);
+        constexpr Color INVULN_COLOR(0.2f, 0, 2.0f);
+
         // todo: load from file
-        if (level.IsDescent2()) {
-            for (auto& obj : level.Objects) {
-                if (obj.Type == ObjectType::Powerup) {
-                    constexpr float POWERUP_LIGHT_RAD = 14.0f;
+        for (auto& obj : level.Objects) {
+            if (obj.Type == ObjectType::Powerup) {
+                if (obj.ID == (int)PowerupID::Energy) {
+                    obj.LightColor = ENERGY_COLOR;
+                    obj.LightRadius = POWERUP_LIGHT_RAD;
+                }
 
-                    if (obj.ID == 1) {
-                        // energy
-                        obj.LightColor = Color(2, 1.1f, 0.1);
-                        obj.LightRadius = POWERUP_LIGHT_RAD;
-                    }
+                if (obj.ID == (int)PowerupID::ShieldBoost) {
+                    obj.LightColor = SHIELD_COLOR;
+                    obj.LightRadius = POWERUP_LIGHT_RAD;
+                }
 
-                    if (obj.ID == 2) {
-                        // shield
-                        obj.LightColor = Color(0.025f, 0.025f, 2);
-                        obj.LightRadius = POWERUP_LIGHT_RAD;
-                    }
+                // ebandit, robot 44 emit 2,1,0 radius 14
 
-                    // ebandit, robot 44 emit 2,1,0 radius 14
+                //if (obj.ID == 5) {
+                //    // blue key
+                //    obj.LightColor = Color(2, 0, 0);
+                //    obj.LightRadius = POWERUP_LIGHT_RAD;
+                //}
 
-                    //if (obj.ID == 5) {
-                    //    // blue key
-                    //    obj.LightColor = Color(2, 0, 0);
-                    //    obj.LightRadius = POWERUP_LIGHT_RAD;
-                    //}
+                //if (obj.ID == 5) {
+                //    // red key
+                //    obj.LightColor = Color(2, 0, 0);
+                //    obj.LightRadius = POWERUP_LIGHT_RAD;
+                //}
 
-                    //if (obj.ID == 5) {
-                    //    // red key
-                    //    obj.LightColor = Color(2, 0, 0);
-                    //    obj.LightRadius = POWERUP_LIGHT_RAD;
-                    //}
+                //if (obj.ID == 6) {
+                //    // gold key
+                //    obj.LightColor = Color(2, 2, 0);
+                //    obj.LightRadius = POWERUP_LIGHT_RAD;
+                //}
 
-                    //if (obj.ID == 6) {
-                    //    // gold key
-                    //    obj.LightColor = Color(2, 2, 0);
-                    //    obj.LightRadius = POWERUP_LIGHT_RAD;
-                    //}
+                if (obj.ID == (int)PowerupID::Cloak) {
+                    obj.LightColor = CLOAK_COLOR;
+                    obj.LightRadius = POWERUP_LIGHT_RAD;
+                }
 
-                    if (obj.ID == 23) {
-                        // cloak
-                        obj.LightColor = Color(1.0f, 0, 2.0f);
-                        obj.LightRadius = POWERUP_LIGHT_RAD;
-                    }
-
-                    if (obj.ID == 25) {
-                        // invuln
-                        obj.LightColor = Color(0.2f, 0, 2.0f);
-                        obj.LightRadius = POWERUP_LIGHT_RAD;
-                    }
+                if (obj.ID == (int)PowerupID::Invulnerability) {
+                    obj.LightColor = INVULN_COLOR;
+                    obj.LightRadius = POWERUP_LIGHT_RAD;
                 }
             }
         }

@@ -89,7 +89,7 @@ Weapons:
     Lifetime: 30
     Glow: 0.01, 0.01, 0.01
     LightRadius: 40
-    LightColor: 4, 2.5, 0.6
+    LightColor: 3, 2.0, 0.5
 
   - id: 11
     Name: vulcan
@@ -98,10 +98,12 @@ Weapons:
     DecalRadius: 1
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
-    ExplosionTime: 0.8
+    ExplosionTime: 0.4
     Damage: [ 8, 8, 8, 8, 8 ]
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
+    LightRadius: 3
+    ExplosionColor: 0.2, 0.1, 0.0
     
   - id: 12
     Name: spreadfire
@@ -113,6 +115,8 @@ Weapons:
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
     LightColor: 0.2, 0.2, 0.5
+    ExplosionColor: 0.1, 0.1, 0.4
+    Mass: 0.05
 
   - id: 13
     Name: plasma
@@ -125,6 +129,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.0, 0.5, 0.0
+    ExplosionColor: 0.0, 0.4, 0.0
 
   - id: 14
     Name: fusion
@@ -141,6 +146,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 20
     LightColor: 0.6, 0.0, 0.4
+    ExplosionColor: 0.6, 0.0, 0.4
 
   - id: 8
     Name: concussion missile
@@ -148,7 +154,7 @@ Weapons:
     DecalRadius: 4
     LightRadius: 14
     LightColor: 1, 0.3, 0.0
-    ExplosionColor: 10, 1, 0.0
+    ExplosionColor: 2, 0.5, 0.0
 
   - id: 15
     Name: homing missile
@@ -175,14 +181,14 @@ Weapons:
   - id: 32
     Name: gauss
     Decal: BulletHole02
-    DecalRadius: 1.75
+    DecalRadius: 1.25
     ExplosionTexture: vaussimpact
     ExplosionSize: 2.4
     ExplosionTime: 0.6
     Damage: [ 20, 20, 20, 20, 20 ]
     AmmoUsage: 60
-    ExplosionColor: 1.5, 0.6, 0.0
-    LightRadius: 7.5
+    ExplosionColor: 0.6, 0.2, 0.0
+    LightRadius: 6
     #ExplosionSound: ExpHardBullet
     ExplosionSound:
 
@@ -196,6 +202,7 @@ Weapons:
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
     LightColor: 0.2, 0.5, 0.5
+    ExplosionColor: 0.1, 0.4, 0.4
 
   - id: 34
     Name: phoenix
@@ -207,6 +214,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.6, 0.2, 0
+    ExplosionColor: 0.5, 0.1, 0
 
   - id: 35
     Name: omega cannon
@@ -244,5 +252,5 @@ Weapons:
     Name: earthshaker
     Decal: scorchC
     DecalRadius: 8
-    ExplosionColor: 1, 1, 50.0
+    ExplosionColor: 1, 1, 100.0
     

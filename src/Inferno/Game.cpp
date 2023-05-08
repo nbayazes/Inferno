@@ -1018,7 +1018,8 @@ namespace Inferno::Game {
             "gauge03b",
             //"gauge16b", // lock
             "Hilite",
-            "SmHilite"
+            "SmHilite",
+            "tracer"
         };
 
         Render::Materials->LoadTextures(customHudTextures);
