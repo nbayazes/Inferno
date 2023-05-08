@@ -157,6 +157,131 @@ namespace Inferno::Game {
         //}
     }
 
+    void AddPlanarExplosion(const Weapon& weapon, const LevelHit& hit) {
+        auto rotation = Matrix::CreateFromAxisAngle(hit.Normal, Random() * DirectX::XM_2PI);
+
+        // Add the planar explosion effect
+        Render::DecalInfo planar{};
+        planar.Normal = hit.Normal;
+        planar.Tangent = Vector3::Transform(hit.Tangent, rotation);
+        planar.Bitangent = planar.Tangent.Cross(hit.Normal);
+        planar.Texture = weapon.Extended.ExplosionTexture;
+        planar.Radius = weapon.Extended.ExplosionSize;
+        planar.Duration = planar.FadeTime = weapon.Extended.ExplosionTime;
+        planar.Segment = hit.Tag.Segment;
+        planar.Side = hit.Tag.Side;
+        planar.Position = hit.Point;
+        planar.FadeRadius = weapon.GetDecalSize() * 2.4f;
+        planar.Additive = true;
+        planar.Color = Color{ 1.5f, 1.5f, 1.5f };
+        planar.LightColor = weapon.Extended.ExplosionColor;
+        planar.LightRadius = weapon.Extended.LightRadius;
+
+        Render::AddDecal(planar);
+    }
+
+    void WeaponHitObject(const LevelHit& hit, Object& src, Inferno::Level& level) {
+        assert(hit.HitObj);
+        auto& weapon = Resources::GameData.Weapons[src.ID];
+        float damage = weapon.Damage[Game::Difficulty];
+
+        auto& target = *hit.HitObj;
+        //auto p = src.Mass * src.InputVelocity;
+
+        auto& targetPhys = target.Physics;
+        auto srcMass = src.Physics.Mass == 0 ? 0.01f : src.Physics.Mass;
+        auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
+
+        // apply forces from projectile to object
+        auto force = src.Physics.Velocity * srcMass / targetMass;
+        targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
+        target.LastHitForce += force;
+
+        Matrix basis(target.Rotation);
+        basis = basis.Invert();
+        force = Vector3::Transform(force, basis); // transform forces to basis of object
+        auto arm = Vector3::Transform(hit.Point - target.Position, basis);
+        auto torque = force.Cross(arm);
+        auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
+        auto accel = torque / inertia;
+        targetPhys.AngularVelocity += accel; // should we multiply by dt here?
+
+        if (target.Type == ObjectType::Weapon) {
+            target.Lifespan = -1; // Cause the target weapon to detonate by expiring
+            if (weapon.SplashRadius == 0)
+                return; // non-explosive weapons keep going
+        }
+        else {
+            if (target.Type != ObjectType::Player) // player shields are handled differently
+                target.ApplyDamage(damage);
+
+            //fmt::print("applied {} damage\n", damage);
+            VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
+
+            Render::ExplosionInfo expl;
+            expl.Sound = weapon.RobotHitSound;
+            expl.Segment = hit.HitObj->Segment;
+            expl.Position = hit.Point;
+            //expl.Parent = src.Parent;
+
+            expl.Clip = vclip;
+            expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
+            //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+            expl.FadeTime = 0.1f;
+
+            if (src.ID == (int)WeaponID::Concussion) {
+                // todo: and all other missiles
+                expl.Instances = 2;
+                expl.Delay = { 0, 0 };
+                expl.Clip = weapon.RobotHitVClip;
+                //expl.Color = Color{ 1, 1, 1 };
+            }
+
+            Render::CreateExplosion(expl);
+
+            //AddPlanarExplosion(weapon, hit);
+
+            Render::SparkEmitter sparks{};
+            //sparks.Color = weapon.Extended.LightColor * 2;
+            sparks.Color = Color{ 3.0f, 2, 1.5f };
+            sparks.Count = { 10, 25 };
+            sparks.Position = hit.Point;
+            sparks.Segment = hit.HitObj->Segment;
+            sparks.DurationRange = { 0.45f, 0.95f };
+            sparks.Restitution = 0.6f;
+            sparks.Velocity = { 20, 30 };
+            sparks.FadeTime = 0.45;
+            sparks.Texture = "tracer";
+            sparks.Width = 0.20f;
+            Render::AddSparkEmitter(sparks);
+
+            //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
+            //    auto soundRes = Resources::GetSoundResource(weapon.RobotHitSound);
+            //    soundRes.D3 = weapon.Extended.ExplosionSound;
+
+            //    Sound3D sound(hit.Point, hit.HitObj->Segment);
+            //    sound.Resource = soundRes;
+            //    Sound::Play(sound);
+            //}
+        }
+
+        src.Control.Weapon.AddRecentHit(target.Signature);
+
+        if (!weapon.Piercing)
+            src.Flags |= ObjectFlag::Dead; // remove weapon after hitting an enemy
+
+        if (weapon.SplashRadius > 0) {
+            GameExplosion ge{};
+            ge.Segment = hit.Tag.Segment;
+            ge.Position = hit.Point;
+            ge.Damage = damage;
+            ge.Force = damage; // force = damage, really?
+            ge.Radius = weapon.SplashRadius;
+
+            CreateExplosion(level, &src, ge);
+        }
+    }
+
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
         auto& weapon = Resources::GameData.Weapons[obj.ID];
         float damage = weapon.Damage[Game::Difficulty];
@@ -261,17 +386,7 @@ namespace Inferno::Game {
             }
 
             if (!weapon.Extended.ExplosionTexture.empty() && !obj.Physics.CanBounce()) {
-                // Add the planar explosion effect
-                decal.Texture = weapon.Extended.ExplosionTexture;
-                decal.Radius = weapon.Extended.ExplosionSize;
-                decal.Duration = decal.FadeTime = weapon.Extended.ExplosionTime;
-                decal.FadeRadius = decalSize * 2.4f;
-                decal.Additive = true;
-                decal.Color = Color{ 1.5f, 1.5f, 1.5f };
-                decal.LightColor = weapon.Extended.ExplosionColor;
-                decal.LightRadius = weapon.Extended.LightRadius;
-
-                Render::AddDecal(decal);
+                AddPlanarExplosion(weapon, hit);
                 vclip = VClipID::None;
             }
         }

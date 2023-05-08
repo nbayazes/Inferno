@@ -18,6 +18,7 @@ namespace Inferno {
     struct HitInfo {
         float Distance = FLT_MAX;
         Vector3 Point, Normal;
+        int16 Tri = -1;
         operator bool() const { return Distance != FLT_MAX; }
     };
 
@@ -40,6 +41,12 @@ namespace Inferno {
             Point = hit.Point;
             Normal = hit.Normal;
             HitObj = obj;
+            Tangent = hit.Normal.Cross(Vector3::Up);
+            Tangent.Normalize();
+            if (VectorNear(Tangent, { 0, 0, 0 }, 0.01f)) {
+                Tangent = hit.Normal.Cross(Vector3::Right);
+                Tangent.Normalize();
+            }
         }
 
         void Update(const HitInfo& hit, struct Tag tag) {

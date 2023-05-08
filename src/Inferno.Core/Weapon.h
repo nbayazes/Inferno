@@ -109,7 +109,7 @@ namespace Inferno {
         string Model;
         float ModelScale = 1;
 
-        string ExplosionTexture; // Texture to use when exploding, overrides vclip
+        string ExplosionTexture; // Texture to use when exploding, overrides vclip. Renders as a plane aligned to the hit normal or camera.
         float ExplosionSize = 1.5f; // Initial size of explosion texture, scales up and out
         float ExplosionTime = 0.4f; // How long the explosion takes to fade out
         string ExplosionSound; // Sound to play when exploding. Overrides base sound.
@@ -213,6 +213,8 @@ namespace Inferno {
         TexID Icon = TexID::None, HiresIcon = TexID::None;  // Texture to use in the cockpit or UI
 
         WeaponExtended Extended{};
+
+        float GetDecalSize() const { return Extended.DecalRadius ? Extended.DecalRadius : ImpactSize / 3; }
     };
 
     struct ShipInfo {

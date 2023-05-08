@@ -671,6 +671,7 @@ namespace Inferno {
             if (dist < hit.Distance) {
                 hit.Point = p;
                 hit.Distance = dist;
+                hit.Tri = 0;
             }
         }
 
@@ -680,6 +681,7 @@ namespace Inferno {
             if (dist < hit.Distance) {
                 hit.Point = p;
                 hit.Distance = dist;
+                hit.Tri = 1;
             }
         }
 
@@ -904,6 +906,7 @@ namespace Inferno {
 
                 if (seg.SideIsSolid(side, level)) {
                     hit.Update(h, { segId, side }); // hit a solid wall
+                    hit.Tangent = face.Side.Tangents[h.Tri];
                 }
                 else {
                     // intersected with a connected side, must check faces in it too
@@ -1323,82 +1326,6 @@ namespace Inferno {
         }
     }
 
-    void WeaponHitObject(const LevelHit& hit, Object& obj, Level& level) {
-        auto& weapon = Resources::GameData.Weapons[obj.ID];
-        float damage = weapon.Damage[Game::Difficulty];
-
-        auto& target = *hit.HitObj;
-        //auto p = src.Mass * src.InputVelocity;
-
-        auto& targetPhys = target.Physics;
-        auto srcMass = obj.Physics.Mass == 0 ? 0.01f : obj.Physics.Mass;
-        auto targetMass = targetPhys.Mass == 0 ? 0.01f : targetPhys.Mass;
-
-        // apply forces from projectile to object
-        auto force = obj.Physics.Velocity * srcMass / targetMass;
-        targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
-        target.LastHitForce += force;
-
-        Matrix basis(target.Rotation);
-        basis = basis.Invert();
-        force = Vector3::Transform(force, basis); // transform forces to basis of object
-        auto arm = Vector3::Transform(hit.Point - target.Position, basis);
-        auto torque = force.Cross(arm);
-        auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
-        auto accel = torque / inertia;
-        targetPhys.AngularVelocity += accel; // should we multiply by dt here?
-
-        if (target.Type == ObjectType::Weapon) {
-            target.Lifespan = -1; // Cause the target weapon to detonate by expiring
-            if (weapon.SplashRadius == 0)
-                return; // non-explosive weapons keep going
-        }
-        else {
-            if (target.Type != ObjectType::Player) // player shields are handled differently
-                target.ApplyDamage(damage);
-
-            //fmt::print("applied {} damage\n", damage);
-            VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
-
-            Render::ExplosionInfo expl;
-            expl.Sound = weapon.RobotHitSound;
-            expl.Segment = hit.HitObj->Segment;
-            expl.Position = hit.Point;
-            expl.Parent = obj.Parent;
-
-            expl.Clip = vclip;
-            expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
-            //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
-            expl.FadeTime = 0.1f;
-
-            if (obj.ID == (int)WeaponID::Concussion) {
-                // todo: and all other missiles
-                expl.Instances = 2;
-                expl.Delay = { 0, 0 };
-                expl.Clip = weapon.RobotHitVClip;
-                //expl.Color = Color{ 1, 1, 1 };
-            }
-
-            Render::CreateExplosion(expl);
-        }
-
-        obj.Control.Weapon.AddRecentHit(target.Signature);
-
-        if (!weapon.Piercing)
-            obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting an enemy
-
-        if (weapon.SplashRadius > 0) {
-            GameExplosion ge{};
-            ge.Segment = hit.Tag.Segment;
-            ge.Position = hit.Point;
-            ge.Damage = damage;
-            ge.Force = damage; // force = damage, really?
-            ge.Radius = weapon.SplashRadius;
-
-            CreateExplosion(level, &obj, ge);
-        }
-    }
-
     // Updates the segment the object is in an activates triggers
     void UpdateObjectSegment(Level& level, ObjID objId) {
         auto& obj = level.Objects[(int)objId];
@@ -1524,7 +1451,7 @@ namespace Inferno {
             if (hit) {
                 if (obj.Type == ObjectType::Weapon) {
                     if (hit.HitObj) {
-                        WeaponHitObject(hit, obj, level);
+                        Game::WeaponHitObject(hit, obj, level);
                     }
                     else {
                         CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
