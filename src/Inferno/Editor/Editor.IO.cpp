@@ -557,7 +557,7 @@ namespace Inferno::Editor {
     }
 
     void CheckForAutosave() {
-        if (Game::Time > _nextAutosave) {
+        if (Game::Time > _nextAutosave && Game::GetState() == GameState::Editor) {
             try {
                 auto& path = Game::Mission ? Game::Mission->Path : Game::Level.Path;
                 if (path.empty()) path = Game::Level.FileName;
