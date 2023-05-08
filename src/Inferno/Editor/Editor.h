@@ -87,7 +87,7 @@ namespace Inferno::Editor {
 
     void OnLevelLoad(bool reload);
 
-    void LoadFile(filesystem::path path);
+    void LoadFile(const filesystem::path& path);
 
     //void LoadLevel(std::filesystem::path) noexcept;
     void LoadLevelFromHOG(string name);

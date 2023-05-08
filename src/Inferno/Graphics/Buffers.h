@@ -308,7 +308,7 @@ namespace Inferno {
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
             srvDesc.Format = DXGI_FORMAT_UNKNOWN;
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            srvDesc.Buffer.NumElements = _buffer.size();
+            srvDesc.Buffer.NumElements = (UINT)_buffer.size();
             srvDesc.Buffer.StructureByteStride = Stride;
             srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 

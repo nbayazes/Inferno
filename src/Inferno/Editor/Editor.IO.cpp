@@ -153,7 +153,7 @@ namespace Inferno::Editor {
     }
 
     // Serializes data to a vector using the provided function
-    std::vector<ubyte> SerializeToMemory(std::function<size_t(StreamWriter&)> fn) {
+    std::vector<ubyte> SerializeToMemory(const std::function<size_t(StreamWriter&)>& fn) {
         std::stringstream stream;
         stream.unsetf(std::ios::skipws);
         StreamWriter writer(stream);
@@ -241,12 +241,12 @@ namespace Inferno::Editor {
         }
 
         BackupFile(path);
-        filesystem::remove(path); // Remove existing
+        filesystem::remove(path);           // Remove existing
         filesystem::rename(tempPath, path); // Rename temp to destination
         fmt::print("\n");
     }
 
-    void LoadFile(filesystem::path path) {
+    void LoadFile(const filesystem::path& path) {
         try {
             auto version = FileVersionFromHeader(path);
             if (version > 0 && version <= 8) {
@@ -258,7 +258,7 @@ namespace Inferno::Editor {
 
                 // Load first sorted level in the mission
                 auto levelEntries = Game::Mission->GetLevels();
-                Seq::sortBy(levelEntries, [](HogEntry& a, HogEntry& b) { return a.Name < b.Name; });
+                Seq::sortBy(levelEntries, [](const HogEntry& a, const HogEntry& b) { return a.Name < b.Name; });
                 if (!levelEntries.empty()) {
                     LoadLevelFromHOG(levelEntries[0].Name);
 
@@ -334,7 +334,7 @@ namespace Inferno::Editor {
         filesystem::copy(path, backupPath, filesystem::copy_options::overwrite_existing);
     }
 
-    void SaveUnpackagedLevel(Level& level, filesystem::path path) {
+    void SaveUnpackagedLevel(Level& level, const filesystem::path& path) {
         filesystem::path folder = path;
         folder.remove_filename();
         string newFileName = String::NameWithoutExtension(path.filename().string());
@@ -564,11 +564,17 @@ namespace Inferno::Editor {
                 wstring backupPath = path.wstring() + L".sav";
                 SPDLOG_INFO(L"Autosaving backup to {}", backupPath);
 
-                if (Game::Mission) {
-                    WriteHog(Game::Level, *Game::Mission, backupPath);
+                auto permissions = std::filesystem::status(backupPath).permissions();
+                if ((permissions & std::filesystem::perms::owner_write) == std::filesystem::perms::none) {
+                    SPDLOG_INFO("Temp file {} is read only", path.string());
                 }
                 else {
-                    SaveLevelToPath(Game::Level, backupPath, true);
+                    if (Game::Mission) {
+                        WriteHog(Game::Level, *Game::Mission, backupPath);
+                    }
+                    else {
+                        SaveLevelToPath(Game::Level, backupPath, true);
+                    }
                 }
 
                 ResetAutosaveTimer();
