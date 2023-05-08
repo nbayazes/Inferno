@@ -27,6 +27,8 @@ namespace Inferno {
         SoundResource Resource;
     };
 
+    constexpr ObjID GLOBAL_SOUND_SOURCE = ObjID(9999); // Assign the source to this value to have it culled against all others
+
     struct Sound3D {
         Sound3D(ObjID source) : Source(source) {}
         Sound3D(const Vector3& pos, SegID seg) : Position(pos), Segment(seg) {}
@@ -34,7 +36,7 @@ namespace Inferno {
         Vector3 Position; // Position the sound comes from
         SegID Segment = SegID::None; // Segment the sound starts in, needed for occlusion
         SideID Side = SideID::None; // Side, used for turning of forcefields
-        ObjID Source = ObjID::None; // Source to attach the sound to
+        ObjID Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
         float Volume = 1;
         float Pitch = 0; // -1 to 1;
         bool Occlusion = true; // Occludes level geometry when determining volume

@@ -247,7 +247,6 @@ namespace Inferno::Render {
                 Sound3D sound(expl.Position, expl.Segment);
                 sound.Resource = Resources::GetSoundResource(expl.Sound);
                 sound.Volume = expl.Volume;
-                sound.Source = expl.Parent;
                 Sound::Play(sound);
                 //sound.Source = expl.Parent; // no parent so all nearby sounds merge
             }
