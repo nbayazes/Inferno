@@ -3,21 +3,20 @@
 #include <chrono>
 #include <thread>
 #include <assert.h>
-#include <wtypes.h>
 #include "timeapi.h"
 
 // Adaptation of i_time.cpp from gzdoom
 namespace Inferno {
-    constexpr uint64_t TickToNS(double tick, double tickRate) {
+    constexpr uint64_t TickToNs(double tick, double tickRate) {
         return static_cast<uint64_t>(tick * 1'000'000'000 / tickRate);
     }
 
-    constexpr uint64_t NSToMS(uint64_t ns) {
-        return static_cast<uint64_t>(ns / 1'000'000);
+    constexpr uint64_t NsToMs(uint64_t ns) {
+        return ns / 1'000'000;
     }
 
-    constexpr int NSToTick(uint64_t ns, double tickRate) {
-        return static_cast<int>(ns * tickRate / 1'000'000'000);
+    constexpr int NsToTick(uint64_t ns, double tickRate) {
+        return static_cast<int>((double)ns * tickRate / 1'000'000'000);
     }
 
     class SystemClock {
@@ -28,8 +27,7 @@ namespace Inferno {
         double _lastinputtime = 0;
         UINT _timerPeriod = 1; // Assume minimum resolution of 1 ms
         int _prevTick = 0;
-
-        int TickRate = 60; // Updates per second
+        int _tickRate = 60; // Updates per second
     public:
         SystemClock() {
             // Set the Windows timer to be as accurate as possible
@@ -54,11 +52,11 @@ namespace Inferno {
         void Freeze(bool frozen) {
             if (frozen) {
                 assert(_freezeTime == 0);
-                _freezeTime = GetClockTimeNS();
+                _freezeTime = GetClockTimeNs();
             }
             else {
                 assert(_freezeTime != 0);
-                if (_firstFrameStartTime != 0) _firstFrameStartTime += GetClockTimeNS() - _freezeTime;
+                if (_firstFrameStartTime != 0) _firstFrameStartTime += GetClockTimeNs() - _freezeTime;
                 _freezeTime = 0;
                 UpdateFrameTime();
             }
@@ -89,14 +87,17 @@ namespace Inferno {
             _prevFrameStartTime = _currentFrameStartTime;
         }
 
-        uint64_t GetTotalMilliseconds()
-        {
-            return _firstFrameStartTime == 0 ? 0 : NSToMS(GetClockTimeNS() - _firstFrameStartTime);
+        uint64_t GetTotalMilliseconds() const {
+            return _firstFrameStartTime == 0 ? 0 : NsToMs(GetClockTimeNs() - _firstFrameStartTime);
+        }
+
+        double GetElapsedTimeSeconds() const {
+            return (double)GetTotalMilliseconds() / 1000.0;
         }
 
         // Time since the last update
-        double GetElapsedSeconds() {
-            return _frameTime / 1'000'000'000.0;
+        double GetFrameTimeSeconds() const {
+            return (double)_frameTime / 1'000'000'000.0;
         }
 
         //double GetInputFrac(bool synchronised, double tickRate) {
@@ -120,14 +121,13 @@ namespace Inferno {
 
     private:
         // Returns current time in ticks
-        int GetElapsedTicks() {
-            return NSToTick(_currentFrameStartTime - _firstFrameStartTime, TickRate);
+        int GetElapsedTicks() const {
+            return NsToTick(_currentFrameStartTime - _firstFrameStartTime, _tickRate);
         }
-
 
         void UpdateFrameTime() {
             if (_freezeTime != 0) return;
-            _currentFrameStartTime = GetClockTimeNS();
+            _currentFrameStartTime = GetClockTimeNs();
             if (_firstFrameStartTime == 0)
                 _firstFrameStartTime = _currentFrameStartTime;
         }
@@ -137,12 +137,12 @@ namespace Inferno {
             int time{};
             while ((time = GetElapsedTicks()) <= _prevTick) {
                 // The minimum amount of time a thread can sleep is controlled by timeBeginPeriod().
-                const auto next = _firstFrameStartTime + TickToNS(_prevTick + 1, TickRate);
-                const auto now = GetClockTimeNS();
+                const auto next = _firstFrameStartTime + TickToNs(_prevTick + 1, _tickRate);
+                const auto now = GetClockTimeNs();
                 assert(next > 0);
 
                 if (next > now) {
-                    const auto sleepTime = NSToMS(next - now);
+                    const auto sleepTime = NsToMs(next - now);
                     assert(sleepTime < 1000);
 
                     if (sleepTime > 2)
@@ -155,10 +155,12 @@ namespace Inferno {
             return time;
         }
 
-        uint64_t GetClockTimeNS() {
+        uint64_t GetClockTimeNs() const {
             using namespace std::chrono;
             auto time = (uint64_t)(duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count());
             return TimeScale == 1.0 ? time : time * (uint64_t)(TimeScale * 1000);
         }
     };
+
+    inline SystemClock Clock;
 }

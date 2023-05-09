@@ -4,6 +4,7 @@
 #include "Mission.h"
 #include "Game.Player.h"
 #include "Room.h"
+#include "SystemClock.h"
 
 namespace Inferno {
     struct LevelHit;

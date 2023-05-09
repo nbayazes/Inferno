@@ -1,14 +1,12 @@
 #pragma once
 
 #include "Graphics/Render.h"
-#include "SystemClock.h"
 
 namespace Inferno {
 
     class Application final : public IDeviceNotify {
-        SystemClock _clock;
-        double _fpsLimit = 0;
-        double _nextUpdate = 0;
+        uint64 _fpsLimit = 0;
+        uint64 _nextUpdate = 0;
         bool _isForeground = false;
     public:
         Application() = default;

@@ -1,14 +1,13 @@
 #include "pch.h"
 #include "Application.h"
 #include "SoundSystem.h"
-#include "FileSystem.h"
 #include "Input.h"
 #include "Editor/Bindings.h"
 #include "Game.h"
 #include "imgui_local.h"
 #include "BitmapCache.h"
 #include "Editor/Editor.h"
-#include "Editor/UI/EditorUI.h"
+#include "SystemClock.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -89,11 +88,11 @@ void Application::Update() {
 
 void Application::UpdateFpsLimit() {
     auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
-    _fpsLimit = limit > 0 ? 1000.0f / limit : 0;
+    _fpsLimit = limit > 0 ? int(1000.0f / (float)limit) : 0;
 }
 
 void Application::Tick() {
-    auto milliseconds = _clock.GetTotalMilliseconds();
+    auto milliseconds = Inferno::Clock.GetTotalMilliseconds();
     if (_fpsLimit > 0) {
         if (milliseconds < _nextUpdate) {
             auto sleepTime = _nextUpdate - milliseconds;
@@ -107,23 +106,19 @@ void Application::Tick() {
         }
     }
 
-    _clock.Update(false);
+    Inferno::Clock.Update(false);
 
-    auto dt = (float)_clock.GetElapsedSeconds();
+    auto dt = (float)Inferno::Clock.GetFrameTimeSeconds();
     if (dt > 2) dt = 2;
 
     Render::FrameTime = dt;
 
     if (Game::GetState() == GameState::Game) {
-        Game::Time = milliseconds / 1000.;
+        Game::Time = double(milliseconds) / 1000.;
     }
 
     if (Settings::Editor.ShowAnimation)
-        Render::ElapsedTime = milliseconds / 1000.;
-
-    //PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");
-
-    //PIXEndEvent();
+        Render::ElapsedTime = double(milliseconds) / 1000.;
 
     Game::Update(dt);
 }
@@ -156,7 +151,7 @@ void Application::OnSuspending() {
 
 void Application::OnResuming() {
     //Render::Timer.ResetElapsedTime();
-    _clock.ResetFrameTime();
+    Inferno::Clock.ResetFrameTime();
 
     //_audioEngine->Resume();
     // TODO: Game is being power-resumed (or returning from minimize).
