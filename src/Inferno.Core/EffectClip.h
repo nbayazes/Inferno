@@ -18,7 +18,8 @@ namespace Inferno {
 
         // Returns the active frames
         span<const TexID> GetFrames() const { 
-            return span<const TexID>(Frames.begin(), NumFrames); 
+            if (!Seq::inRange(Frames, NumFrames)) return {};
+            return span(Frames.begin(), NumFrames);
         }
 
         // Returns the frame for the vclip based on elapsed time
@@ -68,11 +69,11 @@ namespace Inferno {
         string Filename;
 
         span<const LevelTexID> GetFrames() const {
-            return span<const LevelTexID>(Frames.begin(), NumFrames);
+            if (!Seq::inRange(Frames, NumFrames)) return {};
+            return span(Frames.begin(), NumFrames);
         }
 
         // Uses tmap1, otherwise tmap2
         bool UsesTMap1() const { return (bool)((WallClipFlag)((int16)Flags & (int16)WallClipFlag::TMap1)); }
     };
-
 }
