@@ -6,6 +6,7 @@
 namespace Inferno {
     struct LevelHit;
     void UpdatePhysics(Level& level, double t, float dt);
+    bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer);
 
     namespace Debug {
         inline Vector3 ShipPosition, ShipVelocity, ShipAcceleration, ShipThrust;

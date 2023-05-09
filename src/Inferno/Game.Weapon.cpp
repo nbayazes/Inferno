@@ -3,7 +3,6 @@
 #include "Game.h"
 #include "Game.Wall.h"
 #include "Physics.h"
-#include "Editor/Editor.Segment.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 
@@ -234,7 +233,6 @@ namespace Inferno::Game {
                 expl.Instances = 2;
                 expl.Delay = { 0, 0 };
                 expl.Clip = weapon.RobotHitVClip;
-                //expl.Color = Color{ 1, 1, 1 };
             }
 
             Render::CreateExplosion(expl);
@@ -288,7 +286,10 @@ namespace Inferno::Game {
     }
 
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
-        auto& weapon = Resources::GameData.Weapons[obj.ID];
+        bool isPlayer = obj.Control.Weapon.ParentType == ObjectType::Player;
+        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, isPlayer);
+
+        auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
         float damage = weapon.Damage[Game::Difficulty];
         float splashRadius = weapon.SplashRadius;
         float force = damage;
@@ -824,6 +825,7 @@ namespace Inferno::Game {
                 tracer.End = beam.End = hit.Point;
                 spark.Position = beam.End;
                 spark.Segment = hit.Tag.Segment;
+                spark.FadeTime = 0.25f;
                 Render::AddSparkEmitter(spark);
 
                 // Do wall hit stuff
@@ -832,7 +834,7 @@ namespace Inferno::Game {
                 dummy.Parent = player.ID;
                 dummy.ID = (int)WeaponID::Omega;
                 dummy.Type = ObjectType::Weapon;
-                dummy.Control.Weapon.ParentType = ObjectType::Player;
+                dummy.Control.Weapon.ParentType = ObjectType::Player; // needed for wall triggers to work correctly
                 WeaponHitWall(hit, dummy, Game::Level, ObjID::None);
 
                 if (auto wall = Game::Level.TryGetWall(hit.Tag))

@@ -130,7 +130,7 @@ namespace Inferno {
     }
 
     // returns true if overlay was destroyed
-    bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, const Object& source) {
+    bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer) {
         tri = std::clamp(tri, 0, 1);
 
         auto seg = level.TryGetSegment(tag);
@@ -151,7 +151,7 @@ namespace Inferno {
             return false;
 
         // Don't allow non-players to destroy triggers
-        if (source.Control.Weapon.ParentType != ObjectType::Player) {
+        if (!isPlayer) {
             if (auto wall = level.TryGetWall(tag)) {
                 if (wall->Trigger != TriggerID::None)
                     return false;
@@ -1454,7 +1454,6 @@ namespace Inferno {
                         Game::WeaponHitObject(hit, obj, level);
                     }
                     else {
-                        CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, obj);
                         Game::WeaponHitWall(hit, obj, level, ObjID(id));
                     }
                 }
