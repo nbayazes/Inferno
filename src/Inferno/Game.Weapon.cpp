@@ -250,6 +250,7 @@ namespace Inferno::Game {
             sparks.Segment = hit.HitObj->Segment;
             sparks.DurationRange = { 0.55f, 1.15f };
             sparks.Restitution = 0.6f;
+            sparks.Drag = 0.04f;
             sparks.Velocity = { 25, 30 };
             sparks.FadeTime = 0.55;
             sparks.Texture = "tracer";

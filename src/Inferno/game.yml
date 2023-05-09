@@ -136,7 +136,7 @@ Weapons:
     Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
-    Glow: 0.2, 0, 0.45
+    Glow: 0.3, 0, 0.5
     EnergyUsage: 2
     Model: FusionBlobNewJ.OOF
     RotationalVelocity: 0, 0, 1.5708

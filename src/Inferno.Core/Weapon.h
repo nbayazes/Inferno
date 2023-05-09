@@ -98,6 +98,7 @@ namespace Inferno {
     static inline WeaponID SecondaryToWeaponID[10] = { WeaponID::Concussion, WeaponID::Homing, WeaponID::ProxMine, WeaponID::Smart, WeaponID::Mega, WeaponID::Flash, WeaponID::Guided, WeaponID::SmartMine, WeaponID::Mercury, WeaponID::Shaker };
 
     enum class PowerupID : uint8;
+    enum class DynamicLightMode { Constant, Flicker };
 
     struct WeaponExtended {
         WeaponID ID; // Associate with this existing weapon ID in the HAM
@@ -129,6 +130,7 @@ namespace Inferno {
         Color Glow = { 0.01f, 0.01f, 0.01f }; // For emissive glows
         Color LightColor; // color for projectile environment lighting
         float LightRadius = 0; // size of environment lighting
+        DynamicLightMode LightMode = DynamicLightMode::Constant; // Effect to use for lighting
         Color ExplosionColor; // color for contact explosion. size scales based on explosion size
 
         int Bounces = 0;

@@ -236,7 +236,7 @@ namespace Inferno::Editor {
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);
-            SPDLOG_ERROR(e.what());
+            SPDLOG_ERROR(path.string() + ": " + e.what());
             return;
         }
 
