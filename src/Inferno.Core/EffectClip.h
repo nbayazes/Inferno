@@ -83,6 +83,7 @@ namespace Inferno {
         }
 
         span<const LevelTexID> GetFrames() const {
+            if (!Seq::inRange(Frames, NumFrames)) return {};
             return span(Frames.begin(), NumFrames);
         }
 
