@@ -67,6 +67,10 @@ namespace Inferno::Render {
         if (depth > maxDistSquared && Game::GetState() == GameState::Editor) {
             DrawObjectOutline(obj);
         }
+        else if (obj.Render.Model.Outrage) {
+            // d3 has transparent model materials mixed with opaque ones. they should be registered with both queues?
+            _transparentQueue.push_back({ &obj, depth });
+        }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             _opaqueQueue.push_back({ &obj, depth });
 
