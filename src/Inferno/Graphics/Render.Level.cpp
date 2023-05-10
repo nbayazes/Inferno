@@ -318,8 +318,21 @@ namespace Inferno::Render {
             if (!obj.IsAlive()) continue;
 
             auto& light = LIGHT_BUFFER[lightIndex++];
-            light.color = obj.LightColor.ToVector3();
-            light.radiusSq = obj.LightRadius * obj.LightRadius;
+
+            if (obj.Type == ObjectType::Powerup) {
+                if (Seq::inRange(Resources::GameData.Powerups, obj.ID)) {
+                    auto& powerup = Resources::GameData.Powerups[obj.ID];
+                    light.color = powerup.LightColor.ToVector3();
+                    light.radiusSq = powerup.LightRadius * powerup.LightRadius;
+                }
+            }
+            else {
+                light.color = obj.LightColor.ToVector3();
+                light.radiusSq = obj.LightRadius * obj.LightRadius;
+            }
+
+            // todo: handle flickering and pulsing effects
+
             light.pos = obj.GetPosition(Game::LerpAmount);
 
             if (obj.Type == ObjectType::Weapon && obj.ID == 9) {

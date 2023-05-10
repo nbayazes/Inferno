@@ -56,7 +56,9 @@ namespace Inferno {
         VClipID VClip;
         SoundID HitSound; // sound when picked up
         float Size;
-        float Light;
+        float Light; // Original light (radius?)
+        Color LightColor;
+        float LightRadius;
     };
 
     // Stores Texture, Sound, and Animation metadata

@@ -254,3 +254,19 @@ Weapons:
     DecalRadius: 8
     ExplosionColor: 1, 1, 100.0
     
+Powerups:
+  - id: 1 # Energy
+    LightColor: 2, 1.1, 0.1
+    LightRadius: 14
+
+  - id: 2 # Shield
+    LightColor: 0.025, 0.025, 2
+    LightRadius: 14
+
+  - id: 23 # Cloak
+    LightColor: 1, 0, 2
+    LightRadius: 13
+
+  - id: 25 # Invuln
+    LightColor: 0.2, 0, 2
+    LightRadius: 14

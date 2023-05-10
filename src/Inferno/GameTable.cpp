@@ -55,6 +55,15 @@ namespace Inferno {
 #undef READ_PROP_EXT
     }
 
+    void ReadPowerupInfo(ryml::NodeRef node, HamFile& ham, int& id) {
+        Yaml::ReadValue(node["id"], id);
+        if (!Seq::inRange(ham.Powerups, id)) return;
+
+        auto& powerup = ham.Powerups[id];
+        Yaml::ReadValue(node["LightRadius"], powerup.LightRadius);
+        Yaml::ReadValue(node["LightColor"], powerup.LightColor);
+    }
+
     void LoadGameTable(filesystem::path path, HamFile& ham) {
         try {
             std::ifstream file(path);
@@ -82,6 +91,19 @@ namespace Inferno {
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading weapon {}\n{}", id, e.what());
+                    }
+                }
+            }
+
+            auto powerups = root["Powerups"];
+            if (!powerups.is_seed()) {
+                for (const auto& powerup : powerups.children()) {
+                    int id = -1;
+                    try {
+                        ReadPowerupInfo(powerup, ham, id);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading powerup {}\n{}", id, e.what());
                     }
                 }
             }
