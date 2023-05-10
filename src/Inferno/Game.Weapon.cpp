@@ -211,7 +211,8 @@ namespace Inferno::Game {
                 return; // non-explosive weapons keep going
         }
         else {
-            if (target.Type != ObjectType::Player) // player shields are handled differently
+            // todo: player shields are handled differently
+            if (target.Type != ObjectType::Player && !Settings::Cheats.DisableWeaponDamage)
                 target.ApplyDamage(damage);
 
             //fmt::print("applied {} damage\n", damage);

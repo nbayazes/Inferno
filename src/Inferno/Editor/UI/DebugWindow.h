@@ -9,12 +9,14 @@
 #include "Physics.h"
 
 namespace Inferno::Editor {
-    class DebugWindow : public WindowBase {
+    class DebugWindow final : public WindowBase {
         float _frameTime = 0, _timeCounter = 1;
     public:
         DebugWindow() : WindowBase("Debug") { IsOpen(false); }
     protected:
         void OnUpdate() override {
+            ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
+
             _timeCounter += Render::FrameTime;
 
             if (_timeCounter > 0.5f) {

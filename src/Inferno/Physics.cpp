@@ -1291,7 +1291,9 @@ namespace Inferno {
                 case ObjectType::Robot:
                 {
                     ApplyForce(obj, forceVec);
-                    obj.ApplyDamage(damage);
+                    if (!Settings::Cheats.DisableWeaponDamage)
+                        obj.ApplyDamage(damage);
+
                     obj.LastHitForce += forceVec;
                     fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 

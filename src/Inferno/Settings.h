@@ -112,7 +112,7 @@ namespace Inferno {
             bool BriefingEditor = false;
             bool TextureEditor = false;
             bool Scale = false;
-            bool MaterialEditor = true;
+            bool MaterialEditor = false;
         } Windows;
 
         bool ShowWireframe = false;
@@ -141,6 +141,10 @@ namespace Inferno {
         float MasterVolume = 0.1f;
     };
 
+    struct CheatSettings {
+        bool DisableWeaponDamage = false;
+    };
+
     void SaveLightSettings(ryml::NodeRef node, const LightSettings& s);
     LightSettings LoadLightSettings(ryml::NodeRef node);
 
@@ -148,6 +152,7 @@ namespace Inferno {
         inline InfernoSettings Inferno;
         inline EditorSettings Editor;
         inline GraphicsSettings Graphics;
+        inline CheatSettings Cheats;
 
         void Save(filesystem::path path = "inferno.cfg");
         void Load(filesystem::path path = "inferno.cfg");
