@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FileSystem.h"
 #include "WindowBase.h"
 #include "WindowsDialogs.h"
 

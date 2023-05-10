@@ -16,6 +16,7 @@ namespace Inferno::Editor {
     protected:
         void OnUpdate() override {
             ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
+            ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
 
             _timeCounter += Render::FrameTime;
 

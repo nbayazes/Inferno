@@ -139,6 +139,7 @@ namespace Inferno {
         bool LimitPitchSpeed = true; // Halves the maximum pitch speed
         bool ScreenshotMode = false; // game setting?
         float MasterVolume = 0.1f;
+        bool GenerateMaps = true; // Generate specular and normal maps if missing
     };
 
     struct CheatSettings {
@@ -154,7 +155,7 @@ namespace Inferno {
         inline GraphicsSettings Graphics;
         inline CheatSettings Cheats;
 
-        void Save(filesystem::path path = "inferno.cfg");
+        void Save(const filesystem::path& path = "inferno.cfg");
         void Load(filesystem::path path = "inferno.cfg");
     }
 }

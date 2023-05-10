@@ -219,8 +219,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1);
     normal.xy *= Mat1.NormalStrength;
     normal = normalize(normal);
-    //return float4(pow(normal * .5 + .5, 2.2), 1);
-    //normal = float3(0, 0, 1);
 
     // 'automap' shader?
     //float2 fw = fwidth(input.uv);

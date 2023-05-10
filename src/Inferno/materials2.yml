@@ -16,8 +16,8 @@ Materials:
   - TexID: 55
     NormalStrength: 1
     SpecularStrength: 1
-    Metalness: 1
-    Roughness: 0.598
+    Metalness: 0.6
+    Roughness: 0.6
     EmissiveStrength: 1
     LightReceived: 1
   - TexID: 57

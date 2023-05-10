@@ -5,19 +5,8 @@
 #include "Resources.h"
 #include "Buffers.h"
 #include "Concurrent.h"
-#include "FileSystem.h"
-#include "ScopedTimer.h"
 
 namespace Inferno::Render {
-    constexpr void FillTexture(span<ubyte> data, ubyte red, ubyte green, ubyte blue, ubyte alpha) {
-        for (size_t i = 0; i < data.size() / 4; i++) {
-            data[i * 4] = red;
-            data[i * 4 + 1] = green;
-            data[i * 4 + 2] = blue;
-            data[i * 4 + 3] = alpha;
-        }
-    }
-
     struct Material2D {
         enum { Diffuse, SuperTransparency, Emissive, Specular, Normal, Count };
 

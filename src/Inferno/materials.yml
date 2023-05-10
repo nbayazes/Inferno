@@ -1563,8 +1563,8 @@ Materials:
   - TexID: 1038
     NormalStrength: 1
     SpecularStrength: 1
-    Metalness: 1
-    Roughness: 0.5
+    Metalness: 0.6
+    Roughness: 0.6
     EmissiveStrength: 1
     LightReceived: 1
   - TexID: 1039
@@ -1973,13 +1973,7 @@ Materials:
     Roughness: 0.58
     EmissiveStrength: 1
     LightReceived: 1
-  - TexID: 1393
-    NormalStrength: 1.391
-    SpecularStrength: 1
-    Metalness: 0
-    Roughness: 0.703
-    EmissiveStrength: 1
-    LightReceived: 1
+
   - TexID: 1396
     NormalStrength: 0.662
     SpecularStrength: 1

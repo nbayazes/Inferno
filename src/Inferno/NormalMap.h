@@ -42,7 +42,7 @@ namespace Inferno {
     };
 
     // Creates a normal map using a Sobel kernel
-    inline List<Palette::Color> CreateNormalMap(const PigBitmap& image, const NormalMapOptions& options) {
+    inline List<Palette::Color> CreateNormalMap(const PigBitmap& image, const NormalMapOptions& options = {}) {
         List<Palette::Color> normalMap(image.Data.size());
 
         const auto width = image.Info.Width;

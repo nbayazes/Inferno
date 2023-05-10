@@ -321,7 +321,7 @@ namespace Inferno {
         return s;
     }
 
-    void Settings::Save(filesystem::path path) {
+    void Settings::Save(const filesystem::path& path) {
         try {
             ryml::Tree doc(128, 128);
             doc.rootref() |= ryml::MAP;
@@ -329,6 +329,8 @@ namespace Inferno {
             doc["Descent1Path"] << Settings::Inferno.Descent1Path.string();
             doc["Descent2Path"] << Settings::Inferno.Descent2Path.string();
             doc["MasterVolume"] << Settings::Inferno.MasterVolume;
+            doc["GenerateMaps"] << Settings::Inferno.GenerateMaps;
+
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
             SaveEditorSettings(doc["Editor"], Settings::Editor);
             SaveGraphicsSettings(doc["Render"], Settings::Graphics);
@@ -356,6 +358,7 @@ namespace Inferno {
                 ReadValue(root["Descent1Path"], Settings::Inferno.Descent1Path);
                 ReadValue(root["Descent2Path"], Settings::Inferno.Descent2Path);
                 ReadValue(root["MasterVolume"], Settings::Inferno.MasterVolume);
+                ReadValue(root["GenerateMaps"], Settings::Inferno.GenerateMaps);
 
                 auto dataPaths = root["DataPaths"];
                 if (!dataPaths.is_seed()) {

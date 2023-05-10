@@ -4,12 +4,22 @@
 #include "Render.h"
 #include "Game.h"
 #include "Convert.h"
+#include "FileSystem.h"
 #include "ScopedTimer.h"
 #include "NormalMap.h"
 
 using namespace DirectX;
 
 namespace Inferno::Render {
+    constexpr void FillTexture(span<ubyte> data, ubyte red, ubyte green, ubyte blue, ubyte alpha) {
+        for (size_t i = 0; i < data.size() / 4; i++) {
+            data[i * 4] = red;
+            data[i * 4 + 1] = green;
+            data[i * 4 + 2] = blue;
+            data[i * 4 + 3] = alpha;
+        }
+    }
+
     ResourceUploadBatch BeginTextureUpload() {
         ResourceUploadBatch batch(Render::Device);
         batch.Begin();
@@ -281,14 +291,13 @@ namespace Inferno::Render {
         auto& info = Resources::GetTextureInfo(material.ID);
 
         //if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
-        if (!material.Textures[Material2D::Specular] && info.Width == 64 && info.Height == 64) {
+        if (!material.Textures[Material2D::Specular] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
             material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name));
         }
 
-        if (!material.Textures[Material2D::Normal] && info.Width == 64 && info.Height == 64) {
-            NormalMapOptions options{};
-            auto normal = CreateNormalMap(*upload.Bitmap, options);
+        if (!material.Textures[Material2D::Normal] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
+            auto normal = CreateNormalMap(*upload.Bitmap);
             material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name));
         }
 
@@ -616,7 +625,7 @@ namespace Inferno::Render {
         FillTexture(bmp, 255, 0, 255, 255);
         _purple.Load(batch, bmp.data(), 64, 64, L"purple", false);
 
-        FillTexture(bmp, 0, 0, 255, 255);
+        FillTexture(bmp, 128, 128, 255, 0);
         _normal.Load(batch, bmp.data(), 64, 64, L"normal");
 
         {

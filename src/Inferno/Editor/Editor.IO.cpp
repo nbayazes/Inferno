@@ -11,6 +11,7 @@
 #include "Editor.h"
 #include "Graphics/Render.h"
 #include "Editor.Diagnostics.h"
+#include "FileSystem.h"
 
 namespace Inferno::Editor {
     constexpr auto METADATA_EXTENSION = "ied"; // inferno engine data
