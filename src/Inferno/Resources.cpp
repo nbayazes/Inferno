@@ -78,6 +78,13 @@ namespace Inferno::Resources {
         return { PowerupNames[id] };
     }
 
+    Powerup DEFAULT_POWERUP{};
+
+    Powerup& GetPowerup(uint id) {
+        if (!Seq::inRange(GameData.Powerups, id)) return DEFAULT_POWERUP;
+        return GameData.Powerups[id];
+    }
+
     void Init() {
         // Load some default resources.
         LoadPowerupNames("powerups.txt");
@@ -583,7 +590,7 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadLightInfo(filesystem::path path) {
+    void LoadLightInfo(const filesystem::path& path) {
         try {
             auto file = FileSystem::ReadFileText(path);
             LightInfoTable = LoadLightTable(file);
@@ -593,7 +600,7 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadMaterialInfo(filesystem::path path) {
+    void LoadMaterialInfo(const filesystem::path& path) {
         try {
             auto file = FileSystem::ReadFileText(path);
             LoadMaterialTable(file, Render::Materials->GetAllMaterialInfo());
@@ -603,10 +610,19 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadDataTables(const Level& level) {
+    void LoadDataTables(Level& level) {
         // todo: support loading from hog file. note that file names need to be shortened to 8.3
         LoadLightInfo(GetLightFileName(level));
         LoadMaterialInfo(GetMaterialFileName(level));
+
+        for (auto& obj : level.Objects) {
+            if(obj.Type == ObjectType::Powerup) {
+                auto& powerup = GetPowerup(obj.ID);
+                obj.LightRadius = powerup.LightRadius;
+                obj.LightMode = powerup.LightMode;
+                obj.LightColor = powerup.LightColor;
+            }
+        }
     }
 
     void LoadGameTable() {
@@ -634,7 +650,7 @@ namespace Inferno::Resources {
             UpdateAverageTextureColor();
 
             FixObjectModelIds(level);
-            LoadExtendedWeaponInfo();
+            //LoadExtendedWeaponInfo();
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

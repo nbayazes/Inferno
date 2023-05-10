@@ -121,8 +121,9 @@ static const float GLOBAL_LIGHT_MULT = 50;
 float Attenuate(float lightDistSq, float lightRadiusSq) {
     // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
     float factor = lightDistSq / lightRadiusSq;                                   // 0 to 1
-    float smoothFactor = max(1 - pow(factor, 1), 0); // 0 to 1
+    float smoothFactor = max(1 - pow(factor, 0.5), 0); // 0 to 1
     float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
+    //float falloff = (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
     return clamp(falloff * GLOBAL_LIGHT_MULT, 0, 20); // clamp nearby surface distance to prevent hotspots
 }
 

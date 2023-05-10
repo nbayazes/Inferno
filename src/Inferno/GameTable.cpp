@@ -18,6 +18,7 @@ namespace Inferno {
         READ_PROP(WallHitSound);
         READ_PROP(WallHitVClip);
         READ_PROP(FireDelay);
+        READ_PROP(Lifetime);
 #undef READ_PROP
 
         auto damage = node["Damage"];
@@ -48,9 +49,11 @@ namespace Inferno {
 
         READ_PROP_EXT(RotationalVelocity);
         READ_PROP_EXT(Bounces);
+        READ_PROP_EXT(Sticky);
 
         READ_PROP_EXT(LightRadius);
         READ_PROP_EXT(LightColor);
+        Yaml::ReadValue(node["LightMode"], (int&)weapon.Extended.LightMode);
         READ_PROP_EXT(ExplosionColor);
 #undef READ_PROP_EXT
     }
@@ -62,6 +65,7 @@ namespace Inferno {
         auto& powerup = ham.Powerups[id];
         Yaml::ReadValue(node["LightRadius"], powerup.LightRadius);
         Yaml::ReadValue(node["LightColor"], powerup.LightColor);
+        Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
     }
 
     void LoadGameTable(filesystem::path path, HamFile& ham) {

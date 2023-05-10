@@ -136,13 +136,17 @@ namespace Inferno::Editor {
         if (ImGui::BeginCombo(label, preview.c_str(), ImGuiComboFlags_HeightLarge)) {
             auto sorted = SortPowerups();
             for (int i = 0; i < sorted.size(); i++) {
-                const bool isSelected = id == sorted[i].ID;
+                auto& powerup = sorted[i];
+                const bool isSelected = id == powerup.ID;
                 ImGui::PushID(i);
-                if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
+                if (ImGui::Selectable(powerup.Name.c_str(), isSelected)) {
                     id = sorted[i].ID;
                     if (obj) {
-                        obj->Render.VClip.ID = sorted[i].Ptr->VClip;
-                        obj->Radius = sorted[i].Ptr->Size;
+                        obj->Render.VClip.ID = powerup.Ptr->VClip;
+                        obj->Radius = powerup.Ptr->Size;
+                        obj->LightRadius = powerup.Ptr->LightRadius;
+                        obj->LightColor = powerup.Ptr->LightColor;
+                        obj->LightMode = powerup.Ptr->LightMode;
                         Render::LoadTextureDynamic(obj->Render.VClip.ID);
                     }
                     changed = true;

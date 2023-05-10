@@ -219,18 +219,26 @@ namespace Inferno::Game {
         switch (contains.Type) {
             case ObjectType::Powerup:
             {
+                auto& pinfo = Resources::GetPowerup(contains.ID);
+                if (pinfo.VClip == VClipID::None) {
+                    SPDLOG_WARN("Tried to drop an invalid powerup!");
+                    return;
+                }
+
                 for (int i = 0; i < contains.Count; i++) {
                     Object powerup{};
                     powerup.Position = position;
                     powerup.Type = ObjectType::Powerup;
                     powerup.ID = contains.ID;
                     powerup.Segment = segment;
+                    powerup.LightRadius = pinfo.LightRadius;
+                    powerup.LightColor = pinfo.LightColor;
+                    powerup.LightMode = pinfo.LightMode;
 
-                    auto vclip = Resources::GameData.Powerups[powerup.ID].VClip;
                     powerup.Render.Type = RenderType::Powerup;
-                    powerup.Render.VClip.ID = vclip;
+                    powerup.Render.VClip.ID = pinfo.VClip;
                     powerup.Render.VClip.Frame = 0;
-                    powerup.Render.VClip.FrameTime = Resources::GetVideoClip(vclip).FrameTime;
+                    powerup.Render.VClip.FrameTime = Resources::GetVideoClip(pinfo.VClip).FrameTime;
                     powerup.Radius = Resources::GameData.Powerups[powerup.ID].Size;
 
                     powerup.Movement = MovementType::Physics;
@@ -239,7 +247,7 @@ namespace Inferno::Game {
                     powerup.Physics.Drag = 0.01f;
                     powerup.Physics.Flags = PhysicsFlag::Bounce;
 
-                    Render::LoadTextureDynamic(vclip);
+                    Render::LoadTextureDynamic(pinfo.VClip);
                     AddObject(powerup);
                 }
                 break;

@@ -90,6 +90,8 @@ Weapons:
     Glow: 0.01, 0.01, 0.01
     LightRadius: 40
     LightColor: 3, 2.0, 0.5
+    LightMode: 3 # Flicker
+    Sticky: 1
 
   - id: 11
     Name: vulcan
@@ -258,15 +260,19 @@ Powerups:
   - id: 1 # Energy
     LightColor: 2, 1.1, 0.1
     LightRadius: 14
+    LightMode: 1 # Flicker
 
   - id: 2 # Shield
     LightColor: 0.025, 0.025, 2
     LightRadius: 14
+    LightMode: 2 # Pulse
 
   - id: 23 # Cloak
     LightColor: 1, 0, 2
     LightRadius: 13
+    LightMode: 2 # Pulse
 
   - id: 25 # Invuln
     LightColor: 0.2, 0, 2
     LightRadius: 14
+    LightMode: 2 # Pulse

@@ -14,7 +14,7 @@ namespace Inferno {
 
     float Random() {
         //return (float)rand() / RAND_MAX;
-        return (float)randomRange(gen) / RANDOM_MAX;
+        return (float)randomRange(gen) / (float)RANDOM_MAX;
     }
 
     int RandomInt(int maximum) {

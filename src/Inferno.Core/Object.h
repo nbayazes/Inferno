@@ -366,6 +366,7 @@ namespace Inferno {
 
         Color LightColor;
         float LightRadius = 0;
+        DynamicLightMode LightMode{};
 
         float NextThinkTime = NEVER_THINK;
         float Scale = 1.0;

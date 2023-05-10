@@ -98,7 +98,6 @@ namespace Inferno {
     static inline WeaponID SecondaryToWeaponID[10] = { WeaponID::Concussion, WeaponID::Homing, WeaponID::ProxMine, WeaponID::Smart, WeaponID::Mega, WeaponID::Flash, WeaponID::Guided, WeaponID::SmartMine, WeaponID::Mercury, WeaponID::Shaker };
 
     enum class PowerupID : uint8;
-    enum class DynamicLightMode { Constant, Flicker };
 
     struct WeaponExtended {
         WeaponID ID; // Associate with this existing weapon ID in the HAM

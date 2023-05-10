@@ -67,8 +67,9 @@ namespace Inferno::Resources {
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
+    Powerup& GetPowerup(uint id);
 
-    void LoadDataTables(const Level& level);
+    void LoadDataTables(Level& level);
 
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);

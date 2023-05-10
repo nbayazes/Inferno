@@ -53,12 +53,13 @@ namespace Inferno {
     };
 
     struct Powerup {
-        VClipID VClip;
+        VClipID VClip = VClipID::None;
         SoundID HitSound; // sound when picked up
         float Size;
         float Light; // Original light (radius?)
         Color LightColor;
         float LightRadius;
+        DynamicLightMode LightMode;
     };
 
     // Stores Texture, Sound, and Animation metadata

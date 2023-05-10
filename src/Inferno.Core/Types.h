@@ -2,12 +2,10 @@
 
 #include <memory>
 #include <span>
-#include <list>
 #include <stack>
 #include <numbers>
 #include <filesystem>
 #include <DirectXTK12/SimpleMath.h>
-#include <span>
 #include <ranges>
 
 namespace DirectX::SimpleMath {
@@ -190,6 +188,8 @@ namespace Inferno {
     using fixang = int16; //angles
 
     using PointID = uint16; // A level vertex
+
+    enum class DynamicLightMode { Constant, Flicker, Pulse, FastFlicker };
 
     enum class ObjID : int16 { None = -1 }; // Object ID
     enum class SegID : int16 { None = -1, Exit = -2 }; // Segment ID

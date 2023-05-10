@@ -16,6 +16,7 @@
 #include "Physics.h"
 #include "Render.Object.h"
 #include "Shell.h"
+#include "OpenSimplex2.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
@@ -318,24 +319,29 @@ namespace Inferno::Render {
             if (!obj.IsAlive()) continue;
 
             auto& light = LIGHT_BUFFER[lightIndex++];
+            light.color = obj.LightColor.ToVector3();
+            light.radiusSq = obj.LightRadius * obj.LightRadius;
+            auto mode = obj.LightMode;
 
-            if (obj.Type == ObjectType::Powerup) {
-                if (Seq::inRange(Resources::GameData.Powerups, obj.ID)) {
-                    auto& powerup = Resources::GameData.Powerups[obj.ID];
-                    light.color = powerup.LightColor.ToVector3();
-                    light.radiusSq = powerup.LightRadius * powerup.LightRadius;
-                }
-            }
-            else {
-                light.color = obj.LightColor.ToVector3();
-                light.radiusSq = obj.LightRadius * obj.LightRadius;
-            }
+            if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::FastFlicker) {
+                //constexpr float FLICKER_INTERVAL = 15; // hz
+                //float interval = std::floor(Render::ElapsedTime * FLICKER_INTERVAL + (float)obj.Signature * 0.1747f) / FLICKER_INTERVAL;
+                const float flickerSpeed = mode == DynamicLightMode::Flicker ? 4 : 6;
+                const float flickerRadius = mode == DynamicLightMode::Flicker ? 0.03f : 0.04f;
+                // slightly randomize the radius and brightness on an interval
+                auto noise = OpenSimplex2::Noise2((int)obj.Signature, Render::ElapsedTime * flickerSpeed, 0);
+                light.radiusSq += light.radiusSq * noise * flickerRadius;
 
-            // todo: handle flickering and pulsing effects
+                if (mode == DynamicLightMode::FastFlicker)
+                    light.color *= 1 + noise * 0.025f;
+            }
+            else if (mode == DynamicLightMode::Pulse) {
+                light.radiusSq += light.radiusSq * sin(Render::ElapsedTime * 3.14f * 1.25f + (float)obj.Signature * 0.1747f) * 0.08f;
+            }
 
             light.pos = obj.GetPosition(Game::LerpAmount);
 
-            if (obj.Type == ObjectType::Weapon && obj.ID == 9) {
+            if (obj.Type == ObjectType::Weapon && obj.ID == (int)WeaponID::Flare) {
                 // shift light position of flares backwards to move outside of walls
                 light.pos += obj.Rotation.Backward() * 2.5f;
             }

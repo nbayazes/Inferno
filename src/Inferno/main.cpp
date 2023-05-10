@@ -2,14 +2,11 @@
 #include "Shell.h"
 #include "Application.h"
 #include "FileSystem.h"
-#include "SoundSystem.h"
+#include "OpenSimplex2.h"
 #include "Resources.h"
 #include "Editor/Editor.h"
-#include "Mission.h"
-#include "HogFile.h"
 #include "Settings.h"
 #include "ryml/ryml.hpp"
-#include "ryml/ryml_std.hpp"
 
 using namespace Inferno;
 
@@ -201,6 +198,7 @@ int APIENTRY WinMain(HINSTANCE /*hInstance*/,
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
     InitRandom();
+    OpenSimplex2::Init();
 
     // Replace ryml abort with exceptions
     RymlExceptionHandler handler;

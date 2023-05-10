@@ -202,8 +202,11 @@ namespace Inferno::Editor {
             {
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Powerup;
-                auto& info = Resources::GameData.Powerups.at(0);
+                auto& info = Resources::GetPowerup(0);
                 obj.Render.VClip = { .ID = info.VClip };
+                obj.LightRadius = info.LightRadius;
+                obj.LightColor = info.LightColor;
+                obj.LightMode = info.LightMode;
                 break;
             }
 
