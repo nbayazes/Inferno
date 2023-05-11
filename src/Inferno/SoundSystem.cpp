@@ -18,7 +18,7 @@ namespace Inferno::Sound {
         std::atomic RequestStopSounds = false;
         std::atomic Alive = false;
         std::jthread WorkerThread;
-        std::mutex ResetMutex, SoundInstancesMutex;
+        std::mutex ResetMutex, SoundInstancesMutex, InitMutex;
 
         constexpr int FREQUENCY_11KHZ = 11025;
         constexpr int FREQUENCY_22KHZ = 22050;
@@ -29,6 +29,15 @@ namespace Inferno::Sound {
         //constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
         constexpr float MERGE_WINDOW = 1 / 12.0f; // Merge the same sound being played by a source within a window
 
+        std::condition_variable_any InitializeCondition;
+    }
+
+    void WaitInitialized() {
+        if (Alive) return;
+        std::unique_lock lock(InitMutex);
+        auto result = InitializeCondition.wait_until(lock, system_clock::now() + 2s);
+        if (result == std::cv_status::timeout)
+            SPDLOG_ERROR("Timed out waiting for sound system to initialize");
     }
 
     struct Sound3DInstance : Sound3D {
@@ -176,7 +185,7 @@ namespace Inferno::Sound {
         SPDLOG_INFO("Starting audio mixer thread");
 
         auto result = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-        if (!SUCCEEDED(result))
+        if (FAILED(result))
             SPDLOG_WARN("CoInitializeEx did not succeed");
 
         try {
@@ -196,9 +205,11 @@ namespace Inferno::Sound {
             SoundsD1.resize(255);
             SoundsD2.resize(255);
             Alive = true;
+            InitializeCondition.notify_all();
+            SPDLOG_INFO("Sound system initialized");
         }
         catch (const std::exception& e) {
-            SPDLOG_ERROR("Unable to start sound engine: {}", e.what());
+            SPDLOG_ERROR("Unable to start sound system: {}", e.what());
             return;
         }
 
@@ -209,7 +220,7 @@ namespace Inferno::Sound {
 
             if (Engine->Update()) {
                 try {
-                    auto dt = pollRate.count() / 1000.0f;
+                    auto dt = (double)pollRate.count() / 1000.0;
                     //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
                     Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
                     Listener.Position = Render::Camera.Position * AUDIO_SCALE;
@@ -333,7 +344,7 @@ namespace Inferno::Sound {
         std::scoped_lock lock(ResetMutex);
         float trimStart = 0;
         if (id == 47)
-            trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a crackle
+            trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a popping noise
 
         auto data = Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;
@@ -408,7 +419,7 @@ namespace Inferno::Sound {
     static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_InvSquaredCurvePoints[] = { { 0.0f, 1.0f }, { 0.05f, 0.95f }, { 0.2f, 0.337f }, { 0.4f, 0.145f }, { 0.6f, 0.065f }, { 0.8f, 0.024f }, { 1.0f, 0.0f } };
     static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_InvSquaredCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_InvSquaredCurvePoints[0], _countof(Emitter_InvSquaredCurvePoints) };
 
-    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_CubicPoints[] = { { 0.0f, 1.0f }, { 0.1f, 0.73f }, { 0.2f, 0.5f }, { 0.4f, 0.21f }, { 0.6f, 0.060f }, { 0.7f, 0.026f },{ 0.8f, 0.01f }, { 1.0f, 0.0f } };
+    static constexpr X3DAUDIO_DISTANCE_CURVE_POINT Emitter_CubicPoints[] = { { 0.0f, 1.0f }, { 0.1f, 0.73f }, { 0.2f, 0.5f }, { 0.4f, 0.21f }, { 0.6f, 0.060f }, { 0.7f, 0.026f }, { 0.8f, 0.01f }, { 1.0f, 0.0f } };
     static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
 
 
@@ -431,7 +442,6 @@ namespace Inferno::Sound {
                     instance.Resource == sound.Resource &&
                     instance.StartTime + MERGE_WINDOW > currentTime &&
                     !instance.Looped) {
-
                     if (instance.AttachToSource && sound.AttachToSource)
                         instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 

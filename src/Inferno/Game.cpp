@@ -1037,6 +1037,7 @@ namespace Inferno::Game {
         ResetCountdown();
         StuckObjects = {};
         Render::ResetParticles();
+        Sound::WaitInitialized();
         Sound::Reset();
         Resources::LoadGameTable();
 

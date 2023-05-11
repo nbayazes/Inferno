@@ -67,6 +67,9 @@ namespace Inferno {
 
 namespace Inferno::Sound {
     void Init(HWND, std::chrono::milliseconds pollRate = std::chrono::milliseconds(5));
+
+    // Blocks until the sound system is initialized
+    void WaitInitialized();
     void Shutdown();
 
     void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
