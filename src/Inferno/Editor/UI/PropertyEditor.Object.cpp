@@ -115,20 +115,20 @@ namespace Inferno::Editor {
             }
         }
 
-        Seq::sortBy(sorted, [](PowerupSort& a, PowerupSort& b) {
+        Seq::sortBy(sorted, [](const PowerupSort& a, const PowerupSort& b) {
             auto p0 = GetPowerupGroup(a.ID);
-        auto p1 = GetPowerupGroup(b.ID);
-        if (p0 < p1) return true;
-        if (p1 < p0) return false;
-        if (a.Name < b.Name) return true;
-        if (b.Name < a.Name) return false;
-        return false;
+            auto p1 = GetPowerupGroup(b.ID);
+            if (p0 < p1) return true;
+            if (p1 < p0) return false;
+            if (a.Name < b.Name) return true;
+            if (b.Name < a.Name) return false;
+            return false;
         });
 
         return sorted;
     }
 
-    bool PowerupDropdown(const char* label, int8& id, Object* obj = nullptr) {
+    bool PowerupDropdown(const char* label, int8& id, const Object* obj = nullptr) {
         auto name = Resources::GetPowerupName(id);
         auto preview = name.value_or("Unknown");
         bool changed = false;
@@ -142,11 +142,6 @@ namespace Inferno::Editor {
                 if (ImGui::Selectable(powerup.Name.c_str(), isSelected)) {
                     id = sorted[i].ID;
                     if (obj) {
-                        obj->Render.VClip.ID = powerup.Ptr->VClip;
-                        obj->Radius = powerup.Ptr->Size;
-                        obj->LightRadius = powerup.Ptr->LightRadius;
-                        obj->LightColor = powerup.Ptr->LightColor;
-                        obj->LightMode = powerup.Ptr->LightMode;
                         Render::LoadTextureDynamic(obj->Render.VClip.ID);
                     }
                     changed = true;
@@ -255,7 +250,10 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    struct RobotSort { int8 ID; string Name; };
+    struct RobotSort {
+        int8 ID;
+        string Name;
+    };
 
     List<RobotSort> SortRobots() {
         auto robotCount = Game::Level.IsDescent1() ? 24 : Resources::GameData.Robots.size();
@@ -266,10 +264,10 @@ namespace Inferno::Editor {
             sorted.push_back({ i, Resources::GetRobotName(i) });
         }
 
-        Seq::sortBy(sorted, [](RobotSort& a, RobotSort& b) {
+        Seq::sortBy(sorted, [](const RobotSort& a, const RobotSort& b) {
             if (a.Name < b.Name) return true;
-        if (b.Name < a.Name) return false;
-        return false;
+            if (b.Name < a.Name) return false;
+            return false;
         });
 
         return sorted;
@@ -284,7 +282,7 @@ namespace Inferno::Editor {
             for (int8 i = 0; i < sorted.size(); i++) {
                 const bool isSelected = id == sorted[i].ID;
                 if (ImGui::Selectable(sorted[i].Name.c_str(), isSelected)) {
-                    id = (int8)sorted[i].ID;
+                    id = sorted[i].ID;
                     changed = true;
                 }
 
@@ -332,8 +330,8 @@ namespace Inferno::Editor {
         if (AIBehaviorDropdown("##Behavior", obj.Control.AI)) {
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-            o.Control.AI.Behavior = obj.Control.AI.Behavior;
-            o.Control.AI.Flags = obj.Control.AI.Flags;
+                o.Control.AI.Behavior = obj.Control.AI.Behavior;
+                o.Control.AI.Flags = obj.Control.AI.Flags;
             });
             changed = true;
         }
@@ -350,8 +348,8 @@ namespace Inferno::Editor {
 
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-            o.Contains.Type = obj.Contains.Type;
-            o.Contains.Count = obj.Contains.Count;
+                o.Contains.Type = obj.Contains.Type;
+                o.Contains.Count = obj.Contains.Count;
             });
             changed = true;
         }
@@ -382,7 +380,7 @@ namespace Inferno::Editor {
         if (containsChanged) {
             ForMarkedObjects([&obj](Object& o) {
                 if (o.Type != obj.Type) return;
-            o.Contains = obj.Contains;
+                o.Contains = obj.Contains;
             });
             changed = true;
         }
@@ -431,10 +429,8 @@ namespace Inferno::Editor {
                 auto iStr = std::to_string(i);
                 if (ImGui::Selectable(iStr.c_str(), isSelected)) {
                     obj.ID = i;
-                    auto& reactor = Resources::GameData.Reactors[(int)obj.ID];
-                    obj.Render.Model.ID = reactor.Model;
-                    obj.Radius = GetObjectRadius(obj);
-                    Render::LoadModelDynamic(reactor.Model);
+                    InitObject(Game::Level, obj, obj.Type, obj.ID);
+                    Render::LoadModelDynamic(obj.Render.Model.ID);
                     changed = true;
                 }
 
@@ -522,7 +518,9 @@ namespace Inferno::Editor {
         auto angleSpeed = Settings::Editor.RotationSnap > 0 ? Settings::Editor.RotationSnap : DirectX::XM_PI / 32;
 
         auto Slider = [&](const char* label, float& value) {
-            ImGui::Text(label); ImGui::SameLine(30 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::Text(label);
+            ImGui::SameLine(30 * Shell::DpiScale);
+            ImGui::SetNextItemWidth(-1);
             ImGui::PushID(label);
             changed |= ImGui::DragFloat("##xyz", &value, speed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
@@ -530,7 +528,9 @@ namespace Inferno::Editor {
         };
 
         auto AngleSlider = [&](const char* label, float& value) {
-            ImGui::Text(label); ImGui::SameLine(60 * Shell::DpiScale); ImGui::SetNextItemWidth(-1);
+            ImGui::Text(label);
+            ImGui::SameLine(60 * Shell::DpiScale);
+            ImGui::SetNextItemWidth(-1);
             ImGui::PushID(label);
             changed |= ImGui::DragFloat("##pyr", &value, angleSpeed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
             finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
@@ -557,6 +557,10 @@ namespace Inferno::Editor {
             Editor::History.SnapshotSelection();
             Editor::History.SnapshotLevel("Edit object position");
         }
+    }
+
+    void RandomizeMineRotation(Object& obj) {
+        obj.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
     }
 
     void PropertyEditor::ObjectProperties() const {
@@ -598,8 +602,14 @@ namespace Inferno::Editor {
                 auto type = AVAILABLE_TYPES[i];
                 const bool isSelected = obj.Type == type;
                 if (ImGui::Selectable(GetObjectTypeName(type), isSelected)) {
-                    InitObject(Game::Level, obj, type);
-                    ForMarkedObjects([type](Object& o) { InitObject(Game::Level, o, type); });
+                    int8 objId = type == ObjectType::Weapon ? (int8)WeaponID::LevelMine : 0;
+                    InitObject(Game::Level, obj, type, objId);
+                    if (type == ObjectType::Weapon) RandomizeMineRotation(obj);
+
+                    ForMarkedObjects([type, objId](Object& o) {
+                        if (type == ObjectType::Weapon) RandomizeMineRotation(o);
+                        InitObject(Game::Level, o, type, objId);
+                    });
                     Editor::History.SnapshotLevel("Change object type");
                 }
 
@@ -615,11 +625,10 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("Powerup");
                 ImGui::SetNextItemWidth(-1);
                 if (PowerupDropdown("##Powerup", obj.ID, &obj)) {
+                    InitObject(Game::Level, obj, obj.Type, obj.ID);
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
-                        o.ID = obj.ID;
-                        o.Render.VClip.ID = obj.Render.VClip.ID;
-                        o.Radius = obj.Radius;
+                        InitObject(Game::Level, o, obj.Type, obj.ID);
                     });
                     Editor::History.SnapshotLevel("Change object");
                 }

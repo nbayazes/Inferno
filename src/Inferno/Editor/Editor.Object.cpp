@@ -4,7 +4,6 @@
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {
-
     void DeleteObject(Level& level, ObjID id) {
         auto pObj = level.TryGetObject(id);
         if (!pObj) return;
@@ -137,14 +136,35 @@ namespace Inferno::Editor {
         return 5;
     }
 
-    void InitObject(const Level& level, Object& obj, ObjectType type) {
+    void InitPlaceableMine(Object& obj) {
+        auto& weapon = Resources::GetWeapon(WeaponID::LevelMine);
+
+        obj.Control.Type = ControlType::Weapon;
+        obj.Control.Weapon.Parent = ObjID::None;
+        obj.Control.Weapon.ParentSig = ObjSig::None;
+        obj.Control.Weapon.ParentType = obj.Type;
+        obj.Movement = MovementType::Physics;
+
+        obj.Physics.Mass = weapon.Mass;
+        obj.Physics.Drag = weapon.Drag;
+        obj.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FixedAngVel;
+        obj.ID = (int8)WeaponID::LevelMine;
+        obj.Render.Type = RenderType::Model;
+        obj.Render.Model = { .ID = ModelID::Mine };
+        obj.HitPoints = 20;
+    }
+
+    void InitObject(const Level& level, Object& obj, ObjectType type, int8 id) {
         const ModelID coopModel = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
 
         obj.Type = type;
-        obj.ID = 0; // can only have one ID 0 player, fix it later
+        obj.ID = id;
         obj.Movement = {};
         obj.Control = {};
         obj.Render = {};
+        obj.LightRadius = {};
+        obj.LightColor = Color(0, 0, 0);
+        obj.LightMode = {};
 
         switch (type) {
             case ObjectType::Player:
@@ -169,6 +189,7 @@ namespace Inferno::Editor {
                     angle = Vector3::Zero;
 
                 obj.Flags = (ObjectFlag)0;
+                obj.ID = 0; // can only have one ID 0 player, fix it later
                 break;
             }
 
@@ -176,11 +197,12 @@ namespace Inferno::Editor {
                 obj.Movement = MovementType::Physics;
                 obj.Render.Type = RenderType::Model;
                 obj.Render.Model = { .ID = coopModel };
+                obj.ID = 0;
                 break;
 
             case ObjectType::Robot:
             {
-                auto& ri = Resources::GetRobotInfo(0);
+                auto& ri = Resources::GetRobotInfo(id);
                 obj.Control.Type = ControlType::AI;
                 obj.Movement = MovementType::Physics;
                 obj.Physics.Mass = ri.Mass;
@@ -202,8 +224,9 @@ namespace Inferno::Editor {
             {
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Powerup;
-                auto& info = Resources::GetPowerup(0);
+                auto& info = Resources::GetPowerup(id);
                 obj.Render.VClip = { .ID = info.VClip };
+                obj.Radius = info.Size;
                 obj.LightRadius = info.LightRadius;
                 obj.LightColor = info.LightColor;
                 obj.LightMode = info.LightMode;
@@ -214,31 +237,30 @@ namespace Inferno::Editor {
             {
                 obj.Control.Type = ControlType::Reactor;
                 obj.Render.Type = RenderType::Model;
-                auto& info = Resources::GameData.Reactors.at(0);
-                obj.Render.Model = { .ID = info.Model };
+
+                if (Seq::inRange(Resources::GameData.Reactors, id)) {
+                    auto& info = Resources::GameData.Reactors[id];
+                    obj.Render.Model = { .ID = info.Model };
+                }
+
                 obj.HitPoints = 200;
+                obj.LightRadius = 30;
+                obj.LightColor = Color(3, 0, 0);
+                obj.LightMode = DynamicLightMode::BigPulse;
                 break;
             }
 
             case ObjectType::Weapon: // For placeable mines
             {
-                // Only time the editor should create a weapon is if it's a mine
-                if (level.IsDescent1()) return; // No mines in D1
-                obj.Control.Type = ControlType::Weapon;
-                obj.Control.Weapon.Parent = ObjID::None;
-                obj.Control.Weapon.ParentSig = (ObjSig)-1;
-                obj.Control.Weapon.ParentType = obj.Type;
+                auto& weapon = Resources::GetWeapon((WeaponID)id);
+                obj.LightColor = weapon.Extended.LightColor;
+                obj.LightRadius = weapon.Extended.LightRadius;
+                obj.LightMode = weapon.Extended.LightMode;
 
-                obj.Movement = MovementType::Physics;
-                obj.Physics.Mass = FixToFloat(65536);
-                obj.Physics.Drag = FixToFloat(2162);
-                obj.Physics.AngularVelocity.y = (Random() - Random()) * 1.25f; // value between -1.25 and 1.25
-                obj.Physics.Flags = PhysicsFlag::Bounce | PhysicsFlag::FixedAngVel;
-
-                obj.ID = 51;
-                obj.Render.Type = RenderType::Model;
-                obj.Render.Model = { .ID = ModelID::Mine };
-                obj.HitPoints = 20;
+                if ((WeaponID)id == WeaponID::LevelMine) {
+                    InitPlaceableMine(obj);
+                }
+                //obj.Control.Weapon = weapon.Flags;
             }
         }
 

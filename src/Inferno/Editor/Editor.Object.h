@@ -4,14 +4,14 @@
 #include "Command.h"
 
 namespace Inferno::Editor {
-    bool AlignObjectToSide(Level&, ObjID, PointTag, bool center = false);
+    //bool AlignObjectToSide(Level&, ObjID, PointTag);
     bool MoveObjectToSegment(Level&, ObjID, SegID);
     int GetObjectCount(const Level& level, ObjectType type);
     float GetObjectRadius(const Object& obj);
 
     ObjID AddObject(Level&, PointTag, ObjectType);
     void DeleteObject(Level&, ObjID);
-    void InitObject(const Level&, Object&, ObjectType type);
+    void InitObject(const Level&, Object&, ObjectType type, int8 id = 0);
 
     void UpdateSecretLevelReturnMarker();
     void UpdateObjectSegment(Level& level, Object& obj);
