@@ -189,7 +189,7 @@ namespace Inferno {
 
     using PointID = uint16; // A level vertex
 
-    enum class DynamicLightMode { Constant, Flicker, Pulse, FastFlicker };
+    enum class DynamicLightMode { Constant, Flicker, Pulse, FastFlicker, BigPulse };
 
     enum class ObjID : int16 { None = -1 }; // Object ID
     enum class SegID : int16 { None = -1, Exit = -2 }; // Segment ID

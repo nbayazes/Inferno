@@ -50,6 +50,9 @@ namespace Inferno {
         int Guns{};
         Array<Vector3, GunCount> GunPoints;
         Array<Vector3, GunCount> GunDirs;
+        Color LightColor;
+        float LightRadius;
+        DynamicLightMode LightMode = DynamicLightMode::Pulse;
     };
 
     struct Powerup {

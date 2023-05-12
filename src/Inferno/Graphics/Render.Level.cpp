@@ -326,7 +326,7 @@ namespace Inferno::Render {
             if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::FastFlicker) {
                 //constexpr float FLICKER_INTERVAL = 15; // hz
                 //float interval = std::floor(Render::ElapsedTime * FLICKER_INTERVAL + (float)obj.Signature * 0.1747f) / FLICKER_INTERVAL;
-                const float flickerSpeed = mode == DynamicLightMode::Flicker ? 4 : 6;
+                const float flickerSpeed = mode == DynamicLightMode::Flicker ? 4.0f : 6.0f;
                 const float flickerRadius = mode == DynamicLightMode::Flicker ? 0.03f : 0.04f;
                 // slightly randomize the radius and brightness on an interval
                 auto noise = OpenSimplex2::Noise2((int)obj.Signature, Render::ElapsedTime * flickerSpeed, 0);
@@ -336,7 +336,10 @@ namespace Inferno::Render {
                     light.color *= 1 + noise * 0.025f;
             }
             else if (mode == DynamicLightMode::Pulse) {
-                light.radiusSq += light.radiusSq * sin(Render::ElapsedTime * 3.14f * 1.25f + (float)obj.Signature * 0.1747f) * 0.08f;
+                light.radiusSq += light.radiusSq * sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)obj.Signature * 0.1747f) * 0.125f;
+            }
+            else if (mode == DynamicLightMode::BigPulse) {
+                light.radiusSq += light.radiusSq * sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)obj.Signature * 0.1747f) * 0.25f;
             }
 
             light.pos = obj.GetPosition(Game::LerpAmount);

@@ -55,6 +55,7 @@ namespace Inferno {
         READ_PROP_EXT(LightColor);
         Yaml::ReadValue(node["LightMode"], (int&)weapon.Extended.LightMode);
         READ_PROP_EXT(ExplosionColor);
+        READ_PROP_EXT(InheritParentVelocity);
 #undef READ_PROP_EXT
     }
 

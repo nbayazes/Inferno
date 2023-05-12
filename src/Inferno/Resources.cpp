@@ -10,6 +10,7 @@
 #include "Graphics/Render.h"
 #include <Briefing.h>
 #include "GameTable.h"
+#include "Editor/Editor.Object.h"
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
@@ -277,7 +278,7 @@ namespace Inferno::Resources {
 
     // Reads a file from the current mission or the file system
     // Returns empty list if not found
-    List<ubyte> TryReadFile(filesystem::path path) {
+    List<ubyte> TryReadFile(const filesystem::path& path) {
         auto fileName = path.filename().string();
         if (Game::Mission && Game::Mission->Exists(fileName)) {
             return Game::Mission->ReadEntry(fileName);
@@ -393,82 +394,6 @@ namespace Inferno::Resources {
         return Resources::GetString(GameString{ index + (int)id });
     }
 
-    void LoadExtendedWeaponInfo() {
-        if (GameData.Weapons.size() < 30) return; // No D1 data
-        auto getWeapon = [](WeaponID id) -> Weapon& { return GameData.Weapons[(int)id]; };
-        auto& fusion = getWeapon(WeaponID::Fusion);
-        fusion.Extended.Chargable = true;
-        fusion.EnergyUsage = 2.0f;    // 2.0 matches original behavior
-        fusion.ModelSizeRatio = 2.5f; // Adjust radius to fit model better
-
-        constexpr float LASER_MASS = 0.05f;
-        constexpr float LASER_SCALE = 0.7f;
-
-        getWeapon(WeaponID::Laser1).Extended.Glow = Color(0.85f, 0.0f, 0.0f) * 0.35;
-        getWeapon(WeaponID::Laser2).Extended.Glow = Color(0.7f, 0.25f, 0.25f) * 0.15;
-        getWeapon(WeaponID::Laser3).Extended.Glow = Color(0.55f, 0.55f, 0.75f) * 0.15;
-        getWeapon(WeaponID::Laser4).Extended.Glow = Color(0.1f, 0.7f, 0.1f) * 0.15;
-
-        getWeapon(WeaponID::Laser1).Extended.ModelScale =
-            getWeapon(WeaponID::Laser2).Extended.ModelScale =
-            getWeapon(WeaponID::Laser3).Extended.ModelScale =
-            getWeapon(WeaponID::Laser4).Extended.ModelScale = LASER_SCALE;
-
-        getWeapon(WeaponID::Laser1).Mass =
-            getWeapon(WeaponID::Laser2).Mass =
-            getWeapon(WeaponID::Laser3).Mass =
-            getWeapon(WeaponID::Laser4).Mass = LASER_MASS;
-
-        getWeapon(WeaponID::Laser2).FireDelay =
-            getWeapon(WeaponID::Laser3).FireDelay =
-            getWeapon(WeaponID::Laser4).FireDelay =
-            getWeapon(WeaponID::Laser1).FireDelay;
-
-        auto& vulcan = getWeapon(WeaponID::Vulcan);
-        vulcan.Extended.Behavior = "vulcan";
-
-        getWeapon(WeaponID::Spreadfire).Extended.Glow = Color{ 0.4f, 0.4f, 0.6f };
-        getWeapon(WeaponID::Spreadfire).Extended.Behavior = "spreadfire";
-
-        getWeapon(WeaponID::ProxMine).Extended.InheritParentVelocity = true;
-
-        getWeapon(WeaponID::Flare).Extended.Sticky = true;
-        getWeapon(WeaponID::Flare).FireDelay = 0.5f;
-        getWeapon(WeaponID::Flare).Lifetime = 30.0f;
-        getWeapon(WeaponID::Flare).Extended.Glow = Color(0.05f, 0.05f, 0.05f);
-
-        //auto& mega = getWeapon(WeaponID::Mega).Extended;
-
-        if (GameData.Weapons.size() < 35) return;
-        // D2 WEAPONS BELOW!
-
-        getWeapon(WeaponID::Laser5).Extended.Glow = Color(0.7f, 0.4f, 0.1f) * 0.35;
-        getWeapon(WeaponID::Laser6).Extended.Glow = Color(0.65f, 0.65f, 0.65f) * 0.35;
-        getWeapon(WeaponID::Laser5).Mass = LASER_MASS;
-        getWeapon(WeaponID::Laser6).Mass = LASER_MASS;
-
-        getWeapon(WeaponID::Phoenix).Extended.Bounces = 2;
-        getWeapon(WeaponID::Phoenix).Bounce = 0; // Don't use the old bounce flag
-
-        getWeapon(WeaponID::Helix).Extended.Glow = Color{ 0.4f, 0.5f, 0.4f };
-        getWeapon(WeaponID::Helix).Extended.Behavior = "helix";
-
-        auto& omega = getWeapon(WeaponID::Omega);
-        omega.Extended.Behavior = "omega";
-        omega.FireDelay = 1.0f / 8;
-        omega.Damage.fill(32); // hard coded 32 damage mult in original
-
-        getWeapon(WeaponID::SmartMine).Extended.InheritParentVelocity = true;
-
-        auto& gauss = getWeapon(WeaponID::Gauss);
-        gauss.Model = ModelID::None;
-        gauss.RenderType = WeaponRenderType::None;
-
-        //auto& shaker = getWeapon(WeaponID::Shaker).Extended;
-
-        GameData.Robots[37].Mass = 2; // IT droid
-    }
-
     // Some levels don't have the D1 reactor model set
     void FixD1ReactorModel(Level& level) {
         for (auto& obj : level.Objects) {
@@ -567,29 +492,6 @@ namespace Inferno::Resources {
         Render::Materials->ResetMaterials();
     }
 
-    // Some old levels didn't properly set the render model ids.
-    void FixObjectModelIds(Level& level) {
-        for (auto& obj : level.Objects) {
-            switch (obj.Type) {
-                case ObjectType::Robot:
-                    obj.Render.Model.ID = Resources::GetRobotInfo(obj.ID).Model;
-                    break;
-
-                case ObjectType::Weapon:
-                    obj.Render.Model.ID = ModelID::Mine;
-                    break;
-
-                case ObjectType::Player:
-                    obj.Render.Model.ID = level.IsDescent1() ? ModelID::D1Player : ModelID::D2Player;
-                    break;
-
-                case ObjectType::Coop:
-                    obj.Render.Model.ID = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
-                    break;
-            }
-        }
-    }
-
     void LoadLightInfo(const filesystem::path& path) {
         try {
             auto file = FileSystem::ReadFileText(path);
@@ -610,23 +512,14 @@ namespace Inferno::Resources {
         }
     }
 
-    void LoadDataTables(Level& level) {
+    void LoadDataTables(const Level& level) {
         // todo: support loading from hog file. note that file names need to be shortened to 8.3
         LoadLightInfo(GetLightFileName(level));
         LoadMaterialInfo(GetMaterialFileName(level));
-
-        for (auto& obj : level.Objects) {
-            if(obj.Type == ObjectType::Powerup) {
-                auto& powerup = GetPowerup(obj.ID);
-                obj.LightRadius = powerup.LightRadius;
-                obj.LightMode = powerup.LightMode;
-                obj.LightColor = powerup.LightColor;
-            }
-        }
     }
 
     void LoadGameTable() {
-        // todo: support handle loading from hog file
+        // todo: support handle loading game.yml from hog file
         LoadGameTable("game.yml", GameData);
     }
 
@@ -649,8 +542,11 @@ namespace Inferno::Resources {
             LoadStringTable();
             UpdateAverageTextureColor();
 
-            FixObjectModelIds(level);
-            //LoadExtendedWeaponInfo();
+            // Re-init each object to ensure a valid state.
+            // Note this won't update weapons
+            for (auto& obj : level.Objects) {
+                Editor::InitObject(level, obj, obj.Type, obj.ID);
+            }
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

@@ -226,9 +226,9 @@ namespace Inferno::Render {
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
                     continue; // skip saturate textures unless on glow pass
 
-                auto handle = texId >= 0 ?
-                    Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) :
-                    Materials->White.Handles[0];
+                auto handle = texId >= 0 
+                    ? Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) 
+                    : Materials->White.Handles[0];
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
@@ -285,13 +285,18 @@ namespace Inferno::Render {
             constants.EmissiveLight = object.Render.Emissive;
         }
         else {
-            constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
-            constants.Ambient.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
+            auto volumeLight = seg.VolumeLight.ToVector4();
+            volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
+
+            constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded
+                ? volumeLight + object.LightColor.ToVector4() * 0.5f
+                : Vector4(1, 1, 1, 1);
+
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+        transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
         const float vclipOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
@@ -410,5 +415,4 @@ namespace Inferno::Render {
                 break;
         }
     }
-
 }

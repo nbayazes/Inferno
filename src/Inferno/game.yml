@@ -242,6 +242,7 @@ Weapons:
 
   - id: 38
     Name: smart mine
+    InheritParentVelocity: 1
     Decal: scorchC
     DecalRadius: 3
 
@@ -255,7 +256,16 @@ Weapons:
     Decal: scorchC
     DecalRadius: 8
     ExplosionColor: 1, 1, 100.0
+
+  - id: 51
+    Name: level mine
+    LightRadius: 14
+    LightColor: 1, 0, 0
     
+Robots:
+  - id: 37 # IT droid
+    Mass: 2
+
 Powerups:
   - id: 1 # Energy
     LightColor: 2, 1.1, 0.1

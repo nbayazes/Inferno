@@ -157,7 +157,7 @@ namespace Inferno {
     };
 
     // Object signature
-    enum class ObjSig : uint16 {};
+    enum class ObjSig : uint16 { None = (ushort)-1 };
 
 
     // Animates a value using second order dynamics
@@ -310,8 +310,6 @@ namespace Inferno {
         };
     };
 
-    constexpr auto sz = sizeof(RobotAI);
-
     struct RenderData {
         RenderType Type;
         Color Emissive;
@@ -325,7 +323,7 @@ namespace Inferno {
     struct ContainsData {
         ObjectType Type = ObjectType::None;  // Type of object this object contains (eg, spider contains powerup)
         int8 ID = 0;    // ID of object this object contains (eg, id = blue type = key)
-        int8 Count = 0; // number of objects of type:id this object contains
+        uint8 Count = 0; // number of objects of type:id this object contains
     };
 
     constexpr float NEVER_THINK = -1;

@@ -69,7 +69,7 @@ namespace Inferno::Resources {
     Option<string> GetPowerupName(uint id);
     Powerup& GetPowerup(uint id);
 
-    void LoadDataTables(Level& level);
+    void LoadDataTables(const Level& level);
 
     // Loads the corresponding resources for a level
     void LoadLevel(Level&);
