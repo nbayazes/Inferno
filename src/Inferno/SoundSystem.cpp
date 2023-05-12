@@ -29,7 +29,7 @@ namespace Inferno::Sound {
         //constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
         constexpr float MERGE_WINDOW = 1 / 12.0f; // Merge the same sound being played by a source within a window
 
-        std::condition_variable_any InitializeCondition;
+        std::condition_variable InitializeCondition;
     }
 
     void WaitInitialized() {
@@ -220,7 +220,7 @@ namespace Inferno::Sound {
 
             if (Engine->Update()) {
                 try {
-                    auto dt = (double)pollRate.count() / 1000.0;
+                    auto dt = (float)pollRate.count() / 1000.0f;
                     //Listener.Update(Render::Camera.Position * AUDIO_SCALE, Render::Camera.Up, dt);
                     Listener.SetOrientation(Render::Camera.GetForward(), Render::Camera.Up);
                     Listener.Position = Render::Camera.Position * AUDIO_SCALE;
