@@ -44,7 +44,7 @@ namespace Inferno::Render {
     PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
 
     // Applies an effect that uses the frame constants
-    template<class T>
+    template <class T>
     void ApplyEffect(GraphicsContext& ctx, const Effect<T>& effect) {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
@@ -58,9 +58,7 @@ namespace Inferno::Render {
                        bool additive,
                        float rotation,
                        const Vector3* up) {
-        auto transform = up ?
-            Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) :
-            Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+        auto transform = up ? Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) : Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
 
         if (rotation != 0)
             transform = Matrix::CreateRotationZ(rotation) * transform;
@@ -70,9 +68,9 @@ namespace Inferno::Render {
         auto ratio = (float)ti.Height / (float)ti.Width;
         auto h = radius * ratio;
         auto w = radius;
-        auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
-        auto p1 = Vector3::Transform({ w, h, 0 }, transform); // br
-        auto p2 = Vector3::Transform({ w, -h, 0 }, transform); // tr
+        auto p0 = Vector3::Transform({ -w, h, 0 }, transform);  // bl
+        auto p1 = Vector3::Transform({ w, h, 0 }, transform);   // br
+        auto p2 = Vector3::Transform({ w, -h, 0 }, transform);  // tr
         auto p3 = Vector3::Transform({ -w, -h, 0 }, transform); // tl
 
         ObjectVertex v0(p0, { 0, 0 }, color);
@@ -162,7 +160,7 @@ namespace Inferno::Render {
 
         try {
             DirectX::ResourceUploadBatch uploadBatch(Adapter->Device());
-            if(!filesystem::exists("tony_mc_mapface.dds")) {
+            if (!filesystem::exists("tony_mc_mapface.dds")) {
                 SPDLOG_ERROR("tony_mc_mapface.dds not found");
             }
             uploadBatch.Begin();
@@ -293,7 +291,7 @@ namespace Inferno::Render {
 
         ResetLightCache();
         InitEffects(level);
-        
+
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
@@ -414,7 +412,11 @@ namespace Inferno::Render {
             auto height = Adapter->GetHeight();
             HudCanvas->SetSize(width, height);
             HudGlowCanvas->SetSize(width, height);
-            DrawHUD(Render::FrameTime);
+
+            if (auto player = Game::Level.TryGetObject(ObjID(0))) {
+                DrawHUD(Render::FrameTime, player->Ambient.GetColor() + player->DirectLight.GetColor() * 3);
+            }
+
             if (Game::ScreenFlash.ToVector3().LengthSquared() > 0) {
                 CanvasBitmapInfo flash;
                 flash.Size = Adapter->GetOutputSize();

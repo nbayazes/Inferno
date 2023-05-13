@@ -451,6 +451,33 @@ namespace Inferno {
     constexpr float DegToRad = (float)std::numbers::pi / 180.0f;
     constexpr float RadToDeg = 180.0f / (float)std::numbers::pi;
 
+    class LerpedColor {
+        Color _color, _startColor, _endColor;
+        double _startTime = 0;
+        float _fadeTime = 1;
+
+    public:
+        LerpedColor(const Color& color = {})
+            : _color(color) {}
+
+        void SetTarget(const Color& color, double currentTime, float fadeTime = 0.5f) {
+            _startColor = _color;
+            _endColor = color;
+            _startTime = currentTime;
+            _fadeTime = std::max(fadeTime, 0.0f);
+        }
+
+        void Update(double time) {
+            if (_color == _endColor) return;
+            auto t = std::clamp(float(time - _startTime) / _fadeTime, 0.0f, 1.0f);
+            _color = Color::Lerp(_startColor, _endColor, t);
+        }
+
+        const Color& GetColor() const {
+            return _color;
+        }
+    };
+
     // Array with a fixed size that allows inserting and removing elements while
     // keeping them contiguous
     template<class T, size_t Capacity>

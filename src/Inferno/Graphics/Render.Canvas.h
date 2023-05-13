@@ -83,11 +83,11 @@ namespace Inferno::Render {
 
         // Sets the size of the canvas. Affects alignment.
         void SetSize(uint width, uint height, uint targetScreenHeight = 480) {
-            _size = { (float)width, (float)height };
+            _size = Vector2{ (float)width, (float)height };
             _scale = (float)height / targetScreenHeight; // scaling due to original screen size being 480 pixels
         }
 
-        float GetScale() { return _scale; }
+        float GetScale() const { return _scale; }
 
         void Draw(const CanvasPayload& payload) {
             if (!payload.Texture.ptr) return;
@@ -158,7 +158,7 @@ namespace Inferno::Render {
             ctx.ApplyEffect(_effect);
             _effect.Shader->SetWorldViewProjection(cmdList, orthoProj);
 
-            for (auto& [texture, group] : _commands) {
+            for (auto& group : _commands | views::values) {
                 _effect.Shader->SetDiffuse(cmdList, group.front().Texture);
                 _batch.Begin(cmdList);
                 for (auto& c : group)
@@ -242,10 +242,10 @@ namespace Inferno::Render {
 
                 Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
                 CanvasBitmapInfo info;
-                info.Position = { x0, y0 };
+                info.Position = Vector2{ x0, y0 };
                 info.Size = charSize;
-                info.UV0 = { ci.X0, ci.Y0 };
-                info.UV1 = { ci.X1, ci.Y1 };
+                info.UV0 = Vector2{ ci.X0, ci.Y0 };
+                info.UV1 = Vector2{ ci.X1, ci.Y1 };
                 info.Color = background;
                 info.Texture = Render::StaticTextures->Font.GetSRV();
                 DrawBitmap(info); // Shadow
@@ -271,7 +271,7 @@ namespace Inferno::Render {
 
         // Sets the size of the canvas. Affects alignment.
         void SetSize(uint width, uint height, uint targetScreenHeight = 480) {
-            _size = { (float)width, (float)height };
+            _size = Vector2{ (float)width, (float)height };
             _scale = (float)height / targetScreenHeight; // scaling due to original screen size being 480 pixels
         }
 
@@ -307,7 +307,7 @@ namespace Inferno::Render {
             HudShader::Constants constants;
             constants.Transform = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
-            for (auto& [texture, group] : _commands) {
+            for (auto& group : _commands | views::values) {
                 _effect.Shader->SetDiffuse(cmdList, group.front().Texture);
                 _batch.Begin(cmdList);
                 for (auto& g : group) {
@@ -381,10 +381,10 @@ namespace Inferno::Render {
                 Vector2 charSize = Vector2(font->GetWidth(c), font->Height) * scale;
                 //Vector2 uvMin = { ci.X0, ci.Y0 }, uvMax = { ci.X1, ci.Y1 };
                 CanvasBitmapInfo cbi;
-                cbi.Position = { x0, y0 };
+                cbi.Position = Vector2{ x0, y0 };
                 cbi.Size = charSize;
-                cbi.UV0 = { ci.X0, ci.Y0 };
-                cbi.UV1 = { ci.X1, ci.Y1 };
+                cbi.UV0 = Vector2{ ci.X0, ci.Y0 };
+                cbi.UV1 = Vector2{ ci.X1, ci.Y1 };
                 cbi.Color = background;
                 cbi.Texture = Render::StaticTextures->Font.GetSRV();
                 cbi.Scanline = info.Scanline;

@@ -1383,6 +1383,9 @@ namespace Inferno {
             auto& cseg = level.GetSegment(obj.Segment);
             cseg.Objects.push_back(objId);
         }
+
+        auto& newSeg = level.GetSegment(obj.Segment);
+        obj.Ambient.SetTarget(newSeg.VolumeLight * 1.5f, Game::Time, 0.5f);
     }
 
     void UpdatePhysics(Level& level, double /*t*/, float dt) {

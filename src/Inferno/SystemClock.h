@@ -91,7 +91,7 @@ namespace Inferno {
             return _firstFrameStartTime == 0 ? 0 : NsToMs(GetClockTimeNs() - _firstFrameStartTime);
         }
 
-        double GetElapsedTimeSeconds() const {
+        double GetTotalTimeSeconds() const {
             return (double)GetTotalMilliseconds() / 1000.0;
         }
 

@@ -22,7 +22,7 @@ namespace Inferno {
     enum FadeState { FadeNone, FadeIn, FadeOut };
 
     class MonitorState {
-        FadeState State{};
+        FadeState _state{};
         int _requested = -1; // The requested weapon
         int _requestedLaserLevel = -1;
         bool _primary;
@@ -41,7 +41,7 @@ namespace Inferno {
                 (player.LaserLevel <= MAX_LASER_LEVEL && LaserLevel > MAX_LASER_LEVEL));
 
             if (_requested != weapon || (laserTierChanged && weapon == (int)PrimaryWeaponIndex::Laser)) {
-                State = FadeOut;
+                _state = FadeOut;
                 //Opacity = player.RearmTime;
                 _requested = weapon;
                 _requestedLaserLevel = player.LaserLevel;
@@ -55,26 +55,26 @@ namespace Inferno {
                 WeaponIndex = _requested = weapon;
                 LaserLevel = _requestedLaserLevel = player.LaserLevel;
                 Opacity = 1;
-                State = FadeNone;
+                _state = FadeNone;
             }
 
-            if (State == FadeOut) {
+            if (_state == FadeOut) {
                 Opacity -= dt * player.RearmTime * 2;
                 if (Opacity <= 0) {
                     Opacity = 0;
-                    State = FadeIn;
+                    _state = FadeIn;
                     WeaponIndex = _requested; // start showing the requested weapon
                     LaserLevel = _requestedLaserLevel; // show the requested laser
                 }
             }
-            else if (State == FadeIn) {
+            else if (_state == FadeIn) {
                 if (_requested != weapon) {
-                    State = FadeOut; // weapon was changed while swapping
+                    _state = FadeOut; // weapon was changed while swapping
                 }
                 else {
                     Opacity += dt * player.RearmTime * 2;
                     if (Opacity >= 1) {
-                        State = FadeNone;
+                        _state = FadeNone;
                         Opacity = 1;
                     }
                 }
@@ -95,9 +95,9 @@ namespace Inferno {
     constexpr float WEAPON_TEXT_AMMO_Y_OFFSET = WEAPON_TEXT_Y_OFFSET + 25;
     constexpr float WEAPON_BMP_Y_OFFSET = -20;
     constexpr float WEAPON_BMP_X_OFFSET = -135;
-    constexpr Color MonitorGreenText = { 0, 0.7f, 0 };
-    constexpr Color MonitorRedText = { 0.7f, 0, 0 };
-    constexpr Color MonitorGoldText = { 0.78f, 0.56f, 0.18f };
+    constexpr Color GREEN_TEXT = { 0, 0.7f, 0 };
+    constexpr Color RED_TEXT = { 0.7f, 0, 0 };
+    constexpr Color GOLD_TEXT = { 0.78f, 0.56f, 0.18f };
 
     void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
@@ -134,7 +134,7 @@ namespace Inferno {
         Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const Material2D& material) {
+    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const Material2D& material, const Color& color) {
         auto scale = Render::HudCanvas->GetScale();
         Inferno::Render::CanvasBitmapInfo info;
         info.Position = offset * scale;
@@ -143,12 +143,13 @@ namespace Inferno {
         info.Texture = material.Handles[0];
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
+        info.Color = color;
         Render::HudCanvas->DrawBitmap(info);
     }
 
-    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, string bitmapName) {
+    void DrawOpaqueBitmap(const Vector2& offset, AlignH align, const string& bitmapName, const Color& color) {
         auto& material = Render::Materials->Get(bitmapName);
-        DrawOpaqueBitmap(offset, align, material);
+        DrawOpaqueBitmap(offset, align, material, color);
     }
 
     void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const Material2D& material, float sizeScale, float scanline, bool mirrorX = false) {
@@ -171,10 +172,10 @@ namespace Inferno {
         DrawAdditiveBitmap(offset, align, material, sizeScale, scanline, mirrorX);
     }
 
-    void DrawAdditiveBitmap(const Vector2& offset, AlignH align, string bitmapName, float sizeScale, float scanline = 0.4f) {
-        auto& material = Render::Materials->Get(bitmapName);
-        DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
-    }
+    //void DrawAdditiveBitmap(const Vector2& offset, AlignH align, const string& bitmapName, float sizeScale, float scanline = 0.4f) {
+    //    auto& material = Render::Materials->Get(bitmapName);
+    //    DrawAdditiveBitmap(offset, align, material, sizeScale, scanline);
+    //}
 
     void DrawWeaponBitmap(const Vector2& offset, AlignH align, TexID id, float sizeScale, float alpha) {
         Render::LoadTextureDynamic(id);
@@ -304,15 +305,15 @@ namespace Inferno {
             if (c == '1') c = static_cast<char>(132);
     }
 
-    void DrawLeftMonitor(float x, const MonitorState& state, const Player& player) {
-        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left");
+    void DrawLeftMonitor(float x, const MonitorState& state, const Player& player, const Color& ambient) {
+        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left", ambient);
 
         auto scale = Render::HudCanvas->GetScale();
         auto weaponIndex = (PrimaryWeaponIndex)state.WeaponIndex;
 
         Render::DrawTextInfo info;
         info.Font = FontSize::Small;
-        info.Color = MonitorGreenText;
+        info.Color = GREEN_TEXT;
         info.Color.w = state.Opacity;
         info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET, WEAPON_TEXT_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
@@ -348,7 +349,7 @@ namespace Inferno {
 
         if (!ammo.empty()) {
             // Ammo counter
-            info.Color = MonitorRedText;
+            info.Color = RED_TEXT;
             info.Color.w = state.Opacity;
             info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET + 5, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
             info.HorizontalAlign = AlignH::CenterRight;
@@ -376,13 +377,13 @@ namespace Inferno {
         DrawAfterburnerBar(x, player);
     }
 
-    void DrawRightMonitor(float x, const MonitorState& state, const Player& player) {
-        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterRight, "cockpit-right");
+    void DrawRightMonitor(float x, const MonitorState& state, const Player& player, const Color& ambient) {
+        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterRight, "cockpit-right", ambient);
 
         auto scale = Render::HudCanvas->GetScale();
         Render::DrawTextInfo info;
         info.Font = FontSize::Small;
-        info.Color = MonitorGreenText;
+        info.Color = GREEN_TEXT;
         info.Color.w = state.Opacity;
         info.Position = Vector2(x + 25, WEAPON_TEXT_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
@@ -391,7 +392,7 @@ namespace Inferno {
         DrawMonitorText(Resources::GetSecondaryNameShort((SecondaryWeaponIndex)state.WeaponIndex), info, 0.6f * state.Opacity);
 
         // Ammo counter
-        info.Color = MonitorRedText;
+        info.Color = RED_TEXT;
         info.Color.w = state.Opacity;
         info.Position = Vector2(x + 35, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight;
@@ -413,7 +414,7 @@ namespace Inferno {
             auto bomb = player.GetActiveBomb();
 
             // Bomb counter
-            info.Color = bomb == SecondaryWeaponIndex::Proximity ? MonitorRedText : MonitorGoldText;
+            info.Color = bomb == SecondaryWeaponIndex::Proximity ? RED_TEXT : GOLD_TEXT;
             info.Position = Vector2(x + 157, -26) * scale;
             info.HorizontalAlign = AlignH::CenterRight;
             info.VerticalAlign = AlignV::Bottom;
@@ -512,7 +513,7 @@ namespace Inferno {
 
         Render::DrawTextInfo info;
         info.Font = FontSize::Small;
-        info.Color = MonitorGreenText;
+        info.Color = GREEN_TEXT;
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::Top;
         info.Scanline = 0.5f;
@@ -566,8 +567,8 @@ namespace Inferno {
         //DrawMonitorBitmap(info, 0.90f);
     }
 
-    void DrawCenterMonitor(const Player& player) {
-        DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr");
+    void DrawCenterMonitor(const Player& player, const Color& ambient) {
+        DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr", ambient);
         // Draw shields, invuln state, shield / energy count
 
         {
@@ -586,7 +587,7 @@ namespace Inferno {
             //info.Color *= 0.1;
             //info.Color.z = 0.8f;
 
-            info.Color = MonitorGoldText;
+            info.Color = GOLD_TEXT;
             info.Position = Vector2(2, -150) * scale;
             info.Scanline = 0.5f;
             auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));
@@ -627,14 +628,14 @@ namespace Inferno {
         float _scoreTime = 0;
         int _scoreAdded = 0;
     public:
-        void Draw(float dt, Player& player) {
+        void Draw(float dt, Player& player, const Color& ambient) {
             float spacing = 100;
             _leftMonitor.Update(dt, player, (int)player.Primary);
             _rightMonitor.Update(dt, player, (int)player.Secondary);
 
-            DrawLeftMonitor(-spacing, _leftMonitor, player);
-            DrawRightMonitor(spacing, _rightMonitor, player);
-            DrawCenterMonitor(player);
+            DrawLeftMonitor(-spacing, _leftMonitor, player, ambient);
+            DrawRightMonitor(spacing, _rightMonitor, player, ambient);
+            DrawCenterMonitor(player, ambient);
 
             DrawReticle();
 
@@ -644,7 +645,7 @@ namespace Inferno {
                 // Life text
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
-                info.Color = MonitorGreenText;
+                info.Color = GREEN_TEXT;
                 info.Position = Vector2(30, 5) * scale;
                 info.HorizontalAlign = AlignH::Left;
                 info.VerticalAlign = AlignV::Top;
@@ -671,7 +672,7 @@ namespace Inferno {
                 // Score
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
-                info.Color = MonitorGreenText;
+                info.Color = GREEN_TEXT;
                 info.HorizontalAlign = AlignH::Right;
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;
@@ -701,7 +702,7 @@ namespace Inferno {
                 // Lock text
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
-                info.Color = MonitorRedText;
+                info.Color = RED_TEXT;
                 info.Position = Vector2(0, 40) * scale;
                 info.HorizontalAlign = AlignH::Center;
                 info.VerticalAlign = AlignV::CenterTop;
@@ -712,7 +713,7 @@ namespace Inferno {
             if (Game::ControlCenterDestroyed && Game::CountdownSeconds >= 0) {
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
-                info.Color = MonitorGreenText;
+                info.Color = GREEN_TEXT;
                 info.Position = Vector2(0, 80) * scale;
                 info.HorizontalAlign = AlignH::Center;
                 info.VerticalAlign = AlignV::Top;
@@ -753,8 +754,10 @@ namespace Inferno {
 
     } Hud;
 
-    void DrawHUD(float dt) {
-        Hud.Draw(dt, Game::Player);
+    void DrawHUD(float dt, Color ambient) {
+        constexpr Color minLight(0.5f, 0.5f, 0.5f, 1);
+        ambient = Vector4::Max(minLight, ambient);
+        Hud.Draw(dt, Game::Player, ambient);
     }
 
     void AddPointsToHUD(int points) {

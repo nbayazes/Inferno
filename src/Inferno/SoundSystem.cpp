@@ -433,7 +433,7 @@ namespace Inferno::Sound {
         auto position = sound.Position * AUDIO_SCALE;
 
         std::scoped_lock lock(SoundInstancesMutex);
-        auto currentTime = Inferno::Clock.GetElapsedTimeSeconds();
+        auto currentTime = Inferno::Clock.GetTotalTimeSeconds();
 
         if (sound.Source != ObjID::None) {
             // Check if any emitters are already playing this sound from this source

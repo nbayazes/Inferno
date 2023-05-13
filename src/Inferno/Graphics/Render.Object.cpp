@@ -276,7 +276,6 @@ namespace Inferno::Render {
         auto& meshHandle = GetMeshHandle(modelId);
 
         effect.Shader->SetSampler(cmdList, GetTextureSampler());
-        auto& seg = Game::Level.GetSegment(object.Segment);
         ObjectShader::Constants constants = {};
 
         if (object.Render.Emissive != Color(0, 0, 0)) {
@@ -285,13 +284,7 @@ namespace Inferno::Render {
             constants.EmissiveLight = object.Render.Emissive;
         }
         else {
-            auto volumeLight = seg.VolumeLight.ToVector4();
-            volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
-
-            constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded
-                ? volumeLight + object.LightColor.ToVector4() * 0.5f
-                : Vector4(1, 1, 1, 1);
-
+            constants.Ambient = object.Ambient.GetColor().ToVector4() + object.DirectLight.GetColor().ToVector4();
             constants.EmissiveLight = Color(0, 0, 0);
         }
 

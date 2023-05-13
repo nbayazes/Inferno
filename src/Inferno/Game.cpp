@@ -686,6 +686,30 @@ namespace Inferno::Game {
         PendingNewObjects.clear();
     }
 
+    void UpdateDirectLight(Object& obj) {
+        Color directLight;
+
+        for (auto& other : Level.Objects) {
+            if (other.LightRadius <= 0 || !other.IsAlive()) continue;
+            // todo: only scan nearby objects
+            auto lightDist = Vector3::Distance(obj.Position, other.Position);
+            if (lightDist > other.LightRadius) continue;
+            auto falloff = 1 - std::clamp(lightDist / other.LightRadius, 0.0f, 1.0f);
+            directLight += other.LightColor * falloff;
+
+            //auto lightDistSq = Vector3::DistanceSquared(obj.Position, other.Position);
+            //auto lightRadiusSq = other.LightRadius * other.LightRadius;
+            //if (lightDistSq > lightRadiusSq) continue;
+
+            //float factor = lightDistSq / lightRadiusSq;                   
+            //float smoothFactor = std::max(1.0f - pow(factor, 0.5f), 0.0f); // 0 to 1
+            //float falloff = smoothFactor * smoothFactor / std::max(sqrt(lightDistSq), 1e-4f);
+            //directLight += other.LightColor * falloff * 50;
+        }
+
+        obj.DirectLight.SetTarget(directLight, Game::Time, 0.10f);
+    }
+
     // Updates on each game tick
     void FixedUpdate(float dt) {
         UpdatePlayerFireState(Player);
@@ -717,6 +741,8 @@ namespace Inferno::Game {
 
             if (obj.Type == ObjectType::Weapon)
                 UpdateWeapon(obj, dt);
+
+            UpdateDirectLight(obj);
         }
 
         AddPendingObjects();
@@ -764,6 +790,11 @@ namespace Inferno::Game {
                     Editor::Events::LevelChanged();
                 }
             }
+        }
+
+        for (auto& obj : Level.Objects) {
+            obj.DirectLight.Update(Game::Time);
+            obj.Ambient.Update(Game::Time);
         }
 
         static double accumulator = 0;
@@ -830,18 +861,6 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Game:
-                // Activate game mode
-                if (!Level.Objects.empty() && Level.Objects[0].Type == ObjectType::Player) {
-                    Editor::InitObject(Level, Level.Objects[0], ObjectType::Player);
-                }
-                else {
-                    SPDLOG_ERROR("No player start at object 0!");
-                    return; // no player start!
-                }
-
-                Editor::History.SnapshotLevel("Playtest");
-                State = GameState::Game;
-
                 StartLevel();
                 break;
 
@@ -1034,6 +1053,19 @@ namespace Inferno::Game {
     }
 
     void StartLevel() {
+        auto player = Level.TryGetObject(ObjID(0));
+
+        if (!player || !player->IsPlayer()) {
+            SPDLOG_ERROR("No player start at object 0!");
+            return; // no player start!
+        }
+
+        // Activate game mode
+        Editor::InitObject(Level, *player, ObjectType::Player);
+
+        Editor::History.SnapshotLevel("Playtest");
+        State = GameState::Game;
+
         ResetCountdown();
         StuckObjects = {};
         Render::ResetParticles();
@@ -1042,7 +1074,8 @@ namespace Inferno::Game {
         Resources::LoadGameTable();
 
         Editor::SetPlayerStartIDs(Level);
-        Gravity = Level.Objects[0].Rotation.Up() * -DEFAULT_GRAVITY;
+        // Default the gravity direction to the player start
+        Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
         Render::InitEffects(Level);
 
@@ -1057,10 +1090,10 @@ namespace Inferno::Game {
             obj.LastRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
 
-            if (obj.Type == ObjectType::Player)
+            if (obj.IsPlayer())
                 obj.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
 
-            if ((obj.Type == ObjectType::Player && obj.ID != 0) || obj.Type == ObjectType::Coop)
+            if ((obj.IsPlayer() && obj.ID != 0) || obj.IsCoop())
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
 
             if (obj.Type == ObjectType::Robot) {
@@ -1071,19 +1104,18 @@ namespace Inferno::Game {
                 //obj.Physics.WiggleRate = 0.33f;
             }
 
-            if (obj.Type == ObjectType::Powerup &&
-                (obj.ID == (int)PowerupID::Gauss || obj.ID == (int)PowerupID::Vulcan)) {
+            if (obj.IsPowerup(PowerupID::Gauss) || obj.IsPowerup(PowerupID::Vulcan)) {
                 obj.Control.Powerup.Count = 2500;
             }
 
-            if (obj.Type == ObjectType::Powerup &&
-                (obj.ID == (int)PowerupID::FlagBlue || obj.ID == (int)PowerupID::FlagRed)) {
+            if (obj.IsPowerup(PowerupID::FlagBlue) || obj.IsPowerup(PowerupID::FlagRed)) {
                 obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
             }
 
             Editor::UpdateObjectSegment(Level, obj);
             if (auto seg = Level.TryGetSegment(obj.Segment)) {
                 seg->Objects.push_back((ObjID)id);
+                obj.Ambient.SetTarget(seg->VolumeLight, 0);
             }
 
             if (obj.Type == ObjectType::Reactor) {

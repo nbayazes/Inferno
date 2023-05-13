@@ -109,12 +109,15 @@ void Application::Tick() {
     Inferno::Clock.Update(false);
 
     auto dt = (float)Inferno::Clock.GetFrameTimeSeconds();
-    if (dt > 2) dt = 2;
+    if (dt > 2) {
+        SPDLOG_WARN("Excessively long delta time of {}, clamping to 2s", dt);
+        dt = 2;
+    }
 
     Render::FrameTime = dt;
 
     if (Game::GetState() == GameState::Game) {
-        Game::Time = double(milliseconds) / 1000.;
+        Game::Time += Inferno::Clock.GetFrameTimeSeconds();
     }
 
     if (Settings::Editor.ShowAnimation)

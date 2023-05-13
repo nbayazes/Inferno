@@ -362,9 +362,11 @@ namespace Inferno {
         Vector3 LastPosition; // The position from the previous update. Used for graphics interpolation.
         Matrix3x3 LastRotation; // The rotation from the previous update. Used for graphics interpolation.
 
-        Color LightColor;
-        float LightRadius = 0;
-        DynamicLightMode LightMode{};
+        Color LightColor; // Point light color
+        float LightRadius = 0; // Point light radius
+        DynamicLightMode LightMode{}; // Point light mode
+
+        LerpedColor Ambient, DirectLight;
 
         float NextThinkTime = NEVER_THINK;
         float Scale = 1.0;
@@ -438,5 +440,13 @@ namespace Inferno {
                     return false;
             }
         }
+
+        bool IsPowerup(PowerupID id) const {
+            if(Type != ObjectType::Powerup) return false;
+            return ID == (int) id;
+        }
+
+        bool IsPlayer() const { return Type == ObjectType::Player; }
+        bool IsCoop() const { return Type == ObjectType::Coop; }
     };
 }
