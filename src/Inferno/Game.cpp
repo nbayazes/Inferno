@@ -508,7 +508,7 @@ namespace Inferno::Game {
                     auto explosionVec = world.Translation() - obj.Position;
                     explosionVec.Normalize();
 
-                    auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
+                    auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.33f);
 
                     Render::Debris debris;
                     //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
@@ -532,6 +532,8 @@ namespace Inferno::Game {
                     debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
                     AddDebris(debris, obj.Segment);
                 }
+
+                // todo: spawn particles
 
                 DropContainedItems(obj);
                 obj.Flags |= ObjectFlag::Dead;

@@ -1294,7 +1294,7 @@ namespace Inferno {
                     if (!Settings::Cheats.DisableWeaponDamage)
                         obj.ApplyDamage(damage);
 
-                    obj.LastHitForce += forceVec;
+                    obj.LastHitForce = forceVec;
                     fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 
                     // stun robot if not boss
@@ -1485,7 +1485,6 @@ namespace Inferno {
 
                 //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
                 //obj.Movement.Physics.Velocity = frameVec / dt;
-                obj.LastHitForce *= 0.80f; // decay every update
 
                 // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
                 if (obj.Type != ObjectType::Weapon) {

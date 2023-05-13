@@ -181,8 +181,8 @@ namespace Inferno::Game {
 
     void WeaponHitObject(const LevelHit& hit, Object& src, Inferno::Level& level) {
         assert(hit.HitObj);
-        auto& weapon = Resources::GameData.Weapons[src.ID];
-        float damage = weapon.Damage[Game::Difficulty];
+        const auto& weapon = Resources::GameData.Weapons[src.ID];
+        const float damage = weapon.Damage[Game::Difficulty];
 
         auto& target = *hit.HitObj;
         //auto p = src.Mass * src.InputVelocity;
@@ -194,15 +194,15 @@ namespace Inferno::Game {
         // apply forces from projectile to object
         auto force = src.Physics.Velocity * srcMass / targetMass;
         targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
-        target.LastHitForce += force;
+        target.LastHitForce = force;
 
         Matrix basis(target.Rotation);
         basis = basis.Invert();
         force = Vector3::Transform(force, basis); // transform forces to basis of object
-        auto arm = Vector3::Transform(hit.Point - target.Position, basis);
-        auto torque = force.Cross(arm);
-        auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
-        auto accel = torque / inertia;
+        const auto arm = Vector3::Transform(hit.Point - target.Position, basis);
+        const auto torque = force.Cross(arm);
+        const auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
+        const auto accel = torque / inertia;
         targetPhys.AngularVelocity += accel; // should we multiply by dt here?
 
         if (target.Type == ObjectType::Weapon) {

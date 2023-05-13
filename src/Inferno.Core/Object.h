@@ -355,7 +355,7 @@ namespace Inferno {
         RenderData Render;
         ControlData Control;
 
-        Vector3 LastHitForce; // Tracks the force applies by recent hits
+        Vector3 LastHitForce; // Tracks the force of the last hit. Used for debris.
 
         Vector3 Position; // The current "real" position
         Matrix3x3 Rotation; // The current "real" rotation
