@@ -42,6 +42,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.4, 0.0, 0.2
+    ExplosionColor: 0.4, 0.0, 0.2
 
   - id: 3
     Name: laser 4
@@ -56,6 +57,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.05, 0.4, 0.05
+    ExplosionColor: 0.05, 0.4, 0.05
 
   - id: 30
     Name: laser 5
@@ -69,6 +71,8 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    LightColor: 0.7, 0.4, 0.1
+    ExplosionColor: 0.7, 0.4, 0.1
 
   - id: 31
     Name: laser 6
@@ -82,6 +86,8 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    LightColor: 0.65, 0.65, 0.65
+    ExplosionColor: 0.65, 0.65, 0.65
 
   - id: 9
     Name: flare

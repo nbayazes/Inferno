@@ -224,6 +224,7 @@ namespace Inferno {
                         Sound3D sound(ID);
                         sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
                         sound.FromPlayer = true;
+                        sound.Merge = false;
                         Sound::Play(sound);
                         constexpr float OVERCHARGE_DAMAGE = 3.0f;
                         Shields -= Random() * OVERCHARGE_DAMAGE;
@@ -571,7 +572,7 @@ namespace Inferno {
 
         assert(obj.Type == ObjectType::Powerup);
 
-        auto PickUpAccesory = [this](PowerupFlag powerup, string_view name) {
+        auto pickUpAccesory = [this](PowerupFlag powerup, string_view name) {
             if (HasPowerup(powerup)) {
                 auto msg = fmt::format("{} the {}!", Resources::GetString(GameString::AlreadyHave), name);
                 PrintHudMessage(msg);
@@ -585,7 +586,7 @@ namespace Inferno {
             }
         };
 
-        auto TryPickUpPrimary = [this](PrimaryWeaponIndex weapon) {
+        auto tryPickUpPrimary = [this](PrimaryWeaponIndex weapon) {
             auto pickedUp = PickUpPrimary(weapon);
             if (!pickedUp)
                 pickedUp = PickUpEnergy();
@@ -704,15 +705,15 @@ namespace Inferno {
             }
 
             case PowerupID::Spreadfire:
-                used = TryPickUpPrimary(PrimaryWeaponIndex::Spreadfire);
+                used = tryPickUpPrimary(PrimaryWeaponIndex::Spreadfire);
                 break;
 
             case PowerupID::Plasma:
-                used = TryPickUpPrimary(PrimaryWeaponIndex::Plasma);
+                used = tryPickUpPrimary(PrimaryWeaponIndex::Plasma);
                 break;
 
             case PowerupID::Fusion:
-                used = TryPickUpPrimary(PrimaryWeaponIndex::Fusion);
+                used = tryPickUpPrimary(PrimaryWeaponIndex::Fusion);
                 break;
 
             case PowerupID::SuperLaser:
@@ -746,11 +747,11 @@ namespace Inferno {
             }
 
             case PowerupID::Phoenix:
-                used = TryPickUpPrimary(PrimaryWeaponIndex::Phoenix);
+                used = tryPickUpPrimary(PrimaryWeaponIndex::Phoenix);
                 break;
 
             case PowerupID::Omega:
-                used = TryPickUpPrimary(PrimaryWeaponIndex::Omega);
+                used = tryPickUpPrimary(PrimaryWeaponIndex::Omega);
                 break;
 
             case PowerupID::Concussion1:
@@ -853,27 +854,27 @@ namespace Inferno {
                 break;
 
             case PowerupID::QuadFire:
-                used = PickUpAccesory(PowerupFlag::QuadLasers, Resources::GetString(GameString::QuadLasers));
+                used = pickUpAccesory(PowerupFlag::QuadLasers, Resources::GetString(GameString::QuadLasers));
                 break;
 
             case PowerupID::FullMap:
-                used = PickUpAccesory(PowerupFlag::FullMap, "full map");
+                used = pickUpAccesory(PowerupFlag::FullMap, "full map");
                 break;
 
             case PowerupID::Converter:
-                used = PickUpAccesory(PowerupFlag::Converter, "energy to shield converter");
+                used = pickUpAccesory(PowerupFlag::Converter, "energy to shield converter");
                 break;
 
             case PowerupID::AmmoRack:
-                used = PickUpAccesory(PowerupFlag::AmmoRack, "ammo rack");
+                used = pickUpAccesory(PowerupFlag::AmmoRack, "ammo rack");
                 break;
 
             case PowerupID::Afterburner:
-                used = PickUpAccesory(PowerupFlag::Afterburner, "afterburner");
+                used = pickUpAccesory(PowerupFlag::Afterburner, "afterburner");
                 break;
 
             case PowerupID::Headlight:
-                used = PickUpAccesory(PowerupFlag::Headlight, "headlight");
+                used = pickUpAccesory(PowerupFlag::Headlight, "headlight");
                 break;
         }
 
@@ -883,6 +884,7 @@ namespace Inferno {
             Sound3D sound(ObjID(0));
             sound.Resource = Resources::GetSoundResource(powerup.HitSound);
             sound.FromPlayer = true;
+            sound.Merge = false;
             Sound::Play(sound);
         }
     }
@@ -902,6 +904,7 @@ namespace Inferno {
             Sound3D sound(ObjID(0));
             sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
             sound.FromPlayer = true;
+            sound.Merge = false;
             Sound::Play(sound);
         }
     }

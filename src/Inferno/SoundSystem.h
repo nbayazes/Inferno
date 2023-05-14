@@ -45,6 +45,7 @@ namespace Inferno {
         bool AttachToSource = false; // The sound moves with the Source object
         Vector3 AttachOffset; // The offset from the Source when attached
         bool FromPlayer = false; // For the player's firing sounds, afterburner, etc
+        bool Merge = true; // Merge with other sounds played in a similar timeframe
         SoundUID ID = 0;
         bool Looped = false;
         uint32 LoopCount = 0;
