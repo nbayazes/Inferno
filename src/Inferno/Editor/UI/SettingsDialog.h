@@ -442,6 +442,12 @@ namespace Inferno::Editor {
             _editor = Settings::Editor;
             _graphics = Settings::Graphics;
             _enableForegroundFpsLimit = Settings::Graphics.ForegroundFpsLimit != -1;
+
+            if (!Resources::HasGameData()) {
+                ShowOkMessage(L"Game data was not found, please configure the executable paths.\n\n"
+                              L"If game data is not in the same folder as the executable, use the Data Paths tab to add the folders containing descent.hog and descent2.hog",
+                              L"Missing game data");
+            }
             return true;
         }
 

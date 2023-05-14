@@ -606,10 +606,14 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("Powerup");
                 ImGui::SetNextItemWidth(-1);
                 if (PowerupDropdown("##Powerup", obj.ID, &obj.Render.VClip.ID)) {
+                    auto& powerup = Resources::GetPowerup(obj.ID);
+                    obj.Radius = powerup.Size;
+
                     ForMarkedObjects([&obj](Object& o) {
                         if (o.Type != obj.Type) return;
                         o.ID = obj.ID;
                         o.Render.VClip.ID = obj.Render.VClip.ID;
+                        o.Radius = obj.Radius;
                     });
                     Editor::History.SnapshotLevel("Change object");
                 }

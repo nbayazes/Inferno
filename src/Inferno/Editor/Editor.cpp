@@ -453,7 +453,7 @@ namespace Inferno::Editor {
                 obj.Flags = (ObjectFlag)0;
             }
 
-            if (obj.Type == ObjectType::Robot) {
+            if (obj.Type == ObjectType::Robot && Seq::inRange(Resources::GameData.Robots, obj.ID)) {
                 auto& physics = obj.Movement.Physics;
                 auto& robot = Resources::GameData.Robots[obj.ID];
                 physics.Mass = robot.Mass;
@@ -505,6 +505,10 @@ namespace Inferno::Editor {
         CheckTriggers(Game::Level);
         Editor::Events::LevelLoaded();
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
+
+        if (!Resources::HasGameData())
+            Events::ShowDialog(DialogType::Settings);
+
         ResetAutosaveTimer();
     }
 

@@ -8,6 +8,7 @@
 #include "Game.h"
 #include "logging.h"
 #include "Graphics/Render.h"
+#include "Editor/Editor.Object.h"
 
 namespace Inferno::Resources {
     List<string> RobotNames;
@@ -73,16 +74,6 @@ namespace Inferno::Resources {
         return &GameData.WallClips[(int)id];
     }
 
-    //const WallClip* TryGetWallClip(LevelTexID id) {
-    //    for (int i = 0; i < GameData.WallClips.size(); i++) {
-    //        if (GameData.WallClips[i].NumFrames < 0) continue;
-    //        if (GameData.WallClips[i].Frames[0] == id)
-    //            return &GameData.WallClips[i];
-    //    }
-
-    //    return nullptr;
-    //}
-
     WClipID GetWallClipID(LevelTexID id) {
         for (int i = 0; i < GameData.WallClips.size(); i++) {
             if (GameData.WallClips[i].Frames[0] == id)
@@ -92,26 +83,30 @@ namespace Inferno::Resources {
         return WClipID::None;
     }
 
+    EffectClip DEFAULT_EFFECT_CLIP = {};
+
     const EffectClip& GetEffectClip(EClipID id) {
+        if (!Seq::inRange(GameData.Effects, (int)id)) return DEFAULT_EFFECT_CLIP;
         return GameData.Effects[(int)id];
     }
 
-    const EffectClip* TryGetEffectClip(LevelTexID id) {
-        auto tid = LookupLevelTexID(id);
-        if (tid == TexID::None) return nullptr;
-        return TryGetEffectClip(tid);
-    }
-
-    const EffectClip* TryGetEffectClip(TexID id) {
+    const EffectClip& GetEffectClip(TexID id) {
         for (auto& clip : GameData.Effects) {
             if (clip.VClip.Frames[0] == id)
-                return &clip;
+                return clip;
         }
 
-        return nullptr;
+        return DEFAULT_EFFECT_CLIP;
     }
 
-    EClipID GetEffectClip(TexID tid) {
+    const EffectClip& GetEffectClip(LevelTexID id) {
+        auto tid = LookupLevelTexID(id);
+        return GetEffectClip(tid);
+    }
+
+    EClipID GetEffectClipID(TexID tid) {
+        if (tid == TexID::None) return EClipID::None;
+
         for (int i = 0; i < GameData.Effects.size(); i++) {
             if (GameData.Effects[i].VClip.Frames[0] == tid)
                 return EClipID(i);
@@ -120,10 +115,19 @@ namespace Inferno::Resources {
         return EClipID::None;
     }
 
-    EClipID GetEffectClip(LevelTexID id) {
+    EClipID GetEffectClipID(LevelTexID id) {
         auto tid = LookupLevelTexID(id);
-        if (tid == TexID::None) return EClipID::None;
-        return GetEffectClip(tid);
+        return GetEffectClipID(tid);
+    }
+
+    Powerup DEFAULT_POWERUP = {
+        .VClip = VClipID::None,
+        .Size = 5
+    };
+
+    const Powerup& GetPowerup(int id) {
+        if (!Seq::inRange(GameData.Powerups, id)) return DEFAULT_POWERUP;
+        return GameData.Powerups[id];
     }
 
     VClip DefaultVClip{};
@@ -133,16 +137,16 @@ namespace Inferno::Resources {
         return GameData.VClips[(int)id];
     }
 
-    Model DefaultModel{};
-    RobotInfo DefaultRobotInfo{};
+    Model DEFAULT_MODEL{};
+    RobotInfo DEFAULT_ROBOT{};
 
     const Inferno::Model& GetModel(ModelID id) {
-        if ((int)id >= GameData.Models.size()) return DefaultModel;
+        if (!Seq::inRange(GameData.Models, (int)id)) return DEFAULT_MODEL;
         return GameData.Models[(int)id];
     }
 
     const RobotInfo& GetRobotInfo(uint id) {
-        if (id >= GameData.Robots.size()) return DefaultRobotInfo;
+        if (!Seq::inRange(GameData.Robots, id)) return DEFAULT_ROBOT;
         return GameData.Robots[id];
     }
 
@@ -222,7 +226,7 @@ namespace Inferno::Resources {
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
-        if (i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
+        if (i >= m.TextureCount || m.FirstTexture + i >= (int16)GameData.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
         return GameData.ObjectBitmaps[ptr];
     }
@@ -382,29 +386,6 @@ namespace Inferno::Resources {
         GameData = std::move(ham);
     }
 
-    void UpdateObjectRadii(Level& level) {
-        SPDLOG_INFO(L"Updating object radii");
-        for (auto& obj : level.Objects) {
-            switch (obj.Type) {
-                case ObjectType::Robot:
-                {
-                    auto& info = Resources::GetRobotInfo(obj.ID);
-                    auto& model = Resources::GetModel(info.Model);
-                    obj.Radius = model.Radius;
-                    break;
-                }
-                case ObjectType::Coop:
-                case ObjectType::Player:
-                case ObjectType::Reactor:
-                {
-                    auto& model = Resources::GetModel(obj.Render.Model.ID);
-                    obj.Radius = model.Radius;
-                    break;
-                }
-            }
-        }
-    }
-
     void ResetResources() {
         LevelPalette = {};
         Pig = {};
@@ -438,6 +419,13 @@ namespace Inferno::Resources {
         }
     }
 
+    // Resets all object sizes to their resource defined values
+    void ResetObjectSizes(Level& level) {
+        for (auto& obj : level.Objects) {
+            obj.Radius = Editor::GetObjectRadius(obj);
+        }
+    }
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
@@ -455,6 +443,7 @@ namespace Inferno::Resources {
             UpdateAverageTextureColor();
 
             FixObjectModelIds(level);
+            ResetObjectSizes(level);
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

@@ -540,26 +540,31 @@ namespace Inferno::Editor {
         bool snapshot = false;
 
         if (ImGui::TableBeginTreeNode("UVs")) {
-            ImGui::TableRowLabel("UV 0");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P0", &side.UVs[0].x, 0.01f);
-            CheckForSnapshot(snapshot);
+            auto addUVSlider = [&changed, &side, &snapshot](const char* label, int point) {
+                bool highlight = point == (int)Editor::Selection.Point;
 
-            ImGui::TableRowLabel("UV 1");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P1", &side.UVs[1].x, 0.01f);
-            CheckForSnapshot(snapshot);
+                if (Settings::Editor.SelectionMode == SelectionMode::Edge)
+                    highlight |= point == ((int)Editor::Selection.Point + 1) % 4;
+  
+                if (highlight)
+                    ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
 
-            ImGui::TableRowLabel("UV 2");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P2", &side.UVs[2].x, 0.01f);
-            CheckForSnapshot(snapshot);
+                ImGui::TableRowLabel(label);
 
-            ImGui::TableRowLabel("UV 3");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P3", &side.UVs[3].x, 0.01f);
-            CheckForSnapshot(snapshot);
+                if (highlight)
+                    ImGui::PopStyleColor();
 
+                ImGui::SetNextItemWidth(-1);
+                changed |= ImGui::DragFloat2(fmt::format("##{}", label).c_str(), &side.UVs[point].x, 0.01f);
+
+                CheckForSnapshot(snapshot);
+            };
+
+            addUVSlider("UV 0", 0);
+            addUVSlider("UV 1", 1);
+            addUVSlider("UV 2", 2);
+            addUVSlider("UV 3", 3);
+            
             ImGui::TreePop();
         }
 
