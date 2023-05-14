@@ -7,9 +7,16 @@
     "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "CBV(b2)"
+    "CBV(b2), " \
+    "StaticSampler(s1," \
+        "addressU = TEXTURE_ADDRESS_WRAP," \
+        "addressV = TEXTURE_ADDRESS_WRAP," \
+        "addressW = TEXTURE_ADDRESS_WRAP," \
+        "maxAnisotropy = 16," \
+        "filter = FILTER_ANISOTROPIC)" 
 
 SamplerState Sampler : register(s0);
+SamplerState LinearSampler : register(s1);
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1);
 Texture2D Emissive : register(t2);
@@ -18,6 +25,7 @@ Texture2D Normal1 : register(t4);
 
 #include "FrameConstants.hlsli"
 #include "Lighting.hlsli"
+#include "Common.hlsli"
 
 cbuffer Constants : register(b1) {
 float4x4 WorldMatrix;
@@ -79,12 +87,11 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Eye);
-    float4 diffuse = Diffuse.Sample(Sampler, input.uv) * input.col;
+    float4 diffuse = Sample2DAA(Diffuse, input.uv, LinearSampler) * input.col;
     diffuse.xyz = pow(diffuse.xyz, 2.2);
-    float3 emissive = Emissive.Sample(Sampler, input.uv).rgb;
+    float3 emissive = Sample2DAA(Emissive, input.uv, LinearSampler).rgb;
     emissive = EmissiveLight + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
-
 
     if (!NewLightMode) {
         float3 lightDir = float3(0, -1, 0);
