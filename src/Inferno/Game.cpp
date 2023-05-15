@@ -419,20 +419,8 @@ namespace Inferno::Game {
 
         {
             for (int i = 0; i < 4; i++) {
-                Render::BeamInfo beam;
-                beam.Start = obj.Position;
-                beam.StartObj = ObjID(&obj - Level.Objects.data());
-                beam.Radius = 20 + Random() * 10;
-                beam.Width = 1.0f + Random() * 0.75f;
-                beam.Life = CountdownTimer + 5;
-                beam.Color = Color{ 1.75f, 0.5f + Random() * 0.5f, 1.75f };
-                beam.Texture = "Lightning4";
-                beam.Frequency = 1 / 30.0f;
-                beam.Amplitude = 2.10;
-                beam.FadeEnd = true;
-                beam.RandomEnd = true;
-                beam.StrikeTime = 0.25f + Random() * 0.5f;
-                Render::AddBeam(beam);
+                auto startObj = ObjID(&obj - Level.Objects.data());
+                Render::AddBeam("reactor_arcs", CountdownTimer + 5, startObj);
             }
         }
 

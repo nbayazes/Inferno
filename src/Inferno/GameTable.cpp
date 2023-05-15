@@ -3,9 +3,10 @@
 
 #include "HamFile.h"
 #include "Yaml.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
-    void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham, int &id) {
+    void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham, int& id) {
         Yaml::ReadValue(node["id"], id);
         if (!Seq::inRange(ham.Weapons, id)) return;
 
@@ -69,6 +70,59 @@ namespace Inferno {
         Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
     }
 
+    void ReadRange(ryml::NodeRef node, NumericRange<float>& values) {
+        if (!node.valid() || node.is_seed()) return;
+
+        if (node.has_children()) {
+            // Array of values
+            int i = 0;
+            float children[2] = {};
+
+            for (const auto& child : node.children()) {
+                if (i >= 2) break;
+                Yaml::ReadValue(child, children[i++]);
+            }
+
+            if (i == 1) values = { children[0], children[0] };
+            if (i == 2) values = { children[0], children[1] };
+        }
+        else if (node.has_val()) {
+            // Single value
+            float value;
+            Yaml::ReadValue(node, value);
+            values = { value, value };
+        }
+    }
+
+    void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, Render::BeamInfo>& beams) {
+        string name;
+        Yaml::ReadValue(node["Name"], name);
+        if (name.empty()) {
+            SPDLOG_WARN("Found beam entry with missing name!");
+            return;
+        }
+
+        Render::BeamInfo beam{};
+#define READ_PROP(name) Yaml::ReadValue(node[#name], beam.##name)
+        ReadRange(node["Radius"], beam.Radius);
+        ReadRange(node["Width"], beam.Width);
+        READ_PROP(Color); // range
+        READ_PROP(Texture);
+        READ_PROP(Frequency);
+        READ_PROP(Amplitude);
+
+        bool fadeEnd = false, randomEnd = false, fadeStart = false;
+        Yaml::ReadValue(node["FadeEnd"], fadeEnd);
+        Yaml::ReadValue(node["FadeStart"], fadeStart);
+        Yaml::ReadValue(node["RandomEnd"], randomEnd);
+        if (fadeEnd) SetFlag(beam.Flags, Render::BeamFlag::FadeEnd);
+        if (fadeStart) SetFlag(beam.Flags, Render::BeamFlag::FadeStart);
+        if (randomEnd) SetFlag(beam.Flags, Render::BeamFlag::RandomEnd);
+#undef READ_PROP
+
+        beams[name] = beam;
+    }
+
     void LoadGameTable(filesystem::path path, HamFile& ham) {
         try {
             std::ifstream file(path);
@@ -113,6 +167,19 @@ namespace Inferno {
                 }
             }
 
+            auto effects = root["Effects"];
+            auto beamNode = effects["Beams"];
+            if (!beamNode.is_seed()) {
+                
+                for (const auto& beam : beamNode.children()) {
+                    try {
+                        ReadBeamInfo(beam, Render::DefaultEffects.Beams);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading beam info", e.what());
+                    }
+                }
+            }
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading game table:\n{}", e.what());

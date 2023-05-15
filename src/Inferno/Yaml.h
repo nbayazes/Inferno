@@ -1,5 +1,10 @@
 #pragma once
 
+#ifndef C4_USE_ASSERT
+// Bad data shouldn't cause an assertion, even in debug
+#define C4_USE_ASSERT 0
+#endif
+
 #include <ryml/ryml_std.hpp>
 #include <ryml/ryml.hpp>
 #include <spdlog/spdlog.h>

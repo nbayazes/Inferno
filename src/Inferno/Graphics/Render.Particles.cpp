@@ -301,11 +301,53 @@ namespace Inferno::Render {
         std::array tex = { beam.Texture };
         Render::Materials->LoadTextures(tex);
 
-        if (beam.RandomEnd)
-            beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius);
+        if (HasFlag(beam.Flags, BeamFlag::RandomEnd))
+            beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
 
         beam.Runtime.Length = (beam.Start - beam.End).Length();
+        beam.Runtime.Width = beam.Width.GetRandom();
         Beams.Add(beam);
+    }
+
+    void AddBeam(const string& effect, float life, const Vector3& start, const Vector3& end) {
+        if (auto info = DefaultEffects.GetBeamInfo(effect)) {
+            BeamInfo beam = *info;
+            beam.Segment = Editor::FindContainingSegment(Game::Level, start);
+            beam.Start = start;
+            beam.End = end;
+            beam.Life = life;
+            AddBeam(beam);
+        }
+    }
+
+    void AddBeam(const string& effect, float life, ObjID start, const Vector3& end, int startGun) {
+        auto info = DefaultEffects.GetBeamInfo(effect);
+        auto obj = Game::Level.TryGetObject(start);
+
+        if (info && obj) {
+            BeamInfo beam = *info;
+            beam.StartObj = start;
+            beam.Segment = obj->Segment;
+            beam.End = end;
+            beam.StartObjGunpoint = startGun;
+            beam.Life = life;
+            AddBeam(beam);
+        }
+    }
+
+    void AddBeam(const string& effect, float life, ObjID start, ObjID end, int startGun) {
+        auto info = DefaultEffects.GetBeamInfo(effect);
+        auto obj = Game::Level.TryGetObject(start);
+
+        if (info && obj) {
+            BeamInfo beam = *info;
+            beam.StartObj = start;
+            beam.Segment = obj->Segment;
+            beam.EndObj = end;
+            beam.StartObjGunpoint = startGun;
+            beam.Life = life;
+            AddBeam(beam);
+        }
     }
 
     // returns a vector perpendicular to the camera and the start/end points
@@ -319,7 +361,7 @@ namespace Inferno::Render {
 
     Vector2 SinCos(float x) {
         return { sin(x), cos(x) };
-    };
+    }
 
     // Fractal noise generator, power of 2 wavelength
     void FractalNoise(span<float> noise) {
@@ -388,18 +430,16 @@ namespace Inferno::Render {
             auto length = delta.Length();
             if (length < 1) continue; // don't draw really short beams
 
-            // todo: if start or end object are set, update endpoints
-
             // DrawSegs()
             //auto vScale = length / beam.Width * beam.Scale;
             auto scale = beam.Amplitude;
 
-            int segments = (int)(length / (beam.Width * 0.5 * 1.414)) + 1;
+            int segments = (int)(length / (beam.Runtime.Width * 0.5 * 1.414)) + 1;
             segments = std::clamp(segments, 2, 64);
             auto div = 1.0f / (segments - 1);
 
             auto vLast = std::fmodf(beam.Time * beam.ScrollSpeed, 1);
-            if (beam.SineNoise) {
+            if (HasFlag(beam.Flags, BeamFlag::SineNoise)) {
                 if (segments < 16) {
                     segments = 16;
                     div = 1.0f / (segments - 1);
@@ -414,7 +454,7 @@ namespace Inferno::Render {
             noise.resize(segments);
 
             if (beam.Amplitude > 0 && (float)Render::ElapsedTime > beam.Runtime.NextUpdate) {
-                if (beam.SineNoise)
+                if (HasFlag(beam.Flags, BeamFlag::SineNoise))
                     SineNoise(noise);
                 else
                     FractalNoise(noise);
@@ -422,8 +462,8 @@ namespace Inferno::Render {
                 beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
             }
 
-            if (beam.RandomEnd && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
-                beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius);
+            if (HasFlag(beam.Flags, BeamFlag::RandomEnd) && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
+                beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
                 beam.Runtime.NextStrikeTime = (float)Render::ElapsedTime + beam.StrikeTime;
             }
 
@@ -458,7 +498,7 @@ namespace Inferno::Render {
                     //auto factor = beam.Runtime.Noise[noiseIndex >> 16] * beam.Amplitude;
                     auto factor = noise[i] * beam.Amplitude;
 
-                    if (beam.SineNoise) {
+                    if (HasFlag(beam.Flags, BeamFlag::SineNoise)) {
                         // rotate the noise along the perpendicluar axis a bit to keep the bolt from looking diagonal
                         auto c = SinCos(fraction * DirectX::XM_PI * length + beam.Time);
                         nextSeg.pos += Render::Camera.Up * factor * c.x;
@@ -490,14 +530,14 @@ namespace Inferno::Render {
                     // draw rectangular segment
                     auto start = curSeg.pos;
                     auto end = nextSeg.pos;
-                    auto up = avgNormal * beam.Width * 0.5f;
+                    auto up = avgNormal * beam.Runtime.Width * 0.5f;
                     if (i == 1) prevUp = up;
 
                     auto color = beam.Color;
-                    if (beam.FadeEnd && fraction >= 0.5)
+                    if (HasFlag(beam.Flags, BeamFlag::FadeEnd) && fraction >= 0.5)
                         color.w = std::lerp(1.0f, 0.0f, (fraction - 0.5f) * 2);
 
-                    if (beam.FadeStart && fraction <= 0.5)
+                    if (HasFlag(beam.Flags, BeamFlag::FadeStart) && fraction <= 0.5)
                         color.w = std::lerp(0.0f, 1.0f, fraction * 2);
 
                     ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, color };

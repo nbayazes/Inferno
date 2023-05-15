@@ -695,33 +695,6 @@ namespace Inferno::Game {
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
 
-        // thicker beam used when hitting targets
-        Render::BeamInfo beam{
-            .Start = start,
-            .StartObj = player.ID,
-            .StartObjGunpoint = gun,
-            .Width = 1.25f + 0.25f * Random(),
-            .Life = weapon.FireDelay,
-            .Color = { 3.00f + Random() * 0.5f, 1.0f, 3.0f + Random() * 0.5f },
-            .Texture = "HellionBeam",
-            .Frequency = 1 / 30.0f,
-            .Amplitude = 1.00f,
-        };
-
-        // tracers are thinner 'feelers' for the main beam
-        Render::BeamInfo tracer{
-            .Start = start,
-            .StartObj = player.ID,
-            .StartObjGunpoint = gun,
-            .Radius = MAX_CHAIN_DIST,
-            .Width = 0.65f,
-            .Life = weapon.FireDelay,
-            .Color = { 1.30f, 1.0f, 1.45f },
-            .Texture = "Lightning4",
-            .Frequency = 1 / 30.0f,
-            .Amplitude = 0.55f,
-        };
-
         Render::SparkEmitter spark;
         spark.DurationRange = { 0.35f, 0.85f };
         spark.Restitution = 0.6f;
@@ -747,7 +720,7 @@ namespace Inferno::Game {
                 }
             }
 
-            auto prevPosition = start;
+            //auto prevPosition = start;
             ObjID prevObj = player.ID;
             int objGunpoint = gun;
 
@@ -759,34 +732,15 @@ namespace Inferno::Game {
                 target->HitPoints -= weapon.Damage[Difficulty];
 
                 // Beams between previous and next target
-                tracer.Start = beam.Start = prevPosition;
-                tracer.End = beam.End = target->Position;
-                tracer.StartObj = beam.StartObj = prevObj;
-                tracer.EndObj = beam.EndObj = targetObj;
-                tracer.StartObjGunpoint = beam.StartObjGunpoint = objGunpoint;
+                Render::AddBeam("omega_beam", weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                Render::AddBeam("omega_beam2", weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                Render::AddBeam("omega_beam2", weapon.FireDelay, prevObj, targetObj, objGunpoint);
+
                 prevObj = targetObj;
                 objGunpoint = -1;
 
-                prevPosition = beam.End;
-                Render::AddBeam(beam);
-                Render::AddBeam(tracer);
-                Render::AddBeam(tracer);
-
-                tracer.Start = target->Position;
-                //beam.Width -= 0.33f;
-
-                // Random endpoint tendrils
-                tracer.RandomEnd = true;
-                auto ampl = tracer.Amplitude;
-                tracer.Amplitude = 1.25;
-                tracer.StartObj = beam.StartObj = targetObj;
-                tracer.EndObj = beam.EndObj = ObjID::None;
-                tracer.FadeEnd = true;
-                Render::AddBeam(tracer);
-                Render::AddBeam(tracer);
-                tracer.RandomEnd = false;
-                tracer.Amplitude = ampl;
-                tracer.FadeEnd = false;
+                Render::AddBeam("omega_tracer", weapon.FireDelay, targetObj);
+                Render::AddBeam("omega_tracer", weapon.FireDelay, targetObj);
 
                 // Sparks and explosion
                 spark.Position = target->Position;
@@ -823,10 +777,13 @@ namespace Inferno::Game {
             dir += playerObj.Rotation.Up() * offset.y;
             dir.Normalize();
 
+            Vector3 tracerEnd;
+
             LevelHit hit;
             if (IntersectLevel(Game::Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, false, true, hit)) {
-                tracer.End = beam.End = hit.Point;
-                spark.Position = beam.End;
+                //tracer.End = beam.End = hit.Point;
+                tracerEnd = hit.Point;
+                spark.Position = hit.Point;
                 spark.Segment = hit.Tag.Segment;
                 spark.FadeTime = 0.25f;
                 Render::AddSparkEmitter(spark);
@@ -844,12 +801,13 @@ namespace Inferno::Game {
                     HitWall(Game::Level, hit.Point, dummy, *wall);
             }
             else {
-                tracer.FadeEnd = true;
+                //SetFlag(tracer.Flags, Render::BeamFlag::FadeEnd);
                 // not sure why scaling the length down is necessary, but it feels more accurate
-                tracer.End = beam.End = start + dir * MAX_DIST * 0.3f;
+                //tracer.End = beam.End = start + dir * MAX_DIST * 0.3f;
+                tracerEnd = start + dir * MAX_DIST * 0.3f;
             }
 
-            Render::AddBeam(tracer);
+            Render::AddBeam("omega_miss", weapon.FireDelay, player.ID, tracerEnd, gun);
         }
 
         // Fire sound
