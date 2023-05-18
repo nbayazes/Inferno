@@ -98,6 +98,7 @@ namespace Inferno {
     constexpr Color GREEN_TEXT = { 0, 0.7f, 0 };
     constexpr Color RED_TEXT = { 0.7f, 0, 0 };
     constexpr Color GOLD_TEXT = { 0.78f, 0.56f, 0.18f };
+    constexpr float MONITOR_BRIGHTNESS = 2;
 
     void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
@@ -189,6 +190,7 @@ namespace Inferno {
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.4f;
+        info.Color *= MONITOR_BRIGHTNESS;
         info.Color.w = alpha;
         DrawMonitorBitmap(info, 0.6f * alpha);
     }
@@ -234,7 +236,7 @@ namespace Inferno {
 
         auto halign = flipX ? AlignH::CenterRight : AlignH::CenterLeft;
         auto alignment = Render::GetAlignment(size, halign, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
-        auto hex = Color(1, 1, 1).RGBA().v;
+        auto hex = Color(1 * MONITOR_BRIGHTNESS, 1 * MONITOR_BRIGHTNESS, 1 * MONITOR_BRIGHTNESS).RGBA().v;
 
         // Adjust for percentage
         auto offset = size.x * (1 - percent);
@@ -251,11 +253,11 @@ namespace Inferno {
 
         if (flipX) {
             auto off = v2.x;
-            auto Flip = [&](float& x) { x = -(x - off) + off - size.x; };
-            Flip(v0.x);
-            Flip(v1.x);
-            Flip(v2.x);
-            Flip(v3.x);
+            auto flip = [&](float& x) { x = -(x - off) + off - size.x; };
+            flip(v0.x);
+            flip(v1.x);
+            flip(v2.x);
+            flip(v3.x);
         }
 
         Render::CanvasPayload payload{};
@@ -722,8 +724,8 @@ namespace Inferno {
                 Render::HudCanvas->DrawGameText(timer, info);
             }
 
-            DrawHighlights(false);
-            DrawHighlights(true);
+            //DrawHighlights(false);
+            //DrawHighlights(true);
 
             // Lock warning
             //DrawAdditiveBitmap({ -220, -230 }, AlignH::CenterRight, "gauge16b", 1);

@@ -6,7 +6,7 @@
 #include "Settings.h"
 #include "Convert.h"
 
-Inferno::List<Inferno::ubyte> Inferno::File::ReadAllBytes(std::filesystem::path path) {
+Inferno::List<Inferno::ubyte> Inferno::File::ReadAllBytes(const std::filesystem::path& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file) {
         auto msg = fmt::format(L"File not found: {}", path.wstring());
@@ -23,7 +23,7 @@ Inferno::List<Inferno::ubyte> Inferno::File::ReadAllBytes(std::filesystem::path 
     return buffer;
 }
 
-void Inferno::File::WriteAllBytes(std::filesystem::path path, span<ubyte> data) {
+void Inferno::File::WriteAllBytes(const std::filesystem::path& path, span<ubyte> data) {
     std::ofstream file(path, std::ios::binary);
     StreamWriter writer(file, false);
     writer.WriteBytes(data);
@@ -33,7 +33,7 @@ void Inferno::File::WriteAllBytes(std::filesystem::path path, span<ubyte> data) 
 namespace Inferno::FileSystem {
     List<filesystem::path> Directories;
 
-    wstring FindFile(filesystem::path file) {
+    wstring FindFile(const filesystem::path& file) {
         if (auto path = TryFindFile(file))
             return path.value();
 
@@ -59,7 +59,7 @@ namespace Inferno::FileSystem {
             AddDataDirectory(path);
     }
 
-    void AddDataDirectory(filesystem::path path) {
+    void AddDataDirectory(const filesystem::path& path) {
         if (!filesystem::exists(path)) {
             SPDLOG_WARN(L"Tried to add invalid path: {}", path.wstring());
             return;
@@ -69,7 +69,7 @@ namespace Inferno::FileSystem {
         Directories.push_back(path);
     }
 
-    Option<filesystem::path> TryFindFile(filesystem::path file) {
+    Option<filesystem::path> TryFindFile(const filesystem::path& file) {
         if (filesystem::exists(file)) // check current directory or absolute path first
             return wstring(file);
 
@@ -94,7 +94,7 @@ namespace Inferno::FileSystem {
         return {};
     }
 
-    List<char> ReadFileBytes(filesystem::path path) {
+    List<char> ReadFileBytes(const filesystem::path& path) {
         std::ifstream stream(path, std::ios::binary);
         if (!stream) {
             SPDLOG_WARN("Unable to open file `{}`", path.string());
@@ -104,7 +104,7 @@ namespace Inferno::FileSystem {
         return { std::istreambuf_iterator(stream), std::istreambuf_iterator<char>() };
     }
 
-    string ReadFileText(filesystem::path path) {
+    string ReadFileText(const filesystem::path& path) {
         std::ifstream stream(path);
         if (!stream) {
             SPDLOG_WARN("Unable to open file `{}`", path.string());

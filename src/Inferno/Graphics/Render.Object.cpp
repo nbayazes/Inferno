@@ -284,6 +284,10 @@ namespace Inferno::Render {
             constants.EmissiveLight = object.Render.Emissive;
         }
         else {
+            /*if (auto seg = Game::Level.TryGetSegment(object.Segment)) {
+                constants.Ambient = seg->VolumeLight.ToVector4() + object.DirectLight.GetColor().ToVector4();
+                constants.EmissiveLight = Color(0, 0, 0);
+            }*/
             constants.Ambient = object.Ambient.GetColor().ToVector4() + object.DirectLight.GetColor().ToVector4();
             constants.EmissiveLight = Color(0, 0, 0);
         }

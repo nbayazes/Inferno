@@ -27,7 +27,7 @@ namespace Inferno::Sound {
         // The engine claims to be unitless but doppler, falloff, and reverb are noticeably different using smaller values.
         constexpr float AUDIO_SCALE = 1;
         //constexpr float MAX_SFX_VOLUME = 0.75; // should come from settings
-        constexpr float MERGE_WINDOW = 1 / 12.0f; // Merge the same sound being played by a source within a window
+        constexpr float MERGE_WINDOW = 1 / 14.0f; // Merge the same sound being played by a source within a window
 
         std::condition_variable InitializeCondition;
     }
@@ -446,8 +446,7 @@ namespace Inferno::Sound {
                         instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 
                     instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                    // only use a portion of the duplicate sound to increase volume (should use log scaling)
-                    instance.Volume = std::max(instance.Volume, sound.Volume) * 1.25f;
+                    instance.Volume += sound.Volume;
                     //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                     return instance.ID; // Don't play sounds within the merge window
                 }

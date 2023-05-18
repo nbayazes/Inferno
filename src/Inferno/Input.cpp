@@ -12,7 +12,7 @@ namespace Inferno::Input {
     }
 
     Vector2 MousePrev, DragEnd;
-    constexpr float DragWindow = 3.0f;
+    constexpr float DRAG_WINDOW = 3.0f;
     Vector2 MouselookStartPosition, WindowCenter;
     HWND Hwnd;
     int RawX, RawY;
@@ -40,7 +40,7 @@ namespace Inferno::Input {
 
             case MouseState::HELD:
                 if (dragState == SelectionState::Preselect &&
-                    Vector2::Distance(DragStart, Input::MousePosition) > DragWindow) {
+                    Vector2::Distance(DragStart, Input::MousePosition) > DRAG_WINDOW) {
                     // Don't allow a drag to start when the cursor is over imgui.
                     if (ImGui::GetCurrentContext()->HoveredWindow != nullptr) return SelectionState::None;
 
@@ -67,7 +67,7 @@ namespace Inferno::Input {
                 RECT r{};
                 GetClientRect(Hwnd, &r);
                 POINT center = { (r.left + r.right) / 2, (r.top + r.bottom) / 2 };
-                WindowCenter = { (float)center.x, (float)center.y };
+                WindowCenter = Vector2{ (float)center.x, (float)center.y };
             }
 
             ShowCursor(!Mouselook);
@@ -98,7 +98,7 @@ namespace Inferno::Input {
                 RawX = RawY = 0;
             }
             else {
-                MousePosition = { (float)mouseState.x, (float)mouseState.y };
+                MousePosition = Vector2{ (float)mouseState.x, (float)mouseState.y };
                 MouseDelta = MousePrev - MousePosition;
                 MousePrev = MousePosition;
             }

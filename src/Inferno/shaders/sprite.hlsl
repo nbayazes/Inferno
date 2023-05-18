@@ -3,13 +3,21 @@
     "CBV(b0),"\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
+    "StaticSampler(s1," \
+        "addressU = TEXTURE_ADDRESS_WRAP," \
+        "addressV = TEXTURE_ADDRESS_WRAP," \
+        "addressW = TEXTURE_ADDRESS_WRAP," \
+        "maxAnisotropy = 16," \
+        "filter = FILTER_ANISOTROPIC)"
 
 SamplerState Sampler : register(s0);
+SamplerState LinearSampler : register(s1);
 Texture2D Diffuse : register(t0);
 Texture2D Depth : register(t1);
 
 #include "FrameConstants.hlsli"
+#include "Common.hlsli"
 
 struct VS_INPUT {
     float3 pos : POSITION;
@@ -42,13 +50,13 @@ float SaturateSoft(float depth, float contrast) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    float4 diffuse = Diffuse.Sample(Sampler, input.uv);
-    diffuse.xyz = pow(diffuse.xyz, 2.2);
+    //float4 diffuse = Diffuse.Sample(Sampler, input.uv);
+    float4 diffuse = Sample2DAA(Diffuse, input.uv, LinearSampler);
+    //diffuse.xyz = pow(diffuse.xyz, 2.2);
     diffuse *= input.col;
     diffuse.a = clamp(diffuse.a, 0, 1);
     if (diffuse.a <= 0.0)
         discard;
-    
     
     // (1 - (1-2*(Target-0.5)) * (1-Blend))
     //if (length(input.col.rgb) > 1 && length(diffuse.rgb) > 0.75)

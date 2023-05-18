@@ -1712,7 +1712,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.805
     Roughness: 0.507
-    EmissiveStrength: 5
+    EmissiveStrength: 3.497
     LightReceived: 1
   - TexID: 1168
     NormalStrength: 0.344
@@ -1973,7 +1973,6 @@ Materials:
     Roughness: 0.58
     EmissiveStrength: 1
     LightReceived: 1
-
   - TexID: 1396
     NormalStrength: 0.662
     SpecularStrength: 1

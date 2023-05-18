@@ -146,7 +146,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        FlatLevelShader(ShaderInfo info) : IShader(info) {
+        FlatLevelShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
         }
     };
@@ -159,7 +159,7 @@ namespace Inferno {
     public:
         constexpr static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
 
-        DepthShader(ShaderInfo info) : IShader(info) {
+        DepthShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
             Format = OutputFormat;
         }
@@ -172,7 +172,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        ObjectDepthShader(ShaderInfo info) : IShader(info) {
+        ObjectDepthShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
             Format = DepthShader::OutputFormat;
         }
@@ -203,7 +203,7 @@ namespace Inferno {
             float Threshold = 0;
         };
 
-        DepthCutoutShader(ShaderInfo info) : IShader(info) {
+        DepthCutoutShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
             Format = DepthShader::OutputFormat;
         }
@@ -246,7 +246,7 @@ namespace Inferno {
             HlslBool Overlay;
         };
 
-        LevelShader(ShaderInfo info) : IShader(info) {
+        LevelShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
         }
 
@@ -287,7 +287,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        SpriteShader(ShaderInfo info) : IShader(info) {
+        SpriteShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = ObjectVertex::Layout;
         }
 
@@ -320,7 +320,7 @@ namespace Inferno {
             TexID TexID;
         };
 
-        ObjectShader(ShaderInfo info) : IShader(info) {
+        ObjectShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = ObjectVertex::Layout;
         }
 
@@ -359,7 +359,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        FlatShader(ShaderInfo info) : IShader(info) {
+        FlatShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = FlatVertex::Layout;
         }
 
@@ -381,7 +381,7 @@ namespace Inferno {
             RootParameterCount
         };
     public:
-        UIShader(ShaderInfo info) : IShader(info) {
+        UIShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = CanvasVertex::Layout;
             Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         }
@@ -410,7 +410,7 @@ namespace Inferno {
             float ScanelineIntensity = 0;
         };
 
-        HudShader(ShaderInfo info) : IShader(info) {
+        HudShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = CanvasVertex::Layout;
             Format = DXGI_FORMAT_R11G11B10_FLOAT;
         }
@@ -438,7 +438,7 @@ namespace Inferno {
 
     template<class TShader>
     struct Effect {
-        Effect(TShader* shader, EffectSettings settings = {})
+        Effect(TShader* shader, const EffectSettings& settings = {})
             : Settings(settings), Shader(shader) {
         }
 

@@ -199,6 +199,7 @@
     <ClCompile Include="OpenSimplex2.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Graphics\Render.Queue.cpp" />
+    <ClCompile Include="Graphics\PostProcess.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
     <ClCompile Include="Input.cpp" />

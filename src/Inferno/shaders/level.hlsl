@@ -47,14 +47,16 @@ SamplerState LinearSampler : register(s1);
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
-cbuffer InstanceConstants : register(b1) {
-MaterialInfo Mat1;
-MaterialInfo Mat2;
-float2 Scroll, Scroll2;
-float LightingScale; // for unlit mode
-bool Distort;
-bool HasOverlay;
+struct InstanceConstants {
+    MaterialInfo Mat1;
+    MaterialInfo Mat2;
+    float2 Scroll, Scroll2;
+    float LightingScale; // for unlit mode
+    bool Distort;
+    bool HasOverlay;
 };
+
+ConstantBuffer<InstanceConstants> args : register(b1);
 
 struct LevelVertex {
     float3 pos : POSITION;
@@ -87,8 +89,8 @@ PS_INPUT vsmain(LevelVertex input) {
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
-    output.uv = input.uv + Scroll * Time * 200;
-    output.uv2 = input.uv2 + Scroll2 * Time * 200;
+    output.uv = input.uv + args.Scroll * Time * 200;
+    output.uv2 = input.uv2 + args.Scroll2 * Time * 200;
     output.normal = input.normal;
     output.tangent = input.tangent;
     output.bitangent = input.bitangent;
@@ -217,7 +219,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
     //float3 normal = clamp(Sample2DAAData2(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
     float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1);
-    normal.xy *= Mat1.NormalStrength;
+    normal.xy *= args.Mat1.NormalStrength;
     normal = normalize(normal);
 
     // 'automap' shader?
@@ -241,10 +243,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float emissive = (Sample2DAAData(Emissive, input.uv, LinearSampler)).r * Mat1.EmissiveStrength;
-    MaterialInfo material = Mat1;
+    float emissive = (Sample2DAAData(Emissive, input.uv, LinearSampler)).r * args.Mat1.EmissiveStrength;
+    MaterialInfo material = args.Mat1;
 
-    if (HasOverlay) {
+    if (args.HasOverlay) {
         // Apply supertransparency mask
         float mask = 1 - Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
         base *= mask;
@@ -259,22 +261,21 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float3 overlayNormal = clamp(Sample2DAAData2(Normal2, input.uv2, LinearSampler).rgb * 2 - 1, -1, 1);
         float3 overlayNormal = clamp(Normal2.Sample(Sampler, input.uv2).rgb * 2 - 1, -1, 1);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
-        overlayNormal.xy *= Mat2.NormalStrength;
+        overlayNormal.xy *= args.Mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
 
         normal = normalize(lerp(normal, overlayNormal, overlay.a));
 
-        material.SpecularStrength = lerp(Mat1.SpecularStrength, Mat2.SpecularStrength, overlay.a);
-        material.Metalness = lerp(Mat1.Metalness, Mat2.Metalness, overlay.a);
-        material.NormalStrength = normalize(lerp(Mat1.NormalStrength, Mat2.NormalStrength, overlay.a));
-        material.Roughness = lerp(Mat1.Roughness, Mat2.Roughness, overlay.a);
-        material.LightReceived = lerp(Mat1.LightReceived, Mat2.LightReceived, overlay.a);
+        material.SpecularStrength = lerp(args.Mat1.SpecularStrength, args.Mat2.SpecularStrength, overlay.a);
+        material.Metalness = lerp(args.Mat1.Metalness, args.Mat2.Metalness, overlay.a);
+        material.NormalStrength = normalize(lerp(args.Mat1.NormalStrength, args.Mat2.NormalStrength, overlay.a));
+        material.Roughness = lerp(args.Mat1.Roughness, args.Mat2.Roughness, overlay.a);
+        material.LightReceived = lerp(args.Mat1.LightReceived, args.Mat2.LightReceived, overlay.a);
 
         float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, LinearSampler).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        //float3 emissive2 = (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).rgb * Mat2.EmissiveStrength;
-        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).r * Mat2.EmissiveStrength * overlay.a;
+        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).r * args.Mat2.EmissiveStrength * overlay.a;
     }
 
     if (diffuse.a <= 0)
@@ -288,7 +289,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 lighting = float3(0, 0, 0);
 
     float3 vertexLighting = max(0, input.col.rgb);
-    vertexLighting = lerp(1, vertexLighting, LightingScale);
+    vertexLighting = lerp(1, vertexLighting, args.LightingScale);
     vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
 
     if (!NewLightMode) {
@@ -307,13 +308,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //gloss = exp2(lerp(0, log2(gloss), flatness));
         //colorSum *= flatness;
         lighting += colorSum * material.LightReceived;
-        lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
         lighting += emissive * diffuse.rgb;
+        lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
 
         //lighting.rgb += vertexLighting * 1.0;
         //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
         //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
         return float4(lighting * GlobalDimming, diffuse.a);
     }
-
 }

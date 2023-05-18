@@ -358,12 +358,23 @@ namespace Inferno {
             return info;
         }
 
-        bool LoadDDS(DirectX::ResourceUploadBatch& batch, filesystem::path path) {
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, const filesystem::path& path) {
+            if (!filesystem::exists(path)) {
+                SPDLOG_WARN("File not found: {}", path.string());
+                return false;
+            }
+
             ThrowIfFailed(DirectX::CreateDDSTextureFromFile(Render::Device, batch, path.c_str(), _resource.ReleaseAndGetAddressOf()));
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
             //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             _desc = _resource->GetDesc();
+
+            _srvDesc.Format = _desc.Format;
+            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            _srvDesc.Texture2D.MostDetailedMip = 0;
+            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
             return true;
         }
 

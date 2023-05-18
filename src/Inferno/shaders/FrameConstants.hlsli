@@ -5,5 +5,5 @@ cbuffer FrameConstants : register(b0) {
     float2 FrameSize;
     float NearClip, FarClip;
     float GlobalDimming;
-    bool NewLightMode;
+    bool NewLightMode; // dynamic light mode
 };

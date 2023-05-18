@@ -30,7 +30,7 @@ namespace Inferno {
         Viewport Viewport = { 0, 0, 1024, 768, NearClip, FarClip };
 
         void SetViewport(float width, float height) {
-            Viewport = { 0, 0, width, height, NearClip, FarClip };
+            Viewport = DirectX::SimpleMath::Viewport{ 0, 0, width, height, NearClip, FarClip };
         }
 
         void LookAtPerspective(float fovDeg, double t) {

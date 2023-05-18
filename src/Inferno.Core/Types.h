@@ -461,10 +461,15 @@ namespace Inferno {
             : _color(color) {}
 
         void SetTarget(const Color& color, double currentTime, float fadeTime = 0.5f) {
-            _startColor = _color;
-            _endColor = color;
-            _startTime = currentTime;
-            _fadeTime = std::max(fadeTime, 0.0f);
+            if (fadeTime <= 0) {
+                _color = color;
+            }
+            else {
+                _startColor = _color;
+                _endColor = color;
+                _startTime = currentTime;
+                _fadeTime = std::max(fadeTime, 0.0f);
+            }
         }
 
         void Update(double time) {

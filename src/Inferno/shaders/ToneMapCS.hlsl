@@ -15,11 +15,12 @@
 #include "utility.hlsli"
 
 #define RS \
-    "RootConstants(b0, num32BitConstants = 6), " \
+    "RootConstants(b0, num32BitConstants = 7), " \
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))," \
     "DescriptorTable(SRV(t0))," \
     "DescriptorTable(SRV(t1))," \
+    "DescriptorTable(SRV(t2))," \
     "StaticSampler(s0," \
         "addressU = TEXTURE_ADDRESS_CLAMP," \
         "addressV = TEXTURE_ADDRESS_CLAMP," \
@@ -28,6 +29,7 @@
 
 Texture2D<float3> Bloom : register(t0);
 Texture3D<float3> tony_mc_mapface_lut : register(t1);
+Texture2D<float3> Dirt : register(t2);
 
 RWTexture2D<float3> ColorRW : register(u0);
 RWTexture2D<float> OutLuma : register(u1);
@@ -41,6 +43,7 @@ struct Constants {
     float g_Exposure;
     bool NewLightMode;
     int ToneMapper;
+    bool EnableDirt;
 };
 
 ConstantBuffer<Constants> constants : register(b0);
@@ -133,7 +136,11 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     float3 hdrColor = ColorRW[DTid.xy];
     //if (l > 1.00)
     //    hdrColor += (l - 1) / 3;
-    hdrColor += constants.g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
+    float3 bloom = constants.g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
+    float bloomLum = Luminance(bloom);
+    hdrColor += bloom;
+    if (constants.EnableDirt)
+        hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 1.0;
     hdrColor *= constants.g_Exposure;
 
     // Tone map to SDR
