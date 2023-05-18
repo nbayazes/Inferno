@@ -274,11 +274,13 @@ Robots:
 
 Powerups:
   - id: 1 # Energy
+    Glow: 2,2,2
     LightColor: 2, 1.1, 0.1
     LightRadius: 14
     LightMode: 1 # Flicker
 
   - id: 2 # Shield
+    Glow: 2,2,2
     LightColor: 0.025, 0.025, 2
     LightRadius: 14
     LightMode: 2 # Pulse

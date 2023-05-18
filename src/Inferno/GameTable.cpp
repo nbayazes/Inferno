@@ -68,6 +68,7 @@ namespace Inferno {
         Yaml::ReadValue(node["LightRadius"], powerup.LightRadius);
         Yaml::ReadValue(node["LightColor"], powerup.LightColor);
         Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
+        Yaml::ReadValue(node["Glow"], powerup.Glow);
     }
 
     void ReadRange(ryml::NodeRef node, NumericRange<float>& values) {

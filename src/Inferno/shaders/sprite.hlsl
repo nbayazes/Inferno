@@ -5,9 +5,9 @@
     "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
     "StaticSampler(s1," \
-        "addressU = TEXTURE_ADDRESS_WRAP," \
-        "addressV = TEXTURE_ADDRESS_WRAP," \
-        "addressW = TEXTURE_ADDRESS_WRAP," \
+        "addressU = TEXTURE_ADDRESS_CLAMP," \
+        "addressV = TEXTURE_ADDRESS_CLAMP," \
+        "addressW = TEXTURE_ADDRESS_CLAMP," \
         "maxAnisotropy = 16," \
         "filter = FILTER_ANISOTROPIC)"
 

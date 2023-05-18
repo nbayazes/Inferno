@@ -62,6 +62,7 @@ namespace Inferno {
         float Light; // Original light (radius?)
         Color LightColor;
         float LightRadius;
+        Color Glow; // Self illumination
         DynamicLightMode LightMode;
     };
 

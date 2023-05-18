@@ -226,10 +226,12 @@ namespace Inferno::Editor {
                 obj.Render.Type = RenderType::Powerup;
                 auto& info = Resources::GetPowerup(id);
                 obj.Render.VClip = { .ID = info.VClip };
+                //obj.Render.VClip.FrameTime = Resources::GetVideoClip(info.VClip).FrameTime;
                 obj.Radius = info.Size;
                 obj.LightRadius = info.LightRadius;
                 obj.LightColor = info.LightColor;
                 obj.LightMode = info.LightMode;
+                obj.Render.Emissive = info.Glow;
                 break;
             }
 

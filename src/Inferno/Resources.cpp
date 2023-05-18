@@ -542,21 +542,11 @@ namespace Inferno::Resources {
             LoadStringTable();
             UpdateAverageTextureColor();
 
-
             for (auto& seg : level.Segments) {
                 // Clamp volume light because some D1 levels use unscaled values
                 auto volumeLight = seg.VolumeLight.ToVector4();
                 volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
                 seg.VolumeLight = volumeLight;
-            }
-
-            // Re-init each object to ensure a valid state.
-            // Note this won't update weapons
-            for (auto& obj : level.Objects) {
-                Editor::InitObject(level, obj, obj.Type, obj.ID);
-                if (auto seg = level.TryGetSegment(obj.Segment)) {
-                    obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
-                }
             }
         }
         catch (const std::exception& e) {

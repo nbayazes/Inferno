@@ -43,6 +43,23 @@ namespace Inferno::Game {
         ScreenFlash = Color();
     }
 
+    void InitObjects() {
+        ObjSigIndex = 1;
+
+        // Re-init each object to ensure a valid state.
+        // Note this won't update weapons
+        for (auto& obj : Level.Objects) {
+            Editor::InitObject(Level, obj, obj.Type, obj.ID);
+            if (auto seg = Level.TryGetSegment(obj.Segment)) {
+                obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
+            }
+
+            obj.LastPosition = obj.Position;
+            obj.LastRotation = obj.Rotation;
+            obj.Signature = GetObjectSig();
+        }
+    }
+
     void LoadLevel(Inferno::Level&& level) {
         Inferno::Level backup = Level;
 
@@ -62,13 +79,7 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             Resources::LoadLevel(Level);
 
-            ObjSigIndex = 1;
-            for (auto& obj : Level.Objects) {
-                obj.LastPosition = obj.Position;
-                obj.LastRotation = obj.Rotation;
-                obj.Signature = GetObjectSig();
-            }
-
+            InitObjects();
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Render::Materials->Unload();
 
@@ -227,19 +238,9 @@ namespace Inferno::Game {
 
                 for (int i = 0; i < contains.Count; i++) {
                     Object powerup{};
+                    Editor::InitObject(Level, powerup, ObjectType::Powerup, contains.ID);
                     powerup.Position = position;
-                    powerup.Type = ObjectType::Powerup;
-                    powerup.ID = contains.ID;
                     powerup.Segment = segment;
-                    powerup.LightRadius = pinfo.LightRadius;
-                    powerup.LightColor = pinfo.LightColor;
-                    powerup.LightMode = pinfo.LightMode;
-
-                    powerup.Render.Type = RenderType::Powerup;
-                    powerup.Render.VClip.ID = pinfo.VClip;
-                    powerup.Render.VClip.Frame = 0;
-                    powerup.Render.VClip.FrameTime = Resources::GetVideoClip(pinfo.VClip).FrameTime;
-                    powerup.Radius = Resources::GameData.Powerups[powerup.ID].Size;
 
                     powerup.Movement = MovementType::Physics;
                     powerup.Physics.Velocity = RandomVector(32);
@@ -1062,6 +1063,7 @@ namespace Inferno::Game {
         Sound::WaitInitialized();
         Sound::Reset();
         Resources::LoadGameTable();
+        InitObjects();
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start
