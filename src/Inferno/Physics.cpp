@@ -3,6 +3,7 @@
 #include "Physics.h"
 #include "Resources.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "Game.Segment.h"
 #include "Graphics/Render.h"
 #include "Input.h"
@@ -1330,13 +1331,13 @@ namespace Inferno {
     }
 
     // Updates the segment the object is in an activates triggers
-    void UpdateObjectSegment(Level& level, ObjID objId) {
+    void CheckTriggers(Level& level, ObjID objId) {
         auto pObj = level.TryGetObject(objId);
         if (!pObj) return;
         auto& obj = *pObj;
         auto prevSegId = obj.Segment;
 
-        if (PointInSegment(level, obj.Segment, obj.Position))
+        if (!UpdateObjectSegment(level, obj))
             return; // already in the right segment
 
         if (obj.Segment == SegID::None)
@@ -1376,7 +1377,6 @@ namespace Inferno {
             // object crossed multiple segments in a single update.
             // usually caused by fast moving projectiles, but can also happen if object is outside world.
             auto prevSeg = obj.Segment;
-            Editor::UpdateObjectSegment(level, obj);
             if (obj.Type == ObjectType::Player && prevSeg != obj.Segment) {
                 SPDLOG_WARN("Player {} warped from {} to segment {}. Any fly-through triggers did not activate!", objId, prevSeg, obj.Segment);
             }
@@ -1387,8 +1387,7 @@ namespace Inferno {
             cseg.Objects.push_back(objId);
         }
 
-        auto& newSeg = level.GetSegment(obj.Segment);
-        obj.Ambient.SetTarget(newSeg.VolumeLight, Game::Time, 0.5f);
+        UpdateObjectSegment(level, obj);
     }
 
     void UpdatePhysics(Level& level, double /*t*/, float dt) {
@@ -1491,11 +1490,11 @@ namespace Inferno {
 
                 // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
                 if (obj.Type != ObjectType::Weapon) {
-                    UpdateObjectSegment(level, (ObjID)id);
+                    CheckTriggers(level, (ObjID)id);
                 }
             }
             else {
-                UpdateObjectSegment(level, (ObjID)id);
+                CheckTriggers(level, (ObjID)id);
             }
 
             //if (obj.LastPosition != obj.Position)

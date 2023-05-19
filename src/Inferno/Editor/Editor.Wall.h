@@ -8,8 +8,8 @@ namespace Inferno::Editor {
     void RemoveTrigger(Level&, TriggerID);
     //void RemoveTriggerTarget(Trigger&, Tag target);
     //bool AddTriggerTarget(Trigger& trigger, Tag tag);
-    void AddTriggerTarget(Level& level, TriggerID tid, Tag tag);
-    void RemoveTriggerTarget(Level& level, TriggerID id, int index);
+    void AddTriggerTarget(Level&, TriggerID, Tag);
+    void RemoveTriggerTarget(Level&, TriggerID, int index);
 
     WallID AddWall(Level&, Tag, WallType type, LevelTexID tmap1, LevelTexID tmap2, WallFlag flags = WallFlag::None);
     bool RemoveWall(Level& level, WallID id);

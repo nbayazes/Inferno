@@ -368,15 +368,6 @@ namespace Inferno::Editor {
             RemoveSecretLevelReturnMarker(level);
     }
 
-    // Updates the segment of the object based on position
-    void UpdateObjectSegment(Level& level, Object& obj) {
-        if (!PointInSegment(level, obj.Segment, obj.Position)) {
-            auto id = FindContainingSegment(level, obj.Position);
-            // Leave the last good ID if nothing contains the object
-            if (id != SegID::None) obj.Segment = id;
-        }
-    }
-
     namespace Commands {
         Command AlignObjectToSide{
             .SnapshotAction = [] {

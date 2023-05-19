@@ -7,6 +7,7 @@
 #include "Editor.Object.h"
 #include "OpenSimplexNoise.h"
 #include "Face.h"
+#include "Game.Object.h"
 #include "Game.Segment.h"
 
 namespace Inferno::Editor {
@@ -419,11 +420,7 @@ namespace Inferno::Editor {
                 if (obj->Type == ObjectType::SecretExitReturn)
                     level.SecretReturnOrientation = obj->Rotation;
 
-                if (!PointInSegment(level, obj->Segment, obj->Position)) {
-                    auto id = FindContainingSegment(level, obj->Position);
-                    // Leave the last good ID if nothing contains the object
-                    if (id != SegID::None) obj->Segment = id;
-                }
+                UpdateObjectSegment(level, *obj);
             }
         }
     }

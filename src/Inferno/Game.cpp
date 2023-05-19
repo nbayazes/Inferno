@@ -17,6 +17,7 @@
 #include "Editor/Editor.Object.h"
 #include "Game.Input.h"
 #include "DebugOverlay.h"
+#include "Game.Object.h"
 #include "HUD.h"
 #include "Game.Wall.h"
 
@@ -1104,7 +1105,8 @@ namespace Inferno::Game {
                 obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
             }
 
-            Editor::UpdateObjectSegment(Level, obj);
+            UpdateObjectSegment(Level, obj);
+
             if (auto seg = Level.TryGetSegment(obj.Segment)) {
                 seg->Objects.push_back((ObjID)id);
                 obj.Ambient.SetTarget(seg->VolumeLight, 0);

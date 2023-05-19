@@ -14,7 +14,6 @@ namespace Inferno::Editor {
     void InitObject(const Level&, Object&, ObjectType type, int8 id = 0);
 
     void UpdateSecretLevelReturnMarker();
-    void UpdateObjectSegment(Level& level, Object& obj);
 
     // Ensures object direction vectors are normalized
     inline void NormalizeObjectVectors(Object& obj) {
