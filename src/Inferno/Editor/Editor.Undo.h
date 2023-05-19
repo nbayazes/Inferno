@@ -4,11 +4,10 @@
 #include "Level.h"
 #include "Events.h"
 #include "Editor.Selection.h"
-#include "spdlog/spdlog.h"
 
 namespace Inferno::Editor {
     template<class...TArgs>
-    void SetStatusMessage(const string_view fmt, TArgs&&...args);
+    void SetStatusMessage(string_view format, TArgs&&...args);
     void UpdateWindowTitle();
 
     class EditorHistory {

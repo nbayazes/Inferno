@@ -1,39 +1,16 @@
 #include "pch.h"
+#include "Types.h"
 #include "Editor.h"
 #include "Editor.Geometry.h"
-#include "Types.h"
-#include "Input.h"
 #include "Editor.Texture.h"
 #include "Editor.Segment.h"
 #include "Editor.Object.h"
-
 #include "OpenSimplexNoise.h"
-#include <random>
+#include "Face.h"
+#include "Game.Segment.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;
-
-    short GetPairedEdge(Level& level, Tag tag, short point) {
-        auto other = level.GetConnectedSide(tag);
-        if (!level.SegmentExists(tag) || !other) return 0;
-
-        auto [seg, side] = level.GetSegmentAndSide(tag);
-        //auto face = Face::FromSide(level, tag);
-        auto srcIndices = seg.GetVertexIndices(tag.Side);
-        auto i0 = srcIndices[point % 4];
-        auto i1 = srcIndices[(point + 1) % 4];
-
-        auto& otherSeg = level.GetSegment(other);
-        auto otherIndices = otherSeg.GetVertexIndices(other.Side);
-
-        for (short i = 0; i < 4; i++) {
-            if ((i0 == otherIndices[i] && i1 == otherIndices[(i + 1) % 4]) ||
-                (i1 == otherIndices[i] && i0 == otherIndices[(i + 1) % 4]))
-                return i;
-        }
-
-        return 0;
-    }
 
     void ReplaceVertices(Level& level, span<VertexReplacement> replacements) {
         for (auto& seg : level.Segments)
@@ -87,7 +64,6 @@ namespace Inferno::Editor {
         auto dest = level.TryGetSegment(destId);
         if (!dest) return SideID::None;
         auto srcFace = Face::FromSide(level, srcId);
-        auto verts = dest->GetVertices(level);
 
         for (auto& sideId : SideIDs) {
             if (dest->SideHasConnection(sideId)) continue;
@@ -107,7 +83,6 @@ namespace Inferno::Editor {
         if (!skipValidation && srcSeg->GetEstimatedVolume() < 10) return; // malformed seg check
 
         for (auto& srcSideId : SideIDs) {
-            auto srcFace = Face::FromSide(level, *srcSeg, srcSideId);
             for (auto& destid : segIds) {
                 if (destid == srcId) continue;
                 for (auto& destSide : SideIDs)
@@ -125,7 +100,6 @@ namespace Inferno::Editor {
         for (auto& tag : tags) {
             if (!level.SegmentExists(tag)) continue;
 
-            auto srcFace = Face::FromSide(level, tag);
             for (auto& destid : nearby) {
                 for (auto& destSide : SideIDs) {
                     MergeSides(level, tag, { destid, destSide }, tolerance);
@@ -340,10 +314,6 @@ namespace Inferno::Editor {
     }
 
     void ApplyNoise(Level& level, span<PointID> points, float scale, const Vector3& strength, int64 seed) {
-        /* std::random_device rd;
-         std::mt19937_64 mt(rd());
-         std::uniform_int_distribution<int64> dist(std::llround(std::pow(2, 61)), std::llround(std::pow(2, 62)));
-         int64 seed = dist(mt);*/
         OpenSimplexNoise::Noise noise(seed);
 
         for (auto index : points) {

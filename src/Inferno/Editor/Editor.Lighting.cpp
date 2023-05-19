@@ -5,7 +5,10 @@
 #include "Resources.h"
 #include "Game.h"
 #include "Editor.h"
+#include "Face.h"
 #include "ScopedTimer.h"
+#include "Editor.Lighting.h"
+#include "Game.Segment.h"
 #include "WindowsDialogs.h"
 
 namespace Inferno::Editor {
@@ -262,30 +265,6 @@ namespace Inferno::Editor {
                 return false;
             default:
                 return true;
-        }
-    }
-
-    // Returns the light contribution from both textures on this side
-    Color GetLightColor(const SegmentSide& side, bool enableColor) {
-        if (side.LightOverride) return *side.LightOverride;
-
-        auto& tmap1 = Resources::GetLevelTextureInfo(side.TMap);
-        auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
-        auto luminosity = tmap1.Lighting + tmap2.Lighting;
-
-        if (enableColor) {
-            Color color;
-
-            if (tmap1.Lighting > 0)
-                color += Resources::GetTextureInfo(side.TMap).AverageColor;
-
-            if (tmap2.Lighting > 0)
-                color += Resources::GetTextureInfo(side.TMap2).AverageColor;
-
-            return color * luminosity;
-        }
-        else {
-            return { luminosity, luminosity, luminosity };
         }
     }
 

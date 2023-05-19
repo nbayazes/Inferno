@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Editor.Object.h"
 #include "Editor.h"
+#include "Editor.Segment.h"
+#include "Game.Segment.h"
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {

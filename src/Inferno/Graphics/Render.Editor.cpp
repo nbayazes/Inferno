@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Render.Editor.h"
+
+#include "Game.Object.h"
 #include "Object.h"
 #include "Render.h"
 #include "Editor/Editor.h"
@@ -10,6 +12,7 @@
 #include "Editor/Editor.Object.h"
 #include "Editor/UI/EditorUI.h"
 #include "Game.Text.h"
+#include "Editor/Bindings.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -271,7 +274,7 @@ namespace Inferno::Render {
     void DrawReactorTriggers(Level& level) {
         Object* reactor = nullptr;
         for (auto& obj : level.Objects) {
-            if (obj.Type == ObjectType::Reactor || Editor::IsBossRobot(obj)) {
+            if (obj.Type == ObjectType::Reactor || IsBossRobot(obj)) {
                 reactor = &obj;
                 break;
             }

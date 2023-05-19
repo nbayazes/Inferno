@@ -227,6 +227,9 @@
     <ClCompile Include="Graphics\PostProcess.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Game.Object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -560,6 +563,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="OpenSimplex2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

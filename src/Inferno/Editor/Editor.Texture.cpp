@@ -6,13 +6,14 @@
 #include "Editor.Segment.h"
 #include "Editor.Wall.h"
 #include "Editor.IO.h"
+#include "Face.h"
 
 namespace Inferno::Editor {
     void RotateUV(Vector2& uv, const Vector2& pivot, float angle) {
         uv -= pivot;
         auto radius = uv.Length();
         auto a = atan2(uv.y, uv.x) - angle;
-        uv = { radius * cos(a), radius * sin(a) }; // convert back to rectangular coordinates
+        uv = Vector2{ radius * cos(a), radius * sin(a) }; // convert back to rectangular coordinates
         uv += pivot;
     }
 
@@ -20,7 +21,7 @@ namespace Inferno::Editor {
         for (auto& uv : side.UVs) {
             auto radius = uv.Length();
             auto a = atan2(uv.y, uv.x) - angle;
-            uv = { radius * cos(a), radius * sin(a) }; // convert back to rectangular coordinates
+            uv = Vector2{ radius * cos(a), radius * sin(a) }; // convert back to rectangular coordinates
         }
     }
 
@@ -216,7 +217,7 @@ namespace Inferno::Editor {
         for (auto& uv : destSide.UVs) {
             auto radius = uv.Length();
             auto a = atan2(uv.y, uv.x) - angle; // rotate
-            uv = { radius * cos(a), radius * sin(a) }; // convert back to rectangular coordinates
+            uv = Vector2{ radius * cos(a), radius * sin(a) }; // convert back to rectangular coordinates
         }
 
         for (auto& uv : destSide.UVs)

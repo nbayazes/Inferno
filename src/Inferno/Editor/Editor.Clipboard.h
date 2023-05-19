@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Command.h"
+#include "Level.h"
 
 namespace Inferno::Editor {
     struct SegmentClipboardData {

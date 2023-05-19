@@ -1,6 +1,10 @@
 #include "pch.h"
+
+#include "Game.Segment.h"
 #include "PropertyEditor.h"
 #include "../Editor.h"
+#include "Editor/Editor.Segment.h"
+#include "Editor/Editor.Lighting.h"
 
 namespace Inferno::Editor {
     inline bool TriggerTypesDropdown(int& value) {
@@ -398,7 +402,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Radius", &hasOverride)) {
-                    side.LightRadiusOverride = hasOverride ? Option<float>(radius) : std::nullopt;
+                    side.LightRadiusOverride = hasOverride ? Option(radius) : std::nullopt;
                     overrideChanged = true;
                 }
 

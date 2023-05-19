@@ -3,6 +3,7 @@
 #include "Physics.h"
 #include "Resources.h"
 #include "Game.h"
+#include "Game.Segment.h"
 #include "Graphics/Render.h"
 #include "Input.h"
 #include "Editor/Editor.Object.h"
@@ -1330,10 +1331,12 @@ namespace Inferno {
 
     // Updates the segment the object is in an activates triggers
     void UpdateObjectSegment(Level& level, ObjID objId) {
-        auto& obj = level.Objects[(int)objId];
+        auto pObj = level.TryGetObject(objId);
+        if (!pObj) return;
+        auto& obj = *pObj;
         auto prevSegId = obj.Segment;
 
-        if (Editor::PointInSegment(level, obj.Segment, obj.Position))
+        if (PointInSegment(level, obj.Segment, obj.Position))
             return; // already in the right segment
 
         if (obj.Segment == SegID::None)
@@ -1346,7 +1349,7 @@ namespace Inferno {
         // Check if the new position is in a touching segment
         auto& seg = level.GetSegment(obj.Segment);
         for (auto& cid : seg.Connections) {
-            if (Editor::PointInSegment(level, cid, obj.Position)) {
+            if (PointInSegment(level, cid, obj.Position)) {
                 obj.Segment = cid;
                 // update the segment object lists
                 Seq::remove(seg.Objects, objId);

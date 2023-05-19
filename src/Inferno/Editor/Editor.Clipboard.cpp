@@ -1,9 +1,11 @@
 #include "pch.h"
 #include "Editor.h"
 #include "Editor.Clipboard.h"
+#include "Editor.Geometry.h"
 #include "Editor.Object.h"
 #include "Editor.Segment.h"
 #include "Editor.Wall.h"
+#include "Face.h"
 
 namespace Inferno::Editor {
     struct SideClipboardData {
@@ -21,7 +23,7 @@ namespace Inferno::Editor {
     SegmentClipboardData CopySegments(Level& level, span<SegID> segments, bool segmentsOnly) {
         SegmentClipboardData copy;
 
-        auto InsertVertices = [&](Segment& seg) {
+        auto insertVertices = [&](Segment& seg) {
             auto offset = (PointID)copy.Vertices.size();
             // copy verts without regard to connections and update seg indices
             auto verts = seg.CopyVertices(level); // grabs front then back
@@ -41,7 +43,7 @@ namespace Inferno::Editor {
         for (auto& id : segments) {
             if (auto seg = level.TryGetSegment(id)) {
                 auto segCopy = *seg;
-                InsertVertices(segCopy);
+                insertVertices(segCopy);
                 segIdMapping[id] = (SegID)copy.Segments.size();
 
                 if (auto matcen = level.TryGetMatcen(segCopy.Matcen)) {

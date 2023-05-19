@@ -5,11 +5,14 @@
 #include "Settings.h"
 #include "imgui_local.h"
 #include "DebugOverlay.h"
+#include "Editor/Bindings.h"
+#include "Editor/Editor.Clipboard.h"
 #include "Editor/Editor.h"
-#include "Editor/Editor.Diagnostics.h"
+#include "Editor/Editor.Segment.h"
+#include "Editor/Editor.Texture.h"
 
 namespace Inferno::Editor {
-    constexpr ImU32 ToolbarColor = IM_COL32(20, 20, 20, 200);
+    constexpr ImU32 TOOLBAR_COLOR = IM_COL32(20, 20, 20, 200);
 
     void MenuCommandEx(const Command& command, const char* label, EditorAction bind = EditorAction::None, bool selected = false) {
         if (!label) label = command.Name.c_str();
@@ -733,7 +736,7 @@ namespace Inferno::Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, { 0.5, 0.5 });
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ToolbarColor);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, TOOLBAR_COLOR);
 
         {
             ImGui::Begin("MainToolbar", nullptr, ToolbarFlags);

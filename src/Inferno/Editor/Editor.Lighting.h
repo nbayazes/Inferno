@@ -16,8 +16,6 @@ namespace Inferno::Editor {
         }
     };
 
-    Color GetLightColor(const SegmentSide& side, bool enableColor);
-
     namespace Commands {
         void LightLevel(Level&, const LightSettings&);
     }

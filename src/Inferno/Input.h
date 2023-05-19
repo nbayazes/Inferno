@@ -17,7 +17,7 @@ namespace Inferno::Input {
     inline bool AltDown;
 
     void Update();
-    void Initialize(HWND hwnd);
+    void Initialize(HWND);
 
     // Returns true while a key is held down
     bool IsKeyDown(DirectX::Keyboard::Keys);

@@ -3,9 +3,9 @@
 #include "DataPool.h"
 #include "Render.h"
 #include "Game.h"
+#include "Game.Segment.h"
 #include "Physics.h"
 #include "Render.Queue.h"
-#include "Editor/Editor.Segment.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
@@ -207,8 +207,8 @@ namespace Inferno::Render {
             // todo: scorch marks on walls
         }
 
-        if (!Editor::PointInSegment(Game::Level, Segment, position)) {
-            auto id = Editor::FindContainingSegment(Game::Level, position);
+        if (!PointInSegment(Game::Level, Segment, position)) {
+            auto id = FindContainingSegment(Game::Level, position);
             if (id != SegID::None) Segment = id;
         }
 
@@ -297,7 +297,7 @@ namespace Inferno::Render {
     };
 
     void AddBeam(BeamInfo& beam) {
-        beam.Segment = Editor::FindContainingSegment(Game::Level, beam.Start);
+        beam.Segment = FindContainingSegment(Game::Level, beam.Start);
         std::array tex = { beam.Texture };
         Render::Materials->LoadTextures(tex);
 
@@ -312,7 +312,7 @@ namespace Inferno::Render {
     void AddBeam(const string& effect, float life, const Vector3& start, const Vector3& end) {
         if (auto info = DefaultEffects.GetBeamInfo(effect)) {
             BeamInfo beam = *info;
-            beam.Segment = Editor::FindContainingSegment(Game::Level, start);
+            beam.Segment = FindContainingSegment(Game::Level, start);
             beam.Start = start;
             beam.End = end;
             beam.Life = life;

@@ -701,7 +701,7 @@ namespace Inferno {
 
     // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better
 
-    inline bool Inferno::DeviceResources::CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat) const {
+    bool Inferno::DeviceResources::CheckMsaaSupport(uint samples, DXGI_FORMAT backBufferFormat) const {
         SPDLOG_INFO("Checking MSAA Support. Samples {}", samples);
         for (auto sampleCount = samples; sampleCount > 0; sampleCount--) {
             if (sampleCount == 1) {

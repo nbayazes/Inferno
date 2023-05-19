@@ -1,8 +1,11 @@
 #include "pch.h"
 #include "Editor.h"
 #include "Editor.Wall.h"
+
+#include "Editor.Geometry.h"
 #include "Graphics/Render.h"
 #include "Editor.Texture.h"
+#include "Game.Segment.h"
 
 namespace Inferno::Editor {
     bool FixDoorClip(Wall& wall) {

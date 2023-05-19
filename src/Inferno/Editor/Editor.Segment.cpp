@@ -3,11 +3,15 @@
 #include "Level.h"
 #include "Editor.h"
 #include "Editor.Segment.h"
+
+#include "Editor.Clipboard.h"
 #include "Editor.Object.h"
 #include "Editor.Wall.h"
 #include "Editor.Texture.h"
 #include "Graphics/Render.h"
 #include "Editor.Diagnostics.h"
+#include "Editor.Geometry.h"
+#include "Game.Object.h"
 #include "Game.Segment.h"
 
 namespace Inferno::Editor {
@@ -215,46 +219,6 @@ namespace Inferno::Editor {
             *indices[i] = start + i;
 
         BreakConnection(level, tag);
-    }
-
-    SegID GetConnectedSegment(Level& level, SegID id) {
-        if (auto seg = level.TryGetSegment(id)) {
-            for (auto& side : SideIDs) {
-                if (seg->SideHasConnection(side))
-                    return seg->GetConnection(side);
-            }
-        }
-
-        return SegID::None;
-    }
-
-    // Returns connected segments up to a depth
-    List<SegID> GetConnectedSegments(Level& level, SegID start, int maxDepth) {
-        Set<SegID> nearby;
-        struct SearchTag { SegID Seg; int Depth; };
-        Stack<SearchTag> search;
-        search.push({ start, 0 });
-
-        while (!search.empty()) {
-            SearchTag tag = search.top();
-            search.pop();
-            if (tag.Depth > maxDepth) continue;
-
-            auto seg = level.TryGetSegment(tag.Seg);
-            if (!seg) continue;
-
-            nearby.insert(tag.Seg);
-
-            for (auto& side : SideIDs) {
-                if (seg->SideIsWall(side) && Settings::Editor.Selection.StopAtWalls) continue;
-                auto conn = seg->GetConnection(side);
-                if (conn > SegID::None && !nearby.contains(conn)) {
-                    search.push({ conn, tag.Depth + 1 });
-                }
-            }
-        }
-
-        return Seq::ofSet(nearby);
     }
 
     void DeleteSegment(Level& level, SegID segId) {
@@ -643,30 +607,6 @@ namespace Inferno::Editor {
         return id;
     }
 
-    // Estimation that treats the sides as planes instead of triangles
-    bool PointInSegment(Level& level, SegID id, const Vector3& point) {
-        if (!level.SegmentExists(id)) return false;
-
-        for (auto& side : SideIDs) {
-            auto face = Face::FromSide(level, id, side);
-            if (face.Distance(point) < 0)
-                return false;
-        }
-
-        return true;
-    }
-
-    SegID FindContainingSegment(Level& level, const Vector3& point) {
-        for (int id = 0; id < level.Segments.size(); id++) {
-            auto& seg = level.GetSegment((SegID)id);
-            if (Vector3::Distance(seg.Center, point) > 200) continue;
-
-            if (PointInSegment(level, (SegID)id, point))
-                return (SegID)id;
-        }
-
-        return SegID::None;
-    }
 
     void Commands::AddEnergyCenter() {
         auto& level = Game::Level;
@@ -776,20 +716,6 @@ namespace Inferno::Editor {
         auto& tmi1 = Resources::GetLevelTextureInfo(side.TMap);
         auto& tmi2 = Resources::GetLevelTextureInfo(side.TMap2);
         return tmi1.Lighting != 0 || tmi2.Lighting != 0;
-    }
-
-    bool IsSecretExit(const Trigger& trigger) {
-        if (Game::Level.IsDescent1())
-            return trigger.HasFlag(TriggerFlagD1::SecretExit);
-        else
-            return trigger.Type == TriggerType::SecretExit;
-    }
-
-    bool IsExit(const Trigger& trigger) {
-        if (Game::Level.IsDescent1())
-            return trigger.HasFlag(TriggerFlagD1::Exit);
-        else
-            return trigger.Type == TriggerType::Exit;
     }
 
     void SetTextureFromDoorClip(Level& level, Tag tag, DClipID id) {

@@ -2,8 +2,21 @@
 #include "Editor.h"
 #include "Graphics/Render.h"
 #include "Editor.Segment.h"
+#include "Game.Segment.h"
 
 namespace Inferno::Editor {
+    // Returns a random connected segment or none.
+    SegID GetConnectedSegment(Level& level, SegID id) {
+        if (auto seg = level.TryGetSegment(id)) {
+            for (auto& side : SideIDs) {
+                if (seg->SideHasConnection(side))
+                    return seg->GetConnection(side);
+            }
+        }
+
+        return SegID::None;
+    }
+
     // Returns true if textures match according to selection settings
     bool TexturesMatch(Level& level, Tag src, Tag tag) {
         auto& s0 = level.GetSide(src);

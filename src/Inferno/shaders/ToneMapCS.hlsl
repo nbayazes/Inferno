@@ -137,7 +137,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     //if (l > 1.00)
     //    hdrColor += (l - 1) / 3;
     float3 bloom = constants.g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
-    float bloomLum = Luminance(bloom);
+    
     hdrColor += bloom;
     if (constants.EnableDirt)
         hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 1.0;
@@ -168,9 +168,6 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         // it also causes bright white areas to blend more smoothly
         //float t0 = max(0, smoothstep(0.2, 0.4, lum));
         float t0 = max(0, smoothstep(0, 2, lum));
-        //float t0 = saturate(lum);
-        //float t0 = saturate(1 * lum * lum);
-        //hdrColor = lerp(hdrColor, toneMappedColor, t0);
         hdrColor = toneMappedColor * t0 + hdrColor * (1 - t0); // slightly darker and more contrast in high ranges
     }
 

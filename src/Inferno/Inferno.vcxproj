@@ -162,6 +162,7 @@
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.Input.cpp" />
+    <ClCompile Include="Game.Object.cpp" />
     <ClCompile Include="Game.Player.cpp" />
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
@@ -236,6 +237,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Game.Input.h" />
+    <ClInclude Include="Game.Object.h" />
     <ClInclude Include="Game.Player.h" />
     <ClInclude Include="Editor\UI\ScaleWindow.h" />
     <ClInclude Include="Editor\UI\TextureEditor.h" />

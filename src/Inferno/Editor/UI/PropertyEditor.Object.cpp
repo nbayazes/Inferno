@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "../Editor.h"
 #include "SoundSystem.h"
+#include "Editor/Editor.Object.h"
 
 namespace Inferno::Editor {
     const char* GetObjectTypeName(ObjectType type) {
@@ -515,9 +516,9 @@ namespace Inferno::Editor {
         bool changed = false;
         bool finishedEdit = false;
         auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
-        auto angleSpeed = Settings::Editor.RotationSnap > 0 ? Settings::Editor.RotationSnap : DirectX::XM_PI / 32;
+        //auto angleSpeed = Settings::Editor.RotationSnap > 0 ? Settings::Editor.RotationSnap : DirectX::XM_PI / 32;
 
-        auto Slider = [&](const char* label, float& value) {
+        auto slider = [&](const char* label, float& value) {
             ImGui::Text(label);
             ImGui::SameLine(30 * Shell::DpiScale);
             ImGui::SetNextItemWidth(-1);
@@ -527,20 +528,20 @@ namespace Inferno::Editor {
             ImGui::PopID();
         };
 
-        auto AngleSlider = [&](const char* label, float& value) {
-            ImGui::Text(label);
-            ImGui::SameLine(60 * Shell::DpiScale);
-            ImGui::SetNextItemWidth(-1);
-            ImGui::PushID(label);
-            changed |= ImGui::DragFloat("##pyr", &value, angleSpeed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
-            ImGui::PopID();
-        };
+        //auto AngleSlider = [&](const char* label, float& value) {
+        //    ImGui::Text(label);
+        //    ImGui::SameLine(60 * Shell::DpiScale);
+        //    ImGui::SetNextItemWidth(-1);
+        //    ImGui::PushID(label);
+        //    changed |= ImGui::DragFloat("##pyr", &value, angleSpeed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+        //    finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+        //    ImGui::PopID();
+        //};
 
         ImGui::TableRowLabel("Object position");
-        Slider("X", obj.Position.x);
-        Slider("Y", obj.Position.y);
-        Slider("Z", obj.Position.z);
+        slider("X", obj.Position.x);
+        slider("Y", obj.Position.y);
+        slider("Z", obj.Position.z);
 
         //ImGui::TableRowLabel("Object rotation");
         //auto angles = Matrix(obj.Rotation).ToEuler(); 

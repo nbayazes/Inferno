@@ -1,5 +1,6 @@
 #include "pch.h"
 
+#include "Game.Segment.h"
 #include "Render.h"
 
 namespace Inferno::Graphics {
@@ -14,32 +15,6 @@ namespace Inferno::Graphics {
         // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
         Vector4 clip(texCoord.x * 2.0f - 1.0f, texCoord.y * 2.0f - 1.0f, screen.z, screen.w);
         return ClipToView(clip, inverseProj);
-    }
-
-    // Returns the light contribution from both textures on this side
-    Color GetLightColor(const SegmentSide& side) {
-        if (side.LightOverride) return *side.LightOverride;
-
-        auto& tmap1 = Resources::GetLevelTextureInfo(side.TMap);
-        auto light = tmap1.Lighting;
-
-        Color color;
-        if (tmap1.Lighting > 0) {
-            auto& ti = Resources::GetTextureInfo(side.TMap);
-            color += ti.AverageColor;
-        }
-
-        if (side.HasOverlay()) {
-            auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
-            light += tmap2.Lighting;
-            if (tmap2.Lighting > 0) {
-                auto& ti = Resources::GetTextureInfo(side.TMap2);
-                color += ti.AverageColor;
-            }
-        }
-
-        color.w = 0;
-        return color * light;
     }
 
     constexpr bool CheckMinLight(const Color& color) {
@@ -343,7 +318,7 @@ namespace Inferno::Graphics {
                 }
 
                 if (!info) info = &defaultInfo;
-                auto color = info->Color == Color(0, 0, 0) ? GetLightColor(side) : info->Color;
+                auto color = info->Color == Color(0, 0, 0) ? GetLightColor(side, true) : info->Color;
                 auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
 
                 if (side.LightOverride) color = *side.LightOverride;

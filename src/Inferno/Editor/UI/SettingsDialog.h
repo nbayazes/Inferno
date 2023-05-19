@@ -3,15 +3,16 @@
 #include "FileSystem.h"
 #include "WindowBase.h"
 #include "WindowsDialogs.h"
+#include "Editor/Bindings.h"
 
 namespace Inferno::Editor {
-    class SettingsDialog : public ModalWindowBase {
-        Array<char, MAX_PATH> _d1PathBuffer, _d2PathBuffer;
+    class SettingsDialog final : public ModalWindowBase {
+        Array<char, MAX_PATH> _d1PathBuffer{}, _d2PathBuffer{};
         bool _enableForegroundFpsLimit = false;
         const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
-        int _selectedPath;
-        TexturePreviewSize _texturePreviewSize;
+        int _selectedPath = 0;
+        TexturePreviewSize _texturePreviewSize{};
 
         EditorSettings _editor;
         InfernoSettings _inferno;
@@ -37,7 +38,7 @@ namespace Inferno::Editor {
         void MainOptionsTab() {
             if (!ImGui::BeginTabItem("Options")) return;
 
-            static const COMDLG_FILTERSPEC filter[] = { { L"Executable", L"*.exe" } };
+            static constexpr COMDLG_FILTERSPEC filter[] = { { L"Executable", L"*.exe" } };
 
             ImGui::Text("Descent 1 executable");
 
@@ -326,7 +327,7 @@ namespace Inferno::Editor {
                     }
 
                     ImGui::TableNextColumn();
-                    ImVec2 editBtnSize = { 100 * Shell::DpiScale, 0 };
+                    //ImVec2 editBtnSize = { 100 * Shell::DpiScale, 0 };
                     ImGui::SameLine();
 
                     ImGui::PopID();
@@ -478,19 +479,19 @@ namespace Inferno::Editor {
             }
         }
 
-        void UnbindExisting(span<BindingEntry> entries, const EditorBinding& binding) {
+        static void UnbindExisting(span<BindingEntry> entries, const EditorBinding& binding) {
             for (auto& entry : entries) {
                 if (entry.Primary == binding) entry.Primary.ClearShortcut();
                 if (entry.Secondary == binding) entry.Secondary.ClearShortcut();
             }
         }
 
-        List<BindingEntry> BuildBindingEntries(EditorBindings bindings /*copy*/) {
+        static List<BindingEntry> BuildBindingEntries(EditorBindings bindings /*copy*/) {
             bindings.Sort();
             List<BindingEntry> entries;
 
             for (auto& binding : bindings.GetBindings()) {
-                if (auto existing = Seq::find(entries, [&binding](BindingEntry& e) { return e.Action == binding.Action; })) {
+                if (auto existing = Seq::find(entries, [&binding](const BindingEntry& e) { return e.Action == binding.Action; })) {
                     existing->Secondary = binding;
                 }
                 else {
@@ -506,7 +507,7 @@ namespace Inferno::Editor {
             return entries;
         }
 
-        void CopyBindingEntries(span<BindingEntry> entries) {
+        static void CopyBindingEntries(span<BindingEntry> entries) {
             using Keys = DirectX::Keyboard::Keys;
             Bindings::Active.Clear();
 

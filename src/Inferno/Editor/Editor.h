@@ -3,24 +3,15 @@
 #include "Types.h"
 #include "Level.h"
 #include "Utility.h"
-#include "Events.h"
 #include "Gizmo.h"
 #include "Resources.h"
 #include "WindowsDialogs.h"
-#include "Face.h"
 #include "Command.h"
-#include "Bindings.h"
 
 #include "Editor.Selection.h"
-#include "Editor.Geometry.h"
 #include "Editor.Undo.h"
-#include "Editor.Clipboard.h"
 #include "Editor.Wall.h"
 #include "Editor.IO.h"
-#include "Editor.Segment.h"
-#include "Editor.Object.h"
-#include "Editor.Texture.h"
-#include "Editor.Lighting.h"
 
 namespace Inferno::Editor {
     void UpdateCamera(Camera&);

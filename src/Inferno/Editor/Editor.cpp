@@ -13,8 +13,10 @@
 #include "Editor.Segment.h"
 #include "Editor.Wall.h"
 #include "Convert.h"
-#include "LevelSettings.h"
+#include "Editor.Clipboard.h"
+#include "Editor.Geometry.h"
 #include "Editor.IO.h"
+#include "Game.Object.h"
 #include "Version.h"
 #include "Game.Segment.h"
 #include "Graphics/Render.Particles.h"
@@ -587,7 +589,7 @@ namespace Inferno::Editor {
         }
 
         void GoToExit() {
-            if (auto tid = Seq::findIndex(Game::Level.Triggers, IsExit)) {
+            if (auto tid = Seq::findIndex(Game::Level.Triggers, [] (const Trigger& trigger) { return IsExit(Game::Level, trigger); })) {
                 if (auto wall = Game::Level.TryGetWall((TriggerID)*tid)) {
                     Selection.SetSelection(wall->Tag);
                     FocusSegment();
@@ -599,7 +601,7 @@ namespace Inferno::Editor {
         }
 
         void GoToSecretExit() {
-            if (auto tid = Seq::findIndex(Game::Level.Triggers, IsSecretExit)) {
+            if (auto tid = Seq::findIndex(Game::Level.Triggers, [](const Trigger& trigger) { return IsSecretExit(Game::Level, trigger); })) {
                 if (auto wall = Game::Level.TryGetWall((TriggerID)*tid)) {
                     Selection.SetSelection(wall->Tag);
                     FocusSegment();
