@@ -117,7 +117,7 @@ namespace Inferno::Render {
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
 
-        effect.Shader->SetSampler(cmdList, GetTextureSampler());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         auto& seg = Game::Level.GetSegment(Segment);
         ObjectShader::Constants constants = {};
         constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
@@ -306,6 +306,7 @@ namespace Inferno::Render {
 
         beam.Runtime.Length = (beam.Start - beam.End).Length();
         beam.Runtime.Width = beam.Width.GetRandom();
+        beam.Runtime.OffsetU = Random();
         Beams.Add(beam);
     }
 
@@ -327,6 +328,7 @@ namespace Inferno::Render {
         if (info && obj) {
             BeamInfo beam = *info;
             beam.StartObj = start;
+            beam.Start = obj->Position;
             beam.Segment = obj->Segment;
             beam.End = end;
             beam.StartObjGunpoint = startGun;
@@ -342,6 +344,7 @@ namespace Inferno::Render {
         if (info && obj) {
             BeamInfo beam = *info;
             beam.StartObj = start;
+            beam.Start = obj->Position;
             beam.Segment = obj->Segment;
             beam.EndObj = end;
             beam.StartObjGunpoint = startGun;
@@ -400,7 +403,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicWrap());
+        effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
         for (auto& beam : Beams) {
             beam.Life -= Render::FrameTime;
@@ -460,6 +463,7 @@ namespace Inferno::Render {
                     FractalNoise(noise);
 
                 beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
+                beam.Runtime.OffsetU = Random();
             }
 
             if (HasFlag(beam.Flags, BeamFlag::RandomEnd) && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
@@ -510,7 +514,7 @@ namespace Inferno::Render {
                     }
                 }
 
-                nextSeg.texcoord = vLast;
+                nextSeg.texcoord = beam.Runtime.OffsetU + vLast;
 
                 if (i > 0) {
                     Vector3 avgNormal;
@@ -533,17 +537,24 @@ namespace Inferno::Render {
                     auto up = avgNormal * beam.Runtime.Width * 0.5f;
                     if (i == 1) prevUp = up;
 
-                    auto color = beam.Color;
-                    if (HasFlag(beam.Flags, BeamFlag::FadeEnd) && fraction >= 0.5)
-                        color.w = std::lerp(1.0f, 0.0f, (fraction - 0.5f) * 2);
+                    auto startColor = beam.Color;
+                    auto endColor = beam.Color;
 
-                    if (HasFlag(beam.Flags, BeamFlag::FadeStart) && fraction <= 0.5)
-                        color.w = std::lerp(0.0f, 1.0f, fraction * 2);
+                    if (HasFlag(beam.Flags, BeamFlag::FadeStart) && fraction <= 0.5) {
+                        startColor.w = std::lerp(0.0f, 1.0f, (i - 1) * div * 2);
+                        endColor.w = std::lerp(0.0f, 1.0f, i * div * 2);
+                    }
 
-                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, color };
-                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, color };
-                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, color };
-                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, color };
+                    if (HasFlag(beam.Flags, BeamFlag::FadeEnd) && fraction >= 0.5) {
+                        startColor.w = std::lerp(1.0f, 0.0f, (i * div - 0.5f) * 2);
+                        endColor.w = std::lerp(1.0f, 0.0f, ((i + 1) * div - 0.5f) * 2);
+                    }
+
+                    auto dist = Vector3::Distance(start, beam.Start);
+                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, startColor };
+                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, startColor };
+                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, endColor };
+                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, endColor };
 
                     g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
                     prevUp = up;
@@ -591,7 +602,7 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
+        effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
         const auto delta = Position - End;
         const auto dist = delta.Length();
@@ -723,7 +734,7 @@ namespace Inferno::Render {
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
             effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-            effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
+            effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
             for (auto& decal : Decals) {
                 decal.Update(dt);
@@ -743,7 +754,7 @@ namespace Inferno::Render {
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
             effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-            effect.Shader->SetSampler(ctx.CommandList(), Render::Heaps->States.AnisotropicClamp());
+            effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
             for (auto& decal : AdditiveDecals) {
                 decal.Update(dt);
@@ -841,7 +852,7 @@ namespace Inferno::Render {
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
 
-        effect.Shader->SetSampler(cmdList, Heaps->States.AnisotropicClamp());
+        effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
         auto& material = Render::Materials->Get(Texture);
         effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
         g_SpriteBatch->Begin(ctx.CommandList());

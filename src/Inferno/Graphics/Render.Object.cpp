@@ -233,7 +233,7 @@ namespace Inferno::Render {
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
-                effect.Shader->SetSampler(cmd, GetTextureSampler());
+                effect.Shader->SetSampler(cmd, GetWrappedTextureSampler());
                 effect.Shader->SetMaterial(cmd, handle);
                 effect.Shader->SetLightGrid(cmd, *Render::LightGrid);
                 effect.Shader->SetMaterialInfoBuffer(cmd, Render::MaterialInfoBuffer->GetSRV());
@@ -275,7 +275,7 @@ namespace Inferno::Render {
 
         auto& meshHandle = GetMeshHandle(modelId);
 
-        effect.Shader->SetSampler(cmdList, GetTextureSampler());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         ObjectShader::Constants constants = {};
 
         if (object.Render.Emissive != Color(0, 0, 0)) {

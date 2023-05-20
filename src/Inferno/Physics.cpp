@@ -222,6 +222,7 @@ namespace Inferno {
         e.Restitution = 0.6f;
         e.Velocity = { 50, 65 };
         e.Count = { 80, 100 };
+        e.FadeTime = 0.5f;
         Render::AddSparkEmitter(e);
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);

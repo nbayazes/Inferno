@@ -116,9 +116,9 @@ namespace Inferno {
         Yaml::ReadValue(node["FadeEnd"], fadeEnd);
         Yaml::ReadValue(node["FadeStart"], fadeStart);
         Yaml::ReadValue(node["RandomEnd"], randomEnd);
-        if (fadeEnd) SetFlag(beam.Flags, Render::BeamFlag::FadeEnd);
-        if (fadeStart) SetFlag(beam.Flags, Render::BeamFlag::FadeStart);
-        if (randomEnd) SetFlag(beam.Flags, Render::BeamFlag::RandomEnd);
+        SetFlag(beam.Flags, Render::BeamFlag::FadeEnd, fadeEnd);
+        SetFlag(beam.Flags, Render::BeamFlag::FadeStart, fadeStart);
+        SetFlag(beam.Flags, Render::BeamFlag::RandomEnd, randomEnd);
 #undef READ_PROP
 
         beams[name] = beam;

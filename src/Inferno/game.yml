@@ -229,6 +229,7 @@ Weapons:
     Behavior: omega
     FireDelay: 0.125
     Damage: [ 32, 32, 32, 32, 32 ]
+    #Damage: [ 1,1,1,1,1 ]
     WallHitSound: -1
     WallHitVClip: -1
     RobotHitVClip: -1
@@ -300,7 +301,7 @@ Effects:
     - Name: reactor_arcs # destroyed reactor arcs
       Radius: [ 20, 30 ] # endpoint search radius
       Width: [ 1, 1.75 ]
-      Color: 1.75, 0.75, 1.75
+      Color: 6, 1, 6
       Texture: Lightning4
       Frequency: 0.0333 # 1/30
       Amplitude: 2.1
@@ -309,35 +310,36 @@ Effects:
 
     - Name: omega_beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]
-      Color: 3, 1, 3 
-      Color2: 3.5, 1, 3.5 # todo: random colors?
-      Texture: HellionBeam
+      Color: 60, 25, 90
+      Color2: 60, 25, 90 # todo: random colors?
+      Texture: Lightning4
       Frequency: 0.0333 # 1/30
       Amplitude: 1
 
     - Name: omega_beam2 # accent beams when hitting a target
-      Width: 0.65
-      Color: 1.3, 1, 1.45
+      Width: 0.5
+      Color: 30, 15, 45
       Texture: Lightning4
       Frequency: 0.0333
       Amplitude: 0.55
 
-    - Name: omega_miss # used when omega hits no targets
-      Width: 0.65
-      Color: 1.3, 1, 1.45
-      Texture: Lightning4
-      Frequency: 0.0333
-      Amplitude: 0.7
-
     - Name: omega_tracer # random arcs used after omega hits a target
       Radius: 30 # MAX_CHAIN_DIST
       Width: 0.65
-      Color: 1.3, 1, 1.45
+      Color: 60, 25, 90
       Texture: Lightning4
       Frequency: 0.0333
-      Amplitude: 1.25
+      Amplitude: 1
       FadeEnd: 1
       RandomEnd: 1
+
+    - Name: omega_miss # used when omega hits no targets
+      Width: 1.0
+      Color: 60, 25, 90
+      Texture: Lightning4
+      Frequency: 0.0166
+      Amplitude: 0.7
+      FadeEnd: 1
 
   Sparks:
     - Name: omega_hit

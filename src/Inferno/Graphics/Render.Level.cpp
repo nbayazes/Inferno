@@ -38,7 +38,7 @@ namespace Inferno::Render {
 
         auto& effect = Effects->DepthCutout;
         effect.Apply(cmdList);
-        effect.Shader->SetSampler(cmdList, GetTextureSampler());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
 
         {
             auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
@@ -248,7 +248,7 @@ namespace Inferno::Render {
 
                     ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
                     auto cmdList = ctx.CommandList();
-                    Shaders->Level.SetSampler(cmdList, GetTextureSampler());
+                    Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
 
                     DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
                 }

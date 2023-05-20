@@ -34,12 +34,16 @@ namespace Inferno::Render {
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
 
-    inline D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSampler() {
-        return Settings::Graphics.HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
+    inline D3D12_GPU_DESCRIPTOR_HANDLE GetWrappedTextureSampler() {
+        // todo: change this based on filter settings. AA point sampling uses AF.
+        return Heaps->States.AnisotropicWrap();
+        //return Settings::Graphics.HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
     }
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetClampedTextureSampler() {
-        return Settings::Graphics.HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
+        // todo: change this based on filter settings. AA point sampling uses AF.
+        return Heaps->States.AnisotropicClamp();
+        //return Settings::Graphics.HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
     }
 
     enum class RenderPass {
@@ -61,7 +65,6 @@ namespace Inferno::Render {
     void LoadModelDynamic(ModelID);
     void LoadTextureDynamic(TexID);
     void LoadTextureDynamic(LevelTexID);
-    void LoadTextureDynamic(TexID);
     void LoadHUDTextures();
     void LoadTextureDynamic(VClipID);
     void LoadLevel(const Inferno::Level&);

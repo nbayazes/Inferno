@@ -520,7 +520,8 @@ namespace Inferno::Resources {
 
     void LoadGameTable() {
         // todo: support handle loading game.yml from hog file
-        LoadGameTable("game.yml", GameData);
+        if (auto file = FileSystem::TryFindFile("game.yml"))
+            LoadGameTable(*file, GameData);
     }
 
     void LoadLevel(Level& level) {

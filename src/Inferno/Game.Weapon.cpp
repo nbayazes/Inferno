@@ -802,11 +802,10 @@ namespace Inferno::Game {
             }
             else {
                 //SetFlag(tracer.Flags, Render::BeamFlag::FadeEnd);
-                // not sure why scaling the length down is necessary, but it feels more accurate
-                //tracer.End = beam.End = start + dir * MAX_DIST * 0.3f;
-                tracerEnd = start + dir * MAX_DIST * 0.3f;
+                tracerEnd = start + dir * MAX_DIST;
             }
 
+            //Render::AddBeam("omega_miss", 10, playerObj.Position, tracerEnd);
             Render::AddBeam("omega_miss", weapon.FireDelay, player.ID, tracerEnd, gun);
         }
 

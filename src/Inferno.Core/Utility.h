@@ -150,6 +150,12 @@ namespace Inferno {
     template<class T>
     void ClearFlag(T& flags, T flag) { flags &= ~flag; }
 
+    template<class T>
+    void SetFlag(T& flags, T flag, bool value) {
+        if (value) flags |= flag;
+        else flags &= ~flag;
+    }
+
     //template <class T>
     //concept IsEnum = is_scoped_enum_v<T>;
 

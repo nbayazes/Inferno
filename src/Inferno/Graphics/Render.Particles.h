@@ -207,6 +207,7 @@ namespace Inferno::Render {
             float NextUpdate;
             float NextStrikeTime;
             float Width;
+            float OffsetU; // Random amount to offset the texture by
         } Runtime{};
 
         bool IsAlive() const { return Life > 0; }

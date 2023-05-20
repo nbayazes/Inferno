@@ -3,13 +3,7 @@
     "CBV(b0),"\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
-    "StaticSampler(s1," \
-        "addressU = TEXTURE_ADDRESS_CLAMP," \
-        "addressV = TEXTURE_ADDRESS_CLAMP," \
-        "addressW = TEXTURE_ADDRESS_CLAMP," \
-        "maxAnisotropy = 16," \
-        "filter = FILTER_ANISOTROPIC)"
+    "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL)"
 
 SamplerState Sampler : register(s0);
 SamplerState LinearSampler : register(s1);
@@ -51,7 +45,7 @@ float SaturateSoft(float depth, float contrast) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     //float4 diffuse = Diffuse.Sample(Sampler, input.uv);
-    float4 diffuse = Sample2DAA(Diffuse, input.uv, LinearSampler);
+    float4 diffuse = Sample2DAA(Diffuse, input.uv, Sampler);
     //diffuse.xyz = pow(diffuse.xyz, 2.2);
     diffuse *= input.col;
     diffuse.a = clamp(diffuse.a, 0, 1);
