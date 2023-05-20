@@ -187,6 +187,53 @@ namespace Inferno::Render {
         return ids;
     }
 
+    // Expands a diffuse texture by 1 pixel. Fixes artifacts around transparent edges.
+    void ExpandDiffuse(const PigEntry& bmp, List<Palette::Color>& data) {
+        auto getPixel = [&](int x, int y) -> Palette::Color& {
+            if (x < 0) x += bmp.Width;
+            if (x > bmp.Width - 1) x -= bmp.Width;
+            if (y < 0) y += bmp.Height;
+            if (y > bmp.Height - 1) y -= bmp.Height;
+
+            int offset = bmp.Width * y + x;
+            return data[offset];
+        };
+
+        auto spreadPixel = [](const Palette::Color& src, Palette::Color& dst) {
+            dst.r = src.r;
+            dst.g = src.g;
+            dst.b = src.b;
+        };
+
+        // row pass. starts at top left.
+        for (int y = 0; y < bmp.Height; y++) {
+            for (int x = 0; x < bmp.Width; x++) {
+                auto& px = data[bmp.Width * y + x];
+                auto& below = getPixel(x, y + 1);
+                auto& above = getPixel(x, y - 1);
+                // row below is transparent and this one isn't
+                if (below.a == 0 && px.a != 0) spreadPixel(px, below);
+
+                // row above is transparent and this one isn't
+                if (above.a == 0 && px.a != 0) spreadPixel(px, above);
+            }
+        }
+
+        // column pass. starts at top left.
+        for (int x = 0; x < bmp.Width; x++) {
+            for (int y = 0; y < bmp.Height; y++) {
+                auto& px = data[bmp.Width * y + x];
+                auto& left = getPixel(x - 1, y);
+                auto& right = getPixel(x + 1, y);
+                // column left is transparent and this one isn't
+                if (left.a == 0 && px.a != 0) spreadPixel(px, left);
+
+                // column right is transparent and this one isn't
+                if (right.a == 0 && px.a != 0) spreadPixel(px, right);
+            }
+        }
+    }
+
     // Expands a supertransparent mask by 1 pixel. Fixes artifacts around supertransparent pixels.
     void ExpandMask(const PigEntry& bmp, List<Palette::Color>& data) {
         auto getPixel = [&](int x, int y) -> Palette::Color& {
@@ -273,8 +320,15 @@ namespace Inferno::Render {
                     material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
-        if (!material.Textures[Material2D::Diffuse])
-            material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+        if (!material.Textures[Material2D::Diffuse]) {
+            if (upload.Bitmap->Info.Transparent) {
+                List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
+                ExpandDiffuse(upload.Bitmap->Info, data);
+                material.Textures[Material2D::Diffuse].Load(batch, data.data(), width, height, Convert::ToWideString(material.Name));
+            } else {
+                material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
+            }
+        }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
             List<Palette::Color> mask = upload.Bitmap->Mask; // copy mask, as modifying the original would affect collision
