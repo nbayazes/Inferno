@@ -36,7 +36,6 @@ RWTexture2D<float> OutLuma : register(u1);
 
 SamplerState LinearSampler : register(s0);
 
-
 struct Constants {
     float2 g_RcpBufferDim;
     float g_BloomStrength;
@@ -59,11 +58,9 @@ float3 ITM_Reinhard(float3 sdr, float k = 1.0) {
     return k * sdr / (k - sdr);
 }
 
-
 // This is the new tone operator.  It resembles ACES in many ways, but it is simpler to evaluate with ALU.  One
 // advantage it has over Reinhard-Squared is that the shoulder goes to white more quickly and gives more overall
 // brightness and contrast to the image.
-
 float3 TM_Stanard(float3 hdr) {
     return TM_Reinhard(hdr * sqrt(hdr), sqrt(4.0 / 27.0));
 }
@@ -139,6 +136,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     float3 bloom = constants.g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
     
     hdrColor += bloom;
+    // todo: dirt texture needs to maintain aspect ratio when scaling
     if (constants.EnableDirt)
         hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 1.0;
     hdrColor *= constants.g_Exposure;
@@ -173,7 +171,4 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     hdrColor = pow(hdrColor, 1.0 / 2.2); // linear to sRGB
     ColorRW[DTid.xy] = hdrColor;
-
-    //ColorRW[DTid.xy] = Uncharted2ToneMapping(hdrColor, 1.1);
-    //ColorRW[DTid.xy] = hdrColor;
 }

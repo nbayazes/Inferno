@@ -1,4 +1,3 @@
-#include "FrameConstants.hlsli"
 #include "Lighting.hlsli"
 #include "Common.hlsli"
 
@@ -9,16 +8,11 @@
     "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "CBV(b2),"\
-    "StaticSampler(s1," \
-        "addressU = TEXTURE_ADDRESS_WRAP," \
-        "addressV = TEXTURE_ADDRESS_WRAP," \
-        "addressW = TEXTURE_ADDRESS_WRAP," \
-        "maxAnisotropy = 16," \
-        "filter = FILTER_ANISOTROPIC)" // FILTER_MIN_MAG_MIP_LINEAR, FILTER_MIN_MAG_MIP_POINT
+    "CBV(b2)"
 
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used but reserved for descriptor table
@@ -38,8 +32,7 @@ Texture2D Depth : register(t10);
 //ByteAddressBuffer LightGridBitMask : register(t11);
 
 SamplerState Sampler : register(s0);
-SamplerState LinearSampler : register(s1);
-
+SamplerState NormalSampler : register(s1);
 
 //Texture2DArray<float> lightShadowArrayTex : register(t10);
 
@@ -56,7 +49,8 @@ struct InstanceConstants {
     bool HasOverlay;
 };
 
-ConstantBuffer<InstanceConstants> args : register(b1);
+ConstantBuffer<FrameConstants> Frame : register(b0);
+ConstantBuffer<InstanceConstants> Args : register(b1);
 
 struct LevelVertex {
     float3 pos : POSITION;
@@ -85,12 +79,12 @@ struct PS_INPUT {
 [RootSignature(RS)]
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
-    output.pos = mul(ViewProjectionMatrix, float4(input.pos, 1));
+    output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));
     //output.col = float4(input.col.rgb, 1);
     output.col = input.col;
     output.col.a = clamp(output.col.a, 0, 1);
-    output.uv = input.uv + args.Scroll * Time * 200;
-    output.uv2 = input.uv2 + args.Scroll2 * Time * 200;
+    output.uv = input.uv + Args.Scroll * Frame.Time * 200;
+    output.uv2 = input.uv2 + Args.Scroll2 * Frame.Time * 200;
     output.normal = input.normal;
     output.tangent = input.tangent;
     output.bitangent = input.bitangent;
@@ -105,12 +99,12 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal, float power) {
     return float4(specular, 0);
 }
 
-float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
-    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / FrameSize).x;
-    float f = saturate((((end - start) / FarClip) - depth) / ((end - start) / FarClip));
-    //float f = saturate(1 / exp(pow(depth * 5, 2)));
-    return f * pixel + (1 - f) * fogColor;
-}
+//float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
+//    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / Frame.FrameSize).x;
+//    float f = saturate((((end - start) / Frame.FarClip) - depth) / ((end - start) / Frame.FarClip));
+//    //float f = saturate(1 / exp(pow(depth * 5, 2)));
+//    return f * pixel + (1 - f) * fogColor;
+//}
 
 float rand(float2 co) {
     float dt = dot(co.xy, float2(12.9898, 78.233));
@@ -212,14 +206,14 @@ void AntiAliasSpecular(inout float3 texNormal, inout float gloss) {
 
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
-    float3 viewDir = normalize(input.world - Eye);
+    float3 viewDir = normalize(input.world - Frame.Eye);
     // adding noise fixes dithering, but this is expensive. sample a noise texture instead
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
-    float4 base = Sample2DAA(Diffuse, input.uv, LinearSampler);
-    //float3 normal = clamp(Sample2DAAData2(Normal1, input.uv, LinearSampler).rgb * 2 - 1, -1, 1);
-    float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1);
-    normal.xy *= args.Mat1.NormalStrength;
+    float4 base = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
+    float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
+    //float3 normal = clamp(SampleData2D(Normal1, input.uv, NormalSampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
+    normal.xy *= Args.Mat1.NormalStrength;
     normal = normalize(normal);
 
     // 'automap' shader?
@@ -229,7 +223,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float gx = clamp(fwd * 100, 0.01, 4);
     //return float4(0, gx * 1, 0, 1);
 
-    float specularMask = Sample2DAAData(Specular1, input.uv, LinearSampler).r;
+    float specularMask = Sample2D(Specular1, input.uv, Sampler, Frame.FilterMode).r;
 
     //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
     //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
@@ -243,39 +237,39 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float emissive = (Sample2DAAData(Emissive, input.uv, LinearSampler)).r * args.Mat1.EmissiveStrength;
-    MaterialInfo material = args.Mat1;
+    float emissive = SampleData2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * Args.Mat1.EmissiveStrength;
+    MaterialInfo material = Args.Mat1;
 
-    if (args.HasOverlay) {
+    if (Args.HasOverlay) {
         // Apply supertransparency mask
-        float mask = 1 - Sample2DAAData(StMask, input.uv2, LinearSampler).r; // only need a single channel
+        float mask = 1 - SampleData2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         base *= mask;
 
-        float4 overlay = Sample2DAA(Diffuse2, input.uv2, LinearSampler); // linear sampler causes artifacts
+        float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
         float out_a = overlay.a + base.a * (1 - overlay.a);
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
         emissive *= 1 - overlay.a; // Remove covered portion of emissive
 
-        // linear sampler causes artifacts
-        //float3 overlayNormal = clamp(Sample2DAAData2(Normal2, input.uv2, LinearSampler).rgb * 2 - 1, -1, 1);
-        float3 overlayNormal = clamp(Normal2.Sample(Sampler, input.uv2).rgb * 2 - 1, -1, 1);
+        // AA sampling causes artifacts on sharp highlights. Use plain point sampling instead.
+        //float3 overlayNormal = clamp(SampleData2D(Normal2, input.uv2, Sampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
+        float3 overlayNormal = SampleNormal(Normal2, input.uv2, NormalSampler);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
-        overlayNormal.xy *= args.Mat2.NormalStrength;
+        overlayNormal.xy *= Args.Mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
 
         normal = normalize(lerp(normal, overlayNormal, overlay.a));
 
-        material.SpecularStrength = lerp(args.Mat1.SpecularStrength, args.Mat2.SpecularStrength, overlay.a);
-        material.Metalness = lerp(args.Mat1.Metalness, args.Mat2.Metalness, overlay.a);
-        material.NormalStrength = normalize(lerp(args.Mat1.NormalStrength, args.Mat2.NormalStrength, overlay.a));
-        material.Roughness = lerp(args.Mat1.Roughness, args.Mat2.Roughness, overlay.a);
-        material.LightReceived = lerp(args.Mat1.LightReceived, args.Mat2.LightReceived, overlay.a);
+        material.SpecularStrength = lerp(Args.Mat1.SpecularStrength, Args.Mat2.SpecularStrength, overlay.a);
+        material.Metalness = lerp(Args.Mat1.Metalness, Args.Mat2.Metalness, overlay.a);
+        material.NormalStrength = normalize(lerp(Args.Mat1.NormalStrength, Args.Mat2.NormalStrength, overlay.a));
+        material.Roughness = lerp(Args.Mat1.Roughness, Args.Mat2.Roughness, overlay.a);
+        material.LightReceived = lerp(Args.Mat1.LightReceived, Args.Mat2.LightReceived, overlay.a);
 
-        float overlaySpecularMask = Sample2DAAData(Specular2, input.uv2, LinearSampler).r;
+        float overlaySpecularMask = SampleData2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += (Sample2DAAData(Emissive2, input.uv2, LinearSampler)).r * args.Mat2.EmissiveStrength * overlay.a;
+        emissive += SampleData2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * Args.Mat2.EmissiveStrength * overlay.a;
     }
 
     if (diffuse.a <= 0)
@@ -289,12 +283,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 lighting = float3(0, 0, 0);
 
     float3 vertexLighting = max(0, input.col.rgb);
-    vertexLighting = lerp(1, vertexLighting, args.LightingScale);
+    vertexLighting = lerp(1, vertexLighting, Args.LightingScale);
     vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
 
-    if (!NewLightMode) {
+    if (!Frame.NewLightMode) {
         lighting.rgb += vertexLighting;
-        return float4(diffuse.rgb * lighting.rgb * GlobalDimming, diffuse.a);
+        return float4(diffuse.rgb * lighting.rgb * Frame.GlobalDimming, diffuse.a);
     }
     else {
         float3 colorSum = float3(0, 0, 0);
@@ -314,6 +308,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //lighting.rgb += vertexLighting * 1.0;
         //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
         //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
-        return float4(lighting * GlobalDimming, diffuse.a);
+        return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
 }
+
+

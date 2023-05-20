@@ -550,7 +550,6 @@ namespace Inferno::Render {
                         endColor.w = std::lerp(1.0f, 0.0f, ((i + 1) * div - 0.5f) * 2);
                     }
 
-                    auto dist = Vector3::Distance(start, beam.Start);
                     ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, startColor };
                     ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, startColor };
                     ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, endColor };

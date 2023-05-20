@@ -12,11 +12,12 @@ namespace Inferno::Editor {
     class DebugWindow final : public WindowBase {
         float _frameTime = 0, _timeCounter = 1;
     public:
-        DebugWindow() : WindowBase("Debug") { IsOpen(false); }
+        DebugWindow() : WindowBase("Debug", &Settings::Editor.Windows.Debug) {}
     protected:
         void OnUpdate() override {
             ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
             ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
+            ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
             _timeCounter += Render::FrameTime;
 

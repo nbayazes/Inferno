@@ -1,24 +1,25 @@
+#include "Lighting.hlsli"
+#include "Common.hlsli"
+
 #define RS \
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 37), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
+    "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b2)"
 
 SamplerState Sampler : register(s0);
+SamplerState NormalSampler : register(s1);
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1);
 Texture2D Emissive : register(t2);
 Texture2D Specular1 : register(t3);
 Texture2D Normal1 : register(t4);
-
-#include "FrameConstants.hlsli"
-#include "Lighting.hlsli"
-#include "Common.hlsli"
 
 struct Constants {
     float4x4 WorldMatrix;
@@ -27,7 +28,8 @@ struct Constants {
     int TexID;
 };
 
-ConstantBuffer<Constants> args : register(b1);
+ConstantBuffer<FrameConstants> Frame : register(b0);
+ConstantBuffer<Constants> Args : register(b1);
 // lighting constants are register b2
 
 //StructuredBuffer<MaterialInfo> Materials : register(t5);
@@ -53,7 +55,7 @@ struct PS_INPUT {
 
 [RootSignature(RS)]
 PS_INPUT vsmain(ObjectVertex input) {
-    float4x4 wvp = mul(ViewProjectionMatrix, args.WorldMatrix);
+    float4x4 wvp = mul(Frame.ViewProjectionMatrix, Args.WorldMatrix);
     PS_INPUT output;
     output.pos = mul(wvp, float4(input.pos, 1));
     output.col = input.col;
@@ -61,10 +63,10 @@ PS_INPUT vsmain(ObjectVertex input) {
 
     // transform from object space to world space
     //input.normal.z *= -1;
-    output.normal = normalize(mul((float3x3)args.WorldMatrix, input.normal));
-    output.tangent = normalize(mul((float3x3)args.WorldMatrix, input.tangent));
-    output.bitangent = normalize(mul((float3x3)args.WorldMatrix, input.bitangent));
-    output.world = mul(args.WorldMatrix, float4(input.pos, 1)).xyz;
+    output.normal = normalize(mul((float3x3)Args.WorldMatrix, input.normal));
+    output.tangent = normalize(mul((float3x3)Args.WorldMatrix, input.tangent));
+    output.bitangent = normalize(mul((float3x3)Args.WorldMatrix, input.bitangent));
+    output.world = mul(Args.WorldMatrix, float4(input.pos, 1)).xyz;
     return output;
 }
 
@@ -80,22 +82,22 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    float3 viewDir = normalize(input.world - Eye);
-    float4 diffuse = Sample2DAA(Diffuse, input.uv, Sampler) * input.col;
+    float3 viewDir = normalize(input.world - Frame.Eye);
+    float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode) * input.col;
     diffuse.xyz = pow(diffuse.xyz, 2.2);
-    float3 emissive = Sample2DAAData(Emissive, input.uv, Sampler).rgb;
-    emissive = args.EmissiveLight + emissive * diffuse.rgb;
+    float3 emissive = SampleData2D(Emissive, input.uv, Sampler, Frame.FilterMode).rgb;
+    emissive = Args.EmissiveLight + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 
-    if (!NewLightMode) {
+    if (!Frame.NewLightMode) {
         float3 lightDir = float3(0, -1, 0);
         //float sum = emissive.r + emissive.g + emissive.b; // is there a better way to sum this?
         //float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
         //lighting += Ambient + pow(emissive * mult, 4);
-        lighting += args.Ambient;
+        lighting += Args.Ambient;
         lighting += emissive * 4;
         lighting *= Specular(lightDir, viewDir, input.normal);
-        return float4(diffuse.rgb * lighting * GlobalDimming, diffuse.a);
+        return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
     else {
         float specularMask = Specular1.Sample(Sampler, input.uv).r;
@@ -110,7 +112,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.LightReceived = 1;
         material.NormalStrength = 0.25;
 
-        float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1);
+        float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
         normal.xy *= material.NormalStrength;
         normal = normalize(normal);
 
@@ -125,8 +127,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         lighting += colorSum * material.LightReceived * 1.5;
         lighting += emissive * diffuse.rgb * 20; // todo: emissive mult
-        lighting += args.Ambient * 0.5f * diffuse.rgb * material.LightReceived; 
+        lighting += Args.Ambient * 0.5f * diffuse.rgb * material.LightReceived; 
 
-        return float4(lighting * GlobalDimming, diffuse.a);
+        return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
 }

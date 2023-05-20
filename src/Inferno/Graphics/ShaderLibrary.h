@@ -26,6 +26,7 @@ namespace Inferno {
         float NearClip, FarClip;
         float GlobalDimming;
         HlslBool NewLightMode;
+        TextureFilterMode FilterMode;
     };
 
     constexpr D3D12_INPUT_LAYOUT_DESC CreateLayout(span<const D3D12_INPUT_ELEMENT_DESC> desc) {
@@ -234,6 +235,7 @@ namespace Inferno {
             Material2, // t5 - t9
             Depth, // t10
             Sampler, // s0
+            NormalSampler, // s0
             LightGrid, // t11, t12, t13, b2
         };
     public:
@@ -252,6 +254,10 @@ namespace Inferno {
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
+
+        static void SetNormalSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(NormalSampler, sampler);
         }
 
         static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
@@ -310,6 +316,7 @@ namespace Inferno {
             RootConstants, // b1
             Material, // t0 - t4
             Sampler, // s0
+            NormalSampler, // s1
             //MaterialInfoBuffer, // t5
             LightGrid, // t11, t12, t13, b2
         };
@@ -334,6 +341,10 @@ namespace Inferno {
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
+
+        static void SetNormalSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(NormalSampler, sampler);
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {

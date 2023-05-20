@@ -401,6 +401,7 @@ namespace Inferno::Render {
         frameConstants.FrameSize = Adapter->GetOutputSize();
         frameConstants.GlobalDimming = Game::ControlCenterDestroyed ? float(sin(Game::CountdownTimer * 4) * 0.5 + 0.5) : 1;
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
+        frameConstants.FilterMode = Settings::Graphics.FilterMode;
 
         Adapter->FrameConstantsBuffer.Begin();
         Adapter->FrameConstantsBuffer.Copy({ &frameConstants, 1 });

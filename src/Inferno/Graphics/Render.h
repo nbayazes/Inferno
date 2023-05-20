@@ -35,20 +35,20 @@ namespace Inferno::Render {
     inline Ptr<TextureCache> NewTextureCache;
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetWrappedTextureSampler() {
-        // todo: change this based on filter settings. AA point sampling uses AF.
-        return Heaps->States.AnisotropicWrap();
-        //return Settings::Graphics.HighRes ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
+        return Settings::Graphics.FilterMode == TextureFilterMode::Point ? Heaps->States.PointWrap() : Heaps->States.AnisotropicWrap();
+    }
+
+    inline D3D12_GPU_DESCRIPTOR_HANDLE GetNormalSampler() {
+        return Settings::Graphics.FilterMode == TextureFilterMode::Smooth ? Heaps->States.AnisotropicWrap() : Heaps->States.PointWrap();
     }
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetClampedTextureSampler() {
-        // todo: change this based on filter settings. AA point sampling uses AF.
-        return Heaps->States.AnisotropicClamp();
-        //return Settings::Graphics.HighRes ? Heaps->States.AnisotropicClamp() : Heaps->States.PointClamp();
+        return Settings::Graphics.FilterMode == TextureFilterMode::Point ? Heaps->States.PointClamp() : Heaps->States.AnisotropicClamp();
     }
 
     enum class RenderPass {
-        Opaque, // Solid level geometry or objects
-        Walls, // Level walls, might be transparent
+        Opaque,     // Solid level geometry or objects
+        Walls,      // Level walls, might be transparent
         Transparent // Sprites, transparent portions of models
     };
 
@@ -85,9 +85,9 @@ namespace Inferno::Render {
     inline Inferno::Camera Camera;
     inline Matrix ViewProjection;
 
-    inline float FrameTime = 0; // Time of this frame in seconds
+    inline float FrameTime = 0;     // Time of this frame in seconds
     inline float GameFrameTime = 0; // Time of this frame in seconds. 0 when paused.
-    inline double ElapsedTime = 0; // Time elapsed in seconds. Stops updating when paused or animations are disabled.
+    inline double ElapsedTime = 0;  // Time elapsed in seconds. Stops updating when paused or animations are disabled.
     inline DirectX::BoundingFrustum CameraFrustum;
 
     // Returns the squared distance of an object to the camera
@@ -95,11 +95,11 @@ namespace Inferno::Render {
         return Vector3::DistanceSquared(Render::Camera.Position, pos);
     }
 
-    void DrawBillboard(Graphics::GraphicsContext& ctx, 
-                       TexID tid, 
-                       const Vector3& position, 
+    void DrawBillboard(Graphics::GraphicsContext& ctx,
+                       TexID tid,
+                       const Vector3& position,
                        float radius,
-                       const Color& color, 
+                       const Color& color,
                        bool additive,
                        float rotation,
                        const Vector3* up);

@@ -3,7 +3,7 @@
 #include "Types.h"
 #include "Yaml.h"
 
-// Global editor settings that should be serialized
+// Global settings that should be serialized
 namespace Inferno {
     namespace Editor {
         enum class SelectionMode;
@@ -20,6 +20,10 @@ namespace Inferno {
 
     enum class RenderMode {
         None, Flat, Textured, Shaded
+    };
+
+    enum class TextureFilterMode {
+        Point, EnhancedPoint, Smooth
     };
 
     struct LightSettings {
@@ -113,6 +117,7 @@ namespace Inferno {
             bool TextureEditor = false;
             bool Scale = false;
             bool MaterialEditor = false;
+            bool Debug = false;
         } Windows;
 
         bool ShowWireframe = false;
@@ -130,6 +135,7 @@ namespace Inferno {
         int ForegroundFpsLimit = -1, BackgroundFpsLimit = 20;
         bool NewLightMode = true;
         int ToneMapper = 1;
+        TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
     };
 
     struct InfernoSettings {

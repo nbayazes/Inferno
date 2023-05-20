@@ -1,7 +1,9 @@
+#include "Common.hlsli"
+
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0)"
 
-#include "FrameConstants.hlsli"
+ConstantBuffer<FrameConstants> Frame : register(b0);
 
 struct LevelVertex {
     float3 pos : POSITION;
@@ -21,7 +23,7 @@ struct PS_INPUT {
 [RootSignature(RS)]
 PS_INPUT vsmain(LevelVertex input) {
     PS_INPUT output;
-    output.pos = mul(ViewProjectionMatrix, float4(input.pos.xyz, 1));
+    output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos.xyz, 1));
     //output.col = float4(1, 0.72, 0.25, 1);
     output.col = float4(0.8, 0.8, 0.8, 1);
     output.normal = input.normal;

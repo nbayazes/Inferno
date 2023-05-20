@@ -234,6 +234,7 @@ namespace Inferno::Render {
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
                 effect.Shader->SetSampler(cmd, GetWrappedTextureSampler());
+                effect.Shader->SetNormalSampler(cmd, GetNormalSampler());
                 effect.Shader->SetMaterial(cmd, handle);
                 effect.Shader->SetLightGrid(cmd, *Render::LightGrid);
                 effect.Shader->SetMaterialInfoBuffer(cmd, Render::MaterialInfoBuffer->GetSRV());

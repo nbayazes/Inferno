@@ -31,6 +31,7 @@ namespace Inferno {
         node["MsaaSamples"] << s.MsaaSamples;
         node["ForegroundFpsLimit"] << s.ForegroundFpsLimit;
         node["BackgroundFpsLimit"] << s.BackgroundFpsLimit;
+        node["FilterMode"] << (int)s.FilterMode;
     }
 
     GraphicsSettings LoadGraphicsSettings(ryml::NodeRef node) {
@@ -44,6 +45,7 @@ namespace Inferno {
 
         ReadValue(node["ForegroundFpsLimit"], s.ForegroundFpsLimit);
         ReadValue(node["BackgroundFpsLimit"], s.BackgroundFpsLimit);
+        ReadValue(node["FilterMode"], (int&)s.FilterMode);
         return s;
     }
 
@@ -61,6 +63,7 @@ namespace Inferno {
         node["TextureEditor"] << w.TextureEditor;
         node["MaterialEditor"] << w.MaterialEditor;
         node["Scale"] << w.Scale;
+        node["Debug"] << w.Debug;
     }
 
     EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
@@ -78,6 +81,7 @@ namespace Inferno {
         ReadValue(node["TextureEditor"], w.TextureEditor);
         ReadValue(node["MaterialEditor"], w.MaterialEditor);
         ReadValue(node["Scale"], w.Scale);
+        ReadValue(node["Debug"], w.Debug);
         return w;
     }
 

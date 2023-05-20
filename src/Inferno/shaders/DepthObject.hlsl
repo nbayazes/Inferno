@@ -1,9 +1,11 @@
+#include "Common.hlsli"
+
 #define RS \
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 16), "
 
-#include "FrameConstants.hlsli"
+ConstantBuffer<FrameConstants> Frame : register(b0);
 
 cbuffer Constants : register(b1) {
     float4x4 WorldMatrix;
@@ -22,7 +24,7 @@ struct PS_INPUT {
 
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
-    float4x4 wvp = mul(ViewProjectionMatrix, WorldMatrix);
+    float4x4 wvp = mul(Frame.ViewProjectionMatrix, WorldMatrix);
     PS_INPUT output;
     output.pos = mul(wvp, float4(input.pos, 1));
     return output;
@@ -33,5 +35,5 @@ float LinearizeDepth(float near, float far, float depth) {
 }
 
 float psmain(PS_INPUT input) : SV_Target {
-    return LinearizeDepth(NearClip, FarClip, input.pos.z);
+    return LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
 }
