@@ -80,12 +80,12 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             Resources::LoadLevel(Level);
 
-            InitObjects();
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Render::Materials->Unload();
 
             Render::Materials->LoadLevelTextures(Level, forceReload);
             Render::LoadLevel(Level);
+            InitObjects();
             IsLoading = false;
 
             //Rooms = CreateRooms(Level);
@@ -640,7 +640,7 @@ namespace Inferno::Game {
                 Level.Objects.push_back(obj);
             }
 
-            Level.GetSegment(obj.Segment).Objects.push_back(id);
+            Level.GetSegment(obj.Segment).AddObject(id);
 
             // Hack to attach tracers due to not having the object ID in firing code
             if (obj.Type == ObjectType::Weapon) {
@@ -1072,9 +1072,8 @@ namespace Inferno::Game {
 
         Render::InitEffects(Level);
 
-        for (auto& seg : Level.Segments) {
+        for (auto& seg : Level.Segments)
             seg.Objects.clear();
-        }
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {
