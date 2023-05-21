@@ -110,7 +110,7 @@ void Application::Tick() {
 
     auto dt = (float)Inferno::Clock.GetFrameTimeSeconds();
     if (dt > 2) {
-        SPDLOG_WARN("Excessively long delta time of {}, clamping to 2s", dt);
+        SPDLOG_WARN("Long delta time of {}, clamping to 2s", dt);
         dt = 2;
     }
 

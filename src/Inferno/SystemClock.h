@@ -128,8 +128,9 @@ namespace Inferno {
         void UpdateFrameTime() {
             if (_freezeTime != 0) return;
             _currentFrameStartTime = GetClockTimeNs();
-            if (_firstFrameStartTime == 0)
-                _firstFrameStartTime = _currentFrameStartTime;
+            if (_firstFrameStartTime == 0) {
+                _firstFrameStartTime = _prevFrameStartTime = _currentFrameStartTime;
+            }
         }
 
         // Waits until the next tick before returning
