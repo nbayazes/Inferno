@@ -470,4 +470,8 @@ namespace Inferno::Render {
             light.radiusSq = 0;
         }
     }
+
+    int GetTransparentQueueSize() {
+        return _renderQueue.Transparent().size();
+    }
 }

@@ -401,6 +401,13 @@ namespace Inferno {
             return TryGetTrigger(wall->Trigger);
         }
 
+        Trigger* TryGetTrigger(Tag tag) {
+            if (auto wall = TryGetWall(tag))
+                return TryGetTrigger(wall->Trigger);
+
+            return nullptr;
+        }
+
         // Returns segments that contain a given vertex
         List<SegID> SegmentsByVertex(uint i);
 

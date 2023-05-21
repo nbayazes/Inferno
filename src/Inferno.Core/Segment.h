@@ -159,6 +159,9 @@ namespace Inferno {
         constexpr SegID GetConnection(SideID side) const { return Connections[(int)side]; }
         SegID& GetConnection(SideID side) { return Connections[(int)side]; }
 
+        void RemoveObject(ObjID id);
+        void AddObject(ObjID id);
+
         const SegmentSide& GetSide(SideID side) const {
             assert(side != SideID::None);
             return Sides[(int)side];

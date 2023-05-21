@@ -10,7 +10,6 @@
 #include "Graphics/Render.h"
 #include <Briefing.h>
 #include "GameTable.h"
-#include "Editor/Editor.Object.h"
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;
@@ -42,10 +41,10 @@ namespace Inferno::Resources {
         List<ModelEntry> OutrageModels;
     }
 
-    int GetTextureCount() { return (int)Textures.size(); }
+    int GetTextureCount() { return Textures.size(); }
     const Palette& GetPalette() { return LevelPalette; }
 
-    void LoadRobotNames(filesystem::path path) {
+    void LoadRobotNames(const filesystem::path& path) {
         try {
             std::ifstream file(path);
             string line;
@@ -62,7 +61,7 @@ namespace Inferno::Resources {
         return RobotNames[id];
     }
 
-    void LoadPowerupNames(filesystem::path path) {
+    void LoadPowerupNames(const filesystem::path& path) {
         try {
             std::ifstream file(path);
             string line;
@@ -365,10 +364,10 @@ namespace Inferno::Resources {
         }
     }
 
-    const string UnknownString = "???";
+    const string UNKNOWN_STRING = "???";
 
     const string_view GetString(GameString i) {
-        if (!Seq::inRange(StringTable, (int)i)) return UnknownString;
+        if (!Seq::inRange(StringTable, (int)i)) return UNKNOWN_STRING;
         return StringTable[(int)i];
     }
 

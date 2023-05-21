@@ -113,6 +113,7 @@ namespace Inferno {
                         auto color = reader.ReadUInt16();
                         auto colorf = UnpackColor(color);
 
+                        // D1 maps colors to palette entries
                         if (palette && color < palette->Data.size()) {
                             auto& c = palette->Data[color];
                             colorf = ColorFromRGB(c.r, c.g, c.b, c.a);

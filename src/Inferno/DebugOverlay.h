@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
+#include "Graphics/Render.Level.h"
 
 namespace Inferno {
     // Performance overlay
@@ -66,6 +67,7 @@ namespace Inferno {
             ImGui::Text("Objects: %d", Game::Level.Objects.size());
             ImGui::Text("Segments: %d", Render::Stats::VisitedSegments);
             ImGui::Text("Effects: %d", Render::Stats::EffectDraws);
+            ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());
         }
         ImGui::End();
 

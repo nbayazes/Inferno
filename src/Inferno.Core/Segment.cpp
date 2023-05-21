@@ -4,6 +4,16 @@
 #include "Face.h"
 
 namespace Inferno {
+    void Segment::RemoveObject(ObjID id) {
+        //assert(Seq::contains(Objects, id));
+        Seq::remove(Objects, id);
+    }
+
+    void Segment::AddObject(ObjID id) {
+        assert(!Seq::contains(Objects, id));
+        Objects.push_back(id);
+    }
+
     bool Segment::SideIsSolid(SideID side, Level& level) const {
         if (SideHasConnection(side)) {
             if (auto wall = level.TryGetWall(Sides[(int)side].Wall))

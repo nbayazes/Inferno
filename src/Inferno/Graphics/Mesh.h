@@ -132,7 +132,7 @@ namespace Inferno::Render {
                         const auto& fv = face.Vertices[i];
                         const auto& v = submodel.Vertices[fv.Index];
 
-                        auto AddVert = [&](const Outrage::Submodel::Vertex& vtx, const Vector2& uv) {
+                        auto addVert = [&](const Outrage::Submodel::Vertex& vtx, const Vector2& uv) {
                             color.A(vtx.Alpha);
                             auto& smm = smMeshes[face.TexNum];
                             smm.Vertices.push_back(ObjectVertex{
@@ -144,9 +144,9 @@ namespace Inferno::Render {
                             smm.Indices.push_back(smm.Index++);
                         };
 
-                        AddVert(v0, fv0.UV);
-                        AddVert(*vx, fvx->UV);
-                        AddVert(v, fv.UV);
+                        addVert(v0, fv0.UV);
+                        addVert(*vx, fvx->UV);
+                        addVert(v, fv.UV);
 
                         fvx = &fv;
                         vx = &v;

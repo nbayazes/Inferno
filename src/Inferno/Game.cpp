@@ -728,7 +728,7 @@ namespace Inferno::Game {
 
             if (HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 if (auto seg = Level.TryGetSegment(obj.Segment))
-                    Seq::remove(seg->Objects, (ObjID)i);
+                    seg->RemoveObject((ObjID)i);
             }
 
             if (obj.Type == ObjectType::Weapon)
@@ -1108,7 +1108,7 @@ namespace Inferno::Game {
             UpdateObjectSegment(Level, obj);
 
             if (auto seg = Level.TryGetSegment(obj.Segment)) {
-                seg->Objects.push_back((ObjID)id);
+                seg->AddObject((ObjID)id);
                 obj.Ambient.SetTarget(seg->VolumeLight, 0);
             }
 

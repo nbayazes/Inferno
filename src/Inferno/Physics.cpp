@@ -1331,66 +1331,6 @@ namespace Inferno {
         }
     }
 
-    // Updates the segment the object is in an activates triggers
-    void CheckTriggers(Level& level, ObjID objId) {
-        auto pObj = level.TryGetObject(objId);
-        if (!pObj) return;
-        auto& obj = *pObj;
-        auto prevSegId = obj.Segment;
-
-        if (!UpdateObjectSegment(level, obj))
-            return; // already in the right segment
-
-        if (obj.Segment == SegID::None)
-            return; // Object was outside of world
-
-        // fast moving objects can cross multiple segments in one update
-        // in practice this tends to affect gauss the most
-        bool foundTouchingSeg = false;
-
-        // Check if the new position is in a touching segment
-        auto& seg = level.GetSegment(obj.Segment);
-        for (auto& cid : seg.Connections) {
-            if (PointInSegment(level, cid, obj.Position)) {
-                obj.Segment = cid;
-                // update the segment object lists
-                Seq::remove(seg.Objects, objId);
-                auto& cseg = level.GetSegment(cid);
-                cseg.Objects.push_back(objId);
-                foundTouchingSeg = true;
-                break;
-            }
-        }
-
-        if (foundTouchingSeg) {
-            // Activate any triggers on the side passed through
-            if (obj.Segment != prevSegId && obj.Type == ObjectType::Player) {
-                auto sideId = level.GetConnectedSide(obj.Segment, prevSegId);
-                if (auto wall = level.TryGetWall({ prevSegId, sideId })) {
-                    if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
-                        fmt::print("Activating fly through trigger {}:{}\n", obj.Segment, prevSegId);
-                        ActivateTrigger(level, *trigger);
-                    }
-                }
-            }
-        }
-        else {
-            // object crossed multiple segments in a single update.
-            // usually caused by fast moving projectiles, but can also happen if object is outside world.
-            auto prevSeg = obj.Segment;
-            if (obj.Type == ObjectType::Player && prevSeg != obj.Segment) {
-                SPDLOG_WARN("Player {} warped from {} to segment {}. Any fly-through triggers did not activate!", objId, prevSeg, obj.Segment);
-            }
-
-            // Update object pointers
-            Seq::remove(seg.Objects, objId);
-            auto& cseg = level.GetSegment(obj.Segment);
-            cseg.Objects.push_back(objId);
-        }
-
-        UpdateObjectSegment(level, obj);
-    }
-
     void UpdatePhysics(Level& level, double /*t*/, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
@@ -1491,11 +1431,11 @@ namespace Inferno {
 
                 // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
                 if (obj.Type != ObjectType::Weapon) {
-                    CheckTriggers(level, (ObjID)id);
+                    MoveObject(level, (ObjID)id);
                 }
             }
             else {
-                CheckTriggers(level, (ObjID)id);
+                MoveObject(level, (ObjID)id);
             }
 
             //if (obj.LastPosition != obj.Position)

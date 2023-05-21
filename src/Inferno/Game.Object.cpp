@@ -4,6 +4,7 @@
 #include "Game.Object.h"
 #include "Game.h"
 #include "Game.Segment.h"
+#include "Game.Wall.h"
 
 namespace Inferno {
     bool UpdateObjectSegment(Level& level, Object& obj) {
@@ -18,6 +19,50 @@ namespace Inferno {
         auto transitionTime = Game::GetState() == GameState::Game ? 0.5f : 0;
         obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, transitionTime);
         return true;
+    }
+
+    void MoveObject(Level& level, ObjID objId) {
+        auto pObj = level.TryGetObject(objId);
+        if (!pObj) return;
+        auto& obj = *pObj;
+        auto prevSegId = obj.Segment;
+
+        if (!UpdateObjectSegment(level, obj))
+            return; // already in the right segment
+
+        if (obj.Segment == SegID::None)
+            return; // Object was outside of world
+
+        Tag connection{};
+
+        // Check if the new position is in a touching segment, because fast moving objects can cross
+        // multiple segments in one update. This affects gauss the most.
+        auto& prevSeg = level.GetSegment(prevSegId);
+        for (auto& side : SideIDs) {
+            auto cid = prevSeg.GetConnection(side);
+            if (PointInSegment(level, cid, obj.Position)) {
+                connection = { obj.Segment, side };
+                break;
+            }
+        }
+
+        if (connection && obj.Type == ObjectType::Player) {
+            // Activate triggers
+            if (auto trigger = level.TryGetTrigger(connection)) {
+                fmt::print("Activating fly through trigger {}:{}\n", connection.Segment, connection.Side);
+                ActivateTrigger(level, *trigger);
+            }
+        }
+        else if (!connection) {
+            // object crossed multiple segments in a single update.
+            // usually caused by fast moving projectiles, but can also happen if object is outside world.
+            if (obj.Type == ObjectType::Player && prevSegId != obj.Segment)
+                SPDLOG_WARN("Player {} warped from segment {} to {}. Any fly-through triggers did not activate!", objId, prevSegId, obj.Segment);
+        }
+
+        // Update object pointers
+        prevSeg.RemoveObject(objId);
+        level.GetSegment(obj.Segment).AddObject(objId);
     }
 
     const std::set BOSS_IDS = { 17, 23, 31, 45, 46, 52, 62, 64, 75, 76 };
