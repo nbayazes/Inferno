@@ -41,7 +41,7 @@ namespace Inferno::Resources {
         List<ModelEntry> OutrageModels;
     }
 
-    int GetTextureCount() { return Textures.size(); }
+    int GetTextureCount() { return (int)Textures.size(); }
     const Palette& GetPalette() { return LevelPalette; }
 
     void LoadRobotNames(const filesystem::path& path) {

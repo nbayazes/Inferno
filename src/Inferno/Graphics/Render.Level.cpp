@@ -472,6 +472,6 @@ namespace Inferno::Render {
     }
 
     int GetTransparentQueueSize() {
-        return _renderQueue.Transparent().size();
+        return (int)_renderQueue.Transparent().size();
     }
 }

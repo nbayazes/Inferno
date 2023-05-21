@@ -330,7 +330,8 @@ namespace Inferno::Editor {
 
         for (auto& id : _textureIds) {
             auto& material = Render::Materials->Get(id);
-            if (material.ID <= TexID::Invalid) continue; // don't show invalid textures (usually TID 910)
+            if (!material) 
+                continue; // don't show invalid textures (usually TID 910)
 
             //ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 2, 2 });
             //ImGui::PushStyleColor(ImGuiCol_BorderShadow, { 1, 0, 0, 1 });
@@ -341,7 +342,7 @@ namespace Inferno::Editor {
 
             ImGui::PushStyleColor(ImGuiCol_Button, borderColor);
 
-            ImGui::ImageButton((ImTextureID)material.Handles[0].ptr, tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
+            ImGui::ImageButton((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 }, borderThickess, bg);
 
             if (ImGui::IsItemHovered()) {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {

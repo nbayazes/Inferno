@@ -34,7 +34,7 @@ namespace Inferno::Editor {
     inline void TexturePreview(LevelTexID tid, const ImVec2& size = { 64.0f, 64.0f }) {
         if (tid == LevelTexID::None) return;
         auto& material = Render::Materials->Get(tid);
-        ImGui::Image((ImTextureID)material.Handles[Render::Material2D::Diffuse].ptr, size);
+        ImGui::Image((ImTextureID)material.Pointer(), size);
     }
 
     inline bool SideDropdown(SideID& id) {

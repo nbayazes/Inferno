@@ -146,6 +146,7 @@ namespace Inferno {
         bool ScreenshotMode = false; // game setting?
         float MasterVolume = 0.1f;
         bool GenerateMaps = true; // Generate specular and normal maps if missing
+        bool Descent3Enhanced = false;
     };
 
     struct CheatSettings {

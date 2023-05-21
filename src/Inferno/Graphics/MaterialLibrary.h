@@ -16,6 +16,13 @@ namespace Inferno::Render {
         uint Index = 0;
         TexID ID = TexID::Invalid;
         string Name;
+
+        operator bool() const { return Handles[Diffuse].ptr != 0; }
+        UINT64 Pointer() const { return Handles[Diffuse].ptr; }
+
+        // Returns the handle of the first texture in the material. Materials are created so that all textures are contiguous.
+        // In most cases only the first handle is necessary.
+        D3D12_GPU_DESCRIPTOR_HANDLE Handle() const { return Handles[Diffuse]; }
     };
 
     struct MaterialUpload {
@@ -54,6 +61,7 @@ namespace Inferno::Render {
         void Dispatch();
 
         span<MaterialInfo> GetAllMaterialInfo() { return _materialInfo; }
+
         MaterialInfo& GetMaterialInfo(TexID id) {
             if (!Seq::inRange(_materialInfo, (int)id)) return _defaultMaterialInfo;
             return _materialInfo[(int)id];
@@ -68,7 +76,7 @@ namespace Inferno::Render {
         const Material2D& Get(TexID id) const {
             if ((int)id > _materials.Size()) return _defaultMaterial;
             auto& material = _materials[(int)id];
-            return material.ID > TexID::Invalid ? material : _defaultMaterial;
+            return material ? material : _defaultMaterial;
         }
 
         const Material2D& Get(EClipID id, float time, bool critical) const {
@@ -84,7 +92,7 @@ namespace Inferno::Render {
 
             if ((int)tex > _materials.Size()) return _defaultMaterial;
             auto& material = _materials[(int)tex];
-            return material.ID > TexID::Invalid ? material : _defaultMaterial;
+            return material ? material : _defaultMaterial;
         }
 
         // Gets a material based on a D1/D2 level texture ID
@@ -96,11 +104,19 @@ namespace Inferno::Render {
         // Gets a material loaded from the filesystem based on name
         const Material2D& Get(const string& name) {
             if (!_unpackedMaterials.contains(name)) return _defaultMaterial;
-            return _unpackedMaterials[name];
-        };
+            auto& material = _unpackedMaterials[name];
+            return material ? material : _defaultMaterial;
+        }
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
         void LoadTextures(span<string> names);
+
+        // Tries to load a texture and returns true if it exists
+        bool LoadTexture(const string& name) {
+            std::array tex = { name };
+            LoadTextures(tex);
+            return _unpackedMaterials[name].ID != TexID::Invalid;
+        }
 
         void Reload();
 
@@ -120,7 +136,7 @@ namespace Inferno::Render {
         bool HasUnloadedTextures(span<const TexID> tids) {
             bool hasPending = false;
             for (auto& id : tids) {
-                if (id <= TexID::Invalid) continue;
+                if (id == TexID::Invalid) continue;
                 if (_materials[(int)id].ID == id) continue;
                 hasPending = true;
                 break;

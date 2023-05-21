@@ -527,7 +527,9 @@ namespace Inferno::Game {
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : model.Radius / weapon.ModelSizeRatio;
             if (bullet.Radius < 0) bullet.Radius = 1;
 
-            if (!weapon.Extended.Model.empty()) {
+            auto d3Model = weapon.Extended.Model.empty() ? ModelID::None : Render::LoadOutrageModel(weapon.Extended.Model);
+
+            if (d3Model != ModelID::None) {
                 bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.Model);
                 bullet.Render.Model.Outrage = true;
                 bullet.Scale = weapon.Extended.ModelScale;

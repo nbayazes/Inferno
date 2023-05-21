@@ -483,7 +483,7 @@ namespace Inferno::Render {
             auto vStep = length / 20 * div * beam.Scale;
 
             auto& material = Render::Materials->Get(beam.Texture);
-            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
             Stats::DrawCalls++;
             g_SpriteBatch->Begin(ctx.CommandList());
 
@@ -636,7 +636,7 @@ namespace Inferno::Render {
 
         if (!Texture.empty()) {
             auto& material = Render::Materials->Get(Texture);
-            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
             g_SpriteBatch->Begin(ctx.CommandList());
 
             ObjectVertex v0{ start + up, { 0, 0 }, color };
@@ -650,7 +650,7 @@ namespace Inferno::Render {
 
         if (!BlobTexture.empty() && dist > Length) {
             auto& material = Render::Materials->Get(BlobTexture);
-            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+            effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
             g_SpriteBatch->Begin(ctx.CommandList());
 
             auto right = Render::Camera.GetRight() * halfWidth;
@@ -686,8 +686,8 @@ namespace Inferno::Render {
     }
 
     void AddDecal(DecalInfo& decal) {
-        std::array tex = { decal.Texture };
-        Render::Materials->LoadTextures(tex);
+        if (!Render::Materials->LoadTexture(decal.Texture))
+            return;
 
         if (decal.Duration == 0)
             decal.Duration = FLT_MAX;
@@ -740,7 +740,7 @@ namespace Inferno::Render {
                 if (!decal.IsAlive()) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
-                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
                 g_SpriteBatch->Begin(ctx.CommandList());
                 DrawDecal(decal, *g_SpriteBatch.get());
                 g_SpriteBatch->End();
@@ -760,7 +760,7 @@ namespace Inferno::Render {
                 if (!decal.IsAlive()) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
-                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+                effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
                 g_SpriteBatch->Begin(ctx.CommandList());
                 DrawDecal(decal, *g_SpriteBatch.get());
                 g_SpriteBatch->End();
@@ -853,7 +853,7 @@ namespace Inferno::Render {
 
         effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
         auto& material = Render::Materials->Get(Texture);
-        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
         g_SpriteBatch->Begin(ctx.CommandList());
 
         for (auto& spark : _sparks) {

@@ -228,7 +228,7 @@ namespace Inferno::Render {
 
                 auto handle = texId >= 0 
                     ? Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) 
-                    : Materials->White.Handles[0];
+                    : Materials->White.Handle();
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;

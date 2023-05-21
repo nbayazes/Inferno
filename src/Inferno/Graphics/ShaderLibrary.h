@@ -261,11 +261,11 @@ namespace Inferno {
         }
 
         static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[0]);
+            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handle());
         }
 
         static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[0]);
+            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handle());
         }
 
         static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
@@ -332,7 +332,7 @@ namespace Inferno {
         }
 
         static void SetMaterial(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material, material.Handles[0]);
+            commandList->SetGraphicsRootDescriptorTable(Material, material.Handle());
         }
 
         static void SetMaterial(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {

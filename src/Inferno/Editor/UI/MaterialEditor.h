@@ -114,9 +114,9 @@ namespace Inferno::Editor {
                         ImGui::GetIO().MouseDown;
                         ImGui::PopID();
 
-                        if (material.ID != TexID::Invalid) {
+                        if (material) {
                             ImGui::SameLine();
-                            ImGui::Image((ImTextureID)material.Handles[0].ptr, tileSize, { 0, 0 }, { 1, 1 });
+                            ImGui::Image((ImTextureID)material.Pointer(), tileSize, { 0, 0 }, { 1, 1 });
                         }
 
                         ImGui::TableNextColumn();
@@ -155,7 +155,7 @@ namespace Inferno::Editor {
                         auto ratio = ti.Width > 0 && ti.Height > 0 ? (float)ti.Width / (float)ti.Height : 1.0f;
                         if (ratio > 1) tileSize.y /= ratio;
                         if (ratio < 1) tileSize.x *= ratio;
-                        ImGui::Image((ImTextureID)texture.Handles[0].ptr, tileSize, { 0, 0 }, { 1, 1 });
+                        ImGui::Image((ImTextureID)texture.Pointer(), tileSize, { 0, 0 }, { 1, 1 });
                         ImGui::EndChild();
                     }
 

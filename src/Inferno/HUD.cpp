@@ -141,7 +141,7 @@ namespace Inferno {
         info.Position = offset * scale;
         info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
         info.Size *= scale;
-        info.Texture = material.Handles[0];
+        info.Texture = material.Handle();
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
         info.Color = color;
@@ -265,7 +265,7 @@ namespace Inferno {
         payload.V1 = { v1, uv1, hex }; // bottom right
         payload.V2 = { v2, uv2, hex }; // top right
         payload.V3 = { v3, uv3, hex }; // top left
-        payload.Texture = material.Handles[0];
+        payload.Texture = material.Handle();
         payload.Scanline = 1.0f;
 
         Render::HudGlowCanvas->Draw(payload);
@@ -296,7 +296,7 @@ namespace Inferno {
         info.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, { 1, 1 }, hex }; // bottom right
         info.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { 1, uvTop }, hex }; // top right
         info.V3 = { Vector2{ pos.x, pos.y } + alignment, { 0, uvTop }, hex }; // top left
-        info.Texture = material.Handles[0];
+        info.Texture = material.Handle();
         info.Scanline = DEFAULT_SCANLINE;
         Render::HudGlowCanvas->Draw(info);
     }
@@ -459,7 +459,7 @@ namespace Inferno {
 
         for (int i = 0; i < steps; i++) {
             Render::CanvasPayload payload;
-            payload.Texture = material.Handles[0];
+            payload.Texture = material.Handle();
 
             float x0 = -cos((steps - i) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
             float x1 = -cos((steps - i - 1) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
@@ -663,7 +663,7 @@ namespace Inferno {
                 auto& material = Render::Materials->Get(GetGaugeTexID(Gauges::Lives));
                 info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
                 info.Size *= scale;
-                info.Texture = material.Handles[0];
+                info.Texture = material.Handle();
                 info.HorizontalAlign = AlignH::Left;
                 info.VerticalAlign = AlignV::Top;
                 info.Scanline = 0.5f;

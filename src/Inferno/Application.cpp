@@ -34,7 +34,6 @@ void LoadAllD3Models() {
             try {
                 auto r = Resources::OpenFile(entry.name);
                 auto model = Outrage::Model::Read(*r);
-
             }
             catch (const std::exception& e) {
                 SPDLOG_ERROR("{}: {}", entry.name, e.what());
@@ -50,7 +49,6 @@ void LoadAllD3Models() {
             //}
         }
     }
-
 }
 
 void Application::OnShutdown() {
@@ -63,7 +61,9 @@ void Application::Initialize(int width, int height) {
     Render::Initialize(Shell::Hwnd, width, height);
 
     Resources::LoadSounds();
-    Resources::MountDescent3();
+
+    if (Settings::Inferno.Descent3Enhanced)
+        Resources::MountDescent3();
 
     Editor::Initialize();
 
@@ -82,9 +82,7 @@ void Application::Initialize(int width, int height) {
 
 using Keys = Keyboard::Keys;
 
-void Application::Update() {
-
-}
+void Application::Update() {}
 
 void Application::UpdateFpsLimit() {
     auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;

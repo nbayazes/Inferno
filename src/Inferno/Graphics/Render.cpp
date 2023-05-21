@@ -81,7 +81,7 @@ namespace Inferno::Render {
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
         ApplyEffect(ctx, effect);
         auto& material = Materials->Get(tid);
-        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handles[0]);
+        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(ctx.CommandList(), sampler);
@@ -422,7 +422,7 @@ namespace Inferno::Render {
                 CanvasBitmapInfo flash;
                 flash.Size = Adapter->GetOutputSize();
                 flash.Color = Game::ScreenFlash;
-                flash.Texture = Materials->White.Handles[0];
+                flash.Texture = Materials->White.Handle();
                 HudGlowCanvas->DrawBitmap(flash);
             }
 

@@ -603,10 +603,13 @@ namespace Inferno::Render {
 
         for (auto& name : names) {
             if (_unpackedMaterials.contains(name)) continue; // skip loaded
+            bool found = false;
 
             if (FileSystem::TryFindFile(name + ".dds")) {
-                if (auto material = UploadBitmap(batch, name, _black))
+                if (auto material = UploadBitmap(batch, name, _black)) {
                     uploads.emplace_back(std::move(material.value()));
+                    found = true;
+                }
             }
             else {
                 // Try loading named file from D3 data
@@ -614,9 +617,13 @@ namespace Inferno::Render {
                     if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
                         material->Name = name;
                         uploads.emplace_back(std::move(material.value()));
+                        found = true;
                     }
                 }
             }
+
+            // Add entries that aren't found so it skipped in future loads
+            if (!found) _unpackedMaterials[name] = {};
         }
 
         EndTextureUpload(batch);
