@@ -545,7 +545,7 @@ namespace Inferno::Editor {
 
                 if (Settings::Editor.SelectionMode == SelectionMode::Edge)
                     highlight |= point == ((int)Editor::Selection.Point + 1) % 4;
-  
+
                 if (highlight)
                     ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
 
@@ -564,7 +564,7 @@ namespace Inferno::Editor {
             addUVSlider("UV 1", 1);
             addUVSlider("UV 2", 2);
             addUVSlider("UV 3", 3);
-            
+
             ImGui::TreePop();
         }
 
@@ -825,6 +825,16 @@ namespace Inferno::Editor {
                         if (ImGui::InputFloat("##Hit points", &wall->HitPoints, 1, 10, "%.0f")) {
                             if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                                 other->HitPoints = wall->HitPoints;
+
+                            for (auto& markedId : GetSelectedWalls()) {
+                                auto markedWall = level.TryGetWall(markedId);
+                                if (markedWall && markedWall->Type == WallType::Destroyable)
+                                    markedWall->HitPoints = wall->HitPoints;
+
+                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Destroyable)
+                                    markedOther->HitPoints = wall->HitPoints;
+                            }
                         }
 
                         CheckForSnapshot(changed);
@@ -845,6 +855,16 @@ namespace Inferno::Editor {
                             changed = true;
                             if (other && Settings::Editor.EditBothWallSides)
                                 other->Keys = wall->Keys;
+
+                            for (auto& markedId : GetSelectedWalls()) {
+                                auto markedWall = level.TryGetWall(markedId);
+                                if (markedWall && markedWall->Type == WallType::Door)
+                                    markedWall->Keys = wall->Keys;
+
+                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Door)
+                                    markedOther->Keys = wall->Keys;
+                            }
                         }
 
                         flagCheckbox("Opened", WallFlag::DoorOpened, wall);
@@ -871,6 +891,16 @@ namespace Inferno::Editor {
 
                             if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                                 other->CloakValue(cloakValue / 100);
+
+                            for (auto& markedId : GetSelectedWalls()) {
+                                auto markedWall = level.TryGetWall(markedId);
+                                if (markedWall && markedWall->Type == WallType::Cloaked)
+                                    markedWall->CloakValue(cloakValue / 100);
+
+                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Cloaked)
+                                    markedOther->CloakValue(cloakValue / 100);
+                            }
 
                             Events::LevelChanged();
                         }
