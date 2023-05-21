@@ -348,6 +348,7 @@ namespace Inferno::Editor {
 
         Object obj = *ObjectClipboard;
         obj.Position = seg->Center;
+        obj.Segment = tag.Segment;
         level.Objects.push_back(obj);
         Editor::Selection.SetSelection(ObjID(level.Objects.size() - 1));
     }
