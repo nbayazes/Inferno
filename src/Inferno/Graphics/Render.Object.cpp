@@ -277,6 +277,7 @@ namespace Inferno::Render {
         auto& meshHandle = GetMeshHandle(modelId);
 
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
         ObjectShader::Constants constants = {};
 
         if (object.Render.Emissive != Color(0, 0, 0)) {

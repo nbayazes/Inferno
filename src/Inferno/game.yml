@@ -11,7 +11,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.8, 0.1, 0.1
+    LightColor: 1, 0.025, 0.025
     ExplosionColor: 0.8, 0.1, 0.1
 
   - id: 1
@@ -281,7 +281,7 @@ Powerups:
     LightMode: 1 # Flicker
 
   - id: 2 # Shield
-    Glow: 2,2,2
+    Glow: 1.75, 1.75, 1.75
     LightColor: 0.025, 0.025, 2
     LightRadius: 14
     LightMode: 2 # Pulse
