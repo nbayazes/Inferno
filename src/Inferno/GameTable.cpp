@@ -26,8 +26,17 @@ namespace Inferno {
         if (!damage.is_seed()) {
             int i = 0;
             for (const auto& d : damage.children()) {
-                if (i > weapon.Damage.size()) break;
+                if (i >= weapon.Damage.size()) break;
                 Yaml::ReadValue(d, weapon.Damage[i++]);
+            }
+        }
+
+        auto speed = node["Speed"];
+        if (!speed.is_seed()) {
+            int i = 0;
+            for (const auto& d : speed.children()) {
+                if (i >= weapon.Speed.size()) break;
+                Yaml::ReadValue(d, weapon.Speed[i++]);
             }
         }
 

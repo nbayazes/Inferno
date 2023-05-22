@@ -1376,16 +1376,16 @@ namespace Inferno {
                 Vector3 dir;
                 delta.Normalize(dir);
 
-                if (obj.Radius < 0.1) {
-                    Ray ray(obj.LastPosition, dir);
-                    auto maxDist = (dir * obj.Physics.Velocity).Length();
-                    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
-                        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-                        Debug::ClosestPoints.push_back(hit.Point);
-                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-                    }
-                }
-                else {
+                //if (obj.Radius < 0.1) {
+                //    Ray ray(obj.LastPosition, dir);
+                //    auto maxDist = (dir * obj.Physics.Velocity).Length();
+                //    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
+                //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+                //        Debug::ClosestPoints.push_back(hit.Point);
+                //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                //    }
+                //}
+                //else {
                     BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
 
                     if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
@@ -1393,7 +1393,7 @@ namespace Inferno {
                         Debug::ClosestPoints.push_back(hit.Point);
                         Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
                     }
-                }
+                //}
             }
 
             if (hit) {

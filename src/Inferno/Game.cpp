@@ -643,7 +643,7 @@ namespace Inferno::Game {
             Level.GetSegment(obj.Segment).AddObject(id);
 
             // Hack to attach tracers due to not having the object ID in firing code
-            if (obj.Type == ObjectType::Weapon) {
+            if (obj.Type == ObjectType::Weapon && Settings::Inferno.Descent3Enhanced) {
                 //auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
 
                 constexpr auto TRACER_FADE_SPEED = 0.2f;
