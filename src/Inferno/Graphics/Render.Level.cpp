@@ -110,12 +110,14 @@ namespace Inferno::Render {
                             model = Resources::GetRobotInfo(object.ID).Model;
 
                         auto& effect = Effects->DepthObject;
-                        if (object.Type == ObjectType::Weapon) {
-                            // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
-                            auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
-                            if (inner > ModelID::None && inner != ModelID(255))
-                                effect = Effects->DepthObjectFlipped;
-                        }
+
+                        // todo: fix bug with this causing *all* objects to be rendered as flipped after firing lasers
+                        //if (object.Type == ObjectType::Weapon) {
+                        //    // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
+                        //    auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
+                        //    if (inner > ModelID::None && inner != ModelID(255))
+                        //        effect = Effects->DepthObjectFlipped;
+                        //}
 
                         ctx.ApplyEffect(effect);
                         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());

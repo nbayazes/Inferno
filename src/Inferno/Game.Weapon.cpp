@@ -365,7 +365,7 @@ namespace Inferno::Game {
             hitLiquid = true;
         }
 
-        if (addDecal) {
+        if (Settings::Inferno.Descent3Enhanced && addDecal) {
             auto decalSize = weapon.Extended.DecalRadius ? weapon.Extended.DecalRadius : weapon.ImpactSize / 3;
 
             Render::DecalInfo decal{};
@@ -400,7 +400,6 @@ namespace Inferno::Game {
 
         if (HasFlag(obj.Physics.Flags, PhysicsFlag::Stick) && !hitLiquid && !hitForcefield) {
             // sticky flare behavior
-
             Vector3 vec;
             obj.Physics.Velocity.Normalize(vec);
             obj.Position += vec * hit.Distance;
@@ -529,7 +528,7 @@ namespace Inferno::Game {
 
             auto d3Model = weapon.Extended.Model.empty() ? ModelID::None : Render::LoadOutrageModel(weapon.Extended.Model);
 
-            if (d3Model != ModelID::None) {
+            if (Settings::Inferno.Descent3Enhanced && d3Model != ModelID::None) {
                 bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.Model);
                 bullet.Render.Model.Outrage = true;
                 bullet.Scale = weapon.Extended.ModelScale;

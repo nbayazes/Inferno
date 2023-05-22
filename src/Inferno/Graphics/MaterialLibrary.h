@@ -136,7 +136,7 @@ namespace Inferno::Render {
         bool HasUnloadedTextures(span<const TexID> tids) {
             bool hasPending = false;
             for (auto& id : tids) {
-                if (id == TexID::Invalid) continue;
+                if (id <= TexID::Invalid) continue;
                 if (_materials[(int)id].ID == id) continue;
                 hasPending = true;
                 break;
