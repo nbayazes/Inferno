@@ -107,13 +107,13 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
     ExplosionTime: 0.4
-    Damage: [ 8, 8, 8, 8, 8 ]
+    Damage: 8
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
     LightRadius: 3
     ExplosionColor: 0.2, 0.1, 0.0
     
-  - id: 12
+  - id: 12 
     Name: spreadfire
     Behavior: spreadfire
     Glow: 5,5,5
@@ -193,7 +193,7 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 2.4
     ExplosionTime: 0.6
-    Damage: [ 20, 20, 20, 20, 20 ]
+    Damage: 20
     AmmoUsage: 60
     ExplosionColor: 0.6, 0.2, 0.0
     LightRadius: 6
@@ -228,8 +228,7 @@ Weapons:
     Name: omega cannon
     Behavior: omega
     FireDelay: 0.125
-    Damage: [ 32, 32, 32, 32, 32 ]
-    #Damage: [ 1,1,1,1,1 ]
+    Damage: 32
     WallHitSound: -1
     WallHitVClip: -1
     RobotHitVClip: -1

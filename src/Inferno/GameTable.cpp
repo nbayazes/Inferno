@@ -6,6 +6,51 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
+    void ReadArray(ryml::NodeRef node, span<float> values) {
+        if (!node.valid() || node.is_seed()) return;
+
+        if (node.has_children()) {
+            // Array of values
+            int i = 0;
+
+            for (const auto& child : node.children()) {
+                if (i >= values.size()) break;
+                Yaml::ReadValue(child, values[i++]);
+            }
+        }
+        else if (node.has_val()) {
+            // Single value
+            float value;
+            Yaml::ReadValue(node, value);
+            for (auto& v : values)
+                v = value;
+        }
+    }
+
+    void ReadRange(ryml::NodeRef node, NumericRange<float>& values) {
+        if (!node.valid() || node.is_seed()) return;
+
+        if (node.has_children()) {
+            // Array of values
+            int i = 0;
+            float children[2] = {};
+
+            for (const auto& child : node.children()) {
+                if (i >= 2) break;
+                Yaml::ReadValue(child, children[i++]);
+            }
+
+            if (i == 1) values = { children[0], children[0] };
+            if (i == 2) values = { children[0], children[1] };
+        }
+        else if (node.has_val()) {
+            // Single value
+            float value;
+            Yaml::ReadValue(node, value);
+            values = { value, value };
+        }
+    }
+
     void ReadWeaponInfo(ryml::NodeRef node, HamFile& ham, int& id) {
         Yaml::ReadValue(node["id"], id);
         if (!Seq::inRange(ham.Weapons, id)) return;
@@ -22,23 +67,8 @@ namespace Inferno {
         READ_PROP(Lifetime);
 #undef READ_PROP
 
-        auto damage = node["Damage"];
-        if (!damage.is_seed()) {
-            int i = 0;
-            for (const auto& d : damage.children()) {
-                if (i >= weapon.Damage.size()) break;
-                Yaml::ReadValue(d, weapon.Damage[i++]);
-            }
-        }
-
-        auto speed = node["Speed"];
-        if (!speed.is_seed()) {
-            int i = 0;
-            for (const auto& d : speed.children()) {
-                if (i >= weapon.Speed.size()) break;
-                Yaml::ReadValue(d, weapon.Speed[i++]);
-            }
-        }
+        ReadArray(node["Damage"], weapon.Damage);
+        ReadArray(node["Speed"], weapon.Speed);
 
 #define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
         READ_PROP_EXT(Name);
@@ -78,30 +108,6 @@ namespace Inferno {
         Yaml::ReadValue(node["LightColor"], powerup.LightColor);
         Yaml::ReadValue(node["LightMode"], (int&)powerup.LightMode);
         Yaml::ReadValue(node["Glow"], powerup.Glow);
-    }
-
-    void ReadRange(ryml::NodeRef node, NumericRange<float>& values) {
-        if (!node.valid() || node.is_seed()) return;
-
-        if (node.has_children()) {
-            // Array of values
-            int i = 0;
-            float children[2] = {};
-
-            for (const auto& child : node.children()) {
-                if (i >= 2) break;
-                Yaml::ReadValue(child, children[i++]);
-            }
-
-            if (i == 1) values = { children[0], children[0] };
-            if (i == 2) values = { children[0], children[1] };
-        }
-        else if (node.has_val()) {
-            // Single value
-            float value;
-            Yaml::ReadValue(node, value);
-            values = { value, value };
-        }
     }
 
     void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, Render::BeamInfo>& beams) {
