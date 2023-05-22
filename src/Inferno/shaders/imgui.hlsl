@@ -39,5 +39,6 @@ PS_INPUT vsmain(VS_INPUT input) {
 }
             
 float4 psmain(PS_INPUT input) : SV_Target {
-    return input.col * texture0.Sample(sampler0, input.uv);
+    float4 tex = texture0.Sample(sampler0, input.uv);
+    return input.col * pow(tex, 1 / 2.2); // Textures are SRGB but UI is not
 }

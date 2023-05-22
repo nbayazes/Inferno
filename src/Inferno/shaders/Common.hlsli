@@ -15,7 +15,7 @@ static const int FILTER_ENHANCED_POINT = 1;
 static const int FILTER_SMOOTH = 2;
 
 // Samples a 2D texture. Also supports anti-aliasing pixel boundaries.
-float4 SampleData2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
+float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
     if (filterMode == FILTER_POINT)
         return tex.SampleLevel(texSampler, uv, 0); // always use biggest LOD in point mode
     if (filterMode == FILTER_SMOOTH)
@@ -32,13 +32,6 @@ float4 SampleData2D(Texture2D tex, float2 uv, SamplerState texSampler, int filte
 
     uvTex = clamp(uvTex, seam - .5, seam + .5);
     float4 color = tex.Sample(texSampler, uvTex / texsize);
-    return color;
-}
-
-// Samples a 2D texture and maps it from sRGB to linear
-float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMode) {
-    float4 color = SampleData2D(tex, uv, texSampler, filterMode);
-    color.rgb = pow(color.rgb, 2.2); // sRGB to linear
     return color;
 }
 

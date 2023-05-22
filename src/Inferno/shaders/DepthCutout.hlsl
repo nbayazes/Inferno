@@ -55,7 +55,7 @@ float psmain(PS_INPUT input) : SV_Target {
     float alpha = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode).a;
 
     if (Args.HasOverlay) {
-        float mask = SampleData2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
+        float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         alpha *= mask.r > 0 ? (1 - mask.r) : 1;
 
         float4 src = Sample2D(Overlay, input.uv2, Sampler, Frame.FilterMode);

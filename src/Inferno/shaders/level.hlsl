@@ -213,8 +213,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float4 base = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
     float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
     //float3 normal = clamp(SampleData2D(Normal1, input.uv, NormalSampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
+    //return float4(normal, 1);
     normal.xy *= Args.Mat1.NormalStrength;
     normal = normalize(normal);
+
+    //return float4(normal, 1);
 
     // 'automap' shader?
     //float2 fw = fwidth(input.uv);
@@ -237,12 +240,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float emissive = SampleData2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * Args.Mat1.EmissiveStrength;
+    float emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * Args.Mat1.EmissiveStrength;
     MaterialInfo material = Args.Mat1;
 
     if (Args.HasOverlay) {
         // Apply supertransparency mask
-        float mask = 1 - SampleData2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
+        float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         base *= mask;
 
         float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
@@ -266,10 +269,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.Roughness = lerp(Args.Mat1.Roughness, Args.Mat2.Roughness, overlay.a);
         material.LightReceived = lerp(Args.Mat1.LightReceived, Args.Mat2.LightReceived, overlay.a);
 
-        float overlaySpecularMask = SampleData2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
+        float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += SampleData2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * Args.Mat2.EmissiveStrength * overlay.a;
+        emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * Args.Mat2.EmissiveStrength * overlay.a;
     }
 
     if (diffuse.a <= 0)
@@ -278,6 +281,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     // align normals
     float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
     normal = normalize(mul(normal, tbn));
+    //return float4(normal, 1);
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);

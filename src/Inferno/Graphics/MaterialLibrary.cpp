@@ -313,7 +313,7 @@ namespace Inferno::Render {
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
         if (Settings::Graphics.HighRes) {
             if (auto path = FileSystem::TryFindFile(material.Name + ".DDS"))
-                material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
+                material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
             if (upload.SuperTransparent)
                 if (auto path = FileSystem::TryFindFile(baseName + "_st.DDS"))
@@ -333,7 +333,7 @@ namespace Inferno::Render {
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
             List<Palette::Color> mask = upload.Bitmap->Mask; // copy mask, as modifying the original would affect collision
             ExpandMask(upload.Bitmap->Info, mask);
-            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name));
+            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
 
         if (auto path = FileSystem::TryFindFile(baseName + "_e.DDS"))
@@ -347,12 +347,12 @@ namespace Inferno::Render {
         //if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
         if (!material.Textures[Material2D::Specular] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
-            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name));
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
 
         if (!material.Textures[Material2D::Normal] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
             auto normal = CreateNormalMap(*upload.Bitmap);
-            material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name));
+            material.Textures[Material2D::Normal].Load(batch, normal.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -384,7 +384,7 @@ namespace Inferno::Render {
 
         material.Name = name;
         if (auto path = FileSystem::TryFindFile(name + ".DDS"))
-            material.Textures[Material2D::Diffuse].LoadDDS(batch, *path);
+            material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
@@ -678,16 +678,16 @@ namespace Inferno::Render {
 
         List<ubyte> bmp(64 * 64 * 4);
         FillTexture(bmp, 0, 0, 0, 255);
-        _black.Load(batch, bmp.data(), 64, 64, L"black");
+        _black.Load(batch, bmp.data(), 64, 64, L"black", false);
 
         FillTexture(bmp, 255, 255, 255, 255);
-        _white.Load(batch, bmp.data(), 64, 64, L"white");
+        _white.Load(batch, bmp.data(), 64, 64, L"white", false);
 
         FillTexture(bmp, 255, 0, 255, 255);
         _purple.Load(batch, bmp.data(), 64, 64, L"purple", false);
 
         FillTexture(bmp, 128, 128, 255, 0);
-        _normal.Load(batch, bmp.data(), 64, 64, L"normal");
+        _normal.Load(batch, bmp.data(), 64, 64, L"normal", false, DXGI_FORMAT_R8G8B8A8_UNORM);
 
         {
             _defaultMaterial.Name = "default";

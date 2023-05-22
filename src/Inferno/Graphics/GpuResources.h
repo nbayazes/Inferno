@@ -302,7 +302,7 @@ namespace Inferno {
                   int width, int height,
                   wstring name,
                   bool enableMips = true,
-                  DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+                  DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             assert(data);
             auto mips = enableMips && width == 64 && height == 64 ? 7 : 1; // enable mips on standard level textures
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, (UINT16)mips);
@@ -329,13 +329,13 @@ namespace Inferno {
                 batch.GenerateMips(resource);
         }
 
-        void Create(int width, int height, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+        void Create(int width, int height, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             CreateNoHeap(width, height, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void CreateNoHeap(int width, int height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+        void CreateNoHeap(int width, int height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -358,13 +358,15 @@ namespace Inferno {
             return info;
         }
 
-        bool LoadDDS(DirectX::ResourceUploadBatch& batch, const filesystem::path& path) {
+        bool LoadDDS(DirectX::ResourceUploadBatch& batch, const filesystem::path& path, bool srgb = false) {
             if (!filesystem::exists(path)) {
                 SPDLOG_WARN("File not found: {}", path.string());
                 return false;
             }
 
-            ThrowIfFailed(DirectX::CreateDDSTextureFromFile(Render::Device, batch, path.c_str(), _resource.ReleaseAndGetAddressOf()));
+            auto loadFlags = srgb ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT;
+
+            ThrowIfFailed(DirectX::CreateDDSTextureFromFileEx(Render::Device, batch, path.c_str(), 0, D3D12_RESOURCE_FLAG_NONE, loadFlags, _resource.ReleaseAndGetAddressOf()));
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; // CreateDDS transitions state
             //Transition(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             batch.Transition(_resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -424,13 +426,13 @@ namespace Inferno {
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void Create(int width, int height, int depth, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+        void Create(int width, int height, int depth, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             CreateNoHeap(width, height, depth, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void CreateNoHeap(int width, int height, int depth, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
+        void CreateNoHeap(int width, int height, int depth, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, (uint16)depth, 1);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
@@ -474,7 +476,7 @@ namespace Inferno {
         // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
         void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
             ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
-            _resource->SetName(path.c_str());
+            ThrowIfFailed(_resource->SetName(path.c_str()));
             _state = D3D12_RESOURCE_STATE_COPY_DEST;
         }
     };

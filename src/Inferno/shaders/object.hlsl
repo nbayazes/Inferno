@@ -84,8 +84,7 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Frame.Eye);
     float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode) * input.col;
-    diffuse.xyz = pow(diffuse.xyz, 2.2);
-    float3 emissive = SampleData2D(Emissive, input.uv, Sampler, Frame.FilterMode).rgb;
+    float3 emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).rgb;
     emissive = Args.EmissiveLight + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 
@@ -113,6 +112,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.NormalStrength = 0.25;
 
         float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
+        //normal = float3(0,0,1);
+        //return float4(normal, 1);
         normal.xy *= material.NormalStrength;
         normal = normalize(normal);
 
@@ -127,7 +128,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         lighting += colorSum * material.LightReceived * 1.5;
         lighting += emissive * diffuse.rgb * 10; // todo: emissive mult
-        lighting += Args.Ambient * 0.5f * diffuse.rgb * material.LightReceived; 
+        lighting += Args.Ambient * 0.25f * diffuse.rgb * material.LightReceived; 
 
         return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
