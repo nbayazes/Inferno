@@ -4,10 +4,8 @@
 #include "Resources.h"
 #include "Game.h"
 #include "Game.Object.h"
-#include "Game.Segment.h"
 #include "Graphics/Render.h"
 #include "Input.h"
-#include "Editor/Editor.Object.h"
 #include "Graphics/Render.Debug.h"
 #include "SoundSystem.h"
 #include "Editor/Events.h"
@@ -211,19 +209,12 @@ namespace Inferno {
         //ei.Position = point;
         //ei.Segment = tag.Segment;
         //Render::CreateExplosion(ei);
-        Render::SparkEmitter e;
-        e.Position = point + side.AverageNormal * 0.1f;
-        e.Duration = 5;
-        e.Segment = tag.Segment;
-        e.Direction = side.AverageNormal;
-        e.Up = side.Tangents[0];
-        e.ConeRadius = 1;
-        e.DurationRange = { 0.75f, 2.4f };
-        e.Restitution = 0.6f;
-        e.Velocity = { 50, 65 };
-        e.Count = { 80, 100 };
-        e.FadeTime = 0.5f;
-        Render::AddSparkEmitter(e);
+        if (auto e = Render::DefaultEffects.GetSparks("overlay_destroyed")) {
+            e->Direction = side.AverageNormal;
+            e->Up = side.Tangents[0];
+            auto position = point + side.AverageNormal * 0.1f;
+            Render::AddSparkEmitter(*e, tag.Segment, position);
+        }
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
         auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;

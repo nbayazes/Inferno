@@ -107,7 +107,7 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
     ExplosionTime: 0.4
-    Damage: 8
+    Damage: 6
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
     LightRadius: 3
@@ -195,7 +195,7 @@ Weapons:
     ExplosionTime: 0.6
     Damage: 20
     AmmoUsage: 60
-    ExplosionColor: 0.6, 0.2, 0.0
+    ExplosionColor: 1.6, 0.4, 0.0
     LightRadius: 6
     #ExplosionSound: ExpHardBullet
     ExplosionSound:
@@ -228,7 +228,7 @@ Weapons:
     Name: omega cannon
     Behavior: omega
     FireDelay: 0.125
-    Damage: 32
+    Damage: 2 # 32
     WallHitSound: -1
     WallHitVClip: -1
     RobotHitVClip: -1
@@ -342,5 +342,45 @@ Effects:
 
   Sparks:
     - Name: omega_hit
-      DurationRange: [ 0.35, 0.85 ]
+      SparkDuration: [ 0.25, 0.35 ]
       Restitution: 0.6
+      Velocity: [ 60, 120 ]
+      Count: [ 13, 20 ]
+      Color: 3, 3, 3
+      Texture: tracer # Bright Blue Energy1
+      Width: 0.15
+      FadeTime: 0.25
+      Drag: 0.1
+
+    - Name: weapon_hit_obj
+      Color: 1, 1, 0.9
+      Count: [ 10, 15 ]
+      SparkDuration: [ 0.55, 1.15 ]
+      Restitution: 0.6
+      Drag: 0.04
+      Velocity: [ 25, 30 ]
+      FadeTime: 0.55
+      Texture: tracer
+      Width: 0.125
+      VelocitySmear: 0.02
+
+    - Name: overlay_destroyed
+      ConeRadius: 1
+      SparkDuration: [ 0.75, 2.4 ]
+      Restitution: 0.6
+      Velocity: [ 50, 65 ]
+      Count: [ 80, 100 ]
+      FadeTime: 0.5
+      Texture: tracer
+      Width: 0.2
+      Color: 6, 3, 1
+
+    - Name: reactor_destroyed
+      SparkDuration: [ 0.75, 2.4 ]
+      Restitution: 0.6
+      Velocity: [ 65, 85 ]
+      Count: [ 120, 120 ]
+      Color: 4, 3, 3
+      FadeTime: 0.5
+      Texture: tracer # hotspark
+      Width: 0.5

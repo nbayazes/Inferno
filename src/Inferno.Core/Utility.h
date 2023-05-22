@@ -102,9 +102,8 @@ namespace Inferno {
 
     template <class T, class TKey>
     T* TryGetValue(Dictionary<TKey, T>& src, TKey key) {
-        if (src.contains(key))
-            return &src[key];
-        return nullptr;
+        auto item = src.find(key);
+        return item == src.end() ? nullptr : &item->second;
     }
 
     // defined in C++23

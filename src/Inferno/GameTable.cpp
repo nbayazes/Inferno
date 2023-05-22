@@ -27,13 +27,14 @@ namespace Inferno {
         }
     }
 
-    void ReadRange(ryml::NodeRef node, NumericRange<float>& values) {
+    template <class T>
+    void ReadRange(ryml::NodeRef node, NumericRange<T>& values) {
         if (!node.valid() || node.is_seed()) return;
 
         if (node.has_children()) {
             // Array of values
             int i = 0;
-            float children[2] = {};
+            T children[2] = {};
 
             for (const auto& child : node.children()) {
                 if (i >= 2) break;
@@ -45,7 +46,7 @@ namespace Inferno {
         }
         else if (node.has_val()) {
             // Single value
-            float value;
+            T value{};
             Yaml::ReadValue(node, value);
             values = { value, value };
         }
@@ -110,33 +111,60 @@ namespace Inferno {
         Yaml::ReadValue(node["Glow"], powerup.Glow);
     }
 
-    void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, Render::BeamInfo>& beams) {
+    Option<string> ReadEffectName(ryml::NodeRef node) {
         string name;
         Yaml::ReadValue(node["Name"], name);
         if (name.empty()) {
-            SPDLOG_WARN("Found beam entry with missing name!");
-            return;
+            SPDLOG_WARN("Found effect with no name!");
+            return {};
         }
 
-        Render::BeamInfo beam{};
-#define READ_PROP(name) Yaml::ReadValue(node[#name], beam.##name)
-        ReadRange(node["Radius"], beam.Radius);
-        ReadRange(node["Width"], beam.Width);
-        READ_PROP(Color); // range
+        return name;
+    }
+
+    void ReadBeamInfo(ryml::NodeRef node, Dictionary<string, Render::BeamInfo>& beams) {
+        Render::BeamInfo info{};
+
+#define READ_PROP(name) Yaml::ReadValue(node[#name], info.##name)
+        ReadRange(node["Radius"], info.Radius);
+        ReadRange(node["Width"], info.Width);
+        READ_PROP(Color);
         READ_PROP(Texture);
         READ_PROP(Frequency);
         READ_PROP(Amplitude);
+#undef READ_PROP
 
         bool fadeEnd = false, randomEnd = false, fadeStart = false;
         Yaml::ReadValue(node["FadeEnd"], fadeEnd);
         Yaml::ReadValue(node["FadeStart"], fadeStart);
         Yaml::ReadValue(node["RandomEnd"], randomEnd);
-        SetFlag(beam.Flags, Render::BeamFlag::FadeEnd, fadeEnd);
-        SetFlag(beam.Flags, Render::BeamFlag::FadeStart, fadeStart);
-        SetFlag(beam.Flags, Render::BeamFlag::RandomEnd, randomEnd);
+        SetFlag(info.Flags, Render::BeamFlag::FadeEnd, fadeEnd);
+        SetFlag(info.Flags, Render::BeamFlag::FadeStart, fadeStart);
+        SetFlag(info.Flags, Render::BeamFlag::RandomEnd, randomEnd);
+
+        if (auto name = ReadEffectName(node))
+            beams[*name] = info;
+    }
+
+    void ReadSparkInfo(ryml::NodeRef node, Dictionary<string, Render::SparkEmitter>& sparks) {
+        Render::SparkEmitter info;
+
+#define READ_PROP(name) Yaml::ReadValue(node[#name], info.##name)
+        READ_PROP(Color);
+        READ_PROP(Restitution);
+        READ_PROP(Texture);
+        READ_PROP(Width);
+        READ_PROP(FadeTime);
+        READ_PROP(Drag);
+        READ_PROP(VelocitySmear);
+        READ_PROP(Duration);
+        ReadRange(node["SparkDuration"], info.SparkDuration);
+        ReadRange(node["Velocity"], info.Velocity);
+        ReadRange(node["Count"], info.Count);
 #undef READ_PROP
 
-        beams[name] = beam;
+        if (auto name = ReadEffectName(node))
+            sparks[*name] = info;
     }
 
     void LoadGameTable(filesystem::path path, HamFile& ham) {
@@ -186,13 +214,24 @@ namespace Inferno {
             auto effects = root["Effects"];
             auto beamNode = effects["Beams"];
             if (!beamNode.is_seed()) {
-                
                 for (const auto& beam : beamNode.children()) {
                     try {
                         ReadBeamInfo(beam, Render::DefaultEffects.Beams);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading beam info", e.what());
+                    }
+                }
+            }
+
+            auto sparkNode = effects["Sparks"];
+            if (!sparkNode.is_seed()) {
+                for (const auto& beam : sparkNode.children()) {
+                    try {
+                        ReadSparkInfo(beam, Render::DefaultEffects.Sparks);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading spark info", e.what());
                     }
                 }
             }

@@ -241,23 +241,12 @@ namespace Inferno::Game {
             //AddPlanarExplosion(weapon, hit);
 
             //float damageMult = std::clamp(damage / 10.0f, 1.0f, 1.75f);
-            Render::SparkEmitter sparks{};
-            //sparks.Color = Color{ 3.0f, 2, 1.5f };
-            sparks.Color = Color{ 1.0f, 1, 0.9f } + weapon.Extended.ExplosionColor * 60;
-            sparks.Count = { 10, 15 };
-            sparks.Position = hit.Point;
-            sparks.Segment = hit.HitObj->Segment;
-            sparks.DurationRange = { 0.55f, 1.15f };
-            sparks.Restitution = 0.6f;
-            sparks.Drag = 0.04f;
-            sparks.Velocity = { 25, 30 };
-            sparks.FadeTime = 0.55;
-            sparks.Texture = "tracer";
-            sparks.Width = 0.125f;
-            sparks.VelocitySmear = 0.02f;
-            sparks.LightColor = weapon.Extended.ExplosionColor;
-            sparks.LightRadius = weapon.Extended.LightRadius;
-            Render::AddSparkEmitter(sparks);
+            if (auto sparks = Render::DefaultEffects.GetSparks("weapon_hit_obj")) {
+                sparks->Color += weapon.Extended.ExplosionColor * 60;
+                sparks->LightColor = weapon.Extended.ExplosionColor;
+                sparks->LightRadius = weapon.Extended.LightRadius;
+                Render::AddSparkEmitter(*sparks, hit.HitObj->Segment, hit.Point);
+            }
 
             //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
             //    auto soundRes = Resources::GetSoundResource(weapon.RobotHitSound);
@@ -696,14 +685,7 @@ namespace Inferno::Game {
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
 
-        Render::SparkEmitter spark;
-        spark.DurationRange = { 0.35f, 0.85f };
-        spark.Restitution = 0.6f;
-        spark.Velocity = { 30, 40 };
-        spark.Count = { 13, 20 };
-        spark.Color = Color{ 3, 3, 3 };
-        spark.Texture = "Bright Blue Energy1";
-        spark.Width = 0.15f;
+        auto spark = Render::DefaultEffects.GetSparks("omega_hit");
 
         if (initialTarget != ObjID::None) {
             // found a target! try chaining to others
@@ -744,9 +726,7 @@ namespace Inferno::Game {
                 Render::AddBeam("omega_tracer", weapon.FireDelay, targetObj);
 
                 // Sparks and explosion
-                spark.Position = target->Position;
-                spark.Segment = target->Segment;
-                Render::AddSparkEmitter(spark);
+                if (spark) Render::AddSparkEmitter(*spark, target->Segment, target->Position);
 
                 Render::ExplosionInfo expl;
                 //expl.Sound = weapon.RobotHitSound;
@@ -784,10 +764,8 @@ namespace Inferno::Game {
             if (IntersectLevel(Game::Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, false, true, hit)) {
                 //tracer.End = beam.End = hit.Point;
                 tracerEnd = hit.Point;
-                spark.Position = hit.Point;
-                spark.Segment = hit.Tag.Segment;
-                spark.FadeTime = 0.25f;
-                Render::AddSparkEmitter(spark);
+
+                if (spark) Render::AddSparkEmitter(*spark, hit.Tag.Segment, hit.Point);
 
                 // Do wall hit stuff
                 Object dummy{};

@@ -887,7 +887,7 @@ namespace Inferno::Render {
 
     void SparkEmitter::CreateSpark() {
         Spark spark;
-        spark.Life = DurationRange.GetRandom();
+        spark.Life = SparkDuration.GetRandom();
         spark.Position = spark.PrevPosition = Position;
         spark.Segment = Segment;
 
@@ -908,11 +908,21 @@ namespace Inferno::Render {
         _sparks.Add(spark);
     }
 
-    void AddSparkEmitter(SparkEmitter& emitter) {
-        std::array tex = { emitter.Texture };
-        Render::Materials->LoadTextures(tex);
+    //void AddSparkEmitter(SparkEmitter& emitter) {
+    //    std::array tex = { emitter.Texture };
+    //    Render::Materials->LoadTextures(tex);
+    //    assert(emitter.Segment != SegID::None);
+    //    if (emitter.Duration == 0) emitter.Duration = emitter.DurationRange.Max;
+    //    AddEffect(MakePtr<SparkEmitter>(emitter));
+    //}
+
+    void AddSparkEmitter(SparkEmitter& emitter, SegID seg, const Vector3& position) {
+        emitter.Segment = seg;
+        emitter.Position = position;
+
+        Render::Materials->LoadTexture(emitter.Texture);
         assert(emitter.Segment != SegID::None);
-        if (emitter.Duration == 0) emitter.Duration = emitter.DurationRange.Max;
+        if (emitter.Duration == 0) emitter.Duration = emitter.SparkDuration.Max;
         AddEffect(MakePtr<SparkEmitter>(emitter));
     }
 

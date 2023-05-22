@@ -372,19 +372,8 @@ namespace Inferno::Game {
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
 
-        {
-            Render::SparkEmitter e;
-            e.Position = obj.Position;
-            e.Segment = obj.Segment;
-            e.DurationRange = { 0.75f, 2.4f };
-            e.Restitution = 0.6f;
-            e.Velocity = { 65, 85 };
-            e.Count = { 120, 120 };
-            e.Color = Color{ 4, 3, 3 };
-            e.Texture = "Hotspark";
-            e.Width = 0.65f;
-            Render::AddSparkEmitter(e);
-        }
+        if (auto e = Render::DefaultEffects.GetSparks("reactor_destroyed"))
+            Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
 
         {
             // Initial explosion

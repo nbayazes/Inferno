@@ -279,7 +279,7 @@ namespace Inferno::Render {
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
 
-        NumericRange<float> DurationRange = { 1.0, 2.4f }; // Range for individual spark lifespans 
+        NumericRange<float> SparkDuration = { 1.0, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };
         Vector3 Direction;       // if Zero, random direction
@@ -297,7 +297,8 @@ namespace Inferno::Render {
         void CreateSpark();
     };
 
-    void AddSparkEmitter(SparkEmitter&);
+    //void AddSparkEmitter(SparkEmitter&);
+    void AddSparkEmitter(SparkEmitter&, SegID, const Vector3& position);
 
     void ResetParticles();
 
@@ -313,19 +314,22 @@ namespace Inferno::Render {
 
     // Stores default effects
     class EffectLibrary {
-        Dictionary<string, TracerInfo> _tracers;
-        Dictionary<string, ParticleEmitterInfo> _particleEmitter;
-        Dictionary<string, ExplosionInfo> _explosions;
-        Dictionary<string, SparkEmitter> _sparks;
-
+        // Create a copy of the effect so local changes aren't saved
+        template<class T>
+        Option<T> MaybeCopyValue(Dictionary<string, T>& data, const string& name) {
+            if (auto value = TryGetValue(data, name)) return *value;
+            return {};
+        }
     public:
         Dictionary<string, BeamInfo> Beams;
-        BeamInfo* GetBeamInfo(const string& name) { return TryGetValue(Beams, name); }
+        Dictionary<string, ExplosionInfo> Explosions;
+        Dictionary<string, SparkEmitter> Sparks;
+        Dictionary<string, TracerInfo> Tracers;
 
-        void ApplyEffect(TracerInfo& info, const string& name);
-        void ApplyEffect(ParticleEmitterInfo& info, const string& name);
-        void ApplyEffect(ExplosionInfo& info, const string& name);
-        void ApplyEffect(SparkEmitter& info, const string& name);
+        Option<BeamInfo> GetBeamInfo(const string& name) { return MaybeCopyValue(Beams, name); }
+        Option<ExplosionInfo> GetExplosion(const string& name) { return MaybeCopyValue(Explosions, name); }
+        Option<SparkEmitter> GetSparks(const string& name) { return MaybeCopyValue(Sparks, name); }
+        Option<TracerInfo> GetTracer(const string& name) { return MaybeCopyValue(Tracers, name); }
 
         //void LoadEffects(const filesystem::path& path);
     };
