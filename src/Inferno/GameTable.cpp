@@ -67,7 +67,8 @@ namespace Inferno {
         READ_PROP(FireDelay);
         READ_PROP(Lifetime);
 #undef READ_PROP
-
+        Yaml::ReadValue(node["Model"], (int&)weapon.Model);
+        
         ReadArray(node["Damage"], weapon.Damage);
         ReadArray(node["Speed"], weapon.Speed);
 
@@ -75,7 +76,7 @@ namespace Inferno {
         READ_PROP_EXT(Name);
         READ_PROP_EXT(Behavior);
         READ_PROP_EXT(Glow);
-        READ_PROP_EXT(Model);
+        READ_PROP_EXT(ModelName);
         READ_PROP_EXT(ModelScale);
         READ_PROP_EXT(Size);
         READ_PROP_EXT(Chargable);

@@ -4,7 +4,7 @@ Weapons:
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0.5, 0, 0
-    Model: RedLaser.OOF
+    ModelName: RedLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: RedLaserHit
@@ -19,7 +19,7 @@ Weapons:
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0.15, 0.15, 0.5
-    Model: bluelaser.OOF
+    ModelName: bluelaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: BlueLaserHit
@@ -34,7 +34,7 @@ Weapons:
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0.55, 0.55, 0.75
-    Model: PurpleLaser.OOF
+    ModelName: PurpleLaser.OOF
     ModelScale: 0.7
     ExplosionTexture: PurpleLaserHit
     ExplosionSound: LazorHitshrt
@@ -49,7 +49,7 @@ Weapons:
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0.1, 0.7, 0.1
-    Model: GreenLaser.OOF
+    ModelName: GreenLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: GreenLaserHit
@@ -64,7 +64,7 @@ Weapons:
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0.7, 0.4, 0.1
-    Model: YellowLaser.OOF
+    ModelName: YellowLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: YellowLaserHit
@@ -79,7 +79,7 @@ Weapons:
     Mass: 0.05
     FireDelay: 0.25
     Glow: 0.65, 0.65, 0.65
-    Model: WhiteLaser.OOF
+    ModelName: WhiteLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
     ExplosionTexture: WhiteLaserHit
@@ -110,8 +110,9 @@ Weapons:
     Damage: 6
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
-    LightRadius: 3
-    ExplosionColor: 0.2, 0.1, 0.0
+    LightRadius: 3.75
+    ExplosionColor: 1.2, 0.4, 0.0
+    Model: -1
     
   - id: 12 
     Name: spreadfire
@@ -146,7 +147,7 @@ Weapons:
     DecalRadius: 3.25
     Glow: 0.3, 0, 0.5
     EnergyUsage: 2
-    Model: FusionBlobNewJ.OOF
+    ModelName: FusionBlobNewJ.OOF
     RotationalVelocity: 0, 0, 1.5708
     Size: 2.1
     ExplosionTexture: FusionHit
@@ -168,23 +169,27 @@ Weapons:
     Name: homing missile
     Decal: scorchC
     DecalRadius: 4
+    LightRadius: 14
 
   - id: 16
     Name: proximity mine
     behavior: proxmine
     InheritVelocity: true
+    LightRadius: 20
 
   - id: 17
     Name: smart missile
-    Model: smartmissile.OOF
+    ModelName: smartmissile.OOF
     Decal: scorchC
     DecalRadius: 4
+    LightRadius: 14
 
   - id: 18
     Name: mega missile
     Decal: scorchC
     DecalRadius: 8
     ExplosionColor: 15, 0.5, 0.5
+    LightRadius: 60
 
   - id: 32
     Name: gauss
@@ -199,6 +204,7 @@ Weapons:
     LightRadius: 6
     #ExplosionSound: ExpHardBullet
     ExplosionSound:
+    Model: -1
 
   - id: 33
     Name: helix
@@ -261,7 +267,8 @@ Weapons:
     Name: earthshaker
     Decal: scorchC
     DecalRadius: 8
-    ExplosionColor: 1, 1, 100.0
+    ExplosionColor: 5, 5, 100.0
+    LightRadius: 120
 
   - id: 51
     Name: level mine

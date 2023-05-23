@@ -262,7 +262,9 @@ namespace Inferno::Render {
                 p.Color = expl.Color;
                 p.FadeTime = expl.FadeTime;
                 p.LightColor = expl.LightColor;
-                if (i == 0) p.LightRadius = p.Radius * 4.0f; // only apply light to first explosion instance
+                // only apply light to first explosion instance
+                if (i == 0) p.LightRadius = expl.LightRadius < 0 ? expl.LightRadius : p.Radius * 4;
+
                 Render::AddParticle(p, expl.Segment);
 
                 if (expl.Instances > 1 && (expl.Delay.Min > 0 || expl.Delay.Max > 0)) {
@@ -679,7 +681,8 @@ namespace Inferno::Render {
         if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
             tracer.Position = obj->Position;
             tracer.Signature = obj->Signature;
-        } else {
+        }
+        else {
             SPDLOG_WARN("Tried to add tracer to invalid object");
             return;
         }

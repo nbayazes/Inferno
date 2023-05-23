@@ -115,7 +115,7 @@ namespace Inferno::Render {
         bool LoadTexture(const string& name) {
             std::array tex = { name };
             LoadTextures(tex);
-            return _unpackedMaterials[name].ID != TexID::Invalid;
+            return _unpackedMaterials[name].Pointer() != 0;
         }
 
         void Reload();

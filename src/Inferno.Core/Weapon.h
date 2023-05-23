@@ -106,7 +106,7 @@ namespace Inferno {
         string Behavior; // Function to call when firing this weapon. Fusion, Omega, Spreadfire, Helix, Mass Driver (zoom)
         string Decal = "scorchA"; // Texture to apply to walls when hit
         float DecalRadius = 1; // Radius of decals. 0 uses a ratio of impact size.
-        string Model;
+        string ModelName; // Name of a model file to load (D3 OOF)
         float ModelScale = 1;
 
         string ExplosionTexture; // Texture to use when exploding, overrides vclip. Renders as a plane aligned to the hit normal or camera.
@@ -128,9 +128,9 @@ namespace Inferno {
         Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
         Color Glow = { 0.01f, 0.01f, 0.01f }; // For emissive glows
         Color LightColor; // color for projectile environment lighting
-        float LightRadius = 0; // size of environment lighting
+        float LightRadius = -1; // size of environment lighting
         DynamicLightMode LightMode = DynamicLightMode::Constant; // Effect to use for lighting
-        Color ExplosionColor; // color for contact explosion. size scales based on explosion size
+        Color ExplosionColor = { -1, -1, -1 }; // color for contact explosion. size scales based on explosion size
 
         int Bounces = 0;
         bool Sticky = false; // Sticks to surfaces once Bounces = 0

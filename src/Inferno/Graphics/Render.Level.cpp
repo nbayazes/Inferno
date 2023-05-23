@@ -362,7 +362,7 @@ namespace Inferno::Render {
 
             for (auto& effect : GetEffectsInSegment(room)) {
                 if (lightIndex >= LIGHT_BUFFER.size()) break;
-                if (effect->LightRadius == 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive()) continue;
+                if (effect->LightRadius <= 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive()) continue;
 
                 float t = 0;
 

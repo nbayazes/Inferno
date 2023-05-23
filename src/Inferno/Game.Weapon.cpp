@@ -429,7 +429,9 @@ namespace Inferno::Game {
                 position = hit.WallPoint - dir * 2.5;
 
             e.FadeTime = 0.1f;
-            e.LightColor = weapon.Extended.ExplosionColor;
+            if (weapon.Extended.ExplosionColor != Color(-1, -1, -1))
+                e.LightColor = weapon.Extended.ExplosionColor;
+            e.LightRadius = weapon.Extended.LightRadius;
 
             if (obj.ID == (int)WeaponID::Concussion) {
                 e.Instances = 3;
@@ -510,10 +512,10 @@ namespace Inferno::Game {
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : model.Radius / weapon.ModelSizeRatio;
             if (bullet.Radius < 0) bullet.Radius = 1;
 
-            auto d3Model = weapon.Extended.Model.empty() ? ModelID::None : Render::LoadOutrageModel(weapon.Extended.Model);
+            auto d3Model = weapon.Extended.ModelName.empty() ? ModelID::None : Render::LoadOutrageModel(weapon.Extended.ModelName);
 
             if (Settings::Inferno.Descent3Enhanced && d3Model != ModelID::None) {
-                bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.Model);
+                bullet.Render.Model.ID = Render::LoadOutrageModel(weapon.Extended.ModelName);
                 bullet.Render.Model.Outrage = true;
                 bullet.Scale = weapon.Extended.ModelScale;
             }
@@ -530,6 +532,9 @@ namespace Inferno::Game {
             //auto length = model.Radius * 2;
             Render::LoadModelDynamic(weapon.Model);
             Render::LoadModelDynamic(weapon.ModelInner);
+
+            if (bullet.Render.Model.ID == ModelID::None)
+                bullet.Render.Type = RenderType::None;
         }
         else if (weapon.RenderType == WeaponRenderType::None) {
             bullet.Radius = 0.1f; // original game used a value of 1
