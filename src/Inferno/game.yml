@@ -384,3 +384,48 @@ Effects:
       FadeTime: 0.5
       Texture: tracer # hotspark
       Width: 0.5
+
+  Explosions:
+    - Name: reactor_initial_explosion
+      FadeTime: 0.25
+      Instances: 5
+      # Color: 2.75, 2.25, 2.25
+      # LightColor: 4, 1, 0.1
+      Radius: 2.5 # array
+      Delay: 0
+      Clip: 2 # Small explosion
+      Sound: 11 # Explosion
+
+    - Name: reactor_large_explosions # large periodic explosion with sound
+      FadeTime: 0.25
+      # Color: 2.75, 2.25, 2.25
+      # LightColor: 4, 1, 0.1
+      Radius: [ 2, 3 ]
+      Delay: [ 1.25, 2 ]
+      Clip: 2 # Small explosion
+      Sound: 31 # Exploding wall
+      Volume: 0.5
+
+    - Name: reactor_small_explosions # small periodic explosion
+      FadeTime: 0.25
+      Radius: [ 1, 3 ]
+      Delay: [ 0.05, 0.10 ]
+      Clip: 2 # Small explosion
+
+  Tracers:
+    - Name: vulcan_tracer
+      Length: 30
+      Width: 0.3
+      Texture: vausstracer
+      BlobTexture: Tracerblob
+      Color: 2, 2, 2
+      FadeSpeed: 0.2
+
+    - Name: gauss_tracer
+      Length: 25
+      Width: 0.9
+      Texture: MassDriverTracer
+      BlobTexture: MassTracerblob
+      Color: 2, 2, 2
+      FadeSpeed: 0.2
+  

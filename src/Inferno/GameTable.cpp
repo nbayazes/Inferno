@@ -167,6 +167,34 @@ namespace Inferno {
             sparks[*name] = info;
     }
 
+    void ReadExplosions(ryml::NodeRef node, Dictionary<string, Render::ExplosionInfo>& explosions) {
+        Render::ExplosionInfo info;
+        Yaml::ReadValue(node["Instances"], info.Instances);
+        Yaml::ReadValue(node["FadeTime"], info.FadeTime);
+        ReadRange(node["Radius"], info.Radius);
+        ReadRange(node["Delay"], info.Delay);
+        Yaml::ReadValue(node["Clip"], (int&)info.Clip);
+        Yaml::ReadValue(node["Sound"], (int&)info.Sound);
+        Yaml::ReadValue(node["Volume"], info.Volume);
+
+        if (auto name = ReadEffectName(node))
+            explosions[*name] = info;
+    }
+
+    void ReadTracers(ryml::NodeRef node, Dictionary<string, Render::TracerInfo>& tracers) {
+        Render::TracerInfo info;
+        Yaml::ReadValue(node["Length"], info.Length);
+        Yaml::ReadValue(node["Width"], info.Width);
+        Yaml::ReadValue(node["Texture"], info.Texture);
+        Yaml::ReadValue(node["BlobTexture"], info.BlobTexture);
+        Yaml::ReadValue(node["Color"], info.Color);
+        Yaml::ReadValue(node["FadeSpeed"], info.FadeSpeed);
+        Yaml::ReadValue(node["Duration"], info.Duration);
+
+        if (auto name = ReadEffectName(node))
+            tracers[*name] = info;
+    }
+
     void LoadGameTable(filesystem::path path, HamFile& ham) {
         try {
             std::ifstream file(path);
@@ -185,8 +213,9 @@ namespace Inferno {
                 return;
             }
 
-            auto weapons = root["Weapons"];
-            if (!weapons.is_seed()) {
+            Render::EffectLibrary = {}; // Reset effect library
+            
+            if (auto weapons = root["Weapons"]; !weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
                     int id = -1;
                     try {
@@ -198,8 +227,7 @@ namespace Inferno {
                 }
             }
 
-            auto powerups = root["Powerups"];
-            if (!powerups.is_seed()) {
+            if (auto powerups = root["Powerups"]; !powerups.is_seed()) {
                 for (const auto& powerup : powerups.children()) {
                     int id = -1;
                     try {
@@ -212,28 +240,54 @@ namespace Inferno {
             }
 
             auto effects = root["Effects"];
-            auto beamNode = effects["Beams"];
-            if (!beamNode.is_seed()) {
-                for (const auto& beam : beamNode.children()) {
+            
+            if (auto beams = effects["Beams"]; !beams.is_seed()) {
+                for (const auto& beam : beams.children()) {
                     try {
-                        ReadBeamInfo(beam, Render::DefaultEffects.Beams);
+                        ReadBeamInfo(beam, Render::EffectLibrary.Beams);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading beam info", e.what());
                     }
                 }
+                SPDLOG_INFO("Loaded {} beams", Render::EffectLibrary.Beams.size());
             }
 
-            auto sparkNode = effects["Sparks"];
-            if (!sparkNode.is_seed()) {
-                for (const auto& beam : sparkNode.children()) {
+            
+            if (auto sparks = effects["Sparks"]; !sparks.is_seed()) {
+                for (const auto& beam : sparks.children()) {
                     try {
-                        ReadSparkInfo(beam, Render::DefaultEffects.Sparks);
+                        ReadSparkInfo(beam, Render::EffectLibrary.Sparks);
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading spark info", e.what());
                     }
                 }
+                SPDLOG_INFO("Loaded {} sparks", Render::EffectLibrary.Sparks.size());
+            }
+
+            if (auto explosions = effects["Explosions"]; !explosions.is_seed()) {
+                for (const auto& beam : explosions.children()) {
+                    try {
+                        ReadExplosions(beam, Render::EffectLibrary.Explosions);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading explosion info", e.what());
+                    }
+                }
+                SPDLOG_INFO("Loaded {} explosions", Render::EffectLibrary.Explosions.size());
+            }
+
+            if (auto tracers = effects["Tracers"]; !tracers.is_seed()) {
+                for (const auto& beam : tracers.children()) {
+                    try {
+                        ReadTracers(beam, Render::EffectLibrary.Tracers);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading tracer info", e.what());
+                    }
+                }
+                SPDLOG_INFO("Loaded {} tracers", Render::EffectLibrary.Tracers.size());
             }
         }
         catch (const std::exception& e) {

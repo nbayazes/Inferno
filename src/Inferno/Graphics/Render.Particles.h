@@ -15,7 +15,7 @@ namespace Inferno::Render {
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;
-        float Duration = 0; // How long the effect lasts
+        float Duration = 5; // How long the effect lasts
         float Elapsed = 0;  // How long the effect has been alive for
         bool IsTransparent = true;
         float LightRadius = 0; // Radius of emitted light
@@ -162,7 +162,7 @@ namespace Inferno::Render {
         bool IsAlive() const { return InitialDelay >= 0; }
     };
 
-    void CreateExplosion(ExplosionInfo&);
+    void CreateExplosion(ExplosionInfo&, SegID, const Vector3& position);
 
     enum class BeamFlag {
         SineNoise = 1 << 0, // Sine noise when true, Fractal noise when false
@@ -240,7 +240,7 @@ namespace Inferno::Render {
 
     // Adds a tracer effect attached to an object that is removed when the object dies.
     // Tracers are only drawn when the minimum length is reached
-    void AddTracer(TracerInfo&, SegID);
+    void AddTracer(TracerInfo&, SegID, ObjID parent);
 
     struct DecalInfo final : EffectBase {
         Vector3 Normal, Tangent, Bitangent;
@@ -334,5 +334,5 @@ namespace Inferno::Render {
         //void LoadEffects(const filesystem::path& path);
     };
 
-    inline EffectLibrary DefaultEffects;
+    inline class EffectLibrary EffectLibrary;
 }

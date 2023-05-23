@@ -372,64 +372,32 @@ namespace Inferno::Game {
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
 
-        if (auto e = Render::DefaultEffects.GetSparks("reactor_destroyed"))
+        if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
 
-        {
-            // Initial explosion
-            Render::ExplosionInfo e;
-            e.Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
-            e.Clip = VClipID::SmallExplosion;
-            e.Sound = SoundID::Explosion;
-            e.Segment = obj.Segment;
-            e.Position = obj.Position;
-            e.FadeTime = 0.25f;
-            e.Instances = 5;
-            e.Variance = obj.Radius * 0.9f;
-            e.Delay = { 0, 0 };
-            //e.Color = { 1.3f, 1.3f, 1.3f, 1.0f };
-
-            Render::CreateExplosion(e);
+        if (auto e = Render::EffectLibrary.GetExplosion("reactor_initial_explosion")) {
+            e->Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
+            e->Variance = obj.Radius * 0.9f;
+            Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        {
+        if (auto e = Render::EffectLibrary.GetExplosion("reactor_large_explosions")) {
             // Larger periodic explosions with sound
-            Render::ExplosionInfo e;
-            e.Radius = { 2, 3 };
-            e.Clip = VClipID::SmallExplosion;
-            e.Sound = SoundID::ExplodingWall;
-            e.Volume = 0.5f;
-            e.Segment = obj.Segment;
-            e.Position = obj.Position;
-            e.FadeTime = 0.25f;
-            e.Variance = obj.Radius * 0.45f;
-            e.Instances = TotalCountdown;
-            e.Delay = { 1.25f, 2.00f };
-            Render::CreateExplosion(e);
+            e->Variance = obj.Radius * 0.45f;
+            e->Instances = TotalCountdown;
+            Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        {
-            for (int i = 0; i < 4; i++) {
-                auto startObj = ObjID(&obj - Level.Objects.data());
-                Render::AddBeam("reactor_arcs", CountdownTimer + 5, startObj);
-            }
+        if (auto e = Render::EffectLibrary.GetExplosion("reactor_small_explosions")) {
+            e->Variance = obj.Radius * 0.55f;
+            e->Instances = TotalCountdown * 10;
+            Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        {
-            // Small periodic explosions
-            Render::ExplosionInfo e;
-            e.Radius = { 0.75f, 1.5f };
-            e.Clip = VClipID::SmallExplosion;
-            e.Segment = obj.Segment;
-            e.Position = obj.Position;
-            e.FadeTime = 0.25f;
-            e.Variance = obj.Radius * 0.45f;
-            e.Instances = TotalCountdown * 10;
-            e.Delay = { 0.05f, 0.15f };
-            Render::CreateExplosion(e);
+        for (int i = 0; i < 4; i++) {
+            auto startObj = ObjID(&obj - Level.Objects.data());
+            Render::AddBeam("reactor_arcs", CountdownTimer + 5, startObj);
         }
-
-        // todo: disable secret portals
 
         // Load critical clips
         Set<TexID> ids;
@@ -462,15 +430,13 @@ namespace Inferno::Game {
                 expl.Sound = robot.ExplosionSound2;
                 expl.Clip = robot.ExplosionClip2;
                 expl.Radius = { obj.Radius * 1.75f, obj.Radius * 1.9f };
-                expl.Segment = obj.Segment;
-                expl.Position = obj.GetPosition(LerpAmount);
-                Render::CreateExplosion(expl);
+                Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(LerpAmount));
 
                 expl.Sound = SoundID::None;
                 expl.InitialDelay = EXPLOSION_DELAY;
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
-                Render::CreateExplosion(expl);
+                Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(LerpAmount));
 
                 AddPointsToScore(robot.Score);
 
@@ -634,32 +600,14 @@ namespace Inferno::Game {
             // Hack to attach tracers due to not having the object ID in firing code
             if (obj.Type == ObjectType::Weapon && Settings::Inferno.Descent3Enhanced) {
                 //auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
-
-                constexpr auto TRACER_FADE_SPEED = 0.2f;
-                constexpr auto TRACER_LENGTH = 30.0f;
-
                 if ((WeaponID)obj.ID == WeaponID::Vulcan) {
-                    Render::TracerInfo tracer;
-                    tracer.Parent = id;
-                    tracer.Length = TRACER_LENGTH;
-                    tracer.Width = 0.30f;
-                    tracer.Texture = "vausstracer";
-                    tracer.BlobTexture = "Tracerblob";
-                    tracer.Color = Color{ 2, 2, 2 };
-                    tracer.FadeSpeed = TRACER_FADE_SPEED;
-                    Render::AddTracer(tracer, obj.Segment);
+                    if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
+                        Render::AddTracer(*tracer, obj.Segment, id);
                 }
 
                 if ((WeaponID)obj.ID == WeaponID::Gauss) {
-                    Render::TracerInfo tracer;
-                    tracer.Parent = id;
-                    tracer.Length = 25.0f;
-                    tracer.Width = 0.90f;
-                    tracer.Texture = "MassDriverTracer";
-                    tracer.BlobTexture = "MassTracerblob";
-                    tracer.Color = Color{ 2, 2, 2 };
-                    tracer.FadeSpeed = TRACER_FADE_SPEED;
-                    Render::AddTracer(tracer, obj.Segment);
+                    if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
+                        Render::AddTracer(*tracer, obj.Segment, id);
                 }
             }
         }

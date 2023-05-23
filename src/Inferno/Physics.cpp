@@ -209,7 +209,7 @@ namespace Inferno {
         //ei.Position = point;
         //ei.Segment = tag.Segment;
         //Render::CreateExplosion(ei);
-        if (auto e = Render::DefaultEffects.GetSparks("overlay_destroyed")) {
+        if (auto e = Render::EffectLibrary.GetSparks("overlay_destroyed")) {
             e->Direction = side.AverageNormal;
             e->Up = side.Tangents[0];
             auto position = point + side.AverageNormal * 0.1f;

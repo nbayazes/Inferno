@@ -43,11 +43,9 @@ namespace Inferno::Game {
         e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
         e.Clip = vclip;
         e.Sound = soundId;
-        e.Position = obj.Position;
         //e.Color = Color{ 1, 1, 1 };
         e.FadeTime = 0.1f;
-        e.Segment = obj.Segment;
-        Render::CreateExplosion(e);
+        Render::CreateExplosion(e, obj.Segment, obj.Position);
 
         if (weapon.SplashRadius > 0) {
             GameExplosion ge{};
@@ -220,10 +218,7 @@ namespace Inferno::Game {
 
             Render::ExplosionInfo expl;
             expl.Sound = weapon.RobotHitSound;
-            expl.Segment = hit.HitObj->Segment;
-            expl.Position = hit.Point;
             //expl.Parent = src.Parent;
-
             expl.Clip = vclip;
             expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
             //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
@@ -236,12 +231,12 @@ namespace Inferno::Game {
                 expl.Clip = weapon.RobotHitVClip;
             }
 
-            Render::CreateExplosion(expl);
+            Render::CreateExplosion(expl, hit.HitObj->Segment, hit.Point);
 
             //AddPlanarExplosion(weapon, hit);
 
             //float damageMult = std::clamp(damage / 10.0f, 1.0f, 1.75f);
-            if (auto sparks = Render::DefaultEffects.GetSparks("weapon_hit_obj")) {
+            if (auto sparks = Render::EffectLibrary.GetSparks("weapon_hit_obj")) {
                 sparks->Color += weapon.Extended.ExplosionColor * 60;
                 sparks->LightColor = weapon.Extended.ExplosionColor;
                 sparks->LightRadius = weapon.Extended.LightRadius;
@@ -424,14 +419,14 @@ namespace Inferno::Game {
             Render::ExplosionInfo e;
             e.Radius = { impactSize * 0.9f, impactSize * 1.1f };
             e.Clip = vclip;
-            e.Segment = hit.Tag.Segment;
             e.Parent = obj.Parent;
 
+            Vector3 position;
             // move explosions out of wall
             if (impactSize < 5)
-                e.Position = hit.WallPoint - dir * impactSize * 0.5f;
+                position = hit.WallPoint - dir * impactSize * 0.5f;
             else
-                e.Position = hit.WallPoint - dir * 2.5;
+                position = hit.WallPoint - dir * 2.5;
 
             e.FadeTime = 0.1f;
             e.LightColor = weapon.Extended.ExplosionColor;
@@ -441,7 +436,7 @@ namespace Inferno::Game {
                 e.Delay = { 0, 0 };
             }
 
-            Render::CreateExplosion(e);
+            Render::CreateExplosion(e, hit.Tag.Segment, position);
         }
 
         if (splashRadius > 0) {
@@ -685,7 +680,7 @@ namespace Inferno::Game {
         auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
 
-        auto spark = Render::DefaultEffects.GetSparks("omega_hit");
+        auto spark = Render::EffectLibrary.GetSparks("omega_hit");
 
         if (initialTarget != ObjID::None) {
             // found a target! try chaining to others
@@ -730,14 +725,12 @@ namespace Inferno::Game {
 
                 Render::ExplosionInfo expl;
                 //expl.Sound = weapon.RobotHitSound;
-                expl.Segment = target->Segment;
-                expl.Position = target->Position;
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
                 expl.Variance = target->Radius * 0.45f;
                 //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
-                Render::CreateExplosion(expl);
+                Render::CreateExplosion(expl, target->Segment, target->Position);
             }
 
             // Hit sound

@@ -215,12 +215,10 @@ namespace Inferno::Render {
         if (Elapsed > Duration) {
             ExplosionInfo e;
             e.Radius = { Radius * 1.0f, Radius * 1.45f };
-            e.Position = PrevTransform.Translation();
             e.Variance = Radius * 1.0f;
             e.Instances = 2;
-            e.Segment = Segment;
             e.Delay = { 0.15f, 0.3f };
-            CreateExplosion(e);
+            CreateExplosion(e, Segment, PrevTransform.Translation());
         }
     }
 
@@ -229,10 +227,12 @@ namespace Inferno::Render {
         AddEffect(MakePtr<Debris>(debris));
     }
 
-    void CreateExplosion(ExplosionInfo& e) {
+    void CreateExplosion(ExplosionInfo& e, SegID seg, const Vector3& position) {
         if (e.Clip == VClipID::None) return;
         if (e.InitialDelay < 0) e.InitialDelay = 0;
         if (e.Instances < 0) e.Instances = 1;
+        e.Segment = seg;
+        e.Position = position;
         Explosions.Add(e);
     }
 
@@ -311,7 +311,7 @@ namespace Inferno::Render {
     }
 
     void AddBeam(const string& effect, float life, const Vector3& start, const Vector3& end) {
-        if (auto info = DefaultEffects.GetBeamInfo(effect)) {
+        if (auto info = EffectLibrary.GetBeamInfo(effect)) {
             BeamInfo beam = *info;
             beam.Segment = FindContainingSegment(Game::Level, start);
             beam.Start = start;
@@ -322,7 +322,7 @@ namespace Inferno::Render {
     }
 
     void AddBeam(const string& effect, float life, ObjID start, const Vector3& end, int startGun) {
-        auto info = DefaultEffects.GetBeamInfo(effect);
+        auto info = EffectLibrary.GetBeamInfo(effect);
         auto obj = Game::Level.TryGetObject(start);
 
         if (info && obj) {
@@ -338,7 +338,7 @@ namespace Inferno::Render {
     }
 
     void AddBeam(const string& effect, float life, ObjID start, ObjID end, int startGun) {
-        auto info = DefaultEffects.GetBeamInfo(effect);
+        auto info = EffectLibrary.GetBeamInfo(effect);
         auto obj = Game::Level.TryGetObject(start);
 
         if (info && obj) {
@@ -668,20 +668,23 @@ namespace Inferno::Render {
         }
     }
 
-    void AddTracer(TracerInfo& tracer, SegID seg) {
+    void AddTracer(TracerInfo& tracer, SegID seg, ObjID parent) {
         std::array tex = { tracer.Texture, tracer.BlobTexture };
         Render::Materials->LoadTextures(tex);
         tracer.Segment = seg;
+        tracer.Parent = parent;
 
         assert(tracer.Parent != ObjID::None);
 
         if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
             tracer.Position = obj->Position;
             tracer.Signature = obj->Signature;
+        } else {
+            SPDLOG_WARN("Tried to add tracer to invalid object");
+            return;
         }
 
         tracer.Elapsed = 0;
-        tracer.Duration = 5;
         AddEffect(MakePtr<TracerInfo>(tracer));
     }
 
