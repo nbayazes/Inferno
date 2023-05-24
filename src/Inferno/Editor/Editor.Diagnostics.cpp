@@ -427,7 +427,7 @@ namespace Inferno::Editor {
             Set<PointID> indices;
             Seq::insert(indices, seg.Indices);
             if (indices.size() < 8) {
-                results.push_back({ 0, { segid, SideID::None }, "Segment has merged points and will cause crashes." });
+                results.push_back({ 0, { segid, SideID::None }, "Segment has merged points and will cause crashes" });
             }
 
             for (auto& side : SideIDs) {

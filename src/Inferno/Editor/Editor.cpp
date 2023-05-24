@@ -238,12 +238,14 @@ namespace Inferno::Editor {
         auto mouselookKey = Bindings::Active.GetBindingKey(EditorAction::HoldMouselook);
 
         if (Input::Mouse.middleButton == Input::MouseState::PRESSED ||
-            Input::Keyboard.IsKeyPressed(mouselookKey))
-            Input::SetMouselook(true);
+            Input::Keyboard.IsKeyPressed(mouselookKey)) {
+            auto mode = Settings::Editor.MiddleMouseMode == MiddleMouseMode::Mouselook ? Input::MouseMode::Mouselook : Input::MouseMode::Orbit;
+            Input::SetMouseMode(mode);
+        }
 
         if (Input::Mouse.middleButton == Input::MouseState::RELEASED ||
             Input::Keyboard.IsKeyReleased(mouselookKey))
-            Input::SetMouselook(false);
+            Input::SetMouseMode(Input::MouseMode::Normal);
     }
 
     void CreateMatcenEffects(const Level& level) {
@@ -308,7 +310,7 @@ namespace Inferno::Editor {
         Render::Camera.Update(Render::FrameTime); // for interpolation
 
         // only update mouse functionality if mouse not over imgui and not in mouselook
-        if (ImGui::GetCurrentContext()->HoveredWindow && !Input::GetMouselook()) return;
+        if (ImGui::GetCurrentContext()->HoveredWindow && Input::GetMouseMode() != Input::MouseMode::Normal) return;
 
         DragMode = UpdateGizmoDragState();
 
@@ -344,7 +346,7 @@ namespace Inferno::Editor {
                     break;
             }
 
-            if (Input::GetMouselook() || Input::LeftDragState == SelectionState::None)
+            if (Input::GetMouseMode() != Input::MouseMode::Normal || Input::LeftDragState == SelectionState::None)
                 UpdateCamera(Render::Camera); // Only allow camera movement when not dragging unless in mouselook mode
         }
 

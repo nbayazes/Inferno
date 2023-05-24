@@ -119,7 +119,7 @@ namespace Inferno::Editor {
         };
 
         Command ToggleMouselook{
-            .Action = [] { Input::SetMouselook(!Input::GetMouselook()); },
+            .Action = [] { Input::SetMouseMode(Input::GetMouseMode() == Input::MouseMode::Mouselook ? Input::MouseMode::Normal : Input::MouseMode::Mouselook); },
             .Name = "Toggle Mouselook"
         };
 

@@ -4,14 +4,18 @@
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {
-
     void UpdateCamera(Camera& camera) {
         auto& delta = Input::MouseDelta;
         auto& wheelDelta = Input::WheelDelta;
 
-        if (Input::GetMouselook()) {
+        if (Input::GetMouseMode() == Input::MouseMode::Mouselook) {
             int inv = Settings::Editor.InvertY ? 1 : -1;
             camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
+        }
+
+        if (Input::GetMouseMode() == Input::MouseMode::Orbit) {
+            int inv = Settings::Editor.InvertOrbitY ? 1 : -1;
+            camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
         }
 
         if (wheelDelta < 0) camera.ZoomIn();
@@ -73,17 +77,7 @@ namespace Inferno::Editor {
         };
 
         Command FocusSelection{
-            .Action = [] {
-                if (Settings::Editor.SelectionMode == SelectionMode::Object) {
-                    if (auto obj = Game::Level.TryGetObject(Selection.Object)) {
-                        Render::Camera.MoveTo(obj->Position);
-                        return;
-                    }
-                }
-
-                if (auto seg = Game::Level.TryGetSegment(Selection.Segment))
-                    Render::Camera.MoveTo(seg->Center);
-            },
+            .Action = [] { Render::Camera.MoveTo(Editor::Gizmo.Transform.Translation()); },
             .Name = "Focus Selection"
         };
     }

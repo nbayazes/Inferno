@@ -243,8 +243,7 @@ void Application::OnActivated() {
 }
 
 void Application::OnDeactivated() {
-    if (Input::GetMouselook())
-        Input::SetMouselook(false);
+    Input::SetMouseMode(Input::MouseMode::Normal);
 
     Input::ResetState();
     _isForeground = false;

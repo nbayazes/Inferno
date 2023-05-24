@@ -639,7 +639,7 @@ namespace Inferno::Editor {
 
     bool BeginContextMenu() {
         if (Editor::Gizmo.State == GizmoState::EndDrag ||
-            Input::GetMouselook() ||
+            Input::GetMouseMode() != Input::MouseMode::Normal ||
             (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) || // Disable right click in texture mode
             Input::LeftDragState == Input::SelectionState::Dragging ||
             ImGui::GetTopMostPopupModal()) return false;

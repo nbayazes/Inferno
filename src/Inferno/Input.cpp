@@ -16,7 +16,7 @@ namespace Inferno::Input {
     HWND Hwnd;
     int RawX, RawY;
 
-    bool Mouselook = false, RequestedMouselook = false;
+    MouseMode ActualMouseMode{}, RequestedMouseMode{};
     int WheelPrev = 0;
 
     SelectionState UpdateDragState(DirectX::Mouse::ButtonStateTracker::ButtonState buttonState, SelectionState dragState) {
@@ -58,18 +58,18 @@ namespace Inferno::Input {
     }
 
     void Update() {
-        if (RequestedMouselook != Mouselook) {
-            Mouselook = RequestedMouselook;
+        if (RequestedMouseMode != ActualMouseMode) {
+            ActualMouseMode = RequestedMouseMode;
             RawX = RawY = 0;
 
-            if (Mouselook) {
+            if (ActualMouseMode != MouseMode::Normal) {
                 RECT r{}, frame{};
                 GetClientRect(Hwnd, &r);
                 POINT center = { (r.left + r.right) / 2, (r.top + r.bottom) / 2 };
                 WindowCenter = Vector2{ (float)center.x, (float)center.y };
             }
 
-            ShowCursor(!Mouselook);
+            ShowCursor(ActualMouseMode == MouseMode::Normal);
         }
 
         auto keyboardState = _keyboard.GetState();
@@ -77,7 +77,7 @@ namespace Inferno::Input {
         Keyboard.Update(keyboardState);
         Mouse.Update(mouseState);
 
-        if (Mouselook) {
+        if (ActualMouseMode != MouseMode::Normal) {
             // keep the cursor in place in mouselook mode
             MousePrev = WindowCenter;
             MousePosition = WindowCenter;
@@ -129,10 +129,10 @@ namespace Inferno::Input {
         return Keyboard.IsKeyPressed(key);
     }
 
-    bool GetMouselook() { return Mouselook; }
+    MouseMode GetMouseMode() { return ActualMouseMode; }
 
-    void SetMouselook(bool enable) {
-        RequestedMouselook = enable;
+    void SetMouseMode(MouseMode enable) {
+        RequestedMouseMode = enable;
     }
 
     void ResetState() {
@@ -176,23 +176,19 @@ namespace Inferno::Input {
                 throw std::system_error(std::error_code((int)GetLastError(), std::system_category()), "WaitForMultipleObjectsEx");
         }
 
-        switch (message) {
-            case WM_INPUT:
-            {
-                RAWINPUT raw{};
-                UINT rawSize = sizeof(raw);
+        if (message == WM_INPUT) {
+            RAWINPUT raw{};
+            UINT rawSize = sizeof raw;
 
-                UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
-                if (resultData == UINT(-1))
-                    throw std::runtime_error("GetRawInputData");
+            UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
+            if (resultData == UINT(-1))
+                throw std::runtime_error("GetRawInputData");
 
-                if (raw.header.dwType == RIM_TYPEMOUSE) {
-                    RawX += raw.data.mouse.lLastX;
-                    RawY += raw.data.mouse.lLastY;
+            if (raw.header.dwType == RIM_TYPEMOUSE) {
+                RawX += raw.data.mouse.lLastX;
+                RawY += raw.data.mouse.lLastY;
 
-                    ResetEvent(RelativeReadEvent.get());
-                }
-                return;
+                ResetEvent(RelativeReadEvent.get());
             }
         }
     }

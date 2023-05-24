@@ -5,12 +5,12 @@
 
 namespace Inferno::Editor {
     class SettingsDialog : public ModalWindowBase {
-        Array<char, MAX_PATH> _d1PathBuffer, _d2PathBuffer;
+        Array<char, MAX_PATH> _d1PathBuffer{}, _d2PathBuffer{};
         bool _enableForegroundFpsLimit = false;
         const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
-        int _selectedPath;
-        TexturePreviewSize _texturePreviewSize;
+        int _selectedPath{};
+        TexturePreviewSize _texturePreviewSize = TexturePreviewSize::Medium;
 
         EditorSettings _editor;
         InfernoSettings _inferno;
@@ -36,7 +36,7 @@ namespace Inferno::Editor {
         void MainOptionsTab() {
             if (!ImGui::BeginTabItem("Options")) return;
 
-            static const COMDLG_FILTERSPEC filter[] = { { L"Executable", L"*.exe" } };
+            static constexpr COMDLG_FILTERSPEC filter[] = { { L"Executable", L"*.exe" } };
 
             ImGui::Text("Descent 1 executable");
 
@@ -67,7 +67,7 @@ namespace Inferno::Editor {
             ImGui::Separator();
 
             const auto labelWidth = 165 * Shell::DpiScale;
-            const auto columnHeight = 375 * Shell::DpiScale;
+            const auto columnHeight = 425 * Shell::DpiScale;
             ImGui::BeginChild("left", { Width / 2 - 25 * Shell::DpiScale, columnHeight });
 
 
@@ -79,9 +79,21 @@ namespace Inferno::Editor {
                 ImGui::NextColumn();
                 ImGui::NextColumn();
 
-                ImGui::ColumnLabel("Invert Y");
+                ImGui::ColumnLabel("Invert mouselook Y");
                 ImGui::Checkbox("##invert", &_editor.InvertY);
                 ImGui::NextColumn();
+
+                ImGui::ColumnLabel("Middle click orbits");
+                bool middleOrbit = _editor.MiddleMouseMode == MiddleMouseMode::Orbit;
+                if (ImGui::Checkbox("##use-orbit", &middleOrbit))
+                    _editor.MiddleMouseMode = middleOrbit ? MiddleMouseMode::Orbit : MiddleMouseMode::Mouselook;
+
+                ImGui::NextColumn();
+
+                ImGui::ColumnLabel("Invert orbit Y");
+                ImGui::Checkbox("##invert-orbit", &_editor.InvertOrbitY);
+                ImGui::NextColumn();
+
 
                 ImGui::ColumnLabelEx("Sensitivity", "How sensitive the camera is in mouselook mode");
                 ImGui::SetNextItemWidth(-1);
@@ -325,7 +337,6 @@ namespace Inferno::Editor {
                     }
 
                     ImGui::TableNextColumn();
-                    ImVec2 editBtnSize = { 100 * Shell::DpiScale, 0 };
                     ImGui::SameLine();
 
                     ImGui::PopID();
@@ -333,7 +344,7 @@ namespace Inferno::Editor {
 
                 // In bind mode - capture the next pressed key
                 if (selectedBinding != -1) {
-                    for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys(((unsigned char)key) + 1)) {
+                    for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys((unsigned char)key + 1)) {
                         if (Bindings::IsReservedKey(key)) continue;
 
                         if (Input::IsKeyDown(key)) {
@@ -422,8 +433,7 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-
-            ImGui::BeginChild("prop_panel", { -1, 750 * Shell::DpiScale });
+            ImGui::BeginChild("prop_panel", { -1, 800 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
@@ -483,19 +493,19 @@ namespace Inferno::Editor {
             }
         }
 
-        void UnbindExisting(span<BindingEntry> entries, const EditorBinding& binding) {
+        static void UnbindExisting(span<BindingEntry> entries, const EditorBinding& binding) {
             for (auto& entry : entries) {
                 if (entry.Primary == binding) entry.Primary.ClearShortcut();
                 if (entry.Secondary == binding) entry.Secondary.ClearShortcut();
             }
         }
 
-        List<BindingEntry> BuildBindingEntries(EditorBindings bindings /*copy*/) {
+        static List<BindingEntry> BuildBindingEntries(EditorBindings bindings /*copy*/) {
             bindings.Sort();
             List<BindingEntry> entries;
 
             for (auto& binding : bindings.GetBindings()) {
-                if (auto existing = Seq::find(entries, [&binding](BindingEntry& e) { return e.Action == binding.Action; })) {
+                if (auto existing = Seq::find(entries, [&binding](const BindingEntry& e) { return e.Action == binding.Action; })) {
                     existing->Secondary = binding;
                 }
                 else {
@@ -511,7 +521,7 @@ namespace Inferno::Editor {
             return entries;
         }
 
-        void CopyBindingEntries(span<BindingEntry> entries) {
+        static void CopyBindingEntries(span<BindingEntry> entries) {
             using Keys = DirectX::Keyboard::Keys;
             Bindings::Active.Clear();
 

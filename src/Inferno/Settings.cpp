@@ -223,6 +223,8 @@ namespace Inferno {
         node["RenderMode"] << (int)s.RenderMode;
         node["GizmoSize"] << s.GizmoSize;
         node["InvertY"] << s.InvertY;
+        node["InvertOrbitY"] << s.InvertOrbitY;
+        node["MiddleMouseMode"] << (int)s.MiddleMouseMode;
         node["FieldOfView"] << s.FieldOfView;
         node["FontSize"] << s.FontSize;
 
@@ -292,6 +294,8 @@ namespace Inferno {
         ReadValue(node["RenderMode"], (int&)s.RenderMode);
         ReadValue(node["GizmoSize"], s.GizmoSize);
         ReadValue(node["InvertY"], s.InvertY);
+        ReadValue(node["InvertOrbitY"], s.InvertOrbitY);
+        ReadValue(node["MiddleMouseMode"], (int&)s.MiddleMouseMode);
         ReadValue(node["FieldOfView"], s.FieldOfView);
         s.FieldOfView = std::clamp(s.FieldOfView, 45.0f, 130.0f);
         ReadValue(node["FontSize"], s.FontSize);

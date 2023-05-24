@@ -450,7 +450,7 @@ namespace Inferno::Render {
         //    }
         //}
 
-        if (Input::GetMouselook())
+        if (Input::GetMouseMode() != Input::MouseMode::Normal)
             Debug::DrawCrosshair(Settings::Editor.CrosshairSize);
 
         if (Settings::Editor.ShowLevelTitle) {
