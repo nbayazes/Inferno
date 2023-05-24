@@ -29,14 +29,14 @@ namespace Inferno {
             auto tag = search.top();
             search.pop();
 
-            auto seg = level.GetSegment(tag);
+            auto& seg = level.GetSegment(tag);
             segments.insert(tag);
 
             for (auto& side : SideIDs) {
                 if (!seg.SideHasConnection(side)) continue; // nothing to do here
 
                 auto conn = seg.GetConnection(side);
-                auto cseg = level.GetSegment(conn);
+                auto& cseg = level.GetSegment(conn);
 
                 bool addPortal = false;
                 if (auto wall = level.TryGetWall({ tag, side })) {

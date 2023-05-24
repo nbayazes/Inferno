@@ -14,8 +14,13 @@ namespace Inferno::Editor {
         }
 
         if (Input::GetMouseMode() == Input::MouseMode::Orbit) {
-            int inv = Settings::Editor.InvertOrbitY ? 1 : -1;
-            camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
+            if (Input::AltDown) {
+                camera.Pan(-delta.x * Settings::Editor.MoveSpeed * 0.001f, -delta.y * Settings::Editor.MoveSpeed * 0.001f);
+            }
+            else {
+                int inv = Settings::Editor.InvertOrbitY ? 1 : -1;
+                camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
+            }
         }
 
         if (wheelDelta < 0) camera.ZoomIn();
@@ -81,5 +86,4 @@ namespace Inferno::Editor {
             .Name = "Focus Selection"
         };
     }
-
 }
