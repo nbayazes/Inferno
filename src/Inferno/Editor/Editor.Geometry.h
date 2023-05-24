@@ -3,8 +3,6 @@
 #include "Level.h"
 #include "Types.h"
 #include "Gizmo.h"
-#include "Editor.Undo.h"
-#include "Game.h"
 #include "Command.h"
 
 namespace Inferno::Editor {
@@ -60,5 +58,6 @@ namespace Inferno::Editor {
         // Joins nearby segment faces that overlap with the selected segment
         extern Command JoinTouchingSegments;
         extern Command DetachPoints;
+        extern Command AveragePoints;
     }
 }

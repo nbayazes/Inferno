@@ -4,6 +4,7 @@
 #include "Editor.Wall.h"
 #include "Editor.Object.h"
 #include "Editor.Geometry.h"
+#include "Editor.Undo.h"
 #include "Face.h"
 #include "Resources.h"
 

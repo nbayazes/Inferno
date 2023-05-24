@@ -4,7 +4,6 @@
 #include "Input.h"
 #include "Graphics/Render.h"
 #include "imgui_local.h"
-#include "WindowsDialogs.h"
 #include "Editor.Texture.h"
 #include "Editor.Segment.h"
 #include "Editor.IO.h"
@@ -209,6 +208,7 @@ namespace Inferno::Editor {
             case EditorAction::HideMarks: return Commands::HideMarks;
             case EditorAction::HoldMouselook: return Commands::HoldMouselook;
             case EditorAction::InsertAlignedSegment: return Commands::InsertAlignedSegment;
+            case EditorAction::AveragePoints: return Commands::AveragePoints;
         }
 
         return Commands::NullCommand;
@@ -474,6 +474,7 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::HoldMouselook });
         bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
         bindings.Add({ .Action = EditorAction::InsertAlignedSegment, .Key = Keys::Insert, .Control = true });
+        bindings.Add({ .Action = EditorAction::AveragePoints, .Key = Keys::V });
 
         Active = Default;
     }

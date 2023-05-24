@@ -6,10 +6,9 @@
 #include "imgui_local.h"
 #include "DebugOverlay.h"
 #include "Editor/Editor.h"
-#include "Editor/Editor.Diagnostics.h"
 
 namespace Inferno::Editor {
-    constexpr ImU32 ToolbarColor = IM_COL32(20, 20, 20, 200);
+    constexpr ImU32 TOOLBAR_COLOR = IM_COL32(20, 20, 20, 200);
 
     void MenuCommandEx(const Command& command, const char* label, EditorAction bind = EditorAction::None, bool selected = false) {
         if (!label) label = command.Name.c_str();
@@ -87,18 +86,18 @@ namespace Inferno::Editor {
         }
 
         if (ImGui::BeginMenu("Add Object")) {
-            auto AddObjectType = [](const char* name, ObjectType type) {
+            auto addObjectType = [](const char* name, ObjectType type) {
                 if (ImGui::MenuItem(name)) {
                     auto id = AddObject(Game::Level, Editor::Selection.PointTag(), type);
                     if (id != ObjID::None) Editor::History.SnapshotLevel(fmt::format("Add {}", name));
                 }
             };
 
-            AddObjectType("Player", ObjectType::Player);
-            AddObjectType("Robot", ObjectType::Robot);
-            AddObjectType("Powerup", ObjectType::Powerup);
-            AddObjectType("Co-op", ObjectType::Coop);
-            AddObjectType("Hostage", ObjectType::Hostage);
+            addObjectType("Player", ObjectType::Player);
+            addObjectType("Robot", ObjectType::Robot);
+            addObjectType("Powerup", ObjectType::Powerup);
+            addObjectType("Co-op", ObjectType::Coop);
+            addObjectType("Hostage", ObjectType::Hostage);
             ImGui::EndMenu();
         }
 
@@ -129,7 +128,7 @@ namespace Inferno::Editor {
 
                 if (Game::Level.IsDescent2()) {
                     if (ImGui::BeginMenu("Palette")) {
-                        auto Entry = [](const char* label, string palette) {
+                        auto entry = [](const char* label, const string& palette) {
                             if (ImGui::MenuItem(label, nullptr, String::ToUpper(Game::Level.Palette) == palette)) {
                                 Game::Level.Palette = palette;
                                 Resources::LoadLevel(Game::Level);
@@ -137,12 +136,12 @@ namespace Inferno::Editor {
                             }
                         };
 
-                        Entry("Default", "GROUPA.256");
-                        Entry("Water", "WATER.256");
-                        Entry("Fire", "FIRE.256");
-                        Entry("Ice", "ICE.256");
-                        Entry("Alien 1", "ALIEN1.256");
-                        Entry("Alien 2", "ALIEN2.256");
+                        entry("Default", "GROUPA.256");
+                        entry("Water", "WATER.256");
+                        entry("Fire", "FIRE.256");
+                        entry("Ice", "ICE.256");
+                        entry("Alien 1", "ALIEN1.256");
+                        entry("Alien 2", "ALIEN2.256");
                         ImGui::EndMenu();
                     }
 
@@ -241,9 +240,9 @@ namespace Inferno::Editor {
             if (ImGui::BeginMenu("Geometry")) {
                 MenuCommand(Commands::ConnectSides, EditorAction::ConnectSides);
                 MenuCommand(Commands::JoinSides, EditorAction::JoinSides);
-                ImGui::Separator();
                 MenuCommand(Commands::JoinPoints, EditorAction::JoinPoints);
                 MenuCommand(Commands::JoinTouchingSegments, EditorAction::JoinTouchingSegments);
+                MenuCommand(Commands::AveragePoints, EditorAction::AveragePoints);
                 ImGui::Separator();
                 SplitMenu();
                 MenuCommand(Commands::MergeSegment, EditorAction::MergeSegment);
@@ -408,7 +407,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##drp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static const float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
+                static constexpr float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
                 for (int i = 0; i < std::size(snapValues); i++) {
                     auto label = i == 1 ? "Pixel" : fmt::format("{:.1f}", snapValues[i]);
                     if (ImGui::Selectable(label.c_str()))
@@ -433,7 +432,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##rdrp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static const float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
+                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
@@ -732,7 +731,7 @@ namespace Inferno::Editor {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, { 0.5, 0.5 });
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ToolbarColor);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, TOOLBAR_COLOR);
 
         {
             ImGui::Begin("MainToolbar", nullptr, ToolbarFlags);
@@ -784,7 +783,7 @@ namespace Inferno::Editor {
         ImGui::PopStyleColor();
     }
 
-    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) {
+    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) const {
         auto dockspaceNode = ImGui::DockBuilderGetNode(dockspaceId);
 
         if (!dockspaceNode) {
@@ -812,7 +811,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void EditorUI::DrawDockspace(const ImGuiViewport* viewport) {
+    void EditorUI::DrawDockspace(const ImGuiViewport* viewport) const {
         float toolbarWidth = 0; // = ToolbarWidth;
         ImGui::SetNextWindowPos({ toolbarWidth, 0 });
         ImGui::SetNextWindowSize({ viewport->WorkSize.x - toolbarWidth, viewport->WorkSize.y + _mainMenuHeight - _statusBar.Height });

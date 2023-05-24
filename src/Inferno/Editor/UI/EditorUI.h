@@ -103,8 +103,8 @@ namespace Inferno::Editor {
 
     protected:
         void DrawMenu();
-        void DrawDockspace(const ImGuiViewport* viewport);
-        ImGuiDockNode* CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport);
+        void DrawDockspace(const ImGuiViewport* viewport) const;
+        ImGuiDockNode* CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) const;
 
     };
 

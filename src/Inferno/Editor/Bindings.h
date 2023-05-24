@@ -71,7 +71,8 @@ namespace Inferno::Editor {
         InvertMarked,
         MakeCoplanar,
         HideMarks,
-        InsertAlignedSegment
+        InsertAlignedSegment,
+        AveragePoints
     };
 
     const Command& GetCommandForAction(EditorAction action);
@@ -125,7 +126,7 @@ namespace Inferno::Editor {
         }
 
         void Sort() {
-            Seq::sortBy(_bindings, [](EditorBinding& a, EditorBinding& b) {
+            Seq::sortBy(_bindings, [](const EditorBinding& a, const EditorBinding& b) {
                 return a.Command->Name < b.Command->Name;
             });
         }

@@ -51,10 +51,10 @@ namespace Inferno::Editor {
 
         auto srcFace = Face::FromSide(level, src);
         auto destFace = Face::FromSide(level, dest);
-        if (!srcFace.Overlaps(destFace, tolerance)) return; // faces don't overlap
+        if (!srcFace.Overlaps(destFace, tolerance)) return;                     // faces don't overlap
         if (srcFace.AverageNormal().Dot(destFace.AverageNormal()) >= 0) return; // don't merge sides facing the same way
-        if (destSeg.GetConnection(dest.Side) > SegID::None) return; // don't merge sides already connected to something
-        if (srcSeg.GetConnection(src.Side) > SegID::None) return; // don't merge sides already connected to something
+        if (destSeg.GetConnection(dest.Side) > SegID::None) return;             // don't merge sides already connected to something
+        if (srcSeg.GetConnection(src.Side) > SegID::None) return;               // don't merge sides already connected to something
 
         srcSeg.GetConnection(src.Side) = dest.Segment;
         destSeg.GetConnection(dest.Side) = src.Segment;
@@ -87,7 +87,6 @@ namespace Inferno::Editor {
         auto dest = level.TryGetSegment(destId);
         if (!dest) return SideID::None;
         auto srcFace = Face::FromSide(level, srcId);
-        auto verts = dest->GetVertices(level);
 
         for (auto& sideId : SideIDs) {
             if (dest->SideHasConnection(sideId)) continue;
@@ -107,7 +106,6 @@ namespace Inferno::Editor {
         if (!skipValidation && srcSeg->GetEstimatedVolume(level) < 10) return; // malformed seg check
 
         for (auto& srcSideId : SideIDs) {
-            auto srcFace = Face::FromSide(level, *srcSeg, srcSideId);
             for (auto& destid : segIds) {
                 if (destid == srcId) continue;
                 for (auto& destSide : SideIDs)
@@ -125,14 +123,12 @@ namespace Inferno::Editor {
         for (auto& tag : tags) {
             if (!level.SegmentExists(tag)) continue;
 
-            auto srcFace = Face::FromSide(level, tag);
             for (auto& destid : nearby) {
                 for (auto& destSide : SideIDs) {
                     MergeSides(level, tag, { destid, destSide }, tolerance);
                 }
             }
         }
-
     }
 
     List<SegID> GetNearbySegments(Level& level, SegID srcId, float distance) {
@@ -288,7 +284,8 @@ namespace Inferno::Editor {
     void WeldVertices(Level& level, span<SegID> ids, float tolerance) {
         Set<PointID> points;
 
-        for (auto& id : ids) { // compare against every segment in selection
+        for (auto& id : ids) {
+            // compare against every segment in selection
             if (auto seg = level.TryGetSegment(id)) {
                 Seq::insert(points, seg->Indices);
             }
@@ -422,9 +419,7 @@ namespace Inferno::Editor {
         if (Selection.Segment == SegID::None) return;
 
         List<PointID> points =
-            Marked.HasSelection(Settings::Editor.SelectionMode) ?
-            Marked.GetVertexHandles(level) :
-            Selection.GetVertexHandles(level);
+            Marked.HasSelection(Settings::Editor.SelectionMode) ? Marked.GetVertexHandles(level) : Selection.GetVertexHandles(level);
 
         if (gizmo.Mode == TransformMode::Scale) {
             ApplyGeometryScaling(level, points);
@@ -623,10 +618,40 @@ namespace Inferno::Editor {
         return "Detach Points";
     }
 
+    string OnAveragePoints() {
+        if(Settings::Editor.SelectionMode != SelectionMode::Point) {
+            SetStatusMessageWarn("Can only average points in point mode");
+            return {};
+        }
+
+        auto points = GetSelectedVertices();
+        if (points.size() <= 1) {
+            SetStatusMessageWarn("Must have at least two marked points to average their position");
+            return {};
+        }
+
+        Vector3 average;
+        for (auto& p : points) {
+            if (auto v = Game::Level.TryGetVertex(p))
+                average += *v;
+        }
+
+        average /= (float)points.size();
+        for (auto& p : points) {
+            if (auto v = Game::Level.TryGetVertex(p))
+                *v = average;
+        }
+
+        Game::Level.UpdateAllGeometricProps();
+        Events::LevelChanged();
+        return "Average Points";
+    }
+
     namespace Commands {
         Command WeldVertices{ .SnapshotAction = OnWeldVertices, .Name = "Weld Vertices" };
         Command MakeCoplanar{ .SnapshotAction = OnMakeCoplanar, .Name = "Make Coplanar" };
         Command JoinTouchingSegments{ .SnapshotAction = OnJoinTouchingSegments, .Name = "Join Nearby Sides" };
         Command DetachPoints{ .SnapshotAction = OnDetachPoints, .Name = "Detach Points" };
+        Command AveragePoints{ .SnapshotAction = OnAveragePoints, .Name = "Average Points" };
     }
 }
