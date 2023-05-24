@@ -51,14 +51,22 @@ namespace Inferno::Editor {
 
             //ImGui::SameLine();
             //ImGui::Checkbox("Warnings", &_showWarnings);
-            ImGui::SameLine();
-            ImGui::Checkbox("Fix errors", &_fixErrors);
+            //if (ImGui::BeginCombo("##csys-dropdown", "Settings", ImGuiComboFlags_HeightLarge)) {
+            //    ImGui::Text("Coordinate system");
+
+            //}
 
             ImGui::SameLine();
-            ImGui::Checkbox("Mark errors", &_markErrors);
+            constexpr auto popupKey = "options-popup";
+            if (ImGui::Button("Options..."))
+                ImGui::OpenPopup(popupKey);
 
-            ImGui::SameLine();
-            ImGui::Checkbox("Show degenerate", &_checkDegeneracy);
+            if (ImGui::BeginPopup(popupKey)) {
+                ImGui::MenuItem("Fix errors", "", &_fixErrors);
+                ImGui::MenuItem("Mark errors", "", &_markErrors);
+                ImGui::MenuItem("Show degenerate", "", &_checkDegeneracy);
+                ImGui::EndPopup();
+            }
 
             const char* toggleLabel = _showStats ? "Hide stats" : " Show stats";
             const auto toggleButtonWidth = 140 * Shell::DpiScale;
