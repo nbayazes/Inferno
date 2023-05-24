@@ -11,7 +11,7 @@ namespace Inferno::Editor {
     };
 
     struct SegmentDiagnostic {
-        int ErrorLevel;
+        int ErrorLevel; // Unused
         Tag Tag;
         string Message;
     };
@@ -25,5 +25,5 @@ namespace Inferno::Editor {
     float CheckDegeneracy(const Level& level, const Segment& seg);
 
     List<SegmentDiagnostic> CheckObjects(const Level& level);
-    List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors);
+    List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors, bool checkDegeneracy);
 }

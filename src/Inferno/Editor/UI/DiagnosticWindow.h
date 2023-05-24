@@ -3,25 +3,20 @@
 #include "WindowBase.h"
 #include "Editor/Editor.Diagnostics.h"
 #include "Camera.h"
-#include "Editor/Editor.Undo.h"
-
-namespace Inferno::Render {
-    extern Inferno::Camera Camera;
-}
 
 namespace Inferno::Editor {
     class DiagnosticWindow final : public WindowBase {
         List<SegmentDiagnostic> _segments;
         List<SegmentDiagnostic> _objects;
         int _selection{};
-        bool _showWarnings = false, _markErrors = false, _fixErrors = true;
+        bool _showWarnings = false, _markErrors = false, _fixErrors = true, _checkDegeneracy = false;
         bool _checked = false; // user has checked the level once already
         bool _showStats = true;
     public:
         DiagnosticWindow() : WindowBase("Diagnostics", &Settings::Editor.Windows.Diagnostics) {
-            auto OnLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(_fixErrors); };
-            Events::SegmentsChanged += OnLevelChanged;
-            Events::ObjectsChanged += OnLevelChanged;
+            auto onLevelChanged = [this] { if (IsOpen() && _checked) CheckLevel(_fixErrors); };
+            Events::SegmentsChanged += onLevelChanged;
+            Events::ObjectsChanged += onLevelChanged;
             Events::SnapshotChanged += [this] {
                 if (IsOpen() && _checked) CheckLevel(false);
             };
@@ -36,7 +31,7 @@ namespace Inferno::Editor {
     protected:
         void CheckLevel(bool fixErrors) {
             _checked = true;
-            _segments = CheckSegments(Game::Level, fixErrors);
+            _segments = CheckSegments(Game::Level, fixErrors, _checkDegeneracy);
             _objects = CheckObjects(Game::Level);
 
             if (_markErrors) {
@@ -62,6 +57,8 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::Checkbox("Mark errors", &_markErrors);
 
+            ImGui::SameLine();
+            ImGui::Checkbox("Show degenerate", &_checkDegeneracy);
 
             const char* toggleLabel = _showStats ? "Hide stats" : " Show stats";
             const auto toggleButtonWidth = 140 * Shell::DpiScale;
@@ -123,9 +120,6 @@ namespace Inferno::Editor {
 
                 ImGui::EndTable();
             }
-
-            // todo: trees for each section? keep header consistent?
-
 
             ImGui::EndChild();
 

@@ -400,7 +400,7 @@ namespace Inferno::Editor {
         return ti1.Width == ti2.Width && ti1.Height == ti2.Height;
     }
 
-    List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors) {
+    List<SegmentDiagnostic> CheckSegments(Level& level, bool fixErrors, bool checkDegeneracy) {
         List<SegmentDiagnostic> results;
         bool changedLevel = false;
 
@@ -415,14 +415,19 @@ namespace Inferno::Editor {
                 }
             }
 
-            if (CheckDegeneracy(level, seg) > MAX_DEGENERACY) {
-                results.push_back({ 0, { segid, SideID::None }, "Degenerate geometry" });
-                continue; // Geometry is too deformed to bother reporting the other checks
+            if (checkDegeneracy) {
+                if (CheckDegeneracy(level, seg) > MAX_DEGENERACY) {
+                    results.push_back({ 0, { segid, SideID::None }, "Degenerate geometry" });
+                }
+                else if (auto flatness = CheckSegmentFlatness(level, seg); flatness <= 0.80f) {
+                    results.push_back({ 0, { segid, SideID::None }, fmt::format("Bad geometry flatness {:.2f}", flatness) });
+                }
             }
 
-            auto flatness = CheckSegmentFlatness(level, seg);
-            if (flatness <= 0.80f) {
-                results.push_back({ 0, { segid, SideID::None }, fmt::format("Bad geometry flatness {:.2f}", flatness) });
+            Set<PointID> indices;
+            Seq::insert(indices, seg.Indices);
+            if (indices.size() < 8) {
+                results.push_back({ 0, { segid, SideID::None }, "Segment has merged points and will cause crashes." });
             }
 
             for (auto& side : SideIDs) {
