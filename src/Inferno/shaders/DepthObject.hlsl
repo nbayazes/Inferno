@@ -5,11 +5,12 @@
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 16), "
 
-ConstantBuffer<FrameConstants> Frame : register(b0);
-
-cbuffer Constants : register(b1) {
+struct ObjectArgs {
     float4x4 WorldMatrix;
 };
+
+ConstantBuffer<FrameConstants> Frame : register(b0);
+ConstantBuffer<ObjectArgs> Object : register(b1);
 
 struct VS_INPUT {
     float3 pos : POSITION;
@@ -24,7 +25,7 @@ struct PS_INPUT {
 
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
-    float4x4 wvp = mul(Frame.ViewProjectionMatrix, WorldMatrix);
+    float4x4 wvp = mul(Frame.ViewProjectionMatrix, Object.WorldMatrix);
     PS_INPUT output;
     output.pos = mul(wvp, float4(input.pos, 1));
     return output;

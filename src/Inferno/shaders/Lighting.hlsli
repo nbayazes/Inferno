@@ -3,12 +3,6 @@
 static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
 
-// Inputs
-// DescriptorTable(SRV(t9, numDescriptors = 3), visibility=SHADER_VISIBILITY_PIXEL)
-StructuredBuffer<LightData> LightBuffer : register(t11);
-ByteAddressBuffer LightGrid : register(t12);
-ByteAddressBuffer LightGridBitMask : register(t13);
-
 struct MaterialInfo {
     float NormalStrength;
     float SpecularStrength;
@@ -18,6 +12,26 @@ struct MaterialInfo {
     float LightReceived; // 0 for unlit
     float pad0, pad1;
 };
+
+struct LightingArgs {
+    float3 SunDirection;
+    float3 SunColor;
+    float3 AmbientColor;
+    float4 ShadowTexelSize;
+
+    float4 InvTileDim;
+    uint4 TileCount;
+    uint4 FirstLightIndex;
+
+    uint FrameIndexMod2;
+};
+
+// Inputs
+// DescriptorTable(SRV(t9, numDescriptors = 3), visibility=SHADER_VISIBILITY_PIXEL)
+ConstantBuffer<LightingArgs> LightArgs : register(b2);
+StructuredBuffer<LightData> LightBuffer : register(t11);
+ByteAddressBuffer LightGrid : register(t12);
+ByteAddressBuffer LightGridBitMask : register(t13);
 
 // Apply fresnel to modulate the specular albedo
 void FSchlick(inout float3 specular, inout float3 diffuse, float3 lightDir, float3 halfVec) {
@@ -121,7 +135,7 @@ static const float GLOBAL_LIGHT_MULT = 50;
 float Attenuate(float lightDistSq, float lightRadiusSq) {
     // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
     float factor = lightDistSq / lightRadiusSq;                                   // 0 to 1
-    float smoothFactor = max(1 - pow(factor, 0.5), 0); // 0 to 1
+    float smoothFactor = max(1 - pow(factor, 0.5), 0);                            // 0 to 1
     float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
     //float falloff = (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
     return clamp(falloff * GLOBAL_LIGHT_MULT, 0, 20); // clamp nearby surface distance to prevent hotspots
@@ -237,7 +251,7 @@ float4 LineLight(float3 p, float3 n, float3 v, float3 r, float3 f0, float roughn
     // taper the ends
     float endMult = smoothstep(1, 0, (t - 1) * distLd * 0.75);
     endMult *= smoothstep(0, 1, t * distLd * 0.75);
-    endMult = 1;
+    //endMult = 1;
 
     float3 l = normalize(closestPoint);
     float3 h = normalize(l - v);
@@ -329,10 +343,10 @@ float3 ApplyCylinderLight(
     distanceFalloff = max(0, distanceFalloff - rsqrt(distanceFalloff));
 
     gloss = ClampGloss(gloss, lightDistSq);
-    gloss = 0;
+    //gloss = 0;
 
 
-    float roughness = 0.5;
+    //float roughness = 0.5;
     float specularAmount = dot(r, L);
     //float specFactor = 1.0 - saturate(length(closestPoint) * pow(1 - roughness, 4));
 
@@ -654,19 +668,6 @@ float3 ApplyRectLight(
     return max(0, color); // goes to inf when behind the light
 }
 
-cbuffer PSConstants : register(b2) {
-float3 SunDirection;
-float3 SunColor;
-float3 AmbientColor;
-float4 ShadowTexelSize;
-
-float4 InvTileDim;
-uint4 TileCount;
-uint4 FirstLightIndex;
-
-uint FrameIndexMod2;
-}
-
 float Luminance(float3 v) {
     return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
 }
@@ -674,12 +675,12 @@ float Luminance(float3 v) {
 static const float DIFFUSE_MULT = 0.5;
 static const float METAL_DIFFUSE_FACTOR = 2;
 static const float METAL_SPECULAR_FACTOR = 0.5; // reduce this after increasing specular exponent
-static const float METAL_SPECULAR_EXP = 5;     // increase this to get more diffuse color contribution
+static const float METAL_SPECULAR_EXP = 5;      // increase this to get more diffuse color contribution
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     lightColor = lerp(light.color, 0, material.Metalness);
 
-    float greyscale = dot(diffuse, float3(.222, .707, .071)); // Convert to greyscale numbers with magic luminance numbers
+    //float greyscale = dot(diffuse, float3(.222, .707, .071)); // Convert to greyscale numbers with magic luminance numbers
     //float3 metalDiffuse = lerp(float3(greyscale, greyscale, greyscale), diffuse, 2);
     float3 intensity = dot(diffuse, float3(0.299, 0.587, 0.114));
     float3 metalDiffuse = lerp(intensity, diffuse, 2.4); // boost the saturation of the diffuse texture
@@ -703,10 +704,9 @@ void ShadeLights(inout float3 colorSum,
                  float3 normal,
                  float3 viewDir,
                  float3 worldPos,
-                 MaterialInfo material
-) {
-    uint2 tilePos = GetTilePos(pixelPos, InvTileDim.xy);
-    uint tileIndex = GetTileIndex(tilePos, TileCount.x);
+                 MaterialInfo material) {
+    uint2 tilePos = GetTilePos(pixelPos, LightArgs.InvTileDim.xy);
+    uint tileIndex = GetTileIndex(tilePos, LightArgs.TileCount.x);
     uint tileOffset = GetTileOffset(tileIndex);
     uint pointLightCount = LightGrid.Load(tileOffset);
     uint tubeLightCount = LightGrid.Load(tileOffset + 4);

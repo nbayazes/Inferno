@@ -25,15 +25,16 @@
     "DescriptorTable(SRV(t1))," \
     "StaticSampler(s0, addressU = TEXTURE_ADDRESS_BORDER, addressV = TEXTURE_ADDRESS_BORDER, addressW = TEXTURE_ADDRESS_BORDER, borderColor = STATIC_BORDER_COLOR_TRANSPARENT_BLACK, filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
+struct Arguments {
+    float2 InverseDimensions;
+    float UpsampleBlendFactor;
+};
+
+ConstantBuffer<Arguments> Args : register(b0);
 Texture2D<float3> HigherResBuf : register(t0);
 Texture2D<float3> LowerResBuf : register(t1);
 SamplerState LinearBorder : register(s0);
 RWTexture2D<float3> Result : register(u0);
-
-cbuffer cb0 : register(b0) {
-    float2 g_inverseDimensions;
-    float g_upsampleBlendFactor;
-}
 
 // The guassian blur weights (derived from Pascal's triangle)
 static const float Weights5[3] = { 6.0f / 16.0f, 4.0f / 16.0f, 1.0f / 16.0f };
@@ -117,18 +118,18 @@ void main(uint3 Gid : SV_GroupID, uint3 GTid : SV_GroupThreadID, uint3 DTid : SV
     int2 ThreadUL = (GTid.xy << 1) + GroupUL;   // Upper-left pixel coordinate of quad that this thread will read
 
     // Store 4 blended-but-unblurred pixels in LDS
-    float2 uvUL = (float2(ThreadUL)+0.5) * g_inverseDimensions;
-    float2 uvLR = uvUL + g_inverseDimensions;
+    float2 uvUL = (float2(ThreadUL)+0.5) * Args.InverseDimensions;
+    float2 uvLR = uvUL + Args.InverseDimensions;
     float2 uvUR = float2(uvLR.x, uvUL.y);
     float2 uvLL = float2(uvUL.x, uvLR.y);
     int destIdx = GTid.x + (GTid.y << 4);
 
-    float3 pixel1a = lerp(HigherResBuf[ThreadUL + uint2(0, 0)], LowerResBuf.SampleLevel(LinearBorder, uvUL, 0.0f), g_upsampleBlendFactor);
-    float3 pixel1b = lerp(HigherResBuf[ThreadUL + uint2(1, 0)], LowerResBuf.SampleLevel(LinearBorder, uvUR, 0.0f), g_upsampleBlendFactor);
+    float3 pixel1a = lerp(HigherResBuf[ThreadUL + uint2(0, 0)], LowerResBuf.SampleLevel(LinearBorder, uvUL, 0.0f), Args.UpsampleBlendFactor);
+    float3 pixel1b = lerp(HigherResBuf[ThreadUL + uint2(1, 0)], LowerResBuf.SampleLevel(LinearBorder, uvUR, 0.0f), Args.UpsampleBlendFactor);
     Store2Pixels(destIdx + 0, pixel1a, pixel1b);
 
-    float3 pixel2a = lerp(HigherResBuf[ThreadUL + uint2(0, 1)], LowerResBuf.SampleLevel(LinearBorder, uvLL, 0.0f), g_upsampleBlendFactor);
-    float3 pixel2b = lerp(HigherResBuf[ThreadUL + uint2(1, 1)], LowerResBuf.SampleLevel(LinearBorder, uvLR, 0.0f), g_upsampleBlendFactor);
+    float3 pixel2a = lerp(HigherResBuf[ThreadUL + uint2(0, 1)], LowerResBuf.SampleLevel(LinearBorder, uvLL, 0.0f), Args.UpsampleBlendFactor);
+    float3 pixel2b = lerp(HigherResBuf[ThreadUL + uint2(1, 1)], LowerResBuf.SampleLevel(LinearBorder, uvLR, 0.0f), Args.UpsampleBlendFactor);
     Store2Pixels(destIdx + 8, pixel2a, pixel2b);
 
     GroupMemoryBarrierWithGroupSync();

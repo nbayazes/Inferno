@@ -8,14 +8,15 @@
         "borderColor=STATIC_BORDER_COLOR_TRANSPARENT_BLACK," \
         "visibility=SHADER_VISIBILITY_PIXEL)"
 
-SamplerState Sampler : register(s0);
-Texture2D Diffuse : register(t0);
-
-cbuffer Constants : register(b0) {
-    float4x4 ProjectionMatrix;
+struct Arguments {
+        float4x4 ProjectionMatrix;
     float4 Color;
     float ScanlinePitch, ScanlineIntensity;
 };
+
+ConstantBuffer<Arguments> Args : register(b0);
+SamplerState Sampler : register(s0);
+Texture2D Diffuse : register(t0);
 
 struct VS_INPUT {
     float2 pos : POSITION;
@@ -33,8 +34,8 @@ struct PS_INPUT {
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
-    output.col = input.col * Color;
+    output.pos = mul(Args.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
+    output.col = input.col * Args.Color;
     output.uv = input.uv;
     output.uvScreen = (input.pos.xy) /* * float2(1 / 64.0, 1 / 64.0)*/; // todo from screen res
     return output;
@@ -44,7 +45,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float2 uv = float2(0, 0);
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0) * input.col;
     
-    if (ScanlinePitch > 0.1) {
+    if (Args.ScanlinePitch > 0.1) {
         //dc *= dc;
         // warp the fragment coordinates
         //float2 dc = abs(0.5 - input.uvScreen);
@@ -61,7 +62,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //color += Diffuse.SampleLevel(Sampler, input.uv + float2(offset, 0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
         //color += Diffuse.SampleLevel(Sampler, input.uv + float2(-offset, -0.00), 0) * float4(0.5, 0.5, 0.5, 0.01);
         color.rgb += saturate(color.rgb - 0.5) * 2; // boost highlights
-        float apply = abs(sin(input.uvScreen.y) * 0.5 * ScanlinePitch) * 0.75;
+        float apply = abs(sin(input.uvScreen.y) * 0.5 * Args.ScanlinePitch) * 0.75;
         color.a = saturate(color.a);
         color = lerp(color, float4(0, 0, 0, 0), apply);
         //color.rgb *= 0.6;

@@ -13,15 +13,14 @@
         "addressW = TEXTURE_ADDRESS_CLAMP," \
         "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
+struct Arguments {
+    float2 InverseOutputSize;
+};
+
+ConstantBuffer<Arguments> Args : register(b0);
 RWTexture2D<float4> Result : register(u0);
-
 Texture2D<float4> Source : register(t0);
-
 SamplerState Sampler : register(s0);
-
-cbuffer cb0 {
-    float2 g_inverseOutputSize;
-}
 
 float getCenterDistance(float2 coord) {
     return distance(coord, float2(0.45, 0.5)) * 2.0; //return difference between point on screen and the center with -1 and 1 at either edge
@@ -39,7 +38,7 @@ float4 Vignette(float4 color, float2 uv, float amount, float scale, float power)
 [RootSignature(RS)]
 [numthreads(8, 8, 1)]
 void main(uint3 dtID : SV_DispatchThreadID) {
-    float2 uv = (dtID.xy + 0.5) * g_inverseOutputSize;
+    float2 uv = (dtID.xy + 0.5) * Args.InverseOutputSize;
     
     float2 dc = abs(0.5 - uv);
     dc *= dc;

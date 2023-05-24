@@ -10,12 +10,13 @@
         "addressW = TEXTURE_ADDRESS_CLAMP," \
         "filter = FILTER_MIN_MAG_MIP_POINT)"
 
-SamplerState sampler0 : register(s0);
-Texture2D texture0 : register(t0);
-
-cbuffer vertexBuffer : register(b0) {
+struct Arguments {
     float4x4 ProjectionMatrix;
 };
+
+ConstantBuffer<Arguments> Args : register(b0);
+SamplerState sampler0 : register(s0);
+Texture2D texture0 : register(t0);
 
 struct VS_INPUT {
     float2 pos : POSITION;
@@ -32,7 +33,7 @@ struct PS_INPUT {
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
-    output.pos = mul(ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
+    output.pos = mul(Args.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
     output.col = input.col;
     output.uv = input.uv;
     return output;

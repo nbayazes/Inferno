@@ -27,6 +27,15 @@
         "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 //"DescriptorTable(SRV(t1))," \
 
+struct Arguments {
+    float2 InverseOutputSize;
+    float BloomThreshold;
+    float Exposure;
+    float MinLog;
+    float RcpLogRange;
+};
+
+ConstantBuffer<Arguments> Args : register(b0);
 RWTexture2D<float3> BloomResult : register(u0);
 RWTexture2D<uint> LumaResult : register(u1);
 
@@ -34,13 +43,6 @@ Texture2D<float3> SourceTex : register(t0);
 
 SamplerState BiLinearClamp : register(s0);
 
-cbuffer cb0 {
-    float2 g_inverseOutputSize;
-    float g_BloomThreshold;
-    float g_Exposure;
-    float g_MinLog;
-    float g_RcpLogRange;
-}
 
 float CustomLuminance(float3 x) {
     return dot(x, float3(0.299, 0.587, 0.114)); // Digital ITU BT.601
@@ -62,8 +64,8 @@ float ChannelMult(float3 c) {
 void main(uint3 DTid : SV_DispatchThreadID) {
     // We need the scale factor and the size of one pixel so that our four samples are right in the middle
     // of the quadrant they are covering.
-    float2 uv = (DTid.xy + 0.5) * g_inverseOutputSize;
-    float2 offset = g_inverseOutputSize * 0.25;
+    float2 uv = (DTid.xy + 0.5) * Args.InverseOutputSize;
+    float2 offset = Args.InverseOutputSize * 0.25;
 
     // Use 4 bilinear samples to guarantee we don't undersample when downsizing by more than 2x
     float3 color1 = SourceTex.SampleLevel(BiLinearClamp, uv + float2(-offset.x, -offset.y), 0);
@@ -99,7 +101,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
     const float kSmallEpsilon = 0.0001;
 
-    float ScaledThreshold = g_BloomThreshold * g_Exposure; // BloomThreshold / Exposure
+    float ScaledThreshold = Args.BloomThreshold * Args.Exposure; // BloomThreshold / Exposure
 
     // We perform a brightness filter pass, where lone bright pixels will contribute less.
     color1 *= max(kSmallEpsilon, luma1 - ScaledThreshold) / (luma1 + kSmallEpsilon);
@@ -128,7 +130,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
         LumaResult[DTid.xy] = 0;
     }
     else {
-        float logLuma = saturate((log2(luma) - g_MinLog) * g_RcpLogRange); // Rescale to [0.0, 1.0]
+        float logLuma = saturate((log2(luma) - Args.MinLog) * Args.RcpLogRange); // Rescale to [0.0, 1.0]
         LumaResult[DTid.xy] = logLuma * 254.0 + 1.0; // Rescale to [1, 255]
     }
 }

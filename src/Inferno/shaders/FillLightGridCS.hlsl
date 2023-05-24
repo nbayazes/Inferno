@@ -21,15 +21,16 @@
     "DescriptorTable(UAV(u0))," \
     "DescriptorTable(UAV(u1))"
 
-cbuffer CSConstants : register(b0) {
-uint ViewportWidth, ViewportHeight;
-float InvTileDim; // 1 / LIGHT_GRID_DIM = 1 / 16
-float RcpZMagic;
-uint TileCountX;
-float4x4 ViewMatrix;
-float4x4 InverseProjection;
+struct Arguments {
+    uint ViewportWidth, ViewportHeight;
+    float InvTileDim; // 1 / LIGHT_GRID_DIM = 1 / 16
+    float RcpZMagic;
+    uint TileCountX;
+    float4x4 ViewMatrix;
+    float4x4 InverseProjection;
 };
 
+ConstantBuffer<Arguments> Args : register(b0);
 StructuredBuffer<LightData> Lights : register(t0);
 Texture2D<float> depthTex : register(t1);
 RWByteAddressBuffer lightGrid : register(u0);
@@ -60,7 +61,7 @@ groupshared uint rectLightIndices[MAX_LIGHTS];
 
 struct Plane {
     float3 N; // Plane normal.
-    float d; // Distance to origin.
+    float d;  // Distance to origin.
 };
 
 struct Frustum {
@@ -70,11 +71,11 @@ struct Frustum {
 // Convert screen space coordinates to view space.
 float3 ScreenToView(float4 screen) {
     // Convert to normalized texture coordinates
-    float2 texCoord = screen.xy / float2(ViewportWidth, ViewportHeight);
+    float2 texCoord = screen.xy / float2(Args.ViewportWidth, Args.ViewportHeight);
     texCoord.y = 1 - texCoord.y; // flip y axis
     // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
     float4 clip = float4(texCoord * 2.0f - 1.0f, screen.z, screen.w);
-    float4 view = mul(InverseProjection, clip);
+    float4 view = mul(Args.InverseProjection, clip);
     return view.xyz / view.w;
 }
 
@@ -125,7 +126,7 @@ void main(uint2 group : SV_GroupID,
             uint2 DTid = group * uint2(WORK_GROUP_SIZE_X, WORK_GROUP_SIZE_Y) + uint2(dx, dy);
 
             // If pixel coordinates are in bounds...
-            if (DTid.x < ViewportWidth && DTid.y < ViewportHeight) {
+            if (DTid.x < Args.ViewportWidth && DTid.y < Args.ViewportHeight) {
                 // Load and compare depth
                 uint depthUInt = asuint(depthTex[DTid.xy]);
                 InterlockedMin(minDepthUInt, depthUInt);
@@ -159,7 +160,7 @@ void main(uint2 group : SV_GroupID,
     // View space eye position is always at the origin.
     const float3 eyePos = float3(0, 0, 0);
 
-    Plane planes[4]; // planes are in view space
+    Plane planes[4];                                              // planes are in view space
     planes[0] = ComputePlane(eyePos, viewSpace[2], viewSpace[0]); // Left plane
     planes[1] = ComputePlane(eyePos, viewSpace[1], viewSpace[3]); // Right plane
     planes[2] = ComputePlane(eyePos, viewSpace[0], viewSpace[1]); // Top plane
@@ -168,11 +169,11 @@ void main(uint2 group : SV_GroupID,
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
 
-    float zFar = tileMaxDepth / RcpZMagic;
-    float zNear = tileMinDepth / RcpZMagic;
+    float zFar = tileMaxDepth / Args.RcpZMagic;
+    float zNear = tileMinDepth / Args.RcpZMagic;
     zNear = max(zNear, FLT_MIN); // don't allow a zNear of 0
 
-    uint tileIndex = GetTileIndex(group.xy, TileCountX);
+    uint tileIndex = GetTileIndex(group.xy, Args.TileCountX);
     uint tileOffset = GetTileOffset(tileIndex);
 
     // find set of lights that overlap this tile
@@ -185,12 +186,12 @@ void main(uint2 group : SV_GroupID,
             float len = sqrt(dot(lightData.right, lightData.right) + dot(lightData.up, lightData.up));
             //float len = max(length(lightData.right), length(lightData.up));
             lightRadius += len; // extend radius by rectangle area
-        } 
+        }
 
         bool inside = true;
 
         // project light from world to view space
-        float3 lightPos = mul(ViewMatrix, float4(lightData.pos, 1)).xyz;
+        float3 lightPos = mul(Args.ViewMatrix, float4(lightData.pos, 1)).xyz;
 
         // cull the light if is behind the camera (negative z is behind)
         if (lightPos.z + lightRadius < zNear || lightPos.z - lightRadius > zFar) {

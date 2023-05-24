@@ -576,9 +576,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="shaders\BloomCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\DownsampleBloomCS.hlsl">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
@@ -595,9 +592,6 @@
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\object.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\shaders.hlsl">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
     <CopyFileToFolders Include="shaders\sprite.hlsl">

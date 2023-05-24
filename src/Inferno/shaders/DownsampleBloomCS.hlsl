@@ -22,6 +22,11 @@
         "addressW = TEXTURE_ADDRESS_CLAMP," \
         "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
+struct Arguments {
+    float2 InverseDimensions;
+};
+
+ConstantBuffer<Arguments> Args : register(b0);
 Texture2D<float3> BloomBuf : register(t0);
 RWTexture2D<float3> Result1 : register(u0);
 RWTexture2D<float3> Result2 : register(u1);
@@ -29,9 +34,6 @@ RWTexture2D<float3> Result3 : register(u2);
 RWTexture2D<float3> Result4 : register(u3);
 SamplerState BiLinearClamp : register(s0);
 
-cbuffer cb0 : register(b0) {
-    float2 g_inverseDimensions;
-}
 
 groupshared float3 g_Tile[64];    // 8x8 input pixels
 
@@ -42,7 +44,7 @@ void main(uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID) {
     uint parity = DTid.x | DTid.y;
 
     // Downsample and store the 8x8 block
-    float2 centerUV = (float2(DTid.xy) * 2.0f + 1.0f) * g_inverseDimensions;
+    float2 centerUV = (float2(DTid.xy) * 2.0f + 1.0f) * Args.InverseDimensions;
     float3 avgPixel = BloomBuf.SampleLevel(BiLinearClamp, centerUV, 0.0f);
     g_Tile[GI] = avgPixel;
     Result1[DTid.xy] = avgPixel;
