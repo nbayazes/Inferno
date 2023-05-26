@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Editor.h"
+#include "imgui.h"
 #include "Types.h"
 #include "Graphics/Render.h"
 
@@ -23,8 +24,11 @@ namespace Inferno::Editor {
             }
         }
 
-        if (wheelDelta < 0) camera.ZoomIn();
-        if (wheelDelta > 0) camera.ZoomOut();
+        // Only allow scrollwheel zooming when not over ImGui
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            if (wheelDelta < 0) camera.ZoomIn();
+            if (wheelDelta > 0) camera.ZoomOut();
+        }
     }
 
     void ZoomExtents(const Level& level, Camera& camera) {
