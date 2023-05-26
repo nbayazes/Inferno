@@ -912,9 +912,14 @@ namespace Inferno::Editor {
 
                 ImGui::TableRowLabel("Blocks Light");
                 if (WallLightDropdown(wall->BlocksLight)) {
-                    for (auto& wid : GetSelectedWalls())
-                        if (auto w = level.TryGetWall(wid))
+                    for (auto& wid : GetSelectedWalls()) {
+                        if (auto w = level.TryGetWall(wid)) {
                             w->BlocksLight = wall->BlocksLight;
+                            auto cw = level.GetConnectedWall(*w);
+                            if (Settings::Editor.EditBothWallSides && cw)
+                                cw->BlocksLight = wall->BlocksLight;
+                        }
+                    }
 
                     if (Settings::Editor.EditBothWallSides && other)
                         other->BlocksLight = wall->BlocksLight;
