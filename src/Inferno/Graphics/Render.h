@@ -29,7 +29,8 @@ namespace Inferno::Render {
     inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
     inline Ptr<Graphics::FillLightGridCS> LightGrid;
 
-    inline Ptr<UploadBuffer<MaterialInfo>> MaterialInfoBuffer;
+    inline Ptr<UploadBuffer<MaterialInfo>> MaterialInfoUploadBuffer;
+    inline Ptr<StructuredBuffer> MaterialInfoBuffer;
 
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;

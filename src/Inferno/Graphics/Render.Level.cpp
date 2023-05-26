@@ -280,10 +280,14 @@ namespace Inferno::Render {
         }
     }
 
-    void CopyMaterialData() {
-        MaterialInfoBuffer->Begin();
-        MaterialInfoBuffer->Copy(Materials->GetAllMaterialInfo());
-        MaterialInfoBuffer->End();
+    void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {
+        MaterialInfoUploadBuffer->Begin();
+        MaterialInfoUploadBuffer->Copy(Materials->GetAllMaterialInfo());
+        MaterialInfoUploadBuffer->End();
+
+        MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+        cmdList->CopyResource(MaterialInfoBuffer->Get(), MaterialInfoUploadBuffer->Get());
+        MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
     List<Graphics::LightData> LevelLights;
@@ -402,7 +406,7 @@ namespace Inferno::Render {
             Adapter->WaitForGpu();
             _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
             LevelLights = Graphics::GatherLightSources(level);
-            CopyMaterialData();
+            CopyMaterialData(ctx.CommandList());
             LevelChanged = false;
         }
 

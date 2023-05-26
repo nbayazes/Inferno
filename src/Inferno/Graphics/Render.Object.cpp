@@ -303,7 +303,6 @@ namespace Inferno::Render {
             auto submodelOffset = model.GetSubmodelOffset(submodel);
             auto world = Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
-            effect.Shader->SetConstants(cmdList, constants);
 
             // get the mesh associated with the submodel
             auto& subMesh = meshHandle.Meshes[submodel];
@@ -321,6 +320,9 @@ namespace Inferno::Render {
                 if (!ti.Transparent && pass != RenderPass::Opaque) continue;
 
                 const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+
+                constants.TexID = (int)mesh->Texture;
+                effect.Shader->SetConstants(cmdList, constants);
                 effect.Shader->SetMaterial(cmdList, material);
                 effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
                 effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());

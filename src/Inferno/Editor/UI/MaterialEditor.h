@@ -182,12 +182,14 @@ namespace Inferno::Editor {
                     ImGui::SameLine();
                     if (ImGui::Button("Paste", buttonSize)) {
                         material = _copy;
+                        Events::LevelChanged();
                     }
 
                     ImGui::SameLine();
                     if (ImGui::Button("Revert", buttonSize)) {
                         if (Seq::inRange(_backup, (int)ti.ID))
                             material = _backup[(int)ti.ID];
+                        Events::LevelChanged();
                     }
 
                     ImGui::Dummy({ 0, 5 });

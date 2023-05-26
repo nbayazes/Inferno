@@ -315,16 +315,16 @@ namespace Inferno {
             FrameConstants, // b0
             RootConstants, // b1
             Material, // t0 - t4
+            MaterialInfoBuffer, // t5
             Sampler, // s0
             NormalSampler, // s1
-            //MaterialInfoBuffer, // t5
             LightGrid, // t11, t12, t13, b2
         };
     public:
         struct Constants {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
-            TexID TexID;
+            int TexID;
         };
 
         ObjectShader(const ShaderInfo& info) : IShader(info) {
@@ -351,9 +351,8 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof consts / 4, &consts, 0);
         }
 
-        static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* /*commandList*/, D3D12_GPU_DESCRIPTOR_HANDLE /*handle*/) {
-            //commandList->SetGraphicsRootConstantBufferView(MaterialInfoBuffer, cbv);
-            //commandList->SetGraphicsRootDescriptorTable(MaterialInfoBuffer, handle);
+        static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(MaterialInfoBuffer, handle);
         }
 
         static void SetLightGrid(ID3D12GraphicsCommandList* commandList, Graphics::FillLightGridCS& lightGrid) {

@@ -13,6 +13,13 @@ Materials:
     Roughness: 0.544
     EmissiveStrength: 1
     LightReceived: 1
+  - TexID: 35
+    NormalStrength: 0.422
+    SpecularStrength: 0
+    Metalness: 1
+    Roughness: 0.578
+    EmissiveStrength: 1
+    LightReceived: 1
   - TexID: 55
     NormalStrength: 1
     SpecularStrength: 1
@@ -1874,6 +1881,27 @@ Materials:
     Metalness: 0
     Roughness: 0.597
     EmissiveStrength: 1
+    LightReceived: 1
+  - TexID: 1302
+    NormalStrength: 1
+    SpecularStrength: 0
+    Metalness: 0
+    Roughness: 0.8
+    EmissiveStrength: 25
+    LightReceived: 1
+  - TexID: 1310
+    NormalStrength: 1
+    SpecularStrength: 0
+    Metalness: 1
+    Roughness: 0.8
+    EmissiveStrength: 1
+    LightReceived: 1
+  - TexID: 1313
+    NormalStrength: 0.422
+    SpecularStrength: 0
+    Metalness: 1
+    Roughness: 0.578
+    EmissiveStrength: 3.985
     LightReceived: 1
   - TexID: 1341
     NormalStrength: 1

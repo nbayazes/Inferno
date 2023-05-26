@@ -10,7 +10,8 @@ struct MaterialInfo {
     float Roughness;
     float EmissiveStrength;
     float LightReceived; // 0 for unlit
-    float pad0, pad1;
+    int ID;
+    float pad0; // Pad to 32 bytes
 };
 
 struct LightingArgs {

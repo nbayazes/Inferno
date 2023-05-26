@@ -39,3 +39,14 @@ float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler) {
     // AA sampling causes artifacts on sharp highlights when using AA mode. Use plain point sampling instead.
     return clamp(tex.Sample(texSampler, uv).rgb * 2 - 1, -1, 1);
 }
+
+// 'rotated disco' sampling
+//float2 dx = ddx(uv) * 0.25f;
+//float2 dy = ddx(uv) * 0.25f;
+//float3 color =
+//    (tex.Sample(texSampler, uv - dx - dy).rgb + // top left
+//     tex.Sample(texSampler, uv + dx - dy).rgb + // top right
+//     tex.Sample(texSampler, uv + dx + dy).rgb + // bottom left
+//     tex.Sample(texSampler, uv + dx + dy).rgb) * 0.25; // bottom right
+//return clamp(color * 2 - 1, -1, 1);
+    

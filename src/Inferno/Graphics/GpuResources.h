@@ -257,7 +257,7 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            _resource->SetName(name.data());
+            ThrowIfFailed(_resource->SetName(name.data()));
 
             //_counterBuffer.Create(L"StructuredBuffer::Counter", 1, 4);
 

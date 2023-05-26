@@ -99,8 +99,11 @@ namespace Inferno::Render {
 
         constexpr int MATERIAL_COUNT = 3000;
         Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
-        MaterialInfoBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
-        MaterialInfoBuffer->CreateShaderResourceView();
+        MaterialInfoUploadBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
+        MaterialInfoBuffer = MakePtr<StructuredBuffer>();
+        MaterialInfoBuffer->Create(L"MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
+        MaterialInfoBuffer->AddShaderResourceView();
+        UploadBuffer<MaterialInfo> materialInfoUpload(MATERIAL_COUNT);
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
@@ -204,6 +207,7 @@ namespace Inferno::Render {
         g_SpriteBatch.reset();
         g_ImGuiBatch.reset();
         MaterialInfoBuffer.reset();
+        MaterialInfoUploadBuffer.reset();
 
         ReleaseEditorResources();
         _levelMeshBuffer.reset();

@@ -6,12 +6,24 @@
     "CBV(b0),"\
     "RootConstants(b1, num32BitConstants = 37), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b2)"
+
+struct Constants {
+    float4x4 WorldMatrix;
+    float4 EmissiveLight; // for untextured objects like lasers
+    float4 Ambient;
+    int TexID;
+};
+
+ConstantBuffer<FrameConstants> Frame : register(b0);
+ConstantBuffer<Constants> Args : register(b1);
+// lighting constants are register b2
 
 SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
@@ -20,19 +32,7 @@ Texture2D Diffuse : register(t0);
 Texture2D Emissive : register(t2);
 Texture2D Specular1 : register(t3);
 Texture2D Normal1 : register(t4);
-
-struct Constants {
-    float4x4 WorldMatrix;
-    float3 EmissiveLight; // for untextured objects like lasers
-    float3 Ambient;
-    int TexID;
-};
-
-ConstantBuffer<FrameConstants> Frame : register(b0);
-ConstantBuffer<Constants> Args : register(b1);
-// lighting constants are register b2
-
-//StructuredBuffer<MaterialInfo> Materials : register(t5);
+StructuredBuffer<MaterialInfo> Materials : register(t5);
 
 struct ObjectVertex {
     float3 pos : POSITION;
@@ -85,7 +85,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Frame.Eye);
     float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode) * input.col;
     float3 emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).rgb;
-    emissive = Args.EmissiveLight + emissive * diffuse.rgb;
+    emissive = Args.EmissiveLight.rgb + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 
     if (!Frame.NewLightMode) {
@@ -93,7 +93,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float sum = emissive.r + emissive.g + emissive.b; // is there a better way to sum this?
         //float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
         //lighting += Ambient + pow(emissive * mult, 4);
-        lighting += Args.Ambient;
+        lighting += Args.Ambient.rgb;
         lighting += emissive * 4;
         lighting *= Specular(lightDir, viewDir, input.normal);
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
@@ -101,16 +101,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     else {
         float specularMask = Specular1.Sample(Sampler, input.uv).r;
 
-        // todo: load material from a buffer
-        //MaterialInfo material = Materials[0];
-        MaterialInfo material;
-        material.Metalness = 0.9;
-        material.Roughness = 0.55;
-        material.SpecularStrength = 1;
-        material.EmissiveStrength = 1;
-        material.LightReceived = 1;
-        material.NormalStrength = 0.25;
-
+        MaterialInfo material = Materials[Args.TexID];
         float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
         //normal = float3(0,0,1);
         //return float4(normal, 1);
@@ -127,8 +118,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
 
         lighting += colorSum * material.LightReceived * 1.5;
-        lighting += emissive * diffuse.rgb * 10; // todo: emissive mult
-        lighting += Args.Ambient * 0.125f * diffuse.rgb * material.LightReceived; 
+        lighting += emissive * diffuse.rgb * material.EmissiveStrength; // todo: emissive mult
+        lighting += Args.Ambient.rgb * 0.125f * diffuse.rgb * material.LightReceived; 
 
         return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
