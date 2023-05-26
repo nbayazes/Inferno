@@ -3,16 +3,17 @@
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 23), "\
+    "RootConstants(b1, num32BitConstants = 9), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t14), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "CBV(b2)"
+    "CBV(b2)" \
 
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used but reserved for descriptor table
@@ -27,26 +28,21 @@ Texture2D Specular2 : register(t8);
 Texture2D Normal2 : register(t9);
 
 Texture2D Depth : register(t10);
-//StructuredBuffer<LightData> LightBuffer : register(t9);
-//ByteAddressBuffer LightGrid : register(t10);
-//ByteAddressBuffer LightGridBitMask : register(t11);
-
 SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
-
-//Texture2DArray<float> lightShadowArrayTex : register(t10);
+// t11, t12, t13
+StructuredBuffer<MaterialInfo> Materials : register(t14);
 
 //static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
 static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
 struct InstanceConstants {
-    MaterialInfo Mat1;
-    MaterialInfo Mat2;
     float2 Scroll, Scroll2;
     float LightingScale; // for unlit mode
     bool Distort;
     bool HasOverlay;
+    int Tex1, Tex2;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -212,11 +208,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     float4 base = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
     float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
-    //float3 normal = clamp(SampleData2D(Normal1, input.uv, NormalSampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
     //return float4(normal, 1);
-    normal.xy *= Args.Mat1.NormalStrength;
+    MaterialInfo mat1 = Materials[Args.Tex1];
+    normal.xy *= mat1.NormalStrength;
     normal = normalize(normal);
-
     //return float4(normal, 1);
 
     // 'automap' shader?
@@ -240,10 +235,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * Args.Mat1.EmissiveStrength;
-    MaterialInfo material = Args.Mat1;
+    float emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
+    MaterialInfo material = mat1;
 
     if (Args.HasOverlay) {
+        MaterialInfo mat2 = Materials[Args.Tex2];
+
         // Apply supertransparency mask
         float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         base *= mask;
@@ -258,21 +255,21 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float3 overlayNormal = clamp(SampleData2D(Normal2, input.uv2, Sampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
         float3 overlayNormal = SampleNormal(Normal2, input.uv2, NormalSampler);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
-        overlayNormal.xy *= Args.Mat2.NormalStrength;
+        overlayNormal.xy *= mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
 
         normal = normalize(lerp(normal, overlayNormal, overlay.a));
 
-        material.SpecularStrength = lerp(Args.Mat1.SpecularStrength, Args.Mat2.SpecularStrength, overlay.a);
-        material.Metalness = lerp(Args.Mat1.Metalness, Args.Mat2.Metalness, overlay.a);
-        material.NormalStrength = normalize(lerp(Args.Mat1.NormalStrength, Args.Mat2.NormalStrength, overlay.a));
-        material.Roughness = lerp(Args.Mat1.Roughness, Args.Mat2.Roughness, overlay.a);
-        material.LightReceived = lerp(Args.Mat1.LightReceived, Args.Mat2.LightReceived, overlay.a);
+        material.SpecularStrength = lerp(mat1.SpecularStrength, mat2.SpecularStrength, overlay.a);
+        material.Metalness = lerp(mat1.Metalness, mat2.Metalness, overlay.a);
+        material.NormalStrength = normalize(lerp(mat1.NormalStrength, mat2.NormalStrength, overlay.a));
+        material.Roughness = lerp(mat1.Roughness, mat2.Roughness, overlay.a);
+        material.LightReceived = lerp(mat1.LightReceived, mat2.LightReceived, overlay.a);
 
         float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * Args.Mat2.EmissiveStrength * overlay.a;
+        emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
     }
 
     if (diffuse.a <= 0)

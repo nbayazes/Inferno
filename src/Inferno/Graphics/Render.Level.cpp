@@ -169,6 +169,7 @@ namespace Inferno::Render {
 
         auto cmdList = ctx.CommandList();
         Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
 
         if (chunk.Cloaked) {
             Shaders->Level.SetMaterial1(cmdList, Materials->Black);
@@ -178,7 +179,6 @@ namespace Inferno::Render {
         else {
             {
                 auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
-
                 Shaders->Level.SetMaterial1(cmdList, map1);
             }
 
@@ -186,7 +186,6 @@ namespace Inferno::Render {
                 constants.Overlay = true;
 
                 auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
-
                 Shaders->Level.SetMaterial2(cmdList, map2);
             }
         }
@@ -195,14 +194,14 @@ namespace Inferno::Render {
         constants.Scroll = ti.Slide;
         constants.Scroll2 = chunk.OverlaySlide;
         constants.Distort = ti.Slide != Vector2::Zero;
+        constants.Tex1 = (int)ti.TexID;
 
-        constants.Mat1 = Materials->GetMaterialInfo(ti.TexID);
         if (chunk.TMap2 > LevelTexID::Unset) {
             auto tid2 = Resources::LookupTexID(chunk.TMap2);
-            constants.Mat2 = Materials->GetMaterialInfo(tid2);
+            constants.Tex2 = (int)tid2;
         }
         else {
-            constants.Mat2 = {};
+            constants.Tex2 = -1;
         }
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
@@ -439,7 +438,9 @@ namespace Inferno::Render {
                 ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
             ctx.EndEvent();
 
+            ctx.BeginEvent(L"Decals");
             DrawDecals(ctx, Render::FrameTime);
+            ctx.EndEvent();
 
             ctx.BeginEvent(L"Transparent queue");
             for (auto& cmd : _renderQueue.Transparent() | views::reverse)

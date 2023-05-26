@@ -15,7 +15,7 @@ namespace Inferno::Render {
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;
-        float Duration = 5; // How long the effect lasts
+        float Duration = 0; // How long the effect lasts
         float Elapsed = 0;  // How long the effect has been alive for
         bool IsTransparent = true;
         float LightRadius = -1; // Radius of emitted light

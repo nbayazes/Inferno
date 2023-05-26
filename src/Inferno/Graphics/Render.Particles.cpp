@@ -688,6 +688,7 @@ namespace Inferno::Render {
         }
 
         tracer.Elapsed = 0;
+        tracer.Duration = 5;
         AddEffect(MakePtr<TracerInfo>(tracer));
     }
 

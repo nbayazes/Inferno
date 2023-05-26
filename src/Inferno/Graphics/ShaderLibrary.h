@@ -235,17 +235,17 @@ namespace Inferno {
             Material2, // t5 - t9
             Depth, // t10
             Sampler, // s0
-            NormalSampler, // s0
+            NormalSampler, // s1
+            MaterialInfoBuffer, // t14
             LightGrid, // t11, t12, t13, b2
         };
     public:
         struct InstanceConstants {
-            MaterialInfo Mat1;
-            MaterialInfo Mat2;
             Vector2 Scroll, Scroll2; // For UV scrolling
             float LightingScale;
             HlslBool Distort;
             HlslBool Overlay;
+            int Tex1, Tex2;
         };
 
         LevelShader(const ShaderInfo& info) : IShader(info) {
@@ -281,6 +281,10 @@ namespace Inferno {
             commandList->SetGraphicsRootDescriptorTable(LightGrid + 1, lightGrid.GetLightGrid().GetSRV());
             commandList->SetGraphicsRootDescriptorTable(LightGrid + 2, lightGrid.GetBitMask().GetSRV());
             commandList->SetGraphicsRootConstantBufferView(LightGrid + 3, lightGrid.GetConstants());
+        }
+
+        static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(MaterialInfoBuffer, handle);
         }
     };
 
