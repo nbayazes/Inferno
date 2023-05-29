@@ -132,7 +132,7 @@ namespace Inferno::Editor {
 
                 if (Game::Level.IsDescent2()) {
                     if (ImGui::BeginMenu("Palette")) {
-                        auto Entry = [](const char* label, string palette) {
+                        auto entry = [](const char* label, const string& palette) {
                             if (ImGui::MenuItem(label, nullptr, String::ToUpper(Game::Level.Palette) == palette)) {
                                 Game::Level.Palette = palette;
                                 Resources::LoadLevel(Game::Level);
@@ -140,12 +140,12 @@ namespace Inferno::Editor {
                             }
                         };
 
-                        Entry("Default", "GROUPA.256");
-                        Entry("Water", "WATER.256");
-                        Entry("Fire", "FIRE.256");
-                        Entry("Ice", "ICE.256");
-                        Entry("Alien 1", "ALIEN1.256");
-                        Entry("Alien 2", "ALIEN2.256");
+                        entry("Default", "GROUPA.256");
+                        entry("Water", "WATER.256");
+                        entry("Fire", "FIRE.256");
+                        entry("Ice", "ICE.256");
+                        entry("Alien 1", "ALIEN1.256");
+                        entry("Alien 2", "ALIEN2.256");
                         ImGui::EndMenu();
                     }
 
@@ -412,7 +412,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##drp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static const float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
+                static constexpr float snapValues[] = { 0, 20.0f / 64, 1, 2.5f, 5, 10, 20 };
                 for (int i = 0; i < std::size(snapValues); i++) {
                     auto label = i == 1 ? "Pixel" : fmt::format("{:.1f}", snapValues[i]);
                     if (ImGui::Selectable(label.c_str()))
@@ -437,7 +437,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##rdrp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static const float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
+                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
@@ -788,7 +788,7 @@ namespace Inferno::Editor {
         ImGui::PopStyleColor();
     }
 
-    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) {
+    ImGuiDockNode* EditorUI::CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) const {
         auto dockspaceNode = ImGui::DockBuilderGetNode(dockspaceId);
 
         if (!dockspaceNode) {

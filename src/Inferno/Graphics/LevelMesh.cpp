@@ -61,11 +61,11 @@ namespace Inferno {
                 for (int i = 0; auto& v : seg.GetVertexIndices(sideId)) {
                     sideVerts[i].Position = level.Vertices[v];
                     if (Seq::contains(heatIndices, v)) {
-                        sideVerts[i].Color = { 1, 1, 1, 1 };
+                        sideVerts[i].Color = Color{ 1, 1, 1, 1 };
                         isLit = true;
                     }
                     else {
-                        sideVerts[i].Color = { 1, 1, 1, 0 };
+                        sideVerts[i].Color = Color{ 1, 1, 1, 0 };
                     }
                     i++;
                 }
@@ -319,7 +319,7 @@ namespace Inferno {
         Render::Effects->FlatAdditive.Apply(cmdList);
         FlatShader::Constants constants;
         constants.Transform = Render::ViewProjection;
-        constants.Tint = { 1.00f, 0.6f, 0.01f, 0.66f };
+        constants.Tint = Color{ 1.00f, 0.6f, 0.01f, 0.66f };
         Render::Shaders->Flat.SetConstants(cmdList, constants);
         cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
         cmdList->IASetIndexBuffer(&IndexBuffer);

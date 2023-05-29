@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include "Buffers.h"
 #include "ShaderLibrary.h"
 #include "Face.h"
@@ -80,7 +79,7 @@ namespace Inferno {
             return _resources[_index % 2];
         }
 
-        void CopyLevel(Level level) { _level = level; }
+        void CopyLevel(const Level& level) { _level = level; }
 
         //void Draw() {
         //    _resources[_index % 2].Draw();
