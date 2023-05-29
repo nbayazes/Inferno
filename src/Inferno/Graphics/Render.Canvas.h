@@ -102,7 +102,7 @@ namespace Inferno::Render {
             //auto material = &Materials->Get(id);
             auto handle = Materials->Get(id).Handles[Material2D::Diffuse];
             if (!handle.ptr)
-                handle = Materials->White.Handles[Material2D::Diffuse];
+                handle = Materials->White().Handles[Material2D::Diffuse];
 
             CanvasPayload payload{};
             auto hex = color.BGRA();

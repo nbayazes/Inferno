@@ -39,17 +39,9 @@ namespace Inferno::Render {
         auto& effect = Effects->DepthCutout;
         effect.Apply(cmdList);
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
 
-        {
-            auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
-            effect.Shader->SetMaterial1(cmdList, map1);
-        }
 
-        if (chunk.TMap2 > LevelTexID::Unset) {
-            consts.HasOverlay = true;
-            auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
-            effect.Shader->SetMaterial2(cmdList, map2);
-        }
 
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
         consts.Scroll = ti.Slide;
@@ -170,8 +162,10 @@ namespace Inferno::Render {
         auto cmdList = ctx.CommandList();
         Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
+        Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
 
         if (chunk.Cloaked) {
+            // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
             Shaders->Level.SetMaterial1(cmdList, Materials->Black());
             Shaders->Level.SetMaterial2(cmdList, Materials->Black());
             constants.LightingScale = 1;

@@ -41,6 +41,7 @@ namespace Inferno {
         Vector3 Normal;
         Vector3 Tangent;
         Vector3 Bitangent;
+        int TexID1 = 0, TexID2 = -1;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -49,7 +50,9 @@ namespace Inferno {
             { "TEXCOORD",  1, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BASE",      0, DXGI_FORMAT_R32_SINT,           0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "OVERLAY",   0, DXGI_FORMAT_R32_SINT,           0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
@@ -192,6 +195,7 @@ namespace Inferno {
     class DepthCutoutShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
+            TextureTable, // t0, space1
             RootConstants,
             Material1,
             Material2,
@@ -211,18 +215,15 @@ namespace Inferno {
             Format = DepthShader::OutputFormat;
         }
 
+        static void SetTextureTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
+            commandList->SetGraphicsRootDescriptorTable(TextureTable, start);
+        }
+
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
 
-        static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[Material2D::Diffuse]);
-        }
 
-        static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[Material2D::Diffuse]);
-            commandList->SetGraphicsRootDescriptorTable(StMask, material.Handles[Material2D::SuperTransparency]);
-        }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
@@ -232,6 +233,7 @@ namespace Inferno {
     class LevelShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants, // b0
+            TextureTable, // t0, space1
             RootConstants, // b1
             Material1, // t0 - t4
             Material2, // t5 - t9
@@ -252,6 +254,10 @@ namespace Inferno {
 
         LevelShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
+        }
+
+        static void SetTextureTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
+            commandList->SetGraphicsRootDescriptorTable(TextureTable, start);
         }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {

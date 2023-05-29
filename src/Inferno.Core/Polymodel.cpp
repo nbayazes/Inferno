@@ -24,13 +24,14 @@ namespace Inferno {
         for (auto& sm : model.Submodels) {
             // expand submodel vertices from indices for use in buffers
             // +1 slot is for flat polygons
-            sm.ExpandedIndices.resize(model.TextureCount + 1);
+            //sm.ExpandedIndices.resize(model.TextureCount + 1);
+            sm.ExpandedIndices.resize(1);
 
             for (uint16 i = 0; i < sm.Indices.size(); i++) {
                 auto& tmap = sm.TMaps[i / 3]; // textures are stored per face (3 indices per triangle)
                 // store indices by texture.
                 // this creates empty arrays for texture slots that are not used
-                sm.ExpandedIndices[tmap].push_back(i);
+                sm.ExpandedIndices[0].push_back(i);
                 auto& p = points[sm.Indices[i]];
                 sm.ExpandedPoints.push_back({ p, tmap });
                 sm.ExpandedColors.push_back({ 1, 1, 1, 1 });
@@ -42,7 +43,7 @@ namespace Inferno {
             for (uint16 i = 0; i < sm.FlatIndices.size(); i++) {
                 auto& color = sm.FlatVertexColors[i / 3];
                 auto& p = points[sm.FlatIndices[i]];
-                sm.ExpandedIndices[model.TextureCount].push_back(flatOffset + i);
+                sm.ExpandedIndices[0].push_back(flatOffset + i);
                 sm.ExpandedPoints.push_back({ p, -1 });
                 sm.ExpandedColors.push_back(color);
             }

@@ -1,5 +1,12 @@
 #define MATERIAL_COUNT 3000
 
+// Must match the Material enum
+static const int MAT_DIFF = 0; // Diffuse
+static const int MAT_MASK = 1; // Supertransparent mask
+static const int MAT_EMIS = 2; // Emissive
+static const int MAT_SPEC = 3; // Specular
+static const int MAT_NORM = 4; // Normal
+
 struct FrameConstants {
     float4x4 ViewProjectionMatrix;
     float3 Eye; // Camera direction

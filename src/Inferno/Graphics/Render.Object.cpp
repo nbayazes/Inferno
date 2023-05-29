@@ -279,6 +279,9 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+        effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+        effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+
         ObjectShader::Constants constants = {};
 
         if (object.Render.Emissive != Color(0, 0, 0)) {
@@ -320,21 +323,20 @@ namespace Inferno::Render {
                 if (ti.Transparent && pass != RenderPass::Transparent) continue;
                 if (!ti.Transparent && pass != RenderPass::Opaque) continue;
 
-                const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
+                //const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
-                if (material.State == TextureState::Resident) {
+
+                //if (material.State == TextureState::Resident) {
                     constants.TexID = (int)mesh->Texture;
                     effect.Shader->SetConstants(cmdList, constants);
-                    effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-                    effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
 
                     cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                     cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
                     cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
                     Stats::DrawCalls++;
-                } else {
-                    SPDLOG_WARN("Tried to draw model with unloaded texture {}", material.ID);
-                }
+                //} else {
+                //    SPDLOG_WARN("Tried to draw model with unloaded texture {}", material.ID);
+                //}
             }
         }
     }

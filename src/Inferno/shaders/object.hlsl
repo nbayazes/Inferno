@@ -1,8 +1,7 @@
 #include "Lighting.hlsli"
 #include "Common.hlsli"
 
-#define RS \
-    "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
+#define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = 3000, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
     "RootConstants(b1, num32BitConstants = 37), "\
@@ -104,7 +103,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float specularMask = Specular1.Sample(Sampler, input.uv).r;
         float specularMask = Sample2D(TextureTable[input.texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
 
-        MaterialInfo material = Materials[Args.TexID];
+        MaterialInfo material = Materials[input.texid];
         float3 normal = SampleNormal(TextureTable[input.texid * 5 + 4], input.uv, NormalSampler);
         //normal = float3(0,0,1);
         //return float4(normal, 1);

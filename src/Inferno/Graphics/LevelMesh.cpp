@@ -119,7 +119,9 @@ namespace Inferno {
                     const Array<Color, 4>& colors,
                     LevelGeometry& geo,
                     LevelChunk& chunk,
-                    const SegmentSide& side) {
+                    const SegmentSide& side,
+                    TexID tex1, 
+                    TexID tex2) {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex);
 
@@ -138,7 +140,7 @@ namespace Inferno {
 
             auto& tangent = i < 3 ? tangent1 : tangent2;
             auto& bitangent = i < 3 ? bitangent1 : bitangent2;
-            LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent };
+            LevelVertex vertex = { pos, uv, color, uv2, normal, tangent, bitangent, (int)tex1, (int)tex2 };
             geo.Vertices.push_back(vertex);
         }
 
@@ -149,7 +151,9 @@ namespace Inferno {
                     LevelGeometry& geo,
                     LevelChunk& chunk,
                     SegmentSide& side,
-                    int steps) {
+                    int steps, 
+                    TexID tex1,
+                    TexID tex2) {
         auto incr = 1 / ((float)steps + 1);
         auto vTop = (verts[1] - verts[0]) * incr; // top
         auto vBottom = (verts[2] - verts[3]) * incr; // bottom
@@ -205,7 +209,7 @@ namespace Inferno {
                 lt[2] = ltEdge0b + ltRight * (fy + 1); // bottom right
                 lt[3] = ltEdge0a + ltLeft * (fy + 1); // bottom left
 
-                AddPolygon(p, uv, lt, geo, chunk, side);
+                AddPolygon(p, uv, lt, geo, chunk, side, tex1, tex2);
             }
         }
     }
@@ -263,8 +267,9 @@ namespace Inferno {
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
 
                 // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
-                uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
-                uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
+                //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                //uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
+                uint32 chunkId = side.HasOverlay() ? 1 : 0; // todo: separate ids for walls and sliding textures
 
                 LevelChunk wallChunk; // always use a new chunk for walls
                 LevelChunk& chunk = isWall ? wallChunk : chunks[chunkId];
@@ -290,7 +295,9 @@ namespace Inferno {
                 }
 
                 auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                AddPolygon(verts, side.UVs, lt, geo, chunk, side);
+                auto tex1 = Resources::LookupTexID(side.TMap);
+                auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                AddPolygon(verts, side.UVs, lt, geo, chunk, side, tex1, tex2);
 
                 // Overlays should slide in the same direction as the base texture regardless of their rotation
                 if (needsOverlaySlide)
