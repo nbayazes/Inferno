@@ -293,7 +293,7 @@ namespace Inferno {
             // Setup Platform/Renderer bindings
             ImGui_ImplWin32_Init(hwnd);
             //static const ImWchar ranges[] = { 0x0020, 0x00FF, 0 };
-            /*ImFont* font = */io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\SegoeUI.ttf", fontSize * Shell::DpiScale, nullptr, nullptr);
+            /*ImFont* font = */io.Fonts->AddFontFromFileTTF(R"(c:\Windows\Fonts\SegoeUI.ttf)", fontSize * Shell::DpiScale, nullptr, nullptr);
         }
 
         void BeginFrame() {
@@ -312,22 +312,22 @@ namespace Inferno {
         }
 
     private:
-        void RenderDrawData(ImDrawData* draw_data, ID3D12GraphicsCommandList* ctx) {
-            if (!draw_data || !ctx) return;
+        void RenderDrawData(ImDrawData* drawData, ID3D12GraphicsCommandList* ctx) {
+            if (!drawData || !ctx) return;
 
             // Avoid rendering when minimized
-            if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
+            if (drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f)
                 return;
 
-            ImGuiViewportData* render_data = (ImGuiViewportData*)draw_data->OwnerViewport->RendererUserData;
-            render_data->FrameIndex++;
-            FrameResources* fr = &render_data->Resources[render_data->FrameIndex % _backBufferCount];
+            auto renderData = (ImGuiViewportData*)drawData->OwnerViewport->RendererUserData;
+            renderData->FrameIndex++;
+            FrameResources* fr = &renderData->Resources[renderData->FrameIndex % _backBufferCount];
 
             fr->VertexBuffer.Begin();
             fr->IndexBuffer.Begin();
 
-            for (int n = 0; n < draw_data->CmdListsCount; n++) {
-                const ImDrawList* cmdList = draw_data->CmdLists[n];
+            for (int n = 0; n < drawData->CmdListsCount; n++) {
+                const ImDrawList* cmdList = drawData->CmdLists[n];
                 fr->VertexBuffer.Copy({ cmdList->VtxBuffer.Data, (size_t)cmdList->VtxBuffer.Size });
                 fr->IndexBuffer.Copy({ cmdList->IdxBuffer.Data, (size_t)cmdList->IdxBuffer.Size });
             }
@@ -338,22 +338,22 @@ namespace Inferno {
             if (resized) return;
 
             // Setup desired DX state
-            SetRenderState(draw_data, ctx, fr);
+            SetRenderState(drawData, ctx, fr);
 
             // Render command lists
             // (Because we merged all buffers into a single one, we maintain our own offset into them)
             int global_vtx_offset = 0;
             int global_idx_offset = 0;
-            ImVec2 clip_off = draw_data->DisplayPos;
-            for (int n = 0; n < draw_data->CmdListsCount; n++) {
-                const ImDrawList* cmd_list = draw_data->CmdLists[n];
+            auto clip_off = drawData->DisplayPos;
+            for (int n = 0; n < drawData->CmdListsCount; n++) {
+                const ImDrawList* cmd_list = drawData->CmdLists[n];
                 for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++) {
                     const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
                     if (pcmd->UserCallback != nullptr) {
                         // User callback, registered via ImDrawList::AddCallback()
                         // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
                         if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-                            SetRenderState(draw_data, ctx, fr);
+                            SetRenderState(drawData, ctx, fr);
                         else
                             pcmd->UserCallback(cmd_list, pcmd);
                     }
@@ -388,36 +388,38 @@ namespace Inferno {
             io.Fonts->TexID = (ImTextureID)ptr;
         }
 
-        void SetRenderState(ImDrawData* draw_data, ID3D12GraphicsCommandList* ctx, FrameResources* fr) {
+        void SetRenderState(const ImDrawData* drawData, ID3D12GraphicsCommandList* ctx, FrameResources* fr) {
             // Setup orthographic projection matrix into our constant buffer
             // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right).
-            float L = draw_data->DisplayPos.x;
-            float R = draw_data->DisplayPos.x + draw_data->DisplaySize.x;
-            float T = draw_data->DisplayPos.y;
-            float B = draw_data->DisplayPos.y + draw_data->DisplaySize.y;
+            float L = drawData->DisplayPos.x;
+            float R = drawData->DisplayPos.x + drawData->DisplaySize.x;
+            float T = drawData->DisplayPos.y;
+            float B = drawData->DisplayPos.y + drawData->DisplaySize.y;
 
             auto proj = Matrix::CreateOrthographicOffCenter(L, R, B, T, 0.0, -2.0f);
             // Setup viewport
-            CD3DX12_VIEWPORT vp(0.0f, 0.0f, draw_data->DisplaySize.x, draw_data->DisplaySize.y);
+            CD3DX12_VIEWPORT vp(0.0f, 0.0f, drawData->DisplaySize.x, drawData->DisplaySize.y);
             ctx->RSSetViewports(1, &vp);
 
             // Bind shader and vertex buffers
             D3D12_VERTEX_BUFFER_VIEW vbv{};
             vbv.BufferLocation = fr->VertexBuffer.GetGPUVirtualAddress();
-            vbv.SizeInBytes = (uint)fr->VertexBuffer.GetSizeInBytes();
+            vbv.SizeInBytes = fr->VertexBuffer.GetSizeInBytes();
             vbv.StrideInBytes = fr->VertexBuffer.Stride;
             ctx->IASetVertexBuffers(0, 1, &vbv);
+
             D3D12_INDEX_BUFFER_VIEW ibv{};
             ibv.BufferLocation = fr->IndexBuffer.GetGPUVirtualAddress();
-            ibv.SizeInBytes = (uint)fr->IndexBuffer.GetSizeInBytes();
+            ibv.SizeInBytes = fr->IndexBuffer.GetSizeInBytes();
             ibv.Format = sizeof(ImDrawIdx) == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
             ctx->IASetIndexBuffer(&ibv);
             ctx->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
             Render::Effects->UserInterface.Apply(ctx);
             Render::Shaders->UserInterface.SetWorldViewProjection(ctx, proj);
 
             // Setup blend factor
-            const float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
+            constexpr float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };
             ctx->OMSetBlendFactor(blend_factor);
         }
 
