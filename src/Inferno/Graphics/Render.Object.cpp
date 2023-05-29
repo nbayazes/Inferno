@@ -228,14 +228,14 @@ namespace Inferno::Render {
 
                 auto handle = texId >= 0 
                     ? Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) 
-                    : Materials->White.Handle();
+                    : Materials->White().Handle();
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
                 effect.Shader->SetSampler(cmd, GetWrappedTextureSampler());
                 effect.Shader->SetNormalSampler(cmd, GetNormalSampler());
-                effect.Shader->SetMaterial(cmd, handle);
+                //effect.Shader->SetMaterial(cmd, handle);
                 effect.Shader->SetLightGrid(cmd, *Render::LightGrid);
                 effect.Shader->SetMaterialInfoBuffer(cmd, Render::MaterialInfoBuffer->GetSRV());
 
@@ -278,6 +278,7 @@ namespace Inferno::Render {
 
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
         ObjectShader::Constants constants = {};
 
         if (object.Render.Emissive != Color(0, 0, 0)) {
@@ -319,18 +320,21 @@ namespace Inferno::Render {
                 if (ti.Transparent && pass != RenderPass::Transparent) continue;
                 if (!ti.Transparent && pass != RenderPass::Opaque) continue;
 
-                const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+                const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
-                constants.TexID = (int)mesh->Texture;
-                effect.Shader->SetConstants(cmdList, constants);
-                effect.Shader->SetMaterial(cmdList, material);
-                effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-                effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+                if (material.State == TextureState::Resident) {
+                    constants.TexID = (int)mesh->Texture;
+                    effect.Shader->SetConstants(cmdList, constants);
+                    effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+                    effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
 
-                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
-                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                Stats::DrawCalls++;
+                    cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                    cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                    cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                    Stats::DrawCalls++;
+                } else {
+                    SPDLOG_WARN("Tried to draw model with unloaded texture {}", material.ID);
+                }
             }
         }
     }

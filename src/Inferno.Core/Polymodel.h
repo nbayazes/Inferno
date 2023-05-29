@@ -18,6 +18,11 @@ namespace Inferno {
         int16 Glow;
     };
 
+    struct ExpandedPoint {
+        Vector3 Point;
+        int16 TexSlot = -1; // Texture slot for this robot
+    };
+
     struct Submodel {
         int Pointer;
         Vector3 Offset;
@@ -38,7 +43,7 @@ namespace Inferno {
         List<SubmodelGlow> FlatGlows;
 
         // expanded values so that each face gets its own vertices / uvs
-        List<Vector3> ExpandedPoints;
+        List<ExpandedPoint> ExpandedPoints;
         // The top level list corresponds to the texture slot
         List<List<uint16>> ExpandedIndices;
         List<Color> ExpandedColors;

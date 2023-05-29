@@ -1,3 +1,4 @@
+#define MATERIAL_COUNT 3000
 
 struct FrameConstants {
     float4x4 ViewProjectionMatrix;

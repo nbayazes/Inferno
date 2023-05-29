@@ -139,8 +139,8 @@ namespace Inferno::Render {
             if (tid == TexID::None)
                 tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
 
-            const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
-            effect.Shader->SetMaterial(cmdList, material);
+            //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
+            //effect.Shader->SetMaterial(cmdList, material);
 
             cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
             cmdList->IASetIndexBuffer(&mesh->IndexBuffer);

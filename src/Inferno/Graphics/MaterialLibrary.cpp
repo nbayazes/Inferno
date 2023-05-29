@@ -20,6 +20,28 @@ namespace Inferno::Render {
         }
     }
 
+    void MoveUploads(span<Material2D> uploads, span<Material2D> materials) {
+        Set<int> uploadIndices;
+
+        for (auto& upload : uploads) {
+            assert(!uploadIndices.contains(upload.UploadIndex));
+            uploadIndices.insert(upload.UploadIndex);
+
+            // Copy descriptors from upload to shader visible heap
+            auto src = Render::Uploads->GetCpuHandle(upload.UploadIndex);
+            auto dest = Render::Heaps->Materials.GetCpuHandle((int)upload.ID * 5);
+            Render::Device->CopyDescriptorsSimple(Material2D::Count, dest, src, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+            // Update the upload to use the new handles
+            for (int i = 0; i < Material2D::Count; i++)
+                upload.Handles[i] = Render::Heaps->Materials.GetGpuHandle((int)upload.ID * 5);
+
+            Render::Uploads->FreeIndex(upload.UploadIndex);
+            upload.State = TextureState::Resident;
+            materials[(int)upload.ID] = std::move(upload);
+        }
+    }
+
     ResourceUploadBatch BeginTextureUpload() {
         ResourceUploadBatch batch(Render::Device);
         batch.Begin();
@@ -287,20 +309,16 @@ namespace Inferno::Render {
     }
 
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
-                                      MaterialUpload& upload,
-                                      Texture2D& blackTex,
-                                      Texture2D& whiteTex,
-                                      Texture2D& normalTex) {
+                                      MaterialUpload& upload) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
-        material.Index = Render::Heaps->Shader.AllocateIndex();
+        material.ID = upload.ID;
+        material.Name = upload.Bitmap->Info.Name;
+        material.UploadIndex = Render::Uploads->AllocateIndex();
 
         // allocate a new heap range for the material
         for (int i = 0; i < Material2D::Count; i++)
-            material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
-
-        material.Name = upload.Bitmap->Info.Name;
-        material.ID = upload.ID;
+            material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
         // remove the frame number when loading special textures, as they should share.
         string baseName = material.Name;
@@ -312,11 +330,11 @@ namespace Inferno::Render {
 
         //SPDLOG_INFO("Loading texture `{}` to heap index: {}", ti->Name, material.Index);
         if (Settings::Graphics.HighRes) {
-            if (auto path = FileSystem::TryFindFile(material.Name + ".DDS"))
+            if (auto path = FileSystem::TryFindFile(material.Name + ".dds"))
                 material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
             if (upload.SuperTransparent)
-                if (auto path = FileSystem::TryFindFile(baseName + "_st.DDS"))
+                if (auto path = FileSystem::TryFindFile(baseName + "_st.dds"))
                     material.Textures[Material2D::SuperTransparency].LoadDDS(batch, *path);
         }
 
@@ -325,7 +343,8 @@ namespace Inferno::Render {
                 List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
                 ExpandDiffuse(upload.Bitmap->Info, data);
                 material.Textures[Material2D::Diffuse].Load(batch, data.data(), width, height, Convert::ToWideString(material.Name));
-            } else {
+            }
+            else {
                 material.Textures[Material2D::Diffuse].Load(batch, upload.Bitmap->Data.data(), width, height, Convert::ToWideString(material.Name));
             }
         }
@@ -336,10 +355,10 @@ namespace Inferno::Render {
             material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
         }
 
-        if (auto path = FileSystem::TryFindFile(baseName + "_e.DDS"))
+        if (auto path = FileSystem::TryFindFile(baseName + "_e.dds"))
             material.Textures[Material2D::Emissive].LoadDDS(batch, *path);
 
-        if (auto path = FileSystem::TryFindFile(baseName + "_s.DDS"))
+        if (auto path = FileSystem::TryFindFile(baseName + "_s.dds"))
             material.Textures[Material2D::Specular].LoadDDS(batch, *path);
 
         auto& info = Resources::GetTextureInfo(material.ID);
@@ -356,16 +375,16 @@ namespace Inferno::Render {
         }
 
         for (uint i = 0; i < std::size(material.Textures); i++) {
-            auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
+            auto handle = Render::Uploads->GetCpuHandle(material.UploadIndex + i);
             Texture2D* texture;
             if (material.Textures[i]) {
                 texture = &material.Textures[i];
             }
             else {
                 if (i == Material2D::Normal)
-                    texture = &normalTex;
+                    texture = &Render::StaticTextures->Normal;
                 else
-                    texture = info.Transparent && i == Material2D::Specular ? &whiteTex : &blackTex;
+                    texture = info.Transparent && i == Material2D::Specular ? &Render::StaticTextures->White : &Render::StaticTextures->Black;
             }
 
             texture->CreateShaderResourceView(handle);
@@ -374,21 +393,23 @@ namespace Inferno::Render {
         return material;
     }
 
-    Option<Material2D> UploadBitmap(ResourceUploadBatch& batch, string name, const Texture2D& defaultTex) {
+    Option<Material2D> UploadBitmap(ResourceUploadBatch& batch, const string& name, const Texture2D& defaultTex) {
         Material2D material;
-        material.Index = Render::Heaps->Shader.AllocateIndex();
+        // todo: use a separate heap range for loose bitmaps
+        material.UploadIndex = Render::Uploads->AllocateIndex();
+        material.ID = TexID(2701);
 
         // allocate a new heap range for the material
         for (int i = 0; i < Material2D::Count; i++)
-            material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
+            material.Handles[i] = Render::Uploads->GetGpuHandle((int)material.ID * 5 + i);
 
         material.Name = name;
-        if (auto path = FileSystem::TryFindFile(name + ".DDS"))
+        if (auto path = FileSystem::TryFindFile(name + ".dds"))
             material.Textures[Material2D::Diffuse].LoadDDS(batch, *path, true);
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
-            auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
+            auto handle = Render::Uploads->GetCpuHandle((int)material.ID * 5 + i);
             auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
             texture->CreateShaderResourceView(handle);
         }
@@ -400,19 +421,21 @@ namespace Inferno::Render {
                                              const Outrage::Bitmap& bitmap,
                                              const Texture2D& defaultTex) {
         Material2D material;
-        material.Index = Render::Heaps->Shader.AllocateIndex();
+        // todo: allocate a TexID past D2's for D3 textures so they can be placed in the bindless lookup
+        material.ID = TexID(2700);
+        material.UploadIndex = Render::Uploads->AllocateIndex();
         assert(!bitmap.Mips.empty());
 
         // allocate a new heap range for the material
         for (int i = 0; i < Material2D::Count; i++)
-            material.Handles[i] = Render::Heaps->Shader.GetGpuHandle(material.Index + i);
+            material.Handles[i] = Render::Uploads->GetGpuHandle(material.UploadIndex + i);
 
         material.Name = bitmap.Name;
         material.Textures[Material2D::Diffuse].Load(batch, bitmap.Mips[0].data(), bitmap.Width, bitmap.Height, Convert::ToWideString(bitmap.Name));
 
         // Set default secondary textures
         for (uint i = 0; i < std::size(material.Textures); i++) {
-            auto handle = Render::Heaps->Shader.GetCpuHandle(material.Index + i);
+            auto handle = Render::Uploads->GetCpuHandle(material.UploadIndex + i);
             auto texture = material.Textures[i] ? &material.Textures[i] : &defaultTex;
             texture->CreateShaderResourceView(handle);
         }
@@ -424,7 +447,7 @@ namespace Inferno::Render {
         MaterialLibrary* _lib;
 
     public:
-        MaterialUploadWorker(MaterialLibrary* lib) : _lib(lib) {}
+        MaterialUploadWorker(MaterialLibrary* lib) : WorkerThread("material uploader"), _lib(lib) {}
 
     protected:
         void Work() override {
@@ -441,33 +464,27 @@ namespace Inferno::Render {
                 if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0)
                     continue;
 
-                if (auto material = UploadMaterial(batch, upload, _lib->_black, _lib->_white, _lib->_normal))
+                if (auto material = UploadMaterial(batch, upload))
                     uploads.emplace_back(std::move(material.value()));
             }
 
             EndTextureUpload(batch);
 
-            // update pointers as textures are now loaded
-            for (auto& upload : uploads) {
-                auto& existing = _lib->_materials[(int)upload.ID];
-                for (size_t i = 0; i < 4; i++) {
-                    existing.Handles[i] = upload.Handles[i];
-                }
-
+            //SPDLOG_INFO("Moving {} uploads to pending copies", uploads.size());
+            for (auto& upload : uploads)
                 _lib->_pendingCopies.Add(std::move(upload)); // copies are performed on main thread
-            }
 
             if (!uploads.empty()) {
-                SPDLOG_INFO("Loaded {} textures on background thread", uploads.size());
+                //SPDLOG_INFO("Loaded {} textures on background thread", uploads.size());
                 Render::Adapter->PrintMemoryUsage();
-                Render::Heaps->Shader.GetFreeDescriptors();
+                Render::Uploads->GetFreeDescriptors();
             }
         }
     };
 
-
     MaterialLibrary::MaterialLibrary(size_t size)
         : _materials(size), _materialInfo(size) {
+        assert(size >= 3000); // Reserved textures at id 2900
         LoadDefaults();
         _worker = MakePtr<MaterialUploadWorker>(this);
         _worker->Start();
@@ -486,95 +503,72 @@ namespace Inferno::Render {
         auto batch = BeginTextureUpload();
 
         for (auto& id : tids) {
-            if (id == TexID::None) continue;
-            auto upload = PrepareUpload(id, forceLoad);
-            if (!upload.Bitmap || upload.Bitmap->Info.Width == 0 || upload.Bitmap->Info.Height == 0)
-                continue;
-
-            if (auto material = UploadMaterial(batch, upload, _black, _white, _normal))
-                uploads.emplace_back(std::move(material.value()));
+            if (auto upload = PrepareUpload(id, forceLoad)) {
+                if (auto material = UploadMaterial(batch, *upload))
+                    uploads.emplace_back(std::move(material.value()));
+            }
         }
 
         SPDLOG_INFO("Loading {} textures", uploads.size());
         EndTextureUpload(batch);
-
-        for (auto& upload : uploads)
-            _materials[(int)upload.ID] = std::move(upload);
+        MoveUploads(uploads, _materials);
 
         SPDLOG_INFO("LoadMaterials: {:.3f}s", time.GetElapsedSeconds());
         Render::Adapter->PrintMemoryUsage();
-        Render::Heaps->Shader.GetFreeDescriptors();
+        Render::Uploads->GetFreeDescriptors();
     }
 
     void MaterialLibrary::LoadMaterialsAsync(span<const TexID> ids, bool forceLoad) {
+        //LoadMaterials(ids, forceLoad);
+        //return;
+
         if (!forceLoad && !HasUnloadedTextures(ids)) return;
 
         for (auto& id : ids) {
-            if (_submittedUploads.contains(id)) continue;
-            _requestedUploads.Add(PrepareUpload(id, forceLoad));
-            _submittedUploads.insert(id);
+            if (auto upload = PrepareUpload(id, forceLoad))
+                _requestedUploads.Add(*upload);
         }
 
         _worker->Notify();
     }
 
-    MaterialUpload MaterialLibrary::PrepareUpload(TexID id, bool forceLoad) {
-        if (!forceLoad && _materials[(int)id].ID == id) return {};
+    Option<MaterialUpload> MaterialLibrary::PrepareUpload(TexID id, bool forceLoad) {
+        if (!Seq::inRange(_materials, (int)id)) return {};
+
+        auto& slot = _materials[(int)id];
+        if (!forceLoad && slot.State == TextureState::Resident) return {};
+        if (slot.State == TextureState::PagingIn) return {};
+
+        auto& bitmap = Resources::GetBitmap(id);
+        if (bitmap.Info.Width == 0 || bitmap.Info.Height == 0)
+            return {};
 
         MaterialUpload upload;
-        upload.Bitmap = &Resources::GetBitmap(id);
+        upload.Bitmap = &bitmap;
         upload.ID = id;
         upload.SuperTransparent = Resources::GetTextureInfo(id).SuperTransparent;
+        slot.State = TextureState::PagingIn;
         return upload;
-    }
-
-    void TrashTextures(List<Material2D>&& trash) {
-        if (!trash.empty()) {
-            SPDLOG_INFO("Trashing {} textures", trash.size());
-
-            // Would be nice to do this on a different thread
-            for (auto& item : trash)
-                Render::Heaps->Shader.FreeIndex(item.Index);
-
-            Render::Adapter->PrintMemoryUsage();
-            Render::Heaps->Shader.GetFreeDescriptors();
-        }
     }
 
     void MaterialLibrary::Dispatch() {
         Render::Adapter->WaitForGpu();
 
-        if (!_pendingCopies.IsEmpty()) {
-            SPDLOG_INFO("Replacing visible textures");
-
-            List<Material2D> trash;
-
-            {
-                _pendingCopies.ForEach([this, &trash](Material2D& pending) {
-                    int id = (int)pending.ID;
-                    if (_materials[id].ID > TexID::Invalid)
-                        trash.push_back(std::move(_materials[id])); // Dispose old texture if it was loaded
-
-                    _materials[id] = std::move(pending);
-                });
-
-                _submittedUploads.clear();
-                _pendingCopies.Clear();
-            }
-
-            if (!trash.empty()) {
-                SPDLOG_INFO("Trashing {} textures", trash.size());
-
-                // Would be nice to do this on a different thread
-                for (auto& item : trash)
-                    Render::Heaps->Shader.FreeIndex(item.Index);
-
-                Render::Adapter->PrintMemoryUsage();
-                Render::Heaps->Shader.GetFreeDescriptors();
+        {
+            if (!_pendingCopies.IsEmpty()) {
+                SPDLOG_INFO("Moving {} uploaded textures", _pendingCopies.Size());
+                auto lock = _pendingCopies.Lock();
+                auto& copies = _pendingCopies.Get();
+                MoveUploads(copies, _materials);
+                copies.clear();
+                Render::Uploads->GetFreeDescriptors();
             }
         }
 
-        if (_requestPrune) PruneInternal();
+        if (_requestPrune) {
+            PruneInternal();
+            Render::LevelChanged = true; // To trigger refresh of material cache
+        }
     }
 
     void MaterialLibrary::LoadLevelTextures(const Inferno::Level& level, bool force) {
@@ -606,7 +600,7 @@ namespace Inferno::Render {
             bool found = false;
 
             if (FileSystem::TryFindFile(name + ".dds")) {
-                if (auto material = UploadBitmap(batch, name, _black)) {
+                if (auto material = UploadBitmap(batch, name, Render::StaticTextures->Black)) {
                     uploads.emplace_back(std::move(material.value()));
                     found = true;
                 }
@@ -614,7 +608,7 @@ namespace Inferno::Render {
             else {
                 // Try loading named file from D3 data
                 if (auto bitmap = Resources::ReadOutrageBitmap(name + ".ogf")) {
-                    if (auto material = UploadOutrageMaterial(batch, *bitmap, _black)) {
+                    if (auto material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black)) {
                         material->Name = name;
                         uploads.emplace_back(std::move(material.value()));
                         found = true;
@@ -635,92 +629,115 @@ namespace Inferno::Render {
     void MaterialLibrary::Reload() {
         List<TexID> ids;
 
-        _materials.ForEach([&ids](auto& material) {
-            if (material.ID > TexID::Invalid)
+        for (auto& material : _materials) {
+            if (material.State == TextureState::Resident)
                 ids.push_back(material.ID);
-        });
+        }
 
         LoadMaterialsAsync(ids, true);
         Prune();
     }
 
     void MaterialLibrary::PruneInternal() {
+        SPDLOG_INFO("Prune Internal");
         auto ids = GetLevelTextures(Game::Level, PreloadDoors);
         Seq::insert(ids, KeepLoaded);
 
-        List<Material2D> trash;
+        for (auto& material : _materials) {
+            //if (material.ID <= TexID::Invalid || ids.contains(material.ID) || material.State != TextureState::Resident) continue;
+            if (ids.contains(material.ID)) continue;
+            ResetMaterial(material);
+        }
 
-        _materials.ForEach([&trash, &ids](auto& material) {
-            if (material.ID <= TexID::Invalid || ids.contains(material.ID)) return;
-            trash.emplace_back(std::move(material));
-            material = {}; // mark the material as unused
-        });
-
-        TrashTextures(std::move(trash));
         _requestPrune = false;
+        Render::Adapter->PrintMemoryUsage();
+    }
+
+    void MaterialLibrary::ResetMaterial(Material2D& material) {
+        if (material.ID >= TexID(2900) && material.ID < TexID(3000)) return; // reserved range
+
+        //auto id = material.ID;
+        material = { .ID = material.ID }; // mark the material as unused
+
+        // Update the upload to use the new handles
+        for (int i = 0; i < Material2D::Count; i++) 
+            material.Handles[i] = Render::Heaps->Materials.GetGpuHandle((int)material.ID * 5 + i);
+
+        //auto cpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5));
+        StaticTextures->Missing.CreateShaderResourceView(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5));
+        StaticTextures->Black.CreateShaderResourceView(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5 + 1));
+        StaticTextures->Black.CreateShaderResourceView(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5 + 2));
+        StaticTextures->Black.CreateShaderResourceView(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5 + 3));
+        StaticTextures->Normal.CreateShaderResourceView(Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5 + 4));
+
+        //SPDLOG_INFO("Resetting material {} {}", (int)material.ID, material.Name);
     }
 
     void MaterialLibrary::Unload() {
         SPDLOG_INFO("Unloading all textures");
         Render::Adapter->WaitForGpu();
-        List<Material2D> trash;
-        _materials.ForEach([&trash](auto& material) {
-            if (material.ID <= TexID::Invalid) return;
-            trash.emplace_back(std::move(material));
-            material = {}; // mark the material as unused
-        });
 
-        TrashTextures(std::move(trash));
+        for (auto& material : _materials) {
+            if (material.ID <= TexID::Invalid) continue;
+            ResetMaterial(material);
+        }
+
+        Render::Adapter->PrintMemoryUsage();
     }
 
     void MaterialLibrary::LoadDefaults() {
-        auto batch = BeginTextureUpload();
-
-        List<ubyte> bmp(64 * 64 * 4);
-        FillTexture(bmp, 0, 0, 0, 255);
-        _black.Load(batch, bmp.data(), 64, 64, L"black", false);
-
-        FillTexture(bmp, 255, 255, 255, 255);
-        _white.Load(batch, bmp.data(), 64, 64, L"white", false);
-
-        FillTexture(bmp, 255, 0, 255, 255);
-        _purple.Load(batch, bmp.data(), 64, 64, L"purple", false);
-
-        FillTexture(bmp, 128, 128, 255, 0);
-        _normal.Load(batch, bmp.data(), 64, 64, L"normal", false, DXGI_FORMAT_R8G8B8A8_UNORM);
-
-        {
-            _defaultMaterial.Name = "default";
-
-            for (uint i = 0; i < Material2D::Count; i++) {
-                // this makes the dangerous assumption that no other threads will allocate between iterations
-                auto handle = Render::Heaps->Reserved.Allocate();
-                _defaultMaterial.Handles[i] = handle.GetGpuHandle();
-
-                if (i == 0)
-                    _purple.CreateShaderResourceView(handle.GetCpuHandle());
-                else
-                    _black.CreateShaderResourceView(handle.GetCpuHandle());
-            }
-
-            for (uint i = 0; i < Material2D::Count; i++) {
-                auto handle = Render::Heaps->Reserved.Allocate();
-                White.Handles[i] = handle.GetGpuHandle();
-
-                if (i == 0)
-                    _white.CreateShaderResourceView(handle.GetCpuHandle());
-                else
-                    _black.CreateShaderResourceView(handle.GetCpuHandle());
-            }
-
-            for (uint i = 0; i < Material2D::Count; i++) {
-                auto handle = Render::Heaps->Reserved.Allocate();
-                Black.Handles[i] = handle.GetGpuHandle();
-
-                _black.CreateShaderResourceView(handle.GetCpuHandle());
-            }
+        for (int i = 0; i < _materials.size(); i++) {
+            auto& material = _materials[i];
+            material.ID = TexID(i);
+            ResetMaterial(material);
         }
 
-        EndTextureUpload(batch);
+        for (uint i = 0; i < Material2D::Count; i++) {
+            // this makes the dangerous assumption that no other threads will allocate between iterations
+            auto handle = Render::Heaps->Reserved.Allocate();
+            auto& material = _materials[(int)MISSING_MATERIAL];
+            material.Name = "missing";
+            material.Handles[i] = handle.GetGpuHandle();
+            material.State = TextureState::Resident;
+            material.ID = MISSING_MATERIAL;
+            //_defaultMaterial.State = TextureState::Resident;
+
+            if (i == Material2D::Diffuse)
+                Render::StaticTextures->Missing.CreateShaderResourceView(handle.GetCpuHandle());
+            else if (i == Material2D::Normal)
+                Render::StaticTextures->Normal.CreateShaderResourceView(handle.GetCpuHandle());
+            else
+                Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
+        }
+
+        for (uint i = 0; i < Material2D::Count; i++) {
+            auto handle = Render::Heaps->Reserved.Allocate();
+            auto& material = _materials[(int)WHITE_MATERIAL];
+            material.Name = "white";
+            material.Handles[i] = handle.GetGpuHandle();
+            material.State = TextureState::Resident;
+            material.ID = WHITE_MATERIAL;
+
+            if (i == Material2D::Diffuse)
+                Render::StaticTextures->White.CreateShaderResourceView(handle.GetCpuHandle());
+            else if (i == Material2D::Normal)
+                Render::StaticTextures->Normal.CreateShaderResourceView(handle.GetCpuHandle());
+            else
+                Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
+        }
+
+        for (uint i = 0; i < Material2D::Count; i++) {
+            auto handle = Render::Heaps->Reserved.Allocate();
+            auto& material = _materials[(int)BLACK_MATERIAL];
+            material.Name = "black";
+            material.Handles[i] = handle.GetGpuHandle();
+            material.State = TextureState::Resident;
+            material.ID = BLACK_MATERIAL;
+
+            if (i == Material2D::Normal)
+                Render::StaticTextures->Normal.CreateShaderResourceView(handle.GetCpuHandle());
+            else
+                Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
+        }
     }
 }

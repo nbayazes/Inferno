@@ -4,14 +4,15 @@
 #define RS \
     "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
+    "DescriptorTable(SRV(t0, space = 1, numDescriptors = 3000, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
     "RootConstants(b1, num32BitConstants = 37), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), "\
-    "DescriptorTable(SRV(t11, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t12, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t13, numDescriptors = 1), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t11), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t12), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t13), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b2)"
 
 struct Constants {
@@ -27,12 +28,9 @@ ConstantBuffer<Constants> Args : register(b1);
 
 SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
-Texture2D Diffuse : register(t0);
-//Texture2D StMask : register(t1);
-Texture2D Emissive : register(t2);
-Texture2D Specular1 : register(t3);
-Texture2D Normal1 : register(t4);
 StructuredBuffer<MaterialInfo> Materials : register(t5);
+
+Texture2D TextureTable[]  : register(t0, space1);
 
 struct ObjectVertex {
     float3 pos : POSITION;
@@ -41,6 +39,7 @@ struct ObjectVertex {
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
+    int texid : TEXID;
 };
 
 struct PS_INPUT {
@@ -51,6 +50,7 @@ struct PS_INPUT {
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
     float3 world : TEXCOORD1;
+    nointerpolation int texid: TEXID;
 };
 
 [RootSignature(RS)]
@@ -67,6 +67,7 @@ PS_INPUT vsmain(ObjectVertex input) {
     output.tangent = normalize(mul((float3x3)Args.WorldMatrix, input.tangent));
     output.bitangent = normalize(mul((float3x3)Args.WorldMatrix, input.bitangent));
     output.world = mul(Args.WorldMatrix, float4(input.pos, 1)).xyz;
+    output.texid = input.texid;
     return output;
 }
 
@@ -82,9 +83,10 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
+    //return float4(1,0,0,1);
     float3 viewDir = normalize(input.world - Frame.Eye);
-    float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode) * input.col;
-    float3 emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).rgb;
+    float4 diffuse = Sample2D(TextureTable[input.texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
+    float3 emissive = Sample2D(TextureTable[input.texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rgb;
     emissive = Args.EmissiveLight.rgb + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 
@@ -99,10 +101,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
     else {
-        float specularMask = Specular1.Sample(Sampler, input.uv).r;
+        //float specularMask = Specular1.Sample(Sampler, input.uv).r;
+        float specularMask = Sample2D(TextureTable[input.texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
 
         MaterialInfo material = Materials[Args.TexID];
-        float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
+        float3 normal = SampleNormal(TextureTable[input.texid * 5 + 4], input.uv, NormalSampler);
         //normal = float3(0,0,1);
         //return float4(normal, 1);
         normal.xy *= material.NormalStrength;

@@ -103,6 +103,7 @@ namespace Inferno {
         Vector3 Normal;
         Vector3 Tangent;
         Vector3 Bitangent;
+        int TexID;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -111,6 +112,7 @@ namespace Inferno {
             { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "BITANGENT",0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXID",0, DXGI_FORMAT_R32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
@@ -317,6 +319,7 @@ namespace Inferno {
     class ObjectShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants, // b0
+            TextureTable, // t0, space1
             RootConstants, // b1
             Material, // t0 - t4
             MaterialInfoBuffer, // t5
@@ -335,12 +338,8 @@ namespace Inferno {
             InputLayout = ObjectVertex::Layout;
         }
 
-        static void SetMaterial(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material, material.Handle());
-        }
-
-        static void SetMaterial(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
-            commandList->SetGraphicsRootDescriptorTable(Material, handle);
+        static void SetTextureTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
+            commandList->SetGraphicsRootDescriptorTable(TextureTable, start);
         }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {

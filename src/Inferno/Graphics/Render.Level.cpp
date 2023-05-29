@@ -172,8 +172,8 @@ namespace Inferno::Render {
         Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
 
         if (chunk.Cloaked) {
-            Shaders->Level.SetMaterial1(cmdList, Materials->Black);
-            Shaders->Level.SetMaterial2(cmdList, Materials->Black);
+            Shaders->Level.SetMaterial1(cmdList, Materials->Black());
+            Shaders->Level.SetMaterial2(cmdList, Materials->Black());
             constants.LightingScale = 1;
         }
         else {
@@ -277,16 +277,6 @@ namespace Inferno::Render {
         for (auto& emitter : Inferno::Sound::Debug::Emitters) {
             Debug::DrawPoint(emitter, { 0, 1, 0 });
         }
-    }
-
-    void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {
-        MaterialInfoUploadBuffer->Begin();
-        MaterialInfoUploadBuffer->Copy(Materials->GetAllMaterialInfo());
-        MaterialInfoUploadBuffer->End();
-
-        MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
-        cmdList->CopyResource(MaterialInfoBuffer->Get(), MaterialInfoUploadBuffer->Get());
-        MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
     List<Graphics::LightData> LevelLights;
@@ -405,7 +395,6 @@ namespace Inferno::Render {
             Adapter->WaitForGpu();
             _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
             LevelLights = Graphics::GatherLightSources(level);
-            CopyMaterialData(ctx.CommandList());
             LevelChanged = false;
         }
 

@@ -11,8 +11,10 @@ class WorkerThread {
     std::thread _worker;
     std::atomic<bool> _hasWork;
     std::atomic<bool> _alive;
+    std::string _name;
+
 public:
-    WorkerThread() {}
+    WorkerThread(std::string_view name) : _name(name) {}
     virtual ~WorkerThread() { Stop(); }
 
     void Start() {
@@ -30,9 +32,9 @@ public:
     }
 
     WorkerThread(const WorkerThread&) = delete;
-    WorkerThread(WorkerThread&&) = default;
+    WorkerThread(WorkerThread&&) = delete;
     WorkerThread& operator=(const WorkerThread&) = delete;
-    WorkerThread& operator=(WorkerThread&&) = default;
+    WorkerThread& operator=(WorkerThread&&) = delete;
 
     // Wake up the worker
     void Notify() {
@@ -46,22 +48,22 @@ protected:
 
 private:
     void Worker() {
-        SPDLOG_INFO("Starting worker");
+        SPDLOG_INFO("Starting worker `{}`", _name);
         while (_alive) {
-            _hasWork = false;
             try {
+                _hasWork = false;
                 Work();
+
+                // New work could be requested while work is being done, so check before sleeping
+                if (!_hasWork) {
+                    std::unique_lock lock(_notifyLock);
+                    _workAvailable.wait(lock); // sleep until work requested
+                }
             }
             catch (const std::exception& e) {
                 SPDLOG_ERROR(e.what());
             }
-
-            // New work could be requested while work is being done, so check before sleeping
-            if (!_hasWork) {
-                std::unique_lock lock(_notifyLock);
-                _workAvailable.wait(lock); // sleep until work requested
-            }
         }
-        SPDLOG_INFO("Stopping worker");
+        SPDLOG_INFO("Stopping worker `{}`", _name);
     }
 };

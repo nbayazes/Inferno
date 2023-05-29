@@ -12,6 +12,10 @@ namespace Inferno::Render {
     struct StaticTextureDef {
         Texture2D Font;
         Texture2D ImguiFont;
+        Texture2D Missing; // Purple checkerboard
+        Texture2D Normal; // Flat normal texture
+        Texture2D Black;
+        Texture2D White;
     };
 
     inline Ptr<StaticTextureDef> StaticTextures;

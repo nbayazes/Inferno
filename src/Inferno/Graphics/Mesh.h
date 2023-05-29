@@ -51,7 +51,7 @@ namespace Inferno::Render {
             auto& model = Resources::GetModel(id);
 
             for (int smIndex = 0; auto& submodel : model.Submodels) {
-                int vertexCount = (int)submodel.ExpandedPoints.size();
+                auto vertexCount = (int)submodel.ExpandedPoints.size();
                 assert(vertexCount % 3 == 0);
                 List<ObjectVertex> verts;
                 verts.reserve(vertexCount);
@@ -60,7 +60,10 @@ namespace Inferno::Render {
                 for (int i = 0; i < vertexCount; i++) {
                     // combine points and uvs into vertices
                     auto& uv = i >= submodel.UVs.size() ? Vector3() : submodel.UVs[i];
-                    verts.emplace_back(ObjectVertex{ submodel.ExpandedPoints[i], Vector2{ uv.x, uv.y }, submodel.ExpandedColors[i] });
+                    auto& p = submodel.ExpandedPoints[i];
+                    ObjectVertex v{ p.Point, Vector2{ uv.x, uv.y }, submodel.ExpandedColors[i] };
+                    v.TexID = (int)Resources::LookupModelTexID(model, p.TexSlot);
+                    verts.push_back(v);
                 }
 
                 // calculate normals
@@ -79,20 +82,20 @@ namespace Inferno::Render {
 
                 // Create meshes
                 for (int16 slot = 0; auto& indices : submodel.ExpandedIndices) {
-                    if (indices.size() != 0) {
-                        // don't upload empty indices
-                        auto& mesh = _meshes.emplace_back();
-                        handle.Meshes[smIndex][slot] = &mesh;
-                        mesh.VertexBuffer = vertexView;
-                        mesh.IndexBuffer = _buffer.PackIndices(indices);
-                        mesh.IndexCount = (uint)indices.size();
-                        mesh.Texture = Resources::LookupModelTexID(model, slot);
-                        mesh.EffectClip = Resources::GetEffectClipID(mesh.Texture);
-                        auto& ti = Resources::GetTextureInfo(mesh.Texture);
-                        if (ti.Transparent) {
-                            mesh.HasTransparentTexture = true;
-                            handle.HasTransparentTexture = true;
-                        }
+                    if (indices.size() == 0) continue; // don't upload empty indices
+
+                    auto& mesh = _meshes.emplace_back();
+                    handle.Meshes[smIndex][slot] = &mesh;
+                    mesh.VertexBuffer = vertexView;
+                    mesh.IndexBuffer = _buffer.PackIndices(indices);
+                    mesh.IndexCount = (uint)indices.size();
+                    mesh.Texture = Resources::LookupModelTexID(model, slot);
+                    if (mesh.Texture == TexID::None) mesh.Texture = WHITE_MATERIAL; // for flat shaded meshes
+                    mesh.EffectClip = Resources::GetEffectClipID(mesh.Texture);
+                    auto& ti = Resources::GetTextureInfo(mesh.Texture);
+                    if (ti.Transparent) {
+                        mesh.HasTransparentTexture = true;
+                        handle.HasTransparentTexture = true;
                     }
                     slot++;
                 }

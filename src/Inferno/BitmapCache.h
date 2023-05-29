@@ -99,12 +99,12 @@ namespace Inferno {
         void LoadDefaults();
 
         void SetResourceHandles(Material& m) {
-            auto heapStartIndex = Render::Heaps->Shader.AllocateIndex();
-            m.Handle = Render::Heaps->Shader.GetGpuHandle(heapStartIndex);
+            auto heapStartIndex = Render::Heaps->Materials.AllocateIndex();
+            m.Handle = Render::Heaps->Materials.GetGpuHandle(heapStartIndex);
 
             for (int i = 0; i < Material::Count; i++) {
                 if (!m.Textures[i]) m.Textures[i] = i == 0 ? Missing : Black;
-                auto cpuHandle = Render::Heaps->Shader.GetCpuHandle(heapStartIndex + i);
+                auto cpuHandle = Render::Heaps->Materials.GetCpuHandle(heapStartIndex + i);
                 m.Textures[i]->CreateShaderResourceView(cpuHandle);
             }
         }

@@ -23,12 +23,11 @@ using namespace DirectX;
 using namespace Inferno::Graphics;
 
 namespace Inferno::Render {
+    using VertexType = DirectX::VertexPositionTexture;
+
     Color ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
     bool LevelChanged = false;
-}
-
-namespace Inferno::Render {
-    using VertexType = DirectX::VertexPositionTexture;
+    constexpr int MATERIAL_COUNT = 3000;
 
     namespace {
         HWND _hwnd;
@@ -92,13 +91,43 @@ namespace Inferno::Render {
         g_SpriteBatch->End();
     }
 
+    void CreateDefaultTextures() {
+        auto batch = BeginTextureUpload();
+        uint normalData[] = { 0x00FF8080, 0x00FF8080, 0x00FF8080, 0x00FF8080 };
+        StaticTextures->Normal.Load(batch, normalData, 2, 2, L"normal", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Normal.AddShaderResourceView();
+
+        uint whiteData[] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+        StaticTextures->White.Load(batch, whiteData, 2, 2, L"white", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->White.AddShaderResourceView();
+
+        uint blackData[] = { 0xFF000000, 0xFF000000, 0xFF000000, 0xFF000000 };
+        StaticTextures->Black.Load(batch, blackData, 2, 2, L"black", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Black.AddShaderResourceView();
+
+        uint missingData[] = { 0xFFFF00FF, 0xFF000000, 0xFF000000, 0xFFFF00FF };
+        StaticTextures->Missing.Load(batch, missingData, 2, 2, L"missing", false, DXGI_FORMAT_R8G8B8A8_UNORM);
+        StaticTextures->Missing.AddShaderResourceView();
+
+        try {
+            if (!filesystem::exists("tony_mc_mapface.dds")) {
+                SPDLOG_ERROR("tony_mc_mapface.dds not found");
+            }
+            else {
+                Bloom->LoadResources(batch);
+            }
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR(e.what());
+        }
+        EndTextureUpload(batch);
+    }
+
     // Initialize device dependent objects here (independent of window size).
     void CreateDeviceDependentResources() {
         Shaders = MakePtr<ShaderResources>();
         Effects = MakePtr<EffectResources>(Shaders.get());
-
-        constexpr int MATERIAL_COUNT = 3000;
-        Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
+        Bloom = MakePtr<PostFx::Bloom>();
         MaterialInfoUploadBuffer = MakePtr<UploadBuffer<MaterialInfo>>(MATERIAL_COUNT);
         MaterialInfoBuffer = MakePtr<StructuredBuffer>();
         MaterialInfoBuffer->Create(L"MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
@@ -112,11 +141,13 @@ namespace Inferno::Render {
         HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
         HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
-        Bloom = MakePtr<PostFx::Bloom>();
         LightGrid = MakePtr<FillLightGridCS>();
         //LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
         NewTextureCache = MakePtr<TextureCache>();
 
+        CreateDefaultTextures();
+
+        Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
         Debug::Initialize();
 
         ImGuiBatch::Initialize(_hwnd, (float)Settings::Editor.FontSize);
@@ -152,7 +183,12 @@ namespace Inferno::Render {
         StaticTextures = MakePtr<StaticTextureDef>();
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
-        Render::Heaps = MakePtr<DescriptorHeaps>(20000, 200, 10);
+
+        Render::Heaps = MakePtr<DescriptorHeaps>(10, 200, MATERIAL_COUNT * 5);
+        Render::UploadHeap = MakePtr<UserDescriptorHeap>(MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
+        Render::UploadHeap->SetName(L"Upload Heap");
+        Render::Uploads = MakePtr<DescriptorRange<5>>(*Render::UploadHeap, Render::UploadHeap->Size());
+
         Adapter->CreateWindowSizeDependentResources();
         CreateDeviceDependentResources();
         Adapter->ReloadResources();
@@ -160,26 +196,6 @@ namespace Inferno::Render {
         CreateWindowSizeDependentResources(width, height);
         Camera.SetViewport((float)width, (float)height);
         _levelMeshBuffer = MakePtr<PackedBuffer>(1024 * 1024 * 10);
-
-        try {
-            DirectX::ResourceUploadBatch uploadBatch(Adapter->Device());
-            if (!filesystem::exists("tony_mc_mapface.dds")) {
-                SPDLOG_ERROR("tony_mc_mapface.dds not found");
-            }
-            uploadBatch.Begin();
-            Bloom->LoadResources(uploadBatch);
-
-            D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-            queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-            queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-            ComPtr<ID3D12CommandQueue> cmdQueue;
-            ThrowIfFailed(Render::Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
-            auto task = uploadBatch.End(cmdQueue.Get());
-            task.wait();
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR(e.what());
-        }
 
         Editor::Events::LevelChanged += [] { LevelChanged = true; };
         Editor::Events::TexturesChanged += [] {
@@ -196,6 +212,7 @@ namespace Inferno::Render {
         Materials.reset();
         NewTextureCache.reset();
         Render::Heaps.reset();
+        Render::UploadHeap.reset();
         StaticTextures.reset();
         Effects.reset();
         Shaders.reset();
@@ -375,6 +392,16 @@ namespace Inferno::Render {
         ctx.EndEvent();
     }
 
+    void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {
+        MaterialInfoUploadBuffer->Begin();
+        MaterialInfoUploadBuffer->Copy(Materials->GetAllMaterialInfo());
+        MaterialInfoUploadBuffer->End();
+
+        MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+        cmdList->CopyResource(MaterialInfoBuffer->Get(), MaterialInfoUploadBuffer->Get());
+        MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    }
+
     void Present() {
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
@@ -385,6 +412,9 @@ namespace Inferno::Render {
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
+
+        if (LevelChanged)
+            CopyMaterialData(ctx.CommandList());
 
         Heaps->SetDescriptorHeaps(ctx.CommandList());
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
@@ -426,7 +456,7 @@ namespace Inferno::Render {
                 CanvasBitmapInfo flash;
                 flash.Size = Adapter->GetOutputSize();
                 flash.Color = Game::ScreenFlash;
-                flash.Texture = Materials->White.Handle();
+                flash.Texture = Materials->White().Handle();
                 HudGlowCanvas->DrawBitmap(flash);
             }
 

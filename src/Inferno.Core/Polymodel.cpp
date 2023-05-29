@@ -32,7 +32,7 @@ namespace Inferno {
                 // this creates empty arrays for texture slots that are not used
                 sm.ExpandedIndices[tmap].push_back(i);
                 auto& p = points[sm.Indices[i]];
-                sm.ExpandedPoints.push_back(p);
+                sm.ExpandedPoints.push_back({ p, tmap });
                 sm.ExpandedColors.push_back({ 1, 1, 1, 1 });
             }
 
@@ -43,7 +43,7 @@ namespace Inferno {
                 auto& color = sm.FlatVertexColors[i / 3];
                 auto& p = points[sm.FlatIndices[i]];
                 sm.ExpandedIndices[model.TextureCount].push_back(flatOffset + i);
-                sm.ExpandedPoints.push_back(p);
+                sm.ExpandedPoints.push_back({ p, -1 });
                 sm.ExpandedColors.push_back(color);
             }
         }
@@ -54,9 +54,9 @@ namespace Inferno {
             if (sm.ExpandedPoints.empty()) continue;
 
             for (auto& p : sm.ExpandedPoints) {
-                sm.Min = Vector3::Min(p, sm.Min);
-                sm.Max = Vector3::Max(p, sm.Max);
-                sm.Center += p;
+                sm.Min = Vector3::Min(p.Point, sm.Min);
+                sm.Max = Vector3::Max(p.Point, sm.Max);
+                sm.Center += p.Point;
             }
 
             sm.Center /= (float)sm.ExpandedPoints.size();

@@ -39,6 +39,11 @@ namespace Inferno {
         const auto GetUAV() const { return _uav.GetGpuHandle(); }
         const auto GetRTV() const { return _rtv.GetCpuHandle(); }
 
+        void SetName(wstring_view name) {
+            _name = name;
+            ThrowIfFailed(_resource->SetName(name.data()));
+        }
+
         // Returns the original state
         D3D12_RESOURCE_STATES Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
             if (_state == state) return _state;
@@ -56,11 +61,11 @@ namespace Inferno {
             return originalState;
         }
 
-        void CreateOnUploadHeap(wstring name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
+        void CreateOnUploadHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }
 
-        void CreateOnDefaultHeap(wstring name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
+        void CreateOnDefaultHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_DEFAULT, name, clearValue);
         }
 
@@ -68,7 +73,7 @@ namespace Inferno {
         CD3DX12_RESOURCE_BARRIER CreatePlacedResource(ID3D12Device* device,
                                                       ID3D12Heap* heap,
                                                       size_t offset,
-                                                      wstring name) {
+                                                      wstring_view name) {
             ThrowIfFailed(device->CreatePlacedResource(
                 heap,
                 offset,
@@ -77,7 +82,7 @@ namespace Inferno {
                 nullptr,
                 IID_PPV_ARGS(&_resource)));
 
-            _resource->SetName(name.c_str());
+            ThrowIfFailed(_resource->SetName(name.data()));
             return CD3DX12_RESOURCE_BARRIER::Aliasing(nullptr, _resource.Get());
         }
 
@@ -91,12 +96,14 @@ namespace Inferno {
         //    Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
         //}
 
+        // Adds a SRV to the reserved heap
         void AddShaderResourceView() {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
             if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
             Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
         }
 
+        // Adds a UAV to the reserved heap
         void AddUnorderedAccessView(bool useDefaultDesc = true) {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
             if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
@@ -104,6 +111,7 @@ namespace Inferno {
             Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, _uav.GetCpuHandle());
         }
 
+        // Adds a RTV to the reserved heap
         void AddRenderTargetView() {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
             if (!_rtv) _rtv = Render::Heaps->RenderTargets.Allocate();
@@ -111,7 +119,7 @@ namespace Inferno {
         }
 
     private:
-        void Create(D3D12_HEAP_TYPE heapType, wstring name, const D3D12_CLEAR_VALUE* clearValue) {
+        void Create(D3D12_HEAP_TYPE heapType, wstring_view name, const D3D12_CLEAR_VALUE* clearValue) {
             _heapType = heapType;
             CD3DX12_HEAP_PROPERTIES props(_heapType);
             ThrowIfFailed(Render::Device->CreateCommittedResource(
@@ -122,8 +130,7 @@ namespace Inferno {
                 clearValue,
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
-            _resource->SetName(name.c_str());
-            _name = name;
+            SetName(name);
         }
     };
 
@@ -152,7 +159,7 @@ namespace Inferno {
 
             if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
             Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
-            _resource->SetName(name.data());
+            SetName(name);
         }
     };
 
@@ -187,7 +194,7 @@ namespace Inferno {
             _uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
 
             //if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
-            _resource->SetName(name.data());
+            SetName(name);
 
             //m_ElementCount = NumElements;
             //m_ElementSize = ElementSize;
@@ -257,7 +264,7 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            ThrowIfFailed(_resource->SetName(name.data()));
+            SetName(name);
 
             //_counterBuffer.Create(L"StructuredBuffer::Counter", 1, 4);
 
@@ -300,7 +307,7 @@ namespace Inferno {
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
                   int width, int height,
-                  wstring name,
+                  wstring_view name,
                   bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             assert(data);
@@ -329,7 +336,7 @@ namespace Inferno {
                 batch.GenerateMips(resource);
         }
 
-        void Create(int width, int height, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+        void Create(int width, int height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             CreateNoHeap(width, height, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -383,7 +390,7 @@ namespace Inferno {
         // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
         void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
             ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
-            _resource->SetName(path.c_str());
+            SetName(path.wstring());
             _state = D3D12_RESOURCE_STATE_COPY_DEST;
         }
     };
@@ -401,7 +408,7 @@ namespace Inferno {
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
                   int width, int height, int depth,
-                  wstring name,
+                  wstring_view name,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM) {
             assert(data);
             _desc = CD3DX12_RESOURCE_DESC::Tex3D(format, width, height, (uint16)depth, 1);
@@ -426,7 +433,7 @@ namespace Inferno {
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void Create(int width, int height, int depth, wstring name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+        void Create(int width, int height, int depth, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             CreateNoHeap(width, height, depth, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -476,7 +483,7 @@ namespace Inferno {
         // this creates a new texture resource on the default heap in copy_dest state, but hasn't copied anything to it.
         void LoadDDS(ID3D12Device* device, const filesystem::path& path, Ptr<uint8[]>& data, List<D3D12_SUBRESOURCE_DATA>& subresources) {
             ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
-            ThrowIfFailed(_resource->SetName(path.c_str()));
+            SetName(path.wstring());
             _state = D3D12_RESOURCE_STATE_COPY_DEST;
         }
     };
@@ -488,7 +495,7 @@ namespace Inferno {
     public:
         Color ClearColor = { 0, 0, 0, 1 };
 
-        void Create(wstring name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
+        void Create(wstring_view name, uint width, uint height, DXGI_FORMAT format, int samples = 1) {
             _sampleCount = samples;
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1, samples);
@@ -525,7 +532,7 @@ namespace Inferno {
     public:
         float StencilDepth = 1.0f;
 
-        void Create(wstring name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
+        void Create(wstring_view name, UINT width, UINT height, DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT, UINT samples = 1) {
             CD3DX12_HEAP_PROPERTIES depthHeapProperties(D3D12_HEAP_TYPE_DEFAULT);
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -553,7 +560,7 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            _resource->SetName(name.c_str());
+            SetName(name);
 
             _dsvDesc.Format = format;
             _dsvDesc.ViewDimension = samples > 1 ? D3D12_DSV_DIMENSION_TEXTURE2DMS : D3D12_DSV_DIMENSION_TEXTURE2D;
@@ -599,11 +606,11 @@ namespace Inferno {
         Color ClearColor;
 
         // Creates a RTV for a swap chain buffer
-        void Create(wstring name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
+        void Create(wstring_view name, IDXGISwapChain* swapChain, UINT buffer, DXGI_FORMAT format) {
             ThrowIfFailed(swapChain->GetBuffer(buffer, IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
             _desc = _resource->GetDesc();
-            _resource->SetName(name.c_str());
+            SetName(name);
 
             _rtvDesc.Format = format;
             _rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -611,7 +618,7 @@ namespace Inferno {
         }
 
         // Creates a render target on the default heap
-        void Create(wstring name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
+        void Create(wstring_view name, UINT width, UINT height, DXGI_FORMAT format, const Color& clearColor = { 0, 0, 0 }, UINT samples = 1) {
             ClearColor = clearColor;
 
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -644,7 +651,7 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            _resource->SetName(name.c_str());
+            SetName(name);
 
             _rtvDesc.Format = format;
             _rtvDesc.ViewDimension = samples > 1 ? D3D12_RTV_DIMENSION_TEXTURE2DMS : D3D12_RTV_DIMENSION_TEXTURE2D;

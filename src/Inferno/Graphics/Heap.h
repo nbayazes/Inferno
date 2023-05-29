@@ -48,6 +48,7 @@ namespace Inferno {
         uint32 _descriptorSize = 0;
         uint _index = 0;
         std::mutex _indexLock;
+
     public:
         UserDescriptorHeap(uint capacity, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible = true) {
             if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
@@ -75,7 +76,7 @@ namespace Inferno {
 
         DescriptorHandle operator[](int index) const { return GetHandle(index); }
 
-        void SetName(const wstring& name) const { _heap->SetName(name.c_str()); };
+        void SetName(const wstring& name) const { ThrowIfFailed(_heap->SetName(name.c_str())); };
 
         // Returns an unused handle. This ignores any direct index usage.
         DescriptorHandle Allocate(uint count = 1) {
@@ -84,6 +85,7 @@ namespace Inferno {
             _index += count;
             return GetHandle((int)index);
         }
+
     private:
         void Create() {
             ThrowIfFailed(Render::Device->CreateDescriptorHeap(&_desc, IID_PPV_ARGS(_heap.ReleaseAndGetAddressOf())));
@@ -95,6 +97,7 @@ namespace Inferno {
 
     class ShaderVisibleHeap {
         D3D12_DESCRIPTOR_HEAP_DESC _desc = {};
+
     public:
         ShaderVisibleHeap(uint32 capacity, D3D12_DESCRIPTOR_HEAP_TYPE type) {
             _desc.Type = type;
@@ -105,17 +108,17 @@ namespace Inferno {
     };
 
     // stride is the number of indices to allocate at once
-    template<uint TStride = 1>
+    template <uint TStride = 1>
     class DescriptorRange {
         UserDescriptorHeap& _heap;
         const uint _start, _size;
         uint _index = 0;
         std::mutex _indexLock;
-        List<bool> _free;
+        List<bool> _free; // number of "free slots" based on stride
 
     public:
         DescriptorRange(UserDescriptorHeap& heap, uint size, uint offset = 0)
-            : _heap(heap), _start(offset), _size(size), _free((size - offset) / TStride) {
+            : _heap(heap), _start(offset), _size(size), _free(size / TStride) {
             assert(offset + size <= heap.Size());
             SPDLOG_INFO("Created heap with offset: {} and size: {}", offset, size);
             std::fill(_free.begin(), _free.end(), true);
@@ -159,13 +162,14 @@ namespace Inferno {
             return GetHandle(index);
         }
 
-        DescriptorHandle GetHandle(uint index) { return _heap.GetHandle(_start + index); };
-        D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint index) {
-            return _heap.GetHandle(_start + index).GetGpuHandle();
+        DescriptorHandle GetHandle(uint index) const { return _heap.GetHandle(_start + index); };
+
+        CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint index) const {
+            return CD3DX12_GPU_DESCRIPTOR_HANDLE(_heap.GetHandle(_start + index).GetGpuHandle());
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(uint index) {
-            return _heap.GetHandle(_start + index).GetCpuHandle();
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(uint index) const {
+            return CD3DX12_CPU_DESCRIPTOR_HANDLE(_heap.GetHandle(_start + index).GetCpuHandle());
         }
 
         size_t GetSize() const { return _size; };
@@ -178,7 +182,7 @@ namespace Inferno {
                 if (_free[i]) {
                     _free[i] = false;
                     //if (index < _index)
-                        //SPDLOG_WARN("Wrapped descriptor range index");
+                    //SPDLOG_WARN("Wrapped descriptor range index");
 
                     _index = i;
                     auto newIndex = _start + i * TStride;
@@ -193,17 +197,19 @@ namespace Inferno {
         }
     };
 
+    // Divides a single descriptor heap into ranges
+    // [ reserved ] [ uploads ] [ materials ] = capacity
     class DescriptorHeaps {
         UserDescriptorHeap _shader;
-    public:
-        DescriptorHeaps(uint capacity, uint reserved, uint renderTargets)
-            : _shader(capacity, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
-            States(Render::Device),
-            Reserved(_shader, reserved),
-            Shader(_shader, capacity - reserved, reserved),
-            RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
-            DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
 
+    public:
+        DescriptorHeaps(uint renderTargets, uint reserved, uint materials)
+            : _shader(reserved + materials, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+              States(Render::Device),
+              Reserved(_shader, reserved),
+              Materials(_shader, materials, reserved),
+              RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
+              DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
             _shader.SetName(L"Shader visible heap");
             RenderTargets.SetName(L"Render target heap");
             DepthStencil.SetName(L"Depth stencil heap");
@@ -213,7 +219,7 @@ namespace Inferno {
         // Static CBV SRV UAV for buffers
         DescriptorRange<1> Reserved;
         // Dynamic CBV SRV UAV for shader texture resources
-        DescriptorRange<5> Shader; // Material2D::Count
+        DescriptorRange<5> Materials; // Materials mapped to TexIDs - Material2D::Count
         UserDescriptorHeap RenderTargets, DepthStencil;
 
         void SetDescriptorHeaps(ID3D12GraphicsCommandList* cmdList) const {
@@ -224,5 +230,7 @@ namespace Inferno {
 
     namespace Render {
         inline Ptr<DescriptorHeaps> Heaps;
+        inline Ptr<UserDescriptorHeap> UploadHeap;
+        inline Ptr<DescriptorRange<5>> Uploads;
     }
 }

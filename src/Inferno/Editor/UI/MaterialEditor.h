@@ -8,6 +8,7 @@ namespace Inferno::Editor {
         List<char> _search;
         MaterialInfo _copy = {};
         List<MaterialInfo> _backup;
+        bool _enableLoading = true;
 
     public:
         MaterialEditor() : WindowBase("Material Editor", &Settings::Editor.Windows.MaterialEditor) {
@@ -58,6 +59,9 @@ namespace Inferno::Editor {
             ImGui::SameLine();
             ImGui::SetNextItemWidth(200 * Shell::DpiScale);
             ImGui::InputText("##Search", _search.data(), _search.capacity());
+
+            ImGui::SameLine();
+            ImGui::Checkbox("Enable loading", &_enableLoading);
 
             ImGui::SameLine(contentMax.x - 150);
             if (ImGui::Button("Save All", { 150 * Shell::DpiScale, 0 }))
@@ -127,7 +131,7 @@ namespace Inferno::Editor {
                         ImGui::AlignTextToFramePadding();
                         ImGui::Text(bmp.Info.Name.c_str());
 
-                        if (ImGui::IsItemVisible()) {
+                        if (ImGui::IsItemVisible() && !Game::IsLoading && _enableLoading) {
                             std::array ids{ id };
                             Render::Materials->LoadMaterialsAsync(ids);
                         }

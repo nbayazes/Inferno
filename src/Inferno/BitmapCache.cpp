@@ -106,7 +106,7 @@ namespace Inferno {
         EndUpload(batch);
 
         Render::Adapter->PrintMemoryUsage();
-        Render::Heaps->Shader.GetFreeDescriptors();
+        Render::Heaps->Materials.GetFreeDescriptors();
     }
 
     //    // Alloc a new slot

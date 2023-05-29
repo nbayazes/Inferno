@@ -86,13 +86,13 @@ namespace Inferno::Game {
             Render::Materials->LoadLevelTextures(Level, forceReload);
             Render::LoadLevel(Level);
             InitObjects();
-            IsLoading = false;
 
             //Rooms = CreateRooms(Level);
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
             Render::Adapter->PrintMemoryUsage();
+            IsLoading = false;
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

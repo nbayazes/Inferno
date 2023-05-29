@@ -10,13 +10,15 @@ public:
     ConcurrentList() = default;
     ConcurrentList(size_t size) : _data(size) {}
 
+    std::scoped_lock<std::mutex> Lock() { return std::scoped_lock(_lock); }
+
     void ForEach(auto&& fn) {
         std::scoped_lock lock(_lock);
         for (auto& x : _data)
             fn(x);
     }
 
-    const auto Get() { return _data; }
+    auto& Get() { return _data; }
 
     void Add(T&& data) {
         std::scoped_lock lock(_lock);
