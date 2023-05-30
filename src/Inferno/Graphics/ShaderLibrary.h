@@ -223,7 +223,14 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
 
+        static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[Material2D::Diffuse]);
+        }
 
+        static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
+            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[Material2D::Diffuse]);
+            commandList->SetGraphicsRootDescriptorTable(StMask, material.Handles[Material2D::SuperTransparency]);
+        }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);

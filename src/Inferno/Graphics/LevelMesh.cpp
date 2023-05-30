@@ -267,9 +267,8 @@ namespace Inferno {
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
 
                 // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
-                //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
-                //uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
-                uint32 chunkId = side.HasOverlay() ? 1 : 0; // todo: separate ids for walls and sliding textures
+                uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
 
                 LevelChunk wallChunk; // always use a new chunk for walls
                 LevelChunk& chunk = isWall ? wallChunk : chunks[chunkId];

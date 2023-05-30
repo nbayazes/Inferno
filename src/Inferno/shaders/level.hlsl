@@ -217,10 +217,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
     // adding noise fixes dithering, but this is expensive. sample a noise texture instead
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
-    float4 base = Sample2D(GetTexture(input.Tex1, MAT_DIFF), input.uv, Sampler, Frame.FilterMode);
-    float3 normal = SampleNormal(GetTexture(input.Tex1, MAT_NORM), input.uv, NormalSampler);
+    float4 base = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
+    float3 normal = SampleNormal(Normal1, input.uv, NormalSampler);
+    //float4 base = Sample2D(GetTexture(input.Tex1, MAT_DIFF), input.uv, Sampler, Frame.FilterMode);
+    //float3 normal = SampleNormal(GetTexture(input.Tex1, MAT_NORM), input.uv, NormalSampler);
+
     //return float4(normal, 1);
-    MaterialInfo mat1 = Materials[input.Tex1];
+    MaterialInfo mat1 = Materials[Args.Tex1];
+    //MaterialInfo mat1 = Materials[input.Tex1];
     normal.xy *= mat1.NormalStrength;
     normal = normalize(normal);
     //return float4(normal, 1);
@@ -232,7 +236,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float gx = clamp(fwd * 100, 0.01, 4);
     //return float4(0, gx * 1, 0, 1);
 
-    float specularMask = Sample2D(GetTexture(input.Tex1, MAT_SPEC), input.uv, Sampler, Frame.FilterMode).r;
+    float specularMask = Sample2D(Specular1, input.uv, Sampler, Frame.FilterMode).r;
+    //float specularMask = Sample2D(GetTexture(input.Tex1, MAT_SPEC), input.uv, Sampler, Frame.FilterMode).r;
 
     //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
     //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
@@ -246,17 +251,22 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
     float4 diffuse = base;
 
-    float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
+    float emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
+    //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
     MaterialInfo material = mat1;
 
-    if (input.Tex2 > 0) {
-        MaterialInfo mat2 = Materials[input.Tex2];
+    if (Args.HasOverlay) {
+        MaterialInfo mat2 = Materials[Args.Tex2];
+    //if (input.Tex2 > 0) {
+    //    MaterialInfo mat2 = Materials[input.Tex2];
 
         // Apply supertransparency mask
-        float mask = 1 - Sample2D(GetTexture(input.Tex2, MAT_MASK), input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
+        float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
+        //float mask = 1 - Sample2D(GetTexture(input.Tex2, MAT_MASK), input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         base *= mask;
 
-        float4 overlay = Sample2D(GetTexture(input.Tex2, MAT_DIFF), input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
+        float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
+        //float4 overlay = Sample2D(GetTexture(input.Tex2, MAT_DIFF), input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
         float out_a = overlay.a + base.a * (1 - overlay.a);
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
         diffuse = float4(out_rgb, out_a);
@@ -264,7 +274,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         // AA sampling causes artifacts on sharp highlights. Use plain point sampling instead.
         //float3 overlayNormal = clamp(SampleData2D(Normal2, input.uv2, Sampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
-        float3 overlayNormal = SampleNormal(GetTexture(input.Tex2, MAT_NORM), input.uv2, NormalSampler);
+        float3 overlayNormal = SampleNormal(Normal2, input.uv2, NormalSampler);
+        //float3 overlayNormal = SampleNormal(GetTexture(input.Tex2, MAT_NORM), input.uv2, NormalSampler);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
         overlayNormal.xy *= mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
@@ -277,10 +288,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.Roughness = lerp(mat1.Roughness, mat2.Roughness, overlay.a);
         material.LightReceived = lerp(mat1.LightReceived, mat2.LightReceived, overlay.a);
 
-        float overlaySpecularMask = Sample2D(GetTexture(input.Tex2, MAT_SPEC), input.uv2, Sampler, Frame.FilterMode).r;
+        float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
+        //float overlaySpecularMask = Sample2D(GetTexture(input.Tex2, MAT_SPEC), input.uv2, Sampler, Frame.FilterMode).r;
         specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
         // layer the emissive over the base emissive
-        emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
+        emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
+        //emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
     }
 
     if (diffuse.a <= 0)

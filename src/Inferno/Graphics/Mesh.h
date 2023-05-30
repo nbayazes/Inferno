@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Buffers.h"
-#include "EffectClip.h"
 #include "logging.h"
 #include "Polymodel.h"
 #include "ShaderLibrary.h"

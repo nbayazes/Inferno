@@ -232,7 +232,7 @@ namespace Inferno::Resources {
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
-        if (i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
+        if (i < 0 || i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
         return GameData.ObjectBitmaps[ptr];
     }

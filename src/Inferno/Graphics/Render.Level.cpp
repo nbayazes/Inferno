@@ -41,7 +41,16 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
 
+        {
+            auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
+            effect.Shader->SetMaterial1(cmdList, map1);
+        }
 
+        if (chunk.TMap2 > LevelTexID::Unset) {
+            consts.HasOverlay = true;
+            auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
+            effect.Shader->SetMaterial2(cmdList, map2);
+        }
 
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
         consts.Scroll = ti.Slide;
