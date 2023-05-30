@@ -10,8 +10,9 @@ struct MaterialInfo {
     float Roughness;
     float EmissiveStrength;
     float LightReceived; // 0 for unlit
-    int ID;
-    float pad0; // Pad to 32 bytes
+    int ID; // texid
+    int VClip; // Effect clip
+    //float pad0; // Pad to 32 bytes
 };
 
 struct LightingArgs {

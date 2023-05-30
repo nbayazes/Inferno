@@ -28,6 +28,18 @@ namespace Inferno::Render {
     Color ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
     bool LevelChanged = false;
     constexpr int MATERIAL_COUNT = 3000;
+    constexpr int VCLIP_COUNT = 150;
+
+    struct GpuVClip {
+        float PlayTime; // total time (in seconds) of clip
+        int NumFrames; // Valid frames in Frames
+        float FrameTime; // time (in seconds) of each frame
+        int Pad;
+        int Frames[30];
+        int Pad1, Pad2;
+    };
+
+    static_assert(sizeof(GpuVClip) % 16 == 0);
 
     namespace {
         HWND _hwnd;
@@ -38,6 +50,9 @@ namespace Inferno::Render {
         Ptr<MeshBuffer> _meshBuffer;
         Ptr<SpriteBatch> _postBatch;
         Ptr<PackedBuffer> _levelMeshBuffer;
+
+        Ptr<UploadBuffer<MaterialInfo>> MaterialInfoUploadBuffer;
+        Ptr<UploadBuffer<GpuVClip>> VClipUploadBuffer;
     }
 
     PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
@@ -132,7 +147,11 @@ namespace Inferno::Render {
         MaterialInfoBuffer = MakePtr<StructuredBuffer>();
         MaterialInfoBuffer->Create(L"MaterialInfo", sizeof MaterialInfo, MATERIAL_COUNT);
         MaterialInfoBuffer->AddShaderResourceView();
-        UploadBuffer<MaterialInfo> materialInfoUpload(MATERIAL_COUNT);
+
+        VClipUploadBuffer = MakePtr<UploadBuffer<GpuVClip>>(VCLIP_COUNT);
+        VClipBuffer = MakePtr<StructuredBuffer>();
+        VClipBuffer->Create(L"VClips", sizeof GpuVClip, VCLIP_COUNT);
+        VClipBuffer->AddShaderResourceView();
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
@@ -225,7 +244,8 @@ namespace Inferno::Render {
         g_ImGuiBatch.reset();
         MaterialInfoBuffer.reset();
         MaterialInfoUploadBuffer.reset();
-
+        VClipUploadBuffer.reset();
+        VClipBuffer.reset();
         ReleaseEditorResources();
         _levelMeshBuffer.reset();
         _meshBuffer.reset();
@@ -293,6 +313,30 @@ namespace Inferno::Render {
         return id;
     }
 
+    void LoadVClips(ID3D12GraphicsCommandList* cmdList) {
+        List<GpuVClip> vclips(VCLIP_COUNT);
+
+        //tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime + vclipOffset);
+
+        // Flatten the embedded effect vclips that objects can use
+        for (int i = 0; i < Resources::GameData.Effects.size(); i++) {
+            auto& src = Resources::GameData.Effects[i].VClip;
+            vclips[i].FrameTime = src.FrameTime;
+            vclips[i].NumFrames = src.NumFrames;
+            vclips[i].PlayTime = src.PlayTime;
+            for (int j = 0; j < src.Frames.size(); j++)
+                vclips[i].Frames[j] = (int)src.Frames[j];
+        }
+
+        VClipUploadBuffer->Begin();
+        VClipUploadBuffer->Copy(vclips);
+        VClipUploadBuffer->End();
+
+        VClipBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+        cmdList->CopyResource(VClipBuffer->Get(), VClipUploadBuffer->Get());
+        VClipBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    }
+
     void LoadLevel(const Level& level) {
         Adapter->WaitForGpu();
 
@@ -312,7 +356,6 @@ namespace Inferno::Render {
 
         ResetLightCache();
         InitEffects(level);
-
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
@@ -413,8 +456,10 @@ namespace Inferno::Render {
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
 
-        if (LevelChanged)
+        if (LevelChanged) {
             CopyMaterialData(ctx.CommandList());
+            LoadVClips(ctx.CommandList()); // todo: only load on initial level load
+        }
 
         Heaps->SetDescriptorHeaps(ctx.CommandList());
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);

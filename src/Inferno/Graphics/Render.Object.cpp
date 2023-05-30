@@ -89,8 +89,8 @@ namespace Inferno::Render {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
 
-                auto& ti = Resources::GetTextureInfo(texOverride == TexID::None ? mesh->Texture : texOverride);
-                if (ti.Transparent) continue;
+                //auto& ti = Resources::GetTextureInfo(texOverride == TexID::None ? mesh->Texture : texOverride);
+                if (mesh->IsTransparent) continue;
 
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -226,9 +226,9 @@ namespace Inferno::Render {
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
                     continue; // skip saturate textures unless on glow pass
 
-                auto handle = texId >= 0 
-                    ? Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) 
-                    : Materials->White().Handle();
+                //auto handle = texId >= 0 
+                //    ? Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) 
+                //    : Materials->White().Handle();
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
@@ -279,6 +279,7 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
         effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
         effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
@@ -315,19 +316,29 @@ namespace Inferno::Render {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
 
-                TexID tid = texOverride;
-                if (texOverride == TexID::None)
-                    tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime + vclipOffset);
+                //constants.TexIdOverride = (int)mesh->Texture;
+                constants.TexIdOverride = (int)TexID::None;
+                TexID tid = mesh->Texture;
+                if (texOverride > TexID::None) {
+                    tid = texOverride;
 
-                auto& ti = Resources::GetTextureInfo(tid);
-                if (ti.Transparent && pass != RenderPass::Transparent) continue;
-                if (!ti.Transparent && pass != RenderPass::Opaque) continue;
+                    if (auto effectId = Resources::GetEffectClipID(texOverride); effectId > EClipID::None) {
+                        constants.TexIdOverride = (int)effectId + VCLIP_RANGE;
+                    } else {
+                        constants.TexIdOverride = (int)tid;
+                    }
+                }
 
+                if (mesh->IsTransparent && pass != RenderPass::Transparent) continue;
+                if (!mesh->IsTransparent && pass != RenderPass::Opaque) continue;
                 //const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
+                if(mesh->IsTransparent)
+                    ctx.ApplyEffect(Effects->ObjectGlow);
+                else
+                    ctx.ApplyEffect(Effects->Object);
 
                 //if (material.State == TextureState::Resident) {
-                    constants.TexID = (int)mesh->Texture;
                     effect.Shader->SetConstants(cmdList, constants);
 
                     cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);

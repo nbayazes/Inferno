@@ -47,7 +47,6 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            //auto contentMax = ImGui::GetWindowContentRegionMax();
             const float listWidth = 250 * Shell::DpiScale;
             const float topRowHeight = 100 * Shell::DpiScale;
             auto searchstr = String::ToLower(string(_search.data()));
@@ -60,8 +59,8 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(200 * Shell::DpiScale);
             ImGui::InputText("##Search", _search.data(), _search.capacity());
 
-            ImGui::SameLine();
-            ImGui::Checkbox("Enable loading", &_enableLoading);
+            //ImGui::SameLine();
+            //ImGui::Checkbox("Enable loading", &_enableLoading);
 
             ImGui::SameLine(contentMax.x - 150);
             if (ImGui::Button("Save All", { 150 * Shell::DpiScale, 0 }))

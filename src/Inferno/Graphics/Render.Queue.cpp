@@ -75,7 +75,7 @@ namespace Inferno::Render {
             _opaqueQueue.push_back({ &obj, depth });
 
             auto& mesh = GetMeshHandle(obj.Render.Model.ID);
-            if (mesh.HasTransparentTexture)
+            if (mesh.IsTransparent)
                 _transparentQueue.push_back({ &obj, depth });
         }
         else {
@@ -189,7 +189,7 @@ namespace Inferno::Render {
                         }
                         else {
                             auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                            if (mesh.HasTransparentTexture)
+                            if (mesh.IsTransparent)
                                 _transparentQueue.push_back({ obj.Obj, obj.Depth });
                         }
                     }

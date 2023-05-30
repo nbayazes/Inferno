@@ -6,6 +6,8 @@
 #include "ShaderLibrary.h"
 
 namespace Inferno::Render {
+    constexpr int VCLIP_RANGE = 10000; // Mesh TexIDs past this range are treated as vclips
+
     // An object mesh used for rendering
     struct Mesh {
         D3D12_INDEX_BUFFER_VIEW IndexBuffer;
@@ -13,7 +15,7 @@ namespace Inferno::Render {
         uint IndexCount;
         TexID Texture;
         EClipID EffectClip = EClipID::None;
-        bool HasTransparentTexture = false;
+        bool IsTransparent = false;
     };
 
     // Pointers to individual meshes in a polymodel
@@ -21,7 +23,7 @@ namespace Inferno::Render {
         // A lookup of meshes based on submodel and then texture
         Dictionary<int, Dictionary<int, Mesh*>> Meshes;
         bool Loaded = false;
-        bool HasTransparentTexture = false;
+        bool IsTransparent = false;
     };
 
     class MeshBuffer {
@@ -55,13 +57,19 @@ namespace Inferno::Render {
                 List<ObjectVertex> verts;
                 verts.reserve(vertexCount);
 
+                auto texId = TexID::None; // estimated material for this mesh
+                bool isTransparent = false;
+
                 // load vertex buffer
                 for (int i = 0; i < vertexCount; i++) {
                     // combine points and uvs into vertices
                     auto& uv = i >= submodel.UVs.size() ? Vector3() : submodel.UVs[i];
                     auto& p = submodel.ExpandedPoints[i];
                     ObjectVertex v{ p.Point, Vector2{ uv.x, uv.y }, submodel.ExpandedColors[i] };
-                    v.TexID = (int)Resources::LookupModelTexID(model, p.TexSlot);
+                    texId = Resources::LookupModelTexID(model, p.TexSlot);
+                    isTransparent |= Resources::GetTextureInfo(texId).Transparent;
+                    auto vclip = Resources::GetEffectClipID(texId);
+                    v.TexID = vclip > EClipID::None ? VCLIP_RANGE + (int)vclip : (int)texId;
                     verts.push_back(v);
                 }
 
@@ -88,14 +96,11 @@ namespace Inferno::Render {
                     mesh.VertexBuffer = vertexView;
                     mesh.IndexBuffer = _buffer.PackIndices(indices);
                     mesh.IndexCount = (uint)indices.size();
-                    mesh.Texture = Resources::LookupModelTexID(model, slot);
-                    if (mesh.Texture == TexID::None) mesh.Texture = WHITE_MATERIAL; // for flat shaded meshes
+                    mesh.Texture = texId == TexID::None ? WHITE_MATERIAL : texId; // for flat shaded meshes
+                    //if (mesh.Texture == TexID::None) mesh.Texture = WHITE_MATERIAL; 
                     mesh.EffectClip = Resources::GetEffectClipID(mesh.Texture);
-                    auto& ti = Resources::GetTextureInfo(mesh.Texture);
-                    if (ti.Transparent) {
-                        mesh.HasTransparentTexture = true;
-                        handle.HasTransparentTexture = true;
-                    }
+                    mesh.IsTransparent = isTransparent;
+                    handle.IsTransparent = isTransparent;
                     slot++;
                 }
 

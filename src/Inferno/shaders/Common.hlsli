@@ -7,6 +7,8 @@ static const int MAT_EMIS = 2; // Emissive
 static const int MAT_SPEC = 3; // Specular
 static const int MAT_NORM = 4; // Normal
 
+static const int VCLIP_RANGE = 10000;
+
 struct FrameConstants {
     float4x4 ViewProjectionMatrix;
     float3 Eye; // Camera direction
@@ -16,6 +18,22 @@ struct FrameConstants {
     float GlobalDimming;
     bool NewLightMode; // dynamic light mode
     int FilterMode; // 0: Point, 1: AA point, 2: smooth - must match TextureFilterMode
+};
+
+struct VClip {
+    float PlayTime; // total time (in seconds) of clip
+    int NumFrames; // Valid frames in Frames
+    float FrameTime; // time (in seconds) of each frame
+    int pad0;
+    int Frames[30];
+    int pad1, pad2;
+
+    // Returns the frame for the vclip based on elapsed time
+    int GetFrame(float time) {
+        //if (NumFrames == 0) return 0;
+        int frame = (int)floor(abs(time) / FrameTime) % NumFrames;
+        return Frames[frame];
+    }
 };
 
 static const int FILTER_POINT = 0;

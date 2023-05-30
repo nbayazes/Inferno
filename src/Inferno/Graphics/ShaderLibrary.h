@@ -336,6 +336,7 @@ namespace Inferno {
             RootConstants, // b1
             Material, // t0 - t4
             MaterialInfoBuffer, // t5
+            VClipTable, // t6
             Sampler, // s0
             NormalSampler, // s1
             LightGrid, // t11, t12, t13, b2
@@ -344,7 +345,7 @@ namespace Inferno {
         struct Constants {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
-            int TexID;
+            int TexIdOverride;
         };
 
         ObjectShader(const ShaderInfo& info) : IShader(info) {
@@ -353,6 +354,10 @@ namespace Inferno {
 
         static void SetTextureTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
             commandList->SetGraphicsRootDescriptorTable(TextureTable, start);
+        }
+
+        static void SetVClipTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
+            commandList->SetGraphicsRootDescriptorTable(VClipTable, start);
         }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {

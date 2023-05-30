@@ -44,6 +44,30 @@ namespace Inferno::Game {
         ScreenFlash = Color();
     }
 
+    void UpdateDirectLight(Object& obj, float duration) {
+        Color directLight;
+
+        for (auto& other : Level.Objects) {
+            if (other.LightRadius <= 0 || !other.IsAlive()) continue;
+            // todo: only scan nearby objects
+            auto lightDist = Vector3::Distance(obj.Position, other.Position);
+            if (lightDist > other.LightRadius) continue;
+            auto falloff = 1 - std::clamp(lightDist / other.LightRadius, 0.0f, 1.0f);
+            directLight += other.LightColor * falloff;
+
+            //auto lightDistSq = Vector3::DistanceSquared(obj.Position, other.Position);
+            //auto lightRadiusSq = other.LightRadius * other.LightRadius;
+            //if (lightDistSq > lightRadiusSq) continue;
+
+            //float factor = lightDistSq / lightRadiusSq;                   
+            //float smoothFactor = std::max(1.0f - pow(factor, 0.5f), 0.0f); // 0 to 1
+            //float falloff = smoothFactor * smoothFactor / std::max(sqrt(lightDistSq), 1e-4f);
+            //directLight += other.LightColor * falloff * 50;
+        }
+
+        obj.DirectLight.SetTarget(directLight, Game::Time, duration);
+    }
+
     void InitObjects() {
         ObjSigIndex = 1;
 
@@ -58,6 +82,8 @@ namespace Inferno::Game {
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
+
+            UpdateDirectLight(obj, 0);
         }
     }
 
@@ -615,30 +641,6 @@ namespace Inferno::Game {
         PendingNewObjects.clear();
     }
 
-    void UpdateDirectLight(Object& obj) {
-        Color directLight;
-
-        for (auto& other : Level.Objects) {
-            if (other.LightRadius <= 0 || !other.IsAlive()) continue;
-            // todo: only scan nearby objects
-            auto lightDist = Vector3::Distance(obj.Position, other.Position);
-            if (lightDist > other.LightRadius) continue;
-            auto falloff = 1 - std::clamp(lightDist / other.LightRadius, 0.0f, 1.0f);
-            directLight += other.LightColor * falloff;
-
-            //auto lightDistSq = Vector3::DistanceSquared(obj.Position, other.Position);
-            //auto lightRadiusSq = other.LightRadius * other.LightRadius;
-            //if (lightDistSq > lightRadiusSq) continue;
-
-            //float factor = lightDistSq / lightRadiusSq;                   
-            //float smoothFactor = std::max(1.0f - pow(factor, 0.5f), 0.0f); // 0 to 1
-            //float falloff = smoothFactor * smoothFactor / std::max(sqrt(lightDistSq), 1e-4f);
-            //directLight += other.LightColor * falloff * 50;
-        }
-
-        obj.DirectLight.SetTarget(directLight, Game::Time, 0.10f);
-    }
-
     // Updates on each game tick
     void FixedUpdate(float dt) {
         UpdatePlayerFireState(Player);
@@ -671,7 +673,7 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Weapon)
                 UpdateWeapon(obj, dt);
 
-            UpdateDirectLight(obj);
+            UpdateDirectLight(obj, 0.10f);
         }
 
         AddPendingObjects();

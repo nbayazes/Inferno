@@ -7,6 +7,7 @@
     "RootConstants(b1, num32BitConstants = 37), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t6), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t11), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -18,7 +19,7 @@ struct Constants {
     float4x4 WorldMatrix;
     float4 EmissiveLight; // for untextured objects like lasers
     float4 Ambient;
-    int TexID;
+    int TexIdOverride;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -28,8 +29,9 @@ ConstantBuffer<Constants> Args : register(b1);
 SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
 StructuredBuffer<MaterialInfo> Materials : register(t5);
+StructuredBuffer<VClip> VClips : register(t6);
 
-Texture2D TextureTable[]  : register(t0, space1);
+Texture2D TextureTable[] : register(t0, space1);
 
 struct ObjectVertex {
     float3 pos : POSITION;
@@ -38,7 +40,7 @@ struct ObjectVertex {
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
-    int texid : TEXID;
+    nointerpolation int texid : TEXID;
 };
 
 struct PS_INPUT {
@@ -84,8 +86,22 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(1,0,0,1);
     float3 viewDir = normalize(input.world - Frame.Eye);
-    float4 diffuse = Sample2D(TextureTable[input.texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
-    float3 emissive = Sample2D(TextureTable[input.texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rgb;
+
+    int texid = input.texid;
+    int matid = input.texid;
+
+    if (Args.TexIdOverride >= 0) {
+        matid = texid = Args.TexIdOverride;
+    }
+
+    // Lookup VClip texids
+    if (texid > VCLIP_RANGE) {
+        matid = VClips[texid - VCLIP_RANGE].Frames[0];
+        texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time);
+    }
+
+    float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
+    float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rgb;
     emissive = Args.EmissiveLight.rgb + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 
@@ -101,10 +117,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
     else {
         //float specularMask = Specular1.Sample(Sampler, input.uv).r;
-        float specularMask = Sample2D(TextureTable[input.texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
+        float specularMask = Sample2D(TextureTable[texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
 
-        MaterialInfo material = Materials[input.texid];
-        float3 normal = SampleNormal(TextureTable[input.texid * 5 + 4], input.uv, NormalSampler);
+        MaterialInfo material = Materials[matid];
+        float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler);
         //normal = float3(0,0,1);
         //return float4(normal, 1);
         normal.xy *= material.NormalStrength;
@@ -120,8 +136,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
 
         lighting += colorSum * material.LightReceived * 1.5;
-        lighting += emissive * diffuse.rgb * material.EmissiveStrength; // todo: emissive mult
-        lighting += Args.Ambient.rgb * 0.125f * diffuse.rgb * material.LightReceived; 
+        lighting += emissive * diffuse.rgb * material.EmissiveStrength;
+        lighting += Args.Ambient.rgb * 0.125f * diffuse.rgb * material.LightReceived;
 
         return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
