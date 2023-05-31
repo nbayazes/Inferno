@@ -3,7 +3,7 @@ Weapons:
     Name: laser 1
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.5, 0, 0
+    Glow: 6, 0, 0
     ModelName: RedLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
@@ -12,13 +12,13 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 1, 0.025, 0.025
-    ExplosionColor: 0.8, 0.1, 0.1
+    ExplosionColor: 0.8, 0.05, 0.05
 
   - id: 1
     Name: laser 2
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.15, 0.15, 0.5
+    Glow: 0.15, 0.15, 6
     ModelName: bluelaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
@@ -48,7 +48,7 @@ Weapons:
     Name: laser 4
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.1, 0.7, 0.1
+    Glow: 0.1, 6, 0.1
     ModelName: GreenLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
@@ -63,7 +63,7 @@ Weapons:
     Name: laser 5
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.7, 0.4, 0.1
+    Glow: 6, 3, 0.3
     ModelName: YellowLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt
@@ -78,7 +78,7 @@ Weapons:
     Name: laser 6
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 0.65, 0.65, 0.65
+    Glow: 4, 4, 4
     ModelName: WhiteLaser.OOF
     ModelScale: 0.7
     ExplosionSound: LazorHitshrt

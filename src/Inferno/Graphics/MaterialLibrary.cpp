@@ -695,7 +695,8 @@ namespace Inferno::Render {
 
         for (uint i = 0; i < Material2D::Count; i++) {
             // this makes the dangerous assumption that no other threads will allocate between iterations
-            auto handle = Render::Heaps->Reserved.Allocate();
+            //auto handle = Render::Heaps->Reserved.Allocate();
+            auto handle = Render::Heaps->Materials.GetHandle((int)MISSING_MATERIAL * 5 + i);
             auto& material = _materials[(int)MISSING_MATERIAL];
             material.Name = "missing";
             material.Handles[i] = handle.GetGpuHandle();
@@ -712,7 +713,8 @@ namespace Inferno::Render {
         }
 
         for (uint i = 0; i < Material2D::Count; i++) {
-            auto handle = Render::Heaps->Reserved.Allocate();
+            //auto handle = Render::Heaps->Reserved.Allocate();
+            auto handle = Render::Heaps->Materials.GetHandle((int)WHITE_MATERIAL * 5 + i);
             auto& material = _materials[(int)WHITE_MATERIAL];
             material.Name = "white";
             material.Handles[i] = handle.GetGpuHandle();
@@ -728,7 +730,8 @@ namespace Inferno::Render {
         }
 
         for (uint i = 0; i < Material2D::Count; i++) {
-            auto handle = Render::Heaps->Reserved.Allocate();
+            auto handle = Render::Heaps->Materials.GetHandle((int)BLACK_MATERIAL * 5 + i);
+            //auto handle = Render::Heaps->Reserved.Allocate();
             auto& material = _materials[(int)BLACK_MATERIAL];
             material.Name = "black";
             material.Handles[i] = handle.GetGpuHandle();

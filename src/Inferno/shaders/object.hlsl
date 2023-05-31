@@ -85,7 +85,6 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    //return float4(1,0,0,1);
     float3 viewDir = normalize(input.world - Frame.Eye);
 
     int texid = input.texid;
@@ -122,7 +121,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         MaterialInfo material = Materials[matid];
         float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler);
-        //normal = float3(0,0,1);
         //return float4(normal, 1);
         normal.xy *= material.NormalStrength;
         normal = normalize(normal);

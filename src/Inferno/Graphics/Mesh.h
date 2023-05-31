@@ -66,10 +66,15 @@ namespace Inferno::Render {
                     auto& uv = i >= submodel.UVs.size() ? Vector3() : submodel.UVs[i];
                     auto& p = submodel.ExpandedPoints[i];
                     ObjectVertex v{ p.Point, Vector2{ uv.x, uv.y }, submodel.ExpandedColors[i] };
-                    texId = Resources::LookupModelTexID(model, p.TexSlot);
-                    isTransparent |= Resources::GetTextureInfo(texId).Transparent;
-                    auto vclip = Resources::GetEffectClipID(texId);
-                    v.TexID = vclip > EClipID::None ? VCLIP_RANGE + (int)vclip : (int)texId;
+                    if (p.TexSlot == -1) {
+                        v.TexID = (int)WHITE_MATERIAL;
+                    }
+                    else {
+                        texId = Resources::LookupModelTexID(model, p.TexSlot);
+                        isTransparent |= Resources::GetTextureInfo(texId).Transparent;
+                        auto vclip = Resources::GetEffectClipID(texId);
+                        v.TexID = vclip > EClipID::None ? VCLIP_RANGE + (int)vclip : (int)texId;
+                    }
                     verts.push_back(v);
                 }
 
