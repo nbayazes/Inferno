@@ -27,7 +27,7 @@ namespace Inferno::Render {
 
     Color ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
     bool LevelChanged = false;
-    constexpr int MATERIAL_COUNT = 3000;
+    constexpr int MATERIAL_COUNT = 4000;
     constexpr int VCLIP_COUNT = 150;
 
     struct GpuVClip {

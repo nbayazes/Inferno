@@ -74,8 +74,17 @@ namespace Inferno::Render {
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             _opaqueQueue.push_back({ &obj, depth });
 
+            bool transparentOverride = false;
+            auto texOverride = TexID::None;
+
+            if (obj.Render.Model.TextureOverride != LevelTexID::None) {
+                texOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
+                if (texOverride != TexID::None)
+                    transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
+            }
+
             auto& mesh = GetMeshHandle(obj.Render.Model.ID);
-            if (mesh.IsTransparent)
+            if (mesh.IsTransparent || transparentOverride)
                 _transparentQueue.push_back({ &obj, depth });
         }
         else {

@@ -3,7 +3,7 @@
 
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "DescriptorTable(SRV(t0, space = 1, numDescriptors = 3000, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
     "RootConstants(b1, num32BitConstants = 37), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -20,6 +20,7 @@ struct Constants {
     float4 EmissiveLight; // for untextured objects like lasers
     float4 Ambient;
     int TexIdOverride;
+    float TimeOffset;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -97,7 +98,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     // Lookup VClip texids
     if (texid > VCLIP_RANGE) {
         matid = VClips[texid - VCLIP_RANGE].Frames[0];
-        texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time);
+        texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time + Args.TimeOffset);
     }
 
     float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;

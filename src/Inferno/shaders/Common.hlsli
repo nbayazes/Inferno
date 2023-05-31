@@ -1,4 +1,4 @@
-#define MATERIAL_COUNT 3000
+#define MATERIAL_COUNT 4000
 
 // Must match the Material enum
 static const int MAT_DIFF = 0; // Diffuse

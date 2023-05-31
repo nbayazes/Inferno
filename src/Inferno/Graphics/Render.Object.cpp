@@ -60,7 +60,10 @@ namespace Inferno::Render {
     void ModelDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, ModelID modelId) {
         auto& model = Resources::GetModel(modelId);
         auto& meshHandle = GetMeshHandle(modelId);
-        auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
+
+        bool transparentOverride = false;
+        if (auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride); texOverride != TexID::None)
+            transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
 
         ObjectDepthShader::Constants constants = {};
         auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
@@ -88,9 +91,7 @@ namespace Inferno::Render {
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
-
-                //auto& ti = Resources::GetTextureInfo(texOverride == TexID::None ? mesh->Texture : texOverride);
-                if (mesh->IsTransparent) continue;
+                if (transparentOverride || mesh->IsTransparent) continue;
 
                 cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
                 cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
@@ -261,8 +262,7 @@ namespace Inferno::Render {
     void DrawModel(GraphicsContext& ctx,
                    const Object& object,
                    ModelID modelId,
-                   RenderPass pass,
-                   TexID texOverride = TexID::None) {
+                   RenderPass pass) {
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
@@ -299,9 +299,28 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
+        constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
+
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
-        const float vclipOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
+
+        bool transparentOverride = false;
+        auto texOverride = TexID::None;
+
+        if (object.Render.Model.TextureOverride != LevelTexID::None) {
+            texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
+            if (texOverride != TexID::None)
+                transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
+        }
+
+        constants.TexIdOverride = -1;
+
+        if (texOverride != TexID::None) {
+            if (auto effectId = Resources::GetEffectClipID(texOverride); effectId > EClipID::None)
+                constants.TexIdOverride = (int)effectId + VCLIP_RANGE;
+            else
+                constants.TexIdOverride = (int)texOverride;
+        }
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             // accumulate the offsets for each submodel
@@ -316,38 +335,22 @@ namespace Inferno::Render {
                 auto mesh = subMesh[i];
                 if (!mesh) continue;
 
-                //constants.TexIdOverride = (int)mesh->Texture;
-                constants.TexIdOverride = (int)TexID::None;
-                TexID tid = mesh->Texture;
-                if (texOverride > TexID::None) {
-                    tid = texOverride;
-
-                    if (auto effectId = Resources::GetEffectClipID(texOverride); effectId > EClipID::None) {
-                        constants.TexIdOverride = (int)effectId + VCLIP_RANGE;
-                    } else {
-                        constants.TexIdOverride = (int)tid;
-                    }
-                }
-
-                if (mesh->IsTransparent && pass != RenderPass::Transparent) continue;
-                if (!mesh->IsTransparent && pass != RenderPass::Opaque) continue;
+                bool isTransparent = mesh->IsTransparent || transparentOverride;
+                if (isTransparent && pass != RenderPass::Transparent) continue;
+                if (!isTransparent && pass != RenderPass::Opaque) continue;
                 //const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
-                if(mesh->IsTransparent)
-                    ctx.ApplyEffect(Effects->ObjectGlow);
+                if (isTransparent)
+                    ctx.ApplyEffect(Effects->ObjectGlow); // todo: material should specify blend mode (additive or alpha)
                 else
                     ctx.ApplyEffect(Effects->Object);
 
-                //if (material.State == TextureState::Resident) {
-                    effect.Shader->SetConstants(cmdList, constants);
+                effect.Shader->SetConstants(cmdList, constants);
 
-                    cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                    cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
-                    cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
-                    Stats::DrawCalls++;
-                //} else {
-                //    SPDLOG_WARN("Tried to draw model with unloaded texture {}", material.ID);
-                //}
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
             }
         }
     }
@@ -358,8 +361,7 @@ namespace Inferno::Render {
             {
                 // could be transparent or opaque pass
                 auto& info = Resources::GetRobotInfo(object.ID);
-                auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
-                DrawModel(ctx, object, info.Model, pass, texOverride);
+                DrawModel(ctx, object, info.Model, pass);
                 break;
             }
 
@@ -377,8 +379,7 @@ namespace Inferno::Render {
             case ObjectType::SecretExitReturn:
             case ObjectType::Marker:
             {
-                auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
-                DrawModel(ctx, object, object.Render.Model.ID, pass, texOverride);
+                DrawModel(ctx, object, object.Render.Model.ID, pass);
                 break;
             }
 
@@ -387,16 +388,14 @@ namespace Inferno::Render {
                     // Do nothing, what did you expect?
                 }
                 else if (object.Render.Type == RenderType::Model) {
-                    auto texOverride = Resources::LookupTexID(object.Render.Model.TextureOverride);
-
                     if (object.Render.Model.Outrage) {
                         DrawOutrageModel(ctx, object, pass);
                     }
                     else {
-                        DrawModel(ctx, object, object.Render.Model.ID, pass, texOverride);
+                        DrawModel(ctx, object, object.Render.Model.ID, pass);
                         auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
                         if (object.Type == ObjectType::Weapon && inner > ModelID::None && inner != ModelID(255)) {
-                            DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass, texOverride);
+                            DrawModel(ctx, object, Resources::GameData.Weapons[object.ID].ModelInner, pass);
                         }
                     }
                 }

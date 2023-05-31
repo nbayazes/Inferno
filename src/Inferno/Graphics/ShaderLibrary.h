@@ -346,6 +346,7 @@ namespace Inferno {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
             int TexIdOverride;
+            float TimeOffset;
         };
 
         ObjectShader(const ShaderInfo& info) : IShader(info) {

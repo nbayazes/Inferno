@@ -13,6 +13,8 @@ namespace Inferno::Render {
         PagingIn // Texture is being loaded
     };
 
+    extern const int MATERIAL_COUNT;
+
     struct Material2D {
         enum { Diffuse, SuperTransparency, Emissive, Specular, Normal, Count };
 
@@ -51,7 +53,7 @@ namespace Inferno::Render {
         List<Material2D> _materials;
         ConcurrentList<Material2D> _pendingCopies;
         ConcurrentList<MaterialUpload> _requestedUploads;
-        Dictionary<string, Material2D> _unpackedMaterials;
+        Dictionary<string, TexID> _unpackedMaterials;
 
         Ptr<WorkerThread> _worker;
         List<MaterialInfo> _materialInfo;
@@ -111,7 +113,7 @@ namespace Inferno::Render {
         // Gets a material loaded from the filesystem based on name
         const Material2D& Get(const string& name) {
             if (!_unpackedMaterials.contains(name)) return Missing();
-            return _unpackedMaterials[name];
+            return _materials[(int)_unpackedMaterials[name]];
         }
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
@@ -121,7 +123,7 @@ namespace Inferno::Render {
         bool LoadTexture(const string& name) {
             std::array tex = { name };
             LoadTextures(tex);
-            return _unpackedMaterials[name].Pointer() != 0;
+            return _unpackedMaterials[name] != TexID::None;
         }
 
         void Reload();
@@ -141,7 +143,7 @@ namespace Inferno::Render {
         static void ResetMaterial(Material2D& material);
 
         // Returns true if any tids are unloaded
-        bool HasUnloadedTextures(span<const TexID> tids) {
+        bool HasUnloadedTextures(span<const TexID> tids) const {
             for (auto& id : tids) {
                 if (id <= TexID::None) continue;
                 if (_materials[(int)id].State != TextureState::Vacant) continue;
@@ -152,6 +154,15 @@ namespace Inferno::Render {
         }
 
         void LoadDefaults();
+
+        static constexpr auto LOOSE_TEXID_START = TexID(2905);
+        TexID _looseTexId = LOOSE_TEXID_START;
+        // returns a texid reserved for loose textures
+        TexID GetUnusedTexID() {
+            _looseTexId = TexID((int)_looseTexId + 1);
+            assert((int)_looseTexId < MATERIAL_COUNT);
+            return _looseTexId;
+        }
     };
 
     DirectX::ResourceUploadBatch BeginTextureUpload();
