@@ -576,10 +576,10 @@ namespace Inferno::Render {
         LoadMaterials(tids, force);
     }
 
-    void MaterialLibrary::LoadTextures(span<string> names) {
+    void MaterialLibrary::LoadTextures(span<const string> names) {
         bool hasUnloaded = false;
         for (auto& name : names) {
-            if (!name.empty() && !_unpackedMaterials.contains(name)) {
+            if (!name.empty() && !_namedMaterials.contains(name)) {
                 hasUnloaded = true;
                 break;
             }
@@ -592,25 +592,24 @@ namespace Inferno::Render {
         auto batch = BeginTextureUpload();
 
         for (auto& name : names) {
-            if (_unpackedMaterials.contains(name)) continue; // skip loaded
+            if (_namedMaterials.contains(name)) continue; // skip loaded
 
             if (FileSystem::TryFindFile(name + ".dds")) {
                 auto material = UploadBitmap(batch, name, Render::StaticTextures->Black);
                 material.ID = GetUnusedTexID();
-                _unpackedMaterials[name] = material.ID;
+                _namedMaterials[name] = material.ID;
                 uploads.emplace_back(std::move(material));
             }
-            else if (auto bitmap = Resources::ReadOutrageBitmap(name + ".ogf")) {
+            else if (auto bitmap = Resources::ReadOutrageBitmap(name)) {
                 // Try loading file from D3 data
                 auto material = UploadOutrageMaterial(batch, *bitmap, Render::StaticTextures->Black);
-                material.Name = name;
                 material.ID = GetUnusedTexID();
-                _unpackedMaterials[name] = material.ID;
+                _namedMaterials[name] = material.ID;
                 uploads.emplace_back(std::move(material));
             }
             else {
                 // Add entries that aren't found so they are skipped in future loads
-                _unpackedMaterials[name] = {};
+                _namedMaterials[name] = {};
             }
         }
 

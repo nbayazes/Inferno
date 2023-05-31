@@ -42,13 +42,13 @@ namespace Inferno::Render {
     }
 
     // Draws a square glow that always faces the camera (Descent 3 submodels);
-    void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color) {
+    void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color, TexID tex) {
         if (radius <= 0) return;
         const auto r = radius;
-        ObjectVertex v0({ -r, r, 0 }, { 0, 0 }, color);
-        ObjectVertex v1({ r, r, 0 }, { 1, 0 }, color);
-        ObjectVertex v2({ r, -r, 0 }, { 1, 1 }, color);
-        ObjectVertex v3({ -r, -r, 0 }, { 0, 1 }, color);
+        ObjectVertex v0({ -r, r, 0 }, { 0, 0 }, color, {}, {}, {}, (int)tex);
+        ObjectVertex v1({ r, r, 0 }, { 1, 0 }, color, {}, {}, {}, (int)tex);
+        ObjectVertex v2({ r, -r, 0 }, { 1, 1 }, color, {}, {}, {}, (int)tex);
+        ObjectVertex v3({ -r, -r, 0 }, { 0, 1 }, color, {}, {}, {}, (int)tex);
 
         // Horrible immediate mode nonsense
         Stats::DrawCalls++;
@@ -184,7 +184,7 @@ namespace Inferno::Render {
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        auto cmd = ctx.CommandList();
+        auto cmdList = ctx.CommandList();
 
         for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
             auto& submodel = model->Submodels[submodelIndex];
@@ -234,25 +234,27 @@ namespace Inferno::Render {
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
                 ctx.ApplyEffect(effect);
-                effect.Shader->SetSampler(cmd, GetWrappedTextureSampler());
-                effect.Shader->SetNormalSampler(cmd, GetNormalSampler());
+                effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+                effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
                 //effect.Shader->SetMaterial(cmd, handle);
-                effect.Shader->SetLightGrid(cmd, *Render::LightGrid);
-                effect.Shader->SetMaterialInfoBuffer(cmd, Render::MaterialInfoBuffer->GetSRV());
+                effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+                effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
                     if (material.Saturate())
                         constants.Ambient = Color(1, 1, 1);
                     //constants.Colors[1] = Color(1, 1, 1, 1);
-                    effect.Shader->SetConstants(cmd, constants);
-                    DrawObjectGlow(cmd, submodel.Radius, Color(1, 1, 1, 1));
+                    effect.Shader->SetConstants(cmdList, constants);
+                    DrawObjectGlow(cmdList, submodel.Radius, Color(1, 1, 1, 1), mesh->Texture);
                 }
                 else {
                     //constants.Colors[1] = material.Color; // color 1 is used for texture alpha
-                    effect.Shader->SetConstants(cmd, constants);
-                    cmd->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
-                    cmd->IASetIndexBuffer(&mesh->IndexBuffer);
-                    cmd->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                    effect.Shader->SetConstants(cmdList, constants);
+                    cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                    cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                    cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
                     Stats::DrawCalls++;
                 }
             }

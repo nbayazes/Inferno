@@ -306,8 +306,10 @@ namespace Inferno::Render {
         auto id = Resources::LoadOutrageModel(path);
         if (auto model = Resources::GetOutrageModel(id)) {
             _meshBuffer->LoadOutrageModel(*model, id);
+            Materials->LoadTextures(model->Textures);
+            
             //Materials->LoadOutrageModel(*model);
-            NewTextureCache->MakeResident();
+            //NewTextureCache->MakeResident();
         }
 
         return id;

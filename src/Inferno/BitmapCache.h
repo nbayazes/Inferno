@@ -186,7 +186,7 @@ namespace Inferno {
 
         // Resolves a file name to a texture info id
         // Used by robots
-        int ResolveFileName(string fileName) {
+        int ResolveFileName(string_view fileName) {
             for (int i = 0; i < _textures.size(); i++) {
                 if (String::InvariantEquals(_textures[i].FileName, fileName))
                     return i; // Already exists
@@ -272,7 +272,7 @@ namespace Inferno {
         }
 
 
-        int ResolveVClip(string frameName) {
+        int ResolveVClip(string_view frameName) {
             for (int id = 0; id < Resources::VClips.size(); id++) {
                 auto& vclip = Resources::VClips[id];
                 for (auto& frame : vclip.Frames) {

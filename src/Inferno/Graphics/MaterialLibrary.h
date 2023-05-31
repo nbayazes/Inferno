@@ -8,9 +8,9 @@
 
 namespace Inferno::Render {
     enum class TextureState {
-        Vacant, // Default state 
+        Vacant,   // Default state 
         Resident, // Texture is loaded
-        PagingIn // Texture is being loaded
+        PagingIn  // Texture is being loaded
     };
 
     extern const int MATERIAL_COUNT;
@@ -53,7 +53,7 @@ namespace Inferno::Render {
         List<Material2D> _materials;
         ConcurrentList<Material2D> _pendingCopies;
         ConcurrentList<MaterialUpload> _requestedUploads;
-        Dictionary<string, TexID> _unpackedMaterials;
+        Dictionary<string, TexID> _namedMaterials;
 
         Ptr<WorkerThread> _worker;
         List<MaterialInfo> _materialInfo;
@@ -112,18 +112,24 @@ namespace Inferno::Render {
 
         // Gets a material loaded from the filesystem based on name
         const Material2D& Get(const string& name) {
-            if (!_unpackedMaterials.contains(name)) return Missing();
-            return _materials[(int)_unpackedMaterials[name]];
+            auto id = Find(name);
+            if (id == TexID::None) return Missing();
+            return _materials[(int)id];
+        }
+
+        const TexID Find(const string& name) {
+            auto item = _namedMaterials.find(name);
+            return item == _namedMaterials.end() ? TexID::None : item->second;
         }
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
-        void LoadTextures(span<string> names);
+        void LoadTextures(span<const string> names);
 
         // Tries to load a texture and returns true if it exists
         bool LoadTexture(const string& name) {
             std::array tex = { name };
             LoadTextures(tex);
-            return _unpackedMaterials[name] != TexID::None;
+            return _namedMaterials[name] != TexID::None;
         }
 
         void Reload();

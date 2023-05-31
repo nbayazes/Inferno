@@ -637,9 +637,18 @@ namespace Inferno::Resources {
         }
     }
 
-    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name) {
-        if (auto r = OpenFile(name))
-            return Outrage::Bitmap::Read(*r);
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& fileName) {
+        for (auto& tex : GameTable.Textures) {
+            string name;
+            if (String::InvariantEquals(tex.FileName, fileName)) name = fileName;
+            else if (String::InvariantEquals(tex.FileName, fileName + ".ogf")) name = fileName + ".ogf";
+            else continue;
+
+            if (auto data = Descent3Hog.ReadEntry(name)) {
+                auto reader = StreamReader(std::move(*data), name);
+                return Outrage::Bitmap::Read(reader);
+            }
+        }
 
         return {};
     }
@@ -672,7 +681,7 @@ namespace Inferno::Resources {
             for (auto& texture : model->Textures) {
                 model->TextureHandles.push_back(Render::NewTextureCache->ResolveFileName(texture));
             }
-
+            Render::Materials->LoadTextures(model->Textures);
             OutrageModels.push_back({ name, std::move(*model) });
             return ModelID(OutrageModels.size() - 1);
         }
@@ -687,6 +696,41 @@ namespace Inferno::Resources {
 
         return nullptr;
     }
+
+    //int ResolveVClip(string frameName) {
+    //    for (int id = 0; id < Resources::VClips.size(); id++) {
+    //        auto& vclip = Resources::VClips[id];
+    //        for (auto& frame : vclip.Frames) {
+    //            if (String::InvariantEquals(frame.Name, frameName)) {
+    //                RuntimeTextureInfo ti;
+    //                ti.FileName = frame.Name;
+    //                ti.VClip = id;
+    //                return AllocTextureInfo(std::move(ti));
+    //            }
+    //        }
+    //    }
+
+    //    return -1;
+    //}
+
+    //const string& ResolveOutrageFileName(string_view fileName) {
+    //    //for (int i = 0; i < _textures.size(); i++) {
+    //    //    if (String::InvariantEquals(_textures[i].FileName, fileName))
+    //    //        return i; // Already exists
+    //    //}
+
+    //    // Check the D3 game table
+    //    for (auto& tex : GameTable.Textures) {
+    //        if (String::InvariantEquals(tex.FileName, fileName))
+    //            return tex.Name;
+    //            //return AllocTextureInfo({ tex });
+    //    }
+
+    //    //if (auto id = ResolveVClip(fileName); id != -1)
+    //    //    return id;
+
+    //    //return -1;
+    //}
 
     //const Outrage::Model* ReadOutrageModel(const string& name) {
     //    // name -> index -> 500 + model ID

@@ -345,7 +345,7 @@ namespace Inferno {
         struct Constants {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
-            int TexIdOverride;
+            int TexIdOverride = -1;
             float TimeOffset;
         };
 

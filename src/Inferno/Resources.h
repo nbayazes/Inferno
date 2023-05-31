@@ -102,7 +102,7 @@ namespace Inferno::Resources {
 
     Option<StreamReader> OpenFile(const string& name);
 
-    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& name);
+    Option<Outrage::Bitmap> ReadOutrageBitmap(const string& fileName);
     Option<Outrage::SoundInfo> ReadOutrageSoundInfo(const string& name);
 
     // Loads an outrage model by name and returns the ID

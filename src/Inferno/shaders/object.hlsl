@@ -85,6 +85,7 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
+    //return Sample2D(TextureTable[2934 * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
     float3 viewDir = normalize(input.world - Frame.Eye);
 
     int texid = input.texid;

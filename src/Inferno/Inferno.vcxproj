@@ -189,6 +189,7 @@
     <ClCompile Include="Editor\TunnelBuilder.cpp" />
     <ClCompile Include="Graphics\LevelMesh.cpp" />
     <ClCompile Include="Graphics\Lighting.cpp" />
+    <ClCompile Include="Graphics\Mesh.cpp" />
     <ClCompile Include="Graphics\Render.Canvas.cpp" />
     <ClCompile Include="Graphics\GatherLights.cpp" />
     <ClCompile Include="Graphics\Render.Level.cpp" />
