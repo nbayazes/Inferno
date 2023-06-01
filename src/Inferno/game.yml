@@ -95,7 +95,7 @@ Weapons:
     Lifetime: 30
     Glow: 0.01, 0.01, 0.01
     LightRadius: 40
-    LightColor: 3, 2.0, 0.5
+    LightColor: 3, 2.0, 0.75
     LightMode: 3 # Flicker
     Sticky: 1
 
@@ -361,7 +361,7 @@ Effects:
 
     - Name: weapon_hit_obj
       Color: 1, 1, 0.9
-      Count: [ 10, 15 ]
+      Count: [ 8, 12 ]
       SparkDuration: [ 0.55, 1.15 ]
       Restitution: 0.6
       Drag: 0.04

@@ -102,7 +102,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
 
     float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
-    float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rgb;
+    float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rrr;
     emissive = Args.EmissiveLight.rgb + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 

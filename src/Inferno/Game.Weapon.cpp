@@ -563,6 +563,13 @@ namespace Inferno::Game {
             sound.AttachOffset = gunOffset;
             sound.FromPlayer = true;
             sound.Source = objId;
+            sound.Merge = true;
+
+            if (id == WeaponID::Vulcan) {
+                sound.Merge = false;
+                sound.Pitch = Random() * 0.05f;
+            }
+
             Sound::Play(sound);
 
             // Hide flashes in first person for gunpoints under the ship
