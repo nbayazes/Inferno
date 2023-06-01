@@ -194,7 +194,6 @@ namespace Inferno::Graphics {
         for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
             auto& seg = level.Segments[segIdx];
 
-
             if (seg.Type == SegmentType::Energy) {
                 auto len = seg.GetLongestSide();
 
@@ -293,6 +292,10 @@ namespace Inferno::Graphics {
 
             for (auto& sideId : SideIDs) {
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
+                if (auto wall = level.TryGetWall(seg.GetSide(sideId).Wall)) {
+                    if (wall->Type == WallType::Open) continue; // Skip open walls
+                }
+
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& side = face.Side;
 
@@ -493,5 +496,4 @@ namespace Inferno::Graphics {
 
         return sources;
     }
-
 }
