@@ -11,7 +11,7 @@ namespace Inferno::Editor {
 
     ObjID AddObject(Level&, PointTag, ObjectType);
     void DeleteObject(Level&, ObjID);
-    void InitObject(const Level&, Object&, ObjectType type, int8 id = 0);
+    void InitObject(const Level&, Object&, ObjectType type, int8 id = 0, bool fullReset = true);
 
     void UpdateSecretLevelReturnMarker();
 

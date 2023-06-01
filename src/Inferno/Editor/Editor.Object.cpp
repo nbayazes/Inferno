@@ -156,17 +156,18 @@ namespace Inferno::Editor {
         obj.HitPoints = 20;
     }
 
-    void InitObject(const Level& level, Object& obj, ObjectType type, int8 id) {
+    void InitObject(const Level& level, Object& obj, ObjectType type, int8 id, bool fullReset) {
         const ModelID coopModel = level.IsDescent1() ? ModelID::D1Coop : ModelID::D2Player;
 
         obj.Type = type;
         obj.ID = id;
         obj.Movement = {};
-        obj.Control = {};
+        if (fullReset) obj.Control = {};
         obj.Render = {};
         obj.LightRadius = {};
         obj.LightColor = Color(0, 0, 0);
         obj.LightMode = {};
+        obj.Physics = {};
 
         switch (type) {
             case ObjectType::Player:
@@ -212,8 +213,10 @@ namespace Inferno::Editor {
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
                 obj.Render.Model = { .ID = ri.Model };
-                obj.Control.AI.Behavior = AIBehavior::Normal;
-                obj.Contains.Type = ObjectType::None;
+                if (fullReset) {
+                    obj.Control.AI.Behavior = AIBehavior::Normal;
+                    obj.Contains.Type = ObjectType::None;
+                }
                 break;
             }
             case ObjectType::Hostage:

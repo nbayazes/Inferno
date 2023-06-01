@@ -434,21 +434,6 @@ namespace Inferno::Editor {
         }
     }
 
-    void ResetObjects(Level& level) {
-        for (auto& obj : level.Objects) {
-            if (obj.Type == ObjectType::Player) {
-                InitObject(level, obj, ObjectType::Player);
-            }
-
-            if (obj.Type == ObjectType::Robot) {
-                auto& physics = obj.Physics;
-                auto& robot = Resources::GameData.Robots[obj.ID];
-                physics.Mass = robot.Mass;
-                physics.Drag = robot.Drag;
-            }
-        }
-    }
-
     // Turns on all flickering lights and updates the view
     void DisableFlickeringLights(Level& level) {
         for (auto& light : level.FlickeringLights) {
@@ -484,7 +469,6 @@ namespace Inferno::Editor {
         Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
         UpdateSecretLevelReturnMarker();
         ResetFlickeringLightTimers(Game::Level);
-        ResetObjects(Game::Level);
 
         for (auto& obj : Game::Level.Objects)
             obj.Radius = GetObjectRadius(obj);

@@ -74,7 +74,7 @@ namespace Inferno::Game {
         // Re-init each object to ensure a valid state.
         // Note this won't update weapons
         for (auto& obj : Level.Objects) {
-            Editor::InitObject(Level, obj, obj.Type, obj.ID);
+            Editor::InitObject(Level, obj, obj.Type, obj.ID, false);
             if (auto seg = Level.TryGetSegment(obj.Segment)) {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
             }
