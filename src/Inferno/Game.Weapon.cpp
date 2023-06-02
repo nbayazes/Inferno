@@ -567,7 +567,7 @@ namespace Inferno::Game {
 
             if (id == WeaponID::Vulcan) {
                 sound.Merge = false;
-                sound.Pitch = Random() * 0.05f;
+                sound.Pitch -= Random() * 0.05f;
             }
 
             Sound::Play(sound);
@@ -589,18 +589,20 @@ namespace Inferno::Game {
     }
 
     void SpreadfireBehavior(Inferno::Player& player, int gun, WeaponID wid) {
-        constexpr float SPREAD_ANGLE = 1 / 16.0f;
+        //constexpr float SPREAD_ANGLE = 1 / 16.0f * RadToDeg;
+        auto spread = Resources::GetWeapon(wid).Extended.Spread * DegToRad;
+
         if (player.SpreadfireToggle) {
             // Vertical
             FireWeapon(player.ID, gun, wid);
-            FireWeapon(player.ID, gun, wid, false, { 0, -SPREAD_ANGLE });
-            FireWeapon(player.ID, gun, wid, false, { 0, SPREAD_ANGLE });
+            FireWeapon(player.ID, gun, wid, false, { 0, -spread });
+            FireWeapon(player.ID, gun, wid, false, { 0, spread });
         }
         else {
             // Horizontal
             FireWeapon(player.ID, gun, wid);
-            FireWeapon(player.ID, gun, wid, false, { -SPREAD_ANGLE, 0 });
-            FireWeapon(player.ID, gun, wid, false, { SPREAD_ANGLE, 0 });
+            FireWeapon(player.ID, gun, wid, false, { -spread, 0 });
+            FireWeapon(player.ID, gun, wid, false, { spread, 0 });
         }
 
         player.SpreadfireToggle = !player.SpreadfireToggle;
@@ -631,10 +633,22 @@ namespace Inferno::Game {
     }
 
     void VulcanBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
-        constexpr float SPREAD_ANGLE = 1 / 32.0f; // -0.03125 to 0.03125 spread
-        //Vector2 spread = { RandomN11() * SPREAD_ANGLE, RandomN11() * SPREAD_ANGLE };
-        auto spread = RandomPointInCircle(SPREAD_ANGLE);
-        FireWeapon(player.ID, gun, wid, true, { spread.x, spread.y });
+        //constexpr float SPREAD_ANGLE = 1 / 32.0f * RadToDeg; // -0.03125 to 0.03125 spread
+        auto spread = Resources::GetWeapon(wid).Extended.Spread * DegToRad;
+        auto point = RandomPointInCircle(spread);
+        FireWeapon(player.ID, gun, wid, true, { point.x, point.y });
+    }
+
+    void ShotgunBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
+        auto& weapon = Resources::GetWeapon(wid);
+        auto spread = weapon.Extended.Spread * DegToRad;
+
+        bool flash = true;
+        for (size_t i = 0; i < weapon.FireCount; i++) {
+            auto point = RandomPointInCircle(spread);
+            FireWeapon(player.ID, gun, wid, flash, { point.x, point.y });
+            flash = false;
+        }
     }
 
     // FOV in 0 to PI
@@ -813,7 +827,8 @@ namespace Inferno::Game {
         { "vulcan", VulcanBehavior },
         { "helix", HelixBehavior },
         { "spreadfire", SpreadfireBehavior },
-        { "omega", OmegaBehavior }
+        { "omega", OmegaBehavior },
+        { "shotgun", ShotgunBehavior }
     };
 
     WeaponBehavior& GetWeaponBehavior(const string& name) {

@@ -58,6 +58,10 @@ namespace Inferno {
 
         auto& weapon = ham.Weapons[id];
 #define READ_PROP(name) Yaml::ReadValue(node[#name], weapon.##name)
+        Yaml::ReadValue(node["RenderType"], (int&)weapon.RenderType);
+        READ_PROP(Thrust);
+
+        READ_PROP(Drag);
         READ_PROP(Mass);
         READ_PROP(AmmoUsage);
         READ_PROP(EnergyUsage);
@@ -66,6 +70,20 @@ namespace Inferno {
         READ_PROP(WallHitVClip);
         READ_PROP(FireDelay);
         READ_PROP(Lifetime);
+        READ_PROP(FireCount);
+
+        READ_PROP(BlobSize);
+        Yaml::ReadValue(node["BlobBitmap"], (int&)weapon.BlobBitmap);
+
+        READ_PROP(ImpactSize);
+        READ_PROP(SplashRadius);
+        READ_PROP(TrailSize);
+
+        READ_PROP(FlashSize);
+        Yaml::ReadValue(node["FlashVClip"], (int&)weapon.FlashVClip);
+        Yaml::ReadValue(node["FlashSound"], (int&)weapon.FlashSound);
+
+        READ_PROP(FlashStrength);
 #undef READ_PROP
         Yaml::ReadValue(node["Model"], (int&)weapon.Model);
         
@@ -80,6 +98,7 @@ namespace Inferno {
         READ_PROP_EXT(ModelScale);
         READ_PROP_EXT(Size);
         READ_PROP_EXT(Chargable);
+        READ_PROP_EXT(Spread);
 
         READ_PROP_EXT(Decal);
         READ_PROP_EXT(DecalRadius);

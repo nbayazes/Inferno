@@ -125,7 +125,7 @@ namespace Inferno {
         List<int> Levels; // Weapon ID fired at each upgrade level (for lasers)
 
         bool SilentSelectFail = false; // Hide HUD errors when selecting
-        Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
+        //Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
         Color Glow = { 0.01f, 0.01f, 0.01f }; // For emissive glows
         Color LightColor; // color for projectile environment lighting
         float LightRadius = -1; // size of environment lighting
@@ -137,6 +137,8 @@ namespace Inferno {
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing
         Vector3 RotationalVelocity; // Initial rotational velocity
         float Size = -1; // Overrides Blob Size and Model Size
+
+        float Spread = 0; // Amount of spread in degrees [0 < 90)
 
         //struct FiringPattern {
         //    string Crosshair;
@@ -167,7 +169,7 @@ namespace Inferno {
         // Number of times to 'fire' this weapon per pull of the trigger. 
         // For missiles it will alternate gunpoints.
         // For most lasers it will stack the projectiles.
-        sbyte FireCount = 1;
+        int FireCount = 1;
 
         VClipID RobotHitVClip = VClipID::None;
         SoundID RobotHitSound = SoundID::None;
