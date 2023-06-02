@@ -116,6 +116,10 @@ namespace Inferno::Render {
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
+        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+        effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+        effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         auto& seg = Game::Level.GetSegment(Segment);
