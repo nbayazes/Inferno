@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
   "name": "inferno",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "builtin-baseline": "67e734c04ca963f0fc43a2787d6559c01a27a55a",
   "dependencies": [
     "directxtk12",
