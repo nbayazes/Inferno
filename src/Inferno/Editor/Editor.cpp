@@ -464,7 +464,7 @@ namespace Inferno::Editor {
             }
 
             if (obj.Contains.Type == ObjectType::None && obj.Contains.Count > 0)
-                SPDLOG_WARN("Object {} has a contains count > 1 with no type. Resave to fix.", id);
+                SPDLOG_WARN("Object {} has a contains count > 0 with no type. Resave to fix.", id);
 
             id++;
         }

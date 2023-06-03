@@ -195,7 +195,6 @@ namespace Inferno {
                 auto conn = seg.GetConnection(sid);
                 if ((conn == SegID::None && conn != SegID::Exit) ||
                     side.Wall != WallID::None) {
-
                     // Writing None causes the file to be corrupted
                     auto tmap = (int16)(side.TMap == LevelTexID::None ? LevelTexID::Unset : side.TMap);
                     auto tmap2 = (int16)(side.TMap2 == LevelTexID::None ? LevelTexID::Unset : side.TMap2);
@@ -260,7 +259,6 @@ namespace Inferno {
                 for (auto& segment : level.Segments)
                     WriteSegmentSpecialData(writer, level, segment);
             }
-
         }
 
         static void WriteLevelFileInfo(StreamWriter& writer, const LevelFileInfo& info) {
@@ -305,7 +303,8 @@ namespace Inferno {
                 writer.Write(obj.Contains.Type);
                 writer.Write(obj.Contains.ID);
                 writer.Write(obj.Contains.Count);
-            } else {
+            }
+            else {
                 writer.Write((uint8)ObjectType::None);
                 writer.Write((int8)0);
                 writer.Write((int8)0);
@@ -533,7 +532,13 @@ namespace Inferno {
                 writer.Write((sbyte)wall.Flags);
                 writer.Write((sbyte)wall.State);
                 writer.Write((sbyte)wall.Trigger);
-                writer.Write((sbyte)wall.Clip);
+
+                // Only write wall clip value if the wall is a door or destroyable door. Can cause crashes otherwise.
+                if (wall.Type == WallType::Door || wall.Type == WallType::Destroyable)
+                    writer.Write((sbyte)wall.Clip);
+                else
+                    writer.Write((sbyte)WClipID::None);
+
                 writer.Write((sbyte)wall.Keys);
                 writer.Write((sbyte)wall.ControllingTrigger);
                 writer.Write((sbyte)wall.cloak_value);
