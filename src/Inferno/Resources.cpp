@@ -17,7 +17,7 @@ namespace Inferno::Resources {
     namespace {
         List<string> RobotNames;
         List<string> PowerupNames;
-        HogFile Hog;
+        HogFile Hog; // Main hog file (descent.hog, descent2.hog)
         Palette LevelPalette;
         PigFile Pig;
         //Dictionary<TexID, PigBitmap> CustomTextures;
@@ -276,8 +276,8 @@ namespace Inferno::Resources {
     }
 
     // Reads a file from the current mission or the file system
-    // Returns empty list if not found
-    List<ubyte> TryReadFile(const filesystem::path& path) {
+    // Returns empty if not found
+    List<ubyte> TryReadMissionFile(const filesystem::path& path) {
         auto fileName = path.filename().string();
         if (Game::Mission && Game::Mission->Exists(fileName)) {
             return Game::Mission->ReadEntry(fileName);
@@ -290,10 +290,32 @@ namespace Inferno::Resources {
         return {};
     }
 
+    // Reads a game resource file that must be present.
+    // Searches the mounted mission, then the hog, then the filesystem
+    List<ubyte> ReadGameResource(string file) {
+        // Search mounted mission first
+        if (Game::Mission && Game::Mission->Exists(file))
+            return Game::Mission->ReadEntry(file);
+
+        // Then main hog file
+        if (Hog.Exists(file))
+            return Hog.ReadEntry(file);
+
+        // Then the filesystem
+        if (auto path = FileSystem::TryFindFile(file))
+            return File::ReadAllBytes(*path);
+
+        auto msg = fmt::format("Required game resource file not found: {}", file);
+        SPDLOG_ERROR(msg);
+        throw Exception(msg);
+    }
+
     void LoadDescent2Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
         SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
-        StreamReader reader(FileSystem::FindFile(L"descent2.ham"));
+
+        auto hamData = ReadGameResource("descent2.ham");
+        StreamReader reader(hamData);
         auto ham = ReadHam(reader);
         auto hog = HogFile::Read(FileSystem::FindFile(L"descent2.hog"));
         auto pigName = ReplaceExtension(level.Palette, ".pig");
@@ -314,7 +336,7 @@ namespace Inferno::Resources {
         folder.remove_filename();
 
         auto pog = ReplaceExtension(level.FileName, ".pog");
-        auto pogData = TryReadFile(folder / pog);
+        auto pogData = TryReadMissionFile(folder / pog);
         if (!pogData.empty()) {
             SPDLOG_INFO("Loading POG data");
             CustomTextures.LoadPog(pig.Entries, pogData, palette);
@@ -331,7 +353,7 @@ namespace Inferno::Resources {
 
         // Read hxm
         auto hxm = ReplaceExtension(level.FileName, ".hxm");
-        auto hxmData = TryReadFile(folder / hxm);
+        auto hxmData = TryReadMissionFile(folder / hxm);
         if (!hxmData.empty()) {
             SPDLOG_INFO("Loading HXM data");
             StreamReader hxmReader(hxmData);
@@ -421,7 +443,7 @@ namespace Inferno::Resources {
         filesystem::path folder = level.Path;
         folder.remove_filename();
         auto dtx = ReplaceExtension(level.FileName, ".dtx");
-        auto dtxData = TryReadFile(folder / dtx);
+        auto dtxData = TryReadMissionFile(folder / dtx);
         if (!dtxData.empty()) {
             SPDLOG_INFO("DTX data found");
             CustomTextures.LoadDtx(pig.Entries, dtxData, palette);
@@ -565,22 +587,23 @@ namespace Inferno::Resources {
         return Textures[(int)id];
     }
 
-    List<ubyte> ReadFile(string file) {
-        // Search mounted mission first
-        if (Game::Mission && Game::Mission->Exists(file))
-            return Game::Mission->ReadEntry(file);
-
-        // Then main hog file
-        if (Hog.Exists(file))
-            return Hog.ReadEntry(file);
-
-        SPDLOG_ERROR("File not found: {}", file);
-        throw Exception("File not found");
-    }
-
     Level ReadLevel(string name) {
         SPDLOG_INFO("Reading level {}", name);
-        auto data = ReadFile(name);
+        List<ubyte> data;
+
+        // Search mounted mission first
+        if (Game::Mission && Game::Mission->Exists(name))
+            data = Game::Mission->ReadEntry(name);
+
+        // Then main hog file
+        if (Hog.Exists(name))
+            data = Hog.ReadEntry(name);
+
+        if (data.empty()) {
+            SPDLOG_ERROR("File not found: {}", name);
+            throw Exception("File not found");
+        }
+
         auto level = Level::Deserialize(data);
         level.FileName = name;
         return level;

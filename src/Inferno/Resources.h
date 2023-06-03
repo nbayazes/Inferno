@@ -82,7 +82,6 @@ namespace Inferno::Resources {
     PigBitmap& AccessBitmap(TexID);
 
     // Reads a file from the mission or game HOG
-    List<ubyte> ReadFile(string file);
 
     // Reads a level from the mounted mission
     Level ReadLevel(string name);

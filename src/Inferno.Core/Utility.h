@@ -488,7 +488,7 @@ namespace Inferno {
         }
 
         // Splits a string into a vector. Returns the original string if no separator is found.
-        inline List<string> Split(string str, const char separator = '\n', bool trim = false) {
+        inline List<string> Split(const string& str, const char separator = '\n', bool trim = false) {
             List<string> items;
             std::stringstream ss(str);
             string item;

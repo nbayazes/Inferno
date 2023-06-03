@@ -16,6 +16,5 @@ namespace Inferno::FileSystem {
     void AddDataDirectory(const filesystem::path&);
     Option<filesystem::path> TryFindFile(const filesystem::path&);
     wstring FindFile(const filesystem::path&);
-    List<char> ReadFileBytes(const filesystem::path&);
     string ReadFileText(const filesystem::path&);
 }
