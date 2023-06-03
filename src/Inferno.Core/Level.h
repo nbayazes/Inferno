@@ -65,7 +65,7 @@ namespace Inferno {
     };
 
     struct LevelFileInfo {
-        static constexpr uint16 Signature = 0x6705;
+        uint16 Signature = 0x6705;
         uint16 GameVersion;
         int32 Size;
         string FileName; // Unused

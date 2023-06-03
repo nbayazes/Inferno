@@ -178,7 +178,7 @@ namespace Inferno::Editor {
             return CursorDragMode::Transform;
         }
         else if (Settings::Editor.SelectionMode == SelectionMode::Segment &&
-                 !Settings::Editor.EnableTextureMode) {
+            !Settings::Editor.EnableTextureMode) {
             Editor::History.SnapshotSelection();
             auto segs = GetSelectedSegments();
             auto copy = CopySegments(level, segs);
@@ -435,6 +435,7 @@ namespace Inferno::Editor {
     }
 
     void ResetObjects(Level& level) {
+        int id = 0;
         for (auto& obj : level.Objects) {
             if (obj.Type == ObjectType::Player) {
                 // Reload player settings
@@ -461,6 +462,11 @@ namespace Inferno::Editor {
                 physics.Mass = robot.Mass;
                 physics.Drag = robot.Drag;
             }
+
+            if (obj.Contains.Type == ObjectType::None && obj.Contains.Count > 0)
+                SPDLOG_WARN("Object {} has a contains count > 1 with no type. Resave to fix.", id);
+
+            id++;
         }
     }
 
@@ -712,6 +718,5 @@ namespace Inferno::Editor {
             },
             .Name = "Toggle Wireframe"
         };
-
     }
 }
