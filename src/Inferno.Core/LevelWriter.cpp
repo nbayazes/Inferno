@@ -450,7 +450,7 @@ namespace Inferno {
             assert(writer.Position() - data.Offset == data.ElementSize * data.Count);
         };
 #else
-        void AssertDataSize(const StreamWriter&, const GameDataHeader&) {};
+        static void AssertDataSize(const StreamWriter&, const GameDataHeader&) {}
 #endif
 
         static void WritePofData(StreamWriter& writer, const Level& level) {
