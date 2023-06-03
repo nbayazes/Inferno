@@ -1,5 +1,4 @@
 #include "pch.h"
-#include <streambuf>
 #include "LevelSettings.h"
 #include "Yaml.h"
 #include "Resources.h"
@@ -175,6 +174,9 @@ namespace Inferno {
                 ReadSegmentInfo(root["Segments"], level);
                 ReadSideInfo(root["Sides"], level);
                 ReadWallInfo(root["Walls"], level);
+                ReadValue(root["CameraPosition"], level.CameraPosition);
+                ReadValue(root["CameraTarget"], level.CameraTarget);
+                ReadValue(root["CameraUp"], level.CameraUp);
             }
         }
         catch (const std::exception& e) {
@@ -192,6 +194,13 @@ namespace Inferno {
             SaveSegmentInfo(doc["Segments"], level);
             SaveSideInfo(doc["Sides"], level);
             SaveWallInfo(doc["Walls"], level);
+
+            if (level.CameraUp != Vector3::Zero) {
+                doc["CameraPosition"] << EncodeVector(level.CameraPosition);
+                doc["CameraTarget"] << EncodeVector(level.CameraTarget);
+                doc["CameraUp"] << EncodeVector(level.CameraUp);
+            }
+
             stream << doc;
         }
         catch (const std::exception& e) {

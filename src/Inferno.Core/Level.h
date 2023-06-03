@@ -152,6 +152,10 @@ namespace Inferno {
 
         // Name of the level on the filesystem. Empty means it is in a hog or unsaved.
         filesystem::path Path;
+
+        Vector3 CameraPosition;
+        Vector3 CameraTarget;
+        Vector3 CameraUp;
 #pragma endregion
 
         bool IsDescent1() const { return Version == 1; }

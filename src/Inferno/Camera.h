@@ -30,7 +30,7 @@ namespace Inferno {
         Viewport Viewport = { 0, 0, 1024, 768, NearClip, FarClip };
 
         void SetViewport(float width, float height) {
-            Viewport = { 0, 0, width, height, NearClip, FarClip };
+            Viewport = DirectX::SimpleMath::Viewport{ 0, 0, width, height, NearClip, FarClip };
         }
 
         void LookAtPerspective(float fovDeg) {
@@ -178,7 +178,7 @@ namespace Inferno {
         Ray UnprojectRay(Vector2 screen, const Matrix& world) const {
             auto direction = Unproject(screen, world) - Position;
             direction.Normalize();
-            return Ray(Position, direction);
+            return { Position, direction };
         }
 
         // Returns a frustum for the perspective view

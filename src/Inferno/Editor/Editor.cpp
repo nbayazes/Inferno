@@ -494,25 +494,34 @@ namespace Inferno::Editor {
     }
 
     void OnLevelLoad(bool reload) {
-        if (!reload)
-            Commands::ZoomExtents();
+        auto& level = Game::Level;
+        if (!reload) {
+            if (level.CameraUp != Vector3::Zero) {
+                Render::Camera.Position = level.CameraPosition;
+                Render::Camera.Target = level.CameraTarget;
+                Render::Camera.Up = level.CameraUp;
+            }
+            else {
+                Commands::ZoomExtents();
+            }
+        }
 
-        auto seg = Game::Level.Segments.empty() ? SegID::None : SegID(0);
-        Editor::Selection.Object = Game::Level.Objects.empty() ? ObjID::None : ObjID(0);
+        auto seg = level.Segments.empty() ? SegID::None : SegID(0);
+        Editor::Selection.Object = level.Objects.empty() ? ObjID::None : ObjID(0);
         Editor::Marked.Clear();
 
         Editor::Selection.SetSelection({ seg, SideID::Left });
-        Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
+        Editor::History = { &level, Settings::Editor.UndoLevels };
         UpdateSecretLevelReturnMarker();
-        ResetFlickeringLightTimers(Game::Level);
-        ResetObjects(Game::Level);
+        ResetFlickeringLightTimers(level);
+        ResetObjects(level);
 
-        for (auto& obj : Game::Level.Objects)
+        for (auto& obj : level.Objects)
             obj.Radius = GetObjectRadius(obj);
 
-        CheckTriggers(Game::Level);
+        CheckTriggers(level);
         Editor::Events::LevelLoaded();
-        SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
+        SetStatusMessage("Loaded level with {} segments and {} vertices", level.Segments.size(), level.Vertices.size());
 
         if (!Resources::HasGameData())
             Events::ShowDialog(DialogType::Settings);

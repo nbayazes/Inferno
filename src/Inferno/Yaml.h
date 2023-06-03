@@ -1,5 +1,10 @@
 #pragma once
 
+#ifndef C4_USE_ASSERT
+// Bad data shouldn't cause an assertion, even in debug
+#define C4_USE_ASSERT 0
+#endif
+
 #include <ryml/ryml_std.hpp>
 #include <ryml/ryml.hpp>
 #include <spdlog/spdlog.h>
@@ -27,6 +32,24 @@ namespace Yaml {
     }
 
     // Specification for bools. Reading them as bools has undeseriable behavior.
+    template<>
+    inline void ReadValue(ryml::NodeRef node, Inferno::VClipID& id) {
+        if (node.is_seed() || !node.has_val()) return;
+        node >> (int&)id;
+    }
+
+    template<>
+    inline void ReadValue(ryml::NodeRef node, Inferno::SoundID& id) {
+        if (node.is_seed() || !node.has_val()) return;
+        node >> (int&)id;
+    }
+
+    template<>
+    inline void ReadValue(ryml::NodeRef node, Inferno::TexID& id) {
+        if (node.is_seed() || !node.has_val()) return;
+        node >> (Inferno::int16&)id;
+    }
+
     template<>
     inline void ReadValue(ryml::NodeRef node, bool& value) {
         int val = 0;
@@ -70,8 +93,7 @@ namespace Yaml {
         if (token.size() != 4 && token.size() != 3)
             return;
 
-
-        float r{}, g{}, b{}, a{};
+        float r{}, g{}, b{}, a{ 1 };
         ParseFloat(token[0], r);
         ParseFloat(token[1], g);
         ParseFloat(token[2], b);
@@ -79,6 +101,37 @@ namespace Yaml {
             ParseFloat(token[3], a);
 
         value = DirectX::SimpleMath::Color{ r, g, b, a };
+    }
+
+    template<>
+    inline void ReadValue(ryml::NodeRef node, DirectX::SimpleMath::Vector3& value) {
+        if (node.is_seed() || !node.has_val()) return;
+        std::string str;
+        node >> str;
+        auto token = Inferno::String::Split(str, ',', true);
+        if (token.size() != 3)
+            return;
+
+        float x{}, y{}, z{};
+        ParseFloat(token[0], x);
+        ParseFloat(token[1], y);
+        ParseFloat(token[2], z);
+        value = DirectX::SimpleMath::Vector3{ x, y, z };
+    }
+
+    template<>
+    inline void ReadValue(ryml::NodeRef node, DirectX::SimpleMath::Vector2& value) {
+        if (node.is_seed() || !node.has_val()) return;
+        std::string str;
+        node >> str;
+        auto token = Inferno::String::Split(str, ',', true);
+        if (token.size() != 2)
+            return;
+
+        float x{}, y{};
+        ParseFloat(token[0], x);
+        ParseFloat(token[1], y);
+        value = DirectX::SimpleMath::Vector2{ x, y };
     }
 
     template<>
@@ -102,6 +155,15 @@ namespace Yaml {
         return fmt::format("{}, {}, {}, {}", (int)a[0], (int)a[1], (int)a[2], (int)a[3]);
     }
 
+
+    inline std::string EncodeVector(const DirectX::SimpleMath::Vector2& v) {
+        return fmt::format("{}, {}", v.x, v.y);
+    }
+
+    inline std::string EncodeVector(const DirectX::SimpleMath::Vector3& v) {
+        return fmt::format("{}, {}, {}", v.x, v.y, v.z);
+    }
+
     inline std::string EncodeColor(const DirectX::SimpleMath::Color& color) {
         return fmt::format("{}, {}, {}, {}", color.R(), color.G(), color.B(), color.A());
     }
@@ -113,7 +175,6 @@ namespace Yaml {
     inline std::string EncodeTag(Inferno::Tag tag) {
         return fmt::format("{}:{}", (int)tag.Segment, (int)tag.Side);
     }
-
 
     inline void ReadString(ryml::NodeRef node, std::string& value) {
         return ReadValue<std::string>(node, value);
