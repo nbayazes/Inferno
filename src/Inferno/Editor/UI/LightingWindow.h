@@ -23,11 +23,13 @@ namespace Inferno::Editor {
             if (destroyedTex == LevelTexID::None) return;
 
             if (ImGui::Button("Break light")) {
+                Editor::History.SnapshotSelection();
                 seg.GetSide(Editor::Selection.Side).TMap2 = destroyedTex;
 
                 Inferno::SubtractLight(Game::Level, Editor::Selection.Tag(), seg);
                 Events::LevelChanged();
-                //Render::LoadTextureDynamic(destroyedTex);
+                Render::LoadTextureDynamic(destroyedTex);
+                Editor::History.SnapshotLevel("Break light");
             }
         }
 
@@ -43,6 +45,8 @@ namespace Inferno::Editor {
                 Inferno::ToggleLight(Game::Level, Editor::Selection.Tag());
                 Events::LevelChanged();
             }
+
+            ImGui::HelpMarker("Previews the effect of toggling dynamic light from flickering or breakable lights");
         }
 
         void OnUpdate() override {
@@ -88,10 +92,10 @@ namespace Inferno::Editor {
                 ImGui::HelpMarker("Causes level geometry to block light");
                 ImGui::SameLine();
                 ImGui::Checkbox("Accurate Volumes", &settings.AccurateVolumes);
-                ImGui::HelpMarker("Calculates light on connected sides to improve volumetric accuracy.\nHas a high performance impact.");
+                ImGui::HelpMarker("Calculates light on connected sides to improve volumetric accuracy.\nHas a high calculation time impact.");
 
                 ImGui::Checkbox("Color", &settings.EnableColor);
-                ImGui::HelpMarker("Enables colored lighting. Currently is not saved to the level.");
+                ImGui::HelpMarker("Enables colored lighting. Currently is not saved to the level\nand should only be used for screenshots.");
 
                 ImGui::SameLine();
                 ImGui::Checkbox("Multithread", &settings.Multithread);
@@ -114,7 +118,7 @@ namespace Inferno::Editor {
 
             ToggleLight();
 #ifdef _DEBUG
-            ImGui::SameLine();
+            ImGui::SameLine(0, 30);
             BreakLight();
 #endif
         }
