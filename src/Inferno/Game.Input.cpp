@@ -126,6 +126,12 @@ namespace Inferno {
         if (Input::IsKeyDown(Keys::D))
             lateralThrust += maxThrust;
 
+        if (Input::IsKeyDown(Keys::LeftShift))
+            verticalThrust -= maxThrust;
+
+        if (Input::IsKeyDown(Keys::Space))
+            verticalThrust += maxThrust;
+
         float afterburnerThrust = Game::Player.UpdateAfterburner(dt, Input::IsKeyDown(Keys::LeftControl));
         if (afterburnerThrust > 1)
             forwardThrust = maxThrust * afterburnerThrust;

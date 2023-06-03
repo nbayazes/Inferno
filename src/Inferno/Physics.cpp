@@ -1322,6 +1322,109 @@ namespace Inferno {
         }
     }
 
+    bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit) {
+        if(oid != ObjID(0)) return false; // player only
+
+        // naive approach with no culling
+        for (auto& seg : level.Segments) {
+            if (Vector3::DistanceSquared(obj.Position, seg.Center) > 100 * 100) continue;
+            for (auto& sideId : SideIDs) {
+                if (!seg.SideIsSolid(sideId, level)) continue;
+                auto& side = seg.GetSide(sideId);
+                auto face = Face::FromSide(level, seg, sideId);
+
+                auto i = side.GetRenderIndices();
+
+                for (int tri = 0; tri < 2; tri++) {
+                    auto offset = side.Normals[tri] * obj.Radius;
+
+                    Vector3 p0 = face[i[tri * 3 + 0]];
+                    Vector3 p1 = face[i[tri * 3 + 1]];
+                    Vector3 p2 = face[i[tri * 3 + 2]];
+
+                    Plane plane(p0 + offset, p1 + offset, p2 + offset);
+                    // todo: replace with plane.Dot()
+                    auto planeDist = DistanceFromPlane(obj.Position, p0 + offset, side.Normals[tri]);
+                    if (planeDist > 0 || planeDist < -obj.Radius)
+                        continue; // Object isn't close enough to the triangle plane
+
+                    auto point = ProjectPointOntoPlane(obj.Position, plane);
+
+                    Vector3 hitPoint;
+                    Vector3 hitNormal;
+                    float hitDistance = FLT_MAX;
+
+                    if (PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
+                        // point was inside the triangle and behind the plane
+                        hitPoint = point - offset;
+                        hitNormal = side.Normals[tri];
+                        hitDistance = planeDist;
+                    }
+                    else {
+                        // wasn't inside triangle, check the nearest edge
+                        auto c1 = ClosestPointOnLine(p0, p1, obj.Position);
+                        auto c2 = ClosestPointOnLine(p1, p2, obj.Position);
+                        auto c3 = ClosestPointOnLine(p2, p0, obj.Position);
+
+                        auto dist1 = Vector3::Distance(obj.Position, c1);
+                        auto dist2 = Vector3::Distance(obj.Position, c2);
+                        auto dist3 = Vector3::Distance(obj.Position, c3);
+
+                        float minDist = std::min(std::min(dist1, dist2), dist3);
+
+                        if (minDist <= obj.Radius) {
+                            if (minDist == dist1) {
+                                auto normal = obj.Position - c1;
+                                normal.Normalize();
+                                hitPoint = c1;
+                                hitNormal = normal;
+                                hitDistance = minDist;
+                            }
+                            else if (minDist == dist2) {
+                                auto normal = obj.Position - c2;
+                                normal.Normalize();
+                                hitPoint = c2;
+                                hitNormal = normal;
+                                hitDistance = minDist;
+                            }
+                            else {
+                                auto normal = obj.Position - c3;
+                                normal.Normalize();
+                                hitPoint = c3;
+                                hitNormal = normal;
+                                hitDistance = minDist;
+                            }
+                        }
+                    }
+
+                    if (hitDistance < obj.Radius) {
+                        //if (obj.Physics.Velocity != Vector3::Zero) {
+                        auto wallPart = hitNormal.Dot(obj.Physics.Velocity);
+
+                        //if (pd.HasFlag(PhysicsFlag::Bounce))
+                        //wallPart *= 2; //Subtract out wall part twice to achieve bounce
+
+                        obj.Physics.Velocity -= hitNormal * wallPart;
+                        //obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal) * 0.5;
+                        obj.Position = hitPoint + hitNormal * obj.Radius;
+                        //}
+
+                        Debug::ClosestPoints.push_back(hitPoint);
+                        Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
+                    }
+
+                    if (hitDistance < hit.Distance) {
+                        hit.Distance = hitDistance;
+                        hit.Normal = hitNormal;
+                        hit.Point = hitPoint;
+                    }
+                }
+            }
+        }
+
+        return hit;
+    }
+
     void UpdatePhysics(Level& level, double /*t*/, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
@@ -1354,38 +1457,53 @@ namespace Inferno {
             auto maxDistance = delta.Length();
             LevelHit hit{ .Source = &obj };
 
-            if (maxDistance < 0.001f) {
-                // no travel, but need to check for being inside of wall (maybe this isn't necessary)
-                BoundingSphere sphere(obj.Position, obj.Radius);
+            if (IntersectLevelNew(level, obj, (ObjID)id, hit)) {
+                //if (obj.Physics.Velocity != Vector3::Zero) {
+                //    auto wallPart = hit.Normal.Dot(obj.Physics.Velocity);
 
-                if (IntersectLevel(level, sphere, obj.Segment, (ObjID)id, hit)) {
-                    Debug::ClosestPoints.push_back(hit.Point);
-                    Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-                }
-            }
-            else {
-                Vector3 dir;
-                delta.Normalize(dir);
+                //    //if (pd.HasFlag(PhysicsFlag::Bounce))
+                //        //wallPart *= 2; //Subtract out wall part twice to achieve bounce
 
-                //if (obj.Radius < 0.1) {
-                //    Ray ray(obj.LastPosition, dir);
-                //    auto maxDist = (dir * obj.Physics.Velocity).Length();
-                //    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
-                //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-                //        Debug::ClosestPoints.push_back(hit.Point);
-                //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-                //    }
+                //    obj.Physics.Velocity -= hit.Normal * wallPart;
+                //    //obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal) * 0.5;
+                //    obj.Position = hit.Point + hit.Normal * obj.Radius;
                 //}
-                //else {
-                    BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
-
-                    if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
-                        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-                        Debug::ClosestPoints.push_back(hit.Point);
-                        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-                    }
-                //}
+                //Debug::ClosestPoints.push_back(hit.Point);
+                //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
             }
+
+            //if (maxDistance < 0.001f) {
+            //    // no travel, but need to check for being inside of wall (maybe this isn't necessary)
+            //    BoundingSphere sphere(obj.Position, obj.Radius);
+
+            //    if (IntersectLevel(level, sphere, obj.Segment, (ObjID)id, hit)) {
+            //        Debug::ClosestPoints.push_back(hit.Point);
+            //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+            //    }
+            //}
+            //else {
+            //    Vector3 dir;
+            //    delta.Normalize(dir);
+
+            //    //if (obj.Radius < 0.1) {
+            //    //    Ray ray(obj.LastPosition, dir);
+            //    //    auto maxDist = (dir * obj.Physics.Velocity).Length();
+            //    //    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
+            //    //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+            //    //        Debug::ClosestPoints.push_back(hit.Point);
+            //    //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+            //    //    }
+            //    //}
+            //    //else {
+            //    BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
+
+            //    if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
+            //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+            //        Debug::ClosestPoints.push_back(hit.Point);
+            //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+            //    }
+            //    //}
+            //}
 
             if (hit) {
                 if (obj.Type == ObjectType::Weapon) {
@@ -1413,21 +1531,13 @@ namespace Inferno {
                     obj.Physics.Bounces--;
                 }
 
-                //CollideTriangles(level, obj, dt, 0);
-                //CollideTriangles(level, obj, dt, 1); // Doing two passes makes the result more stable
-                //CollideTriangles(level, obj, dt, 2); // Doing two passes makes the result more stable
-
-                //auto frameVec = obj.Position() - obj.PrevTransform.Translation();
-                //obj.Movement.Physics.Velocity = frameVec / dt;
-
                 // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
                 if (obj.Type != ObjectType::Weapon) {
                     MoveObject(level, (ObjID)id);
                 }
             }
-            else {
-                MoveObject(level, (ObjID)id);
-            }
+
+            MoveObject(level, (ObjID)id);
 
             //if (obj.LastPosition != obj.Position)
             //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });

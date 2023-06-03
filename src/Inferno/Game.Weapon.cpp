@@ -271,6 +271,7 @@ namespace Inferno::Game {
     }
 
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
+        if (!hit.Tag) return;
         bool isPlayer = obj.Control.Weapon.ParentType == ObjectType::Player;
         CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, isPlayer);
 
