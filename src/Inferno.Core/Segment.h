@@ -55,9 +55,9 @@ namespace Inferno {
             }
         }
 
-        const Array<uint16, 6> GetRenderIndices() const {
-            static const Array<uint16, 6> TRI02 = { 0u, 1u, 2u, 0u, 2u, 3u };
-            static const Array<uint16, 6> TRI13 = { 0u, 1u, 3u, 3u, 1u, 2u };
+        const std::array<uint16, 6>& GetRenderIndices() const {
+            static const std::array<uint16, 6> TRI02 = { 0u, 1u, 2u, 0u, 2u, 3u };
+            static const std::array<uint16, 6> TRI13 = { 0u, 1u, 3u, 3u, 1u, 2u };
             return Type == SideSplitType::Tri13 ? TRI13 : TRI02;
         }
 

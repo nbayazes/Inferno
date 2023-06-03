@@ -36,7 +36,7 @@ namespace Inferno {
     // Returns the UVs on a face closest to a point in world coordinates
     Vector2 IntersectFaceUVs(Level& level, const Vector3& point, Segment& seg, Tag tag, int tri) {
         auto face = Face::FromSide(level, seg, tag.Side);
-        auto indices = face.Side.GetRenderIndices();
+        auto& indices = face.Side.GetRenderIndices();
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
         auto& v2 = face[indices[tri * 3 + 2]];
@@ -657,7 +657,7 @@ namespace Inferno {
     // Returns the nearest intersection point on a face
     HitInfo IntersectFaceSphere(const Face& face, const BoundingSphere& sphere) {
         HitInfo hit;
-        auto i = face.Side.GetRenderIndices();
+        auto& i = face.Side.GetRenderIndices();
 
         if (sphere.Intersects(face[i[0]], face[i[1]], face[i[2]])) {
             auto p = ClosestPointOnTriangle(face[i[0]], face[i[1]], face[i[2]], sphere.Center);
@@ -936,7 +936,7 @@ namespace Inferno {
 
         for (auto& side : SideIDs) {
             auto face = Face::FromSide(level, seg, side);
-            auto i = face.Side.GetRenderIndices();
+            auto& i = face.Side.GetRenderIndices();
 
             Vector3 refPoint, normal;
             float dist{};
@@ -1052,7 +1052,7 @@ namespace Inferno {
 
         for (auto& side : SideIDs) {
             auto face = Face::FromSide(level, seg, side);
-            auto i = face.Side.GetRenderIndices();
+            auto& i = face.Side.GetRenderIndices();
 
             Vector3 refPoint, normal;
             float dist{};
@@ -1323,35 +1323,39 @@ namespace Inferno {
     }
 
     bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit) {
-        if(oid != ObjID(0)) return false; // player only
+        for (int segId = 0; segId < level.Segments.size(); segId++) {
+            auto& seg = level.Segments[segId];
 
-        // naive approach with no culling
-        for (auto& seg : level.Segments) {
-            if (Vector3::DistanceSquared(obj.Position, seg.Center) > 100 * 100) continue;
+            // todo: use segment portal depth culling
+            if (Vector3::DistanceSquared(obj.Position, seg.Center) > 100 * 100)
+                continue;
+
+            // todo: check object-object collisions
+            // todo: substeps or sweeps for fast moving objects (ensure v * t < radius)
+
             for (auto& sideId : SideIDs) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
                 auto& side = seg.GetSide(sideId);
                 auto face = Face::FromSide(level, seg, sideId);
+                auto& indices = side.GetRenderIndices();
 
-                auto i = side.GetRenderIndices();
-
+                // Check the position against each triangle
                 for (int tri = 0; tri < 2; tri++) {
-                    auto offset = side.Normals[tri] * obj.Radius;
-
-                    Vector3 p0 = face[i[tri * 3 + 0]];
-                    Vector3 p1 = face[i[tri * 3 + 1]];
-                    Vector3 p2 = face[i[tri * 3 + 2]];
-
+                    // Offset the triangle position by the object radius and then do a point-triangle intersection.
+                    // This leaves space at the edges to do a capsule intersection check.
+                    const auto offset = side.Normals[tri] * obj.Radius;
+                    const Vector3 p0 = face[indices[tri * 3 + 0]];
+                    const Vector3 p1 = face[indices[tri * 3 + 1]];
+                    const Vector3 p2 = face[indices[tri * 3 + 2]];
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
-                    // todo: replace with plane.Dot()
-                    auto planeDist = DistanceFromPlane(obj.Position, p0 + offset, side.Normals[tri]);
+
+                    auto planeDist = plane.DotCoordinate(obj.Position);
                     if (planeDist > 0 || planeDist < -obj.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(obj.Position, plane);
 
-                    Vector3 hitPoint;
-                    Vector3 hitNormal;
+                    Vector3 hitPoint, hitNormal;
                     float hitDistance = FLT_MAX;
 
                     if (PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
@@ -1361,7 +1365,7 @@ namespace Inferno {
                         hitDistance = planeDist;
                     }
                     else {
-                        // wasn't inside triangle, check the nearest edge
+                        // Point wasn't inside the triangle, check the edges
                         auto c1 = ClosestPointOnLine(p0, p1, obj.Position);
                         auto c2 = ClosestPointOnLine(p1, p2, obj.Position);
                         auto c3 = ClosestPointOnLine(p2, p0, obj.Position);
@@ -1369,54 +1373,50 @@ namespace Inferno {
                         auto dist1 = Vector3::Distance(obj.Position, c1);
                         auto dist2 = Vector3::Distance(obj.Position, c2);
                         auto dist3 = Vector3::Distance(obj.Position, c3);
-
                         float minDist = std::min(std::min(dist1, dist2), dist3);
 
                         if (minDist <= obj.Radius) {
-                            if (minDist == dist1) {
-                                auto normal = obj.Position - c1;
-                                normal.Normalize();
-                                hitPoint = c1;
-                                hitNormal = normal;
-                                hitDistance = minDist;
-                            }
-                            else if (minDist == dist2) {
-                                auto normal = obj.Position - c2;
-                                normal.Normalize();
-                                hitPoint = c2;
-                                hitNormal = normal;
-                                hitDistance = minDist;
-                            }
-                            else {
-                                auto normal = obj.Position - c3;
-                                normal.Normalize();
-                                hitPoint = c3;
-                                hitNormal = normal;
-                                hitDistance = minDist;
-                            }
+                            // Object hit a triangle edge
+                            hitDistance = minDist;
+
+                            auto updateHitFromEdge = [&](const Vector3& pt) {
+                                auto normal = obj.Position - pt;
+                                normal.Normalize(hitNormal);
+                                hitPoint = pt;
+                            };
+
+                            if (minDist == dist1)
+                                updateHitFromEdge(c1);
+                            else if (minDist == dist2)
+                                updateHitFromEdge(c2);
+                            else
+                                updateHitFromEdge(c3);
                         }
                     }
 
                     if (hitDistance < obj.Radius) {
-                        //if (obj.Physics.Velocity != Vector3::Zero) {
+                        // Object hit a wall, apply physics
                         auto wallPart = hitNormal.Dot(obj.Physics.Velocity);
 
-                        //if (pd.HasFlag(PhysicsFlag::Bounce))
-                        //wallPart *= 2; //Subtract out wall part twice to achieve bounce
+                        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce))
+                            wallPart *= 2; // Subtract wall part twice to achieve bounce
 
-                        obj.Physics.Velocity -= hitNormal * wallPart;
-                        //obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal) * 0.5;
-                        obj.Position = hitPoint + hitNormal * obj.Radius;
-                        //}
+                        obj.Physics.Velocity -= hitNormal * wallPart; // slide along wall (or bounce)
+                        obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
 
-                        Debug::ClosestPoints.push_back(hitPoint);
-                        Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
+                        //Debug::ClosestPoints.push_back(hitPoint);
+                        //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
                     }
 
                     if (hitDistance < hit.Distance) {
+                        // Store the closest overall hit as the final hit
                         hit.Distance = hitDistance;
                         hit.Normal = hitNormal;
                         hit.Point = hitPoint;
+                        hit.Tag = { (SegID)segId, sideId };
+                        hit.Tangent = face.Side.Tangents[tri];
+                        hit.EdgeDistance = FaceEdgeDistance(seg, sideId, face, hit.Point);
+                        hit.Tri = tri;
                     }
                 }
             }
@@ -1432,6 +1432,8 @@ namespace Inferno {
         UpdateGame(level, dt);
 
         for (int id = 0; id < level.Objects.size(); id++) {
+            if (id != 0) continue; // player only testing
+
             auto& obj = level.Objects[id];
             if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
             if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
@@ -1453,56 +1455,32 @@ namespace Inferno {
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of attached objects
 
-            auto delta = obj.Position - obj.LastPosition;
-            auto maxDistance = delta.Length();
             LevelHit hit{ .Source = &obj };
 
             if (IntersectLevelNew(level, obj, (ObjID)id, hit)) {
-                //if (obj.Physics.Velocity != Vector3::Zero) {
-                //    auto wallPart = hit.Normal.Dot(obj.Physics.Velocity);
-
-                //    //if (pd.HasFlag(PhysicsFlag::Bounce))
-                //        //wallPart *= 2; //Subtract out wall part twice to achieve bounce
-
-                //    obj.Physics.Velocity -= hit.Normal * wallPart;
-                //    //obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal) * 0.5;
-                //    obj.Position = hit.Point + hit.Normal * obj.Radius;
-                //}
                 //Debug::ClosestPoints.push_back(hit.Point);
                 //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
             }
 
-            //if (maxDistance < 0.001f) {
-            //    // no travel, but need to check for being inside of wall (maybe this isn't necessary)
-            //    BoundingSphere sphere(obj.Position, obj.Radius);
+            // Vector3 dir;
+            // delta.Normalize(dir);
 
-            //    if (IntersectLevel(level, sphere, obj.Segment, (ObjID)id, hit)) {
+            //if (obj.Radius < 0.1) {
+            //    Ray ray(obj.LastPosition, dir);
+            //    auto maxDist = (dir * obj.Physics.Velocity).Length();
+            //    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
+            //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
             //        Debug::ClosestPoints.push_back(hit.Point);
             //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
             //    }
             //}
             //else {
-            //    Vector3 dir;
-            //    delta.Normalize(dir);
-
-            //    //if (obj.Radius < 0.1) {
-            //    //    Ray ray(obj.LastPosition, dir);
-            //    //    auto maxDist = (dir * obj.Physics.Velocity).Length();
-            //    //    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
-            //    //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-            //    //        Debug::ClosestPoints.push_back(hit.Point);
-            //    //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-            //    //    }
-            //    //}
-            //    //else {
-            //    BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
-
-            //    if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
-            //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-            //        Debug::ClosestPoints.push_back(hit.Point);
-            //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-            //    }
-            //    //}
+            //BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
+            //
+            //if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
+            //    //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
+            //    Debug::ClosestPoints.push_back(hit.Point);
+            //    Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
             //}
 
             if (hit) {

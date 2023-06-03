@@ -107,7 +107,7 @@ namespace Inferno::Graphics {
     }
 
     Vector3 PositionAtUV(const Face& face, int tri, Vector2 uv) {
-        auto indices = face.Side.GetRenderIndices();
+        auto& indices = face.Side.GetRenderIndices();
 
         Vector2 uvs[3];
         for (int i = 0; i < 3; i++) {
@@ -134,7 +134,7 @@ namespace Inferno::Graphics {
     }
 
     Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv) {
-        auto indices = face.Side.GetRenderIndices();
+        auto& indices = face.Side.GetRenderIndices();
 
         Vector2 uvs[3];
         for (int i = 0; i < 3; i++) {

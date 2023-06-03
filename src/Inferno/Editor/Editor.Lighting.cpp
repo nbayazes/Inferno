@@ -334,7 +334,7 @@ namespace Inferno::Editor {
                 bool sideIsWall = side.Wall != WallID::None;
                 if (sideIsWall && side.Normals[0].Dot(ray.direction) > 0) continue; // skip walls pointing the same direction (allows passing through one-way walls)
 
-                auto ri = side.GetRenderIndices();
+                auto& ri = side.GetRenderIndices();
                 auto indices = seg.GetVertexIndices(sideId);
                 float dist{};
 
@@ -485,7 +485,7 @@ namespace Inferno::Editor {
                     else {
                         // Light triangulated faces twice using the clip plane for each normal. Then average along seam.
                         Color face0Color[4]{}, face1Color[4]{};
-                        auto ri = destFace.Side.GetRenderIndices();
+                        auto& ri = destFace.Side.GetRenderIndices();
 
                         for (int i = 0; i < 3; i++) {
                             // for each vert of triangle 1

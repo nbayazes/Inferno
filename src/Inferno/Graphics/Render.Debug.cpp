@@ -429,7 +429,7 @@ namespace Inferno::Render::Debug {
 
     void DrawSide(Level& level, Tag tag, const Color& color) {
         auto [seg, side] = level.GetSegmentAndSide(tag);
-        auto i = side.GetRenderIndices();
+        auto& i = side.GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(tag.Side);
 
@@ -438,7 +438,7 @@ namespace Inferno::Render::Debug {
     }
 
     void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color) {
-        auto i = seg.GetSide(side).GetRenderIndices();
+        auto& i = seg.GetSide(side).GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(side);
 
@@ -458,7 +458,6 @@ namespace Inferno::Render::Debug {
     }
 
     void DrawSideOutline(const Level& level, Segment& seg, SideID side, const Color& color) {
-        auto i = seg.GetSide(side).GetRenderIndices();
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(side);
 

@@ -312,6 +312,7 @@ namespace Inferno {
         return point - (plane.DotNormal(point) + plane.D()) * plane.Normal();
     }
 
+    // This is the same as Plane.DotCoordinate(point)
     inline float DistanceFromPlane(const Vector3& point, const Vector3& planeOrigin, Vector3 planeNormal) {
         return planeNormal.Dot(point - planeOrigin);
     }

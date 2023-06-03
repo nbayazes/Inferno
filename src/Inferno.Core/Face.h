@@ -40,7 +40,7 @@ namespace Inferno {
 
         // Returns -1 if no hit, 0 if hit tri 0, 1 if hit tri 1
         int Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
-            auto i = Side.GetRenderIndices();
+            auto& i = Side.GetRenderIndices();
             bool hitTri0 = hitBackface || Side.Normals[0].Dot(ray.direction) < 0;
             bool hitTri1 = hitBackface || Side.Normals[1].Dot(ray.direction) < 0;
             if (hitTri0 && ray.Intersects(GetPoint(i[0]), GetPoint(i[1]), GetPoint(i[2]), dist))
@@ -125,24 +125,24 @@ namespace Inferno {
 
         // Makes a copy of verts!
         Array<Vector3, 3> VerticesForPoly0() const {
-            auto indices = Side.GetRenderIndices();
+            auto& indices = Side.GetRenderIndices();
             return { GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]) };
         }
 
         // Makes a copy of verts!
         Array<Vector3, 3> VerticesForPoly1() const {
-            auto indices = Side.GetRenderIndices();
+            auto& indices = Side.GetRenderIndices();
             return { GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]) };
         }
 
 
         Plane GetPlane0() {
-            auto indices = Side.GetRenderIndices();
+            auto& indices = Side.GetRenderIndices();
             return Plane(GetPoint(indices[0]), GetPoint(indices[1]), GetPoint(indices[2]));
         }
 
         Plane GetPlane1() {
-            auto indices = Side.GetRenderIndices();
+            auto& indices = Side.GetRenderIndices();
             return Plane(GetPoint(indices[3]), GetPoint(indices[4]), GetPoint(indices[5]));
         }
 

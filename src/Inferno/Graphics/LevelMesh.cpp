@@ -125,7 +125,7 @@ namespace Inferno {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex);
 
-        auto indices = side.GetRenderIndices();
+        auto& indices = side.GetRenderIndices();
         auto [tangent1, bitangent1] = GetTangentBitangent(verts, uvs, indices, 0);
         auto [tangent2, bitangent2] = GetTangentBitangent(verts, uvs, indices, 1);
 
