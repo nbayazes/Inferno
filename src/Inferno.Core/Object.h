@@ -196,13 +196,14 @@ namespace Inferno {
     };
 
     struct PhysicsData {
-        Vector3 Velocity;
+        Vector3 Velocity, LastVelocity;
         Vector3 InputVelocity; // Velocity after input but before collision
         Vector3 Thrust;     // Constant force applied
         float Mass;
         float Drag;
         float Brakes;
         Vector3 AngularVelocity;
+        Vector3 AngularAcceleration;
         Vector3 AngularThrust;  // Rotational acceleration
         float TurnRoll;   // Rotation caused by turn banking
         PhysicsFlag Flags;

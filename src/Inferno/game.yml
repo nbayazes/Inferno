@@ -131,7 +131,7 @@ Weapons:
     Mass: 0.05
     BlobSize: 0.25
     Damage: 5
-    Speed: 130
+    Speed: 150
     Spread: 3.6 # 3.6 originally
     FireCount: 5
 

@@ -253,7 +253,7 @@ namespace Inferno {
     void AngularPhysics(Object& obj, float dt) {
         auto& pd = obj.Physics;
 
-        if (IsZero(pd.AngularVelocity) && IsZero(pd.AngularThrust))
+        if (IsZero(pd.AngularVelocity) && IsZero(pd.AngularThrust) && IsZero(pd.AngularAcceleration))
             return;
 
         auto pdDrag = pd.Drag > 0 ? pd.Drag : 1;
@@ -262,8 +262,11 @@ namespace Inferno {
         if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
             pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
 
-        if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel))
+        if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel)) {
+            pd.AngularVelocity += pd.AngularAcceleration * dt;
+            pd.AngularAcceleration *= 1 - drag;
             pd.AngularVelocity *= 1 - drag;
+        }
 
         Debug::R = pd.AngularVelocity.y;
 
@@ -302,7 +305,7 @@ namespace Inferno {
         if (refresh_time == 0.0)
             refresh_time = t;
 
-        if (Input::IsKeyDown(DirectX::Keyboard::Keys::NumPad8)) {
+        if (Input::IsKeyDown(DirectX::Keyboard::Keys::Add)) {
             if (index < Debug::ShipVelocities.size() && t >= refresh_time) {
                 //while (refresh_time < Game::ElapsedTime) {
                 Debug::ShipVelocities[index] = pd.Velocity.Length();
@@ -461,8 +464,11 @@ namespace Inferno {
         // Compute the normal vectors for triangles:
         Vector3 u = b.Cross(c), v = c.Cross(a), w = a.Cross(b);
 
+        //auto uv = u.Dot(v);
+        //auto uw = u.Dot(w);
+        //auto vw = v.Dot(w);
         // Test if the normals are facing the same direction
-        return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f;
+        return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f && v.Dot(w) >= 0.0f;
     }
 
     // Returns true if a point lies within a triangle
@@ -629,6 +635,36 @@ namespace Inferno {
         return hit;
     }
 
+    HitInfo IntersectSphereSphere2(const BoundingSphere& a, const BoundingSphere& b) {
+        HitInfo hit;
+        Vector3 c0(a.Center), c1(b.Center);
+        auto v = c1 - c0;
+        auto distance = v.Length();
+        if (distance < a.Radius + b.Radius) {
+            v.Normalize();
+            hit.Point = b.Center + v * b.Radius;
+            hit.Distance = Vector3::Distance(hit.Point, c0);
+            hit.Normal = v;
+        }
+
+        return hit;
+    }
+
+    // Intersects a sphere with a point. Surface normal points towards point.
+    HitInfo IntersectPointSphere(const Vector3 point, const BoundingSphere& sphere) {
+        HitInfo hit;
+        auto dir = point - sphere.Center;
+        float depth = sphere.Radius - dir.Length();
+        if (depth > 0) {
+            dir.Normalize();
+            hit.Point = sphere.Center + dir * sphere.Radius;
+            hit.Distance = Vector3::Distance(hit.Point, point);
+            hit.Normal = -dir;
+        }
+
+        return hit;
+    }
+
     //// Returns the closest point on a triangle to a point
     //Vector3 ClosestPoint(const Triangle& t, Vector3 point) {
     //    point = ProjectPointOntoPlane(point, t.GetPlane());
@@ -764,6 +800,7 @@ namespace Inferno {
 
     bool ObjectCanHitTarget(const Object& src, const Object& target) {
         if (!target.IsAlive() && target.Type != ObjectType::Reactor) return false;
+        //if (!HasFlag(target.Movement, MovementType::Physics)) return false;
         if (src.Signature == target.Signature) return false; // don't hit yourself!
         //if (src.Parent == target.Parent && src.Parent != ObjID::None) return false; // don't hit your siblings!
 
@@ -1322,7 +1359,111 @@ namespace Inferno {
         }
     }
 
-    bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit) {
+    void CollideObjects(const LevelHit& hit, Object& a, Object& b, float dt) {
+        if (b.Type != ObjectType::Robot && b.Type != ObjectType::Clutter && b.Type != ObjectType::Reactor && b.Type != ObjectType::Player && b.Type != ObjectType::Coop)
+            return;
+
+        Vector3 aVelDir;
+        a.Physics.Velocity.Normalize(aVelDir);
+
+        auto m1 = a.Physics.Mass == 0.0f ? 1.0f : a.Physics.Mass;
+        auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
+        //auto bPosOrig = b.Position;
+
+        // move the two objects out of each other so they don't stick
+        if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) {
+            //a.Position = hit.Point - hit.Normal * a.Radius;
+            //b.Position = hit.Point + hit.Normal * b.Radius;
+            auto dist = Vector3::Distance(a.Position, b.Position);
+            auto corr = (a.Radius + b.Radius - dist) / 2.0;
+            a.Position += hit.Normal * corr;
+            b.Position -= hit.Normal * corr;
+        }
+
+        //if (Vector3::Distance(b.Position, bPosOrig) > b.Radius) {
+        //    //__debugbreak();
+        //}
+
+        auto v1 = a.Physics.Velocity.Dot(hit.Normal);
+        auto v2 = b.Physics.Velocity.Dot(hit.Normal);
+
+        // Player ramming a robot should impart less force than a weapon
+        float restitution = a.Type == ObjectType::Player ? 0.6f : 1.0f;
+        auto newV1 = (m1 * v1 + m2 * v2 - m2 * (v1 - v2) * restitution) / (m1 + m2);
+        auto newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
+
+        //auto bDeltaVel = hit.Normal * (newV2 - v2);
+        a.Physics.Velocity += hit.Normal * (newV1 - v1);
+        b.Physics.Velocity += hit.Normal * (newV2 - v2);
+
+        //if (a.Type == ObjectType::Weapon && !HasFlag(a.Physics.Flags, PhysicsFlag::Bounce))
+        //    a.Physics.Velocity = Vector3::Zero; // stop weapons when hitting an object
+
+        //auto actualVel = (a.Position - a.LastPosition) / dt;
+
+        auto force = aVelDir * aVelDir.Dot(hit.Normal) * v1 * m1 / m2;
+        //auto deltaVel = (a.Physics.Velocity) - a.Physics.LastVelocity;
+        //auto force = deltaVel * m1 / m2; // delta force
+        //force *= 10; // hack
+
+        //auto actualForce = actualVel * m1 / m2;
+        //force = actualForce;
+
+        a.LastHitForce = b.LastHitForce = force;
+
+        // Only apply rotational velocity when a weapon hits a robot. Feels bad if a player being hit loses aim.
+        // Also two spheres (such as player-robot collision) shouldn't cause rotation
+        if (/*a.Type == ObjectType::Weapon &&*/ b.Type == ObjectType::Robot) {
+            Matrix basis(b.Rotation);
+            basis = basis.Invert();
+            force = Vector3::Transform(force, basis); // transform forces to basis of object
+            // todo: cap the length of the moment arm?
+            auto arm = Vector3::Transform(hit.Point - b.Position, basis);
+            //if (a.Type == ObjectType::Player) {
+            //    // this is less than ideal
+            //    arm.Normalize();
+            //    arm *= 2;
+            //}
+
+            const auto torque = force.Cross(arm);
+            const auto inertia = (2.0f / 5.0f) * m2 * b.Radius * b.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
+            const auto accel = torque / inertia;
+            b.Physics.AngularAcceleration += accel;
+        }
+
+        // todo: player hitting a robot should cause it to rotate away slightly
+        // however, using the correct physics causes robots to spin erratically when sliding against them
+    }
+
+    bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
+        // Did we hit any objects?
+        for (int otherOid = 0; otherOid < level.Objects.size(); otherOid++) {
+            if (oid == (ObjID)otherOid) continue; // don't hit yourself!
+            auto other = level.TryGetObject((ObjID)otherOid);
+            if (!other) continue;
+            if (oid == other->Parent) continue; // Don't hit your children!
+            if (!ObjectCanHitTarget(obj, *other)) continue;
+
+            // todo: use segment culling
+            if (Vector3::DistanceSquared(obj.Position, other->Position) > 20 * 20)
+                continue;
+
+            auto posA = obj.Position;
+            auto posB = other->Position;
+            BoundingSphere sphereA(posA, obj.Radius);
+            BoundingSphere sphereB(posB, other->Radius);
+            BoundingSphere sphere(posB, other->Radius + obj.Radius);
+            //if (auto info = IntersectPointSphere(obj.Position, sphere)) {
+            //    hit.Update(info, other);
+            //    hit.Point = obj.Position + hit.Normal * obj.Radius;
+            //    CollideObjects(hit, obj, *other, dt);
+            //}
+            if (auto info = IntersectSphereSphere2(sphereB, sphereA)) {
+                hit.Update(info, other);
+                CollideObjects(hit, obj, *other, dt);
+            }
+        }
+
         for (int segId = 0; segId < level.Segments.size(); segId++) {
             auto& seg = level.Segments[segId];
 
@@ -1330,8 +1471,8 @@ namespace Inferno {
             if (Vector3::DistanceSquared(obj.Position, seg.Center) > 100 * 100)
                 continue;
 
-            // todo: check object-object collisions
             // todo: substeps or sweeps for fast moving objects (ensure v * t < radius)
+
 
             for (auto& sideId : SideIDs) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
@@ -1341,8 +1482,8 @@ namespace Inferno {
 
                 // Check the position against each triangle
                 for (int tri = 0; tri < 2; tri++) {
-                    // Offset the triangle position by the object radius and then do a point-triangle intersection.
-                    // This leaves space at the edges to do a capsule intersection check.
+                    // Offset the triangle by the object radius and then do a point-triangle intersection.
+                    // This leaves space at the edges to do capsule intersection checks.
                     const auto offset = side.Normals[tri] * obj.Radius;
                     const Vector3 p0 = face[indices[tri * 3 + 0]];
                     const Vector3 p1 = face[indices[tri * 3 + 1]];
@@ -1350,7 +1491,7 @@ namespace Inferno {
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
 
                     auto planeDist = plane.DotCoordinate(obj.Position);
-                    if (planeDist > 0 || planeDist < -obj.Radius)
+                    if (planeDist >= 0 || planeDist < -obj.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(obj.Position, plane);
@@ -1401,8 +1542,12 @@ namespace Inferno {
                         if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce))
                             wallPart *= 2; // Subtract wall part twice to achieve bounce
 
-                        obj.Physics.Velocity -= hitNormal * wallPart; // slide along wall (or bounce)
+                        obj.Physics.Velocity -= hitNormal * wallPart;     // slide along wall (or bounce)
                         obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
+
+                        // apply friction so robots pinned against the wall don't spin in place
+                        obj.Physics.AngularAcceleration *= 0.5f;
+
 
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
@@ -1432,8 +1577,6 @@ namespace Inferno {
         UpdateGame(level, dt);
 
         for (int id = 0; id < level.Objects.size(); id++) {
-            if (id != 0) continue; // player only testing
-
             auto& obj = level.Objects[id];
             if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
             if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
@@ -1441,6 +1584,7 @@ namespace Inferno {
 
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
+            obj.Physics.LastVelocity = obj.Physics.Velocity;
 
             FixedPhysics(obj, dt);
 
@@ -1455,9 +1599,10 @@ namespace Inferno {
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of attached objects
 
+            //if (id != 0) continue; // player only testing
             LevelHit hit{ .Source = &obj };
 
-            if (IntersectLevelNew(level, obj, (ObjID)id, hit)) {
+            if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {
                 //Debug::ClosestPoints.push_back(hit.Point);
                 //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
             }
@@ -1513,9 +1658,30 @@ namespace Inferno {
                 if (obj.Type != ObjectType::Weapon) {
                     MoveObject(level, (ObjID)id);
                 }
+
+                // Play a wall hit sound if the object hits something head-on
+                if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
+                    //vm_vec_sub(&moved_v, &obj->pos, &save_pos);
+                    //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
+
+                    auto deltaVel = (obj.Physics.Velocity - obj.Physics.LastVelocity).Length();
+                    //auto deltaVel = obj.Physics.Velocity - obj.Physics.LastVelocity;
+                    //auto actualVel = (obj.Position - obj.LastPosition) / dt;
+                    //auto velDotNorm = deltaVel.Dot(hit.Normal);
+
+                    //if (abs(velDotNorm) > 25) {
+
+                    // sudden change in velocity means we hit something
+                    if (deltaVel > 35) {
+                        //if (actualVel.Length() > 45) {
+                        Sound3D sound(hit.Point, hit.Tag.Segment);
+                        sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
+                        Sound::Play(sound);
+                    }
+                }
             }
 
-            MoveObject(level, (ObjID)id);
+            MoveObject(level, (ObjID)id); // todo: refer to move object above w/ forcefields
 
             //if (obj.LastPosition != obj.Position)
             //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
@@ -1523,6 +1689,7 @@ namespace Inferno {
             if (id == 0) {
                 Debug::ShipVelocity = obj.Physics.Velocity;
                 Debug::ShipPosition = obj.Position;
+                PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
             }
         }
     }
