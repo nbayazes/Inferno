@@ -34,8 +34,7 @@ namespace Inferno {
     }
 
     // Returns the UVs on a face closest to a point in world coordinates
-    Vector2 IntersectFaceUVs(Level& level, const Vector3& point, Segment& seg, Tag tag, int tri) {
-        auto face = Face::FromSide(level, seg, tag.Side);
+    Vector2 IntersectFaceUVs(Level& level, const Vector3& point, Face& face, int tri) {
         auto& indices = face.Side.GetRenderIndices();
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
@@ -92,13 +91,13 @@ namespace Inferno {
     }
 
     // Returns true if the point was transparent
-    bool WallPointIsTransparent(Level& level, const Vector3& pnt, Segment& seg, Tag tag, int tri) {
-        if (!seg.SideIsSolid(tag.Side, level)) return true;
-
-        auto uv = IntersectFaceUVs(level, pnt, seg, tag, tri);
-        auto& side = seg.GetSide(tag.Side);
+    bool WallPointIsTransparent(Level& level, const Vector3& pnt, Face& face, int tri) {
+        auto& side = face.Side;
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
+        if (!bitmap.Info.Transparent) return false; // Must be flagged transparent
+
+        auto uv = IntersectFaceUVs(level, pnt, face, tri);
         auto wrap = [](float x, uint16 size) {
             // -1 so that x = 1.0 results in width - 1, correcting for the array index
             return (uint)Mod(uint16(x * (float)size - 1.0f), size);
@@ -158,7 +157,8 @@ namespace Inferno {
             }
         }
 
-        auto uv = IntersectFaceUVs(level, point, *seg, tag, tri);
+        auto face = Face::FromSide(level, *seg, tag.Side);
+        auto uv = IntersectFaceUVs(level, point, face, tri);
 
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(side.TMap2));
         auto& info = bitmap.Info;
@@ -1042,7 +1042,7 @@ namespace Inferno {
                         if (passTransparent)
                             isSolid = false;
                         else if (hitTestTextures)
-                            isSolid = !WallPointIsTransparent(level, intersect, seg, tag, tri);
+                            isSolid = !WallPointIsTransparent(level, intersect, face, tri);
                     }
                     else {
                         isSolid = seg.SideIsSolid(side, level);
@@ -1099,9 +1099,8 @@ namespace Inferno {
                 if (capsule.Intersects(face[i[tri * 3]], face[i[tri * 3 + 1]], face[i[tri * 3 + 2]],
                                        face.Side.Normals[tri], refPoint, normal, dist)) {
                     if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                        Tag tag(segId, side);
                         if (object.Type == ObjectType::Weapon) {
-                            if (WallPointIsTransparent(level, refPoint, seg, tag, tri))
+                            if (WallPointIsTransparent(level, refPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
                         }
 
@@ -1141,108 +1140,6 @@ namespace Inferno {
         LevelHit hit;
         return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
     }
-
-    //void Intersect(Level& level, SegID segId, const Triangle& t, Object& obj, float dt, int pass) {
-    //    //if (obj.Type == ObjectType::Player) return;
-
-    //    Plane plane(t.Points[0], t.Points[1], t.Points[2]);
-    //    auto& pd = obj.Physics;
-
-    //    if (pd.Velocity.Dot(plane.Normal()) > 0) return; // ignore faces pointing away from velocity
-    //    auto delta = obj.Position - obj.LastPosition;
-    //    auto expectedDistance = delta.Length();
-    //    if (expectedDistance < 0.001f) return;
-    //    Vector3 dir;
-    //    delta.Normalize(dir);
-    //    //auto expectedTravel = (obj.Position() - obj.PrevPosition()).Length();
-
-    //    float hitDistance{};
-    //    Ray ray(obj.LastPosition, dir);
-    //    //bool hit = false;
-
-    //    //if (ray.Intersects(t.Points[0], t.Points[1], t.Points[2], hitDistance)) {
-    //    //    hit = hitDistance < expectedDistance - obj.Radius;
-    //    //    //if (hit && hitDistance < expectedDistance.Length() + obj.Radius) // did the object pass all the way through the wall in one frame?
-    //    //    if (hit)
-    //    //        obj.Position = obj.LastPosition + dir * (hitDistance - obj.Radius);
-    //    //}
-
-    //    bool isHit = false;
-
-    //    LevelHit hit;
-    //    IntersectLevel(level, ray, segId, expectedDistance, false, hit);
-    //    if (hit.HitObj) {
-    //        // hit an object
-    //        obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
-    //        hitDistance = hit.Distance;
-    //        isHit = true;
-    //    }
-    //    else if (hit.Tag) {
-    //        // hit a wall
-    //        obj.Position = obj.LastPosition + dir * (hit.Distance - obj.Radius);
-    //        hitDistance = hit.Distance;
-    //        isHit = true;
-    //    }
-    //    else {
-    //        // ray cast didn't hit anything, try the sphere test
-    //        // note that this is not a sweep and will miss points between the begin and end.
-    //        // Fortunately, most fast-moving objects are projectiles and have small radii.
-    //        BoundingSphere sphere(obj.Position, obj.Radius);
-    //        isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
-
-    //        float planeDist;
-    //        ray.Intersects(plane, planeDist);
-    //        if (!isHit && planeDist <= expectedDistance) {
-    //            // Last, test if the object sphere collides with the intersection of the triangle's plane
-    //            sphere = BoundingSphere(obj.LastPosition + dir * planeDist, obj.Radius * 1.1f);
-    //            //BoundingSphere sphere(obj.Position(), obj.Radius);
-    //            isHit = sphere.Intersects(t.Points[0], t.Points[1], t.Points[2]);
-    //        }
-    //    }
-
-    //    if (!isHit) return;
-
-    //    bool tryAgain = false;
-
-    //    auto closestPoint = ClosestPointOnTriangle(t[0], t[1], t[2], obj.Position);
-    //    Debug::ClosestPoints.push_back(closestPoint);
-    //    auto closestNormal = obj.Position - closestPoint;
-    //    closestNormal.Normalize();
-
-    //    // Adjust velocity
-    //    if (pd.HasFlag(PhysicsFlag::Stick)) {
-
-    //    }
-    //    else {
-    //        // We're constrained by wall, so subtract wall part from velocity
-    //        auto wallPart = closestNormal.Dot(pd.Velocity);
-
-    //        if (pd.HasFlag(PhysicsFlag::Bounce))
-    //            wallPart *= 2; //Subtract out wall part twice to achieve bounce
-
-    //        pd.Velocity -= closestNormal * wallPart;
-    //        tryAgain = true;
-
-    //        //pd.Velocity = Vector3::Reflect(pd.Velocity, plane.Normal()) / pd.Mass;
-    //    }
-
-    //    // Check if the wall is penetrating the object, and if it is apply some extra force to get it out
-    //    if (pass > 0 && !pd.HasFlag(PhysicsFlag::Bounce)) {
-    //        auto depth = obj.Radius - (obj.Position - closestPoint).Length();
-    //        if (depth > 0.075f) {
-    //            auto strength = depth / 0.15f;
-    //            pd.Velocity += closestNormal * pd.Velocity.Length() * strength;
-    //            //SPDLOG_WARN("Object inside wall. depth: {} strength: {}", depth, strength);
-
-    //            // Counter the input velocity
-    //            pd.Velocity -= obj.Physics.InputVelocity * strength * dt;
-    //        }
-    //    }
-
-    //    // Move the object to the surface of the triangle
-    //    obj.Position = closestPoint + closestNormal * obj.Radius;
-    //}
-
 
     void UpdateGame(Level& level, float dt) {
         for (auto& obj : level.Objects) {
@@ -1414,8 +1311,7 @@ namespace Inferno {
 
         a.LastHitForce = b.LastHitForce = force;
 
-        // Only apply rotational velocity when a weapon hits a robot. Feels bad if a player being hit loses aim.
-        // Also two spheres (such as player-robot collision) shouldn't cause rotation
+        // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
         if (/*a.Type == ObjectType::Weapon &&*/ b.Type == ObjectType::Robot) {
             Matrix basis(b.Rotation);
             basis = basis.Invert();
@@ -1453,7 +1349,7 @@ namespace Inferno {
     bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
         Vector3 direction;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
-        obj.Physics.Velocity.Normalize(direction);
+        obj.Physics.Velocity.Normalize(direction); // todo: what if velocity is 0?
         Ray pathRay(obj.LastPosition, direction);
 
         // Did we hit any objects?
@@ -1508,84 +1404,117 @@ namespace Inferno {
                     const Vector3 p1 = face[indices[tri * 3 + 1]];
                     const Vector3 p2 = face[indices[tri * 3 + 2]];
 
+                    bool triFacesTowardsObj = pathRay.direction.Dot(side.Normals[tri]) <= 0;
+                    float hitDistance = FLT_MAX;
+                    Vector3 hitPoint, hitNormal;
+
+                    // a size 4 object would need a velocity > 250 to clip through walls
                     if (obj.Type == ObjectType::Weapon) {
                         // Use raycasting for weapons because they are typically small and have high velocities
-                        float rayDist;
-                        if (pathRay.Intersects(p0, p1, p2, rayDist) && rayDist < travelDistance) {
+                        float dist;
+                        if (triFacesTowardsObj && 
+                            pathRay.Intersects(p0, p1, p2, dist) &&
+                            dist < travelDistance) {
                             // move the object to the surface and proceed as normal
-                            obj.Position = obj.LastPosition + pathRay.direction * rayDist - pathRay.direction * obj.Radius * 0.25f;
+                            hitPoint = obj.LastPosition + pathRay.direction * dist;
+                            if (WallPointIsTransparent(level, hitPoint, face, tri))
+                                continue; // skip projectiles that hit transparent part of a wall
+
+                            obj.Position = hitPoint - pathRay.direction * obj.Radius /** 0.25f*/;
+                            hitNormal = side.Normals[tri];
+                            hitDistance = dist;
+                            edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
                         }
-                    }
-
-                    Plane plane(p0 + offset, p1 + offset, p2 + offset);
-
-                    auto planeDist = plane.DotCoordinate(obj.Position);
-                    if (planeDist >= 0 || planeDist < -obj.Radius)
-                        continue; // Object isn't close enough to the triangle plane
-
-                    auto point = ProjectPointOntoPlane(obj.Position, plane);
-
-                    Vector3 hitPoint, hitNormal;
-                    float hitDistance = FLT_MAX;
-
-                    if (PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
-                        // point was inside the triangle and behind the plane
-                        hitPoint = point - offset;
-                        hitNormal = side.Normals[tri];
-                        hitDistance = planeDist;
-                        edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
                     }
                     else {
-                        // Point wasn't inside the triangle, check the edges
-                        Vector3 points[3] = {
-                            ClosestPointOnLine(p0, p1, obj.Position),
-                            ClosestPointOnLine(p1, p2, obj.Position),
-                            ClosestPointOnLine(p2, p0, obj.Position)
-                        };
+                        // Use point-triangle intersections for everything else.
+                        // Note that fast moving objects could clip through walls!
 
-                        float distances[3]{};
-                        for (int i = 0; i < std::size(points); i++) {
-                            distances[i] = Vector3::Distance(obj.Position, points[i]);
+                        Plane plane(p0 + offset, p1 + offset, p2 + offset);
+                        auto planeDist = plane.DotCoordinate(obj.Position);
+                        if (planeDist >= 0 || planeDist < -obj.Radius)
+                            continue; // Object isn't close enough to the triangle plane
+
+                        auto point = ProjectPointOntoPlane(obj.Position, plane);
+
+                        if (hitDistance == FLT_MAX && triFacesTowardsObj && PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
+                            // point was inside the triangle and behind the plane
+                            hitPoint = point - offset;
+                            hitNormal = side.Normals[tri];
+                            hitDistance = planeDist;
+                            edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
                         }
+                        else {
+                            // Point wasn't inside the triangle, check the edges
+                            Vector3 points[3] = {
+                                ClosestPointOnLine(p0, p1, obj.Position),
+                                ClosestPointOnLine(p1, p2, obj.Position),
+                                ClosestPointOnLine(p2, p0, obj.Position)
+                            };
 
-                        int minIndex = 0;
-                        for (int i = 0; i < std::size(points); i++) {
-                            if (distances[i] < distances[minIndex])
-                                minIndex = i;
-                        }
+                            float distances[3]{};
+                            for (int i = 0; i < std::size(points); i++) {
+                                distances[i] = Vector3::Distance(obj.Position, points[i]);
+                            }
 
-                        if (distances[minIndex] <= obj.Radius) {
-                            // Object hit a triangle edge
-                            hitDistance = distances[minIndex];
-                            auto normal = obj.Position - points[minIndex];
-                            normal.Normalize(hitNormal);
-                            hitPoint = points[minIndex];
+                            int minIndex = 0;
+                            for (int i = 0; i < std::size(points); i++) {
+                                if (distances[i] < distances[minIndex])
+                                    minIndex = i;
+                            }
 
-                            Vector3 tanVec;
-                            if (minIndex == 0)
-                                tanVec = p1 - p0;
-                            else if (minIndex == 1)
-                                tanVec = p2 - p1;
-                            else
-                                tanVec = p0 - p2;
+                            if (distances[minIndex] <= obj.Radius) {
+                                auto normal = obj.Position - points[minIndex];
+                                normal.Normalize(hitNormal);
 
-                            tanVec.Normalize(tangent);
+                                if (pathRay.direction.Dot(normal) > 0)
+                                    continue; // velocity going away from surface
+
+                                // Object hit a triangle edge
+                                hitDistance = distances[minIndex];
+                                hitPoint = points[minIndex];
+
+                                Vector3 tanVec;
+                                if (minIndex == 0)
+                                    tanVec = p1 - p0;
+                                else if (minIndex == 1)
+                                    tanVec = p2 - p1;
+                                else
+                                    tanVec = p0 - p2;
+
+                                tanVec.Normalize(tangent);
+                            }
                         }
                     }
 
                     if (hitDistance < obj.Radius) {
+                        // Check if hit is transparent (duplicate check due to triangle edges)
+                        if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(level, hitPoint, face, tri))
+                            continue; // skip projectiles that hit transparent part of a wall
+
                         // Object hit a wall, apply physics
                         auto wallPart = hitNormal.Dot(obj.Physics.Velocity);
 
-                        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce))
-                            wallPart *= 2; // Subtract wall part twice to achieve bounce
+                        //if (obj.Physics.CanBounce()) {
+                        //    wallPart *= 2; // Subtract wall part twice to achieve bounce
+                        //    pathRay.direction = Vector3::Reflect(pathRay.direction, hitNormal);
+                        //    pathRay.position = obj.Position;
+
+                        //    //obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
+                        //    if (obj.Type == ObjectType::Weapon)
+                        //        obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
+
+                        //    // subtracting number of bounces here makes sense, in case multiple hits occur in a single tick.
+                        //    // however then bounces needs to be 1 higher than stated in the config
+                        //    // so that bounce effects work correctly in WeaponHitWall()
+                        //    //obj.Physics.Bounces--;
+                        //}
 
                         obj.Physics.Velocity -= hitNormal * wallPart;     // slide along wall (or bounce)
                         obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
 
                         // apply friction so robots pinned against the wall don't spin in place
                         obj.Physics.AngularAcceleration *= 0.5f;
-
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
                     }
@@ -1637,36 +1566,10 @@ namespace Inferno {
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of attached objects
 
-            //if (id != 0) continue; // player only testing
+            //if (id == 0) continue; // player only testing
             LevelHit hit{ .Source = &obj };
 
             if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {
-                Debug::ClosestPoints.push_back(hit.Point);
-                Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-            }
-
-            // Vector3 dir;
-            // delta.Normalize(dir);
-
-            //if (obj.Radius < 0.1) {
-            //    Ray ray(obj.LastPosition, dir);
-            //    auto maxDist = (dir * obj.Physics.Velocity).Length();
-            //    if (IntersectLevel(level, ray, obj.Segment, maxDist, false, true, hit)) {
-            //        //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-            //        Debug::ClosestPoints.push_back(hit.Point);
-            //        Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-            //    }
-            //}
-            //else {
-            //BoundingCapsule capsule{ .A = obj.LastPosition, .B = obj.Position, .Radius = obj.Radius };
-            //
-            //if (IntersectLevel(level, capsule, obj.Segment, obj, hit)) {
-            //    //Render::Debug::DrawPoint(hit.Point, { 1, 1, 0 });
-            //    Debug::ClosestPoints.push_back(hit.Point);
-            //    Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
-            //}
-
-            if (hit) {
                 if (obj.Type == ObjectType::Weapon) {
                     if (hit.HitObj) {
                         Game::WeaponHitObject(hit, obj, level);
@@ -1684,8 +1587,9 @@ namespace Inferno {
                     Game::Player.TouchObject(*hit.HitObj);
                 }
 
-                if (HasFlag(obj.Physics.Flags, PhysicsFlag::Bounce) || obj.Physics.Bounces > 0) {
-                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
+                if (obj.Physics.CanBounce()) {
+                    // this doesn't work because the object velocity is already modified
+                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.LastVelocity, hit.Normal);
                     if (obj.Type == ObjectType::Weapon)
                         obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
 
@@ -1707,11 +1611,8 @@ namespace Inferno {
                     //auto actualVel = (obj.Position - obj.LastPosition) / dt;
                     //auto velDotNorm = deltaVel.Dot(hit.Normal);
 
-                    //if (abs(velDotNorm) > 25) {
-
                     // sudden change in velocity means we hit something
                     if (deltaVel > 35) {
-                        //if (actualVel.Length() > 45) {
                         Sound3D sound(hit.Point, hit.Tag.Segment);
                         sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
                         Sound::Play(sound);

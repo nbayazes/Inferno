@@ -377,9 +377,8 @@ namespace Inferno::Game {
             return;
         }
 
-        if (obj.Physics.CanBounce() && !hitLiquid) {
+        if (obj.Physics.CanBounce() && !hitLiquid)
             return; // don't create explosions when bouncing
-        }
 
         obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting a wall
 
@@ -440,7 +439,7 @@ namespace Inferno::Game {
         auto& obj = level.Objects[(int)objId];
         auto gunOffset = GetGunpointOffset(obj, gun);
         auto point = Vector3::Transform(gunOffset, obj.GetTransform());
-        auto& weapon = Resources::GameData.Weapons[(int)id];
+        auto& weapon = Resources::GetWeapon(id);
 
         Object bullet{};
         bullet.Position = bullet.LastPosition = point;
