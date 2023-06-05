@@ -1393,7 +1393,9 @@ namespace Inferno {
         auto newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
 
         //auto bDeltaVel = hit.Normal * (newV2 - v2);
-        a.Physics.Velocity += hit.Normal * (newV1 - v1);
+        if (!HasFlag(a.Physics.Flags, PhysicsFlag::Piercing)) // piercing weapons shouldn't bounce
+            a.Physics.Velocity += hit.Normal * (newV1 - v1);
+
         b.Physics.Velocity += hit.Normal * (newV2 - v2);
 
         //if (a.Type == ObjectType::Weapon && !HasFlag(a.Physics.Flags, PhysicsFlag::Bounce))
@@ -1429,6 +1431,18 @@ namespace Inferno {
             const auto inertia = (2.0f / 5.0f) * m2 * b.Radius * b.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
             const auto accel = torque / inertia;
             b.Physics.AngularAcceleration += accel;
+
+            //targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
+            //target.LastHitForce = force;
+
+            //Matrix basis(target.Rotation);
+            //basis = basis.Invert();
+            //force = Vector3::Transform(force, basis); // transform forces to basis of object
+            //const auto arm = Vector3::Transform(hit.Point - target.Position, basis);
+            //const auto torque = force.Cross(arm);
+            //const auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
+            //const auto accel = torque / inertia;
+            //targetPhys.AngularVelocity += accel; // should we multiply by dt here?
         }
 
         // todo: player hitting a robot should cause it to rotate away slightly
@@ -1615,6 +1629,7 @@ namespace Inferno {
                 //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
             }
 
+            //obj.Physics.InputVelocity = obj.Physics.Velocity;
             obj.Position += obj.Physics.Velocity * dt;
 
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
