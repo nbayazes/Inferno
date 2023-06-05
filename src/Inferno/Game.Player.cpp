@@ -368,18 +368,10 @@ namespace Inferno {
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
         for (int i = 0; i < 8; i++) {
-            if (sequence[FiringIndex].Gunpoints[i]) {
+            bool quadFire = HasPowerup(PowerupFlag::QuadLasers) && ship.Weapons[(int)Primary].QuadGunpoints[i];
+            if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
                 behavior(*this, i, id);
-            }
-        }
-
-        if (HasPowerup(PowerupFlag::QuadLasers)) {
-            for (int i = 0; i < 8; i++) {
-                if (ship.Weapons[(int)Primary].QuadGunpoints[i]) {
-                    auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
-                    behavior(*this, i, id);
-                }
             }
         }
 
