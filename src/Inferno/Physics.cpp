@@ -517,6 +517,7 @@ namespace Inferno {
         float mag1, mag2, mag3, mag4;
         mag1 = mag2 = mag3 = mag4 = FLT_MAX;
 
+        // todo: this doesn't hold true on inverted segments
         // If the edge doesn't have a connection it's safe to put a decal on it
         if (seg.SideHasConnection(GetAdjacentSide(side, 0))) {
             auto c = ClosestPointOnLine(face[0], face[1], point);
@@ -1495,7 +1496,7 @@ namespace Inferno {
                 auto& side = seg.GetSide(sideId);
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& indices = side.GetRenderIndices();
-
+                float edgeDistance = 0; // 0 for edge tests
 
                 // Check the position against each triangle
                 for (int tri = 0; tri < 2; tri++) {
@@ -1532,6 +1533,7 @@ namespace Inferno {
                         hitPoint = point - offset;
                         hitNormal = side.Normals[tri];
                         hitDistance = planeDist;
+                        edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
                     }
                     else {
                         // Point wasn't inside the triangle, check the edges
@@ -1595,7 +1597,7 @@ namespace Inferno {
                         hit.Point = hitPoint;
                         hit.Tag = { (SegID)segId, sideId };
                         hit.Tangent = tangent;
-                        hit.EdgeDistance = FaceEdgeDistance(seg, sideId, face, hit.Point);
+                        hit.EdgeDistance = edgeDistance;
                         hit.Tri = tri;
                         hit.WallPoint = hitPoint;
                     }

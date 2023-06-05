@@ -38,7 +38,7 @@ namespace Inferno::Outrage {
         PingPong = (1 << 18),
         Light = (1 << 19), // Full bright
         Breakable = (1 << 20),
-        Saturate = (1 << 21), // Additive?
+        Saturate = (1 << 21), // Additive
         Alpha = (1 << 22), // Use the alpha value in the tablefile
         Dontuse = (1 << 23), // Not intended for levels? Hidden in texture browser?
         Procedural = (1 << 24),

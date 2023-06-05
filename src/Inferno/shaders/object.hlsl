@@ -17,7 +17,7 @@
 
 struct Constants {
     float4x4 WorldMatrix;
-    float4 EmissiveLight; // for untextured objects like lasers
+    float4 EmissiveLight; // for additive objects like lasers
     float4 Ambient;
     int TexIdOverride;
     float TimeOffset;
@@ -103,7 +103,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
     float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rrr;
-    emissive = Args.EmissiveLight.rgb + emissive * diffuse.rgb;
     float3 lighting = float3(0, 0, 0);
 
     if (!Frame.NewLightMode) {
@@ -112,32 +111,36 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
         //lighting += Ambient + pow(emissive * mult, 4);
         lighting += Args.Ambient.rgb;
-        lighting += emissive * 4;
+        lighting += diffuse.rgb * emissive * 4;
         lighting *= Specular(lightDir, viewDir, input.normal);
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
     else {
-        //float specularMask = Specular1.Sample(Sampler, input.uv).r;
-        float specularMask = Sample2D(TextureTable[texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
+        if (Args.EmissiveLight.r == 0 && Args.EmissiveLight.g == 0 && Args.EmissiveLight.b == 0) {
+            //float specularMask = Specular1.Sample(Sampler, input.uv).r;
+            float specularMask = Sample2D(TextureTable[texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
 
-        MaterialInfo material = Materials[matid];
-        float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler);
-        //return float4(normal, 1);
-        normal.xy *= material.NormalStrength;
-        normal = normalize(normal);
+            MaterialInfo material = Materials[matid];
+            float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler);
+            //return float4(normal, 1);
+            normal.xy *= material.NormalStrength;
+            normal = normalize(normal);
 
-        float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
-        normal = normalize(mul(normal, tbn));
+            float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
+            normal = normalize(mul(normal, tbn));
 
-        float3 colorSum = float3(0, 0, 0);
-        uint2 pixelPos = uint2(input.pos.xy);
-        //specularMask = 1;
-        //normal = input.normal;
-        ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-
-        lighting += colorSum * material.LightReceived * 1.5;
-        lighting += emissive * diffuse.rgb * material.EmissiveStrength;
-        lighting += Args.Ambient.rgb * 0.125f * diffuse.rgb * material.LightReceived;
+            float3 colorSum = float3(0, 0, 0);
+            uint2 pixelPos = uint2(input.pos.xy);
+            //specularMask = 1;
+            //normal = input.normal;
+            ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
+            lighting += colorSum * material.LightReceived * 1.5;
+            lighting += emissive * diffuse.rgb * material.EmissiveStrength;
+            lighting += Args.Ambient.rgb * 0.125f * diffuse.rgb * material.LightReceived;
+        }
+        else {
+            lighting += Args.EmissiveLight.rgb * diffuse.rgb;
+        }
 
         return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }

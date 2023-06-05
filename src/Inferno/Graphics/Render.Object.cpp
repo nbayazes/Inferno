@@ -169,8 +169,6 @@ namespace Inferno::Render {
 
         ObjectShader::Constants constants = {};
         auto& seg = Game::Level.GetSegment(object.Segment);
-        //constants.EmissiveLight = object.Render.Emissive;
-        //constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
         if (object.Render.Emissive != Color(0, 0, 0)) {
             // Change the ambient color to white if object has any emissivity
             constants.Ambient = Color(1, 1, 1);

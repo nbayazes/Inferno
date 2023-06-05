@@ -126,7 +126,7 @@ namespace Inferno {
 
         bool SilentSelectFail = false; // Hide HUD errors when selecting
         //Vector2 SpreadMax, SpreadMin; // Random spread on X/Y
-        Color Glow = { 0.01f, 0.01f, 0.01f }; // For emissive glows
+        Color Glow; // Color for additive weapons
         Color LightColor; // color for projectile environment lighting
         float LightRadius = -1; // size of environment lighting
         DynamicLightMode LightMode = DynamicLightMode::Constant; // Effect to use for lighting
