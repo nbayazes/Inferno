@@ -638,7 +638,7 @@ namespace Inferno {
     HitInfo IntersectSphereSphere2(const BoundingSphere& a, const BoundingSphere& b) {
         HitInfo hit;
         Vector3 c0(a.Center), c1(b.Center);
-        auto v = c1 - c0;
+        auto v = c0 - c1;
         auto distance = v.Length();
         if (distance < a.Radius + b.Radius) {
             v.Normalize();
@@ -1436,6 +1436,11 @@ namespace Inferno {
     }
 
     bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
+        Vector3 direction;
+        float travelDistance = obj.Physics.Velocity.Length() * dt;
+        obj.Physics.Velocity.Normalize(direction);
+        Ray pathRay(obj.LastPosition, direction);
+
         // Did we hit any objects?
         for (int otherOid = 0; otherOid < level.Objects.size(); otherOid++) {
             if (oid == (ObjID)otherOid) continue; // don't hit yourself!
@@ -1452,13 +1457,13 @@ namespace Inferno {
             auto posB = other->Position;
             BoundingSphere sphereA(posA, obj.Radius);
             BoundingSphere sphereB(posB, other->Radius);
-            BoundingSphere sphere(posB, other->Radius + obj.Radius);
+            //BoundingSphere sphere(posB, other->Radius + obj.Radius);
             //if (auto info = IntersectPointSphere(obj.Position, sphere)) {
             //    hit.Update(info, other);
             //    hit.Point = obj.Position + hit.Normal * obj.Radius;
             //    CollideObjects(hit, obj, *other, dt);
             //}
-            if (auto info = IntersectSphereSphere2(sphereB, sphereA)) {
+            if (auto info = IntersectSphereSphere2(sphereA, sphereB)) {
                 hit.Update(info, other);
                 CollideObjects(hit, obj, *other, dt);
             }
@@ -1471,23 +1476,32 @@ namespace Inferno {
             if (Vector3::DistanceSquared(obj.Position, seg.Center) > 100 * 100)
                 continue;
 
-            // todo: substeps or sweeps for fast moving objects (ensure v * t < radius)
-
-
             for (auto& sideId : SideIDs) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
                 auto& side = seg.GetSide(sideId);
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& indices = side.GetRenderIndices();
 
+
                 // Check the position against each triangle
                 for (int tri = 0; tri < 2; tri++) {
+                    Vector3 tangent = face.Side.Tangents[tri];
                     // Offset the triangle by the object radius and then do a point-triangle intersection.
                     // This leaves space at the edges to do capsule intersection checks.
                     const auto offset = side.Normals[tri] * obj.Radius;
                     const Vector3 p0 = face[indices[tri * 3 + 0]];
                     const Vector3 p1 = face[indices[tri * 3 + 1]];
                     const Vector3 p2 = face[indices[tri * 3 + 2]];
+
+                    if (obj.Type == ObjectType::Weapon) {
+                        // Use raycasting for weapons because they are typically small and have high velocities
+                        float rayDist;
+                        if (pathRay.Intersects(p0, p1, p2, rayDist) && rayDist < travelDistance) {
+                            // move the object to the surface and proceed as normal
+                            obj.Position = obj.LastPosition + pathRay.direction * rayDist - pathRay.direction * obj.Radius * 0.25f;
+                        }
+                    }
+
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
 
                     auto planeDist = plane.DotCoordinate(obj.Position);
@@ -1507,31 +1521,39 @@ namespace Inferno {
                     }
                     else {
                         // Point wasn't inside the triangle, check the edges
-                        auto c1 = ClosestPointOnLine(p0, p1, obj.Position);
-                        auto c2 = ClosestPointOnLine(p1, p2, obj.Position);
-                        auto c3 = ClosestPointOnLine(p2, p0, obj.Position);
+                        Vector3 points[3] = {
+                            ClosestPointOnLine(p0, p1, obj.Position),
+                            ClosestPointOnLine(p1, p2, obj.Position),
+                            ClosestPointOnLine(p2, p0, obj.Position)
+                        };
 
-                        auto dist1 = Vector3::Distance(obj.Position, c1);
-                        auto dist2 = Vector3::Distance(obj.Position, c2);
-                        auto dist3 = Vector3::Distance(obj.Position, c3);
-                        float minDist = std::min(std::min(dist1, dist2), dist3);
+                        float distances[3]{};
+                        for (int i = 0; i < std::size(points); i++) {
+                            distances[i] = Vector3::Distance(obj.Position, points[i]);
+                        }
 
-                        if (minDist <= obj.Radius) {
+                        int minIndex = 0;
+                        for (int i = 0; i < std::size(points); i++) {
+                            if (distances[i] < distances[minIndex])
+                                minIndex = i;
+                        }
+
+                        if (distances[minIndex] <= obj.Radius) {
                             // Object hit a triangle edge
-                            hitDistance = minDist;
+                            hitDistance = distances[minIndex];
+                            auto normal = obj.Position - points[minIndex];
+                            normal.Normalize(hitNormal);
+                            hitPoint = points[minIndex];
 
-                            auto updateHitFromEdge = [&](const Vector3& pt) {
-                                auto normal = obj.Position - pt;
-                                normal.Normalize(hitNormal);
-                                hitPoint = pt;
-                            };
-
-                            if (minDist == dist1)
-                                updateHitFromEdge(c1);
-                            else if (minDist == dist2)
-                                updateHitFromEdge(c2);
+                            Vector3 tanVec;
+                            if (minIndex == 0)
+                                tanVec = p1 - p0;
+                            else if (minIndex == 1)
+                                tanVec = p2 - p1;
                             else
-                                updateHitFromEdge(c3);
+                                tanVec = p0 - p2;
+
+                            tanVec.Normalize(tangent);
                         }
                     }
 
@@ -1548,7 +1570,6 @@ namespace Inferno {
                         // apply friction so robots pinned against the wall don't spin in place
                         obj.Physics.AngularAcceleration *= 0.5f;
 
-
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
                     }
@@ -1559,9 +1580,10 @@ namespace Inferno {
                         hit.Normal = hitNormal;
                         hit.Point = hitPoint;
                         hit.Tag = { (SegID)segId, sideId };
-                        hit.Tangent = face.Side.Tangents[tri];
+                        hit.Tangent = tangent;
                         hit.EdgeDistance = FaceEdgeDistance(seg, sideId, face, hit.Point);
                         hit.Tri = tri;
+                        hit.WallPoint = hitPoint;
                     }
                 }
             }
@@ -1593,7 +1615,6 @@ namespace Inferno {
                 //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
             }
 
-            obj.Physics.InputVelocity = obj.Physics.Velocity;
             obj.Position += obj.Physics.Velocity * dt;
 
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
@@ -1603,8 +1624,8 @@ namespace Inferno {
             LevelHit hit{ .Source = &obj };
 
             if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {
-                //Debug::ClosestPoints.push_back(hit.Point);
-                //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
+                Debug::ClosestPoints.push_back(hit.Point);
+                Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal, { 1, 0, 0 });
             }
 
             // Vector3 dir;
