@@ -123,7 +123,8 @@ namespace Inferno {
                         int16 px = reader.ReadInt16();
 
                         // convert triangle fans to triangle lists
-                        for (int i = 0; i < n - 2; i++) { // @30
+                        for (int i = 0; i < n - 2; i++) {
+                            // @30
                             auto p = reader.ReadInt16();
                             submodel.FlatIndices.push_back(p0);
                             submodel.FlatIndices.push_back(px);
@@ -166,7 +167,8 @@ namespace Inferno {
                         // assert(p0 < points.size() && px < points.size()); 
 
                         // convert triangle fans to triangle lists
-                        for (int i = 0; i < n - 2; i++) { // @30
+                        for (int i = 0; i < n - 2; i++) {
+                            // @30
                             auto p = reader.ReadInt16();
                             submodel.Indices.push_back(p0);
                             submodel.Indices.push_back(px);
@@ -258,6 +260,26 @@ namespace Inferno {
             readChunk(submodel.Pointer, submodel);
         }
 
+        // Generate normals. We do this here rather than inline because some custom models reference points before they are loaded.
+        for (auto& submodel : model.Submodels) {
+            const auto& vertices = model.Vertices;
+            const auto& indices = submodel.Indices;
+
+            for (int i = 0; i < indices.size(); i += 3) {
+                // flip normals due to reversed Z / winding
+                auto normal = -CreateNormal(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]);
+                model.Normals.push_back(normal);
+            }
+
+            const auto& flatIndices = submodel.FlatIndices;
+
+            for (int i = 0; i < flatIndices.size(); i += 3) {
+                // flip normals due to reversed Z / winding
+                auto normal = -CreateNormal(vertices[flatIndices[i]], vertices[flatIndices[i + 1]], vertices[flatIndices[i + 2]]);
+                model.FlatNormals.push_back(normal);
+            }
+        }
+
         Expand(model);
         UpdateGeometricProperties(model);
 
@@ -265,4 +287,3 @@ namespace Inferno {
         if (model.Submodels.size() > MAX_SUBMODELS) throw Exception("Model contains too many submodels");
     }
 }
-

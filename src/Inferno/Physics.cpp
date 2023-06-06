@@ -503,16 +503,8 @@ namespace Inferno {
         return std::min(std::min(std::min(mag1, mag2), mag3), mag4);
     }
 
-    Vector3 GetTriangleNormal(const Vector3& a, const Vector3& b, const Vector3& c) {
-        auto v1 = b - a;
-        auto v2 = c - a;
-        auto normal = v1.Cross(v2);
-        normal.Normalize();
-        return normal;
-    }
-
     // intersects a with b, with hit normal pointing towards a
-    HitInfo IntersectSphereSphere2(const BoundingSphere& a, const BoundingSphere& b) {
+    HitInfo IntersectSphereSphere(const BoundingSphere& a, const BoundingSphere& b) {
         HitInfo hit;
         Vector3 c0(a.Center), c1(b.Center);
         auto v = c0 - c1;
@@ -590,7 +582,7 @@ namespace Inferno {
     HitInfo BoundingCapsule::Intersects(const DirectX::BoundingSphere& sphere) const {
         auto p = ClosestPointOnLine(B, A, sphere.Center);
         DirectX::BoundingSphere cap(p, Radius);
-        return IntersectSphereSphere2(cap, sphere);
+        return IntersectSphereSphere(cap, sphere);
     }
 
     bool BoundingCapsule::Intersects(const BoundingCapsule& other) const {
@@ -1135,8 +1127,13 @@ namespace Inferno {
         if (object.Render.Type != RenderType::Model) return {};
         auto& model = Resources::GetModel(object.Render.Model.ID);
 
-        //Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
-        //transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
+        if (Vector3::Distance(ray.position, object.Position) >= model.Radius) {
+            // Ray is outside the model radius, check if the ray intersects it.
+            BoundingSphere bounds(object.Position, model.Radius);
+            float sphereDist;
+            if (!ray.Intersects(bounds, sphereDist) || sphereDist > maxDistance)
+                return {}; // Ray didn't intersect the sphere
+        }
 
         // transform ray to model space of the target object
         auto transform = object.GetTransform();
@@ -1145,60 +1142,53 @@ namespace Inferno {
         auto localPos = Vector3::Transform(ray.position, invTransform);
         auto localDir = Vector3::Transform(ray.direction, invRotation);
         localDir.Normalize();
-        ray = { localPos, localDir };
+        ray = { localPos, localDir }; // update the input ray
 
         HitInfo hit;
 
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
-            auto submodelOffset = model.GetSubmodelOffset(smIndex); // todo: offset ray again by submodel offset
+            auto submodelOffset = model.GetSubmodelOffset(smIndex);
             auto& submodel = model.Submodels[smIndex];
 
-            // Check the bounds of each submodel before comparing geometry
-            float dist = Vector3::Distance(ray.position, Vector3::Zero);
-
-            // Check if ray is inside of the submodel radius. If it's not, do a raycast
-            if (dist > submodel.Radius) {
-                BoundingSphere bounds(Vector3::Zero, submodel.Radius); // todo: use offsets instead of zero
-                if (!ray.Intersects(bounds, dist) || dist > maxDistance) continue;
-            }
-
-            for (int i = 0; i < submodel.Indices.size(); i += 3) {
-                auto& idx = submodel.Indices;
-                Vector3 v1 = model.Vertices[idx[i + 0]];
-                Vector3 v2 = model.Vertices[idx[i + 1]];
-                Vector3 v3 = model.Vertices[idx[i + 2]];
-                v1.z *= -1;
-                v2.z *= -1;
-                v3.z *= -1;
-                auto triNormal = -GetTriangleNormal(v1, v2, v3); // todo: precompute in model. also normals are flipped
-                auto offset = triNormal * radius;                // offset triangle by radius to account for larger projectiles
-                if (triNormal == Vector3::Zero)
-                    continue; // invalid polygon / normal __debugbreak();
-
-                if (ray.Intersects(v1 + offset, v2 + offset, v3 + offset, dist) && dist <= maxDistance && dist < hit.Distance) {
-                    hit.Normal = triNormal;
-                    hit.Point = ray.position + ray.direction * dist;
-                    hit.Distance = dist;
-                }
-                else {
-                    // Project the ray onto the triangle plane to get the nearest point.
-                    // Then create a sphere at that point to simulate rounding the corners
-                    auto projPoint = ProjectRayOntoPlane(ray, v1, triNormal);
-                    auto pointOnEdge = ClosestPointOnTriangle(v1, v2, v3, projPoint);
-                    BoundingSphere edgeSphere(pointOnEdge, radius);
-
-                    if (ray.Intersects(edgeSphere, dist) && dist <= maxDistance && dist < hit.Distance) {
+            auto hitTestIndices = [&](span<const uint16> indices, span<const Vector3> normals) {
+                for (int i = 0; i < indices.size(); i += 3) {
+                    Vector3 v1 = model.Vertices[indices[i + 0]] + submodelOffset;
+                    Vector3 v2 = model.Vertices[indices[i + 1]] + submodelOffset;
+                    Vector3 v3 = model.Vertices[indices[i + 2]] + submodelOffset;
+                    v1.z *= -1; // flip z due to lh/rh differences
+                    v2.z *= -1;
+                    v3.z *= -1;
+                    auto& normal = normals[i / 3];
+                    auto offset = normal * radius; // offset triangle by radius to account for projectile size
+                    float dist;
+                    if (ray.Intersects(v1 + offset, v2 + offset, v3 + offset, dist) && dist <= maxDistance && dist < hit.Distance) {
+                        hit.Normal = normal;
                         hit.Point = ray.position + ray.direction * dist;
-                        hit.Normal = hit.Point - pointOnEdge;
-                        hit.Normal.Normalize();
                         hit.Distance = dist;
                     }
+                    else {
+                        // Project the ray onto the triangle plane to get the nearest point.
+                        // Then create a sphere at that point to simulate rounding the corners.
+                        auto projPoint = ProjectRayOntoPlane(ray, v1, normal);
+                        auto pointOnEdge = ClosestPointOnTriangle(v1, v2, v3, projPoint);
+                        BoundingSphere edgeSphere(pointOnEdge, radius);
+
+                        if (ray.Intersects(edgeSphere, dist) && dist <= maxDistance && dist < hit.Distance) {
+                            hit.Point = ray.position + ray.direction * dist;
+                            hit.Normal = hit.Point - pointOnEdge;
+                            hit.Normal.Normalize();
+                            hit.Distance = dist;
+                        }
+                    }
                 }
-            }
+            };
+
+            hitTestIndices(submodel.Indices, model.Normals);
+            hitTestIndices(submodel.FlatIndices, model.FlatNormals);
         }
 
         if (hit)
-            hit.Point = Vector3::Transform(hit.Point, transform);
+            hit.Point = Vector3::Transform(hit.Point, transform); // Transform from local back to world space
 
         return hit;
     }
@@ -1226,7 +1216,7 @@ namespace Inferno {
 
                 bool accurateObjectCollisions = true;
 
-                if (accurateObjectCollisions && other->Render.Type == RenderType::Model && travelDistance != 0) {
+                if (accurateObjectCollisions && other->Render.Type == RenderType::Model && IsNormalized(pathRay.direction)) {
                     if (auto info = IntersectMesh(pathRay, obj.Radius, travelDistance, *other)) {
                         hit.Update(info, other);
                         CollideObjects(hit, obj, *other);
@@ -1238,7 +1228,7 @@ namespace Inferno {
                     BoundingSphere sphereA(posA, obj.Radius);
                     BoundingSphere sphereB(posB, other->Radius);
 
-                    if (auto info = IntersectSphereSphere2(sphereA, sphereB)) {
+                    if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
                         hit.Update(info, other);
                         CollideObjects(hit, obj, *other);
                     }

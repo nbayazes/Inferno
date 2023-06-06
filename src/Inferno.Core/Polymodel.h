@@ -60,6 +60,7 @@ namespace Inferno {
         ubyte SimplerModel; //alternate model with less detail (0 if none, model_num+1 else), probably a bool?
         List<Vector3> angles; // was in POF data, maybe not used at runtime?
         List<Vector3> Vertices;
+        List<Vector3> Normals, FlatNormals; // 1 normal per three Vertices
 
         Vector3 GetSubmodelOffset(int index) const {
             if (!Seq::inRange(Submodels, index)) return Vector3::Zero;
