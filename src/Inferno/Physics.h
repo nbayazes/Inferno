@@ -14,6 +14,7 @@ namespace Inferno {
         inline float Steps = 0, R = 0, K = 0;
         inline Vector3 ClosestPoint;
         inline List<Vector3> ClosestPoints;
+        inline int SegmentsChecked = 0;
     };
 
     struct HitInfo {
@@ -33,7 +34,6 @@ namespace Inferno {
         Vector3 WallPoint; // point along the object's velocity vector where it hits a wall
         Vector3 Point; // where the two objects or geometry touched
         Vector3 Normal, Tangent;
-        Set<SegID> Visited; // visited segments
         int Tri = -1; // Triangle of the face hit. -1, 0 or 1
 
         void Update(const HitInfo& hit, Object* obj) {

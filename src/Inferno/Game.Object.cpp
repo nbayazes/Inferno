@@ -41,7 +41,7 @@ namespace Inferno {
         for (auto& side : SideIDs) {
             auto cid = prevSeg.GetConnection(side);
             if (PointInSegment(level, cid, obj.Position)) {
-                connection = { obj.Segment, side };
+                connection = { prevSegId, side };
                 break;
             }
         }

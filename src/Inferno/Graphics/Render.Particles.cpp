@@ -203,7 +203,7 @@ namespace Inferno::Render {
         BoundingCapsule capsule = {
             .A = PrevTransform.Translation(),
             .B = Transform.Translation(),
-            .Radius = Radius / 2
+            .Radius = Radius
         };
 
         if (IntersectLevelDebris(Game::Level, capsule, Segment, hit)) {

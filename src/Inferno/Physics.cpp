@@ -34,7 +34,7 @@ namespace Inferno {
     }
 
     // Returns the UVs on a face closest to a point in world coordinates
-    Vector2 IntersectFaceUVs(Level& level, const Vector3& point, Face& face, int tri) {
+    Vector2 IntersectFaceUVs(const Vector3& point, const Face& face, int tri) {
         auto& indices = face.Side.GetRenderIndices();
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
@@ -91,13 +91,13 @@ namespace Inferno {
     }
 
     // Returns true if the point was transparent
-    bool WallPointIsTransparent(Level& level, const Vector3& pnt, Face& face, int tri) {
+    bool WallPointIsTransparent(const Vector3& pnt, const Face& face, int tri) {
         auto& side = face.Side;
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
         if (!bitmap.Info.Transparent) return false; // Must be flagged transparent
 
-        auto uv = IntersectFaceUVs(level, pnt, face, tri);
+        auto uv = IntersectFaceUVs(pnt, face, tri);
         auto wrap = [](float x, uint16 size) {
             // -1 so that x = 1.0 results in width - 1, correcting for the array index
             return (uint)Mod(uint16(x * (float)size - 1.0f), size);
@@ -158,7 +158,7 @@ namespace Inferno {
         }
 
         auto face = Face::FromSide(level, *seg, tag.Side);
-        auto uv = IntersectFaceUVs(level, point, face, tri);
+        auto uv = IntersectFaceUVs(point, face, tri);
 
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(side.TMap2));
         auto& info = bitmap.Info;
@@ -350,24 +350,6 @@ namespace Inferno {
         LinearPhysics(obj);
     }
 
-    struct Triangle {
-        Array<Vector3, 3> Points;
-        Vector3& operator[](int i) { return Points[i]; }
-        const Vector3& operator[](int i) const { return Points[i]; }
-
-        Plane GetPlane() const { return Plane(Points[0], Points[1], Points[2]); }
-    };
-
-    struct HitResult {
-        Vector3 Intersect, IntersectVec, Normal; // where the hit occurred
-        float Dot;                               // Dot product of face normal and object velocity
-    };
-
-    struct HitResult2 {
-        Vector3 Intersect; // where the hit occurred
-        float Distance;    // How far along the trajectory
-    };
-
     // Closest point on line
     Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p) {
         // Project p onto ab, computing the paramaterized position d(t) = a + t * (b - a)
@@ -464,25 +446,8 @@ namespace Inferno {
         // Compute the normal vectors for triangles:
         Vector3 u = b.Cross(c), v = c.Cross(a), w = a.Cross(b);
 
-        //auto uv = u.Dot(v);
-        //auto uw = u.Dot(w);
-        //auto vw = v.Dot(w);
         // Test if the normals are facing the same direction
         return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f && v.Dot(w) >= 0.0f;
-    }
-
-    // Returns true if a point lies within a triangle
-    bool PointInTriangle(const Triangle& t, Vector3 point) {
-        // Move the triangle so that the point becomes the triangle's origin
-        auto a = t[0] - point;
-        auto b = t[1] - point;
-        auto c = t[2] - point;
-
-        // Compute the normal vectors for triangles:
-        Vector3 u = b.Cross(c), v = c.Cross(a), w = a.Cross(b);
-
-        // Test if the normals are facing the same direction
-        return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f;
     }
 
     // Returns the closest point on a triangle to a point
@@ -514,10 +479,9 @@ namespace Inferno {
     // Returns the nearest distance to the face edge and a point. Skips the internal split.
     float FaceEdgeDistance(const Segment& seg, SideID side, const Face& face, const Vector3& point) {
         // Check the four outside edges of the face
-        float mag1, mag2, mag3, mag4;
-        mag1 = mag2 = mag3 = mag4 = FLT_MAX;
+        float mag1 = FLT_MAX, mag2 = FLT_MAX, mag3 = FLT_MAX, mag4 = FLT_MAX;
 
-        // todo: this doesn't hold true on inverted segments
+        // todo: this isn't true for inverted segments
         // If the edge doesn't have a connection it's safe to put a decal on it
         if (seg.SideHasConnection(GetAdjacentSide(side, 0))) {
             auto c = ClosestPointOnLine(face[0], face[1], point);
@@ -547,95 +511,7 @@ namespace Inferno {
         return normal;
     }
 
-    // Untested
-    /*
-    Option<Vector3> NearestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, const BoundingSphere& sphere) {
-        auto N = GetTriangleNormal(p0, p1, p2);
-        float dist = (sphere.Center - p0).Dot(N); // signed distance between sphere and plane
-        //if (!mesh.is_double_sided() && dist > 0)
-            //return false; // can pass through back side of triangle (optional)
-        if (dist < -sphere.Radius || dist > sphere.Radius)
-            return {}; // no intersection
-
-        auto point0 = (sphere.Center - N) * dist; // projected sphere center on triangle plane
-
-        float radiussq = sphere.Radius * sphere.Radius;
-
-        auto point1 = ClosestPointOnLine(p0, p1, sphere.Center);
-        auto v1 = sphere.Center - point1;
-        float distsq1 = v1.Dot(v1);
-        bool intersects = distsq1 < radiussq;
-
-        auto point2 = ClosestPointOnLine(p1, p2, sphere.Center);
-        auto v2 = sphere.Center - point2;
-        float distsq2 = v2.Dot(v2);
-        intersects |= distsq2 < radiussq;
-
-        auto point3 = ClosestPointOnLine(p2, p0, sphere.Center);
-        auto v3 = sphere.Center - point3;
-        float distsq3 = v3.Dot(v3);
-        intersects |= distsq3 < radiussq;
-
-        bool inside = PointInTriangle(p0, p1, p2, sphere.Center);
-
-        if (inside || intersects) {
-            auto best_point = point0;
-            Vector3 intersection_vec;
-
-            if (inside) {
-                intersection_vec = sphere.Center - point0;
-            }
-            else {
-                auto d = sphere.Center - point1;
-                float best_distsq = d.Dot(d);
-                best_point = point1;
-                intersection_vec = d;
-
-                d = sphere.Center - point2;
-                float distsq = d.Dot(d);
-                if (distsq < best_distsq) {
-                    distsq = best_distsq;
-                    best_point = point2;
-                    intersection_vec = d;
-                }
-
-                d = sphere.Center - point3;
-                distsq = d.Dot(d);
-                if (distsq < best_distsq) {
-                    distsq = best_distsq;
-                    best_point = point3;
-                    intersection_vec = d;
-                }
-            }
-
-            auto len = intersection_vec.Length();  // vector3 length calculation:
-            auto penetration_normal = intersection_vec / len;  // normalize
-            float penetration_depth = sphere.Radius - len; //
-            return sphere.Center + penetration_normal * penetration_depth; // intersection success
-        }
-
-        return {};
-    }
-    */
-
-    // Intersects sphere a with b. Surface normal points towards a.
-    HitInfo IntersectSphereSphere(const BoundingSphere& a, const BoundingSphere& b) {
-        HitInfo hit;
-        Vector3 c0(a.Center), c1(b.Center);
-        auto v = c1 - c0;
-        float depth = b.Radius + a.Radius - v.Length();
-        if (depth > 0) {
-            v.Normalize();
-            auto e0 = c0 + v * a.Radius;
-            auto e1 = c1 - v * b.Radius;
-            hit.Point = (e1 + e0) / 2;
-            hit.Distance = Vector3::Distance(hit.Point, c0);
-            hit.Normal = -v;
-        }
-
-        return hit;
-    }
-
+    // intersects a with b, with hit normal pointing towards a
     HitInfo IntersectSphereSphere2(const BoundingSphere& a, const BoundingSphere& b) {
         HitInfo hit;
         Vector3 c0(a.Center), c1(b.Center);
@@ -665,31 +541,6 @@ namespace Inferno {
 
         return hit;
     }
-
-    //// Returns the closest point on a triangle to a point
-    //Vector3 ClosestPoint(const Triangle& t, Vector3 point) {
-    //    point = ProjectPointOntoPlane(point, t.GetPlane());
-
-    //    if (PointInTriangle(t, point))
-    //        return point; // point is on the surface of the triangle
-
-    //    // check the points and edges
-    //    auto c1 = ClosestPoint(t[0], t[1], point);
-    //    auto c2 = ClosestPoint(t[1], t[2], point);
-    //    auto c3 = ClosestPoint(t[2], t[0], point);
-
-    //    auto mag1 = (point - c1).LengthSquared();
-    //    auto mag2 = (point - c2).LengthSquared();
-    //    auto mag3 = (point - c3).LengthSquared();
-
-    //    float min = std::min(std::min(mag1, mag2), mag3);
-
-    //    if (min == mag1)
-    //        return c1;
-    //    else if (min == mag2)
-    //        return c2;
-    //    return c3;
-    //}
 
     // Returns the nearest intersection point on a face
     HitInfo IntersectFaceSphere(const Face& face, const BoundingSphere& sphere) {
@@ -739,7 +590,7 @@ namespace Inferno {
     HitInfo BoundingCapsule::Intersects(const DirectX::BoundingSphere& sphere) const {
         auto p = ClosestPointOnLine(B, A, sphere.Center);
         DirectX::BoundingSphere cap(p, Radius);
-        return IntersectSphereSphere(cap, sphere);
+        return IntersectSphereSphere2(cap, sphere);
     }
 
     bool BoundingCapsule::Intersects(const BoundingCapsule& other) const {
@@ -797,6 +648,39 @@ namespace Inferno {
         DirectX::BoundingSphere sphere{ B, Radius };
         auto [point, idist] = IntersectTriangleSphere(p0, p1, p2, sphere);
         return idist < Radius;
+    }
+
+    Set<SegID> g_VisitedSegs; // global visited segments buffer
+    Queue<SegID> g_VisitedStack;
+
+    Set<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius) {
+        g_VisitedSegs.clear();
+        g_VisitedStack.push(start);
+        //int depth = 0;
+
+        while (!g_VisitedStack.empty()) {
+            auto segId = g_VisitedStack.front();
+            g_VisitedStack.pop();
+            g_VisitedSegs.insert(segId);
+            auto& seg = level.GetSegment(segId);
+
+            for (auto& sideId : SideIDs) {
+                auto& side = seg.GetSide(sideId);
+
+                Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
+                if (/*depth == 0 ||*/ p.DotCoordinate(point) <= 0) {
+                    // Point was behind the plane or this was the starting segment
+                    auto conn = seg.GetConnection(sideId);
+                    if (conn != SegID::None && !g_VisitedSegs.contains(conn))
+                        g_VisitedStack.push(conn);
+                }
+            }
+
+            //depth++;
+            // todo: detail segments
+        }
+
+        return g_VisitedSegs;
     }
 
     bool ObjectCanHitTarget(const Object& src, const Object& target) {
@@ -907,109 +791,75 @@ namespace Inferno {
         }
     }
 
-    // Finds the nearest sphere-level intersection
-    bool IntersectLevel(Level& level, const BoundingSphere& sphere, SegID segId, ObjID oid, LevelHit& hit) {
-        auto& seg = level.GetSegment(segId);
-        hit.Visited.insert(segId);
-
-        auto& obj = level.Objects[(int)oid];
-
-        // Did we hit any objects in this segment?
-        for (int i = 0; i < level.Objects.size(); i++) {
-            auto& other = level.Objects[i];
-            if (other.Segment != segId) continue;
-            if (oid == (ObjID)i) continue;     // don't hit yourself!
-            if (oid == other.Parent) continue; // Don't hit your children!
-
-            if (!ObjectCanHitTarget(obj, other)) continue;
-
-            BoundingSphere objSphere(other.Position, other.Radius);
-            if (auto info = IntersectSphereSphere(sphere, objSphere)) {
-                hit.Update(info, &other);
-            }
-        }
-
-        for (auto& side : SideIDs) {
-            auto face = Face::FromSide(level, segId, side);
-
-            if (auto h = IntersectFaceSphere(face, sphere)) {
-                if (h.Normal.Dot(face.AverageNormal()) > 0)
-                    continue; // passed through back of face
-
-                if (seg.SideIsSolid(side, level)) {
-                    hit.Update(h, { segId, side }); // hit a solid wall
-                    hit.Tangent = face.Side.Tangents[h.Tri];
-                }
-                else {
-                    // intersected with a connected side, must check faces in it too
-                    auto conn = seg.GetConnection(side);
-                    if (conn > SegID::None && !hit.Visited.contains(conn))
-                        IntersectLevel(level, sphere, conn, oid, hit); // Recursive
-                }
-            }
-        }
-
-        return hit;
-    }
-
     // Finds the nearest sphere-level intersection for debris
     // Debris only collide with robots, players and walls
     bool IntersectLevelDebris(Level& level, const BoundingCapsule& capsule, SegID segId, LevelHit& hit) {
-        auto& seg = level.GetSegment(segId);
-        hit.Visited.insert(segId);
+        auto& pvs = GetPotentialSegments(level, segId, capsule.A, capsule.Radius);
+        auto dir = capsule.B - capsule.A;
+        dir.Normalize();
+        Ray ray(capsule.A, dir);
 
-        // Did we hit any objects in this segment?
-        for (int i = 0; i < level.Objects.size(); i++) {
-            auto& other = level.Objects[i];
-            if (!other.IsAlive() || other.Segment != segId) continue;
-            if (other.Type != ObjectType::Player && other.Type != ObjectType::Robot && other.Type != ObjectType::Reactor)
-                continue;
-            //if (!ObjectCanHitTarget(obj.Type, other.Type)) continue;
+        // Did we hit any objects?
+        for (auto& segment : pvs) {
+            auto& seg = level.GetSegment(segment);
 
-            BoundingSphere sphere(other.Position, other.Radius);
-            if (auto info = capsule.Intersects(sphere)) {
-                hit.Update(info, &other);
-            }
-        }
+            for (int i = 0; i < seg.Objects.size(); i++) {
+                auto other = level.TryGetObject(seg.Objects[i]);
 
-        for (auto& side : SideIDs) {
-            auto face = Face::FromSide(level, seg, side);
-            auto& i = face.Side.GetRenderIndices();
+                if (!other->IsAlive() || other->Segment != segment) continue;
+                if (other->Type != ObjectType::Player && other->Type != ObjectType::Robot && other->Type != ObjectType::Reactor)
+                    continue;
 
-            Vector3 refPoint, normal;
-            float dist{};
-            if (capsule.Intersects(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, normal, dist)) {
-                if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                    hit.Normal = normal;
-                    hit.Point = refPoint;
+                BoundingSphere sphere(other->Position, other->Radius);
+                float dist;
+                if (ray.Intersects(sphere, dist) && dist < other->Radius) {
                     hit.Distance = dist;
-                    hit.Tag = { segId, side };
-                }
-                else {
-                    // scan touching seg
-                    auto conn = seg.GetConnection(side);
-                    if (conn > SegID::None && !hit.Visited.contains(conn))
-                        IntersectLevelDebris(level, capsule, conn, hit);
-                }
-            }
-
-            if (capsule.Intersects(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint, normal, dist)) {
-                if (seg.SideIsSolid(side, level)) {
-                    if (dist < hit.Distance) {
-                        hit.Normal = normal;
-                        hit.Point = refPoint;
-                        hit.Distance = dist;
-                        hit.Tag = { segId, side };
-                    }
-                }
-                else {
-                    // scan touching seg
-                    auto conn = seg.GetConnection(side);
-                    if (conn > SegID::None && !hit.Visited.contains(conn))
-                        IntersectLevelDebris(level, capsule, conn, hit);
+                    hit.Normal = -dir;
+                    hit.Point = capsule.A + dir * dist;
+                    return true;
                 }
             }
         }
+
+        // todo: add debris level hit testing. need to prevent duplicating triangle hit testing
+        //for (auto& side : SideIDs) {
+        //    auto face = Face::FromSide(level, seg, side);
+        //    auto& i = face.Side.GetRenderIndices();
+
+        //    Vector3 refPoint, normal;
+        //    float dist{};
+        //    if (capsule.Intersects(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, normal, dist)) {
+        //        if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
+        //            hit.Normal = normal;
+        //            hit.Point = refPoint;
+        //            hit.Distance = dist;
+        //            hit.Tag = { segId, side };
+        //        }
+        //        else {
+        //            // scan touching seg
+        //            auto conn = seg.GetConnection(side);
+        //            if (conn > SegID::None && !visitedSegs.contains(conn))
+        //                IntersectLevelDebris(level, capsule, conn, hit);
+        //        }
+        //    }
+
+        //    if (capsule.Intersects(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint, normal, dist)) {
+        //        if (seg.SideIsSolid(side, level)) {
+        //            if (dist < hit.Distance) {
+        //                hit.Normal = normal;
+        //                hit.Point = refPoint;
+        //                hit.Distance = dist;
+        //                hit.Tag = { segId, side };
+        //            }
+        //        }
+        //        else {
+        //            // scan touching seg
+        //            auto conn = seg.GetConnection(side);
+        //            if (conn > SegID::None && !visitedSegs.contains(conn))
+        //                IntersectLevelDebris(level, capsule, conn, hit);
+        //        }
+        //    }
+        //}
 
         return hit;
     }
@@ -1019,10 +869,11 @@ namespace Inferno {
         if (start == SegID::None) return false;
         if (maxDist <= 0.01f) return false;
         SegID next = start;
+        Set<SegID> visitedSegs;
 
         while (next > SegID::None) {
             SegID segId = next;
-            hit.Visited.insert(segId); // must track visited segs to prevent circular logic
+            visitedSegs.insert(segId); // must track visited segs to prevent circular logic
             next = SegID::None;
             auto& seg = level.GetSegment(segId);
 
@@ -1042,7 +893,7 @@ namespace Inferno {
                         if (passTransparent)
                             isSolid = false;
                         else if (hitTestTextures)
-                            isSolid = !WallPointIsTransparent(level, intersect, face, tri);
+                            isSolid = !WallPointIsTransparent(intersect, face, tri);
                     }
                     else {
                         isSolid = seg.SideIsSolid(side, level);
@@ -1059,7 +910,7 @@ namespace Inferno {
                     }
                     else {
                         auto conn = seg.GetConnection(side);
-                        if (!hit.Visited.contains(conn))
+                        if (!visitedSegs.contains(conn))
                             next = conn;
                         break; // go to next segment
                     }
@@ -1070,68 +921,6 @@ namespace Inferno {
         return false;
     }
 
-    // Intersects a capsule with the level
-    bool IntersectLevel(Level& level, const BoundingCapsule& capsule, SegID segId, const Object& object, LevelHit& hit) {
-        auto& seg = level.GetSegment(segId);
-        hit.Visited.insert(segId);
-
-        // Did we hit any objects in this segment?
-        for (int i = 0; i < level.Objects.size(); i++) {
-            auto& target = level.Objects[i];
-            if (target.Segment != segId) continue;
-            if (object.Parent == (ObjID)i) continue; // don't hit your parent!
-            if (!ObjectCanHitTarget(object, target)) continue;
-
-            BoundingSphere sphere(target.Position, target.Radius);
-            if (auto info = capsule.Intersects(sphere)) {
-                hit.Update(info, &target);
-            }
-        }
-
-        for (auto& side : SideIDs) {
-            auto face = Face::FromSide(level, seg, side);
-            auto& i = face.Side.GetRenderIndices();
-
-            Vector3 refPoint, normal;
-            float dist{};
-
-            for (int tri = 0; tri < 2; tri++) {
-                if (capsule.Intersects(face[i[tri * 3]], face[i[tri * 3 + 1]], face[i[tri * 3 + 2]],
-                                       face.Side.Normals[tri], refPoint, normal, dist)) {
-                    if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-                        if (object.Type == ObjectType::Weapon) {
-                            if (WallPointIsTransparent(level, refPoint, face, tri))
-                                continue; // skip projectiles that hit transparent part of a wall
-                        }
-
-                        auto dir = object.Physics.Velocity;
-                        dir.Normalize();
-                        Ray ray(object.LastPosition, dir);
-                        float wallDistance;
-                        face.Intersects(ray, wallDistance);
-                        hit.WallPoint = object.LastPosition + dir * wallDistance;
-
-                        hit.Normal = face.Side.Normals[tri];
-                        hit.Point = refPoint;
-                        hit.Distance = dist;
-                        hit.Tangent = face.Side.Tangents[tri];
-                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
-                        hit.Tag = { segId, side };
-                        hit.Tri = tri;
-                    }
-                    else {
-                        // scan touching seg
-                        auto conn = seg.GetConnection(side);
-                        if (conn > SegID::None && !hit.Visited.contains(conn))
-                            IntersectLevel(level, capsule, conn, object, hit);
-                    }
-                }
-            }
-        }
-
-        return hit;
-    }
-
     bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent) {
         auto dir = b.Position - a.Position;
         auto dist = dir.Length();
@@ -1139,14 +928,6 @@ namespace Inferno {
         Ray ray(a.Position, dir);
         LevelHit hit;
         return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
-    }
-
-    void UpdateGame(Level& level, float dt) {
-        for (auto& obj : level.Objects) {
-            obj.Lifespan -= dt;
-        }
-
-        UpdateDoors(level, dt);
     }
 
 
@@ -1231,6 +1012,7 @@ namespace Inferno {
                     // Boss invuln stuff
 
                     // guidebot ouchies
+                    // todo: turn object to face away from explosion
                     break;
                 }
 
@@ -1247,6 +1029,7 @@ namespace Inferno {
 
                     // shields, flash, physics
                     // divide damage by 4 on trainee
+                    // todo: turn object to face away from explosion
 
                     break;
                 }
@@ -1257,8 +1040,8 @@ namespace Inferno {
         }
     }
 
-    void CollideObjects(const LevelHit& hit, Object& a, Object& b, float dt) {
-        if (b.Type != ObjectType::Robot && b.Type != ObjectType::Clutter && b.Type != ObjectType::Reactor && b.Type != ObjectType::Player && b.Type != ObjectType::Coop)
+    void CollideObjects(const LevelHit& hit, Object& a, Object& b) {
+        if (b.Type == ObjectType::Powerup || b.Type == ObjectType::Marker)
             return;
 
         Vector3 aVelDir;
@@ -1268,12 +1051,19 @@ namespace Inferno {
         auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
         //auto bPosOrig = b.Position;
 
-        // move the two objects out of each other so they don't stick
-        if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) {
+        if (b.Type == ObjectType::Reactor) {
+            // Don't let an object go inside a reactor
+            Vector3 normal = a.Position - b.Position;
+            normal.Normalize();
+            a.Position = b.Position + normal * (b.Radius + a.Radius);
+            // play a sound?
+        }
+        else if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) {
+            // move the two objects out of each other so they don't stick
             //a.Position = hit.Point - hit.Normal * a.Radius;
             //b.Position = hit.Point + hit.Normal * b.Radius;
             auto dist = Vector3::Distance(a.Position, b.Position);
-            auto corr = (a.Radius + b.Radius - dist) / 2.0;
+            auto corr = (a.Radius + b.Radius - dist) / 2.0f;
             a.Position += hit.Normal * corr;
             b.Position -= hit.Normal * corr;
         }
@@ -1294,7 +1084,8 @@ namespace Inferno {
         if (!HasFlag(a.Physics.Flags, PhysicsFlag::Piercing)) // piercing weapons shouldn't bounce
             a.Physics.Velocity += hit.Normal * (newV1 - v1);
 
-        b.Physics.Velocity += hit.Normal * (newV2 - v2);
+        if (b.Movement == MovementType::Physics)
+            b.Physics.Velocity += hit.Normal * (newV2 - v2);
 
         //if (a.Type == ObjectType::Weapon && !HasFlag(a.Physics.Flags, PhysicsFlag::Bounce))
         //    a.Physics.Velocity = Vector3::Zero; // stop weapons when hitting an object
@@ -1318,12 +1109,6 @@ namespace Inferno {
             force = Vector3::Transform(force, basis); // transform forces to basis of object
             // todo: cap the length of the moment arm?
             auto arm = Vector3::Transform(hit.Point - b.Position, basis);
-            //if (a.Type == ObjectType::Player) {
-            //    // this is less than ideal
-            //    arm.Normalize();
-            //    arm *= 2;
-            //}
-
             const auto torque = force.Cross(arm);
             const auto inertia = (2.0f / 5.0f) * m2 * b.Radius * b.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
             const auto accel = torque / inertia;
@@ -1346,46 +1131,125 @@ namespace Inferno {
         // however, using the correct physics causes robots to spin erratically when sliding against them
     }
 
+    HitInfo IntersectMesh(Ray ray, float radius, float maxDistance, const Object& object) {
+        if (object.Render.Type != RenderType::Model) return {};
+        auto& model = Resources::GetModel(object.Render.Model.ID);
+
+        //Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        //transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
+
+        // transform ray to model space of the target object
+        auto transform = object.GetTransform();
+        auto invTransform = transform.Invert();
+        auto invRotation = Matrix(object.Rotation).Invert();
+        auto localPos = Vector3::Transform(ray.position, invTransform);
+        auto localDir = Vector3::Transform(ray.direction, invRotation);
+        localDir.Normalize();
+        ray = { localPos, localDir };
+
+        HitInfo hit;
+
+        for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
+            auto submodelOffset = model.GetSubmodelOffset(smIndex); // todo: offset ray again by submodel offset
+            auto& submodel = model.Submodels[smIndex];
+
+            // Check the bounds of each submodel before comparing geometry
+            float dist = Vector3::Distance(ray.position, Vector3::Zero);
+
+            // Check if ray is inside of the submodel radius. If it's not, do a raycast
+            if (dist > submodel.Radius) {
+                BoundingSphere bounds(Vector3::Zero, submodel.Radius); // todo: use offsets instead of zero
+                if (!ray.Intersects(bounds, dist) || dist > maxDistance) continue;
+            }
+
+            for (int i = 0; i < submodel.Indices.size(); i += 3) {
+                auto& idx = submodel.Indices;
+                Vector3 v1 = model.Vertices[idx[i + 0]];
+                Vector3 v2 = model.Vertices[idx[i + 1]];
+                Vector3 v3 = model.Vertices[idx[i + 2]];
+                v1.z *= -1;
+                v2.z *= -1;
+                v3.z *= -1;
+                auto triNormal = -GetTriangleNormal(v1, v2, v3); // todo: precompute in model. also normals are flipped
+                auto offset = triNormal * radius;                // offset triangle by radius to account for larger projectiles
+                if (triNormal == Vector3::Zero)
+                    continue; // invalid polygon / normal __debugbreak();
+
+                if (ray.Intersects(v1 + offset, v2 + offset, v3 + offset, dist) && dist <= maxDistance && dist < hit.Distance) {
+                    hit.Normal = triNormal;
+                    hit.Point = ray.position + ray.direction * dist;
+                    hit.Distance = dist;
+                }
+                else {
+                    // Project the ray onto the triangle plane to get the nearest point.
+                    // Then create a sphere at that point to simulate rounding the corners
+                    auto projPoint = ProjectRayOntoPlane(ray, v1, triNormal);
+                    auto pointOnEdge = ClosestPointOnTriangle(v1, v2, v3, projPoint);
+                    BoundingSphere edgeSphere(pointOnEdge, radius);
+
+                    if (ray.Intersects(edgeSphere, dist) && dist <= maxDistance && dist < hit.Distance) {
+                        hit.Point = ray.position + ray.direction * dist;
+                        hit.Normal = hit.Point - pointOnEdge;
+                        hit.Normal.Normalize();
+                        hit.Distance = dist;
+                    }
+                }
+            }
+        }
+
+        if (hit)
+            hit.Point = Vector3::Transform(hit.Point, transform);
+
+        return hit;
+    }
+
     bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
         Vector3 direction;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
         obj.Physics.Velocity.Normalize(direction); // todo: what if velocity is 0?
         Ray pathRay(obj.LastPosition, direction);
 
+        // Use a larger radius for the object so the large objects in adjacent segments are found.
+        // Needs testing against boss robots
+        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2);
+
         // Did we hit any objects?
-        for (int otherOid = 0; otherOid < level.Objects.size(); otherOid++) {
-            if (oid == (ObjID)otherOid) continue; // don't hit yourself!
-            auto other = level.TryGetObject((ObjID)otherOid);
-            if (!other) continue;
-            if (oid == other->Parent) continue; // Don't hit your children!
-            if (!ObjectCanHitTarget(obj, *other)) continue;
+        for (auto& segId : pvs) {
+            auto& seg = level.GetSegment(segId);
 
-            // todo: use segment culling
-            if (Vector3::DistanceSquared(obj.Position, other->Position) > 20 * 20)
-                continue;
+            for (int i = 0; i < seg.Objects.size(); i++) {
+                if (oid == seg.Objects[i]) continue; // don't hit yourself!
+                auto other = level.TryGetObject(seg.Objects[i]);
+                if (!other) continue;
+                if (oid == other->Parent) continue; // Don't hit your children!
+                if (!ObjectCanHitTarget(obj, *other)) continue;
 
-            auto posA = obj.Position;
-            auto posB = other->Position;
-            BoundingSphere sphereA(posA, obj.Radius);
-            BoundingSphere sphereB(posB, other->Radius);
-            //BoundingSphere sphere(posB, other->Radius + obj.Radius);
-            //if (auto info = IntersectPointSphere(obj.Position, sphere)) {
-            //    hit.Update(info, other);
-            //    hit.Point = obj.Position + hit.Normal * obj.Radius;
-            //    CollideObjects(hit, obj, *other, dt);
-            //}
-            if (auto info = IntersectSphereSphere2(sphereA, sphereB)) {
-                hit.Update(info, other);
-                CollideObjects(hit, obj, *other, dt);
+                bool accurateObjectCollisions = true;
+
+                if (accurateObjectCollisions && other->Render.Type == RenderType::Model && travelDistance != 0) {
+                    if (auto info = IntersectMesh(pathRay, obj.Radius, travelDistance, *other)) {
+                        hit.Update(info, other);
+                        CollideObjects(hit, obj, *other);
+                    }
+                }
+                else {
+                    auto posA = obj.Position;
+                    auto posB = other->Position;
+                    BoundingSphere sphereA(posA, obj.Radius);
+                    BoundingSphere sphereB(posB, other->Radius);
+
+                    if (auto info = IntersectSphereSphere2(sphereA, sphereB)) {
+                        hit.Update(info, other);
+                        CollideObjects(hit, obj, *other);
+                    }
+                }
             }
         }
 
-        for (int segId = 0; segId < level.Segments.size(); segId++) {
-            auto& seg = level.Segments[segId];
-
-            // todo: use segment portal depth culling
-            if (Vector3::DistanceSquared(obj.Position, seg.Center) > 100 * 100)
-                continue;
+        //for (int segId = 0; segId < level.Segments.size(); segId++) {
+        for (auto& segId : pvs) {
+            Debug::SegmentsChecked++;
+            auto& seg = level.Segments[(int)segId];
 
             for (auto& sideId : SideIDs) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
@@ -1412,12 +1276,12 @@ namespace Inferno {
                     if (obj.Type == ObjectType::Weapon) {
                         // Use raycasting for weapons because they are typically small and have high velocities
                         float dist;
-                        if (triFacesTowardsObj && 
+                        if (triFacesTowardsObj &&
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
                             // move the object to the surface and proceed as normal
                             hitPoint = obj.LastPosition + pathRay.direction * dist;
-                            if (WallPointIsTransparent(level, hitPoint, face, tri))
+                            if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
                             obj.Position = hitPoint - pathRay.direction * obj.Radius /** 0.25f*/;
@@ -1489,7 +1353,7 @@ namespace Inferno {
 
                     if (hitDistance < obj.Radius) {
                         // Check if hit is transparent (duplicate check due to triangle edges)
-                        if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(level, hitPoint, face, tri))
+                        if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(hitPoint, face, tri))
                             continue; // skip projectiles that hit transparent part of a wall
 
                         // Object hit a wall, apply physics
@@ -1540,8 +1404,7 @@ namespace Inferno {
     void UpdatePhysics(Level& level, double /*t*/, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
-
-        UpdateGame(level, dt);
+        Debug::SegmentsChecked = 0;
 
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
@@ -1597,9 +1460,9 @@ namespace Inferno {
                 }
 
                 // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
-                if (obj.Type != ObjectType::Weapon) {
-                    MoveObject(level, (ObjID)id);
-                }
+                /*        if (obj.Type != ObjectType::Weapon) {
+                            MoveObject(level, (ObjID)id);
+                        }*/
 
                 // Play a wall hit sound if the object hits something head-on
                 if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {

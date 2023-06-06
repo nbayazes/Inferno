@@ -20,7 +20,7 @@ namespace Inferno {
     };
 
     // 'Expands' vertices in each submodel to a buffer for each texture
-    void Expand(Model& model, span<Vector3> points) {
+    void Expand(Model& model) {
         for (auto& sm : model.Submodels) {
             // expand submodel vertices from indices for use in buffers
             // +1 slot is for flat polygons
@@ -32,7 +32,7 @@ namespace Inferno {
                 // store indices by texture.
                 // this creates empty arrays for texture slots that are not used
                 sm.ExpandedIndices[0].push_back(i);
-                auto& p = points[sm.Indices[i]];
+                auto& p = model.Vertices[sm.Indices[i]];
                 sm.ExpandedPoints.push_back({ p, tmap });
                 sm.ExpandedColors.push_back({ 1, 1, 1, 1 });
             }
@@ -42,7 +42,7 @@ namespace Inferno {
             // Append flat indices
             for (uint16 i = 0; i < sm.FlatIndices.size(); i++) {
                 auto& color = sm.FlatVertexColors[i / 3];
-                auto& p = points[sm.FlatIndices[i]];
+                auto& p = model.Vertices[sm.FlatIndices[i]];
                 sm.ExpandedIndices[0].push_back(flatOffset + i);
                 sm.ExpandedPoints.push_back({ p, -1 });
                 sm.ExpandedColors.push_back(color);
@@ -71,7 +71,6 @@ namespace Inferno {
         StreamReader reader(data);
         int16 glow = -1;
         int16 glowIndex = 0, flatGlowIndex = 0;
-        List<Vector3> points;
         auto& angles = model.angles;
 
         // must use std::function instead of auto here to allow recursive calls
@@ -96,7 +95,7 @@ namespace Inferno {
                         if (zero != 0) throw Exception("Defpoint Start must equal zero");
 
                         for (int i = 0; i < n; i++)
-                            points.push_back(reader.ReadVector());
+                            model.Vertices.push_back(reader.ReadVector());
 
                         chunkLen = n * 12 /*sizeof(vector)*/ + 8;
                         break;
@@ -259,7 +258,7 @@ namespace Inferno {
             readChunk(submodel.Pointer, submodel);
         }
 
-        Expand(model, points);
+        Expand(model);
         UpdateGeometricProperties(model);
 
         if (highestTex >= model.TextureCount) throw Exception("Model contains too many textures");

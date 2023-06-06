@@ -68,6 +68,7 @@ namespace Inferno {
             ImGui::Text("Segments: %d", Render::Stats::VisitedSegments);
             ImGui::Text("Effects: %d", Render::Stats::EffectDraws);
             ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());
+            ImGui::Text("Collision segs: %d", Debug::SegmentsChecked);
         }
         ImGui::End();
 
