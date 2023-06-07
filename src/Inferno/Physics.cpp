@@ -1043,21 +1043,25 @@ namespace Inferno {
         auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
         //auto bPosOrig = b.Position;
 
-        if (b.Type == ObjectType::Reactor) {
-            // Don't let an object go inside a reactor
-            Vector3 normal = a.Position - b.Position;
-            normal.Normalize();
-            a.Position = b.Position + normal * (b.Radius + a.Radius);
-            // play a sound?
-        }
-        else if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) {
+        //if (b.Type == ObjectType::Reactor) {
+        //    // todo: not correct for polygon accurate
+        //    // Don't let an object go inside a reactor
+        //    Vector3 normal = a.Position - b.Position;
+        //    normal.Normalize();
+        //    a.Position = b.Position + normal * (b.Radius + a.Radius);
+        //    // play a sound?
+        //}
+        //else 
+        if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) {
             // move the two objects out of each other so they don't stick
             //a.Position = hit.Point - hit.Normal * a.Radius;
             //b.Position = hit.Point + hit.Normal * b.Radius;
-            auto dist = Vector3::Distance(a.Position, b.Position);
-            auto corr = (a.Radius + b.Radius - dist) / 2.0f;
-            a.Position += hit.Normal * corr;
-            b.Position -= hit.Normal * corr;
+            // todo: not correct for polygon accurate
+            //auto dist = Vector3::Distance(a.Position, b.Position);
+            //auto corr = (a.Radius + b.Radius - dist) / 2.0f;
+            //auto corr = hit.Distance / 2.0f;
+            a.Position += hit.Normal * hit.Distance;
+            //b.Position -= hit.Normal * corr;
         }
 
         //if (Vector3::Distance(b.Position, bPosOrig) > b.Radius) {
@@ -1123,25 +1127,51 @@ namespace Inferno {
         // however, using the correct physics causes robots to spin erratically when sliding against them
     }
 
-    HitInfo IntersectMesh(Ray ray, float radius, float maxDistance, const Object& object) {
-        if (object.Render.Type != RenderType::Model) return {};
-        auto& model = Resources::GetModel(object.Render.Model.ID);
+    // Returns the closest point and distance on a triangle to a point
+    Tuple<Vector3, float> ClosestPointOnTriangle2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point, int* edgeIndex = nullptr) {
+        Vector3 points[3] = {
+            ClosestPointOnLine(p0, p1, point),
+            ClosestPointOnLine(p1, p2, point),
+            ClosestPointOnLine(p2, p0, point)
+        };
 
-        if (Vector3::Distance(ray.position, object.Position) >= model.Radius) {
-            // Ray is outside the model radius, check if the ray intersects it.
-            BoundingSphere bounds(object.Position, model.Radius);
-            float sphereDist;
-            if (!ray.Intersects(bounds, sphereDist) || sphereDist > maxDistance)
-                return {}; // Ray didn't intersect the sphere
+        float distances[3]{};
+        for (int j = 0; j < std::size(points); j++) {
+            distances[j] = Vector3::Distance(point, points[j]);
         }
 
+        int minIndex = 0;
+        for (int j = 0; j < std::size(points); j++) {
+            if (distances[j] < distances[minIndex])
+                minIndex = j;
+        }
+
+        if (edgeIndex) *edgeIndex = minIndex;
+
+        return { points[minIndex], distances[minIndex] };
+    }
+
+    // Performs polygon accurate intersections of a ray and model
+    HitInfo IntersectMesh(Object& source, Ray ray, float radius, float maxDistance, Object& target) {
+        if (target.Render.Type != RenderType::Model) return {};
+        auto& model = Resources::GetModel(target.Render.Model.ID);
+
+        //if (Vector3::Distance(ray.position, object.Position) >= model.Radius) {
+        //    // Ray is outside the model radius, check if the ray intersects it.
+        //    BoundingSphere bounds(object.Position, model.Radius);
+        //    float sphereDist;
+        //    if (!ray.Intersects(bounds, sphereDist) || sphereDist > maxDistance)
+        //        return {}; // Ray didn't intersect the sphere
+        //}
+
+        Debug::ClosestPoints.push_back(ray.position);
+
         // transform ray to model space of the target object
-        auto transform = object.GetTransform();
+        auto transform = target.GetTransform();
         auto invTransform = transform.Invert();
-        auto invRotation = Matrix(object.Rotation).Invert();
-        auto localPos = Vector3::Transform(ray.position, invTransform);
-        auto localDir = Vector3::Transform(ray.direction, invRotation);
-        localDir.Normalize();
+        auto invRotation = Matrix(target.Rotation).Invert();
+        auto localPos = Vector3::Transform(source.Position, invTransform);
+        auto localDir = Vector3::TransformNormal(ray.direction, invRotation);
         ray = { localPos, localDir }; // update the input ray
 
         HitInfo hit;
@@ -1152,34 +1182,113 @@ namespace Inferno {
 
             auto hitTestIndices = [&](span<const uint16> indices, span<const Vector3> normals) {
                 for (int i = 0; i < indices.size(); i += 3) {
-                    Vector3 v1 = model.Vertices[indices[i + 0]] + submodelOffset;
-                    Vector3 v2 = model.Vertices[indices[i + 1]] + submodelOffset;
-                    Vector3 v3 = model.Vertices[indices[i + 2]] + submodelOffset;
-                    v1.z *= -1; // flip z due to lh/rh differences
-                    v2.z *= -1;
-                    v3.z *= -1;
-                    auto& normal = normals[i / 3];
-                    auto offset = normal * radius; // offset triangle by radius to account for projectile size
-                    float dist;
-                    if (ray.Intersects(v1 + offset, v2 + offset, v3 + offset, dist) && dist <= maxDistance && dist < hit.Distance) {
-                        hit.Normal = normal;
-                        hit.Point = ray.position + ray.direction * dist;
-                        hit.Distance = dist;
+                    Vector3 p0 = model.Vertices[indices[i + 0]] + submodelOffset;
+                    Vector3 p1 = model.Vertices[indices[i + 1]] + submodelOffset;
+                    Vector3 p2 = model.Vertices[indices[i + 2]] + submodelOffset;
+                    p0.z *= -1; // flip z due to lh/rh differences
+                    p1.z *= -1;
+                    p2.z *= -1;
+                    Vector3 normal = normals[i / 3];
+                    normal.z *= -1;
+
+                    normal = -(p1 - p0).Cross(p2 - p0);
+                    normal.Normalize();
+
+                    auto offset = normal * source.Radius; // offset triangle by radius to account for object size
+                    Plane plane(p0 + offset, p1 + offset, p2 + offset);
+                    auto planeDist = -plane.DotCoordinate(localPos); // flipped winding
+                    if (planeDist > 0 || planeDist < -source.Radius)
+                        continue; // Object isn't close enough to the triangle plane
+
+                    //{
+                    //    auto center = (p0 + p1 + p2) / 3;
+                    //    auto dbgStart = Vector3::Transform(center, transform);
+                    //    auto dbgEnd = Vector3::Transform(center + normal, transform);
+                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    //}
+
+                    auto point = ProjectPointOntoPlane(localPos, plane);
+                    //bool triFacesTowardsObj = ray.direction.Dot(normal) <= 0;
+                    float hitDistance = FLT_MAX;
+                    Vector3 hitPoint, hitNormal = normal;
+
+                    {
+                        auto dbgStart = Vector3::Transform(p0 + offset, transform);
+                        auto dbgEnd = Vector3::Transform(p1 + offset, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+
+                    {
+                        auto dbgStart = Vector3::Transform(p1 + offset, transform);
+                        auto dbgEnd = Vector3::Transform(p2 + offset, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+
+                    {
+                        auto dbgStart = Vector3::Transform(p2 + offset, transform);
+                        auto dbgEnd = Vector3::Transform(p0 + offset, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+
+                    if (/*triFacesTowardsObj &&*/ PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
+                        // point was inside the triangle and behind the plane
+                        hitPoint = point - offset;
+                        hitNormal = normal;
+                        hitDistance = planeDist;
+                        //edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
                     }
                     else {
-                        // Project the ray onto the triangle plane to get the nearest point.
-                        // Then create a sphere at that point to simulate rounding the corners.
-                        auto projPoint = ProjectRayOntoPlane(ray, v1, normal);
-                        auto pointOnEdge = ClosestPointOnTriangle(v1, v2, v3, projPoint);
-                        BoundingSphere edgeSphere(pointOnEdge, radius);
+                        // Point wasn't inside the triangle, check the edges
+                        auto [triPoint, triDist] = ClosestPointOnTriangle2(p0, p1, p2, localPos);
 
-                        if (ray.Intersects(edgeSphere, dist) && dist <= maxDistance && dist < hit.Distance) {
-                            hit.Point = ray.position + ray.direction * dist;
-                            hit.Normal = hit.Point - pointOnEdge;
-                            hit.Normal.Normalize();
-                            hit.Distance = dist;
+                        if (triDist <= source.Radius) {
+                            auto edgeNormal = localPos - triPoint;
+                            edgeNormal.Normalize(hitNormal);
+
+                            if (ray.direction.Dot(edgeNormal) > 0)
+                                continue; // velocity going away from edge
+
+                            // Object hit a triangle edge
+                            hitDistance = triDist;
+                            hitPoint = triPoint;
                         }
                     }
+
+                    if (hitDistance < source.Radius) {
+                        // Transform from local back to world space
+                        hitPoint = Vector3::Transform(hitPoint, transform);
+                        hitNormal = Vector3::TransformNormal(hitNormal, target.Rotation);
+                        //Debug::ClosestPoints.push_back(Vector3::Transform(hitPoint, transform));
+                        Debug::ClosestPoints.push_back(hitPoint);
+                        Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
+                        auto wallPart = hitNormal.Dot(source.Physics.Velocity);
+                        source.Physics.Velocity -= hitNormal * wallPart;     // slide along wall
+                        source.Position = hitPoint + hitNormal * source.Radius; // move object to surface
+                    }
+
+                    //if (ray.Intersects(v1 + offset, v2 + offset, v3 + offset, dist) && dist <= maxDistance && dist < hit.Distance) {
+                    //    //hit.Normal = normal;
+                    //    hitPoint = ray.position + ray.direction * dist;
+                    //    hitDistance = dist;
+                    //}
+                    //else {
+                    //    // Project the ray onto the triangle plane to get the nearest point.
+                    //    // Then create a sphere at that point to simulate rounding the corners.
+                    //    auto projPoint = ProjectRayOntoPlane(ray, v1, normal);
+                    //    if (DirectX::XMVector3IsNaN(projPoint)) continue;
+                    //    auto pointOnEdge = ClosestPointOnTriangle(v1, v2, v3, projPoint);
+                    //    BoundingSphere edgeSphere(pointOnEdge, radius);
+
+                    //    if (ray.Intersects(edgeSphere, dist) && dist <= maxDistance && dist < hit.Distance) {
+                    //        auto intersect = ray.position + ray.direction * (radius + dist);
+                    //        hitPoint = intersect; // ray.position + ray.direction * (radius + dist);
+                    //        //hit.Normal = normal; // hit.Point - pointOnEdge;
+                    //        //hit.Normal.Normalize();
+                    //        hitDistance = dist; //Vector3::Distance(hit.Point, pointOnEdge);
+                    //        Debug::ClosestPoints.push_back(Vector3::Transform(intersect, transform));
+
+                    //    }
+                    //}
                 }
             };
 
@@ -1187,8 +1296,17 @@ namespace Inferno {
             hitTestIndices(submodel.FlatIndices, model.FlatNormals);
         }
 
-        if (hit)
-            hit.Point = Vector3::Transform(hit.Point, transform); // Transform from local back to world space
+        //hit.Point = b.Center + v * b.Radius;
+        //hit.Distance = Vector3::Distance(hit.Point, c0);
+        //hit.Normal = v;
+        //if (hit) {
+        //    // Transform from local back to world space
+        //    hit.Point = Vector3::Transform(hit.Point, transform); 
+        //    hit.Normal = Vector3::TransformNormal(hit.Normal, obj.Rotation);
+
+        //    //Debug::ClosestPoints.push_back(hit.Point);
+        //    //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal * 2, { 1, 0, 0 });
+        //}
 
         return hit;
     }
@@ -1196,6 +1314,7 @@ namespace Inferno {
     bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
         Vector3 direction;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
+        if (travelDistance <= 0.001f) return false;
         obj.Physics.Velocity.Normalize(direction); // todo: what if velocity is 0?
         Ray pathRay(obj.LastPosition, direction);
 
@@ -1216,27 +1335,30 @@ namespace Inferno {
 
                 bool accurateObjectCollisions = true;
 
-                if (accurateObjectCollisions && other->Render.Type == RenderType::Model && IsNormalized(pathRay.direction)) {
-                    if (auto info = IntersectMesh(pathRay, obj.Radius, travelDistance, *other)) {
+                if (accurateObjectCollisions &&
+                    //obj.Type == ObjectType::Weapon && 
+                    other->Render.Type == RenderType::Model
+                    && IsNormalized(pathRay.direction)
+                ) {
+                    if (auto info = IntersectMesh(obj, pathRay, obj.Radius, travelDistance, *other)) {
                         hit.Update(info, other);
-                        CollideObjects(hit, obj, *other);
+                        //CollideObjects(hit, obj, *other);
                     }
                 }
-                else {
-                    auto posA = obj.Position;
-                    auto posB = other->Position;
-                    BoundingSphere sphereA(posA, obj.Radius);
-                    BoundingSphere sphereB(posB, other->Radius);
+                //else {
+                //    auto posA = obj.Position;
+                //    auto posB = other->Position;
+                //    BoundingSphere sphereA(posA, obj.Radius);
+                //    BoundingSphere sphereB(posB, other->Radius);
 
-                    if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
-                        hit.Update(info, other);
-                        CollideObjects(hit, obj, *other);
-                    }
-                }
+                //    if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
+                //        hit.Update(info, other);
+                //        CollideObjects(hit, obj, *other);
+                //    }
+                //}
             }
         }
 
-        //for (int segId = 0; segId < level.Segments.size(); segId++) {
         for (auto& segId : pvs) {
             Debug::SegmentsChecked++;
             auto& seg = level.Segments[(int)segId];
@@ -1291,7 +1413,7 @@ namespace Inferno {
 
                         auto point = ProjectPointOntoPlane(obj.Position, plane);
 
-                        if (hitDistance == FLT_MAX && triFacesTowardsObj && PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
+                        if (triFacesTowardsObj && PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
                             // point was inside the triangle and behind the plane
                             hitPoint = point - offset;
                             hitNormal = side.Normals[tri];
@@ -1300,38 +1422,24 @@ namespace Inferno {
                         }
                         else {
                             // Point wasn't inside the triangle, check the edges
-                            Vector3 points[3] = {
-                                ClosestPointOnLine(p0, p1, obj.Position),
-                                ClosestPointOnLine(p1, p2, obj.Position),
-                                ClosestPointOnLine(p2, p0, obj.Position)
-                            };
+                            int edgeIndex;
+                            auto [triPoint, triDist] = ClosestPointOnTriangle2(p0, p1, p2, obj.Position, &edgeIndex);
 
-                            float distances[3]{};
-                            for (int i = 0; i < std::size(points); i++) {
-                                distances[i] = Vector3::Distance(obj.Position, points[i]);
-                            }
-
-                            int minIndex = 0;
-                            for (int i = 0; i < std::size(points); i++) {
-                                if (distances[i] < distances[minIndex])
-                                    minIndex = i;
-                            }
-
-                            if (distances[minIndex] <= obj.Radius) {
-                                auto normal = obj.Position - points[minIndex];
+                            if (triDist <= obj.Radius) {
+                                auto normal = obj.Position - triPoint;
                                 normal.Normalize(hitNormal);
 
                                 if (pathRay.direction.Dot(normal) > 0)
                                     continue; // velocity going away from surface
-
+                                
                                 // Object hit a triangle edge
-                                hitDistance = distances[minIndex];
-                                hitPoint = points[minIndex];
+                                hitDistance = triDist;
+                                hitPoint = triPoint;
 
                                 Vector3 tanVec;
-                                if (minIndex == 0)
+                                if (edgeIndex == 0)
                                     tanVec = p1 - p0;
-                                else if (minIndex == 1)
+                                else if (edgeIndex == 1)
                                     tanVec = p2 - p1;
                                 else
                                     tanVec = p0 - p2;
@@ -1419,7 +1527,7 @@ namespace Inferno {
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of attached objects
 
-            //if (id == 0) continue; // player only testing
+            if (id != 0) continue; // player only testing
             LevelHit hit{ .Source = &obj };
 
             if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {

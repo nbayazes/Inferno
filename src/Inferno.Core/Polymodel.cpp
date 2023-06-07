@@ -266,16 +266,16 @@ namespace Inferno {
             const auto& indices = submodel.Indices;
 
             for (int i = 0; i < indices.size(); i += 3) {
-                // flip normals due to reversed Z / winding
-                auto normal = -CreateNormal(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]);
+                auto normal = (vertices[indices[i + 1]] - vertices[indices[i]]).Cross(vertices[indices[i + 2]] - vertices[indices[i]]);
+                normal.Normalize();
                 model.Normals.push_back(normal);
             }
 
             const auto& flatIndices = submodel.FlatIndices;
 
             for (int i = 0; i < flatIndices.size(); i += 3) {
-                // flip normals due to reversed Z / winding
-                auto normal = -CreateNormal(vertices[flatIndices[i]], vertices[flatIndices[i + 1]], vertices[flatIndices[i + 2]]);
+                auto normal = (vertices[flatIndices[i + 1]] - vertices[flatIndices[i]]).Cross(vertices[flatIndices[i + 2]] - vertices[flatIndices[i]]);
+                normal.Normalize();
                 model.FlatNormals.push_back(normal);
             }
         }

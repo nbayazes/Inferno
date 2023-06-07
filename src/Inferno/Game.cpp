@@ -69,11 +69,15 @@ namespace Inferno::Game {
     }
 
     void InitObjects() {
+        for (auto& seg : Level.Segments)
+            seg.Objects.clear();
+
         ObjSigIndex = 1;
 
         // Re-init each object to ensure a valid state.
         // Note this won't update weapons
-        for (auto& obj : Level.Objects) {
+        for (int id = 0; id < Level.Objects.size(); id++) {
+            auto& obj = Level.Objects[id];
             Editor::InitObject(Level, obj, obj.Type, obj.ID, false);
             if (auto seg = Level.TryGetSegment(obj.Segment)) {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
@@ -82,6 +86,9 @@ namespace Inferno::Game {
             obj.LastPosition = obj.Position;
             obj.LastRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
+
+            if (auto seg = Level.TryGetSegment(obj.Segment))
+                seg->AddObject((ObjID)id);
 
             UpdateDirectLight(obj, 0);
         }
@@ -1015,8 +1022,6 @@ namespace Inferno::Game {
 
         Render::InitEffects(Level);
 
-        for (auto& seg : Level.Segments)
-            seg.Objects.clear();
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {
@@ -1049,10 +1054,10 @@ namespace Inferno::Game {
 
             UpdateObjectSegment(Level, obj);
 
-            if (auto seg = Level.TryGetSegment(obj.Segment)) {
-                seg->AddObject((ObjID)id);
-                obj.Ambient.SetTarget(seg->VolumeLight, 0);
-            }
+            //if (auto seg = Level.TryGetSegment(obj.Segment)) {
+            //    seg->AddObject((ObjID)id);
+            //    obj.Ambient.SetTarget(seg->VolumeLight, 0);
+            //}
 
             if (obj.Type == ObjectType::Reactor) {
                 Sound3D reactorHum((ObjID)id);

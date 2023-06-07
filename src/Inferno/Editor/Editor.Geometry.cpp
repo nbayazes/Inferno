@@ -415,6 +415,8 @@ namespace Inferno::Editor {
         for (auto& oid : GetSelectedObjects()) {
             if (auto obj = level.TryGetObject(oid)) {
                 obj->Transform(gizmo.DeltaTransform);
+                obj->LastPosition = obj->Position;
+                obj->LastRotation = obj->Rotation;
                 NormalizeObjectVectors(*obj);
 
                 if (obj->Type == ObjectType::SecretExitReturn)
