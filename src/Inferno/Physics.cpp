@@ -258,14 +258,15 @@ namespace Inferno {
 
         auto pdDrag = pd.Drag > 0 ? pd.Drag : 1;
         const auto drag = pdDrag * 5 / 2;
+        const auto stepScale = dt / Game::TICK_RATE;
 
         if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
-            pd.AngularVelocity += pd.AngularThrust / pd.Mass; // acceleration
+            pd.AngularVelocity += pd.AngularThrust / pd.Mass * stepScale; // acceleration
 
         if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel)) {
             pd.AngularVelocity += pd.AngularAcceleration * dt;
-            pd.AngularAcceleration *= 1 - drag;
-            pd.AngularVelocity *= 1 - drag;
+            pd.AngularAcceleration *= 1 - drag * stepScale;
+            pd.AngularVelocity *= 1 - drag * stepScale;
         }
 
         Debug::R = pd.AngularVelocity.y;
@@ -284,18 +285,21 @@ namespace Inferno {
         }
     }
 
-    void LinearPhysics(Object& obj) {
+    void LinearPhysics(Object& obj, float dt) {
         auto& pd = obj.Physics;
+        const auto stepScale = dt / Game::TICK_RATE;
 
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
             return;
 
         if (pd.Drag > 0) {
-            if (pd.Thrust != Vector3::Zero /*pd.HasFlag(PhysicsFlag::UseThrust)*/ && pd.Mass > 0)
-                pd.Velocity += pd.Thrust / pd.Mass; // acceleration
+            if (pd.Thrust != Vector3::Zero && pd.Mass > 0)
+                pd.Velocity += pd.Thrust / pd.Mass * stepScale; // acceleration
 
-            pd.Velocity *= 1 - pd.Drag;
+            pd.Velocity *= 1 - pd.Drag * stepScale;
         }
+
+        obj.Position += pd.Velocity * dt;
     }
 
     void PlotPhysics(double t, const PhysicsData& pd) {
@@ -333,7 +337,7 @@ namespace Inferno {
         obj.Position += obj.Rotation.Up() * offset * amplitude;
     }
 
-    void FixedPhysics(Object& obj, float dt) {
+    void FixedPhysics(const Object& obj, float dt) {
         auto& physics = obj.Physics;
 
         if (obj.Type == ObjectType::Player) {
@@ -345,9 +349,6 @@ namespace Inferno {
             Debug::ShipThrust = physics.Thrust;
             Debug::ShipAcceleration = Vector3::Zero;
         }
-
-        AngularPhysics(obj, dt);
-        LinearPhysics(obj);
     }
 
     // Closest point on line
@@ -1176,6 +1177,9 @@ namespace Inferno {
 
         HitInfo hit;
 
+        Vector3 averagePosition;
+        int hits = 0;
+
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
             auto submodelOffset = model.GetSubmodelOffset(smIndex);
             auto& submodel = model.Submodels[smIndex];
@@ -1188,7 +1192,7 @@ namespace Inferno {
                     p0.z *= -1; // flip z due to lh/rh differences
                     p1.z *= -1;
                     p2.z *= -1;
-                    Vector3 normal = normals[i / 3];
+                    Vector3 normal = normals[i / 3]; // todo: fix normals instead of recomputing
                     normal.z *= -1;
 
                     normal = -(p1 - p0).Cross(p2 - p0);
@@ -1207,28 +1211,28 @@ namespace Inferno {
                     //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
                     //}
 
+                    {
+                        auto dbgStart = Vector3::Transform(p0, transform);
+                        auto dbgEnd = Vector3::Transform(p1, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+
+                    {
+                        auto dbgStart = Vector3::Transform(p1, transform);
+                        auto dbgEnd = Vector3::Transform(p2, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+
+                    {
+                        auto dbgStart = Vector3::Transform(p2, transform);
+                        auto dbgEnd = Vector3::Transform(p0, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+
                     auto point = ProjectPointOntoPlane(localPos, plane);
                     //bool triFacesTowardsObj = ray.direction.Dot(normal) <= 0;
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal = normal;
-
-                    {
-                        auto dbgStart = Vector3::Transform(p0 + offset, transform);
-                        auto dbgEnd = Vector3::Transform(p1 + offset, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
-
-                    {
-                        auto dbgStart = Vector3::Transform(p1 + offset, transform);
-                        auto dbgEnd = Vector3::Transform(p2 + offset, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
-
-                    {
-                        auto dbgStart = Vector3::Transform(p2 + offset, transform);
-                        auto dbgEnd = Vector3::Transform(p0 + offset, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
 
                     if (/*triFacesTowardsObj &&*/ PointInTriangle(p0 + offset, p1 + offset, p2 + offset, point)) {
                         // point was inside the triangle and behind the plane
@@ -1254,6 +1258,7 @@ namespace Inferno {
                         }
                     }
 
+                    // todo: improve this check to only test the travel distance
                     if (hitDistance < source.Radius) {
                         // Transform from local back to world space
                         hitPoint = Vector3::Transform(hitPoint, transform);
@@ -1262,8 +1267,10 @@ namespace Inferno {
                         Debug::ClosestPoints.push_back(hitPoint);
                         Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
                         auto wallPart = hitNormal.Dot(source.Physics.Velocity);
-                        source.Physics.Velocity -= hitNormal * wallPart;     // slide along wall
-                        source.Position = hitPoint + hitNormal * source.Radius; // move object to surface
+                        source.Physics.Velocity -= hitNormal * wallPart;        // slide along wall
+                        //source.Position = hitPoint + hitNormal * source.Radius; // move object to surface
+                        averagePosition += hitPoint + hitNormal * source.Radius;
+                        hits++;
                     }
 
                     //if (ray.Intersects(v1 + offset, v2 + offset, v3 + offset, dist) && dist <= maxDistance && dist < hit.Distance) {
@@ -1307,6 +1314,10 @@ namespace Inferno {
         //    //Debug::ClosestPoints.push_back(hit.Point);
         //    //Render::Debug::DrawLine(hit.Point, hit.Point + hit.Normal * 2, { 1, 0, 0 });
         //}
+
+        if(hits > 0) {
+            source.Position = averagePosition / hits;
+        }
 
         return hit;
     }
@@ -1431,7 +1442,7 @@ namespace Inferno {
 
                                 if (pathRay.direction.Dot(normal) > 0)
                                     continue; // velocity going away from surface
-                                
+
                                 // Object hit a triangle edge
                                 hitDistance = triDist;
                                 hitPoint = triPoint;
@@ -1504,79 +1515,85 @@ namespace Inferno {
         Debug::ClosestPoints.clear();
         Debug::SegmentsChecked = 0;
 
+        constexpr int STEPS = 4;
+        dt /= STEPS;
+
         for (int id = 0; id < level.Objects.size(); id++) {
             auto& obj = level.Objects[id];
             if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
             if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
             if (obj.Movement != MovementType::Physics) continue;
 
-            obj.LastPosition = obj.Position;
-            obj.LastRotation = obj.Rotation;
-            obj.Physics.LastVelocity = obj.Physics.Velocity;
+            for (int i = 0; i < STEPS; i++) {
+                obj.LastPosition = obj.Position;
+                obj.LastRotation = obj.Rotation;
+                obj.Physics.LastVelocity = obj.Physics.Velocity;
 
-            FixedPhysics(obj, dt);
+                FixedPhysics(obj, dt);
+                AngularPhysics(obj, dt);
+                LinearPhysics(obj, dt);
 
-            if (obj.Physics.Wiggle > 0) {
-                //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
-                //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
-            }
+                if (obj.Physics.Wiggle > 0) {
+                    //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
+                    //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
+                }
 
-            //obj.Physics.InputVelocity = obj.Physics.Velocity;
-            obj.Position += obj.Physics.Velocity * dt;
+                //obj.Physics.InputVelocity = obj.Physics.Velocity;
 
-            if (HasFlag(obj.Flags, ObjectFlag::Attached))
-                continue; // don't test collision of attached objects
+                if (HasFlag(obj.Flags, ObjectFlag::Attached))
+                    continue; // don't test collision of attached objects
 
-            if (id != 0) continue; // player only testing
-            LevelHit hit{ .Source = &obj };
+                //if (id != 0) continue; // player only testing
+                LevelHit hit{ .Source = &obj };
 
-            if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {
-                if (obj.Type == ObjectType::Weapon) {
-                    if (hit.HitObj) {
-                        Game::WeaponHitObject(hit, obj, level);
+                if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {
+                    if (obj.Type == ObjectType::Weapon) {
+                        if (hit.HitObj) {
+                            Game::WeaponHitObject(hit, obj, level);
+                        }
+                        else {
+                            Game::WeaponHitWall(hit, obj, level, ObjID(id));
+                        }
                     }
-                    else {
-                        Game::WeaponHitWall(hit, obj, level, ObjID(id));
+
+                    if (auto wall = level.TryGetWall(hit.Tag)) {
+                        HitWall(level, hit.Point, obj, *wall);
                     }
-                }
 
-                if (auto wall = level.TryGetWall(hit.Tag)) {
-                    HitWall(level, hit.Point, obj, *wall);
-                }
+                    if (obj.Type == ObjectType::Player && hit.HitObj) {
+                        Game::Player.TouchObject(*hit.HitObj);
+                    }
 
-                if (obj.Type == ObjectType::Player && hit.HitObj) {
-                    Game::Player.TouchObject(*hit.HitObj);
-                }
+                    if (obj.Physics.CanBounce()) {
+                        // this doesn't work because the object velocity is already modified
+                        obj.Physics.Velocity = Vector3::Reflect(obj.Physics.LastVelocity, hit.Normal);
+                        if (obj.Type == ObjectType::Weapon)
+                            obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
 
-                if (obj.Physics.CanBounce()) {
-                    // this doesn't work because the object velocity is already modified
-                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.LastVelocity, hit.Normal);
-                    if (obj.Type == ObjectType::Weapon)
-                        obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
+                        obj.Physics.Bounces--;
+                    }
 
-                    obj.Physics.Bounces--;
-                }
+                    // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
+                    /*        if (obj.Type != ObjectType::Weapon) {
+                                MoveObject(level, (ObjID)id);
+                            }*/
 
-                // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
-                /*        if (obj.Type != ObjectType::Weapon) {
-                            MoveObject(level, (ObjID)id);
-                        }*/
+                    // Play a wall hit sound if the object hits something head-on
+                    if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
+                        //vm_vec_sub(&moved_v, &obj->pos, &save_pos);
+                        //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
 
-                // Play a wall hit sound if the object hits something head-on
-                if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
-                    //vm_vec_sub(&moved_v, &obj->pos, &save_pos);
-                    //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
+                        auto deltaVel = (obj.Physics.Velocity - obj.Physics.LastVelocity).Length();
+                        //auto deltaVel = obj.Physics.Velocity - obj.Physics.LastVelocity;
+                        //auto actualVel = (obj.Position - obj.LastPosition) / dt;
+                        //auto velDotNorm = deltaVel.Dot(hit.Normal);
 
-                    auto deltaVel = (obj.Physics.Velocity - obj.Physics.LastVelocity).Length();
-                    //auto deltaVel = obj.Physics.Velocity - obj.Physics.LastVelocity;
-                    //auto actualVel = (obj.Position - obj.LastPosition) / dt;
-                    //auto velDotNorm = deltaVel.Dot(hit.Normal);
-
-                    // sudden change in velocity means we hit something
-                    if (deltaVel > 35) {
-                        Sound3D sound(hit.Point, hit.Tag.Segment);
-                        sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
-                        Sound::Play(sound);
+                        // sudden change in velocity means we hit something
+                        if (deltaVel > 35) {
+                            Sound3D sound(hit.Point, hit.Tag.Segment);
+                            sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
+                            Sound::Play(sound);
+                        }
                     }
                 }
             }
