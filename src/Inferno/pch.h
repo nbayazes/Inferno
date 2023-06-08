@@ -42,6 +42,20 @@
 // WinHelp is deprecated
 #define NOHELP
 
+#define NOGDICAPMASKS
+#define NOCRYPT
+#define NOATOM
+#define NOCLIPBOARD
+#define NOCOLOR
+#define NOKERNEL
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOSCROLL
+#define NOCOMM
+#define NOKANJI
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+
 // Windows and DirectX
 #include <WinSDKVer.h>
 #include <SDKDDKVer.h>
