@@ -298,7 +298,7 @@ namespace Inferno {
             writer.WriteRotation(obj.Rotation);
             writer.WriteFix(obj.Radius);
             writer.WriteFix(obj.HitPoints);
-            writer.WriteVector(obj.LastPosition);
+            writer.WriteVector(obj.PrevPosition);
             writer.Write(obj.Contains);
 
             switch (obj.Movement) {

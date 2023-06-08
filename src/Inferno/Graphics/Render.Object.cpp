@@ -66,7 +66,7 @@ namespace Inferno::Render {
             transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
 
         ObjectDepthShader::Constants constants = {};
-        auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto& shader = Shaders->DepthObject;
@@ -109,7 +109,7 @@ namespace Inferno::Render {
         if (model == nullptr) return;
 
         ObjectDepthShader::Constants constants = {};
-        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto cmd = ctx.CommandList();
@@ -179,7 +179,7 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
-        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto cmdList = ctx.CommandList();
@@ -301,7 +301,7 @@ namespace Inferno::Render {
 
         constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
-        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetLastTransform(), object.GetTransform(), Game::LerpAmount);
+        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
 
         bool transparentOverride = false;

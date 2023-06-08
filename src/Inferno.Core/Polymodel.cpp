@@ -261,29 +261,32 @@ namespace Inferno {
         }
 
         // Generate normals. We do this here rather than inline because some custom models reference points before they are loaded.
-        for (auto& submodel : model.Submodels) {
-            const auto& vertices = model.Vertices;
-            const auto& indices = submodel.Indices;
 
-            for (int i = 0; i < indices.size(); i += 3) {
-                auto normal = (vertices[indices[i + 1]] - vertices[indices[i]]).Cross(vertices[indices[i + 2]] - vertices[indices[i]]);
-                normal.Normalize();
-                model.Normals.push_back(normal);
-            }
+        for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
+            auto& submodel = model.Submodels[smIndex];
 
-            const auto& flatIndices = submodel.FlatIndices;
+            auto calcNormals = [&model] (span<const uint16> indices, List<Vector3>& normals) {
+                for (int i = 0; i < indices.size(); i += 3) {
+                    Vector3 p0 = model.Vertices[indices[i + 0]];
+                    Vector3 p1 = model.Vertices[indices[i + 1]];
+                    Vector3 p2 = model.Vertices[indices[i + 2]];
+                    p0.z *= -1; // flip z due to lh/rh differences
+                    p1.z *= -1;
+                    p2.z *= -1;
+                    auto normal = -(p1 - p0).Cross(p2 - p0);
+                    normal.Normalize();
+                    normals.push_back(normal);
+                }
+            };
 
-            for (int i = 0; i < flatIndices.size(); i += 3) {
-                auto normal = (vertices[flatIndices[i + 1]] - vertices[flatIndices[i]]).Cross(vertices[flatIndices[i + 2]] - vertices[flatIndices[i]]);
-                normal.Normalize();
-                model.FlatNormals.push_back(normal);
-            }
+            calcNormals(submodel.Indices, model.Normals);
+            calcNormals(submodel.FlatIndices, model.FlatNormals);
         }
 
         Expand(model);
         UpdateGeometricProperties(model);
 
         if (highestTex >= model.TextureCount) throw Exception("Model contains too many textures");
-        if (model.Submodels.size() > MAX_SUBMODELS) throw Exception("Model contains too many submodels");
+        if (model.Submodels.size() > MAX_SUBMODELS) throw Exception("Model contains more than 10 submodels");
     }
 }

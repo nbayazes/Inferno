@@ -442,8 +442,8 @@ namespace Inferno::Game {
         auto& weapon = Resources::GetWeapon(id);
 
         Object bullet{};
-        bullet.Position = bullet.LastPosition = point;
-        bullet.Rotation = bullet.LastRotation = obj.Rotation;
+        bullet.Position = bullet.PrevPosition = point;
+        bullet.Rotation = bullet.PrevRotation = obj.Rotation;
         auto direction = obj.Rotation.Forward();
 
         if (spread != Vector2::Zero) {
@@ -508,7 +508,7 @@ namespace Inferno::Game {
             // Randomize the rotation of models
             auto rotation = Matrix::CreateFromAxisAngle(obj.Rotation.Forward(), Random() * DirectX::XM_2PI);
             bullet.Rotation *= rotation;
-            bullet.LastRotation = bullet.Rotation;
+            bullet.PrevRotation = bullet.Rotation;
 
             //auto length = model.Radius * 2;
             Render::LoadModelDynamic(weapon.Model);

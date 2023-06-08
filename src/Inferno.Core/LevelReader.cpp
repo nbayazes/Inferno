@@ -222,10 +222,10 @@ namespace Inferno {
 
             obj.Segment = (SegID)_reader.ReadInt16();
             obj.Position = _reader.ReadVector();
-            obj.Rotation = obj.LastRotation = _reader.ReadRotation();
+            obj.Rotation = obj.PrevRotation = _reader.ReadRotation();
             obj.Radius = _reader.ReadFix();
             obj.HitPoints = _reader.ReadFix();
-            obj.LastPosition = _reader.ReadVector();
+            obj.PrevPosition = _reader.ReadVector();
 
             obj.Contains.Type = (ObjectType)_reader.ReadByte();
             obj.Contains.ID = _reader.ReadByte();

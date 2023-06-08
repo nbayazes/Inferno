@@ -300,6 +300,11 @@ namespace Inferno {
         }
 
         obj.Position += pd.Velocity * dt;
+
+        if (obj.Physics.Wiggle > 0) {
+            //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
+            //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
+        }
     }
 
     void PlotPhysics(double t, const PhysicsData& pd) {
@@ -1037,33 +1042,19 @@ namespace Inferno {
         if (b.Type == ObjectType::Powerup || b.Type == ObjectType::Marker)
             return;
 
-        Vector3 aVelDir;
-        a.Physics.Velocity.Normalize(aVelDir);
-
-        auto m1 = a.Physics.Mass == 0.0f ? 1.0f : a.Physics.Mass;
-        auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
-        //auto bPosOrig = b.Position;
-
-        //if (b.Type == ObjectType::Reactor) {
-        //    // todo: not correct for polygon accurate
-        //    // Don't let an object go inside a reactor
-        //    Vector3 normal = a.Position - b.Position;
-        //    normal.Normalize();
-        //    a.Position = b.Position + normal * (b.Radius + a.Radius);
-        //    // play a sound?
-        //}
-        //else 
         if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) { }
 
-        //if (Vector3::Distance(b.Position, bPosOrig) > b.Radius) {
-        //    //__debugbreak();
-        //}
-
+        // todo: there's no velocity at this point due to previous subtractions in CollideMesh
+        // track the velocity change from the hit?
         auto v1 = a.Physics.Velocity.Dot(hit.Normal);
         auto v2 = b.Physics.Velocity.Dot(hit.Normal);
 
         // Player ramming a robot should impart less force than a weapon
         float restitution = a.Type == ObjectType::Player ? 0.6f : 1.0f;
+
+        // These equations are valid as long as one mass is not zero
+        auto m1 = a.Physics.Mass == 0.0f ? 1.0f : a.Physics.Mass;
+        auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
         auto newV1 = (m1 * v1 + m2 * v2 - m2 * (v1 - v2) * restitution) / (m1 + m2);
         auto newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
 
@@ -1079,7 +1070,9 @@ namespace Inferno {
 
         //auto actualVel = (a.Position - a.LastPosition) / dt;
 
-        auto force = aVelDir * aVelDir.Dot(hit.Normal) * v1 * m1 / m2;
+        Vector3 velDir;
+        a.Physics.Velocity.Normalize(velDir);
+        auto force = velDir * velDir.Dot(hit.Normal) * v1 * m1 / m2;
         //auto deltaVel = (a.Physics.Velocity) - a.Physics.LastVelocity;
         //auto force = deltaVel * m1 / m2; // delta force
         //force *= 10; // hack
@@ -1151,9 +1144,6 @@ namespace Inferno {
         float travelDist = obj.Physics.Velocity.Length() * dt;
         bool needsRaycast = travelDist > obj.Radius * 1.5f;
 
-        // todo: ray projection for fast moving objects. use ray sweep
-        // move the object to the mesh surface then proceed as normal
-
         if (!needsRaycast && Vector3::Distance(obj.Position, target.Position) > obj.Radius + target.Radius)
             return {}; // Objects too far apart
 
@@ -1173,23 +1163,25 @@ namespace Inferno {
         Vector3 averagePosition;
         int hits = 0;
 
+        int texNormalIndex = 0, flatNormalIndex = 0;
+
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
             auto submodelOffset = model.GetSubmodelOffset(smIndex);
             auto& submodel = model.Submodels[smIndex];
 
-            auto hitTestIndices = [&](span<const uint16> indices, span<const Vector3> normals) {
+            auto hitTestIndices = [&](span<const uint16> indices, span<const Vector3> normals, int& normalIndex) {
                 for (int i = 0; i < indices.size(); i += 3) {
+                    // todo: account for animation
                     Vector3 p0 = model.Vertices[indices[i + 0]] + submodelOffset;
                     Vector3 p1 = model.Vertices[indices[i + 1]] + submodelOffset;
                     Vector3 p2 = model.Vertices[indices[i + 2]] + submodelOffset;
                     p0.z *= -1; // flip z due to lh/rh differences
                     p1.z *= -1;
                     p2.z *= -1;
-                    Vector3 normal = normals[i / 3]; // todo: fix normals instead of recomputing
-                    normal.z *= -1;
-
-                    normal = -(p1 - p0).Cross(p2 - p0);
-                    normal.Normalize();
+                    Vector3 normal = normals[normalIndex++]; // todo: fix normals instead of recomputing
+                    //auto normal2 = -(p1 - p0).Cross(p2 - p0);
+                    //normal2.Normalize();
+                    //assert(normal == normal2);
 
                     bool triFacesObj = localDir.Dot(normal) <= 0;
 
@@ -1207,30 +1199,32 @@ namespace Inferno {
                     if (planeDist > 0 || planeDist < -obj.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
-                    //{
-                    //    auto center = (p0 + p1 + p2) / 3;
-                    //    auto dbgStart = Vector3::Transform(center, transform);
-                    //    auto dbgEnd = Vector3::Transform(center + normal, transform);
-                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    //}
+#ifdef DEBUG_OUTLINE
+                    {
+                        auto center = (p0 + p1 + p2) / 3;
+                        auto dbgStart = Vector3::Transform(center, transform);
+                        auto dbgEnd = Vector3::Transform(center + normal, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
 
-                    //{
-                    //    auto dbgStart = Vector3::Transform(p0, transform);
-                    //    auto dbgEnd = Vector3::Transform(p1, transform);
-                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    //}
+                    {
+                        auto dbgStart = Vector3::Transform(p0, transform);
+                        auto dbgEnd = Vector3::Transform(p1, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
 
-                    //{
-                    //    auto dbgStart = Vector3::Transform(p1, transform);
-                    //    auto dbgEnd = Vector3::Transform(p2, transform);
-                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    //}
+                    {
+                        auto dbgStart = Vector3::Transform(p1, transform);
+                        auto dbgEnd = Vector3::Transform(p2, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
 
-                    //{
-                    //    auto dbgStart = Vector3::Transform(p2, transform);
-                    //    auto dbgEnd = Vector3::Transform(p0, transform);
-                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    //}
+                    {
+                        auto dbgStart = Vector3::Transform(p2, transform);
+                        auto dbgEnd = Vector3::Transform(p0, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    }
+#endif
 
                     auto point = ProjectPointOntoPlane(localPos, plane);
                     float hitDistance = FLT_MAX;
@@ -1275,8 +1269,8 @@ namespace Inferno {
                 }
             };
 
-            hitTestIndices(submodel.Indices, model.Normals);
-            hitTestIndices(submodel.FlatIndices, model.FlatNormals);
+            hitTestIndices(submodel.Indices, model.Normals, texNormalIndex);
+            hitTestIndices(submodel.FlatIndices, model.FlatNormals, flatNormalIndex);
         }
 
         if (hits > 0 && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor) {
@@ -1288,12 +1282,16 @@ namespace Inferno {
         return hit;
     }
 
+    constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
+
     bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
         Vector3 direction;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
-        if (travelDistance <= 0.001f) return false;
-        obj.Physics.Velocity.Normalize(direction); // todo: what if velocity is 0?
-        Ray pathRay(obj.LastPosition, direction);
+        // Don't hit test objects that haven't moved unless they are the player
+        // This is so powerups are tested
+        if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
+        obj.Physics.Velocity.Normalize(direction);
+        Ray pathRay(obj.PrevPosition, direction);
 
         // Use a larger radius for the object so the large objects in adjacent segments are found.
         // Needs testing against boss robots
@@ -1370,7 +1368,7 @@ namespace Inferno {
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
                             // move the object to the surface and proceed as normal
-                            hitPoint = obj.LastPosition + pathRay.direction * dist;
+                            hitPoint = obj.PrevPosition + pathRay.direction * dist;
                             if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
@@ -1452,7 +1450,7 @@ namespace Inferno {
                         //    //obj.Physics.Bounces--;
                         //}
 
-                        obj.Physics.Velocity -= hitNormal * wallPart;     // slide along wall (or bounce)
+                        obj.Physics.Velocity -= hitNormal * wallPart; // slide along wall (or bounce)
                         //obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
                         averagePosition += hitPoint + hitNormal * obj.Radius;
                         hits++;
@@ -1489,7 +1487,7 @@ namespace Inferno {
         Debug::SegmentsChecked = 0;
 
         // At least two steps are necessary to prevent jitter in sharp corners (including against objects)
-        constexpr int STEPS = 2; 
+        constexpr int STEPS = 2;
         dt /= STEPS;
 
         for (int id = 0; id < level.Objects.size(); id++) {
@@ -1499,18 +1497,13 @@ namespace Inferno {
             if (obj.Movement != MovementType::Physics) continue;
 
             for (int i = 0; i < STEPS; i++) {
-                obj.LastPosition = obj.Position;
-                obj.LastRotation = obj.Rotation;
-                obj.Physics.LastVelocity = obj.Physics.Velocity;
+                obj.PrevPosition = obj.Position;
+                obj.PrevRotation = obj.Rotation;
+                obj.Physics.PrevVelocity = obj.Physics.Velocity;
 
                 PlayerPhysics(obj, dt);
                 AngularPhysics(obj, dt);
                 LinearPhysics(obj, dt);
-
-                if (obj.Physics.Wiggle > 0) {
-                    //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
-                    //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
-                }
 
                 if (HasFlag(obj.Flags, ObjectFlag::Attached))
                     continue; // don't test collision of attached objects
@@ -1538,7 +1531,7 @@ namespace Inferno {
 
                     if (obj.Physics.CanBounce()) {
                         // this doesn't work because the object velocity is already modified
-                        obj.Physics.Velocity = Vector3::Reflect(obj.Physics.LastVelocity, hit.Normal);
+                        obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
                         if (obj.Type == ObjectType::Weapon)
                             obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
 
@@ -1555,7 +1548,7 @@ namespace Inferno {
                         //vm_vec_sub(&moved_v, &obj->pos, &save_pos);
                         //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
 
-                        auto deltaVel = (obj.Physics.Velocity - obj.Physics.LastVelocity).Length();
+                        auto deltaVel = (obj.Physics.Velocity - obj.Physics.PrevVelocity).Length();
                         //auto deltaVel = obj.Physics.Velocity - obj.Physics.LastVelocity;
                         //auto actualVel = (obj.Position - obj.LastPosition) / dt;
                         //auto velDotNorm = deltaVel.Dot(hit.Normal);
@@ -1570,7 +1563,8 @@ namespace Inferno {
                 }
             }
 
-            MoveObject(level, (ObjID)id); // todo: refer to move object above w/ forcefields
+            if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
+                MoveObject(level, (ObjID)id); // todo: refer to move object above w/ forcefields
 
             //if (obj.LastPosition != obj.Position)
             //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });

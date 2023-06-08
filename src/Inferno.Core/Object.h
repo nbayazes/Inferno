@@ -196,7 +196,7 @@ namespace Inferno {
     };
 
     struct PhysicsData {
-        Vector3 Velocity, LastVelocity;
+        Vector3 Velocity, PrevVelocity;
         Vector3 Thrust;     // Constant force applied
         float Mass;
         float Drag;
@@ -359,8 +359,8 @@ namespace Inferno {
 
         Vector3 Position; // The current "real" position
         Matrix3x3 Rotation; // The current "real" rotation
-        Vector3 LastPosition; // The position from the previous update. Used for graphics interpolation.
-        Matrix3x3 LastRotation; // The rotation from the previous update. Used for graphics interpolation.
+        Vector3 PrevPosition; // The position from the previous update. Used for graphics interpolation.
+        Matrix3x3 PrevRotation; // The rotation from the previous update. Used for graphics interpolation.
 
         Color LightColor; // Point light color
         float LightRadius = 0; // Point light radius
@@ -377,9 +377,9 @@ namespace Inferno {
             return m;
         }
 
-        Matrix GetLastTransform() const {
-            Matrix m(LastRotation);
-            m.Translation(LastPosition);
+        Matrix GetPrevTransform() const {
+            Matrix m(PrevRotation);
+            m.Translation(PrevPosition);
             return m;
         }
 
@@ -396,12 +396,12 @@ namespace Inferno {
 
         // Gets the render position
         Vector3 GetPosition(float lerp) const {
-            return Vector3::Lerp(LastPosition, Position, lerp);
+            return Vector3::Lerp(PrevPosition, Position, lerp);
         }
 
         // Gets the render rotation
         Matrix GetRotation(float lerp) const {
-            return Matrix::Lerp(LastRotation, Rotation, lerp);
+            return Matrix::Lerp(PrevRotation, Rotation, lerp);
         }
 
         // Transform object position and rotation by a matrix

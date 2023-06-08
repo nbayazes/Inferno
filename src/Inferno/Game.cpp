@@ -83,8 +83,8 @@ namespace Inferno::Game {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
             }
 
-            obj.LastPosition = obj.Position;
-            obj.LastRotation = obj.Rotation;
+            obj.PrevPosition = obj.Position;
+            obj.PrevRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
 
             if (auto seg = Level.TryGetSegment(obj.Segment))
@@ -477,7 +477,7 @@ namespace Inferno::Game {
                 for (int i = 0; i < model.Submodels.size(); i++) {
                     // accumulate the offsets for each submodel
                     auto submodelOffset = model.GetSubmodelOffset(i);
-                    Matrix transform = Matrix::Lerp(obj.GetLastTransform(), obj.GetTransform(), Game::LerpAmount);
+                    Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), Game::LerpAmount);
                     //auto transform = obj.GetLastTransform();
                     transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
                     auto world = Matrix::CreateTranslation(submodelOffset) * transform;
@@ -606,8 +606,8 @@ namespace Inferno::Game {
 
     void AddPendingObjects() {
         for (auto& obj : PendingNewObjects) {
-            obj.LastPosition = obj.Position;
-            obj.LastRotation = obj.Rotation;
+            obj.PrevPosition = obj.Position;
+            obj.PrevRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
 
             bool foundExisting = false;
@@ -766,7 +766,7 @@ namespace Inferno::Game {
     Inferno::Editor::EditorUI EditorUI;
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp) {
-        Matrix transform = Matrix::Lerp(obj.GetLastTransform(), obj.GetTransform(), lerp);
+        Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), lerp);
         camera.Position = transform.Translation();
         camera.Target = camera.Position + transform.Forward();
         camera.Up = transform.Up();
@@ -1026,8 +1026,8 @@ namespace Inferno::Game {
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
-            obj.LastPosition = obj.Position;
-            obj.LastRotation = obj.Rotation;
+            obj.PrevPosition = obj.Position;
+            obj.PrevRotation = obj.Rotation;
             obj.Signature = GetObjectSig();
 
             if (obj.IsPlayer())
