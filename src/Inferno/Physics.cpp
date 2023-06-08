@@ -1262,13 +1262,14 @@ namespace Inferno {
 
                     if (hitDistance < obj.Radius) {
                         // Transform from local back to world space
-                        hitPoint = Vector3::Transform(hitPoint, transform);
-                        hitNormal = Vector3::TransformNormal(hitNormal, target.Rotation);
+                        hit.Point = Vector3::Transform(hitPoint, transform);
+                        hit.Normal = Vector3::TransformNormal(hitNormal, target.Rotation);
+                        hit.Distance = hitDistance;
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
-                        auto wallPart = hitNormal.Dot(obj.Physics.Velocity);
-                        obj.Physics.Velocity -= hitNormal * wallPart; // slide along wall
-                        averagePosition += hitPoint + hitNormal * obj.Radius;
+                        auto wallPart = hit.Normal.Dot(obj.Physics.Velocity);
+                        obj.Physics.Velocity -= hit.Normal * wallPart; // slide along wall
+                        averagePosition += hit.Point + hit.Normal * obj.Radius;
                         hits++;
                     }
                 }
@@ -1321,19 +1322,20 @@ namespace Inferno {
                         CollideObjects(hit, obj, *other);
                     }
                 }
-                //else {
-                //    auto posA = obj.Position;
-                //    auto posB = other->Position;
-                //    BoundingSphere sphereA(posA, obj.Radius);
-                //    BoundingSphere sphereB(posB, other->Radius);
+                else {
+                    BoundingSphere sphereA(obj.Position, obj.Radius);
+                    BoundingSphere sphereB(other->Position, other->Radius);
 
-                //    if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
-                //        hit.Update(info, other);
-                //        CollideObjects(hit, obj, *other);
-                //    }
-                //}
+                    if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
+                        hit.Update(info, other);
+                        CollideObjects(hit, obj, *other);
+                    }
+                }
             }
         }
+
+        Vector3 averagePosition;
+        int hits = 0;
 
         for (auto& segId : pvs) {
             Debug::SegmentsChecked++;
@@ -1372,7 +1374,9 @@ namespace Inferno {
                             if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
-                            obj.Position = hitPoint - pathRay.direction * obj.Radius;
+                            //obj.Position = hitPoint - pathRay.direction * obj.Radius;
+                            averagePosition += hitPoint - pathRay.direction * obj.Radius;
+                            hits++;
                             hitNormal = side.Normals[tri];
                             hitDistance = dist;
                             edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
@@ -1449,7 +1453,9 @@ namespace Inferno {
                         //}
 
                         obj.Physics.Velocity -= hitNormal * wallPart;     // slide along wall (or bounce)
-                        obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
+                        //obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
+                        averagePosition += hitPoint + hitNormal * obj.Radius;
+                        hits++;
 
                         // apply friction so robots pinned against the wall don't spin in place
                         obj.Physics.AngularAcceleration *= 0.5f;
@@ -1472,6 +1478,8 @@ namespace Inferno {
             }
         }
 
+        if (hits > 0) obj.Position = averagePosition / (float)hits;
+
         return hit;
     }
 
@@ -1480,7 +1488,8 @@ namespace Inferno {
         Debug::ClosestPoints.clear();
         Debug::SegmentsChecked = 0;
 
-        constexpr int STEPS = 1;
+        // At least two steps are necessary to prevent jitter in sharp corners (including against objects)
+        constexpr int STEPS = 2; 
         dt /= STEPS;
 
         for (int id = 0; id < level.Objects.size(); id++) {
@@ -1502,8 +1511,6 @@ namespace Inferno {
                     //auto offset = (float)obj.Signature * 0.8191f; // random offset to keep objects from wiggling at same time
                     //WiggleObject(obj, t + offset, dt, obj.Physics.Wiggle, obj.Physics.WiggleRate);
                 }
-
-                //obj.Physics.InputVelocity = obj.Physics.Velocity;
 
                 if (HasFlag(obj.Flags, ObjectFlag::Attached))
                     continue; // don't test collision of attached objects

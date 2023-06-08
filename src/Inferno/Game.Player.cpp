@@ -46,15 +46,15 @@ namespace Inferno {
             if (AfterburnerCharge < 0) AfterburnerCharge = 0;
             float count = AfterburnerCharge / USE_SPEED;
 
-            if (oldCount != count) {} // drop blobs
+            if (oldCount != count) {}                           // drop blobs
             thrust = 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
         }
         else {
             float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
-            float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
-            chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
+            float energy = std::max(Energy - 10, 0.0f);               // don't drop below 10 energy
+            chargeUp = std::min(chargeUp, energy / 10);               // limit charge if <= 10 energy
             AfterburnerCharge += chargeUp;
-            AddEnergy(-chargeUp * 100 / 10);// full charge uses 10% energy
+            AddEnergy(-chargeUp * 100 / 10); // full charge uses 10% energy
         }
 
         if (AfterburnerCharge <= 0 && active)
@@ -207,7 +207,6 @@ namespace Inferno {
                     FusionNextSoundDelay = 0.25f;
                     SubtractEnergy(weapon.EnergyUsage);
                 }
-
             }
             else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
                 SubtractEnergy(dt);
@@ -359,7 +358,7 @@ namespace Inferno {
         PrimaryDelay = weapon.FireDelay;
 
         if (!weapon.Extended.Chargable) {
-            AddEnergy(-weapon.EnergyUsage); // Charged weapons drain energy on button down
+            AddEnergy(-weapon.EnergyUsage);             // Charged weapons drain energy on button down
             PrimaryAmmo[1] -= (uint16)weapon.AmmoUsage; // only vulcan ammo
         }
 
@@ -560,6 +559,7 @@ namespace Inferno {
     }
 
     void Player::TouchPowerup(Object& obj) {
+        if (obj.Lifespan == -1) return; // Already picked up
         if (Shields < 0) return; // Player is dead!
 
         assert(obj.Type == ObjectType::Powerup);
