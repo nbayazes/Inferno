@@ -462,7 +462,7 @@ namespace Inferno {
 
         void SetTarget(const Color& color, double currentTime, float fadeTime = 0.5f) {
             if (fadeTime <= 0) {
-                _color = color;
+                _startColor = _endColor = _color = color;
             }
             else {
                 _startColor = _color;
