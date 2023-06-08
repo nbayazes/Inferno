@@ -654,7 +654,7 @@ namespace Inferno {
     Set<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius) {
         g_VisitedSegs.clear();
         g_VisitedStack.push(start);
-        //int depth = 0;
+        int depth = 0; // Always add segments touching the start segment, otherwise overlapping objects might be missed
 
         while (!g_VisitedStack.empty()) {
             auto segId = g_VisitedStack.front();
@@ -666,7 +666,7 @@ namespace Inferno {
                 auto& side = seg.GetSide(sideId);
 
                 Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
-                if (/*depth == 0 ||*/ p.DotCoordinate(point) <= 0) {
+                if (depth == 0 || p.DotCoordinate(point) <= 0) {
                     // Point was behind the plane or this was the starting segment
                     auto conn = seg.GetConnection(sideId);
                     if (conn != SegID::None && !g_VisitedSegs.contains(conn))
@@ -674,7 +674,7 @@ namespace Inferno {
                 }
             }
 
-            //depth++;
+            depth++;
             // todo: detail segments
         }
 
@@ -1156,6 +1156,7 @@ namespace Inferno {
         auto invRotation = Matrix(target.Rotation).Invert();
         auto localPos = Vector3::Transform(obj.Position, invTransform);
         auto localDir = Vector3::TransformNormal(direction, invRotation);
+        localDir.Normalize();
         Ray ray = { localPos, localDir }; // update the input ray
 
         HitInfo hit;
