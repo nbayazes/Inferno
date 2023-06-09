@@ -18,8 +18,7 @@ typedef struct tagRECT {
     long bottom;
 } RECT, * PRECT, * NPRECT, * LPRECT;
 
-#define NOMINMAX
 #include <DirectXTK12/SimpleMath.h>
 
-#define FMT_HEADER_ONLY
+#pragma warning (disable: 4275) // Disable cross-dll type warning for std::runtime_error
 #include <fmt/core.h>

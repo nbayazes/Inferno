@@ -280,10 +280,11 @@ namespace Inferno {
         }
     }
 
-    void PrintTriggerMessage(const Trigger& trigger, string message) {
+    void PrintTriggerMessage(const Trigger& trigger, string_view message) {
         if (trigger.HasFlag(TriggerFlag::NoMessage)) return;
 
-        auto msg = fmt::format(message, trigger.Targets.Count() > 1 ? "s" : "");
+        auto suffix = trigger.Targets.Count() > 1 ? "s" : "";
+        auto msg = fmt::vformat(message, fmt::make_format_args(suffix));
         PrintHudMessage(msg);
     }
 

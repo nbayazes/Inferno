@@ -541,6 +541,15 @@ namespace Inferno {
         const auto begin() const { return _data.begin(); }
         const auto end() const { return _data.begin() + _count; }
     };
+
+    // enum to int formatters to make fmt happy
+
+    constexpr auto format_as(SegID id) { return (int)id; }
+    constexpr auto format_as(SideID id) { return (int)id; }
+    constexpr auto format_as(ObjID id) { return (int)id; }
+    constexpr auto format_as(WallID id) { return (int)id; }
+    constexpr auto format_as(TexID id) { return (int)id; }
+    constexpr auto format_as(LevelTexID id) { return (int)id; }
 }
 
 template <>

@@ -39,6 +39,7 @@ constexpr auto D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN = D3D12_GPU_VIRTUAL_ADDRESS(-1)
 // Assign a name to the object to aid with debugging.
 #if defined(_DEBUG) || defined(DBG)
 #include <fmt/format.h>
+#include <fmt/xchar.h>
 
 inline void SetName(ID3D12Object* pObject, LPCWSTR name) {
     pObject->SetName(name);
