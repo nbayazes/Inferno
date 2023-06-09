@@ -180,6 +180,10 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_ LPSTR     /*lpCmdLine*/,
                      _In_ int       /*nCmdShow*/) {
     AllocConsole();
+    freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
+    freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
+    freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
     std::srand((uint)std::time(nullptr)); // seed c-random
