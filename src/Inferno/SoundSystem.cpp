@@ -194,7 +194,7 @@ namespace Inferno::Sound {
             for (auto& device : devices)
                 info += fmt::format(L"{}\n", device.description/*, device.deviceId*/);
 
-            SPDLOG_INFO(info);
+            SPDLOG_INFO(L"{}", info);
 
             auto flags = AudioEngine_EnvironmentalReverb | AudioEngine_ReverbUseFilters | AudioEngine_UseMasteringLimiter;
 #ifdef _DEBUG
