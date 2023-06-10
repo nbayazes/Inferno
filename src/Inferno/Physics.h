@@ -2,9 +2,10 @@
 #include "Level.h"
 #include "Face.h"
 #include "DirectX.h"
+#include "Physics.Capsule.h"
+#include "Physics.Hit.h"
 
 namespace Inferno {
-    struct LevelHit;
     void UpdatePhysics(Level& level, double t, float dt);
     bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer);
 
@@ -15,15 +16,6 @@ namespace Inferno {
         inline Vector3 ClosestPoint;
         inline List<Vector3> ClosestPoints;
         inline int SegmentsChecked = 0;
-    };
-
-    struct HitInfo {
-        float Distance = FLT_MAX; // How far the hit was from the starting point
-        Vector3 Point; // Where the intersection happened
-        Vector3 Normal; // The normal of the intersection
-        int16 Tri = -1; // What triangle was hit (for level walls) (unused?)
-        float Speed = 0;
-        operator bool() const { return Distance != FLT_MAX; }
     };
 
     struct LevelHit {
@@ -80,25 +72,9 @@ namespace Inferno {
     };
 
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion);
-
-    //Vector3 ClosestPointOnLine(const Vector3& a, const Vector3& b, const Vector3& p);
-    //HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
-
-    //struct ClosestResult { float distSq, s, t; Vector3 c1, c2; };
-    //ClosestResult ClosestPointBetweenLines(const Vector3& p1, const Vector3& q1, const Vector3& p2, const Vector3& q2);
-    //bool PointInTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point);
-
-    struct BoundingCapsule {
-        Vector3 A, B;
-        float Radius;
-
-        HitInfo Intersects(const DirectX::BoundingSphere& sphere) const;
-        bool Intersects(const BoundingCapsule& other) const;
-        bool Intersects(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& faceNormal, Vector3& refPoint, Vector3& normal, float& dist) const;
-    };
-
     bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit);
-    HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
-    bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
     bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent);
+    bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
+    HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
+    HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
 }

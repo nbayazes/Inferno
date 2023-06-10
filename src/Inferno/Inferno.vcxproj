@@ -199,9 +199,11 @@
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="LightInfo.cpp" />
     <ClCompile Include="OpenSimplex2.cpp" />
+    <ClCompile Include="Physics.Capsule.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Graphics\Render.Queue.cpp" />
     <ClCompile Include="Graphics\PostProcess.cpp" />
+    <ClCompile Include="Physics.Math.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -285,7 +287,9 @@
     <ClInclude Include="Editor\UI\MaterialEditor.h" />
     <ClInclude Include="NormalMap.h" />
     <ClInclude Include="OpenSimplex2.h" />
+    <ClInclude Include="Physics.Capsule.h" />
     <ClInclude Include="Physics.h" />
+    <ClInclude Include="Physics.Hit.h" />
     <ClInclude Include="Physics.Math.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Room.h" />

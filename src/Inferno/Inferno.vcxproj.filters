@@ -233,6 +233,12 @@
     <ClCompile Include="Graphics\Mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Physics.Capsule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Physics.Math.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -569,6 +575,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game.Object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics.Capsule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Physics.Hit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
