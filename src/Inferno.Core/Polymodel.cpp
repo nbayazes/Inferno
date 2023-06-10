@@ -51,7 +51,9 @@ namespace Inferno {
     }
 
     void UpdateGeometricProperties(Model& model) {
+        int smIndex = 0;
         for (auto& sm : model.Submodels) {
+            auto offset = model.GetSubmodelOffset(smIndex++);
             if (sm.ExpandedPoints.empty()) continue;
 
             for (auto& p : sm.ExpandedPoints) {
@@ -62,6 +64,9 @@ namespace Inferno {
 
             sm.Center /= (float)sm.ExpandedPoints.size();
             sm.Radius = Vector3::Distance(sm.Max, sm.Min) / 2;
+
+            sm.Bounds.Center = (sm.Max + sm.Min) / 2 + offset;
+            sm.Bounds.Extents = (sm.Max - sm.Min) / 2;
         }
     }
 

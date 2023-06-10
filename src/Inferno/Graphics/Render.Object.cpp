@@ -302,7 +302,7 @@ namespace Inferno::Render {
 
         constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
-        Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
+        Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
         transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
 
         bool transparentOverride = false;

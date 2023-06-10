@@ -427,6 +427,26 @@ namespace Inferno::Render::Debug {
         DrawLine(p3, p0, color);
     }
 
+    void DrawBoundingBox(const DirectX::BoundingOrientedBox& bounds, const Color& color) {
+        Array<XMFLOAT3, DirectX::BoundingOrientedBox::CORNER_COUNT> corners{};
+        bounds.GetCorners(corners.data());
+
+        Render::Debug::DrawLine(corners[0], corners[1], color);
+        Render::Debug::DrawLine(corners[1], corners[2], color);
+        Render::Debug::DrawLine(corners[2], corners[3], color);
+        Render::Debug::DrawLine(corners[3], corners[0], color);
+
+        Render::Debug::DrawLine(corners[0], corners[4], color);
+        Render::Debug::DrawLine(corners[1], corners[5], color);
+        Render::Debug::DrawLine(corners[2], corners[6], color);
+        Render::Debug::DrawLine(corners[3], corners[7], color);
+
+        Render::Debug::DrawLine(corners[4], corners[5], color);
+        Render::Debug::DrawLine(corners[5], corners[6], color);
+        Render::Debug::DrawLine(corners[6], corners[7], color);
+        Render::Debug::DrawLine(corners[7], corners[4], color);
+    }
+
     void DrawSide(Level& level, Tag tag, const Color& color) {
         auto [seg, side] = level.GetSegmentAndSide(tag);
         auto& i = side.GetRenderIndices();

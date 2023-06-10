@@ -236,7 +236,7 @@ namespace Inferno::Render {
                 color = Colors::Trigger;
 
                 for (auto& target : trigger->Targets) {
-                    if (!level.SegmentExists(target) || target.Side == SideID::None) 
+                    if (!level.SegmentExists(target) || target.Side == SideID::None)
                         continue;
 
                     auto& targetSeg = level.GetSegment(target.Segment);
@@ -244,9 +244,7 @@ namespace Inferno::Render {
                     Color arrowColor;
 
                     bool isMatcenTrigger =
-                        level.IsDescent1() ?
-                        trigger->HasFlag(TriggerFlagD1::Matcen) :
-                        trigger->Type == TriggerType::Matcen;
+                        level.IsDescent1() ? trigger->HasFlag(TriggerFlagD1::Matcen) : trigger->Type == TriggerType::Matcen;
 
                     // Check that the target is actually a matcen (for D1)
                     if (isMatcenTrigger && targetSeg.Matcen != MatcenID::None) {
@@ -484,4 +482,3 @@ namespace Inferno::Render {
 
     void ReleaseEditorResources() {}
 }
-

@@ -175,7 +175,6 @@ namespace Inferno {
         // Hit opaque overlay!
         //Inferno::SubtractLight(level, tag, *seg);
 
-        fmt::print("tmap2: {}\n", side.TMap2);
         bool usedEClip = false;
 
         if (eclip.DestroyedEClip != EClipID::None) {
@@ -694,7 +693,7 @@ namespace Inferno {
             case ObjectType::Robot:
                 switch (target.Type) {
                     case ObjectType::Wall:
-                    //case ObjectType::Robot:
+                    case ObjectType::Robot:
                     case ObjectType::Player:
                     case ObjectType::Coop:
                     //case ObjectType::Weapon:
@@ -1038,56 +1037,82 @@ namespace Inferno {
         }
     }
 
-    void CollideObjects(const LevelHit& hit, Object& a, Object& b) {
+
+    void IntersectBoundingBoxes(const Object& obj) {
+        auto rotation = obj.Rotation;
+        rotation.Forward(-rotation.Forward());
+        auto orientation = Quaternion::CreateFromRotationMatrix(rotation);
+
+        if (obj.Render.Type == RenderType::Model) {
+            auto& model = Resources::GetModel(obj.Render.Model.ID);
+            int smIndex = 0;
+            for (auto& sm : model.Submodels) {
+                auto offset = model.GetSubmodelOffset(smIndex++);
+                auto transform = obj.GetTransform();
+                transform.Translation(transform.Translation() + offset);
+                transform = obj.Rotation * Matrix::CreateTranslation(obj.Position);
+
+                auto bounds = sm.Bounds;
+                bounds.Center.z *= -1;
+                bounds.Center = Vector3::Transform(bounds.Center, transform);
+                // todo: animation
+                bounds.Orientation = orientation;
+                Render::Debug::DrawBoundingBox(bounds, Color(0, 1, 0));
+            }
+        }
+    }
+
+    void CollideObjects(const LevelHit& hit, Object& a, Object& b, float /*dt*/) {
+        if (hit.Speed <= 0.1f) return;
+
+        SPDLOG_INFO("{}-{} impact speed: {}", a.Signature, b.Signature, hit.Speed);
+
         if (b.Type == ObjectType::Powerup || b.Type == ObjectType::Marker)
             return;
 
         if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) { }
 
-        // todo: there's no velocity at this point due to previous subtractions in CollideMesh
-        // track the velocity change from the hit?
-        auto v1 = a.Physics.Velocity.Dot(hit.Normal);
-        auto v2 = b.Physics.Velocity.Dot(hit.Normal);
+        //auto v1 = a.Physics.PrevVelocity.Dot(hit.Normal);
+        //auto v2 = b.Physics.PrevVelocity.Dot(hit.Normal);
+        //Vector3 v1{}, v2{};
+        //v1 = v2 = hit.Normal * hit.Speed;
 
         // Player ramming a robot should impart less force than a weapon
-        float restitution = a.Type == ObjectType::Player ? 0.6f : 1.0f;
+        //float restitution = a.Type == ObjectType::Player ? 0.6f : 1.0f;
 
         // These equations are valid as long as one mass is not zero
         auto m1 = a.Physics.Mass == 0.0f ? 1.0f : a.Physics.Mass;
         auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
-        auto newV1 = (m1 * v1 + m2 * v2 - m2 * (v1 - v2) * restitution) / (m1 + m2);
-        auto newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
+        //auto newV1 = (m1 * v1 + m2 * v2 - m2 * (v1 - v2) * restitution) / (m1 + m2);
+        //auto newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
 
         //auto bDeltaVel = hit.Normal * (newV2 - v2);
-        if (!HasFlag(a.Physics.Flags, PhysicsFlag::Piercing)) // piercing weapons shouldn't bounce
-            a.Physics.Velocity += hit.Normal * (newV1 - v1);
+        //if (!HasFlag(a.Physics.Flags, PhysicsFlag::Piercing)) // piercing weapons shouldn't bounce
+        //    a.Physics.Velocity += hit.Normal * (newV1 - v1);
 
-        if (b.Movement == MovementType::Physics)
-            b.Physics.Velocity += hit.Normal * (newV2 - v2);
+        //if (b.Movement == MovementType::Physics)
+        //    b.Physics.Velocity += hit.Normal * (newV2 - v2);
 
         //if (a.Type == ObjectType::Weapon && !HasFlag(a.Physics.Flags, PhysicsFlag::Bounce))
         //    a.Physics.Velocity = Vector3::Zero; // stop weapons when hitting an object
 
         //auto actualVel = (a.Position - a.LastPosition) / dt;
 
-        Vector3 velDir;
-        a.Physics.Velocity.Normalize(velDir);
-        auto force = velDir * velDir.Dot(hit.Normal) * v1 * m1 / m2;
-        //auto deltaVel = (a.Physics.Velocity) - a.Physics.LastVelocity;
-        //auto force = deltaVel * m1 / m2; // delta force
-        //force *= 10; // hack
+        constexpr float RESITUTION = 0.5f;
 
-        //auto actualForce = actualVel * m1 / m2;
-        //force = actualForce;
+        auto force = -hit.Normal * hit.Speed * m1 / m2;
+        b.Physics.Velocity += force * RESITUTION;
 
-        a.LastHitForce = b.LastHitForce = force;
+        a.LastHitForce = b.LastHitForce = force * RESITUTION;
+        //a.Position += hit.Normal * 0.1f;
+        //b.Position -= hit.Normal * hit.Speed * dt;
+
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
         if (/*a.Type == ObjectType::Weapon &&*/ b.Type == ObjectType::Robot) {
             Matrix basis(b.Rotation);
             basis = basis.Invert();
             force = Vector3::Transform(force, basis); // transform forces to basis of object
-            // todo: cap the length of the moment arm?
             auto arm = Vector3::Transform(hit.Point - b.Position, basis);
             const auto torque = force.Cross(arm);
             const auto inertia = (2.0f / 5.0f) * m2 * b.Radius * b.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
@@ -1162,6 +1187,8 @@ namespace Inferno {
         HitInfo hit;
 
         Vector3 averagePosition;
+        Vector3 maxPosition;
+        float maxCenterDist = 0;
         int hits = 0;
 
         int texNormalIndex = 0, flatNormalIndex = 0;
@@ -1179,7 +1206,7 @@ namespace Inferno {
                     p0.z *= -1; // flip z due to lh/rh differences
                     p1.z *= -1;
                     p2.z *= -1;
-                    Vector3 normal = normals[normalIndex++]; // todo: fix normals instead of recomputing
+                    Vector3 normal = normals[normalIndex++];
                     //auto normal2 = -(p1 - p0).Cross(p2 - p0);
                     //normal2.Normalize();
                     //assert(normal == normal2);
@@ -1201,28 +1228,19 @@ namespace Inferno {
                         continue; // Object isn't close enough to the triangle plane
 
 #ifdef DEBUG_OUTLINE
+                    auto drawTriangleEdge = [&transform](const Vector3& a, const Vector3& b) {
+                        auto dbgStart = Vector3::Transform(a, transform);
+                        auto dbgEnd = Vector3::Transform(b, transform);
+                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    };
+
+                    drawTriangleEdge(p0, p1);
+                    drawTriangleEdge(p1, p2);
+                    drawTriangleEdge(p2, p0);
                     {
                         auto center = (p0 + p1 + p2) / 3;
                         auto dbgStart = Vector3::Transform(center, transform);
                         auto dbgEnd = Vector3::Transform(center + normal, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
-
-                    {
-                        auto dbgStart = Vector3::Transform(p0, transform);
-                        auto dbgEnd = Vector3::Transform(p1, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
-
-                    {
-                        auto dbgStart = Vector3::Transform(p1, transform);
-                        auto dbgEnd = Vector3::Transform(p2, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
-
-                    {
-                        auto dbgStart = Vector3::Transform(p2, transform);
-                        auto dbgEnd = Vector3::Transform(p0, transform);
                         Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
                     }
 #endif
@@ -1262,10 +1280,26 @@ namespace Inferno {
                         hit.Distance = hitDistance;
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
-                        auto wallPart = hit.Normal.Dot(obj.Physics.Velocity);
-                        obj.Physics.Velocity -= hit.Normal * wallPart; // slide along wall
-                        averagePosition += hit.Point + hit.Normal * obj.Radius;
-                        hits++;
+
+                        if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
+                            auto wallPart = hit.Normal.Dot(obj.Physics.Velocity);
+                            hit.Speed = std::max(std::abs(wallPart), hit.Speed);
+                            obj.Physics.Velocity -= hit.Normal * wallPart; // slide along wall
+
+                            if (obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor) {
+                                auto pos = hit.Point + hit.Normal * obj.Radius;
+                                auto centerDist = Vector3::Distance(pos, target.Position);
+                                if (centerDist > maxCenterDist) {
+                                    maxPosition = pos;
+                                    //obj.Position = hit.Point + hit.Normal * obj.Radius;
+                                }
+                                averagePosition += pos;
+                            }
+                            // todo: averaging position works better, but causes object to get placed inside slightly. causing jitter during physics
+                            // but not taking average allows player to phase through objects
+                            // instead, take the position farthest from the object center?
+                            hits++;
+                        }
                     }
                 }
             };
@@ -1278,6 +1312,7 @@ namespace Inferno {
             // Don't move weapons or reactors
             // Move objects to the average position of all hits. This fixes jitter against more complex geometry and when nudging between walls.
             obj.Position = averagePosition / (float)hits;
+            //obj.Position = maxPosition;
         }
 
         return hit;
@@ -1289,8 +1324,8 @@ namespace Inferno {
         Vector3 direction;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
         // Don't hit test objects that haven't moved unless they are the player
-        // This is so powerups are tested
-        if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
+        // This is so moving powerups are tested against the player
+        //if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
         obj.Physics.Velocity.Normalize(direction);
         Ray pathRay(obj.PrevPosition, direction);
 
@@ -1309,16 +1344,26 @@ namespace Inferno {
                 if (oid == other->Parent) continue; // Don't hit your children!
                 if (!ObjectCanHitTarget(obj, *other)) continue;
 
-                bool accurateObjectCollisions = true;
+                // sphere collisions between all objects is stable
+                // polygon collisions between all objects is mostly stable
+                // polygon collisions between only player and robots isn't stable
 
-                if (accurateObjectCollisions &&
-                    //obj.Type == ObjectType::Weapon && 
-                    other->Render.Type == RenderType::Model
-                    && IsNormalized(pathRay.direction)
-                ) {
+                // todo: option to disable polygon accurate weapon hits?
+                bool useMeshTests =
+                    obj.Type == ObjectType::Weapon || 
+                    other->Type == ObjectType::Reactor ||
+                    other->Type == ObjectType::Robot;
+                    //(obj.Type == ObjectType::Player && other->Type == ObjectType::Robot) ||
+                    //(obj.Type == ObjectType::Robot && other->Type == ObjectType::Player);
+
+                //useMeshTests = false;
+
+                if (useMeshTests && other->Render.Type == RenderType::Model && IsNormalized(pathRay.direction)) {
+                    // sphere-poly -> a is moved when touching b
+                    // poly-sphere -> a is moved when touching b (using a's mesh)
                     if (auto info = IntersectMesh(obj, *other, dt)) {
                         hit.Update(info, other);
-                        CollideObjects(hit, obj, *other);
+                        CollideObjects(hit, obj, *other, dt);
                     }
                 }
                 else {
@@ -1326,8 +1371,16 @@ namespace Inferno {
                     BoundingSphere sphereB(other->Position, other->Radius);
 
                     if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
+                        if (other->Type == ObjectType::Robot || other->Type == ObjectType::Reactor) {
+                            // todo: unify this math with intersect mesh and level hits
+                            auto hitSpeed = info.Normal.Dot(obj.Physics.Velocity);
+                            info.Speed = std::abs(hitSpeed);
+                            obj.Position = info.Point + info.Normal * obj.Radius;
+                            obj.Physics.Velocity -= info.Normal * hitSpeed;
+                        }
+
                         hit.Update(info, other);
-                        CollideObjects(hit, obj, *other);
+                        CollideObjects(hit, obj, *other, dt);
                     }
                 }
             }
@@ -1408,7 +1461,7 @@ namespace Inferno {
                                 auto normal = obj.Position - triPoint;
                                 normal.Normalize(hitNormal);
 
-                                if (pathRay.direction.Dot(normal) > 0)
+                                if (pathRay.direction.Dot(hitNormal) > 0)
                                     continue; // velocity going away from surface
 
                                 // Object hit a triangle edge
@@ -1428,13 +1481,15 @@ namespace Inferno {
                         }
                     }
 
+                    float hitSpeed = 0;
+
                     if (hitDistance < obj.Radius) {
                         // Check if hit is transparent (duplicate check due to triangle edges)
                         if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(hitPoint, face, tri))
                             continue; // skip projectiles that hit transparent part of a wall
 
                         // Object hit a wall, apply physics
-                        auto wallPart = hitNormal.Dot(obj.Physics.Velocity);
+                        hitSpeed = hitNormal.Dot(obj.Physics.Velocity);
 
                         //if (obj.Physics.CanBounce()) {
                         //    wallPart *= 2; // Subtract wall part twice to achieve bounce
@@ -1451,13 +1506,17 @@ namespace Inferno {
                         //    //obj.Physics.Bounces--;
                         //}
 
-                        obj.Physics.Velocity -= hitNormal * wallPart; // slide along wall (or bounce)
-                        //obj.Position = hitPoint + hitNormal * obj.Radius; // move object to surface
-                        averagePosition += hitPoint + hitNormal * obj.Radius;
-                        hits++;
+                        if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
+                            obj.Physics.Velocity -= hitNormal * hitSpeed; // slide along wall (or bounce)
+                            averagePosition += hitPoint + hitNormal * obj.Radius;
+                            hits++;
+                        }
 
                         // apply friction so robots pinned against the wall don't spin in place
-                        obj.Physics.AngularAcceleration *= 0.5f;
+                        if (obj.Type == ObjectType::Robot) {
+                            obj.Physics.AngularAcceleration *= 0.5f;
+                            //obj.Physics.Velocity *= 0.125f;
+                        }
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
                     }
@@ -1472,6 +1531,7 @@ namespace Inferno {
                         hit.EdgeDistance = edgeDistance;
                         hit.Tri = tri;
                         hit.WallPoint = hitPoint;
+                        hit.Speed = abs(hitSpeed);
                     }
                 }
             }

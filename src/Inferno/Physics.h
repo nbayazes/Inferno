@@ -22,6 +22,7 @@ namespace Inferno {
         Vector3 Point; // Where the intersection happened
         Vector3 Normal; // The normal of the intersection
         int16 Tri = -1; // What triangle was hit (for level walls) (unused?)
+        float Speed = 0;
         operator bool() const { return Distance != FLT_MAX; }
     };
 
@@ -36,6 +37,7 @@ namespace Inferno {
         Vector3 Point; // where the two objects or geometry touched
         Vector3 Normal, Tangent;
         int Tri = -1; // Triangle of the face hit. -1, 0 or 1
+        float Speed = 0;
 
         void Update(const HitInfo& hit, Object* obj) {
             if (!obj || hit.Distance > Distance) return;
@@ -43,6 +45,7 @@ namespace Inferno {
             Point = hit.Point;
             Normal = hit.Normal;
             HitObj = obj;
+            Speed = hit.Speed;
             Tangent = hit.Normal.Cross(Vector3::Up);
             Tangent.Normalize();
             if (VectorNear(Tangent, { 0, 0, 0 }, 0.01f)) {

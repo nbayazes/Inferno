@@ -192,6 +192,7 @@ namespace Inferno {
     enum class DynamicLightMode { Constant, Flicker, Pulse, FastFlicker, BigPulse };
 
     enum class ObjID : int16 { None = -1 }; // Object ID
+    enum class ObjSig : uint16 { None = (uint16)-1 }; // Object signature
     enum class SegID : int16 { None = -1, Exit = -2 }; // Segment ID
     enum class TexID : int16 { None = -1, Invalid = 0 }; // Texture ID (Pig)
     // Level Texture ID. Maps to TexIDs.

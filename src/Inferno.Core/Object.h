@@ -156,9 +156,6 @@ namespace Inferno {
         uint8 Frame = 0;
     };
 
-    // Object signature
-    enum class ObjSig : uint16 { None = (ushort)-1 };
-
 
     // Animates a value using second order dynamics
     template <class T>
@@ -384,9 +381,7 @@ namespace Inferno {
         }
 
         Matrix GetTransform(float lerp) const {
-            auto matrix = GetRotation(lerp);
-            matrix.Translation(GetPosition(lerp));
-            return matrix;
+            return Matrix::Lerp(GetPrevTransform(), GetTransform(), lerp);
         }
 
         void SetTransform(const Matrix& m) {
@@ -449,4 +444,6 @@ namespace Inferno {
         bool IsPlayer() const { return Type == ObjectType::Player; }
         bool IsCoop() const { return Type == ObjectType::Coop; }
     };
+
+    constexpr auto format_as(ObjSig id) { return (int)id; }
 }

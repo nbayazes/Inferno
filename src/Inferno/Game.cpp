@@ -1039,7 +1039,7 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Robot) {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
                 obj.HitPoints = ri.HitPoints;
-                obj.Physics.Flags |= PhysicsFlag::Bounce;
+                //obj.Physics.Flags |= PhysicsFlag::Bounce;
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }

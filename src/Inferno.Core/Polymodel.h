@@ -32,6 +32,7 @@ namespace Inferno {
         ubyte Parent;
         Vector3 Min, Max; // Geometric min/max
         Vector3 Center; // Geometric center
+        DirectX::BoundingOrientedBox Bounds;
 
         // Mesh data
         List<uint16> Indices;

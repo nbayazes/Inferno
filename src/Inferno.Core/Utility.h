@@ -172,7 +172,7 @@ namespace Inferno {
     //    inline ENUMTYPE& operator ^= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) ^= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
 
 
-    // Modulus division without negative numbers
+    // Modulus division that doesn't return negative numbers. 5 % -2 yields 1
     constexpr auto Mod(std::integral auto k, std::integral auto n) {
         return (k %= n) < 0 ? k + n : k;
     }
