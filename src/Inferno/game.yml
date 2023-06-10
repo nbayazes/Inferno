@@ -135,9 +135,9 @@ Weapons:
     LightColor: 0.3, 0.3, 0.75
     ExplosionColor: 0.3, 0.3, 0.75
     Mass: 0.05
-    BlobSize: 0.25
-    Damage: 5
-    Speed: 150
+    BlobSize: 0.6
+    Damage: 7
+    Speed: 200
     Spread: 3.6 # 3.6 originally
     FireCount: 5
 
