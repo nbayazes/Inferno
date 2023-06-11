@@ -660,7 +660,7 @@ namespace Inferno::Game {
             LevelHit hit;
 
             if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
-                !IntersectLevel(Game::Level, targetRay, src.Segment, odist, false, true, hit)) {
+                !IntersectRayLevel(Game::Level, targetRay, src.Segment, odist, false, true, hit)) {
                 minDist = odist;
                 result = (ObjID)i;
             }
@@ -761,7 +761,7 @@ namespace Inferno::Game {
             Vector3 tracerEnd;
 
             LevelHit hit;
-            if (IntersectLevel(Game::Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, false, true, hit)) {
+            if (IntersectRayLevel(Game::Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, false, true, hit)) {
                 //tracer.End = beam.End = hit.Point;
                 tracerEnd = hit.Point;
 

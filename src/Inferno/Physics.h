@@ -72,9 +72,7 @@ namespace Inferno {
     };
 
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion);
-    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit);
+    bool IntersectRayLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit);
     bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent);
     bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
-    HitInfo IntersectFaceSphere(const Face& face, const DirectX::BoundingSphere& sphere);
-    HitInfo IntersectSphereSphere(const DirectX::BoundingSphere& a, const DirectX::BoundingSphere& b);
 }

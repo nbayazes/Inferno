@@ -235,82 +235,16 @@ namespace Inferno {
     }
 
     void PlayerPhysics(const Object& obj, float /*dt*/) {
+        if (obj.Type != ObjectType::Player) return;
         auto& physics = obj.Physics;
 
-        if (obj.Type == ObjectType::Player) {
-            //const auto& ship = Resources::GameData.PlayerShip;
+        //const auto& ship = Resources::GameData.PlayerShip;
 
-            //physics.Thrust *= ship.MaxThrust / dt;
-            //physics.AngularThrust *= ship.MaxRotationalThrust / dt;
+        //physics.Thrust *= ship.MaxThrust / dt;
+        //physics.AngularThrust *= ship.MaxRotationalThrust / dt;
 
-            Debug::ShipThrust = physics.Thrust;
-            Debug::ShipAcceleration = Vector3::Zero;
-        }
-    }
-
-
-    // intersects a with b, with hit normal pointing towards a
-    HitInfo IntersectSphereSphere(const BoundingSphere& a, const BoundingSphere& b) {
-        HitInfo hit;
-        Vector3 c0(a.Center), c1(b.Center);
-        auto v = c0 - c1;
-        auto distance = v.Length();
-        if (distance < a.Radius + b.Radius) {
-            v.Normalize();
-            hit.Point = b.Center + v * b.Radius;
-            hit.Distance = Vector3::Distance(hit.Point, c0);
-            hit.Normal = v;
-        }
-
-        return hit;
-    }
-
-    // Intersects a sphere with a point. Surface normal points towards point.
-    HitInfo IntersectPointSphere(const Vector3 point, const BoundingSphere& sphere) {
-        HitInfo hit;
-        auto dir = point - sphere.Center;
-        float depth = sphere.Radius - dir.Length();
-        if (depth > 0) {
-            dir.Normalize();
-            hit.Point = sphere.Center + dir * sphere.Radius;
-            hit.Distance = Vector3::Distance(hit.Point, point);
-            hit.Normal = -dir;
-        }
-
-        return hit;
-    }
-
-    // Returns the nearest intersection point on a face
-    HitInfo IntersectFaceSphere(const Face& face, const BoundingSphere& sphere) {
-        HitInfo hit;
-        auto& i = face.Side.GetRenderIndices();
-
-        if (sphere.Intersects(face[i[0]], face[i[1]], face[i[2]])) {
-            auto p = ClosestPointOnTriangle(face[i[0]], face[i[1]], face[i[2]], sphere.Center);
-            auto dist = (p - sphere.Center).Length();
-            if (dist < hit.Distance) {
-                hit.Point = p;
-                hit.Distance = dist;
-                hit.Tri = 0;
-            }
-        }
-
-        if (sphere.Intersects(face[i[3]], face[i[4]], face[i[5]])) {
-            auto p = ClosestPointOnTriangle(face[i[3]], face[i[4]], face[i[5]], sphere.Center);
-            auto dist = (p - sphere.Center).Length();
-            if (dist < hit.Distance) {
-                hit.Point = p;
-                hit.Distance = dist;
-                hit.Tri = 1;
-            }
-        }
-
-        if (hit.Distance > sphere.Radius)
-            hit.Distance = FLT_MAX;
-        else
-            (hit.Point - sphere.Center).Normalize(hit.Normal);
-
-        return hit;
+        Debug::ShipThrust = physics.Thrust;
+        Debug::ShipAcceleration = Vector3::Zero;
     }
 
     Set<SegID> g_VisitedSegs; // global visited segments buffer
@@ -346,112 +280,102 @@ namespace Inferno {
         return g_VisitedSegs;
     }
 
-    bool ObjectCanHitTarget(const Object& src, const Object& target) {
-        if (!target.IsAlive() && target.Type != ObjectType::Reactor) return false;
-        //if (!HasFlag(target.Movement, MovementType::Physics)) return false;
-        if (src.Signature == target.Signature) return false; // don't hit yourself!
+    enum class CollisionType {
+        None = 0,   // Doesn't collide
+        SphereRoom, // Same as SpherePoly, except against level meshes
+        SpherePoly,
+        PolySphere,
+        SphereSphere
+    };
+
+    using CollisionTable = Array<Array<CollisionType, (int)ObjectType::Door + 1>, (int)ObjectType::Door + 1>;
+
+    constexpr CollisionTable InitCollisionTable() {
+        CollisionTable table{};
+        auto setEntry = [&table](ObjectType a, ObjectType b, CollisionType type) {
+            table[(int)a][(int)b] = type;
+        };
+
+        setEntry(ObjectType::Player, ObjectType::Wall, CollisionType::SphereRoom);
+        setEntry(ObjectType::Player, ObjectType::Robot, CollisionType::SpherePoly);
+        setEntry(ObjectType::Player, ObjectType::Wall, CollisionType::SphereSphere);
+        setEntry(ObjectType::Player, ObjectType::Powerup, CollisionType::SphereSphere);
+        setEntry(ObjectType::Player, ObjectType::Clutter, CollisionType::SpherePoly);
+        setEntry(ObjectType::Player, ObjectType::Building, CollisionType::SpherePoly);
+        setEntry(ObjectType::Player, ObjectType::Reactor, CollisionType::SpherePoly);
+        setEntry(ObjectType::Player, ObjectType::Hostage, CollisionType::SphereSphere);
+        setEntry(ObjectType::Player, ObjectType::Marker, CollisionType::SphereSphere);
+        setEntry(ObjectType::Powerup, ObjectType::Player, CollisionType::SphereSphere);
+
+        setEntry(ObjectType::Robot, ObjectType::Player, CollisionType::PolySphere);
+        setEntry(ObjectType::Robot, ObjectType::Robot, CollisionType::SphereSphere);
+        setEntry(ObjectType::Robot, ObjectType::Wall, CollisionType::SphereRoom);
+        setEntry(ObjectType::Robot, ObjectType::Building, CollisionType::SpherePoly);
+        setEntry(ObjectType::Robot, ObjectType::Reactor, CollisionType::SpherePoly);
+
+        setEntry(ObjectType::Weapon, ObjectType::Weapon, CollisionType::SphereSphere);
+        setEntry(ObjectType::Weapon, ObjectType::Robot, CollisionType::SpherePoly);  // Harder to hit
+        setEntry(ObjectType::Weapon, ObjectType::Player, CollisionType::SpherePoly); // Easier to dodge
+        setEntry(ObjectType::Weapon, ObjectType::Clutter, CollisionType::SpherePoly);
+        setEntry(ObjectType::Weapon, ObjectType::Building, CollisionType::SpherePoly);
+        setEntry(ObjectType::Weapon, ObjectType::Reactor, CollisionType::SpherePoly);
+
+        return table;
+    }
+
+    constexpr CollisionTable COLLISION_TABLE = InitCollisionTable();
+    constexpr CollisionType CheckCollision(ObjectType a, ObjectType b) { return COLLISION_TABLE[(int)a][(int)b]; }
+
+    CollisionType ObjectCanHitTarget(const Object& src, const Object& target) {
+        if (!target.IsAlive() && target.Type != ObjectType::Reactor) return CollisionType::None;
+        if (src.Signature == target.Signature) return CollisionType::None; // don't hit yourself!
+
         //if (src.Parent == target.Parent && src.Parent != ObjID::None) return false; // don't hit your siblings!
 
         //if ((src.Parent != ObjID::None && target.Parent != ObjID::None) && src.Parent == target.Parent)
         //    return false; // Don't hit your siblings!
 
-        switch (src.Type) {
-            case ObjectType::Robot:
-                switch (target.Type) {
-                    case ObjectType::Wall:
-                    case ObjectType::Robot:
-                    case ObjectType::Player:
-                    case ObjectType::Coop:
-                    //case ObjectType::Weapon:
-                    case ObjectType::Clutter:
-                        return true;
-                    default:
-                        return false;
-                }
+        if (src.Type == ObjectType::Player && target.Type == ObjectType::Weapon) {
+            // Player can't hit mines until they arm
+            if (WeaponIsMine((WeaponID)target.ID) && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
+                return CollisionType::None;
 
-            case ObjectType::Coop:
-            case ObjectType::Player:
-                switch (target.Type) {
-                    case ObjectType::Weapon:
-                    {
-                        // Player can't hit their own mines until they arm
-                        if ((target.ID == (int)WeaponID::ProxMine || target.ID == (int)WeaponID::SmartMine)
-                            && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
-                            return false;
-
-                        return target.ID == (int)WeaponID::LevelMine;
-                    }
-
-                    case ObjectType::Wall:
-                    case ObjectType::Robot:
-                    case ObjectType::Powerup:
-                    case ObjectType::Reactor:
-                    case ObjectType::Clutter:
-                    case ObjectType::Hostage:
-                    //case ObjectType::Player: // player can hit other players, but not in singleplayer
-                    //case ObjectType::Coop:
-                    case ObjectType::Marker:
-                        return true;
-                    default:
-                        return false;
-                }
-
-            case ObjectType::Weapon:
-                if (Seq::contains(src.Control.Weapon.RecentHits, target.Signature))
-                    return false; // Don't hit objects recently hit by this weapon (for piercing)
-
-                switch (target.Type) {
-                    case ObjectType::Wall:
-                    case ObjectType::Robot:
-                    {
-                        auto& ri = Resources::GetRobotInfo(target.ID);
-                        if (ri.IsCompanion)
-                            return false; // weapons can't directly hit guidebots
-
-                        return true;
-                    }
-                    case ObjectType::Player:
-                    {
-                        if (target.ID > 0) return false;          // Only hit player 0 in singleplayer
-                        if (src.Parent == ObjID(0)) return false; // Don't hit the player with their own shots
-                        if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
-                            return false; // Mines can't hit the player until they arm
-
-                        return true;
-                    }
-
-                    //case ObjectType::Coop:
-                    case ObjectType::Weapon:
-                        if (WeaponIsMine((WeaponID)src.ID))
-                            return false; // mines can't hit other mines
-
-                        return WeaponIsMine((WeaponID)target.ID);
-
-                    case ObjectType::Reactor:
-                    case ObjectType::Clutter:
-                        return true;
-                    default:
-                        return false;
-                }
-
-            case ObjectType::Reactor:
-                switch (target.Type) {
-                    case ObjectType::Wall:
-                    //case ObjectType::Robot:
-                    case ObjectType::Player:
-                    case ObjectType::Clutter:
-                    case ObjectType::Coop:
-                        return true;
-                    default:
-                        return false;
-                }
-
-            case ObjectType::Clutter:
-                return false; // not implemented
-
-            default:
-                return false;
+            //return target.ID == (int)WeaponID::LevelMine
         }
+
+        if (src.Type == ObjectType::Weapon) {
+            if (Seq::contains(src.Control.Weapon.RecentHits, target.Signature))
+                return CollisionType::None; // Don't hit objects recently hit by this weapon (for piercing)
+
+            switch (target.Type) {
+                case ObjectType::Robot:
+                {
+                    auto& ri = Resources::GetRobotInfo(target.ID);
+                    if (ri.IsCompanion)
+                        return CollisionType::None; // weapons can't directly hit guidebots
+                    break;
+                }
+                case ObjectType::Player:
+                {
+                    if (target.ID > 0) return CollisionType::None;          // Only hit player 0 in singleplayer
+                    if (src.Parent == ObjID(0)) return CollisionType::None; // Don't hit the player with their own shots
+                    if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
+                        return CollisionType::None; // Mines can't hit the player until they arm
+                    break;
+                }
+
+                //case ObjectType::Coop:
+                case ObjectType::Weapon:
+                    if (WeaponIsMine((WeaponID)src.ID))
+                        return CollisionType::None; // mines can't hit other mines
+
+                    if (!WeaponIsMine((WeaponID)target.ID))
+                        return CollisionType::None; // Weapons can only other weapons if they are mines
+                    break;
+            }
+        }
+
+        return COLLISION_TABLE[(int)src.Type][(int)target.Type];
     }
 
     // Finds the nearest sphere-level intersection for debris
@@ -528,7 +452,7 @@ namespace Inferno {
     }
 
     // intersects a ray with the level, returning hit information
-    bool IntersectLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit) {
+    bool IntersectRayLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit) {
         if (start == SegID::None) return false;
         if (maxDist <= 0.01f) return false;
         SegID next = start;
@@ -590,7 +514,7 @@ namespace Inferno {
         dir.Normalize();
         Ray ray(a.Position, dir);
         LevelHit hit;
-        return IntersectLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
+        return IntersectRayLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
     }
 
 
@@ -634,7 +558,7 @@ namespace Inferno {
             dir.Normalize();
             Ray ray(explosion.Position, dir);
             LevelHit hit;
-            if (IntersectLevel(level, ray, explosion.Segment, dist, true, true, hit))
+            if (IntersectRayLevel(level, ray, explosion.Segment, dist, true, true, hit))
                 continue;
 
             // linear damage falloff
@@ -702,7 +626,6 @@ namespace Inferno {
             }
         }
     }
-
 
     void IntersectBoundingBoxes(const Object& obj) {
         auto rotation = obj.Rotation;
@@ -802,33 +725,10 @@ namespace Inferno {
         // however, using the correct physics causes robots to spin erratically when sliding against them
     }
 
-    // Returns the closest point and distance on a triangle to a point
-    Tuple<Vector3, float> ClosestPointOnTriangle2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point, int* edgeIndex = nullptr) {
-        Vector3 points[3] = {
-            ClosestPointOnLine(p0, p1, point),
-            ClosestPointOnLine(p1, p2, point),
-            ClosestPointOnLine(p2, p0, point)
-        };
 
-        float distances[3]{};
-        for (int j = 0; j < std::size(points); j++) {
-            distances[j] = Vector3::Distance(point, points[j]);
-        }
-
-        int minIndex = 0;
-        for (int j = 0; j < std::size(points); j++) {
-            if (distances[j] < distances[minIndex])
-                minIndex = j;
-        }
-
-        if (edgeIndex) *edgeIndex = minIndex;
-
-        return { points[minIndex], distances[minIndex] };
-    }
-
-    // Performs polygon accurate intersection of an object and a model
-    // Object is repositioned based on the intersections
-    HitInfo IntersectMesh(Object& obj, Object& target, float dt) {
+    // Performs intersection checks between an object's sphere and another object's model mesh.
+    // Object is repositioned based on the intersections.
+    HitInfo IntersectSpherePoly(Object& obj, Object& target, float dt) {
         if (target.Render.Type != RenderType::Model) return {};
         auto& model = Resources::GetModel(target.Render.Model.ID);
 
@@ -851,12 +751,8 @@ namespace Inferno {
         Ray ray = { localPos, localDir }; // update the input ray
 
         HitInfo hit;
-
         Vector3 averagePosition;
-        Vector3 maxPosition;
-        float maxCenterDist = 0;
         int hits = 0;
-
         int texNormalIndex = 0, flatNormalIndex = 0;
 
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
@@ -954,11 +850,6 @@ namespace Inferno {
 
                             if (obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor) {
                                 auto pos = hit.Point + hit.Normal * obj.Radius;
-                                auto centerDist = Vector3::Distance(pos, target.Position);
-                                if (centerDist > maxCenterDist) {
-                                    maxPosition = pos;
-                                    //obj.Position = hit.Point + hit.Normal * obj.Radius;
-                                }
                                 averagePosition += pos;
                             }
                             // todo: averaging position works better, but causes object to get placed inside slightly. causing jitter during physics
@@ -978,82 +869,29 @@ namespace Inferno {
             // Don't move weapons or reactors
             // Move objects to the average position of all hits. This fixes jitter against more complex geometry and when nudging between walls.
             obj.Position = averagePosition / (float)hits;
-            //obj.Position = maxPosition;
         }
 
         return hit;
     }
 
+    // Performs intersection checks between an object's model mesh and another object's sphere.
+    // Object is repositioned based on the intersections.
+    HitInfo IntersectPolySphere(Object& obj, Object& target, float dt) {
+        // same as intersect sphere poly except the objects are swapped?
+        return IntersectSpherePoly(target, obj, dt);
+    }
+
+
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
 
-    bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
-        Vector3 direction;
-        float travelDistance = obj.Physics.Velocity.Length() * dt;
-        // Don't hit test objects that haven't moved unless they are the player
-        // This is so moving powerups are tested against the player
-        //if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
-        obj.Physics.Velocity.Normalize(direction);
-        Ray pathRay(obj.PrevPosition, direction);
-
-        // Use a larger radius for the object so the large objects in adjacent segments are found.
-        // Needs testing against boss robots
-        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2);
-
-        // Did we hit any objects?
-        for (auto& segId : pvs) {
-            auto& seg = level.GetSegment(segId);
-
-            for (int i = 0; i < seg.Objects.size(); i++) {
-                if (oid == seg.Objects[i]) continue; // don't hit yourself!
-                auto other = level.TryGetObject(seg.Objects[i]);
-                if (!other) continue;
-                if (oid == other->Parent) continue; // Don't hit your children!
-                if (!ObjectCanHitTarget(obj, *other)) continue;
-
-                // sphere collisions between all objects is stable
-                // polygon collisions between all objects is mostly stable
-                // polygon collisions between only player and robots isn't stable
-
-                // todo: option to disable polygon accurate weapon hits?
-                bool useMeshTests =
-                    obj.Type == ObjectType::Weapon || 
-                    other->Type == ObjectType::Reactor ||
-                    other->Type == ObjectType::Robot;
-                    //(obj.Type == ObjectType::Player && other->Type == ObjectType::Robot) ||
-                    //(obj.Type == ObjectType::Robot && other->Type == ObjectType::Player);
-
-                //useMeshTests = false;
-
-                if (useMeshTests && other->Render.Type == RenderType::Model && IsNormalized(pathRay.direction)) {
-                    // sphere-poly -> a is moved when touching b
-                    // poly-sphere -> a is moved when touching b (using a's mesh)
-                    if (auto info = IntersectMesh(obj, *other, dt)) {
-                        hit.Update(info, other);
-                        CollideObjects(hit, obj, *other, dt);
-                    }
-                }
-                else {
-                    BoundingSphere sphereA(obj.Position, obj.Radius);
-                    BoundingSphere sphereB(other->Position, other->Radius);
-
-                    if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
-                        if (other->Type == ObjectType::Robot || other->Type == ObjectType::Reactor) {
-                            // todo: unify this math with intersect mesh and level hits
-                            auto hitSpeed = info.Normal.Dot(obj.Physics.Velocity);
-                            info.Speed = std::abs(hitSpeed);
-                            obj.Position = info.Point + info.Normal * obj.Radius;
-                            obj.Physics.Velocity -= info.Normal * hitSpeed;
-                        }
-
-                        hit.Update(info, other);
-                        CollideObjects(hit, obj, *other, dt);
-                    }
-                }
-            }
-        }
-
+    void IntersectLevelMesh(Level& level, Object& obj, Set<SegID>& pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
+
+        Vector3 direction;
+        obj.Physics.Velocity.Normalize(direction);
+        Ray pathRay(obj.PrevPosition, direction);
+        float travelDistance = obj.Physics.Velocity.Length() * dt;
 
         for (auto& segId : pvs) {
             Debug::SegmentsChecked++;
@@ -1204,7 +1042,73 @@ namespace Inferno {
         }
 
         if (hits > 0) obj.Position = averagePosition / (float)hits;
+    }
 
+    bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
+        // Don't hit test objects that haven't moved unless they are the player
+        // This is so moving powerups are tested against the player
+        //if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
+        //Vector3 direction;
+        //obj.Physics.Velocity.Normalize(direction);
+        //Ray pathRay(obj.PrevPosition, direction);
+
+        // Use a larger radius for the object so the large objects in adjacent segments are found.
+        // Needs testing against boss robots
+        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2);
+
+        // Did we hit any objects?
+        for (auto& segId : pvs) {
+            auto& seg = level.GetSegment(segId);
+
+            for (int i = 0; i < seg.Objects.size(); i++) {
+                if (oid == seg.Objects[i]) continue; // don't hit yourself!
+                auto pOther = level.TryGetObject(seg.Objects[i]);
+                if (!pOther) continue;
+                auto& other = *pOther;
+                if (oid == other.Parent) continue; // Don't hit your children!
+
+                switch (ObjectCanHitTarget(obj, other)) {
+                    default:
+                    case CollisionType::None: break;
+                    case CollisionType::SphereRoom: break;
+                    case CollisionType::SpherePoly:
+                        if (auto info = IntersectSpherePoly(obj, other, dt)) {
+                            hit.Update(info, &other);
+                            CollideObjects(hit, obj, other, dt);
+                        }
+                        break;
+                    case CollisionType::PolySphere:
+                        if (auto info = IntersectPolySphere(obj, other, dt)) {
+                            hit.Update(info, &other);
+                            CollideObjects(hit, obj, other, dt);
+                        }
+                        break;
+
+                    case CollisionType::SphereSphere:
+                    {
+                        // for robots their spheres are too large... apply multiplier. Having some overlap is okay.
+                        auto radiusMult = obj.Type == ObjectType::Robot && other.Type == ObjectType::Robot ? 0.66f : 1.0f;
+                        BoundingSphere sphereA(obj.Position, obj.Radius * radiusMult);
+                        BoundingSphere sphereB(other.Position, other.Radius * radiusMult);
+
+                        if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
+                            hit.Update(info, &other);
+
+                            if (obj.Type != ObjectType::Powerup && other.Type != ObjectType::Powerup) {
+                                // todo: unify this math with intersect mesh and level hits
+                                auto hitSpeed = info.Normal.Dot(obj.Physics.Velocity);
+                                hit.Speed = std::abs(hitSpeed);
+                                obj.Position = info.Point + info.Normal * obj.Radius * radiusMult;
+                                obj.Physics.Velocity -= info.Normal * hitSpeed;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        IntersectLevelMesh(level, obj, pvs, hit, dt);
         return hit;
     }
 

@@ -56,6 +56,30 @@ namespace Inferno {
         return c3;
     }
 
+    Tuple<Vector3, float> ClosestPointOnTriangle2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point, int* edgeIndex) {
+        Vector3 points[3] = {
+            ClosestPointOnLine(p0, p1, point),
+            ClosestPointOnLine(p1, p2, point),
+            ClosestPointOnLine(p2, p0, point)
+        };
+
+        float distances[3]{};
+        for (int j = 0; j < std::size(points); j++) {
+            distances[j] = Vector3::Distance(point, points[j]);
+        }
+
+        int minIndex = 0;
+        for (int j = 0; j < std::size(points); j++) {
+            if (distances[j] < distances[minIndex])
+                minIndex = j;
+        }
+
+        if (edgeIndex) *edgeIndex = minIndex;
+
+        return { points[minIndex], distances[minIndex] };
+    }
+
+
     float FaceEdgeDistance(const Segment& seg, SideID side, const Face& face, const Vector3& point) {
         // Check the four outside edges of the face
         float mag1 = FLT_MAX, mag2 = FLT_MAX, mag3 = FLT_MAX, mag4 = FLT_MAX;

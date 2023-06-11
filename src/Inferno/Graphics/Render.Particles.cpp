@@ -287,7 +287,7 @@ namespace Inferno::Render {
         auto dir = RandomVector(1);
         dir.Normalize();
 
-        if (IntersectLevel(Game::Level, { pos, dir }, seg, radius, false, true, hit))
+        if (IntersectRayLevel(Game::Level, { pos, dir }, seg, radius, false, true, hit))
             return hit.Point;
         else
             return pos + dir * radius;
@@ -821,13 +821,13 @@ namespace Inferno::Render {
 
             auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
             LevelHit hit;
-            bool hitSomething = IntersectLevel(Game::Level, ray, spark.Segment, rayLen, true, true, hit);
+            bool hitSomething = IntersectRayLevel(Game::Level, ray, spark.Segment, rayLen, true, true, hit);
 
             if (!hitSomething) {
                 // check surrounding segments
                 auto& seg = Game::Level.GetSegment(spark.Segment);
                 for (auto& side : SideIDs) {
-                    hitSomething = IntersectLevel(Game::Level, ray, seg.GetConnection(side), rayLen, true, true, hit);
+                    hitSomething = IntersectRayLevel(Game::Level, ray, seg.GetConnection(side), rayLen, true, true, hit);
                     if (hitSomething)
                         break;
                 }

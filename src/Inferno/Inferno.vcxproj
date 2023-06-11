@@ -203,6 +203,7 @@
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Graphics\Render.Queue.cpp" />
     <ClCompile Include="Graphics\PostProcess.cpp" />
+    <ClCompile Include="Physics.Hit.cpp" />
     <ClCompile Include="Physics.Math.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />

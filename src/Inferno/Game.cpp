@@ -564,7 +564,7 @@ namespace Inferno::Game {
             dir.Normalize();
             Ray ray(position, dir);
             LevelHit hit;
-            if (d <= maxDist && d < minDist && !IntersectLevel(Level, ray, seg, d, false, true, hit)) {
+            if (d <= maxDist && d < minDist && !IntersectRayLevel(Level, ray, seg, d, false, true, hit)) {
                 id = (ObjID)i;
                 minDist = d;
             }

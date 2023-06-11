@@ -12,6 +12,9 @@ namespace Inferno {
     // Returns the closest point on a triangle to a point
     Vector3 ClosestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point);
 
+    // Returns the closes point and distance on a triangle to a point
+    Tuple<Vector3, float> ClosestPointOnTriangle2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& point, int* edgeIndex = nullptr);
+
     // Returns the nearest distance to the face edge and a point. Skips the internal split.
     float FaceEdgeDistance(const Segment& seg, SideID side, const Face& face, const Vector3& point);
 
