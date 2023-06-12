@@ -143,6 +143,8 @@ namespace Inferno {
         void AutoselectSecondary();
         void GiveExtraLife(uint8 lives = 1);
 
+        void ApplyDamage(float damage);
+
     private:
         SoundUID _afterburnerSoundSig = 0;
         SoundUID _fusionChargeSound = 0;

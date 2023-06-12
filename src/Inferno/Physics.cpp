@@ -654,7 +654,7 @@ namespace Inferno {
     void CollideObjects(const LevelHit& hit, Object& a, Object& b, float /*dt*/) {
         if (hit.Speed <= 0.1f) return;
 
-        SPDLOG_INFO("{}-{} impact speed: {}", a.Signature, b.Signature, hit.Speed);
+        //SPDLOG_INFO("{}-{} impact speed: {}", a.Signature, b.Signature, hit.Speed);
 
         if (b.Type == ObjectType::Powerup || b.Type == ObjectType::Marker)
             return;
@@ -1112,6 +1112,37 @@ namespace Inferno {
         return hit;
     }
 
+    // Applies damage and play a sound if object velocity changes sharply
+    void CheckForImpact(Object& obj, const LevelHit& hit) {
+        constexpr float DAMAGE_SCALE = 128;
+        constexpr float DAMAGE_THRESHOLD = 1 / 3.0f;
+        auto speed = (obj.Physics.Velocity - obj.Physics.PrevVelocity).Length();
+        auto damage = speed / DAMAGE_SCALE;
+
+        // todo: check if hit wall material is liquid and return. handled with sliding.
+        //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
+
+        if (damage > DAMAGE_THRESHOLD) {
+            auto volume = std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
+
+            if (volume > 0) {
+                // todo: make noise to notify nearby enemies
+                Sound3D sound(hit.Point, hit.Tag.Segment);
+                sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
+                Sound::Play(sound);
+            }
+
+            if (obj.Type == ObjectType::Player) {
+                if (obj.HitPoints < 10 && !Game::Player.HasPowerup(PowerupFlag::Invulnerable)) {
+                    Game::Player.ApplyDamage(damage);
+                }
+            }
+            else {
+                obj.ApplyDamage(damage);
+            }
+        }
+    }
+
     void UpdatePhysics(Level& level, double /*t*/, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
@@ -1169,36 +1200,21 @@ namespace Inferno {
                         obj.Physics.Bounces--;
                     }
 
-                    // don't update the seg if weapon hit something, as this causes problems with weapon forcefield bounces
-                    /*        if (obj.Type != ObjectType::Weapon) {
-                                MoveObject(level, (ObjID)id);
-                            }*/
-
                     // Play a wall hit sound if the object hits something head-on
                     if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
-                        //vm_vec_sub(&moved_v, &obj->pos, &save_pos);
-                        //wall_part = vm_vec_dot(&moved_v, &hit_info.hit_wallnorm);
+                        CheckForImpact(obj, hit);
 
-                        auto deltaVel = (obj.Physics.Velocity - obj.Physics.PrevVelocity).Length();
-                        //auto deltaVel = obj.Physics.Velocity - obj.Physics.LastVelocity;
-                        //auto actualVel = (obj.Position - obj.LastPosition) / dt;
-                        //auto velDotNorm = deltaVel.Dot(hit.Normal);
-
-                        // sudden change in velocity means we hit something
-                        if (deltaVel > 35) {
-                            Sound3D sound(hit.Point, hit.Tag.Segment);
-                            sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
-                            Sound::Play(sound);
-                        }
+                        //if(hit.HitObj) {
+                        //    // CollideObjectAndObject(obj, hit);
+                        //}
+                        //else {
+                        //}
                     }
                 }
             }
 
             if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
-                MoveObject(level, (ObjID)id); // todo: refer to move object above w/ forcefields
-
-            //if (obj.LastPosition != obj.Position)
-            //    Render::Debug::DrawLine(obj.LastPosition, obj.Position, { 0, 1.0f, 0.2f });
+                MoveObject(level, (ObjID)id);
 
             if (id == 0) {
                 Debug::ShipVelocity = obj.Physics.Velocity;

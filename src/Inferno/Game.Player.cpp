@@ -511,6 +511,33 @@ namespace Inferno {
         AddScreenFlash(FLASH_WHITE);
     }
 
+    void Player::ApplyDamage(float damage) {
+        // todo: red / blue glow depending on invuln
+
+        //if (Player_is_dead)
+        //    return;
+
+        //if (Endlevel_sequence)
+        //    return;
+
+        if (ID == ObjID(0)) {
+            if (HasPowerup(PowerupFlag::Invulnerable)) {
+                AddScreenFlash({ 0, 0, damage * 4 / 255.0f });
+            }
+            else {
+                Shields -= damage;
+                AddScreenFlash({ damage * 4 / 255.0f, -damage * 2 / 255.0f, -damage * 2 / 255.0f });
+            }
+
+            if (Shields < 0) {} // todo: kill player
+
+            // Keep player shields in sync with the object that represents it
+            if (auto player = Game::Level.TryGetObject(ID))
+                player->HitPoints = Shields;
+        }
+
+    }
+
     bool Player::PickUpEnergy() {
         if (Energy < MAX_ENERGY) {
             bool canFire = CanFirePrimary(Primary);
@@ -560,7 +587,7 @@ namespace Inferno {
 
     void Player::TouchPowerup(Object& obj) {
         if (obj.Lifespan == -1) return; // Already picked up
-        if (Shields < 0) return; // Player is dead!
+        if (Shields < 0) return;        // Player is dead!
 
         assert(obj.Type == ObjectType::Powerup);
 
