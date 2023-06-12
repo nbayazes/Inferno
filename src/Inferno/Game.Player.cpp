@@ -512,8 +512,6 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage) {
-        // todo: red / blue glow depending on invuln
-
         //if (Player_is_dead)
         //    return;
 
@@ -522,11 +520,11 @@ namespace Inferno {
 
         if (ID == ObjID(0)) {
             if (HasPowerup(PowerupFlag::Invulnerable)) {
-                AddScreenFlash({ 0, 0, damage * 4 / 255.0f });
+                AddScreenFlash({ 0, 0, damage / 5 });
             }
             else {
                 Shields -= damage;
-                AddScreenFlash({ damage * 4 / 255.0f, -damage * 2 / 255.0f, -damage * 2 / 255.0f });
+                AddScreenFlash({ damage / 5, -damage, -damage });
             }
 
             if (Shields < 0) {} // todo: kill player

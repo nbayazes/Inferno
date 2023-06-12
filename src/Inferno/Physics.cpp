@@ -538,8 +538,8 @@ namespace Inferno {
     void TurnTowardsVector(Object& obj, const Vector3& towards, float rate) {
         if (towards == Vector3::Zero) return;
         auto rotation = Quaternion::FromToRotation(obj.Rotation.Forward(), towards); // rotation to the target vector
-        auto euler = rotation.ToEuler() / rate / XM_2PI; // Physics update multiplies by XM_2PI so divide it here
-        obj.Physics.AngularVelocity = Vector3::Transform(euler, obj.Rotation); // align with object rotation
+        auto euler = rotation.ToEuler() / rate / XM_2PI;                             // Physics update multiplies by XM_2PI so divide it here
+        obj.Physics.AngularVelocity = Vector3::Transform(euler, obj.Rotation);       // align with object rotation
     }
 
     void ApplyForce(Object& obj, const Vector3& force) {
@@ -551,7 +551,7 @@ namespace Inferno {
     void ApplyRotation(Object& obj, const Vector3& force) {
         if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
         auto vecmag = force.Length();
-        if(vecmag == 0) return;
+        if (vecmag == 0) return;
         vecmag /= 8.0f;
 
         //if (vecmag < 1 / 256.0f || vecmag < obj.Physics.Mass) {
@@ -759,7 +759,7 @@ namespace Inferno {
 
     // Performs intersection checks between an object's sphere and another object's model mesh.
     // Object is repositioned based on the intersections.
-    HitInfo IntersectSpherePoly(Object& obj, Object& target, float dt) {
+    HitInfo IntersectSpherePoly(Object& obj, const Object& target, float dt) {
         if (target.Render.Type != RenderType::Model) return {};
         auto& model = Resources::GetModel(target.Render.Model.ID);
 
@@ -902,24 +902,25 @@ namespace Inferno {
         return hit;
     }
 
-    // Performs intersection checks between an object's model mesh and another object's sphere.
+    // Performs intersection between an object's model and another object's sphere.
     // Object is repositioned based on the intersections.
-    HitInfo IntersectPolySphere(Object& obj, Object& target, float dt) {
+    HitInfo IntersectPolySphere(Object& object, Object& target, float dt) {
         // same as intersect sphere poly except the objects are swapped?
-        return IntersectSpherePoly(target, obj, dt);
+        // todo: but the position of object needs to be updated, not target
+        return IntersectSpherePoly(target, object, dt);
     }
-
 
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
 
     void IntersectLevelMesh(Level& level, Object& obj, Set<SegID>& pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
+        float travelDistance = obj.Physics.Velocity.Length() * dt;
 
         Vector3 direction;
         obj.Physics.Velocity.Normalize(direction);
+        if (IsZero(direction)) direction = Vector3::UnitY;
         Ray pathRay(obj.PrevPosition, direction);
-        float travelDistance = obj.Physics.Velocity.Length() * dt;
 
         for (auto& segId : pvs) {
             Debug::SegmentsChecked++;
@@ -927,6 +928,7 @@ namespace Inferno {
 
             for (auto& sideId : SideIDs) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
+                if (Settings::Cheats.DisableWallCollision && seg.GetSide(sideId).HasWall()) continue;
                 auto& side = seg.GetSide(sideId);
                 auto face = Face::FromSide(level, seg, sideId);
                 auto& indices = side.GetRenderIndices();
@@ -1072,7 +1074,7 @@ namespace Inferno {
         if (hits > 0) obj.Position = averagePosition / (float)hits;
     }
 
-    bool IntersectLevelNew(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
+    bool IntersectLevel(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
         // Don't hit test objects that haven't moved unless they are the player
         // This is so moving powerups are tested against the player
         //if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
@@ -1184,7 +1186,6 @@ namespace Inferno {
         auto speed = (obj.Physics.Velocity - obj.Physics.PrevVelocity).Length();
         auto damage = speed / DAMAGE_SCALE;
 
-        // todo: check if hit wall material is liquid and return. handled with sliding.
         //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
 
         if (damage > DAMAGE_THRESHOLD) {
@@ -1198,7 +1199,7 @@ namespace Inferno {
             }
 
             if (obj.Type == ObjectType::Player) {
-                if (obj.HitPoints < 10 && !Game::Player.HasPowerup(PowerupFlag::Invulnerable)) {
+                if (obj.HitPoints > 10 && !Game::Player.HasPowerup(PowerupFlag::Invulnerable)) {
                     Game::Player.ApplyDamage(damage);
                 }
             }
@@ -1238,7 +1239,7 @@ namespace Inferno {
                 //if (id != 0) continue; // player only testing
                 LevelHit hit{ .Source = &obj };
 
-                if (IntersectLevelNew(level, obj, (ObjID)id, hit, dt)) {
+                if (IntersectLevel(level, obj, (ObjID)id, hit, dt)) {
                     if (obj.Type == ObjectType::Weapon) {
                         if (hit.HitObj) {
                             Game::WeaponHitObject(hit, obj, level);
@@ -1257,7 +1258,6 @@ namespace Inferno {
                     }
 
                     if (obj.Physics.CanBounce()) {
-                        // this doesn't work because the object velocity is already modified
                         obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
                         if (obj.Type == ObjectType::Weapon)
                             obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());

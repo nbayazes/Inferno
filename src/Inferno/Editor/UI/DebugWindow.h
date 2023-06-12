@@ -16,6 +16,7 @@ namespace Inferno::Editor {
     protected:
         void OnUpdate() override {
             ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
+            ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
             ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
             ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
             ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");

@@ -151,6 +151,7 @@ namespace Inferno {
 
     struct CheatSettings {
         bool DisableWeaponDamage = false;
+        bool DisableWallCollision = false;
     };
 
     void SaveLightSettings(ryml::NodeRef node, const LightSettings& s);
