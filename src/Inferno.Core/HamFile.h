@@ -33,6 +33,7 @@ namespace Inferno {
 
         bool HasFlag(TextureFlag flag) const { return bool(Flags & flag); }
         bool IsLiquid() const { return HasFlag(TextureFlag::Volatile) || HasFlag(TextureFlag::Water); }
+        bool IsForceField() const { return HasFlag(TextureFlag::ForceField); }
     };
 
     struct PlayerShip {

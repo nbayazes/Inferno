@@ -519,12 +519,13 @@ namespace Inferno {
         //    return;
 
         if (ID == ObjID(0)) {
+            constexpr float SCALE = 40;
             if (HasPowerup(PowerupFlag::Invulnerable)) {
-                AddScreenFlash({ 0, 0, damage / 5 });
+                AddScreenFlash({ 0, 0, damage / SCALE });
             }
             else {
                 Shields -= damage;
-                AddScreenFlash({ damage / 5, -damage, -damage });
+                AddScreenFlash({ damage / SCALE, -damage / SCALE, -damage / SCALE });
             }
 
             if (Shields < 0) {} // todo: kill player

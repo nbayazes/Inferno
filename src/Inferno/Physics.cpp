@@ -1020,18 +1020,20 @@ namespace Inferno {
                         if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(hitPoint, face, tri))
                             continue; // skip projectiles that hit transparent part of a wall
 
-                        hitSpeed = hitNormal.Dot(obj.Physics.Velocity);
-
+                        hitSpeed = abs(hitNormal.Dot(obj.Physics.Velocity));
                         auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+
                         if (obj.Physics.CanBounce() || ti.HasFlag(TextureFlag::ForceField)) {
                             hit.Bounced = true;
+                            // bounce velocity is handled after all hits are resolved so that overlapping
+                            // triangle edges don't double the effect
                         }
                         else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
-                            obj.Physics.Velocity -= hitNormal * hitSpeed; // slide along wall (or bounce)
-                            averagePosition += hitPoint + hitNormal * obj.Radius;
-                            hits++;
+                            obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
                         }
 
+                        averagePosition += hitPoint + hitNormal * obj.Radius;
+                        hits++;
 
                         // apply friction so robots pinned against the wall don't spin in place
                         //if (obj.Type == ObjectType::Robot) {
@@ -1051,14 +1053,14 @@ namespace Inferno {
                             hit.EdgeDistance = edgeDistance;
                             hit.Tri = tri;
                             hit.WallPoint = hitPoint;
-                            hit.Speed = abs(hitSpeed);
+                            hit.Speed = hitSpeed;
                         }
                     }
                 }
             }
         }
 
-        if (hits > 0) 
+        if (hits > 0)
             obj.Position = averagePosition / (float)hits;
     }
 
@@ -1168,16 +1170,27 @@ namespace Inferno {
     }
 
     // Applies damage and play a sound if object velocity changes sharply
-    void CheckForImpact(Object& obj, const LevelHit& hit) {
+    void CheckForImpact(Object& obj, const LevelHit& hit, const LevelTexture* ti) {
         constexpr float DAMAGE_SCALE = 128;
         constexpr float DAMAGE_THRESHOLD = 1 / 3.0f;
         auto speed = (obj.Physics.Velocity - obj.Physics.PrevVelocity).Length();
+        bool isForceField = ti && ti->IsForceField();
+
         auto damage = speed / DAMAGE_SCALE;
 
-        //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
+        if (isForceField) {
+            damage *= 8;
+            Game::AddScreenFlash({ 0, 0, 1 });
 
-        if (damage > DAMAGE_THRESHOLD) {
-            auto volume = std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
+            Sound3D sound(hit.Point, hit.Tag.Segment);
+            sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitForcefield);
+            Sound::Play(sound);
+
+            auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
+            ApplyRotation(obj, force);
+        }
+        else if (damage > DAMAGE_THRESHOLD) {
+            auto volume = isForceField ? 1 : std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
 
             if (volume > 0) {
                 // todo: make noise to notify nearby enemies
@@ -1185,11 +1198,14 @@ namespace Inferno {
                 sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
                 Sound::Play(sound);
             }
+        }
 
+        //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
+
+        if (damage > DAMAGE_THRESHOLD) {
             if (obj.Type == ObjectType::Player) {
-                if (obj.HitPoints > 10 && !Game::Player.HasPowerup(PowerupFlag::Invulnerable)) {
+                if (obj.HitPoints > 10 && !isForceField)
                     Game::Player.ApplyDamage(damage);
-                }
             }
             else {
                 obj.ApplyDamage(damage);
@@ -1245,8 +1261,15 @@ namespace Inferno {
                         Game::Player.TouchObject(*hit.HitObj);
                     }
 
+                    const LevelTexture* ti = nullptr;
+                    if (auto side = level.TryGetSide(hit.Tag))
+                        ti = &Resources::GetLevelTextureInfo(side->TMap);
+
                     if (hit.Bounced) {
                         obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
+                        if (ti->IsForceField())
+                            obj.Physics.Velocity *= 1.5f;
+
                         // flip weapon to face the new direction
                         if (obj.Type == ObjectType::Weapon)
                             obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
@@ -1255,15 +1278,14 @@ namespace Inferno {
                     }
 
                     if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
-                        if (auto side = level.TryGetSide(hit.Tag)) {
-                            auto& ti = Resources::GetLevelTextureInfo(side->TMap);
-                            if (ti.IsLiquid())
-                                ScrapeWall(obj, hit, ti, dt);
+                        if (ti) {
+                            if (ti->IsLiquid())
+                                ScrapeWall(obj, hit, *ti, dt);
                             else
-                                CheckForImpact(obj, hit);
+                                CheckForImpact(obj, hit, ti);
                         }
                         else {
-                            CheckForImpact(obj, hit);
+                            CheckForImpact(obj, hit, nullptr);
                         }
                     }
                 }
