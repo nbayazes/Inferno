@@ -254,7 +254,7 @@ namespace Inferno {
         HomingWarning = 122,
 
         TouchLavafall = 150,
-        VolatileWall = 151,
+        TouchLava = 151,
         TouchWater = 152,
         TouchWaterfall = 158,
 
@@ -551,6 +551,7 @@ namespace Inferno {
     constexpr auto format_as(WallID id) { return (int)id; }
     constexpr auto format_as(TexID id) { return (int)id; }
     constexpr auto format_as(LevelTexID id) { return (int)id; }
+    constexpr auto format_as(ObjSig id) { return (int)id; }
 }
 
 template <>

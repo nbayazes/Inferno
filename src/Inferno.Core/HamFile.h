@@ -32,6 +32,7 @@ namespace Inferno {
         string D1FileName;
 
         bool HasFlag(TextureFlag flag) const { return bool(Flags & flag); }
+        bool IsLiquid() const { return HasFlag(TextureFlag::Volatile) || HasFlag(TextureFlag::Water); }
     };
 
     struct PlayerShip {

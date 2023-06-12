@@ -437,13 +437,11 @@ namespace Inferno {
         }
 
         bool IsPowerup(PowerupID id) const {
-            if(Type != ObjectType::Powerup) return false;
-            return ID == (int) id;
+            if (Type != ObjectType::Powerup) return false;
+            return ID == (int)id;
         }
 
         bool IsPlayer() const { return Type == ObjectType::Player; }
         bool IsCoop() const { return Type == ObjectType::Coop; }
     };
-
-    constexpr auto format_as(ObjSig id) { return (int)id; }
 }

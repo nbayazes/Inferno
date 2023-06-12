@@ -526,7 +526,7 @@ namespace Inferno {
     void ApplyForce(Object& obj, const Vector3& force) {
         if (obj.Movement != MovementType::Physics) return;
         if (obj.Physics.Mass == 0) return;
-        obj.Physics.Velocity += force * 1.0 / obj.Physics.Mass;
+        obj.Physics.Velocity += force / obj.Physics.Mass;
     }
 
     // Creates an explosion that can cause damage or knockback
@@ -1094,7 +1094,9 @@ namespace Inferno {
                         if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
                             hit.Update(info, &other);
 
-                            if (obj.Type != ObjectType::Powerup && other.Type != ObjectType::Powerup) {
+                            // Move players and robots when they collide with something
+                            if ((obj.Type == ObjectType::Robot || obj.Type == ObjectType::Player) &&
+                                (other.Type == ObjectType::Robot || other.Type == ObjectType::Player)) {
                                 // todo: unify this math with intersect mesh and level hits
                                 auto hitSpeed = info.Normal.Dot(obj.Physics.Velocity);
                                 hit.Speed = std::abs(hitSpeed);
@@ -1110,6 +1112,41 @@ namespace Inferno {
 
         IntersectLevelMesh(level, obj, pvs, hit, dt);
         return hit;
+    }
+
+    void BumpObject(Object& obj, Vector3 hitDir, float damage) {
+        hitDir *= damage;
+        ApplyForce(obj, hitDir);
+    }
+
+    void ScrapeWall(Object& obj, const LevelHit& hit, const LevelTexture& ti, float dt) {
+        if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
+            if (ti.HasFlag(TextureFlag::Volatile)) {
+                // todo: ignite the object if D3 enhanced
+                auto damage = ti.Damage * dt;
+                if (Game::Difficulty == 0) damage *= 0.5f; // half damage on trainee
+                Game::Player.ApplyDamage(damage);
+            }
+
+            static double lastScrapeTime = 0;
+
+            if (Game::Time > lastScrapeTime + 0.25 || Game::Time < lastScrapeTime) {
+                lastScrapeTime = Game::Time;
+
+                auto soundId = ti.HasFlag(TextureFlag::Volatile) ? SoundID::TouchLava : SoundID::TouchWater;
+                Sound3D sound(hit.Point, hit.Tag.Segment);
+                sound.Resource = Resources::GetSoundResource(soundId);
+                Sound::Play(sound);
+            }
+
+            obj.Physics.AngularVelocity.x = RandomN11() / 8; // -0.125 to 0.125
+            obj.Physics.AngularVelocity.z = RandomN11() / 8;
+            auto dir = hit.Normal;
+            dir += RandomVector(1 / 8.0f);
+            dir.Normalize();
+
+            ApplyForce(obj, dir / 8.0f);
+        }
     }
 
     // Applies damage and play a sound if object velocity changes sharply
@@ -1200,15 +1237,17 @@ namespace Inferno {
                         obj.Physics.Bounces--;
                     }
 
-                    // Play a wall hit sound if the object hits something head-on
                     if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
-                        CheckForImpact(obj, hit);
-
-                        //if(hit.HitObj) {
-                        //    // CollideObjectAndObject(obj, hit);
-                        //}
-                        //else {
-                        //}
+                        if (auto side = level.TryGetSide(hit.Tag)) {
+                            auto& ti = Resources::GetLevelTextureInfo(side->TMap);
+                            if (ti.IsLiquid())
+                                ScrapeWall(obj, hit, ti, dt);
+                            else
+                                CheckForImpact(obj, hit);
+                        }
+                        else {
+                            CheckForImpact(obj, hit);
+                        }
                     }
                 }
             }
