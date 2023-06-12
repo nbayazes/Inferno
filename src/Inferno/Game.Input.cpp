@@ -26,17 +26,17 @@ namespace Inferno {
         if (Input::IsKeyDown(Keys::NumPad3))
             physics.Thrust += obj.Rotation.Right() * maxThrust;
 
-        // yaw
-        if (Input::IsKeyDown(Keys::NumPad4))
-            physics.AngularThrust.y = -maxAngularThrust;
-        if (Input::IsKeyDown(Keys::NumPad6))
-            physics.AngularThrust.y = maxAngularThrust;
-
         // pitch
         if (Input::IsKeyDown(Keys::NumPad5))
             physics.AngularThrust.x = -maxAngularThrust;
         if (Input::IsKeyDown(Keys::NumPad8))
             physics.AngularThrust.x = maxAngularThrust;
+
+        // yaw
+        if (Input::IsKeyDown(Keys::NumPad4))
+            physics.AngularThrust.y = -maxAngularThrust;
+        if (Input::IsKeyDown(Keys::NumPad6))
+            physics.AngularThrust.y = maxAngularThrust;
 
         // roll
         if (Input::IsKeyDown(Keys::NumPad7))
@@ -145,18 +145,18 @@ namespace Inferno {
         physics.Thrust += player.Rotation.Right() * lateralThrust;
         physics.Thrust += player.Rotation.Up() * verticalThrust;
 
-        // roll
-        if (Input::IsKeyDown(Keys::Q))
-            physics.AngularThrust.z = -maxAngularThrust;
-        if (Input::IsKeyDown(Keys::E))
-            physics.AngularThrust.z = maxAngularThrust;
-
         float invertMult = -1;
         float sensitivity = 1 / 64.0f;
         float scale = sensitivity * Game::TICK_RATE / dt;
 
         physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
         physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
+
+        // roll
+        if (Input::IsKeyDown(Keys::Q))
+            physics.AngularThrust.z = -maxAngularThrust;
+        if (Input::IsKeyDown(Keys::E))
+            physics.AngularThrust.z = maxAngularThrust;
 
         // Clamp angular speeds
         Vector3 maxAngVec(Settings::Inferno.LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);

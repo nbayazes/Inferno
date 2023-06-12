@@ -198,9 +198,9 @@ namespace Inferno {
         float Mass;
         float Drag;
         float Brakes;
-        Vector3 AngularVelocity;
+        Vector3 AngularVelocity; // Rotational velocity (pitch, yaw, roll)
         Vector3 AngularAcceleration;
-        Vector3 AngularThrust;  // Rotational acceleration
+        Vector3 AngularThrust;  // Rotational acceleration from player input (pitch, yaw, roll)
         float TurnRoll;   // Rotation caused by turn banking
         PhysicsFlag Flags;
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.

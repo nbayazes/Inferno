@@ -351,6 +351,7 @@ namespace Inferno {
 
     // v0 and v1 must be normalized. Returns [-PI, PI]
     inline float AngleBetweenVectors(const Vector3& v0, const Vector3& v1, const Vector3& normal) {
+        assert(IsNormalized(v0) && IsNormalized(v1) && IsNormalized(normal));
         auto dot = v0.Dot(v1);
         auto cross = v0.Cross(v1);
         auto angle = atan2(cross.Length(), dot);
@@ -360,6 +361,7 @@ namespace Inferno {
 
     // v0 and v1 must be normalized. Returns [0, PI]
     inline float AngleBetweenVectors(const Vector3& v0, const Vector3& v1) {
+        assert(IsNormalized(v0) && IsNormalized(v1));
         auto dot = v0.Dot(v1);
         if (dot <= -0.999f) return (float)std::numbers::pi;
         return acos(v0.Dot(v1));

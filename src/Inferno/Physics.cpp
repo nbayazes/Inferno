@@ -150,15 +150,15 @@ namespace Inferno {
 
         auto pdDrag = pd.Drag > 0 ? pd.Drag : 1;
         const auto drag = pdDrag * 5 / 2;
-        const auto stepScale = dt / Game::TICK_RATE;
+        const auto falloffScale = dt / Game::TICK_RATE; // adjusts falloff of values that expect a normal tick rate
 
         if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
-            pd.AngularVelocity += pd.AngularThrust / pd.Mass * stepScale; // acceleration
+            pd.AngularVelocity += pd.AngularThrust / pd.Mass * falloffScale; // acceleration
 
         if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel)) {
             pd.AngularVelocity += pd.AngularAcceleration * dt;
-            pd.AngularAcceleration *= 1 - drag * stepScale;
-            pd.AngularVelocity *= 1 - drag * stepScale;
+            pd.AngularAcceleration *= 1 - drag * falloffScale;
+            pd.AngularVelocity *= 1 - drag * falloffScale;
         }
 
         Debug::R = pd.AngularVelocity.y;
@@ -167,6 +167,7 @@ namespace Inferno {
         if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll))
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(pd.TurnRoll) * obj.Rotation);
 
+        // negating angles converts from lh to rh
         obj.Rotation = Matrix3x3(Matrix::CreateFromYawPitchRoll(-pd.AngularVelocity * dt * XM_2PI) * obj.Rotation);
 
         if (HasFlag(pd.Flags, PhysicsFlag::TurnRoll)) {
@@ -517,16 +518,59 @@ namespace Inferno {
         return IntersectRayLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
     }
 
+    // extract heading and pitch from a vector, assuming bank is 0
+    Vector3 ExtractAnglesFromVector(Vector3 v) {
+        v.Normalize();
+        Vector3 angles = v;
 
-    //void TurnTowardsVector(const Vector3& target, Object& obj, float rate) {
-    //    if (target == Vector3::Zero) return;
+        if (!IsZero(angles)) {
+            angles.y = 0; // always zero bank
+            angles.x = asin(-v.y);
+            if (v.x == 0 && v.z == 0)
+                angles.z = 0;
+            else
+                angles.z = atan2(v.z, v.x);
+        }
 
-    //}
+        return angles;
+    }
+
+    void TurnTowardsVector(Object& obj, const Vector3& towards, float rate) {
+        if (towards == Vector3::Zero) return;
+        auto rotation = Quaternion::FromToRotation(obj.Rotation.Forward(), towards); // rotation to the target vector
+        auto euler = rotation.ToEuler() / rate / XM_2PI; // Physics update multiplies by XM_2PI so divide it here
+        obj.Physics.AngularVelocity = Vector3::Transform(euler, obj.Rotation); // align with object rotation
+    }
 
     void ApplyForce(Object& obj, const Vector3& force) {
         if (obj.Movement != MovementType::Physics) return;
         if (obj.Physics.Mass == 0) return;
         obj.Physics.Velocity += force / obj.Physics.Mass;
+    }
+
+    void ApplyRotation(Object& obj, const Vector3& force) {
+        if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
+        auto vecmag = force.Length();
+        if(vecmag == 0) return;
+        vecmag /= 8.0f;
+
+        //if (vecmag < 1 / 256.0f || vecmag < obj.Physics.Mass) {
+        //    rate = 4;
+        //}
+        //else {
+
+        // rate should go down as vecmag or mass goes up
+        float rate = obj.Physics.Mass / vecmag;
+        if (obj.Type == ObjectType::Robot) {
+            if (rate < 0.25f) rate = 0.25f;
+            // todo: stun robot?
+        }
+        else {
+            if (rate < 0.5f) rate = 0.5f;
+        }
+        //}
+
+        TurnTowardsVector(obj, force, rate);
     }
 
     // Creates an explosion that can cause damage or knockback
@@ -592,7 +636,7 @@ namespace Inferno {
                         obj.ApplyDamage(damage);
 
                     obj.LastHitForce = forceVec;
-                    fmt::print("applied {} splash damage at dist {}\n", damage, dist);
+                    //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 
                     // stun robot if not boss
 
@@ -600,11 +644,17 @@ namespace Inferno {
 
                     // guidebot ouchies
                     // todo: turn object to face away from explosion
+
+                    Vector3 negForce = forceVec /** 2.0f * float(7 - Game::Difficulty) / 8.0f*/;
+                    ApplyRotation(obj, negForce);
                     break;
                 }
 
                 case ObjectType::Reactor:
                 {
+                    if (!Settings::Cheats.DisableWeaponDamage && source && source->IsPlayer())
+                        obj.ApplyDamage(damage);
+
                     // apply damage if source is player
                     break;
                 }
@@ -691,11 +741,7 @@ namespace Inferno {
 
         auto force = -hit.Normal * hit.Speed * m1 / m2;
         b.Physics.Velocity += force * RESITUTION;
-
         a.LastHitForce = b.LastHitForce = force * RESITUTION;
-        //a.Position += hit.Normal * 0.1f;
-        //b.Position -= hit.Normal * hit.Speed * dt;
-
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
         if (/*a.Type == ObjectType::Weapon &&*/ b.Type == ObjectType::Robot) {
@@ -707,22 +753,7 @@ namespace Inferno {
             const auto inertia = (2.0f / 5.0f) * m2 * b.Radius * b.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
             const auto accel = torque / inertia;
             b.Physics.AngularAcceleration += accel;
-
-            //targetPhys.Velocity += hit.Normal * hit.Normal.Dot(force);
-            //target.LastHitForce = force;
-
-            //Matrix basis(target.Rotation);
-            //basis = basis.Invert();
-            //force = Vector3::Transform(force, basis); // transform forces to basis of object
-            //const auto arm = Vector3::Transform(hit.Point - target.Position, basis);
-            //const auto torque = force.Cross(arm);
-            //const auto inertia = (2.0f / 5.0f) * targetMass * target.Radius * target.Radius;
-            //const auto accel = torque / inertia;
-            //targetPhys.AngularVelocity += accel; // should we multiply by dt here?
         }
-
-        // todo: player hitting a robot should cause it to rotate away slightly
-        // however, using the correct physics causes robots to spin erratically when sliding against them
     }
 
 
@@ -852,9 +883,6 @@ namespace Inferno {
                                 auto pos = hit.Point + hit.Normal * obj.Radius;
                                 averagePosition += pos;
                             }
-                            // todo: averaging position works better, but causes object to get placed inside slightly. causing jitter during physics
-                            // but not taking average allows player to phase through objects
-                            // instead, take the position farthest from the object center?
                             hits++;
                         }
                     }

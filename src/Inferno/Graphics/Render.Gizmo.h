@@ -161,6 +161,7 @@ namespace Inferno::Render {
                 // DrawArc() draws on the XY axis, rotate it by 90 on Y to align to XZ axis.
                 auto target = ProjectPointOntoPlane(Camera.Position, position, normal);
                 auto cameraDir = target - position; // direction towards the camera on this plane
+                cameraDir.Normalize();
                 auto cameraAngle = AngleBetweenVectors(orient, cameraDir, normal); // angle between the camera on this plane and the ref
                 Vector3 arcRef = Vector3::Transform(Vector3::UnitY, rotation); // rotate the arc center ref with it
                 cameraAngle += AngleBetweenVectors(arcRef, orient, normal); // center the arc on the orientation vector
