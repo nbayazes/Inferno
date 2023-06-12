@@ -377,7 +377,7 @@ namespace Inferno::Game {
             return;
         }
 
-        if (obj.Physics.CanBounce() && !hitLiquid)
+        if (hit.Bounced && !hitLiquid)
             return; // don't create explosions when bouncing
 
         obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting a wall

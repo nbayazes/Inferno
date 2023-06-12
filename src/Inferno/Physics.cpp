@@ -912,7 +912,7 @@ namespace Inferno {
 
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
 
-    void IntersectLevelMesh(Level& level, Object& obj, Set<SegID>& pvs, LevelHit& hit, float dt) {
+    void IntersectLevelMesh(Level& level, Object& obj, ObjID id, Set<SegID>& pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
@@ -955,14 +955,12 @@ namespace Inferno {
                         if (triFacesObj &&
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
-                            // move the object to the surface and proceed as normal
                             hitPoint = obj.PrevPosition + pathRay.direction * dist;
                             if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
-                            //obj.Position = hitPoint - pathRay.direction * obj.Radius;
-                            averagePosition += hitPoint - pathRay.direction * obj.Radius;
-                            hits++;
+                            // move the object to the surface and proceed as normal
+                            obj.Position = hitPoint - pathRay.direction * obj.Radius;
                             hitNormal = side.Normals[tri];
                             hitDistance = dist;
                             edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
@@ -1017,64 +1015,54 @@ namespace Inferno {
 
                     float hitSpeed = 0;
 
-                    if (hitDistance < obj.Radius) {
+                    if (hitDistance < obj.Radius + 0.001f) {
                         // Check if hit is transparent (duplicate check due to triangle edges)
                         if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(hitPoint, face, tri))
                             continue; // skip projectiles that hit transparent part of a wall
 
-                        // Object hit a wall, apply physics
                         hitSpeed = hitNormal.Dot(obj.Physics.Velocity);
 
-                        //if (obj.Physics.CanBounce()) {
-                        //    wallPart *= 2; // Subtract wall part twice to achieve bounce
-                        //    pathRay.direction = Vector3::Reflect(pathRay.direction, hitNormal);
-                        //    pathRay.position = obj.Position;
-
-                        //    //obj.Physics.Velocity = Vector3::Reflect(obj.Physics.Velocity, hit.Normal);
-                        //    if (obj.Type == ObjectType::Weapon)
-                        //        obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
-
-                        //    // subtracting number of bounces here makes sense, in case multiple hits occur in a single tick.
-                        //    // however then bounces needs to be 1 higher than stated in the config
-                        //    // so that bounce effects work correctly in WeaponHitWall()
-                        //    //obj.Physics.Bounces--;
-                        //}
-
-                        if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
+                        auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+                        if (obj.Physics.CanBounce() || ti.HasFlag(TextureFlag::ForceField)) {
+                            hit.Bounced = true;
+                        }
+                        else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
                             obj.Physics.Velocity -= hitNormal * hitSpeed; // slide along wall (or bounce)
                             averagePosition += hitPoint + hitNormal * obj.Radius;
                             hits++;
                         }
 
+
                         // apply friction so robots pinned against the wall don't spin in place
-                        if (obj.Type == ObjectType::Robot) {
-                            obj.Physics.AngularAcceleration *= 0.5f;
-                            //obj.Physics.Velocity *= 0.125f;
-                        }
+                        //if (obj.Type == ObjectType::Robot) {
+                        //    obj.Physics.AngularAcceleration *= 0.5f;
+                        //    //obj.Physics.Velocity *= 0.125f;
+                        //}
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal, { 1, 0, 0 });
-                    }
 
-                    if (hitDistance < hit.Distance) {
-                        // Store the closest overall hit as the final hit
-                        hit.Distance = hitDistance;
-                        hit.Normal = hitNormal;
-                        hit.Point = hitPoint;
-                        hit.Tag = { (SegID)segId, sideId };
-                        hit.Tangent = tangent;
-                        hit.EdgeDistance = edgeDistance;
-                        hit.Tri = tri;
-                        hit.WallPoint = hitPoint;
-                        hit.Speed = abs(hitSpeed);
+                        if (hitDistance < hit.Distance) {
+                            // Store the closest overall hit as the final hit
+                            hit.Distance = hitDistance;
+                            hit.Normal = hitNormal;
+                            hit.Point = hitPoint;
+                            hit.Tag = { (SegID)segId, sideId };
+                            hit.Tangent = tangent;
+                            hit.EdgeDistance = edgeDistance;
+                            hit.Tri = tri;
+                            hit.WallPoint = hitPoint;
+                            hit.Speed = abs(hitSpeed);
+                        }
                     }
                 }
             }
         }
 
-        if (hits > 0) obj.Position = averagePosition / (float)hits;
+        if (hits > 0) 
+            obj.Position = averagePosition / (float)hits;
     }
 
-    bool IntersectLevel(Level& level, Object& obj, ObjID oid, LevelHit& hit, float dt) {
+    bool IntersectLevel(Level& level, Object& obj, ObjID id, LevelHit& hit, float dt) {
         // Don't hit test objects that haven't moved unless they are the player
         // This is so moving powerups are tested against the player
         //if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
@@ -1091,11 +1079,11 @@ namespace Inferno {
             auto& seg = level.GetSegment(segId);
 
             for (int i = 0; i < seg.Objects.size(); i++) {
-                if (oid == seg.Objects[i]) continue; // don't hit yourself!
+                if (id == seg.Objects[i]) continue; // don't hit yourself!
                 auto pOther = level.TryGetObject(seg.Objects[i]);
                 if (!pOther) continue;
                 auto& other = *pOther;
-                if (oid == other.Parent) continue; // Don't hit your children!
+                if (id == other.Parent) continue; // Don't hit your children!
 
                 switch (ObjectCanHitTarget(obj, other)) {
                     default:
@@ -1140,7 +1128,7 @@ namespace Inferno {
             }
         }
 
-        IntersectLevelMesh(level, obj, pvs, hit, dt);
+        IntersectLevelMesh(level, obj, id, pvs, hit, dt);
         return hit;
     }
 
@@ -1257,8 +1245,9 @@ namespace Inferno {
                         Game::Player.TouchObject(*hit.HitObj);
                     }
 
-                    if (obj.Physics.CanBounce()) {
+                    if (hit.Bounced) {
                         obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
+                        // flip weapon to face the new direction
                         if (obj.Type == ObjectType::Weapon)
                             obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
 

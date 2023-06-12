@@ -30,6 +30,7 @@ namespace Inferno {
         Vector3 Normal, Tangent;
         int Tri = -1; // Triangle of the face hit. -1, 0 or 1
         float Speed = 0;
+        bool Bounced = false;
 
         void Update(const HitInfo& hit, Object* obj) {
             if (!obj || hit.Distance > Distance) return;
