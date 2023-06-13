@@ -512,6 +512,7 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage) {
+        if (Settings::Cheats.DisableWeaponDamage) return;
         //if (Player_is_dead)
         //    return;
 

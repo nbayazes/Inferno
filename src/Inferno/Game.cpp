@@ -520,7 +520,6 @@ namespace Inferno::Game {
 
             case ObjectType::Player:
             {
-                obj.Flags |= ObjectFlag::Destroyed;
                 // Player_ship->expl_vclip_num
                 break;
             }

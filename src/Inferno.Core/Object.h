@@ -353,6 +353,7 @@ namespace Inferno {
         ControlData Control;
 
         Vector3 LastHitForce; // Tracks the force of the last hit. Used for debris.
+        ObjSig LastHitObject = ObjSig::None; // Hack used by explosive weapons to fix rotation of direct hits
 
         Vector3 Position; // The current "real" position
         Matrix3x3 Rotation; // The current "real" rotation

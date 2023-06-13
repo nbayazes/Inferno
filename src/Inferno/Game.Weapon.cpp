@@ -47,15 +47,13 @@ namespace Inferno::Game {
         e.FadeTime = 0.1f;
         Render::CreateExplosion(e, obj.Segment, obj.Position);
 
-        if (weapon.SplashRadius > 0) {
-            GameExplosion ge{};
-            ge.Damage = damage;
-            ge.Force = damage;
-            ge.Radius = weapon.SplashRadius;
-            ge.Segment = obj.Segment;
-            ge.Position = obj.Position;
-            CreateExplosion(Game::Level, &obj, ge);
-        }
+        GameExplosion ge{};
+        ge.Damage = damage;
+        ge.Force = damage;
+        ge.Radius = weapon.SplashRadius;
+        ge.Segment = obj.Segment;
+        ge.Position = obj.Position;
+        CreateExplosion(Game::Level, &obj, ge);
     }
 
     void ProxMineBehavior(Object& obj) {
@@ -177,50 +175,48 @@ namespace Inferno::Game {
         Render::AddDecal(planar);
     }
 
-    void WeaponHitObject(const LevelHit& hit, Object& src, Inferno::Level& level) {
+    void WeaponHitObject(const LevelHit& hit, Object& src) {
         assert(hit.HitObj);
         const auto& weapon = Resources::GameData.Weapons[src.ID];
         const float damage = weapon.Damage[Game::Difficulty];
 
         auto& target = *hit.HitObj;
+        src.LastHitObject = target.Signature;
 
         if (target.Type == ObjectType::Weapon) {
-            target.Lifespan = -1; // Cause the target weapon to detonate by expiring
+            // a bomb or other weapon was shot. cause it to explode by expiring.
+            target.Lifespan = -1;
             if (weapon.SplashRadius == 0)
                 return; // non-explosive weapons keep going
         }
         else {
-            // todo: player shields are handled differently
             if (target.Type != ObjectType::Player && !Settings::Cheats.DisableWeaponDamage)
                 target.ApplyDamage(damage);
 
             //fmt::print("applied {} damage\n", damage);
-            VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : VClipID::SmallExplosion;
 
-            Render::ExplosionInfo expl;
-            expl.Sound = weapon.RobotHitSound;
-            //expl.Parent = src.Parent;
-            expl.Clip = vclip;
-            expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
-            //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
-            expl.FadeTime = 0.1f;
-
-            if (src.ID == (int)WeaponID::Concussion) {
-                // todo: and all other missiles
-                expl.Instances = 2;
-                expl.Delay = { 0, 0 };
-                expl.Clip = weapon.RobotHitVClip;
+            // Missiles create their explosion effects swhen expiring
+            if (!weapon.IsExplosive()) {
+                Render::ExplosionInfo expl;
+                expl.Sound = weapon.RobotHitSound;
+                //expl.Parent = src.Parent;
+                expl.Clip = VClipID::SmallExplosion;
+                expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
+                //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
+                expl.FadeTime = 0.1f;
+                Render::CreateExplosion(expl, hit.HitObj->Segment, hit.Point);
             }
-
-            Render::CreateExplosion(expl, hit.HitObj->Segment, hit.Point);
 
             //AddPlanarExplosion(weapon, hit);
 
-            //float damageMult = std::clamp(damage / 10.0f, 1.0f, 1.75f);
+            // More damage creates more sparks
+            float damageMult = std::clamp(damage / 20.0f, 1.0f, 2.0f);
             if (auto sparks = Render::EffectLibrary.GetSparks("weapon_hit_obj")) {
                 sparks->Color += weapon.Extended.ExplosionColor * 60;
                 sparks->LightColor = weapon.Extended.ExplosionColor;
                 sparks->LightRadius = weapon.Extended.LightRadius;
+                sparks->Count.Min = int(sparks->Count.Min * damageMult);
+                sparks->Count.Max = int(sparks->Count.Max * damageMult);
                 Render::AddSparkEmitter(*sparks, hit.HitObj->Segment, hit.Point);
             }
 
@@ -237,18 +233,7 @@ namespace Inferno::Game {
         src.Control.Weapon.AddRecentHit(target.Signature);
 
         if (!weapon.Piercing)
-            src.Flags |= ObjectFlag::Dead; // remove weapon after hitting an enemy
-
-        if (weapon.SplashRadius > 0) {
-            GameExplosion ge{};
-            ge.Segment = hit.Tag.Segment;
-            ge.Position = hit.Point;
-            ge.Damage = damage;
-            ge.Force = damage; // force = damage, really?
-            ge.Radius = weapon.SplashRadius;
-
-            CreateExplosion(level, &src, ge);
-        }
+            src.Lifespan = -1; // Schedule to explode
     }
 
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
@@ -501,7 +486,6 @@ namespace Inferno::Game {
                 bullet.Scale = weapon.Extended.ModelScale;
             }
             else {
-                bullet.Radius = model.Radius / weapon.ModelSizeRatio;
                 bullet.Render.Model.ID = weapon.Model;
             }
 

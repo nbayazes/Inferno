@@ -55,7 +55,7 @@ namespace Inferno::Game {
     inline float DeltaTime = 0; // Elapsed fixed-step game time since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
-    void WeaponHitObject(const LevelHit& hit, Object& src, Inferno::Level& level);
+    void WeaponHitObject(const LevelHit& hit, Object& src);
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
     void FireWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero);

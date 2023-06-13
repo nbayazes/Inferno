@@ -282,7 +282,7 @@ namespace Inferno {
     }
 
     enum class CollisionType {
-        None = 0,   // Doesn't collide
+        None = 0, // Doesn't collide
         SphereRoom, // Same as SpherePoly, except against level meshes
         SpherePoly,
         PolySphere,
@@ -315,7 +315,7 @@ namespace Inferno {
         setEntry(ObjectType::Robot, ObjectType::Reactor, CollisionType::SpherePoly);
 
         setEntry(ObjectType::Weapon, ObjectType::Weapon, CollisionType::SphereSphere);
-        setEntry(ObjectType::Weapon, ObjectType::Robot, CollisionType::SpherePoly);  // Harder to hit
+        setEntry(ObjectType::Weapon, ObjectType::Robot, CollisionType::SpherePoly); // Harder to hit
         setEntry(ObjectType::Weapon, ObjectType::Player, CollisionType::SpherePoly); // Easier to dodge
         setEntry(ObjectType::Weapon, ObjectType::Clutter, CollisionType::SpherePoly);
         setEntry(ObjectType::Weapon, ObjectType::Building, CollisionType::SpherePoly);
@@ -358,7 +358,7 @@ namespace Inferno {
                 }
                 case ObjectType::Player:
                 {
-                    if (target.ID > 0) return CollisionType::None;          // Only hit player 0 in singleplayer
+                    if (target.ID > 0) return CollisionType::None; // Only hit player 0 in singleplayer
                     if (src.Parent == ObjID(0)) return CollisionType::None; // Don't hit the player with their own shots
                     if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
                         return CollisionType::None; // Mines can't hit the player until they arm
@@ -538,8 +538,8 @@ namespace Inferno {
     void TurnTowardsVector(Object& obj, const Vector3& towards, float rate) {
         if (towards == Vector3::Zero) return;
         auto rotation = Quaternion::FromToRotation(obj.Rotation.Forward(), towards); // rotation to the target vector
-        auto euler = rotation.ToEuler() / rate / XM_2PI;                             // Physics update multiplies by XM_2PI so divide it here
-        obj.Physics.AngularVelocity = Vector3::Transform(euler, obj.Rotation);       // align with object rotation
+        auto euler = rotation.ToEuler() / rate / XM_2PI; // Physics update multiplies by XM_2PI so divide it here
+        obj.Physics.AngularVelocity += Vector3::Transform(euler, obj.Rotation); // align with object rotation
     }
 
     void ApplyForce(Object& obj, const Vector3& force) {
@@ -575,30 +575,31 @@ namespace Inferno {
 
     // Creates an explosion that can cause damage or knockback
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion) {
-        for (auto& obj : level.Objects) {
-            if (&obj == source) continue;
-            if (!obj.IsAlive()) continue;
+        // todo: only scan nearby objects
+        for (auto& target : level.Objects) {
+            if (&target == source) continue;
+            if (!target.IsAlive()) continue;
 
-            if (obj.Type == ObjectType::Weapon && (obj.ID != (int)WeaponID::ProxMine && obj.ID != (int)WeaponID::SmartMine && obj.ID != (int)WeaponID::LevelMine))
+            if (target.Type == ObjectType::Weapon && (target.ID != (int)WeaponID::ProxMine && target.ID != (int)WeaponID::SmartMine && target.ID != (int)WeaponID::LevelMine))
                 continue; // only allow explosions to affect weapons that are mines
 
             // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
             //if (&level.GetObject(obj.Parent) == &source) continue; // don't hit your parent
 
-            if (obj.Type != ObjectType::Player && obj.Type != ObjectType::Robot && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor)
+            if (target.Type != ObjectType::Player && target.Type != ObjectType::Robot && target.Type != ObjectType::Weapon && target.Type != ObjectType::Reactor)
                 continue;
 
-            auto dist = Vector3::Distance(obj.Position, explosion.Position);
+            auto dist = Vector3::Distance(target.Position, explosion.Position);
 
             // subtract object radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
             // however don't apply it to players due to dramatically increasing the amount of damage taken
-            if (obj.Type != ObjectType::Player && obj.Type != ObjectType::Coop)
-                dist -= obj.Radius;
+            if (target.Type != ObjectType::Player && target.Type != ObjectType::Coop)
+                dist -= target.Radius;
 
             if (dist >= explosion.Radius) continue;
             dist = std::max(dist, 0.0f);
 
-            Vector3 dir = obj.Position - explosion.Position;
+            Vector3 dir = target.Position - explosion.Position;
             dir.Normalize();
             Ray ray(explosion.Position, dir);
             LevelHit hit;
@@ -615,10 +616,10 @@ namespace Inferno {
             // Find where the point of impact is... ( pos_hit )
             //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
 
-            switch (obj.Type) {
+            switch (target.Type) {
                 case ObjectType::Weapon:
                 {
-                    ApplyForce(obj, forceVec);
+                    ApplyForce(target, forceVec);
                     // Mines can blow up under enough force
                     //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
                     //    if (dist * force > 0.122f) {
@@ -631,11 +632,11 @@ namespace Inferno {
 
                 case ObjectType::Robot:
                 {
-                    ApplyForce(obj, forceVec);
+                    ApplyForce(target, forceVec);
                     if (!Settings::Cheats.DisableWeaponDamage)
-                        obj.ApplyDamage(damage);
+                        target.ApplyDamage(damage);
 
-                    obj.LastHitForce = forceVec;
+                    target.LastHitForce = forceVec;
                     //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 
                     // stun robot if not boss
@@ -643,31 +644,32 @@ namespace Inferno {
                     // Boss invuln stuff
 
                     // guidebot ouchies
-                    // todo: turn object to face away from explosion
 
-                    Vector3 negForce = forceVec /** 2.0f * float(7 - Game::Difficulty) / 8.0f*/;
-                    ApplyRotation(obj, negForce);
+                    //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
+                    // Don't apply rotation if source hit this object, so that it doesn't rotate oddly
+                    if (source->LastHitObject != target.Signature)
+                        ApplyRotation(target, forceVec);
                     break;
                 }
 
                 case ObjectType::Reactor:
                 {
-                    if (!Settings::Cheats.DisableWeaponDamage && source && source->IsPlayer())
-                        obj.ApplyDamage(damage);
-
                     // apply damage if source is player
+                    if (!Settings::Cheats.DisableWeaponDamage && source && source->IsPlayer())
+                        target.ApplyDamage(damage);
+
                     break;
                 }
 
                 case ObjectType::Player:
                 {
-                    ApplyForce(obj, forceVec);
-                    // also apply rotational
+                    ApplyForce(target, forceVec);
+                    if (source->LastHitObject != target.Signature)
+                        ApplyRotation(target, forceVec);
 
-                    // shields, flash, physics
-                    // divide damage by 4 on trainee
-                    // todo: turn object to face away from explosion
-
+                    // Quarter damage explosions on trainee
+                    if (Game::Difficulty == 0) damage /= 4;
+                    Game::Player.ApplyDamage(damage);
                     break;
                 }
 
@@ -701,15 +703,15 @@ namespace Inferno {
         }
     }
 
-    void CollideObjects(const LevelHit& hit, Object& a, Object& b, float /*dt*/) {
+    void CollideObjects(const LevelHit& hit, Object& obj, Object& target, float /*dt*/) {
         if (hit.Speed <= 0.1f) return;
 
         //SPDLOG_INFO("{}-{} impact speed: {}", a.Signature, b.Signature, hit.Speed);
 
-        if (b.Type == ObjectType::Powerup || b.Type == ObjectType::Marker)
+        if (target.Type == ObjectType::Powerup || target.Type == ObjectType::Marker)
             return;
 
-        if (a.Type != ObjectType::Weapon && b.Type != ObjectType::Weapon) { }
+        if (obj.Type != ObjectType::Weapon && target.Type != ObjectType::Weapon) { }
 
         //auto v1 = a.Physics.PrevVelocity.Dot(hit.Normal);
         //auto v2 = b.Physics.PrevVelocity.Dot(hit.Normal);
@@ -719,9 +721,9 @@ namespace Inferno {
         // Player ramming a robot should impart less force than a weapon
         //float restitution = a.Type == ObjectType::Player ? 0.6f : 1.0f;
 
+        auto m1 = obj.Physics.Mass == 0.0f ? 1.0f : obj.Physics.Mass;
+        auto m2 = target.Physics.Mass == 0.0f ? 1.0f : target.Physics.Mass;
         // These equations are valid as long as one mass is not zero
-        auto m1 = a.Physics.Mass == 0.0f ? 1.0f : a.Physics.Mass;
-        auto m2 = b.Physics.Mass == 0.0f ? 1.0f : b.Physics.Mass;
         //auto newV1 = (m1 * v1 + m2 * v2 - m2 * (v1 - v2) * restitution) / (m1 + m2);
         //auto newV2 = (m1 * v1 + m2 * v2 - m1 * (v2 - v1) * restitution) / (m1 + m2);
 
@@ -732,27 +734,29 @@ namespace Inferno {
         //if (b.Movement == MovementType::Physics)
         //    b.Physics.Velocity += hit.Normal * (newV2 - v2);
 
-        //if (a.Type == ObjectType::Weapon && !HasFlag(a.Physics.Flags, PhysicsFlag::Bounce))
-        //    a.Physics.Velocity = Vector3::Zero; // stop weapons when hitting an object
+        float speed = hit.Speed;
 
-        //auto actualVel = (a.Position - a.LastPosition) / dt;
+        if (obj.Type == ObjectType::Weapon) {
+            auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+            if (weapon.SplashRadius > 0)
+                speed += weapon.Damage[Game::Difficulty] * 4; // Damage equals force
+        }
 
+        auto force = -hit.Normal * speed * m1 / m2;
         constexpr float RESITUTION = 0.5f;
-
-        auto force = -hit.Normal * hit.Speed * m1 / m2;
-        b.Physics.Velocity += force * RESITUTION;
-        a.LastHitForce = b.LastHitForce = force * RESITUTION;
+        target.Physics.Velocity += force * RESITUTION;
+        obj.LastHitForce = target.LastHitForce = force * RESITUTION;
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
-        if (/*a.Type == ObjectType::Weapon &&*/ b.Type == ObjectType::Robot) {
-            Matrix basis(b.Rotation);
+        if (/*a.Type == ObjectType::Weapon &&*/ target.Type == ObjectType::Robot) {
+            Matrix basis(target.Rotation);
             basis = basis.Invert();
-            force = Vector3::Transform(force, basis); // transform forces to basis of object
-            auto arm = Vector3::Transform(hit.Point - b.Position, basis);
+            force = Vector3::Transform(force * 2, basis); // transform forces to basis of object
+            auto arm = Vector3::Transform(hit.Point - target.Position, basis);
             const auto torque = force.Cross(arm);
-            const auto inertia = (2.0f / 5.0f) * m2 * b.Radius * b.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
+            const auto inertia = (2.0f / 5.0f) * m2 * target.Radius * target.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
             const auto accel = torque / inertia;
-            b.Physics.AngularAcceleration += accel;
+            target.Physics.AngularAcceleration += accel;
         }
     }
 
@@ -805,6 +809,7 @@ namespace Inferno {
                     //assert(normal == normal2);
 
                     bool triFacesObj = localDir.Dot(normal) <= 0;
+                    auto offset = normal * obj.Radius; // offset triangle by radius to account for object size
 
                     if (needsRaycast) {
                         float dist;
@@ -814,7 +819,6 @@ namespace Inferno {
                         }
                     }
 
-                    auto offset = normal * obj.Radius; // offset triangle by radius to account for object size
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
                     auto planeDist = -plane.DotCoordinate(localPos); // flipped winding
                     if (planeDist > 0 || planeDist < -obj.Radius)
@@ -912,7 +916,7 @@ namespace Inferno {
 
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
 
-    void IntersectLevelMesh(Level& level, Object& obj, ObjID id, Set<SegID>& pvs, LevelHit& hit, float dt) {
+    void IntersectLevelMesh(Level& level, Object& obj, Set<SegID>& pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
         float travelDistance = obj.Physics.Velocity.Length() * dt;
@@ -1130,7 +1134,7 @@ namespace Inferno {
             }
         }
 
-        IntersectLevelMesh(level, obj, id, pvs, hit, dt);
+        IntersectLevelMesh(level, obj, pvs, hit, dt);
         return hit;
     }
 
@@ -1246,7 +1250,7 @@ namespace Inferno {
                 if (IntersectLevel(level, obj, (ObjID)id, hit, dt)) {
                     if (obj.Type == ObjectType::Weapon) {
                         if (hit.HitObj) {
-                            Game::WeaponHitObject(hit, obj, level);
+                            Game::WeaponHitObject(hit, obj);
                         }
                         else {
                             Game::WeaponHitWall(hit, obj, level, ObjID(id));
@@ -1267,7 +1271,7 @@ namespace Inferno {
 
                     if (hit.Bounced) {
                         obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
-                        if (ti->IsForceField())
+                        if (ti && ti->IsForceField())
                             obj.Physics.Velocity *= 1.5f;
 
                         // flip weapon to face the new direction

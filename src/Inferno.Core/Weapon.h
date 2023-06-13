@@ -218,6 +218,7 @@ namespace Inferno {
         WeaponExtended Extended{};
 
         float GetDecalSize() const { return Extended.DecalRadius ? Extended.DecalRadius : ImpactSize / 3; }
+        bool IsExplosive() const { return SplashRadius > 0; }
     };
 
     struct ShipInfo {
