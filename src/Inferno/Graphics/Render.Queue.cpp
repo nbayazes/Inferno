@@ -96,7 +96,7 @@ namespace Inferno::Render {
         ScopedTimer levelTimer(&Render::Metrics::QueueLevel);
 
         _visited.clear();
-        _search.push(startId);
+        _search.push({ startId, 0 });
         Stats::EffectDraws = 0;
 
         struct ObjDepth {
@@ -107,39 +107,39 @@ namespace Inferno::Render {
         List<ObjDepth> objects;
 
         while (!_search.empty()) {
-            auto id = _search.front();
+            SegDepth item = _search.front();
             _search.pop();
 
             // must check if visited because multiple segs can connect to the same seg before being it is visited
-            if (_visited.contains(id)) continue;
-            _visited.insert(id);
-            auto* seg = &level.GetSegment(id);
+            if (_visited.contains(item.Seg)) continue;
+            _visited.insert(item.Seg);
+            auto* seg = &level.GetSegment(item.Seg);
 
-            struct SegDepth {
-                SegID Seg = SegID::None;
-                float Depth = 0;
-            };
             Array<SegDepth, 6> children{};
 
             // Find open sides
             for (auto& sideId : SideIDs) {
-                if (!WallIsTransparent(level, { id, sideId }))
+                if (!WallIsTransparent(level, { item.Seg, sideId }))
                     continue; // Can't see through wall
 
-                if (id != startId) {
-                    // always add nearby segments
+                bool culled = false;
+                // always add adjacent segments to start
+                if (item.Seg != startId) {
                     auto vec = seg->Sides[(int)sideId].Center - Camera.Position;
                     vec.Normalize();
+
+                    // todo: draw objects in adjacent segments, as objects on the boundary can overlap
                     if (vec.Dot(seg->Sides[(int)sideId].AverageNormal) >= 0)
-                        continue; // Cull backfaces
+                        culled = true;
                 }
 
                 auto cid = seg->GetConnection(sideId);
                 auto cseg = level.TryGetSegment(cid);
-                if (cseg && !_visited.contains(cid) /*&& CameraFrustum.Contains(cseg->Center)*/) {
+                if (cseg && !_visited.contains(cid)) {
                     children[(int)sideId] = {
                         .Seg = cid,
-                        .Depth = GetRenderDepth(cseg->Center)
+                        .Depth = GetRenderDepth(cseg->Center),
+                        .Culled = culled
                     };
                 }
             }
@@ -151,9 +151,11 @@ namespace Inferno::Render {
                 return a.Depth < b.Depth;
             });
 
-            for (auto& c : children) {
-                if (c.Seg != SegID::None)
-                    _search.push(c.Seg);
+            if (!item.Culled) {
+                for (auto& c : children) {
+                    if (c.Seg != SegID::None)
+                        _search.push(c);
+                }
             }
 
             objects.clear();
@@ -169,7 +171,7 @@ namespace Inferno::Render {
                 }
             }
 
-            for (auto& effect : GetEffectsInSegment(id)) {
+            for (auto& effect : GetEffectsInSegment(item.Seg)) {
                 if (effect && effect->IsAlive()) {
                     Stats::EffectDraws++;
                     objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect.get() });
@@ -217,8 +219,9 @@ namespace Inferno::Render {
             }
 
             // queue visible walls (this does not scale well)
+            // todo: track walls as iterating
             for (auto& mesh : wallMeshes) {
-                if (mesh.Chunk->Tag.Segment == id)
+                if (mesh.Chunk->Tag.Segment == item.Seg)
                     _transparentQueue.push_back({ &mesh, 0 });
             }
         }

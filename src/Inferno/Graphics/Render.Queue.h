@@ -35,10 +35,16 @@ namespace Inferno::Render {
     };
 
     class RenderQueue {
+        struct SegDepth {
+            SegID Seg = SegID::None;
+            float Depth = 0;
+            bool Culled = false;
+        };
+
         List<RenderCommand> _opaqueQueue;
         List<RenderCommand> _transparentQueue;
         Set<SegID> _visited;
-        std::queue<SegID> _search;
+        std::queue<SegDepth> _search;
     public:
         const Set<SegID>& GetVisibleSegments() { return _visited; }
         void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);

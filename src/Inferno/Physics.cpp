@@ -1204,7 +1204,7 @@ namespace Inferno {
 
         if (damage > DAMAGE_THRESHOLD) {
             if (obj.Type == ObjectType::Player) {
-                if (obj.HitPoints > 10 && !isForceField)
+                if (obj.HitPoints > 10 || isForceField)
                     Game::Player.ApplyDamage(damage);
             }
             else {
