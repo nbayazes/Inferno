@@ -15,7 +15,7 @@ namespace Inferno {
     constexpr Color FLASH_RED = { FLASH, 0, 0 };
     constexpr Color FLASH_GOLD = { FLASH * 0.9f, FLASH * 0.9f, FLASH * 0.4f };
     constexpr Color FLASH_POWERUP = { FLASH, 0, FLASH };
-    constexpr Color FLASH_FUSION_CHARGE = { MAX_FLASH * Game::TICK_RATE * 4, 0, MAX_FLASH * Game::TICK_RATE * 4 };
+    constexpr Color FLASH_FUSION_CHARGE = { MAX_FLASH * Game::TICK_RATE * 2.5f, 0, MAX_FLASH * Game::TICK_RATE * 2.5f };
 
     // Returns a value indicating the weapon's priority. Lower values are higher priority. 255 is disabled.
     int GetWeaponPriority(PrimaryWeaponIndex primary) {

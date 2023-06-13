@@ -225,6 +225,8 @@ namespace Inferno::Render {
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
                     continue; // skip saturate textures unless on glow pass
 
+                if (submodel.HasFlag(SubmodelFlag::Glow)) continue; // We have proper bloom
+
                 //auto handle = texId >= 0 
                 //    ? Render::NewTextureCache->GetResource(model->TextureHandles[texId], (float)ElapsedTime) 
                 //    : Materials->White().Handle();
@@ -240,7 +242,10 @@ namespace Inferno::Render {
                 effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
                 effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
+
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
+                    if (object.Type == ObjectType::Weapon) continue; // Facing on weapons is usually glows
+
                     if (material.Saturate())
                         constants.Ambient = Color(1, 1, 1);
                     //constants.Colors[1] = Color(1, 1, 1, 1);

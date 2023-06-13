@@ -83,7 +83,7 @@ Weapons:
     Name: laser 6
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 2, 2, 2
+    Glow: 2.5, 2.5, 5
     ModelName: WhiteLaser.OOF
     ModelScale: 0.7
     Size: 0.275
@@ -92,8 +92,8 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.65, 0.65, 0.65
-    ExplosionColor: 0.65, 0.65, 0.65
+    LightColor: 0.65, 0.65, 1.2
+    ExplosionColor: 0.65, 0.65, 1.2
 
   - id: 9
     Name: flare
@@ -159,7 +159,7 @@ Weapons:
     Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
-    Glow: 2, 0, 3
+    Glow: 4, 0, 6
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
     RotationalVelocity: 0, 0, 1.5708
