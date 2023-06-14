@@ -375,7 +375,7 @@ namespace Inferno::Game {
             if (!hitLiquid)
                 soundRes.D3 = weapon.Extended.ExplosionSound;
 
-            Sound3D sound(hit.WallPoint, hit.Tag.Segment);
+            Sound3D sound(hit.Point, hit.Tag.Segment);
             sound.Resource = soundRes;
             sound.Source = obj.Parent;
             Sound::Play(sound);
@@ -390,9 +390,9 @@ namespace Inferno::Game {
             Vector3 position;
             // move explosions out of wall
             if (impactSize < 5)
-                position = hit.WallPoint - dir * impactSize * 0.5f;
+                position = hit.Point - dir * impactSize * 0.5f;
             else
-                position = hit.WallPoint - dir * 2.5;
+                position = hit.Point - dir * 2.5;
 
             e.FadeTime = 0.1f;
             if (weapon.Extended.ExplosionColor != Color(-1, -1, -1))

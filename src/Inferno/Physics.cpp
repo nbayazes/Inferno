@@ -492,7 +492,7 @@ namespace Inferno {
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
                         hit.Tangent = face.Side.Tangents[tri];
-                        hit.WallPoint = hit.Point = ray.position + ray.direction * dist;
+                        hit.Point = ray.position + ray.direction * dist;
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
                     }
@@ -1056,7 +1056,6 @@ namespace Inferno {
                             hit.Tangent = tangent;
                             hit.EdgeDistance = edgeDistance;
                             hit.Tri = tri;
-                            hit.WallPoint = hitPoint;
                             hit.Speed = hitSpeed;
                         }
                     }
