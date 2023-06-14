@@ -202,7 +202,7 @@ namespace Inferno::Graphics {
                 auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
 
                 LightData light{};
-                light.color = color.ToVector3();
+                light.color = color;
                 light.radiusSq = len * len * 4;
                 light.type = LightType::Point;
                 light.pos = seg.Center;
@@ -270,7 +270,7 @@ namespace Inferno::Graphics {
 
                     auto addLavaPoint = [&sources, &color](const Vector3& p, float radius) {
                         LightData light{};
-                        light.color = color.ToVector3();
+                        light.color = color;
                         light.radiusSq = radius * radius * 2.0f;
                         light.type = LightType::Point;
                         light.pos = p;
@@ -366,7 +366,7 @@ namespace Inferno::Graphics {
                     for (int iy = yMin; iy < yMax; iy++) {
                         for (Vector2 lt : info->Points) {
                             LightData light{};
-                            light.color = color.ToVector3() * multiplier;
+                            light.color = color * multiplier;
                             light.radiusSq = radius * radius;
                             light.normal = side.AverageNormal;
                             light.type = info->Type;

@@ -91,6 +91,7 @@ namespace Inferno {
         ReadArray(node["Speed"], weapon.Speed);
 
 #define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
+        READ_PROP_EXT(FlashColor);
         READ_PROP_EXT(Name);
         READ_PROP_EXT(Behavior);
         READ_PROP_EXT(Glow);

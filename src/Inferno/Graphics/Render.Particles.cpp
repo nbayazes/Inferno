@@ -42,6 +42,7 @@ namespace Inferno::Render {
 
     void AddParticle(Particle& p, SegID seg) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
+        if (vclip.NumFrames <= 0) return;
         p.Duration = vclip.PlayTime;
         p.Segment = seg;
         if (p.RandomRotation)

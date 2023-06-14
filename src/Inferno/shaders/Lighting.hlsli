@@ -680,7 +680,8 @@ static const float METAL_SPECULAR_FACTOR = 0.5; // reduce this after increasing 
 static const float METAL_SPECULAR_EXP = 5;      // increase this to get more diffuse color contribution
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
-    lightColor = lerp(light.color, 0, material.Metalness);
+    const float3 lightRgb = light.color.rgb * light.color.a;
+    lightColor = lerp(lightRgb, 0, material.Metalness);
 
     //float greyscale = dot(diffuse, float3(.222, .707, .071)); // Convert to greyscale numbers with magic luminance numbers
     //float3 metalDiffuse = lerp(float3(greyscale, greyscale, greyscale), diffuse, 2);
@@ -688,14 +689,14 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     float3 metalDiffuse = lerp(intensity, diffuse, 2.4); // boost the saturation of the diffuse texture
 
     //specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
-    specularColor = lightColor + lerp(0, (pow(metalDiffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
+    specularColor = lightColor + lerp(0, (pow(metalDiffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_FACTOR, material.Metalness);
     specularColor *= material.SpecularStrength;
     specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
     //float luma = Luminance(specularColor);
     //if (luma > 2)
     //    specularColor = clamp(specularColor, 0, 2);
     //specularColor = float3(0, 1, 0);
-    lightColor += lerp(0, diffuse * light.color * METAL_DIFFUSE_FACTOR, material.Metalness);
+    lightColor += lerp(0, diffuse * lightRgb * METAL_DIFFUSE_FACTOR, material.Metalness);
     lightColor *= DIFFUSE_MULT;
 }
 
@@ -760,7 +761,7 @@ void ShadeLights(inout float3 colorSum,
         lineLightKd *= 1. - material.Metalness;
         float LINE_LIGHT_INTENSITY = 25;
 
-        colorSum += (lineLightKd * PI_INV * light.color + diffSpec.xyz) * LINE_LIGHT_INTENSITY * diffSpec.w /** lineLightAttenuation*/;
+        colorSum += (lineLightKd * PI_INV * light.color.rgb * light.color.a + diffSpec.xyz) * LINE_LIGHT_INTENSITY * diffSpec.w /** lineLightAttenuation*/;
     }
 
     for (n = 0; n < rectLightCount; n++, tileLightLoadOffset += 4) {

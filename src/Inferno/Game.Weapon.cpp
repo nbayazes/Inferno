@@ -538,7 +538,7 @@ namespace Inferno::Game {
             Sound::Play(sound);
 
             // Hide flashes in first person for gunpoints under the ship
-            if (gun < 6) {
+            if (!(gun == 6 && (int)objId == 0 && Game::InGame())) {
                 Render::Particle p{};
                 p.Clip = weapon.FlashVClip;
                 p.Position = point;
@@ -546,6 +546,7 @@ namespace Inferno::Game {
                 p.Parent = objId;
                 p.ParentOffset = gunOffset;
                 p.FadeTime = 0.175f;
+                p.Color = weapon.Extended.FlashColor;
                 Render::AddParticle(p, obj.Segment);
             }
         }

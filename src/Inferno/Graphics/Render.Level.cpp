@@ -296,7 +296,7 @@ namespace Inferno::Render {
         auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
 
         auto& light = LIGHT_BUFFER[lightIndex++];
-        light.color = color.ToVector3();
+        light.color = color;
         light.radiusSq = radius * radius;
         light.pos = decal.Position + decal.Normal * 2; // shift light out of surface
         light.type = LightType::Point;
@@ -315,7 +315,7 @@ namespace Inferno::Render {
             if (!obj.IsAlive()) continue;
 
             auto& light = LIGHT_BUFFER[lightIndex++];
-            light.color = obj.LightColor.ToVector3();
+            light.color = obj.LightColor;
             light.radiusSq = obj.LightRadius * obj.LightRadius;
             auto mode = obj.LightMode;
 
@@ -378,7 +378,7 @@ namespace Inferno::Render {
                 auto radius = effect->LightRadius;
 
                 auto& light = LIGHT_BUFFER[lightIndex++];
-                light.color = color.ToVector3();
+                light.color = color;
                 light.radiusSq = radius * radius;
                 light.pos = effect->Position;
                 light.type = LightType::Point;

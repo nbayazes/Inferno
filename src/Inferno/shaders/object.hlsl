@@ -116,7 +116,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
     else {
-        if (Args.EmissiveLight.r == 0 && Args.EmissiveLight.g == 0 && Args.EmissiveLight.b == 0) {
+        if (any(Args.EmissiveLight.rgb)) {
+            lighting += Args.EmissiveLight.rgb * Args.EmissiveLight.a * diffuse.rgb;
+        }
+        else {
             //float specularMask = Specular1.Sample(Sampler, input.uv).r;
             float specularMask = Sample2D(TextureTable[texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
 
@@ -137,9 +140,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
             lighting += colorSum * material.LightReceived * 1.5;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
             lighting += Args.Ambient.rgb * 0.25f * diffuse.rgb * material.LightReceived;
-        }
-        else {
-            lighting += Args.EmissiveLight.rgb * diffuse.rgb;
         }
 
         return float4(lighting * Frame.GlobalDimming, diffuse.a);

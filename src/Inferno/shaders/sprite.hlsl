@@ -20,14 +20,14 @@ struct VS_INPUT {
 struct PS_INPUT {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float4 col : COLOR0;
+    float3 col : COLOR0;
 };
 
 [RootSignature(RS)]
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(Frame.ViewProjectionMatrix, float4(input.pos, 1));
-    output.col = input.col;
+    output.col = input.col.rgb * input.col.a;
     output.uv = input.uv;
     return output;
 }
@@ -45,7 +45,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float4 diffuse = Diffuse.Sample(Sampler, input.uv);
     float4 diffuse = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
     //diffuse.xyz = pow(diffuse.xyz, 2.2);
-    diffuse *= input.col;
+    diffuse.rgb *= input.col;
     diffuse.a = clamp(diffuse.a, 0, 1);
     if (diffuse.a <= 0.0)
         discard;

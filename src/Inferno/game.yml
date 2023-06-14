@@ -3,7 +3,7 @@ Weapons:
     Name: laser 1
     Mass: 0.15
     FireDelay: 0.25
-    Glow: 6, 0, 0
+    Glow: 1, 0, 0, 6
     ModelName: RedLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -14,12 +14,13 @@ Weapons:
     LightRadius: 16
     LightColor: 1, 0.025, 0.025
     ExplosionColor: 0.8, 0.05, 0.05
+    FlashColor: 1, 0.25, 0.25, 20
 
   - id: 1
     Name: laser 2
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 6, 1, 3
+    Glow: 1, 0.1667, 0.333, 6
     ModelName: PurpleLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -30,12 +31,13 @@ Weapons:
     LightRadius: 16
     LightColor: 0.6, 0.05, 0.3
     ExplosionColor: 0.4, 0.025, 0.2
+    FlashColor: 1, 0.15, 0.6, 25
 
   - id: 2
     Name: laser 3
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 2, 2, 8
+    Glow: .25, .25, 1, 8
     ModelName: bluelaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -51,7 +53,7 @@ Weapons:
     Name: laser 4
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 1, 2, 1
+    Glow: .5, 1, .5, 3
     ModelName: GreenLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -67,7 +69,7 @@ Weapons:
     Name: laser 5
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 5.5, 2.5, 0.5
+    Glow: 1, .45, .09, 5.5
     ModelName: YellowLaser.OOF
     ModelScale: 0.7
     Size: 0.275
@@ -83,7 +85,7 @@ Weapons:
     Name: laser 6
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 2.5, 2.5, 5
+    Glow: .5, .5, 1, 5
     ModelName: WhiteLaser.OOF
     ModelScale: 0.7
     Size: 0.275
@@ -99,9 +101,9 @@ Weapons:
     Name: flare
     FireDelay: 0.5
     Lifetime: 15
-    Glow: 3, 2.0, 0.75
+    Glow: 1, .66, 0.25, 3
     LightRadius: 40
-    LightColor: 3, 2.0, 0.75
+    LightColor: 1, .66, 0.25, 3
     LightMode: 3 # Flicker
     Sticky: 1
 
@@ -118,7 +120,7 @@ Weapons:
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
     LightRadius: 3.75
-    ExplosionColor: 1.2, 0.4, 0.0
+    ExplosionColor: 1.0, 0.36, 0.0, 1.2
     Model: -1
     
   - id: 12 
@@ -126,7 +128,7 @@ Weapons:
     Behavior: shotgun
     #Behavior: spreadfire
     # RenderType: 0 # laser
-    Glow: 5, 5, 5
+    Glow: 1, 1, 1, 5
     ExplosionTexture: EMDspinnerHit
     ExplosionSize: 1.3
     ExplosionTime: 0.4
@@ -144,22 +146,23 @@ Weapons:
   - id: 13
     Name: plasma
     Decal: scorchB
-    Glow: 5, 5, 5
+    Glow: 1, 1, 1, 5
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
     ExplosionSize: 2.3
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.1, 0.8, 0.1
+    LightColor: 0.1, 1, 0.1
     ExplosionColor: 0.1, 0.8, 0.1
+    FlashColor: 1, 1, 1, 15
 
   - id: 14
     Name: fusion
     Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
-    Glow: 4, 0, 6
+    Glow: .666, 0, 1, 6
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
     RotationalVelocity: 0, 0, 1.5708
@@ -170,6 +173,8 @@ Weapons:
     LightRadius: 20
     LightColor: 0.9, 0.0, 0.6
     ExplosionColor: 0.6, 0.0, 0.4
+    FlashColor: 1, 1, 1, 25
+    Mass: 4
 
   - id: 8
     Name: concussion missile
@@ -177,7 +182,7 @@ Weapons:
     DecalRadius: 4
     LightRadius: 14
     LightColor: 1, 0.3, 0.0
-    ExplosionColor: 2, 0.5, 0.0
+    ExplosionColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
 
   - id: 15
@@ -205,7 +210,7 @@ Weapons:
     Name: mega missile
     Decal: scorchC
     DecalRadius: 8
-    Mass: 2.5
+    Mass: 2
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 60
     Size: 1.25 # was 0.2 due odd length ratio
@@ -228,7 +233,7 @@ Weapons:
   - id: 33
     Name: helix
     Behavior: helix
-    Glow: 1.4, 1.5, 1.4
+    Glow: .933, 1, .933, 1.5
     ExplosionTexture: Bright Blue Energy1
     ExplosionSize: 1.4
     ExplosionTime: 0.4
@@ -240,7 +245,7 @@ Weapons:
   - id: 34
     Name: phoenix
     Bounces: 2
-    Glow: 1.7, 1.3, 0.5
+    Glow: 1, .765, 0.294, 1.7
     ExplosionSound: emdBounce
     ExplosionTexture: EMDOrangeHit
     ExplosionSize: 2.1
@@ -286,7 +291,7 @@ Weapons:
     Name: earthshaker
     Decal: scorchC
     DecalRadius: 8
-    ExplosionColor: 5, 5, 100.0
+    ExplosionColor: .05, .05, 1, 100
     LightRadius: 120
 
   - id: 51
@@ -300,24 +305,24 @@ Robots:
 
 Powerups:
   - id: 1 # Energy
-    Glow: 2,2,2
-    LightColor: 2, 1.1, 0.1
+    Glow: 1, 1, 1, 2
+    LightColor: 1, .55, 0.05, 2.5
     LightRadius: 14
     LightMode: 1 # Flicker
 
   - id: 2 # Shield
-    Glow: 1.3, 1.3, 1.3
-    LightColor: 0.025, 0.025, 2
+    Glow: 1, 1, 1, 1.3
+    LightColor: 0.0125, 0.0125, 1, 2.5
     LightRadius: 14
     LightMode: 2 # Pulse
 
   - id: 23 # Cloak
-    LightColor: 1, 0, 2
+    LightColor: .5, 0, 1, 2
     LightRadius: 13
     LightMode: 2 # Pulse
 
   - id: 25 # Invuln
-    LightColor: 0.2, 0, 2
+    LightColor: 0.1, 0, 1, 2
     LightRadius: 14
     LightMode: 2 # Pulse
 
@@ -326,7 +331,7 @@ Effects:
     - Name: reactor_arcs # destroyed reactor arcs
       Radius: [ 20, 30 ] # endpoint search radius
       Width: [ 1, 1.75 ]
-      Color: 6, 1, 6
+      Color: 1, .166, 1, 6
       Texture: Lightning4
       Frequency: 0.0333 # 1/30
       Amplitude: 2.1
@@ -335,7 +340,7 @@ Effects:
 
     - Name: omega_beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]
-      Color: 60, 25, 90
+      Color: .666, .277, 1, 90
       Color2: 60, 25, 90 # todo: random colors?
       Texture: Lightning4
       Frequency: 0.0333 # 1/30
@@ -343,7 +348,7 @@ Effects:
 
     - Name: omega_beam2 # accent beams when hitting a target
       Width: 0.5
-      Color: 30, 15, 45
+      Color: .666, .25, 1, 45
       Texture: Lightning4
       Frequency: 0.0333
       Amplitude: 0.55
@@ -351,7 +356,7 @@ Effects:
     - Name: omega_tracer # random arcs used after omega hits a target
       Radius: 30 # MAX_CHAIN_DIST
       Width: 0.65
-      Color: 60, 25, 90
+      Color:  .666, .277, 1, 90
       Texture: Lightning4
       Frequency: 0.0333
       Amplitude: 1
@@ -360,7 +365,7 @@ Effects:
 
     - Name: omega_miss # used when omega hits no targets
       Width: 1.0
-      Color: 60, 25, 90
+      Color:  .666, .277, 1, 90
       Texture: Lightning4
       Frequency: 0.0166
       Amplitude: 0.7
@@ -372,7 +377,7 @@ Effects:
       Restitution: 0.6
       Velocity: [ 60, 120 ]
       Count: [ 13, 20 ]
-      Color: 3, 3, 3
+      Color: 1, 1, 1, 3
       Texture: tracer # Bright Blue Energy1
       Width: 0.15
       FadeTime: 0.25
@@ -399,14 +404,14 @@ Effects:
       FadeTime: 0.5
       Texture: tracer
       Width: 0.2
-      Color: 6, 3, 1
+      Color: 1, .5, .166, 6
 
     - Name: reactor_destroyed
       SparkDuration: [ 0.75, 2.4 ]
       Restitution: 0.6
       Velocity: [ 65, 85 ]
       Count: [ 120, 120 ]
-      Color: 4, 3, 3
+      Color: 1, .75, .75, 4
       FadeTime: 0.5
       Texture: tracer # hotspark
       Width: 0.5
@@ -444,7 +449,7 @@ Effects:
       Width: 0.3
       Texture: vausstracer
       BlobTexture: Tracerblob
-      Color: 2, 2, 2
+      Color: 1, 1, 1, 2
       FadeSpeed: 0.2
 
     - Name: gauss_tracer
@@ -452,5 +457,5 @@ Effects:
       Width: 0.9
       Texture: MassDriverTracer
       BlobTexture: MassTracerblob
-      Color: 2, 2, 2
+      Color: 1, 1, 1, 2
       FadeSpeed: 0.2

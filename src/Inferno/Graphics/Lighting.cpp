@@ -24,23 +24,8 @@ namespace Inferno::Graphics {
     }
 
     void FillLightGridCS::SetLights(ID3D12GraphicsCommandList* cmdList, span<LightData> lights) {
-        //auto sources = GatherLightSources(Game::Level, 1, 60);
-
-        //for (int i = 0; i < MAX_LIGHTS; i++) {
-        //    if (i < sources.size()) {
-        //        auto& source = sources[i];
-        //        LIGHT_BUFFER[i] = source;
-        //    }
-        //    else {
-        //        LIGHT_BUFFER[i].radiusSq = 0;
-        //    }
-        //}
-
         _lightUploadBuffer.Begin();
         _lightUploadBuffer.Copy(lights);
-        //for (auto& light : lights) {
-        //    _lightUploadBuffer.Copy(light);
-        //}
         _lightUploadBuffer.End();
 
         _lightData.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);

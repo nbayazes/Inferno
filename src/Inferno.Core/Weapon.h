@@ -139,6 +139,7 @@ namespace Inferno {
         float Size = -1; // Overrides Blob Size and Model Size
 
         float Spread = 0; // Amount of spread in degrees [0 < 90)
+        Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites
 
         //struct FiringPattern {
         //    string Crosshair;

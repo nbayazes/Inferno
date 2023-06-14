@@ -153,7 +153,9 @@ Lights:
       Width: 0.05
       Wrap: 2
       Offset: 0.01
-  
+      Color: 0.20, 0.15, 0.15
+      Radius: 20
+      
     - ID: 279
       Type: 2
       Points:

@@ -124,6 +124,8 @@ namespace Inferno::Game {
     void SetState(GameState);
     GameState GetState();
 
+    inline bool InGame() { return GetState() == GameState::Game; }
+
     inline List<Room> Rooms;
     //List<SegID> GetSegmentsByDepth(SegID start, int depth) {
     //    List<SegID> segs;

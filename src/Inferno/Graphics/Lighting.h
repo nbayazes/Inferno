@@ -22,14 +22,13 @@ namespace Inferno::Graphics {
         Vector3 pos;
         float radiusSq;
 
-        Vector3 color;
-        LightType type;
+        Color color;
 
         Vector3 pos2;
         float tubeRadius;
 
         Vector3 normal;
-        float _pad0;
+        LightType type;
 
         Vector3 right;
         float _pad1;

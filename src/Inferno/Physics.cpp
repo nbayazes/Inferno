@@ -655,7 +655,7 @@ namespace Inferno {
                 case ObjectType::Reactor:
                 {
                     // apply damage if source is player
-                    if (!Settings::Cheats.DisableWeaponDamage && source && source->IsPlayer())
+                    if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent == ObjID(0))
                         target.ApplyDamage(damage);
 
                     break;
@@ -754,7 +754,8 @@ namespace Inferno {
             force = Vector3::Transform(force * 2, basis); // transform forces to basis of object
             auto arm = Vector3::Transform(hit.Point - target.Position, basis);
             const auto torque = force.Cross(arm);
-            const auto inertia = (2.0f / 5.0f) * m2 * target.Radius * target.Radius; // moment of inertia of a solid sphere I = 2/5 MR^2
+            // moment of inertia. solid sphere I = 2/5 MR^2. Thin shell: 2/3 MR^2
+            const auto inertia = 1.0f / 6.0f * m2 * target.Radius * target.Radius;
             const auto accel = torque / inertia;
             target.Physics.AngularAcceleration += accel;
         }
@@ -875,13 +876,14 @@ namespace Inferno {
                         hit.Point = Vector3::Transform(hitPoint, transform);
                         hit.Normal = Vector3::TransformNormal(hitNormal, target.Rotation);
                         hit.Distance = hitDistance;
+                        auto nDotVel = hit.Normal.Dot(obj.Physics.Velocity);
+                        hit.Speed = std::max(std::abs(nDotVel), hit.Speed);
+
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
 
                         if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
-                            auto wallPart = hit.Normal.Dot(obj.Physics.Velocity);
-                            hit.Speed = std::max(std::abs(wallPart), hit.Speed);
-                            obj.Physics.Velocity -= hit.Normal * wallPart; // slide along wall
+                            obj.Physics.Velocity -= hit.Normal * nDotVel; // slide along wall
 
                             if (obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor) {
                                 auto pos = hit.Point + hit.Normal * obj.Radius;

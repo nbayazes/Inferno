@@ -47,6 +47,14 @@ namespace Inferno::Render {
                 Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
                     return l.Depth < r.Depth; // front to back, because the draw call flips it
                 });
+
+                for (int i = 0; i < level.Segments.size(); i++) {
+                    for (auto& effect : GetEffectsInSegment(SegID(i))) {
+                        if (effect && effect->IsAlive()) {
+                            _transparentQueue.push_back({ effect.get(), GetRenderDepth(effect->Position) });
+                        }
+                    }
+                }
             }
             else {
                 TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
