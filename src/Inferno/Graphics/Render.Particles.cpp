@@ -59,9 +59,8 @@ namespace Inferno::Render {
         ParticleEmitters.Add(emitter);
     }
 
-    void Particle::Update(float dt) {
-        EffectBase::Update(dt);
-        if ((Delay -= dt) > 0) return;
+    bool Particle::Update(float dt) {
+        if (!EffectBase::Update(dt)) return false;
 
         if (auto parent = Game::Level.TryGetObject(Parent)) {
             auto pos = parent->GetPosition(Game::LerpAmount);
@@ -70,6 +69,8 @@ namespace Inferno::Render {
 
             Position = pos;
         }
+
+        return true;
     }
 
     void Particle::Draw(Graphics::GraphicsContext& ctx) {
@@ -87,10 +88,9 @@ namespace Inferno::Render {
         DrawBillboard(ctx, tid, Position, Radius, color, true, Rotation, up);
     }
 
-    void ParticleEmitter::Update(float dt) {
-        EffectBase::Update(dt);
-        if (!IsAlive()) return;
-        if ((_startDelay -= dt) > 0) return;
+    bool ParticleEmitter::Update(float dt) {
+        if (!EffectBase::Update(dt)) return false;
+        if (!IsAlive()) return false;
 
         if (_info.MaxDelay == 0 && _info.MinDelay == 0 && _info.ParticlesToSpawn > 0) {
             // Create all particles at once if delay is zero
@@ -105,6 +105,8 @@ namespace Inferno::Render {
                 _spawnTimer = _info.MinDelay + Random() * (_info.MaxDelay - _info.MinDelay);
             }
         }
+
+        return true;
     }
 
     void Debris::Draw(Graphics::GraphicsContext& ctx) {
@@ -317,23 +319,18 @@ namespace Inferno::Render {
         Beams.Add(beam);
     }
 
-    void AddBeam(const string& effect, float life, const Vector3& start, const Vector3& end) {
-        if (auto info = EffectLibrary.GetBeamInfo(effect)) {
-            BeamInfo beam = *info;
-            beam.Segment = FindContainingSegment(Game::Level, start);
-            beam.Start = start;
-            beam.End = end;
-            beam.Life = life;
-            AddBeam(beam);
-        }
+    void AddBeam(BeamInfo beam, float life, const Vector3& start, const Vector3& end) {
+        beam.Segment = FindContainingSegment(Game::Level, start);
+        beam.Start = start;
+        beam.End = end;
+        beam.Life = life;
+        AddBeam(beam);
     }
 
-    void AddBeam(const string& effect, float life, ObjID start, const Vector3& end, int startGun) {
-        auto info = EffectLibrary.GetBeamInfo(effect);
+    void AddBeam(BeamInfo beam, float life, ObjID start, const Vector3& end, int startGun) {
         auto obj = Game::Level.TryGetObject(start);
 
-        if (info && obj) {
-            BeamInfo beam = *info;
+        if (obj) {
             beam.StartObj = start;
             beam.Start = obj->Position;
             beam.Segment = obj->Segment;
@@ -344,12 +341,10 @@ namespace Inferno::Render {
         }
     }
 
-    void AddBeam(const string& effect, float life, ObjID start, ObjID end, int startGun) {
-        auto info = EffectLibrary.GetBeamInfo(effect);
+    void AddBeam(BeamInfo beam, float life, ObjID start, ObjID end, int startGun) {
         auto obj = Game::Level.TryGetObject(start);
 
-        if (info && obj) {
-            BeamInfo beam = *info;
+        if (obj) {
             beam.StartObj = start;
             beam.Start = obj->Position;
             beam.Segment = obj->Segment;
@@ -413,6 +408,10 @@ namespace Inferno::Render {
         effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
         for (auto& beam : Beams) {
+            if (beam.StartDelay > 0) {
+                beam.StartDelay -= Render::FrameTime;
+                continue;
+            }
             beam.Life -= Render::FrameTime;
 
             if (!beam.IsAlive()) continue;
@@ -582,8 +581,8 @@ namespace Inferno::Render {
     //    }
     //}
 
-    void TracerInfo::Update(float dt) {
-        EffectBase::Update(dt);
+    bool TracerInfo::Update(float dt) {
+        if (!EffectBase::Update(dt)) return false;
         auto parentWasLive = ParentIsLive;
 
         const auto obj = Game::Level.TryGetObject(Parent);
@@ -601,6 +600,8 @@ namespace Inferno::Render {
         parentWasLive = parentWasLive && !ParentIsLive;
         if (parentWasLive)
             Elapsed = Duration - FadeSpeed; // Start fading out the tracer if parent dies
+
+        return true;
     }
 
     void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {
@@ -748,7 +749,7 @@ namespace Inferno::Render {
             effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
             for (auto& decal : Decals) {
-                decal.Update(dt);
+                if (!decal.Update(dt)) continue;
                 if (!decal.IsAlive()) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
@@ -768,7 +769,7 @@ namespace Inferno::Render {
             effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
             for (auto& decal : AdditiveDecals) {
-                decal.Update(dt);
+                if (!decal.Update(dt)) continue;
                 if (!decal.IsAlive()) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);

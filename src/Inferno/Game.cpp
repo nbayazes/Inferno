@@ -427,9 +427,12 @@ namespace Inferno::Game {
             Render::CreateExplosion(*e, obj.Segment, obj.Position);
         }
 
-        for (int i = 0; i < 4; i++) {
-            auto startObj = ObjID(&obj - Level.Objects.data());
-            Render::AddBeam("reactor_arcs", CountdownTimer + 5, startObj);
+        if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
+            for (int i = 0; i < 4; i++) {
+                auto startObj = ObjID(&obj - Level.Objects.data());
+                beam->StartDelay = i * 0.25f + Random() * 0.125f;
+                Render::AddBeam(*beam, CountdownTimer + 5, startObj);
+            }
         }
 
         // Load critical clips

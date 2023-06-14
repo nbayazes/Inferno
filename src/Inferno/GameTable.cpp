@@ -152,6 +152,7 @@ namespace Inferno {
         READ_PROP(Color);
         READ_PROP(Texture);
         READ_PROP(Frequency);
+        READ_PROP(StrikeTime);
         READ_PROP(Amplitude);
 #undef READ_PROP
 

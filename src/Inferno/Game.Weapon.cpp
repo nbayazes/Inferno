@@ -698,6 +698,10 @@ namespace Inferno::Game {
             ObjID prevObj = player.ID;
             int objGunpoint = gun;
 
+            auto beam = Render::EffectLibrary.GetBeamInfo("omega_beam");
+            auto beam2 = Render::EffectLibrary.GetBeamInfo("omega_beam2");
+            auto tracer = Render::EffectLibrary.GetBeamInfo("omega_beam2");
+
             // Apply damage and visuals to each target
             for (auto& targetObj : targets) {
                 if (targetObj == ObjID::None) continue;
@@ -706,15 +710,19 @@ namespace Inferno::Game {
                 target->HitPoints -= weapon.Damage[Difficulty];
 
                 // Beams between previous and next target
-                Render::AddBeam("omega_beam", weapon.FireDelay, prevObj, targetObj, objGunpoint);
-                Render::AddBeam("omega_beam2", weapon.FireDelay, prevObj, targetObj, objGunpoint);
-                Render::AddBeam("omega_beam2", weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                if (beam) Render::AddBeam(*beam, weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                if (beam2) {
+                    Render::AddBeam(*beam2, weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                    Render::AddBeam(*beam2, weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                }
 
                 prevObj = targetObj;
                 objGunpoint = -1;
 
-                Render::AddBeam("omega_tracer", weapon.FireDelay, targetObj);
-                Render::AddBeam("omega_tracer", weapon.FireDelay, targetObj);
+                if (tracer) {
+                    Render::AddBeam(*tracer, weapon.FireDelay, targetObj);
+                    Render::AddBeam(*tracer, weapon.FireDelay, targetObj);
+                }
 
                 // Sparks and explosion
                 if (spark) Render::AddSparkEmitter(*spark, target->Segment, target->Position);
@@ -773,8 +781,8 @@ namespace Inferno::Game {
                 tracerEnd = start + dir * MAX_DIST;
             }
 
-            //Render::AddBeam("omega_miss", 10, playerObj.Position, tracerEnd);
-            Render::AddBeam("omega_miss", weapon.FireDelay, player.ID, tracerEnd, gun);
+            if (auto miss = Render::EffectLibrary.GetBeamInfo("omega_miss"))
+                Render::AddBeam(*miss, weapon.FireDelay, player.ID, tracerEnd, gun);
         }
 
         // Fire sound

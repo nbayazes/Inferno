@@ -348,6 +348,7 @@ Effects:
       Amplitude: 2.1
       FadeEnd: 1
       RandomEnd: 1
+      StrikeTime: 0.5
 
     - Name: omega_beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]
