@@ -48,6 +48,7 @@ Weapons:
     LightRadius: 16
     LightColor: 0.15, 0.15, 0.6
     ExplosionColor: 0.15, 0.15, 0.6
+    FlashColor: 1, 1, 1, 15
 
   - id: 3
     Name: laser 4
@@ -64,6 +65,7 @@ Weapons:
     LightRadius: 16
     LightColor: 0.075, 0.6, 0.075
     ExplosionColor: 0.05, 0.4, 0.05
+    FlashColor: 1, 1, 1, 10
 
   - id: 30
     Name: laser 5
@@ -78,8 +80,9 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.7, 0.4, 0.1
+    LightColor: 0.7, 0.4, 0.1, 2
     ExplosionColor: 0.7, 0.4, 0.1
+    FlashColor: 1, .75, .45, 15
 
   - id: 31
     Name: laser 6
@@ -94,8 +97,9 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.65, 0.65, 1.2
-    ExplosionColor: 0.65, 0.65, 1.2
+    LightColor: 0.54, 0.54, 1, 1.4
+    ExplosionColor: 0.54, 0.54, 1, 1.4
+    FlashColor: .5, .5, 1, 15
 
   - id: 9
     Name: flare
@@ -106,6 +110,7 @@ Weapons:
     LightColor: 1, .66, 0.25, 3
     LightMode: 3 # Flicker
     Sticky: 1
+    FlashColor: 1, 1, 1, 15
 
   - id: 11
     Name: vulcan
@@ -122,6 +127,7 @@ Weapons:
     LightRadius: 3.75
     ExplosionColor: 1.0, 0.36, 0.0, 1.2
     Model: -1
+    FlashColor: 1, 1, 1, 15
     
   - id: 12 
     Name: spreadfire
@@ -142,6 +148,7 @@ Weapons:
     Speed: 200
     Spread: 3.6 # 3.6 originally
     FireCount: 5
+    FlashColor: 1, 1, 1, 15
 
   - id: 13
     Name: plasma
@@ -229,6 +236,7 @@ Weapons:
     #ExplosionSound: ExpHardBullet
     ExplosionSound:
     Model: -1
+    FlashColor: 1, 1, 1, 15
 
   - id: 33
     Name: helix
@@ -241,11 +249,12 @@ Weapons:
     LightRadius: 14
     LightColor: 0.2, 0.5, 0.5
     ExplosionColor: 0.1, 0.4, 0.4
+    FlashColor: 1, 1, 1, 15
 
   - id: 34
     Name: phoenix
     Bounces: 2
-    Glow: 1, .765, 0.294, 1.7
+    Glow: 1, .2, 1, 5
     ExplosionSound: emdBounce
     ExplosionTexture: EMDOrangeHit
     ExplosionSize: 2.1
@@ -253,18 +262,20 @@ Weapons:
     LightRadius: 16
     LightColor: 0.6, 0.2, 0
     ExplosionColor: 0.5, 0.1, 0
+    FlashColor: 1, 1, 1, 25
 
   - id: 35
     Name: omega cannon
     Behavior: omega
     FireDelay: 0.125
-    Damage: 2 # 32
+    Damage: 32
     WallHitSound: -1
     WallHitVClip: -1
     RobotHitVClip: -1
     ExplosionTexture: EmdConcept1
     ExplosionSize: 1.2
     ExplosionTime: 0.4
+    FlashColor: .4, .4, 1, 15
 
   - id: 36
     Name: flash missile

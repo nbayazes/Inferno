@@ -190,8 +190,12 @@ namespace Inferno::Game {
                 return; // non-explosive weapons keep going
         }
         else {
-            if (target.Type != ObjectType::Player && !Settings::Cheats.DisableWeaponDamage)
-                target.ApplyDamage(damage);
+            if (!Settings::Cheats.DisableWeaponDamage) {
+                // Players don't take direct damage from explosive weapons for balance reasons
+                // The secondary explosion will still inflict damage
+                if (!(target.Type == ObjectType::Player && weapon.IsExplosive()))
+                    target.ApplyDamage(damage);
+            }
 
             //fmt::print("applied {} damage\n", damage);
 
@@ -781,6 +785,16 @@ namespace Inferno::Game {
         sound.AttachOffset = gunOffset;
         sound.FromPlayer = true;
         Sound::Play(sound);
+
+        Render::Particle p{};
+        p.Clip = weapon.FlashVClip;
+        p.Position = start;
+        p.Radius = weapon.FlashSize;
+        p.Parent = player.ID;
+        p.ParentOffset = gunOffset;
+        p.FadeTime = 0.175f;
+        p.Color = weapon.Extended.FlashColor;
+        Render::AddParticle(p, playerObj.Segment);
     }
 
     // default weapon firing behavior

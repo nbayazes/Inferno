@@ -287,7 +287,6 @@ namespace Inferno {
 
         void WriteObject(StreamWriter& writer, const Level& level, const Object& obj) {
             if (obj.Type == ObjectType::SecretExitReturn) return;
-            if (obj.Type == ObjectType::Weapon && !obj.IsAlive()) return; // prevent editor crashes
             writer.Write(obj.Type);
             writer.Write(obj.ID); // subtype
             writer.Write(obj.Control.Type);

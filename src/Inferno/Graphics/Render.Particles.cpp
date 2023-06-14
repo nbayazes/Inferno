@@ -548,13 +548,13 @@ namespace Inferno::Render {
                     auto endColor = beam.Color;
 
                     if (HasFlag(beam.Flags, BeamFlag::FadeStart) && fraction <= 0.5) {
-                        startColor.w = std::lerp(0.0f, 1.0f, (i - 1) * div * 2);
-                        endColor.w = std::lerp(0.0f, 1.0f, i * div * 2);
+                        startColor *= std::lerp(0.0f, 1.0f, (i - 1) * div * 2);
+                        endColor *= std::lerp(0.0f, 1.0f, i * div * 2);
                     }
 
                     if (HasFlag(beam.Flags, BeamFlag::FadeEnd) && fraction >= 0.5) {
-                        startColor.w = std::lerp(1.0f, 0.0f, (i * div - 0.5f) * 2);
-                        endColor.w = std::lerp(1.0f, 0.0f, ((i + 1) * div - 0.5f) * 2);
+                        startColor *= std::lerp(1.0f, 0.0f, (i * div - 0.5f) * 2);
+                        endColor *= std::lerp(1.0f, 0.0f, ((i + 1) * div - 0.5f) * 2);
                     }
 
                     ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, startColor };
