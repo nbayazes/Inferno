@@ -1,6 +1,6 @@
 #include "pch.h"
+#define NOMINMAX
 #include "Game.h"
-
 #include <numeric>
 
 #include "FileSystem.h"
@@ -435,6 +435,14 @@ namespace Inferno::Game {
             }
         }
 
+        //if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_internal_arcs")) {
+        //    for (int i = 0; i < 4; i++) {
+        //        auto startObj = ObjID(&obj - Level.Objects.data());
+        //        beam->StartDelay = i * 0.25f + Random() * 0.125f;
+        //        Render::AddBeam(*beam, CountdownTimer + 5, startObj);
+        //    }
+        //}
+
         // Load critical clips
         Set<TexID> ids;
         for (auto& eclip : Resources::GameData.Effects) {
@@ -502,7 +510,7 @@ namespace Inferno::Game {
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
                     debris.PrevTransform = world;
-                    debris.Mass = 1;       // obj.Movement.Physics.Mass;
+                    debris.Mass = 1; // obj.Movement.Physics.Mass;
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
                     debris.Duration = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
@@ -650,6 +658,23 @@ namespace Inferno::Game {
         PendingNewObjects.clear();
     }
 
+    // Creates random arcs on damaged objects
+    void AddDamagedEffects(const Object& obj, float dt) {
+        if (!obj.IsAlive()) return;
+        if (obj.Type != ObjectType::Robot && obj.Type != ObjectType::Reactor) return;
+
+        auto chance = std::lerp(2.5f, 0.0f, obj.HitPoints / (obj.MaxHitPoints * 0.7f));
+        if (chance < 0) return;
+
+        // Create sparks randomly
+        if (Random() < chance * dt) {
+            if (auto beam = Render::EffectLibrary.GetBeamInfo("damaged_object_arcs")) {
+                auto startObj = ObjID(&obj - Level.Objects.data());
+                Render::AddBeam(*beam, beam->Life, startObj);
+            }
+        }
+    }
+
     // Updates on each game tick
     void FixedUpdate(float dt) {
         UpdatePlayerFireState(Player);
@@ -679,10 +704,12 @@ namespace Inferno::Game {
                     seg->RemoveObject((ObjID)i);
             }
 
+
             if (obj.Type == ObjectType::Weapon)
                 UpdateWeapon(obj, dt);
 
             UpdateDirectLight(obj, 0.10f);
+            AddDamagedEffects(obj, dt);
         }
 
         AddPendingObjects();
@@ -1040,8 +1067,7 @@ namespace Inferno::Game {
 
             if (obj.Type == ObjectType::Robot) {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
-                obj.HitPoints = ri.HitPoints;
-                //obj.Physics.Flags |= PhysicsFlag::Bounce;
+                obj.MaxHitPoints = obj.HitPoints = ri.HitPoints;
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }

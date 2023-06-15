@@ -272,6 +272,7 @@ namespace Inferno::Editor {
         }
 
         obj.Radius = GetObjectRadius(obj);
+        obj.MaxHitPoints = obj.HitPoints;
 
         if (obj.Render.Type == RenderType::Model)
             Render::LoadModelDynamic(obj.Render.Model.ID);

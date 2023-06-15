@@ -172,9 +172,11 @@ namespace Inferno::Render {
 
     enum class BeamFlag {
         SineNoise = 1 << 0, // Sine noise when true, Fractal noise when false
-        RandomEnd = 1 << 1, // Uses a random end point
+        RandomEnd = 1 << 1, // Uses a random world end point
         FadeStart = 1 << 2, // fades the start of the beam to 0 transparency
-        FadeEnd = 1 << 3 // fades the end of the beam to 0 transparency
+        FadeEnd = 1 << 3, // fades the end of the beam to 0 transparency
+        RandomObjStart = 1 << 4, // Uses a random start point on start object
+        RandomObjEnd = 1 << 5, // Uses a random end point on start object
     };
 
     // An 'electric beam' connecting two points animated by noise
@@ -188,6 +190,7 @@ namespace Inferno::Render {
         NumericRange<float> Radius; // If RandomEnd is true, randomly strike targets within this radius
         NumericRange<float> Width = { 2.0f, 2.0f };
         float Life = 0;
+        float StartLife = 0;
         Color Color = { 1, 1, 1 };
         float Noise = 0;
         string Texture;
@@ -199,14 +202,14 @@ namespace Inferno::Render {
         float Amplitude = 0; // Peak to peak height of noise. 0 for straight beam.
         float StrikeTime = 1; // when using random end, how often to pick a new point
         float StartDelay = 0; // Delay in seconds before playing the effect
+        float FadeInOutTime = 0;
 
         BeamFlag Flags{};
-        // Flags
-        //bool SineNoise = false; // Sine noise when true, Fractal noise when false
-        //bool RandomEnd = false; // Uses a random end point
-        //bool FadeEnd = false;   // fades the start of the beam to 0 transparency
-        //bool FadeStart = false; // fades the end of the beam to 0 transparency
+        bool HasRandomEndpoints() const {
+            return HasFlag(Flags, BeamFlag::RandomEnd) || HasFlag(Flags, BeamFlag::RandomObjEnd) || HasFlag(Flags, BeamFlag::RandomObjStart);
+        } 
 
+        
         struct {
             float Length;
             int Segments;

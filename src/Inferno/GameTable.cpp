@@ -154,15 +154,23 @@ namespace Inferno {
         READ_PROP(Frequency);
         READ_PROP(StrikeTime);
         READ_PROP(Amplitude);
+        READ_PROP(Life);
+        READ_PROP(Scale);
+        READ_PROP(FadeInOutTime);
 #undef READ_PROP
 
         bool fadeEnd = false, randomEnd = false, fadeStart = false;
+        bool randomObjStart = false, randomObjEnd = false;
         Yaml::ReadValue(node["FadeEnd"], fadeEnd);
         Yaml::ReadValue(node["FadeStart"], fadeStart);
         Yaml::ReadValue(node["RandomEnd"], randomEnd);
+        Yaml::ReadValue(node["RandomObjStart"], randomObjStart);
+        Yaml::ReadValue(node["RandomObjEnd"], randomObjEnd);
         SetFlag(info.Flags, Render::BeamFlag::FadeEnd, fadeEnd);
         SetFlag(info.Flags, Render::BeamFlag::FadeStart, fadeStart);
         SetFlag(info.Flags, Render::BeamFlag::RandomEnd, randomEnd);
+        SetFlag(info.Flags, Render::BeamFlag::RandomObjStart, randomObjStart);
+        SetFlag(info.Flags, Render::BeamFlag::RandomObjEnd, randomObjEnd);
 
         if (auto name = ReadEffectName(node))
             beams[*name] = info;

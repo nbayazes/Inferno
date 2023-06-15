@@ -342,6 +342,7 @@ namespace Inferno {
         SegID Segment{};        // segment number containing object
         float Radius = 2;       // radius of object for collision detection
         float HitPoints = 100;  // Objects are destroyed when hitpoints go under 0
+        float MaxHitPoints = 100; // Starting maximum hit points
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
         float Lifespan = OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.

@@ -59,6 +59,34 @@ namespace Inferno::Render {
         ParticleEmitters.Add(emitter);
     }
 
+    Vector3 GetRandomPointOnObject(const Object& obj) {
+        if (obj.Render.Type == RenderType::Model) {
+            auto& model = Resources::GetModel(obj.Render.Model.ID);
+            auto sm = RandomInt(model.Submodels.size() - 1);
+            if (sm < 0) return Vector3::Zero;
+            auto offset = model.GetSubmodelOffset(sm); // todo: animation
+            int index = -1;
+            if (!model.Submodels[sm].Indices.empty()) {
+                auto i = RandomInt(model.Submodels[sm].Indices.size() - 1);
+                index = model.Submodels[sm].Indices[i];
+            }
+            else if (!model.Submodels[sm].FlatIndices.empty()) {
+                auto i = RandomInt(model.Submodels[sm].FlatIndices.size() - 1);
+                index = model.Submodels[sm].FlatIndices[i];
+            }
+
+            if (index < 0) return Vector3::Zero;
+            auto vert = model.Vertices[index] + offset;
+            vert.z *= -1; // annoying flipped z
+            auto transform = obj.GetTransform(Game::LerpAmount);
+            auto value = Vector3::Transform(vert, transform);
+            return value;
+        }
+        else {
+            return obj.GetPosition(Game::LerpAmount) + RandomPointOnSphere() * obj.Radius;
+        }
+    }
+
     bool Particle::Update(float dt) {
         if (!EffectBase::Update(dt)) return false;
 
@@ -310,8 +338,18 @@ namespace Inferno::Render {
         std::array tex = { beam.Texture };
         Render::Materials->LoadTextures(tex);
 
-        if (HasFlag(beam.Flags, BeamFlag::RandomEnd))
+        if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
+            if (auto obj = Game::Level.TryGetObject(beam.StartObj))
+                beam.Start = GetRandomPointOnObject(*obj);
+        }
+
+        if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
+            if (auto obj = Game::Level.TryGetObject(beam.StartObj))
+                beam.End = GetRandomPointOnObject(*obj);
+        }
+        else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
             beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
+        }
 
         beam.Runtime.Length = (beam.Start - beam.End).Length();
         beam.Runtime.Width = beam.Width.GetRandom();
@@ -323,7 +361,7 @@ namespace Inferno::Render {
         beam.Segment = FindContainingSegment(Game::Level, start);
         beam.Start = start;
         beam.End = end;
-        beam.Life = life;
+        beam.StartLife = beam.Life = life;
         AddBeam(beam);
     }
 
@@ -336,7 +374,7 @@ namespace Inferno::Render {
             beam.Segment = obj->Segment;
             beam.End = end;
             beam.StartObjGunpoint = startGun;
-            beam.Life = life;
+            beam.StartLife = beam.Life = life;
             AddBeam(beam);
         }
     }
@@ -350,7 +388,7 @@ namespace Inferno::Render {
             beam.Segment = obj->Segment;
             beam.EndObj = end;
             beam.StartObjGunpoint = startGun;
-            beam.Life = life;
+            beam.StartLife = beam.Life = life;
             AddBeam(beam);
         }
     }
@@ -416,7 +454,7 @@ namespace Inferno::Render {
 
             if (!beam.IsAlive()) continue;
 
-            if (beam.StartObj != ObjID::None) {
+            if (beam.StartObj != ObjID::None && !HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
                 if (auto obj = Game::Level.TryGetObject(beam.StartObj)) {
                     if (beam.StartObjGunpoint > -1) {
                         auto offset = Game::GetGunpointOffset(*obj, beam.StartObjGunpoint);
@@ -426,6 +464,23 @@ namespace Inferno::Render {
                         beam.Start = obj->GetPosition(Game::LerpAmount);
                     }
                 }
+            }
+
+            if (beam.HasRandomEndpoints() && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
+                if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
+                    if (auto obj = Game::Level.TryGetObject(beam.StartObj))
+                        beam.End = GetRandomPointOnObject(*obj);
+                }
+                else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
+                    beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
+                }
+
+                if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
+                    if (auto obj = Game::Level.TryGetObject(beam.StartObj))
+                        beam.Start = GetRandomPointOnObject(*obj);
+                }
+
+                beam.Runtime.NextStrikeTime = (float)Render::ElapsedTime + beam.StrikeTime;
             }
 
             if (beam.EndObj != ObjID::None) {
@@ -440,7 +495,6 @@ namespace Inferno::Render {
             if (length < 1) continue; // don't draw really short beams
 
             // DrawSegs()
-            //auto vScale = length / beam.Width * beam.Scale;
             auto scale = beam.Amplitude;
 
             int segments = (int)(length / (beam.Runtime.Width * 0.5 * 1.414)) + 1;
@@ -472,20 +526,13 @@ namespace Inferno::Render {
                 beam.Runtime.OffsetU = Random();
             }
 
-            if (HasFlag(beam.Flags, BeamFlag::RandomEnd) && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
-                beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
-                beam.Runtime.NextStrikeTime = (float)Render::ElapsedTime + beam.StrikeTime;
-            }
-
-            // if (flags.FadeIn) alpha = 0;
-
             struct BeamSeg {
                 Vector3 pos;
                 float texcoord;
+                Color color;
             };
 
             BeamSeg curSeg{};
-            //int segsDrawn = 0;
             auto vStep = length / 20 * div * beam.Scale;
 
             auto& material = Render::Materials->Get(beam.Texture);
@@ -498,8 +545,19 @@ namespace Inferno::Render {
 
             auto tangent = GetBeamNormal(beam.Start, beam.End);
 
+            float fade = 1;
+            if (beam.FadeInOutTime > 0) {
+                auto elapsedLife = beam.StartLife - beam.Life;
+                if (elapsedLife < beam.FadeInOutTime) {
+                    fade = 1 - (beam.FadeInOutTime - elapsedLife) / beam.FadeInOutTime;
+                }
+                else if (beam.Life < beam.FadeInOutTime) {
+                    fade = 1 - (beam.FadeInOutTime - beam.Life) / beam.FadeInOutTime;
+                }
+            }
+
             for (int i = 0; i < segments; i++) {
-                BeamSeg nextSeg{};
+                BeamSeg nextSeg{ .color = beam.Color };
                 auto fraction = i * div;
 
                 nextSeg.pos = beam.Start + delta * fraction;
@@ -521,6 +579,22 @@ namespace Inferno::Render {
                 }
 
                 nextSeg.texcoord = beam.Runtime.OffsetU + vLast;
+                float brightness = HasFlag(beam.Flags, BeamFlag::FadeStart) ? 0 : 1;
+                if (HasFlag(beam.Flags, BeamFlag::FadeStart) && HasFlag(beam.Flags, BeamFlag::FadeEnd)) {
+                    if (fraction < 0.5f)
+                        brightness = 2.0f * fraction;
+                    else
+                        brightness = 2.0f * (1.0f - fraction);
+                }
+                else if (HasFlag(beam.Flags, BeamFlag::FadeStart)) {
+                    brightness = fraction;
+                }
+                else if (HasFlag(beam.Flags, BeamFlag::FadeEnd)) {
+                    brightness = 1 - fraction;
+                }
+
+                brightness = std::clamp(brightness, 0.0f, 1.0f);
+                nextSeg.color *= brightness;
 
                 if (i > 0) {
                     Vector3 avgNormal;
@@ -543,23 +617,10 @@ namespace Inferno::Render {
                     auto up = avgNormal * beam.Runtime.Width * 0.5f;
                     if (i == 1) prevUp = up;
 
-                    auto startColor = beam.Color;
-                    auto endColor = beam.Color;
-
-                    if (HasFlag(beam.Flags, BeamFlag::FadeStart) && fraction <= 0.5) {
-                        startColor *= std::lerp(0.0f, 1.0f, (i - 1) * div * 2);
-                        endColor *= std::lerp(0.0f, 1.0f, i * div * 2);
-                    }
-
-                    if (HasFlag(beam.Flags, BeamFlag::FadeEnd) && fraction >= 0.5) {
-                        startColor *= std::lerp(1.0f, 0.0f, (i * div - 0.5f) * 2);
-                        endColor *= std::lerp(1.0f, 0.0f, ((i + 1) * div - 0.5f) * 2);
-                    }
-
-                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, startColor };
-                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, startColor };
-                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, endColor };
-                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, endColor };
+                    ObjectVertex v0{ start + prevUp, { 0, curSeg.texcoord }, curSeg.color * fade };
+                    ObjectVertex v1{ start - prevUp, { 1, curSeg.texcoord }, curSeg.color * fade };
+                    ObjectVertex v2{ end - up, { 1, nextSeg.texcoord }, nextSeg.color * fade };
+                    ObjectVertex v3{ end + up, { 0, nextSeg.texcoord }, nextSeg.color * fade };
 
                     g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
                     prevUp = up;

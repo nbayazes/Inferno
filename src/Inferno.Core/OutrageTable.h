@@ -184,7 +184,7 @@ namespace Inferno::Outrage {
         FiredWeapon = 1 << 29,
 
         AlwaysOn = AnimComplete | NewMovement | PlayerSeesYou | GoalComplete | GoalFail | GoalError |
-            UserDefined | TargetDied | TargetInvalid | BumpedObj | MeleeHit | MeleeAttackFrame | TargetInvalid
+            UserDefined | TargetDied | TargetInvalid | BumpedObj | MeleeHit | MeleeAttackFrame
     };
 
     enum class AIFlag : uint32 {
@@ -274,7 +274,7 @@ namespace Inferno::Outrage {
         float BiasedFlightMin;
         float BiasedFlightMax;
 
-        constexpr bool HasFlag(AIFlag flag) { return (bool)(Flags & flag); }
+        constexpr bool HasFlag(AIFlag flag) const { return (bool)(Flags & flag); }
     };
 
     struct AnimInfo {
@@ -329,7 +329,7 @@ namespace Inferno::Outrage {
         InvenNoremove = 1 << 6,
         InvenViswhenused = 1 << 7,
         AIScriptedDeath = 1 << 8,
-        DoCeilingCheck = 1 << 9,
+        DoCeilingCheck = 1 << 9, // Check terrain 'ceiling' collision
         IgnoreForcefieldsAndGlass = 1 << 10,
         NoDiffScaleDamage = 1 << 11,
         NoDiffScaleMove = 1 << 12,
