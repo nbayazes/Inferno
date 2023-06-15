@@ -857,6 +857,20 @@ namespace Inferno::Render {
         }
     }
 
+    void RemoveEffects(ObjID id) {
+        for (auto& beam : Beams) {
+            if (beam.StartObj == id)
+                beam.Life = 0;
+        }
+
+        if (auto obj = Game::Level.TryGetObject(id)) {
+            for (auto& effect : SegmentEffects[(int)obj->Segment]) {
+                if (effect->Parent == id)
+                    effect->Elapsed = effect->Duration; // expire the effect
+            }
+        }
+    }
+
     void SparkEmitter::FixedUpdate(float dt) {
         if (!_createdSparks) {
             // for now create all sparks when inserted. want to support random delay / permanent generators later.

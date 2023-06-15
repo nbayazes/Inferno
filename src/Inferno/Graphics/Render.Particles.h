@@ -22,6 +22,7 @@ namespace Inferno::Render {
         Color LightColor; // Color of emitted light
         float FadeTime = 0; // Fade time at the end of the particle's life
         float StartDelay = 0; // How long to wait in seconds before starting the effect
+        ObjID Parent = ObjID::None;
 
         virtual bool IsAlive() { return Elapsed < Duration; }
 
@@ -59,7 +60,6 @@ namespace Inferno::Render {
         float Delay = 0;
         bool RandomRotation = true;
         //float FadeDuration = 0;
-        ObjID Parent = ObjID::None;
         Vector3 ParentOffset;
 
         bool Update(float dt) override;
@@ -230,8 +230,7 @@ namespace Inferno::Render {
     void DrawBeams(Graphics::GraphicsContext& ctx);
 
     struct TracerInfo final : EffectBase {
-        ObjID Parent = ObjID::None; // Object the tracer is attached to. Normally a weapon projectile.
-        ObjSig Signature = {};
+        ObjSig Signature = {}; // signature of the parent
         float Length = 20; // How long the tracer is
         float Width = 2;
         string Texture, BlobTexture;
@@ -271,6 +270,9 @@ namespace Inferno::Render {
 
     // Removes decals on a side
     void RemoveDecals(Tag);
+
+    // Removes all effects associated with an object
+    void RemoveEffects(ObjID);
 
     struct Spark {
         float Life = 0;

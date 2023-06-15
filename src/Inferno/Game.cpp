@@ -692,6 +692,7 @@ namespace Inferno::Game {
 
             if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
                 DestroyObject(obj);
+                Render::RemoveEffects((ObjID)i);
                 Sound::Stop((ObjID)i); // stop any sounds playing from this object
             }
             else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
