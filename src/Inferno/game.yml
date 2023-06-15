@@ -311,6 +311,9 @@ Weapons:
     LightColor: 1, 0, 0
     
 Robots:
+  - id: 1 # Medium lifter
+    Mass: 10
+  - id: 4 # Class 2 drone
   - id: 37 # IT droid
     Mass: 2
 

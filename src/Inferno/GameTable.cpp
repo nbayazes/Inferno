@@ -6,7 +6,8 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
-    void ReadArray(ryml::NodeRef node, span<float> values) {
+    template <class T>
+    void ReadArray(ryml::NodeRef node, span<T> values) {
         if (!node.valid() || node.is_seed()) return;
 
         if (node.has_children()) {
@@ -20,12 +21,33 @@ namespace Inferno {
         }
         else if (node.has_val()) {
             // Single value
-            float value;
+            T value{};
             Yaml::ReadValue(node, value);
             for (auto& v : values)
                 v = value;
         }
     }
+
+    //void ReadVectorArray(ryml::NodeRef node, span<Vector3> values) {
+    //    if (!node.valid() || node.is_seed()) return;
+
+    //    if (node.has_children()) {
+    //        // Array of values
+    //        int i = 0;
+
+    //        for (const auto& child : node.children()) {
+    //            if (i >= values.size()) break;
+    //            Yaml::ReadValue(child, values[i++]);
+    //        }
+    //    }
+    //    else if (node.has_val()) {
+    //        // Single value
+    //        Vector3 value;
+    //        Yaml::ReadValue(node, value);
+    //        for (auto& v : values)
+    //            v = value;
+    //    }
+    //}
 
     template <class T>
     void ReadRange(ryml::NodeRef node, NumericRange<T>& values) {
@@ -87,8 +109,8 @@ namespace Inferno {
 #undef READ_PROP
         Yaml::ReadValue(node["Model"], (int&)weapon.Model);
         
-        ReadArray(node["Damage"], weapon.Damage);
-        ReadArray(node["Speed"], weapon.Speed);
+        ReadArray<float>(node["Damage"], weapon.Damage);
+        ReadArray<float>(node["Speed"], weapon.Speed);
 
 #define READ_PROP_EXT(name) Yaml::ReadValue(node[#name], weapon.Extended.##name)
         READ_PROP_EXT(FlashColor);
@@ -225,6 +247,59 @@ namespace Inferno {
             tracers[*name] = info;
     }
 
+    void ReadRobotInfo(ryml::NodeRef node, HamFile& ham, int& id) {
+        Yaml::ReadValue(node["id"], id);
+        if (!Seq::inRange(ham.Robots, id)) return;
+
+        auto& robot = ham.Robots[id];
+        ReadArray<Vector3>(node["GunPoints"], robot.GunPoints);
+        ReadArray<ubyte>(node["GunSubmodels"], robot.GunSubmodels);
+
+#define READ_TAG(name) Yaml::ReadValue(node[#name], (int&)robot.##name)
+#define READ_PROP(name) Yaml::ReadValue(node[#name], robot.##name)
+        READ_TAG(Model);
+        READ_TAG(ExplosionClip1);
+        READ_TAG(ExplosionClip2);
+        READ_PROP(WeaponType);
+        READ_PROP(WeaponType2);
+        READ_PROP(Guns);
+
+        // todo: contains data
+        READ_PROP(ContainsChance);
+
+        READ_PROP(Kamikaze);
+        READ_PROP(Score);
+        READ_PROP(Badass);
+        READ_PROP(EnergyDrain);
+        READ_PROP(Lighting);
+        READ_PROP(HitPoints);
+        READ_PROP(Mass);
+        READ_PROP(Drag);
+
+        READ_TAG(Cloaking);
+        READ_TAG(Attack);
+
+        READ_TAG(ExplosionSound1);
+        READ_TAG(ExplosionSound2);
+        READ_TAG(SeeSound);
+        READ_TAG(AttackSound);
+        READ_TAG(ClawSound);
+        READ_TAG(TauntSound);
+        READ_TAG(DeathrollSound);
+
+        READ_PROP(IsThief);
+        READ_PROP(Pursues);
+        READ_PROP(LightCast);
+        READ_PROP(DeathRoll);
+        READ_PROP(Flags);
+        READ_PROP(Glow);
+        READ_PROP(Behavior);
+        READ_PROP(Aim);
+        // todo: difficulty
+#undef READ_PROP
+#undef READ_TAG
+    }
+
     void LoadGameTable(filesystem::path path, HamFile& ham) {
         try {
             std::ifstream file(path);
@@ -253,6 +328,18 @@ namespace Inferno {
                     }
                     catch (const std::exception& e) {
                         SPDLOG_WARN("Error reading weapon {}\n{}", id, e.what());
+                    }
+                }
+            }
+
+            if (auto robots = root["Robots"]; !robots.is_seed()) {
+                for (const auto& robot : robots.children()) {
+                    int id = -1;
+                    try {
+                        ReadRobotInfo(robot, ham, id);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading robot {}\n{}", id, e.what());
                     }
                 }
             }
