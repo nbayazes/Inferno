@@ -182,16 +182,22 @@ void main(uint2 group : SV_GroupID,
         //float3 lightWorldPos = lightData.pos;
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
         float lightRadius = sqrt(lightData.radiusSq);
+        bool inside = true;
+
+        // project light from world to view space
+        float3 lightPos = mul(Args.ViewMatrix, float4(lightData.pos, 1)).xyz;
+
         if (lightData.type == 2 && lightData.radiusSq > 0) {
             float len = sqrt(dot(lightData.right, lightData.right) + dot(lightData.up, lightData.up));
             //float len = max(length(lightData.right), length(lightData.up));
             lightRadius += len; // extend radius by rectangle area
         }
 
-        bool inside = true;
-
-        // project light from world to view space
-        float3 lightPos = mul(Args.ViewMatrix, float4(lightData.pos, 1)).xyz;
+        if (lightData.radiusSq > 0) {
+            // scale light radius larger as it becomes more distant due to bug in clipping?
+            // Otherwise distant lights cull incorrectly
+            lightRadius *= (1 + saturate(lightPos.z / zFar));
+        }
 
         // cull the light if is behind the camera (negative z is behind)
         if (lightPos.z + lightRadius < zNear || lightPos.z - lightRadius > zFar) {
