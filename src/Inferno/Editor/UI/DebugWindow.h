@@ -11,8 +11,10 @@
 namespace Inferno::Editor {
     class DebugWindow final : public WindowBase {
         float _frameTime = 0, _timeCounter = 1;
+
     public:
         DebugWindow() : WindowBase("Debug", &Settings::Editor.Windows.Debug) {}
+
     protected:
         void OnUpdate() override {
             ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
@@ -20,6 +22,23 @@ namespace Inferno::Editor {
             ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
             ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
             ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
+
+            if (ImGui::Button("Set path target")) {
+                if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                    Game::NavigateTo(obj->Segment, Editor::Selection.Segment);
+                }
+            }
+
+            if (ImGui::Button("Update rooms")) {
+                Game::Rooms = CreateRooms(Game::Level);
+            }
+
+            if (ImGui::Button("Mark room")) {
+                if (auto room = Inferno::FindRoomBySegment(Game::Rooms, Editor::Selection.Segment)) {
+                    Editor::Marked.Segments.clear();
+                    Seq::insert(Editor::Marked.Segments, room->Segments);
+                }
+            }
 
             _timeCounter += Render::FrameTime;
 

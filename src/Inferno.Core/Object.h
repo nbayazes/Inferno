@@ -323,7 +323,7 @@ namespace Inferno {
         uint8 Count = 0; // number of objects of type:id this object contains
     };
 
-    constexpr float NEVER_THINK = -1;
+    constexpr double NEVER_THINK = -1;
 
     enum class ObjectMask {
         Any = 0, // No masking
@@ -332,7 +332,7 @@ namespace Inferno {
         Powerup = 1 << 3 // Powerup or hostage
     };
 
-    constexpr float OBJECT_LIFE = 3600 * 100; // 100 hours
+    constexpr double OBJECT_LIFE = 3600 * 100; // 100 hours
 
     struct Object {
         ObjSig Signature{};     // Unique signature for each object
@@ -345,7 +345,7 @@ namespace Inferno {
         float MaxHitPoints = 100; // Starting maximum hit points
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
-        float Lifespan = OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
+        double Lifespan = OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
         ObjID Parent = ObjID::None; // Parent for projectiles, maybe attached objects
 
         MovementType Movement;
@@ -367,7 +367,7 @@ namespace Inferno {
 
         LerpedColor Ambient, DirectLight;
 
-        float NextThinkTime = NEVER_THINK;
+        double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0;
 
         Matrix GetTransform() const {

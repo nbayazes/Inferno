@@ -13,6 +13,7 @@
 #include "Editor/UI/EditorUI.h"
 #include "Game.Text.h"
 #include "Editor/Bindings.h"
+#include "Game.AI.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -342,6 +343,16 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawPath(span<const Vector3> path, const Color& color) {
+        if (path.size() < 2) return;
+        Vector3 prev = path[0];
+
+        for (int i = 1; i < path.size(); i++) {
+            Debug::DrawLine(prev, path[i], color);
+            prev = path[i];
+        }
+    }
+
     void DrawMarked(ID3D12GraphicsCommandList* cmdList, Level& level) {
         bool hideMarks = Editor::Bindings::Active.IsBindingHeld(Editor::EditorAction::HideMarks);
         bool drawTranslationGizmo = true, drawRotationGizmo = true, drawScaleGizmo = true;
@@ -409,17 +420,25 @@ namespace Inferno::Render {
     }
 
     void DrawRooms(Level& level) {
-        std::array colors = { Color(1, 0.75, 0.5), Color(1, 0.5, 0.75), Color(0.75, 0.5, 1), Color(0.5, 0.75, 1), Color(0.5, 1, 0.75), Color(0.75, 1, 0.5) };
-        int colorIndex = 0;
+        //std::array colors = { Color(1, 0.75, 0.5), Color(1, 0.5, 0.75), Color(0.75, 0.5, 1), Color(0.5, 0.75, 1), Color(0.5, 1, 0.75), Color(0.75, 1, 0.5) };
+        //int colorIndex = 0;
 
         for (auto& room : Game::Rooms) {
-            colorIndex = (colorIndex + 1) % 4;
-            for (auto& sid : room.Segments) {
-                if (auto seg = level.TryGetSegment(sid)) {
-                    for (auto& side : SideIDs) {
-                        if (seg->SideHasConnection(side)) continue;
-                        Debug::DrawSideOutline(level, *seg, side, colors[colorIndex]);
-                    }
+            //colorIndex = (colorIndex + 1) % 4;
+            //for (auto& sid : room.Segments) {
+            //    if (auto seg = level.TryGetSegment(sid)) {
+            //        for (auto& side : SideIDs) {
+            //            if (seg->SideHasConnection(side)) continue;
+            //            Debug::DrawSideOutline(level, *seg, side, colors[colorIndex]);
+            //        }
+            //    }
+            //}
+
+            for (auto& portal : room.Portals) {
+                if (auto seg = level.TryGetSegment(portal)) {
+                    Debug::DrawSide(Game::Level, *seg, portal.Side, Colors::Portal);
+                    //auto side = Face::FromSide(level, *seg, portal.Side);
+                    //Debug::DrawArrow(side.Center(), side.Center() - side.AverageNormal() * 5, Color(0, 1, 0));
                 }
             }
         }
@@ -475,6 +494,7 @@ namespace Inferno::Render {
         if (Settings::Editor.Windows.TunnelBuilder)
             DrawTunnelBuilder(level);
 
+        DrawPath(Inferno::Debug::NavigationPath, Color(0, 1, 0));
         DrawRooms(level);
     }
 

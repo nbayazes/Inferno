@@ -242,6 +242,12 @@
     <ClCompile Include="Physics.Hit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Game.AI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Room.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -584,6 +590,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Physics.Hit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.AI.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

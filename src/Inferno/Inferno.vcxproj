@@ -161,6 +161,7 @@
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
+    <ClCompile Include="Game.AI.cpp" />
     <ClCompile Include="Game.Input.cpp" />
     <ClCompile Include="Game.Object.cpp" />
     <ClCompile Include="Game.Player.cpp" />
@@ -205,6 +206,7 @@
     <ClCompile Include="Graphics\PostProcess.cpp" />
     <ClCompile Include="Physics.Hit.cpp" />
     <ClCompile Include="Physics.Math.cpp" />
+    <ClCompile Include="Room.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -240,6 +242,7 @@
     <ClInclude Include="Editor\UI\AboutDialog.h" />
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
+    <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.Input.h" />
     <ClInclude Include="Game.Object.h" />
     <ClInclude Include="Game.Player.h" />

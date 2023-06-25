@@ -42,18 +42,26 @@ namespace Inferno::Render {
     }
 
     // Draws a square glow that always faces the camera (Descent 3 submodels);
-    void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color, TexID tex) {
+    void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color, TexID tex, float rotation = 0) {
         if (radius <= 0) return;
         const auto r = radius;
-        ObjectVertex v0({ -r, r, 0 }, { 0, 0 }, color, {}, {}, {}, (int)tex);
-        ObjectVertex v1({ r, r, 0 }, { 1, 0 }, color, {}, {}, {}, (int)tex);
-        ObjectVertex v2({ r, -r, 0 }, { 1, 1 }, color, {}, {}, {}, (int)tex);
-        ObjectVertex v3({ -r, -r, 0 }, { 0, 1 }, color, {}, {}, {}, (int)tex);
+        auto xform = Matrix::CreateRotationZ(rotation);
+        Vector3 v0{ -r, r, 0 };
+        Vector3 v1{ r, r, 0 };
+        Vector3 v2{ r, -r, 0 };
+        Vector3 v3{ -r, -r, 0 };
+        Vector3::Transform(v0, xform);
 
+        ObjectVertex ov0(Vector3::Transform(v0, xform), { 0, 0 }, color, {}, {}, {}, (int)tex);
+        ObjectVertex ov1(Vector3::Transform(v1, xform), { 1, 0 }, color, {}, {}, {}, (int)tex);
+        ObjectVertex ov2(Vector3::Transform(v2, xform), { 1, 1 }, color, {}, {}, {}, (int)tex);
+        ObjectVertex ov3(Vector3::Transform(v3, xform), { 0, 1 }, color, {}, {}, {}, (int)tex);
+
+        // todo: batch somehow?
         // Horrible immediate mode nonsense
         Stats::DrawCalls++;
         g_SpriteBatch->Begin(cmd);
-        g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+        g_SpriteBatch->DrawQuad(ov0, ov1, ov2, ov3);
         g_SpriteBatch->End();
     }
 
@@ -244,7 +252,7 @@ namespace Inferno::Render {
 
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
-                    if (object.Type == ObjectType::Weapon) continue; // Facing on weapons is usually glows
+                    //if (object.Type == ObjectType::Weapon) continue; // Facing on weapons is usually glows
 
                     if (material.Saturate())
                         constants.Ambient = Color(1, 1, 1);

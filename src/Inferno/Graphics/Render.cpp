@@ -459,6 +459,7 @@ namespace Inferno::Render {
         ctx.Reset();
 
         if (LevelChanged) {
+            InitEffects(Game::Level);
             CopyMaterialData(ctx.CommandList());
             LoadVClips(ctx.CommandList()); // todo: only load on initial level load
         }

@@ -29,6 +29,8 @@ namespace Inferno::Render {
         constexpr Color MarkedWallFill = { 0.2f, 1.0f, 0.0f, FillAlpha };
         constexpr Color MarkedWall = { 0.2f, 1.0f, 0.0f };
 
+        constexpr Color Portal = { 0.75f, 0.0f, 1.0f, 0.25f };
+
         constexpr Color Wireframe = { 0.75f, 0.75f, 0.75f, 0.6f };
 
         constexpr Color MarkedSegment = MarkedFace;

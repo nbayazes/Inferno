@@ -57,7 +57,8 @@ namespace Inferno {
 
     // Runtime AI data
     struct AIRuntime {
-        RobotAwareness Awareness;
+        //RobotAwareness Awareness;
+        float Awareness = 0;
         uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
         uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
         PlayerVisibility PlayerVisibility;

@@ -81,16 +81,17 @@ namespace Inferno {
 
     inline bool VectorNear(const Vector3& v1, const Vector3& v2, float epsilon) {
         return ((abs(v1.x - v2.x) <= epsilon) &&
-         (abs(v1.y - v2.y) <= epsilon) &&
-         (abs(v1.z - v2.z) <= epsilon));
+            (abs(v1.y - v2.y) <= epsilon) &&
+            (abs(v1.z - v2.z) <= epsilon));
         //return XMVector2NearEqual(a, b, { epsilon, epsilon, epsilon });
     }
 
-    template<class T>
+    template <class T>
     struct NumericRange {
         T Min{}, Max{};
 
         NumericRange() = default;
+
         NumericRange(T minimum, T maximum) : Min(minimum), Max(maximum) {
             if (Min > Max) std::swap(Min, Max);
         }
@@ -115,41 +116,41 @@ namespace Inferno {
 
     // Templates to enable bitwise operators on all enums. Might be a bad idea.
 
-    template<class T> requires is_scoped_enum_v<T>
-    constexpr T operator | (T lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    constexpr T operator |(T lhs, T rhs) {
         return T((std::underlying_type_t<T>)lhs | (std::underlying_type_t<T>)rhs);
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    T& operator |= (T& lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    T& operator |=(T& lhs, T rhs) {
         return lhs = lhs | rhs;
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    constexpr T operator & (T lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    constexpr T operator &(T lhs, T rhs) {
         return T((std::underlying_type_t<T>)lhs & (std::underlying_type_t<T>)rhs);
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    T& operator &= (T& lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    T& operator &=(T& lhs, T rhs) {
         return lhs = lhs & rhs;
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    T operator ~ (T value) {
+    template <class T> requires is_scoped_enum_v<T>
+    T operator ~(T value) {
         return value = T(~((std::underlying_type_t<T>)value));
     }
 
-    template<class T>
+    template <class T>
     void SetFlag(T& flags, T flag) { flags |= flag; }
 
-    template<class T>
+    template <class T>
     bool HasFlag(const T& flags, T flag) { return bool(flags & flag); }
 
-    template<class T>
+    template <class T>
     void ClearFlag(T& flags, T flag) { flags &= ~flag; }
 
-    template<class T>
+    template <class T>
     void SetFlag(T& flags, T flag, bool value) {
         if (value) flags |= flag;
         else flags &= ~flag;
@@ -374,8 +375,10 @@ namespace Inferno {
 
     // Rotates vector around 0,0 by an angle in radians.
     inline Vector2 RotateVector(const Vector2& v, float angle) {
-        return { v.x * cos(angle) - v.y * sin(angle),
-                 v.x * sin(angle) + v.y * cos(angle) };
+        return {
+            v.x * cos(angle) - v.y * sin(angle),
+            v.x * sin(angle) + v.y * cos(angle)
+        };
     }
 
     // Returns [-PI, PI]
@@ -529,13 +532,13 @@ namespace Inferno {
 
     namespace Seq {
         // Converts a std::set to a std::vector
-        template<class T>
+        template <class T>
         constexpr auto ofSet(const Set<T>& set) {
             return std::vector<T>(set.begin(), set.end());
         }
 
         // Converts a span to a std::vector
-        template<class T>
+        template <class T>
         constexpr auto toList(const std::span<T> xs) {
             return std::vector<T>(xs.begin(), xs.end());
         }
@@ -546,13 +549,13 @@ namespace Inferno {
         }
 
         // Inserts a container into a set
-        template<class T>
+        template <class T>
         constexpr void insert(std::set<T>& dest, auto&& src) {
             dest.insert(src.begin(), src.end());
         }
 
         // Generates a new list by mapping a function to each element. Causes heap allocation.
-        template<class T, class Fn>
+        template <class T, class Fn>
         [[nodiscard]] auto map(T&& xs, Fn&& fn) {
             // dereference the first element in a collection to determine the type
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
@@ -565,7 +568,7 @@ namespace Inferno {
 
         // Generates a new list by mapping a function to each element along with an index. 
         // Lambda parameters are (i, elem). Causes heap allocation.
-        template<class T, class Fn>
+        template <class T, class Fn>
         [[nodiscard]] auto mapi(T&& xs, Fn&& fn) {
             // dereference the first element in a collection to determine the type
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
@@ -603,12 +606,14 @@ namespace Inferno {
 
         // Returns a pointer to an element in the collection. Null if not found.
         auto find(auto& xs, auto&& predicate) {
+            //if (xs.empty()) return nullptr;
             auto iter = std::find_if(std::begin(xs), std::end(xs), predicate);
             return iter == std::end(xs) ? nullptr : &(*iter);
         }
 
         // Returns true if an element is found in the collection.
         constexpr bool contains(auto&& xs, auto&& element) {
+            if (xs.empty()) return false;
             auto iter = std::find(std::begin(xs), std::end(xs), element);
             return iter != std::end(xs);
         }
@@ -659,6 +664,16 @@ namespace Inferno {
             return true;
         }
 
+        //constexpr void removeItems(auto&& xs, auto&& items) {
+        //    auto ib = std::begin(items);
+        //    
+        //    auto iter = ranges::remove_if(xs,
+        //        [&ib, &items](int x) -> bool {
+        //            while (ib != std::end(items) && *ib < x) ++ib;
+        //            return (ib != std::end(items) && *ib == x);
+        //        });
+        //}
+
         // Removes an element at index.
         constexpr bool removeAt(auto&& xs, size_t index) {
             if (!inRange(xs, index)) return false;
@@ -667,7 +682,7 @@ namespace Inferno {
         }
 
         // Filters a collection. Causes heap allocation.
-        template<class T>
+        template <class T>
         [[nodiscard]] auto filter(const T& xs, auto&& predicate) {
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
             List<TElement> result(std::size(xs));

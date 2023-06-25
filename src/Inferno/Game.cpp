@@ -20,6 +20,7 @@
 #include "Game.Object.h"
 #include "HUD.h"
 #include "Game.Wall.h"
+#include "Game.AI.h"
 
 using namespace DirectX;
 
@@ -29,6 +30,7 @@ namespace Inferno::Game {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
+        Ptr<NavNetwork> Navigation;
     }
 
     void StartLevel();
@@ -120,7 +122,8 @@ namespace Inferno::Game {
             Render::LoadLevel(Level);
             InitObjects();
 
-            //Rooms = CreateRooms(Level);
+            Navigation = MakePtr<NavNetwork>(Level);
+            Rooms = CreateRooms(Level);
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
@@ -430,7 +433,7 @@ namespace Inferno::Game {
         if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
             for (int i = 0; i < 4; i++) {
                 auto startObj = ObjID(&obj - Level.Objects.data());
-                beam->StartDelay = i * 0.25f + Random() * 0.125f;
+                beam->StartDelay = i * 0.4f + Random() * 0.125f;
                 Render::AddBeam(*beam, CountdownTimer + 5, startObj);
             }
         }
@@ -438,7 +441,7 @@ namespace Inferno::Game {
         //if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_internal_arcs")) {
         //    for (int i = 0; i < 4; i++) {
         //        auto startObj = ObjID(&obj - Level.Objects.data());
-        //        beam->StartDelay = i * 0.25f + Random() * 0.125f;
+        //        beam->StartDelay = i * 0.4f + Random() * 0.125f;
         //        Render::AddBeam(*beam, CountdownTimer + 5, startObj);
         //    }
         //}
@@ -692,8 +695,11 @@ namespace Inferno::Game {
 
             if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
                 DestroyObject(obj);
-                Render::RemoveEffects((ObjID)i);
-                Sound::Stop((ObjID)i); // stop any sounds playing from this object
+                // Keep playing effects from a dead reactor
+                if (obj.Type != ObjectType::Reactor) {
+                    Render::RemoveEffects((ObjID)i);
+                    Sound::Stop((ObjID)i); // stop any sounds playing from this object
+                }
             }
             else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 ExplodeWeapon(obj); // explode expired weapons
@@ -704,13 +710,14 @@ namespace Inferno::Game {
                 if (auto seg = Level.TryGetSegment(obj.Segment))
                     seg->RemoveObject((ObjID)i);
             }
+            else {
+                if (obj.Type == ObjectType::Weapon)
+                    UpdateWeapon(obj, dt);
 
-
-            if (obj.Type == ObjectType::Weapon)
-                UpdateWeapon(obj, dt);
-
-            UpdateDirectLight(obj, 0.10f);
-            AddDamagedEffects(obj, dt);
+                UpdateDirectLight(obj, 0.10f);
+                AddDamagedEffects(obj, dt);
+                UpdateAI(obj);
+            }
         }
 
         AddPendingObjects();
@@ -1108,6 +1115,10 @@ namespace Inferno::Game {
                 reactorHum.Position = obj.Position;
                 Sound::Play(reactorHum);
             }
+
+            if (obj.Type == ObjectType::Robot) {
+                obj.NextThinkTime = Time + 0.5f;
+            }
         }
 
         MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
@@ -1150,4 +1161,19 @@ namespace Inferno::Game {
     }
 
     GameState GetState() { return State; }
+
+    List<SegID> NavigateTo(SegID start, SegID goal) {
+        Navigation = MakePtr<NavNetwork>(Level); // todo: add a geometry changed event so this doesn't crash while editing
+        //if (!Navigation) return {};
+
+        auto path = Navigation->NavigateTo(start, goal);
+        
+        Debug::NavigationPath.clear();
+
+        for (auto& node : path) {
+            auto& seg = Level.GetSegment(node);
+            Debug::NavigationPath.push_back(seg.Center);
+        }
+        return path;
+    }
 }

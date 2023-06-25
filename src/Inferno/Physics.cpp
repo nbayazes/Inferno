@@ -537,9 +537,12 @@ namespace Inferno {
 
     void TurnTowardsVector(Object& obj, const Vector3& towards, float rate) {
         if (towards == Vector3::Zero) return;
-        auto rotation = Quaternion::FromToRotation(obj.Rotation.Forward(), towards); // rotation to the target vector
+        auto forward = obj.Rotation.Forward();
+        auto rotation = Quaternion::FromToRotation(forward, towards); // rotation to the target vector
         auto euler = rotation.ToEuler() / rate / XM_2PI; // Physics update multiplies by XM_2PI so divide it here
-        obj.Physics.AngularVelocity += Vector3::Transform(euler, obj.Rotation); // align with object rotation
+        auto velocity = Vector3::Transform(euler, obj.Rotation); // align with object rotation
+        velocity.z = 0; // remove roll
+        obj.Physics.AngularVelocity = velocity;
     }
 
     void ApplyForce(Object& obj, const Vector3& force) {

@@ -23,7 +23,7 @@ namespace Inferno {
 namespace Inferno::Game {
     constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
 
-    inline int Difficulty = 0; // 0 to 4 for trainee to insane
+    inline int Difficulty = 2; // 0 to 4 for trainee to insane
 
     constexpr int DEFAULT_GRAVITY = 60;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
@@ -85,7 +85,7 @@ namespace Inferno::Game {
     }*/
 
     // Returns true if the provided time has come to pass
-    inline bool TimeHasElapsed(float time) {
+    inline bool TimeHasElapsed(double time) {
         return time <= Time && time != -1;
     }
 
@@ -132,4 +132,6 @@ namespace Inferno::Game {
     //    segs.reserve(1 + 6 * depth);
     //    segs.push_back(start);
     //}
+
+    List<SegID> NavigateTo(SegID start, SegID goal);
 }

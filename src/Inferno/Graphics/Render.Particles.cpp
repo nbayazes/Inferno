@@ -62,16 +62,16 @@ namespace Inferno::Render {
     Vector3 GetRandomPointOnObject(const Object& obj) {
         if (obj.Render.Type == RenderType::Model) {
             auto& model = Resources::GetModel(obj.Render.Model.ID);
-            auto sm = RandomInt(model.Submodels.size() - 1);
+            auto sm = RandomInt((int)model.Submodels.size() - 1);
             if (sm < 0) return Vector3::Zero;
             auto offset = model.GetSubmodelOffset(sm); // todo: animation
             int index = -1;
             if (!model.Submodels[sm].Indices.empty()) {
-                auto i = RandomInt(model.Submodels[sm].Indices.size() - 1);
+                auto i = RandomInt((int)model.Submodels[sm].Indices.size() - 1);
                 index = model.Submodels[sm].Indices[i];
             }
             else if (!model.Submodels[sm].FlatIndices.empty()) {
-                auto i = RandomInt(model.Submodels[sm].FlatIndices.size() - 1);
+                auto i = RandomInt((int)model.Submodels[sm].FlatIndices.size() - 1);
                 index = model.Submodels[sm].FlatIndices[i];
             }
 
@@ -579,7 +579,7 @@ namespace Inferno::Render {
                 }
 
                 nextSeg.texcoord = beam.Runtime.OffsetU + vLast;
-                float brightness = HasFlag(beam.Flags, BeamFlag::FadeStart) ? 0 : 1;
+                float brightness = HasFlag(beam.Flags, BeamFlag::FadeStart) ? 0.0f : 1.0f;
                 if (HasFlag(beam.Flags, BeamFlag::FadeStart) && HasFlag(beam.Flags, BeamFlag::FadeEnd)) {
                     if (fraction < 0.5f)
                         brightness = 2.0f * fraction;
