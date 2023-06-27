@@ -114,12 +114,11 @@ void Application::Tick() {
 
     Render::FrameTime = dt;
 
-    if (Game::GetState() == GameState::Game) {
+    if (Game::GetState() == GameState::Game)
         Game::Time += dt;
-    }
 
     if (Settings::Editor.ShowAnimation)
-        Render::ElapsedTime = double(milliseconds) / 1000.;
+        Render::ElapsedTime += dt;
 
     Game::Update(dt);
 }

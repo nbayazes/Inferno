@@ -394,7 +394,7 @@ namespace Inferno::Game {
             Vector3 position;
             // move explosions out of wall
             if (impactSize < 5)
-                position = hit.Point - dir * impactSize * 0.5f;
+                position = hit.Point - dir * impactSize * 0.25f;
             else
                 position = hit.Point - dir * 2.5;
 

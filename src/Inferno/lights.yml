@@ -2,90 +2,90 @@ Lights:
     # Lab textures
     - ID: 212
       Type: 2
-      Points: '0.5, 0.23'
+      Points: 0.5, 0.23
       Radius: 40
       Width: 0.01
       Wrap: 1
-      Color: '0.15, 0.15, 0.4' # cooler
+      Color: 0.15, 0.15, 0.4 # cooler
       Offset: 0
   
     - ID: 213
       Type: 2
-      Points: '0.775, 0.25'
+      Points: 0.775, 0.25
       Width: 0.1
       Height: 0.01
       Radius: 40
-      Color: '0.1, 0.1, 0.3' # cooler
+      Color: 0.1, 0.1, 0.3 # cooler
       Offset: 0.01
   
     - ID: 214
       Type: 2
-      Points: '0.225, 0.25'
+      Points: 0.225, 0.25
       Width: 0.1
       Height: 0.01
       Radius: 40
-      Color: '0.1, 0.1, 0.3' # cooler
+      Color: 0.1, 0.1, 0.3 # cooler
       Offset: 0.01
   
     - ID: 221
       Type: 2
-      Points: '0.75, 0.25'
+      Points: 0.75, 0.25
       Width: 0.25
       Height: 0.01
       Radius: 40
-      Color: '0.1, 0.1, 0.3' # cooler
+      Color: 0.1, 0.1, 0.3 # cooler
       Offset: 0.01
   
     - ID: 222
       Type: 2
-      Points: '0.25, 0.25'
+      Points: 0.25, 0.25
       Width: 0.25
       Height: 0.05
       Radius: 60
-      Color: '0.1, 0.1, 0.3' # cooler
+      Color: 0.1, 0.1, 0.3 # cooler
       Offset: 0.01
   
     # Door strips
     - ID: 250 # white
       Type: 2
-      Points: '0.125, 0'
+      Points: 0.125, 0
       Wrap: 2
       Width: 0.01
       Offset: -1
-      Color: '0.30, 0.25, 0.25'
+      Color: 0.30, 0.25, 0.25
       Radius: 25
   
     - ID: 251 # red
       Type: 2
-      Points: '0.125, 0'
+      Points: 0.125, 0
       Wrap: 2
       Width: 0.01
       Offset: -1
-      Color: '0.3, 0.0, 0.0'
+      Color: 0.3, 0.0, 0.0
       Radius: 25
   
     - ID: 252 # blue
       Type: 2
-      Points: '0.125, 0'
+      Points: 0.125, 0
       Wrap: 2
       Width: 0.01
       Offset: -1
-      Color: '0.05, 0.05, .8'
+      Color: 0.05, 0.05, .8
       Radius: 25
   
     - ID: 253 # yellow
       Type: 2
-      Points: '0.125, 0'
+      Points: 0.125, 0
       Wrap: 2
       Width: 0.02
       Offset: -1
       Radius: 25
-      Color: '0.45, 0.35, 0'
+      Color: 0.45, 0.35, 0
 
     # Ceiling lights
     - ID: 264
       Type: 2
-      Points: '0.5, 0.5'
+      Points: 0.5, 0.5
       Width: .2
       Height: .2
       Radius: 30
@@ -93,54 +93,54 @@ Lights:
 
     - ID: 281
       Type: 2
-      Points: '0.5, 0.5'
+      Points: 0.5, 0.5
       Width: 0.2
       Height: 0.2
       Radius: 30
-      Color: '0.5, 0.5, 0.675' # very cool
+      Color: 0.5, 0.5, 0.675 # very cool
       Offset: 0
 
     - ID: 268 # small square
       Radius: 40
-      Points: '0.5, 0.5'
+      Points: 0.5, 0.5
       
     - ID: 282 # small round
       Radius: 40
-      Points: '0.5, 0.5'
-      Color: '0.65, 0.55, 0.55'
+      Points: 0.5, 0.5
+      Color: 0.65, 0.55, 0.55
 
     - ID: 283 # small square
-      Color: '0.55, 0.55, 0.65' # cooler
-      Points: '0.5, 0.5'
+      Color: 0.55, 0.55, 0.65 # cooler
+      Points: 0.5, 0.5
       Radius: 40
 
     - ID: 284 # small square
       Radius: 40
       Offset: 2
-      Points: '0.5, 0.5'
-      Color: '0.6, 0.6, 0.6' # cooler
+      Points: 0.5, 0.5
+      Color: 0.6, 0.6, 0.6 # cooler
 
     - ID: 293 # small square
       Radius: 35
       Offset: 2
-      Points: '0.5, 0.5'
-      Color: '0.5, 0.5, 0.5'
+      Points: 0.5, 0.5
+      Color: 0.5, 0.5, 0.5
 
     - ID: 294 # rectangle
       Radius: 35
       Offset: 2
-      Points: '0.5, 0.5'
-      Color: '0.6, 0.6, 0.65' # cooler
+      Points: 0.5, 0.5
+      Color: 0.6, 0.6, 0.65 # cooler
 
     # Stacked lights
     - ID: 285
       Type: 2
       Points:
-        - '0.5, 0.25'
-        - '0.5, 0.75'
+        - 0.5, 0.25
+        - 0.5, 0.75
       Width: .2
       Height: .1
-      Color: '0.25, 0.25, 0.28' # cooler
+      Color: 0.25, 0.25, 0.28 # cooler
       Offset: 0.01
       Radius: 40
 
@@ -148,8 +148,8 @@ Lights:
     - ID: 278
       Type: 2
       Points:
-        - '0.05, 0.5'
-        - '0.95, 0.5'
+        - 0.05, 0.5
+        - 0.95, 0.5
       Width: 0.05
       Wrap: 2
       Offset: 0.01
@@ -159,19 +159,19 @@ Lights:
     - ID: 279
       Type: 2
       Points:
-        - '0.075, 0.5'
-        - '0.925, 0.5'
+        - 0.075, 0.5
+        - 0.925, 0.5
       Width: 0.015
       Wrap: 2
       Offset: 0.05
-      Color: '0.15, 0.15, 0.225'
+      Color: 0.15, 0.15, 0.225
       Radius: 20
   
     - ID: 280
       Type: 2
       Points:
-        - '0.05, 0.4'
-        - '0.95, 0.4'
+        - 0.05, 0.4
+        - 0.95, 0.4
       Width: 0.05
       Height: 0.02
       Offset: 0.01
@@ -180,60 +180,60 @@ Lights:
     - ID: 286
       Type: 2
       Points:
-        - '0.5, 0.23'
-        - '0.5, 0.75'
+        - 0.5, 0.23
+        - 0.5, 0.75
       Width: .32
       Height: 0.05
-      Color: '0.3, 0.3, 0.4'
+      Color: 0.3, 0.3, 0.4
       Offset: 0.01
       Radius: 30
   
     - ID: 287
       Type: 2
       Points: 
-        - '0.55, 0.23'
-        - '0.55, 0.75'
+        - 0.55, 0.23
+        - 0.55, 0.75
       Width: .35
       Height: .05 
-      Color: '0.15, 0.15, 0.20'
+      Color: 0.15, 0.15, 0.20
       Offset: 0.01
   
     - ID: 288
       Type: 2
       Points:
-        - '0.5, 0.23'
-        - '0.5, 0.75'
+        - 0.5, 0.23
+        - 0.5, 0.75
       Width: .001
       Wrap: 1
-      Color: '0.15, 0.15, 0.20'
+      Color: 0.15, 0.15, 0.20
       Offset: 0.01
       Radius: 15
   
     - ID: 292
       Type: 2
       Points:
-        - '0.75, 0.23'
-        - '0.75, 0.75'
+        - 0.75, 0.23
+        - 0.75, 0.75
       Width: .2
       Height: 0.05
-      Color: '0.15, 0.15, 0.20'
+      Color: 0.15, 0.15, 0.20
       Offset: 0.01
 
     # lava
     - ID: 333
       Points: []
-      Color: '0.175, 0.00, 0.0'
+      Color: 0.175, 0.00, 0.0
 
     - ID: 356
       Points: []
-      Color: '0.4, 0.05, 0.0'
+      Color: 0.4, 0.05, 0.0
 
     - ID: 355 # lavafall
-      Points: '0.5, 0.5'
+      Points: 0.5, 0.5
       Type: 2
       Width: .2
       Wrap: 2
-      Color: '0.1, 0.00, 0.00'
+      Color: 0.1, 0.00, 0.00
       Offset: 0
       #Radius: 50
 
@@ -251,47 +251,47 @@ Lights:
       Points: []
 
     - ID: 328 # energy field
-      Color: '0.75f, 0.245f, 0.020f'
+      Color: 0.75, 0.245, 0.020, 4
       Points: []      
 
 #    - ID: 343 # paired monitor
 #      Points:
-#        - '0.29, 0.35'
-#        - '0.7, 0.7'
-#      Color: '0.00, 0.15, 0.00'
+#        - 0.29, 0.35
+#        - 0.7, 0.7
+#      Color: 0.00, 0.15, 0.00
 #      Radius: 40
 #
 #    - ID: 341 # monitor
 #      Points:
-#        - '0.5, 0.5'
-#      Color: '0.05, 0.25, 0.05'
+#        - 0.5, 0.5
+#      Color: 0.05, 0.25, 0.05
 #      Radius: 20
 #      Offset: 4
 #
 #    - ID: 345 # monitor
 #      Points:
-#        - '0.3, 0.5'
-#      Color: '0.1, 0.1, 0.25'
+#        - 0.3, 0.5
+#      Color: 0.1, 0.1, 0.25
 #      Radius: 20
 #      Offset: 4
 #
 #    - ID: 347 # monitor
 #      Points:
-#        - '0.5, 0.55'
-#      Color: '0.15, 0.15, 0.15'
+#        - 0.5, 0.55
+#      Color: 0.15, 0.15, 0.15
 #      Radius: 20
 #      Offset: 4
 #
 #    - ID: 349 # monitor
 #      Points:
-#        - '0.5, 0.5'
-#      Color: '0.25, 0.25, 0.25'
+#        - 0.5, 0.5
+#      Color: 0.25, 0.25, 0.25
 #      Radius: 20
 #      Offset: 4
 
     # - ID: 166 # monitor
     #   Points:
-    #     - '0.5, 0.5'
-    #   Color: '0.05, 0.05, 0.05'
+    #     - 0.5, 0.5
+    #   Color: 0.05, 0.05, 0.05
     #   Radius: 15
     #   Offset: 2

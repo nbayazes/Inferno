@@ -70,8 +70,8 @@ struct PS_INPUT {
     float3 tangent : TANGENT;
     float3 bitangent : BITANGENT;
     float3 world : TEXCOORD2;
-    nointerpolation int Tex1 : BASE;
-    nointerpolation int Tex2 : OVERLAY;
+    //nointerpolation int Tex1 : BASE;
+    //nointerpolation int Tex2 : OVERLAY;
 };
 
 /*
@@ -90,8 +90,8 @@ PS_INPUT vsmain(LevelVertex input) {
     output.tangent = input.tangent;
     output.bitangent = input.bitangent;
     output.world = input.pos; // level geometry is already in world coordinates
-    output.Tex1 = input.Tex1;
-    output.Tex2 = input.Tex2;
+    //output.Tex1 = input.Tex1;
+    //output.Tex2 = input.Tex2;
     return output;
 }
 

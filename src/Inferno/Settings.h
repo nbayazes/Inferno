@@ -99,6 +99,7 @@ namespace Inferno {
         bool ShowAnimation = true;
         bool ShowLighting = true;
         bool ShowMatcenEffects = false;
+        bool ShowPortals = true;
         float WireframeOpacity = 0.5f;
 
         bool InvertY = false;

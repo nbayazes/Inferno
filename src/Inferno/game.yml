@@ -169,9 +169,10 @@ Weapons:
     Chargable: 1
     Decal: scorchC
     DecalRadius: 3.25
-    Glow: .666, 0, 1, 6
+    Glow: .3, 0, 1, 30
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
+    ModelScale: 0.85 # D3 fusion is huge
     RotationalVelocity: 0, 0, 1.5708
     Size: 2.1
     ExplosionTexture: FusionHit
@@ -325,7 +326,7 @@ Powerups:
     LightMode: 1 # Flicker
 
   - id: 2 # Shield
-    Glow: 1, 1, 1, 1.3
+    Glow: 1, 1, 1, 0.5
     LightColor: 0.0125, 0.0125, 1, 2.5
     LightRadius: 14
     LightMode: 2 # Pulse
@@ -343,21 +344,21 @@ Powerups:
 Effects:
   Beams:
     - Name: reactor_arcs # destroyed reactor arcs
-      Radius: [ 20, 30 ] # endpoint search radius
-      Width: [ 1, 1.75 ]
-      Color: 1, .166, 1, 6
-      Texture: Lightning4
+      Radius: [ 15, 20 ] # endpoint search radius
+      Width:  [ 0.125, 0.175 ]
+      Color: .166, .166, 1, 25
+      Texture: Lightning3
       Frequency: 0.0333 # 1/30
-      Amplitude: 2.1
+      Amplitude: .4
       FadeEnd: 1
       RandomEnd: 1
       StrikeTime: 0.5
       RandomObjStart: 1
 
     - Name: reactor_internal_arcs # destroyed reactor arcs
-      Width: [ 0.6, 1 ]
-      Color: 1, .166, 1, 6
-      Texture: Lightning4
+      Width:  [ 0.125, 0.175 ]
+      Color: .166, .166, 1, 25
+      Texture: Lightning3
       Frequency: 0.0333 # 1/30
       Amplitude: 1.5
       FadeEnd: 1

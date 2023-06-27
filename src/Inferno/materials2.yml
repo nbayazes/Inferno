@@ -11,7 +11,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 50
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 3
     NormalStrength: 0.168
@@ -32,7 +32,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 1
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 6
     NormalStrength: 0.432
@@ -60,7 +60,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 1
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 10
     NormalStrength: 0.259
@@ -95,7 +95,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.947
     Roughness: 0.6
-    EmissiveStrength: 25
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 16
     NormalStrength: 0.259
@@ -109,7 +109,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 25
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 18
     NormalStrength: 0.2
@@ -158,7 +158,7 @@ Materials:
     SpecularStrength: 0
     Metalness: 0
     Roughness: 0.6
-    EmissiveStrength: 25
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 25
     NormalStrength: 0.259
@@ -214,7 +214,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 1
+    EmissiveStrength: 10
     LightReceived: 1
   - TexID: 33
     NormalStrength: 0.259
@@ -354,7 +354,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 45
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 54
     NormalStrength: 0.259
@@ -375,7 +375,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 45
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 57
     NormalStrength: 0.589
@@ -424,7 +424,7 @@ Materials:
     SpecularStrength: 1
     Metalness: 0.954
     Roughness: 0.6
-    EmissiveStrength: 45
+    EmissiveStrength: 15
     LightReceived: 1
   - TexID: 64
     NormalStrength: 0.602
