@@ -82,9 +82,9 @@ namespace Inferno::Render {
         auto ratio = (float)ti.Height / (float)ti.Width;
         auto h = radius * ratio;
         auto w = radius;
-        auto p0 = Vector3::Transform({ -w, h, 0 }, transform);  // bl
-        auto p1 = Vector3::Transform({ w, h, 0 }, transform);   // br
-        auto p2 = Vector3::Transform({ w, -h, 0 }, transform);  // tr
+        auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
+        auto p1 = Vector3::Transform({ w, h, 0 }, transform); // br
+        auto p2 = Vector3::Transform({ w, -h, 0 }, transform); // tr
         auto p3 = Vector3::Transform({ -w, -h, 0 }, transform); // tl
 
         ObjectVertex v0(p0, { 0, 0 }, color);
@@ -307,7 +307,7 @@ namespace Inferno::Render {
         if (auto model = Resources::GetOutrageModel(id)) {
             _meshBuffer->LoadOutrageModel(*model, id);
             Materials->LoadTextures(model->Textures);
-            
+
             //Materials->LoadOutrageModel(*model);
             //NewTextureCache->MakeResident();
         }
@@ -459,7 +459,9 @@ namespace Inferno::Render {
         ctx.Reset();
 
         if (LevelChanged) {
-            InitEffects(Game::Level);
+            if (Game::GetState() == GameState::Editor)
+                InitEffects(Game::Level); // this was added to prevent a crash during level editing
+
             CopyMaterialData(ctx.CommandList());
             LoadVClips(ctx.CommandList()); // todo: only load on initial level load
         }

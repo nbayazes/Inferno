@@ -90,7 +90,7 @@ namespace Inferno::Render {
             return _materials[(int)id];
         }
 
-        const Material2D& Get(EClipID id, float time, bool critical) const {
+        const Material2D& Get(EClipID id, double time, bool critical) const {
             auto& eclip = Resources::GetEffectClip(id);
             if (eclip.TimeLeft > 0)
                 time = eclip.VClip.PlayTime - eclip.TimeLeft;
