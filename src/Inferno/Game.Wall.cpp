@@ -74,18 +74,11 @@ namespace Inferno {
         if (clip.NumFrames == 0) return;
         frame = std::clamp(frame, 0, (int)clip.NumFrames - 1);
         auto tmap = clip.Frames[frame];
-        bool changed = false;
 
-        if (clip.HasFlag(DoorClipFlag::TMap1)) {
-            changed = side.TMap != tmap;
+        if (clip.HasFlag(DoorClipFlag::TMap1))
             side.TMap = tmap;
-        }
-        else {
-            // assert side.tmap1 && tmap2 != 0
-            changed = side.TMap2 != tmap;
+        else
             side.TMap2 = tmap;
-        }
-        if (changed) Render::LevelChanged = true;
     }
 
     void SetDoorClip(Level& level, Tag tag, const DoorClip& clip, int frame) {
@@ -123,7 +116,7 @@ namespace Inferno {
         }
 
         if (i >= clip.NumFrames - 1) {
-            SetDoorClip(level, wall.Tag, clip, i - 1);
+            SetDoorClip(level, wall.Tag, clip, clip.NumFrames - 1);
 
             if (!wall.HasFlag(WallFlag::DoorAuto)) {
                 door = {}; // free door slot because it won't close
