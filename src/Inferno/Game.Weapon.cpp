@@ -700,14 +700,15 @@ namespace Inferno::Game {
 
             auto beam = Render::EffectLibrary.GetBeamInfo("omega_beam");
             auto beam2 = Render::EffectLibrary.GetBeamInfo("omega_beam2");
-            auto tracer = Render::EffectLibrary.GetBeamInfo("omega_beam2");
+            auto tracer = Render::EffectLibrary.GetBeamInfo("omega_tracer");
 
             // Apply damage and visuals to each target
             for (auto& targetObj : targets) {
                 if (targetObj == ObjID::None) continue;
                 auto target = Game::Level.TryGetObject(targetObj);
                 if (!target) continue;
-                target->HitPoints -= weapon.Damage[Difficulty];
+                if (!Settings::Cheats.DisableWeaponDamage)
+                    target->ApplyDamage(weapon.Damage[Difficulty]);
 
                 // Beams between previous and next target
                 if (beam) Render::AddBeam(*beam, weapon.FireDelay, prevObj, targetObj, objGunpoint);

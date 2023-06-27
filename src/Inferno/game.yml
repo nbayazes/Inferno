@@ -396,8 +396,8 @@ Effects:
       Amplitude: 0.55
 
     - Name: omega_tracer # random arcs used after omega hits a target
-      Radius: 30 # MAX_CHAIN_DIST
-      Width: 0.65
+      Radius: 15
+      Width: 0.5
       Color:  .666, .277, 1, 90
       Texture: Lightning4
       Frequency: 0.0333
