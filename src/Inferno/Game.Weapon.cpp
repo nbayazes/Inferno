@@ -371,7 +371,7 @@ namespace Inferno::Game {
 
         obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting a wall
 
-        auto dir = obj.Physics.Velocity;
+        auto dir = obj.Physics.PrevVelocity;
         dir.Normalize();
 
         if (soundId != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {

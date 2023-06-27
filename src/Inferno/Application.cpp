@@ -115,7 +115,7 @@ void Application::Tick() {
     Render::FrameTime = dt;
 
     if (Game::GetState() == GameState::Game) {
-        Game::Time += Inferno::Clock.GetFrameTimeSeconds();
+        Game::Time += dt;
     }
 
     if (Settings::Editor.ShowAnimation)
