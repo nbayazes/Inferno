@@ -782,7 +782,7 @@ namespace Inferno::Game {
             for (auto& obj : Level.Objects)
                 obj.Lifespan -= dt;
 
-            UpdateDoors(Level, dt);
+            UpdateDoors(Level, TICK_RATE);
             UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
             FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
