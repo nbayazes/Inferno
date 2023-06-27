@@ -339,8 +339,8 @@ namespace Inferno::Game {
         auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
 
         // Shake the player ship
-        Level.Objects[0].Physics.AngularVelocity.x += RandomN11() * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
-        Level.Objects[0].Physics.AngularVelocity.z += RandomN11() * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
+        Level.Objects[0].Physics.AngularVelocity.x += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
+        Level.Objects[0].Physics.AngularVelocity.z += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
 
         auto time = CountdownTimer;
         CountdownTimer -= dt;
