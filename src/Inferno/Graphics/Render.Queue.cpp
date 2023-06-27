@@ -22,43 +22,43 @@ namespace Inferno::Render {
         _opaqueQueue.clear();
         _visited.clear();
 
-        if (Settings::Editor.RenderMode != RenderMode::None) {
-            // Queue commands for level meshes
-            for (auto& mesh : levelMeshes)
-                _opaqueQueue.push_back({ &mesh, 0 });
+        if (Settings::Editor.RenderMode == RenderMode::None) return;
 
-            if (Game::GetState() == GameState::Editor || level.Objects.empty()) {
-                for (auto& mesh : wallMeshes) {
-                    float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
-                    _transparentQueue.push_back({ &mesh, depth });
+        // Queue commands for level meshes
+        for (auto& mesh : levelMeshes)
+            _opaqueQueue.push_back({ &mesh, 0 });
+
+        if (Game::GetState() == GameState::Editor || level.Objects.empty()) {
+            for (auto& mesh : wallMeshes) {
+                float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
+                _transparentQueue.push_back({ &mesh, depth });
+            }
+
+            if (Settings::Editor.ShowObjects) {
+                for (auto& obj : level.Objects) {
+                    if (!ShouldDrawObject(obj)) continue;
+                    DirectX::BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);
+                    if (CameraFrustum.Contains(bounds))
+                        QueueEditorObject(obj, Game::LerpAmount);
                 }
+            }
 
-                if (Settings::Editor.ShowObjects) {
-                    for (auto& obj : level.Objects) {
-                        if (!ShouldDrawObject(obj)) continue;
-                        DirectX::BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);
-                        if (CameraFrustum.Contains(bounds))
-                            QueueEditorObject(obj, Game::LerpAmount);
-                    }
-                }
+            //QueueParticles();
+            //QueueDebris();
+            Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
+                return l.Depth < r.Depth; // front to back, because the draw call flips it
+            });
 
-                //QueueParticles();
-                //QueueDebris();
-                Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
-                    return l.Depth < r.Depth; // front to back, because the draw call flips it
-                });
-
-                for (int i = 0; i < level.Segments.size(); i++) {
-                    for (auto& effect : GetEffectsInSegment(SegID(i))) {
-                        if (effect && effect->IsAlive()) {
-                            _transparentQueue.push_back({ effect.get(), GetRenderDepth(effect->Position) });
-                        }
+            for (int i = 0; i < level.Segments.size(); i++) {
+                for (auto& effect : GetEffectsInSegment(SegID(i))) {
+                    if (effect && effect->IsAlive()) {
+                        _transparentQueue.push_back({ effect.get(), GetRenderDepth(effect->Position) });
                     }
                 }
             }
-            else {
-                TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
-            }
+        }
+        else {
+            TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
         }
     }
 

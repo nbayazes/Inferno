@@ -26,6 +26,14 @@ namespace Inferno::Render {
         LevelMeshBuilder _levelMeshBuilder;
     }
 
+    bool SideIsDoor(SegmentSide* side) {
+        if (!side) return false;
+        if (auto wall = Game::Level.TryGetWall(side->Wall)) {
+            return wall->Type == WallType::Door || wall->Type == WallType::Destroyable;
+        }
+        return false;
+    }
+
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         assert(cmd.Type == RenderCommandType::LevelMesh);
         auto& mesh = *cmd.Data.LevelMesh;
@@ -33,29 +41,38 @@ namespace Inferno::Render {
         auto& chunk = *mesh.Chunk;
         if (chunk.Blend == BlendMode::Additive) return;
 
-        DepthCutoutShader::Constants consts{};
-        consts.Threshold = 0.01f;
+        DepthCutoutShader::Constants constants{};
+        constants.Threshold = 0.01f;
+        constants.HasOverlay = chunk.TMap2 > LevelTexID::Unset;
 
         auto& effect = Effects->DepthCutout;
         effect.Apply(cmdList);
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
 
-        {
+        auto side = Game::Level.TryGetSide(chunk.Tag);
+
+        // Same as level mesh texid lookup
+        if (SideIsDoor(side)) {
+            // Use the current texture for this side, as walls are drawn individually
+            effect.Shader->SetMaterial1(cmdList, Materials->Get(side->TMap));
+            if (constants.HasOverlay)
+                effect.Shader->SetMaterial2(cmdList, Materials->Get(side->TMap2));
+        }
+        else {
             auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
             effect.Shader->SetMaterial1(cmdList, map1);
-        }
 
-        if (chunk.TMap2 > LevelTexID::Unset) {
-            consts.HasOverlay = true;
-            auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
-            effect.Shader->SetMaterial2(cmdList, map2);
+            if (constants.HasOverlay) {
+                auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
+                effect.Shader->SetMaterial2(cmdList, map2);
+            }
         }
 
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
-        consts.Scroll = ti.Slide;
-        consts.Scroll2 = chunk.OverlaySlide;
-        effect.Shader->SetConstants(cmdList, consts);
+        constants.Scroll = ti.Slide;
+        constants.Scroll2 = chunk.OverlaySlide;
+        effect.Shader->SetConstants(cmdList, constants);
 
         mesh.Draw(cmdList);
         Stats::DrawCalls++;
@@ -180,16 +197,25 @@ namespace Inferno::Render {
             constants.LightingScale = 1;
         }
         else {
-            {
+            constants.Overlay = chunk.TMap2 > LevelTexID::Unset;
+
+            // Only walls have tags
+            auto side = Game::Level.TryGetSide(chunk.Tag);
+
+            if (SideIsDoor(side)) {
+                // Use the current texture for this side, as walls are drawn individually
+                Shaders->Level.SetMaterial1(cmdList, Materials->Get(side->TMap));
+                if (constants.Overlay)
+                    Shaders->Level.SetMaterial2(cmdList, Materials->Get(side->TMap2));
+            }
+            else {
                 auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
                 Shaders->Level.SetMaterial1(cmdList, map1);
-            }
 
-            if (chunk.TMap2 > LevelTexID::Unset) {
-                constants.Overlay = true;
-
-                auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
-                Shaders->Level.SetMaterial2(cmdList, map2);
+                if (constants.Overlay) {
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
+                    Shaders->Level.SetMaterial2(cmdList, map2);
+                }
             }
         }
 

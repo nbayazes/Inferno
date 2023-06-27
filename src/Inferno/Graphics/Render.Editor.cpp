@@ -420,6 +420,7 @@ namespace Inferno::Render {
     }
 
     void DrawRooms(Level& level) {
+        if (!Settings::Editor.ShowPortals) return;
         //std::array colors = { Color(1, 0.75, 0.5), Color(1, 0.5, 0.75), Color(0.75, 0.5, 1), Color(0.5, 0.75, 1), Color(0.5, 1, 0.75), Color(0.75, 1, 0.5) };
         //int colorIndex = 0;
 
@@ -437,8 +438,8 @@ namespace Inferno::Render {
             for (auto& portal : room.Portals) {
                 if (auto seg = level.TryGetSegment(portal)) {
                     Debug::DrawSide(Game::Level, *seg, portal.Side, Colors::Portal);
-                    //auto side = Face::FromSide(level, *seg, portal.Side);
-                    //Debug::DrawArrow(side.Center(), side.Center() - side.AverageNormal() * 5, Color(0, 1, 0));
+                    auto side = Face::FromSide(level, *seg, portal.Side);
+                    Debug::DrawArrow(side.Center(), side.Center() + side.AverageNormal() * 5, Color(0, 1, 0));
                 }
             }
         }

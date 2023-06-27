@@ -21,6 +21,7 @@ namespace Inferno::Editor {
             ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
             ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
             ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
+            ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
             ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
             if (ImGui::Button("Set path target")) {
