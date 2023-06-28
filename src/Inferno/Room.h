@@ -30,6 +30,16 @@ namespace Inferno {
         bool Contains(SegID id) {
             return Seq::contains(Segments, id);
         }
+
+        void AddPortal(Tag tag) {
+            if (!Seq::contains(Portals, tag))
+                Portals.push_back(tag);
+        }
+
+        void AddSegment(SegID seg) {
+            if (!Seq::contains(Segments, seg))
+                Segments.push_back(seg);
+        }
     };
 
 

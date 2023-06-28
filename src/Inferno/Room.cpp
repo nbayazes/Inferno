@@ -35,15 +35,15 @@ namespace Inferno {
         Room room;
         auto& startSeg = level.GetSegment(start);
 
-        // todo: track segment type and insert portals if it changes
-        // todo: ignore illusionary walls if they're inside an energy center
         while (!search.empty()) {
-            auto tag = search.top();
+            auto segId = search.top();
             search.pop();
 
-            auto& seg = level.GetSegment(tag);
-            room.Type = seg.Type; // segment type should be consistent
-            segments.insert(tag);
+            auto& seg = level.GetSegment(segId);
+            if (seg.Type != SegmentType::GoalBlue && seg.Type != SegmentType::GoalRed)
+                room.Type = seg.Type; // segment type should be consistent
+
+            segments.insert(segId);
 
             for (auto& side : SideIDs) {
                 if (!seg.SideHasConnection(side)) continue; // nothing to do here
@@ -60,16 +60,16 @@ namespace Inferno {
                     return true;
                 };
 
-                if (auto wall = level.TryGetWall({ tag, side }))
+                if (auto wall = level.TryGetWall({ segId, side }))
                     addPortal |= shouldAddPortal(*wall);
 
-                if (auto wall = level.TryGetConnectedWall({ tag, side }))
+                if (auto wall = level.TryGetConnectedWall({ segId, side }))
                     addPortal |= shouldAddPortal(*wall);
 
                 addPortal |= cseg.Type != startSeg.Type; // new room if seg type changes
 
                 if (addPortal) {
-                    room.Portals.push_back({ tag, side });
+                    room.AddPortal({ segId, side });
                     continue;
                 }
 
@@ -145,10 +145,10 @@ namespace Inferno {
                         if (segments.size() < maxSegments / 3) {
                             Seq::insert(segments, tunnel);
                             //room.Portals.push_back({ segId, GetOppositeSide(side) });
-                            room.Portals.push_back(tunnelEnd);
+                            room.AddPortal(tunnelEnd);
                         }
                         else {
-                            room.Portals.push_back(tunnelStart);
+                            room.AddPortal(tunnelStart);
                         }
 
                         room.Segments = Seq::ofSet(segments);
@@ -160,7 +160,7 @@ namespace Inferno {
                 else {
                     // segment wasn't a tunnel, continue adding unless it was a portal
                     if (addPortal) {
-                        room.Portals.push_back({ segId, side });
+                        room.AddPortal({ segId, side });
                         continue; // stop
                     }
                     else {
@@ -190,9 +190,24 @@ namespace Inferno {
         int Delta[6];
     };
 
+    void AddPortalsToRoom(Level& level, Room& room) {
+        room.Portals.clear();
+
+        for (auto& segId : room.Segments) {
+            auto& seg = level.GetSegment(segId);
+
+            for (auto& sideId : SideIDs) {
+                auto conn = seg.GetConnection(sideId);
+                if (conn <= SegID::None) continue;
+
+                if (room.Contains(conn)) continue;
+                room.AddPortal({ segId, sideId });
+            }
+        }
+    }
+
     List<Room> SubdivideRoom(Level& level, Room& room, int maxSegs) {
         if (room.Segments.size() < maxSegs) return {};
-        // todo: divide based on portal count?
 
         List<SegmentNode> nodes(room.Segments.size());
 
@@ -255,7 +270,7 @@ namespace Inferno {
                     Tag tag = searchPortals.top();
                     searchPortals.pop();
                     auto conn = level.GetConnectedSide(tag);
-                    newRoom.Portals.push_back(conn);
+                    newRoom.AddPortal(conn);
                     search.push_front(conn.Segment);
                 }
 
@@ -266,7 +281,7 @@ namespace Inferno {
             if (!Seq::contains(room.Segments, segId)) continue; // only visit segs in this room
 
             // Update segment tracking
-            newRoom.Segments.push_back(segId);
+            newRoom.AddSegment(segId);
             visited.insert(segId);
 
             auto& seg = level.GetSegment(segId);
@@ -276,14 +291,15 @@ namespace Inferno {
                     auto conn = seg.GetConnection(SideID(side));
                     Tag tag = { segId, SideID(side) };
 
-                    if (conn != SegID::None && !Seq::contains(room.Segments, conn))
+                    if (conn > SegID::None && !Seq::contains(room.Segments, conn) && !Seq::contains(newRoom.Portals, tag)) {
                         newRoom.Portals.push_back(tag); // Connection to outside the room is a portal
+                    }
 
-                    if (conn != SegID::None && newRoom.Segments.size() + search.size() >= maxSegs /*&& std::abs(node->Delta[side]) == 0*//* && node->Connections == 2*/) {
+                    if (conn > SegID::None && newRoom.Segments.size() + search.size() >= maxSegs /*&& std::abs(node->Delta[side]) == 0*//* && node->Connections == 2*/) {
                         auto& cseg = level.GetSegment(conn);
                         if (canSearchSegment(conn)) {
                             if (SegmentIsTunnel(cseg)) {
-                                newRoom.Portals.push_back(tag); // Insert a portal inside the room
+                                newRoom.AddPortal(tag); // Insert a portal inside the room
                                 searchPortals.push(tag);
                             }
                             else {
@@ -294,7 +310,7 @@ namespace Inferno {
                     else if (canSearchSegment(conn)) {
                         auto wall = level.TryGetWall(tag);
                         if (wall && WallIsPortal(*wall)) {
-                            newRoom.Portals.push_back(tag); // Insert a portal inside the room
+                            newRoom.AddPortal(tag); // Insert a portal inside the room
                             searchPortals.push(tag);
                         }
                         else {
@@ -309,6 +325,7 @@ namespace Inferno {
                     for (auto& s : newRoom.Segments)
                         Seq::remove(room.Segments, s);
 
+                    AddPortalsToRoom(level, newRoom);
                     rooms.push_back(newRoom);
                     newRoom = {};
                 }
@@ -316,11 +333,12 @@ namespace Inferno {
                 Tag tag = searchPortals.top();
                 searchPortals.pop();
                 auto conn = level.GetConnectedSide(tag);
-                newRoom.Portals.push_back(conn);
+                newRoom.AddPortal(conn);
                 search.push_front(conn.Segment);
             }
         }
 
+        AddPortalsToRoom(level, newRoom);
         room = newRoom; // copy remaining segs back to room
 
         //SPDLOG_INFO("Split room into {} rooms", rooms.size());
@@ -337,7 +355,8 @@ namespace Inferno {
 
     void MergeSmallRoom(Level& level, List<Room>& rooms, Room& room, int minSize) {
         if (room.Segments.size() > minSize) return;
-        if (room.Type != SegmentType::None) return; // Don't merge special segments
+        if (room.Type != SegmentType::None && room.Type != SegmentType::GoalBlue && room.Type != SegmentType::GoalRed)
+            return; // Don't merge special segments
 
         Room* mergedNeighbor = nullptr;
 
@@ -347,6 +366,9 @@ namespace Inferno {
 
             // Wasn't a wall, find the owning room and merge into it
             auto connection = level.GetConnectedSide(portal);
+            if (level.TryGetWall(connection))
+                continue; // Other side had a wall (check for one-sided walls)
+
             if (auto neighbor = FindRoomBySegment(rooms, connection.Segment)) {
                 // In rare cases a room can be surrounded by another room on multiple sides.
                 // Check that we are merging into the same room.
@@ -354,27 +376,32 @@ namespace Inferno {
                 if (!mergedNeighbor) mergedNeighbor = neighbor;
 
                 Seq::append(neighbor->Segments, room.Segments);
-
+                break;
                 // Move other portals to the merged room
-                for (auto& p : room.Portals) {
-                    if (!neighbor->Contains(p.Segment))
-                        neighbor->Portals.push_back(p);
-                    //if (p != portal) neighbor->Portals.push_back(p);
-                }
+                //for (auto& p : room.Portals) {
+                //    if (!neighbor->Contains(p.Segment))
+                //        neighbor->Portals.push_back(p);
+                //    //if (p != portal) neighbor->Portals.push_back(p);
+                //}
 
                 // Check if any neighbor portals point to this room and remove them
-                List<Tag> portalsToRemove;
-                for (auto& p : neighbor->Portals) {
-                    if (room.Contains(p.Segment))
-                        portalsToRemove.push_back(p);
-                }
+                //List<Tag> portalsToRemove;
+                //for (auto& p : neighbor->Portals) {
+                //    auto conn = level.GetConnectedSide(p);
+                //    if (room.Contains(conn.Segment))
+                //        portalsToRemove.push_back(p);
+                //}
 
-                for (auto& p : portalsToRemove) {
-                    Seq::remove(neighbor->Portals, p);
-                }
-                room.Segments = {};
-                //Seq::remove(neighbor->Portals, connection);
+                //for (auto& p : portalsToRemove) {
+                //    Seq::remove(neighbor->Portals, p);
+                //}
             }
+        }
+
+
+        if (mergedNeighbor) {
+            room.Segments = {};
+            AddPortalsToRoom(level, *mergedNeighbor);
         }
     }
 
@@ -422,11 +449,22 @@ namespace Inferno {
         RemoveEmptyRooms(rooms);
 
         // Merge small rooms into adjacent rooms
-        for (auto& room : rooms) {
+        for (auto& room : rooms)
             MergeSmallRoom(level, rooms, room, 2);
-        }
+
+        // Do a second pass as circular tunnels can cause isolated rooms
+        //for (auto& room : rooms)
+        //    MergeSmallRoom(level, rooms, room, 2);
 
         RemoveEmptyRooms(rooms);
+
+        Set<SegID> usedSegments;
+        for (auto& room : rooms) {
+            for (auto& seg : room.Segments) {
+                assert(!usedSegments.contains(seg));
+                usedSegments.insert(seg);
+            }
+        }
         return rooms;
     }
 }
