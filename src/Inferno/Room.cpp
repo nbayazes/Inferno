@@ -40,8 +40,8 @@ namespace Inferno {
             search.pop();
 
             auto& seg = level.GetSegment(segId);
-            if (seg.Type != SegmentType::GoalBlue && seg.Type != SegmentType::GoalRed)
-                room.Type = seg.Type; // segment type should be consistent
+            if (seg.Type == SegmentType::Energy || seg.Type == SegmentType::Repair)
+                room.Type = seg.Type; // Mark energy centers
 
             segments.insert(segId);
 
@@ -145,10 +145,10 @@ namespace Inferno {
                         if (segments.size() < maxSegments / 3) {
                             Seq::insert(segments, tunnel);
                             //room.Portals.push_back({ segId, GetOppositeSide(side) });
-                            room.AddPortal(tunnelEnd);
+                            room.AddPortal({ tunnelEnd });
                         }
                         else {
-                            room.AddPortal(tunnelStart);
+                            room.AddPortal({ tunnelStart });
                         }
 
                         room.Segments = Seq::ofSet(segments);
@@ -178,19 +178,13 @@ namespace Inferno {
     }
 
 
-    struct Portal {
-        Tag Tag;
-        int Nearby;
-    };
-
     struct SegmentNode {
-        //Portal Portals[6];
         SegID Seg;
         int Connections;
         int Delta[6];
     };
 
-    void AddPortalsToRoom(Level& level, Room& room) {
+    void AddPortalsToRoom(Level& level, span<Room> rooms, Room& room) {
         room.Portals.clear();
 
         for (auto& segId : room.Segments) {
@@ -201,7 +195,8 @@ namespace Inferno {
                 if (conn <= SegID::None) continue;
 
                 if (room.Contains(conn)) continue;
-                room.AddPortal({ segId, sideId });
+                auto roomId = FindRoomBySegment(rooms, conn);
+                room.AddPortal({ segId, sideId, roomId });
             }
         }
     }
@@ -227,11 +222,9 @@ namespace Inferno {
         for (int i = 0; i < room.Segments.size(); i++) {
             auto& node = nodes[i];
 
-
             for (auto& sideId : SideIDs) {
                 auto conn = level.GetConnectedSide({ node.Seg, sideId });
                 if (!conn) continue;
-                //auto& other = nodes[];
 
                 if (auto other = Seq::find(nodes, [conn](const SegmentNode& x) { return x.Seg == conn.Segment; })) {
                     node.Delta[(int)sideId] = other->Connections - node.Connections;
@@ -244,7 +237,7 @@ namespace Inferno {
 
         // starting at a portal, walk until max seg is reached and a large delta is found
         std::deque<SegID> search;
-        Stack<Tag> searchPortals; // After room is split, store segs on other side separately
+        Stack<Tag> splits; // After room is split, store segs on other side separately
         search.push_back(start);
         Set<SegID> visited;
 
@@ -259,18 +252,15 @@ namespace Inferno {
         };
 
         while (!search.empty()) {
-            /*auto segId = search.top();
-            search.pop();*/
             auto segId = *search.begin();
             Seq::remove(search, segId);
-            //search.erase(segId);
 
             if (visited.contains(segId)) {
-                if (!searchPortals.empty()) {
-                    Tag tag = searchPortals.top();
-                    searchPortals.pop();
+                if (!splits.empty()) {
+                    Tag tag = splits.top();
+                    splits.pop();
                     auto conn = level.GetConnectedSide(tag);
-                    newRoom.AddPortal(conn);
+                    //newRoom.AddPortal({ conn });
                     search.push_front(conn.Segment);
                 }
 
@@ -292,15 +282,15 @@ namespace Inferno {
                     Tag tag = { segId, SideID(side) };
 
                     if (conn > SegID::None && !Seq::contains(room.Segments, conn) && !Seq::contains(newRoom.Portals, tag)) {
-                        newRoom.Portals.push_back(tag); // Connection to outside the room is a portal
+                        //newRoom.AddPortal({ tag }); // Connection to outside the room is a portal
                     }
 
                     if (conn > SegID::None && newRoom.Segments.size() + search.size() >= maxSegs /*&& std::abs(node->Delta[side]) == 0*//* && node->Connections == 2*/) {
                         auto& cseg = level.GetSegment(conn);
                         if (canSearchSegment(conn)) {
                             if (SegmentIsTunnel(cseg)) {
-                                newRoom.AddPortal(tag); // Insert a portal inside the room
-                                searchPortals.push(tag);
+                                //newRoom.AddPortal({ tag }); // Insert a portal inside the room
+                                splits.push(tag);
                             }
                             else {
                                 search.push_front(conn);
@@ -310,8 +300,8 @@ namespace Inferno {
                     else if (canSearchSegment(conn)) {
                         auto wall = level.TryGetWall(tag);
                         if (wall && WallIsPortal(*wall)) {
-                            newRoom.AddPortal(tag); // Insert a portal inside the room
-                            searchPortals.push(tag);
+                            //newRoom.AddPortal({ tag }); // Insert a portal inside the room
+                            splits.push(tag);
                         }
                         else {
                             search.push_front(conn);
@@ -320,43 +310,43 @@ namespace Inferno {
                 }
             }
 
-            if (search.empty() && !searchPortals.empty()) {
-                if (!newRoom.Portals.empty() && !newRoom.Segments.empty()) {
+            if (search.empty() && !splits.empty()) {
+                if (/*!newRoom.Portals.empty() &&*/ !newRoom.Segments.empty()) {
                     for (auto& s : newRoom.Segments)
                         Seq::remove(room.Segments, s);
 
-                    AddPortalsToRoom(level, newRoom);
+                    AddPortalsToRoom(level, rooms, newRoom);
                     rooms.push_back(newRoom);
                     newRoom = {};
                 }
 
-                Tag tag = searchPortals.top();
-                searchPortals.pop();
+                Tag tag = splits.top();
+                splits.pop();
                 auto conn = level.GetConnectedSide(tag);
-                newRoom.AddPortal(conn);
+                //newRoom.AddPortal({ conn });
                 search.push_front(conn.Segment);
             }
         }
 
-        AddPortalsToRoom(level, newRoom);
+        AddPortalsToRoom(level, rooms, newRoom);
         room = newRoom; // copy remaining segs back to room
 
         //SPDLOG_INFO("Split room into {} rooms", rooms.size());
         return rooms;
     }
 
-    Room* FindRoomBySegment(List<Room>& rooms, SegID seg) {
-        for (auto& room : rooms) {
-            if (Seq::contains(room.Segments, seg)) return &room;
+    RoomID FindRoomBySegment(span<Room> rooms, SegID seg) {
+        for (int i = 0; i < rooms.size(); i++) {
+            if (Seq::contains(rooms[i].Segments, seg)) return RoomID(i);
         }
 
-        return nullptr;
+        return RoomID::None;
     }
 
     void MergeSmallRoom(Level& level, List<Room>& rooms, Room& room, int minSize) {
         if (room.Segments.size() > minSize) return;
-        if (room.Type != SegmentType::None && room.Type != SegmentType::GoalBlue && room.Type != SegmentType::GoalRed)
-            return; // Don't merge special segments
+        if (room.Type == SegmentType::Energy || room.Type == SegmentType::Repair)
+            return; // Don't merge energy centers
 
         Room* mergedNeighbor = nullptr;
 
@@ -369,7 +359,9 @@ namespace Inferno {
             if (level.TryGetWall(connection))
                 continue; // Other side had a wall (check for one-sided walls)
 
-            if (auto neighbor = FindRoomBySegment(rooms, connection.Segment)) {
+            auto roomId = FindRoomBySegment(rooms, connection.Segment);
+            if (roomId != RoomID::None) {
+                auto neighbor = &rooms[(int)roomId];
                 // In rare cases a room can be surrounded by another room on multiple sides.
                 // Check that we are merging into the same room.
                 if (mergedNeighbor && neighbor != mergedNeighbor) continue;
@@ -398,10 +390,9 @@ namespace Inferno {
             }
         }
 
-
         if (mergedNeighbor) {
             room.Segments = {};
-            AddPortalsToRoom(level, *mergedNeighbor);
+            AddPortalsToRoom(level, rooms, *mergedNeighbor);
         }
     }
 
@@ -460,11 +451,240 @@ namespace Inferno {
 
         Set<SegID> usedSegments;
         for (auto& room : rooms) {
-            for (auto& seg : room.Segments) {
-                assert(!usedSegments.contains(seg));
-                usedSegments.insert(seg);
+            AddPortalsToRoom(level, rooms, room);
+
+            for (auto& segID : room.Segments) {
+                assert(!usedSegments.contains(segID));
+                usedSegments.insert(segID);
+                room.Center += level.GetSegment(segID).Center;
             }
+
+            room.Center /= (float)room.Segments.size();
+            room.UpdatePortalDistances(level);
         }
         return rooms;
+    }
+
+    List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, LevelRooms& rooms, Level& level) {
+        auto startRoom = rooms.GetRoom(start);
+        auto endRoom = rooms.GetRoom(goal);
+        if (!startRoom || !endRoom)
+            return {};
+
+        if (startRoom == endRoom) {
+            return NavigateWithinRoom(start, goal, *endRoom);
+        }
+
+        auto roomPath = NavigateAcrossRooms(rooms.FindBySegment(start), rooms.FindBySegment(goal), rooms, level);
+
+        List<SegID> path;
+
+        auto roomStartSeg = start;
+
+        // starting at the first room, use the closest portal that matches the next room
+        for (int i = 0; i < roomPath.size(); i++) {
+            auto room = rooms.GetRoom(roomStartSeg);
+            //auto& roomNode = _roomNodes[i];
+
+            if (room == endRoom || i + 1 >= roomPath.size()) {
+                auto localPath = NavigateWithinRoom(roomStartSeg, goal, *endRoom);
+                Seq::append(path, localPath);
+            }
+            else {
+                // Not yet to final room
+                float closestPortal = FLT_MAX;
+                Tag bestPortal;
+                auto& seg = level.GetSegment(roomStartSeg);
+
+                for (int portalIndex = 0; portalIndex < room->Portals.size(); portalIndex++) {
+                    auto& portal = room->Portals[portalIndex];
+                    if (portal.Room != roomPath[i + 1])
+                        continue; // Portal doesn't connect to next room in the path
+
+                    auto& portalSide = level.GetSide(portal);
+                    auto distance = Vector3::DistanceSquared(seg.Center, portalSide.Center);
+                    if (distance < closestPortal) {
+                        closestPortal = distance;
+                        bestPortal = portal;
+                    }
+
+                    //for (int otherPortal = 0; otherPortal < room->Portals.size(); otherPortal++) {
+                    //    if (portalIndex == otherPortal)
+                    //        continue; // Don't compare portal to self
+
+                    //    auto distance = room->PortalDistances[portalIndex][otherPortal];
+                    //    if (distance < closestPortal) {
+                    //        closestPortal = distance;
+                    //        bestPortal = room->Portals[otherPortal];
+                    //    }
+                    //}
+                }
+
+                if (!bestPortal) break; // Pathfinding to next portal failed
+
+                auto localPath = NavigateWithinRoom(roomStartSeg, bestPortal.Segment, *room);
+                Seq::append(path, localPath);
+
+                // Use the portal connection as the start for the next room
+                roomStartSeg = level.GetConnectedSide(bestPortal).Segment;
+            }
+        }
+
+        return path;
+    }
+
+    List<RoomID> NavigationNetwork::NavigateAcrossRooms(RoomID start, RoomID goal, LevelRooms& rooms, Level& level) {
+        if (start == goal) return { start };
+
+        // Reset traversal state
+        //auto startRoom = rooms.GetRoom(start);
+        auto goalRoom = rooms.GetRoom(goal);
+
+        for (int i = 0; i < rooms.Rooms.size(); i++) {
+            auto& room = rooms.Rooms[i];
+            _traversalBuffer[i] = {
+                .Index = i,
+                .GoalDistance = Vector3::Distance(room.Center, goalRoom->Center)
+            };
+        }
+
+        std::list<TraversalNode*> queue;
+        _traversalBuffer[(int)start].LocalGoal = 0;
+        queue.push_back(&_traversalBuffer[(int)start]);
+
+        while (!queue.empty()) {
+            queue.sort([](const TraversalNode* a, const TraversalNode* b) {
+                return a->GoalDistance < b->GoalDistance;
+            });
+
+            if (!queue.empty() && queue.front()->Visited)
+                queue.pop_front();
+
+            if (queue.empty())
+                break; // no nodes left
+
+            auto& current = queue.front();
+            current->Visited = true;
+            //auto& node = _roomNodes[current->Index];
+            auto room = &rooms.Rooms[current->Index];
+
+            for (auto& portal : room->Portals) {
+                auto& segNode = _segmentNodes[(int)portal.Segment];
+                auto& nodeSide = segNode.Sides[(int)portal.Side];
+                if (nodeSide.Connection <= SegID::None) continue;
+                if (nodeSide.Blocked) continue;
+
+                auto& neighborNode = rooms.Rooms[(int)portal.Room];
+                auto& neighbor = _traversalBuffer[(int)portal.Room];
+
+                if (!neighbor.Visited)
+                    queue.push_back(&neighbor);
+
+                auto& portalSide = level.GetSide(portal);
+
+                // If portal connects to goal room use distance 0 and not distance between centers
+                //
+                // This heuristic could be improved by taking the distance between the entrance
+                // and exit portals instead of the room centers.
+                auto localDistance = Vector3::DistanceSquared(room->Center, portalSide.Center);
+                float localGoal = portal.Room == goal ? current->LocalGoal : current->LocalGoal + localDistance;
+                /* neighborNode.Center*/
+
+                if (localGoal < neighbor.LocalGoal) {
+                    neighbor.Parent = current->Index;
+                    neighbor.LocalGoal = localGoal;
+                    neighbor.GoalDistance = neighbor.LocalGoal + Vector3::DistanceSquared(portalSide.Center, goalRoom->Center);
+                }
+            }
+        }
+
+        List<RoomID> path;
+
+        // add nodes along the path starting at the goal
+        auto* trav = &_traversalBuffer[(int)goal];
+
+        while (trav) {
+            path.push_back((RoomID)trav->Index);
+            trav = trav->Parent >= 0 ? &_traversalBuffer[trav->Parent] : nullptr;
+        }
+
+        ranges::reverse(path);
+
+        // Walk backwards, using the parent
+        return path;
+    }
+
+    List<SegID> NavigationNetwork::NavigateWithinRoom(SegID start, SegID goal, Room& room) {
+        if (!room.Contains(start) || !room.Contains(goal))
+            return {}; // No direct solution
+
+        // Reset traversal state
+        for (int i = 0; i < _traversalBuffer.size(); i++)
+            _traversalBuffer[i] = {
+                .Index = i,
+                .GoalDistance = Heuristic(_segmentNodes[(int)start], _segmentNodes[(int)goal])
+            };
+
+        std::list<TraversalNode*> queue;
+        _traversalBuffer[(int)start].LocalGoal = 0;
+        queue.push_back(&_traversalBuffer[(int)start]);
+
+        while (!queue.empty()) {
+            queue.sort([](const TraversalNode* a, const TraversalNode* b) {
+                return a->GoalDistance < b->GoalDistance;
+            });
+
+            if (!queue.empty() && queue.front()->Visited)
+                queue.pop_front();
+
+            if (queue.empty())
+                break; // no nodes left
+
+            auto& current = queue.front();
+            current->Visited = true;
+            auto& node = _segmentNodes[current->Index];
+
+            for (int side = 0; side < 6; side++) {
+                auto& nodeSide = node.Sides[side];
+                auto& connId = nodeSide.Connection;
+                if (connId <= SegID::None) continue;
+                if (nodeSide.Blocked) continue;
+                if (!room.Contains(connId)) continue; // Only search segments in this room
+
+                auto& neighborNode = _segmentNodes[(int)connId];
+                //unvistedNodes.push_back({ .Index = (int)connId });
+
+                auto& neighbor = _traversalBuffer[(int)connId];
+
+                if (!neighbor.Visited)
+                    queue.push_back(&neighbor);
+
+                float localGoal = current->LocalGoal + Vector3::DistanceSquared(node.Position, neighborNode.Position);
+
+                if (localGoal < neighbor.LocalGoal) {
+                    neighbor.Parent = current->Index;
+                    neighbor.LocalGoal = localGoal;
+                    neighbor.GoalDistance = neighbor.LocalGoal + Heuristic(neighborNode, _segmentNodes[(int)goal]);
+                }
+            }
+        }
+
+        List<SegID> path;
+
+        // add nodes along the path starting at the goal
+        auto* trav = &_traversalBuffer[(int)goal];
+        //if (trav->Parent >= 0) {
+        //path.push_back(goal);
+
+        while (trav) {
+            path.push_back((SegID)trav->Index);
+            trav = trav->Parent >= 0 ? &_traversalBuffer[trav->Parent] : nullptr;
+        }
+        //}
+
+        ranges::reverse(path);
+
+        // Walk backwards, using the parent
+        return path;
     }
 }

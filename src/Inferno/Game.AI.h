@@ -150,7 +150,4 @@ namespace Inferno {
 
     void UpdateAI(Object& obj);
 
-    namespace Debug {
-        inline List<Vector3> NavigationPath;
-    }
 }

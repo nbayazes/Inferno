@@ -424,7 +424,7 @@ namespace Inferno::Render {
         //std::array colors = { Color(1, 0.75, 0.5), Color(1, 0.5, 0.75), Color(0.75, 0.5, 1), Color(0.5, 0.75, 1), Color(0.5, 1, 0.75), Color(0.75, 1, 0.5) };
         //int colorIndex = 0;
 
-        for (auto& room : Game::Rooms) {
+        for (auto& room : Game::Rooms.Rooms) {
             //colorIndex = (colorIndex + 1) % 4;
             //for (auto& sid : room.Segments) {
             //    if (auto seg = level.TryGetSegment(sid)) {

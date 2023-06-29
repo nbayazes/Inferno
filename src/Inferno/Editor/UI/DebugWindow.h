@@ -26,16 +26,31 @@ namespace Inferno::Editor {
 
             if (ImGui::Button("Set path target")) {
                 if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                    Game::NavigateTo(obj->Segment, Editor::Selection.Segment);
+                    auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, Game::Rooms, Game::Level);
+
+                    Debug::NavigationPath.clear();
+
+                    for (auto& node : path) {
+                        auto& seg = Game::Level.GetSegment(node);
+                        Debug::NavigationPath.push_back(seg.Center);
+                    }
                 }
             }
 
             if (ImGui::Button("Update rooms")) {
-                Game::Rooms = CreateRooms(Game::Level);
+                Game::Rooms = LevelRooms(Game::Level);
             }
 
             if (ImGui::Button("Mark room")) {
-                if (auto room = Inferno::FindRoomBySegment(Game::Rooms, Editor::Selection.Segment)) {
+                if (auto room = Game::Rooms.GetRoom(Editor::Selection.Segment)) {
+                    Editor::Marked.Segments.clear();
+                    Seq::insert(Editor::Marked.Segments, room->Segments);
+                }
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Mark connected room")) {
+                if (auto room = Game::Rooms.GetConnectedRoom(Editor::Selection.Tag())) {
                     Editor::Marked.Segments.clear();
                     Seq::insert(Editor::Marked.Segments, room->Segments);
                 }

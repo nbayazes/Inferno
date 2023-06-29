@@ -30,7 +30,6 @@ namespace Inferno::Game {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
-        Ptr<NavNetwork> Navigation;
     }
 
     void StartLevel();
@@ -122,8 +121,8 @@ namespace Inferno::Game {
             Render::LoadLevel(Level);
             InitObjects();
 
-            Navigation = MakePtr<NavNetwork>(Level);
-            Rooms = CreateRooms(Level);
+            Rooms = LevelRooms(Level);
+            Navigation = NavigationNetwork(Level, Rooms);
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
@@ -1161,19 +1160,4 @@ namespace Inferno::Game {
     }
 
     GameState GetState() { return State; }
-
-    List<SegID> NavigateTo(SegID start, SegID goal) {
-        Navigation = MakePtr<NavNetwork>(Level); // todo: add a geometry changed event so this doesn't crash while editing
-        //if (!Navigation) return {};
-
-        auto path = Navigation->NavigateTo(start, goal);
-        
-        Debug::NavigationPath.clear();
-
-        for (auto& node : path) {
-            auto& seg = Level.GetSegment(node);
-            Debug::NavigationPath.push_back(seg.Center);
-        }
-        return path;
-    }
 }
