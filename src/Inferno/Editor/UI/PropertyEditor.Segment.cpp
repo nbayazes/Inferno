@@ -1230,6 +1230,18 @@ namespace Inferno::Editor {
                     Vector3::Distance(seg.Sides[1].Center, seg.Sides[3].Center),
                     Vector3::Distance(seg.Sides[4].Center, seg.Sides[5].Center));
 
+        auto face = Face::FromSide(level, Selection.Tag());
+        if (Settings::Editor.SelectionMode == SelectionMode::Point || Settings::Editor.SelectionMode == SelectionMode::Edge) {
+            ImGui::TableRowLabel("Edge length");
+            ImGui::Text("%.2f", Vector3::Distance(face.GetPoint(Editor::Selection.Point), face.GetPoint(Editor::Selection.Point + 1)));
+        }
+        else {
+            ImGui::TableRowLabel("Face Size");
+            ImGui::Text("%.2f x %.2f",
+                        Vector3::Distance(face.GetEdgeMidpoint(0), face.GetEdgeMidpoint(2)),
+                        Vector3::Distance(face.GetEdgeMidpoint(1), face.GetEdgeMidpoint(3)));
+        }
+
         snapshot |= TransformPosition(Game::Level, seg, Settings::Editor.SelectionMode);
 
         if (snapshot) {
