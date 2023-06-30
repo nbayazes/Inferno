@@ -469,22 +469,18 @@ namespace Inferno {
         auto startRoom = rooms.GetRoom(start);
         auto endRoom = rooms.GetRoom(goal);
         if (!startRoom || !endRoom)
-            return {};
+            return {}; // Rooms don't exist
 
-        if (startRoom == endRoom) {
-            return NavigateWithinRoom(start, goal, *endRoom);
-        }
-
-        auto roomPath = NavigateAcrossRooms(rooms.FindBySegment(start), rooms.FindBySegment(goal), rooms, level);
+        if (startRoom == endRoom)
+            return NavigateWithinRoom(start, goal, *endRoom); // Start and goal are in same room
 
         List<SegID> path;
-
         auto roomStartSeg = start;
+        auto roomPath = NavigateAcrossRooms(rooms.FindBySegment(start), rooms.FindBySegment(goal), rooms, level);
 
         // starting at the first room, use the closest portal that matches the next room
         for (int i = 0; i < roomPath.size(); i++) {
             auto room = rooms.GetRoom(roomStartSeg);
-            //auto& roomNode = _roomNodes[i];
 
             if (room == endRoom || i + 1 >= roomPath.size()) {
                 auto localPath = NavigateWithinRoom(roomStartSeg, goal, *endRoom);
@@ -505,19 +501,8 @@ namespace Inferno {
                     auto distance = Vector3::DistanceSquared(seg.Center, portalSide.Center);
                     if (distance < closestPortal) {
                         closestPortal = distance;
-                        bestPortal = portal;
+                        bestPortal = Tag(portal);
                     }
-
-                    //for (int otherPortal = 0; otherPortal < room->Portals.size(); otherPortal++) {
-                    //    if (portalIndex == otherPortal)
-                    //        continue; // Don't compare portal to self
-
-                    //    auto distance = room->PortalDistances[portalIndex][otherPortal];
-                    //    if (distance < closestPortal) {
-                    //        closestPortal = distance;
-                    //        bestPortal = room->Portals[otherPortal];
-                    //    }
-                    //}
                 }
 
                 if (!bestPortal) break; // Pathfinding to next portal failed
@@ -565,7 +550,6 @@ namespace Inferno {
 
             auto& current = queue.front();
             current->Visited = true;
-            //auto& node = _roomNodes[current->Index];
             auto room = &rooms.Rooms[current->Index];
 
             for (auto& portal : room->Portals) {
@@ -574,7 +558,6 @@ namespace Inferno {
                 if (nodeSide.Connection <= SegID::None) continue;
                 if (nodeSide.Blocked) continue;
 
-                auto& neighborNode = rooms.Rooms[(int)portal.Room];
                 auto& neighbor = _traversalBuffer[(int)portal.Room];
 
                 if (!neighbor.Visited)
@@ -588,7 +571,6 @@ namespace Inferno {
                 // and exit portals instead of the room centers.
                 auto localDistance = Vector3::DistanceSquared(room->Center, portalSide.Center);
                 float localGoal = portal.Room == goal ? current->LocalGoal : current->LocalGoal + localDistance;
-                /* neighborNode.Center*/
 
                 if (localGoal < neighbor.LocalGoal) {
                     neighbor.Parent = current->Index;
@@ -616,7 +598,7 @@ namespace Inferno {
 
     List<SegID> NavigationNetwork::NavigateWithinRoom(SegID start, SegID goal, Room& room) {
         if (!room.Contains(start) || !room.Contains(goal))
-            return {}; // No direct solution
+            return {}; // No direct solution. Programming error
 
         // Reset traversal state
         for (int i = 0; i < _traversalBuffer.size(); i++)
@@ -652,8 +634,6 @@ namespace Inferno {
                 if (!room.Contains(connId)) continue; // Only search segments in this room
 
                 auto& neighborNode = _segmentNodes[(int)connId];
-                //unvistedNodes.push_back({ .Index = (int)connId });
-
                 auto& neighbor = _traversalBuffer[(int)connId];
 
                 if (!neighbor.Visited)
@@ -669,12 +649,9 @@ namespace Inferno {
             }
         }
 
-        List<SegID> path;
-
         // add nodes along the path starting at the goal
         auto* trav = &_traversalBuffer[(int)goal];
-        //if (trav->Parent >= 0) {
-        //path.push_back(goal);
+        List<SegID> path;
 
         while (trav) {
             path.push_back((SegID)trav->Index);

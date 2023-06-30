@@ -2,6 +2,7 @@
 
 #include "Level.h"
 #include "Types.h"
+#include "SoundSystem.h"
 
 namespace Inferno {
     namespace Debug {
@@ -20,7 +21,7 @@ namespace Inferno {
         List<SegID> Segments;
         List<Portal> Portals; // Which tags of this room have connections to other rooms
 
-        int Reverb = 0;
+        Sound::Reverb Reverb = Sound::Reverb::Generic;
         Color Fog;
         float FogDepth = -1;
         SegmentType Type = SegmentType::None;
@@ -116,7 +117,7 @@ namespace Inferno {
 
     class NavigationNetwork {
         struct SegmentSideNode {
-            float Distance = -1;
+            float Distance = -1; // Distance between the segment centers on this side
             SegID Connection = SegID::None;
             // Needs to be updated when doors are unlocked or walls are removed
             // todo: blocked is conditional. thief can open key doors but no other bots can.
@@ -129,21 +130,18 @@ namespace Inferno {
         };
 
         //struct PortalNode {
-        //    //RoomID Room;
+        //    struct PortalLink {
+        //        float Distance;
+        //        int Index;
+        //    };
+
+        //    Portal Side1, Side2;
         //    // distance between this portal and other portals
-        //    List<float> Distances;
+        //    List<PortalLink> Links;
+        //    WallID Wall = WallID::None;
         //};
 
-        struct RoomNode {
-            //RoomID Room; // Room this is associated with (use index?)
-            // Matches the portal ind
-            //List<PortalNode> Portals;
-
-            List<List<float>> PortalDistances; // List of distances from portal A to ABCD
-            Vector3 Center;
-        };
-
-        // State for A* traversal
+        // State for A* traversal. Reused between seg and rooms.
         struct TraversalNode {
             int Index = -1;
             int Parent = -1;
@@ -153,24 +151,17 @@ namespace Inferno {
         };
 
         List<SegmentNode> _segmentNodes;
-        //List<RoomNode> _roomNodes;
         List<TraversalNode> _traversalBuffer;
 
     public:
         NavigationNetwork() { }
 
-        NavigationNetwork(Level& level, const LevelRooms& rooms) {
+        NavigationNetwork(Level& level) {
             _segmentNodes.resize(level.Segments.size());
-            //_roomNodes.resize(rooms.Rooms.size());
             _traversalBuffer.resize(level.Segments.size());
 
             for (int id = 0; id < level.Segments.size(); id++) {
                 UpdateNode(level, (SegID)id);
-            }
-
-            for (int id = 0; id < rooms.Rooms.size(); id++) {
-                //_roomNodes[id].Center = rooms.Rooms[id].Center;
-                //UpdatePortalDistances(level, rooms.Rooms[id], _roomNodes[id]);
             }
         }
 

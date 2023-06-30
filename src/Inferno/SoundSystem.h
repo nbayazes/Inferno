@@ -83,21 +83,27 @@ namespace Inferno::Sound {
         Off,
         Default = 1,
         Generic = 2,
+        PaddedCell = 4,
         Room = 5,
+        Bathroom = 6,
         StoneRoom = 8,
         Cave = 11,
+        Arena = 12,
+        Hangar = 13,
+        Hall = 15,
         StoneCorridor = 16,
+        Alley = 17,
+        City = 18,
+        Mountains = 19,
         Quarry = 20,
         SewerPipe = 23,
         Underwater = 24,
         SmallRoom = 25,
         MediumRoom = 26,
         LargeRoom = 27,
-        Hall = 15,
         MediumHall = 28,
         LargeHall = 29,
-        Plate = 30,
-        Count
+        Plate = 30
     };
 
     void SetReverb(Reverb);
