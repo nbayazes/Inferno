@@ -222,6 +222,7 @@ namespace Inferno {
         node["ShowWireframe"] << s.ShowWireframe;
         node["RenderMode"] << (int)s.RenderMode;
         node["GizmoSize"] << s.GizmoSize;
+        node["CrosshairSize"] << s.CrosshairSize;
         node["InvertY"] << s.InvertY;
         node["InvertOrbitY"] << s.InvertOrbitY;
         node["MiddleMouseMode"] << (int)s.MiddleMouseMode;
@@ -293,6 +294,7 @@ namespace Inferno {
         ReadValue(node["ShowWireframe"], s.ShowWireframe);
         ReadValue(node["RenderMode"], (int&)s.RenderMode);
         ReadValue(node["GizmoSize"], s.GizmoSize);
+        ReadValue(node["CrosshairSize"], s.CrosshairSize);
         ReadValue(node["InvertY"], s.InvertY);
         ReadValue(node["InvertOrbitY"], s.InvertOrbitY);
         ReadValue(node["MiddleMouseMode"], (int&)s.MiddleMouseMode);
@@ -323,7 +325,7 @@ namespace Inferno {
         return s;
     }
 
-    void Settings::Save(filesystem::path path) {
+    void Settings::Save(const filesystem::path& path) {
         try {
             ryml::Tree doc(128, 128);
             doc.rootref() |= ryml::MAP;

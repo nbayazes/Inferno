@@ -150,7 +150,7 @@ namespace Inferno {
         inline EditorSettings Editor;
         inline GraphicsSettings Graphics;
 
-        void Save(filesystem::path path = "inferno.cfg");
+        void Save(const filesystem::path& path = "inferno.cfg");
         void Load(filesystem::path path = "inferno.cfg");
     }
 }
