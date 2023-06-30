@@ -53,6 +53,7 @@ namespace Inferno::Editor {
         ShowGotoDialog,
         AlignMarked,
         ResetUVs,
+        FitUVs,
         CycleRenderMode,
         CopyUVsToFaces,
         ConnectSides,

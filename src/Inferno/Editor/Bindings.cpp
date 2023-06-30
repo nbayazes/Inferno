@@ -187,6 +187,7 @@ namespace Inferno::Editor {
             case EditorAction::ShowGotoDialog: return Commands::GotoSegment;
             case EditorAction::AlignMarked: return Commands::AlignMarked;
             case EditorAction::ResetUVs: return Commands::ResetUVs;
+            case EditorAction::FitUVs: return Commands::FitUVs;
             case EditorAction::CycleRenderMode: return Commands::CycleRenderMode;
             case EditorAction::ToggleWireframe: return Commands::ToggleWireframe;
 

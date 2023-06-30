@@ -264,6 +264,7 @@ namespace Inferno::Editor {
 
             if (ImGui::BeginMenu("Texturing")) {
                 MenuCommand(Commands::ResetUVs, EditorAction::ResetUVs);
+                MenuCommand(Commands::FitUVs, EditorAction::FitUVs);
                 MenuCommand(Commands::AlignMarked, EditorAction::AlignMarked);
                 MenuCommand(Commands::CopyUVsToFaces, EditorAction::CopyUVsToFaces);
                 MenuCommand(Commands::PlanarMapping);
@@ -697,6 +698,7 @@ namespace Inferno::Editor {
 
             if (mode != SelectionMode::Object && mode != SelectionMode::Transform) {
                 MenuCommand(Commands::ResetUVs, EditorAction::ResetUVs);
+                MenuCommand(Commands::FitUVs, EditorAction::FitUVs);
                 MenuCommand(Commands::AlignMarked, EditorAction::AlignMarked);
                 MenuCommand(Commands::CopyUVsToFaces, EditorAction::CopyUVsToFaces);
                 if (ImGui::MenuItem("Clear Overlay Texture"))
