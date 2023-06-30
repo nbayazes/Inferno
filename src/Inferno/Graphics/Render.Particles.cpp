@@ -1007,6 +1007,8 @@ namespace Inferno::Render {
     void AddSparkEmitter(SparkEmitter& emitter, SegID seg, const Vector3& position) {
         emitter.Segment = seg;
         emitter.Position = position;
+        emitter.Color *= emitter.Color.w;
+        emitter.Color.w = 0;
 
         Render::Materials->LoadTexture(emitter.Texture);
         assert(emitter.Segment != SegID::None);

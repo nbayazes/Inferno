@@ -217,6 +217,7 @@ namespace Inferno::Game {
             float damageMult = std::clamp(damage / 20.0f, 1.0f, 2.0f);
             if (auto sparks = Render::EffectLibrary.GetSparks("weapon_hit_obj")) {
                 sparks->Color += weapon.Extended.ExplosionColor * 60;
+                sparks->Color.w = 1;
                 sparks->LightColor = weapon.Extended.ExplosionColor;
                 sparks->LightRadius = weapon.Extended.LightRadius;
                 sparks->Count.Min = int(sparks->Count.Min * damageMult);
