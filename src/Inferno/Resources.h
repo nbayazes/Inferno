@@ -68,9 +68,6 @@ namespace Inferno::Resources {
 
     inline HamFile GameData = {};
 
-    // Reads a file from the mission or game HOG
-    List<ubyte> ReadFile(string file);
-
     // Reads a level from the mounted mission
     Level ReadLevel(string name);
 
