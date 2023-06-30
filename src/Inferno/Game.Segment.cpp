@@ -181,15 +181,26 @@ namespace Inferno {
             return { light, light, light };
 
         Color color;
-        if (tmap1.Lighting > 0)
+
+        auto lightInfo1 = Seq::findKey(Resources::LightInfoTable, side.TMap);
+        if (lightInfo1 && lightInfo1->Color != Color(0,0,0)) {
+            color += lightInfo1->Color;
+        }
+        else if (tmap1.Lighting > 0) {
             color += Resources::GetTextureInfo(side.TMap).AverageColor;
+        }
 
         if (side.HasOverlay()) {
-            if (tmap2.Lighting > 0)
+            auto lightInfo2 = Seq::findKey(Resources::LightInfoTable, side.TMap2);
+            if (lightInfo2 && lightInfo2->Color != Color(0, 0, 0)) {
+                color += lightInfo2->Color;
+            }
+            else if (tmap2.Lighting > 0) {
                 color += Resources::GetTextureInfo(side.TMap2).AverageColor;
+            }
         }
 
         color.w = 0;
-        return color * light;
+        return color /** light*/;
     }
 }

@@ -1,4 +1,5 @@
 #include "pch.h"
+#define NOMINMAX
 #include "Types.h"
 #include "Level.h"
 #include "Utility.h"
