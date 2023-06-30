@@ -118,7 +118,7 @@ namespace Inferno::Editor {
                 MenuCommand(EditorAction::SaveAs);
 
                 ImGui::Separator();
-                
+
                 MenuCommand(EditorAction::ShowHogEditor, "Edit HOG...");
                 MenuCommand(EditorAction::ShowMissionEditor, "Edit Mission...");
 
@@ -128,20 +128,22 @@ namespace Inferno::Editor {
 
                 if (Game::Level.IsDescent2()) {
                     if (ImGui::BeginMenu("Palette")) {
-                        auto entry = [](const char* label, const string& palette) {
-                            if (ImGui::MenuItem(label, nullptr, String::ToUpper(Game::Level.Palette) == palette)) {
-                                Game::Level.Palette = palette;
-                                Resources::LoadLevel(Game::Level);
-                                Render::Materials->Reload();
-                            }
-                        };
+                        bool paletteChanged = false;
 
-                        entry("Default", "GROUPA.256");
-                        entry("Water", "WATER.256");
-                        entry("Fire", "FIRE.256");
-                        entry("Ice", "ICE.256");
-                        entry("Alien 1", "ALIEN1.256");
-                        entry("Alien 2", "ALIEN2.256");
+                        for (auto& palette : Resources::GetAvailablePalettes()) {
+                            if (ImGui::MenuItem(palette.Name.c_str(), nullptr, String::ToUpper(Game::Level.Palette) == palette.FileName)) {
+                                Game::Level.Palette = palette.FileName;
+                                paletteChanged = true;
+                            }
+                        }
+
+                        if (paletteChanged) {
+                            // Reloading should probably be done elsewhere, but it must be done after drawing the menu items
+                            // because loading the level changes the palette list.
+                            Resources::LoadLevel(Game::Level);
+                            Render::Materials->Reload();
+                        }
+
                         ImGui::EndMenu();
                     }
 
@@ -331,7 +333,7 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
                 ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
                 ImGui::MenuItem("Scale", nullptr, &Settings::Editor.Windows.Scale);
-                
+
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);
 #endif
@@ -432,7 +434,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##rdrp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
+                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg, M_PI / 4 * RadToDeg };
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
@@ -642,7 +644,8 @@ namespace Inferno::Editor {
             Input::GetMouseMode() != Input::MouseMode::Normal ||
             (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) || // Disable right click in texture mode
             Input::LeftDragState == Input::SelectionState::Dragging ||
-            ImGui::GetTopMostPopupModal()) return false;
+            ImGui::GetTopMostPopupModal())
+            return false;
 
         auto id = ImGui::GetID("context-menu");
 
@@ -902,7 +905,7 @@ namespace Inferno::Editor {
             DrawGizmoTooltip();
         }
         else if (Input::LeftDragState == Input::SelectionState::Dragging &&
-                 !ImGui::GetIO().WantCaptureMouse) {
+            !ImGui::GetIO().WantCaptureMouse) {
             DrawSelectionBox();
         }
 

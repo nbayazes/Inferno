@@ -21,11 +21,12 @@ namespace Inferno::Resources {
     List<PigBitmap> Textures;
 
     std::mutex PigMutex;
+    List<PaletteInfo> AvailablePalettes;
 
     int GetTextureCount() { return (int)Textures.size(); }
     const Palette& GetPalette() { return LevelPalette; }
 
-    void LoadRobotNames(filesystem::path path) {
+    void LoadRobotNames(const filesystem::path& path) {
         try {
             std::ifstream file(path);
             string line;
@@ -42,7 +43,7 @@ namespace Inferno::Resources {
         return RobotNames[id];
     }
 
-    void LoadPowerupNames(filesystem::path path) {
+    void LoadPowerupNames(const filesystem::path& path) {
         try {
             std::ifstream file(path);
             string line;
@@ -257,7 +258,7 @@ namespace Inferno::Resources {
 
     // Reads a file from the current mission or the file system
     // Returns empty list if not found
-    List<ubyte> TryReadFile(filesystem::path path) {
+    List<ubyte> TryReadFile(const filesystem::path& path) {
         auto fileName = path.filename().string();
         if (Game::Mission && Game::Mission->Exists(fileName)) {
             return Game::Mission->ReadEntry(fileName);
@@ -276,10 +277,26 @@ namespace Inferno::Resources {
         StreamReader reader(FileSystem::FindFile(L"descent2.ham"));
         auto ham = ReadHam(reader);
         auto hog = HogFile::Read(FileSystem::FindFile(L"descent2.hog"));
-        auto pigName = ReplaceExtension(level.Palette, ".pig");
-        auto pig = ReadPigFile(FileSystem::FindFile(pigName));
 
-        auto paletteData = hog.ReadEntry(level.Palette);
+        // Find the 256 for the palette first. In most cases it is located inside of the hog.
+        // But for custom palettes it is on the filesystem
+        auto paletteData = hog.TryReadEntry(level.Palette);
+        auto pigName = ReplaceExtension(level.Palette, ".pig");
+        auto pigPath = FileSystem::FindFile(pigName);
+
+        if (paletteData.empty()) {
+            // Wasn't in hog, find on filesystem
+            if (auto path256 = FileSystem::TryFindFile(level.Palette)) {
+                paletteData = File::ReadAllBytes(*path256);
+                pigPath = path256->replace_extension(".pig");
+            }
+            else {
+                // Give up and load groupa
+                paletteData = hog.ReadEntry("GROUPA.256");
+            }
+        }
+
+        auto pig = ReadPigFile(pigPath);
         auto palette = ReadPalette(paletteData);
         auto textures = ReadAllBitmaps(pig, palette);
 
@@ -342,6 +359,47 @@ namespace Inferno::Resources {
         }
     }
 
+    List<PaletteInfo> FindAvailablePalettes() {
+        if (Game::Level.IsDescent1()) return {};
+
+        // Hard coded palettes
+        List<PaletteInfo> palettes = {
+            { "GroupA", "GROUPA.256" },
+            { "Water", "WATER.256" },
+            { "Fire", "FIRE.256" },
+            { "Ice", "ICE.256" },
+            { "Alien 1", "ALIEN1.256" },
+            { "Alien 2", "ALIEN2.256" }
+        };
+
+        // Search game / data directories for matching pig and 256 files
+        for (auto& dir : FileSystem::GetDirectories()) {
+            for (auto& entry : filesystem::directory_iterator(dir)) {
+                filesystem::path path = entry.path();
+                if (path.extension() == ".256") {
+                    auto file = String::ToUpper(path.filename().string());
+                    filesystem::path pigPath = path;
+                    pigPath.replace_extension(".PIG");
+
+                    if (!FileSystem::TryFindFile(pigPath)) {
+                        SPDLOG_WARN("Ignoring `{}` with no matching PIG", path.string());
+                        continue; // 256 exists but the PIG doesn't
+                    }
+
+                    auto name = pigPath.filename().string();
+                    if (!Seq::exists(palettes, [&file](auto entry) { return entry.FileName == file; }))
+                        palettes.push_back({ name, file });
+                }
+            }
+        }
+
+        return palettes;
+    }
+
+    span<PaletteInfo> GetAvailablePalettes() {
+        return AvailablePalettes;
+    }
+
     // Some levels don't have the D1 reactor model set
     void FixD1ReactorModel(Level& level) {
         for (auto& obj : level.Objects) {
@@ -387,6 +445,7 @@ namespace Inferno::Resources {
     }
 
     void ResetResources() {
+        AvailablePalettes = {};
         LevelPalette = {};
         Pig = {};
         Hog = {};
@@ -414,7 +473,6 @@ namespace Inferno::Resources {
                 case ObjectType::Coop:
                     obj.Render.Model.ID = level.IsDescent1() ? Models::D1Coop : Models::D2Coop;
                     break;
-
             }
         }
     }
@@ -426,12 +484,14 @@ namespace Inferno::Resources {
         }
     }
 
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
 
             if (level.IsDescent2()) {
                 LoadDescent2Resources(level);
+                AvailablePalettes = FindAvailablePalettes();
             }
             else if (level.IsDescent1()) {
                 LoadDescent1Resources(level);
@@ -450,7 +510,7 @@ namespace Inferno::Resources {
         }
     }
 
-    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64  } };
+    const PigBitmap DEFAULT_BITMAP = { PigEntry{ "default", 64, 64 } };
 
     const PigBitmap& GetBitmap(TexID id) {
         if (Textures.empty())

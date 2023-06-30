@@ -95,4 +95,11 @@ namespace Inferno::Resources {
 
     // Loads D1 and D2 sounds
     void LoadSounds();
+
+    struct PaletteInfo {
+        string Name;
+        string FileName;
+    };
+
+    span<PaletteInfo> GetAvailablePalettes();
 }

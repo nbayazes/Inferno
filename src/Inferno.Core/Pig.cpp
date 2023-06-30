@@ -135,7 +135,7 @@ namespace Inferno {
         return bitmaps;
     }
 
-    PigFile ReadPigFile(wstring file) {
+    PigFile ReadPigFile(const filesystem::path& file) {
         StreamReader reader(file);
         PigFile pig;
         pig.Path = file;
