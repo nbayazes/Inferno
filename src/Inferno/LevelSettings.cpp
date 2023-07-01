@@ -164,7 +164,7 @@ namespace Inferno {
 
     void LoadLevelMetadata(Level& level, const string& data) {
         try {
-            ryml::Tree doc = ryml::parse(ryml::to_csubstr(data));
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {

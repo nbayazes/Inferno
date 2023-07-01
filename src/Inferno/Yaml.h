@@ -26,42 +26,42 @@ namespace Yaml {
 
     // Tries to read a value from the node. Value is unchanged if node is invalid.
     template<class T>
-    void ReadValue(ryml::NodeRef node, T& value) {
+    void ReadValue(ryml::ConstNodeRef node, T& value) {
         static_assert(!std::is_same_v<T, const char*>, "Must be writable value");
-        if (!node.is_seed() && node.has_val()) node >> value;
+        if (!node.valid()) return;
+        node >> value;
     }
 
     // Specification for bools. Reading them as bools has undeseriable behavior.
     template<>
-    inline void ReadValue(ryml::NodeRef node, Inferno::VClipID& id) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, Inferno::VClipID& id) {
+        if (!node.valid()) return;
         node >> (int&)id;
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, Inferno::SoundID& id) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, Inferno::SoundID& id) {
+        if (!node.valid()) return;
         node >> (int&)id;
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, Inferno::TexID& id) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, Inferno::TexID& id) {
+        if (!node.valid()) return;
         node >> (Inferno::int16&)id;
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, bool& value) {
+    inline void ReadValue(ryml::ConstNodeRef node, bool& value) {
+        if (!node.valid()) return;
         int val = 0;
-        if (!node.is_seed() && node.has_val()) {
-            node >> val;
-            value = val;
-        }
+        node >> val;
+        value = val;
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, std::filesystem::path& value) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, std::filesystem::path& value) {
+        if (!node.valid()) return;
         std::string path;
         node >> path;
         if (std::filesystem::exists(path))
@@ -70,8 +70,8 @@ namespace Yaml {
             SPDLOG_WARN("Invalid path in config:\n{}", path);
     }
 
-    inline void ReadValue(ryml::NodeRef node, std::array<bool, 4>& a) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, std::array<bool, 4>& a) {
+        if (!node.valid()) return;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -85,8 +85,8 @@ namespace Yaml {
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, DirectX::SimpleMath::Color& value) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Color& value) {
+        if (!node.valid()) return;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -104,8 +104,8 @@ namespace Yaml {
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, DirectX::SimpleMath::Vector3& value) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector3& value) {
+        if (!node.valid()) return;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -120,8 +120,8 @@ namespace Yaml {
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, DirectX::SimpleMath::Vector2& value) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, DirectX::SimpleMath::Vector2& value) {
+        if (!node.valid()) return;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ',', true);
@@ -135,8 +135,8 @@ namespace Yaml {
     }
 
     template<>
-    inline void ReadValue(ryml::NodeRef node, Inferno::Tag& value) {
-        if (node.is_seed() || !node.has_val()) return;
+    inline void ReadValue(ryml::ConstNodeRef node, Inferno::Tag& value) {
+        if (!node.valid()) return;
         std::string str;
         node >> str;
         auto token = Inferno::String::Split(str, ':', true);

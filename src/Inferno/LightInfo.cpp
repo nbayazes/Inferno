@@ -110,7 +110,7 @@ namespace Inferno {
         Dictionary<LevelTexID, TextureLightInfo> lightInfo;
 
         try {
-            ryml::Tree doc = ryml::parse(ryml::to_csubstr(yaml));
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
@@ -138,7 +138,7 @@ namespace Inferno {
 
     void LoadMaterialTable(const string& yaml, span<MaterialInfo> materials) {
         try {
-            ryml::Tree doc = ryml::parse(ryml::to_csubstr(yaml));
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
             int count = 0;
 

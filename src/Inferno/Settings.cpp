@@ -356,7 +356,7 @@ namespace Inferno {
 
             std::stringstream buffer;
             buffer << file.rdbuf();
-            ryml::Tree doc = ryml::parse(ryml::to_csubstr(buffer.str()));
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(buffer.str()));
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
