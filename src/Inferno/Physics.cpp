@@ -14,6 +14,9 @@
 #include "Game.Wall.h"
 #include "Editor/Editor.Segment.h"
 
+//#define DEBUG_OBJ_OUTLINE
+//#define DEBUG_LEVEL_OUTLINE
+
 using namespace DirectX;
 
 namespace Inferno {
@@ -771,14 +774,28 @@ namespace Inferno {
         if (target.Render.Type != RenderType::Model) return {};
         auto& model = Resources::GetModel(target.Render.Model.ID);
 
-        float travelDist = obj.Physics.Velocity.Length() * dt;
-        bool needsRaycast = travelDist > obj.Radius * 1.5f;
-
-        if (!needsRaycast && Vector3::Distance(obj.Position, target.Position) > obj.Radius + target.Radius)
-            return {}; // Objects too far apart
-
+        const float travelDist = obj.Physics.Velocity.Length() * dt;
+        const bool needsRaycast = travelDist > obj.Radius * 1.5f;
         Vector3 direction;
         obj.Physics.Velocity.Normalize(direction);
+        const auto objDistance = Vector3::Distance(obj.Position, target.Position);
+        const auto radii = obj.Radius + target.Radius;
+
+        if (needsRaycast) {
+            // Add both radii together to ensure the ray doesn't miss the bounds
+            BoundingSphere sphere(target.Position, radii);
+            Ray pathRay(obj.Position, direction);
+            float dist;
+            if (!pathRay.Intersects(sphere, dist))
+                return {}; // Ray doesn't intersect
+
+            if (dist > travelDist && objDistance > radii)
+                return {}; // Ray too far away and not inside sphere
+        }
+        else {
+            if (objDistance > radii)
+                return {}; // Objects too far apart
+        }
 
         // transform ray to model space of the target object
         auto transform = target.GetTransform();
@@ -787,7 +804,7 @@ namespace Inferno {
         auto localPos = Vector3::Transform(obj.Position, invTransform);
         auto localDir = Vector3::TransformNormal(direction, invRotation);
         localDir.Normalize();
-        Ray ray = { localPos, localDir }; // update the input ray
+        Ray ray(localPos, localDir); // update the input ray
 
         HitInfo hit;
         Vector3 averagePosition;
@@ -819,16 +836,13 @@ namespace Inferno {
                         float dist;
                         if (triFacesObj && ray.Intersects(p0, p1, p2, dist) && dist < travelDist) {
                             // Move object to intersection of face then proceed as usual
+                            // Note that this might fail for fast, large objects due to the gaps between polygons.
+                            // In practice this is rarely an issue due to fast objects such as gauss and vulcan having small radii.
                             localPos += localDir * (dist - obj.Radius);
                         }
                     }
 
-                    Plane plane(p0 + offset, p1 + offset, p2 + offset);
-                    auto planeDist = -plane.DotCoordinate(localPos); // flipped winding
-                    if (planeDist > 0 || planeDist < -obj.Radius)
-                        continue; // Object isn't close enough to the triangle plane
-
-#ifdef DEBUG_OUTLINE
+#ifdef DEBUG_OBJ_OUTLINE
                     auto drawTriangleEdge = [&transform](const Vector3& a, const Vector3& b) {
                         auto dbgStart = Vector3::Transform(a, transform);
                         auto dbgEnd = Vector3::Transform(b, transform);
@@ -838,13 +852,23 @@ namespace Inferno {
                     drawTriangleEdge(p0, p1);
                     drawTriangleEdge(p1, p2);
                     drawTriangleEdge(p2, p0);
-                    {
-                        auto center = (p0 + p1 + p2) / 3;
-                        auto dbgStart = Vector3::Transform(center, transform);
-                        auto dbgEnd = Vector3::Transform(center + normal, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    }
+
+                    //drawTriangleEdge(p0 + offset, p1 + offset);
+                    //drawTriangleEdge(p1 + offset, p2 + offset);
+                    //drawTriangleEdge(p2 + offset, p0 + offset);
+
+                    //{
+                    //    auto center = (p0 + p1 + p2) / 3;
+                    //    auto dbgStart = Vector3::Transform(center, transform);
+                    //    auto dbgEnd = Vector3::Transform(center + normal, transform);
+                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
+                    //}
 #endif
+
+                    Plane plane(p0 + offset, p1 + offset, p2 + offset);
+                    auto planeDist = -plane.DotCoordinate(localPos); // flipped winding
+                    if (planeDist > 0 || planeDist < -obj.Radius)
+                        continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(localPos, plane);
                     float hitDistance = FLT_MAX;
@@ -956,6 +980,12 @@ namespace Inferno {
                     bool triFacesObj = pathRay.direction.Dot(side.Normals[tri]) <= 0;
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal;
+
+#ifdef DEBUG_LEVEL_OUTLINE
+                    Render::Debug::DrawLine(p0, p1, { 0, 1, 0 });
+                    Render::Debug::DrawLine(p1, p2, { 0, 1, 0 });
+                    Render::Debug::DrawLine(p2, p0, { 0, 1, 0 });
+#endif
 
                     // a size 4 object would need a velocity > 250 to clip through walls
                     if (obj.Type == ObjectType::Weapon) {

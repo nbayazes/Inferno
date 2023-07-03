@@ -24,14 +24,13 @@ namespace Inferno {
     };
 
     struct Submodel {
-        int Pointer;
-        Vector3 Offset;
+        int Pointer; // Offset to submodel data chunk
+        Vector3 Offset; // Joint offset to submodel origin
         Vector3 Normal; // norm for sep plane
         Vector3 Point; // point on sep plane
         float Radius;
         ubyte Parent;
         Vector3 Min, Max; // Geometric min/max
-        Vector3 Center; // Geometric center
         DirectX::BoundingOrientedBox Bounds;
 
         // Mesh data
@@ -63,6 +62,7 @@ namespace Inferno {
         List<Vector3> Vertices;
         List<Vector3> Normals, FlatNormals; // 1 normal per three Vertices
 
+        // Gets the joint offset of a submodel
         Vector3 GetSubmodelOffset(int index) const {
             if (!Seq::inRange(Submodels, index)) return Vector3::Zero;
 
@@ -74,6 +74,12 @@ namespace Inferno {
             }
 
             return submodelOffset;
+        }
+
+        // Gets the geometric center of a submodel
+        Vector3 GetSubmodelCenter(int index) const {
+            if (!Seq::inRange(Submodels, index)) return Vector3::Zero;
+            return GetSubmodelOffset(index) + Submodels[index].Bounds.Center;
         }
     };
 

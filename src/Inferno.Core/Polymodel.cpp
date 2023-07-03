@@ -51,22 +51,24 @@ namespace Inferno {
     }
 
     void UpdateGeometricProperties(Model& model) {
-        int smIndex = 0;
+        //int smIndex = 0;
         for (auto& sm : model.Submodels) {
-            auto offset = model.GetSubmodelOffset(smIndex++);
+            //auto offset = model.GetSubmodelOffset(smIndex++);
             if (sm.ExpandedPoints.empty()) continue;
+
+            //float radius = 0;
 
             for (auto& p : sm.ExpandedPoints) {
                 sm.Min = Vector3::Min(p.Point, sm.Min);
                 sm.Max = Vector3::Max(p.Point, sm.Max);
-                sm.Center += p.Point;
+                //auto r = Vector3::Distance(p.Point, Vector3::Zero);
+                //if (r > radius) radius = r;
             }
 
-            sm.Center /= (float)sm.ExpandedPoints.size();
-            sm.Radius = Vector3::Distance(sm.Max, sm.Min) / 2;
-
-            sm.Bounds.Center = (sm.Max + sm.Min) / 2 + offset;
+            sm.Bounds.Center = (sm.Max + sm.Min) / 2 /*+ offset*/;
             sm.Bounds.Extents = (sm.Max - sm.Min) / 2;
+            //sm.Radius = std::max(std::max(sm.Bounds.Extents.x, sm.Bounds.Extents.y), sm.Bounds.Extents.z);
+            //sm.Radius = radius;
         }
     }
 
@@ -95,7 +97,8 @@ namespace Inferno {
                         auto n = reader.ReadInt16();
                         // Discard the point index. This assumes that vertices are always stored in submodel order
                         // which holds true for all official models.
-                        /*auto pointIndex =*/ reader.ReadInt16();
+                        /*auto pointIndex =*/
+                        reader.ReadInt16();
                         auto zero = reader.ReadInt16();
                         if (zero != 0) throw Exception("Defpoint Start must equal zero");
 
@@ -112,8 +115,10 @@ namespace Inferno {
                             throw Exception("Polygon must have between 3 and 64 points");
 
                         // vectors used for normal facing checks (no longer needed)
-                        /*auto v0 =*/ reader.ReadVector(); // @4
-                        /*auto v1 =*/ reader.ReadVector(); // @16
+                        /*auto v0 =*/
+                        reader.ReadVector(); // @4
+                        /*auto v1 =*/
+                        reader.ReadVector(); // @16
 
                         auto color = reader.ReadUInt16();
                         auto colorf = UnpackColor(color);
@@ -160,8 +165,10 @@ namespace Inferno {
                             throw Exception("Polygon must have between 3 and 64 points");
 
                         // vectors used for normal facing checks (no longer needed)
-                        /*auto v0 =*/ reader.ReadVector(); // @4
-                        /*auto v1 =*/ reader.ReadVector(); // @16
+                        /*auto v0 =*/
+                        reader.ReadVector(); // @4
+                        /*auto v1 =*/
+                        reader.ReadVector(); // @16
                         auto tmap = reader.ReadInt16(); // @28
                         if (tmap > highestTex) highestTex = tmap;
 
@@ -266,11 +273,10 @@ namespace Inferno {
         }
 
         // Generate normals. We do this here rather than inline because some custom models reference points before they are loaded.
-
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
             auto& submodel = model.Submodels[smIndex];
 
-            auto calcNormals = [&model] (span<const uint16> indices, List<Vector3>& normals) {
+            auto calcNormals = [&model](span<const uint16> indices, List<Vector3>& normals) {
                 for (int i = 0; i < indices.size(); i += 3) {
                     Vector3 p0 = model.Vertices[indices[i + 0]];
                     Vector3 p1 = model.Vertices[indices[i + 1]];

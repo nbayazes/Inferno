@@ -25,7 +25,7 @@ namespace Inferno::Render::Debug {
 
     // Draws a circle on the x/y plane with the given radius
     void DrawCircle(float radius, const Matrix& transform, const Color& color);
-    void DrawFacingCircle(const Vector3& position, float radius, const Color& color);
+    void DrawSolidCircle(const Vector3& position, float radius, const Color& color);
 
     void DrawFacingSquare(const Vector3& p, float size, const Color& color);
 

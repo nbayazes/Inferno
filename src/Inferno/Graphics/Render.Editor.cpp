@@ -13,7 +13,6 @@
 #include "Editor/UI/EditorUI.h"
 #include "Game.Text.h"
 #include "Editor/Bindings.h"
-#include "Game.AI.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -21,13 +20,35 @@ namespace Inferno::Render {
         Debug::DrawCircle(radius, facingMatrix, color);
     }
 
+    void DrawObjectBoundingBoxes(const Object& object, const Color& color) {
+        if (Game::GetState() != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
+        if (object.Render.Type != RenderType::Model) return;
+
+        auto& model = Resources::GetModel(object.Render.Model.ID);
+        int index = 0;
+        auto transform = object.GetTransform(Game::LerpAmount);
+        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+
+        for (auto& submodel : model.Submodels) {
+            auto offset = model.GetSubmodelOffset(index++);
+            auto world = Matrix::CreateTranslation(offset) * transform;
+            auto bounds = submodel.Bounds;
+            bounds.Transform(bounds, world);
+            Debug::DrawBoundingBox(bounds, color);
+
+            //auto center = Vector3::Transform(offset, transform);
+            //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
+            //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.1, 0.5, 0.1, 0.50 });
+            //DrawFacingCircle(center, submodel.Radius, Color(1, 0, 1));
+            //bounds.Center = bounds.Center + submodel.Center;
+        }
+    }
+
     void DrawObjectOutline(const Object& object, const Color& color, float scale = 1.0f) {
         if (object.Radius == 0) return;
         if (Game::GetState() != GameState::Editor || Settings::Inferno.ScreenshotMode) return;
         DrawFacingCircle(object.Position, object.Radius * scale, color);
-        // submodel hitboxes
-        //auto submodelFacingMatrix = Matrix::CreateBillboard(Vector3::Transform(submodelOffset, objectTransform), Camera.Position, Camera.Up);
-        //Debug::DrawCircle(submodel.Radius, submodelFacingMatrix, { 0.1, 0.5, 0.1, 0.50 });
+        //DrawObjectBoundingBoxes(object, Color(0, 1, 0));
     }
 
     void DrawFaceNormals(Level& level) {

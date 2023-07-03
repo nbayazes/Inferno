@@ -291,8 +291,8 @@ namespace Inferno::Render::Debug {
         }
     }
 
-    // Draws a circle that always faces the camera
-    void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
+    // Draws a solid circle that always faces the camera
+    void DrawSolidCircle(const Vector3& position, float radius, const Color& color) {
         auto transform = Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
         Vector3 p0 = Vector3::Transform({ radius, 0, 0 }, transform);
 
