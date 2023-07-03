@@ -82,7 +82,7 @@ namespace Inferno::Editor {
         }
 
         // Snapshots everything
-        void SnapshotLevel(string name) {
+        void SnapshotLevel(string_view name) {
             if (!_level) return;
 
             // Copy the current level state into the lambda used to restore this snapshot
@@ -189,9 +189,9 @@ namespace Inferno::Editor {
             return _snapshot->Data & flag;
         }
 
-        void AddSnapshot(string name, Snapshot::Flag flag, const std::function<void(Level&)>&& apply) {
+        void AddSnapshot(string_view name, Snapshot::Flag flag, const std::function<void(Level&)>&& apply) {
             //SPDLOG_INFO("Snapshotting {}", name);
-            Snapshot snapshot{ _currentId++, name, apply, Editor::Selection.Tag(), Marked, flag };
+            Snapshot snapshot{ _currentId++, string(name), apply, Editor::Selection.Tag(), Marked, flag };
 
             // discard redos if we're not at latest snapshot
             if (_snapshot != _snapshots.end())

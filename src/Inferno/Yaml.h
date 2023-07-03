@@ -151,6 +151,10 @@ namespace Yaml {
         }
     }
 
+    inline void ReadString(ryml::ConstNodeRef node, std::string& value) {
+        return ReadValue<std::string>(node, value);
+    }
+
     inline std::string EncodeArray(const std::array<bool, 4>& a) {
         return fmt::format("{}, {}, {}, {}", (int)a[0], (int)a[1], (int)a[2], (int)a[3]);
     }
@@ -170,10 +174,6 @@ namespace Yaml {
 
     inline std::string EncodeTag(Inferno::Tag tag) {
         return fmt::format("{}:{}", (int)tag.Segment, (int)tag.Side);
-    }
-
-    inline void ReadString(ryml::NodeRef node, std::string& value) {
-        return ReadValue<std::string>(node, value);
     }
 
     template<class T>

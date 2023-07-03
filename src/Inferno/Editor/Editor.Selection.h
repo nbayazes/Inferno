@@ -29,7 +29,6 @@ namespace Inferno::Editor {
         Vector3 Normal;
         float Distance = 0;
         ObjID Object = ObjID::None;
-        bool operator<=>(const SelectionHit& rhs) const = default;
         bool operator==(const SelectionHit& rhs) const {
             return Tag == rhs.Tag && Edge == rhs.Edge && Object == rhs.Object;
         }
@@ -60,7 +59,7 @@ namespace Inferno::Editor {
         Tag Tag() const { return { Segment, Side }; }
         PointTag PointTag() const { return { Segment, Side, Point }; }
 
-        void Click(Level&, Ray ray, SelectionMode, bool includeInvisible);
+        void Click(Level&, const Ray& ray, SelectionMode, bool includeInvisible);
 
         void Forward();
         void Back();
@@ -284,7 +283,7 @@ namespace Inferno::Editor {
     }
 
     // Executes a function on each valid marked object
-    void ForMarkedObjects(std::function<void(Object&)> fn);
+    void ForMarkedObjects(const std::function<void(Object&)>& fn);
 
     namespace Commands {
         void MarkCoplanar(Tag);

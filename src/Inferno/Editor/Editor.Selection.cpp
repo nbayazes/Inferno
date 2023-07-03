@@ -80,7 +80,7 @@ namespace Inferno::Editor {
         return hits;
     }
 
-    void EditorSelection::Click(Level& level, Ray ray, SelectionMode mode, bool includeInvisible) {
+    void EditorSelection::Click(Level& level, const Ray& ray, SelectionMode mode, bool includeInvisible) {
         List<SelectionHit> hits;
 
         if (mode == SelectionMode::Object)
@@ -162,7 +162,6 @@ namespace Inferno::Editor {
         switch (Settings::Editor.SelectionMode) {
             case SelectionMode::Segment:
             {
-                auto segVerts = segment.GetVertices(level);
                 auto front = segment.GetVertexIndices(SideID::Front);
                 auto back = segment.GetVertexIndices(SideID::Back);
                 for (auto& i : front) points.push_back(i);
@@ -630,11 +629,11 @@ namespace Inferno::Editor {
 
     // Returns true if b is between a and c
     constexpr bool Between(float a, float b, float c) {
-        return a < c ? (a < b) && (b < c) : (c < b) && (b < a);
+        return a < c ? a < b && b < c : c < b && b < a;
     }
 
     void MultiSelection::UpdateFromWindow(Level& level, Vector2 p0, Vector2 p1, const Camera& camera) {
-        auto MarkOrUnmark = [&](const Vector3& pos, auto&& collection, auto val) {
+        auto markOrUnmark = [&](const Vector3& pos, auto&& collection, auto val) {
             if (Between(p0.x, pos.x, p1.x) && Between(p0.y, pos.y, p1.y)) {
                 if (Input::ShiftDown)
                     collection.erase(val);
@@ -653,7 +652,7 @@ namespace Inferno::Editor {
                     auto& seg = level.GetSegment(i);
                     if (!frustum.Contains(seg.Center)) continue;
                     auto vscreen = camera.Project(seg.Center, Matrix::Identity);
-                    MarkOrUnmark(vscreen, Segments, i);
+                    markOrUnmark(vscreen, Segments, i);
                 }
                 break;
             }
@@ -666,7 +665,7 @@ namespace Inferno::Editor {
                         auto face = Face::FromSide(level, seg, side);
                         if (!frustum.Contains(face.Center())) continue;
                         auto vscreen = camera.Project(face.Center(), Matrix::Identity);
-                        MarkOrUnmark(vscreen, Faces, Tag{ i, side });
+                        markOrUnmark(vscreen, Faces, Tag{ i, side });
                     }
                 }
                 break;
@@ -678,7 +677,7 @@ namespace Inferno::Editor {
                     auto& v = level.Vertices[i];
                     if (!frustum.Contains(v)) continue;
                     auto vscreen = camera.Project(v, Matrix::Identity);
-                    MarkOrUnmark(vscreen, Points, i);
+                    markOrUnmark(vscreen, Points, i);
                 }
                 break;
             }
@@ -689,7 +688,7 @@ namespace Inferno::Editor {
                     auto pos = obj.Position;
                     if (!frustum.Contains(pos)) continue;
                     auto vscreen = camera.Project(pos, Matrix::Identity);
-                    MarkOrUnmark(vscreen, Objects, (ObjID)i);
+                    markOrUnmark(vscreen, Objects, (ObjID)i);
                 }
                 break;
             }
@@ -801,7 +800,7 @@ namespace Inferno::Editor {
         return !seg.SideHasConnection(tag.Side);
     }
 
-    void ForMarkedObjects(std::function<void(Object&)> fn) {
+    void ForMarkedObjects(const std::function<void(Object&)>& fn) {
         for (auto& id : Editor::Marked.Objects) {
             if (auto o = Game::Level.TryGetObject(id))
                 fn(*o);
