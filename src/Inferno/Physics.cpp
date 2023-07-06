@@ -15,7 +15,7 @@
 #include "Editor/Editor.Segment.h"
 
 //#define DEBUG_OBJ_OUTLINE
-//#define DEBUG_LEVEL_OUTLINE
+// #define DEBUG_LEVEL_OUTLINE
 
 using namespace DirectX;
 
@@ -709,7 +709,7 @@ namespace Inferno {
         }
     }
 
-    void CollideObjects(const LevelHit& hit, Object& obj, Object& target, float /*dt*/) {
+    void CollideObjects(const LevelHit& hit, const Object& obj, Object& target, float /*dt*/) {
         if (hit.Speed <= 0.1f) return;
 
         //SPDLOG_INFO("{}-{} impact speed: {}", a.Signature, b.Signature, hit.Speed);
@@ -725,7 +725,7 @@ namespace Inferno {
         //v1 = v2 = hit.Normal * hit.Speed;
 
         // Player ramming a robot should impart less force than a weapon
-        //float restitution = a.Type == ObjectType::Player ? 0.6f : 1.0f;
+        //float restitution = obj.Type == ObjectType::Player ? 0.6f : 1.0f;
 
         auto m1 = obj.Physics.Mass == 0.0f ? 1.0f : obj.Physics.Mass;
         auto m2 = target.Physics.Mass == 0.0f ? 1.0f : target.Physics.Mass;
@@ -741,50 +741,64 @@ namespace Inferno {
         //    b.Physics.Velocity += hit.Normal * (newV2 - v2);
 
         float speed = hit.Speed;
+        auto normal = -hit.Normal;
 
         if (obj.Type == ObjectType::Weapon) {
             auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
             if (weapon.SplashRadius > 0)
                 speed += weapon.Damage[Game::Difficulty] * 4; // Damage equals force
+
+            // Use projectile velocity as hit normal so torque is applied reliably
+            obj.Physics.Velocity.Normalize(normal);
         }
 
-        auto force = -hit.Normal * speed * m1 / m2;
-        constexpr float RESITUTION = 0.5f;
-        target.Physics.Velocity += force * RESITUTION;
-        obj.LastHitForce = target.LastHitForce = force * RESITUTION;
+        auto force = normal * speed * m1 / m2;
+
+        const float resitution = obj.Type == ObjectType::Player ? 0.10f : 0.5f;
+        target.Physics.Velocity += force * resitution;
+        target.LastHitForce = force * resitution;
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
         if (/*a.Type == ObjectType::Weapon &&*/ target.Type == ObjectType::Robot) {
+            if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
+            if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
+
+            SPDLOG_INFO("Force: {}, {}, {}", force.x, force.y, force.z);
             Matrix basis(target.Rotation);
             basis = basis.Invert();
-            force = Vector3::Transform(force * 2, basis); // transform forces to basis of object
+            force = Vector3::Transform(force, basis); // transform force to basis of object
+            //SPDLOG_INFO("Local force: {}, {}, {}", force.x, force.y, force.z);
+
             auto arm = Vector3::Transform(hit.Point - target.Position, basis);
             const auto torque = force.Cross(arm);
             // moment of inertia. solid sphere I = 2/5 MR^2. Thin shell: 2/3 MR^2
             const auto inertia = 1.0f / 6.0f * m2 * target.Radius * target.Radius;
-            const auto accel = torque / inertia;
+            auto accel = torque / inertia;
+            //SPDLOG_INFO("Applied accel p: {} y: {} r: {}", accel.x, accel.y, accel.z);
             target.Physics.AngularAcceleration += accel;
         }
     }
 
 
     // Performs intersection checks between an object's sphere and another object's model mesh.
-    // Object is repositioned based on the intersections.
-    HitInfo IntersectSpherePoly(Object& obj, const Object& target, float dt) {
-        if (target.Render.Type != RenderType::Model) return {};
-        auto& model = Resources::GetModel(target.Render.Model.ID);
+    // Target is repositioned based on the intersections.
+    HitInfo IntersectSpherePoly(const Object& sphereSource, const Object& meshSource, Object& target, float dt) {
+        if (meshSource.Render.Type != RenderType::Model) return {};
+        auto& model = Resources::GetModel(meshSource.Render.Model.ID);
 
-        const float travelDist = obj.Physics.Velocity.Length() * dt;
-        const bool needsRaycast = travelDist > obj.Radius * 1.5f;
+        const float speed = sphereSource.Physics.Velocity.Length();
+        const float travelDist = speed * dt;
+        const bool needsRaycast = travelDist > sphereSource.Radius * 1.5f;
         Vector3 direction;
-        obj.Physics.Velocity.Normalize(direction);
-        const auto objDistance = Vector3::Distance(obj.Position, target.Position);
-        const auto radii = obj.Radius + target.Radius;
+        sphereSource.Physics.Velocity.Normalize(direction);
+
+        const auto objDistance = Vector3::Distance(sphereSource.Position, meshSource.Position);
+        const auto radii = sphereSource.Radius + meshSource.Radius;
 
         if (needsRaycast) {
             // Add both radii together to ensure the ray doesn't miss the bounds
-            BoundingSphere sphere(target.Position, radii);
-            Ray pathRay(obj.Position, direction);
+            BoundingSphere sphere(meshSource.Position, radii);
+            Ray pathRay(sphereSource.Position, direction);
             float dist;
             if (!pathRay.Intersects(sphere, dist))
                 return {}; // Ray doesn't intersect
@@ -798,10 +812,10 @@ namespace Inferno {
         }
 
         // transform ray to model space of the target object
-        auto transform = target.GetTransform();
+        auto transform = meshSource.GetTransform();
         auto invTransform = transform.Invert();
-        auto invRotation = Matrix(target.Rotation).Invert();
-        auto localPos = Vector3::Transform(obj.Position, invTransform);
+        auto invRotation = Matrix(meshSource.Rotation).Invert();
+        auto localPos = Vector3::Transform(sphereSource.Position, invTransform);
         auto localDir = Vector3::TransformNormal(direction, invRotation);
         localDir.Normalize();
         Ray ray(localPos, localDir); // update the input ray
@@ -810,6 +824,12 @@ namespace Inferno {
         Vector3 averagePosition;
         int hits = 0;
         int texNormalIndex = 0, flatNormalIndex = 0;
+
+        auto drawTriangleEdge = [&transform](const Vector3& a, const Vector3& b, const Color& color) {
+            auto dbgStart = Vector3::Transform(a, transform);
+            auto dbgEnd = Vector3::Transform(b, transform);
+            Render::Debug::DrawLine(dbgStart, dbgEnd, color);
+        };
 
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
             auto submodelOffset = model.GetSubmodelOffset(smIndex);
@@ -830,7 +850,7 @@ namespace Inferno {
                     //assert(normal == normal2);
 
                     bool triFacesObj = localDir.Dot(normal) <= 0;
-                    auto offset = normal * obj.Radius; // offset triangle by radius to account for object size
+                    auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
 
                     if (needsRaycast) {
                         float dist;
@@ -838,41 +858,24 @@ namespace Inferno {
                             // Move object to intersection of face then proceed as usual
                             // Note that this might fail for fast, large objects due to the gaps between polygons.
                             // In practice this is rarely an issue due to fast objects such as gauss and vulcan having small radii.
-                            localPos += localDir * (dist - obj.Radius);
+                            localPos += localDir * (dist - sphereSource.Radius);
                         }
                     }
 
-#ifdef DEBUG_OBJ_OUTLINE
-                    auto drawTriangleEdge = [&transform](const Vector3& a, const Vector3& b) {
-                        auto dbgStart = Vector3::Transform(a, transform);
-                        auto dbgEnd = Vector3::Transform(b, transform);
-                        Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    };
-
-                    drawTriangleEdge(p0, p1);
-                    drawTriangleEdge(p1, p2);
-                    drawTriangleEdge(p2, p0);
-
-                    //drawTriangleEdge(p0 + offset, p1 + offset);
-                    //drawTriangleEdge(p1 + offset, p2 + offset);
-                    //drawTriangleEdge(p2 + offset, p0 + offset);
-
-                    //{
-                    //    auto center = (p0 + p1 + p2) / 3;
-                    //    auto dbgStart = Vector3::Transform(center, transform);
-                    //    auto dbgEnd = Vector3::Transform(center + normal, transform);
-                    //    Render::Debug::DrawLine(dbgStart, dbgEnd, { 0, 1, 0 });
-                    //}
-#endif
-
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
                     auto planeDist = -plane.DotCoordinate(localPos); // flipped winding
-                    if (planeDist > 0 || planeDist < -obj.Radius)
+                    if (planeDist > 0 || planeDist < -sphereSource.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(localPos, plane);
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal = normal;
+
+#ifdef DEBUG_OBJ_OUTLINE
+                    drawTriangleEdge(p0, p1, { 0, 1, 0 });
+                    drawTriangleEdge(p1, p2, { 0, 1, 0 });
+                    drawTriangleEdge(p2, p0, { 0, 1, 0 });
+#endif
 
                     if (triFacesObj && TriangleContainsPoint(p0 + offset, p1 + offset, p2 + offset, point)) {
                         // point was inside the triangle and behind the plane
@@ -885,12 +888,20 @@ namespace Inferno {
                         // Point wasn't inside the triangle, check the edges
                         auto [triPoint, triDist] = ClosestPointOnTriangle2(p0, p1, p2, localPos);
 
-                        if (triDist <= obj.Radius) {
+                        if (triDist <= sphereSource.Radius) {
                             auto edgeNormal = localPos - triPoint;
                             edgeNormal.Normalize(hitNormal);
 
-                            if (ray.direction.Dot(edgeNormal) > 0)
-                                continue; // velocity going away from edge
+                            // If this is not present an object can become stuck inside of another one due to
+                            // repositioning using an average.
+                            //
+                            // However, enabling it causes moving objects to not correctly collide.
+                            // For example a rotating robot will not collide with a stationary or slow moving player reliably.
+                            //
+                            // The fix would be to account for the rotational speed and velocity of the source object
+                            // in relation to the target.
+                            //if (velocity > 1.0f && ray.direction.Dot(edgeNormal) > 0)
+                            //    continue; // velocity going away from edge so object doesn't get stuck inside
 
                             // Object hit a triangle edge
                             hitDistance = triDist;
@@ -898,25 +909,46 @@ namespace Inferno {
                         }
                     }
 
-                    if (hitDistance < obj.Radius) {
+                    if (hitDistance < sphereSource.Radius) {
+#ifdef DEBUG_OBJ_OUTLINE
+                        drawTriangleEdge(p0, p1, { 1, 0, 0 });
+                        drawTriangleEdge(p1, p2, { 1, 0, 0 });
+                        drawTriangleEdge(p2, p0, { 1, 0, 0 });
+
+                        //drawTriangleEdge(p0 + offset, p1 + offset);
+                        //drawTriangleEdge(p1 + offset, p2 + offset);
+                        //drawTriangleEdge(p2 + offset, p0 + offset);
+#endif
                         // Transform from local back to world space
                         hit.Point = Vector3::Transform(hitPoint, transform);
-                        hit.Normal = Vector3::TransformNormal(hitNormal, target.Rotation);
+                        hit.Normal = Vector3::TransformNormal(hitNormal, meshSource.Rotation);
                         hit.Distance = hitDistance;
-                        auto nDotVel = hit.Normal.Dot(obj.Physics.Velocity);
-                        hit.Speed = std::max(std::abs(nDotVel), hit.Speed);
+
+                        auto nDotVel = hit.Normal.Dot(sphereSource.Physics.Velocity);
+                        hit.Speed = speed;
 
                         //Debug::ClosestPoints.push_back(hitPoint);
                         //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
 
-                        if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
-                            obj.Physics.Velocity -= hit.Normal * nDotVel; // slide along wall
+                        if (!HasFlag(sphereSource.Physics.Flags, PhysicsFlag::Piercing)) {
+                            if (sphereSource.Type != ObjectType::Weapon)
+                                target.Physics.Velocity -= hit.Normal * nDotVel; // slide along triangle
 
-                            if (obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor) {
-                                auto pos = hit.Point + hit.Normal * obj.Radius;
-                                averagePosition += pos;
+                            // Don't move weapons or reactor on colliding
+                            if (sphereSource.Type != ObjectType::Weapon && sphereSource.Type != ObjectType::Reactor) {
+                                auto pos = hit.Point + hit.Normal * sphereSource.Radius;
+
+                                if (travelDist < 0.1) {
+                                    // against immobile objects use average position to prevent
+                                    // clipping through walls (wedging player into reactor near wall)
+                                    averagePosition += pos;
+                                    hits++;
+                                }
+                                else {
+                                    // against moving objects position the object outside to prevent intersections
+                                    target.Position = pos;
+                                }
                             }
-                            hits++;
                         }
                     }
                 }
@@ -926,10 +958,10 @@ namespace Inferno {
             hitTestIndices(submodel.FlatIndices, model.FlatNormals, flatNormalIndex);
         }
 
-        if (hits > 0 && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Reactor) {
+        if (hits > 0 && sphereSource.Type != ObjectType::Weapon && sphereSource.Type != ObjectType::Reactor) {
             // Don't move weapons or reactors
             // Move objects to the average position of all hits. This fixes jitter against more complex geometry and when nudging between walls.
-            obj.Position = averagePosition / (float)hits;
+            target.Position = averagePosition / (float)hits;
         }
 
         return hit;
@@ -937,10 +969,9 @@ namespace Inferno {
 
     // Performs intersection between an object's model and another object's sphere.
     // Object is repositioned based on the intersections.
-    HitInfo IntersectPolySphere(Object& object, Object& target, float dt) {
-        // same as intersect sphere poly except the objects are swapped?
-        // todo: but the position of object needs to be updated, not target
-        return IntersectSpherePoly(target, object, dt);
+    // Used when a robot collides with the player - we want to reposition the player not the robot
+    HitInfo IntersectPolySphere(const Object& meshSource, Object& sphereSource, float dt) {
+        return IntersectSpherePoly(sphereSource, meshSource, sphereSource, dt);
     }
 
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
@@ -948,7 +979,8 @@ namespace Inferno {
     void IntersectLevelMesh(Level& level, Object& obj, Set<SegID>& pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
-        float travelDistance = obj.Physics.Velocity.Length() * dt;
+        auto speed = obj.Physics.Velocity.Length();
+        float travelDistance = speed * dt;
 
         Vector3 direction;
         obj.Physics.Velocity.Normalize(direction);
@@ -977,7 +1009,11 @@ namespace Inferno {
                     const Vector3 p1 = face[indices[tri * 3 + 1]];
                     const Vector3 p2 = face[indices[tri * 3 + 2]];
 
-                    bool triFacesObj = pathRay.direction.Dot(side.Normals[tri]) <= 0;
+                    auto objDir = obj.PrevPosition - side.Centers[tri];
+                    objDir.Normalize();
+
+                    bool triFacesObj = objDir.Dot(side.Normals[tri]);
+
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal;
 
@@ -994,12 +1030,12 @@ namespace Inferno {
                         if (triFacesObj &&
                             pathRay.Intersects(p0, p1, p2, dist) &&
                             dist < travelDistance) {
-                            hitPoint = obj.PrevPosition + pathRay.direction * dist;
+                            hitPoint = obj.PrevPosition + direction * dist;
                             if (WallPointIsTransparent(hitPoint, face, tri))
                                 continue; // skip projectiles that hit transparent part of a wall
 
                             // move the object to the surface and proceed as normal
-                            obj.Position = hitPoint - pathRay.direction * obj.Radius;
+                            obj.Position = hitPoint - direction * obj.Radius;
                             hitNormal = side.Normals[tri];
                             hitDistance = dist;
                             edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
@@ -1011,7 +1047,7 @@ namespace Inferno {
 
                         Plane plane(p0 + offset, p1 + offset, p2 + offset);
                         auto planeDist = plane.DotCoordinate(obj.Position);
-                        if (planeDist >= 0 || planeDist < -obj.Radius)
+                        if (planeDist > 0 || planeDist < -obj.Radius)
                             continue; // Object isn't close enough to the triangle plane
 
                         auto point = ProjectPointOntoPlane(obj.Position, plane);
@@ -1032,7 +1068,7 @@ namespace Inferno {
                                 auto normal = obj.Position - triPoint;
                                 normal.Normalize(hitNormal);
 
-                                if (pathRay.direction.Dot(hitNormal) > 0)
+                                if (speed > 0.1f && direction.Dot(hitNormal) > 0)
                                     continue; // velocity going away from surface
 
                                 // Object hit a triangle edge
@@ -1130,15 +1166,16 @@ namespace Inferno {
                     case CollisionType::None: break;
                     case CollisionType::SphereRoom: break;
                     case CollisionType::SpherePoly:
-                        if (auto info = IntersectSpherePoly(obj, other, dt)) {
+                        if (auto info = IntersectSpherePoly(obj, other, obj, dt)) {
                             hit.Update(info, &other);
                             CollideObjects(hit, obj, other, dt);
                         }
                         break;
                     case CollisionType::PolySphere:
+                        // Reposition the other object, not this one while using the mesh from this object.
                         if (auto info = IntersectPolySphere(obj, other, dt)) {
                             hit.Update(info, &other);
-                            CollideObjects(hit, obj, other, dt);
+                            CollideObjects(hit, other, obj, dt);
                         }
                         break;
 
@@ -1182,8 +1219,13 @@ namespace Inferno {
             if (ti.HasFlag(TextureFlag::Volatile)) {
                 // todo: ignite the object if D3 enhanced
                 auto damage = ti.Damage * dt;
-                if (Game::Difficulty == 0) damage *= 0.5f; // half damage on trainee
-                Game::Player.ApplyDamage(damage);
+                if (obj.IsPlayer()) {
+                    if (Game::Difficulty == 0) damage *= 0.5f; // half damage on trainee
+                    Game::Player.ApplyDamage(damage);
+                }
+                else {
+                    obj.ApplyDamage(damage);
+                }
             }
 
             static double lastScrapeTime = 0;
@@ -1207,12 +1249,13 @@ namespace Inferno {
         }
     }
 
-    // Applies damage and play a sound if object velocity changes sharply
+    // Applies damage and play a sound if object velocity changes suddenly
     void CheckForImpact(Object& obj, const LevelHit& hit, const LevelTexture* ti) {
         constexpr float DAMAGE_SCALE = 128;
         constexpr float DAMAGE_THRESHOLD = 1 / 3.0f;
-        auto speed = (obj.Physics.Velocity - obj.Physics.PrevVelocity).Length();
+        auto speed = obj.Physics.Velocity.Length() - obj.Physics.PrevVelocity.Length();
         bool isForceField = ti && ti->IsForceField();
+        if (speed < 0 && !isForceField) return; // Object sped up
 
         auto damage = speed / DAMAGE_SCALE;
 
@@ -1265,6 +1308,9 @@ namespace Inferno {
             if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
             if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
             if (obj.Movement != MovementType::Physics) continue;
+
+            //if (obj.Type == ObjectType::Robot)
+            //    obj.Rotation *= Matrix::CreateFromAxisAngle(Vector3::UnitY, 3.14f * dt);
 
             for (int i = 0; i < STEPS; i++) {
                 obj.PrevPosition = obj.Position;
