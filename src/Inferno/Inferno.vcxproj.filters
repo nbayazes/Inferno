@@ -248,6 +248,9 @@
     <ClCompile Include="Room.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Procedural.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -593,6 +596,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game.AI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Procedural.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

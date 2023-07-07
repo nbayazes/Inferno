@@ -90,6 +90,11 @@ namespace Inferno::Render {
             return _materials[(int)id];
         }
 
+        Material2D& Get(TexID id) {
+            if (!Seq::inRange(_materials, (int)id)) return _materials[(int)MISSING_MATERIAL];
+            return _materials[(int)id];
+        }
+
         const Material2D& Get(EClipID id, double time, bool critical) const {
             auto& eclip = Resources::GetEffectClip(id);
             if (eclip.TimeLeft > 0)

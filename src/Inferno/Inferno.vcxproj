@@ -206,6 +206,7 @@
     <ClCompile Include="Graphics\PostProcess.cpp" />
     <ClCompile Include="Physics.Hit.cpp" />
     <ClCompile Include="Physics.Math.cpp" />
+    <ClCompile Include="Procedural.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
@@ -295,6 +296,7 @@
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Physics.Hit.h" />
     <ClInclude Include="Physics.Math.h" />
+    <ClInclude Include="Procedural.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Room.h" />
     <ClInclude Include="Version.h" />

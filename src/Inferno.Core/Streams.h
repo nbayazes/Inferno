@@ -306,7 +306,7 @@ namespace Inferno {
         }
 
         // Writes a fixed length string
-        void WriteString(string s, size_t length) const {
+        void WriteString(string_view s, size_t length) const {
             assert(length > 0);
 
             for (size_t i = 0; i < length; i++) {
@@ -321,7 +321,7 @@ namespace Inferno {
         size_t Position() const { return _stream.tellp() - _start; }
 
         // Seek from the beginning
-        void Seek(std::streampos offset) const {
+        void Seek(const std::streampos& offset) const {
             _stream.seekp(_start + offset, std::ios_base::beg);
         }
 

@@ -2,6 +2,7 @@
 
 #include "DirectX.h"
 #include "Types.h"
+#include "Heap.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -43,6 +44,8 @@ namespace Inferno {
             _name = name;
             ThrowIfFailed(_resource->SetName(name.data()));
         }
+
+        wstring_view GetName() { return _name; }
 
         // Returns the original state
         D3D12_RESOURCE_STATES Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES state) {
@@ -295,12 +298,43 @@ namespace Inferno {
 
     // GPU 2D Texture resource
     class Texture2D final : public PixelBuffer {
+        ComPtr<ID3D12Resource> _uploadBuffer; // Only used for CopyTo
+
     public:
         Texture2D() = default;
 
         Texture2D(ComPtr<ID3D12Resource> resource) {
             _resource = std::move(resource);
             _desc = _resource->GetDesc();
+        }
+
+        void CopyFrom(ID3D12GraphicsCommandList* cmdList, Texture2D& srcTex) {
+            CD3DX12_TEXTURE_COPY_LOCATION dst(Get());
+            CD3DX12_TEXTURE_COPY_LOCATION src(srcTex.Get());
+            srcTex.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+
+            //D3D12_BOX box(0, 0, 0, 64, 64, 1);
+            //cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, &box);
+            cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+            Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            srcTex.Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
+        }
+
+        void UploadData(ID3D12GraphicsCommandList* cmdList, const void* data) {
+            D3D12_SUBRESOURCE_DATA textureData = {};
+            textureData.pData = data;
+            textureData.RowPitch = GetWidth() * 4;
+            textureData.SlicePitch = textureData.RowPitch * GetHeight();
+
+            // Reuse the upload buffer between each call
+            if (!_uploadBuffer)
+                CreateUploadBuffer();
+
+            //Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+            UpdateSubresources(cmdList, _resource.Get(), _uploadBuffer.Get(), 0, 0, 1, &textureData);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
         }
 
         // Uploads a resource with no mip-maps. Intended for use with low res textures.
@@ -311,13 +345,8 @@ namespace Inferno {
                   bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             assert(data);
-            auto mips = enableMips && width == 64 && height == 64 ? 7 : 1; // enable mips on standard level textures
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, (UINT16)mips);
-            _srvDesc.Format = _desc.Format;
-            _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-            _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            _srvDesc.Texture2D.MostDetailedMip = 0;
-            _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
+            auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
+            SetDesc(width, height, (uint16)mips, format);
 
             D3D12_SUBRESOURCE_DATA upload = {};
             upload.pData = data;
@@ -337,13 +366,13 @@ namespace Inferno {
         }
 
         void Create(int width, int height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
-            CreateNoHeap(width, height, format);
+            SetDesc(width, height, 1, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void CreateNoHeap(int width, int height, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
-            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, 1);
+        void SetDesc(int width, int height, uint16 mips = 1, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+            _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mips);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -392,6 +421,21 @@ namespace Inferno {
             ThrowIfFailed(DirectX::LoadDDSTextureFromFile(device, path.c_str(), &_resource, data, subresources));
             SetName(path.wstring());
             _state = D3D12_RESOURCE_STATE_COPY_DEST;
+        }
+
+    private:
+        void CreateUploadBuffer() {
+            const uint64 uploadBufferSize = GetRequiredIntermediateSize(_resource.Get(), 0, 1);
+            auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+            CD3DX12_HEAP_PROPERTIES props(D3D12_HEAP_TYPE_UPLOAD);
+
+            ThrowIfFailed(Render::Device->CreateCommittedResource(
+                &props,
+                D3D12_HEAP_FLAG_NONE,
+                &bufferDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&_uploadBuffer)));
         }
     };
 

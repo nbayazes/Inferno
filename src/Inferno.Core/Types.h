@@ -424,7 +424,7 @@ namespace Inferno {
         SideID Side = SideID::Left;
 
         auto operator<=>(const Tag&) const = default;
-        constexpr operator bool() const { return HasValue(); }
+        explicit constexpr operator bool() const { return HasValue(); }
 
         constexpr bool HasValue() const {
             return

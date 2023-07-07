@@ -18,40 +18,40 @@ namespace Inferno::Outrage {
     enum class TextureFlag {
         None = 0,
         Volatile = 1,
-        Water = (1 << 1),
-        Metal = (1 << 2), // Editor sorting
-        Marble = (1 << 3), // Editor sorting
-        Plastic = (1 << 4), // Editor sorting
-        Forcefield = (1 << 5),
-        Animated = (1 << 6),
-        Destroyable = (1 << 7),
-        Effect = (1 << 8),
-        HudCockpit = (1 << 9),
-        Mine = (1 << 10),
-        Terrain = (1 << 11),
-        Object = (1 << 12),
-        Texture64 = (1 << 13),
-        Tmap2 = (1 << 14),
-        Texture32 = (1 << 15),
-        FlyThru = (1 << 16),
-        PassThru = (1 << 17),
-        PingPong = (1 << 18),
-        Light = (1 << 19), // Full bright
-        Breakable = (1 << 20),
-        Saturate = (1 << 21), // Additive
-        Alpha = (1 << 22), // Use the alpha value in the tablefile
-        Dontuse = (1 << 23), // Not intended for levels? Hidden in texture browser?
-        Procedural = (1 << 24),
-        WaterProcedural = (1 << 25),
-        ForceLightmap = (1 << 26),
-        SaturateLightmap = (1 << 27),
-        Texture256 = (1 << 28),
-        Lava = (1 << 29),
-        Rubble = (1 << 30),
-        SmoothSpecular = (1 << 31)
+        Water = 1 << 1,
+        Metal = 1 << 2, // Editor sorting
+        Marble = 1 << 3, // Editor sorting
+        Plastic = 1 << 4, // Editor sorting
+        Forcefield = 1 << 5,
+        Animated = 1 << 6,
+        Destroyable = 1 << 7,
+        Effect = 1 << 8,
+        HudCockpit = 1 << 9,
+        Mine = 1 << 10,
+        Terrain = 1 << 11,
+        Object = 1 << 12,
+        Texture64 = 1 << 13,
+        Tmap2 = 1 << 14,
+        Texture32 = 1 << 15,
+        FlyThru = 1 << 16,
+        PassThru = 1 << 17,
+        PingPong = 1 << 18,
+        Light = 1 << 19, // Full bright
+        Breakable = 1 << 20,
+        Saturate = 1 << 21, // Additive
+        Alpha = 1 << 22, // Use the alpha value in the tablefile
+        Dontuse = 1 << 23, // Not intended for levels? Hidden in texture browser?
+        Procedural = 1 << 24,
+        WaterProcedural = 1 << 25,
+        ForceLightmap = 1 << 26,
+        SaturateLightmap = 1 << 27,
+        Texture256 = 1 << 28,
+        Lava = 1 << 29,
+        Rubble = 1 << 30,
+        SmoothSpecular = 1 << 31
     };
 
-    enum class ProceduralType : uint8 {
+    enum class FireProceduralType : uint8 {
         None,
         LineLightning,
         SphereLightning,
@@ -74,6 +74,40 @@ namespace Inferno::Outrage {
         RandomBlobdrops
     };
 
+    // Procedural texture info
+    struct ProceduralInfo {
+        float EvalTime; // Delay in seconds between updates
+
+        // (Fire) Palette encodes 255 colors in RGBA5551 format
+        uint16 Palette[255]{};
+        uint8 Heat; // (Fire) Higher heat causes slower decay 
+
+        // (Water) Lighting strength applied. Valid range is 0-31.
+        // 0 will disable lighting and use a simpler distortion method. Otherwise lower values give a stronger strength of lighting.
+        uint8 Light;
+
+        // (Water) Thickness of the fluid. Valid range is 0-31.
+        // Higher thickness values will cause ripples to decay slower. Lower values will cause them to decay faster.
+        uint8 Thickness;
+        float OscillateTime; // (Water) Oscillates the value of thickness over time. Must not be 0.
+        uint8 OscillateValue; // (Water) Oscillates the value of thickness over time.
+
+        struct Element {
+            union {
+                int8 Type; // Determine type based on flags in TextureInfo
+                WaterProceduralType WaterType;
+                FireProceduralType FireType;
+            };
+
+            int8 Speed;
+            uint8 Frequency, Size;
+            uint8 X1, Y1; // Max texture size of 256x256
+            uint8 X2, Y2;
+        };
+
+        List<Element> Elements;
+    };
+
     struct TextureInfo {
         string Name; // Entry in tablefile
         string FileName; // File name in hog or on disk
@@ -84,20 +118,24 @@ namespace Inferno::Outrage {
         TextureFlag Flags;
         int8 Corona;
         int Damage;
-
-        //struct {
-        //    int Palette[255]{};
-        //    int8 Heat, Light, Thickness, EvalTime, OscTime, OscValue;
-        //    short Elements;
-        //    int8 Type, Frequency, Speed, Size, X1, Y1, X2, Y2;
-        //} Procedural;
-
+        ProceduralInfo Procedural;
         string Sound;
 
         constexpr bool Saturate() const { return bool(Flags & TextureFlag::Saturate); }
         constexpr bool Alpha() const { return bool(Flags & TextureFlag::Alpha); }
         constexpr bool Animated() const { return bool(Flags & TextureFlag::Animated); }
-        constexpr bool Procedural() const { return bool(Flags & TextureFlag::Procedural); }
+        constexpr bool IsProcedural() const { return bool(Flags & TextureFlag::Procedural); }
+
+        int GetSize() const {
+            if (HasFlag(Flags, Outrage::TextureFlag::Texture32))
+                return 32;
+            else if (HasFlag(Flags, Outrage::TextureFlag::Texture64))
+                return 64;
+            else if (HasFlag(Flags, Outrage::TextureFlag::Texture256))
+                return 256;
+
+            return 128;
+        }
     };
 
     struct SoundInfo {
@@ -118,7 +156,7 @@ namespace Inferno::Outrage {
     };
 
     struct AnimClasses {
-        Array<AnimElem,NUM_ANIMS_PER_CLASS> Elems;
+        Array<AnimElem, NUM_ANIMS_PER_CLASS> Elems;
     };
 
     struct PhysicsInfo {
@@ -184,7 +222,7 @@ namespace Inferno::Outrage {
         FiredWeapon = 1 << 29,
 
         AlwaysOn = AnimComplete | NewMovement | PlayerSeesYou | GoalComplete | GoalFail | GoalError |
-            UserDefined | TargetDied | TargetInvalid | BumpedObj | MeleeHit | MeleeAttackFrame
+        UserDefined | TargetDied | TargetInvalid | BumpedObj | MeleeHit | MeleeAttackFrame
     };
 
     enum class AIFlag : uint32 {
@@ -240,10 +278,10 @@ namespace Inferno::Outrage {
         float CircleDistance;
         float DodgePercent;
 
-        Array<float,2> MeleeDamage;
-        Array<float,2> MeleeLatency;
+        Array<float, 2> MeleeDamage;
+        Array<float, 2> MeleeLatency;
 
-        Array<int,MAX_AI_SOUNDS> Sound;
+        Array<int, MAX_AI_SOUNDS> Sound;
 
         ubyte MovementType;
         ubyte MovementSubtype;
@@ -278,33 +316,33 @@ namespace Inferno::Outrage {
     };
 
     struct AnimInfo {
-        Array<AnimClasses,NUM_MOVEMENT_CLASSES> Classes;
+        Array<AnimClasses, NUM_MOVEMENT_CLASSES> Classes;
     };
 
     struct WeaponBatteryInfo {
-        Array<uint16,MAX_WB_GUNPOINTS> GPWeaponIndex;
-        Array<uint16,MAX_WB_FIRING_MASKS> FMFireSoundIndex;
+        Array<uint16, MAX_WB_GUNPOINTS> GPWeaponIndex;
+        Array<uint16, MAX_WB_FIRING_MASKS> FMFireSoundIndex;
         uint16 AimingGPIndex;
 
         ubyte NumMasks;
-        Array<ubyte,MAX_WB_FIRING_MASKS> GPFireMasks;
-        Array<float,MAX_WB_FIRING_MASKS> GPFireWait;
+        Array<ubyte, MAX_WB_FIRING_MASKS> GPFireMasks;
+        Array<float, MAX_WB_FIRING_MASKS> GPFireWait;
 
         ubyte GPQuadFireMask;
 
         ubyte NumLevels;
-        Array<uint16,MAX_WB_UPGRADES> GPLevelWeaponIndex;
-        Array<uint16,MAX_WB_UPGRADES> GPLevelFireSoundIndex;
+        Array<uint16, MAX_WB_UPGRADES> GPLevelWeaponIndex;
+        Array<uint16, MAX_WB_UPGRADES> GPLevelFireSoundIndex;
 
         ubyte AimingFlags;
         float Aiming3DDot; // These Can be Reused.
         float Aiming3DDist;
         float AimingXZDot;
 
-        Array<float,MAX_WB_FIRING_MASKS> AnimStartFrame;
-        Array<float,MAX_WB_FIRING_MASKS> AnimFireFrame;
-        Array<float,MAX_WB_FIRING_MASKS> AnimEndFrame;
-        Array<float,MAX_WB_FIRING_MASKS> AnimTime;
+        Array<float, MAX_WB_FIRING_MASKS> AnimStartFrame;
+        Array<float, MAX_WB_FIRING_MASKS> AnimFireFrame;
+        Array<float, MAX_WB_FIRING_MASKS> AnimEndFrame;
+        Array<float, MAX_WB_FIRING_MASKS> AnimTime;
 
         uint16 Flags;
 
@@ -337,43 +375,43 @@ namespace Inferno::Outrage {
     };
 
     struct GenericInfo {
-        ObjectType Type;
+        ObjectType Type{};
         string Name;
         string ModelName;
         string MedModelName;
         string LoModelName;
-        float ImpactSize;
-        float ImpactTime;
-        float Damage;
-        int Score;
-        int AmmoCount;
+        float ImpactSize{};
+        float ImpactTime{};
+        float Damage{};
+        int Score{};
+        int AmmoCount{};
         string ModuleName;
         string ScriptNameOverride;
         string Description;
         string IconName;
-        float MedLodDistance;
-        float LoLodDistance;
-        PhysicsInfo Physics;
-        float Size;
-        LightInfo Light;
-        int HitPoints;
-        GenericFlag Flags;
-        AIInfo AI;
-        ubyte DSpewFlags;
-        Array<float,MAX_DSPEW_TYPES> DSpewPercent;
-        Array<int16,MAX_DSPEW_TYPES> DSpewNumber;
-        Array<string,MAX_DSPEW_TYPES> DSpewGenericNames;
+        float MedLodDistance{};
+        float LoLodDistance{};
+        PhysicsInfo Physics{};
+        float Size{};
+        LightInfo Light{};
+        int HitPoints{};
+        GenericFlag Flags{};
+        AIInfo AI{};
+        ubyte DSpewFlags{};
+        Array<float, MAX_DSPEW_TYPES> DSpewPercent{};
+        Array<int16, MAX_DSPEW_TYPES> DSpewNumber{};
+        Array<string, MAX_DSPEW_TYPES> DSpewGenericNames;
         AnimInfo Anim;
-        Array<WeaponBatteryInfo,MAX_WBS_PER_OBJ> WeaponBatteries;
-        Array<Array<string,MAX_WB_GUNPOINTS>,MAX_WBS_PER_OBJ> WBWeaponNames;
-        Array<string,MAX_OBJ_SOUNDS> SoundNames;
-        Array<string,MAX_AI_SOUNDS> AISoundNames;
-        Array<Array<string,MAX_WB_GUNPOINTS>,MAX_WBS_PER_OBJ> WBSoundNames;
-        Array<Array<string,NUM_ANIMS_PER_CLASS>,NUM_MOVEMENT_CLASSES> AnimSoundNames;
-        float RespawnScalar;
+        Array<WeaponBatteryInfo, MAX_WBS_PER_OBJ> WeaponBatteries;
+        Array<Array<string, MAX_WB_GUNPOINTS>, MAX_WBS_PER_OBJ> WBWeaponNames;
+        Array<string, MAX_OBJ_SOUNDS> SoundNames;
+        Array<string, MAX_AI_SOUNDS> AISoundNames;
+        Array<Array<string, MAX_WB_GUNPOINTS>, MAX_WBS_PER_OBJ> WBSoundNames;
+        Array<Array<string, NUM_ANIMS_PER_CLASS>, NUM_MOVEMENT_CLASSES> AnimSoundNames;
+        float RespawnScalar{};
         List<DeathInfo> DeathTypes;
 
-        constexpr bool HasFlag(GenericFlag flag) { return (bool)(Flags & flag); }
+        constexpr bool HasFlag(GenericFlag flag) const { return (bool)(Flags & flag); }
     };
 
     // Descent 3 Game Table (GAM). Contains metadata for game assets.
@@ -383,12 +421,21 @@ namespace Inferno::Outrage {
             TABLE_FILE_MISSION = 1,
             TABLE_FILE_MODULE = 2
         } Type{};
-        
+
         string Name;
 
         List<TextureInfo> Textures;
         List<SoundInfo> Sounds;
         List<GenericInfo> Generics;
         static GameTable Read(StreamReader&);
+
+        TextureInfo* FindTexture(string_view name) {
+            for (auto& tex : Textures) {
+                if (String::InvariantEquals(tex.Name, name))
+                    return &tex;
+            }
+
+            return nullptr;
+        }
     };
 }
