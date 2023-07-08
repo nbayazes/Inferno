@@ -1,5 +1,7 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include "DirectX.h"
 #include "Types.h"
 
@@ -31,15 +33,6 @@ namespace Inferno {
         CD3DX12_CPU_DESCRIPTOR_HANDLE _cpuHandle;
         CD3DX12_GPU_DESCRIPTOR_HANDLE _gpuHandle;
     };
-
-    //struct ShaderHeapDesc : public D3D12_DESCRIPTOR_HEAP_DESC {
-    //    ShaderHeapDesc(uint32 capacity) {
-    //        Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    //        NumDescriptors = capacity;
-    //        Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    //        NodeMask = 1;
-    //    }
-    //};
 
     class UserDescriptorHeap {
         D3D12_DESCRIPTOR_HEAP_DESC _desc = {};
@@ -209,7 +202,8 @@ namespace Inferno {
               Reserved(_shader, reserved),
               Materials(_shader, materials, reserved),
               RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
-              DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
+              DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
+              Procedurals(50, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false){
             _shader.SetName(L"Shader visible heap");
             RenderTargets.SetName(L"Render target heap");
             DepthStencil.SetName(L"Depth stencil heap");
@@ -221,6 +215,7 @@ namespace Inferno {
         // Dynamic CBV SRV UAV for shader texture resources
         DescriptorRange<5> Materials; // Materials mapped to TexIDs - Material2D::Count
         UserDescriptorHeap RenderTargets, DepthStencil;
+        UserDescriptorHeap Procedurals;
 
         void SetDescriptorHeaps(ID3D12GraphicsCommandList* cmdList) const {
             ID3D12DescriptorHeap* heaps[] = { _shader.Heap(), States.Heap() };

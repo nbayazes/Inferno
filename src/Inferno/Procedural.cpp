@@ -9,6 +9,62 @@
 // Most of this code is credited to the efforts of ISB
 
 namespace Inferno {
+    ubyte WaterProcTableLo[16384];
+    ushort WaterProcTableHi[16384];
+
+    void InitWaterTables() {
+        for (int i = 0; i < 64; i++) {
+            float intensity1 = i * 0.01587302f;
+            float intensity2 = intensity1 * 2;
+            if (intensity2 > 1.0)
+                intensity2 = 1.0;
+
+            intensity1 = (intensity1 - .5f) * 2;
+            if (intensity1 < 0)
+                intensity1 = 0;
+
+            for (int j = 0; j < 32; j++) {
+                auto channel = ushort(j * intensity2 + intensity1 * 31.0f);
+                if (channel > 31)
+                    channel = 31;
+
+                for (int k = 0; k < 4; k++) {
+                    WaterProcTableHi[((i * 64) + j) * 4 + k] = ((channel | 65504u) << 10u);
+                }
+            }
+
+            for (int j = 0; j < 32; j++) {
+                auto channel = ubyte(j * intensity2 + intensity1 * 31.0f);
+                if (channel > 31)
+                    channel = 31;
+
+                for (int k = 0; k < 8; k++) {
+                    WaterProcTableLo[(i * 256) + j + (32 * k)] = channel;
+                }
+            }
+
+            for (int j = 0; j < 8; j++) {
+                auto channel = ushort(j * intensity2 + intensity1 * 7.0f);
+                if (channel > 7)
+                    channel = 7;
+
+                for (int k = 0; k < 32; k++) {
+                    WaterProcTableLo[(i * 256) + (j * 32) + k] |= channel << 5;
+                }
+            }
+
+            for (int j = 0; j < 4; j++) {
+                auto channel = ushort((j * 8) * intensity2 + intensity1 * 24.0f);
+                if (channel > 24)
+                    channel = 24;
+
+                for (int k = 0; k < 32; k++) {
+                    WaterProcTableHi[(i * 256) + j + (k * 4)] |= channel << 5;
+                }
+            }
+        }
+    }
+
     int Floor(double value) {
         return (int)std::floor(value);
     }
@@ -17,8 +73,17 @@ namespace Inferno {
         return (int)std::floor(value);
     }
 
-    constexpr int16 RGBToRGB15(int r, int g, int b) {
-        return int16((r >> 3) + ((g >> 3) << 5) + ((b >> 3) << 10));
+    constexpr int16 RGB32ToBGR16(int r, int g, int b) {
+        return int16((b >> 3) + ((g >> 3) << 5) + ((r >> 3) << 10));
+    }
+
+    // Converts BGRA5551 to RGBA8888
+    constexpr int BGRA16ToRGB32(uint src) {
+        auto r = (uint8)(((src >> 10) & 31) * 255.0f / 31);
+        auto g = (uint8)(((src >> 5) & 31) * 255.0f / 31);
+        auto b = (uint8)((src & 31) * 255.0f / 31);
+        auto a = src >> 15 ? 0 : 255;
+        return r | g << 8 | b << 16 | a << 24;
     }
 
     class ProceduralTexture {
@@ -26,8 +91,8 @@ namespace Inferno {
         int _numParticles = 0;
 
         List<int> _freeParticles;
-        List<uint8> _buffer1, _buffer2;
-        span<uint8> _buffer, _writeBuffer;
+        List<ubyte> _fireBuffer[2]{};
+        List<int16> _waterBuffer[2]{};
 
         List<uint32> _pixels;
         List<uint32> _palette;
@@ -62,79 +127,85 @@ namespace Inferno {
 
         using Element = Outrage::ProceduralInfo::Element;
         double NextTime = 0;
-        int FrameMask = 0;
+        int _index = 0;
         int FrameCount = 0;
         int TotalSize; // Resolution * Resolution
-        //void* _pMappedBuffer;
 
-        //ComPtr<ID3D12Resource> _uploadBuffer;
         int _resMask;
+        TexID BaseTexture;
+        EClipID EClip = EClipID::None;
 
     public:
-        //span<uint32> GetData() { return _pixels; }
         int Resolution; // width-height
 
         std::atomic<bool> PendingCopy = false;
 
         Outrage::TextureInfo& GetTextureInfo() { return _info; }
         Texture2D Texture;
+        DescriptorHandle Handle;
 
-        ProceduralTexture(const Outrage::TextureInfo& info) : _info(info) {
+        ProceduralTexture(const Outrage::TextureInfo& info, TexID baseTexture = TexID::None) : _info(info) {
             _name = Convert::ToWideString(_info.Name);
             Resolution = info.GetSize();
             _resMask = Resolution - 1;
             TotalSize = Resolution * Resolution;
-            _buffer1.resize(TotalSize);
-            _buffer2.resize(TotalSize);
+            BaseTexture = baseTexture;
+            EClip = Resources::GetEffectClipID(baseTexture);
+
+            if (HasFlag(info.Flags, Outrage::TextureFlag::WaterProcedural)) {
+                _waterBuffer[0].resize(TotalSize);
+                _waterBuffer[1].resize(TotalSize);
+            }
+            else {
+                _fireBuffer[0].resize(TotalSize);
+                _fireBuffer[1].resize(TotalSize);
+
+                constexpr int MAX_PARTICLES = 8000;
+                _freeParticles.resize(MAX_PARTICLES);
+                _particles.resize(MAX_PARTICLES);
+
+                for (int i = 0; i < MAX_PARTICLES; i++) {
+                    _freeParticles[i] = i;
+                    _particles[i].Num = i;
+                }
+
+                _palette.resize(std::size(info.Procedural.Palette));
+
+                for (int i = 0; i < _palette.size(); i++) {
+                    // Encode the BGRA5551 palette to RGBA8888
+                    // BGRA5551, max value of 31 -> 255 
+                    auto srcColor = info.Procedural.Palette[i] % 32768U;
+                    _palette[i] = BGRA16ToRGB32(srcColor);
+                }
+            }
+
             _pixels.resize(TotalSize);
-            _palette.resize(std::size(info.Procedural.Palette));
-
-            constexpr int MAX_PARTICLES = 2000;
-            _freeParticles.resize(MAX_PARTICLES);
-            _particles.resize(MAX_PARTICLES);
-
-            for (int i = 0; i < MAX_PARTICLES; i++) {
-                _freeParticles[i] = i;
-                _particles[i].Num = i;
-            }
-
-            for (int i = 0; i < _palette.size(); i++) {
-                auto srcColor = info.Procedural.Palette[i] % 32768U;
-                // BGRA5551, max value of 31 -> 255 
-                //auto r = srcColor >> 10U;
-                //auto g = srcColor >> 5U;
-                //auto b = srcColor & 31U;
-                auto r = (uint8)Floor(((srcColor >> 10) & 31) * 255.0f / 31);
-                auto g = (uint8)Floor(((srcColor >> 5) & 31) * 255.0f / 31);
-                auto b = (uint8)Floor((srcColor & 31) * 255.0f / 31);
-                // alpha is bit 16
-                //_palette[i] = Color(r / 255.0f, g / 255.0f, b / 255.0f);
-                _palette[i] = r | g << 8 | b << 16 | 255 << 24;
-            }
 
             Texture.SetDesc(Resolution, Resolution);
             Texture.CreateOnDefaultHeap(Convert::ToWideString(_info.Name));
-
-            // Create the GPU upload buffer
-            //const uint64 uploadBufferSize = GetRequiredIntermediateSize(Texture.Get(), 0, 1);
-            //auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-            //CD3DX12_HEAP_PROPERTIES props(D3D12_HEAP_TYPE_UPLOAD);
-
-            //ThrowIfFailed(Render::Device->CreateCommittedResource(
-            //    &props,
-            //    D3D12_HEAP_FLAG_NONE,
-            //    &bufferDesc,
-            //    D3D12_RESOURCE_STATE_GENERIC_READ,
-            //    nullptr,
-            //    IID_PPV_ARGS(&_uploadBuffer)));
+            Handle = Render::Heaps->Procedurals.GetHandle(0);
+            //Texture.CreateShaderResourceView(Handle.GetCpuHandle());
+            Render::Device->CreateShaderResourceView(Texture.Get(), Texture.GetSrvDesc(), Handle.GetCpuHandle());
         }
+
+        //void SetBaseTexture(span<ubyte> data, int width, int height) {
+        //    _baseTexture.resize(TotalSize);
+        //    assert(width == height); // only works with square textures
+        //    auto scale = Resolution / width;
+
+        //    if(width != Resolution || height != Resolution) {
+        //        // Resize source to match procedural
+        //        for (int y = 0; y < Resolution; y++) {
+        //            for (int x = 0; x < Resolution; x++) {
+        //                // Nearest
+        //                _baseTexture[y * Resolution + x] = data[(y / scale) * Resolution + x / scale];
+        //            }
+        //        }
+        //    }
+        //}
 
         bool CopyToTexture(ID3D12GraphicsCommandList* cmdList) {
             if (PendingCopy) {
-                //static uint8 c = 0;
-                //auto color = c | 255 << 24;
-                //c += 2;
-                //ranges::fill(_pixels, color);
                 Texture.UploadData(cmdList, _pixels.data());
                 PendingCopy = false;
                 return true;
@@ -143,66 +214,63 @@ namespace Inferno {
             return false;
         }
 
-        void Update(double time) {
-            if (NextTime > time) return;
+        void Update() {
+            if (NextTime > Render::ElapsedTime) return;
 
-            _writeBuffer = FrameMask == 1 ? _buffer1 : _buffer2;
-            _buffer = FrameMask == 1 ? _buffer2 : _buffer1;
+            if (_info.IsWaterProcedural())
+                EvalulateWaterProcedural();
+            else
+                EvalulateFireProcedural();
+
+            FrameCount++;
+            NextTime = Render::ElapsedTime + _info.Procedural.EvalTime;
+            NextTime = Render::ElapsedTime + 1 / 30.0f;
+            _index = 1 - _index; // swap buffers
+        }
+
+    private:
+        void EvalulateFireProcedural() {
+            using namespace Outrage;
 
             HeatDecay();
 
-            using namespace Outrage;
-
             for (auto& elem : _info.Procedural.Elements) {
-                if (HasFlag(_info.Flags, Outrage::TextureFlag::WaterProcedural)) {
-                    // todo: water functions
-                    switch (elem.WaterType) {
-                        case WaterProceduralType::None: break;
-                        case WaterProceduralType::HeightBlob: break;
-                        case WaterProceduralType::SineBlob: break;
-                        case WaterProceduralType::RandomRaindrops: break;
-                        case WaterProceduralType::RandomBlobdrops: break;
-                    }
-                }
-                else {
-                    switch (elem.FireType) {
-                        case FireProceduralType::LineLightning:
-                            LineLightning(elem.X1, elem.Y1, elem.X2, elem.Y2, 254, elem);
-                            break;
-                        case FireProceduralType::SphereLightning:
-                            SphereLightning(elem);
-                            break;
-                        case FireProceduralType::Straight:
-                            // Straight type was never implemented
-                            break;
-                        case FireProceduralType::RisingEmbers:
-                            RisingEmbers(elem);
-                            break;
-                        case FireProceduralType::RandomEmbers:
-                            RandomEmbers(elem);
-                            break;
-                        case FireProceduralType::Spinners:
-                            Spinners(elem);
-                            break;
-                        case FireProceduralType::Roamers:
-                            Roamers(elem);
-                            break;
-                        case FireProceduralType::Fountain:
-                            Fountain(elem);
-                            break;
-                        case FireProceduralType::Cone:
-                            Cone(elem);
-                            break;
-                        case FireProceduralType::FallRight:
-                            FallRight(elem);
-                            break;
-                        case FireProceduralType::FallLeft:
-                            FallLeft(elem);
-                            break;
-                    }
+                switch (elem.FireType) {
+                    case FireProceduralType::LineLightning:
+                        LineLightning(elem.X1, elem.Y1, elem.X2, elem.Y2, 254, elem);
+                        break;
+                    case FireProceduralType::SphereLightning:
+                        SphereLightning(elem);
+                        break;
+                    case FireProceduralType::Straight:
+                        // Straight type was never implemented
+                        break;
+                    case FireProceduralType::RisingEmbers:
+                        RisingEmbers(elem);
+                        break;
+                    case FireProceduralType::RandomEmbers:
+                        RandomEmbers(elem);
+                        break;
+                    case FireProceduralType::Spinners:
+                        Spinners(elem);
+                        break;
+                    case FireProceduralType::Roamers:
+                        Roamers(elem);
+                        break;
+                    case FireProceduralType::Fountain:
+                        Fountain(elem);
+                        break;
+                    case FireProceduralType::Cone:
+                        Cone(elem);
+                        break;
+                    case FireProceduralType::FallRight:
+                        FallRight(elem);
+                        break;
+                    case FireProceduralType::FallLeft:
+                        FallLeft(elem);
+                        break;
                 }
             }
-
 
             //Run particles from dynamic effects.
             auto particleNum = _dynamicProcElements;
@@ -232,23 +300,71 @@ namespace Inferno {
                 particleNum = particle.Prev;
             }
 
-            SwapAndSmooth();
+            BlendFireBuffer();
 
             if (!PendingCopy) {
-                for (auto i = 0; i < TotalSize; i++) {
-                    _pixels[i] = _palette[_writeBuffer[i]];
-                    //_pixels[i] = _buffer[i] | 255 << 24;
-                }
+                for (auto i = 0; i < TotalSize; i++)
+                    _pixels[i] = _palette[_fireBuffer[1 - _index][i]]; // Note the use of dest buffer
 
-                PendingCopy = true;
+                PendingCopy = true; // New data to copy to the GPU
             }
-
-            FrameMask = 1 - FrameMask;
-            FrameCount++;
-            NextTime = time + _info.Procedural.EvalTime;
         }
 
-    private:
+        void EvalulateWaterProcedural() {
+            //proc_struct* proc = GameTextures[texnum].procedural;
+            //if (proc->memory_type != PROC_MEMORY_TYPE_WATER)
+            //    AllocateMemoryForWaterProcedural(texnum);
+            for (auto& elem : _info.Procedural.Elements) {
+                switch (elem.WaterType) {
+                    case Outrage::WaterProceduralType::HeightBlob:
+                        AddWaterHeightBlob(elem);
+                        break;
+                    case Outrage::WaterProceduralType::SineBlob:
+                        AddWaterSineBlob(elem);
+                        break;
+                    case Outrage::WaterProceduralType::RandomRaindrops:
+                        AddWaterRaindrops(elem);
+                        break;
+                    case Outrage::WaterProceduralType::RandomBlobdrops:
+                        //AddWaterBlobdrops(elem);
+                        break;
+                }
+            }
+
+            //if (EasterEgg) {
+            //    if (Easter_egg_handle != -1) {
+            //        ushort* srcData = bm_data(Easter_egg_handle, 0);
+            //        short* heightData = (short*)proc->proc1;
+            //        int width = bm_w(Easter_egg_handle, 0);
+            //        int height = bm_w(Easter_egg_handle, 0); //oops, they get bm_w twice..
+
+            //        if (width <= RESOLUTION && height <= RESOLUTION && width > 0 && height > 0) {
+            //            int offset = (RESOLUTION / 2 - height / 2) * RESOLUTION + (RESOLUTION / 2 - width / 2);
+            //            for (int y = 0; y < height; y++) {
+            //                for (int x = 0; x < width; x++) {
+            //                    if (*srcData & 128)
+            //                        heightData[offset + x] += 200;
+
+            //                    srcData++;
+            //                }
+            //                offset += RESOLUTION;
+            //            }
+            //        }
+            //    }
+            //    EasterEgg = false;
+            //}
+
+            UpdateWater();
+
+            if (_info.Procedural.Light > 0)
+                DrawWaterWithLight(_info.Procedural.Light - 1);
+            else
+                DrawWaterNoLight();
+            //DrawWaterNoLight();
+            PendingCopy = true;
+        }
+
+
         int Rand(int min, int max) const {
             assert(max > min);
             auto range = max - min + 1;
@@ -336,7 +452,7 @@ namespace Inferno {
 
                 for (int i = 0; i < yLen; i++) {
                     error += xLen;
-                    _buffer[ptr + curX] = color;
+                    _fireBuffer[_index][ptr + curX] = color;
                     curY = (curY + xDir) & 127;
                     ptr = curY * Resolution;
 
@@ -354,7 +470,7 @@ namespace Inferno {
 
                 for (int i = 0; i < xLen; i++) {
                     error += yLen;
-                    _buffer[ptr + (curX & mask)] = color;
+                    _fireBuffer[_index][ptr + (curX & mask)] = color;
                     curX = (curX & mask) + yDir;
                     if (xLen <= error) {
                         curY = (curY + xDir) & mask;
@@ -431,7 +547,7 @@ namespace Inferno {
             //ProcDestData[((elem->x1 >> 16) & RESMASK) + ((elem->y1 >> 16) & RESMASK) * RESOLUTION] = elem->color;
             auto x = (elem.X >> 16) & _resMask;
             auto y = ((elem.Y >> 16) & _resMask) * Resolution;
-            _buffer[y + x] = elem.Color;
+            _fireBuffer[_index][y + x] = elem.Color;
         }
 
         //Emits particles that move randomly.
@@ -702,14 +818,7 @@ namespace Inferno {
         void HeatDecay() {
             auto decay = (int8)(Floor((255 - _info.Procedural.Heat) / 8.0f) + 1);
 
-            //for (int i = 0; i < TotalSize; i++) {
-            //    auto& pixel = _buffer[i];
-            //    if (pixel - decay < 0)
-            //        pixel = 0;
-            //    else
-            //        pixel -= decay;
-            //}
-            for (auto& pixel : _buffer) {
+            for (auto& pixel : _fireBuffer[_index]) {
                 if (pixel - decay < 0)
                     pixel = 0;
                 else
@@ -729,25 +838,25 @@ namespace Inferno {
 
         BlobBounds GetBlobBounds(const Element& elem) const {
             const float sizeSq = (float)elem.Size * (float)elem.Size;
-            auto minX = -elem.Size;
-            auto minY = -elem.Size;
+            int minX = -elem.Size;
+            int minY = -elem.Size;
             if (elem.X1 + minX < 1)
                 minX = 1 - elem.X1;
             if (elem.Y1 + minY < 1)
                 minY = 1 - elem.Y1;
 
-            auto maxX = elem.Size;
-            auto maxY = elem.Size;
+            auto maxX = (int)elem.Size;
+            auto maxY = (int)elem.Size;
 
             if (elem.X1 + maxX > Resolution - 1)
-                maxX = uint8(Resolution - elem.X1 - 1);
+                maxX = Resolution - elem.X1 - 1;
             if (elem.Y1 + maxY > Resolution - 1)
-                maxY = uint8(Resolution - elem.Y1 - 1);
+                maxY = Resolution - elem.Y1 - 1;
 
             return { minX, minY, maxX, maxY, sizeSq };
         }
 
-        void WaterHeightBlob(const Element& elem) {
+        void AddWaterHeightBlob(const Element& elem) {
             if (!ShouldDrawElement(elem))
                 return;
 
@@ -758,12 +867,12 @@ namespace Inferno {
                 for (int x = blob.minX; x < blob.maxX; x++) {
                     auto offset = yOffset + x + elem.X1;
                     if (x * x + y * y < blob.sizeSq)
-                        _buffer[offset] += elem.Speed;
+                        _waterBuffer[_index][offset] += elem.Speed;
                 }
             }
         }
 
-        void WaterSineBlob(const Element& elem) {
+        void AddWaterSineBlob(const Element& elem) {
             if (!ShouldDrawElement(elem))
                 return;
 
@@ -779,13 +888,13 @@ namespace Inferno {
                         //TBH no clue what this is about
                         if (cosine < 0)
                             cosine += 7;
-                        _buffer[offset] += uint8(cosine >> 3);
+                        _waterBuffer[_index][offset] += uint8(cosine >> 3);
                     }
                 }
             }
         }
 
-        void WaterRandomRaindrops(const Element& elem) {
+        void AddWaterRaindrops(const Element& elem) {
             if (!ShouldDrawElement(elem)) return;
 
             Element drop = {
@@ -797,10 +906,10 @@ namespace Inferno {
                 .Y1 = uint8(Rand(-elem.Size, elem.Size) + elem.Y1),
             };
 
-            WaterHeightBlob(drop);
+            AddWaterHeightBlob(drop);
         }
 
-        void WaterRandomBlobdrops(const Element& elem) {
+        void AddWaterBlobdrops(const Element& elem) {
             if (!ShouldDrawElement(elem)) return;
 
             Element drop = {
@@ -812,20 +921,46 @@ namespace Inferno {
                 .Y1 = uint8(Rand(-elem.Size, elem.Size) + elem.Y1),
             };
 
-            WaterHeightBlob(drop);
+            AddWaterHeightBlob(drop);
         }
 
-        void UpdateWater(int factor) {
-            //Handle dampening within the center of the heightmaps
-            for (int y = 1; y < Resolution - 1; y++) {
-                for (int x = 1; x < Resolution - 1; x++) {
-                    auto offset = y * Resolution + x;
-                    auto sum = ((_buffer[offset + Resolution] + _buffer[offset - 1] + _buffer[offset + 1] + _buffer[offset - Resolution]) >> 1) - _writeBuffer[offset];
-                    _writeBuffer[offset] = ubyte(sum - (sum >> (factor & 31)));
+        void UpdateWater() {
+            int factor = _info.Procedural.Thickness;
+            if (_info.Procedural.OscillateTime > 0) {
+                int thickness = _info.Procedural.Thickness;
+                int oscValue = _info.Procedural.OscillateValue;
+                if (thickness < oscValue) {
+                    oscValue = thickness;
+                    thickness = oscValue;
+                }
+
+                int delta = thickness - oscValue;
+                if (delta > 0) {
+                    int time = (int)(Render::ElapsedTime / _info.Procedural.OscillateTime / delta) % (delta * 2);
+                    if (time < delta)
+                        time %= delta;
+                    else
+                        time = (delta - time % delta) - 1;
+
+                    factor = time + oscValue;
                 }
             }
 
-            //Handle dampening on the edges of the heightmaps
+            auto& src = _waterBuffer[_index];
+            auto& dest = _waterBuffer[1 - _index];
+
+            factor &= 31;
+
+            // Handle dampening within the center of the heightmaps
+            for (int y = 1; y < Resolution - 1; y++) {
+                for (int x = 1; x < Resolution - 1; x++) {
+                    auto offset = y * Resolution + x;
+                    auto sum = ((src[offset + Resolution] + src[offset - 1] + src[offset + 1] + src[offset - Resolution]) >> 1) - dest[offset];
+                    dest[offset] = int16(sum - (sum >> factor));
+                }
+            }
+
+            // Handle dampening on the edges of the heightmaps
             for (int y = 0; y < Resolution; y++) {
                 int belowoffset, aboveoffset;
 
@@ -858,55 +993,166 @@ namespace Inferno {
                         }
 
                         int offset = y * Resolution + x;
-                        int sum = ((_buffer[offset - leftoffset] + _buffer[offset + rightoffset] + _buffer[offset - aboveoffset] + _buffer[offset + belowoffset]) >> 1) - _writeBuffer[offset];
+                        int sum = ((src[offset - leftoffset] + src[offset + rightoffset] + src[offset - aboveoffset] + src[offset + belowoffset]) >> 1) - dest[offset];
 
-                        _writeBuffer[offset] = ubyte(sum - (sum >> (factor & 31)));
+                        dest[offset] = int16(sum - (sum >> factor));
                     }
                 }
             }
         }
 
+        const PigBitmap& GetBitmap() const {
+            return Resources::GetBitmap(BaseTexture);
+            //return EClip == EClipID::None
+            //    ? Resources::GetBitmap(BaseTexture)
+            //    : Resources::GetBitmap(Resources::GetEffectClip(EClip).VClip.GetFrame(Render::ElapsedTime));
+        }
+
         void DrawWaterNoLight() {
-            //auto srcPixelData = _srcImage.data;
+            auto& texture = GetBitmap();
+            auto xScale = (float)texture.Info.Width / Resolution;
+            auto yScale = (float)texture.Info.Height / Resolution;
+            //assert(baseTexture.Info.Width == baseTexture.Info.Height); // Only supports square textures
+            // todo: effect clips
+
+            auto& heights = _waterBuffer[_index];
 
             for (int y = 0; y < Resolution; y++) {
                 for (int x = 0; x < Resolution; x++) {
                     int offset = y * Resolution + x;
-                    int height = _buffer[offset];
+                    int height = heights[offset];
 
-                    int rightheight;
+                    int xHeight;
                     if (x == Resolution - 1)
-                        rightheight = _buffer[offset - Resolution + 1];
+                        xHeight = heights[offset - Resolution + 1];
                     else
-                        rightheight = _buffer[offset + 1];
+                        xHeight = heights[offset + 1];
 
-                    rightheight = std::max(0, height - rightheight);
 
-                    int botheight;
+                    int yHeight;
                     if (y == Resolution - 1)
-                        botheight = _buffer[offset - ((Resolution - 1) * Resolution)];
+                        yHeight = heights[offset - ((Resolution - 1) * Resolution)];
                     else
-                        botheight = _buffer[offset + Resolution];
+                        yHeight = heights[offset + Resolution];
 
-                    botheight = std::max(0, height - botheight);
+                    xHeight = std::max(0, height - xHeight);
+                    yHeight = std::max(0, height - yHeight);
 
-                    int botshift = ((botheight >> 3) + y) % Resolution;
+                    int xShift = int((xHeight >> 3) + x * xScale) % texture.Info.Width;
+                    int yShift = int((yHeight >> 3) + y * yScale) % texture.Info.Width;
 
-                    int rightshift = ((rightheight >> 3) + x) % Resolution;
+                    int destOffset = y * Resolution + x;
+                    //int srcOffset = botshift * Resolution + rightshift;
+                    int srcOffset = yShift * (int)texture.Info.Width + xShift;
 
-                    int destOffset = (y * Resolution + x) * 4;
-                    int srcOffset = (botshift * Resolution + rightshift) * 4;
-                    
-                    //_pixels[destOffset] = srcPixelData[srcOffset + 0];
-                    //_pixels[destOffset + 1] = srcPixelData[srcOffset + 1];
-                    //_pixels[destOffset + 2] = srcPixelData[srcOffset + 2];
-                    //_pixels[destOffset + 3] = 255;
+                    _pixels[destOffset] = texture.Data[srcOffset].ToRgba8888();
                 }
             }
         }
 
-        // Transfers the contents of ProceduralBuffer into WriteBuffer, smoothing by averaging each pixel in ProceduralBuffer with its neighbors on the X axis and the pixel below. 
-        void SwapAndSmooth() {
+        void DrawWaterWithLight(int lightFactor) {
+            //proc_struct* proc = GameTextures[texnum].procedural;
+            //ushort* destData = bm_data(proc->procedural_bitmap, 0);
+            //ushort* srcData = bm_data(GameTextures[texnum].bm_handle, 0);
+            //short* heightData = (short*)proc->proc1;
+            auto& heights = _waterBuffer[_index];
+            int lightshift = lightFactor & 31;
+
+            auto& texture = GetBitmap();
+            auto xScale = (float)texture.Info.Width / Resolution;
+            auto yScale = (float)texture.Info.Height / Resolution;
+            auto srcResmaskX = texture.Info.Width - 1;
+            auto srcResmaskY = texture.Info.Height - 1;
+
+            for (int y = 0; y < Resolution; y++) {
+                int topoffset, botoffset;
+                if (y == (Resolution - 1)) {
+                    botoffset = _resMask * Resolution;
+                    topoffset = Resolution;
+                }
+                else if (y == 0) {
+                    botoffset = -Resolution;
+                    topoffset = -_resMask * Resolution;
+                }
+                else {
+                    topoffset = Resolution;
+                    botoffset = -Resolution;
+                }
+
+                for (int x = 0; x < Resolution; x++) {
+                    int offset = y * Resolution + x;
+
+                    int horizheight;
+                    if (x == Resolution - 1)
+                        horizheight = heights[offset - 1] - heights[offset - Resolution + 1];
+                    else if (x == 0)
+                        horizheight = heights[offset + Resolution - 1] - heights[offset + 1];
+                    else
+                        horizheight = heights[offset - 1] - heights[offset + 1];
+
+                    int vertheight = heights[offset - topoffset] - heights[offset - botoffset];
+
+                    int lightval = 32 - (horizheight >> lightshift);
+                    if (lightval > 63)
+                        lightval = 63;
+                    if (lightval < 0)
+                        lightval = 0;
+
+                    //int srcOffset = 
+                    //    ((y + (vertheight >> 3)) & RESMASK) * RESOLUTION + 
+                    //    ((x + (horizheight >> 3)) & RESMASK);
+
+                    //int xOffset = int(((x + (horizheight >> 3)) & _resMask) * xScale);
+                    //int yOffset = int(((y + (vertheight >> 3)) & _resMask) * Resolution * yScale);
+                    //int xOffset = int(int(x * xScale) + (horizheight >> 3) & srcResmaskX);
+                    //int yOffset = int((int(y * yScale) + (vertheight >> 3) & srcResmaskY) * Resolution * yScale);
+                    //int xOffset = (x + (horizheight >> 3)) >> 1;
+                    //int yOffset = (y + (vertheight >> 3)) >> 1;
+
+                    int xShift = int((horizheight >> 3) + x * xScale) % texture.Info.Width;
+                    int yShift = int((vertheight >> 3) + y * yScale) % texture.Info.Width;
+
+                    int srcOffset = (yShift & srcResmaskY) * texture.Info.Width + (xShift & srcResmaskX);
+                    //int srcOffset = yShift * (int)texture.Info.Width + xShift;
+
+                    //int srcOffset = (int(yOffset * yScale) & srcResmaskY) * texture.Info.Width + (int(xOffset * xScale) & srcResmaskX);
+                    auto& c = texture.Data[srcOffset];
+                    //uint32 srcPixel = texture.Data[srcOffset].ToR8G8B8A8();
+                    int destOffset = y * Resolution + x;
+                    //auto srcPixel = uint16(c.r | c.g << 5 | c.b << 10 | 255);
+                    // int16((r >> 3) + ((g >> 3) << 5) + ((b >> 3) << 10));
+                    auto srcPixel = RGB32ToBGR16(c.r, c.g, c.b);
+                    auto dest16 = WaterProcTableLo[(srcPixel & 255) + lightval * 256] + WaterProcTableHi[((srcPixel >> 8) & 127) + lightval * 256];
+                    _pixels[destOffset] = BGRA16ToRGB32(dest16);
+                    _pixels[destOffset] |= 0xFF000000;
+                    //_pixels[destOffset] = c.ToR8G8B8A8();
+                }
+            }
+        }
+
+        void CopyBaseTexture() {
+            auto& texture = Resources::GetBitmap(BaseTexture);
+            auto srcResmaskX = texture.Info.Width - 1;
+            auto srcResmaskY = texture.Info.Height - 1;
+            auto scale = 0.5f;
+
+            for (int y = 0; y < Resolution; y++) {
+                for (int x = 0; x < Resolution; x++) {
+                    //int xOffset = x >> 1;
+                    //int yOffset = y >> 1;
+                    //int srcOffset = x + y;
+                    int srcOffset = (int(y * scale) & srcResmaskY) * texture.Info.Width + (int(x * scale) & srcResmaskX);
+                    int destOffset = y * Resolution + x;
+                    _pixels[destOffset] = texture.Data[srcOffset].ToRgba8888();
+                }
+            }
+        }
+
+        // Blends the contents of the active fire buffer and writes to the output buffer
+        void BlendFireBuffer() {
+            auto& src = _fireBuffer[_index];
+            auto& dest = _fireBuffer[1 - _index];
+
             for (auto y = 0; y < Resolution; y++) {
                 auto yptr = y * Resolution;
                 auto up = yptr + Resolution;
@@ -928,12 +1174,12 @@ namespace Inferno {
                         left = yptr + Resolution - 1;
 
                     // legacy 4-tap sampling that creates visible triangles
-                    //auto v = _buffer[ptr] + _buffer[up] + _buffer[right] + _buffer[left];
-                    //_writeBuffer[ptr] = ubyte(v >> 2); // divide by 4
+                    //auto v = buffer[ptr] + buffer[up] + buffer[right] + buffer[left];
+                    //writeBuffer[ptr] = ubyte(v >> 2); // divide by 4
 
                     // 5 tap weighted sampling. Anti-alises lines.
-                    auto v = _buffer[ptr] + _buffer[up] * 0.5f + _buffer[down] * 0.5f + _buffer[right] * 0.5f + _buffer[left] * 0.5f;
-                    _writeBuffer[ptr] = uint8(v / 3.0f);
+                    auto v = src[ptr] + src[up] * 0.5f + src[down] * 0.5f + src[right] * 0.5f + src[left] * 0.5f;
+                    dest[ptr] = uint8(v / 3.0f);
 
                     up += 1;
                     down += 1;
@@ -960,8 +1206,8 @@ namespace Inferno {
             desc.Type = type;
             ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&_queue)));
             ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence)));
-            ThrowIfFailed(device->CreateCommandAllocator(type, IID_GRAPHICS_PPV_ARGS(&_allocator)));
-            ThrowIfFailed(device->CreateCommandList(1, type, _allocator.Get(), nullptr, IID_GRAPHICS_PPV_ARGS(&_cmdList)));
+            ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_allocator)));
+            ThrowIfFailed(device->CreateCommandList(1, type, _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
             ThrowIfFailed(_cmdList->Close());
 
             ThrowIfFailed(_queue->SetName(name.c_str()));
@@ -1019,35 +1265,24 @@ namespace Inferno {
     }
 
     void CreateTestProcedural(Outrage::TextureInfo& texture) {
+        InitWaterTables();
+
         if (!Procedurals.contains(texture.Name)) {
-            Procedurals[texture.Name] = MakePtr<ProceduralTexture>(texture);
+            Procedurals[texture.Name] = MakePtr<ProceduralTexture>(texture, TexID(1080));
+            auto ltid = Resources::GameData.LevelTexIdx[1080];
+            Resources::GameData.TexInfo[(int)ltid].Procedural = true;
         }
     }
 
-    //span<Color> GetProceduralData(const Outrage::TextureInfo& texture) {
-    //    if (!Procedurals.contains(texture.Name))
-    //        return {};
-
-    //    return Procedurals[texture.Name]->GetData();
-    //}
-
     void CopyProceduralToTexture(const string& srcName, TexID destId) {
+        destId = TexID(1080);
         auto& material = Render::Materials->Get(destId);
         auto& src = Procedurals[srcName]->Texture;
         if (!src) return;
 
-        auto& dest = material.Textures[0];
-        if (src.GetWidth() != dest.GetWidth() || src.GetHeight() != dest.GetHeight()) {
-            // resize target
-            dest.Create((int)src.GetWidth(), (int)src.GetHeight(), src.GetName());
-            auto handle = Render::Heaps->Materials.GetCpuHandle(material.UploadIndex);
-            dest.CreateShaderResourceView(handle);
-            material.Handles[0] = Render::Heaps->Materials.GetGpuHandle(material.UploadIndex);
-        }
-
-        CopyQueue->Reset();
-        dest.CopyFrom(CopyQueue->Get(), src);
-        CopyQueue->Execute(true);
+        // todo: this is only necessary once on level load
+        auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
+        Render::Device->CopyDescriptorsSimple(1, destHandle, Procedurals[srcName]->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
     void UploadChangedProcedurals() {
@@ -1060,7 +1295,7 @@ namespace Inferno {
 
         int count = 0;
         for (auto& tex : Procedurals | views::values) {
-            tex->Update(Render::ElapsedTime);
+            tex->Update();
             if (tex->CopyToTexture(UploadQueue->Get()))
                 count++;
         }

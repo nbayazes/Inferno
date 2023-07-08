@@ -30,6 +30,7 @@ namespace Inferno {
         LevelTexID ID = LevelTexID::None;;
         TexID TexID = TexID::None;
         string D1FileName;
+        bool Procedural; // Has override in the procedural system
 
         bool HasFlag(TextureFlag flag) const { return bool(Flags & flag); }
         bool IsLiquid() const { return HasFlag(TextureFlag::Volatile) || HasFlag(TextureFlag::Water); }

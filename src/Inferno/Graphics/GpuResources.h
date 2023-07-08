@@ -39,6 +39,7 @@ namespace Inferno {
         const auto GetSRV() const { return _srv.GetGpuHandle(); }
         const auto GetUAV() const { return _uav.GetGpuHandle(); }
         const auto GetRTV() const { return _rtv.GetCpuHandle(); }
+        const auto GetSrvDesc() const { return &_srvDesc; }
 
         void SetName(wstring_view name) {
             _name = name;

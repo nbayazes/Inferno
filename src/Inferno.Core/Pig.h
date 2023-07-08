@@ -24,6 +24,11 @@ namespace Inferno {
                 return c;
             }
 
+            uint32 ToRgba8888() const {
+                return r | g << 8 | b << 16 | a << 24;
+            }
+
+
             DirectX::SimpleMath::Color ToColor() const {
                 return { (float)r / 255.0f, (float)g / 255.0f, (float)b / 255.0f, (float)a / 255.0f };
             }

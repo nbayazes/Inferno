@@ -101,7 +101,7 @@ namespace Inferno::Outrage {
 
             int8 Speed;
             uint8 Frequency, Size;
-            uint8 X1, Y1; // Max texture size of 256x256
+            int X1, Y1;
             uint8 X2, Y2;
         };
 
@@ -125,6 +125,7 @@ namespace Inferno::Outrage {
         constexpr bool Alpha() const { return bool(Flags & TextureFlag::Alpha); }
         constexpr bool Animated() const { return bool(Flags & TextureFlag::Animated); }
         constexpr bool IsProcedural() const { return bool(Flags & TextureFlag::Procedural); }
+        constexpr bool IsWaterProcedural() const { return bool(Flags & TextureFlag::WaterProcedural); }
 
         int GetSize() const {
             if (HasFlag(Flags, Outrage::TextureFlag::Texture32))

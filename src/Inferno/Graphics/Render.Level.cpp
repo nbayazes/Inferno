@@ -190,6 +190,8 @@ namespace Inferno::Render {
         Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
         Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
 
+        auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
+
         if (chunk.Cloaked) {
             // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
             Shaders->Level.SetMaterial1(cmdList, Materials->Black());
@@ -209,17 +211,23 @@ namespace Inferno::Render {
                     Shaders->Level.SetMaterial2(cmdList, Materials->Get(side->TMap2));
             }
             else {
-                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(Resources::GetEffectClip(chunk.EffectClip1).VClip.GetFrame(ElapsedTime));
-                Shaders->Level.SetMaterial1(cmdList, map1);
+                if (ti.Procedural) {
+                    // For procedural textures the animation is baked into it
+                    auto& map1 = Materials->Get(chunk.TMap1);
+                    Shaders->Level.SetMaterial1(cmdList, map1);
+                }
+                else {
+                    auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                    Shaders->Level.SetMaterial1(cmdList, map1);
+                }
 
                 if (constants.Overlay) {
-                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
                     Shaders->Level.SetMaterial2(cmdList, map2);
                 }
             }
         }
 
-        auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
         constants.Scroll = ti.Slide;
         constants.Scroll2 = chunk.OverlaySlide;
         constants.Distort = ti.Slide != Vector2::Zero;
