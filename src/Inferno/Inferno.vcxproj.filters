@@ -251,6 +251,12 @@
     <ClCompile Include="Procedural.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Procedural.Water.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Procedural.Fire.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">

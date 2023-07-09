@@ -207,6 +207,8 @@
     <ClCompile Include="Physics.Hit.cpp" />
     <ClCompile Include="Physics.Math.cpp" />
     <ClCompile Include="Procedural.cpp" />
+    <ClCompile Include="Procedural.Fire.cpp" />
+    <ClCompile Include="Procedural.Water.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />

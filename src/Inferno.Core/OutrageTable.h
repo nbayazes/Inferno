@@ -127,15 +127,15 @@ namespace Inferno::Outrage {
         constexpr bool IsProcedural() const { return bool(Flags & TextureFlag::Procedural); }
         constexpr bool IsWaterProcedural() const { return bool(Flags & TextureFlag::WaterProcedural); }
 
-        int GetSize() const {
+        uint16 GetSize() const {
             if (HasFlag(Flags, Outrage::TextureFlag::Texture32))
-                return 32;
+                return 32u;
             else if (HasFlag(Flags, Outrage::TextureFlag::Texture64))
-                return 64;
+                return 64u;
             else if (HasFlag(Flags, Outrage::TextureFlag::Texture256))
-                return 256;
+                return 256u;
 
-            return 128;
+            return 128u;
         }
     };
 
