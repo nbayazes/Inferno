@@ -9,10 +9,13 @@
 // Most of this code is credited to the efforts of ISB
 
 namespace Inferno {
-    ubyte WaterProcTableLo[16384];
-    ushort WaterProcTableHi[16384];
+    List<ubyte> WaterProcTableLo;
+    List<ushort> WaterProcTableHi;
 
     void InitWaterTables() {
+        WaterProcTableLo.resize(16384);
+        WaterProcTableHi.resize(16384);
+        
         for (int i = 0; i < 64; i++) {
             float intensity1 = i * 0.01587302f;
             float intensity2 = intensity1 * 2;
@@ -28,9 +31,8 @@ namespace Inferno {
                 if (channel > 31)
                     channel = 31;
 
-                for (int k = 0; k < 4; k++) {
-                    WaterProcTableHi[((i * 64) + j) * 4 + k] = ((channel | 65504u) << 10u);
-                }
+                for (int k = 0; k < 4; k++)
+                    WaterProcTableHi[((i * 64) + j) * 4 + k] = (channel | 65504u) << 10u;
             }
 
             for (int j = 0; j < 32; j++) {
@@ -38,9 +40,8 @@ namespace Inferno {
                 if (channel > 31)
                     channel = 31;
 
-                for (int k = 0; k < 8; k++) {
+                for (int k = 0; k < 8; k++)
                     WaterProcTableLo[(i * 256) + j + (32 * k)] = channel;
-                }
             }
 
             for (int j = 0; j < 8; j++) {
@@ -48,9 +49,8 @@ namespace Inferno {
                 if (channel > 7)
                     channel = 7;
 
-                for (int k = 0; k < 32; k++) {
+                for (int k = 0; k < 32; k++)
                     WaterProcTableLo[(i * 256) + (j * 32) + k] |= channel << 5;
-                }
             }
 
             for (int j = 0; j < 4; j++) {
@@ -58,9 +58,8 @@ namespace Inferno {
                 if (channel > 24)
                     channel = 24;
 
-                for (int k = 0; k < 32; k++) {
+                for (int k = 0; k < 32; k++)
                     WaterProcTableHi[(i * 256) + j + (k * 4)] |= channel << 5;
-                }
             }
         }
     }
@@ -82,8 +81,8 @@ namespace Inferno {
         auto r = (uint8)(((src >> 10) & 31) * 255.0f / 31);
         auto g = (uint8)(((src >> 5) & 31) * 255.0f / 31);
         auto b = (uint8)((src & 31) * 255.0f / 31);
-        auto a = src >> 15 ? 0 : 255;
-        return r | g << 8 | b << 16 | a << 24;
+        //auto a = src >> 15 ? 0 : 255;
+        return r | g << 8 | b << 16 | 255 << 24;
     }
 
     class ProceduralTexture {
@@ -111,7 +110,6 @@ namespace Inferno {
             int8 Speed;
             ubyte Color;
             int8 Lifetime;
-            int Num;
             // Next and Previous dynamic element
             int Prev = -1, Next = -1;
 
@@ -164,16 +162,13 @@ namespace Inferno {
                 _freeParticles.resize(MAX_PARTICLES);
                 _particles.resize(MAX_PARTICLES);
 
-                for (int i = 0; i < MAX_PARTICLES; i++) {
+                for (int i = 0; i < MAX_PARTICLES; i++)
                     _freeParticles[i] = i;
-                    _particles[i].Num = i;
-                }
 
                 _palette.resize(std::size(info.Procedural.Palette));
 
                 for (int i = 0; i < _palette.size(); i++) {
                     // Encode the BGRA5551 palette to RGBA8888
-                    // BGRA5551, max value of 31 -> 255 
                     auto srcColor = info.Procedural.Palette[i] % 32768U;
                     _palette[i] = BGRA16ToRGB32(srcColor);
                 }
@@ -187,22 +182,6 @@ namespace Inferno {
             //Texture.CreateShaderResourceView(Handle.GetCpuHandle());
             Render::Device->CreateShaderResourceView(Texture.Get(), Texture.GetSrvDesc(), Handle.GetCpuHandle());
         }
-
-        //void SetBaseTexture(span<ubyte> data, int width, int height) {
-        //    _baseTexture.resize(TotalSize);
-        //    assert(width == height); // only works with square textures
-        //    auto scale = Resolution / width;
-
-        //    if(width != Resolution || height != Resolution) {
-        //        // Resize source to match procedural
-        //        for (int y = 0; y < Resolution; y++) {
-        //            for (int x = 0; x < Resolution; x++) {
-        //                // Nearest
-        //                _baseTexture[y * Resolution + x] = data[(y / scale) * Resolution + x / scale];
-        //            }
-        //        }
-        //    }
-        //}
 
         bool CopyToTexture(ID3D12GraphicsCommandList* cmdList) {
             if (PendingCopy) {
@@ -531,12 +510,12 @@ namespace Inferno {
 
         bool ParticleIsAlive(Particle& elem) {
             if (--elem.Lifetime <= 0) {
-                UnlinkElement(elem.Num);
+                UnlinkElement(&elem - &_particles[0]);
                 return false;
             }
 
             if (--elem.Color <= 0) {
-                UnlinkElement(elem.Num);
+                UnlinkElement(&elem - &_particles[0]);
                 return false;
             }
 
@@ -613,24 +592,23 @@ namespace Inferno {
 
             auto num = GetDynamicElement();
             if (num != -1) {
-                //auto iVar3 = FrameCount + elem.Num * 60;
-
-                auto iVar3 = (uint)(FrameCount + num * 60);
-                auto iVar2 = (uint)Floor(elem.Speed * 0.00392156862745098 * 5.0 + 1.0);
+                auto elemNum = &elem - &_info.Procedural.Elements[0];
+                int iVar3 = FrameCount + elemNum * 60;
+                int iVar2 = int(elem.Speed / 255.0f * 5.0f + 1.0f);
+                int size = elem.Size * -65536;
 
                 LinkElement(num);
                 auto& particle = _particles[num];
                 particle.Type = elem.Type;
 
-                auto ang0 = (iVar3 * iVar2 & 2147483711U) << 10;
-                auto ang1 = (iVar3 * iVar2 & 63U) << 10;
-                auto ang = ((iVar3 * iVar2 & 63U) << 10) / 65536.0 * 6.2831854;
-                auto size = elem.Size * -65536.0;
-                particle.VelX = Floor(std::cos(ang) * 65536);
-                particle.VelY = Floor(std::sin(ang) * 65536);
+                int fixAng = ((iVar3 * iVar2) & 63) << 10;
+                float ang = float(fixAng) / 65536.0f * 6.2831854f;
 
-                particle.X = Floor(elem.X1 - (size * particle.VelX)) * 65536;
-                particle.Y = Floor(elem.Y1 - (size * particle.VelY)) * 65536;
+                particle.VelX = int(std::cos(ang) * 65536);
+                particle.VelY = int(std::sin(ang) * 65536);
+
+                particle.X = int((elem.X1 - size * particle.VelX) * 65536);
+                particle.Y = int((elem.Y1 - size * particle.VelY) * 65536);
                 particle.Color = 254;
                 particle.Speed = elem.Speed;
                 particle.Lifetime = ProceduralRand() % 10 + 15;
@@ -1098,33 +1076,28 @@ namespace Inferno {
                     if (lightval < 0)
                         lightval = 0;
 
-                    //int srcOffset = 
-                    //    ((y + (vertheight >> 3)) & RESMASK) * RESOLUTION + 
-                    //    ((x + (horizheight >> 3)) & RESMASK);
-
-                    //int xOffset = int(((x + (horizheight >> 3)) & _resMask) * xScale);
-                    //int yOffset = int(((y + (vertheight >> 3)) & _resMask) * Resolution * yScale);
-                    //int xOffset = int(int(x * xScale) + (horizheight >> 3) & srcResmaskX);
-                    //int yOffset = int((int(y * yScale) + (vertheight >> 3) & srcResmaskY) * Resolution * yScale);
-                    //int xOffset = (x + (horizheight >> 3)) >> 1;
-                    //int yOffset = (y + (vertheight >> 3)) >> 1;
-
                     int xShift = int((horizheight >> 3) + x * xScale) % texture.Info.Width;
                     int yShift = int((vertheight >> 3) + y * yScale) % texture.Info.Width;
 
                     int srcOffset = (yShift & srcResmaskY) * texture.Info.Width + (xShift & srcResmaskX);
-                    //int srcOffset = yShift * (int)texture.Info.Width + xShift;
 
-                    //int srcOffset = (int(yOffset * yScale) & srcResmaskY) * texture.Info.Width + (int(xOffset * xScale) & srcResmaskX);
-                    auto& c = texture.Data[srcOffset];
-                    //uint32 srcPixel = texture.Data[srcOffset].ToR8G8B8A8();
                     int destOffset = y * Resolution + x;
-                    //auto srcPixel = uint16(c.r | c.g << 5 | c.b << 10 | 255);
-                    // int16((r >> 3) + ((g >> 3) << 5) + ((b >> 3) << 10));
+
+                    auto& c = texture.Data[srcOffset]; // RGBA8888
+                    //auto srcPixel = int16((c.b / 8) + ((c.g / 8) << 5) + ((c.r / 8) << 10));
                     auto srcPixel = RGB32ToBGR16(c.r, c.g, c.b);
-                    auto dest16 = WaterProcTableLo[(srcPixel & 255) + lightval * 256] + WaterProcTableHi[((srcPixel >> 8) & 127) + lightval * 256];
-                    _pixels[destOffset] = BGRA16ToRGB32(dest16);
-                    _pixels[destOffset] |= 0xFF000000;
+                    auto rgba8881 = 
+                        WaterProcTableLo[(srcPixel & 255) + lightval * 256] + 
+                        WaterProcTableHi[((srcPixel >> 8) & 127) + lightval * 256];
+
+                    //auto r = (uint8)(((rgba8881 >> 10) & 31) * 255.0f / 31);
+                    //auto g = (uint8)(((rgba8881 >> 5) & 31) * 255.0f / 31);
+                    //auto b = (uint8)((rgba8881 & 31) * 255.0f / 31);
+                    //_pixels[destOffset] = r | g << 8 | b << 16 | 255 << 24;
+
+                    _pixels[destOffset] = BGRA16ToRGB32(rgba8881);
+
+                    //_pixels[destOffset] = BGRA16ToRGB32(WaterProcTableHi[destOffset]);
                     //_pixels[destOffset] = c.ToR8G8B8A8();
                 }
             }
@@ -1269,9 +1242,10 @@ namespace Inferno {
 
         if (!Procedurals.contains(texture.Name)) {
             Procedurals[texture.Name] = MakePtr<ProceduralTexture>(texture, TexID(1080));
-            auto ltid = Resources::GameData.LevelTexIdx[1080];
-            Resources::GameData.TexInfo[(int)ltid].Procedural = true;
         }
+
+        auto ltid = Resources::GameData.LevelTexIdx[1080];
+        Resources::GameData.TexInfo[(int)ltid].Procedural = true;
     }
 
     void CopyProceduralToTexture(const string& srcName, TexID destId) {
