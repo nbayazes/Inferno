@@ -218,7 +218,7 @@ Weapons:
     Name: mega missile
     Decal: scorchC
     DecalRadius: 8
-    Mass: 2
+    Mass: 4
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 60
     Size: 1.25 # was 0.2 due odd length ratio

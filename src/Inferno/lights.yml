@@ -7,7 +7,7 @@ Lights:
       Width: 0.01
       Wrap: 1
       Color: 0.15, 0.15, 0.4 # cooler
-      Offset: 0
+      Offset: -1
   
     - ID: 213
       Type: 2
