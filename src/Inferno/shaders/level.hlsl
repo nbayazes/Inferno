@@ -296,6 +296,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
     }
 
+    if (emissive > 0 && mat1.LightReceived == 0) 
+        emissive = emissive  + 1; // make lava and forcefields full bright
+
     if (diffuse.a <= 0)
         discard; // discarding speeds up large transparent walls
 
