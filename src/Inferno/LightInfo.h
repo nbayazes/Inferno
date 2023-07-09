@@ -45,7 +45,7 @@ namespace Inferno {
         // other map generation options like contrast, brightness?
         float Metalness = 0; // How much diffuse to apply to specular
         float Roughness = 0.6; // 0 is sharp specular, 1 is no specular
-        float EmissiveStrength = 1;
+        float EmissiveStrength = 0;
         float LightReceived = 1; // 0 for unlit
         int32 ID = -1; // TexID
         float pad1;

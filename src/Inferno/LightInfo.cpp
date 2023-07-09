@@ -98,12 +98,23 @@ namespace Inferno {
     void SaveMaterialInfo(c4::yml::NodeRef& node, TexID id, const MaterialInfo& info) {
         node |= ryml::MAP;
         node["TexID"] << (int)id;
-        node["NormalStrength"] << info.NormalStrength;
-        node["SpecularStrength"] << info.SpecularStrength;
-        node["Metalness"] << info.Metalness;
+
+        if (info.NormalStrength != 1)
+            node["NormalStrength"] << info.NormalStrength;
+
+        if (info.SpecularStrength != 1)
+            node["SpecularStrength"] << info.SpecularStrength;
+
+        if (info.Metalness != 0)
+            node["Metalness"] << info.Metalness;
+
         node["Roughness"] << info.Roughness;
-        node["EmissiveStrength"] << info.EmissiveStrength;
-        node["LightReceived"] << info.LightReceived;
+
+        if (info.EmissiveStrength > 0)
+            node["EmissiveStrength"] << info.EmissiveStrength;
+
+        if (info.LightReceived != 1)
+            node["LightReceived"] << info.LightReceived;
     }
 
     Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml) {
