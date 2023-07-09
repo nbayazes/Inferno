@@ -12,7 +12,6 @@ namespace Inferno::Editor {
         const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
         int _selectedPath = 0;
-        TexturePreviewSize _texturePreviewSize{};
 
         EditorSettings _editor;
         InfernoSettings _inferno;
@@ -242,7 +241,7 @@ namespace Inferno::Editor {
             ImGui::Text("Texture preview size");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(150 * Shell::DpiScale);
-            ImGui::Combo("##texpreview", (int*)&_texturePreviewSize, "Small\0Medium\0Large");
+            ImGui::Combo("##texpreview", (int*)&_editor.TexturePreviewSize, "Small\0Medium\0Large");
             ImGui::EndTabItem();
         }
 
