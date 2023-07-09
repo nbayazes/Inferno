@@ -9,13 +9,159 @@
 // Most of this code is credited to the efforts of ISB
 
 namespace Inferno {
+    Palette::Color AverageColor(const Palette::Color& a, const Palette::Color& b) {
+        return {
+            uint8((a.r + b.r) >> 1),
+            uint8((a.g + b.g) >> 1),
+            uint8((a.b + b.b) >> 1)
+        };
+    }
+
+    Palette::Color AverageColor(const Palette::Color& a, const Palette::Color& b, float weight) {
+        return {
+            uint8(a.r * (1 - weight) + b.r * weight),
+            uint8(a.g * (1 - weight) + b.g * weight),
+            uint8(a.b * (1 - weight) + b.b * weight)
+        };
+    }
+
+    Palette::Color BilinearSample(int x, int y, int srcResmaskX, int srcResmaskY, const PigBitmap& src) {
+        // x and y are 128x128 ...
+        auto texWidth = src.Info.Width;
+        int offset00 = (y & srcResmaskY) * texWidth + (x & srcResmaskX);
+        int offset01 = (y & srcResmaskY) * texWidth + (x + 1 & srcResmaskX);
+        int offset10 = (y + 1 & srcResmaskY) * texWidth + (x & srcResmaskX);
+        int offset11 = (y + 1 & srcResmaskY) * texWidth + (x + 1 & srcResmaskX);
+
+        auto& c00 = src.Data[offset00];
+        auto& c01 = src.Data[offset01];
+        auto& c10 = src.Data[offset10];
+        auto& c11 = src.Data[offset11];
+
+        auto x0 = AverageColor(c00, c01);
+        auto x1 = AverageColor(c10, c11);
+        return AverageColor(x0, x1);
+    }
+
+    List<Palette::Color> BilinearUpscale128x128(const PigBitmap& src) {
+        assert(src.Info.Width == 64 && src.Info.Height == 64);
+
+        auto srcWidth = src.Info.Width;
+        auto srcHeight = src.Info.Height;
+
+        auto outputWidth = 128;
+        List<Palette::Color> output;
+        output.resize(outputWidth * outputWidth);
+
+        // srcWidth/Height always 64
+        auto ratioX = float(srcWidth) / outputWidth;
+        auto ratioY = float(srcHeight) / outputWidth;
+
+        // output size is 128
+        for (int y = 0; y < outputWidth; y++) {
+            for (int x = 0; x < outputWidth; x++) {
+                //int px = (int)(x * ratioX); // floor of x
+                //int py = (int)(y * ratioY); // floor of y
+                //const int stride = size;
+                //auto& p0 = src.Data[px + py * size]; // pointer to first pixel
+
+                // load the four neighboring pixels
+                /*auto p1 = p0[0 + 0 * stride];
+                auto p2 = p0[1 + 0 * stride];
+                auto p3 = p0[0 + 1 * stride];
+                auto p4 = p0[1 + 1 * stride];*/
+                //auto y1 = (py + 1) % srcWidth;
+                //auto x1 = (px + 1) % srcWidth;
+
+                //auto& p1 = src.Data[px + py * srcWidth];
+                //auto& p2 = src.Data[x1 + py * srcWidth];
+                //auto& p3 = src.Data[px + y1 * srcWidth];
+                //auto& p4 = src.Data[x1 + y1 * srcWidth];
+
+                //// Calculate the weights for each pixel
+                //float fx = x - px;
+                //float fy = y - py;
+                //float fx1 = 1.0f - fx;
+                //float fy1 = 1.0f - fy;
+
+                //int w1 = fx1 * fy1/* * 256.0f*/;
+                //int w2 = fx * fy1/* * 256.0f*/;
+                //int w3 = fx1 * fy/* * 256.0f*/;
+                //int w4 = fx * fy/* * 256.0f*/;
+
+                //// Calculate the weighted sum of pixels (for each color channel)
+                //int outr = p1.r * w1 + p2.r * w2 + p3.r * w3 + p4.r * w4;
+                //int outg = p1.g * w1 + p2.g * w2 + p3.g * w3 + p4.g * w4;
+                //int outb = p1.b * w1 + p2.b * w2 + p3.b * w3 + p4.b * w4;
+                //int outa = p1.a * w1 + p2.a * w2 + p3.a * w3 + p4.a * w4;
+                //
+                //out[y * size + x] = Palette::Color{ ubyte(outr),  ubyte(outg),  ubyte(outb),  ubyte(outa) };
+
+                //auto x1 = std::floor(x * ratioX + 0.5f);
+                //auto y1 = std::floor(y * ratioY + 0.5f);
+
+                //// wrap left/bottom
+                //if (x1 < 0) x1 = srcWidth - 1;
+                //if (y1 < 0) y1 = srcHeight - 1;
+
+                //auto x2 = std::ceil(x * ratioX + 0.5f);
+                //auto y2 = std::ceil(y * ratioY + 0.5f);
+
+                //// wrap top/right
+                //if (x2 >= srcWidth) x2 = 0;
+                //if (y2 >= srcHeight) y2 = 0;
+
+                //auto xWeight = (ratioX * x) - x1;
+                //auto yWeight = (ratioY * y) - y1;
+
+                //auto& c00 = src.Data[y1 * srcWidth + x1];
+                //auto& c10 = src.Data[y1 * srcWidth + x2];
+                //auto& c01 = src.Data[y2 * srcWidth + x1];
+                //auto& c11 = src.Data[y2 * srcWidth + x2];
+
+                //auto fxy10 = (x2 - x) / (x2 - x1);
+                //auto fxy11 = (x - x1) / (x2 - x1);
+
+                //auto fxy20 = (x2 - x) / (x2 - x1);
+                //auto fxy21 = (x - x1) / (x2 - x1);
+
+                //auto bot = AverageColor(c00, c10, xWeight);
+                //auto top = AverageColor(c01, c11, xWeight);
+                //out[y * size + x] = AverageColor(bot, top, yWeight);
+
+                // offset uv by 0.5 to smooth the result
+                float u = x + 0.5f;
+                float v = y + 0.5f;
+                
+                int xl = (int)floor(ratioX * u) % srcWidth;
+                int yl = (int)floor(ratioY * v) % srcHeight;
+                int xh = (int)ceil(ratioX * u) % srcWidth;
+                int yh = (int)ceil(ratioY * v) % srcHeight;
+
+                float xWeight = (ratioX * u) - xl;
+                float yWeight = (ratioY * v) - yl;
+
+                auto& c00 = src.Data[yl * srcWidth + xl];
+                auto& c10 = src.Data[yl * srcWidth + xh];
+                auto& c01 = src.Data[yh * srcWidth + xl];
+                auto& c11 = src.Data[yh * srcWidth + xh];
+
+                auto bot = AverageColor(c00, c10, xWeight);
+                auto top = AverageColor(c01, c11, xWeight);
+                output[y * outputWidth + x] = AverageColor(bot, top, yWeight);
+            }
+        }
+
+        return output;
+    }
+
     List<ubyte> WaterProcTableLo;
     List<ushort> WaterProcTableHi;
 
     void InitWaterTables() {
         WaterProcTableLo.resize(16384);
         WaterProcTableHi.resize(16384);
-        
+
         for (int i = 0; i < 64; i++) {
             float intensity1 = i * 0.01587302f;
             float intensity2 = intensity1 * 2;
@@ -133,6 +279,8 @@ namespace Inferno {
         TexID BaseTexture;
         EClipID EClip = EClipID::None;
 
+        PigBitmap _baseTexture;
+
     public:
         int Resolution; // width-height
 
@@ -153,6 +301,10 @@ namespace Inferno {
             if (HasFlag(info.Flags, Outrage::TextureFlag::WaterProcedural)) {
                 _waterBuffer[0].resize(TotalSize);
                 _waterBuffer[1].resize(TotalSize);
+                auto& texture = Resources::GetBitmap(baseTexture);
+                _baseTexture.Data = BilinearUpscale128x128(texture);
+                _baseTexture.Info.Width = 128;
+                _baseTexture.Info.Height = 128;
             }
             else {
                 _fireBuffer[0].resize(TotalSize);
@@ -305,7 +457,7 @@ namespace Inferno {
                         AddWaterRaindrops(elem);
                         break;
                     case Outrage::WaterProceduralType::RandomBlobdrops:
-                        //AddWaterBlobdrops(elem);
+                        AddWaterBlobdrops(elem);
                         break;
                 }
             }
@@ -344,11 +496,10 @@ namespace Inferno {
         }
 
 
-        int Rand(int min, int max) const {
+        static int Rand(int min, int max) {
             assert(max > min);
             auto range = max - min + 1;
-            auto value = Floor(Random() * range);
-            assert(value + min <= max);
+            auto value = int(Random() * range);
             return value + min;
         }
 
@@ -980,7 +1131,8 @@ namespace Inferno {
         }
 
         const PigBitmap& GetBitmap() const {
-            return Resources::GetBitmap(BaseTexture);
+            return _baseTexture;
+            //return Resources::GetBitmap(BaseTexture);
             //return EClip == EClipID::None
             //    ? Resources::GetBitmap(BaseTexture)
             //    : Resources::GetBitmap(Resources::GetEffectClip(EClip).VClip.GetFrame(Render::ElapsedTime));
@@ -1028,11 +1180,19 @@ namespace Inferno {
             }
         }
 
+        //struct RgbColor16 {
+        //    uint16 R, G, B;
+        //};
+
+        //static RgbColor16 AddColor(const Palette::Color& a, const Palette::Color& b) {
+        //    return {
+        //        uint16(a.r + b.r),
+        //        uint16(a.g + b.g),
+        //        uint16(a.b + b.b)
+        //    };
+        //}
+
         void DrawWaterWithLight(int lightFactor) {
-            //proc_struct* proc = GameTextures[texnum].procedural;
-            //ushort* destData = bm_data(proc->procedural_bitmap, 0);
-            //ushort* srcData = bm_data(GameTextures[texnum].bm_handle, 0);
-            //short* heightData = (short*)proc->proc1;
             auto& heights = _waterBuffer[_index];
             int lightshift = lightFactor & 31;
 
@@ -1079,26 +1239,18 @@ namespace Inferno {
                     int xShift = int((horizheight >> 3) + x * xScale) % texture.Info.Width;
                     int yShift = int((vertheight >> 3) + y * yScale) % texture.Info.Width;
 
-                    int srcOffset = (yShift & srcResmaskY) * texture.Info.Width + (xShift & srcResmaskX);
-
                     int destOffset = y * Resolution + x;
 
+                    int srcOffset = (yShift & srcResmaskY) * texture.Info.Width + (xShift & srcResmaskX);
                     auto& c = texture.Data[srcOffset]; // RGBA8888
-                    //auto srcPixel = int16((c.b / 8) + ((c.g / 8) << 5) + ((c.r / 8) << 10));
+                    //auto c = BilinearSample(xShift, yShift, srcResmaskX, srcResmaskY, texture);
                     auto srcPixel = RGB32ToBGR16(c.r, c.g, c.b);
-                    auto rgba8881 = 
-                        WaterProcTableLo[(srcPixel & 255) + lightval * 256] + 
+
+                    auto rgba8881 =
+                        WaterProcTableLo[(srcPixel & 255) + lightval * 256] +
                         WaterProcTableHi[((srcPixel >> 8) & 127) + lightval * 256];
 
-                    //auto r = (uint8)(((rgba8881 >> 10) & 31) * 255.0f / 31);
-                    //auto g = (uint8)(((rgba8881 >> 5) & 31) * 255.0f / 31);
-                    //auto b = (uint8)((rgba8881 & 31) * 255.0f / 31);
-                    //_pixels[destOffset] = r | g << 8 | b << 16 | 255 << 24;
-
                     _pixels[destOffset] = BGRA16ToRGB32(rgba8881);
-
-                    //_pixels[destOffset] = BGRA16ToRGB32(WaterProcTableHi[destOffset]);
-                    //_pixels[destOffset] = c.ToR8G8B8A8();
                 }
             }
         }
