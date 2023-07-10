@@ -4,6 +4,11 @@
 #include "Graphics/Render.h"
 
 namespace Inferno {
+    void AddProcedural(Outrage::TextureInfo& info, TexID dest);
+    void UploadProcedurals();
+    int GetProceduralCount();
+    void FreeProceduralTextures();
+
     // Converts BGRA5551 to RGBA8888
     constexpr int BGRA16ToRGB32(uint src) {
         auto r = (uint8)(((src >> 10) & 31) * 255.0f / 31);
@@ -31,8 +36,10 @@ namespace Inferno {
     public:
         Texture2D Texture;
         DescriptorHandle Handle;
+        TexID BaseTexture; // Texture slot to replace with this procedural effect
 
-        ProceduralTextureBase(const Outrage::TextureInfo& info) {
+        ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {
+            BaseTexture = baseTexture;
             _info = info;
             _name = Convert::ToWideString(_info.Name);
             Resolution = info.GetSize();
@@ -42,8 +49,7 @@ namespace Inferno {
             Texture.SetDesc(Resolution, Resolution);
             Texture.CreateOnDefaultHeap(Convert::ToWideString(_info.Name));
 
-            // todo: handle based on procedural texture index
-            Handle = Render::Heaps->Procedurals.GetHandle(0);
+            Handle = Render::Heaps->Procedurals.GetHandle(GetProceduralCount());
             Render::Device->CreateShaderResourceView(Texture.Get(), Texture.GetSrvDesc(), Handle.GetCpuHandle());
         }
 
@@ -89,10 +95,4 @@ namespace Inferno {
             return value + min;
         }
     };
-
-
-    void CreateTestProcedural(Outrage::TextureInfo& texture);
-    void CopyProceduralToTexture(const string& srcName, TexID destId);
-    void UploadChangedProcedurals();
-    void FreeProceduralTextures();
 }

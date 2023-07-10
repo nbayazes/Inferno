@@ -4,12 +4,7 @@
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
 
-
 namespace Inferno {
-    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID id);
-    Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture);
-    Dictionary<string, Ptr<ProceduralTextureBase>> Procedurals;
-
     // Combined command list / allocator / queue for executing commands
     class CommandList {
         ComPtr<ID3D12GraphicsCommandList> _cmdList;
@@ -53,23 +48,16 @@ namespace Inferno {
 
     private:
         void Wait() {
-            // Create synchronization objects and wait until assets have been uploaded to the GPU.
-
             // Create an event handle to use for frame synchronization.
             _fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
             if (_fenceEvent == nullptr)
                 ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
 
-            // Wait for the command list to execute; we are reusing the same command 
-            // list in our main loop but for now, we just want to wait for setup to 
-            // complete before continuing.
-            //WaitForPreviousFrame();
-
             const UINT64 fence = _fenceValue;
             ThrowIfFailed(_queue->Signal(_fence.Get(), fence));
             _fenceValue++;
 
-            // Wait until the previous frame is finished.
+            // Wait until the command list is finished executing
             if (_fence->GetCompletedValue() < fence) {
                 ThrowIfFailed(_fence->SetEventOnCompletion(fence, _fenceEvent));
                 WaitForSingleObject(_fenceEvent, INFINITE);
@@ -77,45 +65,47 @@ namespace Inferno {
         }
     };
 
+    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest);
+    Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
+    //Dictionary<string, Ptr<ProceduralTextureBase>> Procedurals;
+    List<Ptr<ProceduralTextureBase>> Procedurals;
     Ptr<CommandList> UploadQueue;
+
+    int GetProceduralCount() { return (int)Procedurals.size(); }
 
     void FreeProceduralTextures() {
         Procedurals.clear();
         UploadQueue.reset();
     }
 
-    void CreateTestProcedural(Outrage::TextureInfo& texture) {
-        if (!Procedurals.contains(texture.Name)) {
-            if (texture.IsWaterProcedural())
-                Procedurals[texture.Name] = CreateProceduralWater(texture, TexID(1080));
-            else
-                Procedurals[texture.Name] = CreateProceduralFire(texture);
+    void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
+        if (Seq::exists(Procedurals, [dest](auto& p) { return p->BaseTexture == dest; })) {
+            SPDLOG_WARN("Procedural texture already exists for texid {}", dest);
+            return;
         }
 
-        auto ltid = Resources::GameData.LevelTexIdx[1080];
+        auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest) : CreateProceduralFire(info, dest);
+
+        auto ltid = Resources::GameData.LevelTexIdx[(int)dest];
         Resources::GameData.TexInfo[(int)ltid].Procedural = true;
-    }
 
-    void CopyProceduralToTexture(const string& srcName, TexID destId) {
-        auto& material = Render::Materials->Get(destId);
-        auto& src = Procedurals[srcName]->Texture;
-        if (!src) return;
-
-        // todo: this is only necessary once on level load
+        // Update the diffuse texture handle in the material
+        auto& material = Render::Materials->Get(dest);
         auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
-        Render::Device->CopyDescriptorsSimple(1, destHandle, Procedurals[srcName]->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        Render::Device->CopyDescriptorsSimple(1, destHandle, procedural->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        Procedurals.push_back(std::move(procedural));
     }
 
-    void UploadChangedProcedurals() {
+    void UploadProcedurals() {
         if (!UploadQueue) {
             UploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
-            //CopyQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
         }
 
         UploadQueue->Reset();
 
         int count = 0;
-        for (auto& tex : Procedurals | views::values) {
+        for (auto& tex : Procedurals) {
             tex->Update();
             if (tex->CopyToTexture(UploadQueue->Get()))
                 count++;

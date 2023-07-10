@@ -3,7 +3,7 @@
 
 // Descent 3 procedural water effects
 //
-// Most of this code is credited to the efforts of ISB
+// Most of this code is credited to the efforts of SaladBadger
 
 namespace Inferno {
     List<ubyte> WaterProcTableLo;
@@ -141,19 +141,19 @@ namespace Inferno {
         return output;
     }
 
-
     class ProceduralWater : public ProceduralTextureBase {
         PigBitmap _baseTexture;
         List<int16> _waterBuffer[2]{};
 
     public:
-        ProceduralWater(const Outrage::TextureInfo& info, TexID baseTexture = TexID::None) : ProceduralTextureBase(info) {
+        ProceduralWater(const Outrage::TextureInfo& info, TexID baseTexture)
+            : ProceduralTextureBase(info, baseTexture) {
             _waterBuffer[0].resize(TotalSize);
             _waterBuffer[1].resize(TotalSize);
             auto& texture = Resources::GetBitmap(baseTexture);
             _baseTexture.Data = BilinearUpscale(texture, Resolution);
-            _baseTexture.Info.Width = (uint16)Resolution;
-            _baseTexture.Info.Height = (uint16)Resolution;
+            _baseTexture.Info.Width = Resolution;
+            _baseTexture.Info.Height = Resolution;
         }
 
     protected:
@@ -486,10 +486,10 @@ namespace Inferno {
         }
     };
 
-    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID id) {
+    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest) {
         if (WaterProcTableLo.empty() || WaterProcTableHi.empty())
             InitWaterTables();
 
-        return MakePtr<ProceduralWater>(texture, id);
+        return MakePtr<ProceduralWater>(texture, dest);
     }
 }

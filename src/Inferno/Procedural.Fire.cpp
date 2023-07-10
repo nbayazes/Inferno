@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "Procedural.h"
 
+// Descent 3 procedural fire effects
+//
+// Most of this code is credited to the efforts of SaladBadger
+
 namespace Inferno {
     struct Particle {
         union {
@@ -33,7 +37,8 @@ namespace Inferno {
         int _numParticles = 0;
 
     public:
-        ProceduralFire(const Outrage::TextureInfo& info) : ProceduralTextureBase(info) {
+        ProceduralFire(const Outrage::TextureInfo& info, TexID baseTexture)
+            : ProceduralTextureBase(info, baseTexture) {
             _fireBuffer[0].resize(TotalSize);
             _fireBuffer[1].resize(TotalSize);
 
@@ -52,6 +57,7 @@ namespace Inferno {
                 _palette[i] = BGRA16ToRGB32(srcColor);
             }
         }
+
     protected:
         void OnUpdate() override {
             using namespace Outrage;
@@ -620,7 +626,7 @@ namespace Inferno {
         }
     };
 
-    Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture) {
-        return MakePtr<ProceduralFire>(texture);
+    Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest) {
+        return MakePtr<ProceduralFire>(texture, dest);
     }
 }
