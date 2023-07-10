@@ -575,12 +575,10 @@ namespace Inferno::Resources {
         SPDLOG_INFO("Reading level {}", name);
         List<ubyte> data;
 
-        // Search mounted mission first
+        // Search mounted mission first, then the main hog files
         if (Game::Mission && Game::Mission->Exists(name))
             data = Game::Mission->ReadEntry(name);
-
-        // Then main hog file
-        if (Hog.Exists(name))
+        else if (Hog.Exists(name))
             data = Hog.ReadEntry(name);
 
         if (data.empty()) {
