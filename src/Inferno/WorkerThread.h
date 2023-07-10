@@ -31,9 +31,9 @@ public:
     }
 
     WorkerThread(const WorkerThread&) = delete;
-    WorkerThread(WorkerThread&&) = default;
+    WorkerThread(WorkerThread&&) = delete;
     WorkerThread& operator=(const WorkerThread&) = delete;
-    WorkerThread& operator=(WorkerThread&&) = default;
+    WorkerThread& operator=(WorkerThread&&) = delete;
 
     // Wake up the worker
     void Notify() {
@@ -49,18 +49,18 @@ private:
     void Worker() {
         SPDLOG_INFO("Starting worker");
         while (_alive) {
-            _hasWork = false;
             try {
+                _hasWork = false;
                 Work();
+
+                // New work could be requested while work is being done, so check before sleeping
+                if (!_hasWork) {
+                    std::unique_lock lock(_notifyLock);
+                    _workAvailable.wait(lock); // sleep until work requested
+                }
             }
             catch (const std::exception& e) {
                 SPDLOG_ERROR(e.what());
-            }
-
-            // New work could be requested while work is being done
-            if (!_hasWork) {
-                std::unique_lock lock(_notifyLock);
-                _workAvailable.wait(lock); // sleep until work requested
             }
         }
         SPDLOG_INFO("Stopping worker");
