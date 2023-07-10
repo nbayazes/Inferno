@@ -112,6 +112,7 @@ namespace Inferno::Game {
             IsLoading = true;
 
             Level = std::move(level); // Move to global so resource loading works properly
+            FreeProceduralTextures();
             Resources::LoadLevel(Level);
 
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load

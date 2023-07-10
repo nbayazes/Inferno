@@ -79,15 +79,13 @@ namespace Inferno {
     }
 
     void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
-        if (Seq::exists(Procedurals, [dest](auto& p) { return p->BaseTexture == dest; })) {
+        if (Seq::exists(Procedurals, [dest](auto& p) { return p->ID == dest; })) {
             SPDLOG_WARN("Procedural texture already exists for texid {}", dest);
             return;
         }
 
         auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest) : CreateProceduralFire(info, dest);
 
-        auto ltid = Resources::GameData.LevelTexIdx[(int)dest];
-        Resources::GameData.TexInfo[(int)ltid].Procedural = true;
 
         // Update the diffuse texture handle in the material
         auto& material = Render::Materials->Get(dest);
@@ -95,6 +93,13 @@ namespace Inferno {
         Render::Device->CopyDescriptorsSimple(1, destHandle, procedural->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
         Procedurals.push_back(std::move(procedural));
+    }
+
+    Outrage::ProceduralInfo* GetProceduralInfo(TexID id) {
+        for (auto& p : Procedurals) {
+            if (p->ID == id) return &p->Info.Procedural;
+        }
+        return nullptr;
     }
 
     void UploadProcedurals() {
@@ -105,10 +110,15 @@ namespace Inferno {
         UploadQueue->Reset();
 
         int count = 0;
-        for (auto& tex : Procedurals) {
-            tex->Update();
-            if (tex->CopyToTexture(UploadQueue->Get()))
+        for (auto& proc : Procedurals) {
+            proc->Update();
+            if (proc->CopyToTexture(UploadQueue->Get())) {
+                auto& material = Render::Materials->Get(proc->ID);
+                auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
+                Render::Device->CopyDescriptorsSimple(1, destHandle, proc->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
                 count++;
+            }
         }
 
         UploadQueue->Execute(true);

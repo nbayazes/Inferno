@@ -17,6 +17,7 @@
 #include "HUD.h"
 #include <ScopedTimer.h>
 
+#include "Procedural.h"
 #include "Render.Level.h"
 
 using namespace DirectX;
@@ -247,6 +248,7 @@ namespace Inferno::Render {
         VClipUploadBuffer.reset();
         VClipBuffer.reset();
         ReleaseEditorResources();
+        FreeProceduralTextures();
         _levelMeshBuffer.reset();
         _meshBuffer.reset();
 
@@ -338,6 +340,13 @@ namespace Inferno::Render {
         cmdList->CopyResource(VClipBuffer->Get(), VClipUploadBuffer->Get());
         VClipBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
+    
+    //constexpr auto TEST_PROCEDURAL = "ThinMatcenLightning Purple";
+    //constexpr auto TEST_PROCEDURAL = "BlueMagneticField-V";
+    //constexpr auto TEST_PROCEDURAL = "EnergyConvpro";
+    constexpr auto TEST_PROCEDURAL = "Boiling Lava";
+    //constexpr auto TEST_PROCEDURAL = "CED_CoreSkin01";
+    //constexpr auto TEST_PROCEDURAL = "Nano Plasmic Cesspool";
 
     void LoadLevel(const Level& level) {
         Adapter->WaitForGpu();
@@ -354,6 +363,15 @@ namespace Inferno::Render {
 
         //{
         //    LoadOutrageModel(TEST_MODEL);
+        //}
+
+
+        //if (auto texture = Resources::GameTable.FindTexture(TEST_PROCEDURAL)) {
+        //    AddProcedural(*texture, TexID(1080));
+        //}
+
+        //if (auto texture = Resources::GameTable.FindTexture("CED_CoreSkin01")) {
+        //    AddProcedural(*texture, TexID(722));
         //}
 
         ResetLightCache();
@@ -530,6 +548,9 @@ namespace Inferno::Render {
         }
 
         Materials->Dispatch();
+        UploadProcedurals();
+        //ctx.Reset();
+
         _graphicsMemory->Commit(commandQueue);
     }
 

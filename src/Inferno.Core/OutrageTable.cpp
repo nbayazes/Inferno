@@ -66,6 +66,7 @@ namespace Inferno::Outrage {
             for (auto& p : tex.Procedural.Palette)
                 p = r.ReadUInt16();
 
+            proc.IsWater = tex.IsWaterProcedural();
             proc.Heat = r.ReadByte();
             proc.Light = r.ReadByte();
             proc.Thickness = r.ReadByte();

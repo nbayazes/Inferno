@@ -17,6 +17,7 @@
 #include "Render.Object.h"
 #include "Shell.h"
 #include "OpenSimplex2.h"
+#include "Procedural.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
@@ -211,7 +212,7 @@ namespace Inferno::Render {
                     Shaders->Level.SetMaterial2(cmdList, Materials->Get(side->TMap2));
             }
             else {
-                if (ti.Procedural) {
+                if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap1))) {
                     // For procedural textures the animation is baked into it
                     auto& map1 = Materials->Get(chunk.TMap1);
                     Shaders->Level.SetMaterial1(cmdList, map1);

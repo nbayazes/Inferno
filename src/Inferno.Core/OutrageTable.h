@@ -76,21 +76,23 @@ namespace Inferno::Outrage {
 
     // Procedural texture info
     struct ProceduralInfo {
-        float EvalTime; // Delay in seconds between updates
+        float EvalTime = 1 / 30.0f; // Delay in seconds between updates
 
         // (Fire) Palette encodes 255 colors in RGBA5551 format
         uint16 Palette[255]{};
-        uint8 Heat; // (Fire) Higher heat causes slower decay 
+        uint8 Heat = 0; // (Fire) Higher heat causes slower decay 
 
         // (Water) Lighting strength applied. Valid range is 0-31.
         // 0 will disable lighting and use a simpler distortion method. Otherwise lower values give a stronger strength of lighting.
-        uint8 Light;
+        uint8 Light = 0;
 
         // (Water) Thickness of the fluid. Valid range is 0-31.
         // Higher thickness values will cause ripples to decay slower. Lower values will cause them to decay faster.
-        uint8 Thickness;
-        float OscillateTime; // (Water) Oscillates the value of thickness over time. Must not be 0.
-        uint8 OscillateValue; // (Water) Oscillates the value of thickness over time.
+        uint8 Thickness = 0;
+        float OscillateTime = 0; // (Water) Oscillates the value of thickness over time when not 0
+        uint8 OscillateValue = 0; // (Water) Oscillates the value of thickness over time
+
+        bool IsWater = false; // Copied from parent texture info for convenience
 
         struct Element {
             union {

@@ -158,7 +158,7 @@ namespace Inferno {
 
     protected:
         void OnUpdate() override {
-            for (auto& elem : _info.Procedural.Elements) {
+            for (auto& elem : Info.Procedural.Elements) {
                 switch (elem.WaterType) {
                     case Outrage::WaterProceduralType::HeightBlob:
                         AddWaterHeightBlob(elem);
@@ -200,8 +200,8 @@ namespace Inferno {
 
             UpdateWater();
 
-            if (_info.Procedural.Light > 0)
-                DrawWaterWithLight(_info.Procedural.Light - 1);
+            if (Info.Procedural.Light > 0)
+                DrawWaterWithLight(Info.Procedural.Light - 1);
             else
                 DrawWaterNoLight();
         }
@@ -210,11 +210,11 @@ namespace Inferno {
         struct BlobBounds {
             int minX, minY;
             int maxX, maxY;
-            float sizeSq;
+            int sizeSq;
         };
 
         BlobBounds GetBlobBounds(const Element& elem) const {
-            const float sizeSq = (float)elem.Size * (float)elem.Size;
+            const auto sizeSq = elem.Size * elem.Size;
             int minX = -elem.Size;
             int minY = -elem.Size;
             if (elem.X1 + minX < 1)
@@ -259,13 +259,12 @@ namespace Inferno {
                 auto yOffset = (y + elem.Y1) * Resolution;
                 for (int x = blob.minX; x < blob.maxX; x++) {
                     auto offset = yOffset + x + elem.X1;
-                    auto radSq = (float)x * x + (float)y * y;
+                    auto radSq = x * x + y * y;
                     if (radSq < blob.sizeSq) {
-                        auto cosine = int(cos(int(sqrt(radSq * ((1024.0 / elem.Size) * (1024.0 / elem.Size)))) / 65536.0 * 2 * 3.141592654) * elem.Speed);
-                        // TBH no clue what this is about
-                        if (cosine < 0)
-                            cosine += 7;
-                        _waterBuffer[_index][offset] += uint8(cosine >> 3);
+                        int fix = sqrt(radSq * (1024.0f / elem.Size) * (1024.0f / elem.Size));
+                        float cosine = cos(fix / 65536.0 * 2 * 3.141592654);
+                        int add = cosine * elem.Speed;
+                        _waterBuffer[_index][offset] += (add + (add >> 31 & 7)) >> 3;
                     }
                 }
             }
@@ -302,10 +301,10 @@ namespace Inferno {
         }
 
         void UpdateWater() {
-            int factor = _info.Procedural.Thickness;
-            if (_info.Procedural.OscillateTime > 0) {
-                int thickness = _info.Procedural.Thickness;
-                int oscValue = _info.Procedural.OscillateValue;
+            int factor = Info.Procedural.Thickness;
+            if (Info.Procedural.OscillateTime > 0) {
+                int thickness = Info.Procedural.Thickness;
+                int oscValue = Info.Procedural.OscillateValue;
                 if (thickness < oscValue) {
                     oscValue = thickness;
                     thickness = oscValue;
@@ -313,7 +312,7 @@ namespace Inferno {
 
                 int delta = thickness - oscValue;
                 if (delta > 0) {
-                    int time = (int)(Render::ElapsedTime / _info.Procedural.OscillateTime / delta) % (delta * 2);
+                    int time = (int)(Render::ElapsedTime / Info.Procedural.OscillateTime / delta) % (delta * 2);
                     if (time < delta)
                         time %= delta;
                     else

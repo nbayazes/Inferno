@@ -1968,8 +1968,10 @@ Materials:
     Metalness: 0.854
     Roughness: 0.608
   - TexID: 1536
-    NormalStrength: 0.51
+    NormalStrength: 0.053
+    SpecularStrength: 0.503
     Roughness: 0.809
+    EmissiveStrength: 1
   - TexID: 1541
     NormalStrength: 0.503
     Metalness: 0.907
@@ -2120,6 +2122,23 @@ Materials:
   - TexID: 1894
     NormalStrength: 0.086
     Roughness: 0.323
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.025
+      Thickness: 8
+      Light: 6
+      OscillateTime: 1
+      OscillateValue: 8
+      Elements:
+        - '{"Type": 3,"X1": 58,"Y1": 22,"X2": 173,"Y2": 186,"Frequency": 8,"Size": 80,"Speed": 30}'
+        - '{"Type": 3,"X1": 120,"Y1": 60,"X2": 173,"Y2": 186,"Frequency": 7,"Size": 40,"Speed": 20}'
+#        - '{"Type": 3,"X1": 113,"Y1": 87,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 60,"Speed": 120}'
+#        - '{"Type": 3,"X1": 113,"Y1": 88,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 60,"Speed": 120}'
+#        - '{"Type": 3,"X1": 20,"Y1": 83,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 60,"Speed": 120}'
+        - '{"Type": 2,"X1": 20,"Y1": 83,"X2": 0,"Y2": 0,"Frequency": 5,"Size": 60,"Speed": 30}'
+#        - '{"Type": 2,"X1": 120,"Y1": 10,"X2": 0,"Y2": 0,"Frequency": 8,"Size": 60,"Speed": 40}'
+#        - '{"Type": 1,"X1": 63,"Y1": 121,"X2": 0,"Y2": 0,"Frequency": 20,"Size": 60,"Speed": 6}'
+#        - '{"Type": 1,"X1": 16,"Y1": 24,"X2": 0,"Y2": 0,"Frequency": 15,"Size": 64,"Speed": 5}'
   - TexID: 1903
     NormalStrength: 0.802
     SpecularStrength: 0
@@ -2134,12 +2153,44 @@ Materials:
     Roughness: 0.323
   - TexID: 1913
     Roughness: 0.8
-    EmissiveStrength: 2.02
+    EmissiveStrength: 0.5
     LightReceived: 0
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.033333335
+      Thickness: 4
+      Light: 31
+      OscillateTime: 0
+      OscillateValue: 2
+      Elements:
+        - '{"Type": 4,"X1": 90,"Y1": 23,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 40,"Speed": 120}'
+        - '{"Type": 4,"X1": 19,"Y1": 104,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 40,"Speed": 120}'
+        - '{"Type": 4,"X1": 32,"Y1": 43,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 40,"Speed": 120}'
+        - '{"Type": 4,"X1": 96,"Y1": 86,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 40,"Speed": 120}'
+        - '{"Type": 3,"X1": 58,"Y1": 22,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 60,"Speed": 120}'
+        - '{"Type": 3,"X1": 113,"Y1": 87,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 60,"Speed": 120}'
+        - '{"Type": 3,"X1": 113,"Y1": 88,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 60,"Speed": 120}'
+        - '{"Type": 3,"X1": 20,"Y1": 83,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 60,"Speed": 120}'
   - TexID: 1922
     Roughness: 0.8
-    EmissiveStrength: 3
+    EmissiveStrength: 0.5
     LightReceived: 0
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.033333335
+      Thickness: 5
+      Light: 10
+      OscillateTime: 0
+      OscillateValue: 3
+      Elements:
+        - '{"Type": 4,"X1": 90,"Y1": 23,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 30,"Speed": 30}'
+        - '{"Type": 4,"X1": 19,"Y1": 104,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 30,"Speed": 30}'
+        - '{"Type": 4,"X1": 32,"Y1": 43,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 30,"Speed": 30}'
+        - '{"Type": 4,"X1": 96,"Y1": 86,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 30,"Speed": 30}'
+        - '{"Type": 3,"X1": 58,"Y1": 22,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 60,"Speed": 60}'
+        - '{"Type": 3,"X1": 113,"Y1": 87,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 60,"Speed": 60}'
+        - '{"Type": 3,"X1": 113,"Y1": 88,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 60,"Speed": 60}'
+        - '{"Type": 3,"X1": 20,"Y1": 83,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 60,"Speed": 60}'
   - TexID: 1924
     Roughness: 0.8
     EmissiveStrength: 3

@@ -587,6 +587,10 @@ namespace Inferno::Resources {
         return Textures[(int)id];
     }
 
+    const PigBitmap& GetBitmap(LevelTexID tid) {
+        return GetBitmap(LookupTexID(tid));
+    }
+
     Level ReadLevel(string name) {
         SPDLOG_INFO("Reading level {}", name);
         List<ubyte> data;

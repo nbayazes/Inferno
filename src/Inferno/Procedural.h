@@ -5,6 +5,7 @@
 
 namespace Inferno {
     void AddProcedural(Outrage::TextureInfo& info, TexID dest);
+    Outrage::ProceduralInfo* GetProceduralInfo(TexID id);
     void UploadProcedurals();
     int GetProceduralCount();
     void FreeProceduralTextures();
@@ -26,7 +27,6 @@ namespace Inferno {
     protected:
         int FrameCount = 0;
         using Element = Outrage::ProceduralInfo::Element;
-        Outrage::TextureInfo _info;
         List<uint32> _pixels;
         ubyte _index = 0;
         int _resMask;
@@ -34,20 +34,21 @@ namespace Inferno {
         uint16 Resolution; // width-height
 
     public:
+        Outrage::TextureInfo Info;
         Texture2D Texture;
         DescriptorHandle Handle;
-        TexID BaseTexture; // Texture slot to replace with this procedural effect
+        TexID ID; // Texture slot to replace with this procedural effect
 
         ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {
-            BaseTexture = baseTexture;
-            _info = info;
-            _name = Convert::ToWideString(_info.Name);
+            ID = baseTexture;
+            Info = info;
+            _name = Convert::ToWideString(Info.Name);
             Resolution = info.GetSize();
             _resMask = Resolution - 1;
             TotalSize = Resolution * Resolution;
             _pixels.resize(TotalSize);
             Texture.SetDesc(Resolution, Resolution);
-            Texture.CreateOnDefaultHeap(Convert::ToWideString(_info.Name));
+            Texture.CreateOnDefaultHeap(Convert::ToWideString(Info.Name));
 
             Handle = Render::Heaps->Procedurals.GetHandle(GetProceduralCount());
             Render::Device->CreateShaderResourceView(Texture.Get(), Texture.GetSrvDesc(), Handle.GetCpuHandle());
@@ -68,8 +69,8 @@ namespace Inferno {
 
             OnUpdate();
             FrameCount++;
-            NextTime = Render::ElapsedTime + _info.Procedural.EvalTime;
-            NextTime = Render::ElapsedTime + 1 / 30.0f;
+            NextTime = Render::ElapsedTime + Info.Procedural.EvalTime;
+            //NextTime = Render::ElapsedTime + 1 / 30.0f;
             _index = 1 - _index; // swap buffers
             PendingCopy = true;
         }

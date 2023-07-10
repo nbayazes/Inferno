@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Yaml.h"
 #include "LightInfo.h"
+#include "Procedural.h"
 #include "Resources.h"
 
 using namespace Yaml;
@@ -59,13 +60,57 @@ namespace Inferno {
         node["Color"] << EncodeColor3(info.Color);
     }
 
+    Outrage::ProceduralInfo::Element ReadProceduralElement(ryml::ConstNodeRef node) {
+        string json;
+        node >> json;
+        auto tree = ryml::parse_in_arena(ryml::to_csubstr(json));
+
+        Outrage::ProceduralInfo::Element elem{};
+        ReadValue(tree["Type"], elem.Type);
+        ReadValue(tree["X1"], elem.X1);
+        ReadValue(tree["Y1"], elem.Y1);
+        ReadValue(tree["X2"], elem.X2);
+        ReadValue(tree["Y2"], elem.Y2);
+        ReadValue(tree["Frequency"], elem.Frequency);
+        ReadValue(tree["Size"], elem.Size);
+        ReadValue(tree["Speed"], elem.Speed);
+        return elem;
+    }
+
+    void ReadWaterProcedural(ryml::NodeRef node, Outrage::ProceduralInfo& info) {
+        ReadValue(node["Thickness"], info.Thickness);
+        ReadValue(node["Light"], info.Light);
+        ReadValue(node["OscillateTime"], info.OscillateTime);
+        ReadValue(node["OscillateValue"], info.OscillateValue);
+
+        for (const auto& ele : node["Elements"].children())
+            info.Elements.push_back(ReadProceduralElement(ele));
+    }
+
+    void ReadFireProcedural(ryml::NodeRef node, Outrage::ProceduralInfo& info) {
+        ReadValue(node["Heat"], info.Heat);
+
+        string json;
+        node["Palette"] >> json;
+        auto palette = ryml::parse_in_arena(ryml::to_csubstr(json));
+        int i = 0;
+        for (const auto& ele : palette.rootref().children())
+            ele >> info.Palette[i++];
+
+        for (const auto& ele : node["Elements"].children())
+            info.Elements.push_back(ReadProceduralElement(ele));
+    }
+
     void ReadMaterialInfo(ryml::NodeRef node, span<MaterialInfo> materials) {
         if (!node.valid() || node.is_seed()) return;
 
         MaterialInfo info{};
-        ReadValue(node["TexID"], info.ID);
-        if (info.ID >= Resources::GameData.LevelTexIdx.size())
+        int texId;
+        ReadValue(node["TexID"], texId);
+        if (texId >= Resources::GameData.LevelTexIdx.size())
             return; // out of range
+
+        info.ID = texId;
 
         ReadValue(node["NormalStrength"], info.NormalStrength);
         ReadValue(node["SpecularStrength"], info.SpecularStrength);
@@ -93,9 +138,99 @@ namespace Inferno {
                 materials[(int)frameId] = info;
             }
         }
+
+        auto procNode = node["Procedural"];
+        if (!procNode.is_seed()) {
+            Outrage::ProceduralInfo proc{};
+
+            ReadValue(procNode["IsWater"], proc.IsWater);
+            ReadValue(node["EvalTime"], proc.EvalTime);
+
+            if (proc.IsWater)
+                ReadWaterProcedural(procNode, proc);
+            else
+                ReadFireProcedural(procNode, proc);
+
+            if (auto existing = GetProceduralInfo(TexID(texId))) {
+                // todo: if IsWater changes between existing, recreate procedural
+                // update existing
+                *existing = proc;
+            }
+            else {
+                // Insert new procedural
+                Outrage::TextureInfo ti{};
+                ti.Procedural = proc;
+                SetFlag(ti.Flags, Outrage::TextureFlag::Procedural);
+                if (proc.IsWater)
+                    SetFlag(ti.Flags, Outrage::TextureFlag::WaterProcedural);
+
+                AddProcedural(ti, TexID(texId));
+            }
+        }
     }
 
-    void SaveMaterialInfo(c4::yml::NodeRef& node, TexID id, const MaterialInfo& info) {
+    void SaveProceduralElement(ryml::NodeRef node, const Outrage::ProceduralInfo::Element& elem) {
+        ryml::Tree tree(1);
+        tree.rootref() |= ryml::MAP;
+
+        tree["Type"] << elem.Type;
+        tree["X1"] << elem.X1;
+        tree["Y1"] << elem.Y1;
+        tree["X2"] << elem.X2;
+        tree["Y2"] << elem.Y2;
+        tree["Frequency"] << elem.Frequency;
+        tree["Size"] << elem.Size;
+        tree["Speed"] << elem.Speed;
+
+        std::stringstream ss;
+        ss << ryml::as_json(tree);
+        node << ss.str();
+    }
+
+    void SaveFireProcedural(ryml::NodeRef node, const Outrage::ProceduralInfo& info) {
+        node |= ryml::MAP;
+        node["EvalTime"] << info.EvalTime;
+        node["Heat"] << info.Heat;
+
+        ryml::Tree tree(1);
+        tree.rootref() |= ryml::SEQ;
+        for (auto& x : info.Palette)
+            tree.rootref().append_child() << x;
+
+        std::stringstream ss;
+        ss << ryml::as_json(tree);
+        auto str = ss.str();
+        node["Palette"] << str;
+
+        auto elementsNode = node["Elements"];
+        elementsNode |= ryml::SEQ;
+
+        for (auto& elem : info.Elements) {
+            auto child = elementsNode.append_child();
+            SaveProceduralElement(child, elem);
+        }
+    }
+
+    void SaveWaterProcedural(ryml::NodeRef node, const Outrage::ProceduralInfo& info) {
+        node |= ryml::MAP;
+
+        node["IsWater"] << true;
+        node["EvalTime"] << info.EvalTime;
+        node["Thickness"] << info.Thickness;
+        node["Light"] << info.Light;
+        node["OscillateTime"] << info.OscillateTime;
+        node["OscillateValue"] << info.OscillateValue;
+
+        auto elementsNode = node["Elements"];
+        elementsNode |= ryml::SEQ;
+
+        for (auto& elem : info.Elements) {
+            auto child = elementsNode.append_child();
+            SaveProceduralElement(child, elem);
+        }
+    }
+
+    void SaveMaterialInfo(ryml::NodeRef node, TexID id, const MaterialInfo& info) {
         node |= ryml::MAP;
         node["TexID"] << (int)id;
 
@@ -115,6 +250,15 @@ namespace Inferno {
 
         if (info.LightReceived != 1)
             node["LightReceived"] << info.LightReceived;
+
+        if (auto proc = GetProceduralInfo(id)) {
+            auto procNode = node["Procedural"];
+
+            if (proc->IsWater)
+                SaveWaterProcedural(procNode, *proc);
+            else
+                SaveFireProcedural(procNode, *proc);
+        }
     }
 
     Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml) {

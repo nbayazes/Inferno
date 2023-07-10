@@ -64,7 +64,7 @@ namespace Inferno {
 
             HeatDecay();
 
-            for (auto& elem : _info.Procedural.Elements) {
+            for (auto& elem : Info.Procedural.Elements) {
                 switch (elem.FireType) {
                     case FireProceduralType::LineLightning:
                         LineLightning(elem.X1, elem.Y1, elem.X2, elem.Y2, 254, elem);
@@ -375,7 +375,7 @@ namespace Inferno {
 
             auto num = GetDynamicElement();
             if (num != -1) {
-                auto elemNum = int(&elem - &_info.Procedural.Elements[0]);
+                auto elemNum = int(&elem - &Info.Procedural.Elements[0]);
                 int iVar3 = FrameCount + elemNum * 60;
                 int iVar2 = int(elem.Speed / 255.0f * 5.0f + 1.0f);
                 int size = elem.Size * -65536;
@@ -576,7 +576,7 @@ namespace Inferno {
 
         // Decays the contents of ProceduralBuffer based on the current "heat" level. Higher heat causes slower decay. 
         void HeatDecay() {
-            auto decay = (int8)(int((255 - _info.Procedural.Heat) / 8.0f) + 1);
+            auto decay = (int8)(int((255 - Info.Procedural.Heat) / 8.0f) + 1);
 
             for (auto& pixel : _fireBuffer[_index]) {
                 if (pixel - decay < 0)

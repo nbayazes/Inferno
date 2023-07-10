@@ -78,6 +78,8 @@ namespace Inferno::Resources {
     // Returns bitmap data for a TexID
     const PigBitmap& GetBitmap(TexID);
 
+    const PigBitmap& GetBitmap(LevelTexID);
+
     // Returns a modifiable bitmap
     PigBitmap& AccessBitmap(TexID);
 
