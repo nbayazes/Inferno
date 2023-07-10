@@ -223,6 +223,7 @@ namespace Inferno {
         node["ShowFlickeringLights"] << s.ShowFlickeringLights;
         node["ShowAnimation"] << s.ShowAnimation;
         node["ShowMatcenEffects"] << s.ShowMatcenEffects;
+        node["ShowPortals"] << s.ShowPortals;
         node["WireframeOpacity"] << s.WireframeOpacity;
 
         node["ShowWireframe"] << s.ShowWireframe;
@@ -292,6 +293,7 @@ namespace Inferno {
         ReadValue(node["ShowFlickeringLights"], s.ShowFlickeringLights);
         ReadValue(node["ShowAnimation"], s.ShowAnimation);
         ReadValue(node["ShowMatcenEffects"], s.ShowMatcenEffects);
+        ReadValue(node["ShowPortals"], s.ShowPortals);
         ReadValue(node["WireframeOpacity"], s.WireframeOpacity);
 
         ReadValue(node["ShowWireframe"], s.ShowWireframe);
