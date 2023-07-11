@@ -1,8 +1,13 @@
 #include "pch.h"
 #include "Procedural.h"
+
+#include <semaphore>
+
 #include "Graphics/GpuResources.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
+
+using namespace std::chrono;
 
 namespace Inferno {
     // Combined command list / allocator / queue for executing commands
@@ -65,131 +70,23 @@ namespace Inferno {
         }
     };
 
-
-    namespace {
-        using namespace std::chrono;
-        std::jthread ProceduralWorkerThread;
-        std::atomic Alive = false;
-        //std::condition_variable ProceduralThreadReady;
-        //std::mutex ProceduralMutex;
-    }
-
-
-    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest);
-    Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
-    //Dictionary<string, Ptr<ProceduralTextureBase>> Procedurals;
-    List<Ptr<ProceduralTextureBase>> Procedurals;
-    Ptr<CommandList> UploadQueue, CopyQueue;
-
-    int GetProceduralCount() { return (int)Procedurals.size(); }
-
-    void FreeProceduralTextures() {
-        //std::unique_lock lock(ProceduralMutex);
-        //ProceduralThreadReady.wait(lock);
-        Procedurals.clear();
-    }
-
-    void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
-        if (Seq::exists(Procedurals, [dest](auto& p) { return p->ID == dest; })) {
-            SPDLOG_WARN("Procedural texture already exists for texid {}", dest);
-            return;
-        }
-
-        auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest) : CreateProceduralFire(info, dest);
-
-
-        // Update the diffuse texture handle in the material
-        auto& material = Render::Materials->Get(dest);
-        auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
-        Render::Device->CopyDescriptorsSimple(1, destHandle, procedural->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-        Procedurals.push_back(std::move(procedural));
-    }
-
-    Outrage::ProceduralInfo* GetProceduralInfo(TexID id) {
-        for (auto& p : Procedurals) {
-            if (p->ID == id) return &p->Info.Procedural;
-        }
-        return nullptr;
-    }
-
-    void CopyProceduralsToMaterial() {
-        CopyQueue->Reset();
-
-        for (auto& proc : Procedurals) {
-            proc->CopyToTexture(CopyQueue->Get());
-        }
-
-        // Wait for queue to finish copying
-        CopyQueue->Execute(true);
-    }
-
-    void ProceduralWorker(milliseconds pollRate) {
-        Alive = true;
-
-        double prevTime = 0;
-
-        while (Alive) {
-
-            UploadQueue->Reset();
-
-            bool didWork = false;
-            auto elapsedTime = Clock.GetTotalTimeSeconds();
-
-            for (auto& proc : Procedurals) {
-                if (proc->ShouldUpdate(elapsedTime)) {
-                    proc->Update(UploadQueue->Get(), elapsedTime);
-                    didWork = true;
-                }
-            }
-
-            // Wait for queue to finish
-            UploadQueue->Execute(true);
-
-            for (auto& proc : Procedurals)
-                proc->WriteComplete();
-
-            if (didWork) {
-                Debug::ProceduralUpdateRate = elapsedTime - prevTime;
-                prevTime = elapsedTime;
-            }
-
-            std::this_thread::sleep_for(pollRate);
-        }
-    }
-
-    void StartProceduralWorker() {
-        UploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
-        CopyQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
-
-        ProceduralWorkerThread = std::jthread(ProceduralWorker, milliseconds(1));
-    }
-
-    void StopProceduralWorker() {
-        FreeProceduralTextures();
-
-        if (!Alive) return;
-        Alive = false;
-        ProceduralWorkerThread.join();
-        UploadQueue.reset();
-        CopyQueue.reset();
-    }
-
+    // Long running worker that executes a task at a given poll rate
     class Worker {
+        std::function<void()> _task;
         std::string _name;
         std::jthread _worker;
-    protected:
+        milliseconds _pollRate;
         std::atomic<bool> _alive;
-
+        std::binary_semaphore _pause{ 0 };
     public:
-        Worker(std::string_view name) : _name(name) {
-            SPDLOG_INFO("Starting worker `{}`", _name);
-            _alive = true;
-            _worker = std::jthread(&Worker::Task, this);
+        Worker(std::function<void()> task, std::string_view name, milliseconds pollRate = 0ms)
+            : _task(std::move(task)), _name(name), _pollRate(pollRate) {
+            _worker = std::jthread(&Worker::WorkThread, this);
         }
 
         virtual ~Worker() {
-            SPDLOG_INFO("Stopping worker `{}`", _name);
+            SPDLOG_INFO("Destroying worker {}", _name);
+            Pause(); // Make sure there's no running work before destroying thread
             _alive = false;
             //if (_worker.joinable())
             //    _worker.join();
@@ -200,48 +97,147 @@ namespace Inferno {
         Worker& operator=(const Worker&) = delete;
         Worker& operator=(Worker&&) = delete;
 
+        // Pauses execution after current iteration of worker
+        void Pause() {
+            _pause.acquire();
+        }
+
+        void Resume() {
+            _pause.release();
+        }
 
     protected:
-        virtual void Task() = 0;
-    };
-
-    class ProceduralWorker : public Worker {
-        Ptr<CommandList> _uploadQueue;
-    public:
-        ProceduralWorker() : Worker("Procedural") { }
-
-    protected:
-        void Task() override {
+        void WorkThread() {
             _alive = true;
 
-            double prevTime = 0;
-
+            SPDLOG_INFO("Starting worker `{}`", _name);
             while (_alive) {
-                UploadQueue->Reset();
+                //std::this_thread::sleep_for(_pollRate);
 
-                bool didWork = false;
-                auto elapsedTime = Clock.GetTotalTimeSeconds();
+                try {
+                    _pause.acquire(); // check if thread is paused before executing
+                    _task();
+                    _pause.release();
 
-                for (auto& proc : Procedurals) {
-                    if (proc->ShouldUpdate(elapsedTime)) {
-                        proc->Update(UploadQueue->Get(), elapsedTime);
-                        didWork = true;
-                    }
+                    if (_pollRate > 0ms)
+                        std::this_thread::sleep_for(_pollRate);
                 }
-
-                // Wait for queue to finish
-                UploadQueue->Execute(true);
-
-                for (auto& proc : Procedurals)
-                    proc->WriteComplete();
-
-                if (didWork) {
-                    Debug::ProceduralUpdateRate = elapsedTime - prevTime;
-                    prevTime = elapsedTime;
+                catch (const std::exception& e) {
+                    SPDLOG_ERROR(e.what());
                 }
-
-                std::this_thread::sleep_for(milliseconds(1));
             }
+            SPDLOG_INFO("Stopping worker `{}`", _name);
         }
     };
+
+    Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest);
+    Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
+
+    class ProceduralWorker {
+        Ptr<CommandList> _uploadQueue, _copyQueue;
+        double _prevTime = 0;
+        Worker _worker = { std::bind_front(&ProceduralWorker::Task, this), "Procedural", 1ms };
+
+    public:
+        ProceduralWorker() {
+            _uploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
+            _copyQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
+            _worker.Resume();
+        }
+
+        List<Ptr<ProceduralTextureBase>> Procedurals;
+
+        void FreeTextures() {
+            _worker.Pause();
+            Procedurals.clear();
+            _worker.Resume();
+        }
+
+        void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
+            if (Seq::exists(Procedurals, [dest](auto& p) { return p->ID == dest; })) {
+                SPDLOG_WARN("Procedural texture already exists for texid {}", dest);
+                return;
+            }
+
+            auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest) : CreateProceduralFire(info, dest);
+
+            // Update the diffuse texture handle in the material
+            auto& material = Render::Materials->Get(dest);
+            auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
+            Render::Device->CopyDescriptorsSimple(1, destHandle, procedural->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+            Procedurals.push_back(std::move(procedural));
+        }
+
+        void CopyProceduralsToMaterial() const {
+            _copyQueue->Reset();
+
+            for (auto& proc : Procedurals) {
+                proc->CopyToTexture(_copyQueue->Get());
+            }
+
+            // Wait for queue to finish copying
+            _copyQueue->Execute(true);
+        }
+
+    protected:
+        void Task() {
+            //_uploadQueue->Reset();
+
+            //bool didWork = false;
+            //auto elapsedTime = Clock.GetTotalTimeSeconds();
+
+            //for (auto& proc : Procedurals) {
+            //    if (proc->ShouldUpdate(elapsedTime)) {
+            //        proc->Update(_uploadQueue->Get(), elapsedTime);
+            //        didWork = true;
+            //    }
+            //}
+
+            //// Wait for queue to finish
+            //_uploadQueue->Execute(true);
+
+            //for (auto& proc : Procedurals)
+            //    proc->WriteComplete();
+
+            //if (didWork) {
+            //    Debug::ProceduralUpdateRate = elapsedTime - _prevTime;
+            //    _prevTime = elapsedTime;
+            //}
+        }
+    };
+
+
+    Ptr<ProceduralWorker> ProcWorker;
+
+    int GetProceduralCount() { return (int)ProcWorker->Procedurals.size(); }
+
+    void FreeProceduralTextures() {
+        if (ProcWorker) ProcWorker->FreeTextures();
+    }
+
+    void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
+        if (ProcWorker) ProcWorker->AddProcedural(info, dest);
+    }
+
+    Outrage::ProceduralInfo* GetProceduralInfo(TexID id) {
+        if (!ProcWorker) return nullptr;
+
+        for (auto& p : ProcWorker->Procedurals) {
+            if (p->ID == id) return &p->Info.Procedural;
+        }
+        return nullptr;
+    }
+
+    void CopyProceduralsToMaterial() {
+        if (ProcWorker) ProcWorker->CopyProceduralsToMaterial();
+    }
+
+    void StartProceduralWorker() {
+        ProcWorker = MakePtr<ProceduralWorker>();
+    }
+
+    void StopProceduralWorker() {
+        ProcWorker.reset();
+    }
 }

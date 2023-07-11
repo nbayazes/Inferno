@@ -222,6 +222,8 @@ namespace Inferno::Render {
             //PendingTextures.push_back(id);
             Materials->LoadLevelTextures(Game::Level, false);
         };
+
+        StartProceduralWorker();
     }
 
     void Shutdown() {
@@ -248,7 +250,7 @@ namespace Inferno::Render {
         VClipUploadBuffer.reset();
         VClipBuffer.reset();
         ReleaseEditorResources();
-        FreeProceduralTextures();
+        StopProceduralWorker();
         _levelMeshBuffer.reset();
         _meshBuffer.reset();
 
@@ -548,7 +550,7 @@ namespace Inferno::Render {
         }
 
         Materials->Dispatch();
-        UploadProcedurals();
+        CopyProceduralsToMaterial();
         //ctx.Reset();
 
         _graphicsMemory->Commit(commandQueue);
