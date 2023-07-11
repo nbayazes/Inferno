@@ -261,10 +261,11 @@ namespace Inferno {
                     auto offset = yOffset + x + elem.X1;
                     auto radSq = x * x + y * y;
                     if (radSq < blob.sizeSq) {
-                        int fix = sqrt(radSq * (1024.0f / elem.Size) * (1024.0f / elem.Size));
-                        float cosine = cos(fix / 65536.0 * 2 * 3.141592654);
-                        int add = cosine * elem.Speed;
-                        _waterBuffer[_index][offset] += (add + (add >> 31 & 7)) >> 3;
+                        int fix = (int)sqrt(radSq * (1024.0f / elem.Size) * (1024.0f / elem.Size));
+                        float cosine = cos(fix / 65536.0f * DirectX::XM_2PI);
+                        int add = int(cosine * elem.Speed);
+                        // (add + (add < 0 ? 1 : 0)) / 8
+                        _waterBuffer[_index][offset] += int16((add + (add >> 31 & 7)) >> 3);
                     }
                 }
             }

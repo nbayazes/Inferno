@@ -65,17 +65,28 @@ namespace Inferno {
         }
     };
 
+
+    namespace {
+        using namespace std::chrono;
+        std::jthread ProceduralWorkerThread;
+        std::atomic Alive = false;
+        //std::condition_variable ProceduralThreadReady;
+        //std::mutex ProceduralMutex;
+    }
+
+
     Ptr<ProceduralTextureBase> CreateProceduralWater(Outrage::TextureInfo& texture, TexID dest);
     Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
     //Dictionary<string, Ptr<ProceduralTextureBase>> Procedurals;
     List<Ptr<ProceduralTextureBase>> Procedurals;
-    Ptr<CommandList> UploadQueue;
+    Ptr<CommandList> UploadQueue, CopyQueue;
 
     int GetProceduralCount() { return (int)Procedurals.size(); }
 
     void FreeProceduralTextures() {
+        //std::unique_lock lock(ProceduralMutex);
+        //ProceduralThreadReady.wait(lock);
         Procedurals.clear();
-        UploadQueue.reset();
     }
 
     void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
@@ -102,25 +113,135 @@ namespace Inferno {
         return nullptr;
     }
 
-    void UploadProcedurals() {
-        if (!UploadQueue) {
-            UploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
+    void CopyProceduralsToMaterial() {
+        CopyQueue->Reset();
+
+        for (auto& proc : Procedurals) {
+            proc->CopyToTexture(CopyQueue->Get());
         }
 
-        UploadQueue->Reset();
+        // Wait for queue to finish copying
+        CopyQueue->Execute(true);
+    }
 
-        int count = 0;
-        for (auto& proc : Procedurals) {
-            proc->Update();
-            if (proc->CopyToTexture(UploadQueue->Get())) {
-                auto& material = Render::Materials->Get(proc->ID);
-                auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
-                Render::Device->CopyDescriptorsSimple(1, destHandle, proc->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    void ProceduralWorker(milliseconds pollRate) {
+        Alive = true;
 
-                count++;
+        double prevTime = 0;
+
+        while (Alive) {
+
+            UploadQueue->Reset();
+
+            bool didWork = false;
+            auto elapsedTime = Clock.GetTotalTimeSeconds();
+
+            for (auto& proc : Procedurals) {
+                if (proc->ShouldUpdate(elapsedTime)) {
+                    proc->Update(UploadQueue->Get(), elapsedTime);
+                    didWork = true;
+                }
+            }
+
+            // Wait for queue to finish
+            UploadQueue->Execute(true);
+
+            for (auto& proc : Procedurals)
+                proc->WriteComplete();
+
+            if (didWork) {
+                Debug::ProceduralUpdateRate = elapsedTime - prevTime;
+                prevTime = elapsedTime;
+            }
+
+            std::this_thread::sleep_for(pollRate);
+        }
+    }
+
+    void StartProceduralWorker() {
+        UploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
+        CopyQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
+
+        ProceduralWorkerThread = std::jthread(ProceduralWorker, milliseconds(1));
+    }
+
+    void StopProceduralWorker() {
+        FreeProceduralTextures();
+
+        if (!Alive) return;
+        Alive = false;
+        ProceduralWorkerThread.join();
+        UploadQueue.reset();
+        CopyQueue.reset();
+    }
+
+    class Worker {
+        std::string _name;
+        std::jthread _worker;
+    protected:
+        std::atomic<bool> _alive;
+
+    public:
+        Worker(std::string_view name) : _name(name) {
+            SPDLOG_INFO("Starting worker `{}`", _name);
+            _alive = true;
+            _worker = std::jthread(&Worker::Task, this);
+        }
+
+        virtual ~Worker() {
+            SPDLOG_INFO("Stopping worker `{}`", _name);
+            _alive = false;
+            //if (_worker.joinable())
+            //    _worker.join();
+        }
+
+        Worker(const Worker&) = delete;
+        Worker(Worker&&) = delete;
+        Worker& operator=(const Worker&) = delete;
+        Worker& operator=(Worker&&) = delete;
+
+
+    protected:
+        virtual void Task() = 0;
+    };
+
+    class ProceduralWorker : public Worker {
+        Ptr<CommandList> _uploadQueue;
+    public:
+        ProceduralWorker() : Worker("Procedural") { }
+
+    protected:
+        void Task() override {
+            _alive = true;
+
+            double prevTime = 0;
+
+            while (_alive) {
+                UploadQueue->Reset();
+
+                bool didWork = false;
+                auto elapsedTime = Clock.GetTotalTimeSeconds();
+
+                for (auto& proc : Procedurals) {
+                    if (proc->ShouldUpdate(elapsedTime)) {
+                        proc->Update(UploadQueue->Get(), elapsedTime);
+                        didWork = true;
+                    }
+                }
+
+                // Wait for queue to finish
+                UploadQueue->Execute(true);
+
+                for (auto& proc : Procedurals)
+                    proc->WriteComplete();
+
+                if (didWork) {
+                    Debug::ProceduralUpdateRate = elapsedTime - prevTime;
+                    prevTime = elapsedTime;
+                }
+
+                std::this_thread::sleep_for(milliseconds(1));
             }
         }
-
-        UploadQueue->Execute(true);
-    }
+    };
 }

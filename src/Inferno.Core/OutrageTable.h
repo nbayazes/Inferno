@@ -101,10 +101,11 @@ namespace Inferno::Outrage {
                 FireProceduralType FireType;
             };
 
-            int8 Speed;
-            uint8 Frequency, Size;
-            int X1, Y1;
-            uint8 X2, Y2;
+            int8 Speed; // How quickly certain effects animate
+            uint8 Frequency; // Frames to wait between creating effect
+            uint8 Size;
+            uint8 X1, Y1; // Center point of effect
+            uint8 X2, Y2; // Only used by the end point of line lightning
         };
 
         List<Element> Elements;

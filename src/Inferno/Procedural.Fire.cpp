@@ -282,7 +282,7 @@ namespace Inferno {
                 return;
 
             auto size = elem.Size * 0.00392156862745098 * 128;
-            auto ang = (double)ProceduralRand() / 32768 * 6.2831854;
+            auto ang = (float)ProceduralRand() / 32768 * DirectX::XM_2PI;
 
             auto x2 = int(std::cos(ang) * (size / 2)) + elem.X1;
             auto y2 = int(std::sin(ang) * (size / 2)) + elem.Y1;

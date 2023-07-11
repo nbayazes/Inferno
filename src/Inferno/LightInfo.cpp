@@ -169,15 +169,17 @@ namespace Inferno {
         }
     }
 
-    void SaveProceduralElement(ryml::NodeRef node, const Outrage::ProceduralInfo::Element& elem) {
+    void SaveProceduralElement(ryml::NodeRef node, const Outrage::ProceduralInfo::Element& elem, bool isFire) {
         ryml::Tree tree(1);
         tree.rootref() |= ryml::MAP;
 
         tree["Type"] << elem.Type;
         tree["X1"] << elem.X1;
         tree["Y1"] << elem.Y1;
-        tree["X2"] << elem.X2;
-        tree["Y2"] << elem.Y2;
+        if (isFire && elem.FireType == Outrage::FireProceduralType::LineLightning) {
+            tree["X2"] << elem.X2;
+            tree["Y2"] << elem.Y2;
+        }
         tree["Frequency"] << elem.Frequency;
         tree["Size"] << elem.Size;
         tree["Speed"] << elem.Speed;
@@ -207,7 +209,7 @@ namespace Inferno {
 
         for (auto& elem : info.Elements) {
             auto child = elementsNode.append_child();
-            SaveProceduralElement(child, elem);
+            SaveProceduralElement(child, elem, true);
         }
     }
 
@@ -226,7 +228,7 @@ namespace Inferno {
 
         for (auto& elem : info.Elements) {
             auto child = elementsNode.append_child();
-            SaveProceduralElement(child, elem);
+            SaveProceduralElement(child, elem, false);
         }
     }
 

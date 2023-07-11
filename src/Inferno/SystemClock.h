@@ -87,10 +87,12 @@ namespace Inferno {
             _prevFrameStartTime = _currentFrameStartTime;
         }
 
+        // Gets the total elapsed time in milliseconds, regardless of update rate.
         uint64_t GetTotalMilliseconds() const {
             return _firstFrameStartTime == 0 ? 0 : NsToMs(GetClockTimeNs() - _firstFrameStartTime);
         }
 
+        // Gets the total elapsed time in seconds, regardless of update rate.
         double GetTotalTimeSeconds() const {
             return (double)GetTotalMilliseconds() / 1000.0;
         }

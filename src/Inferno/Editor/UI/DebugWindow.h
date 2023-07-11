@@ -7,6 +7,7 @@
 #include "Input.h"
 #include "../Editor.h"
 #include "Physics.h"
+#include "Procedural.h"
 
 namespace Inferno::Editor {
     class DebugWindow final : public WindowBase {
@@ -23,6 +24,7 @@ namespace Inferno::Editor {
             ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
             ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
             ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
+
 
             if (ImGui::Button("Set path target")) {
                 if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
@@ -63,6 +65,9 @@ namespace Inferno::Editor {
                 _timeCounter = 0;
             }
 
+            ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::Stats::DrawCalls);
+            ImGui::Text("Procedural time: %.2f ms", Debug::ProceduralUpdateRate * 1000);
+
             ImGui::Text("Light View pos: %.2f, %.2f, %.2f", Debug::LightPosition.x, Debug::LightPosition.y, Debug::LightPosition.z);
             ImGui::Text("Inside frustum: %i", Debug::InsideFrustum);
 
@@ -74,7 +79,6 @@ namespace Inferno::Editor {
 
             ImGui::PlotLines("##vel", Debug::ShipVelocities.data(), (int)Debug::ShipVelocities.size(), 0, nullptr, 0, 60, ImVec2(0, 120.0f));
 
-            ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::Stats::DrawCalls);
 
             ImGui::Text("Present Total: %.2f", Render::Metrics::Present / 1000.0f);
             ImGui::Text("Present(): %.2f", Render::Metrics::PresentCall / 1000.0f);
