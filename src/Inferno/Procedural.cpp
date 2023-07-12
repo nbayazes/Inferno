@@ -19,6 +19,7 @@ namespace Inferno {
         Microsoft::WRL::Wrappers::Event _fenceEvent;
 
         int _fenceValue = 1;
+
     public:
         CommandList(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, const wstring& name) {
             D3D12_COMMAND_QUEUE_DESC desc = {};
@@ -77,8 +78,9 @@ namespace Inferno {
         std::string _name;
         std::jthread _worker;
         milliseconds _pollRate;
-        std::atomic<bool> _alive;
-        std::binary_semaphore _pause{ 0 };
+        std::atomic<bool> _alive, _paused;
+        std::binary_semaphore _pauseWait{ 0 };
+
     public:
         Worker(std::function<void()> task, string_view name, milliseconds pollRate = 0ms)
             : _task(std::move(task)), _name(name), _pollRate(pollRate) {
@@ -100,13 +102,19 @@ namespace Inferno {
         Worker& operator=(Worker&&) = delete;
 
         // Pauses execution after current iteration of worker
-        void Pause() {
-            _pause.acquire();
+        void Pause(bool shouldPause) {
+            if (shouldPause) {
+
+                auto wasPaused = _paused.exchange(true);
+                if (!wasPaused)
+                    _pauseWait.acquire(); // block caller until thread finishes
+            } else {
+                _paused = false;
+                _pauseWait.release();
+            }
         }
 
-        void Resume() {
-            _pause.release();
-        }
+        bool IsPaused() const { return _paused.load(); }
 
     protected:
         void WorkThread() {
@@ -115,12 +123,18 @@ namespace Inferno {
             SPDLOG_INFO("Starting worker `{}`", _name);
             while (_alive) {
                 try {
-                    _pause.acquire(); // check if thread is paused before executing
-                    _task();
-                    _pause.release();
+                    if (_paused) {
+                        std::this_thread::sleep_for(100ms);
+                    }
+                    else {
+                        // check if thread is paused before executing
+                        _pauseWait.acquire();
+                        _task();
+                        _pauseWait.release();
 
-                    if (_pollRate > 0ms && _alive)
-                        std::this_thread::sleep_for(_pollRate);
+                        if (_pollRate > 0ms && _alive)
+                            std::this_thread::sleep_for(_pollRate);
+                    }
                 }
                 catch (const std::exception& e) {
                     SPDLOG_ERROR(e.what());
@@ -142,13 +156,19 @@ namespace Inferno {
         ProceduralWorker() {
             _uploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
             _copyQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
-            _worker.Resume();
+            Pause(false); // Start the worker after creating queues
             //SPDLOG_INFO("Procedural worker ctor");
         }
 
         ~ProceduralWorker() {
             //SPDLOG_INFO("Procedural worker dtor");
             FreeTextures();
+        }
+
+        bool IsEnabled() const { return !_worker.IsPaused(); }
+
+        void Pause(bool pause) {
+            _worker.Pause(pause);
         }
 
         ProceduralWorker(const ProceduralWorker&) = delete;
@@ -159,9 +179,9 @@ namespace Inferno {
         List<Ptr<ProceduralTextureBase>> Procedurals;
 
         void FreeTextures() {
-            _worker.Pause();
+            _worker.Pause(true);
             Procedurals.clear();
-            _worker.Resume();
+            _worker.Pause(false);
         }
 
         void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
@@ -181,6 +201,7 @@ namespace Inferno {
         }
 
         void CopyProceduralsToMaterial() const {
+            if (!IsEnabled()) return;
             _copyQueue->Reset();
 
             for (auto& proc : Procedurals) {
@@ -224,9 +245,7 @@ namespace Inferno {
     int GetProceduralCount() { return (int)ProcWorker->Procedurals.size(); }
 
     void EnableProceduralTextures(bool enable) {
-        //if(!ProcWorker) return;
-        //if(enable)
-        //    ProcWorker->
+        if (ProcWorker) ProcWorker->Pause(!enable);
     }
 
     void FreeProceduralTextures() {

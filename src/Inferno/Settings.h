@@ -132,6 +132,7 @@ namespace Inferno {
     struct GraphicsSettings {
         bool HighRes = false; // Enables high res textures and filtering
         bool EnableBloom = false; // Enables bloom post-processing
+        bool EnableProcedurals = true;
         int MsaaSamples = 1;
         int ForegroundFpsLimit = -1, BackgroundFpsLimit = 20;
         bool NewLightMode = true;

@@ -23,6 +23,9 @@ namespace Inferno::Editor {
             ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
             ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
             ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
+            if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
+                EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
+            }
             ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
 
