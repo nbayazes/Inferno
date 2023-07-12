@@ -15,7 +15,7 @@ namespace Inferno {
 
         int X, Y;
         int VelX, VelY;
-        int8 Speed;
+        int Speed;
         ubyte Color;
         int8 Lifetime;
         // Next and Previous dynamic element
@@ -54,7 +54,7 @@ namespace Inferno {
             for (int i = 0; i < _palette.size(); i++) {
                 // Encode the BGRA5551 palette to RGBA8888
                 auto srcColor = info.Procedural.Palette[i] % 32768U;
-                _palette[i] = BGRA16ToRGB32(srcColor);
+                _palette[i] = BGRA16ToRGB32(srcColor, 255);
             }
         }
 

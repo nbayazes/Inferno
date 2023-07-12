@@ -70,7 +70,9 @@ namespace Inferno {
         return {
             uint8((a.r + b.r) >> 1),
             uint8((a.g + b.g) >> 1),
-            uint8((a.b + b.b) >> 1)
+            uint8((a.b + b.b) >> 1),
+            uint8((a.a + b.a) >> 1)
+
         };
     }
 
@@ -78,7 +80,8 @@ namespace Inferno {
         return {
             uint8(a.r * (1 - weight) + b.r * weight),
             uint8(a.g * (1 - weight) + b.g * weight),
-            uint8(a.b * (1 - weight) + b.b * weight)
+            uint8(a.b * (1 - weight) + b.b * weight),
+            uint8(a.a * (1 - weight) + b.a * weight)
         };
     }
 
@@ -437,7 +440,7 @@ namespace Inferno {
                         WaterProcTableLo[(srcPixel & 255) + lightval * 256] +
                         WaterProcTableHi[((srcPixel >> 8) & 127) + lightval * 256];
 
-                    _pixels[destOffset] = BGRA16ToRGB32(rgba8881);
+                    _pixels[destOffset] = BGRA16ToRGB32(rgba8881, c.a);
                 }
             }
         }

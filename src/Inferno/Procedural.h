@@ -12,14 +12,15 @@ namespace Inferno {
     void FreeProceduralTextures();
 
     int GetProceduralCount();
+    void EnableProceduralTextures(bool);
 
     // Converts BGRA5551 to RGBA8888
-    constexpr int BGRA16ToRGB32(uint src) {
+    constexpr int BGRA16ToRGB32(uint src, ubyte alpha) {
         auto r = (uint8)(((src >> 10) & 31) * 255.0f / 31);
         auto g = (uint8)(((src >> 5) & 31) * 255.0f / 31);
         auto b = (uint8)((src & 31) * 255.0f / 31);
         //auto a = src >> 15 ? 0 : 255;
-        return r | g << 8 | b << 16 | 255 << 24;
+        return r | g << 8 | b << 16 | alpha << 24;
     }
 
     class ProceduralTextureBase {
@@ -68,6 +69,7 @@ namespace Inferno {
 
             Handle = Render::Heaps->Procedurals.GetHandle(GetProceduralCount());
             Render::Device->CreateShaderResourceView(Texture.Get(), Texture.GetSrvDesc(), Handle.GetCpuHandle());
+            SPDLOG_INFO("Procedural Base Ctor");
         }
 
         bool ShouldUpdate(double elapsedTime) const { return NextTime <= elapsedTime; }
