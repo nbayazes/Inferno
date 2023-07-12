@@ -16,10 +16,9 @@ namespace Inferno {
         ComPtr<ID3D12CommandAllocator> _allocator;
         ComPtr<ID3D12CommandQueue> _queue;
         ComPtr<ID3D12Fence> _fence;
+        Microsoft::WRL::Wrappers::Event _fenceEvent;
 
         int _fenceValue = 1;
-        HANDLE _fenceEvent{};
-
     public:
         CommandList(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, const wstring& name) {
             D3D12_COMMAND_QUEUE_DESC desc = {};
@@ -35,10 +34,17 @@ namespace Inferno {
             ThrowIfFailed(_allocator->SetName(name.c_str()));
             ThrowIfFailed(_cmdList->SetName(name.c_str()));
             ThrowIfFailed(_fence->SetName(name.c_str()));
+
+            //_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+
+            _fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+            if (!_fenceEvent.IsValid())
+                throw std::exception("CreateEvent");
         }
 
         void Reset() const {
-            ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));
+            _allocator->Reset();
+            _cmdList->Reset(_allocator.Get(), nullptr);
         }
 
         ID3D12GraphicsCommandList* Get() const { return _cmdList.Get(); }
@@ -53,19 +59,14 @@ namespace Inferno {
 
     private:
         void Wait() {
-            // Create an event handle to use for frame synchronization.
-            _fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-            if (_fenceEvent == nullptr)
-                ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
-
             const UINT64 fence = _fenceValue;
             ThrowIfFailed(_queue->Signal(_fence.Get(), fence));
             _fenceValue++;
 
             // Wait until the command list is finished executing
             if (_fence->GetCompletedValue() < fence) {
-                ThrowIfFailed(_fence->SetEventOnCompletion(fence, _fenceEvent));
-                WaitForSingleObject(_fenceEvent, INFINITE);
+                ThrowIfFailed(_fence->SetEventOnCompletion(fence, _fenceEvent.Get()));
+                WaitForSingleObjectEx(_fenceEvent.Get(), INFINITE, FALSE);
             }
         }
     };
@@ -79,17 +80,18 @@ namespace Inferno {
         std::atomic<bool> _alive;
         std::binary_semaphore _pause{ 0 };
     public:
-        Worker(std::function<void()> task, std::string_view name, milliseconds pollRate = 0ms)
+        Worker(std::function<void()> task, string_view name, milliseconds pollRate = 0ms)
             : _task(std::move(task)), _name(name), _pollRate(pollRate) {
             _worker = std::jthread(&Worker::WorkThread, this);
         }
 
         virtual ~Worker() {
-            SPDLOG_INFO("Destroying worker {}", _name);
-            Pause(); // Make sure there's no running work before destroying thread
+            //SPDLOG_INFO("Destroying worker {}", _name);
             _alive = false;
-            //if (_worker.joinable())
-            //    _worker.join();
+            if (_worker.joinable())
+                _worker.join();
+
+            //SPDLOG_INFO("ctor end {}", _name);
         }
 
         Worker(const Worker&) = delete;
@@ -112,14 +114,12 @@ namespace Inferno {
 
             SPDLOG_INFO("Starting worker `{}`", _name);
             while (_alive) {
-                //std::this_thread::sleep_for(_pollRate);
-
                 try {
                     _pause.acquire(); // check if thread is paused before executing
                     _task();
                     _pause.release();
 
-                    if (_pollRate > 0ms)
+                    if (_pollRate > 0ms && _alive)
                         std::this_thread::sleep_for(_pollRate);
                 }
                 catch (const std::exception& e) {
@@ -143,7 +143,18 @@ namespace Inferno {
             _uploadQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
             _copyQueue = MakePtr<CommandList>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
             _worker.Resume();
+            //SPDLOG_INFO("Procedural worker ctor");
         }
+
+        ~ProceduralWorker() {
+            //SPDLOG_INFO("Procedural worker dtor");
+            FreeTextures();
+        }
+
+        ProceduralWorker(const ProceduralWorker&) = delete;
+        ProceduralWorker(ProceduralWorker&&) = delete;
+        ProceduralWorker& operator=(const ProceduralWorker&) = delete;
+        ProceduralWorker& operator=(ProceduralWorker&&) = delete;
 
         List<Ptr<ProceduralTextureBase>> Procedurals;
 
@@ -182,28 +193,28 @@ namespace Inferno {
 
     protected:
         void Task() {
-            //_uploadQueue->Reset();
+            _uploadQueue->Reset();
 
-            //bool didWork = false;
-            //auto elapsedTime = Clock.GetTotalTimeSeconds();
+            bool didWork = false;
+            auto elapsedTime = Clock.GetTotalTimeSeconds();
 
-            //for (auto& proc : Procedurals) {
-            //    if (proc->ShouldUpdate(elapsedTime)) {
-            //        proc->Update(_uploadQueue->Get(), elapsedTime);
-            //        didWork = true;
-            //    }
-            //}
+            for (auto& proc : Procedurals) {
+                if (proc->ShouldUpdate(elapsedTime)) {
+                    proc->Update(_uploadQueue->Get(), elapsedTime);
+                    didWork = true;
+                }
+            }
 
-            //// Wait for queue to finish
-            //_uploadQueue->Execute(true);
+            // Wait for queue to finish
+            _uploadQueue->Execute(true);
 
-            //for (auto& proc : Procedurals)
-            //    proc->WriteComplete();
+            for (auto& proc : Procedurals)
+                proc->WriteComplete();
 
-            //if (didWork) {
-            //    Debug::ProceduralUpdateRate = elapsedTime - _prevTime;
-            //    _prevTime = elapsedTime;
-            //}
+            if (didWork) {
+                Debug::ProceduralUpdateRate = elapsedTime - _prevTime;
+                _prevTime = elapsedTime;
+            }
         }
     };
 
@@ -211,6 +222,12 @@ namespace Inferno {
     Ptr<ProceduralWorker> ProcWorker;
 
     int GetProceduralCount() { return (int)ProcWorker->Procedurals.size(); }
+
+    void EnableProceduralTextures(bool enable) {
+        //if(!ProcWorker) return;
+        //if(enable)
+        //    ProcWorker->
+    }
 
     void FreeProceduralTextures() {
         if (ProcWorker) ProcWorker->FreeTextures();

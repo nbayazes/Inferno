@@ -101,7 +101,7 @@ namespace Inferno::Outrage {
                 FireProceduralType FireType;
             };
 
-            int8 Speed; // How quickly certain effects animate
+            int Speed; // How quickly certain effects animate. Actually a uint8 but this is reused for water calcs which are negative.
             uint8 Frequency; // Frames to wait between creating effect
             uint8 Size;
             uint8 X1, Y1; // Center point of effect

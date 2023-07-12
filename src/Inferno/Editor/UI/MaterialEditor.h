@@ -286,7 +286,7 @@ namespace Inferno::Editor {
 
                                 ImGui::TableRowLabel("Oscillate time");
                                 ImGui::SetNextItemWidth(-1);
-                                ImGui::SliderFloat("##osctime", &info->OscillateTime, 0, 100);
+                                ImGui::SliderFloat("##osctime", &info->OscillateTime, 0, 25);
 
                                 ImGui::TableRowLabel("Oscillate value");
                                 ImGui::SetNextItemWidth(-1);

@@ -251,330 +251,6 @@ Materials:
     NormalStrength: 0.7
     SpecularStrength: 0.7
     Roughness: 0.7
-    Procedural:
-      EvalTime: 0.033333335
-      Heat: 225
-      Palette: '[32768,32768,32768,32768,32768,32769,32769,32769,32801,32802,32802,32802,32802,32803,32803,32803,32835,32836,32836,32836,32836,32837,32837,32837,32869,32870,32870,32870,32870,32871,32871,32871,32903,32904,32904,32904,32904,32905,32905,32905,32937,32938,32938,32938,32938,32938,32939,32939,32971,32971,32972,32972,32972,32972,32973,32973,33005,33005,33006,33006,33006,33006,33007,33007,33039,33039,33040,33040,33040,33040,33041,33041,33073,33073,33074,33074,33074,33074,33075,33075,33107,33107,33108,33108,33108,33108,33108,33109,33141,33141,33141,33142,33142,33142,33142,33143,33175,33175,33175,33176,33176,33176,33176,33177,33209,33209,33209,33210,33210,33210,33210,33211,33243,33243,33243,33244,33244,33244,33244,33245,33277,33277,33277,33278,33278,33278,33278,33311,33311,33311,33311,33311,33311,34335,34335,34335,34335,35391,35391,35391,35391,36415,36415,36415,36415,37471,37471,37471,37471,38495,38495,38495,38495,39519,39551,39551,39551,40575,40575,40575,40575,41599,41631,41631,41631,42655,42655,42655,42655,43679,43679,43711,43711,43711,44735,44735,44735,44735,45759,45791,45791,45791,46815,46815,46815,46815,47839,47839,47871,47871,48895,48895,48895,48895,49919,49919,49951,49951,50975,50975,50975,50975,51999,51999,51999,52031,53055,53055,53055,53055,54079,54079,54079,54111,54111,55135,55135,55135,55135,56159,56159,56159,56191,57215,57215,57215,57215,58239,58239,58239,58271,59295,59295,59295,59295,60319,60319,60319,60319,61375,61375,61375,61375,62399,62399,62399,62399,63455,63455,63455,63455,64479,64479,64479,64479]'
-      Elements:
-        - '{"Type": 8,"X1": 59,"Y1": 124,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 60,"Y1": 102,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 62,"Y1": 34,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 65,"Y1": 10,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 66,"Y1": 40,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 99,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 105,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 105,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 110,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 118,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 121,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 120,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 32,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 68,"Y1": 12,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 90,"Y1": 65,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 120,"Y1": 98,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 123,"Y1": 102,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 124,"Y1": 103,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 124,"Y1": 103,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 124,"Y1": 102,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 125,"Y1": 102,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 125,"Y1": 102,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 100,"Y1": 43,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 26,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 75,"Y1": 32,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 52,"Y1": 121,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 31,"Y1": 124,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 111,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 110,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 112,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 117,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 118,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 118,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 26,"Y1": 105,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 25,"Y1": 61,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 25,"Y1": 39,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 25,"Y1": 29,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 25,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 25,"Y1": 14,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 44,"Y1": 120,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 44,"Y1": 113,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 44,"Y1": 51,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 44,"Y1": 22,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 43,"Y1": 10,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 46,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 88,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 89,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 89,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 55,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 47,"Y1": 4,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 104,"Y1": 121,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 104,"Y1": 97,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 102,"Y1": 22,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 102,"Y1": 50,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 102,"Y1": 52,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 102,"Y1": 53,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 102,"Y1": 64,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 103,"Y1": 92,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 104,"Y1": 97,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 104,"Y1": 99,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 101,"Y1": 103,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 97,"Y1": 108,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 95,"Y1": 111,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 95,"Y1": 113,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 95,"Y1": 113,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 95,"Y1": 111,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 97,"Y1": 41,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 99,"Y1": 0,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 90,"Y1": 32,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 89,"Y1": 56,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 86,"Y1": 66,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 84,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 83,"Y1": 82,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 83,"Y1": 83,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 78,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 60,"Y1": 92,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 34,"Y1": 96,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 30,"Y1": 100,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 26,"Y1": 105,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 24,"Y1": 107,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 21,"Y1": 110,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 19,"Y1": 112,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 16,"Y1": 113,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 16,"Y1": 113,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 16,"Y1": 111,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 17,"Y1": 104,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 24,"Y1": 43,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 41,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 90,"Y1": 92,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 96,"Y1": 95,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 112,"Y1": 93,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 122,"Y1": 88,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 123,"Y1": 88,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 123,"Y1": 88,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 123,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 123,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 122,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 122,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 121,"Y1": 87,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 119,"Y1": 71,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 94,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 66,"Y1": 79,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 57,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 56,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 84,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 84,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 84,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 82,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 60,"Y1": 3,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 53,"Y1": 13,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 53,"Y1": 14,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 62,"Y1": 14,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 33,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 51,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 24,"Y1": 106,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 18,"Y1": 109,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 17,"Y1": 109,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 16,"Y1": 108,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 15,"Y1": 92,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 15,"Y1": 89,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 14,"Y1": 89,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 14,"Y1": 89,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 11,"Y1": 80,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 7,"Y1": 39,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 24,"Y1": 97,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 30,"Y1": 112,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 30,"Y1": 103,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 28,"Y1": 79,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 27,"Y1": 76,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 27,"Y1": 76,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 27,"Y1": 77,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 27,"Y1": 77,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 27,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 30,"Y1": 0,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 36,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 41,"Y1": 36,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 55,"Y1": 44,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 69,"Y1": 60,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 67,"Y1": 73,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 83,"Y1": 7,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 91,"Y1": 23,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 91,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 91,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 97,"Y1": 45,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 100,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 103,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 107,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 111,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 112,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 112,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 101,"Y1": 25,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 96,"Y1": 31,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 88,"Y1": 40,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 87,"Y1": 40,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 86,"Y1": 39,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 84,"Y1": 41,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 83,"Y1": 43,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 42,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 85,"Y1": 0,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 86,"Y1": 83,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 86,"Y1": 117,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 87,"Y1": 120,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 87,"Y1": 121,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 86,"Y1": 120,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 86,"Y1": 120,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 84,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 83,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 81,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 80,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 80,"Y1": 122,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 80,"Y1": 112,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 81,"Y1": 18,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 81,"Y1": 13,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 12,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 108,"Y1": 101,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 108,"Y1": 98,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 110,"Y1": 56,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 116,"Y1": 23,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 38,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 40,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 44,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 48,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 48,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 48,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 117,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 118,"Y1": 24,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 118,"Y1": 6,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 118,"Y1": 6,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 115,"Y1": 31,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 115,"Y1": 14,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 115,"Y1": 6,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 15,"Y1": 64,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 15,"Y1": 56,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 19,"Y1": 1,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 14,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 10,"Y1": 46,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 10,"Y1": 54,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 9,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 9,"Y1": 59,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 8,"Y1": 59,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 8,"Y1": 59,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 6,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 0,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 0,"Y1": 71,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 0,"Y1": 74,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 0,"Y1": 79,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 3,"Y1": 107,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 6,"Y1": 114,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 6,"Y1": 115,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 5,"Y1": 117,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 119,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 119,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 119,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 108,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 55,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 3,"Y1": 45,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 5,"Y1": 6,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 5,"Y1": 1,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 4,"Y1": 29,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 4,"Y1": 37,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 4,"Y1": 59,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 4,"Y1": 73,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 4,"Y1": 48,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 23,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 2,"Y1": 22,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 3,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 5,"Y1": 28,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 5,"Y1": 28,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 5,"Y1": 27,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 7,"Y1": 15,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 7,"Y1": 11,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 7,"Y1": 7,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 10,"Y1": 38,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 10,"Y1": 37,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 11,"Y1": 32,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 14,"Y1": 20,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 35,"Y1": 68,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 36,"Y1": 67,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 37,"Y1": 72,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 37,"Y1": 69,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 38,"Y1": 49,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 39,"Y1": 52,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 39,"Y1": 49,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 39,"Y1": 41,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 73,"Y1": 59,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 73,"Y1": 57,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 36,"Y1": 48,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 37,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 50,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 48,"Y1": 50,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 42,"Y1": 110,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 45,"Y1": 103,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 81,"Y1": 102,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 82,"Y1": 100,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 83,"Y1": 96,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 102,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 104,"Y1": 86,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 104,"Y1": 84,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 61,"Y1": 50,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 61,"Y1": 49,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 61,"Y1": 47,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 57,"Y1": 71,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 69,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 32,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 58,"Y1": 30,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 43,"Y1": 36,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 43,"Y1": 34,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 43,"Y1": 17,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 72,"Y1": 29,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 8,"X1": 72,"Y1": 20,"X2": 205,"Y2": 205,"Frequency": 20,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 22,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 78,"Y1": 28,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 80,"Y1": 51,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 81,"Y1": 76,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 81,"Y1": 88,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 81,"Y1": 90,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 82,"Y1": 95,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 82,"Y1": 95,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 62,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 75,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 97,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 106,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 108,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 77,"Y1": 108,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 29,"Y1": 20,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 30,"Y1": 31,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 32,"Y1": 62,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 37,"Y1": 93,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 38,"Y1": 95,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 31,"Y1": 8,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 32,"Y1": 17,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 34,"Y1": 50,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 35,"Y1": 80,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 36,"Y1": 85,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 105,"Y1": 6,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 105,"Y1": 11,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 108,"Y1": 50,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 110,"Y1": 79,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 111,"Y1": 85,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 10,"X1": 112,"Y1": 98,"X2": 205,"Y2": 205,"Frequency": 19,"Size": 255,"Speed": 60}'
-        - '{"Type": 2,"X1": 36,"Y1": 26,"X2": 205,"Y2": 205,"Frequency": 0,"Size": 255,"Speed": 0}'
-        - '{"Type": 2,"X1": 46,"Y1": 37,"X2": 205,"Y2": 205,"Frequency": 0,"Size": 255,"Speed": 0}'
-        - '{"Type": 2,"X1": 51,"Y1": 55,"X2": 205,"Y2": 205,"Frequency": 0,"Size": 255,"Speed": 0}'
-        - '{"Type": 2,"X1": 51,"Y1": 59,"X2": 205,"Y2": 205,"Frequency": 0,"Size": 255,"Speed": 0}'
-        - '{"Type": 2,"X1": 51,"Y1": 60,"X2": 205,"Y2": 205,"Frequency": 0,"Size": 255,"Speed": 0}'
-        - '{"Type": 2,"X1": 115,"Y1": 110,"X2": 205,"Y2": 205,"Frequency": 0,"Size": 255,"Speed": 0}'
   - TexID: 723
     NormalStrength: 0.6
     SpecularStrength: 0.5
@@ -1262,7 +938,7 @@ Materials:
   - TexID: 966
     NormalStrength: 0.25
     Metalness: 0.8
-    Roughness: 0.498
+    Roughness: 0.5
     EmissiveStrength: 2
   - TexID: 967
     NormalStrength: 0.25
@@ -1558,32 +1234,47 @@ Materials:
     NormalStrength: 0.25
     Metalness: 0.75
     Roughness: 0.5
+  - TexID: 1077
+    NormalStrength: 0.843
+    SpecularStrength: 0.186
+    Roughness: 0.741
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.037037037
+      Thickness: 7
+      Light: 5
+      OscillateTime: 0
+      OscillateValue: 6
+      Elements:
+        - '{"Type": 4,"X1": 96,"Y1": 86,"Frequency": 55,"Size": 15,"Speed": 3}'
+        - '{"Type": 1,"X1": 96,"Y1": 86,"Frequency": 55,"Size": 19,"Speed": 3}'
+        - '{"Type": 4,"X1": 15,"Y1": 120,"Frequency": 40,"Size": 15,"Speed": 3}'
+        - '{"Type": 1,"X1": 15,"Y1": 120,"Frequency": 40,"Size": 16,"Speed": 3}'
+        - '{"Type": 4,"X1": 110,"Y1": 15,"Frequency": 45,"Size": 15,"Speed": 3}'
+        - '{"Type": 1,"X1": 110,"Y1": 15,"Frequency": 45,"Size": 19,"Speed": 3}'
+        - '{"Type": 4,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 24,"Speed": 3}'
+        - '{"Type": 1,"X1": 60,"Y1": 70,"Frequency": 60,"Size": 14,"Speed": 3}'
   - TexID: 1080
     Roughness: 0.8
-    EmissiveStrength: 0.508
+    EmissiveStrength: 0.2
     LightReceived: 0
     Procedural:
       IsWater: 1
-      Thickness: 4
+      EvalTime: 0.033333335
+      Thickness: 6
       Light: 8
       OscillateTime: 0
       OscillateValue: 8
       Elements:
-        - '{"Type": 4,"X1": 90,"Y1": 23,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 30,"Speed": 30}'
-        - '{"Type": 4,"X1": 19,"Y1": 104,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 30,"Speed": 30}'
-        - '{"Type": 4,"X1": 32,"Y1": 43,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 30,"Speed": 30}'
-        - '{"Type": 4,"X1": 96,"Y1": 86,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 30,"Speed": 30}'
-        - '{"Type": 4,"X1": 64,"Y1": 30,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 60,"Speed": 30}'
-        - '{"Type": 4,"X1": 96,"Y1": 94,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 60,"Speed": 30}'
-        - '{"Type": 4,"X1": 61,"Y1": 60,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 60,"Speed": 30}'
-        - '{"Type": 4,"X1": 61,"Y1": 44,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 4,"X1": 94,"Y1": 96,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 4,"X1": 94,"Y1": 96,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 4,"X1": 31,"Y1": 69,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 3,"X1": 58,"Y1": 22,"X2": 173,"Y2": 186,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 3,"X1": 113,"Y1": 87,"X2": 186,"Y2": 13,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 3,"X1": 113,"Y1": 88,"X2": 13,"Y2": 240,"Frequency": 0,"Size": 60,"Speed": 60}'
-        - '{"Type": 3,"X1": 20,"Y1": 83,"X2": 240,"Y2": 173,"Frequency": 0,"Size": 60,"Speed": 60}'
+        - '{"Type": 2,"X1": 102,"Y1": 15,"Frequency": 33,"Size": 15,"Speed": 95}'
+        - '{"Type": 2,"X1": 30,"Y1": 15,"Frequency": 18,"Size": 20,"Speed": 90}'
+        - '{"Type": 2,"X1": 80,"Y1": 10,"Frequency": 18,"Size": 20,"Speed": 170}'
+        - '{"Type": 2,"X1": 102,"Y1": 90,"Frequency": 26,"Size": 17,"Speed": 140}'
+        - '{"Type": 2,"X1": 124,"Y1": 122,"Frequency": 21,"Size": 18,"Speed": 130}'
+        - '{"Type": 2,"X1": 80,"Y1": 90,"Frequency": 36,"Size": 22,"Speed": 160}'
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 36,"Size": 19,"Speed": 180}'
+        - '{"Type": 2,"X1": 90,"Y1": 60,"Frequency": 33,"Size": 22,"Speed": 165}'
+        - '{"Type": 2,"X1": 15,"Y1": 60,"Frequency": 31,"Size": 18,"Speed": 155}'
   - TexID: 1084
     NormalStrength: 0.2
     Metalness: 0.9
@@ -1606,10 +1297,29 @@ Materials:
     NormalStrength: 0.5
     Metalness: 0.4
     Roughness: 0.7
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.033333335
+      Thickness: 6
+      Light: 4
+      OscillateTime: 0
+      OscillateValue: 5
+      Elements:
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 64,"Speed": -116}'
   - TexID: 1124
     NormalStrength: 0.5
     Metalness: 0.4
     Roughness: 0.7
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.033333335
+      Thickness: 6
+      Light: 4
+      OscillateTime: 0
+      OscillateValue: 5
+      Elements:
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 64,"Speed": -106}'
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 8,"Speed": -106}'
   - TexID: 1137
     NormalStrength: 0.344
     Metalness: 0.805
@@ -1684,7 +1394,7 @@ Materials:
     NormalStrength: 0.2
     SpecularStrength: 0
     Roughness: 0.8
-    EmissiveStrength: 2.5
+    EmissiveStrength: 1
     LightReceived: 0
   - TexID: 1208
     NormalStrength: 0.25
@@ -1696,8 +1406,25 @@ Materials:
     EmissiveStrength: 10
   - TexID: 1219
     Roughness: 0.8
-    EmissiveStrength: 0.5
+    EmissiveStrength: 0.2
     LightReceived: 0
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.037037037
+      Thickness: 6
+      Light: 8
+      OscillateTime: 0
+      OscillateValue: 8
+      Elements:
+        - '{"Type": 2,"X1": 102,"Y1": 15,"Frequency": 33,"Size": 15,"Speed": 95}'
+        - '{"Type": 2,"X1": 30,"Y1": 15,"Frequency": 18,"Size": 20,"Speed": 90}'
+        - '{"Type": 2,"X1": 80,"Y1": 10,"Frequency": 18,"Size": 20,"Speed": 170}'
+        - '{"Type": 2,"X1": 102,"Y1": 90,"Frequency": 26,"Size": 17,"Speed": 140}'
+        - '{"Type": 2,"X1": 124,"Y1": 122,"Frequency": 21,"Size": 18,"Speed": 130}'
+        - '{"Type": 2,"X1": 80,"Y1": 90,"Frequency": 36,"Size": 22,"Speed": 160}'
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 36,"Size": 19,"Speed": 180}'
+        - '{"Type": 2,"X1": 90,"Y1": 60,"Frequency": 33,"Size": 22,"Speed": 165}'
+        - '{"Type": 2,"X1": 15,"Y1": 60,"Frequency": 31,"Size": 18,"Speed": 155}'
   - TexID: 1240
     NormalStrength: 0.344
     Metalness: 0.805

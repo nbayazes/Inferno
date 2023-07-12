@@ -27,7 +27,7 @@ namespace Inferno {
         EClipID EffectClip = EClipID::None; //the EffectClip that changes this, or -1
         LevelTexID DestroyedTexture = LevelTexID::None; //bitmap to show when destroyed, or -1
         Vector2 Slide; // Siding UV rate of texture per second
-        LevelTexID ID = LevelTexID::None;;
+        LevelTexID ID = LevelTexID::None;
         TexID TexID = TexID::None;
         string D1FileName;
 

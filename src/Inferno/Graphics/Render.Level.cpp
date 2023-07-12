@@ -27,7 +27,7 @@ namespace Inferno::Render {
         LevelMeshBuilder _levelMeshBuilder;
     }
 
-    bool SideIsDoor(SegmentSide* side) {
+    bool SideIsDoor(const SegmentSide* side) {
         if (!side) return false;
         if (auto wall = Game::Level.TryGetWall(side->Wall)) {
             return wall->Type == WallType::Door || wall->Type == WallType::Destroyable;
@@ -61,12 +61,25 @@ namespace Inferno::Render {
                 effect.Shader->SetMaterial2(cmdList, Materials->Get(side->TMap2));
         }
         else {
-            auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
-            effect.Shader->SetMaterial1(cmdList, map1);
+            if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap1))) {
+                // For procedural textures the animation is baked into it
+                auto& map1 = Materials->Get(chunk.TMap1);
+                Shaders->Level.SetMaterial1(cmdList, map1);
+            }
+            else {
+                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
+                effect.Shader->SetMaterial1(cmdList, map1);
+            }
 
             if (constants.HasOverlay) {
-                auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
-                effect.Shader->SetMaterial2(cmdList, map2);
+                if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap2))) {
+                    auto& map2 = Materials->Get(chunk.TMap2);
+                    Shaders->Level.SetMaterial2(cmdList, map2);
+                }
+                else {
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
+                    effect.Shader->SetMaterial2(cmdList, map2);
+                }
             }
         }
 
@@ -223,8 +236,14 @@ namespace Inferno::Render {
                 }
 
                 if (constants.Overlay) {
-                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
-                    Shaders->Level.SetMaterial2(cmdList, map2);
+                    if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap2))) {
+                        auto& map2 = Materials->Get(chunk.TMap2);
+                        Shaders->Level.SetMaterial2(cmdList, map2);
+                    }
+                    else {
+                        auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                        Shaders->Level.SetMaterial2(cmdList, map2);
+                    }
                 }
             }
         }

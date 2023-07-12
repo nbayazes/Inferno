@@ -367,13 +367,8 @@ namespace Inferno::Render {
         //    LoadOutrageModel(TEST_MODEL);
         //}
 
-
-        //if (auto texture = Resources::GameTable.FindTexture(TEST_PROCEDURAL)) {
-        //    AddProcedural(*texture, TexID(1080));
-        //}
-
-        //if (auto texture = Resources::GameTable.FindTexture("CED_CoreSkin01")) {
-        //    AddProcedural(*texture, TexID(722));
+        //if (auto texture = Resources::GameTable.FindTexture("Magma_Flow")) {
+        //    AddProcedural(*texture, TexID(1219));
         //}
 
         ResetLightCache();

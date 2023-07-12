@@ -144,7 +144,7 @@ namespace Inferno {
             Outrage::ProceduralInfo proc{};
 
             ReadValue(procNode["IsWater"], proc.IsWater);
-            ReadValue(node["EvalTime"], proc.EvalTime);
+            ReadValue(procNode["EvalTime"], proc.EvalTime);
 
             if (proc.IsWater)
                 ReadWaterProcedural(procNode, proc);
