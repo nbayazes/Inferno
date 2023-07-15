@@ -4,15 +4,11 @@
 #include "Graphics/Render.h"
 
 namespace Inferno {
-    void AddProcedural(Outrage::TextureInfo& info, TexID dest);
-    Outrage::ProceduralInfo* GetProceduralInfo(TexID id);
-    void CopyProceduralsToMaterial();
-    void StartProceduralWorker();
-    void StopProceduralWorker();
-    void FreeProceduralTextures();
-
+    Texture2D& GetNextTexture();
     int GetProceduralCount();
-    void EnableProceduralTextures(bool);
+
+    constexpr auto MAX_PROCEDURALS = 30;
+    constexpr auto MAX_PROCEDURAL_HANDLES = MAX_PROCEDURALS * 3; // Ring buffer needs extra handles
 
     // Converts BGRA5551 to RGBA8888
     constexpr int BGRA16ToRGB32(uint src, ubyte alpha) {
@@ -24,30 +20,27 @@ namespace Inferno {
     }
 
     class ProceduralTextureBase {
-        double NextTime = 0;
+        double _nextTime = 0;
         wstring _name;
 
     protected:
-        int FrameCount = 0;
+        int _frameCount = 0;
         using Element = Outrage::ProceduralInfo::Element;
         List<uint32> _pixels;
         ubyte _index = 0;
         int _resMask;
-        uint16 TotalSize; // Resolution * Resolution
-        uint16 Resolution; // width-height
+        uint16 _totalSize; // Resolution * Resolution
+        uint16 _resolution; // width-height
 
-        Texture2D TextureBuffers[3]{}; // Buffers for temp results
-        Texture2D* _readBuffer = &TextureBuffers[0];
-        Texture2D* _writeBuffer = &TextureBuffers[1];
-        std::atomic<Texture2D*> _availableBuffer = &TextureBuffers[2];
+        Texture2D _textureBuffers[3]{}; // Buffers for temp results
+        Texture2D* _readBuffer = &_textureBuffers[0];
+        Texture2D* _writeBuffer = &_textureBuffers[1];
+        std::atomic<Texture2D*> _availableBuffer = &_textureBuffers[2];
         std::atomic<bool> _readAvailable = false;
-
-        bool _shouldSwapBuffers = false;
-
+        bool _shouldSwapBuffers = false; // Signals the procedural changed and needs to be copied to GPU
+        Texture2D* _latestTexture = nullptr;
     public:
         Outrage::TextureInfo Info;
-        Texture2D Texture; // Shader visible texture
-        DescriptorHandle Handle;
         TexID ID; // Texture slot to replace with this procedural effect
         std::mutex CopyMutex;
 
@@ -55,24 +48,28 @@ namespace Inferno {
             ID = baseTexture;
             Info = info;
             _name = Convert::ToWideString(Info.Name);
-            Resolution = info.GetSize();
-            _resMask = Resolution - 1;
-            TotalSize = Resolution * Resolution;
-            _pixels.resize(TotalSize);
-            Texture.SetDesc(Resolution, Resolution);
-            Texture.CreateOnDefaultHeap(Convert::ToWideString(Info.Name));
+            _resolution = info.GetSize();
+            _resMask = _resolution - 1;
+            _totalSize = _resolution * _resolution;
+            _pixels.resize(_totalSize);
 
-            for (int i = 0; i < std::size(TextureBuffers); i++) {
-                TextureBuffers[i].SetDesc(Resolution, Resolution);
-                TextureBuffers[i].CreateOnDefaultHeap(Convert::ToWideString(Info.Name + " Buffer"));
+            for (int i = 0; i < std::size(_textureBuffers); i++) {
+                _textureBuffers[i].SetDesc(_resolution, _resolution);
+                _textureBuffers[i].CreateOnDefaultHeap(Convert::ToWideString(Info.Name + " Buffer"));
             }
 
-            Handle = Render::Heaps->Procedurals.GetHandle(GetProceduralCount());
-            Render::Device->CreateShaderResourceView(Texture.Get(), Texture.GetSrvDesc(), Handle.GetCpuHandle());
             SPDLOG_INFO("Procedural Base Ctor");
         }
 
-        bool ShouldUpdate(double elapsedTime) const { return NextTime <= elapsedTime; }
+        //D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const { return _textures[_copyIndex].GetSRV(); }
+        D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const {
+            if (!_latestTexture)
+                return Render::Heaps->Materials.GetGpuHandle((int)ID * Material2D::Count);
+
+            return _latestTexture->GetSRV();
+        }
+
+        bool ShouldUpdate(double elapsedTime) const { return _nextTime <= elapsedTime; }
 
         // Copies from buffer texture to main texture. Must call from main thread. (consumes buffer)
         bool CopyToTexture(ID3D12GraphicsCommandList* cmdList) {
@@ -81,14 +78,10 @@ namespace Inferno {
             _readAvailable = false;
 
             _readBuffer = _availableBuffer.exchange(_readBuffer);
-
-            Texture.CopyFrom(cmdList, *_readBuffer);
-
-            // todo: only need to update descriptors on load
-            auto& material = Render::Materials->Get(ID);
-            auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
-            Render::Device->CopyDescriptorsSimple(1, destHandle, Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
+            _latestTexture = &GetNextTexture();
+            _latestTexture->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+            _latestTexture->CopyFrom(cmdList, *_readBuffer);
+            _latestTexture->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             return true;
         }
 
@@ -97,12 +90,12 @@ namespace Inferno {
             if (!ShouldUpdate(elapsedTime)) return;
 
             OnUpdate();
-            FrameCount++;
-            NextTime = elapsedTime + Info.Procedural.EvalTime;
+            _frameCount++;
+            _nextTime = elapsedTime + Info.Procedural.EvalTime;
             //NextTime = Render::ElapsedTime + 1 / 30.0f;
             _index = 1 - _index; // swap buffers
 
-            _writeBuffer->UploadData(cmdList, _pixels.data());
+            _writeBuffer->CopyFrom(cmdList, _pixels.data());
             _shouldSwapBuffers = true;
         }
 
@@ -125,7 +118,7 @@ namespace Inferno {
         virtual void OnUpdate() = 0;
 
         bool ShouldDrawElement(const Element& elem) const {
-            return elem.Frequency == 0 || FrameCount % elem.Frequency == 0;
+            return elem.Frequency == 0 || _frameCount % elem.Frequency == 0;
         }
 
         static int Rand(int min, int max) {
@@ -135,6 +128,14 @@ namespace Inferno {
             return value + min;
         }
     };
+
+    ProceduralTextureBase* GetProcedural(TexID id);
+    void AddProcedural(Outrage::TextureInfo& info, TexID dest);
+    void CopyProceduralsToMaterial();
+    void StartProceduralWorker();
+    void StopProceduralWorker();
+    void FreeProceduralTextures();
+    void EnableProceduralTextures(bool);
 
     namespace Debug {
         inline double ProceduralUpdateRate = 0;

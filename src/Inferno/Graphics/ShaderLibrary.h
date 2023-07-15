@@ -223,12 +223,15 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
         }
 
-        static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[Material2D::Diffuse]);
+        static void SetDiffuse1(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Material1, handle);
         }
 
-        static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[Material2D::Diffuse]);
+        static void SetDiffuse2(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Material2, handle);
+        }
+
+        static void SetSuperTransparent(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
             commandList->SetGraphicsRootDescriptorTable(StMask, material.Handles[Material2D::SuperTransparency]);
         }
 
@@ -242,8 +245,10 @@ namespace Inferno {
             FrameConstants, // b0
             TextureTable, // t0, space1
             RootConstants, // b1
-            Material1, // t0 - t4
-            Material2, // t5 - t9
+            Diffuse1, // t0
+            Material1, // t1 - t4
+            Diffuse2, // t5
+            Material2, // t6 - t9
             Depth, // t10
             Sampler, // s0
             NormalSampler, // s1
@@ -275,12 +280,20 @@ namespace Inferno {
             commandList->SetGraphicsRootDescriptorTable(NormalSampler, sampler);
         }
 
+        static void SetDiffuse1(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse1, handle);
+        }
+
         static void SetMaterial1(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handle());
+            commandList->SetGraphicsRootDescriptorTable(Material1, material.Handles[1]);
+        }
+
+        static void SetDiffuse2(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Diffuse2, handle);
         }
 
         static void SetMaterial2(ID3D12GraphicsCommandList* commandList, const Material2D& material) {
-            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handle());
+            commandList->SetGraphicsRootDescriptorTable(Material2, material.Handles[1]);
         }
 
         static void SetDepthTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {

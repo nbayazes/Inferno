@@ -5,8 +5,10 @@
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
     "RootConstants(b1, num32BitConstants = 9), "\
-    "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "DescriptorTable(SRV(t5, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t1, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t6, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t10), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), " \

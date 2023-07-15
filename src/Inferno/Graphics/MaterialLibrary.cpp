@@ -548,20 +548,18 @@ namespace Inferno::Render {
     }
 
     void MaterialLibrary::Dispatch() {
-        Render::Adapter->WaitForGpu();
-
-        {
-            if (!_pendingCopies.IsEmpty()) {
-                SPDLOG_INFO("Moving {} uploaded textures", _pendingCopies.Size());
-                auto lock = _pendingCopies.Lock();
-                auto& copies = _pendingCopies.Get();
-                MoveUploads(copies, _materials);
-                copies.clear();
-                Render::Uploads->GetFreeDescriptors();
-            }
+        if (!_pendingCopies.IsEmpty()) {
+            SPDLOG_INFO("Moving {} uploaded textures", _pendingCopies.Size());
+            Render::Adapter->WaitForGpu();
+            auto lock = _pendingCopies.Lock();
+            auto& copies = _pendingCopies.Get();
+            MoveUploads(copies, _materials);
+            copies.clear();
+            Render::Uploads->GetFreeDescriptors();
         }
 
         if (_requestPrune) {
+            Render::Adapter->WaitForGpu();
             PruneInternal();
             Render::LevelChanged = true; // To trigger refresh of material cache
         }

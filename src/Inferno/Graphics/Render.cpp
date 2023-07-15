@@ -204,7 +204,7 @@ namespace Inferno::Render {
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
 
-        Render::Heaps = MakePtr<DescriptorHeaps>(10, 200, MATERIAL_COUNT * 5);
+        Render::Heaps = MakePtr<DescriptorHeaps>(10, 200, 200, MATERIAL_COUNT * 5);
         Render::UploadHeap = MakePtr<UserDescriptorHeap>(MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
         Render::UploadHeap->SetName(L"Upload Heap");
         Render::Uploads = MakePtr<DescriptorRange<5>>(*Render::UploadHeap, Render::UploadHeap->Size());
@@ -536,6 +536,7 @@ namespace Inferno::Render {
         PostProcess(ctx);
         DrawUI(ctx);
 
+
         auto commandQueue = Adapter->GetCommandQueue();
         {
             ScopedTimer presentCallTimer(&Metrics::PresentCall);
@@ -544,10 +545,10 @@ namespace Inferno::Render {
             //PIXEndEvent(commandQueue);
         }
 
+        //Adapter->WaitForGpu();
         Materials->Dispatch();
-        CopyProceduralsToMaterial();
-        //ctx.Reset();
 
+        CopyProceduralsToMaterial(); // Update procedurals while index still points at this frame
         _graphicsMemory->Commit(commandQueue);
     }
 

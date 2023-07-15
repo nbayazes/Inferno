@@ -151,15 +151,16 @@ namespace Inferno {
             else
                 ReadFireProcedural(procNode, proc);
 
-            if (auto existing = GetProceduralInfo(TexID(texId))) {
+            if (auto existing = GetProcedural(TexID(texId))) {
                 // todo: if IsWater changes between existing, recreate procedural
                 // update existing
-                *existing = proc;
+                existing->Info.Procedural = proc;
             }
             else {
                 // Insert new procedural
                 Outrage::TextureInfo ti{};
                 ti.Procedural = proc;
+                ti.Name = Resources::GetTextureInfo(TexID(texId)).Name;
                 SetFlag(ti.Flags, Outrage::TextureFlag::Procedural);
                 if (proc.IsWater)
                     SetFlag(ti.Flags, Outrage::TextureFlag::WaterProcedural);
@@ -253,13 +254,13 @@ namespace Inferno {
         if (info.LightReceived != 1)
             node["LightReceived"] << info.LightReceived;
 
-        if (auto proc = GetProceduralInfo(id)) {
+        if (auto proc = GetProcedural(id)) {
             auto procNode = node["Procedural"];
 
-            if (proc->IsWater)
-                SaveWaterProcedural(procNode, *proc);
+            if (proc->Info.Procedural.IsWater)
+                SaveWaterProcedural(procNode, proc->Info.Procedural);
             else
-                SaveFireProcedural(procNode, *proc);
+                SaveFireProcedural(procNode, proc->Info.Procedural);
         }
     }
 

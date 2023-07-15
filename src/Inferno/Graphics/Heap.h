@@ -12,11 +12,12 @@ namespace Inferno::Render {
 
 namespace Inferno {
     struct DescriptorHandle {
-        DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpu = {}, D3D12_GPU_DESCRIPTOR_HANDLE gpu = {})
+        DescriptorHandle() = default;
+        DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE gpu)
             : _cpuHandle(cpu), _gpuHandle(gpu) {}
 
         bool IsShaderVisible() const { return _gpuHandle.ptr; }
-        operator bool() const { return _cpuHandle.ptr; }
+        explicit operator bool() const { return _cpuHandle.ptr; }
         //const CD3DX12_CPU_DESCRIPTOR_HANDLE* operator&() const { return &_cpuHandle; }
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle() const { return _cpuHandle; }
@@ -30,8 +31,8 @@ namespace Inferno {
         }
 
     private:
-        CD3DX12_CPU_DESCRIPTOR_HANDLE _cpuHandle;
-        CD3DX12_GPU_DESCRIPTOR_HANDLE _gpuHandle;
+        CD3DX12_CPU_DESCRIPTOR_HANDLE _cpuHandle{};
+        CD3DX12_GPU_DESCRIPTOR_HANDLE _gpuHandle{};
     };
 
     class UserDescriptorHeap {
@@ -52,7 +53,9 @@ namespace Inferno {
             _desc.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
             _desc.NodeMask = 1;
 
-            Create();
+            ThrowIfFailed(Render::Device->CreateDescriptorHeap(&_desc, IID_PPV_ARGS(_heap.ReleaseAndGetAddressOf())));
+            _descriptorSize = Render::Device->GetDescriptorHandleIncrementSize(_desc.Type);
+            _start = { _heap->GetCPUDescriptorHandleForHeapStart(), _heap->GetGPUDescriptorHandleForHeapStart() };
         }
 
         auto Size() const { return _desc.NumDescriptors; }
@@ -77,14 +80,6 @@ namespace Inferno {
             auto index = _index;
             _index += count;
             return GetHandle((int)index);
-        }
-
-    private:
-        void Create() {
-            ThrowIfFailed(Render::Device->CreateDescriptorHeap(&_desc, IID_PPV_ARGS(_heap.ReleaseAndGetAddressOf())));
-            _descriptorSize = Render::Device->GetDescriptorHandleIncrementSize(_desc.Type);
-            //m_NumFreeDescriptors = _desc.NumDescriptors;
-            _start = { _heap->GetCPUDescriptorHandleForHeapStart(), _heap->GetGPUDescriptorHandleForHeapStart() };
         }
     };
 
@@ -155,7 +150,8 @@ namespace Inferno {
             return GetHandle(index);
         }
 
-        DescriptorHandle GetHandle(uint index) const { return _heap.GetHandle(_start + index); };
+        DescriptorHandle GetHandle(uint index) const { return _heap.GetHandle(_start + index); }
+        DescriptorHandle operator[](int index) const { return GetHandle(index); }
 
         CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(uint index) const {
             return CD3DX12_GPU_DESCRIPTOR_HANDLE(_heap.GetHandle(_start + index).GetGpuHandle());
@@ -165,6 +161,7 @@ namespace Inferno {
             return CD3DX12_CPU_DESCRIPTOR_HANDLE(_heap.GetHandle(_start + index).GetCpuHandle());
         }
 
+        static uint Stride() { return TStride; }
         size_t GetSize() const { return _size; };
         auto DescriptorSize() const { return _heap.DescriptorSize(); }
 
@@ -196,14 +193,14 @@ namespace Inferno {
         UserDescriptorHeap _shader;
 
     public:
-        DescriptorHeaps(uint renderTargets, uint reserved, uint materials)
-            : _shader(reserved + materials, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+        DescriptorHeaps(uint renderTargets, uint reserved, uint procedurals, uint materials)
+            : _shader(reserved + materials + procedurals, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
               States(Render::Device),
               Reserved(_shader, reserved),
-              Materials(_shader, materials, reserved),
+              Procedurals(_shader, procedurals, reserved),
+              Materials(_shader, materials, reserved + procedurals),
               RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
-              DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV),
-              Procedurals(50, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false){
+              DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
             _shader.SetName(L"Shader visible heap");
             RenderTargets.SetName(L"Render target heap");
             DepthStencil.SetName(L"Depth stencil heap");
@@ -212,10 +209,10 @@ namespace Inferno {
         DirectX::CommonStates States;
         // Static CBV SRV UAV for buffers
         DescriptorRange<1> Reserved;
+        DescriptorRange<1> Procedurals;
         // Dynamic CBV SRV UAV for shader texture resources
         DescriptorRange<5> Materials; // Materials mapped to TexIDs - Material2D::Count
         UserDescriptorHeap RenderTargets, DepthStencil;
-        UserDescriptorHeap Procedurals;
 
         void SetDescriptorHeaps(ID3D12GraphicsCommandList* cmdList) const {
             ID3D12DescriptorHeap* heaps[] = { _shader.Heap(), States.Heap() };

@@ -32,14 +32,14 @@ namespace Inferno {
         ID3D12Resource* Get() const { return _resource.Get(); }
         ID3D12Resource* operator->() { return _resource.Get(); }
         const ID3D12Resource* operator->() const { return _resource.Get(); }
-        operator bool() const { return _resource.Get() != nullptr; }
+        explicit operator bool() const { return _resource.Get() != nullptr; }
         void Release() { _resource.Reset(); }
         D3D12_RESOURCE_DESC& Description() { return _desc; }
 
-        const auto GetSRV() const { return _srv.GetGpuHandle(); }
-        const auto GetUAV() const { return _uav.GetGpuHandle(); }
-        const auto GetRTV() const { return _rtv.GetCpuHandle(); }
-        const auto GetSrvDesc() const { return &_srvDesc; }
+        const D3D12_GPU_DESCRIPTOR_HANDLE GetSRV() const { return _srv.GetGpuHandle(); }
+        const D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCpu() const { return _srv.GetCpuHandle(); }
+        const D3D12_GPU_DESCRIPTOR_HANDLE GetUAV() const { return _uav.GetGpuHandle(); }
+        const D3D12_CPU_DESCRIPTOR_HANDLE GetRTV() const { return _rtv.GetCpuHandle(); }
 
         void SetName(wstring_view name) {
             _name = name;
@@ -99,6 +99,12 @@ namespace Inferno {
         //void CreateUnorderedAccessView(D3D12_CPU_DESCRIPTOR_HANDLE dest, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr) const {
         //    Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
         //}
+
+        void AddShaderResourceView(const DescriptorHandle& handle) {
+            assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
+            _srv = handle;
+            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
+        }
 
         // Adds a SRV to the reserved heap
         void AddShaderResourceView() {
@@ -309,20 +315,20 @@ namespace Inferno {
             _desc = _resource->GetDesc();
         }
 
+        // Copies data from another texture into the resource
         void CopyFrom(ID3D12GraphicsCommandList* cmdList, Texture2D& srcTex) {
             CD3DX12_TEXTURE_COPY_LOCATION dst(Get());
             CD3DX12_TEXTURE_COPY_LOCATION src(srcTex.Get());
             srcTex.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
             Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
 
-            //D3D12_BOX box(0, 0, 0, 64, 64, 1);
-            //cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, &box);
             cmdList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
             Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             srcTex.Transition(cmdList, D3D12_RESOURCE_STATE_COMMON);
         }
 
-        void UploadData(ID3D12GraphicsCommandList* cmdList, const void* data) {
+        // Copies data from a buffer into the resource
+        void CopyFrom(ID3D12GraphicsCommandList* cmdList, const void* data) {
             D3D12_SUBRESOURCE_DATA textureData = {};
             textureData.pData = data;
             textureData.RowPitch = GetWidth() * 4;
@@ -341,7 +347,7 @@ namespace Inferno {
         // Uploads a resource with no mip-maps. Intended for use with low res textures.
         void Load(DirectX::ResourceUploadBatch& batch,
                   const void* data,
-                  int width, int height,
+                  uint width, uint height,
                   wstring_view name,
                   bool enableMips = true,
                   DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
@@ -366,13 +372,15 @@ namespace Inferno {
                 batch.GenerateMips(resource);
         }
 
-        void Create(int width, int height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+        // Creates the texture on the default heap
+        void Create(uint width, uint height, wstring_view name, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             SetDesc(width, height, 1, format);
             CreateOnDefaultHeap(name, nullptr);
             _state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
-        void SetDesc(int width, int height, uint16 mips = 1, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
+        // Sets the SRV description
+        void SetDesc(uint width, uint height, uint16 mips = 1, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) {
             _desc = CD3DX12_RESOURCE_DESC::Tex2D(format, width, height, 1, mips);
             _srvDesc.Format = _desc.Format;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;

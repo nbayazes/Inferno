@@ -151,12 +151,12 @@ namespace Inferno {
     public:
         ProceduralWater(const Outrage::TextureInfo& info, TexID baseTexture)
             : ProceduralTextureBase(info, baseTexture) {
-            _waterBuffer[0].resize(TotalSize);
-            _waterBuffer[1].resize(TotalSize);
+            _waterBuffer[0].resize(_totalSize);
+            _waterBuffer[1].resize(_totalSize);
             auto& texture = Resources::GetBitmap(baseTexture);
-            _baseTexture.Data = BilinearUpscale(texture, Resolution);
-            _baseTexture.Info.Width = Resolution;
-            _baseTexture.Info.Height = Resolution;
+            _baseTexture.Data = BilinearUpscale(texture, _resolution);
+            _baseTexture.Info.Width = _resolution;
+            _baseTexture.Info.Height = _resolution;
         }
 
     protected:
@@ -228,10 +228,10 @@ namespace Inferno {
             auto maxX = (int)elem.Size;
             auto maxY = (int)elem.Size;
 
-            if (elem.X1 + maxX > Resolution - 1)
-                maxX = Resolution - elem.X1 - 1;
-            if (elem.Y1 + maxY > Resolution - 1)
-                maxY = Resolution - elem.Y1 - 1;
+            if (elem.X1 + maxX > _resolution - 1)
+                maxX = _resolution - elem.X1 - 1;
+            if (elem.Y1 + maxY > _resolution - 1)
+                maxY = _resolution - elem.Y1 - 1;
 
             return { minX, minY, maxX, maxY, sizeSq };
         }
@@ -243,7 +243,7 @@ namespace Inferno {
             auto blob = GetBlobBounds(elem);
 
             for (int y = blob.minY; y < blob.maxY; y++) {
-                auto yOffset = (y + elem.Y1) * Resolution;
+                auto yOffset = (y + elem.Y1) * _resolution;
                 for (int x = blob.minX; x < blob.maxX; x++) {
                     auto offset = yOffset + x + elem.X1;
                     if (x * x + y * y < blob.sizeSq)
@@ -259,7 +259,7 @@ namespace Inferno {
             auto blob = GetBlobBounds(elem);
 
             for (int y = blob.minY; y < blob.maxY; y++) {
-                auto yOffset = (y + elem.Y1) * Resolution;
+                auto yOffset = (y + elem.Y1) * _resolution;
                 for (int x = blob.minX; x < blob.maxX; x++) {
                     auto offset = yOffset + x + elem.X1;
                     auto radSq = x * x + y * y;
@@ -332,47 +332,47 @@ namespace Inferno {
             factor &= 31;
 
             // Handle dampening within the center of the heightmaps
-            for (int y = 1; y < Resolution - 1; y++) {
-                for (int x = 1; x < Resolution - 1; x++) {
-                    auto offset = y * Resolution + x;
-                    auto sum = ((src[offset + Resolution] + src[offset - 1] + src[offset + 1] + src[offset - Resolution]) >> 1) - dest[offset];
+            for (int y = 1; y < _resolution - 1; y++) {
+                for (int x = 1; x < _resolution - 1; x++) {
+                    auto offset = y * _resolution + x;
+                    auto sum = ((src[offset + _resolution] + src[offset - 1] + src[offset + 1] + src[offset - _resolution]) >> 1) - dest[offset];
                     dest[offset] = int16(sum - (sum >> factor));
                 }
             }
 
             // Handle dampening on the edges of the heightmaps
-            for (int y = 0; y < Resolution; y++) {
+            for (int y = 0; y < _resolution; y++) {
                 int belowoffset, aboveoffset;
 
                 if (y == 0) {
-                    aboveoffset = -(Resolution - 1) * Resolution;
-                    belowoffset = Resolution;
+                    aboveoffset = -(_resolution - 1) * _resolution;
+                    belowoffset = _resolution;
                 }
-                else if (y == Resolution - 1) {
-                    aboveoffset = Resolution;
-                    belowoffset = -(Resolution - 1) * Resolution;;
+                else if (y == _resolution - 1) {
+                    aboveoffset = _resolution;
+                    belowoffset = -(_resolution - 1) * _resolution;;
                 }
                 else {
-                    belowoffset = aboveoffset = Resolution;
+                    belowoffset = aboveoffset = _resolution;
                 }
 
-                for (int x = 0; x < Resolution; x++) {
+                for (int x = 0; x < _resolution; x++) {
                     //only dampen if actually on an edge
-                    if (y == 0 || y == Resolution - 1 || x == 0 || x == Resolution - 1) {
+                    if (y == 0 || y == _resolution - 1 || x == 0 || x == _resolution - 1) {
                         int leftoffset, rightoffset;
                         if (x == 0) {
-                            leftoffset = -(Resolution - 1);
+                            leftoffset = -(_resolution - 1);
                             rightoffset = 1;
                         }
-                        else if (x == Resolution - 1) {
+                        else if (x == _resolution - 1) {
                             leftoffset = 1;
-                            rightoffset = -(Resolution - 1);
+                            rightoffset = -(_resolution - 1);
                         }
                         else {
                             leftoffset = rightoffset = 1;
                         }
 
-                        int offset = y * Resolution + x;
+                        int offset = y * _resolution + x;
                         int sum = ((src[offset - leftoffset] + src[offset + rightoffset] + src[offset - aboveoffset] + src[offset + belowoffset]) >> 1) - dest[offset];
 
                         dest[offset] = int16(sum - (sum >> factor));
@@ -387,34 +387,34 @@ namespace Inferno {
             int lightshift = lightFactor & 31;
 
             auto& texture = _baseTexture;
-            auto xScale = (float)texture.Info.Width / Resolution;
-            auto yScale = (float)texture.Info.Height / Resolution;
+            auto xScale = (float)texture.Info.Width / _resolution;
+            auto yScale = (float)texture.Info.Height / _resolution;
             auto srcResmaskX = texture.Info.Width - 1;
             auto srcResmaskY = texture.Info.Height - 1;
 
-            for (int y = 0; y < Resolution; y++) {
+            for (int y = 0; y < _resolution; y++) {
                 int topoffset, botoffset;
-                if (y == (Resolution - 1)) {
-                    botoffset = _resMask * Resolution;
-                    topoffset = Resolution;
+                if (y == (_resolution - 1)) {
+                    botoffset = _resMask * _resolution;
+                    topoffset = _resolution;
                 }
                 else if (y == 0) {
-                    botoffset = -Resolution;
-                    topoffset = -_resMask * Resolution;
+                    botoffset = -_resolution;
+                    topoffset = -_resMask * _resolution;
                 }
                 else {
-                    topoffset = Resolution;
-                    botoffset = -Resolution;
+                    topoffset = _resolution;
+                    botoffset = -_resolution;
                 }
 
-                for (int x = 0; x < Resolution; x++) {
-                    int offset = y * Resolution + x;
+                for (int x = 0; x < _resolution; x++) {
+                    int offset = y * _resolution + x;
 
                     int horizheight;
-                    if (x == Resolution - 1)
-                        horizheight = heights[offset - 1] - heights[offset - Resolution + 1];
+                    if (x == _resolution - 1)
+                        horizheight = heights[offset - 1] - heights[offset - _resolution + 1];
                     else if (x == 0)
-                        horizheight = heights[offset + Resolution - 1] - heights[offset + 1];
+                        horizheight = heights[offset + _resolution - 1] - heights[offset + 1];
                     else
                         horizheight = heights[offset - 1] - heights[offset + 1];
 
@@ -429,7 +429,7 @@ namespace Inferno {
                     int xShift = int((horizheight >> 3) + x * xScale) % texture.Info.Width;
                     int yShift = int((vertheight >> 3) + y * yScale) % texture.Info.Width;
 
-                    int destOffset = y * Resolution + x;
+                    int destOffset = y * _resolution + x;
 
                     int srcOffset = (yShift & srcResmaskY) * texture.Info.Width + (xShift & srcResmaskX);
                     auto& c = texture.Data[srcOffset]; // RGBA8888
@@ -448,30 +448,30 @@ namespace Inferno {
 
         void DrawWaterNoLight() {
             auto& texture = _baseTexture;
-            auto xScale = (float)texture.Info.Width / Resolution;
-            auto yScale = (float)texture.Info.Height / Resolution;
+            auto xScale = (float)texture.Info.Width / _resolution;
+            auto yScale = (float)texture.Info.Height / _resolution;
             //assert(baseTexture.Info.Width == baseTexture.Info.Height); // Only supports square textures
             // todo: effect clips
 
             auto& heights = _waterBuffer[_index];
 
-            for (int y = 0; y < Resolution; y++) {
-                for (int x = 0; x < Resolution; x++) {
-                    int offset = y * Resolution + x;
+            for (int y = 0; y < _resolution; y++) {
+                for (int x = 0; x < _resolution; x++) {
+                    int offset = y * _resolution + x;
                     int height = heights[offset];
 
                     int xHeight;
-                    if (x == Resolution - 1)
-                        xHeight = heights[offset - Resolution + 1];
+                    if (x == _resolution - 1)
+                        xHeight = heights[offset - _resolution + 1];
                     else
                         xHeight = heights[offset + 1];
 
 
                     int yHeight;
-                    if (y == Resolution - 1)
-                        yHeight = heights[offset - ((Resolution - 1) * Resolution)];
+                    if (y == _resolution - 1)
+                        yHeight = heights[offset - ((_resolution - 1) * _resolution)];
                     else
-                        yHeight = heights[offset + Resolution];
+                        yHeight = heights[offset + _resolution];
 
                     xHeight = std::max(0, height - xHeight);
                     yHeight = std::max(0, height - yHeight);
@@ -479,7 +479,7 @@ namespace Inferno {
                     int xShift = int((xHeight >> 3) + x * xScale) % texture.Info.Width;
                     int yShift = int((yHeight >> 3) + y * yScale) % texture.Info.Width;
 
-                    int destOffset = y * Resolution + x;
+                    int destOffset = y * _resolution + x;
                     //int srcOffset = botshift * Resolution + rightshift;
                     int srcOffset = yShift * (int)texture.Info.Width + xShift;
 

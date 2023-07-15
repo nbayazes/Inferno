@@ -10,6 +10,27 @@
 using namespace std::chrono;
 
 namespace Inferno {
+    template <uint TCapacity>
+    class TextureRingBuffer {
+        std::atomic<size_t> _index;
+        Array<Texture2D, TCapacity> _textures;
+        DescriptorRange<1>* _descriptors;
+    public:
+        TextureRingBuffer(uint resolution, DescriptorRange<1>* descriptors) : _descriptors(descriptors) {
+            for (int i = 0; i < std::size(_textures); i++) {
+                auto name = fmt::format(L"ring buffer {}", i);
+                auto& texture = _textures[i];
+                texture.SetDesc(resolution, resolution);
+                texture.CreateOnDefaultHeap(name);
+                texture.AddShaderResourceView(descriptors->GetHandle(i));
+            }
+        }
+
+        Texture2D& GetNext() {
+            return _textures[_index++ % TCapacity];
+        }
+    };
+
     // Combined command list / allocator / queue for executing commands
     class CommandList {
         ComPtr<ID3D12GraphicsCommandList> _cmdList;
@@ -44,8 +65,8 @@ namespace Inferno {
         }
 
         void Reset() const {
-            _allocator->Reset();
-            _cmdList->Reset(_allocator.Get(), nullptr);
+            ThrowIfFailed(_allocator->Reset());
+            ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));
         }
 
         ID3D12GraphicsCommandList* Get() const { return _cmdList.Get(); }
@@ -58,7 +79,6 @@ namespace Inferno {
             if (wait) Wait();
         }
 
-    private:
         void Wait() {
             const UINT64 fence = _fenceValue;
             ThrowIfFailed(_queue->Signal(_fence.Get(), fence));
@@ -88,12 +108,9 @@ namespace Inferno {
         }
 
         virtual ~Worker() {
-            //SPDLOG_INFO("Destroying worker {}", _name);
             _alive = false;
             if (_worker.joinable())
                 _worker.join();
-
-            //SPDLOG_INFO("ctor end {}", _name);
         }
 
         Worker(const Worker&) = delete;
@@ -104,11 +121,11 @@ namespace Inferno {
         // Pauses execution after current iteration of worker
         void Pause(bool shouldPause) {
             if (shouldPause) {
-
                 auto wasPaused = _paused.exchange(true);
                 if (!wasPaused)
                     _pauseWait.acquire(); // block caller until thread finishes
-            } else {
+            }
+            else {
                 _paused = false;
                 _pauseWait.release();
             }
@@ -191,17 +208,12 @@ namespace Inferno {
             }
 
             auto procedural = info.IsWaterProcedural() ? CreateProceduralWater(info, dest) : CreateProceduralFire(info, dest);
-
-            // Update the diffuse texture handle in the material
-            auto& material = Render::Materials->Get(dest);
-            auto destHandle = Render::Heaps->Materials.GetCpuHandle((int)material.ID * 5);
-            Render::Device->CopyDescriptorsSimple(1, destHandle, procedural->Handle.GetCpuHandle(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
             Procedurals.push_back(std::move(procedural));
         }
 
         void CopyProceduralsToMaterial() const {
             if (!IsEnabled()) return;
+            _copyQueue->Wait(); // wait for the previous frame to finish
             _copyQueue->Reset();
 
             for (auto& proc : Procedurals) {
@@ -241,6 +253,9 @@ namespace Inferno {
 
 
     Ptr<ProceduralWorker> ProcWorker;
+    Ptr<TextureRingBuffer<MAX_PROCEDURAL_HANDLES>> ProceduralBuffer;
+
+    Texture2D& GetNextTexture() { return ProceduralBuffer->GetNext(); }
 
     int GetProceduralCount() { return (int)ProcWorker->Procedurals.size(); }
 
@@ -256,11 +271,11 @@ namespace Inferno {
         if (ProcWorker) ProcWorker->AddProcedural(info, dest);
     }
 
-    Outrage::ProceduralInfo* GetProceduralInfo(TexID id) {
+    ProceduralTextureBase* GetProcedural(TexID id) {
         if (!ProcWorker) return nullptr;
 
         for (auto& p : ProcWorker->Procedurals) {
-            if (p->ID == id) return &p->Info.Procedural;
+            if (p->ID == id) return p.get();
         }
         return nullptr;
     }
@@ -270,10 +285,12 @@ namespace Inferno {
     }
 
     void StartProceduralWorker() {
+        ProceduralBuffer = MakePtr<TextureRingBuffer<MAX_PROCEDURAL_HANDLES>>(128, &Render::Heaps->Procedurals);
         ProcWorker = MakePtr<ProceduralWorker>();
     }
 
     void StopProceduralWorker() {
+        ProceduralBuffer.reset();
         ProcWorker.reset();
     }
 }

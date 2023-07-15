@@ -56,29 +56,30 @@ namespace Inferno::Render {
         // Same as level mesh texid lookup
         if (SideIsDoor(side)) {
             // Use the current texture for this side, as walls are drawn individually
-            effect.Shader->SetMaterial1(cmdList, Materials->Get(side->TMap));
+            effect.Shader->SetDiffuse1(cmdList, Materials->Get(side->TMap).Handle());
             if (constants.HasOverlay)
-                effect.Shader->SetMaterial2(cmdList, Materials->Get(side->TMap2));
+                effect.Shader->SetDiffuse2(cmdList, Materials->Get(side->TMap2).Handle());
         }
         else {
-            if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap1))) {
+            if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap1))) {
                 // For procedural textures the animation is baked into it
-                auto& map1 = Materials->Get(chunk.TMap1);
-                Shaders->Level.SetMaterial1(cmdList, map1);
+                effect.Shader->SetDiffuse1(cmdList, proc->GetHandle());
             }
             else {
-                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, (float)ElapsedTime, Game::ControlCenterDestroyed);
-                effect.Shader->SetMaterial1(cmdList, map1);
+                auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                effect.Shader->SetDiffuse1(cmdList, map1.Handles[0]);
             }
 
             if (constants.HasOverlay) {
-                if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap2))) {
+                if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap2))) {
                     auto& map2 = Materials->Get(chunk.TMap2);
-                    Shaders->Level.SetMaterial2(cmdList, map2);
+                    effect.Shader->SetDiffuse2(cmdList, proc->GetHandle());
+                    effect.Shader->SetDiffuse2(cmdList, map2.Handles[Material2D::SuperTransparency]);
                 }
                 else {
-                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, (float)ElapsedTime, Game::ControlCenterDestroyed);
-                    effect.Shader->SetMaterial2(cmdList, map2);
+                    auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                    effect.Shader->SetDiffuse2(cmdList, map2.Handles[0]);
+                    effect.Shader->SetDiffuse2(cmdList, map2.Handles[Material2D::SuperTransparency]);
                 }
             }
         }
@@ -220,28 +221,38 @@ namespace Inferno::Render {
 
             if (SideIsDoor(side)) {
                 // Use the current texture for this side, as walls are drawn individually
-                Shaders->Level.SetMaterial1(cmdList, Materials->Get(side->TMap));
-                if (constants.Overlay)
-                    Shaders->Level.SetMaterial2(cmdList, Materials->Get(side->TMap2));
+                auto& map1 = Materials->Get(side->TMap);
+                Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
+                Shaders->Level.SetMaterial1(cmdList, map1);
+
+                if (constants.Overlay) {
+                    auto& map2 = Materials->Get(side->TMap2);
+                    Shaders->Level.SetDiffuse2(cmdList, map2.Handles[0]);
+                    Shaders->Level.SetMaterial2(cmdList, map2);
+                }
             }
             else {
-                if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap1))) {
+                if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap1))) {
                     // For procedural textures the animation is baked into it
                     auto& map1 = Materials->Get(chunk.TMap1);
+                    Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
                     Shaders->Level.SetMaterial1(cmdList, map1);
                 }
                 else {
                     auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                    Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
                     Shaders->Level.SetMaterial1(cmdList, map1);
                 }
 
                 if (constants.Overlay) {
-                    if (GetProceduralInfo(Resources::LookupTexID(chunk.TMap2))) {
+                    if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap2))) {
                         auto& map2 = Materials->Get(chunk.TMap2);
+                        Shaders->Level.SetDiffuse2(cmdList, proc->GetHandle());
                         Shaders->Level.SetMaterial2(cmdList, map2);
                     }
                     else {
                         auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
+                        Shaders->Level.SetDiffuse2(cmdList, map2.Handles[0]);
                         Shaders->Level.SetMaterial2(cmdList, map2);
                     }
                 }

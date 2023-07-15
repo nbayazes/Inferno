@@ -255,51 +255,52 @@ namespace Inferno::Editor {
 
                     ImGui::Separator();
 
-                    if (auto info = GetProceduralInfo(ti.ID)) {
+                    if (auto proc = GetProcedural(ti.ID)) {
+                        auto& info = proc->Info.Procedural;
                         ImGui::Text("Procedural");
                         if (ImGui::BeginTable("procedural", 2, flags)) {
                             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
                             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
                             ImGui::TableRowLabel("FPS");
-                            auto fps = info->EvalTime > 0 ? int(std::round(1 / info->EvalTime)) : 30;
+                            auto fps = info.EvalTime > 0 ? int(std::round(1 / info.EvalTime)) : 30;
                             ImGui::SetNextItemWidth(-1);
                             if (ImGui::SliderInt("##fps", &fps, 1, 90)) {
                                 fps = std::clamp(fps, 1, 90);
-                                info->EvalTime = 1 / (float)fps;
+                                info.EvalTime = 1 / (float)fps;
                             }
 
-                            if (info->IsWater) {
+                            if (info.IsWater) {
                                 ImGui::TableRowLabel("Thickness");
                                 ImGui::SetNextItemWidth(-1);
-                                int thickness = info->Thickness;
+                                int thickness = info.Thickness;
                                 if (ImGui::SliderInt("##Thickness", &thickness, 0, 31)) {
-                                    info->Thickness = (uint8)std::clamp(thickness, 0, 31);
+                                    info.Thickness = (uint8)std::clamp(thickness, 0, 31);
                                 }
 
                                 ImGui::TableRowLabel("Light");
                                 ImGui::SetNextItemWidth(-1);
-                                int light = info->Light;
+                                int light = info.Light;
                                 if (ImGui::SliderInt("##Light", &light, 0, 31)) {
-                                    info->Light = (uint8)std::clamp(light, 0, 31);
+                                    info.Light = (uint8)std::clamp(light, 0, 31);
                                 }
 
                                 ImGui::TableRowLabel("Oscillate time");
                                 ImGui::SetNextItemWidth(-1);
-                                ImGui::SliderFloat("##osctime", &info->OscillateTime, 0, 25);
+                                ImGui::SliderFloat("##osctime", &info.OscillateTime, 0, 25);
 
                                 ImGui::TableRowLabel("Oscillate value");
                                 ImGui::SetNextItemWidth(-1);
-                                int oscval = info->OscillateValue;
+                                int oscval = info.OscillateValue;
                                 if (ImGui::SliderInt("##oscval", &oscval, 0, 31)) {
-                                    info->OscillateValue = (uint8)std::clamp(oscval, 0, 31);
+                                    info.OscillateValue = (uint8)std::clamp(oscval, 0, 31);
                                 }
                             } else {
                                 ImGui::TableRowLabel("Heat");
                                 ImGui::SetNextItemWidth(-1);
-                                int heat = info->Heat;
+                                int heat = info.Heat;
                                 if (ImGui::SliderInt("##Heat", &heat, 0, 255)) {
-                                    info->Heat = (uint8)std::clamp(heat, 0, 255);
+                                    info.Heat = (uint8)std::clamp(heat, 0, 255);
                                 }
                             }
 

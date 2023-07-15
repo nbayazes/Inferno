@@ -39,8 +39,8 @@ namespace Inferno {
     public:
         ProceduralFire(const Outrage::TextureInfo& info, TexID baseTexture)
             : ProceduralTextureBase(info, baseTexture) {
-            _fireBuffer[0].resize(TotalSize);
-            _fireBuffer[1].resize(TotalSize);
+            _fireBuffer[0].resize(_totalSize);
+            _fireBuffer[1].resize(_totalSize);
 
             constexpr int MAX_PARTICLES = 8000;
             _freeParticles.resize(MAX_PARTICLES);
@@ -132,7 +132,7 @@ namespace Inferno {
 
             BlendFireBuffer();
 
-            for (auto i = 0; i < TotalSize; i++)
+            for (auto i = 0; i < _totalSize; i++)
                 _pixels[i] = _palette[_fireBuffer[1 - _index][i]]; // Note the use of dest buffer
         }
 
@@ -195,7 +195,7 @@ namespace Inferno {
             int xLen = x2 - curX;
             int yLen = y2 - curY;
 
-            const auto mask = Resolution - 1;
+            const auto mask = _resolution - 1;
 
             if (xLen < 0) {
                 yDir = -1;
@@ -210,16 +210,16 @@ namespace Inferno {
                 curY = curY & mask;
                 curX = curX & mask;
                 int error = 0;
-                int ptr = curY * Resolution;
+                int ptr = curY * _resolution;
 
                 for (int i = 0; i < yLen; i++) {
                     error += xLen;
                     _fireBuffer[_index][ptr + curX] = color;
                     curY = (curY + xDir) & 127;
-                    ptr = curY * Resolution;
+                    ptr = curY * _resolution;
 
                     if (yLen <= error) {
-                        curX = (curX + yDir) % Resolution;
+                        curX = (curX + yDir) % _resolution;
                         error -= yLen;
                     }
                 }
@@ -228,7 +228,7 @@ namespace Inferno {
                 curY = curY & mask;
                 curX = curX & mask;
                 int error = 0;
-                int ptr = curY * Resolution;
+                int ptr = curY * _resolution;
 
                 for (int i = 0; i < xLen; i++) {
                     error += yLen;
@@ -236,7 +236,7 @@ namespace Inferno {
                     curX = (curX & mask) + yDir;
                     if (xLen <= error) {
                         curY = (curY + xDir) & mask;
-                        ptr = curY * Resolution;
+                        ptr = curY * _resolution;
                         error -= xLen;
                     }
                 }
@@ -308,7 +308,7 @@ namespace Inferno {
         void UpdateBufferColorDynamic(const Particle& elem) {
             //ProcDestData[((elem->x1 >> 16) & RESMASK) + ((elem->y1 >> 16) & RESMASK) * RESOLUTION] = elem->color;
             auto x = (elem.X >> 16) & _resMask;
-            auto y = ((elem.Y >> 16) & _resMask) * Resolution;
+            auto y = ((elem.Y >> 16) & _resMask) * _resolution;
             _fireBuffer[_index][y + x] = elem.Color;
         }
 
@@ -376,7 +376,7 @@ namespace Inferno {
             auto num = GetDynamicElement();
             if (num != -1) {
                 auto elemNum = int(&elem - &Info.Procedural.Elements[0]);
-                int iVar3 = FrameCount + elemNum * 60;
+                int iVar3 = _frameCount + elemNum * 60;
                 int iVar2 = int(elem.Speed / 255.0f * 5.0f + 1.0f);
                 int size = elem.Size * -65536;
 
@@ -591,25 +591,25 @@ namespace Inferno {
             auto& src = _fireBuffer[_index];
             auto& dest = _fireBuffer[1 - _index];
 
-            for (auto y = 0; y < Resolution; y++) {
-                auto yptr = y * Resolution;
-                auto up = yptr + Resolution;
-                if (y == Resolution - 1)
+            for (auto y = 0; y < _resolution; y++) {
+                auto yptr = y * _resolution;
+                auto up = yptr + _resolution;
+                if (y == _resolution - 1)
                     up = 0; // wrap top edge
 
-                auto down = yptr - Resolution;
+                auto down = yptr - _resolution;
                 if (y == 0)
-                    down = TotalSize - Resolution;
+                    down = _totalSize - _resolution;
 
-                for (auto x = 0; x < Resolution; x++) {
+                for (auto x = 0; x < _resolution; x++) {
                     auto ptr = yptr + x;
                     auto right = ptr + 1;
                     auto left = ptr - 1;
 
-                    if (x == Resolution - 1)
+                    if (x == _resolution - 1)
                         right = yptr;
                     if (x == 0)
-                        left = yptr + Resolution - 1;
+                        left = yptr + _resolution - 1;
 
                     // legacy 4-tap sampling that creates visible triangles
                     //auto v = buffer[ptr] + buffer[up] + buffer[right] + buffer[left];

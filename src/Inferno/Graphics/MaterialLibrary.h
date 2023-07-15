@@ -26,7 +26,7 @@ namespace Inferno::Render {
         string Name;
         TextureState State = TextureState::Vacant;
 
-        operator bool() const { return State == TextureState::Resident; }
+        explicit operator bool() const { return State == TextureState::Resident; }
         UINT64 Pointer() const { return Handles[Diffuse].ptr; }
 
         // Returns the handle of the first texture in the material. Materials are created so that all textures are contiguous.
