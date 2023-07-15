@@ -452,7 +452,7 @@ namespace Inferno {
         //    }
         //}
 
-        return hit;
+        return (bool)hit;
     }
 
     // intersects a ray with the level, returning hit information
@@ -1206,7 +1206,7 @@ namespace Inferno {
         }
 
         IntersectLevelMesh(level, obj, pvs, hit, dt);
-        return hit;
+        return (bool)hit;
     }
 
     void BumpObject(Object& obj, Vector3 hitDir, float damage) {

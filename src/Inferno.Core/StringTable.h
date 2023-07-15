@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Types.h"
-
 namespace Inferno {
     // todo: D1 and D2 have different table entries...
     enum class GameString {

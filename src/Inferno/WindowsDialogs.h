@@ -41,7 +41,7 @@ namespace Inferno {
         }
 
         auto operator*() const { return _resource; }
-        operator bool() const { return _resource != nullptr; }
+        explicit operator bool() const { return _resource != nullptr; }
 
         ComMemPtr() = default;
         ComMemPtr(const ComMemPtr&) = delete;

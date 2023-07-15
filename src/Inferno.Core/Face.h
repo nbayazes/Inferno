@@ -1,6 +1,4 @@
 #pragma once
-
-#pragma once
 #include "Utility.h"
 #include "Level.h"
 

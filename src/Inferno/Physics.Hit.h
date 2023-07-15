@@ -10,7 +10,7 @@ namespace Inferno {
         Vector3 Normal; // The normal of the intersection
         int16 Tri = -1; // What triangle was hit (for level walls) (unused?)
         float Speed = 0;
-        operator bool() const { return Distance != FLT_MAX; }
+        explicit operator bool() const { return Distance != FLT_MAX; }
     };
 
     // Returns the nearest intersection point on a face

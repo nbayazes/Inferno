@@ -53,7 +53,7 @@ namespace Inferno {
             Tag = tag;
         }
 
-        operator bool() const { return Distance != FLT_MAX; }
+        explicit operator bool() const { return Distance != FLT_MAX; }
     };
 
     // Explosion that can cause damage or knockback
