@@ -104,7 +104,8 @@ namespace Inferno {
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 
-        UploadBuffer<FrameConstants> FrameConstantsBuffer{ 2 };
+        UploadBuffer<FrameConstants> FrameConstantsBuffer[2] = { { 2 }, { 2 } };
+        UploadBuffer<FrameConstants>& GetFrameConstants() { return FrameConstantsBuffer[GetCurrentFrameIndex()]; }
         PostFx::ScanlineCS Scanline;
 
         // Gets an intermediate buffer with HDR support
@@ -121,7 +122,7 @@ namespace Inferno {
             return Settings::Graphics.MsaaSamples > 1 ? MsaaLinearizedDepthBuffer : LinearizedDepthBuffer;
         }
 
-        static constexpr size_t MAX_BACK_BUFFER_COUNT = 3;
+        static constexpr size_t MAX_BACK_BUFFER_COUNT = 2;
         RenderTarget BackBuffers[MAX_BACK_BUFFER_COUNT];
 
         bool TypedUAVLoadSupport_R11G11B10_FLOAT() const noexcept { return _typedUAVLoadSupport_R11G11B10_FLOAT; }

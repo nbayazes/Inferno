@@ -121,7 +121,7 @@ namespace Inferno::Render {
             switch (cmd.Type) {
                 case RenderCommandType::LevelMesh:
                     ctx.ApplyEffect(Effects->Depth);
-                    ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     cmd.Data.LevelMesh->Draw(cmdList);
                     Stats::DrawCalls++;
                     break;
@@ -135,7 +135,7 @@ namespace Inferno::Render {
 
                     if (object.Render.Model.Outrage) {
                         ctx.ApplyEffect(Effects->DepthObject);
-                        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                         OutrageModelDepthPrepass(ctx, object);
                     }
                     else {
@@ -153,7 +153,7 @@ namespace Inferno::Render {
                         //}
 
                         ctx.ApplyEffect(effect);
-                        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                         ModelDepthPrepass(cmdList, object, model);
                     }
 
@@ -174,7 +174,7 @@ namespace Inferno::Render {
         if (Settings::Editor.RenderMode != RenderMode::Flat) {
             // Level walls (potentially transparent)
             ctx.ApplyEffect(Effects->DepthCutout);
-            ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
 
             for (auto& cmd : _renderQueue.Transparent()) {
                 if (cmd.Type != RenderCommandType::LevelMesh) continue;
@@ -294,7 +294,7 @@ namespace Inferno::Render {
                         ctx.ApplyEffect(Effects->LevelFlat);
                     }
 
-                    ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     cmd.Data.LevelMesh->Draw(ctx.CommandList());
                     Stats::DrawCalls++;
                 }
@@ -312,7 +312,7 @@ namespace Inferno::Render {
                         ctx.ApplyEffect(Effects->Level);
                     }
 
-                    ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     auto cmdList = ctx.CommandList();
                     Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
                     Shaders->Level.SetNormalSampler(cmdList, GetNormalSampler());
@@ -347,11 +347,12 @@ namespace Inferno::Render {
         }
     }
 
-    List<Graphics::LightData> LevelLights;
-    std::array<Graphics::LightData, Graphics::MAX_LIGHTS> LIGHT_BUFFER{};
+    using namespace Graphics;
+    List<LightData> LevelLights;
+    Array<LightData, MAX_LIGHTS> LIGHT_BUFFER[2]{};
 
-    void GatherDecalLight(int& lightIndex, DecalInfo& decal) {
-        if (lightIndex >= LIGHT_BUFFER.size()) return;
+    void GatherDecalLight(Array<LightData, MAX_LIGHTS>& buffer, int& lightIndex, DecalInfo& decal) {
+        if (lightIndex >= buffer.size()) return;
         if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive()) return;
 
         auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed) * 1.5f / decal.FadeTime, 0.0f, 1.0f);
@@ -360,26 +361,26 @@ namespace Inferno::Render {
         auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
         auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
 
-        auto& light = LIGHT_BUFFER[lightIndex++];
+        auto& light = buffer[lightIndex++];
         light.color = color;
         light.radiusSq = radius * radius;
         light.pos = decal.Position + decal.Normal * 2; // shift light out of surface
         light.type = LightType::Point;
     }
 
-    void UpdateDynamicLights(const Level& level) {
+    void UpdateDynamicLights(const Level& level, Array<LightData, MAX_LIGHTS>& buffer) {
         constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
         for (int i = 0; i < LevelLights.size() && i < reserved; i++) {
-            LIGHT_BUFFER[i] = LevelLights[i];
+            buffer[i] = LevelLights[i];
         }
 
         int lightIndex = reserved;
 
         for (auto& obj : level.Objects) {
-            if (lightIndex >= LIGHT_BUFFER.size()) break;
+            if (lightIndex >= buffer.size()) break;
             if (!obj.IsAlive()) continue;
 
-            auto& light = LIGHT_BUFFER[lightIndex++];
+            auto& light = buffer[lightIndex++];
             light.color = obj.LightColor;
             light.radiusSq = obj.LightRadius * obj.LightRadius;
             auto mode = obj.LightMode;
@@ -413,16 +414,16 @@ namespace Inferno::Render {
         }
 
         for (auto& decal : GetAdditiveDecals())
-            GatherDecalLight(lightIndex, decal);
+            GatherDecalLight(buffer, lightIndex, decal);
 
         //for (auto& decal : GetDecals())
         //    GatherDecalLight(lightIndex, decal);
 
         for (auto& room : _renderQueue.GetVisibleSegments()) {
-            if (lightIndex >= LIGHT_BUFFER.size()) break;
+            if (lightIndex >= buffer.size()) break;
 
             for (auto& effect : GetEffectsInSegment(room)) {
-                if (lightIndex >= LIGHT_BUFFER.size()) break;
+                if (lightIndex >= buffer.size()) break;
                 if (effect->LightRadius <= 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive()) continue;
 
                 float t = 0;
@@ -442,7 +443,7 @@ namespace Inferno::Render {
                 auto color = Color::Lerp(Color(0, 0, 0), effect->LightColor, t);
                 auto radius = effect->LightRadius;
 
-                auto& light = LIGHT_BUFFER[lightIndex++];
+                auto& light = buffer[lightIndex++];
                 light.color = color;
                 light.radiusSq = radius * radius;
                 light.pos = effect->Position;
@@ -450,8 +451,8 @@ namespace Inferno::Render {
             }
         }
 
-        for (int i = lightIndex; i < LIGHT_BUFFER.size(); i++) {
-            LIGHT_BUFFER[i].radiusSq = 0; // clear remaining lights
+        for (int i = lightIndex; i < buffer.size(); i++) {
+            buffer[i].radiusSq = 0; // clear remaining lights
         }
     }
 
@@ -471,8 +472,9 @@ namespace Inferno::Render {
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         DepthPrepass(ctx);
 
-        UpdateDynamicLights(level);
-        LightGrid->SetLights(ctx.CommandList(), LIGHT_BUFFER);
+        auto& lightBuffer = LIGHT_BUFFER[Adapter->GetCurrentFrameIndex()];
+        UpdateDynamicLights(level, lightBuffer);
+        LightGrid->SetLights(ctx.CommandList(), lightBuffer);
         LightGrid->Dispatch(ctx.CommandList(), Adapter->LinearizedDepthBuffer);
 
         {
@@ -530,9 +532,11 @@ namespace Inferno::Render {
     }
 
     void ResetLightCache() {
-        for (auto& light : LIGHT_BUFFER) {
+        for (auto& light : LIGHT_BUFFER[0])
             light.radiusSq = 0;
-        }
+
+        for (auto& light : LIGHT_BUFFER[1])
+            light.radiusSq = 0;
     }
 
     int GetTransparentQueueSize() {

@@ -57,8 +57,6 @@ namespace Inferno {
                 _textureBuffers[i].SetDesc(_resolution, _resolution);
                 _textureBuffers[i].CreateOnDefaultHeap(Convert::ToWideString(Info.Name + " Buffer"));
             }
-
-            SPDLOG_INFO("Procedural Base Ctor");
         }
 
         //D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const { return _textures[_copyIndex].GetSRV(); }
@@ -69,10 +67,8 @@ namespace Inferno {
             return _latestTexture->GetSRV();
         }
 
-        bool ShouldUpdate(double elapsedTime) const { return _nextTime <= elapsedTime; }
-
         // Copies from buffer texture to main texture. Must call from main thread. (consumes buffer)
-        bool CopyToTexture(ID3D12GraphicsCommandList* cmdList) {
+        bool CopyToMainThread(ID3D12GraphicsCommandList* cmdList) {
             if (!_readAvailable) return false; // Can't read yet
 
             _readAvailable = false;
@@ -86,17 +82,17 @@ namespace Inferno {
         }
 
         // Updates and uploads data to buffer texture (produce buffer)
-        void Update(ID3D12GraphicsCommandList* cmdList, double elapsedTime) {
-            if (!ShouldUpdate(elapsedTime)) return;
+        bool Update(ID3D12GraphicsCommandList* cmdList, double currentTime) {
+            if (_nextTime > currentTime) return false;
 
             OnUpdate();
             _frameCount++;
-            _nextTime = elapsedTime + Info.Procedural.EvalTime;
-            //NextTime = Render::ElapsedTime + 1 / 30.0f;
+            _nextTime = currentTime + Info.Procedural.EvalTime;
             _index = 1 - _index; // swap buffers
 
             _writeBuffer->CopyFrom(cmdList, _pixels.data());
             _shouldSwapBuffers = true;
+            return true;
         }
 
         void WriteComplete() {
@@ -131,7 +127,7 @@ namespace Inferno {
 
     ProceduralTextureBase* GetProcedural(TexID id);
     void AddProcedural(Outrage::TextureInfo& info, TexID dest);
-    void CopyProceduralsToMaterial();
+    void CopyProceduralsToMainThread();
     void StartProceduralWorker();
     void StopProceduralWorker();
     void FreeProceduralTextures();

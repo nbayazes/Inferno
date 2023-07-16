@@ -84,6 +84,7 @@ namespace Inferno::Render {
     //void SetCamera(Inferno::Camera&);
 
     inline Inferno::Camera Camera;
+
     inline Matrix ViewProjection;
 
     inline float FrameTime = 0;     // Time of this frame in seconds

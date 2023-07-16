@@ -145,7 +145,7 @@ namespace Inferno::Render {
 
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
         effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
@@ -191,7 +191,7 @@ namespace Inferno::Render {
         auto& meshHandle = GetMeshHandle(Model);
         auto& effect = Effects->DepthObject;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
 
         Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
@@ -441,7 +441,7 @@ namespace Inferno::Render {
     void DrawBeams(Graphics::GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
@@ -668,7 +668,7 @@ namespace Inferno::Render {
     void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
@@ -805,7 +805,7 @@ namespace Inferno::Render {
         {
             auto& effect = Effects->SpriteMultiply;
             ctx.ApplyEffect(effect);
-            ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
             effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
             effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
@@ -825,7 +825,7 @@ namespace Inferno::Render {
         {
             auto& effect = Effects->SpriteAdditiveBiased;
             ctx.ApplyEffect(effect);
-            ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
             effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
             effect.Shader->SetSampler(ctx.CommandList(), Render::GetWrappedTextureSampler());
 
@@ -936,7 +936,7 @@ namespace Inferno::Render {
     void SparkEmitter::Draw(Graphics::GraphicsContext& ctx) {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
 
         effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());

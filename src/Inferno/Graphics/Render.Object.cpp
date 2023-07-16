@@ -278,7 +278,7 @@ namespace Inferno::Render {
                    RenderPass pass) {
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.CommandList();
 
         auto& model = Resources::GetModel(modelId);

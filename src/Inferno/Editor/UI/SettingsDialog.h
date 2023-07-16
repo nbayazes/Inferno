@@ -210,11 +210,11 @@ namespace Inferno::Editor {
                 ImGui::SetNextItemWidth(-40);
                 {
                     DisableControls disable(!_enableForegroundFpsLimit);
-                    ImGui::SliderInt("##Foreground", &_graphics.ForegroundFpsLimit, 30, 120);
+                    ImGui::SliderInt("##Foreground", &_graphics.ForegroundFpsLimit, 30, 150);
                 }
                 ImGui::SameLine();
                 if (ImGui::Checkbox("##enablelimit", &_enableForegroundFpsLimit)) {
-                    if (!_enableForegroundFpsLimit) _graphics.ForegroundFpsLimit = -1;
+                    _graphics.ForegroundFpsLimit = _enableForegroundFpsLimit ? 60 : -1;
                 }
 
                 ImGui::NextColumn();

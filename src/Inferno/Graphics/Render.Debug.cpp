@@ -236,6 +236,7 @@ namespace Inferno::Render::Debug {
         auto center = Render::Camera.Position + Render::Camera.GetForward() * 10;
         auto right = Render::Camera.GetRight();
         auto up = Render::Camera.Up;
+
         Color color(0, 1, 0);
         DrawLine(center - right * size, center - right * (size / 2), color);
         DrawLine(center + right * size, center + right * (size / 2), color);

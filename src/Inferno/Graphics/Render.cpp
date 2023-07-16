@@ -62,7 +62,7 @@ namespace Inferno::Render {
     template <class T>
     void ApplyEffect(GraphicsContext& ctx, const Effect<T>& effect) {
         ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->FrameConstantsBuffer.GetGPUVirtualAddress());
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
     }
 
     void DrawBillboard(GraphicsContext& ctx,
@@ -502,9 +502,10 @@ namespace Inferno::Render {
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;
 
-        Adapter->FrameConstantsBuffer.Begin();
-        Adapter->FrameConstantsBuffer.Copy({ &frameConstants, 1 });
-        Adapter->FrameConstantsBuffer.End();
+        auto& frameConstantsBuffer = Adapter->GetFrameConstants();
+        frameConstantsBuffer.Begin();
+        frameConstantsBuffer.Copy({ &frameConstants, 1 });
+        frameConstantsBuffer.End();
 
         DrawLevel(ctx, Game::Level);
         if (Game::GetState() == GameState::Game) {
@@ -545,10 +546,10 @@ namespace Inferno::Render {
             //PIXEndEvent(commandQueue);
         }
 
-        //Adapter->WaitForGpu();
+        Adapter->WaitForGpu();
         Materials->Dispatch();
 
-        CopyProceduralsToMaterial(); // Update procedurals while index still points at this frame
+        CopyProceduralsToMainThread(); // Update procedurals while index still points at this frame
         _graphicsMemory->Commit(commandQueue);
     }
 
