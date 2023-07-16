@@ -1,12 +1,38 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "inferno",
+  "version": "1.0.14",
+  "description": "Inferno Engine",
+  "vcpkg-configuration": {
+    "default-registry": {
+      "kind": "builtin",
+      "baseline": "f6a5d4e8eb7476b8d7fc12a56dff300c1c986131"
+    }
+  },
   "dependencies": [
-    "directxtk12",
-    "ryml",
-    "fmt",
-    "spdlog",
-    "lodepng",
-    "magic-enum"
+    {
+      "name": "fmt",
+      "version>=": "8.1.1#1"
+    },
+    {
+      "name": "spdlog",
+      "version>=": "1.9.2"
+    },
+    {
+      "name": "ryml",
+      "version>=": "0.5.0"
+    },
+    {
+      "name": "lodepng",
+      "version>=": "2021-12-04#1"
+    },
+    {
+      "name": "magic-enum",
+      "version>=": "0.9.2"
+    },
+    {
+      "name": "directxtk12",
+      "version>=": "2023-06-13"
+    }
   ]
 }
