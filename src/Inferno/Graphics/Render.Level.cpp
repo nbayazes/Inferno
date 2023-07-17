@@ -107,14 +107,14 @@ namespace Inferno::Render {
         ctx.ClearDepth(depthBuffer);
         ctx.ClearColor(linearDepthBuffer);
         ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
-        linearDepthBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
 
     void DepthPrepass(GraphicsContext& ctx) {
         ctx.BeginEvent(L"Depth prepass");
         // Depth prepass
         ClearDepthPrepass(ctx);
-        auto cmdList = ctx.CommandList();
+        auto cmdList = ctx.GetCommandList();
 
         // Opaque geometry prepass
         for (auto& cmd : _renderQueue.Opaque()) {
@@ -200,7 +200,7 @@ namespace Inferno::Render {
         LevelShader::InstanceConstants constants{};
         constants.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
-        auto cmdList = ctx.CommandList();
+        auto cmdList = ctx.GetCommandList();
         Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
         Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
@@ -295,7 +295,7 @@ namespace Inferno::Render {
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    cmd.Data.LevelMesh->Draw(ctx.CommandList());
+                    cmd.Data.LevelMesh->Draw(ctx.GetCommandList());
                     Stats::DrawCalls++;
                 }
                 else {
@@ -313,7 +313,7 @@ namespace Inferno::Render {
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                    auto cmdList = ctx.CommandList();
+                    auto cmdList = ctx.GetCommandList();
                     Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
                     Shaders->Level.SetNormalSampler(cmdList, GetNormalSampler());
 
@@ -474,8 +474,8 @@ namespace Inferno::Render {
 
         auto& lightBuffer = LIGHT_BUFFER[Adapter->GetCurrentFrameIndex()];
         UpdateDynamicLights(level, lightBuffer);
-        LightGrid->SetLights(ctx.CommandList(), lightBuffer);
-        LightGrid->Dispatch(ctx.CommandList(), Adapter->LinearizedDepthBuffer);
+        LightGrid->SetLights(ctx.GetCommandList(), lightBuffer);
+        LightGrid->Dispatch(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer);
 
         {
             ctx.BeginEvent(L"Level");
@@ -519,7 +519,7 @@ namespace Inferno::Render {
 
             if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
                 ctx.BeginEvent(L"Editor");
-                DrawEditor(ctx.CommandList(), level);
+                DrawEditor(ctx.GetCommandList(), level);
                 DrawDebug(level);
                 ctx.EndEvent();
             }
@@ -527,7 +527,7 @@ namespace Inferno::Render {
                 //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
                 Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
-            Debug::EndFrame(ctx.CommandList());
+            Debug::EndFrame(ctx.GetCommandList());
         }
     }
 

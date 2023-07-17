@@ -6,8 +6,10 @@
 #include "Graphics/GpuResources.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
+#include "Graphics/CommandContext.h"
 
 using namespace std::chrono;
+using Inferno::Graphics::CommandContext;
 
 namespace Inferno {
     template <uint TCapacity>
@@ -32,66 +34,6 @@ namespace Inferno {
         }
     };
 
-    // Combined command list / allocator / queue for executing commands
-    class CommandContext {
-        ComPtr<ID3D12GraphicsCommandList> _cmdList;
-        ComPtr<ID3D12CommandAllocator> _allocator;
-        ComPtr<ID3D12CommandQueue> _queue;
-        ComPtr<ID3D12Fence> _fence;
-        Microsoft::WRL::Wrappers::Event _fenceEvent;
-
-        uint64 _fenceValue = 1;
-        wstring _name;
-    public:
-        CommandContext(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, wstring name) : _name(std::move(name)) {
-            D3D12_COMMAND_QUEUE_DESC desc = {};
-            desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-            desc.Type = type;
-            ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&_queue)));
-            ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence)));
-            ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_allocator)));
-            ThrowIfFailed(device->CreateCommandList(1, type, _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
-            ThrowIfFailed(_cmdList->Close());
-
-            ThrowIfFailed(_queue->SetName(_name.c_str()));
-            ThrowIfFailed(_allocator->SetName(_name.c_str()));
-            ThrowIfFailed(_cmdList->SetName(_name.c_str()));
-            ThrowIfFailed(_fence->SetName(_name.c_str()));
-
-            //_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-
-            _fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-            if (!_fenceEvent.IsValid())
-                throw std::exception("CreateEvent");
-        }
-
-        void Reset() const {
-            ThrowIfFailed(_allocator->Reset());
-            ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));
-            PIXBeginEvent(_cmdList.Get(), PIX_COLOR_DEFAULT, _name.data());
-        }
-
-        ID3D12GraphicsCommandList* Get() const { return _cmdList.Get(); }
-
-        void Execute() const {
-            PIXEndEvent(_cmdList.Get());
-            ThrowIfFailed(_cmdList->Close());
-            ID3D12CommandList* ppCommandLists[] = { _cmdList.Get() };
-            _queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-        }
-
-        void Wait() {
-            const auto fence = _fenceValue;
-            ThrowIfFailed(_queue->Signal(_fence.Get(), fence));
-            _fenceValue++;
-
-            // Wait until the command list is finished executing
-            if (_fence->GetCompletedValue() < fence) {
-                ThrowIfFailed(_fence->SetEventOnCompletion(fence, _fenceEvent.Get()));
-                WaitForSingleObjectEx(_fenceEvent.Get(), INFINITE, FALSE);
-            }
-        }
-    };
 
     // Long running worker that executes a task at a given poll rate
     class Worker {
@@ -174,8 +116,8 @@ namespace Inferno {
         List<Ptr<ProceduralTextureBase>> Procedurals;
 
         ProceduralWorker() {
-            _uploadQueue = MakePtr<CommandContext>(Render::Device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural upload queue");
-            _copyQueue = MakePtr<CommandContext>(Render::Device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural copy queue");
+            _uploadQueue = MakePtr<CommandContext>(Render::Device, L"Procedural upload queue", D3D12_COMMAND_LIST_TYPE_COPY);
+            _copyQueue = MakePtr<CommandContext>(Render::Device, L"Procedural copy queue", D3D12_COMMAND_LIST_TYPE_DIRECT);
             Pause(false); // Start the worker after creating queues
             Procedurals.reserve(MAX_PROCEDURALS);
         }
@@ -214,11 +156,12 @@ namespace Inferno {
         void CopyProceduralsToMainThread() const {
             if (!IsEnabled()) return;
             _copyQueue->Reset();
-
+            _copyQueue->BeginEvent(L"Copy procedurals");
             for (auto& proc : Procedurals) {
-                proc->CopyToMainThread(_copyQueue->Get());
+                proc->CopyToMainThread(_copyQueue->GetCommandList());
             }
 
+            _copyQueue->EndEvent();
             _copyQueue->Execute();
             _copyQueue->Wait();
         }
@@ -226,17 +169,18 @@ namespace Inferno {
     protected:
         void Task() {
             _uploadQueue->Reset();
+            _uploadQueue->BeginEvent(L"Update procedurals");
 
             bool didWork = false;
             auto currentTime = Clock.GetTotalTimeSeconds();
 
             for (auto& proc : Procedurals) {
-                if (proc->Update(_uploadQueue->Get(), currentTime)) {
+                if (proc->Update(_uploadQueue->GetCommandList(), currentTime)) {
                     didWork = true;
                 }
             }
 
-            // Wait for queue to finish uploading
+            _uploadQueue->EndEvent();
             _uploadQueue->Execute();
             _uploadQueue->Wait();
 

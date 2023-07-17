@@ -158,7 +158,7 @@ namespace Inferno::Render {
             // draw batched text
             auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
-            auto cmdList = ctx.CommandList();
+            auto cmdList = ctx.GetCommandList();
             ctx.ApplyEffect(_effect);
             _effect.Shader->SetWorldViewProjection(cmdList, orthoProj);
 
@@ -305,7 +305,7 @@ namespace Inferno::Render {
             // draw batched text
             //auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
-            auto cmdList = ctx.CommandList();
+            auto cmdList = ctx.GetCommandList();
             ctx.ApplyEffect(_effect);
 
             HudShader::Constants constants;
@@ -316,7 +316,7 @@ namespace Inferno::Render {
                 _batch.Begin(cmdList);
                 for (auto& g : group) {
                     constants.ScanlinePitch = g.Scanline;
-                    _effect.Shader->SetConstants(ctx.CommandList(), constants);
+                    _effect.Shader->SetConstants(ctx.GetCommandList(), constants);
                     _batch.DrawQuad(g.V0, g.V1, g.V2, g.V3);
                 }
 

@@ -5,35 +5,104 @@
 #include "ShaderLibrary.h"
 
 namespace Inferno::Graphics {
+    // Combined command list / allocator / queue for executing commands
+    class CommandContext {
+        ComPtr<ID3D12Fence> _fence;
+        Microsoft::WRL::Wrappers::Event _fenceEvent;
+        uint64 _fenceValue = 1;
+        wstring _name;
 
-    class GraphicsContext {
+    protected:
         ComPtr<ID3D12GraphicsCommandList> _cmdList;
         ComPtr<ID3D12CommandAllocator> _allocator;
+        ComPtr<ID3D12CommandQueue> _localQueue;
+        ID3D12CommandQueue* _queue = nullptr;
+        std::mutex _eventMutex;
 
     public:
-        GraphicsContext(ID3D12Device* device, wstring_view name) {
-            auto type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-            ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_allocator)));
-            _allocator->SetName(name.data());
+        CommandContext(ID3D12Device* device, wstring_view name, D3D12_COMMAND_LIST_TYPE type) : _name(name) {
+            D3D12_COMMAND_QUEUE_DESC desc = {};
+            desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+            desc.Type = type;
 
-            ThrowIfFailed(device->CreateCommandList(0, type, _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
-            ThrowIfFailed(_cmdList->Close());
+            ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&_localQueue)));
+            ThrowIfFailed(_localQueue->SetName(_name.c_str()));
+            _queue = _localQueue.Get();
 
-            _cmdList->SetName(name.data());
+            Initialize(device, type);
         }
 
-        ~GraphicsContext() = default;
-        GraphicsContext(const GraphicsContext&) = delete;
-        GraphicsContext(GraphicsContext&&) = default;
-        GraphicsContext& operator=(const GraphicsContext&) = delete;
-        GraphicsContext& operator=(GraphicsContext&&) = default;
+        CommandContext(ID3D12Device* device, ID3D12CommandQueue* queue, wstring_view name, D3D12_COMMAND_LIST_TYPE type) : _name(name) {
+            _queue = queue;
+            Initialize(device, type);
+        }
+
+        void Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type) {
+            ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_allocator)));
+            ThrowIfFailed(_allocator->SetName(_name.c_str()));
+
+            ThrowIfFailed(device->CreateCommandList(1, type, _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
+            ThrowIfFailed(_cmdList->SetName(_name.c_str()));
+            ThrowIfFailed(_cmdList->Close()); // Command lists start open
+
+            ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence)));
+            ThrowIfFailed(_fence->SetName(_name.c_str()));
+
+            _fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+            if (!_fenceEvent.IsValid())
+                throw std::exception("CreateEvent");
+        }
+
+        virtual ~CommandContext() = default;
+        CommandContext(const CommandContext&) = delete;
+        CommandContext(CommandContext&&) = delete;
+        CommandContext& operator=(const CommandContext&) = delete;
+        CommandContext& operator=(CommandContext&&) = delete;
+
+        ID3D12GraphicsCommandList* GetCommandList() const { return _cmdList.Get(); }
+        ID3D12CommandQueue* GetCommandQueue() const { return _queue; }
+
+        void BeginEvent(wstring_view name) const {
+            PIXBeginEvent(_cmdList.Get(), PIX_COLOR_DEFAULT, name.data());
+        }
+
+        void EndEvent() const {
+            PIXEndEvent(_cmdList.Get());
+        }
 
         void Reset() const {
             ThrowIfFailed(_allocator->Reset());
             ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));
         }
 
-        ID3D12GraphicsCommandList* CommandList() const { return _cmdList.Get(); }
+        void Execute() {
+            ThrowIfFailed(_cmdList->Close());
+            ID3D12CommandList* ppCommandLists[] = { _cmdList.Get() };
+            _queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+            ThrowIfFailed(_queue->Signal(_fence.Get(), _fenceValue));
+            _fenceValue++;
+        }
+
+        // Blocks until command queue finishes execution
+        void Wait() {
+            if (_fence->GetCompletedValue() < _fenceValue - 1) {
+                std::lock_guard lock(_eventMutex); // prevent multiple uses of fence event
+                ThrowIfFailed(_fence->SetEventOnCompletion(_fenceValue - 1, _fenceEvent.Get()));
+                WaitForSingleObjectEx(_fenceEvent.Get(), INFINITE, FALSE);
+            }
+        }
+
+        // Waits on another queue
+        void InsertWaitForQueue(const CommandContext& other) const {
+            ThrowIfFailed(_queue->Wait(other._fence.Get(), other._fenceValue - 1));
+        }
+    };
+
+    class GraphicsContext : public CommandContext {
+    public:
+        GraphicsContext(ID3D12Device* device, wstring_view name) : CommandContext(device, name, D3D12_COMMAND_LIST_TYPE_DIRECT) { }
+        GraphicsContext(ID3D12Device* device, ID3D12CommandQueue* queue, wstring_view name) : CommandContext(device, queue, name, D3D12_COMMAND_LIST_TYPE_DIRECT) {}
 
         // Sets multiple render targets with a depth buffer. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs, D3D12_CPU_DESCRIPTOR_HANDLE dsv) const {
@@ -85,15 +154,7 @@ namespace Inferno::Graphics {
             _cmdList->RSSetScissorRects(1, &scissor);
         }
 
-        void BeginEvent(wstring_view name) const {
-            PIXBeginEvent(_cmdList.Get(), PIX_COLOR_DEFAULT, name.data());
-        }
-
-        void EndEvent() const {
-            PIXEndEvent(_cmdList.Get());
-        }
-
-        template<class T>
+        template <class T>
         void ApplyEffect(const Effect<T>& effect) {
             //if (ActiveEffect == &effect) return;
             //ActiveEffect = (void*)&effect;
@@ -133,5 +194,4 @@ namespace Inferno::Graphics {
             return 0 == ((size_t)value & (alignment - 1));
         }
     };
-
 }

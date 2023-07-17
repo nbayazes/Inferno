@@ -120,7 +120,7 @@ namespace Inferno::Render {
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        auto cmd = ctx.CommandList();
+        auto cmd = ctx.GetCommandList();
         auto& shader = Shaders->DepthObject;
 
         for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
@@ -190,7 +190,7 @@ namespace Inferno::Render {
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
         transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
-        auto cmdList = ctx.CommandList();
+        auto cmdList = ctx.GetCommandList();
 
         for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
             auto& submodel = model->Submodels[submodelIndex];
@@ -279,7 +279,7 @@ namespace Inferno::Render {
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        auto cmdList = ctx.CommandList();
+        auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {

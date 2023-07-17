@@ -37,7 +37,6 @@ namespace Inferno {
         D3D_FEATURE_LEVEL minFeatureLevel,
         unsigned int flags) noexcept(false) :
         m_backBufferIndex(0),
-        m_fenceValues{},
         m_screenViewport{},
         m_scissorRect{},
         m_backBufferFormat(backBufferFormat),
@@ -189,12 +188,11 @@ namespace Inferno {
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
         ThrowIfFailed(m_d3dDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.ReleaseAndGetAddressOf())));
-
-        m_commandQueue->SetName(L"DeviceResources CQ");
+        ThrowIfFailed(m_commandQueue->SetName(L"DeviceResources CQ"));
 
         // Create a command allocator for each back buffer that will be rendered to.
         for (UINT n = 0; n < m_backBufferCount; n++) {
-            _graphicsContext[n] = MakePtr<Graphics::GraphicsContext>(m_d3dDevice.Get(), fmt::format(L"Render target {}", n).c_str());
+            _graphicsContext[n] = MakePtr<Graphics::GraphicsContext>(m_d3dDevice.Get(), m_commandQueue.Get(), fmt::format(L"Render target {}", n).c_str());
             //ThrowIfFailed(m_d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_commandAllocators[n].ReleaseAndGetAddressOf())));
             //m_commandAllocators[n]->SetName();
         }
@@ -206,14 +204,14 @@ namespace Inferno {
         //m_commandList->SetName(L"DeviceResources");
 
         // Create a fence for tracking GPU execution progress.
-        ThrowIfFailed(m_d3dDevice->CreateFence(m_fenceValues[m_backBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.ReleaseAndGetAddressOf())));
-        m_fenceValues[m_backBufferIndex]++;
+        //ThrowIfFailed(m_d3dDevice->CreateFence(m_fenceValues[m_backBufferIndex], D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.ReleaseAndGetAddressOf())));
+        //m_fenceValues[m_backBufferIndex]++;
 
-        m_fence->SetName(L"Fence");
+        //ThrowIfFailed(m_fence->SetName(L"Fence"));
 
-        m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
-        if (!m_fenceEvent.IsValid())
-            throw std::exception("CreateEvent");
+        //m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+        //if (!m_fenceEvent.IsValid())
+        //    throw std::exception("CreateEvent");
 
         //CheckMsaaSupport(2, IntermediateFormat);
         //CheckMsaaSupport(4, IntermediateFormat);
@@ -230,7 +228,7 @@ namespace Inferno {
         // Release resources that are tied to the swap chain and update fence values.
         for (UINT n = 0; n < m_backBufferCount; n++) {
             BackBuffers[n].Release();
-            m_fenceValues[n] = m_fenceValues[m_backBufferIndex];
+            //m_fenceValues[n] = m_fenceValues[m_backBufferIndex];
         }
 
         // Determine the render target size in pixels.
@@ -371,13 +369,10 @@ namespace Inferno {
 
         for (UINT n = 0; n < m_backBufferCount; n++) {
             _graphicsContext[n].release();
-            //m_commandAllocators[n].Reset();
             BackBuffers[n].Release();
         }
 
         m_commandQueue.Reset();
-        //m_commandList.Reset();
-        m_fence.Reset();
         m_swapChain.Reset();
         m_d3dDevice.Reset();
         m_dxgiFactory.Reset();
@@ -391,25 +386,12 @@ namespace Inferno {
         }
     }
 
-    // Prepare the command list and render target for rendering.
-    //void DeviceResources::Prepare() {
-    //    // Reset command list and allocator.
-    //    auto& allocators = m_commandAllocators[m_backBufferIndex];
-    //    ThrowIfFailed(allocators->Reset());
-    //    ThrowIfFailed(m_commandList->Reset(allocators.Get(), nullptr));
-    //}
-
     // Present the contents of the swap chain to the screen.
     void DeviceResources::Present() {
-        auto cmdList = _graphicsContext[m_backBufferIndex]->CommandList();
+        auto& context = _graphicsContext[m_backBufferIndex];
+        auto cmdList = context->GetCommandList();
         BackBuffers[m_backBufferIndex].Transition(cmdList, D3D12_RESOURCE_STATE_PRESENT);
-
-        // Send the command list off to the GPU for processing.
-        ThrowIfFailed(cmdList->Close());
-
-        ID3D12CommandList* ppCommandLists[] = { cmdList };
-        m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-        //m_commandQueue->ExecuteCommandLists(1, CommandListCast(cmdList));
+        context->Execute();
 
         HRESULT hr{};
         if (m_options & c_AllowTearing) {
@@ -447,20 +429,8 @@ namespace Inferno {
     }
 
     // Wait for pending GPU work to complete.
-    void DeviceResources::WaitForGpu() noexcept {
-        if (!m_commandQueue || !m_fence || !m_fenceEvent.IsValid()) return;
-
-        // Schedule a Signal command in the GPU queue.
-        UINT64 fenceValue = m_fenceValues[m_backBufferIndex];
-        if (SUCCEEDED(m_commandQueue->Signal(m_fence.Get(), fenceValue))) {
-            // Wait until the Signal has been processed.
-            if (SUCCEEDED(m_fence->SetEventOnCompletion(fenceValue, m_fenceEvent.Get()))) {
-                WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
-
-                // Increment the fence value for the current frame.
-                m_fenceValues[m_backBufferIndex]++;
-            }
-        }
+    void DeviceResources::WaitForGpu() const {
+        _graphicsContext[m_backBufferIndex]->Wait();
     }
 
     void DeviceResources::ReloadResources() {
@@ -486,26 +456,14 @@ namespace Inferno {
 
     // Prepare to render the next frame.
     void DeviceResources::MoveToNextFrame() {
-        // Schedule a Signal command in the queue.
-        const UINT64 currentFenceValue = m_fenceValues[m_backBufferIndex];
-        ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), currentFenceValue));
-
-        // Update the back buffer index.
         m_backBufferIndex = m_swapChain->GetCurrentBackBufferIndex();
-
-        // If the next frame is not ready to be rendered yet, wait until it is ready.
-        if (m_fence->GetCompletedValue() < m_fenceValues[m_backBufferIndex]) {
-            ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_backBufferIndex], m_fenceEvent.Get()));
-            WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
-        }
-
-        // Set the fence value for the next frame.
-        m_fenceValues[m_backBufferIndex] = currentFenceValue + 1;
+        auto& nextFrame = GetGraphicsContext();
+        nextFrame.Wait();// wait on the next (previous) frame to finish rendering before recording new commands
     }
 
     // This method acquires the first available hardware adapter that supports Direct3D 12.
     // If no such adapter can be found, try WARP. Otherwise throw an exception.
-    void DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter) {
+    void DeviceResources::GetAdapter(IDXGIAdapter1** ppAdapter) const {
         *ppAdapter = nullptr;
 
         ComPtr<IDXGIAdapter1> adapter;
@@ -707,7 +665,6 @@ namespace Inferno {
             if (sampleCount == 1) {
                 SPDLOG_INFO("MSAA Is not supported");
                 return false;
-                //throw std::exception("MSAA not supported");
             }
 
             D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS levels = { backBufferFormat, sampleCount };

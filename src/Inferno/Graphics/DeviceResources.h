@@ -35,8 +35,8 @@ namespace Inferno {
     class DeviceResources {
         bool _typedUAVLoadSupport_R11G11B10_FLOAT = false;
     public:
-        static const unsigned int c_AllowTearing = 0x1;
-        static const unsigned int c_EnableHDR = 0x2;
+        static constexpr unsigned int c_AllowTearing = 0x1;
+        static constexpr unsigned int c_EnableHDR = 0x2;
 
         DeviceResources(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
                         DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT,
@@ -46,7 +46,7 @@ namespace Inferno {
         ~DeviceResources();
 
         DeviceResources(DeviceResources&&) = default;
-        DeviceResources& operator= (DeviceResources&&) = default;
+        DeviceResources& operator= (DeviceResources&&) = delete;
 
         DeviceResources(DeviceResources const&) = delete;
         DeviceResources& operator= (DeviceResources const&) = delete;
@@ -61,7 +61,7 @@ namespace Inferno {
         void RegisterDeviceNotify(IDeviceNotify* deviceNotify) noexcept { m_deviceNotify = deviceNotify; }
         //void Prepare();
         void Present();
-        void WaitForGpu() noexcept;
+        void WaitForGpu() const;
         void ReloadResources();
 
         Vector2 GetOutputSize() const noexcept { return { (float)m_outputSize.right, (float)m_outputSize.bottom }; }
@@ -79,7 +79,7 @@ namespace Inferno {
         auto GetBackBuffer() noexcept { return &BackBuffers[m_backBufferIndex]; }
         ID3D12CommandQueue* GetCommandQueue() const noexcept { return m_commandQueue.Get(); }
 
-        Graphics::GraphicsContext& GetGraphicsContext() { return *_graphicsContext[m_backBufferIndex].get(); }
+        Graphics::GraphicsContext& GetGraphicsContext() const { return *_graphicsContext[m_backBufferIndex].get(); }
 
         //ID3D12CommandAllocator* GetCommandAllocator() const noexcept { return m_commandAllocators[m_backBufferIndex].Get(); }
         //auto                        GetCommandList() const noexcept { return m_commandList.Get(); }
@@ -143,7 +143,7 @@ namespace Inferno {
 
     private:
         void MoveToNextFrame();
-        void GetAdapter(IDXGIAdapter1** ppAdapter);
+        void GetAdapter(IDXGIAdapter1** ppAdapter) const;
         void UpdateColorSpace();
         void CreateBuffers(UINT width, UINT height);
 
@@ -153,6 +153,8 @@ namespace Inferno {
         // Direct3D objects.
         Microsoft::WRL::ComPtr<ID3D12Device>                m_d3dDevice;
         //Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
+
+        // Command queue must be shared between all command lists that write to the swap chain
         Microsoft::WRL::ComPtr<ID3D12CommandQueue>          m_commandQueue;
         //Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
 
@@ -161,11 +163,6 @@ namespace Inferno {
         Microsoft::WRL::ComPtr<IDXGISwapChain3>             m_swapChain;
         //Microsoft::WRL::ComPtr<ID3D12Resource>              m_renderTargets[MAX_BACK_BUFFER_COUNT];
         //Microsoft::WRL::ComPtr<ID3D12Resource>              m_depthStencil;
-
-        // Presentation fence objects.
-        Microsoft::WRL::ComPtr<ID3D12Fence>                 m_fence;
-        UINT64                                              m_fenceValues[MAX_BACK_BUFFER_COUNT];
-        Microsoft::WRL::Wrappers::Event                     m_fenceEvent;
 
         // Direct3D rendering objects.
         D3D12_VIEWPORT                                      m_screenViewport;

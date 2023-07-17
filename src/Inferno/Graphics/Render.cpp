@@ -96,13 +96,13 @@ namespace Inferno::Render {
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
         ApplyEffect(ctx, effect);
         auto& material = Materials->Get(tid);
-        effect.Shader->SetDiffuse(ctx.CommandList(), material.Handle());
-        effect.Shader->SetDepthTexture(ctx.CommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
+        effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         auto sampler = Render::GetClampedTextureSampler();
-        effect.Shader->SetSampler(ctx.CommandList(), sampler);
+        effect.Shader->SetSampler(ctx.GetCommandList(), sampler);
 
         Stats::DrawCalls++;
-        g_SpriteBatch->Begin(ctx.CommandList());
+        g_SpriteBatch->Begin(ctx.GetCommandList());
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
     }
@@ -405,14 +405,14 @@ namespace Inferno::Render {
         ctx.ClearColor(*backBuffer);
         ctx.SetRenderTarget(backBuffer->GetRTV());
 
-        Adapter->SceneColorBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Adapter->SceneColorBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            Bloom->Apply(ctx.CommandList(), Adapter->SceneColorBuffer);
+            Bloom->Apply(ctx.GetCommandList(), Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
         _postBatch->SetViewport(Adapter->GetScreenViewport());
-        _postBatch->Begin(ctx.CommandList());
+        _postBatch->Begin(ctx.GetCommandList());
         auto size = Adapter->GetOutputSize();
         _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
 
@@ -427,7 +427,7 @@ namespace Inferno::Render {
         ScopedTimer imguiTimer(&Metrics::ImGui);
         Canvas->Render(ctx);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
-        g_ImGuiBatch->Render(ctx.CommandList());
+        g_ImGuiBatch->Render(ctx.GetCommandList());
         ctx.EndEvent();
     }
 
@@ -445,9 +445,9 @@ namespace Inferno::Render {
         }
         BriefingCanvas->Render(ctx);
 
-        Adapter->Scanline.Execute(ctx.CommandList(), target, Adapter->BriefingScanlineBuffer);
-        Adapter->BriefingScanlineBuffer.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        target.Transition(ctx.CommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
+        Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         ctx.EndEvent();
     }
@@ -477,11 +477,11 @@ namespace Inferno::Render {
             if (Game::GetState() == GameState::Editor)
                 InitEffects(Game::Level); // this was added to prevent a crash during level editing
 
-            CopyMaterialData(ctx.CommandList());
-            LoadVClips(ctx.CommandList()); // todo: only load on initial level load
+            CopyMaterialData(ctx.GetCommandList());
+            LoadVClips(ctx.GetCommandList()); // todo: only load on initial level load
         }
 
-        Heaps->SetDescriptorHeaps(ctx.CommandList());
+        Heaps->SetDescriptorHeaps(ctx.GetCommandList());
         DrawBriefing(ctx, Adapter->BriefingColorBuffer);
 
         auto output = Adapter->GetOutputSize();
@@ -531,14 +531,13 @@ namespace Inferno::Render {
         }
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.CommandList(), Adapter->MsaaColorBuffer);
+            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.GetCommandList(), Adapter->MsaaColorBuffer);
         }
 
         PostProcess(ctx);
         DrawUI(ctx);
 
 
-        auto commandQueue = Adapter->GetCommandQueue();
         {
             ScopedTimer presentCallTimer(&Metrics::PresentCall);
             //PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
@@ -546,11 +545,11 @@ namespace Inferno::Render {
             //PIXEndEvent(commandQueue);
         }
 
-        Adapter->WaitForGpu();
+        //Adapter->WaitForGpu();
         Materials->Dispatch();
 
         CopyProceduralsToMainThread(); // Update procedurals while index still points at this frame
-        _graphicsMemory->Commit(commandQueue);
+        _graphicsMemory->Commit(Adapter->GetCommandQueue());
     }
 
     void ReloadTextures() {
