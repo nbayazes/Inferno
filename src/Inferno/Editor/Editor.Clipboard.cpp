@@ -42,7 +42,7 @@ namespace Inferno::Editor {
 
         for (auto& id : segments) {
             if (auto seg = level.TryGetSegment(id)) {
-                auto segCopy = *seg;
+                auto& segCopy = *seg;
                 insertVertices(segCopy);
                 segIdMapping[id] = (SegID)copy.Segments.size();
 

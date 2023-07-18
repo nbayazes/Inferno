@@ -25,7 +25,7 @@ namespace Inferno::Game {
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
 
-    constexpr int DEFAULT_GRAVITY = 60;
+    constexpr int DEFAULT_GRAVITY = 30;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration
 
     // The loaded level. Only one level can be active at a time.
