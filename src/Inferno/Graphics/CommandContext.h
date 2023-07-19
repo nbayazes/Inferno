@@ -5,52 +5,98 @@
 #include "ShaderLibrary.h"
 
 namespace Inferno::Graphics {
-    // Combined command list / allocator / queue for executing commands
-    class CommandContext {
+    class CommandQueue {
         ComPtr<ID3D12Fence> _fence;
         Microsoft::WRL::Wrappers::Event _fenceEvent;
-        uint64 _fenceValue = 1;
-        wstring _name;
-
-    protected:
-        ComPtr<ID3D12GraphicsCommandList> _cmdList;
-        ComPtr<ID3D12CommandAllocator> _allocator;
-        ComPtr<ID3D12CommandQueue> _localQueue;
-        ID3D12CommandQueue* _queue = nullptr;
+        uint64 _nextFenceValue = 1, _lastCompletedValue = 0;
+        ComPtr<ID3D12CommandQueue> _queue;
+        D3D12_COMMAND_LIST_TYPE _type;
         std::mutex _eventMutex;
 
     public:
-        CommandContext(ID3D12Device* device, wstring_view name, D3D12_COMMAND_LIST_TYPE type) : _name(name) {
-            D3D12_COMMAND_QUEUE_DESC desc = {};
+        CommandQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type, wstring_view name) : _type(type) {
+            assert(device);
+            D3D12_COMMAND_QUEUE_DESC desc{};
             desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
             desc.Type = type;
 
-            ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&_localQueue)));
-            ThrowIfFailed(_localQueue->SetName(_name.c_str()));
-            _queue = _localQueue.Get();
-
-            Initialize(device, type);
-        }
-
-        CommandContext(ID3D12Device* device, ID3D12CommandQueue* queue, wstring_view name, D3D12_COMMAND_LIST_TYPE type) : _name(name) {
-            _queue = queue;
-            Initialize(device, type);
-        }
-
-        void Initialize(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type) {
-            ThrowIfFailed(device->CreateCommandAllocator(type, IID_PPV_ARGS(&_allocator)));
-            ThrowIfFailed(_allocator->SetName(_name.c_str()));
-
-            ThrowIfFailed(device->CreateCommandList(1, type, _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
-            ThrowIfFailed(_cmdList->SetName(_name.c_str()));
-            ThrowIfFailed(_cmdList->Close()); // Command lists start open
+            ThrowIfFailed(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&_queue)));
+            ThrowIfFailed(_queue->SetName(name.data()));
 
             ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence)));
-            ThrowIfFailed(_fence->SetName(_name.c_str()));
+            ThrowIfFailed(_fence->SetName(name.data()));
+
+            //ThrowIfFailed(_fence->Signal((uint64)type << 56));
 
             _fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
             if (!_fenceEvent.IsValid())
                 throw std::exception("CreateEvent");
+        }
+
+        bool IsFenceComplete(uint64 value) {
+            // Avoid querying the fence value by testing against the last one seen.
+            // The max() is to protect against an unlikely race condition that could cause the last
+            // completed fence value to regress.
+            if (value > _lastCompletedValue)
+                _lastCompletedValue = std::max(_lastCompletedValue, _fence->GetCompletedValue());
+
+            return value <= _lastCompletedValue;
+        }
+
+        void WaitForFence(uint64 value) {
+            if (IsFenceComplete(value))
+                return;
+
+            std::lock_guard lock(_eventMutex);
+            ThrowIfFailed(_fence->SetEventOnCompletion(value, _fenceEvent.Get()));
+            WaitForSingleObject(_fenceEvent.Get(), INFINITE);
+            _lastCompletedValue = value;
+        }
+
+        void WaitForIdle() {
+            WaitForFence(IncrementFence());
+        }
+
+        int64 IncrementFence() {
+            std::lock_guard lock(_eventMutex);
+            ThrowIfFailed(_queue->Signal(_fence.Get(), _nextFenceValue));
+            return _nextFenceValue++;
+        }
+
+        int64 Execute(ID3D12GraphicsCommandList* cmdList) {
+            std::lock_guard lock(_eventMutex);
+
+            ThrowIfFailed(cmdList->Close());
+            ID3D12CommandList* ppCommandLists[] = { cmdList };
+            _queue->ExecuteCommandLists(1, ppCommandLists);
+
+            // Signal the next fence value (with the GPU)
+            ThrowIfFailed(_queue->Signal(_fence.Get(), _nextFenceValue));
+            return _nextFenceValue++;
+        }
+
+        D3D12_COMMAND_LIST_TYPE GetType() const { return _type; }
+
+        ID3D12CommandQueue* Get() const { return _queue.Get(); }
+    };
+
+    // Combined command list / allocator / queue for executing commands
+    class CommandContext {
+    protected:
+        CommandQueue* _queue;
+        ComPtr<ID3D12GraphicsCommandList> _cmdList;
+        ComPtr<ID3D12CommandAllocator> _allocator;
+    public:
+
+        CommandContext(ID3D12Device* device, CommandQueue* queue, wstring_view name) : _queue(queue) {
+            assert(device);
+            assert(queue);
+            ThrowIfFailed(device->CreateCommandAllocator(queue->GetType(), IID_PPV_ARGS(&_allocator)));
+            ThrowIfFailed(_allocator->SetName(name.data()));
+
+            ThrowIfFailed(device->CreateCommandList(1, queue->GetType(), _allocator.Get(), nullptr, IID_PPV_ARGS(&_cmdList)));
+            ThrowIfFailed(_cmdList->SetName(name.data()));
+            ThrowIfFailed(_cmdList->Close()); // Command lists start open
         }
 
         virtual ~CommandContext() = default;
@@ -60,7 +106,7 @@ namespace Inferno::Graphics {
         CommandContext& operator=(CommandContext&&) = delete;
 
         ID3D12GraphicsCommandList* GetCommandList() const { return _cmdList.Get(); }
-        ID3D12CommandQueue* GetCommandQueue() const { return _queue; }
+        ID3D12CommandQueue* GetCommandQueue() const { return _queue->Get(); }
 
         void BeginEvent(wstring_view name) const {
             PIXBeginEvent(_cmdList.Get(), PIX_COLOR_DEFAULT, name.data());
@@ -75,34 +121,24 @@ namespace Inferno::Graphics {
             ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));
         }
 
-        void Execute() {
-            ThrowIfFailed(_cmdList->Close());
-            ID3D12CommandList* ppCommandLists[] = { _cmdList.Get() };
-            _queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-            ThrowIfFailed(_queue->Signal(_fence.Get(), _fenceValue));
-            _fenceValue++;
+        void Execute() const {
+            _queue->Execute(_cmdList.Get());
         }
 
         // Blocks until command queue finishes execution
-        void Wait() {
-            if (_fence->GetCompletedValue() < _fenceValue - 1) {
-                std::lock_guard lock(_eventMutex); // prevent multiple uses of fence event
-                ThrowIfFailed(_fence->SetEventOnCompletion(_fenceValue - 1, _fenceEvent.Get()));
-                WaitForSingleObjectEx(_fenceEvent.Get(), INFINITE, FALSE);
-            }
+        void WaitForIdle() const {
+            _queue->WaitForIdle();
         }
 
         // Waits on another queue
-        void InsertWaitForQueue(const CommandContext& other) const {
-            ThrowIfFailed(_queue->Wait(other._fence.Get(), other._fenceValue - 1));
+        void InsertWaitForQueue(const CommandContext& /*other*/) const {
+            //ThrowIfFailed(_queue->Wait(other._fence.Get(), other._fenceValue - 1));
         }
     };
 
     class GraphicsContext : public CommandContext {
     public:
-        GraphicsContext(ID3D12Device* device, wstring_view name) : CommandContext(device, name, D3D12_COMMAND_LIST_TYPE_DIRECT) { }
-        GraphicsContext(ID3D12Device* device, ID3D12CommandQueue* queue, wstring_view name) : CommandContext(device, queue, name, D3D12_COMMAND_LIST_TYPE_DIRECT) {}
+        GraphicsContext(ID3D12Device* device, CommandQueue* queue, const wstring& name) : CommandContext(device, queue, name) {}
 
         // Sets multiple render targets with a depth buffer. Used with shaders that write to multiple buffers.
         void SetRenderTargets(span<D3D12_CPU_DESCRIPTOR_HANDLE> rtvs, D3D12_CPU_DESCRIPTOR_HANDLE dsv) const {

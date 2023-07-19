@@ -178,7 +178,7 @@ namespace Inferno::Render {
 
     DirectX::ResourceUploadBatch BeginTextureUpload();
 
-    ComPtr<ID3D12CommandQueue> EndTextureUpload(DirectX::ResourceUploadBatch&);
+    void EndTextureUpload(DirectX::ResourceUploadBatch&, ID3D12CommandQueue*);
 
     List<TexID> GetTexturesForModel(ModelID id);
     Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors);

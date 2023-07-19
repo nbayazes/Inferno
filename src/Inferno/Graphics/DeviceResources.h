@@ -77,7 +77,8 @@ namespace Inferno {
 
         // Gets the active render target
         auto GetBackBuffer() noexcept { return &BackBuffers[m_backBufferIndex]; }
-        ID3D12CommandQueue* GetCommandQueue() const noexcept { return m_commandQueue.Get(); }
+        ID3D12CommandQueue* GetCommandQueue() const noexcept { return CommandQueue->Get(); }
+        Ptr<Graphics::CommandQueue> CommandQueue, CopyQueue, BatchUploadQueue, AsyncBatchUploadQueue;
 
         Graphics::GraphicsContext& GetGraphicsContext() const { return *_graphicsContext[m_backBufferIndex].get(); }
 
@@ -155,7 +156,7 @@ namespace Inferno {
         //Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>   m_commandList;
 
         // Command queue must be shared between all command lists that write to the swap chain
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue>          m_commandQueue;
+        //Ptr<Graphics::CommandQueue>          m_commandQueue;
         //Microsoft::WRL::ComPtr<ID3D12CommandAllocator>      m_commandAllocators[MAX_BACK_BUFFER_COUNT];
 
         // Swap chain objects.

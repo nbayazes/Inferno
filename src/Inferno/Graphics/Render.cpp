@@ -136,7 +136,7 @@ namespace Inferno::Render {
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());
         }
-        EndTextureUpload(batch);
+        EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
     }
 
     // Initialize device dependent objects here (independent of window size).
@@ -163,7 +163,7 @@ namespace Inferno::Render {
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
         LightGrid = MakePtr<FillLightGridCS>();
         //LightGrid->Load(L"shaders/FillLightGridCS.hlsl");
-        NewTextureCache = MakePtr<TextureCache>();
+        //NewTextureCache = MakePtr<TextureCache>();
 
         CreateDefaultTextures();
 
@@ -232,7 +232,7 @@ namespace Inferno::Render {
 
         Materials->Shutdown(); // wait for thread to terminate
         Materials.reset();
-        NewTextureCache.reset();
+        //NewTextureCache.reset();
         Render::Heaps.reset();
         Render::UploadHeap.reset();
         StaticTextures.reset();
@@ -405,14 +405,15 @@ namespace Inferno::Render {
         ctx.ClearColor(*backBuffer);
         ctx.SetRenderTarget(backBuffer->GetRTV());
 
-        Adapter->SceneColorBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        auto cmdList = ctx.GetCommandList();
+        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            Bloom->Apply(ctx.GetCommandList(), Adapter->SceneColorBuffer);
+            Bloom->Apply(cmdList, Adapter->SceneColorBuffer);
 
         // draw to backbuffer using a shader + polygon
         _postBatch->SetViewport(Adapter->GetScreenViewport());
-        _postBatch->Begin(ctx.GetCommandList());
+        _postBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
         _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
 
@@ -462,28 +463,7 @@ namespace Inferno::Render {
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
-    void Present() {
-        Metrics::BeginFrame();
-        ScopedTimer presentTimer(&Metrics::Present);
-        Stats::DrawCalls = 0;
-        Stats::PolygonCount = 0;
-
-        UpdateEffects(FrameTime);
-
-        auto& ctx = Adapter->GetGraphicsContext();
-        ctx.Reset();
-
-        if (LevelChanged) {
-            if (Game::GetState() == GameState::Editor)
-                InitEffects(Game::Level); // this was added to prevent a crash during level editing
-
-            CopyMaterialData(ctx.GetCommandList());
-            LoadVClips(ctx.GetCommandList()); // todo: only load on initial level load
-        }
-
-        Heaps->SetDescriptorHeaps(ctx.GetCommandList());
-        DrawBriefing(ctx, Adapter->BriefingColorBuffer);
-
+    void UpdateFrameConstants() {
         auto output = Adapter->GetOutputSize();
         Camera.Update(FrameTime);
         Camera.SetViewport(output.x, output.y);
@@ -502,32 +482,60 @@ namespace Inferno::Render {
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;
 
-        auto& frameConstantsBuffer = Adapter->GetFrameConstants();
-        frameConstantsBuffer.Begin();
-        frameConstantsBuffer.Copy({ &frameConstants, 1 });
-        frameConstantsBuffer.End();
+        auto& buffer = Adapter->GetFrameConstants();
+        buffer.Begin();
+        buffer.Copy({ &frameConstants, 1 });
+        buffer.End();
+    }
+
+    void DrawHud() {
+        auto width = Adapter->GetWidth();
+        auto height = Adapter->GetHeight();
+        HudCanvas->SetSize(width, height);
+        HudGlowCanvas->SetSize(width, height);
+
+        if (auto player = Game::Level.TryGetObject(ObjID(0))) {
+            DrawHUD(Render::FrameTime, player->Ambient.GetColor() + player->DirectLight.GetColor() * 3);
+        }
+
+        if (Game::ScreenFlash.ToVector3().LengthSquared() > 0) {
+            CanvasBitmapInfo flash;
+            flash.Size = Adapter->GetOutputSize();
+            flash.Color = Game::ScreenFlash;
+            flash.Texture = Materials->White().Handle();
+            HudGlowCanvas->DrawBitmap(flash);
+        }
+
+        //HudCanvas->Render(ctx);
+        //HudGlowCanvas->Render(ctx);
+    }
+
+    void Present() {
+        Metrics::BeginFrame();
+        ScopedTimer presentTimer(&Metrics::Present);
+        Stats::DrawCalls = 0;
+        Stats::PolygonCount = 0;
+
+        UpdateEffects(FrameTime);
+
+        auto& ctx = Adapter->GetGraphicsContext();
+        ctx.Reset();
+        Heaps->SetDescriptorHeaps(ctx.GetCommandList());
+
+        if (LevelChanged) {
+            if (Game::GetState() == GameState::Editor)
+                InitEffects(Game::Level); // this was added to prevent a crash during level editing
+
+            CopyMaterialData(ctx.GetCommandList());
+            LoadVClips(ctx.GetCommandList()); // todo: only load on initial level load
+        }
+
+        //DrawBriefing(ctx, Adapter->BriefingColorBuffer);
+        UpdateFrameConstants();
 
         DrawLevel(ctx, Game::Level);
         if (Game::GetState() == GameState::Game) {
-            auto width = Adapter->GetWidth();
-            auto height = Adapter->GetHeight();
-            HudCanvas->SetSize(width, height);
-            HudGlowCanvas->SetSize(width, height);
-
-            if (auto player = Game::Level.TryGetObject(ObjID(0))) {
-                DrawHUD(Render::FrameTime, player->Ambient.GetColor() + player->DirectLight.GetColor() * 3);
-            }
-
-            if (Game::ScreenFlash.ToVector3().LengthSquared() > 0) {
-                CanvasBitmapInfo flash;
-                flash.Size = Adapter->GetOutputSize();
-                flash.Color = Game::ScreenFlash;
-                flash.Texture = Materials->White().Handle();
-                HudGlowCanvas->DrawBitmap(flash);
-            }
-
-            HudCanvas->Render(ctx);
-            HudGlowCanvas->Render(ctx);
+            DrawHud();
         }
 
         if (Settings::Graphics.MsaaSamples > 1) {
@@ -537,19 +545,12 @@ namespace Inferno::Render {
         PostProcess(ctx);
         DrawUI(ctx);
 
-
-        {
-            ScopedTimer presentCallTimer(&Metrics::PresentCall);
-            //PIXBeginEvent(commandQueue, PIX_COLOR_DEFAULT, L"Present");
-            Adapter->Present();
-            //PIXEndEvent(commandQueue);
-        }
-
+        Adapter->Present();
         //Adapter->WaitForGpu();
         Materials->Dispatch();
 
-        CopyProceduralsToMainThread(); // Update procedurals while index still points at this frame
-        _graphicsMemory->Commit(Adapter->GetCommandQueue());
+        CopyProceduralsToMainThread();
+        _graphicsMemory->Commit(Adapter->BatchUploadQueue->Get());
     }
 
     void ReloadTextures() {

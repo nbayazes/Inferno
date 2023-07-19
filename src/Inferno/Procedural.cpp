@@ -108,16 +108,19 @@ namespace Inferno {
     Ptr<ProceduralTextureBase> CreateProceduralFire(Outrage::TextureInfo& texture, TexID dest);
 
     class ProceduralWorker {
-        Ptr<CommandContext> _uploadQueue, _copyQueue;
+        Ptr<Graphics::CommandQueue> _uploadQueue, _copyQueue;
+        Ptr<CommandContext> _uploadCommands, _copyCommands;
         double _prevTime = 0;
         Worker _worker = { std::bind_front(&ProceduralWorker::Task, this), "Procedural", 1ms };
 
     public:
         List<Ptr<ProceduralTextureBase>> Procedurals;
 
-        ProceduralWorker() {
-            _uploadQueue = MakePtr<CommandContext>(Render::Device, L"Procedural upload queue", D3D12_COMMAND_LIST_TYPE_COPY);
-            _copyQueue = MakePtr<CommandContext>(Render::Device, L"Procedural copy queue", D3D12_COMMAND_LIST_TYPE_DIRECT);
+        ProceduralWorker(ID3D12Device* device) {
+            _uploadQueue = MakePtr<Graphics::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_COPY, L"Procedural Upload Queue");
+            _copyQueue = MakePtr<Graphics::CommandQueue>(device, D3D12_COMMAND_LIST_TYPE_DIRECT, L"Procedural Copy Queue");
+            _uploadCommands = MakePtr<CommandContext>(device, _uploadQueue.get(), L"Procedural upload queue");
+            _copyCommands = MakePtr<CommandContext>(device, _copyQueue.get(), L"Procedural copy queue");
             Pause(false); // Start the worker after creating queues
             Procedurals.reserve(MAX_PROCEDURALS);
         }
@@ -155,34 +158,34 @@ namespace Inferno {
 
         void CopyProceduralsToMainThread() const {
             if (!IsEnabled()) return;
-            _copyQueue->Reset();
-            _copyQueue->BeginEvent(L"Copy procedurals");
+            _copyCommands->Reset();
+            _copyCommands->BeginEvent(L"Copy procedurals");
             for (auto& proc : Procedurals) {
-                proc->CopyToMainThread(_copyQueue->GetCommandList());
+                proc->CopyToMainThread(_copyCommands->GetCommandList());
             }
 
-            _copyQueue->EndEvent();
-            _copyQueue->Execute();
-            _copyQueue->Wait();
+            _copyCommands->EndEvent();
+            _copyCommands->Execute();
+            _copyCommands->WaitForIdle();
         }
 
     protected:
         void Task() {
-            _uploadQueue->Reset();
-            _uploadQueue->BeginEvent(L"Update procedurals");
+            _uploadCommands->Reset();
+            _uploadCommands->BeginEvent(L"Update procedurals");
 
             bool didWork = false;
             auto currentTime = Clock.GetTotalTimeSeconds();
 
             for (auto& proc : Procedurals) {
-                if (proc->Update(_uploadQueue->GetCommandList(), currentTime)) {
+                if (proc->Update(_uploadCommands->GetCommandList(), currentTime)) {
                     didWork = true;
                 }
             }
 
-            _uploadQueue->EndEvent();
-            _uploadQueue->Execute();
-            _uploadQueue->Wait();
+            _uploadCommands->EndEvent();
+            _uploadCommands->Execute();
+            _uploadCommands->WaitForIdle();
 
             for (auto& proc : Procedurals)
                 proc->WriteComplete();
@@ -229,7 +232,7 @@ namespace Inferno {
 
     void StartProceduralWorker() {
         ProceduralBuffer = MakePtr<TextureRingBuffer<MAX_PROCEDURAL_HANDLES>>(128, &Render::Heaps->Procedurals);
-        ProcWorker = MakePtr<ProceduralWorker>();
+        ProcWorker = MakePtr<ProceduralWorker>(Render::Device);
     }
 
     void StopProceduralWorker() {

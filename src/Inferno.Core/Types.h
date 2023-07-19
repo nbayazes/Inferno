@@ -104,6 +104,8 @@ namespace Inferno {
     using std::wstring_view;
     using std::span;
 
+    using namespace std::string_view_literals;
+
     namespace views = std::views;
     namespace ranges = std::ranges;
     namespace filesystem = std::filesystem;

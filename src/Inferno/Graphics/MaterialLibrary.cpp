@@ -48,16 +48,9 @@ namespace Inferno::Render {
         return batch;
     }
 
-    ComPtr<ID3D12CommandQueue> EndTextureUpload(ResourceUploadBatch& batch) {
-        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-
-        ComPtr<ID3D12CommandQueue> cmdQueue;
-        ThrowIfFailed(Render::Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&cmdQueue)));
-        auto task = batch.End(cmdQueue.Get());
+    void EndTextureUpload(ResourceUploadBatch& batch, ID3D12CommandQueue* queue) {
+        auto task = batch.End(queue);
         task.wait();
-        return cmdQueue; // unknown why we need to hold onto the queue, but it randomly crashes due to releasing too early
     }
 
     List<TexID> GetTexturesForModel(ModelID id) {
@@ -464,7 +457,7 @@ namespace Inferno::Render {
                     uploads.emplace_back(std::move(material.value()));
             }
 
-            EndTextureUpload(batch);
+            EndTextureUpload(batch, Render::Adapter->AsyncBatchUploadQueue->Get());
 
             //SPDLOG_INFO("Moving {} uploads to pending copies", uploads.size());
             for (auto& upload : uploads)
@@ -506,7 +499,7 @@ namespace Inferno::Render {
         }
 
         SPDLOG_INFO("Loading {} textures", uploads.size());
-        EndTextureUpload(batch);
+        EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
         MoveUploads(uploads, _materials);
 
         SPDLOG_INFO("LoadMaterials: {:.3f}s", time.GetElapsedSeconds());
@@ -611,7 +604,7 @@ namespace Inferno::Render {
             }
         }
 
-        EndTextureUpload(batch);
+        EndTextureUpload(batch, Render::Adapter->BatchUploadQueue->Get());
 
         MoveUploads(uploads, _materials);
 
