@@ -44,20 +44,7 @@ namespace Inferno {
         TexID ID; // Texture slot to replace with this procedural effect
         std::mutex CopyMutex;
 
-        ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {
-            ID = baseTexture;
-            Info = info;
-            _name = Convert::ToWideString(Info.Name);
-            _resolution = info.GetSize();
-            _resMask = _resolution - 1;
-            _totalSize = _resolution * _resolution;
-            _pixels.resize(_totalSize);
-
-            for (int i = 0; i < std::size(_textureBuffers); i++) {
-                _textureBuffers[i].SetDesc(_resolution, _resolution);
-                _textureBuffers[i].CreateOnDefaultHeap(Convert::ToWideString(Info.Name + " Buffer"));
-            }
-        }
+        ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture);
 
         //D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const { return _textures[_copyIndex].GetSRV(); }
         D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const;

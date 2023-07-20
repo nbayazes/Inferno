@@ -198,7 +198,7 @@ namespace Inferno::Editor {
 
                     ImGui::Dummy({ 0, 5 });
 
-                    constexpr ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_BordersOuterH | ImGuiTableFlags_Resizable;
+                    constexpr ImGuiTableFlags flags = 0;
 
                     if (ImGui::BeginTable("properties", 2, flags)) {
                         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
@@ -253,11 +253,9 @@ namespace Inferno::Editor {
                         ImGui::EndTable();
                     }
 
-                    ImGui::Separator();
-
                     if (auto proc = GetProcedural(ti.ID)) {
                         auto& info = proc->Info.Procedural;
-                        ImGui::Text("Procedural");
+                        ImGui::SeparatorText("Procedural");
                         if (ImGui::BeginTable("procedural", 2, flags)) {
                             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed);
                             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);

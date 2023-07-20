@@ -6,6 +6,7 @@
 #include "Graphics/GpuResources.h"
 #include "Graphics/Render.h"
 #include "Graphics/CommandContext.h"
+#include "Convert.h"
 
 using namespace std::chrono;
 using Inferno::Graphics::CommandContext;
@@ -214,6 +215,21 @@ namespace Inferno {
 
     void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
         if (ProcWorker) ProcWorker->AddProcedural(info, dest);
+    }
+
+    ProceduralTextureBase::ProceduralTextureBase(const Outrage::TextureInfo& info, TexID baseTexture) {
+        ID = baseTexture;
+        Info = info;
+        _name = Convert::ToWideString(Info.Name);
+        _resolution = info.GetSize();
+        _resMask = _resolution - 1;
+        _totalSize = _resolution * _resolution;
+        _pixels.resize(_totalSize);
+
+        for (int i = 0; i < std::size(_textureBuffers); i++) {
+            _textureBuffers[i].SetDesc(_resolution, _resolution);
+            _textureBuffers[i].CreateOnDefaultHeap(Convert::ToWideString(Info.Name + " Buffer"));
+        }
     }
 
     D3D12_GPU_DESCRIPTOR_HANDLE ProceduralTextureBase::GetHandle() const {
