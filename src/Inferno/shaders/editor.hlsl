@@ -26,5 +26,5 @@ PS_INPUT vsmain(VS_INPUT input) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    return input.col;
+    return pow(input.col, 2.2);
 }

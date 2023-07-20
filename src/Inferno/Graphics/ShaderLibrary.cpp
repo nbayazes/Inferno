@@ -20,7 +20,7 @@ namespace Inferno {
                 shader->PixelShader = pixelShader;
             }
         }
-        catch (std::exception(e)) {
+        catch (std::exception& e) {
             SPDLOG_ERROR(e.what());    
         }
     }

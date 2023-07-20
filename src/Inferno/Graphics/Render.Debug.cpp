@@ -8,22 +8,22 @@ namespace Inferno::Render::Debug {
     using namespace DirectX;
 
     class LineBatch {
-        UploadBuffer<FlatVertex> Vertices;
+        UploadBuffer<FlatVertex> _vertices;
     public:
         LineBatch(int vertexCapacity) :
-            Vertices(vertexCapacity) {}
+            _vertices(vertexCapacity) {}
 
         void Begin() {
-            Vertices.Begin();
+            _vertices.Begin();
         }
 
         void End(ID3D12GraphicsCommandList* cmdList, auto effect) {
-            Vertices.End();
+            _vertices.End();
 
             D3D12_VERTEX_BUFFER_VIEW vbv{};
-            vbv.BufferLocation = Vertices.GetGPUVirtualAddress();
-            vbv.SizeInBytes = Vertices.GetSizeInBytes();
-            vbv.StrideInBytes = Vertices.Stride;
+            vbv.BufferLocation = _vertices.GetGPUVirtualAddress();
+            vbv.SizeInBytes = _vertices.GetSizeInBytes();
+            vbv.StrideInBytes = _vertices.Stride;
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
             //auto& effect = Render::Effects->Line;
@@ -32,37 +32,37 @@ namespace Inferno::Render::Debug {
             effect.Shader->SetConstants(cmdList, constants);
 
             cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
-            cmdList->DrawInstanced(Vertices.GetElementCount(), 1, 0, 0);
+            cmdList->DrawInstanced(_vertices.GetElementCount(), 1, 0, 0);
         }
 
         void DrawLine(const FlatVertex& v0, const FlatVertex& v1) {
             FlatVertex verts[] = { v0, v1 };
-            Vertices.Copy(verts);
+            _vertices.Copy(verts);
         }
 
         void DrawLines(span<FlatVertex> verts) {
-            Vertices.Copy(verts);
+            _vertices.Copy(verts);
         }
     };
 
     class PolygonBatch {
-        UploadBuffer<FlatVertex> Vertices;
+        UploadBuffer<FlatVertex> _vertices;
         uint16 _elementCount = 0;
     public:
         PolygonBatch(int vertexCapacity) :
-            Vertices(vertexCapacity) {}
+            _vertices(vertexCapacity) {}
 
         void Begin() {
-            Vertices.Begin();
+            _vertices.Begin();
         }
 
         void End(ID3D12GraphicsCommandList* cmdList, auto effect) {
-            Vertices.End();
+            _vertices.End();
 
             D3D12_VERTEX_BUFFER_VIEW vbv{};
-            vbv.BufferLocation = Vertices.GetGPUVirtualAddress();
-            vbv.SizeInBytes = Vertices.GetSizeInBytes();
-            vbv.StrideInBytes = Vertices.Stride;
+            vbv.BufferLocation = _vertices.GetGPUVirtualAddress();
+            vbv.SizeInBytes = _vertices.GetSizeInBytes();
+            vbv.StrideInBytes = _vertices.Stride;
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
             effect.Apply(cmdList);
@@ -77,7 +77,7 @@ namespace Inferno::Render::Debug {
 
         void DrawTriangle(const FlatVertex& v0, const FlatVertex& v1, const FlatVertex& v2) {
             FlatVertex verts[] = { v0, v1, v2 };
-            Vertices.Copy(verts);
+            _vertices.Copy(verts);
             _elementCount += 3;
         }
     };
