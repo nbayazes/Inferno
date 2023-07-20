@@ -54,6 +54,10 @@ namespace Inferno::Render {
             return _materialInfo[(int)id];
         }
 
+        MaterialInfo& GetMaterialInfo(LevelTexID id) {
+            return GetMaterialInfo(Resources::LookupTexID(id));
+        }
+
         void ResetMaterials() {
             for (auto& material : _materialInfo)
                 material = {};

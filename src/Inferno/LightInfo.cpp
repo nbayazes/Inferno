@@ -118,6 +118,7 @@ namespace Inferno {
         ReadValue(node["Roughness"], info.Roughness);
         ReadValue(node["EmissiveStrength"], info.EmissiveStrength);
         ReadValue(node["LightReceived"], info.LightReceived);
+        ReadValue(node["Additive"], info.Additive);
 
         materials[info.ID] = info;
 
@@ -253,6 +254,9 @@ namespace Inferno {
 
         if (info.LightReceived != 1)
             node["LightReceived"] << info.LightReceived;
+
+        if (info.Additive != 0)
+            node["Additive"] << info.Additive;
 
         if (auto proc = GetProcedural(id)) {
             auto procNode = node["Procedural"];

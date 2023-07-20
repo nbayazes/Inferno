@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "LevelMesh.h"
+
+#include "MaterialLibrary.h"
 #include "Render.h"
 #include "Resources.h"
 
@@ -215,22 +217,9 @@ namespace Inferno {
         }
     }
 
-    BlendMode GetWallBlendMode(const Level& level, LevelTexID id) {
-        if (level.IsDescent2()) {
-            if (id == LevelTexID(353) ||
-                id == LevelTexID(420) ||
-                id == LevelTexID(432)) {
-                return BlendMode::Additive;
-            }
-        }
-        else if (level.IsDescent1()) {
-            // energy field
-            if (id == LevelTexID(328)) {
-                return BlendMode::Additive;
-            }
-        }
-
-        return BlendMode::Alpha;
+    BlendMode GetWallBlendMode(LevelTexID id) {
+        auto& mi = Render::Materials->GetMaterialInfo(id);
+        return mi.Additive ? BlendMode::Additive : BlendMode::Alpha;
     }
 
     void CreateLevelGeometry(Level& level, ChunkCache& chunks, LevelGeometry& geo) {
@@ -285,7 +274,7 @@ namespace Inferno {
                 Array<Color, 4> lt = side.Light;
 
                 if (isWall && wall) {
-                    chunk.Blend = GetWallBlendMode(level, side.TMap);
+                    chunk.Blend = GetWallBlendMode(side.TMap);
                     if (wall->Type == WallType::Cloaked) {
                         chunk.Blend = BlendMode::Alpha;
                         auto alpha = 1 - wall->CloakValue();

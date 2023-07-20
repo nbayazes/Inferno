@@ -1230,6 +1230,7 @@ Materials:
     Roughness: 0.8
     EmissiveStrength: 5
     LightReceived: 0
+    Additive: 1
   - TexID: 1065
     NormalStrength: 0.25
     Metalness: 0.75

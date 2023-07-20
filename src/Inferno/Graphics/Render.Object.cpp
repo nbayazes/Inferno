@@ -230,7 +230,7 @@ namespace Inferno::Render {
             for (auto& [texId, mesh] : submesh) {
                 if (texId == -1) continue; // flat rendering? invisible mesh?
                 auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[texId]);
-                
+
                 bool transparent = material.Saturate() || material.Alpha();
                 bool transparentPass = pass == RenderPass::Transparent;
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))
@@ -319,7 +319,7 @@ namespace Inferno::Render {
         constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
         Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
-        transform.Forward(-transform.Forward());                    // flip z axis to correct for LH models
+        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         bool transparentOverride = false;
         auto texOverride = TexID::None;
@@ -357,10 +357,16 @@ namespace Inferno::Render {
                 if (!isTransparent && pass != RenderPass::Opaque) continue;
                 //const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
-                if (isTransparent)
-                    ctx.ApplyEffect(Effects->ObjectGlow); // todo: material should specify blend mode (additive or alpha)
-                else
+                if (isTransparent) {
+                    auto& material = Render::Materials->GetMaterialInfo(mesh->Texture);
+                    if (material.Additive)
+                        ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
+                    else
+                        ctx.ApplyEffect(Effects->Object); // Alpha blend
+                }
+                else {
                     ctx.ApplyEffect(Effects->Object);
+                }
 
                 effect.Shader->SetConstants(cmdList, constants);
 

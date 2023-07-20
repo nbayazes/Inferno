@@ -250,6 +250,14 @@ namespace Inferno::Editor {
                             onMaterialChanged();
                         }
 
+                        ImGui::TableRowLabel("Additive");
+                        ImGui::SetNextItemWidth(-1);
+                        auto additive = (bool)material.Additive;
+                        if (ImGui::Checkbox("##Additive", &additive)) {
+                            material.Additive = additive;
+                            Events::LevelChanged(); // Rebuild meshes due to blend mode changing
+                        }
+
                         ImGui::EndTable();
                     }
 
@@ -293,7 +301,8 @@ namespace Inferno::Editor {
                                 if (ImGui::SliderInt("##oscval", &oscval, 0, 31)) {
                                     info.OscillateValue = (uint8)std::clamp(oscval, 0, 31);
                                 }
-                            } else {
+                            }
+                            else {
                                 ImGui::TableRowLabel("Heat");
                                 ImGui::SetNextItemWidth(-1);
                                 int heat = info.Heat;

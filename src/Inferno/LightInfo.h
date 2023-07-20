@@ -48,7 +48,7 @@ namespace Inferno {
         float EmissiveStrength = 0;
         float LightReceived = 1; // 0 for unlit
         int32 ID = -1; // TexID
-        float pad1;
+        int32 Additive = false; // Additive blending
     };
 
     // Loads light info from a YAML file
