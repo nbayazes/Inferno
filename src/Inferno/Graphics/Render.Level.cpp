@@ -36,6 +36,11 @@ namespace Inferno::Render {
         return false;
     }
 
+    ProceduralTextureBase* GetLevelProcedural(LevelTexID id) {
+        if (!Settings::Graphics.EnableProcedurals) return nullptr;
+        return GetProcedural(Resources::LookupTexID(id));
+    }
+
     void LevelDepthCutout(ID3D12GraphicsCommandList* cmdList, const RenderCommand& cmd) {
         assert(cmd.Type == RenderCommandType::LevelMesh);
         auto& mesh = *cmd.Data.LevelMesh;
@@ -65,7 +70,7 @@ namespace Inferno::Render {
             }
         }
         else {
-            if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap1))) {
+            if (auto proc = GetLevelProcedural(chunk.TMap1)) {
                 // For procedural textures the animation is baked into it
                 effect.Shader->SetDiffuse1(cmdList, proc->GetHandle());
             }
@@ -75,7 +80,7 @@ namespace Inferno::Render {
             }
 
             if (constants.HasOverlay) {
-                if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap2))) {
+                if (auto proc = GetLevelProcedural(chunk.TMap2)) {
                     auto& map2 = Materials->Get(chunk.TMap2);
                     effect.Shader->SetDiffuse2(cmdList, proc->GetHandle());
                     effect.Shader->SetSuperTransparent(cmdList, map2);
@@ -236,7 +241,7 @@ namespace Inferno::Render {
                 }
             }
             else {
-                if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap1))) {
+                if (auto proc = GetLevelProcedural(chunk.TMap1)) {
                     // For procedural textures the animation is baked into it
                     auto& map1 = Materials->Get(chunk.TMap1);
                     Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
@@ -249,7 +254,7 @@ namespace Inferno::Render {
                 }
 
                 if (constants.Overlay) {
-                    if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap2))) {
+                    if (auto proc = GetLevelProcedural(chunk.TMap2)) {
                         auto& map2 = Materials->Get(chunk.TMap2);
                         Shaders->Level.SetDiffuse2(cmdList, proc->GetHandle());
                         Shaders->Level.SetMaterial2(cmdList, map2);
@@ -275,7 +280,7 @@ namespace Inferno::Render {
         else {
             constants.Tex2 = -1;
         }
-        
+
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
         mesh.Draw(cmdList);

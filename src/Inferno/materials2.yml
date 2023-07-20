@@ -2297,9 +2297,20 @@ Materials:
     EmissiveStrength: 4
   - TexID: 2089
     Roughness: 0.6
-    EmissiveStrength: 3
+    EmissiveStrength: 2
     LightReceived: 0
     Additive: 1
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.027027028
+      Thickness: 5
+      Light: 6
+      OscillateTime: 0
+      OscillateValue: 8
+      Elements:
+        - '{"Type": 2,"X1": 0,"Y1": 54,"Frequency": 20,"Size": 90,"Speed": 100}'
+        - '{"Type": 2,"X1": 128,"Y1": 54,"Frequency": 20,"Size": 90,"Speed": 100}'
+        - '{"Type": 2,"X1": 64,"Y1": 54,"Frequency": 20,"Size": 130,"Speed": 240}'
   - TexID: 2097
     Roughness: 0.6
   - TexID: 2105
