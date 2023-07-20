@@ -2,16 +2,15 @@
 
 #include "Types.h"
 #include "OutrageBitmap.h"
-#include "Graphics/Buffers.h"
 #include "Concurrent.h"
-#include "Convert.h"
-#include "Settings.h"
+#include "OutrageTable.h"
+#include "Graphics/GpuResources.h"
 
 namespace Inferno {
     // Handle to a material, which is a combination of textures and has a GPU handle
     enum class MaterialHandle { Missing = 0, None = -1 };
 
-    struct RuntimeTextureInfo : public Outrage::TextureInfo {
+    struct RuntimeTextureInfo : Outrage::TextureInfo {
         MaterialHandle BitmapHandle = MaterialHandle::None;
         MaterialHandle DestroyedHandle = MaterialHandle::None;
         List<MaterialHandle> FrameHandles;
@@ -98,7 +97,7 @@ namespace Inferno {
 
         void LoadDefaults();
 
-        void SetResourceHandles(Material& m) {
+        void SetResourceHandles(Material& m) const {
             auto heapStartIndex = Render::Heaps->Materials.AllocateIndex();
             m.Handle = Render::Heaps->Materials.GetGpuHandle(heapStartIndex);
 
@@ -165,43 +164,15 @@ namespace Inferno {
             _textures.reserve(3000);
         }
 
-        void Free(string);
+        //void Free(string);
 
         // Resolves resource handle name into texture info ids
         // Used by level geometry
-        int Resolve(string name) {
-            for (int i = 0; i < _textures.size(); i++) {
-                if (String::InvariantEquals(_textures[i].Name, name))
-                    return i; // Already loaded
-            }
-
-            for (auto& tex : Resources::GameTable.Textures) {
-                if (String::InvariantEquals(tex.Name, name)) {
-                    return AllocTextureInfo({ tex });
-                }
-            }
-
-            return -1;
-        }
+        int Resolve(const string& name);
 
         // Resolves a file name to a texture info id
         // Used by robots
-        int ResolveFileName(string_view fileName) {
-            for (int i = 0; i < _textures.size(); i++) {
-                if (String::InvariantEquals(_textures[i].FileName, fileName))
-                    return i; // Already exists
-            }
-
-            for (auto& tex : Resources::GameTable.Textures) {
-                if (String::InvariantEquals(tex.FileName, fileName))
-                    return AllocTextureInfo({ tex });
-            }
-
-            if (auto id = ResolveVClip(fileName); id != -1)
-                return id;
-
-            return -1;
-        }
+        int ResolveFileName(string_view fileName);
 
         const RuntimeTextureInfo& GetTextureInfo(int handle) {
             if (Seq::inRange(_textures, handle)) {
@@ -240,52 +211,7 @@ namespace Inferno {
 
     private:
         // Allocs a slot for texture
-        int AllocTextureInfo(RuntimeTextureInfo&& ti) {
-            int index = -1;
-
-            // Find unused slot
-            for (int i = 0; i < _textures.size(); i++) {
-                if (!_textures[i].Used) {
-                    _textures[i] = ti;
-                    _textures[i].Used = true;
-                    index = i;
-                    break;
-                }
-            }
-
-            if (ti.Animated()) {
-                for (int id = 0; id < Resources::VClips.size(); id++) {
-                    auto& vclip = Resources::VClips[id];
-                    if (vclip.FileName == ti.FileName)
-                        ti.VClip = id;
-                }
-            }
-
-            if (index == -1) {
-                // Add new slot
-                ti.Used = true;
-                index = (int)_textures.size();
-                _textures.emplace_back(std::move(ti));
-            }
-
-            return index;
-        }
-
-
-        int ResolveVClip(string_view frameName) {
-            for (int id = 0; id < Resources::VClips.size(); id++) {
-                auto& vclip = Resources::VClips[id];
-                for (auto& frame : vclip.Frames) {
-                    if (String::InvariantEquals(frame.Name, frameName)) {
-                        RuntimeTextureInfo ti;
-                        ti.FileName = frame.Name;
-                        ti.VClip = id;
-                        return AllocTextureInfo(std::move(ti));
-                    }
-                }
-            }
-
-            return -1;
-        }
+        int AllocTextureInfo(RuntimeTextureInfo&& ti);
+        int ResolveVClip(string_view frameName);
     };
 };

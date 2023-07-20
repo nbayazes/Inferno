@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "LevelMesh.h"
 #include "Render.h"
+#include "Resources.h"
 
 namespace Inferno {
     using namespace DirectX;
@@ -332,37 +333,37 @@ namespace Inferno {
         cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
     }
 
-    void LevelMeshWorker::Work() {
-        auto index = (_index + 1) % 2;
-        auto& upload = _upload[index];
-        auto& resources = _resources[index];
-        resources = {};
-        ChunkCache chunks;
-        CreateLevelGeometry(_level, chunks, resources.Geometry);
+    //void LevelMeshWorker::Work() {
+    //    auto index = (_index + 1) % 2;
+    //    auto& upload = _upload[index];
+    //    auto& resources = _resources[index];
+    //    resources = {};
+    //    ChunkCache chunks;
+    //    CreateLevelGeometry(_level, chunks, resources.Geometry);
 
-        if (HasWork()) return;
+    //    if (HasWork()) return;
 
-        upload.Reset();
-        // Upload the new geometry to the unused resource buffer
-        auto vbv = upload.PackVertices(resources.Geometry.Vertices);
-        if (HasWork()) return;
+    //    upload.Reset();
+    //    // Upload the new geometry to the unused resource buffer
+    //    auto vbv = upload.PackVertices(resources.Geometry.Vertices);
+    //    if (HasWork()) return;
 
-        for (auto& c : resources.Geometry.Chunks) {
-            auto ibv = upload.PackIndices(c.Indices);
-            resources.Meshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
-        }
+    //    for (auto& c : resources.Geometry.Chunks) {
+    //        auto ibv = upload.PackIndices(c.Indices);
+    //        resources.Meshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
+    //    }
 
-        if (HasWork()) return;
+    //    if (HasWork()) return;
 
-        for (auto& c : resources.Geometry.Walls) {
-            auto ibv = upload.PackIndices(c.Indices);
-            resources.WallMeshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
-        }
+    //    for (auto& c : resources.Geometry.Walls) {
+    //        auto ibv = upload.PackIndices(c.Indices);
+    //        resources.WallMeshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
+    //    }
 
-        if (HasWork()) return;
+    //    if (HasWork()) return;
 
-        _hasNewData = true;
-    }
+    //    _hasNewData = true;
+    //}
 
     void LevelMeshBuilder::Update(Level& level, PackedBuffer& buffer) {
         CreateLevelGeometry(level, _chunks, _geometry);

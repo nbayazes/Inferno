@@ -9,6 +9,7 @@
 #include "Editor.Texture.h"
 #include "Editor.Segment.h"
 #include "Editor.IO.h"
+#include "Game.h"
 
 using namespace DirectX;
 

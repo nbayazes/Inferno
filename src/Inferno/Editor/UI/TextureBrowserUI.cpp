@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "TextureBrowserUI.h"
+#include "Game.h"
 #include "../Editor.h"
 #include "Graphics/Render.h"
 #include "Resources.h"
+#include "Graphics/MaterialLibrary.h"
 
 namespace Inferno::Editor {
     struct TextureFilter {

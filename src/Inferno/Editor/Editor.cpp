@@ -16,9 +16,11 @@
 #include "Editor.Clipboard.h"
 #include "Editor.Geometry.h"
 #include "Editor.IO.h"
+#include "Editor.Undo.h"
 #include "Game.Object.h"
 #include "Version.h"
 #include "Game.Segment.h"
+#include "Resources.h"
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Editor {
@@ -44,6 +46,12 @@ namespace Inferno::Editor {
         }
 
         Editor::Gizmo.UpdateAxisVisiblity(mode);
+    }
+
+    void ToggleTextureMode() {
+        Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
+        Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
+        Editor::Gizmo.UpdatePosition();
     }
 
     Editor::SelectionMode GetMode() { return Settings::Editor.SelectionMode; }
@@ -442,6 +450,40 @@ namespace Inferno::Editor {
         }
     }
 
+    List<PointID> GetSelectedVertices() {
+        auto verts = Editor::Marked.GetVertexHandles(Game::Level);
+        if (verts.empty())
+            verts = Editor::Selection.GetVertexHandles(Game::Level);
+
+        return verts;
+    }
+
+    List<Tag> GetSelectedFaces() {
+        auto faces = Editor::Marked.GetMarkedFaces();
+        if (faces.empty()) {
+            if (Settings::Editor.SelectionMode == SelectionMode::Segment) {
+                for (auto& side : SideIDs)
+                    faces.push_back({ Editor::Selection.Segment, side });
+            }
+            else {
+                faces.push_back(Editor::Selection.Tag());
+            }
+        }
+
+        return faces;
+    }
+
+    List<WallID> GetSelectedWalls() {
+        List<WallID> walls;
+        for (auto& id : GetSelectedFaces()) {
+            auto wall = Game::Level.GetWallID(id);
+            if (wall != WallID::None)
+                walls.push_back(wall);
+        }
+
+        return walls;
+    }
+
     void CheckTriggers(Level& level) {
         for (int tid = 0; tid < level.Triggers.size(); tid++) {
             auto& trigger = level.Triggers[tid];
@@ -478,6 +520,10 @@ namespace Inferno::Editor {
         SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
         Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
         ResetAutosaveTimer();
+    }
+
+    Segment* GetSelectedSegment() {
+        return Game::Level.TryGetSegment(Editor::Selection.Segment);
     }
 
     void CleanLevel(Level& level) {
@@ -652,6 +698,8 @@ namespace Inferno::Editor {
 
         Command Insert{ .Action = OnInsert, .Name = "Insert" };
         Command Delete{ .Action = OnDelete, .Name = "Delete" };
+        Command Undo{ .Action = [] { History.Undo(); }, .CanExecute = [] { return History.CanUndo(); }, .Name = "Undo" };
+        Command Redo{ .Action = [] { History.Redo(); }, .CanExecute = [] { return History.CanRedo(); }, .Name = "Redo" };
 
         Command CycleRenderMode{
             .Action = [] {
@@ -667,6 +715,8 @@ namespace Inferno::Editor {
             },
             .Name = "Cycle Render Mode"
         };
+
+        Command DisableFlickeringLights{ .Action = [] { Editor::DisableFlickeringLights(Game::Level); } };
 
         Command ToggleWireframe{
             .Action = [] {

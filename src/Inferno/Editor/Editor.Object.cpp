@@ -2,7 +2,10 @@
 #include "Editor.Object.h"
 #include "Editor.h"
 #include "Editor.Segment.h"
+#include "Game.h"
 #include "Game.Segment.h"
+#include "Gizmo.h"
+#include "Resources.h"
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {

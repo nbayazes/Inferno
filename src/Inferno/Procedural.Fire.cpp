@@ -59,7 +59,7 @@ namespace Inferno {
         }
 
     protected:
-        void OnUpdate() override {
+        void OnUpdate(double /*currentTime*/) override {
             using namespace Outrage;
 
             HeatDecay();

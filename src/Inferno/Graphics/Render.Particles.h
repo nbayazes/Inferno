@@ -1,8 +1,13 @@
 #pragma once
 
+#include "DataPool.h"
 #include "EffectClip.h"
 #include "DirectX.h"
 #include "Graphics/CommandContext.h"
+
+namespace Inferno {
+    struct Level;
+}
 
 namespace Inferno::Render {
     struct RenderCommand;
@@ -83,23 +88,7 @@ namespace Inferno::Render {
         float MinDelay = 0, MaxDelay = 0; // How often to spawn a particle
         float MinRadius = 1, MaxRadius = 2;
 
-        Particle CreateParticle() const {
-            auto& vclip = Resources::GetVideoClip(Clip);
-
-            Particle p;
-            p.Color = Color;
-            p.Clip = Clip;
-            p.Duration = vclip.PlayTime;
-            p.Parent = Parent;
-            p.ParentOffset = ParentOffset;
-            p.Position = Position;
-            p.Radius = MinRadius + Random() * (MaxRadius - MinRadius);
-
-            if (RandomRotation)
-                p.Rotation = Random() * DirectX::XM_2PI;
-
-            return p;
-        }
+        Particle CreateParticle() const;
     };
 
     class ParticleEmitter final : public EffectBase {

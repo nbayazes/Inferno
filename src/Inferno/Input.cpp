@@ -2,6 +2,8 @@
 #include "Input.h"
 #include "imgui_local.h"
 #include "Game.h"
+#include "Shell.h"
+#include "PlatformHelpers.h"
 
 using namespace DirectX::SimpleMath;
 

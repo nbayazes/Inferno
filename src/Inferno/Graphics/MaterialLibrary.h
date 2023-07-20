@@ -1,38 +1,13 @@
 #pragma once
 
-#include "Heap.h"
 #include "Level.h"
 #include "Resources.h"
-#include "Buffers.h"
 #include "Concurrent.h"
+#include "Material2D.h"
 
 namespace Inferno::Render {
-    enum class TextureState {
-        Vacant,   // Default state 
-        Resident, // Texture is loaded
-        PagingIn  // Texture is being loaded
-    };
 
     extern const int MATERIAL_COUNT;
-
-    struct Material2D {
-        enum { Diffuse, SuperTransparency, Emissive, Specular, Normal, Count };
-
-        Texture2D Textures[Count]{};
-        // SRV handles
-        D3D12_GPU_DESCRIPTOR_HANDLE Handles[Count] = {};
-        uint UploadIndex = 0;
-        TexID ID = TexID::Invalid;
-        string Name;
-        TextureState State = TextureState::Vacant;
-
-        explicit operator bool() const { return State == TextureState::Resident; }
-        UINT64 Pointer() const { return Handles[Diffuse].ptr; }
-
-        // Returns the handle of the first texture in the material. Materials are created so that all textures are contiguous.
-        // In most cases only the first handle is necessary.
-        D3D12_GPU_DESCRIPTOR_HANDLE Handle() const { return Handles[Diffuse]; }
-    };
 
     struct MaterialUpload {
         TexID ID = TexID::None;
@@ -182,7 +157,7 @@ namespace Inferno::Render {
 
     List<TexID> GetTexturesForModel(ModelID id);
     Set<TexID> GetLevelTextures(const Level& level, bool preloadDoors);
+    Set<TexID> GetLevelSegmentTextures(const Level& level);
 
     inline Ptr<MaterialLibrary> Materials;
-    Set<TexID> GetLevelSegmentTextures(const Level& level);
 }

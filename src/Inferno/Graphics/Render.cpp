@@ -17,6 +17,7 @@
 #include "HUD.h"
 #include <ScopedTimer.h>
 
+#include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.Level.h"
 
@@ -156,8 +157,8 @@ namespace Inferno::Render {
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
-        Canvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
-        BriefingCanvas = MakePtr<Canvas2D<UIShader>>(Device, Effects->UserInterface);
+        Canvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
+        BriefingCanvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
         HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
         HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
         _graphicsMemory = MakePtr<GraphicsMemory>(Device);
@@ -170,7 +171,7 @@ namespace Inferno::Render {
         Materials = MakePtr<MaterialLibrary>(MATERIAL_COUNT);
         Debug::Initialize();
 
-        ImGuiBatch::Initialize(_hwnd, (float)Settings::Editor.FontSize);
+        InitializeImGui(_hwnd, (float)Settings::Editor.FontSize);
         static_assert(sizeof(ImTextureID) >= sizeof(D3D12_CPU_DESCRIPTOR_HANDLE), "D3D12_CPU_DESCRIPTOR_HANDLE is too large to fit in an ImTextureID");
         g_ImGuiBatch = MakePtr<ImGuiBatch>(Adapter->GetBackBufferCount());
 
@@ -534,6 +535,8 @@ namespace Inferno::Render {
         UpdateFrameConstants();
 
         DrawLevel(ctx, Game::Level);
+        Debug::EndFrame(ctx.GetCommandList());
+
         if (Game::GetState() == GameState::Game) {
             DrawHud();
         }

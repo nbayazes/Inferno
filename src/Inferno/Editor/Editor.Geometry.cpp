@@ -5,10 +5,11 @@
 #include "Editor.Texture.h"
 #include "Editor.Segment.h"
 #include "Editor.Object.h"
+#include "Editor.Undo.h"
 #include "OpenSimplexNoise.h"
 #include "Face.h"
+#include "Game.h"
 #include "Game.Object.h"
-#include "Game.Segment.h"
 
 namespace Inferno::Editor {
     using Input::SelectionState;

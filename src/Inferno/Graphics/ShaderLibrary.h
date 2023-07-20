@@ -1,14 +1,13 @@
 #pragma once
 
 #include "DirectX.h"
-#include "Effects.h"
 #include <typeindex>
 #include "Lighting.h"
-#include "MaterialLibrary.h"
+#include "Settings.h"
+#include "Effect.h"
+#include "Material2D.h"
 
 namespace Inferno {
-    using Inferno::Render::Material2D;
-
     using HlslBool = int32; // For alignment on GPU
 
     // Shader definition to allow recompilation
@@ -469,33 +468,7 @@ namespace Inferno {
         }
     };
 
-    enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply };
-    enum class CullMode { None, CounterClockwise, Clockwise };
-    enum class DepthMode { ReadWrite, Read, ReadBiased, None };
 
-    struct EffectSettings {
-        BlendMode Blend = BlendMode::Opaque;
-        CullMode Culling = CullMode::CounterClockwise;
-        DepthMode Depth = DepthMode::ReadWrite;
-        D3D12_PRIMITIVE_TOPOLOGY_TYPE TopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE::D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        bool EnableMultisample = true;
-    };
-
-    template<class TShader>
-    struct Effect {
-        Effect(TShader* shader, const EffectSettings& settings = {})
-            : Settings(settings), Shader(shader) {
-        }
-
-        EffectSettings Settings;
-        TShader* Shader;
-        ComPtr<ID3D12PipelineState> PipelineState;
-
-        void Apply(ID3D12GraphicsCommandList* commandList) {
-            commandList->SetPipelineState(PipelineState.Get());
-            Shader->Apply(commandList);
-        };
-    };
 
     void CompileShader(IShader*) noexcept;
 

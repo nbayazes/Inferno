@@ -6,6 +6,7 @@
 #include "Graphics/Render.h"
 #include "Editor.Texture.h"
 #include "Game.Segment.h"
+#include "Resources.h"
 
 namespace Inferno::Editor {
     bool FixDoorClip(Wall& wall) {

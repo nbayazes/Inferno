@@ -1,6 +1,7 @@
 #pragma once
 
 #include "imgui_local.h"
+#include "Shell.h"
 
 namespace ImGui {
     inline void HelpMarker(const char* desc) {

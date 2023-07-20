@@ -1,7 +1,7 @@
 #pragma once
 #include "OutrageTable.h"
 #include "DirectX.h"
-#include "Graphics/Render.h"
+#include "Graphics/GpuResources.h"
 
 namespace Inferno {
     Texture2D& GetNextTexture();
@@ -60,12 +60,7 @@ namespace Inferno {
         }
 
         //D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const { return _textures[_copyIndex].GetSRV(); }
-        D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const {
-            if (!_latestTexture)
-                return Render::Heaps->Materials.GetGpuHandle((int)ID * Material2D::Count);
-
-            return _latestTexture->GetSRV();
-        }
+        D3D12_GPU_DESCRIPTOR_HANDLE GetHandle() const;
 
         // Copies from buffer texture to main texture. Must call from main thread. (consumes buffer)
         bool CopyToMainThread(ID3D12GraphicsCommandList* cmdList) {
@@ -85,7 +80,7 @@ namespace Inferno {
         bool Update(ID3D12GraphicsCommandList* cmdList, double currentTime) {
             if (_nextTime > currentTime) return false;
 
-            OnUpdate();
+            OnUpdate(currentTime);
             _frameCount++;
             _nextTime = currentTime + Info.Procedural.EvalTime;
             _index = 1 - _index; // swap buffers
@@ -111,7 +106,7 @@ namespace Inferno {
         ProceduralTextureBase& operator=(ProceduralTextureBase&&) = delete;
 
     protected:
-        virtual void OnUpdate() = 0;
+        virtual void OnUpdate(double currentTime) = 0;
 
         bool ShouldDrawElement(const Element& elem) const {
             return elem.Frequency == 0 || _frameCount % elem.Frequency == 0;

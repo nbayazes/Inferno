@@ -2,6 +2,10 @@
 
 #include "Settings.h"
 
+namespace Inferno {
+    struct Level;
+}
+
 namespace Inferno::Editor {
     namespace Metrics {
         inline uint64 RaysCast = 0;

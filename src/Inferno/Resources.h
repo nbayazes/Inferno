@@ -8,9 +8,9 @@
 #include "OutrageBitmap.h"
 #include "OutrageModel.h"
 #include "OutrageTable.h"
-#include "SoundSystem.h"
 #include "StringTable.h"
 #include "LightInfo.h"
+#include "SoundTypes.h"
 
 // Abstraction for game resources
 namespace Inferno::Resources {

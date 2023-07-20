@@ -10,6 +10,7 @@
 #include "Editor/Editor.h"
 #include "Editor/Editor.Segment.h"
 #include "Editor/Editor.Texture.h"
+#include "Editor/Editor.Wall.h"
 
 namespace Inferno::Editor {
     constexpr ImU32 TOOLBAR_COLOR = IM_COL32(20, 20, 20, 200);

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Game.Segment.h"
+
+#include "Resources.h"
 #include "Graphics/Render.h"
 #include "Settings.h"
 

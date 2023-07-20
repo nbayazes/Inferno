@@ -10,6 +10,7 @@
 #include "Graphics/Render.h"
 #include <Briefing.h>
 #include "GameTable.h"
+#include "Graphics/MaterialLibrary.h"
 
 namespace Inferno::Resources {
     SoundFile SoundsD1, SoundsD2;

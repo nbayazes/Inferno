@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Mesh.h"
 
+#include "MaterialLibrary.h"
+
 namespace Inferno::Render {
     void GetTangentBitangent(span<ObjectVertex> verts) {
         auto edge1 = verts[1].Position - verts[0].Position;

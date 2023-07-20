@@ -2,8 +2,10 @@
 
 #include "CommandContext.h"
 #include "Game.h"
+#include "MaterialLibrary.h"
 #include "Render.Editor.h"
 #include "Render.h"
+#include "Resources.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
@@ -228,6 +230,7 @@ namespace Inferno::Render {
             for (auto& [texId, mesh] : submesh) {
                 if (texId == -1) continue; // flat rendering? invisible mesh?
                 auto& material = Render::NewTextureCache->GetTextureInfo(model->TextureHandles[texId]);
+                
                 bool transparent = material.Saturate() || material.Alpha();
                 bool transparentPass = pass == RenderPass::Transparent;
                 if ((transparentPass && !transparent) || (!transparentPass && transparent))

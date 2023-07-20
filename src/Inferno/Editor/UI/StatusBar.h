@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WindowBase.h"
-#include "Editor/Editor.Object.h"
+#include "Editor/Editor.h"
 
 namespace Inferno::Editor {
     class StatusBar : public WindowBase {

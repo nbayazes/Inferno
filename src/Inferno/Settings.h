@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Types.h"
-#include "Yaml.h"
 
 // Global settings that should be serialized
 namespace Inferno {
@@ -155,9 +154,6 @@ namespace Inferno {
         bool DisableWeaponDamage = false;
         bool DisableWallCollision = false;
     };
-
-    void SaveLightSettings(ryml::NodeRef node, const LightSettings& s);
-    LightSettings LoadLightSettings(ryml::NodeRef node);
 
     namespace Settings {
         inline InfernoSettings Inferno;

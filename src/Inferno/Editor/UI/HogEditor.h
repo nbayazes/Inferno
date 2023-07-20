@@ -3,6 +3,9 @@
 #include "HogFile.h"
 #include "WindowsDialogs.h"
 #include "Convert.h"
+#include "Game.h"
+#include "Editor/Editor.h"
+#include "Editor/Editor.IO.h"
 
 namespace Inferno::Editor {
 

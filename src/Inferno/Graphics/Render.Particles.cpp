@@ -4,6 +4,7 @@
 #include "Render.h"
 #include "Game.h"
 #include "Game.Segment.h"
+#include "MaterialLibrary.h"
 #include "Physics.h"
 #include "Render.Queue.h"
 
@@ -114,6 +115,24 @@ namespace Inferno::Render {
         }
         auto tid = vclip.GetFrame(Elapsed);
         DrawBillboard(ctx, tid, Position, Radius, color, true, Rotation, up);
+    }
+
+    Particle ParticleEmitterInfo::CreateParticle() const {
+        auto& vclip = Resources::GetVideoClip(Clip);
+
+        Particle p;
+        p.Color = Color;
+        p.Clip = Clip;
+        p.Duration = vclip.PlayTime;
+        p.Parent = Parent;
+        p.ParentOffset = ParentOffset;
+        p.Position = Position;
+        p.Radius = MinRadius + Random() * (MaxRadius - MinRadius);
+
+        if (RandomRotation)
+            p.Rotation = Random() * DirectX::XM_2PI;
+
+        return p;
     }
 
     bool ParticleEmitter::Update(float dt) {

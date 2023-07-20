@@ -2,6 +2,7 @@
 
 #include "PostProcess.h"
 #include "FileSystem.h"
+#include "Game.h"
 #include "WindowsDialogs.h"
 #include "Render.h"
 

@@ -4,7 +4,8 @@
 #include "PropertyEditor.h"
 #include "../Editor.h"
 #include "Editor/Editor.Segment.h"
-#include "Editor/Editor.Lighting.h"
+#include "Editor/Editor.Wall.h"
+#include "Graphics/Render.h"
 
 namespace Inferno::Editor {
     inline bool TriggerTypesDropdown(int& value) {

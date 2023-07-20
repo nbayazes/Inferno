@@ -67,35 +67,35 @@ namespace Inferno {
         List<LevelMesh> WallMeshes;
     };
 
-    class LevelMeshWorker : public WorkerThread {
-        PackedUploadBuffer _upload[2]{};
-        LevelResources _resources[2]{};
-        std::atomic<int> _index;
-        Level _level;
-        std::atomic<bool> _hasNewData = false;
-    public:
-        auto& GetLevelResources() {
-            //SPDLOG_INFO("Reading index {}", _index % 2);
-            return _resources[_index % 2];
-        }
+    //class LevelMeshWorker : public WorkerThread {
+    //    PackedUploadBuffer _upload[2]{};
+    //    LevelResources _resources[2]{};
+    //    std::atomic<int> _index;
+    //    Level _level;
+    //    std::atomic<bool> _hasNewData = false;
+    //public:
+    //    auto& GetLevelResources() {
+    //        //SPDLOG_INFO("Reading index {}", _index % 2);
+    //        return _resources[_index % 2];
+    //    }
 
-        void CopyLevel(const Level& level) { _level = level; }
+    //    void CopyLevel(const Level& level) { _level = level; }
 
-        //void Draw() {
-        //    _resources[_index % 2].Draw();
-        //}
+    //    //void Draw() {
+    //    //    _resources[_index % 2].Draw();
+    //    //}
 
-        void SwapBuffer() {
-            _hasNewData = false;
-            _index++;
-            //SPDLOG_INFO("Swapped to index {}", index);
-        }
+    //    void SwapBuffer() {
+    //        _hasNewData = false;
+    //        _index++;
+    //        //SPDLOG_INFO("Swapped to index {}", index);
+    //    }
 
-        bool HasNewData() { return _hasNewData; }
+    //    bool HasNewData() { return _hasNewData; }
 
-    protected:
-        void Work() override;
-    };
+    //protected:
+    //    void Work() override;
+    //};
 
 
     class LevelMeshBuilder {

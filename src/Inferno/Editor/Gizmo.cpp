@@ -2,6 +2,7 @@
 #include "Gizmo.h"
 #include "Settings.h"
 #include "Editor.h"
+#include "Game.h"
 #include "Input.h"
 #include "Graphics/Render.Debug.h"
 
@@ -375,7 +376,7 @@ namespace Inferno::Editor {
                 SetGizmoPreviewPoints(SelectedAxis, Transform);
 
                 DeltaTransform = Matrix::Identity;
-                _prevTranslation = {};
+                _prevTranslation = Vector3::Zero;
                 Delta = TotalDelta = 0;
                 break;
 

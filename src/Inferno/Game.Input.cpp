@@ -2,6 +2,7 @@
 #include "Game.Input.h"
 #include "Game.h"
 #include "Resources.h"
+#include "Settings.h"
 
 namespace Inferno {
     using Keys = DirectX::Keyboard::Keys;

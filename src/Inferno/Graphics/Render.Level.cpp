@@ -13,6 +13,7 @@
 #include "Object.h"
 #include "DirectX.h"
 #include "Game.Wall.h"
+#include "MaterialLibrary.h"
 #include "Physics.h"
 #include "Render.Object.h"
 #include "Shell.h"
@@ -271,7 +272,7 @@ namespace Inferno::Render {
         else {
             constants.Tex2 = -1;
         }
-
+        
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
         mesh.Draw(cmdList);
@@ -527,7 +528,6 @@ namespace Inferno::Render {
                 //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
                 Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
-            Debug::EndFrame(ctx.GetCommandList());
         }
     }
 

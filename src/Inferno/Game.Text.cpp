@@ -3,7 +3,7 @@
 #include "FileSystem.h"
 #include "HogFile.h"
 #include "Graphics/Render.h"
-#include "Shell.h"
+#include "Graphics/MaterialLibrary.h"
 
 namespace Inferno {
     FontAtlas Atlas(1024, 512);

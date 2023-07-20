@@ -4,7 +4,6 @@
 #include "Graphics/Render.h"
 
 namespace Inferno {
-
     inline DirectX::ResourceUploadBatch BeginUpload() {
         DirectX::ResourceUploadBatch batch(Render::Device);
         batch.Begin();
@@ -107,6 +106,85 @@ namespace Inferno {
 
         Render::Adapter->PrintMemoryUsage();
         Render::Heaps->Materials.GetFreeDescriptors();
+    }
+
+    int TextureCache::Resolve(const string& name) {
+        for (int i = 0; i < _textures.size(); i++) {
+            if (String::InvariantEquals(_textures[i].Name, name))
+                return i; // Already loaded
+        }
+
+        for (auto& tex : Resources::GameTable.Textures) {
+            if (String::InvariantEquals(tex.Name, name)) {
+                return AllocTextureInfo({ tex });
+            }
+        }
+
+        return -1;
+    }
+
+    int TextureCache::ResolveFileName(string_view fileName) {
+        for (int i = 0; i < _textures.size(); i++) {
+            if (String::InvariantEquals(_textures[i].FileName, fileName))
+                return i; // Already exists
+        }
+
+        for (auto& tex : Resources::GameTable.Textures) {
+            if (String::InvariantEquals(tex.FileName, fileName))
+                return AllocTextureInfo({ tex });
+        }
+
+        if (auto id = ResolveVClip(fileName); id != -1)
+            return id;
+
+        return -1;
+    }
+
+    int TextureCache::AllocTextureInfo(RuntimeTextureInfo&& ti) {
+        int index = -1;
+
+        // Find unused slot
+        for (int i = 0; i < _textures.size(); i++) {
+            if (!_textures[i].Used) {
+                _textures[i] = ti;
+                _textures[i].Used = true;
+                index = i;
+                break;
+            }
+        }
+
+        if (ti.Animated()) {
+            for (int id = 0; id < Resources::VClips.size(); id++) {
+                auto& vclip = Resources::VClips[id];
+                if (vclip.FileName == ti.FileName)
+                    ti.VClip = id;
+            }
+        }
+
+        if (index == -1) {
+            // Add new slot
+            ti.Used = true;
+            index = (int)_textures.size();
+            _textures.emplace_back(std::move(ti));
+        }
+
+        return index;
+    }
+
+    int TextureCache::ResolveVClip(string_view frameName) {
+        for (int id = 0; id < Resources::VClips.size(); id++) {
+            auto& vclip = Resources::VClips[id];
+            for (auto& frame : vclip.Frames) {
+                if (String::InvariantEquals(frame.Name, frameName)) {
+                    RuntimeTextureInfo ti;
+                    ti.FileName = frame.Name;
+                    ti.VClip = id;
+                    return AllocTextureInfo(std::move(ti));
+                }
+            }
+        }
+
+        return -1;
     }
 
     //    // Alloc a new slot

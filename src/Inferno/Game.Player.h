@@ -1,7 +1,11 @@
 #pragma once
 
+#include "Object.h"
 #include "Player.h"
-#include "Resources.h"
+#include "SoundTypes.h"
+#include "Utility.h"
+#include "Wall.h"
+#include "Weapon.h"
 
 namespace Inferno {
     enum class FireState { None, Press, Hold, Release };
@@ -97,30 +101,9 @@ namespace Inferno {
         // Returns the amount of ammo picked up
         int PickUpAmmo(PrimaryWeaponIndex, uint16 amount);
 
-        bool CanFirePrimary(PrimaryWeaponIndex index) const {
-            if (!HasWeapon(index)) return false;
+        bool CanFirePrimary(PrimaryWeaponIndex index) const;
 
-            auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(index));
-            bool canFire = true;
-
-            if (index == PrimaryWeaponIndex::Vulcan ||
-                index == PrimaryWeaponIndex::Gauss)
-                canFire &= weapon.AmmoUsage <= PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
-
-            if (index == PrimaryWeaponIndex::Omega)
-                canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST;  // it's annoying to switch to omega with no energy
-
-            canFire &= weapon.EnergyUsage <= Energy;
-            return canFire;
-        }
-
-        bool CanFireSecondary(SecondaryWeaponIndex index) const {
-            auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID(index));
-
-            return
-                weapon.AmmoUsage <= SecondaryAmmo[(int)index] &&
-                weapon.EnergyUsage <= Energy;
-        }
+        bool CanFireSecondary(SecondaryWeaponIndex index) const;
 
         // returns the forward thrust multiplier
         float UpdateAfterburner(float dt, bool active);

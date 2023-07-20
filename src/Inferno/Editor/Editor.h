@@ -2,16 +2,9 @@
 
 #include "Types.h"
 #include "Level.h"
-#include "Utility.h"
-#include "Gizmo.h"
-#include "Resources.h"
-#include "WindowsDialogs.h"
 #include "Command.h"
-
 #include "Editor.Selection.h"
 #include "Editor.Undo.h"
-#include "Editor.Wall.h"
-#include "Editor.IO.h"
 
 namespace Inferno::Editor {
     void UpdateCamera(Camera&);
@@ -35,11 +28,7 @@ namespace Inferno::Editor {
         Settings::Editor.EnableWallMode = !Settings::Editor.EnableWallMode;
     }
 
-    inline void ToggleTextureMode() {
-        Settings::Editor.EnableTextureMode = !Settings::Editor.EnableTextureMode;
-        Editor::Gizmo.UpdateAxisVisiblity(Settings::Editor.SelectionMode);
-        Editor::Gizmo.UpdatePosition();
-    }
+    void ToggleTextureMode();
 
     // Text to show in status bar. Limited to string due to imgui.
     inline string StatusText = "Ready";
@@ -91,40 +80,12 @@ namespace Inferno::Editor {
     void DisableFlickeringLights(Level& level);
 
     // Returns vertices based on marks or the selection
-    inline List<PointID> GetSelectedVertices() {
-        auto verts = Editor::Marked.GetVertexHandles(Game::Level);
-        if (verts.empty())
-            verts = Editor::Selection.GetVertexHandles(Game::Level);
-
-        return verts;
-    }
+    List<PointID> GetSelectedVertices();
 
     // Returns faces based on marks or the selection
-    inline List<Tag> GetSelectedFaces() {
-        auto faces = Editor::Marked.GetMarkedFaces();
-        if (faces.empty()) {
-            if (Settings::Editor.SelectionMode == SelectionMode::Segment) {
-                for (auto& side : SideIDs)
-                    faces.push_back({ Editor::Selection.Segment, side });
-            }
-            else {
-                faces.push_back(Editor::Selection.Tag());
-            }
-        }
+    List<Tag> GetSelectedFaces();
 
-        return faces;
-    }
-
-    inline List<WallID> GetSelectedWalls() {
-        List<WallID> walls;
-        for (auto& id : GetSelectedFaces()) {
-            auto wall = Game::Level.GetWallID(id);
-            if (wall != WallID::None)
-                walls.push_back(wall);
-        }
-
-        return walls;
-    }
+    List<WallID> GetSelectedWalls();
 
     // Returns objects based on marks or the selection
     inline List<ObjID> GetSelectedObjects() {
@@ -145,9 +106,7 @@ namespace Inferno::Editor {
     }
 
     // Tries to get the currently selected segment in the editor
-    inline Segment* GetSelectedSegment() {
-        return Game::Level.TryGetSegment(Editor::Selection.Segment);
-    }
+    Segment* GetSelectedSegment();
 
     // Tries to get the currently selected side in the editor
     inline SegmentSide* GetSelectedSide() {
@@ -175,10 +134,9 @@ namespace Inferno::Editor {
 
         void Exit();
 
-        inline Command Undo{ .Action = [] { History.Undo(); }, .CanExecute = [] { return History.CanUndo(); }, .Name = "Undo" };
-        inline Command Redo{ .Action = [] { History.Redo(); }, .CanExecute = [] { return History.CanRedo(); }, .Name = "Redo" };
+        extern Command Undo, Redo;
         extern Command Insert, Delete;
-        inline Command DisableFlickeringLights{ .Action = [] { Editor::DisableFlickeringLights(Game::Level); } };
+        extern Command DisableFlickeringLights;
         extern Command AlignViewToFace, ZoomExtents;
         extern Command FocusSegment, FocusObject, FocusSelection;
         extern Command CycleRenderMode, ToggleWireframe;

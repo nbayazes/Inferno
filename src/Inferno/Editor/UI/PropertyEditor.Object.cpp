@@ -4,6 +4,8 @@
 #include "../Editor.h"
 #include "SoundSystem.h"
 #include "Editor/Editor.Object.h"
+#include "Editor/Gizmo.h"
+#include "Graphics/Render.h"
 
 namespace Inferno::Editor {
     const char* GetObjectTypeName(ObjectType type) {

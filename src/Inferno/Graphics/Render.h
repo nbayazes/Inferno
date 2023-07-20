@@ -5,7 +5,6 @@
 #include "Heap.h"
 #include "Camera.h"
 #include "PostProcess.h"
-#include "MaterialLibrary.h"
 #include "LevelMesh.h"
 #include "BitmapCache.h"
 #include "Mesh.h"
@@ -25,7 +24,7 @@ namespace Inferno::Render {
     inline Ptr<EffectResources> Effects;
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
-    inline Ptr<Canvas2D<UIShader>> Canvas, BriefingCanvas;
+    inline Ptr<Canvas2D> Canvas, BriefingCanvas;
     inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
     inline Ptr<Graphics::FillLightGridCS> LightGrid;
 

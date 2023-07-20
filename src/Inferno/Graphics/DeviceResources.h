@@ -9,7 +9,9 @@
 #include "Buffers.h"
 #include "Settings.h"
 #include "CommandContext.h"
+#include "IDeviceNotify.h"
 #include "PostProcess.h"
+#include "ShaderLibrary.h"
 
 namespace Inferno {
     inline void ReportLiveObjects() {
@@ -21,15 +23,6 @@ namespace Inferno {
         }
 #endif
     }
-
-    // Provides an interface for an application that owns DeviceResources to be notified of the device being lost or created.
-    struct IDeviceNotify {
-        virtual void OnDeviceLost() = 0;
-        virtual void OnDeviceRestored() = 0;
-
-    protected:
-        ~IDeviceNotify() = default;
-    };
 
     // Controls all the DirectX device resources.
     class DeviceResources {

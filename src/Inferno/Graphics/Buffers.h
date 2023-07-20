@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Heap.h"
-#include "Resources.h"
 #include "GpuResources.h"
 
 namespace Inferno {
@@ -159,7 +158,7 @@ namespace Inferno {
     */
     class DynamicConstantBuffer {
         ComPtr<ID3D12Resource> _buffer;
-        void* m_pMappedConstantBuffer;
+        void* m_pMappedConstantBuffer = nullptr;
         uint m_alignedPerDrawConstantBufferSize;
         uint m_perFrameConstantBufferSize;
 
@@ -191,13 +190,13 @@ namespace Inferno {
             ThrowIfFailed(_buffer->Map(0, &CPU_READ_NONE, &m_pMappedConstantBuffer));
         }
 
-        void* GetMappedMemory(uint drawIndex, uint frameIndex) {
+        void* GetMappedMemory(uint drawIndex, uint frameIndex) const {
             assert(drawIndex < m_maxDrawsPerFrame);
             uint constantBufferOffset = (frameIndex * m_perFrameConstantBufferSize) + (drawIndex * m_alignedPerDrawConstantBufferSize);
             return (uint8*)m_pMappedConstantBuffer + constantBufferOffset;
         }
 
-        D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress(uint drawIndex, uint frameIndex) {
+        D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress(uint drawIndex, uint frameIndex) const {
             uint constantBufferOffset = (frameIndex * m_perFrameConstantBufferSize) + (drawIndex * m_alignedPerDrawConstantBufferSize);
             return _buffer->GetGPUVirtualAddress() + constantBufferOffset;
         }

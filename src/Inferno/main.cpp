@@ -7,6 +7,7 @@
 #include "Editor/Editor.h"
 #include "Settings.h"
 #include "Editor/Bindings.h"
+#include "Graphics/Compiler.h"
 #include "ryml/ryml.hpp"
 
 using namespace Inferno;

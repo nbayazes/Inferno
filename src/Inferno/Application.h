@@ -1,6 +1,5 @@
 #pragma once
-
-#include "Graphics/Render.h"
+#include "Graphics/IDeviceNotify.h"
 
 namespace Inferno {
 

@@ -3,6 +3,7 @@
 #include "WindowBase.h"
 #include "Editor/Editor.Diagnostics.h"
 #include "Camera.h"
+#include "Editor/Editor.Object.h"
 #include "Editor/Editor.Undo.h"
 
 namespace Inferno::Render {

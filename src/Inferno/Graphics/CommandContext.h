@@ -3,6 +3,7 @@
 #include "Types.h"
 #include "DirectX.h"
 #include "ShaderLibrary.h"
+#include "Effect.h"
 
 namespace Inferno::Graphics {
     class CommandQueue {

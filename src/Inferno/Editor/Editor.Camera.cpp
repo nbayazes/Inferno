@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Editor.h"
+#include "Game.h"
 #include "Types.h"
 #include "Graphics/Render.h"
 

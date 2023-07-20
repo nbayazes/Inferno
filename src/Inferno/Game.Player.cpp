@@ -2,6 +2,8 @@
 #include "Game.Player.h"
 #include "Game.h"
 #include "HUD.h"
+#include "Resources.h"
+#include "Settings.h"
 
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;
@@ -583,6 +585,31 @@ namespace Inferno {
             AutoselectPrimary(); // maybe picking up ammo lets us fire a weapon
 
         return amount;
+    }
+
+    bool Player::CanFirePrimary(PrimaryWeaponIndex index) const {
+        if (!HasWeapon(index)) return false;
+
+        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(index));
+        bool canFire = true;
+
+        if (index == PrimaryWeaponIndex::Vulcan ||
+            index == PrimaryWeaponIndex::Gauss)
+            canFire &= weapon.AmmoUsage <= PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
+
+        if (index == PrimaryWeaponIndex::Omega)
+            canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST;  // it's annoying to switch to omega with no energy
+
+        canFire &= weapon.EnergyUsage <= Energy;
+        return canFire;
+    }
+
+    bool Player::CanFireSecondary(SecondaryWeaponIndex index) const {
+        auto& weapon = Resources::GetWeapon(GetSecondaryWeaponID(index));
+
+        return
+            weapon.AmmoUsage <= SecondaryAmmo[(int)index] &&
+            weapon.EnergyUsage <= Energy;
     }
 
     void Player::TouchPowerup(Object& obj) {

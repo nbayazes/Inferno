@@ -7,6 +7,7 @@
 #include "Editor.Wall.h"
 #include "Editor.IO.h"
 #include "Face.h"
+#include "Resources.h"
 
 namespace Inferno::Editor {
     void RotateUV(Vector2& uv, const Vector2& pivot, float angle) {

@@ -6,6 +6,10 @@
 using namespace Yaml;
 
 namespace Inferno {
+    // Declared in settings
+    void SaveLightSettings(ryml::NodeRef node, const LightSettings& s);
+    LightSettings LoadLightSettings(ryml::NodeRef node);
+
     void SaveSideInfo(ryml::NodeRef node, const Level& level) {
         node |= ryml::SEQ;
 

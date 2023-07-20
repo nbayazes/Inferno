@@ -158,6 +158,7 @@
     <ClCompile Include="Audio\SoundEffectInstance.cpp" />
     <ClCompile Include="Audio\WAVFileReader.cpp" />
     <ClCompile Include="CustomTextureLibrary.cpp" />
+    <ClCompile Include="Editor\UI\DebugWindow.cpp" />
     <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
@@ -197,8 +198,10 @@
     <ClCompile Include="Graphics\Render.Object.cpp" />
     <ClCompile Include="Graphics\Render.Particles.cpp" />
     <ClCompile Include="HUD.cpp" />
+    <ClCompile Include="imgui_local.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="LightInfo.cpp" />
+    <ClCompile Include="Editor\UI\LightingWindow.cpp" />
     <ClCompile Include="OpenSimplex2.cpp" />
     <ClCompile Include="Physics.Capsule.cpp" />
     <ClCompile Include="Physics.cpp" />
@@ -245,6 +248,7 @@
     <ClInclude Include="Editor\UI\AboutDialog.h" />
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
+    <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.Input.h" />
     <ClInclude Include="Game.Object.h" />
@@ -281,6 +285,7 @@
     <ClInclude Include="Editor\UI\SettingsDialog.h" />
     <ClInclude Include="Editor\TunnelBuilder.h" />
     <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
+    <ClInclude Include="Graphics\IDeviceNotify.h" />
     <ClInclude Include="Graphics\Lighting.h" />
     <ClInclude Include="Graphics\Render.Canvas.h" />
     <ClInclude Include="Graphics\Render.Commands.h" />
@@ -292,6 +297,7 @@
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="LightInfo.h" />
     <ClInclude Include="Editor\UI\MaterialEditor.h" />
+    <ClInclude Include="Material2D.h" />
     <ClInclude Include="NormalMap.h" />
     <ClInclude Include="OpenSimplex2.h" />
     <ClInclude Include="Physics.Capsule.h" />
@@ -301,6 +307,7 @@
     <ClInclude Include="Procedural.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Room.h" />
+    <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />
     <ClInclude Include="Editor\Gizmo.h" />

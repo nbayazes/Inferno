@@ -2,9 +2,6 @@
 
 #include "Buffers.h"
 #include "ComputeShader.h"
-#include "Game.h"
-#include "ShaderLibrary.h"
-
 
 namespace Inferno::PostFx {
     class ScanlineCS : public ComputeShader {

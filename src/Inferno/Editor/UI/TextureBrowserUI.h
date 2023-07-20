@@ -2,7 +2,7 @@
 
 #include "Pig.h"
 #include "WindowBase.h"
-#include "Concurrent.h"
+#include "Level.h"
 
 namespace Inferno::Editor {
     enum class FilterGroup : uint64 {
@@ -54,7 +54,7 @@ namespace Inferno::Editor {
             GrayRock = BrownRock = RedRock = GreenRock = YellowRock = BlueRock = state;
         }
 
-        bool SelectRock() {
+        bool SelectRock() const {
             return GrayRock && BrownRock && RedRock && GreenRock && YellowRock && BlueRock;
         }
 
@@ -62,7 +62,7 @@ namespace Inferno::Editor {
             Ice = Stones = Grass = Sand = Lava = Water = state;
         }
 
-        bool SelectNatural() {
+        bool SelectNatural() const {
             return Ice && Stones && Grass && Sand && Lava && Water;
         }
 
@@ -70,18 +70,18 @@ namespace Inferno::Editor {
             Steel = Concrete = Brick = Tarmac = Wall = Floor = Ceiling = state;
         }
 
-        bool SelectBuilding() {
+        bool SelectBuilding() const {
             return Steel && Concrete && Brick && Tarmac && Wall && Floor && Ceiling;
         }
 
         void SelectMisc(bool state) { Grate = Fan = Door = state; }
-        bool SelectMisc() { return Grate && Fan && Door; }
+        bool SelectMisc() const { return Grate && Fan && Door; }
 
         void SelectTechnical(bool state) { Light = Energy = ForceField = Tech = Switches = state; }
-        bool SelectTechnical() { return Light && Energy && ForceField && Tech && Switches; }
+        bool SelectTechnical() const { return Light && Energy && ForceField && Tech && Switches; }
 
         void SelectSigns(bool state) { Labels = Monitors = Stripes = state; }
-        bool SelectSigns() { return Labels && Monitors && Stripes; }
+        bool SelectSigns() const { return Labels && Monitors && Stripes; }
 
         void SelectAll(bool state) {
             SelectRock(state);
@@ -92,13 +92,13 @@ namespace Inferno::Editor {
             SelectSigns(state);
         }
 
-        bool SelectAll() {
+        bool SelectAll() const {
             return SelectRock() && SelectNatural() && SelectBuilding() && 
                 SelectMisc() && SelectTechnical() && SelectSigns();
         }
 
         FilterGroup GetState() const {
-            FilterGroup state = FilterGroup::None;
+            auto state = FilterGroup::None;
             if (GrayRock) state |= FilterGroup::GrayRock;
             if (BrownRock) state |= FilterGroup::BrownRock;
             if (GreenRock) state |= FilterGroup::GreenRock;

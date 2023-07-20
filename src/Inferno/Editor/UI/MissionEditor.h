@@ -1,4 +1,6 @@
 #pragma once
+#include "Game.h"
+#include "HogFile.h"
 #include "WindowBase.h"
 #include "Mission.h"
 #include "WindowsDialogs.h"
@@ -17,7 +19,7 @@ namespace Inferno::Editor {
         int _entryId = 0;
 
         // todo: set enhancement based on contained HOG level versions
-        MissionInfo Mission;
+        MissionInfo _mission;
     public:
         MissionEditor() : ModalWindowBase("Mission Editor") {
             Width = 500 * Shell::DpiScale;
@@ -26,21 +28,21 @@ namespace Inferno::Editor {
     protected:
         bool OnOpen() override {
             auto mission = Game::TryReadMissionInfo();
-            Mission = mission ? *mission : MissionInfo{};
+            _mission = mission ? *mission : MissionInfo{};
 
             _entries.clear();
 
             // if there's no levels in the mission, add all levels from the hog
-            if (Game::Mission && Mission.Levels.empty()) {
+            if (Game::Mission && _mission.Levels.empty()) {
                 AddMissingLevels(*Game::Mission);
             }
             else {
-                for (auto& l : Mission.Levels)
+                for (auto& l : _mission.Levels)
                     _entries.push_back({ l, false, _entryId++ });
 
                 // insert secret levels at their correct index
-                for (int i = 0; i < Mission.SecretLevels.size(); i++) {
-                    auto tokens = String::Split(Mission.SecretLevels[i], ',');
+                for (int i = 0; i < _mission.SecretLevels.size(); i++) {
+                    auto tokens = String::Split(_mission.SecretLevels[i], ',');
                     if (tokens.size() == 2) {
                         auto index = std::stoi(tokens[1]) - 1;
                         _entries.insert(_entries.begin() + index + i, { tokens[0], true });
@@ -56,24 +58,24 @@ namespace Inferno::Editor {
             // write file
             try {
                 // update mission based on selections
-                Mission.Levels.clear();
-                Mission.SecretLevels.clear();
+                _mission.Levels.clear();
+                _mission.SecretLevels.clear();
 
                 bool prevWasSecret = false;
                 for (int i = 0; i < _entries.size(); i++) {
                     auto& entry = _entries[i];
                     if (entry.IsSecret) {
                         if (prevWasSecret) continue;
-                        int index = i + 1 - (int)Mission.SecretLevels.size();
+                        int index = i + 1 - (int)_mission.SecretLevels.size();
                         auto str = fmt::format("{},{}", entry.File, index);
-                        Mission.SecretLevels.push_back(str);
+                        _mission.SecretLevels.push_back(str);
                     }
                     else {
-                        Mission.Levels.push_back(entry.File);
+                        _mission.Levels.push_back(entry.File);
                     }
                 }
 
-                Mission.Write(Game::Mission->GetMissionPath());
+                _mission.Write(Game::Mission->GetMissionPath());
             }
             catch (const std::exception& e) {
                 ShowErrorMessage(e);
@@ -83,25 +85,25 @@ namespace Inferno::Editor {
         void MissionTab() {
             if (!ImGui::BeginTabItem("Mission")) return;
 
-            ImGui::TextInputWide("Name", Mission.Name, MissionInfo::MaxNameLength);
+            ImGui::TextInputWide("Name", _mission.Name, MissionInfo::MaxNameLength);
 
-            bool isSinglePlayer = Mission.Type == "normal";
+            bool isSinglePlayer = _mission.Type == "normal";
             if (ImGui::RadioButton("Single player##type", isSinglePlayer))
-                Mission.Type = "normal";
+                _mission.Type = "normal";
 
-            if (Mission.Enhancement == MissionEnhancement::VertigoHam) {
+            if (_mission.Enhancement == MissionEnhancement::VertigoHam) {
                 ImGui::SameLine();
                 ImGui::TextColored({ 0.25f, 1, 0.25f, 1 }, "Vertigo Enhanced");
             }
 
             if (ImGui::RadioButton("Multiplayer##type", !isSinglePlayer))
-                Mission.Type = "anarchy";
+                _mission.Type = "anarchy";
 
 
             if (Game::Mission && Game::Mission->IsDescent1()) {
                 ImGui::Dummy({ 0, 10 * Shell::DpiScale });
-                ImGui::TextInputWide("Briefing TXB", Mission.Metadata["briefing"], 12);
-                ImGui::TextInputWide("Ending TXB", Mission.Metadata["ending"], 12);
+                ImGui::TextInputWide("Briefing TXB", _mission.Metadata["briefing"], 12);
+                ImGui::TextInputWide("Ending TXB", _mission.Metadata["ending"], 12);
             }
 
             {
@@ -172,21 +174,21 @@ namespace Inferno::Editor {
         }
 
         void MetadataCheckbox(const char* label, string key) {
-            bool value = Mission.GetBool(key);
+            bool value = _mission.GetBool(key);
             if (ImGui::Checkbox(label, &value))
-                Mission.SetBool(key, value);
+                _mission.SetBool(key, value);
         };
 
         void AuthorTab() {
             if (!ImGui::BeginTabItem("Author")) return;
 
-            ImGui::TextInputWide("Author", Mission.Metadata["author"], 128);
-            ImGui::TextInputWide("Editor", Mission.Metadata["editor"], 128);
-            ImGui::TextInputWide("Build time", Mission.Metadata["build_time"], 128);
-            ImGui::TextInputWide("Date", Mission.Metadata["date"], 128);
-            ImGui::TextInputWide("Revision", Mission.Metadata["revision"], 128);
-            ImGui::TextInputWide("Email", Mission.Metadata["email"], 128);
-            ImGui::TextInputWide("Website", Mission.Metadata["web_site"], 128);
+            ImGui::TextInputWide("Author", _mission.Metadata["author"], 128);
+            ImGui::TextInputWide("Editor", _mission.Metadata["editor"], 128);
+            ImGui::TextInputWide("Build time", _mission.Metadata["build_time"], 128);
+            ImGui::TextInputWide("Date", _mission.Metadata["date"], 128);
+            ImGui::TextInputWide("Revision", _mission.Metadata["revision"], 128);
+            ImGui::TextInputWide("Email", _mission.Metadata["email"], 128);
+            ImGui::TextInputWide("Website", _mission.Metadata["web_site"], 128);
 
             ImGui::Text("Custom assets:");
             MetadataCheckbox("Textures", "custom_textures");
@@ -214,12 +216,12 @@ namespace Inferno::Editor {
             //ImGui::SameLine();
             //MetadataCheckbox("Want feedback", "want_feedback");
 
-            if (Mission.Comments.capacity() < 2048)
-                Mission.Comments.resize(2048);
+            if (_mission.Comments.capacity() < 2048)
+                _mission.Comments.resize(2048);
 
             ImGui::Dummy({ 0, 10 * Shell::DpiScale });
             ImGui::Text("Comments:");
-            ImGui::InputTextMultiline("##Comments", Mission.Comments.data(), 2048, { -1, -1 });
+            ImGui::InputTextMultiline("##Comments", _mission.Comments.data(), 2048, { -1, -1 });
             ImGui::EndTabItem();
         }
 

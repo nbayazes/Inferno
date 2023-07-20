@@ -2,6 +2,7 @@
 
 #include "Game.Segment.h"
 #include "Render.h"
+#include "Resources.h"
 
 namespace Inferno::Graphics {
     Vector4 ClipToView(const Vector4& clip, const Matrix& inverseProj) {

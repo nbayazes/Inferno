@@ -5,9 +5,10 @@
 #include "Editor/Bindings.h"
 #include "Game.h"
 #include "imgui_local.h"
-#include "BitmapCache.h"
+#include "Resources.h"
 #include "Editor/Editor.h"
 #include "SystemClock.h"
+#include "Graphics/Render.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;

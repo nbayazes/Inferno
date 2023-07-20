@@ -13,6 +13,7 @@
 #include "Editor.Geometry.h"
 #include "Game.Object.h"
 #include "Game.Segment.h"
+#include "Resources.h"
 
 namespace Inferno::Editor {
     void RemoveLightDeltasForSegment(Level& level, SegID seg) {

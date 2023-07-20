@@ -33,7 +33,7 @@ namespace Inferno {
     template<typename T>
     class ComMemPtr {
         T* _resource = nullptr;
-        void Release() { CoTaskMemFree(_resource); }
+        void Release() const { CoTaskMemFree(_resource); }
     public:
         auto operator&() {
             Release();
@@ -182,7 +182,7 @@ namespace Inferno {
             dialog->SetTitle(title.c_str());
             auto hr = dialog->Show(Shell::Hwnd);
             Input::ResetState(); // Fix for keys getting stuck after showing a dialog
-            if (!SUCCEEDED(hr)) return {}; // includes cancelled dialog
+            if (FAILED(hr)) return {}; // includes cancelled dialog
 
             ComPtr<IShellItem> result;
             ThrowIfFailed(dialog->GetResult(&result));
@@ -207,7 +207,7 @@ namespace Inferno {
             dialog->SetTitle(title.c_str());
             auto hr = dialog->Show(Shell::Hwnd);
             Input::ResetState(); // Fix for keys getting stuck after showing a dialog
-            if (!SUCCEEDED(hr)) return {}; // includes cancelled dialog
+            if (FAILED(hr)) return {}; // includes cancelled dialog
 
             ComPtr<IShellItem> result;
             ThrowIfFailed(dialog->GetResult(&result));

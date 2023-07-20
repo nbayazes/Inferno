@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Procedural.h"
+#include "Resources.h"
 
 // Descent 3 procedural water effects
 //
@@ -160,7 +161,7 @@ namespace Inferno {
         }
 
     protected:
-        void OnUpdate() override {
+        void OnUpdate(double currentTime) override {
             for (auto& elem : Info.Procedural.Elements) {
                 switch (elem.WaterType) {
                     case Outrage::WaterProceduralType::HeightBlob:
@@ -201,7 +202,7 @@ namespace Inferno {
             //    EasterEgg = false;
             //}
 
-            UpdateWater();
+            UpdateWater(currentTime);
 
             if (Info.Procedural.Light > 0)
                 DrawWaterWithLight(Info.Procedural.Light - 1);
@@ -304,7 +305,7 @@ namespace Inferno {
             AddWaterHeightBlob(drop);
         }
 
-        void UpdateWater() {
+        void UpdateWater(double elapsedTime) {
             int factor = Info.Procedural.Thickness;
             if (Info.Procedural.OscillateTime > 0) {
                 int thickness = Info.Procedural.Thickness;
@@ -316,7 +317,7 @@ namespace Inferno {
 
                 int delta = thickness - oscValue;
                 if (delta > 0) {
-                    int time = (int)(Render::ElapsedTime / Info.Procedural.OscillateTime / delta) % (delta * 2);
+                    int time = (int)(elapsedTime / Info.Procedural.OscillateTime / delta) % (delta * 2);
                     if (time < delta)
                         time %= delta;
                     else

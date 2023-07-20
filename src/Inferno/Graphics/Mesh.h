@@ -2,6 +2,7 @@
 
 #include "Buffers.h"
 #include "logging.h"
+#include "OutrageModel.h"
 #include "Polymodel.h"
 #include "ShaderLibrary.h"
 

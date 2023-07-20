@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "HUD.h"
 #include "Game.h"
+#include "Graphics/MaterialLibrary.h"
+#include "Graphics/Render.h"
 
 namespace Inferno {
     enum class Gauges {

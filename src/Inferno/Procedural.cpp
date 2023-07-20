@@ -1,10 +1,9 @@
 #include "pch.h"
-#include "Procedural.h"
 
 #include <semaphore>
-
+#include "Procedural.h"
+#include "SystemClock.h"
 #include "Graphics/GpuResources.h"
-#include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
 #include "Graphics/CommandContext.h"
 
@@ -215,6 +214,13 @@ namespace Inferno {
 
     void AddProcedural(Outrage::TextureInfo& info, TexID dest) {
         if (ProcWorker) ProcWorker->AddProcedural(info, dest);
+    }
+
+    D3D12_GPU_DESCRIPTOR_HANDLE ProceduralTextureBase::GetHandle() const {
+        if (!_latestTexture)
+            return Render::Heaps->Materials.GetGpuHandle((int)ID * Material2D::Count);
+
+        return _latestTexture->GetSRV();
     }
 
     ProceduralTextureBase* GetProcedural(TexID id) {
