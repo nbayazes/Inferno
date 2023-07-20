@@ -58,8 +58,11 @@ namespace Inferno::Render {
         if (SideIsDoor(side)) {
             // Use the current texture for this side, as walls are drawn individually
             effect.Shader->SetDiffuse1(cmdList, Materials->Get(side->TMap).Handle());
-            if (constants.HasOverlay)
-                effect.Shader->SetDiffuse2(cmdList, Materials->Get(side->TMap2).Handle());
+            if (constants.HasOverlay) {
+                auto& tmap2 = Materials->Get(side->TMap2);
+                effect.Shader->SetDiffuse2(cmdList, tmap2.Handle());
+                effect.Shader->SetSuperTransparent(cmdList, tmap2);
+            }
         }
         else {
             if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap1))) {
@@ -75,12 +78,12 @@ namespace Inferno::Render {
                 if (auto proc = GetProcedural(Resources::LookupTexID(chunk.TMap2))) {
                     auto& map2 = Materials->Get(chunk.TMap2);
                     effect.Shader->SetDiffuse2(cmdList, proc->GetHandle());
-                    effect.Shader->SetDiffuse2(cmdList, map2.Handles[Material2D::SuperTransparency]);
+                    effect.Shader->SetSuperTransparent(cmdList, map2);
                 }
                 else {
                     auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
                     effect.Shader->SetDiffuse2(cmdList, map2.Handles[0]);
-                    effect.Shader->SetDiffuse2(cmdList, map2.Handles[Material2D::SuperTransparency]);
+                    effect.Shader->SetSuperTransparent(cmdList, map2);
                 }
             }
         }
