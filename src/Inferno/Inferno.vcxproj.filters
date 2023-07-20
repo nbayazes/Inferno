@@ -266,6 +266,9 @@
     <ClCompile Include="Editor\UI\LightingWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MaterialInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -626,6 +629,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SoundTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

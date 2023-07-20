@@ -218,7 +218,7 @@ namespace Inferno {
     }
 
     BlendMode GetWallBlendMode(LevelTexID id) {
-        auto& mi = Render::Materials->GetMaterialInfo(id);
+        auto& mi = Resources::GetMaterial(id);
         return mi.Additive ? BlendMode::Additive : BlendMode::Alpha;
     }
 

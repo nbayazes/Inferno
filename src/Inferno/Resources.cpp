@@ -343,6 +343,7 @@ namespace Inferno::Resources {
             CustomTextures.LoadPog(pig.Entries, pogData, palette);
         }
 
+
         // Everything loaded okay, set the internal data
         LevelPalette = std::move(palette);
         Pig = std::move(pig);
@@ -511,7 +512,6 @@ namespace Inferno::Resources {
         LightInfoTable = {};
         CustomTextures.Clear();
         Textures.clear();
-        Render::Materials->ResetMaterials();
     }
 
     void LoadLightInfo(const filesystem::path& path) {
@@ -527,7 +527,7 @@ namespace Inferno::Resources {
     void LoadMaterialInfo(const filesystem::path& path) {
         try {
             auto file = FileSystem::ReadFileText(path);
-            LoadMaterialTable(file, Render::Materials->GetAllMaterialInfo());
+            LoadMaterialTable(file, Resources::Materials.GetAllMaterialInfo());
         }
         catch (...) {
             SPDLOG_ERROR("Unable to read material table from {}", path.string());
@@ -559,6 +559,8 @@ namespace Inferno::Resources {
             else {
                 throw Exception("Unsupported level version");
             }
+
+            Materials = { Pig.Entries.size() };
 
             LoadGameTable();
             LoadDataTables(level);

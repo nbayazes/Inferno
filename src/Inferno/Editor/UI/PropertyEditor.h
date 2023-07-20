@@ -3,7 +3,6 @@
 #include "WindowBase.h"
 #include "Level.h"
 #include "Graphics/MaterialLibrary.h"
-#include "../Editor.h"
 #include "MatcenEditor.h"
 
 namespace Inferno::Editor {

@@ -10,6 +10,7 @@
 #include "OutrageTable.h"
 #include "StringTable.h"
 #include "LightInfo.h"
+#include "MaterialInfo.h"
 #include "SoundTypes.h"
 
 // Abstraction for game resources
@@ -121,4 +122,14 @@ namespace Inferno::Resources {
     const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
 
     void LoadGameTable();
+
+    inline MaterialInfoLibrary Materials;
+
+    inline MaterialInfo& GetMaterial(TexID id) {
+        return Materials.GetMaterialInfo(id);
+    }
+
+    inline MaterialInfo& GetMaterial(LevelTexID id) {
+        return Materials.GetMaterialInfo(id);
+    }
 }

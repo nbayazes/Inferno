@@ -472,7 +472,7 @@ namespace Inferno::Render {
     };
 
     MaterialLibrary::MaterialLibrary(size_t size)
-        : _materials(size), _materialInfo(size) {
+        : _materials(size) {
         assert(size >= 3000); // Reserved textures at id 2900
         LoadDefaults();
         _worker = MakePtr<MaterialUploadWorker>(this);

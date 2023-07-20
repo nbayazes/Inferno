@@ -2,7 +2,6 @@
 
 // Functionality related to loading extended light data such as default colors
 // and point lights
-
 namespace Inferno {
     // This must match the light shaders
     enum class LightType : uint32 {
@@ -38,24 +37,8 @@ namespace Inferno {
         }
     };
 
-    // Must match MaterialInfo HLSL
-    struct MaterialInfo {
-        float NormalStrength = 1; // multiplier on normal map
-        float SpecularStrength = 1; // multiplier on specular
-        // other map generation options like contrast, brightness?
-        float Metalness = 0; // How much diffuse to apply to specular
-        float Roughness = 0.6; // 0 is sharp specular, 1 is no specular
-        float EmissiveStrength = 0;
-        float LightReceived = 1; // 0 for unlit
-        int32 ID = -1; // TexID
-        int32 Additive = false; // Additive blending
-    };
-
     // Loads light info from a YAML file
     Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml);
     // Loads material info from a YAML file
-    void LoadMaterialTable(const string& yaml, span<MaterialInfo> materials);
-
     void SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo);
-    void SaveMaterialTable(std::ostream& stream, span<MaterialInfo> materials);
 }

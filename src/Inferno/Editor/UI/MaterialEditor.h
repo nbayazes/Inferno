@@ -25,7 +25,7 @@ namespace Inferno::Editor {
             };
 
             Events::LevelLoaded += [this] {
-                _backup = Seq::toList(Render::Materials->GetAllMaterialInfo());
+                _backup = Seq::toList(Resources::Materials.GetAllMaterialInfo());
             };
 
             _search.resize(20);
@@ -35,10 +35,10 @@ namespace Inferno::Editor {
         void OnSave() {
             try {
                 SPDLOG_INFO("Saving materials");
-                // todo: save to hog toggle?
+                // todo: save materials to hog toggle?
                 auto name = Resources::GetMaterialFileName(Game::Level);
                 std::ofstream stream(name);
-                auto materials = Render::Materials->GetAllMaterialInfo();
+                auto materials = Resources::Materials.GetAllMaterialInfo();
                 SaveMaterialTable(stream, materials);
                 _backup = Seq::toList(materials);
             }
@@ -151,7 +151,7 @@ namespace Inferno::Editor {
                 auto& ti = bmp.Info;
                 if (ti.ID > TexID::Invalid) {
                     auto& texture = Render::Materials->Get(_selection);
-                    auto& material = Render::Materials->GetMaterialInfo(ti.ID);
+                    auto& material = Resources::GetMaterial(ti.ID);
 
                     ImVec2 tileSize{ 128 * Shell::DpiScale, 128 * Shell::DpiScale };
                     {

@@ -23,7 +23,6 @@ namespace Inferno::Render {
 
     // Supports loading and unloading materials
     class MaterialLibrary {
-        MaterialInfo _defaultMaterialInfo = {};
         bool _requestPrune = false;
         List<Material2D> _materials;
         ConcurrentList<Material2D> _pendingCopies;
@@ -31,7 +30,6 @@ namespace Inferno::Render {
         Dictionary<string, TexID> _namedMaterials;
 
         Ptr<WorkerThread> _worker;
-        List<MaterialInfo> _materialInfo;
 
         friend class MaterialUploadWorker;
 
@@ -47,21 +45,7 @@ namespace Inferno::Render {
         const Material2D& White() const { return _materials[(int)WHITE_MATERIAL]; }
         const Material2D& Black() const { return _materials[(int)BLACK_MATERIAL]; }
         const Material2D& Missing() const { return _materials[(int)MISSING_MATERIAL]; }
-        span<MaterialInfo> GetAllMaterialInfo() { return _materialInfo; }
 
-        MaterialInfo& GetMaterialInfo(TexID id) {
-            if (!Seq::inRange(_materialInfo, (int)id)) return _defaultMaterialInfo;
-            return _materialInfo[(int)id];
-        }
-
-        MaterialInfo& GetMaterialInfo(LevelTexID id) {
-            return GetMaterialInfo(Resources::LookupTexID(id));
-        }
-
-        void ResetMaterials() {
-            for (auto& material : _materialInfo)
-                material = {};
-        }
 
         // Gets a material based on a D1/D2 texture ID
         const Material2D& Get(TexID id) const {

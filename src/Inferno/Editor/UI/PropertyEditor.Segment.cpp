@@ -969,7 +969,7 @@ namespace Inferno::Editor {
             ImGui::AlignTextToFramePadding();
             ImGui::Text(TextureFlagToString(lti.Flags).c_str());
 
-            auto& material = Render::Materials->GetMaterialInfo(ti.ID);
+            auto& material = Resources::GetMaterial(ti.ID);
             auto onMaterialChanged = [&] {
                 material.ID = (int)ti.ID;
                 Events::LevelChanged();

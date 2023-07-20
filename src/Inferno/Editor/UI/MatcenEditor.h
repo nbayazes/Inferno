@@ -1,6 +1,7 @@
 #pragma once
 #include "WindowBase.h"
 #include "Game.h"
+#include "../Editor.h"
 
 namespace Inferno::Editor {
     class MatcenEditor : public ModalWindowBase {

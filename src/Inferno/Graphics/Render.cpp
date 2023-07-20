@@ -456,7 +456,7 @@ namespace Inferno::Render {
 
     void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {
         MaterialInfoUploadBuffer->Begin();
-        MaterialInfoUploadBuffer->Copy(Materials->GetAllMaterialInfo());
+        MaterialInfoUploadBuffer->Copy(Resources::Materials.GetAllMaterialInfo());
         MaterialInfoUploadBuffer->End();
 
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);

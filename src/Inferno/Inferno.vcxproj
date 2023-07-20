@@ -202,6 +202,7 @@
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="LightInfo.cpp" />
     <ClCompile Include="Editor\UI\LightingWindow.cpp" />
+    <ClCompile Include="MaterialInfo.cpp" />
     <ClCompile Include="OpenSimplex2.cpp" />
     <ClCompile Include="Physics.Capsule.cpp" />
     <ClCompile Include="Physics.cpp" />
@@ -298,6 +299,7 @@
     <ClInclude Include="LightInfo.h" />
     <ClInclude Include="Editor\UI\MaterialEditor.h" />
     <ClInclude Include="Material2D.h" />
+    <ClInclude Include="MaterialInfo.h" />
     <ClInclude Include="NormalMap.h" />
     <ClInclude Include="OpenSimplex2.h" />
     <ClInclude Include="Physics.Capsule.h" />

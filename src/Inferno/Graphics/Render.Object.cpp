@@ -358,7 +358,7 @@ namespace Inferno::Render {
                 //const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
                 if (isTransparent) {
-                    auto& material = Render::Materials->GetMaterialInfo(mesh->Texture);
+                    auto& material = Resources::GetMaterial(mesh->Texture);
                     if (material.Additive)
                         ctx.ApplyEffect(Effects->ObjectGlow); // Additive blend
                     else
