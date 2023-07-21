@@ -71,7 +71,8 @@ namespace Inferno::Outrage {
         HeightBlob,
         SineBlob,
         RandomRaindrops,
-        RandomBlobdrops
+        RandomBlobdrops,
+        Line
     };
 
     // Procedural texture info

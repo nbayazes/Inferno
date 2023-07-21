@@ -176,6 +176,9 @@ namespace Inferno {
                     case Outrage::WaterProceduralType::RandomBlobdrops:
                         AddWaterBlobdrops(elem);
                         break;
+                    case Outrage::WaterProceduralType::Line:
+                        AddWaterLine(elem);
+                        break;
                 }
             }
 
@@ -251,6 +254,89 @@ namespace Inferno {
                         _waterBuffer[_index][offset] += elem.Speed;
                 }
             }
+        }
+
+        void DrawLine(int x1, int y1, int x2, int y2, int16 speed) {
+            int xDir = 1;
+            int yDir = 1;
+            int curX = x1;
+            int curY = y1;
+
+            if (x2 < x1) {
+                curX = x2;
+                x2 = x1;
+                curY = y2;
+                y2 = y1;
+            }
+
+            int xLen = x2 - curX;
+            int yLen = y2 - curY;
+
+            const auto mask = _resolution - 1;
+
+            if (xLen < 0) {
+                yDir = -1;
+                xLen = -xLen;
+            }
+            if (yLen < 0) {
+                xDir = -1;
+                yLen = -yLen;
+            }
+
+            if (xLen < yLen) {
+                curY = curY & mask;
+                curX = curX & mask;
+                int error = 0;
+                int ptr = curY * _resolution;
+
+                for (int i = 0; i < yLen; i++) {
+                    error += xLen;
+                    //_fireBuffer[_index][ptr + curX] = color;
+                    _waterBuffer[_index][ptr + curX] = speed;
+                    curY = (curY + xDir) & 127;
+                    ptr = curY * _resolution;
+
+                    if (yLen <= error) {
+                        curX = (curX + yDir) % _resolution;
+                        error -= yLen;
+                    }
+                }
+            }
+            else {
+                curY = curY & mask;
+                curX = curX & mask;
+                int error = 0;
+                int ptr = curY * _resolution;
+
+                for (int i = 0; i < xLen; i++) {
+                    error += yLen;
+                    //_fireBuffer[_index][ptr + (curX & mask)] = color;
+                    _waterBuffer[_index][ptr + (curX & mask)] = speed;
+                    curX = (curX & mask) + yDir;
+                    if (xLen <= error) {
+                        curY = (curY + xDir) & mask;
+                        ptr = curY * _resolution;
+                        error -= xLen;
+                    }
+                }
+            }
+        }
+        void AddWaterLine(const Element& elem) {
+            if (!ShouldDrawElement(elem))
+                return;
+
+            DrawLine(elem.X1, elem.Y1, elem.X2, elem.Y2, elem.Speed);
+
+            //auto blob = GetBlobBounds(elem);
+
+            //for (int y = blob.minY; y < blob.maxY; y++) {
+            //    auto yOffset = (y + elem.Y1) * _resolution;
+            //    for (int x = blob.minX; x < blob.maxX; x++) {
+            //        auto offset = yOffset + x + elem.X1;
+            //        if (x * x + y * y < blob.sizeSq)
+            //            _waterBuffer[_index][offset] += elem.Speed;
+            //    }
+            //}
         }
 
         void AddWaterSineBlob(const Element& elem) {
@@ -382,7 +468,6 @@ namespace Inferno {
             }
         }
 
-
         void DrawWaterWithLight(int lightFactor) {
             auto& heights = _waterBuffer[_index];
             int lightshift = lightFactor & 31;
@@ -434,7 +519,6 @@ namespace Inferno {
 
                     int srcOffset = (yShift & srcResmaskY) * texture.Info.Width + (xShift & srcResmaskX);
                     auto& c = texture.Data[srcOffset]; // RGBA8888
-                    //auto c = BilinearSample(xShift, yShift, srcResmaskX, srcResmaskY, texture);
                     auto srcPixel = RGB32ToBGR16(c.r, c.g, c.b);
 
                     auto rgba8881 =
@@ -451,9 +535,6 @@ namespace Inferno {
             auto& texture = _baseTexture;
             auto xScale = (float)texture.Info.Width / _resolution;
             auto yScale = (float)texture.Info.Height / _resolution;
-            //assert(baseTexture.Info.Width == baseTexture.Info.Height); // Only supports square textures
-            // todo: effect clips
-
             auto& heights = _waterBuffer[_index];
 
             for (int y = 0; y < _resolution; y++) {

@@ -489,7 +489,7 @@ namespace Inferno::Render {
         buffer.End();
     }
 
-    void DrawHud() {
+    void DrawHud(GraphicsContext& ctx) {
         auto width = Adapter->GetWidth();
         auto height = Adapter->GetHeight();
         HudCanvas->SetSize(width, height);
@@ -507,8 +507,8 @@ namespace Inferno::Render {
             HudGlowCanvas->DrawBitmap(flash);
         }
 
-        //HudCanvas->Render(ctx);
-        //HudGlowCanvas->Render(ctx);
+        HudCanvas->Render(ctx);
+        HudGlowCanvas->Render(ctx);
     }
 
     void Present() {
@@ -537,13 +537,11 @@ namespace Inferno::Render {
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(ctx.GetCommandList());
 
-        if (Game::GetState() == GameState::Game) {
-            DrawHud();
-        }
+        if (Game::GetState() == GameState::Game)
+            DrawHud(ctx);
 
-        if (Settings::Graphics.MsaaSamples > 1) {
+        if (Settings::Graphics.MsaaSamples > 1)
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.GetCommandList(), Adapter->MsaaColorBuffer);
-        }
 
         PostProcess(ctx);
         DrawUI(ctx);

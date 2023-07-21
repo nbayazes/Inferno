@@ -66,7 +66,8 @@ namespace Inferno {
         tree["Type"] << elem.Type;
         tree["X1"] << elem.X1;
         tree["Y1"] << elem.Y1;
-        if (isFire && elem.FireType == Outrage::FireProceduralType::LineLightning) {
+        if ((isFire && elem.FireType == Outrage::FireProceduralType::LineLightning) ||
+            (!isFire && elem.WaterType == Outrage::WaterProceduralType::Line)) {
             tree["X2"] << elem.X2;
             tree["Y2"] << elem.Y2;
         }

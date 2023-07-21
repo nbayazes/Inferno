@@ -1351,10 +1351,8 @@ Materials:
     Roughness: 0.507
     EmissiveStrength: 5
   - TexID: 1243
-    NormalStrength: 0.344
-    Metalness: 0.805
-    Roughness: 0.507
-    EmissiveStrength: 5
+    NormalStrength: 0.53
+    Roughness: 0.774
   - TexID: 1244
     NormalStrength: 0.417
     Roughness: 0.618
@@ -1930,9 +1928,9 @@ Materials:
     Metalness: 1
     Roughness: 0.662
   - TexID: 1503
-    NormalStrength: 0.464
-    SpecularStrength: 0.729
-    Roughness: 0.633
+    NormalStrength: 0.498
+    SpecularStrength: 0.8
+    Roughness: 0.556
   - TexID: 1505
     NormalStrength: 0.397
     Roughness: 0.8
@@ -2284,6 +2282,18 @@ Materials:
     EmissiveStrength: 2.914
     LightReceived: 0
     Additive: 1
+    Procedural:
+      IsWater: 1
+      EvalTime: 0.027027028
+      Thickness: 5
+      Light: 6
+      OscillateTime: 0
+      OscillateValue: 21
+      Elements:
+        - '{"Type": 5,"X1": 0,"Y1": 128,"X2": 128,"Y2": 0,"Frequency": 5,"Size": 0,"Speed": 25}'
+        - '{"Type": 2,"X1": 128,"Y1": 128,"Frequency": 14,"Size": 64,"Speed": 64}'
+        - '{"Type": 2,"X1": 0,"Y1": 0,"Frequency": 14,"Size": 64,"Speed": 64}'
+        - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 14,"Size": 64,"Speed": 64}'
   - TexID: 2006
     NormalStrength: 0.086
     Roughness: 0.323
@@ -2297,7 +2307,7 @@ Materials:
     EmissiveStrength: 4
   - TexID: 2089
     Roughness: 0.6
-    EmissiveStrength: 2
+    EmissiveStrength: 3
     LightReceived: 0
     Additive: 1
     Procedural:
