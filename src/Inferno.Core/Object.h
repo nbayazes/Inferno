@@ -340,6 +340,8 @@ namespace Inferno {
         int8 ID{};              // Index in powerups, robots, etc. Also used for player and co-op IDs.
         ObjectFlag Flags{};
         SegID Segment{};        // segment number containing object
+        RoomID Room{}; // Room containing object
+
         float Radius = 2;       // radius of object for collision detection
         float HitPoints = 100;  // Objects are destroyed when hitpoints go under 0
         float MaxHitPoints = 100; // Starting maximum hit points
@@ -369,6 +371,8 @@ namespace Inferno {
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0;
+
+        List<SegID> GoalPath; // For robot pathing. Here because unions can't contain vectors.
 
         Matrix GetTransform() const {
             Matrix m(Rotation);
@@ -445,5 +449,6 @@ namespace Inferno {
 
         bool IsPlayer() const { return Type == ObjectType::Player; }
         bool IsCoop() const { return Type == ObjectType::Coop; }
+        bool IsRobot() const { return Type == ObjectType::Robot; }
     };
 }

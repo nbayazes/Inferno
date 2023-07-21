@@ -196,6 +196,7 @@ namespace Inferno {
     enum class ObjID : int16 { None = -1 }; // Object ID
     enum class ObjSig : uint16 { None = (uint16)-1 }; // Object signature
     enum class SegID : int16 { None = -1, Exit = -2 }; // Segment ID
+    enum class RoomID : int16 { None = -1 }; // Room ID
     enum class TexID : int16 { None = -1, Invalid = 0 }; // Texture ID (Pig)
     // Level Texture ID. Maps to TexIDs.
     enum class LevelTexID : int16 {
@@ -442,6 +443,11 @@ namespace Inferno {
 
     // Tags a point on a segment side
     struct PointTag : Tag { uint16 Point; };
+
+    // Connection between rooms. The segment and side are the containing room. The room id is the connected room.
+    struct Portal : Tag {
+        RoomID Room = RoomID::None;
+    };
 
     constexpr Tag GetOppositeSide(Tag tag) {
         tag.Side = GetOppositeSide(tag.Side);

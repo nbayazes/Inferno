@@ -829,11 +829,13 @@ namespace Inferno {
         int hits = 0;
         int texNormalIndex = 0, flatNormalIndex = 0;
 
+#ifdef DEBUG_OBJ_OUTLINE
         auto drawTriangleEdge = [&transform](const Vector3& a, const Vector3& b, const Color& color) {
             auto dbgStart = Vector3::Transform(a, transform);
             auto dbgEnd = Vector3::Transform(b, transform);
             Render::Debug::DrawLine(dbgStart, dbgEnd, color);
         };
+#endif
 
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
             auto submodelOffset = model.GetSubmodelOffset(smIndex);

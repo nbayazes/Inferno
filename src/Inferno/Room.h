@@ -9,12 +9,6 @@ namespace Inferno {
         inline List<Vector3> NavigationPath;
     }
 
-    enum class RoomID : int16 { None = -1 };
-
-    struct Portal : Tag {
-        RoomID Room = RoomID::None;
-    };
-
     // A room is a group of segments divided by walls
 
     struct Room {

@@ -534,45 +534,55 @@ namespace Inferno {
         }
     }
 
+    bool RobotCanOpenDoor(const Wall& wall) {
+        if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
+            return false;
+
+        if (HasFlag(wall.Keys, WallKey::Red) || HasFlag(wall.Keys, WallKey::Gold) || HasFlag(wall.Keys, WallKey::Blue))
+            return false;
+
+        return true;
+    }
+
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall) {
         auto parent = level.TryGetObject(src.Parent);
-
-        bool isPlayerSource = src.Type == ObjectType::Player || (parent && parent->Type == ObjectType::Player);
+        bool isPlayerSource = src.IsPlayer() || (parent && parent->IsPlayer());
 
         if (wall.Type == WallType::Destroyable && isPlayerSource && src.Type == ObjectType::Weapon) {
             auto& weapon = Resources::GetWeapon((WeaponID)src.ID);
             DamageWall(level, wall.Tag, weapon.Damage[Game::Difficulty]);
         }
         else if (wall.Type == WallType::Door) {
-            if ((isPlayerSource && Game::Player.CanOpenDoor(wall)) ||
-                (src.Type == ObjectType::Robot && src.Control.AI.Behavior == AIBehavior::Snipe)) {
-                if (wall.State != WallState::DoorOpening)
+            if (src.IsRobot()) {
+                // Allow robots to open normal doors
+                if (RobotCanOpenDoor(wall))
                     OpenDoor(level, wall.Tag);
             }
-            else {
+            else if (isPlayerSource && Game::Player.CanOpenDoor(wall)) {
+                OpenDoor(level, wall.Tag);
+            }
+            else if (src.Type == ObjectType::Weapon) {
                 // Can't open door
-                if (src.Type == ObjectType::Weapon) {
-                    Sound3D sound(point, wall.Tag.Segment);
-                    sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
-                    sound.Source = src.Parent;
-                    sound.FromPlayer = true;
-                    Sound::Play(sound);
+                Sound3D sound(point, wall.Tag.Segment);
+                sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
+                sound.Source = src.Parent;
+                sound.FromPlayer = true;
+                Sound::Play(sound);
 
-                    if (isPlayerSource) {
-                        string msg;
-                        const auto accessDenied = Resources::GetString(GameString::AccessDenied);
-                        if (HasFlag(wall.Keys, WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
-                            msg = fmt::format("{} {}", Resources::GetString(GameString::Red), accessDenied);
-                        else if (HasFlag(wall.Keys, WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
-                            msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), accessDenied);
-                        else if (HasFlag(wall.Keys, WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
-                            msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), accessDenied);
-                        else if (wall.HasFlag(WallFlag::DoorLocked))
-                            msg = Resources::GetString(level.IsDescent1() ? GameString::CantOpenDoorD1 : GameString::CantOpenDoor);
+                if (isPlayerSource) {
+                    string msg;
+                    const auto accessDenied = Resources::GetString(GameString::AccessDenied);
+                    if (HasFlag(wall.Keys, WallKey::Red) && !Game::Player.HasPowerup(PowerupFlag::RedKey))
+                        msg = fmt::format("{} {}", Resources::GetString(GameString::Red), accessDenied);
+                    else if (HasFlag(wall.Keys, WallKey::Blue) && !Game::Player.HasPowerup(PowerupFlag::BlueKey))
+                        msg = fmt::format("{} {}", Resources::GetString(GameString::Blue), accessDenied);
+                    else if (HasFlag(wall.Keys, WallKey::Gold) && !Game::Player.HasPowerup(PowerupFlag::GoldKey))
+                        msg = fmt::format("{} {}", Resources::GetString(GameString::Yellow), accessDenied);
+                    else if (wall.HasFlag(WallFlag::DoorLocked))
+                        msg = Resources::GetString(level.IsDescent1() ? GameString::CantOpenDoorD1 : GameString::CantOpenDoor);
 
-                        if (!msg.empty())
-                            PrintHudMessage(msg);
-                    }
+                    if (!msg.empty())
+                        PrintHudMessage(msg);
                 }
             }
         }

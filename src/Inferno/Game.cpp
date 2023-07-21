@@ -716,7 +716,7 @@ namespace Inferno::Game {
 
                 UpdateDirectLight(obj, 0.10f);
                 AddDamagedEffects(obj, dt);
-                UpdateAI(obj);
+                UpdateAI(obj, dt);
             }
         }
 

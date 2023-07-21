@@ -148,6 +148,6 @@ namespace Inferno {
         }
     };
 
-    void UpdateAI(Object& obj);
+    void UpdateAI(Object& obj, float dt);
 
 }
