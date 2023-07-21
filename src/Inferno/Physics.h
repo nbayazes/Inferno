@@ -76,6 +76,6 @@ namespace Inferno {
 
     // Sets an object's angular velocity to turn towards a vector over a number of seconds.
     // Note that this is not additive, and overrides any existing angular velocity.
-    void TurnTowardsVector(Object& obj, const Vector3& towards, float rate);
+    void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
     bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
 }

@@ -538,14 +538,18 @@ namespace Inferno {
         return angles;
     }
 
-    void TurnTowardsVector(Object& obj, const Vector3& towards, float rate) {
+    void TurnTowardsVector(Object& obj, Vector3 towards, float rate) {
         if (towards == Vector3::Zero) return;
-        auto forward = obj.Rotation.Forward();
-        auto rotation = Quaternion::FromToRotation(forward, towards); // rotation to the target vector
-        auto euler = rotation.ToEuler() / rate / XM_2PI; // Physics update multiplies by XM_2PI so divide it here
-        auto velocity = Vector3::Transform(euler, obj.Rotation); // align with object rotation
-        velocity.z = 0; // remove roll
-        obj.Physics.AngularVelocity = velocity;
+        // transform towards to local coordinates
+        Matrix basis(obj.Rotation);
+        basis = basis.Invert();
+        towards = Vector3::Transform(towards, basis); // transform towards to basis of object
+        towards.z *= -1; // hack: correct for LH object matrix
+
+        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, towards); // rotation to the target vector
+        auto euler = rotation.ToEuler() / rate / DirectX::XM_2PI; // Physics update multiplies by XM_2PI so divide it here
+        euler.z = 0; // remove roll
+        obj.Physics.AngularVelocity = euler;
     }
 
     void ApplyForce(Object& obj, const Vector3& force) {
