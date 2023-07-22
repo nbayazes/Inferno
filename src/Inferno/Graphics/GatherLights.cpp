@@ -322,7 +322,7 @@ namespace Inferno::Graphics {
                 }
 
                 if (!info) info = &defaultInfo;
-                auto color = info->Color == Color(0, 0, 0) ? GetLightColor(side, true) : info->Color;
+                auto color = info->Color == LIGHT_UNSET ? GetLightColor(side, true) : info->Color;
                 auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
 
                 if (side.LightOverride) color = *side.LightOverride;

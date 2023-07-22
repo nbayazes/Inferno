@@ -89,7 +89,8 @@ Lights:
       Width: .2
       Height: .2
       Radius: 30
-      Offset: 0.01
+      Color: 0.675, 0.5, 0.5
+      Offset: 0.0
 
     - ID: 281
       Type: 2
@@ -103,6 +104,7 @@ Lights:
     - ID: 268 # small square
       Radius: 40
       Points: 0.5, 0.5
+      Color: 0.675, 0.5, 0.5
       
     - ID: 282 # small round
       Radius: 40
@@ -239,15 +241,20 @@ Lights:
 
     # remove lights from reactor walls as emissives work better
     - ID: 334
+      Color: 0, 0, 0
       Points: []
     - ID: 335
+      Color: 0, 0, 0
       Points: []
     - ID: 336
+      Color: 0, 0, 0
       Points: []
     - ID: 337
+      Color: 0, 0, 0
       Points: []
 
     - ID: 289 # blank light texture. only used for ambient lighting
+      Color: 0, 0, 0
       Points: []
 
     - ID: 328 # energy field

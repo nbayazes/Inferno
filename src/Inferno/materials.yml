@@ -996,13 +996,16 @@ Materials:
     Roughness: 0.5
   - TexID: 980
     Roughness: 0.6
-    EmissiveStrength: 3.5
+    EmissiveStrength: 1
   - TexID: 981
     Roughness: 0.6
     EmissiveStrength: 4
   - TexID: 982
     NormalStrength: 0.2
     Roughness: 0.8
+  - TexID: 984
+    Roughness: 0.6
+    EmissiveStrength: 1
   - TexID: 986
     NormalStrength: 1.2
     SpecularStrength: 0.8
@@ -1285,6 +1288,7 @@ Materials:
     NormalStrength: 0.2
     Metalness: 0.9
     Roughness: 0.7
+    EmissiveStrength: 0.4
   - TexID: 1100
     NormalStrength: 0.2
     Metalness: 0.9

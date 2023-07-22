@@ -1949,13 +1949,18 @@ Materials:
   - TexID: 1516
     NormalStrength: 0.252
     Roughness: 0.597
+  - TexID: 1518
+    Roughness: 0.6
+    EmissiveStrength: 2
   - TexID: 1520
     NormalStrength: 0.583
     Metalness: 0.818
     Roughness: 0.671
+    EmissiveStrength: 1
   - TexID: 1522
     NormalStrength: 0.417
     Roughness: 0.61
+    EmissiveStrength: 2
   - TexID: 1524
     NormalStrength: 0.837
     Metalness: 0.81
@@ -2092,10 +2097,12 @@ Materials:
     NormalStrength: 0.245
     Metalness: 1
     Roughness: 0.608
+    EmissiveStrength: 0.5
   - TexID: 1636
     NormalStrength: 0.517
     Metalness: 1
     Roughness: 0.8
+    EmissiveStrength: 0.5
   - TexID: 1666
     NormalStrength: 0.371
     Metalness: 0.798
@@ -2105,6 +2112,7 @@ Materials:
     NormalStrength: 0.397
     Metalness: 0.818
     Roughness: 0.626
+    EmissiveStrength: 5.591
   - TexID: 1712
     NormalStrength: 0.397
     Metalness: 0.818
@@ -2305,6 +2313,9 @@ Materials:
     Metalness: 0.884
     Roughness: 0.601
     EmissiveStrength: 4
+  - TexID: 2043
+    Roughness: 0.6
+    EmissiveStrength: 2
   - TexID: 2089
     Roughness: 0.6
     EmissiveStrength: 3

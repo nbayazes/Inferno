@@ -19,6 +19,8 @@ namespace Inferno {
         EdgeV = 4 // Wraps on V, but combines the first and last light when texture wraps on U
     };
 
+    constexpr Color LIGHT_UNSET = { -1, -1, -1 }; // Indicates that light from the level texture info should be used
+
     // Defines dynamic light sources on a texture
     struct TextureLightInfo {
         LevelTexID Id = LevelTexID::None;
@@ -28,7 +30,7 @@ namespace Inferno {
         float Radius = 40; // light radius
         float Width = 0.25f; // U Width for rectangular lights. For wrapped lights this is aligned to the wrap direction.
         float Height = 0.25f; // V Height for rectangular lights. Unused for wrapped lights.
-        Color Color = { 0, 0, 0 };
+        Color Color = LIGHT_UNSET;
         LightWrapMode Wrap = LightWrapMode::None;
 
         bool IsContinuous() const {

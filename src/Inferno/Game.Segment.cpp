@@ -185,7 +185,7 @@ namespace Inferno {
         Color color;
 
         auto lightInfo1 = Seq::findKey(Resources::LightInfoTable, side.TMap);
-        if (lightInfo1 && lightInfo1->Color != Color(0,0,0)) {
+        if (lightInfo1 && lightInfo1->Color != LIGHT_UNSET) {
             color += lightInfo1->Color;
         }
         else if (tmap1.Lighting > 0) {
@@ -194,7 +194,7 @@ namespace Inferno {
 
         if (side.HasOverlay()) {
             auto lightInfo2 = Seq::findKey(Resources::LightInfoTable, side.TMap2);
-            if (lightInfo2 && lightInfo2->Color != Color(0, 0, 0)) {
+            if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
                 color += lightInfo2->Color;
             }
             else if (tmap2.Lighting > 0) {
