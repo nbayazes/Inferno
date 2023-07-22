@@ -5,19 +5,18 @@
 #include "Game.h"
 #include "Resources.h"
 #include "Physics.h"
+#include "logging.h"
 
 namespace Inferno {
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
         return info.Difficulty[Game::Difficulty];
     }
 
-
-    Tuple<Vector3, float> GetPlayerDirection(const Object& obj) {
-        auto& player = Game::Level.Objects[0];
-        auto playerDir = player.Position - obj.Position;
-        auto dist = playerDir.Length();
-        playerDir.Normalize();
-        return { playerDir, dist };
+    Tuple<Vector3, float> GetDirectionAndDistance(const Vector3& target, const Vector3& point) {
+        auto dir = target - point;
+        float length = dir.Length();
+        dir.Normalize();
+        return { dir, length };
     }
 
     bool CanSeePlayer(const Object& obj, const Vector3& playerDir, float playerDist) {
@@ -29,7 +28,7 @@ namespace Inferno {
     }
 
     bool CheckPlayerVisibility(Object& obj, ObjID id, const RobotInfo& robot) {
-        auto [playerDir, dist] = GetPlayerDirection(obj);
+        auto [playerDir, dist] = GetDirectionAndDistance(obj.Position, obj.Position);
         if (!CanSeePlayer(obj, playerDir, dist)) return false;
 
         //auto angle = AngleBetweenVectors(playerDir, obj.Rotation.Forward());
@@ -81,8 +80,24 @@ namespace Inferno {
             }
         }
 
-        return current;
+        return SegID::None;
     }
+
+    //Array<SegID, 3> GetNextPathSegments(SegID start, span<SegID> path) {
+    //    Array<SegID, 3> result = { SegID::None, SegID::None, SegID::None };
+    //    if (path.size() < 3) return result;
+
+    //    for (int i = 0; i < path.size() - 2; i++) {
+    //        if (path[i] == start) {
+    //            result[0] = start;
+    //            result[1] = path[i + 1];
+    //            result[2] = path[i + 2];
+    //            break;
+    //        }
+    //    }
+
+    //    return result;
+    //}
 
     void MoveTowardsPoint(Object& obj, const Vector3& point, float dt) {
         auto dir = point - obj.Position;
@@ -93,34 +108,121 @@ namespace Inferno {
         obj.Physics.Velocity += dir * Difficulty(robot).MaxSpeed * 2 * dt;
     }
 
-    void PathTowardsGoal(Level& level, Object& obj, float dt) {
-        auto& ai = obj.Control.AI.ail;
+    Tag GetNextConnection(span<SegID> _path, Level& level, SegID segId) {
+        for (int i = 0; i < _path.size() - 1; i++) {
+            if (_path[i] == segId) {
+                auto& seg = level.GetSegment(segId);
 
-        auto& seg = level.GetSegment(obj.Segment);
-        if (SegmentIsAdjacent(seg, ai.GoalSegment) || ai.GoalSegment == obj.Segment) {
-            // move directly towards goal
-            MoveTowardsPoint(obj, ai.GoalPosition, dt);
-
-            if (Vector3::Distance(obj.Position, ai.GoalPosition) <= obj.Radius) {
-                SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
-                ai.GoalSegment = SegID::None; // Reached the goal!
+                // Find the connection to the next segment in the path
+                for (auto& sideId : SideIDs) {
+                    auto connId = seg.GetConnection(sideId);
+                    if (connId == _path[i + 1]) {
+                        return { segId, sideId };
+                    }
+                }
             }
         }
-        else {
-            if (!PathIsValid(obj)) {
-                // Calculate a new path
-                SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
-                obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, Game::Rooms, level);
-                if (obj.GoalPath.empty()) {
-                    // Unable to find a valid path, clear the goal and give up
-                    ai.GoalSegment = SegID::None;
-                    return;
+
+        return {};
+    }
+
+    class SegmentPath {
+        List<SegID> _path;
+
+    public:
+        Tag GetNextConnection(Level& level, SegID segId) const {
+            for (int i = 0; i < _path.size() - 1; i++) {
+                if (_path[i] == segId) {
+                    auto& seg = level.GetSegment(segId);
+
+                    // Find the connection to the next segment in the path
+                    for (auto& sideId : SideIDs) {
+                        auto connId = seg.GetConnection(sideId);
+                        if (connId == _path[i + 1]) {
+                            return { connId, sideId };
+                        }
+                    }
                 }
             }
 
-            auto nextSegId = GetNextPathSegment(obj.GoalPath, obj.Segment);
-            auto& nextSeg = level.GetSegment(nextSegId);
-            MoveTowardsPoint(obj, nextSeg.Center, dt);
+            return {};
+        }
+
+        SegID GetNextPathSegment(SegID current) const {
+            for (int i = 0; i < _path.size(); i++) {
+                if (_path[i] == current) {
+                    if (i + 1 >= _path.size()) break; // already at end
+                    return _path[i + 1];
+                }
+            }
+
+            return current;
+        }
+    };
+
+    void PathTowardsGoal(Level& level, Object& obj, float dt) {
+        auto& ai = obj.Control.AI.ail;
+        auto& seg = level.GetSegment(obj.Segment);
+
+        auto checkGoalReached = [&obj, &ai] {
+            if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
+                SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
+                ai.GoalSegment = SegID::None; // Reached the goal!
+            }
+        };
+
+        if (!PathIsValid(obj)) {
+            // Calculate a new path
+            SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
+            obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, Game::Rooms, level);
+            if (obj.GoalPath.empty()) {
+                // Unable to find a valid path, clear the goal and give up
+                ai.GoalSegment = SegID::None;
+                ai.GoalRoom = RoomID::None;
+                return;
+            }
+        }
+
+        if (ai.GoalSegment == obj.Segment) {
+            // Reached the goal segment
+            MoveTowardsPoint(obj, ai.GoalPosition, dt);
+            checkGoalReached();
+        }
+        else {
+            auto next1 = GetNextPathSegment(obj.GoalPath, obj.Segment);
+            auto next2 = GetNextPathSegment(obj.GoalPath, next1);
+
+            auto nextSideTag = GetNextConnection(obj.GoalPath, level, obj.Segment);
+            auto& nextSide = level.GetSide(nextSideTag);
+            Vector3 targetPosition = nextSide.Center;
+
+            if (next2 == SegID::None) {
+                // Target segment is adjacent, try pathing directly to it.
+                auto [dir, maxDist] = GetDirectionAndDistance(ai.GoalPosition, obj.Position);
+                Ray ray(obj.Position, dir);
+                SegID segs[] = { obj.Segment, next1, next2 };
+                if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
+                    targetPosition = ai.GoalPosition;
+
+                checkGoalReached(); // it's possible for the final seg to be small, so check completion if we're adjacent to it
+            }
+            else {
+                // Try pathing directly across multiple segments
+                if (auto nextSideTag2 = GetNextConnection(obj.GoalPath, level, next1)) {
+                    // nothing between current seg and target so use a direct path
+                    auto side2Center = level.GetSide(nextSideTag2).Center;
+
+                    auto [dir, maxDist] = GetDirectionAndDistance(side2Center, obj.Position);
+                    Ray ray(obj.Position, dir);
+                    SegID segs[] = { obj.Segment, next1, next2 };
+                    if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
+                        targetPosition = side2Center;
+                }
+            }
+
+            //auto& seg1 = Game::Level.GetSegment(next1);
+            //auto& seg2 = Game::Level.GetSegment(next2);
+            MoveTowardsPoint(obj, targetPosition, dt);
         }
     }
 

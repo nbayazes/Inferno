@@ -333,7 +333,7 @@ namespace Inferno {
     CollisionType ObjectCanHitTarget(const Object& src, const Object& target) {
         if (!target.IsAlive() && target.Type != ObjectType::Reactor) return CollisionType::None;
         if (src.Signature == target.Signature) return CollisionType::None; // don't hit yourself!
-
+        if (target.Type == ObjectType::SecretExitReturn || src.Type == ObjectType::SecretExitReturn) return CollisionType::None;
         //if (src.Parent == target.Parent && src.Parent != ObjID::None) return false; // don't hit your siblings!
 
         //if ((src.Parent != ObjID::None && target.Parent != ObjID::None) && src.Parent == target.Parent)
@@ -505,6 +505,55 @@ namespace Inferno {
                             next = conn;
                         break; // go to next segment
                     }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    bool IntersectRaySegments(Level& level, const Ray& ray, span<SegID> segments, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult) {
+        if (maxDist <= 0.01f) return false;
+        LevelHit hit;
+
+        for (auto& segId : segments) {
+            auto seg = level.TryGetSegment(segId);
+            if (!seg) continue;
+
+            for (auto& side : SideIDs) {
+                auto face = Face::FromSide(level, *seg, side);
+
+                float dist{};
+                auto tri = face.Intersects(ray, dist);
+                if (tri == -1 || dist > hit.Distance) continue;
+
+                if (dist > maxDist) return {}; // hit is too far
+
+                auto intersect = hit.Point = ray.position + ray.direction * dist;
+                Tag tag{ segId, side };
+
+                bool isSolid = false;
+                if (seg->SideIsWall(side) && WallIsTransparent(level, tag)) {
+                    if (passTransparent)
+                        isSolid = false;
+                    else if (hitTestTextures)
+                        isSolid = !WallPointIsTransparent(intersect, face, tri);
+                }
+                else {
+                    isSolid = seg->SideIsSolid(side, level);
+                }
+
+                if (isSolid) {
+                    if (hitResult) {
+                        hit.Tag = tag;
+                        hit.Distance = dist;
+                        hit.Normal = face.AverageNormal();
+                        hit.Tangent = face.Side.Tangents[tri];
+                        hit.Point = ray.position + ray.direction * dist;
+                        hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
+                        *hitResult = hit;
+                    }
+                    return true;
                 }
             }
         }

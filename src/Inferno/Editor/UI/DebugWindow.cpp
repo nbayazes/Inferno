@@ -10,6 +10,10 @@
 #include "Editor/Gizmo.h"
 #include "Game.h"
 
+namespace Inferno {
+    Tag GetNextConnection(span<SegID> _path, Level& level, SegID segId);
+}
+
 namespace Inferno::Editor {
     DebugWindow::DebugWindow(): WindowBase("Debug", &Settings::Editor.Windows.Debug) {}
 
@@ -29,11 +33,27 @@ namespace Inferno::Editor {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
                 auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, Game::Rooms, Game::Level);
 
-                if(obj->IsRobot()) {
+                if (obj->IsRobot()) {
                     auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
-                    obj->Control.AI.ail.GoalSegment = Editor::Selection.Segment;
-                    obj->Control.AI.ail.GoalPosition = seg.Center;
                     obj->NextThinkTime = 0;
+
+                    auto& ai = obj->Control.AI.ail;
+                    ai.GoalSegment = Editor::Selection.Segment;
+                    ai.GoalPosition = seg.Center;
+                    ai.GoalRoom = Game::Rooms.FindBySegment(Editor::Selection.Segment);
+
+
+                    //auto tag = GetNextConnection(path, Game::Level, obj->Segment);
+                    //auto& side = Game::Level.GetSide(tag);
+                    //auto delta = (side.Center - obj->Position) / 4;
+
+                    //ai.RoomCurve.Points = {
+                    //    obj->Position,
+                    //    obj->Position + delta,
+                    //    obj->Position + delta * 2,
+                    //    obj->Position + delta * 3
+                    //};
+                    //ai.CurveProgress = 1;
                 }
 
                 Debug::NavigationPath.clear();

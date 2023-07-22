@@ -79,7 +79,7 @@ namespace Inferno {
         Array<sbyte, MAX_SUBMODELS> GoalState{}, AchievedState{};
 
         SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
-        //RoomID GoalRoom = RoomID::None;
+        RoomID GoalRoom = RoomID::None;
         Vector3 GoalPosition; // position the robot wants to move to
         Vector3 AimTarget; // where the robot wants to aim
     };
