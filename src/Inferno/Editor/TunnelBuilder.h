@@ -1,14 +1,8 @@
 #pragma once
+#include "Bezier.h"
 #include "Level.h"
 
 namespace Inferno::Editor {
-
-    struct BezierCurve {
-        Array<Vector3, 4> Points{};
-
-        float EstimateLength(int steps) const;
-    };
-
     struct PathNode {
         Matrix Rotation;
         Vector3 Position; // absolute and unrotated vertices

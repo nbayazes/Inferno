@@ -9,34 +9,6 @@
 #include "Editor.Geometry.h"
 
 namespace Inferno::Editor {
-    Vector3 DeCasteljausAlgorithm(float t, Array<Vector3, 4> points) {
-        auto q = Vector3::Lerp(points[0], points[1], t);
-        auto r = Vector3::Lerp(points[1], points[2], t);
-        auto s = Vector3::Lerp(points[2], points[3], t);
-
-        auto p2 = Vector3::Lerp(q, r, t);
-        auto t2 = Vector3::Lerp(r, s, t);
-
-        return Vector3::Lerp(p2, t2, t);
-    }
-
-    // Estimate the length of a curve by taking segment lengths
-    float BezierCurve::EstimateLength(int steps) const {
-        float delta = 1 / (float)steps;
-        Vector3 prevPos = Points[0];
-        float length = 0;
-
-        // Move along the curve
-        for (int i = 1; i <= steps; i++) {
-            float t = delta * (float)i;
-            auto pos = DeCasteljausAlgorithm(t, Points);
-            length += Vector3::Distance(pos, prevPos);
-            prevPos = pos;
-        }
-
-        return length;
-    }
-
     Vector3 DeCasteljausDerivative(const Array<Vector3, 4>& curve, float t) {
         Vector3 dU = t * t * (-3.0f * (curve[0] - 3.0f * (curve[1] - curve[2]) - curve[3]));
         dU += t * (6.0f * (curve[0] - 2.0f * curve[1] + curve[2]));
@@ -173,7 +145,7 @@ namespace Inferno::Editor {
         auto bendAngle = acos(dot);
 
         Vector3 rotAxis;
-        if (bendAngle > M_PI - 1e-6) {
+        if (bendAngle > DirectX::XM_PI - 1e-6) {
             // Angle is close to 180 degrees, which means the rotation axis could be anything
             // perpendicular to the forward vector. We'll pick an axis also perpendicular to the
             // displacement between the two ends of the corridor.
