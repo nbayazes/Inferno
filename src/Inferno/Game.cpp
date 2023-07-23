@@ -738,10 +738,6 @@ namespace Inferno::Game {
     // Returns the lerp amount for the current tick. Executes every frame.
     float GameUpdate(float dt) {
         if (!Level.Objects.empty()) {
-            auto& physics = Level.Objects[0].Physics; // player
-            physics.Thrust = Vector3::Zero;
-            physics.AngularThrust = Vector3::Zero;
-
             if (Game::State == GameState::Editor) {
                 if (Settings::Editor.EnablePhysics)
                     HandleEditorDebugInput(dt);

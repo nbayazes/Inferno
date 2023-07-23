@@ -6,6 +6,8 @@
 #include "Resources.h"
 #include "Physics.h"
 #include "logging.h"
+#include "Physics.Math.h"
+#include "Graphics/Render.Debug.h"
 
 namespace Inferno {
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
@@ -28,7 +30,8 @@ namespace Inferno {
     }
 
     bool CheckPlayerVisibility(Object& obj, ObjID id, const RobotInfo& robot) {
-        auto [playerDir, dist] = GetDirectionAndDistance(obj.Position, obj.Position);
+        auto& player = Game::Level.Objects[0];
+        auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
         if (!CanSeePlayer(obj, playerDir, dist)) return false;
 
         //auto angle = AngleBetweenVectors(playerDir, obj.Rotation.Forward());
@@ -63,6 +66,8 @@ namespace Inferno {
     //    if (ai.GoalPath.empty()) return SegID::None;
     //    return *ai.GoalPath.end();
     //}
+
+    void PerformDodge(Object& obj, Vector2 direction) { }
 
     bool PathIsValid(Object& obj) {
         auto& ai = obj.Control.AI.ail;
@@ -99,13 +104,46 @@ namespace Inferno {
     //    return result;
     //}
 
-    void MoveTowardsPoint(Object& obj, const Vector3& point, float dt) {
+    // Similar to TurnTowardsVector but adds angular thrust
+    void RotateTowards(Object& obj, Vector3 point, float thrust) {
         auto dir = point - obj.Position;
         dir.Normalize();
 
+        // transform towards to local coordinates
+        Matrix basis(obj.Rotation);
+        basis = basis.Invert();
+        dir = Vector3::Transform(dir, basis); // transform towards to basis of object
+        dir.z *= -1; // hack: correct for LH object matrix
+
+        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, dir); // rotation to the target vector
+        auto euler = rotation.ToEuler() * thrust;
+        euler.z = 0; // remove roll
+        //obj.Physics.AngularVelocity = euler;
+        obj.Physics.AngularThrust += euler;
+    }
+
+    void MoveTowardsPoint(Object& obj, const Vector3& point, float thrust) {
+        auto dir = point - obj.Position;
+        dir.Normalize();
+
+        //auto& robot = Resources::GetRobotInfo(obj.ID);
+        //RotateTowards(obj, dir, Difficulty(robot).TurnTime);
+        //obj.Physics.Velocity += dir * Difficulty(robot).MaxSpeed * 2 * dt;
+        // v = t / m
+        // max thrust = v * m -> 70
+        obj.Physics.Thrust += dir * thrust;
+    }
+
+    void ClampThrust(Object& obj) {
         auto& robot = Resources::GetRobotInfo(obj.ID);
-        TurnTowardsVector(obj, dir, Difficulty(robot).TurnTime);
-        obj.Physics.Velocity += dir * Difficulty(robot).MaxSpeed * 2 * dt;
+
+        auto maxSpeed = Difficulty(robot).MaxSpeed / 8;
+        Vector3 maxThrust(maxSpeed, maxSpeed, maxSpeed);
+        obj.Physics.Thrust.Clamp(-maxThrust, maxThrust);
+
+        auto maxAngle = 1 / Difficulty(robot).TurnTime;
+        Vector3 maxAngVel(maxAngle, maxAngle, maxAngle);
+        obj.Physics.AngularThrust.Clamp(-maxAngVel, maxAngVel);
     }
 
     Tag GetNextConnection(span<SegID> _path, Level& level, SegID segId) {
@@ -160,9 +198,70 @@ namespace Inferno {
         }
     };
 
-    void PathTowardsGoal(Level& level, Object& obj, float dt) {
+    // Returns true if the ray is within the radius of a face edge. Intended for edge avoidance.
+    bool CheckLevelEdges(Level& level, const Ray& ray, span<SegID> segments, float radius) {
+        for (auto& segId : segments) {
+            auto seg = level.TryGetSegment(segId);
+            if (!seg) continue;
+
+            for (auto& side : SideIDs) {
+                if (!seg->SideIsSolid(side, level)) continue;
+                auto face = Face::FromSide(level, *seg, side);
+                if (face.AverageNormal().Dot(ray.direction) > 0)
+                    continue; // don't hit test faces pointing away
+
+                auto planeNormal = face.AverageNormal();
+                auto planeOrigin = face.Center();
+                auto length = planeNormal.Dot(ray.position - planeOrigin) / planeNormal.Dot(-ray.direction);
+                if (std::isinf(length)) continue;
+                auto point = ray.position + ray.direction * length;
+
+                //auto maybePoint = ProjectRayOntoPlane(ray, face.Center(), face.AverageNormal());
+                //if (!maybePoint) continue;
+                //auto& point = *maybePoint;
+                auto edge = face.GetClosestEdge(point);
+                auto closest = ClosestPointOnLine(face[edge], face[edge + 1], point);
+
+                if (Vector3::Distance(closest, point) < radius) {
+                    Render::Debug::DrawPoint(point, Color(1, 0, 0));
+                    //Render::Debug::DrawPoint(closest, Color(1, 0, 0));
+                    Render::Debug::DrawLine(closest, point, Color(1, 0, 0));
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    void AvoidConnectionEdges(Level& level, const Ray& ray, Tag tag, Object& obj, float thrust) {
+        auto& seg = level.GetSegment(tag);
+        // project ray onto side
+        auto& side = seg.GetSide(tag.Side);
+        auto point = ProjectRayOntoPlane(ray, side.Center, side.AverageNormal);
+        if (!point) return;
+        auto face = Face::FromSide(level, seg, tag.Side);
+
+        // check point vs each edge
+        for (int edge = 0; edge < 4; edge++) {
+            // check if edge's adjacent side is closed
+            auto adjacent = GetAdjacentSide(tag.Side, edge);
+            if (!seg.SideIsSolid(adjacent, level)) continue;
+
+            // check distance
+            auto edgePoint = ClosestPointOnLine(face[edge], face[edge + 1], *point);
+            if (Vector3::Distance(edgePoint, *point) < obj.Radius * 1.5f) {
+                // avoid this edge
+                Render::Debug::DrawLine(obj.Position, side.Center, Color(1, 0, 0));
+                MoveTowardsPoint(obj, side.Center, thrust);
+            }
+        }
+    }
+
+
+    void PathTowardsGoal(Level& level, Object& obj, float /*dt*/) {
         auto& ai = obj.Control.AI.ail;
-        auto& seg = level.GetSegment(obj.Segment);
+        //auto& seg = level.GetSegment(obj.Segment);
 
         auto checkGoalReached = [&obj, &ai] {
             if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
@@ -183,14 +282,21 @@ namespace Inferno {
             }
         }
 
+        auto& robot = Resources::GetRobotInfo(obj.ID);
+        auto thrust = Difficulty(robot).MaxSpeed / 8;
+        auto angThrust = 1 / Difficulty(robot).TurnTime / 8;
+
         if (ai.GoalSegment == obj.Segment) {
             // Reached the goal segment
-            MoveTowardsPoint(obj, ai.GoalPosition, dt);
+            MoveTowardsPoint(obj, ai.GoalPosition, thrust);
+            RotateTowards(obj, ai.GoalPosition, angThrust);
             checkGoalReached();
         }
         else {
             auto next1 = GetNextPathSegment(obj.GoalPath, obj.Segment);
             auto next2 = GetNextPathSegment(obj.GoalPath, next1);
+
+            SegID segs[] = { obj.Segment, next1, next2 };
 
             auto nextSideTag = GetNextConnection(obj.GoalPath, level, obj.Segment);
             auto& nextSide = level.GetSide(nextSideTag);
@@ -200,7 +306,6 @@ namespace Inferno {
                 // Target segment is adjacent, try pathing directly to it.
                 auto [dir, maxDist] = GetDirectionAndDistance(ai.GoalPosition, obj.Position);
                 Ray ray(obj.Position, dir);
-                SegID segs[] = { obj.Segment, next1, next2 };
                 if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
                     targetPosition = ai.GoalPosition;
 
@@ -214,7 +319,6 @@ namespace Inferno {
 
                     auto [dir, maxDist] = GetDirectionAndDistance(side2Center, obj.Position);
                     Ray ray(obj.Position, dir);
-                    SegID segs[] = { obj.Segment, next1, next2 };
                     if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
                         targetPosition = side2Center;
                 }
@@ -222,7 +326,19 @@ namespace Inferno {
 
             //auto& seg1 = Game::Level.GetSegment(next1);
             //auto& seg2 = Game::Level.GetSegment(next2);
-            MoveTowardsPoint(obj, targetPosition, dt);
+            MoveTowardsPoint(obj, targetPosition, thrust);
+            RotateTowards(obj, targetPosition, angThrust);
+
+            // Check for edge collisions and dodge
+            auto [dir, maxDist] = GetDirectionAndDistance(targetPosition, obj.Position);
+            Ray ray(obj.Position, dir);
+            Render::Debug::DrawLine(obj.Position, targetPosition, Color(0, 1, 0));
+            AvoidConnectionEdges(level, ray, nextSideTag, obj, thrust);
+
+            //if (CheckLevelEdges(level, ray, segs, obj.Radius)) {
+            //    //MoveTowardsPoint(obj, nextSide.Center, thrust);
+            //    Render::Debug::DrawLine(obj.Position, nextSide.Center, Color(1, 0, 0));
+            //}
         }
     }
 
@@ -243,47 +359,48 @@ namespace Inferno {
         if (obj.Type == ObjectType::Robot) {
             auto id = ObjID(&obj - Game::Level.Objects.data());
 
-            // check fov
-
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto& ai = obj.Control.AI.ail;
             auto& player = Game::Level.Objects[0];
 
-            if (ai.Awareness > 0.5f) {
+            // Reset thrust accumulation
+            obj.Physics.Thrust = Vector3::Zero;
+            obj.Physics.AngularThrust = Vector3::Zero;
+
+            if (ai.GoalSegment != SegID::None) {
+                // goal path takes priority over other behaviors
+                PathTowardsGoal(Game::Level, obj, dt);
+            }
+            else if (ai.Awareness > 0.5f) {
                 // in combat?
+                auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
+                if (CanSeePlayer(obj, playerDir, dist)) {
+                    TurnTowardsVector(obj, playerDir, Difficulty(robot).TurnTime);
+                    ai.AimTarget = player.Position;
+                }
+                else {
+                    // Lost sight of player, decay awareness based on AI
+                    auto deltaTime = float(Game::Time - ai.LastUpdate);
+                    ai.Awareness -= DefaultAi.AwarenessDecay * deltaTime;
+                    if (ai.Awareness < 0) ai.Awareness = 0;
 
-                //auto [playerDir, dist] = GetPlayerDirection(obj);
-                //if (CanSeePlayer(obj, playerDir, dist)) {
-                //    TurnTowardsVector(obj, playerDir, Difficulty(robot).TurnTime);
-                //    ai.AimTarget = player.Position;
-                //}
-                //else {
-                //    // Lost sight of player, decay awareness based on AI
-                //    auto deltaTime = float(Game::Time - ai.LastUpdate);
-                //    ai.Awareness -= DefaultAi.AwarenessDecay * deltaTime;
-                //    if (ai.Awareness < 0) ai.Awareness = 0;
-
-                //    // todo: move towards last known location
-                //}
+                    // todo: move towards last known location
+                }
 
                 obj.NextThinkTime = Game::Time + Game::TICK_RATE;
             }
             else {
-                if (ai.GoalSegment != SegID::None) {
-                    PathTowardsGoal(Game::Level, obj, dt);
-                }
-                else {
-                    //if (CheckPlayerVisibility(obj, id, robot)) {
-                    //    obj.NextThinkTime = Game::Time + Game::TICK_RATE;
-                    //}
-                    //else {
-                    //    // Nothing nearby
-                    //    obj.NextThinkTime = Game::Time + 1.0f;
-                    //}
-                    obj.NextThinkTime = Game::Time + 1.0f;
-                }
+                //if (CheckPlayerVisibility(obj, id, robot)) {
+                //    obj.NextThinkTime = Game::Time + Game::TICK_RATE;
+                //}
+                //else {
+                //    // Nothing nearby
+                //    obj.NextThinkTime = Game::Time + 1.0f;
+                //}
+                obj.NextThinkTime = Game::Time + 1.0f;
             }
 
+            ClampThrust(obj);
             ai.LastUpdate = Game::Time;
         }
         else if (obj.Type == ObjectType::Reactor) {

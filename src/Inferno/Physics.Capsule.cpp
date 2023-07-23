@@ -120,7 +120,9 @@ namespace Inferno {
             // Project the line onto plane
             Ray r(A, capsuleNormal);
             Plane p(p0, p1, p2);
-            auto linePlaneIntersect = ProjectRayOntoPlane(r, p0, p.Normal());
+            auto maybeLinePlaneIntersect = ProjectRayOntoPlane(r, p0, p.Normal());
+            if (!maybeLinePlaneIntersect) return false;
+            auto& linePlaneIntersect = *maybeLinePlaneIntersect;
             auto inside = TriangleContainsPoint(p0, p1, p2, linePlaneIntersect);
 
             if (inside) {

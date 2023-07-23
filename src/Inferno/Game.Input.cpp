@@ -102,6 +102,9 @@ namespace Inferno {
 
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;
+        // Reset previous inputs
+        physics.Thrust = Vector3::Zero;
+        physics.AngularThrust = Vector3::Zero;
 
         HandleWeaponKeys();
 

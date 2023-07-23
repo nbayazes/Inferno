@@ -123,7 +123,7 @@ namespace Inferno::Editor {
                 MenuCommand(EditorAction::SaveAs);
 
                 ImGui::Separator();
-                
+
                 MenuCommand(EditorAction::ShowHogEditor, "Edit HOG...");
                 MenuCommand(EditorAction::ShowMissionEditor, "Edit Mission...");
 
@@ -356,7 +356,12 @@ namespace Inferno::Editor {
                     _debugWindow.ToggleIsOpen();
 
                 ImGui::Separator();
-                ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
+                if (ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics)) {
+                    for (auto& obj : Game::Level.Objects) {
+                        obj.PrevPosition = obj.Position;
+                        obj.PrevRotation = obj.Rotation;
+                    }
+                }
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
 #endif
                 ImGui::EndMenu();
@@ -438,7 +443,7 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##rdrp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg , M_PI / 4 * RadToDeg };
+                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg, M_PI / 4 * RadToDeg };
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
@@ -648,7 +653,8 @@ namespace Inferno::Editor {
             Input::GetMouselook() ||
             (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) || // Disable right click in texture mode
             Input::LeftDragState == Input::SelectionState::Dragging ||
-            ImGui::GetTopMostPopupModal()) return false;
+            ImGui::GetTopMostPopupModal())
+            return false;
 
         auto id = ImGui::GetID("context-menu");
 
@@ -914,7 +920,7 @@ namespace Inferno::Editor {
             DrawGizmoTooltip();
         }
         else if (Input::LeftDragState == Input::SelectionState::Dragging &&
-                 !ImGui::GetIO().WantCaptureMouse) {
+            !ImGui::GetIO().WantCaptureMouse) {
             DrawSelectionBox();
         }
 

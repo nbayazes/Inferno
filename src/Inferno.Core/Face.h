@@ -50,6 +50,22 @@ namespace Inferno {
             return -1;
         }
 
+        int IntersectsOffset(const Ray& ray, float& dist, float offset, bool hitBackface = false) const {
+            auto& i = Side.GetRenderIndices();
+            bool hitTri0 = hitBackface || Side.Normals[0].Dot(ray.direction) < 0;
+            bool hitTri1 = hitBackface || Side.Normals[1].Dot(ray.direction) < 0;
+
+            auto offset0 = Side.Normals[0] * offset;
+            if (hitTri0 && ray.Intersects(GetPoint(i[0]) + offset0, GetPoint(i[1]) + offset0, GetPoint(i[2]) + offset0, dist))
+                return 0;
+
+            auto offset1 = Side.Normals[1] * offset;
+            if (hitTri1 && ray.Intersects(GetPoint(i[3]) * offset1, GetPoint(i[4]) * offset1, GetPoint(i[5]) * offset1, dist))
+                return 1;
+
+            return -1;
+        }
+
         Array<Vector3, 4> CopyPoints() const {
             return { P0, P1, P2, P3 };
         }
@@ -83,7 +99,7 @@ namespace Inferno {
         }
 
         // Returns point 0-3
-        int16 GetClosestEdge(const Vector3& pos) {
+        int16 GetClosestEdge(const Vector3& pos) const {
             int16 closest = 0;
             auto maxDist = FLT_MAX;
             for (int16 i = 0; i < 4; i++) {

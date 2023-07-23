@@ -272,7 +272,8 @@ namespace Inferno::Editor {
             case TransformMode::Translation:
             {
                 auto end = ProjectRayOntoPlane(MouseRay, StartTransform.Translation(), camera.GetForward());
-                auto delta = end - CursorStart;
+                if (!end) return;
+                auto delta = *end - CursorStart;
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
                 auto translation = Step(magnitude, Settings::Editor.TranslationSnap) * Direction;
                 auto deltaTranslation = translation - _prevTranslation;
@@ -286,7 +287,8 @@ namespace Inferno::Editor {
             case TransformMode::Scale:
             {
                 auto end = ProjectRayOntoPlane(MouseRay, StartTransform.Translation(), camera.GetForward());
-                auto delta = end - CursorStart;
+                if (!end) return;
+                auto delta = *end - CursorStart;
                 auto magnitude = std::min(delta.Dot(Direction), 10000.0f);
                 auto translation = Step(magnitude, Settings::Editor.TranslationSnap) * Direction;
                 DeltaTransform.Translation(translation - _prevTranslation);
@@ -303,7 +305,8 @@ namespace Inferno::Editor {
 
                 auto position = StartTransform.Translation();
                 auto end = ProjectRayOntoPlane(MouseRay, position, normal);
-                float angle = AngleBetweenPoints(CursorStart, end, position, normal);
+                if (!end) return;
+                float angle = AngleBetweenPoints(CursorStart, *end, position, normal);
                 angle = Step(angle, Settings::Editor.RotationSnap);
                 if (normal.Dot(planeNormal) < 0)
                     angle = -angle;
@@ -318,7 +321,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void SetGizmoPreviewPoints(GizmoAxis axis, Matrix& transform) {
+    void SetGizmoPreviewPoints(GizmoAxis axis, const Matrix& transform) {
         auto origin = transform.Translation();
 
         switch (axis) {
@@ -360,12 +363,16 @@ namespace Inferno::Editor {
                 break;
             }
             case Input::SelectionState::Preselect:
+            {
                 if (SelectedAxis == GizmoAxis::None) return; // User didn't click the gizmo
+                auto point = ProjectRayOntoPlane(MouseRay, Transform.Translation(), camera.GetForward());
+                if (!point) return; // Click didn't intersect plane somehow
+                CursorStart = *point;
                 Direction = GetPlaneNormal(SelectedAxis, Transform);
-                CursorStart = ProjectRayOntoPlane(MouseRay, Transform.Translation(), camera.GetForward());
                 StartTransform = Transform;
                 _prevAngle = 0;
                 break;
+            }
 
             case Input::SelectionState::BeginDrag:
                 if (SelectedAxis == GizmoAxis::None) return;

@@ -303,10 +303,11 @@ namespace Inferno {
         return Matrix::CreateFromYawPitchRoll(yaw, roll, pitch);
     }
 
-    // Projects a ray onto a plane. What happens if parallel?
-    inline Vector3 ProjectRayOntoPlane(const Ray& ray, const Vector3& planeOrigin, Vector3 planeNormal) {
+    // Projects a ray onto a plane. Returns nothing when parallel.
+    inline Option<Vector3> ProjectRayOntoPlane(const Ray& ray, const Vector3& planeOrigin, Vector3 planeNormal) {
         assert(IsNormalized(planeNormal));
         auto length = planeNormal.Dot(ray.position - planeOrigin) / planeNormal.Dot(-ray.direction);
+        if (std::isinf(length)) return {};
         return ray.position + ray.direction * length;
     }
 

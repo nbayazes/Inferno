@@ -155,8 +155,9 @@ namespace Inferno {
         const auto drag = pdDrag * 5 / 2;
         const auto falloffScale = dt / Game::TICK_RATE; // adjusts falloff of values that expect a normal tick rate
 
-        if (HasFlag(pd.Flags, PhysicsFlag::UseThrust) && pd.Mass > 0)
+        if (/*HasFlag(pd.Flags, PhysicsFlag::UseThrust) &&*/ pd.Mass > 0) {
             pd.AngularVelocity += pd.AngularThrust / pd.Mass * falloffScale; // acceleration
+        }
 
         if (!HasFlag(pd.Flags, PhysicsFlag::FixedAngVel)) {
             pd.AngularVelocity += pd.AngularAcceleration * dt;
@@ -241,11 +242,6 @@ namespace Inferno {
     void PlayerPhysics(const Object& obj, float /*dt*/) {
         if (obj.Type != ObjectType::Player) return;
         auto& physics = obj.Physics;
-
-        //const auto& ship = Resources::GameData.PlayerShip;
-
-        //physics.Thrust *= ship.MaxThrust / dt;
-        //physics.AngularThrust *= ship.MaxRotationalThrust / dt;
 
         Debug::ShipThrust = physics.Thrust;
         Debug::ShipAcceleration = Vector3::Zero;
@@ -512,7 +508,7 @@ namespace Inferno {
         return false;
     }
 
-    bool IntersectRaySegments(Level& level, const Ray& ray, span<SegID> segments, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult) {
+    bool IntersectRaySegments(Level& level, const Ray& ray, span<SegID> segments, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult, float offset) {
         if (maxDist <= 0.01f) return false;
         LevelHit hit;
 
@@ -524,7 +520,7 @@ namespace Inferno {
                 auto face = Face::FromSide(level, *seg, side);
 
                 float dist{};
-                auto tri = face.Intersects(ray, dist);
+                auto tri = face.IntersectsOffset(ray, dist, offset);
                 if (tri == -1 || dist > hit.Distance) continue;
 
                 if (dist > maxDist) return {}; // hit is too far
