@@ -134,7 +134,8 @@ namespace Inferno {
         auto other = level.GetConnectedSide(tag);
         for (auto& obj : level.Objects | views::filter(&Object::IsAlive)) {
             if (obj.Segment == tag.Segment || obj.Segment == other.Segment) {
-                DirectX::BoundingSphere sphere(obj.Position, obj.Radius);
+                // Add a small buffer because physics will reposition a robot slightly outside of the door
+                DirectX::BoundingSphere sphere(obj.Position, obj.Radius + 0.1f);
                 auto face = Face::FromSide(level, tag);
                 if (IntersectFaceSphere(face, sphere))
                     return true; // object blocking doorway!
