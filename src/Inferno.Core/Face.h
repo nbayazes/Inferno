@@ -60,7 +60,7 @@ namespace Inferno {
                 return 0;
 
             auto offset1 = Side.Normals[1] * offset;
-            if (hitTri1 && ray.Intersects(GetPoint(i[3]) * offset1, GetPoint(i[4]) * offset1, GetPoint(i[5]) * offset1, dist))
+            if (hitTri1 && ray.Intersects(GetPoint(i[3]) + offset1, GetPoint(i[4]) + offset1, GetPoint(i[5]) + offset1, dist))
                 return 1;
 
             return -1;
