@@ -372,7 +372,9 @@ namespace Inferno {
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0;
 
+        //List<Vector3> GoalPath; // For robot pathing. Here because unions can't contain vectors.
         List<SegID> GoalPath; // For robot pathing. Here because unions can't contain vectors.
+        int16 GoalPathIndex = -1;
 
         Matrix GetTransform() const {
             Matrix m(Rotation);

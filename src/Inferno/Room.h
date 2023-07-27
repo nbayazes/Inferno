@@ -9,8 +9,16 @@ namespace Inferno {
         inline List<Vector3> NavigationPath;
     }
 
-    // A room is a group of segments divided by walls
+    struct NavigationNode {
+        Vector3 Position;
+        SegID Segment = SegID::None; // None indicates node is not directly associated with a segment
+        Tag Tag; // Tag this node is associated with. Could be none for intermediate nodes.
+        List<int> Connections;
+        //int PortalID = -1; // For the edge nodes
+        //RoomID Room;
+    };
 
+    // A room is a group of segments divided by walls
     struct Room {
         List<SegID> Segments;
         List<Portal> Portals; // Which tags of this room have connections to other rooms
@@ -28,6 +36,7 @@ namespace Inferno {
         Vector3 Center;
 
         List<List<float>> PortalDistances; // List of distances from portal A to ABCD
+        List<NavigationNode> NavNodes;
 
         bool Contains(SegID id) {
             return Seq::contains(Segments, id);
@@ -51,6 +60,14 @@ namespace Inferno {
             return nullptr;
         }
 
+        bool IsPortal(Tag tag) const {
+            for (auto& portal : Portals) {
+                if (portal == tag) return true;
+            }
+
+            return false;
+        }
+
         void UpdatePortalDistances(Level& level) {
             PortalDistances.resize(Portals.size());
 
@@ -64,6 +81,22 @@ namespace Inferno {
                 }
             }
         }
+
+        int FindClosestNode(const Vector3& position) {
+            float closest = FLT_MAX;
+            int index = 0;
+            for (int i = 0; i < NavNodes.size(); i++) {
+                auto dist = Vector3::DistanceSquared(NavNodes[i].Position, position);
+                if (dist < closest) {
+                    closest = dist;
+                    index = i;
+                }
+            }
+
+            return index;
+        }
+
+        void UpdateNavNodes(Level& level);
     };
 
     RoomID FindRoomBySegment(span<Room> rooms, SegID seg);

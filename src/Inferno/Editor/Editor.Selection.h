@@ -267,6 +267,7 @@ namespace Inferno::Editor {
     inline MultiSelection Marked;
     inline EditorSelection Selection;
 
+    // Finds the shared edges between two segments. Returns the edge index for [src, dest].
     Option<Tuple<int16, int16>> FindSharedEdges(Level&, Tag src, Tag dest);
     bool HasVisibleTexture(Level&, Tag);
 

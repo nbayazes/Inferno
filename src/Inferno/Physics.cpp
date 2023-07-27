@@ -508,49 +508,48 @@ namespace Inferno {
         return false;
     }
 
-    bool IntersectRaySegments(Level& level, const Ray& ray, span<SegID> segments, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult, float offset) {
+    bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult, float offset) {
         if (maxDist <= 0.01f) return false;
         LevelHit hit;
 
-        for (auto& segId : segments) {
-            auto seg = level.TryGetSegment(segId);
-            if (!seg) continue;
+        auto seg = level.TryGetSegment(segId);
+        if (!seg) return false;
 
-            for (auto& side : SideIDs) {
-                auto face = Face::FromSide(level, *seg, side);
+        for (auto& side : SideIDs) {
+            if (!seg->SideIsSolid(side, level)) continue;
+            auto face = Face::FromSide(level, *seg, side);
 
-                float dist{};
-                auto tri = face.IntersectsOffset(ray, dist, offset);
-                if (tri == -1 || dist > hit.Distance) continue;
+            float dist{};
+            auto tri = face.IntersectsOffset(ray, dist, offset);
+            if (tri == -1 || dist > hit.Distance) continue;
 
-                if (dist > maxDist) return {}; // hit is too far
+            if (dist > maxDist) return {}; // hit is too far
 
-                auto intersect = hit.Point = ray.position + ray.direction * dist;
-                Tag tag{ segId, side };
+            auto intersect = hit.Point = ray.position + ray.direction * dist;
+            Tag tag{ segId, side };
 
-                bool isSolid = false;
-                if (seg->SideIsWall(side) && WallIsTransparent(level, tag)) {
-                    if (passTransparent)
-                        isSolid = false;
-                    else if (hitTestTextures)
-                        isSolid = !WallPointIsTransparent(intersect, face, tri);
+            bool isSolid = false;
+            if (seg->SideIsWall(side) && WallIsTransparent(level, tag)) {
+                if (passTransparent)
+                    isSolid = false;
+                else if (hitTestTextures)
+                    isSolid = !WallPointIsTransparent(intersect, face, tri);
+            }
+            else {
+                isSolid = seg->SideIsSolid(side, level);
+            }
+
+            if (isSolid) {
+                if (hitResult) {
+                    hit.Tag = tag;
+                    hit.Distance = dist;
+                    hit.Normal = face.AverageNormal();
+                    hit.Tangent = face.Side.Tangents[tri];
+                    hit.Point = ray.position + ray.direction * dist;
+                    hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
+                    *hitResult = hit;
                 }
-                else {
-                    isSolid = seg->SideIsSolid(side, level);
-                }
-
-                if (isSolid) {
-                    if (hitResult) {
-                        hit.Tag = tag;
-                        hit.Distance = dist;
-                        hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side.Tangents[tri];
-                        hit.Point = ray.position + ray.direction * dist;
-                        hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
-                        *hitResult = hit;
-                    }
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -1432,6 +1431,7 @@ namespace Inferno {
             if (id == 0) {
                 Debug::ShipVelocity = obj.Physics.Velocity;
                 Debug::ShipPosition = obj.Position;
+                Debug::ShipThrust = obj.Physics.Thrust;
                 PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
             }
         }

@@ -72,7 +72,7 @@ namespace Inferno {
 
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion);
     bool IntersectRayLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit);
-    bool IntersectRaySegments(Level& level, const Ray& ray, span<SegID> segments, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult = nullptr, float offset = 0);
+    bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult = nullptr, float offset = 0);
     bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent);
 
     // Sets an object's angular velocity to turn towards a vector over a number of seconds.

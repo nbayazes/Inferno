@@ -107,32 +107,32 @@ namespace Inferno::Graphics {
         return weights;
     }
 
-    Vector3 PositionAtUV(const Face& face, int tri, Vector2 uv) {
-        auto& indices = face.Side.GetRenderIndices();
+    //Vector3 PositionAtUV(const Face& face, int tri, Vector2 uv) {
+    //    auto& indices = face.Side.GetRenderIndices();
 
-        Vector2 uvs[3];
-        for (int i = 0; i < 3; i++) {
-            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
-        }
+    //    Vector2 uvs[3];
+    //    for (int i = 0; i < 3; i++) {
+    //        uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
+    //    }
 
-        // https://math.stackexchange.com/a/28552
-        // Vectors of two edges
-        auto vec0 = uvs[1] - uvs[0];
-        auto vec1 = uvs[2] - uvs[0];
-        auto vecPt = uv - uvs[0];
+    //    // https://math.stackexchange.com/a/28552
+    //    // Vectors of two edges
+    //    auto vec0 = uvs[1] - uvs[0];
+    //    auto vec1 = uvs[2] - uvs[0];
+    //    auto vecPt = uv - uvs[0];
 
-        auto normal = vec0.Cross(vec1);
+    //    auto normal = vec0.Cross(vec1);
 
-        // solve barycentric weights
-        auto g = (vecPt.Cross(vec0) / -normal).x;
-        auto f = (vecPt.Cross(vec1) / normal).x;
+    //    // solve barycentric weights
+    //    auto g = (vecPt.Cross(vec0) / -normal).x;
+    //    auto f = (vecPt.Cross(vec1) / normal).x;
 
-        // project UV to world using barycentric weights
-        auto& v0 = face[indices[tri * 3 + 0]];
-        auto& v1 = face[indices[tri * 3 + 1]];
-        auto& v2 = face[indices[tri * 3 + 2]];
-        return Vector3::Barycentric(v0, v1, v2, f, g);
-    }
+    //    // project UV to world using barycentric weights
+    //    auto& v0 = face[indices[tri * 3 + 0]];
+    //    auto& v1 = face[indices[tri * 3 + 1]];
+    //    auto& v2 = face[indices[tri * 3 + 2]];
+    //    return Vector3::Barycentric(v0, v1, v2, f, g);
+    //}
 
     Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv) {
         auto& indices = face.Side.GetRenderIndices();

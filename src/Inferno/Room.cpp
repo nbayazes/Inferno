@@ -2,7 +2,13 @@
 
 #include "Room.h"
 
+#include "Game.h"
+#include "Physics.h"
+#include "ScopedTimer.h"
+
 namespace Inferno {
+    constexpr auto NAV_OBJECT_RADIUS = 4.0f; // expected object radius to follow a navigation path
+
     bool SegmentIsTunnel(Segment& seg) {
         int connections = 0;
         for (int i = 0; i < 6; i++) {
@@ -276,7 +282,7 @@ namespace Inferno {
 
             auto& seg = level.GetSegment(segId);
 
-            if (auto node = Seq::find(nodes, [segId](const SegmentNode& x) { return x.Seg == segId; })) {
+            if (Seq::find(nodes, [segId](const SegmentNode& x) { return x.Seg == segId; })) {
                 for (int side = 0; side < 6; side++) {
                     auto conn = seg.GetConnection(SideID(side));
                     Tag tag = { segId, SideID(side) };
@@ -333,6 +339,258 @@ namespace Inferno {
 
         //SPDLOG_INFO("Split room into {} rooms", rooms.size());
         return rooms;
+    }
+
+    //bool CanNavigateThroughSide(Level& level, Tag tag) {
+    //    if(!level.SegmentExists(tag)) return false;
+    //    auto& seg = level.GetSegment(tag);
+    //    if(!seg.SideHasConnection(tag.Side)) return false;
+    //}
+
+    bool IntersectCapsuleSide(Level& level, const BoundingCapsule& capsule, Tag tag) {
+        auto face = Face::FromSide(level, tag);
+
+        Vector3 ref, normal;
+        float dist;
+
+        auto poly0 = face.VerticesForPoly0();
+        if (capsule.Intersects(poly0[0], poly0[1], poly0[2], face.Side.Normals[0], ref, normal, dist))
+            return true;
+
+        auto poly1 = face.VerticesForPoly1();
+        if (capsule.Intersects(poly1[0], poly1[1], poly1[2], face.Side.Normals[1], ref, normal, dist))
+            return true;
+
+        return false;
+    }
+
+    // Breadth first execution. Execution stops if action returns true.
+    bool FloodFill(Level& level, Room& room, SegID start, const std::function<bool(Tag)>& action) {
+        Set<SegID> visited;
+        Stack<SegID> search;
+        assert(room.Contains(start));
+        search.push(start);
+
+        while (!search.empty()) {
+            auto segId = search.top();
+            search.pop();
+            visited.insert(segId);
+
+            auto& seg = level.GetSegment(segId);
+            for (auto& sideId : SideIDs) {
+                //auto& side = seg.GetSide(sideId);
+                if (action({ segId, sideId }))
+                    return true;
+
+                auto conn = seg.GetConnection(sideId);
+                if (!visited.contains(conn) && room.Contains(conn)) {
+                    search.push(conn);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    void Room::UpdateNavNodes(Level& level) {
+        NavNodes.clear();
+
+        if (Segments.empty()) return; // Nothing here!
+
+        auto insertOrFindNode = [&level, this](Tag tag) {
+            auto conn = level.GetConnectedSide(tag);
+
+            for (size_t i = 0; i < NavNodes.size(); i++) {
+                auto& node = NavNodes[i];
+                if (node.Tag == tag || node.Tag == conn)
+                    return (int)i;
+            }
+
+            // Node wasn't in list, insert a new one
+            auto& node = NavNodes.emplace_back();
+            node.Position = level.GetSide(tag).Center;
+            node.Tag = tag;
+            return int(NavNodes.size() - 1);
+        };
+
+        auto findNode = [this](SegID seg) {
+            for (size_t i = 0; i < NavNodes.size(); i++) {
+                auto& node = NavNodes[i];
+                if (node.Segment == seg)
+                    return (int)i;
+            }
+
+            return -1;
+        };
+
+        auto insertNode = [&level, this](SegID seg) {
+            auto& node = NavNodes.emplace_back();
+            node.Position = level.GetSegment(seg).Center;
+            node.Segment = seg;
+            //node.Tag = tag;
+            return int(NavNodes.size() - 1);
+        };
+
+        // Add nodes and connections between segment sides
+        //for (auto& segId : Segments) {
+        //    if (!level.SegmentExists(segId)) continue;
+        //    auto& seg = level.GetSegment(segId);
+
+        //    auto& node = NavNodes.emplace_back();
+        //    node.Position = seg.Center;
+        //    node.Segment = segId;
+
+
+        //    node.Tag = tag;
+        //    return int(NavNodes.size() - 1);
+
+        //    for (auto& sideId : SideIDs) {
+        //        if (!seg.SideHasConnection(sideId)) continue; // skip solid walls
+
+        //        Tag tag = { segId, sideId };
+        //        auto newIndex = Seq::indexOf(Segments, segId);
+        //        auto newIndex = insertNode(segId);
+
+        //        for (auto& otherSideId : SideIDs) {
+        //            if (otherSideId == sideId) continue; // skip self
+        //            if (!seg.SideHasConnection(otherSideId)) continue; // skip solid walls
+
+
+        //            //auto connNodeIndex = insertOrFindNode({ segId, otherSideId }); // will get from other side
+        //            // Be sure to use array index here, otherwise adding the above node will invalidate the reference
+        //            NavNodes[newIndex].Connections.push_back(connNodeIndex);
+        //        }
+        //    }
+        //}
+
+        for (auto& segId : Segments) {
+            if (!level.SegmentExists(segId)) continue;
+            auto& seg = level.GetSegment(segId);
+
+            auto& node = NavNodes.emplace_back();
+            node.Position = seg.Center;
+            node.Segment = segId;
+        }
+
+        List<NavigationNode> intermediateNodes;
+
+        for (int i = 0; i < NavNodes.size(); i++) {
+            auto& node = NavNodes[i];
+            auto& seg = level.GetSegment(node.Segment);
+            for (auto& sideId : SideIDs) {
+                auto connId = seg.GetConnection(sideId);
+                auto connection = findNode(connId);
+                if (connection == -1) continue;
+
+                auto& connSeg = level.GetSegment(connId);
+                BoundingCapsule capsule(node.Position, connSeg.Center, NAV_OBJECT_RADIUS);
+
+                // Check if connection to node intersects
+                bool intersect = false;
+                for (auto& sideId2 : SideIDs) {
+                    if (seg.SideHasConnection(sideId2)) continue;
+                    if (IntersectCapsuleSide(level, capsule, { node.Segment, sideId2 })) {
+                        intersect = true;
+                        break;
+                    }
+                }
+
+                if (intersect) {
+                    auto intermediateIndex = NavNodes.size() + intermediateNodes.size();
+                    // insert an intermediate node on the joining side
+                    NavigationNode intermediate{ .Position = seg.GetSide(sideId).Center };
+                    intermediate.Connections.push_back(i);
+                    intermediate.Connections.push_back(connection);
+                    intermediateNodes.push_back(intermediate);
+
+                    node.Connections.push_back(intermediateIndex);
+                    NavNodes[connection].Connections.push_back(intermediateIndex);
+
+                } else {
+                    node.Connections.push_back(connection);
+                }
+            }
+        }
+
+        Seq::append(NavNodes, intermediateNodes);
+
+        // todo: maybe add new nodes at segment centers? or split long connections?
+        //return;
+
+        // Add new connections between visible nodes
+        for (int i = 0; i < NavNodes.size(); i++) {
+            auto& node = NavNodes[i];
+            //bool isPortal = IsPortal(node.Tag);
+            if(node.Segment == SegID::None) continue; // don't insert connections to intermediates
+
+            for (int j = 0; j < NavNodes.size(); j++) {
+                if (i == j) continue; // skip self
+                if (Seq::contains(node.Connections, j)) continue; // Already has connection
+
+                auto& other = NavNodes[j];
+                auto otherIsPortal = IsPortal(other.Tag);
+                auto dir = other.Position - node.Position;
+                //auto maxDist = dir.Length();
+                dir.Normalize();
+                //Ray ray = { node.Position, dir };
+
+                if (/*isPortal ||*/ otherIsPortal) {
+                    // if this node is a portal, don't connect to nodes behind because other portals might be facing it
+
+                    //if (isPortal && dir.Dot(level.GetSide(node.Tag).AverageNormal) <= 0)
+                    //    continue; // direction towards portal face, skip it
+
+                    if (otherIsPortal && dir.Dot(level.GetSide(other.Tag).AverageNormal) <= 0)
+                        continue; // direction towards portal face, skip it
+                }
+
+                //bool blocked = false;
+
+                BoundingCapsule capsule(node.Position, other.Position, NAV_OBJECT_RADIUS);
+
+                auto blocked = FloodFill(level, *this, node.Segment, [this, &level, &capsule, &node](Tag tag) {
+                    auto& seg = level.GetSegment(tag);
+
+                    if (node.Tag == tag) return false; // don't hit test self
+                    if (seg.SideHasConnection(tag.Side) && !IsPortal(tag))
+                        return false; // skip open sides, but only if they aren't portals
+
+                    return IntersectCapsuleSide(level, capsule, tag);
+                });
+
+                //for (auto& segId : Segments) {
+                //    if (!level.SegmentExists(segId)) continue;
+                //    auto& seg = level.GetSegment(segId);
+                //    for (auto& sideId : SideIDs) {
+                //        if (seg.SideHasConnection(sideId) && !IsPortal({ segId, sideId }))
+                //            continue; // skip open sides, but only if they aren't portals
+
+                //        if (IntersectCapsuleSide(level, capsule, { segId, sideId })) {
+                //            //if (IntersectRaySegment(level, ray, segId, maxDist, false, false, nullptr)) {
+                //            blocked = true;
+                //            break;
+                //        }
+
+                //        //auto face = Face::FromSide(level, seg, sideId);
+
+                //        //// Check 4 additional rays, 1 in each edge direction
+                //        //for (int edge = 0; edge < 4; edge++) {
+                //        //    auto edgeDir = face.GetEdgeMidpoint(edge) - face.Center();
+                //        //    edgeDir.Normalize();
+                //        //    Ray offsetRay = { node.Position + edgeDir * NAV_OBJECT_RADIUS, dir };
+
+                //        //    if (IntersectRaySegment(level, offsetRay, segId, maxDist, false, false, nullptr)) {
+                //        //        blocked = true;
+                //        //        break;
+                //        //    }
+                //        //}
+                //    }
+                //}
+
+                if (blocked) continue;
+                node.Connections.push_back(j);
+            }
+        }
     }
 
     RoomID FindRoomBySegment(span<Room> rooms, SegID seg) {
@@ -449,6 +707,9 @@ namespace Inferno {
 
         RemoveEmptyRooms(rooms);
 
+
+        Stopwatch timer;
+
         Set<SegID> usedSegments;
         for (auto& room : rooms) {
             AddPortalsToRoom(level, rooms, room);
@@ -461,7 +722,10 @@ namespace Inferno {
 
             room.Center /= (float)room.Segments.size();
             room.UpdatePortalDistances(level);
+            //room.UpdateNavNodes(level);
         }
+
+        SPDLOG_WARN("Update room nav nodes in {}", timer.GetElapsedSeconds());
         return rooms;
     }
 
@@ -664,4 +928,100 @@ namespace Inferno {
         // Walk backwards, using the parent
         return path;
     }
+
+    //List<Vector3> NavigationNetwork::NavigateWithinRoom(SegID start, SegID goal, Room& room) {
+    //    if (!room.Contains(start) || !room.Contains(goal))
+    //        return {}; // No direct solution. Programming error
+
+    //    _traversalBuffer.resize(room.NavNodes.size());
+
+
+    //    auto& goalSeg = Game::Level.GetSegment(goal);
+    //    auto& startSeg = Game::Level.GetSegment(start);
+
+    //    auto startIndex = room.FindClosestNode(startSeg.Center);
+    //    auto endIndex = room.FindClosestNode(goalSeg.Center);
+
+    //    // Reset traversal state
+    //    for (int i = 0; i < _traversalBuffer.size(); i++) {
+    //        _traversalBuffer[i] = {
+    //            .Index = i,
+    //            .GoalDistance = Vector3::DistanceSquared(room.NavNodes[i].Position, goalSeg.Center)
+    //        };
+    //    }
+
+    //    std::list<TraversalNode*> queue;
+    //    _traversalBuffer[startIndex].LocalGoal = 0;
+    //    queue.push_back(&_traversalBuffer[startIndex]);
+
+    //    List<TraversalNode*> navNodes;
+
+    //    while (!queue.empty()) {
+    //        queue.sort([](const TraversalNode* a, const TraversalNode* b) {
+    //            return a->GoalDistance < b->GoalDistance;
+    //        });
+
+    //        if (!queue.empty() && queue.front()->Visited)
+    //            queue.pop_front();
+
+    //        if (queue.empty())
+    //            break; // no nodes left
+
+    //        auto& current = queue.front();
+    //        current->Visited = true;
+    //        auto& node = room.NavNodes[current->Index];
+
+    //        for (auto& connection : node.Connections) {
+    //            navNodes.push_back(&_traversalBuffer[connection]);
+    //        }
+
+    //        Seq::sortBy(navNodes, [](const TraversalNode* a, const TraversalNode* b) {
+    //            return a->GoalDistance < b->GoalDistance;
+    //        });
+
+    //        // only scan the 6 closest nodes
+    //        for (int i = 0; i < std::min((int)navNodes.size(), 6); i++) {
+    //            auto& connection = navNodes[i];
+    //            //}
+
+    //            //for (auto& connection : node.Connections) {
+    //            //auto& nodeSide = node.Tag;
+    //            //auto& connId = nodeSide.Connection;
+    //            //if (node.Tag.Segment <= SegID::None) continue;
+    //            //if (nodeSide.Blocked) continue; // todo: query portals. but should we? should never even reach room
+    //            //if (!room.Contains(node.Tag.Segment)) continue; // Only search segments in this room
+
+    //            auto& neighborNode = room.NavNodes[connection->Index];
+    //            auto& neighbor = _traversalBuffer[connection->Index];
+
+    //            //if(!Seq::contains(queue, neighbor))
+    //            //    queue.push_back(&neighbor);
+    //            if (!neighbor.Visited)
+    //                queue.push_back(&neighbor);
+
+    //            float localGoal = current->LocalGoal + Vector3::DistanceSquared(node.Position, neighborNode.Position);
+
+    //            if (localGoal < neighbor.LocalGoal) {
+    //                neighbor.Parent = current->Index;
+    //                neighbor.LocalGoal = localGoal;
+    //                neighbor.GoalDistance = neighbor.LocalGoal + Vector3::DistanceSquared(neighborNode.Position, goalSeg.Center);
+    //            }
+    //        }
+    //    }
+
+    //    // add nodes along the path starting at the goal
+    //    auto* trav = &_traversalBuffer[endIndex];
+    //    List<Vector3> path;
+
+    //    while (trav) {
+    //        path.push_back(room.NavNodes[trav->Index].Position);
+    //        trav = trav->Parent >= 0 ? &_traversalBuffer[trav->Parent] : nullptr;
+    //    }
+    //    //}
+
+    //    ranges::reverse(path);
+
+    //    // Walk backwards, using the parent
+    //    return path;
+    //}
 }

@@ -301,6 +301,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     if (emissive > 0 && mat1.LightReceived == 0) 
         emissive = emissive  + 1; // make lava and forcefields full bright
 
+    // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
     if (diffuse.a <= 0)
         discard; // discarding speeds up large transparent walls
 

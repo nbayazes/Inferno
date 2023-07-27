@@ -354,6 +354,15 @@ namespace Inferno::Render {
         for (auto& emitter : Inferno::Sound::Debug::Emitters) {
             Debug::DrawPoint(emitter, { 0, 1, 0 });
         }
+
+        for (auto& room : Game::Rooms.Rooms) {
+            for (auto& node : room.NavNodes) {
+                for (auto& conn : node.Connections) {
+                    auto& other = room.NavNodes[conn];
+                    Debug::DrawLine(node.Position, other.Position, { 1.0f, 0.25f, 0 });
+                }
+            }
+        }
     }
 
     using namespace Graphics;

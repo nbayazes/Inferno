@@ -41,7 +41,9 @@ namespace Inferno::Editor {
                     ai.GoalSegment = Editor::Selection.Segment;
                     ai.GoalPosition = seg.Center;
                     ai.GoalRoom = Game::Rooms.FindBySegment(Editor::Selection.Segment);
-
+                    obj->GoalPath = path;
+                    obj->GoalPathIndex = 0;
+                    obj->Room = Game::Rooms.FindBySegment(obj->Segment);
 
                     //auto tag = GetNextConnection(path, Game::Level, obj->Segment);
                     //auto& side = Game::Level.GetSide(tag);
@@ -94,20 +96,20 @@ namespace Inferno::Editor {
         ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::Stats::DrawCalls);
         ImGui::Text("Procedural time: %.2f ms", Debug::ProceduralUpdateRate * 1000);
 
-        ImGui::Text("Light View pos: %.2f, %.2f, %.2f", Debug::LightPosition.x, Debug::LightPosition.y, Debug::LightPosition.z);
-        ImGui::Text("Inside frustum: %i", Debug::InsideFrustum);
+        //ImGui::Text("Light View pos: %.2f, %.2f, %.2f", Debug::LightPosition.x, Debug::LightPosition.y, Debug::LightPosition.z);
+        //ImGui::Text("Inside frustum: %i", Debug::InsideFrustum);
 
         ImGui::Text("Ship pos: %.2f, %.2f, %.2f", Debug::ShipPosition.x, Debug::ShipPosition.y, Debug::ShipPosition.z);
         ImGui::Text("Ship vel: %.2f, %.2f, %.2f", Debug::ShipVelocity.x, Debug::ShipVelocity.y, Debug::ShipVelocity.z);
-        ImGui::Text("Ship accel: %.2f, %.2f, %.2f", Debug::ShipAcceleration.x, Debug::ShipAcceleration.y, Debug::ShipAcceleration.z);
-        //ImGui::Text("Ship thrust: %.3f, %.3f, %.3f", Debug::ShipThrust.x, Debug::ShipThrust.y, Debug::ShipThrust.z);
+        //ImGui::Text("Ship accel: %.2f, %.2f, %.2f", Debug::ShipAcceleration.x, Debug::ShipAcceleration.y, Debug::ShipAcceleration.z);
+        ImGui::Text("Ship thrust: %.3f, %.3f, %.3f", Debug::ShipThrust.x, Debug::ShipThrust.y, Debug::ShipThrust.z);
         ImGui::Text("steps: %.2f  R: %.4f  K: %.2f", Debug::Steps, Debug::R, Debug::K);
 
         ImGui::PlotLines("##vel", Debug::ShipVelocities.data(), (int)Debug::ShipVelocities.size(), 0, nullptr, 0, 60, ImVec2(0, 120.0f));
 
 
-        ImGui::Text("Present Total: %.2f", Render::Metrics::Present / 1000.0f);
-        ImGui::Text("Present(): %.2f", Render::Metrics::PresentCall / 1000.0f);
+        //ImGui::Text("Present Total: %.2f", Render::Metrics::Present / 1000.0f);
+        //ImGui::Text("Present(): %.2f", Render::Metrics::PresentCall / 1000.0f);
         ImGui::Text("Execute Render Cmds: %.2f", Render::Metrics::ExecuteRenderCommands / 1000.0f);
 
         ImGui::Text("Debug: %.2f", Render::Metrics::Debug / 1000.0f);

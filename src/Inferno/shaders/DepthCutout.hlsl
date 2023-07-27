@@ -79,7 +79,8 @@ float psmain(PS_INPUT input) : SV_Target {
         alpha = src.a + alpha * (1 - src.a); // Add overlay texture
     }
 
-    if (alpha < 1) // alpha of 1 so that AA works properly
+    // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
+    if (alpha < 1)
         discard;
 
     return LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
