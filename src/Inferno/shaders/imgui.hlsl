@@ -8,7 +8,7 @@
         "addressU = TEXTURE_ADDRESS_CLAMP," \
         "addressV = TEXTURE_ADDRESS_CLAMP," \
         "addressW = TEXTURE_ADDRESS_CLAMP," \
-        "filter = FILTER_MIN_MAG_MIP_POINT)"
+        "filter = FILTER_MIN_MAG_MIP_LINEAR)"
 
 SamplerState sampler0 : register(s0);
 Texture2D texture0 : register(t0);

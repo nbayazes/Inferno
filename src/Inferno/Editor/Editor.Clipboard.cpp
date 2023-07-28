@@ -55,6 +55,7 @@ namespace Inferno::Editor {
 
         // Update refs in the copied segments to be 0 based
         for (auto& seg : copy.Segments) {
+            // Break boundary connections
             for (auto& conn : seg.Connections) {
                 if (segIdMapping.contains(conn))
                     conn = segIdMapping[conn];
@@ -65,20 +66,22 @@ namespace Inferno::Editor {
             for (auto& sid : SideIDs) {
                 auto& side = seg.GetSide(sid);
                 if (auto wall = level.TryGetWall(side.Wall)) {
-                    if (wall->Type == WallType::WallTrigger || wall->Type == WallType::FlyThroughTrigger) {
+                    if (wall->Type != WallType::WallTrigger && seg.Connections[(int)sid] == SegID::None) {
+                        // Don't copy walls on the boundary of copied segments
                         side.Wall = WallID::None;
-                        continue; // Don't copy triggers, they need to be set up again by hand
-                    }
-
-                    if (seg.Connections[(int)sid] == SegID::None) {
-                        side.Wall = WallID::None;
-                        continue; // Skip wall if other side wasn't copied
+                        continue;
                     }
 
                     auto wallCopy = *wall;
-                    wallCopy.LinkedWall = (WallID)copy.Walls.size();
                     wallCopy.Tag.Segment = segIdMapping[wallCopy.Tag.Segment];
-                    side.Wall = wallCopy.LinkedWall;
+                    side.Wall = (WallID)copy.Walls.size(); // use local copy count as id
+
+                    // Copy triggers
+                    if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
+                        wallCopy.Trigger = (TriggerID)copy.Triggers.size(); // use local copy count as id
+                        copy.Triggers.push_back(*trigger);
+                    }
+
                     copy.Walls.push_back(std::move(wallCopy));
                 }
             }
@@ -107,6 +110,7 @@ namespace Inferno::Editor {
     List<SegID> InsertSegments(Level& level, SegmentClipboardData copy) {
         auto vertexOffset = (PointID)level.Vertices.size();
         auto wallOffset = level.Walls.size();
+        auto triggerOffset = level.Triggers.size();
         auto segIdOffset = (SegID)level.Segments.size();
         auto matcenOffset = level.Matcens.size();
         Seq::move(level.Vertices, copy.Vertices);
@@ -127,12 +131,12 @@ namespace Inferno::Editor {
             for (auto& side : seg.Sides) {
                 if (Settings::Editor.PasteSegmentWalls) {
                     if (side.Wall != WallID::None) {
-                        auto woffset = (int)side.Wall + wallOffset;
-                        if (woffset >= level.Limits.Walls) {
+                        auto wallId = (int)side.Wall + wallOffset;
+                        if (wallId >= level.Limits.Walls) {
                             SPDLOG_WARN("Wall id is out of range!");
                             break;
                         }
-                        side.Wall = WallID(woffset);
+                        side.Wall = WallID(wallId);
                     }
                 }
                 else {
@@ -172,6 +176,24 @@ namespace Inferno::Editor {
                 }
 
                 wall.Tag.Segment += segIdOffset;
+                if (wall.Trigger != TriggerID::None) {
+                    auto& trigger = copy.Triggers[(int)wall.Trigger];
+
+                    // Remove any targets that point to segments that don't exist
+                    for (int i = trigger.Targets.Count() - 1; i >= 0; i--) {
+                        if (!level.SegmentExists(trigger.Targets[i]))
+                            trigger.Targets.Remove(i);
+                    }
+
+                    level.Triggers.push_back(trigger);
+
+                    auto triggerId = (int)wall.Trigger + triggerOffset;
+                    if (triggerId >= level.Limits.Triggers) {
+                        SPDLOG_WARN("Ran out of space for triggers!");
+                        break;
+                    }
+                    wall.Trigger = TriggerID(triggerId);
+                }
                 level.Walls.push_back(std::move(wall));
             }
         }
