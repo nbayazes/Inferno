@@ -82,7 +82,7 @@ namespace Inferno {
         RobotInfo ri{};
 
         ri.Model = (ModelID)r.ReadInt32();
-        /*auto numGuns =*/ r.ReadElementCount();
+        ri.Guns = (uint8)r.ReadInt32();
 
         for (auto& gp : ri.GunPoints)
             gp = r.ReadVector();
@@ -96,7 +96,7 @@ namespace Inferno {
         ri.ExplosionClip2 = (VClipID)r.ReadInt16();
         ri.ExplosionSound2 = (SoundID)r.ReadInt16();
 
-        ri.WeaponType = (sbyte)r.ReadInt16();
+        ri.WeaponType = (WeaponID)r.ReadInt16();
 
         ri.Contains.ID = r.ReadByte();
         ri.Contains.Count = r.ReadByte();
@@ -162,8 +162,8 @@ namespace Inferno {
         ri.ExplosionClip2 = (VClipID)r.ReadInt16();
         ri.ExplosionSound2 = (SoundID)r.ReadInt16();
 
-        ri.WeaponType = r.ReadByte();
-        ri.WeaponType2 = r.ReadByte();
+        ri.WeaponType = (WeaponID)r.ReadByte();
+        ri.WeaponType2 = (WeaponID)r.ReadByte();
         ri.Guns = r.ReadByte();
 
         ri.Contains.ID = r.ReadByte();
