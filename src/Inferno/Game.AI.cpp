@@ -630,7 +630,7 @@ namespace Inferno {
 
     AiExtended DefaultAi{};
 
-    void FireWeaponAtPoint(const Object& obj, const RobotInfo& robot, uint8 gun, const Vector3& point) {
+    void FireWeaponAtPoint(const Object& obj, const RobotInfo& robot, uint8 gun, const Vector3& point, WeaponID weapon) {
         auto& ai = obj.Control.AI.ail;
 
         // for melee robots...
@@ -652,7 +652,43 @@ namespace Inferno {
         auto gunOffset = Game::GetGunpointOffset(obj, gun);
         auto position = Vector3::Transform(gunOffset, obj.GetTransform());
         auto direction = NormalizeDirection(target, position);
-        Game::FireWeapon(id, robot.WeaponType, position, direction);
+        Game::FireWeapon(id, weapon, position, direction);
+    }
+
+    void AimAtPlayer() {
+        // lead player
+
+        //ai.AimTarget = player.Position; // todo: use last seen position
+    }
+
+    void SetNextFireTime(Object& obj, AIRuntime& ai, const RobotInfo& robot, int gun) {
+        ai.RapidfireCount++;
+
+        if (ai.RapidfireCount < Difficulty(robot).RapidfireCount) {
+            ai.FireDelay = std::min(1 / 8.0f, Difficulty(robot).FireDelay / 2);
+        }
+        else {
+            ai.FireDelay = Difficulty(robot).FireDelay;
+            if (ai.RapidfireCount >= Difficulty(robot).RapidfireCount)
+                ai.RapidfireCount = 0;
+        }
+
+        /*if (ai.RapidfireCount < Difficulty(robot).RapidfireCount) {
+            ai.FireDelay = std::min(1 / 8.0f, Difficulty(robot).FireDelay / 2);
+        }*/
+
+        //if (((gun_num != 0) || (robptr->weapon_type2 == -1)) && (ailp->rapidfire_count < robptr->rapidfire_count[Difficulty_level])) {
+        //    ailp->next_fire = std::min((fix)(F1_0 / 8), robptr->firing_wait[Difficulty_level] / 2);
+        //}
+        //else {
+        //    if ((robptr->weapon_type2 == -1) || (gun_num != 0)) {
+        //        ailp->next_fire = robptr->firing_wait[Difficulty_level];
+        //        if (ailp->rapidfire_count >= robptr->rapidfire_count[Difficulty_level])
+        //            ailp->rapidfire_count = 0;
+        //    }
+        //    else
+        //        ailp->next_fire2 = robptr->firing_wait2[Difficulty_level];
+        //}
     }
 
     void DecayAwareness(AIRuntime& ai) {
@@ -662,8 +698,6 @@ namespace Inferno {
     }
 
     void UpdateAI(Object& obj, float dt) {
-
-
         // todo: check if robot is in active set of segments (use rooms)
 
         if (obj.Type == ObjectType::Robot) {
@@ -672,7 +706,7 @@ namespace Inferno {
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto& ai = obj.Control.AI.ail;
             auto& player = Game::Level.Objects[0];
-            
+
             // Reset thrust accumulation
             obj.Physics.Thrust = Vector3::Zero;
             obj.Physics.AngularThrust = Vector3::Zero;
@@ -692,18 +726,32 @@ namespace Inferno {
                 auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
                 if (CanSeePlayer(obj, playerDir, dist)) {
                     TurnTowardsVector(obj, playerDir, Difficulty(robot).TurnTime);
-                    ai.AimTarget = player.Position; // todo: use last seen position
 
-                    if (ai.FireDelay < 0) {
-                        //auto id = ObjID(&obj - Game::Level.Objects.data());
-                        ai.FireDelay = Difficulty(robot).FireDelay;
-                        ai.GunIndex = robot.Guns > 0 ? (ai.GunIndex + 1) % robot.Guns : 0;
+                    if (robot.Attack == AttackType::Ranged) {
+                        ai.AimTarget = player.Position; // todo: use last seen position
 
-                        FireWeaponAtPoint(obj, robot, ai.GunIndex, ai.AimTarget);
-                    }
+                        // todo: lead player `lead_player()`
 
-                    if (ai.FireDelay2 < 0) {
-                        ai.FireDelay2 = Difficulty(robot).FireDelay2;
+
+                        if (robot.WeaponType2 != WeaponID::None) {
+                            // do secondary firing
+                            if (ai.FireDelay2 < 0) {
+                                FireWeaponAtPoint(obj, robot, 0, ai.AimTarget, robot.WeaponType2);
+                                ai.FireDelay2 = Difficulty(robot).FireDelay2;
+                            }
+                        }
+
+                        if (ai.FireDelay < 0) {
+                            //auto id = ObjID(&obj - Game::Level.Objects.data());
+                            //ai.FireDelay = Difficulty(robot).FireDelay;
+                            ai.GunIndex = robot.Guns > 0 ? (ai.GunIndex + 1) % robot.Guns : 0;
+                            if (robot.WeaponType2 != WeaponID::None && ai.GunIndex == 0) {
+                                ai.GunIndex++;
+                            }
+
+                            FireWeaponAtPoint(obj, robot, ai.GunIndex, ai.AimTarget, robot.WeaponType);
+                            SetNextFireTime(obj, ai, robot, ai.GunIndex);
+                        }
                     }
                 }
                 else {

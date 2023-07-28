@@ -35,7 +35,7 @@ namespace Inferno {
         VClipID ExplosionClip1, ExplosionClip2;
 
         WeaponID WeaponType; // Primary weapon
-        WeaponID WeaponType2;    // Secondary weapon. D2 only
+        WeaponID WeaponType2 = WeaponID::None;    // Secondary weapon. D2 only
         uint8 Guns;            // how many different gun positions
 
         ContainsData Contains;
