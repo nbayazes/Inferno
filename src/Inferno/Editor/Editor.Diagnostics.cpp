@@ -404,6 +404,9 @@ namespace Inferno::Editor {
         List<SegmentDiagnostic> results;
         bool changedLevel = false;
 
+        Set<WallID> usedWalls;
+        Set<TriggerID> usedTriggers;
+
         for (int i = 0; i < level.Segments.size(); i++) {
             auto& seg = level.Segments[i];
             auto segid = SegID(i);
@@ -430,12 +433,33 @@ namespace Inferno::Editor {
                 results.push_back({ 0, { segid, SideID::None }, "Segment has merged points and will cause crashes" });
             }
 
-            for (auto& side : SideIDs) {
-                if (!CheckOverlayTextureSize(seg.GetSide(side))) {
-                    results.push_back({ 0, { segid, side }, "Overlay and base texture size are different. This will crash most ports." });
+            for (auto& sideId : SideIDs) {
+                auto& side = seg.GetSide(sideId);
+                if (side.Wall != WallID::None) {
+                    if (usedWalls.contains(side.Wall)) {
+                        auto msg = fmt::format("Wall {} is already in use. Delete wall on this side and insert a new one.", side.Wall);
+                        results.push_back({ 0, { segid, sideId }, msg });
+                    }
+                    else {
+                        usedWalls.insert(side.Wall);
+                    }
+
+                    if (auto wall = level.TryGetWall(side.Wall)) {
+                        if (usedTriggers.contains(wall->Trigger)) {
+                            auto msg = fmt::format("Trigger {} is already in use. Delete trigger on this side and insert a new one.", wall->Trigger);
+                            results.push_back({ 0, { segid, sideId }, msg });
+                        }
+                        else if (wall->Trigger != TriggerID::None) {
+                            usedTriggers.insert(wall->Trigger);
+                        }
+                    }
                 }
 
-                auto connId = seg.GetConnection(side);
+                if (!CheckOverlayTextureSize(side)) {
+                    results.push_back({ 0, { segid, sideId }, "Overlay and base texture size are different. This will crash most ports." });
+                }
+
+                auto connId = seg.GetConnection(sideId);
                 if (connId == SegID::Exit || connId == SegID::None) continue;
 
                 auto conn = level.TryGetSegment(connId);
@@ -443,35 +467,35 @@ namespace Inferno::Editor {
                 if (!conn) {
                     if (fixErrors) {
                         auto msg = fmt::format("Removed bad segment connection to {}", connId);
-                        results.push_back({ 2, { segid, side }, msg });
-                        seg.Connections[(int)side] = SegID::None;
+                        results.push_back({ 2, { segid, sideId }, msg });
+                        seg.Connections[(int)sideId] = SegID::None;
                         changedLevel = true;
                     }
                     else {
                         auto msg = fmt::format("Bad segment connection to {}", connId);
-                        results.push_back({ 0, { segid, side }, msg });
+                        results.push_back({ 0, { segid, sideId }, msg });
                     }
                 }
 
-                if (auto other = level.GetConnectedSide({ segid, side })) {
+                if (auto other = level.GetConnectedSide({ segid, sideId })) {
                     // Check that vertices match between connections
-                    if (!SidesMatch(level, { segid, side }, other)) {
+                    if (!SidesMatch(level, { segid, sideId }, other)) {
                         // Try to weld the vertex to fix the mismatch
-                        if (fixErrors && WeldConnection(level, { segid, side }, 0.01f)) {
-                            results.push_back({ 2, { segid, side }, fmt::format("Fixed connection to {}", connId) });
+                        if (fixErrors && WeldConnection(level, { segid, sideId }, 0.01f)) {
+                            results.push_back({ 2, { segid, sideId }, fmt::format("Fixed connection to {}", connId) });
                             changedLevel = true;
                         }
                         else {
                             if (fixErrors) {
-                                seg.Connections[(int)side] = SegID::None;
+                                seg.Connections[(int)sideId] = SegID::None;
                                 conn->GetConnection(other.Side) = SegID::None;
                                 auto msg = fmt::format("Removed mismatched connection to {}", connId);
-                                results.push_back({ 2, { segid, side }, msg });
+                                results.push_back({ 2, { segid, sideId }, msg });
                                 changedLevel = true;
                             }
                             else {
                                 auto msg = fmt::format("Mismatched connection to {}", connId);
-                                results.push_back({ 1, { segid, side }, msg });
+                                results.push_back({ 1, { segid, sideId }, msg });
                             }
                         }
                     }
@@ -479,13 +503,13 @@ namespace Inferno::Editor {
                 else {
                     if (fixErrors) {
                         auto msg = fmt::format("Removed bad connection to {}", connId);
-                        results.push_back({ 2, { segid, side }, msg });
-                        seg.Connections[(int)side] = SegID::None;
+                        results.push_back({ 2, { segid, sideId }, msg });
+                        seg.Connections[(int)sideId] = SegID::None;
                         changedLevel = true;
                     }
                     else {
                         auto msg = fmt::format("Bad connection to {}", connId);
-                        results.push_back({ 0, { segid, side }, msg });
+                        results.push_back({ 0, { segid, sideId }, msg });
                     }
                 }
             }
