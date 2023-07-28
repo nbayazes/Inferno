@@ -202,7 +202,7 @@ namespace Inferno::Editor {
                     if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
                         Close();
 
-                    if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) && !ImGui::GetIO().WantTextInput)
+                    if ((ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_KeypadEnter))) && !ImGui::GetIO().WantTextInput)
                         Close(true);
                 }
 
