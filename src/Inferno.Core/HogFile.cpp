@@ -94,11 +94,4 @@ namespace Inferno {
 
         return hog;
     }
-
-
-
-
-
-
-
 }

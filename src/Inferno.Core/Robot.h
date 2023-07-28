@@ -34,9 +34,9 @@ namespace Inferno {
 
         VClipID ExplosionClip1, ExplosionClip2;
 
-        sbyte WeaponType;
-        sbyte WeaponType2;    // Secondary weapon number, -1 means none, otherwise gun #0 fires this weapon.
-        int8 Guns;            // how many different gun positions
+        WeaponID WeaponType; // Primary weapon
+        WeaponID WeaponType2;    // Secondary weapon. D2 only
+        uint8 Guns;            // how many different gun positions
 
         ContainsData Contains;
         sbyte ContainsChance;   // Probability that this instance will contain something in N/16
@@ -80,7 +80,7 @@ namespace Inferno {
 
         ubyte Glow;        // apply this light to robot itself. stored as 4:4 fixed-point
         ubyte Behavior;    // Default behavior
-        ubyte Aim;         // 255 = perfect, less = more likely to miss.  0 != random, would look stupid.  0=45 degree spread
+        ubyte Aim = 255;   // 255 is perfect aim. 0 is very inaccurate.
 
         //animation info
         JointList anim_states[MAX_GUNS + 1][N_ANIM_STATES];

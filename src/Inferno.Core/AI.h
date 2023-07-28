@@ -67,6 +67,7 @@ namespace Inferno {
         //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
         PlayerVisibility PlayerVisibility;
         uint8 RapidfireCount; // number of shots fired rapidly
+        uint8 GunIndex = 0; // Which gun to fire from next
         AIMode Mode;
         //float NextActionTime;
         float FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons

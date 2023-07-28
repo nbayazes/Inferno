@@ -260,8 +260,8 @@ namespace Inferno {
         READ_TAG(Model);
         READ_TAG(ExplosionClip1);
         READ_TAG(ExplosionClip2);
-        READ_PROP(WeaponType);
-        READ_PROP(WeaponType2);
+        Yaml::ReadValue(node["WeaponType"], (int&)robot.WeaponType);
+        Yaml::ReadValue(node["WeaponType2"], (int&)robot.WeaponType2);
         READ_PROP(Guns);
 
         // todo: contains data

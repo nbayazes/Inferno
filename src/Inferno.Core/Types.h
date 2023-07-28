@@ -15,6 +15,7 @@ namespace DirectX::SimpleMath {
                          0, 1.f, 0,
                          0, 0, 1.f) {}
 
+        // right, up, forward vectors
         explicit Matrix3x3(const Vector3& r0, const Vector3& r1, const Vector3& r2) noexcept
             : XMFLOAT3X3(r0.x, r0.y, r0.z,
                          r1.x, r1.y, r1.z,

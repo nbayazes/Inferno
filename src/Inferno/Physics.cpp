@@ -350,6 +350,9 @@ namespace Inferno {
             switch (target.Type) {
                 case ObjectType::Robot:
                 {
+                    auto targetId = ObjID(&target - &Game::Level.Objects[0]);
+                    if (src.Parent == targetId) return CollisionType::None; // Don't hit robot with their own shots
+
                     auto& ri = Resources::GetRobotInfo(target.ID);
                     if (ri.IsCompanion)
                         return CollisionType::None; // weapons can't directly hit guidebots

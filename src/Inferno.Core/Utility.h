@@ -51,6 +51,13 @@ namespace Inferno {
         return Random() - Random();
     }
 
+    // Returns the normalized direction between two points
+    inline Vector3 NormalizeDirection(const Vector3& target, const Vector3& start) {
+        auto direction = target - start;
+        direction.Normalize();
+        return direction;
+    }
+
     // Returns a random unit vector. Optionally scaled by a value.
     inline Vector3 RandomVector(float scale = 1) {
         Vector3 v(RandomN11(), RandomN11(), RandomN11());

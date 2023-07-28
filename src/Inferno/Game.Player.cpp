@@ -269,7 +269,7 @@ namespace Inferno {
 
     void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
-        Game::FireWeapon(ID, 6, WeaponID::Flare);
+        Game::FireWeaponFromGunpoint(ID, 6, WeaponID::Flare);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
     }
@@ -312,7 +312,7 @@ namespace Inferno {
 
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        Game::FireWeapon(ID, 7, id);
+        Game::FireWeaponFromGunpoint(ID, 7, id);
         ammo -= (uint16)weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
@@ -408,7 +408,7 @@ namespace Inferno {
 
         for (int i = 0; i < 8; i++) {
             if (sequence[MissileFiringIndex].Gunpoints[i])
-                Game::FireWeapon(ID, i, id);
+                Game::FireWeaponFromGunpoint(ID, i, id);
         }
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;

@@ -503,8 +503,8 @@ namespace Inferno {
                     intermediate.Connections.push_back(connection);
                     intermediateNodes.push_back(intermediate);
 
-                    node.Connections.push_back(intermediateIndex);
-                    NavNodes[connection].Connections.push_back(intermediateIndex);
+                    node.Connections.push_back((int)intermediateIndex);
+                    NavNodes[connection].Connections.push_back((int)intermediateIndex);
 
                 } else {
                     node.Connections.push_back(connection);

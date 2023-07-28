@@ -182,7 +182,7 @@ Weapons:
     LightColor: 0.9, 0.0, 0.6
     ExplosionColor: 0.6, 0.0, 0.4
     FlashColor: 1, 1, 1, 25
-    Mass: 4
+    Mass: 3
 
   - id: 8
     Name: concussion missile

@@ -30,7 +30,7 @@ namespace Inferno {
         return !IntersectRayLevel(Game::Level, ray, obj.Segment, playerDist, true, false, hit);
     }
 
-    bool CheckPlayerVisibility(Object& obj, ObjID id, const RobotInfo& robot) {
+    bool CheckPlayerVisibility(Object& obj, const RobotInfo& robot) {
         auto& player = Game::Level.Objects[0];
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
         if (!CanSeePlayer(obj, playerDir, dist)) return false;
@@ -47,6 +47,7 @@ namespace Inferno {
 
         // only play sound when robot was asleep
         if (prevAwareness < 0.3f) {
+            auto id = ObjID(&obj - Game::Level.Objects.data());
             Sound3D sound(id);
             sound.AttachToSource = true;
             sound.Resource = Resources::GetSoundResource(robot.SeeSound);
@@ -268,7 +269,7 @@ namespace Inferno {
 
 
     void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, Object& obj, float thrust, Vector3& target) {
-        if(!seg.SideIsSolid(sideId, level)) return;
+        if (!seg.SideIsSolid(sideId, level)) return;
 
         // project ray onto side
         auto& side = seg.GetSide(sideId);
@@ -282,7 +283,7 @@ namespace Inferno {
 
         auto pointDir = *point - obj.Position;
         pointDir.Normalize();
-        if(pointDir.Dot(ray.direction) <= 0) 
+        if (pointDir.Dot(ray.direction) <= 0)
             return; // facing away (why did the above not catch it?)
 
         auto face = Face::FromSide(level, seg, sideId);
@@ -308,7 +309,8 @@ namespace Inferno {
                     // if adjacent side isn't solid, shift goal point forward into next segment
                     auto adjacentFace = Face::FromSide(level, seg, adjacent);
                     vec = adjacentFace.Center() - face.Center();
-                } else {
+                }
+                else {
                     vec = edgeMidpoint - face.Center();
                 }
 
@@ -408,7 +410,7 @@ namespace Inferno {
 
     void AvoidRoomEdges(Level& level, const Ray& ray, Object& obj, float thrust, Vector3& target) {
         auto room = Game::Rooms.GetRoom(obj.Room);
-        if(!room) return;
+        if (!room) return;
 
         for (auto& segId : room->Segments) {
             auto& seg = level.GetSegment(segId);
@@ -431,7 +433,7 @@ namespace Inferno {
         };
 
         if (!PathIsValid(obj)) {
-        //if(obj.GoalPath.empty()) {
+            //if(obj.GoalPath.empty()) {
             // Calculate a new path
             SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
             obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, Game::Rooms, level);
@@ -582,7 +584,7 @@ namespace Inferno {
 
             //auto& seg1 = Game::Level.GetSegment(next1);
             //auto& seg2 = Game::Level.GetSegment(next2);
-            targetPosition = (targetPosition * 2 + nextSide.Center) /3;
+            targetPosition = (targetPosition * 2 + nextSide.Center) / 3;
             MoveTowardsPoint(obj, targetPosition, thrust);
             RotateTowards(obj, targetPosition, angThrust);
 
@@ -628,22 +630,58 @@ namespace Inferno {
 
     AiExtended DefaultAi{};
 
+    void FireWeaponAtPoint(const Object& obj, const RobotInfo& robot, uint8 gun, const Vector3& point) {
+        auto& ai = obj.Control.AI.ail;
+
+        // for melee robots...
+        // dist_to_player < obj->size + ConsoleObject->size + F1_0 * 2
+        auto aim = 8.0f - 7.0f * FixToFloat(robot.Aim << 8);
+
+        // todo: seismic disturbance
+
+        // Randomize target based on difficulty
+        Vector3 target = {
+            point.x + RandomN11() * (5 - Game::Difficulty - 1) * aim,
+            point.y + RandomN11() * (5 - Game::Difficulty - 1) * aim,
+            point.z + RandomN11() * (5 - Game::Difficulty - 1) * aim
+        };
+
+        auto id = ObjID(&obj - Game::Level.Objects.data());
+
+        //void FireWeaponFromGunpoint(ObjID objId, int gun, WeaponID id, const Vector3 & direction, bool showFlash) {
+        auto gunOffset = Game::GetGunpointOffset(obj, gun);
+        auto position = Vector3::Transform(gunOffset, obj.GetTransform());
+        auto direction = NormalizeDirection(target, position);
+        Game::FireWeapon(id, robot.WeaponType, position, direction);
+    }
+
+    void DecayAwareness(AIRuntime& ai) {
+        auto deltaTime = float(Game::Time - ai.LastUpdate);
+        ai.Awareness -= DefaultAi.AwarenessDecay * deltaTime;
+        if (ai.Awareness < 0) ai.Awareness = 0;
+    }
+
     void UpdateAI(Object& obj, float dt) {
-        if (obj.NextThinkTime == NEVER_THINK || obj.NextThinkTime > Game::Time)
-            return;
+
 
         // todo: check if robot is in active set of segments (use rooms)
 
         if (obj.Type == ObjectType::Robot) {
-            auto id = ObjID(&obj - Game::Level.Objects.data());
+            //auto id = ObjID(&obj - Game::Level.Objects.data());
 
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto& ai = obj.Control.AI.ail;
             auto& player = Game::Level.Objects[0];
-
+            
             // Reset thrust accumulation
             obj.Physics.Thrust = Vector3::Zero;
             obj.Physics.AngularThrust = Vector3::Zero;
+
+            ai.FireDelay -= dt;
+            ai.FireDelay2 -= dt;
+
+            if (obj.NextThinkTime == NEVER_THINK || obj.NextThinkTime > Game::Time)
+                return;
 
             if (ai.GoalSegment != SegID::None) {
                 // goal path takes priority over other behaviors
@@ -654,28 +692,38 @@ namespace Inferno {
                 auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
                 if (CanSeePlayer(obj, playerDir, dist)) {
                     TurnTowardsVector(obj, playerDir, Difficulty(robot).TurnTime);
-                    ai.AimTarget = player.Position;
+                    ai.AimTarget = player.Position; // todo: use last seen position
+
+                    if (ai.FireDelay < 0) {
+                        //auto id = ObjID(&obj - Game::Level.Objects.data());
+                        ai.FireDelay = Difficulty(robot).FireDelay;
+                        ai.GunIndex = robot.Guns > 0 ? (ai.GunIndex + 1) % robot.Guns : 0;
+
+                        FireWeaponAtPoint(obj, robot, ai.GunIndex, ai.AimTarget);
+                    }
+
+                    if (ai.FireDelay2 < 0) {
+                        ai.FireDelay2 = Difficulty(robot).FireDelay2;
+                    }
                 }
                 else {
                     // Lost sight of player, decay awareness based on AI
-                    auto deltaTime = float(Game::Time - ai.LastUpdate);
-                    ai.Awareness -= DefaultAi.AwarenessDecay * deltaTime;
-                    if (ai.Awareness < 0) ai.Awareness = 0;
-
+                    DecayAwareness(ai);
                     // todo: move towards last known location
                 }
 
                 obj.NextThinkTime = Game::Time + Game::TICK_RATE;
             }
             else {
-                //if (CheckPlayerVisibility(obj, id, robot)) {
-                //    obj.NextThinkTime = Game::Time + Game::TICK_RATE;
-                //}
-                //else {
-                //    // Nothing nearby
-                //    obj.NextThinkTime = Game::Time + 1.0f;
-                //}
-                obj.NextThinkTime = Game::Time + 1.0f;
+                if (CheckPlayerVisibility(obj, robot)) {
+                    obj.NextThinkTime = Game::Time + Game::TICK_RATE;
+                }
+                else {
+                    // Nothing nearby
+                    DecayAwareness(ai);
+                    obj.NextThinkTime = Game::Time + 1.0f;
+                }
+                //obj.NextThinkTime = Game::Time + 1.0f;
             }
 
             ClampThrust(obj);
