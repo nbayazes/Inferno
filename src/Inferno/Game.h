@@ -130,4 +130,8 @@ namespace Inferno::Game {
     inline bool InGame() { return GetState() == GameState::Game; }
     inline LevelRooms Rooms;
     inline NavigationNetwork Navigation;
+
+    inline Object& GetPlayer() {
+        return Level.Objects[0];
+    }
 }

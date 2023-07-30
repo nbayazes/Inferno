@@ -373,7 +373,7 @@ namespace Inferno {
         assert(IsNormalized(v0) && IsNormalized(v1));
         auto dot = v0.Dot(v1);
         if (dot <= -0.999f) return (float)std::numbers::pi;
-        return acos(v0.Dot(v1));
+        return acos(dot);
     }
 
     // v0 and v1 must be normalized. Returns [0, PI]
