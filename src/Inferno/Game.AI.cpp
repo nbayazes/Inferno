@@ -11,6 +11,8 @@
 #include "Graphics/Render.Debug.h"
 
 namespace Inferno {
+    constexpr float AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
+
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
         return info.Difficulty[Game::Difficulty];
     }
@@ -30,6 +32,92 @@ namespace Inferno {
         return !IntersectRayLevel(Game::Level, ray, obj.Segment, playerDist, true, false, hit);
     }
 
+    void AddAwareness(Object& obj, float awareness) {
+        if (!obj.IsRobot()) return;
+        obj.Control.AI.ail.Awareness += awareness;
+        if (obj.Control.AI.ail.Awareness > 1) obj.Control.AI.ail.Awareness = 1;
+    }
+
+    void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness) {
+        for (auto& segId : room.Segments) {
+            auto& seg = level.GetSegment(segId);
+            for (auto& objId : seg.Objects) {
+                if (auto obj = level.TryGetObject(objId)) {
+                    if (!obj->IsRobot()) continue;
+
+                    auto dist = Vector3::Distance(obj->Position, position);
+                    if (dist > soundRadius) return;
+
+                    //auto falloff = std::clamp(std::lerp(awareness, 0.0f, (soundRadius - dist) / soundRadiusSq), 0.0f, 1.0f);
+                    auto falloff = Saturate(InvLerp(soundRadius, 0, dist));
+                    auto& ai = obj->Control.AI.ail;
+
+                    auto prevAwareness = ai.Awareness;
+                    ai.Awareness += awareness * falloff;
+                    SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
+
+                    if (prevAwareness < AWARENESS_INVESTIGATE && ai.Awareness > AWARENESS_INVESTIGATE) {
+                        SPDLOG_INFO("Enemy {} investigating sound at {}, {}, {}!", obj->Signature, position.x, position.y, position.z);
+
+                        auto path = Game::Navigation.NavigateTo(obj->Segment, soundSeg, Game::Rooms, Game::Level);
+                        ai.GoalSegment = soundSeg;
+                        ai.GoalPosition = position;
+                        ai.GoalRoom = Game::Rooms.FindBySegment(soundSeg);
+                        obj->NextThinkTime = 0;
+                        obj->GoalPath = path;
+                        obj->GoalPathIndex = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    bool SoundPassesThroughSide(Level& level, const SegmentSide& side) {
+        auto wall = level.TryGetWall(side.Wall);
+        if (!wall) return true; // open side
+        if (!wall->IsSolid()) return true; // wall is destroyed or open
+
+        // Check if the textures are transparent
+        auto& tmap1 = Resources::GetTextureInfo(side.TMap);
+        bool transparent = tmap1.Transparent;
+
+        if (side.HasOverlay()) {
+            auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
+            transparent |= tmap2.SuperTransparent;
+        }
+
+        return transparent;
+    }
+
+    // adds awareness to robots in nearby rooms
+    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness) {
+        auto room = Game::Rooms.GetRoom(source.Room);
+        if (!room) return;
+
+        auto& level = Game::Level;
+        AlertEnemiesInRoom(level, *room, source.Segment, source.Position, soundRadius, awareness);
+
+        for (auto& portal : room->Portals) {
+            auto& side = level.GetSide(portal);
+
+            auto portalDist = Vector3::Distance(side.Center, source.Position);
+            if (portalDist < soundRadius && SoundPassesThroughSide(level, side)) {
+                if (auto adjacentRoom = Game::Rooms.GetRoom(portal.Room)) {
+                    // todo: this only alerts enemies in adjacent rooms which might cause problems around energy centers
+                    AlertEnemiesInRoom(level, *adjacentRoom, source.Segment, source.Position, soundRadius, awareness);
+                }
+            }
+        }
+    }
+
+    void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
+        auto id = ObjID(&obj - Game::Level.Objects.data());
+        Sound3D sound(id);
+        sound.AttachToSource = true;
+        sound.Resource = Resources::GetSoundResource(robot.SeeSound);
+        Sound::Play(sound);
+    }
+
     bool CheckPlayerVisibility(Object& obj, const RobotInfo& robot) {
         auto& player = Game::Level.Objects[0];
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
@@ -46,13 +134,8 @@ namespace Inferno {
         obj.Control.AI.ail.Awareness = 1;
 
         // only play sound when robot was asleep
-        if (prevAwareness < 0.3f) {
-            auto id = ObjID(&obj - Game::Level.Objects.data());
-            Sound3D sound(id);
-            sound.AttachToSource = true;
-            sound.Resource = Resources::GetSoundResource(robot.SeeSound);
-            Sound::Play(sound);
-        }
+        if (prevAwareness < 0.3f)
+            PlayAlertSound(obj, robot);
 
         return true;
     }
@@ -462,7 +545,6 @@ namespace Inferno {
                 return obj.GoalPath[index];
             };
 
-
             auto pathIndex = Seq::indexOf(obj.GoalPath, obj.Segment);
             if (!pathIndex) {
                 SPDLOG_ERROR("Invalid path index for obj {}", obj.Signature);
@@ -722,24 +804,33 @@ namespace Inferno {
                 ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
         }
 
-        int gunIndex = primary ? ai.GunIndex : 0;
+        uint8 gunIndex = primary ? ai.GunIndex : 0;
         auto aimTarget = player.Position + LeadTarget(targetDir, targetDist, player, weaponSpeed);
         auto aimDir = aimTarget - obj.Position;
         aimDir.Normalize();
         float maxAimAngle = weaponSpeed > FAST_WEAPON_SPEED ? 7.5f * DegToRad : 15.0f * DegToRad;
+        
         if (AngleBetweenVectors(aimDir, obj.Rotation.Forward()) > maxAimAngle) {
             aimDir = (aimDir + obj.Rotation.Forward()) / 2.0f;
             aimDir.Normalize();
             if (AngleBetweenVectors(aimDir, obj.Rotation.Forward()) > maxAimAngle) {
+                // todo: if robot wants to fire but can't, reset rapidfire if fire delay passes
                 return; // couldn't aim to the target close enough
             }
         }
 
-        // todo: fire at target if within facing angle regardless of lead/adjustment
+        // todo: fire at target if within facing angle regardless of aim assist
 
         //aimTarget += RandomVector((5 - Game::Difficulty) * 2); // Randomize aim based on difficulty
         FireWeaponAtPoint(obj, robot, gunIndex, aimTarget, robot.WeaponType);
         SetNextFireTime(obj, ai, robot, gunIndex);
+    }
+
+    void StopPathing(Object& obj) {
+        auto& ai = obj.Control.AI.ail;
+        obj.GoalPath.clear();
+        obj.GoalPathIndex = -1;
+        ai.GoalSegment = SegID::None;
     }
 
     void UpdateAI(Object& obj, float dt) {
@@ -765,27 +856,32 @@ namespace Inferno {
             if (ai.GoalSegment != SegID::None) {
                 // goal path takes priority over other behaviors
                 PathTowardsGoal(Game::Level, obj, dt);
+
+                if (CheckPlayerVisibility(obj, robot)) {
+                    StopPathing(obj); // Stop pathing if robot sees the player
+                    PlayAlertSound(obj, robot);
+                }
+
+                obj.NextThinkTime = Game::Time + Game::TICK_RATE;
             }
             else if (ai.Awareness > 0.5f) {
                 // in combat?
                 auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
                 if (CanSeePlayer(obj, playerDir, dist)) {
-                    TurnTowardsVector(obj, playerDir, Difficulty(robot).TurnTime);
+                    TurnTowardsVector(obj, playerDir, Difficulty(robot).TurnTime / 2);
 
                     if (robot.Attack == AttackType::Ranged) {
-                        if (robot.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
+                        if (robot.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0)
                             FireRobotWeapon(obj, ai, robot, player, false);
-                        }
 
-                        if (ai.FireDelay < 0) {
+                        if (ai.FireDelay < 0)
                             FireRobotWeapon(obj, ai, robot, player, true);
-                        }
                     }
                 }
                 else {
                     // Lost sight of player, decay awareness based on AI
                     DecayAwareness(ai);
-                    // todo: move towards last known location
+                    // todo: move towards last known location if curious
                 }
 
                 obj.NextThinkTime = Game::Time + Game::TICK_RATE;
@@ -801,6 +897,8 @@ namespace Inferno {
                 }
                 //obj.NextThinkTime = Game::Time + 1.0f;
             }
+
+            if (ai.Awareness > 1) ai.Awareness = 1;
 
             ClampThrust(obj);
             ai.LastUpdate = Game::Time;

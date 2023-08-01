@@ -84,6 +84,7 @@ namespace Inferno::Game {
                 obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
             }
 
+            obj.Rotation.Normalize();
             obj.PrevPosition = obj.Position;
             obj.PrevRotation = obj.Rotation;
             obj.Signature = GetObjectSig();

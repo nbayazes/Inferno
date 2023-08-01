@@ -144,7 +144,7 @@ namespace Inferno {
         pd.TurnRoll = pd.BankState.Update(roll, dt);
     }
 
-    // Applies angular physics to the player
+    // Applies angular physics for an object
     void AngularPhysics(Object& obj, float dt) {
         auto& pd = obj.Physics;
 
@@ -180,6 +180,8 @@ namespace Inferno {
             // re-rotate object for bank caused by turn
             obj.Rotation = Matrix3x3(Matrix::CreateRotationZ(-pd.TurnRoll) * obj.Rotation);
         }
+
+        obj.Rotation.Normalize();
     }
 
     void LinearPhysics(Object& obj, float dt) {
@@ -1373,7 +1375,7 @@ namespace Inferno {
                 PlayerPhysics(obj, dt);
                 AngularPhysics(obj, dt);
                 LinearPhysics(obj, dt);
-
+                
                 if (HasFlag(obj.Flags, ObjectFlag::Attached))
                     continue; // don't test collision of attached objects
 
@@ -1437,6 +1439,8 @@ namespace Inferno {
                 Debug::ShipThrust = obj.Physics.Thrust;
                 PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
             }
+
+            assert(IsNormalized(obj.Rotation.Forward()));
         }
     }
 }

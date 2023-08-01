@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Player.h"
+#include "Game.AI.h"
 #include "Game.h"
 #include "HUD.h"
 #include "Resources.h"
@@ -380,6 +381,8 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
+        AlertEnemiesOfNoise(Game::GetPlayer(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
+
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
     }
@@ -413,10 +416,10 @@ namespace Inferno {
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
-        // Swap to different weapon if ammo == 0
+        AlertEnemiesOfNoise(Game::GetPlayer(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
 
         if (!CanFireSecondary(Secondary))
-            AutoselectSecondary();
+            AutoselectSecondary(); // Swap to different weapon if out of ammo
     }
 
     bool Player::CanOpenDoor(const Wall& wall) const {
@@ -470,7 +473,7 @@ namespace Inferno {
     }
 
     void Player::AutoselectSecondary() {
-        auto GetPriority = [](SecondaryWeaponIndex secondary) {
+        auto getPriority = [](SecondaryWeaponIndex secondary) {
             for (int i = 0; i < Game::SecondaryPriority.size(); i++) {
                 auto prio = Game::SecondaryPriority[i];
                 if (prio == 255) return 255;
@@ -487,7 +490,7 @@ namespace Inferno {
             auto idx = (SecondaryWeaponIndex)i;
             if (!CanFireSecondary(idx)) continue;
 
-            auto p = GetPriority(idx);
+            auto p = getPriority(idx);
             if (p == 255) continue;
 
             if (p < priority || priority == -1) {

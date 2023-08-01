@@ -113,6 +113,7 @@ namespace Inferno {
         float ExplosionSize = 1.5f; // Initial size of explosion texture, scales up and out
         float ExplosionTime = 0.4f; // How long the explosion takes to fade out
         string ExplosionSound; // Sound to play when exploding. Overrides base sound.
+        float ExplosionSoundRadius = 250; // Sound radius when exploding
 
         PowerupID PowerupType; // Powerup when dropped
         int WeaponID; // Icon shown in cockpit, the time between shots and energy usage. Mainly for lasers.
@@ -140,6 +141,8 @@ namespace Inferno {
 
         float Spread = 0; // Amount of spread in degrees [0 < 90)
         Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites
+        float Noise = 1; // How much noise (awareness) weapon creates when firing
+        float SoundRadius = 250; // Sound radius when firing
 
         //struct FiringPattern {
         //    string Crosshair;

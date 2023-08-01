@@ -107,11 +107,18 @@ namespace Inferno {
         psoDesc.PrimitiveTopologyType = effect.TopologyType;
         psoDesc.NumRenderTargets = renderTargets;
 
-        if (effect.Depth == DepthMode::ReadBiased) {
+        if (effect.Depth == DepthMode::ReadDecalBiased) {
             // Biases for decals
-            psoDesc.RasterizerState.DepthBias = -10000;
+            psoDesc.RasterizerState.DepthBias = -10'000;
             psoDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;
-            psoDesc.RasterizerState.DepthBiasClamp = -100000;
+            psoDesc.RasterizerState.DepthBiasClamp = -100'000;
+        }
+
+        if (effect.Depth == DepthMode::ReadSpriteBiased) {
+            // Biases for sprites
+            psoDesc.RasterizerState.DepthBias = -20'000;
+            psoDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;
+            psoDesc.RasterizerState.DepthBiasClamp = -200'000;
         }
 
         for (uint i = 0; i < renderTargets; i++)

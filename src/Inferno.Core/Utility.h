@@ -93,6 +93,19 @@ namespace Inferno {
         //return XMVector2NearEqual(a, b, { epsilon, epsilon, epsilon });
     }
 
+    constexpr float InvLerp(float a, float b, float v) {
+        return (v - a) / (b - a);
+    }
+
+    constexpr float Saturate(float v) {
+        return std::clamp(v, 0.0f, 1.0f);
+    }
+
+    constexpr float Remap(float inMin, float inMax, float outMin, float outMax, float v) {
+        float t = InvLerp(inMin, inMax, v);
+        return std::lerp(outMin, outMax, t);
+    }
+
     template <class T>
     struct NumericRange {
         T Min{}, Max{};
@@ -360,7 +373,9 @@ namespace Inferno {
 
     // v0 and v1 must be normalized. Returns [-PI, PI]
     inline float AngleBetweenVectors(const Vector3& v0, const Vector3& v1, const Vector3& normal) {
-        assert(IsNormalized(v0) && IsNormalized(v1) && IsNormalized(normal));
+        assert(IsNormalized(v0));
+        assert(IsNormalized(v1));
+        assert(IsNormalized(normal));
         auto dot = v0.Dot(v1);
         auto cross = v0.Cross(v1);
         auto angle = atan2(cross.Length(), dot);
@@ -370,7 +385,8 @@ namespace Inferno {
 
     // v0 and v1 must be normalized. Returns [0, PI]
     inline float AngleBetweenVectors(const Vector3& v0, const Vector3& v1) {
-        assert(IsNormalized(v0) && IsNormalized(v1));
+        assert(IsNormalized(v0));
+        assert(IsNormalized(v1));
         auto dot = v0.Dot(v1);
         if (dot <= -0.999f) return (float)std::numbers::pi;
         return acos(dot);
@@ -619,7 +635,7 @@ namespace Inferno {
             return iter == std::end(xs) ? nullptr : &(*iter);
         }
 
-        template< class TKey, class TValue>
+        template <class TKey, class TValue>
         TValue* findKey(std::unordered_map<TKey, TValue>& xs, const auto& value) {
             auto index = xs.find(value);
             if (index == xs.end())

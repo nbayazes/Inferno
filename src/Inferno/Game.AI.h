@@ -149,5 +149,5 @@ namespace Inferno {
     };
 
     void UpdateAI(Object& obj, float dt);
-
+    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness);
 }

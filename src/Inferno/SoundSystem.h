@@ -4,6 +4,8 @@
 #include "SoundTypes.h"
 
 namespace Inferno {
+    constexpr float DEFAULT_SOUND_RADIUS = 250;
+
     struct Sound3D {
         Sound3D(ObjID source) : Source(source) {}
         Sound3D(const Vector3& pos, SegID seg) : Position(pos), Segment(seg) {}
@@ -15,7 +17,7 @@ namespace Inferno {
         float Volume = 1;
         float Pitch = 0; // -1 to 1;
         bool Occlusion = true; // Occludes level geometry when determining volume
-        float Radius = 250; // Determines max range and falloff
+        float Radius = DEFAULT_SOUND_RADIUS; // Determines max range and falloff
         SoundResource Resource;
         bool AttachToSource = false; // The sound moves with the Source object
         Vector3 AttachOffset; // The offset from the Source when attached

@@ -208,11 +208,10 @@ namespace Inferno::Game {
                 sound.Resource = Resources::GetSoundResource(SoundID::HitPlayer);
                 Sound::Play(sound);
             }
-
-            // Missiles create their explosion effects when expiring
-            if (!weapon.IsExplosive()) {
+            else if (!weapon.IsExplosive()) {
+                // Missiles create their explosion effects when expiring
                 Render::ExplosionInfo expl;
-                expl.Sound = target.IsPlayer() ? SoundID::None : weapon.RobotHitSound;
+                expl.Sound = weapon.RobotHitSound;
                 //expl.Parent = src.Parent;
                 expl.Clip = VClipID::SmallExplosion;
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
@@ -574,9 +573,10 @@ namespace Inferno::Game {
             Sound3D sound(objId);
             sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
             sound.Volume = 0.55f;
-            //sound.AttachToSource = true;
-            //sound.AttachOffset = obj.Position - position;
-            sound.FromPlayer = true;
+            sound.AttachToSource = true;
+            sound.AttachOffset = obj.Position - position;
+            sound.Radius = weapon.Extended.SoundRadius;
+            sound.FromPlayer = obj.IsPlayer();
             sound.Source = objId;
             sound.Merge = true;
 
@@ -593,6 +593,7 @@ namespace Inferno::Game {
             p.Clip = weapon.FlashVClip;
             p.Position = position;
             p.Radius = weapon.FlashSize;
+            // todo: include submodel in offset
             //p.Parent = objId;
             //p.ParentOffset = obj.Position - position;
             p.FadeTime = 0.175f;

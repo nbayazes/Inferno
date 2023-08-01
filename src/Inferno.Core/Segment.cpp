@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Segment.h"
+
+#include <spdlog/spdlog.h>
+
 #include "Level.h"
 #include "Face.h"
 
@@ -10,7 +13,11 @@ namespace Inferno {
     }
 
     void Segment::AddObject(ObjID id) {
-        assert(!Seq::contains(Objects, id));
+        //assert(!Seq::contains(Objects, id));
+        if (Seq::contains(Objects, id)) {
+            SPDLOG_WARN("Segment already contains object id {}", id);
+            return;
+        }
         Objects.push_back(id);
     }
 
@@ -39,7 +46,7 @@ namespace Inferno {
             auto& v1 = level.Vertices[Indices[sideVerts[1]]];
             auto& v2 = level.Vertices[Indices[sideVerts[2]]];
             auto& v3 = level.Vertices[Indices[sideVerts[3]]];
-            
+
             // Always split sides to be convex
             auto n0 = CreateNormal(v0, v1, v2);
             auto dot = n0.Dot(v3 - v1);

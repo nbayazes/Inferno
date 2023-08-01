@@ -132,6 +132,6 @@ namespace Inferno::Game {
     inline NavigationNetwork Navigation;
 
     inline Object& GetPlayer() {
-        return Level.Objects[0];
+        return Level.Objects[(int)Player.ID];
     }
 }

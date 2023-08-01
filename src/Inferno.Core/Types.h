@@ -59,6 +59,16 @@ namespace DirectX::SimpleMath {
             DirectX::XMStoreFloat3x3(this, Matrix(*this) * matrix);
             return *this;
         }
+
+        void Normalize() {
+            Vector3 forward, up, right;
+            Forward().Normalize(forward);
+            Up().Normalize(up);
+            Right().Normalize(right);
+            Forward(forward);
+            Up(up);
+            Right(right);
+        }
     };
 }
 
