@@ -6,6 +6,7 @@
 #include "Streams.h"
 #include "Wall.h"
 #include "DataPool.h"
+#include "Room.h"
 #include "Segment.h"
 
 namespace Inferno {
@@ -115,6 +116,7 @@ namespace Inferno {
         List<Trigger> Triggers;
         List<Matcen> Matcens;
         List<FlickeringLight> FlickeringLights; // Vertigo flickering lights
+        List<Room> Rooms;
 
         // Reactor stuff
         int BaseReactorCountdown = DEFAULT_REACTOR_COUNTDOWN;
@@ -462,6 +464,35 @@ namespace Inferno {
         }
 
         bool CanAddMatcen() const { return Matcens.size() < Limits.Matcens; }
+
+        Room* GetRoom(RoomID id) {
+            if (!Seq::inRange(Rooms, (int)id)) return nullptr;
+            return &Rooms[(int)id];
+        }
+
+        Room* GetRoom(SegID id) {
+            auto roomId = FindRoomBySegment(id);
+            if (roomId == RoomID::None) return nullptr;
+            return &Rooms[(int)roomId];
+        }
+
+        RoomID FindRoomBySegment(SegID seg) {
+            for (int i = 0; i < Rooms.size(); i++) {
+                if (Seq::contains(Rooms[i].Segments, seg)) return RoomID(i);
+            }
+
+            return RoomID::None;
+        }
+
+        Room* GetConnectedRoom(Tag tag) {
+            if (auto room = GetRoom(tag.Segment)) {
+                if (auto portal = room->GetPortal(tag)) {
+                    return GetRoom(portal->Room);
+                }
+            }
+
+            return nullptr;
+        }
 
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);

@@ -31,7 +31,7 @@ namespace Inferno::Editor {
 
         if (ImGui::Button("Set path target")) {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, Game::Rooms, Game::Level);
+                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, Game::Level);
 
                 if (obj->IsRobot()) {
                     auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
@@ -40,10 +40,10 @@ namespace Inferno::Editor {
                     auto& ai = obj->Control.AI.ail;
                     ai.GoalSegment = Editor::Selection.Segment;
                     ai.GoalPosition = seg.Center;
-                    ai.GoalRoom = Game::Rooms.FindBySegment(Editor::Selection.Segment);
+                    ai.GoalRoom = Game::Level.FindRoomBySegment(Editor::Selection.Segment);
                     obj->GoalPath = path;
                     obj->GoalPathIndex = 0;
-                    obj->Room = Game::Rooms.FindBySegment(obj->Segment);
+                    obj->Room = Game::Level.FindRoomBySegment(obj->Segment);
 
                     //auto tag = GetNextConnection(path, Game::Level, obj->Segment);
                     //auto& side = Game::Level.GetSide(tag);
@@ -68,11 +68,11 @@ namespace Inferno::Editor {
         }
 
         if (ImGui::Button("Update rooms")) {
-            Game::Rooms = LevelRooms(Game::Level);
+            Game::Level.Rooms = Game::CreateRooms(Game::Level);
         }
 
         if (ImGui::Button("Mark room")) {
-            if (auto room = Game::Rooms.GetRoom(Editor::Selection.Segment)) {
+            if (auto room = Game::Level.GetRoom(Editor::Selection.Segment)) {
                 Editor::Marked.Segments.clear();
                 Seq::insert(Editor::Marked.Segments, room->Segments);
             }
@@ -80,7 +80,7 @@ namespace Inferno::Editor {
 
         ImGui::SameLine();
         if (ImGui::Button("Mark connected room")) {
-            if (auto room = Game::Rooms.GetConnectedRoom(Editor::Selection.Tag())) {
+            if (auto room = Game::Level.GetConnectedRoom(Editor::Selection.Tag())) {
                 Editor::Marked.Segments.clear();
                 Seq::insert(Editor::Marked.Segments, room->Segments);
             }

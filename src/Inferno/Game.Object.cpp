@@ -64,7 +64,7 @@ namespace Inferno {
         prevSeg.RemoveObject(objId);
         auto& seg = level.GetSegment(obj.Segment);
         seg.AddObject(objId);
-        obj.Room = Game::Rooms.FindBySegment(obj.Segment); // todo: track using portals
+        obj.Room = level.FindRoomBySegment(obj.Segment); // todo: track using portals
         obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
     }
 

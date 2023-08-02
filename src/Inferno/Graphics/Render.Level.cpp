@@ -19,6 +19,7 @@
 #include "Shell.h"
 #include "OpenSimplex2.h"
 #include "Procedural.h"
+#include "SoundSystem.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
@@ -343,7 +344,7 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawDebug(Level&) {
+    void DrawDebug(const Level& level) {
         //Debug::DrawPoint(Inferno::Debug::ClosestPoint, Color(1, 0, 0));
         if (Settings::Editor.EnablePhysics) {
             for (auto& point : Inferno::Debug::ClosestPoints) {
@@ -355,7 +356,7 @@ namespace Inferno::Render {
             Debug::DrawPoint(emitter, { 0, 1, 0 });
         }
 
-        for (auto& room : Game::Rooms.Rooms) {
+        for (auto& room : level.Rooms) {
             for (auto& node : room.NavNodes) {
                 for (auto& conn : node.Connections) {
                     auto& other = room.NavNodes[conn];

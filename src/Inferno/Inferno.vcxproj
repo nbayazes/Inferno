@@ -166,6 +166,7 @@
     <ClCompile Include="Game.Input.cpp" />
     <ClCompile Include="Game.Object.cpp" />
     <ClCompile Include="Game.Player.cpp" />
+    <ClCompile Include="Game.Room.cpp" />
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
     <ClCompile Include="Game.Wall.cpp" />
@@ -213,7 +214,6 @@
     <ClCompile Include="Procedural.cpp" />
     <ClCompile Include="Procedural.Fire.cpp" />
     <ClCompile Include="Procedural.Water.cpp" />
-    <ClCompile Include="Room.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Graphics\Render.Debug.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -256,6 +256,7 @@
     <ClInclude Include="Game.Player.h" />
     <ClInclude Include="Editor\UI\ScaleWindow.h" />
     <ClInclude Include="Editor\UI\TextureEditor.h" />
+    <ClInclude Include="Game.Room.h" />
     <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
@@ -308,7 +309,6 @@
     <ClInclude Include="Physics.Math.h" />
     <ClInclude Include="Procedural.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="Room.h" />
     <ClInclude Include="SoundTypes.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />

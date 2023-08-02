@@ -124,6 +124,7 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="Polymodel.h" />
     <ClInclude Include="Robot.h" />
+    <ClInclude Include="Room.h" />
     <ClInclude Include="Segment.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="Streams.h" />

@@ -3,6 +3,7 @@
 #include "HogFile.h"
 #include "Mission.h"
 #include "Game.Player.h"
+#include "Game.Room.h"
 #include "Room.h"
 #include "SystemClock.h"
 
@@ -128,10 +129,12 @@ namespace Inferno::Game {
     GameState GetState();
 
     inline bool InGame() { return GetState() == GameState::Game; }
-    inline LevelRooms Rooms;
     inline NavigationNetwork Navigation;
 
     inline Object& GetPlayer() {
         return Level.Objects[(int)Player.ID];
     }
+
+    bool ObjectIsInFOV(const Ray& ray, const Object& other, float fov);
+    List<Room> CreateRooms(struct Level&);
 }

@@ -245,9 +245,6 @@
     <ClCompile Include="Game.AI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Room.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Procedural.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -267,6 +264,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MaterialInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game.Room.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -556,9 +556,6 @@
     <ClInclude Include="..\vendor\OpenSimplexNoise.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Room.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Render.Queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -632,6 +629,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MaterialInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.Room.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

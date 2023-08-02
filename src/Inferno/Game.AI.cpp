@@ -7,6 +7,7 @@
 #include "Physics.h"
 #include "logging.h"
 #include "Physics.Math.h"
+#include "SoundSystem.h"
 #include "Editor/Editor.Selection.h"
 #include "Graphics/Render.Debug.h"
 
@@ -91,10 +92,10 @@ namespace Inferno {
 
     // adds awareness to robots in nearby rooms
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness) {
-        auto room = Game::Rooms.GetRoom(source.Room);
+        auto& level = Game::Level;
+        auto room = level.GetRoom(source.Room);
         if (!room) return;
 
-        auto& level = Game::Level;
         AlertEnemiesInRoom(level, *room, source.Segment, source.Position, soundRadius, awareness);
 
         for (auto& portal : room->Portals) {
@@ -102,7 +103,7 @@ namespace Inferno {
 
             auto portalDist = Vector3::Distance(side.Center, source.Position);
             if (portalDist < soundRadius && SoundPassesThroughSide(level, side)) {
-                if (auto adjacentRoom = Game::Rooms.GetRoom(portal.Room)) {
+                if (auto adjacentRoom = level.GetRoom(portal.Room)) {
                     // todo: this only alerts enemies in adjacent rooms which might cause problems around energy centers
                     AlertEnemiesInRoom(level, *adjacentRoom, source.Segment, source.Position, soundRadius, awareness);
                 }
@@ -492,7 +493,7 @@ namespace Inferno {
     //}
 
     void AvoidRoomEdges(Level& level, const Ray& ray, Object& obj, float thrust, Vector3& target) {
-        auto room = Game::Rooms.GetRoom(obj.Room);
+        auto room = level.GetRoom(obj.Room);
         if (!room) return;
 
         for (auto& segId : room->Segments) {

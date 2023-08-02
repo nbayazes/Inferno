@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Game.Wall.h"
 #include "Physics.h"
+#include "SoundSystem.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 

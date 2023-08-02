@@ -5,6 +5,7 @@
 #include "HUD.h"
 #include "Resources.h"
 #include "Settings.h"
+#include "SoundSystem.h"
 
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;

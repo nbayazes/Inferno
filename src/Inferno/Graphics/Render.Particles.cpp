@@ -7,6 +7,7 @@
 #include "MaterialLibrary.h"
 #include "Physics.h"
 #include "Render.Queue.h"
+#include "SoundSystem.h"
 
 namespace Inferno::Render {
     using Graphics::GraphicsContext;

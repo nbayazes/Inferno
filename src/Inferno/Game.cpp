@@ -123,7 +123,7 @@ namespace Inferno::Game {
             Render::LoadLevel(Level);
             InitObjects();
 
-            Rooms = LevelRooms(Level);
+            Level.Rooms = CreateRooms(Level);
             Navigation = NavigationNetwork(Level);
 
             Editor::OnLevelLoad(reload);
