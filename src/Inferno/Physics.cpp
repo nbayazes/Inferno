@@ -706,7 +706,7 @@ namespace Inferno {
 
                     //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
                     // Don't apply rotation if source hit this object, so that it doesn't rotate oddly
-                    if (source->LastHitObject != target.Signature)
+                    if (!source || source->LastHitObject != target.Signature)
                         ApplyRotation(target, forceVec);
                     break;
                 }
@@ -723,7 +723,7 @@ namespace Inferno {
                 case ObjectType::Player:
                 {
                     ApplyForce(target, forceVec);
-                    if (source->LastHitObject != target.Signature)
+                    if (!source || source->LastHitObject != target.Signature)
                         ApplyRotation(target, forceVec);
 
                     // Quarter damage explosions on trainee
