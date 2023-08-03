@@ -211,7 +211,7 @@ namespace Inferno {
         DescriptorRange<1> Reserved;
         DescriptorRange<1> Procedurals;
         // Dynamic CBV SRV UAV for shader texture resources
-        DescriptorRange<5> Materials; // Materials mapped to TexIDs - Material2D::Count
+        DescriptorRange<5> Materials; // Materials mapped to TexIDs
         UserDescriptorHeap RenderTargets, DepthStencil;
 
         void SetDescriptorHeaps(ID3D12GraphicsCommandList* cmdList) const {

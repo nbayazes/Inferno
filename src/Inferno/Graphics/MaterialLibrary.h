@@ -7,7 +7,7 @@
 
 namespace Inferno::Render {
 
-    extern const int MATERIAL_COUNT;
+    extern const uint MATERIAL_COUNT;
 
     struct MaterialUpload {
         TexID ID = TexID::None;
@@ -134,7 +134,7 @@ namespace Inferno::Render {
         // returns a texid reserved for loose textures
         TexID GetUnusedTexID() {
             _looseTexId = TexID((int)_looseTexId + 1);
-            assert((int)_looseTexId < MATERIAL_COUNT);
+            assert((uint)_looseTexId < MATERIAL_COUNT);
             return _looseTexId;
         }
     };

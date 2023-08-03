@@ -29,8 +29,8 @@ namespace Inferno::Render {
 
     Color ClearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
     bool LevelChanged = false;
-    constexpr int MATERIAL_COUNT = 4000;
-    constexpr int VCLIP_COUNT = 150;
+    constexpr uint MATERIAL_COUNT = 4000;
+    constexpr uint VCLIP_COUNT = 150;
 
     struct GpuVClip {
         float PlayTime; // total time (in seconds) of clip

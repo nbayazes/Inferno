@@ -560,7 +560,7 @@ namespace Inferno::Resources {
                 throw Exception("Unsupported level version");
             }
 
-            Materials = { Pig.Entries.size() };
+            Materials = { Render::MATERIAL_COUNT };
 
             LoadGameTable();
             LoadDataTables(level);
