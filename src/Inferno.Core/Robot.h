@@ -15,12 +15,12 @@ namespace Inferno {
     };
 
     struct RobotDifficultyInfo {
-        float FieldOfView;
+        float FieldOfView; // How well the robot sees around itself in radians
         float FireDelay, FireDelay2;
         float TurnTime; // time in seconds to rotate 360 degrees in a dimension
-        float MaxSpeed;
-        float CircleDistance;
-        sbyte RapidfireCount;
+        float Speed; // How quickly the robot moves
+        float CircleDistance; // preferred distance from the player
+        sbyte BurstFire; // number of primary projectiles to fire per delay
         sbyte EvadeSpeed;   // rate at which robot can evade shots, 0=none, 4=very fast
     };
     

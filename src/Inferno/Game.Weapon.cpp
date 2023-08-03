@@ -602,6 +602,8 @@ namespace Inferno::Game {
             Render::AddParticle(p, obj.Segment);
         }
 
+        bullet.Rotation.Normalize();
+        bullet.PrevRotation = bullet.Rotation;
         AddObject(bullet);
     }
 

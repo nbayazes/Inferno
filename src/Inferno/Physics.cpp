@@ -1371,6 +1371,7 @@ namespace Inferno {
                 obj.PrevPosition = obj.Position;
                 obj.PrevRotation = obj.Rotation;
                 obj.Physics.PrevVelocity = obj.Physics.Velocity;
+                assert(IsNormalized(obj.Rotation.Forward()));
 
                 PlayerPhysics(obj, dt);
                 AngularPhysics(obj, dt);

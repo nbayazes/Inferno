@@ -230,10 +230,6 @@ namespace Inferno {
         short HideIndex{};   // Index in Path_seg_points
         short PathLength{};  // Length of hide path.
         int16 CurrentPathIndex{}; // Current index in path.
-        bool DyingSoundPlaying{};
-        ObjID DangerLaserID{};  // what is a danger laser? for dodging?
-        ObjSig DangerLaserSig{};
-        double DyingStartTime{}; // Time at which this robot started dying.
         AIRuntime ail{};
 
         void SmartMineFlag(bool value) {

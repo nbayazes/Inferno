@@ -118,9 +118,9 @@ namespace Inferno {
         for (int s = 0; s < 5; s++) r.ReadInt32(); // Unused firepower value
         for (int s = 0; s < 5; s++) r.ReadInt32(); // Unused shield value
 
-        for (auto& d : ri.Difficulty) d.MaxSpeed = r.ReadFix();
+        for (auto& d : ri.Difficulty) d.Speed = r.ReadFix();
         for (auto& d : ri.Difficulty) d.CircleDistance = r.ReadFix();
-        for (auto& d : ri.Difficulty) d.RapidfireCount = r.ReadByte();
+        for (auto& d : ri.Difficulty) d.BurstFire = r.ReadByte();
         for (auto& d : ri.Difficulty) d.EvadeSpeed = r.ReadByte();
 
         ri.Cloaking = (CloakType)r.ReadByte();
@@ -187,9 +187,9 @@ namespace Inferno {
         for (auto& d : ri.Difficulty) d.FireDelay = r.ReadFix();
         for (auto& d : ri.Difficulty) d.FireDelay2 = r.ReadFix();
         for (auto& d : ri.Difficulty) d.TurnTime = r.ReadFix();
-        for (auto& d : ri.Difficulty) d.MaxSpeed = r.ReadFix();
+        for (auto& d : ri.Difficulty) d.Speed = r.ReadFix();
         for (auto& d : ri.Difficulty) d.CircleDistance = r.ReadFix();
-        for (auto& d : ri.Difficulty) d.RapidfireCount = r.ReadByte();
+        for (auto& d : ri.Difficulty) d.BurstFire = r.ReadByte();
         for (auto& d : ri.Difficulty) d.EvadeSpeed = r.ReadByte();
 
         ri.Cloaking = (CloakType)r.ReadByte();

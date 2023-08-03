@@ -139,7 +139,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived * 1.5;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
-            lighting += Args.Ambient.rgb * 0.25f * diffuse.rgb * material.LightReceived;
+            lighting += Args.Ambient.rgb * diffuse.rgb * material.LightReceived;
         }
 
         return float4(lighting * Frame.GlobalDimming, diffuse.a);

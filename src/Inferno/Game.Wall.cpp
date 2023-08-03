@@ -566,8 +566,9 @@ namespace Inferno {
                 // Can't open door
                 Sound3D sound(point, wall.Tag.Segment);
                 sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
-                sound.Source = src.Parent;
-                sound.FromPlayer = true;
+                //sound.Source = src.Parent;
+                //sound.FromPlayer = true;
+                sound.Position = point;
                 Sound::Play(sound);
 
                 if (isPlayerSource) {

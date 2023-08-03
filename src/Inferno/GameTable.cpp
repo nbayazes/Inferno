@@ -7,8 +7,8 @@
 
 namespace Inferno {
     template <class T>
-    void ReadArray(ryml::NodeRef node, span<T> values) {
-        if (!node.valid() || node.is_seed()) return;
+    bool ReadArray(ryml::NodeRef node, span<T> values) {
+        if (!node.valid() || node.is_seed()) return false;
 
         if (node.has_children()) {
             // Array of values
@@ -26,6 +26,7 @@ namespace Inferno {
             for (auto& v : values)
                 v = value;
         }
+        return true;
     }
 
     //void ReadVectorArray(ryml::NodeRef node, span<Vector3> values) {
@@ -108,7 +109,7 @@ namespace Inferno {
         READ_PROP(FlashStrength);
 #undef READ_PROP
         Yaml::ReadValue(node["Model"], (int&)weapon.Model);
-        
+
         ReadArray<float>(node["Damage"], weapon.Damage);
         ReadArray<float>(node["Speed"], weapon.Speed);
 
@@ -295,7 +296,34 @@ namespace Inferno {
         READ_PROP(Glow);
         READ_PROP(Behavior);
         READ_PROP(Aim);
-        // todo: difficulty
+
+        Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, burstFire{}, evasion{};
+        bool hasFov = ReadArray<float>(node["FOV"], fov);
+        for (auto& f : fov) {
+            f *= DegToRad * 0.5f; // Convert FOV to half-angle radians
+            f = std::clamp(f, 0.0f, DirectX::XM_2PI) - DirectX::XM_PI; // - PI to PI
+        }
+
+        bool hasFireDelay = ReadArray<float>(node["FireDelay"], fireDelay);
+        bool hasFireDelay2 = ReadArray<float>(node["FireDelay2"], fireDelay2);
+        bool hasTurnTime = ReadArray<float>(node["TurnTime"], turnTime);
+        bool hasSpeed = ReadArray<float>(node["Speed"], speed);
+        bool hasCircleDist = ReadArray<float>(node["CircleDistance"], circleDistance);
+        bool hasBurstFire = ReadArray<float>(node["BurstFire"], circleDistance);
+        bool hasEvasion = ReadArray<float>(node["Evasion"], evasion);
+
+        for (int i = 0; i < 5; i++) {
+            auto& diff = robot.Difficulty[i];
+            if (hasCircleDist) diff.CircleDistance = circleDistance[i];
+            if (hasFireDelay) diff.FireDelay = fireDelay[i];
+            if (hasFireDelay2) diff.FireDelay2 = fireDelay2[i];
+            if (hasEvasion) diff.EvadeSpeed = evasion[i];
+            if (hasBurstFire) diff.BurstFire = burstFire[i];
+            if (hasSpeed) diff.Speed = speed[i];
+            if (hasTurnTime) diff.TurnTime = turnTime[i];
+            if (hasFov) diff.FieldOfView = fov[i];
+        }
+
 #undef READ_PROP
 #undef READ_TAG
     }
@@ -319,7 +347,7 @@ namespace Inferno {
             }
 
             Render::EffectLibrary = {}; // Reset effect library
-            
+
             if (auto weapons = root["Weapons"]; !weapons.is_seed()) {
                 for (const auto& weapon : weapons.children()) {
                     int id = -1;
@@ -357,7 +385,7 @@ namespace Inferno {
             }
 
             auto effects = root["Effects"];
-            
+
             if (auto beams = effects["Beams"]; !beams.is_seed()) {
                 for (const auto& beam : beams.children()) {
                     try {
@@ -370,7 +398,7 @@ namespace Inferno {
                 SPDLOG_INFO("Loaded {} beams", Render::EffectLibrary.Beams.size());
             }
 
-            
+
             if (auto sparks = effects["Sparks"]; !sparks.is_seed()) {
                 for (const auto& beam : sparks.children()) {
                     try {

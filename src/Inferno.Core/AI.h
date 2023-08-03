@@ -83,5 +83,13 @@ namespace Inferno {
         RoomID GoalRoom = RoomID::None;
         Vector3 GoalPosition; // position the robot wants to move to
         //Vector3 AimTarget; // where the robot wants to aim
+
+        double LastDodgeTime = 0;
+        Vector3 DodgeDirection;
+
+        bool DyingSoundPlaying{};
+        //ObjID DangerLaserID{};  // what is a danger laser? for dodging?
+        //ObjSig DangerLaserSig{};
+        double DyingStartTime{}; // Time at which this robot started dying.
     };
 }

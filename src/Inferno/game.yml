@@ -432,9 +432,85 @@ Weapons:
     LightColor: 1, 0, 0
     
 Robots:
+  - id: 0 # Medium hulk
+    CircleDistance: 60
+    FOV: [ 90, 110, 130, 150, 180 ]
+    Mass: 6.5
   - id: 1 # Medium lifter
+    CircleDistance: 0
     Mass: 10
+  - id: 2 # Spider
+    CircleDistance: 80 # Hide in back and spawn spiderlings
+    Mass: 5.5
+  - id: 3 # Class 1 drone
+    CircleDistance: 40
+    FOV: [ 110, 130, 150, 170, 200 ]
+    Mass: 2.5
   - id: 4 # Class 2 drone
+    CircleDistance: 20
+    Mass: 3.0
+  - id: 5 # Cloaked driller
+    CircleDistance: 100 # sniper
+    Mass: 5.5
+  - id: 6 # Cloaked hulk
+    CircleDistance: 60
+    Mass: 6.5
+  - id: 7 # Supervisor
+    CircleDistance: 60
+    Mass: 3.25
+  - id: 8 # Secondary Lifter (one arm)
+    CircleDistance: 15
+    Mass: 3
+  - id: 9 # Heavy driller
+    CircleDistance: 30
+    Mass: 6
+  - id: 10 # Gopher
+  - id: 11 # Laser platform
+    CircleDistance: 10
+    Mass: 3.4
+  - id: 12 # Missile platform
+    CircleDistance: 20
+    Mass: 3.4
+  - id: 13 # Pod
+  - id: 14 # Spiderling
+    CircleDistance: 15
+    Mass: 1.9
+  - id: 15 # Fusion hulk
+    CircleDistance: 15
+    Mass: 20 # was 30
+  - id: 16 # Red hulk
+    CircleDistance: 80
+    Mass: 7
+  - id: 17 # Level 7 boss
+    CircleDistance: 80
+  - id: 18 # Cloaked lifter
+    CircleDistance: 20
+    Mass: 9.5
+  - id: 19 # Class 1 driller
+    CircleDistance: 100 # sniper
+    Mass: 5.5
+  - id: 20 # Green hulk
+    CircleDistance: 40
+    Mass: 5.75
+  - id: 21 # Advanced lifter
+    CircleDistance: 0
+    Mass: 9
+  - id: 22 # PTMC Defense Prototype
+    CircleDistance: 40
+  - id: 23 # Level 27 boss
+  - id: 24 # BEPR
+  - id: 25 # Smelter
+#Ice Spider
+#Bulk Destroyer
+#TRN Racer
+#Fox Attack Bot
+#Sidearm
+#Red Fatty Boss
+#Boss 1 Clone
+#Guide Bot
+#Defense Robot
+#Evil Twin
+#ITSC
   - id: 37 # IT droid
     Mass: 2
 

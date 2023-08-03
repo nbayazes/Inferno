@@ -299,15 +299,15 @@ namespace Inferno::Outrage {
         float AvoidFriendsDistance;
 
         float Frustration;
-        float Curiousity;
+        float Curiosity;
         float LifePreservation;
-        float Agression;
+        float Aggression;
 
         float FireSpread;
         float NightVision;
         float FogVision;
         float LeadAccuracy;
-        float LeadVarience;
+        float LeadVariance;
         float FightTeam;
         float FightSame;
         float Hearing;
