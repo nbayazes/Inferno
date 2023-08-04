@@ -447,7 +447,7 @@ Robots:
     FOV: [ 110, 130, 150, 170, 200 ]
     Mass: 2.5
   - id: 4 # Class 2 drone
-    CircleDistance: 20
+    CircleDistance: 40
     Mass: 3.0
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper
