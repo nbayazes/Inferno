@@ -835,10 +835,11 @@ namespace Inferno {
     void DodgeProjectile(Object& robot, const Object& projectile, const RobotInfo& robotInfo) {
         if (projectile.Physics.Velocity.LengthSquared() < 5 * 5) return; // Don't dodge slow projectiles. also prevents crash at 0 velocity.
 
-        auto projDir = projectile.Position - robot.Position;
-        projDir.Normalize();
-        if (!InRobotFOV(robot, projDir, robotInfo))
-            return;
+        auto [projDir, projDist] = GetDirectionAndDistance(projectile.Position, robot.Position);
+        // Looks weird to dodge distant projectiles. also they might hit another target
+        // Consider increasing this for massive robots?
+        if (projDist > 40) return;
+        if (!InRobotFOV(robot, projDir, robotInfo)) return;
 
         Vector3 projTravelDir;
         projectile.Physics.Velocity.Normalize(projTravelDir);
@@ -857,6 +858,7 @@ namespace Inferno {
         auto room = level.GetRoom(robot.Room);
         auto& ai = robot.Control.AI.ail;
         float dodgeDelay = (5 - Game::Difficulty) / 2.0f * 2.0f; // (2.5 to 0.5) * 2 delay
+        dodgeDelay = 0;
         if (ai.LastDodgeTime + dodgeDelay > Game::Time) return; // not ready to dodge again
 
         for (auto& segId : room->Segments) {
@@ -898,8 +900,8 @@ namespace Inferno {
 
             CheckProjectiles(Game::Level, obj, robotInfo);
 
-            if (ai.LastDodgeTime > Game::Time - 1.0f) {
-                // dodge for 1 second
+            constexpr auto DODGE_TIME = 0.5f;
+            if (ai.LastDodgeTime > Game::Time - DODGE_TIME) {
                 obj.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
             }
 

@@ -1086,6 +1086,7 @@ namespace Inferno::Game {
             }
 
             UpdateObjectSegment(Level, obj);
+            obj.Room = Level.FindRoomBySegment(obj.Segment);
 
             //if (auto seg = Level.TryGetSegment(obj.Segment)) {
             //    seg->AddObject((ObjID)id);
