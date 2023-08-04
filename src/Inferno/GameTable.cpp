@@ -297,11 +297,14 @@ namespace Inferno {
         READ_PROP(Behavior);
         READ_PROP(Aim);
 
-        Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, burstFire{}, evasion{};
+        Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{};
+        Array<sbyte, 5> burstFire{}, evasion{};
+
         bool hasFov = ReadArray<float>(node["FOV"], fov);
         for (auto& f : fov) {
-            f *= DegToRad * 0.5f; // Convert FOV to half-angle radians
-            f = std::clamp(f, 0.0f, DirectX::XM_2PI) - DirectX::XM_PI; // - PI to PI
+            f *= DegToRad; // Convert FOV to radians (0 to 2PI)
+            f = (f - DirectX::XM_PI) / DirectX::XM_PI; // [-PI, PI] to [-1, 1]
+            f = std::clamp(f, -1.0f, 1.0f);
         }
 
         bool hasFireDelay = ReadArray<float>(node["FireDelay"], fireDelay);
@@ -309,8 +312,8 @@ namespace Inferno {
         bool hasTurnTime = ReadArray<float>(node["TurnTime"], turnTime);
         bool hasSpeed = ReadArray<float>(node["Speed"], speed);
         bool hasCircleDist = ReadArray<float>(node["CircleDistance"], circleDistance);
-        bool hasBurstFire = ReadArray<float>(node["BurstFire"], circleDistance);
-        bool hasEvasion = ReadArray<float>(node["Evasion"], evasion);
+        bool hasBurstFire = ReadArray<sbyte>(node["BurstFire"], burstFire);
+        bool hasEvasion = ReadArray<sbyte>(node["Evasion"], evasion);
 
         for (int i = 0; i < 5; i++) {
             auto& diff = robot.Difficulty[i];

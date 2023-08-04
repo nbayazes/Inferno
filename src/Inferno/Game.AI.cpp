@@ -512,7 +512,6 @@ namespace Inferno {
         };
 
         if (!PathIsValid(obj)) {
-            //if(obj.GoalPath.empty()) {
             // Calculate a new path
             SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
             obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, level);
@@ -878,81 +877,127 @@ namespace Inferno {
         }
     }
 
+    // Tries to path towards the player or move directly to it if in the same room
+    void MoveTowardsPlayer(Level& level, const Object& player, Object& robot) {
+        if (player.Room == robot.Room) {
+            MoveTowardsPoint(robot, player.Position, 100);
+        }
+        else {
+            if (robot.GoalPath.empty() || robot.GoalPath.back() != player.Segment) {
+                robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, robot.Control.AI.ail.GoalSegment, level);
+            }
+
+            PathTowardsGoal(level, robot, 0);
+        }
+    }
+
+    // Moves towards a random segment further away from the player. Prefers room portals.
+    void MoveAwayFromPlayer(Level& level, const Object& player, Object& robot) {
+        auto playerDir = player.Position - robot.Position;
+        playerDir.Normalize();
+        Ray ray(robot.Position, -playerDir);
+        LevelHit hit;
+        if (IntersectRayLevel(level, ray, robot.Segment, 10, false, false, hit))
+            return; // no room to move backwards
+
+        // todo: try escaping through portals if there are any in the player's FOV
+        MoveTowardsPoint(robot, robot.Position - playerDir * 10, 10);
+    }
+
+    void MoveToCircleDistance(Level& level, const Object& player, Object& robot, const RobotInfo& robotInfo) {
+        auto circleDistance = Difficulty(robotInfo).CircleDistance;
+        auto distOffset = Vector3::Distance(player.Position, robot.Position) - circleDistance;
+        if (abs(distOffset) < 20 && circleDistance > 10) 
+            return; // already close enough. Melee robots should always go to zero.
+
+        if (distOffset > 0)
+            MoveTowardsPlayer(level, player, robot);
+        else
+            MoveAwayFromPlayer(level, player, robot);
+    }
+
+    void UpdateRobotAI(Object& robot, float dt) {
+        //auto id = ObjID(&obj - Game::Level.Objects.data());
+
+        auto& robotInfo = Resources::GetRobotInfo(robot.ID);
+        auto& ai = robot.Control.AI.ail;
+        auto& player = Game::GetPlayer();
+
+        // Reset thrust accumulation
+        robot.Physics.Thrust = Vector3::Zero;
+        robot.Physics.AngularThrust = Vector3::Zero;
+
+        ai.FireDelay -= dt;
+        ai.FireDelay2 -= dt;
+
+        if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
+            return;
+
+        CheckProjectiles(Game::Level, robot, robotInfo);
+
+        constexpr auto DODGE_TIME = 0.5f;
+        if (ai.LastDodgeTime > Game::Time - DODGE_TIME) {
+            robot.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
+        }
+
+        if (ai.GoalSegment != SegID::None) {
+            // goal path takes priority over other behaviors
+            PathTowardsGoal(Game::Level, robot, dt);
+
+            if (CheckPlayerVisibility(robot, robotInfo)) {
+                StopPathing(robot); // Stop pathing if robot sees the player
+                PlayAlertSound(robot, robotInfo);
+            }
+
+            robot.NextThinkTime = Game::Time + Game::TICK_RATE;
+        }
+        else if (ai.Awareness > 0.5f) {
+            // in combat
+
+            MoveToCircleDistance(Game::Level, player, robot, robotInfo);
+
+            auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
+            if (CanSeePlayer(robot, playerDir, dist)) {
+                TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
+
+                if (robotInfo.Attack == AttackType::Ranged) {
+                    if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0)
+                        FireRobotWeapon(robot, ai, robotInfo, player, false);
+
+                    if (ai.FireDelay < 0)
+                        FireRobotWeapon(robot, ai, robotInfo, player, true);
+                }
+            }
+            else {
+                // Lost sight of player, decay awareness based on AI
+                DecayAwareness(ai);
+                // todo: move towards last known location if curious
+            }
+
+            robot.NextThinkTime = Game::Time + Game::TICK_RATE;
+        }
+        else {
+            if (CheckPlayerVisibility(robot, robotInfo)) {
+                robot.NextThinkTime = Game::Time + Game::TICK_RATE;
+            }
+            else {
+                // Nothing nearby
+                DecayAwareness(ai);
+                robot.NextThinkTime = Game::Time + Game::TICK_RATE * 16;
+            }
+        }
+
+        if (ai.Awareness > 1) ai.Awareness = 1;
+
+        ClampThrust(robot);
+        ai.LastUpdate = Game::Time;
+    }
+
     void UpdateAI(Object& obj, float dt) {
         // todo: check if robot is in active set of segments (use rooms)
 
         if (obj.Type == ObjectType::Robot) {
-            //auto id = ObjID(&obj - Game::Level.Objects.data());
-
-            auto& robotInfo = Resources::GetRobotInfo(obj.ID);
-            auto& ai = obj.Control.AI.ail;
-            auto& player = Game::GetPlayer();
-
-            // Reset thrust accumulation
-            obj.Physics.Thrust = Vector3::Zero;
-            obj.Physics.AngularThrust = Vector3::Zero;
-
-            ai.FireDelay -= dt;
-            ai.FireDelay2 -= dt;
-
-            if (obj.NextThinkTime == NEVER_THINK || obj.NextThinkTime > Game::Time)
-                return;
-
-            CheckProjectiles(Game::Level, obj, robotInfo);
-
-            constexpr auto DODGE_TIME = 0.5f;
-            if (ai.LastDodgeTime > Game::Time - DODGE_TIME) {
-                obj.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
-            }
-
-            if (ai.GoalSegment != SegID::None) {
-                // goal path takes priority over other behaviors
-                PathTowardsGoal(Game::Level, obj, dt);
-
-                if (CheckPlayerVisibility(obj, robotInfo)) {
-                    StopPathing(obj); // Stop pathing if robot sees the player
-                    PlayAlertSound(obj, robotInfo);
-                }
-
-                obj.NextThinkTime = Game::Time + Game::TICK_RATE;
-            }
-            else if (ai.Awareness > 0.5f) {
-                // in combat?
-                auto [playerDir, dist] = GetDirectionAndDistance(player.Position, obj.Position);
-                if (CanSeePlayer(obj, playerDir, dist)) {
-                    TurnTowardsVector(obj, playerDir, Difficulty(robotInfo).TurnTime / 2);
-
-                    if (robotInfo.Attack == AttackType::Ranged) {
-                        if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0)
-                            FireRobotWeapon(obj, ai, robotInfo, player, false);
-
-                        if (ai.FireDelay < 0)
-                            FireRobotWeapon(obj, ai, robotInfo, player, true);
-                    }
-                }
-                else {
-                    // Lost sight of player, decay awareness based on AI
-                    DecayAwareness(ai);
-                    // todo: move towards last known location if curious
-                }
-
-                obj.NextThinkTime = Game::Time + Game::TICK_RATE;
-            }
-            else {
-                if (CheckPlayerVisibility(obj, robotInfo)) {
-                    obj.NextThinkTime = Game::Time + Game::TICK_RATE;
-                }
-                else {
-                    // Nothing nearby
-                    DecayAwareness(ai);
-                    obj.NextThinkTime = Game::Time + Game::TICK_RATE * 16;
-                }
-            }
-
-            if (ai.Awareness > 1) ai.Awareness = 1;
-
-            ClampThrust(obj);
-            ai.LastUpdate = Game::Time;
+            UpdateRobotAI(obj, dt);
         }
         else if (obj.Type == ObjectType::Reactor) {
             // check facing, fire weapon from gunpoint
