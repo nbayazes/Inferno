@@ -84,8 +84,10 @@ namespace Inferno {
         ri.Model = (ModelID)r.ReadInt32();
         ri.Guns = (uint8)r.ReadInt32();
 
-        for (auto& gp : ri.GunPoints)
+        for (auto& gp : ri.GunPoints) {
             gp = r.ReadVector();
+            gp.z *= -1; // flip lh/rh
+        }
 
         for (auto& gs : ri.GunSubmodels)
             gs = r.ReadByte();
@@ -134,8 +136,8 @@ namespace Inferno {
 
         for (auto j = 0; j < MAX_GUNS + 1; j++) {
             for (auto k = 0; k < N_ANIM_STATES; k++) {
-                ri.anim_states[j][k].Count = r.ReadInt16();
-                ri.anim_states[j][k].Offset = r.ReadInt16();
+                ri.Joints[j][k].Count = r.ReadInt16();
+                ri.Joints[j][k].Offset = r.ReadInt16();
             }
         }
 
@@ -220,10 +222,10 @@ namespace Inferno {
         ri.Behavior = r.ReadByte();
         ri.Aim = r.ReadByte();
 
-        for (auto j = 0; j < MAX_GUNS + 1; j++) {
-            for (auto k = 0; k < N_ANIM_STATES; k++) {
-                ri.anim_states[j][k].Count = r.ReadInt16();
-                ri.anim_states[j][k].Offset = r.ReadInt16();
+        for (auto& gunState : ri.Joints) {
+            for (auto& state : gunState) {
+                state.Count = r.ReadInt16();
+                state.Offset = r.ReadInt16();
             }
         }
 
@@ -236,8 +238,9 @@ namespace Inferno {
     JointPos ReadRobotJoint(StreamReader& r) {
         JointPos j{};
         j.ID = r.ReadInt16();
-        j.Angle =  r.ReadAngleVec();
-        std::swap(j.Angle.y, j.Angle.z); // Match create matrix from angles function
+        auto angles =  r.ReadAngleVec();
+        j.Angle = Vector3(-angles.x, angles.z, angles.y);
+        //std::swap(j.Angle.y, j.Angle.z); // Match create matrix from angles function
         return j;
     }
 
@@ -316,7 +319,10 @@ namespace Inferno {
 
         Array<Submodel, MAX_SUBMODELS> submodels;
         for (auto& s : submodels) s.Pointer = r.ReadInt32();
-        for (auto& s : submodels) s.Offset = r.ReadVector();
+        for (auto& s : submodels) {
+            s.Offset = r.ReadVector();
+            s.Offset.z *= -1; // flip lh/rh
+        }
         for (auto& s : submodels) s.Normal = r.ReadVector();
         for (auto& s : submodels) s.Point = r.ReadVector();
         for (auto& s : submodels) s.Radius = r.ReadFix();
@@ -353,8 +359,10 @@ namespace Inferno {
         ship.Brakes = r.ReadFix();
         ship.Wiggle = r.ReadFix();
         ship.MaxRotationalThrust = r.ReadFix();
-        for (auto& g : ship.GunPoints)
+        for (auto& g : ship.GunPoints) {
             g = r.ReadVector();
+            g.z *= -1; // flip lh/rh
+        }
         return ship;
     }
 

@@ -489,39 +489,33 @@ namespace Inferno::Game {
                 AddPointsToScore(robot.Score);
 
                 auto& model = Resources::GetModel(robot.Model);
-                for (int i = 0; i < model.Submodels.size(); i++) {
-                    // accumulate the offsets for each submodel
-                    auto submodelOffset = model.GetSubmodelOffset(i);
+                for (int sm = 0; sm < model.Submodels.size(); sm++) {
                     Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), Game::LerpAmount);
-                    //auto transform = obj.GetLastTransform();
-                    transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-                    auto world = Matrix::CreateTranslation(submodelOffset) * transform;
-                    //world = obj.GetLastTransform();
-
-                    auto explosionVec = world.Translation() - obj.Position;
-                    explosionVec.Normalize();
-
-                    auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.33f);
+                    auto world = GetSubmodelTransform(obj, model, sm) * transform;
+          
+                    auto explosionDir = world.Translation() - obj.Position; // explode outwards
+                    explosionDir.Normalize();
+                    auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
 
                     Render::Debris debris;
                     //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
                     //auto vec = RandomVector(obj.Radius * 5);
                     //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
-                    debris.Velocity = i == 0 ? hitForce : explosionVec * 25 + RandomVector(10) + hitForce;
+                    debris.Velocity = sm == 0 ? hitForce : explosionDir * 20 + RandomVector(5) + hitForce;
                     debris.Velocity += obj.Physics.Velocity;
-                    debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
+                    //debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
                     debris.PrevTransform = world;
                     debris.Mass = 1; // obj.Movement.Physics.Mass;
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
                     // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
-                    debris.Duration = 0.15f + Random() * (i == 0 ? 0.0f : 1.75f);
-                    debris.Radius = model.Submodels[i].Radius;
+                    debris.Duration = 0.5f + Random() * (sm == 0 ? 0.25f : 1.5f);
+                    debris.Radius = model.Submodels[sm].Radius;
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
                     debris.Model = robot.Model;
-                    debris.Submodel = i;
+                    debris.Submodel = sm;
                     debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
                     AddDebris(debris, obj.Segment);
                 }

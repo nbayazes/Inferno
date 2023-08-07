@@ -14,6 +14,9 @@ namespace Inferno {
     // Gets the offset and rotation (euler) of a submodel in object space. Includes animations.
     Tuple<Vector3, Vector3> GetSubmodelOffsetAndRotation(const Object& object, const Model& model, int submodel);
 
+    // Gets the object space transform of a submodel
+    Matrix GetSubmodelTransform(const Object& object, const Model& model, int submodel);
+
     // Transforms a point from submodel space to object space. Includes animations.
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel);
 

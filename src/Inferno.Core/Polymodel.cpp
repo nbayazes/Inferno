@@ -102,8 +102,11 @@ namespace Inferno {
                         auto zero = reader.ReadInt16();
                         if (zero != 0) throw Exception("Defpoint Start must equal zero");
 
-                        for (int i = 0; i < n; i++)
-                            model.Vertices.push_back(reader.ReadVector());
+                        for (int i = 0; i < n; i++) {
+                            auto vert = reader.ReadVector();
+                            vert.z *= -1; // flip rh/lh
+                            model.Vertices.push_back(vert);
+                        }
 
                         chunkLen = n * 12 /*sizeof(vector)*/ + 8;
                         break;
@@ -281,9 +284,6 @@ namespace Inferno {
                     Vector3 p0 = model.Vertices[indices[i + 0]];
                     Vector3 p1 = model.Vertices[indices[i + 1]];
                     Vector3 p2 = model.Vertices[indices[i + 2]];
-                    p0.z *= -1; // flip z due to lh/rh differences
-                    p1.z *= -1;
-                    p2.z *= -1;
                     auto normal = -(p1 - p0).Cross(p2 - p0);
                     normal.Normalize();
                     normals.push_back(normal);

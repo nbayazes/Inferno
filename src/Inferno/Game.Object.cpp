@@ -34,6 +34,27 @@ namespace Inferno {
         return { submodelOffset, submodelAngle };
     }
 
+    Matrix GetSubmodelTransform(const Object& object, const Model& model, int submodel) {
+        if (!Seq::inRange(model.Submodels, submodel)) return Matrix::Identity;
+
+        // accumulate the offsets for each submodel
+        auto submodelOffset = Vector3::Zero;
+        Vector3 submodelAngle = object.Render.Model.Angles[submodel];
+        auto* smc = &model.Submodels[submodel];
+        while (smc->Parent != ROOT_SUBMODEL) {
+            auto& parentAngle = object.Render.Model.Angles[smc->Parent];
+            auto parentRotation = Matrix::CreateFromYawPitchRoll(parentAngle);
+            submodelOffset += Vector3::Transform(smc->Offset, parentRotation);
+            submodelAngle += object.Render.Model.Angles[smc->Parent];
+            smc = &model.Submodels[smc->Parent];
+        }
+
+        auto transform = Matrix::CreateFromYawPitchRoll(submodelAngle);
+        transform.Translation(submodelOffset);
+        return transform;
+        //return Matrix::CreateFromYawPitchRoll(submodelAngle)* Matrix::CreateTranslation(submodelOffset);
+    }
+
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel) {
         if (submodel.ID == -1) 
             return Vector3::Zero;
@@ -47,7 +68,7 @@ namespace Inferno {
             sm = model.Submodels[sm].Parent;
         }
 
-        return submodel.Offset * Vector3(1, 1, -1);
+        return submodel.Offset;
     }
 
     SubmodelRef GetLocalGunpointOffset(const Object& obj, uint8 gun) {
@@ -88,12 +109,11 @@ namespace Inferno {
                 submodel = model.Submodels[submodel].Parent;
             }
 
-            return gunpoint * Vector3(1, 1, -1);
+            return gunpoint;
         }
 
         if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
-            return Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
-            //offset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
+            return Resources::GameData.PlayerShip.GunPoints[gun];
         }
 
         if (obj.Type == ObjectType::Reactor) {

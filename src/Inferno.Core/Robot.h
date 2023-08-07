@@ -7,8 +7,8 @@ namespace Inferno {
     constexpr uint8 MAX_GUNS = 8;
     constexpr uint8 N_ANIM_STATES = 5;
 
-    // describes a list of joint positions
-    struct JointList {
+    // joint lookup in the robot joints game data
+    struct JointLookup {
         short Count;
         short Offset;
     };
@@ -81,8 +81,8 @@ namespace Inferno {
         ubyte Behavior;    // Default behavior
         ubyte Aim = 255;   // 255 is perfect aim. 0 is very inaccurate.
 
-        //animation info
-        JointList anim_states[MAX_GUNS + 1][N_ANIM_STATES];
+        // Joint lookup for each gun and animation state
+        JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];
     };
 
 }

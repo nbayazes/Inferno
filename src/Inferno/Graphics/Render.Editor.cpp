@@ -9,7 +9,6 @@
 #include "Render.Gizmo.h"
 #include "Editor/TunnelBuilder.h"
 #include "Settings.h"
-#include "Editor/Editor.Object.h"
 #include "Editor/UI/EditorUI.h"
 #include "Game.Text.h"
 #include "Editor/Bindings.h"
@@ -27,7 +26,6 @@ namespace Inferno::Render {
         auto& model = Resources::GetModel(object.Render.Model.ID);
         int index = 0;
         auto transform = object.GetTransform(Game::LerpAmount);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         for (auto& submodel : model.Submodels) {
             auto offset = model.GetSubmodelOffset(index++);

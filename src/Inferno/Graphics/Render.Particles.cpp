@@ -80,7 +80,6 @@ namespace Inferno::Render {
 
             if (index < 0) return { 0 };
             Vector3 vert = model.Vertices[index];
-            vert.z *= -1; // annoying flipped z
             return { sm, vert };
         }
         else {

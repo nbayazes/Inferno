@@ -2,7 +2,6 @@
 #include "Level.h"
 #include "Streams.h"
 #include "Utility.h"
-#include "Pig.h"
 
 namespace Inferno {
     void ReadLevelInfo(StreamReader& reader, Level& level) {
@@ -36,9 +35,9 @@ namespace Inferno {
     class LevelReader {
         StreamReader _reader;
         int16 _gameVersion = 0;
-        int _mineDataOffset;
-        int _gameDataOffset;
-        int _levelVersion;
+        int _mineDataOffset{};
+        int _gameDataOffset{};
+        int _levelVersion{};
 
         GameDataHeader _deltaLights{}, _deltaLightIndices{};
 
@@ -366,8 +365,6 @@ namespace Inferno {
             return obj;
         }
 
-        void VerifyObject() {}
-
         Wall ReadWall() {
             Wall w{};
             auto segment = (SegID)_reader.ReadInt32();
@@ -514,10 +511,8 @@ namespace Inferno {
             // Objects
             _reader.Seek(objects.Offset);
 
-            for (auto& obj : level.Objects) {
+            for (auto& obj : level.Objects)
                 obj = ReadObject();
-                VerifyObject(); // TODO: Actually verify the object
-            }
 
             // Walls
             if (walls.Offset != -1) {

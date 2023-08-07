@@ -931,7 +931,7 @@ namespace Inferno {
 
         // if a new animation is requested before the previous one finishes, speed up the new one as it has less distance
         float remaining = 1;
-        if (ail.AnimationDuration > 0)
+        if (ail.AnimationTime < ail.AnimationDuration)
             remaining = (ail.AnimationDuration - ail.AnimationTime) / ail.AnimationDuration;
 
         ail.AnimationDuration = time * remaining;

@@ -78,16 +78,11 @@ namespace Inferno::Render {
 
         ObjectDepthShader::Constants constants = {};
         auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto& shader = Shaders->DepthObject;
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
-            // accumulate the offsets for each submodel
-
-            auto [submodelOffset, submodelAngle] = GetSubmodelOffsetAndRotation(object, model, submodel);
-            auto world = Matrix::CreateFromYawPitchRoll(submodelAngle) * Matrix::CreateTranslation(submodelOffset) * transform;
-            constants.World = world;
+            constants.World = GetSubmodelTransform(object, model, submodel) * transform;
             shader.SetConstants(cmdList, constants);
 
             // get the mesh associated with the submodel
@@ -115,7 +110,6 @@ namespace Inferno::Render {
 
         ObjectDepthShader::Constants constants = {};
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto cmd = ctx.GetCommandList();
         auto& shader = Shaders->DepthObject;
@@ -185,7 +179,6 @@ namespace Inferno::Render {
         }
 
         Matrix transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         auto cmdList = ctx.GetCommandList();
 
@@ -314,7 +307,7 @@ namespace Inferno::Render {
         constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
         Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
-        transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
+        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
 
         bool transparentOverride = false;
         auto texOverride = TexID::None;
@@ -335,9 +328,7 @@ namespace Inferno::Render {
         }
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
-            // accumulate the offsets for each submodel
-            auto [submodelOffset, submodelAngle] = GetSubmodelOffsetAndRotation(object, model, submodel);
-            auto world = Matrix::CreateFromYawPitchRoll(submodelAngle) * Matrix::CreateTranslation(submodelOffset) * transform;
+            auto world = GetSubmodelTransform(object, model, submodel) * transform;
             constants.World = world;
 
             // get the mesh associated with the submodel

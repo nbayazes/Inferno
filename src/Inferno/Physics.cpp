@@ -896,9 +896,9 @@ namespace Inferno {
                     Vector3 p0 = model.Vertices[indices[i + 0]] + submodelOffset;
                     Vector3 p1 = model.Vertices[indices[i + 1]] + submodelOffset;
                     Vector3 p2 = model.Vertices[indices[i + 2]] + submodelOffset;
-                    p0.z *= -1; // flip z due to lh/rh differences
-                    p1.z *= -1;
-                    p2.z *= -1;
+                    //p0.z *= -1; // flip z due to lh/rh differences
+                    //p1.z *= -1;
+                    //p2.z *= -1;
                     Vector3 normal = normals[normalIndex++];
                     //auto normal2 = -(p1 - p0).Cross(p2 - p0);
                     //normal2.Normalize();
