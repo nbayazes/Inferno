@@ -44,7 +44,7 @@ namespace Inferno::Game {
     public:
         NavigationNetwork() {}
 
-        NavigationNetwork(Level& level) {
+        NavigationNetwork(struct Level& level) {
             _segmentNodes.resize(level.Segments.size());
             _traversalBuffer.resize(level.Segments.size());
 
@@ -53,10 +53,10 @@ namespace Inferno::Game {
             }
         }
 
-        List<SegID> NavigateTo(SegID start, SegID goal, Level& level);
+        List<SegID> NavigateTo(SegID start, SegID goal, struct Level& level);
 
     private:
-        void UpdateNode(Level& level, SegID segId) {
+        void UpdateNode(struct Level& level, SegID segId) {
             auto& node = _segmentNodes[(int)segId];
             auto& seg = level.GetSegment(segId);
             node.Position = seg.Center;
@@ -82,7 +82,7 @@ namespace Inferno::Game {
             return Vector3::DistanceSquared(a.Position, b.Position);
         }
 
-        List<RoomID> NavigateAcrossRooms(RoomID start, RoomID goal, Level& level);
+        List<RoomID> NavigateAcrossRooms(RoomID start, RoomID goal, struct Level& level);
 
         List<SegID> NavigateWithinRoom(SegID start, SegID goal, Room& room);
     };

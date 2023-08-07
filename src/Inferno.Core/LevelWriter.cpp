@@ -381,8 +381,10 @@ namespace Inferno {
                     auto& model = obj.Render.Model;
                     writer.Write(model.ID);
 
-                    for (auto& angle : model.Angles)
+                    for (Vector3 angle : model.Angles) {
+                        std::swap(angle.x, angle.y); // Revert earlier swap
                         writer.WriteAngles(angle);
+                    }
 
                     writer.Write((int32)model.subobj_flags);
                     writer.Write((int32)model.TextureOverride);

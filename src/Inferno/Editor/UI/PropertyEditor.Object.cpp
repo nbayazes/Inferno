@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Game.AI.h"
 #include "PropertyEditor.h"
 #include "Game.h"
 #include "../Editor.h"
@@ -388,22 +389,26 @@ namespace Inferno::Editor {
             changed = true;
         }
 
+        const auto& robot = Resources::GameData.Robots[obj.ID];
+
         if (ImGui::TableBeginTreeNode("Robot details")) {
-            const auto& robot = Resources::GameData.Robots[obj.ID];
             ImGui::TableRowLabel("Hit points");
             ImGui::Text("%.2f (%.2f)", robot.HitPoints, obj.HitPoints);
 
             ImGui::TableRowLabel("Mass");
             ImGui::Text("%.2f", robot.Mass);
 
-            //ImGui::TableRowLabel("Drag");
-            //ImGui::Text("%.2f", robot.Drag);
+            ImGui::TableRowLabel("Drag");
+            ImGui::Text("%.2f", robot.Drag);
+            ImGui::TreePop();
+        }
 
-            int i = 0;
-            auto soundRow = [&i](const char* label, SoundID id) {
-                ImGui::PushID(i++);
+        int imId = 0;
+        if (ImGui::TableBeginTreeNode("Robot sounds")) {
+            auto soundRow = [&imId](const char* label, SoundID id) {
+                ImGui::PushID(imId++);
                 ImGui::TableRowLabel(label);
-                if (ImGui::SmallButton(Resources::GetSoundName(id).data()))
+                if (ImGui::Button(Resources::GetSoundName(id).data(), { -1, 0 }))
                     Sound::Play(Resources::GetSoundResource(id));
                 ImGui::PopID();
             };
@@ -415,6 +420,23 @@ namespace Inferno::Editor {
             soundRow("Explosion 1", robot.ExplosionSound1);
             soundRow("Explosion 2", robot.ExplosionSound2);
             soundRow("Deathroll", robot.DeathrollSound);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TableBeginTreeNode("Robot animations")) {
+            auto animationRow = [&imId, &obj](const char* label, AnimState state) {
+                ImGui::PushID(imId++);
+                ImGui::TableRowLabel(label);
+                if (ImGui::Button(label, { -1, 0 }))
+                    PlayRobotAnimation(obj, state);
+                ImGui::PopID();
+            };
+
+            animationRow("Rest", AnimState::Rest);
+            animationRow("Fire", AnimState::Fire);
+            animationRow("Flinch", AnimState::Flinch);
+            animationRow("Recoil", AnimState::Recoil);
+            animationRow("Alert", AnimState::Alert);
             ImGui::TreePop();
         }
 

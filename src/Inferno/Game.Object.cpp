@@ -7,6 +7,24 @@
 #include "Game.Wall.h"
 
 namespace Inferno {
+    Tuple<Vector3, Vector3> GetSubmodelOffsetAndRotation(const Object& object, const Model& model, int submodel) {
+        if (!Seq::inRange(model.Submodels, submodel)) return { Vector3::Zero, Vector3::Zero };
+
+        // accumulate the offsets for each submodel
+        auto submodelOffset = Vector3::Zero;
+        Vector3 submodelAngle = object.Render.Model.Angles[submodel];
+        auto* smc = &model.Submodels[submodel];
+        while (smc->Parent != ROOT_SUBMODEL) {
+            auto& parentAngle = object.Render.Model.Angles[smc->Parent];
+            auto parentRotation = Matrix::CreateFromYawPitchRoll(parentAngle);
+            submodelOffset += Vector3::Transform(smc->Offset, parentRotation);
+            submodelAngle += object.Render.Model.Angles[smc->Parent];
+            smc = &model.Submodels[smc->Parent];
+        }
+
+        return { submodelOffset, submodelAngle };
+    }
+
     bool UpdateObjectSegment(Level& level, Object& obj) {
         if (PointInSegment(level, obj.Segment, obj.Position)) 
             return false; // Already in the right segment

@@ -237,6 +237,7 @@ namespace Inferno {
         JointPos j{};
         j.ID = r.ReadInt16();
         j.Angle =  r.ReadAngleVec();
+        std::swap(j.Angle.y, j.Angle.z); // Match create matrix from angles function
         return j;
     }
 

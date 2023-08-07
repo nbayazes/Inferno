@@ -546,6 +546,15 @@ namespace Inferno::Resources {
             LoadGameTable(*file, GameData);
     }
 
+    span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state) {
+        assert((int)state <= 4 && (int)state >= 0);
+        auto& robotInfo = GetRobotInfo(robotId);
+        assert(gun <= robotInfo.Guns && gun >= 0);
+        auto& animStates = robotInfo.anim_states[gun][(int)state];
+        auto& joints = GameData.RobotJoints[animStates.Offset];
+        return span{ &joints, (uint)animStates.Count };
+    }
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();

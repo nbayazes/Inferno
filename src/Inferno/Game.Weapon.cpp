@@ -13,11 +13,18 @@ namespace Inferno::Game {
         gun = std::clamp(gun, 0, MAX_GUNS);
 
         if (obj.Type == ObjectType::Robot) {
-            // todo: account for animation
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto& model = Resources::GetModel(robot.Model);
-            auto offset = model.GetSubmodelOffset(robot.GunSubmodels[gun]);
-            return (offset + robot.GunPoints[gun]) * Vector3(1, 1, -1);
+            auto gunpoint = robot.GunPoints[gun];
+            auto submodel = robot.GunSubmodels[gun];
+
+            while(submodel != ROOT_SUBMODEL) {
+                auto rotation = Matrix::CreateFromYawPitchRoll(obj.Render.Model.Angles[submodel]);
+                gunpoint = Vector3::Transform(gunpoint, rotation) + model.Submodels[submodel].Offset;
+                submodel = model.Submodels[submodel].Parent;
+            }
+
+            return gunpoint * Vector3(1, 1, -1);
         }
 
         if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {

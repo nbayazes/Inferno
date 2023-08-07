@@ -691,6 +691,9 @@ namespace Inferno::Game {
             UpdateReactorCountdown(dt);
         Render::FixedUpdateEffects(dt);
 
+
+        // todo: check if object is in active rooms
+        // todo: track visible and nearby rooms
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
 
@@ -818,7 +821,6 @@ namespace Inferno::Game {
 
         SetState(GameState::Editor); // just exit for now
     }
-
 
     void UpdateState() {
         if (State == RequestedState) return;
@@ -1073,6 +1075,7 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Robot) {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
                 obj.MaxHitPoints = obj.HitPoints = ri.HitPoints;
+                PlayRobotAnimation(obj, AnimState::Rest);
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }

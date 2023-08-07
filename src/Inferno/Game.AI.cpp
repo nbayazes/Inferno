@@ -907,13 +907,71 @@ namespace Inferno {
     void MoveToCircleDistance(Level& level, const Object& player, Object& robot, const RobotInfo& robotInfo) {
         auto circleDistance = Difficulty(robotInfo).CircleDistance;
         auto distOffset = Vector3::Distance(player.Position, robot.Position) - circleDistance;
-        if (abs(distOffset) < 20 && circleDistance > 10) 
+        if (abs(distOffset) < 20 && circleDistance > 10)
             return; // already close enough. Melee robots should always go to zero.
 
         if (distOffset > 0)
             MoveTowardsPlayer(level, player, robot);
         else
             MoveAwayFromPlayer(level, player, robot);
+    }
+
+    void PlayRobotAnimation(Object& robot, AnimState state, float moveMult) {
+        auto& robotInfo = Resources::GetRobotInfo(robot);
+        auto& angles = robot.Render.Model.Angles;
+        bool atGoal = true;
+        auto& ail = robot.Control.AI.ail;
+
+        //for (auto& angle : ail.DeltaAngles)
+        //    angle = Vector3::Zero;
+
+        //for (auto& angle : angles)
+        //    angle = Vector3::Zero;
+
+        ail.AnimationDuration = 0.4f;
+        ail.AnimationTime = 0;
+
+        for (int gun = 0; gun <= robotInfo.Guns; gun++) {
+            const auto robotJoints = Resources::GetRobotJoints(robot.ID, gun, state);
+
+            for (auto& joint : robotJoints) {
+                //auto& goalAngle = robotJoints[j].Angle;
+                auto& angle = angles[joint.ID];
+                Vector3 jointAngle = joint.Angle;
+
+                if (angle == jointAngle * moveMult) {
+                    ail.DeltaAngles[joint.ID] = Vector3::Zero;
+                    continue;
+                }
+
+                ail.GoalAngles[joint.ID] = jointAngle;
+                ail.DeltaAngles[joint.ID] = jointAngle * moveMult - angle;
+            }
+
+            if (atGoal) {
+                ail.AchievedState[gun] = ail.GoalState[gun];
+                if (ail.AchievedState[gun] == AIState::Recoil)
+                    ail.GoalState[gun] = AIState::Fire;
+
+                if (ail.AchievedState[gun] == AIState::Flinch)
+                    ail.GoalState[gun] = AIState::Lock;
+            }
+        }
+    }
+
+    void AnimateRobot(Object& robot, float dt) {
+        assert(robot.IsRobot());
+        auto& ail = robot.Control.AI.ail;
+        auto& model = Resources::GetModel(robot.Render.Model.ID);
+
+        ail.AnimationTime += dt;
+        if (ail.AnimationTime > ail.AnimationDuration) return;
+        // todo: fix goal angle not being exactly reached?
+
+        for (int joint = 1; joint < model.Submodels.size(); joint++) {
+            auto& curAngle = robot.Render.Model.Angles[joint];
+            curAngle += ail.DeltaAngles[joint] / ail.AnimationDuration * dt;
+        }
     }
 
     void UpdateRobotAI(Object& robot, float dt) {
@@ -929,6 +987,7 @@ namespace Inferno {
 
         ai.FireDelay -= dt;
         ai.FireDelay2 -= dt;
+        AnimateRobot(robot, dt);
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
@@ -994,9 +1053,10 @@ namespace Inferno {
     }
 
     void UpdateAI(Object& obj, float dt) {
-        // todo: check if robot is in active set of segments (use rooms)
+        // todo: check if robot is in active segments (use rooms)
 
         if (obj.Type == ObjectType::Robot) {
+            Debug::ActiveRobots++;
             UpdateRobotAI(obj, dt);
         }
         else if (obj.Type == ObjectType::Reactor) {

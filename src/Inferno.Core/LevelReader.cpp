@@ -334,8 +334,10 @@ namespace Inferno {
                     auto& model = obj.Render.Model;
                     model.ID = (ModelID)_reader.ReadInt32();
 
-                    for (auto& angles : model.Angles)
+                    for (auto& angles : model.Angles) {
                         angles = _reader.ReadAngleVec();
+                        std::swap(angles.y, angles.z); // Swap yaw and roll so they match the create matrix function
+                    }
 
                     model.subobj_flags = _reader.ReadInt32();
                     model.TextureOverride = (LevelTexID)_reader.ReadInt32();

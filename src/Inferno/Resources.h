@@ -45,6 +45,10 @@ namespace Inferno::Resources {
 
     const Model& GetModel(ModelID);
     const RobotInfo& GetRobotInfo(uint);
+    inline const RobotInfo& GetRobotInfo(const Object& obj) {
+        assert(obj.IsRobot());
+        return GetRobotInfo(obj.ID);
+    }
 
     List<TexID> CopyLevelTextureLookup();
     TexID LookupTexID(LevelTexID);
@@ -122,6 +126,7 @@ namespace Inferno::Resources {
     const string_view GetSecondaryNameShort(SecondaryWeaponIndex id);
 
     void LoadGameTable();
+    span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state);
 
     inline MaterialInfoLibrary Materials;
 

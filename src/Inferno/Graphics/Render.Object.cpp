@@ -2,6 +2,7 @@
 
 #include "CommandContext.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "MaterialLibrary.h"
 #include "Render.Editor.h"
 #include "Render.h"
@@ -81,22 +82,16 @@ namespace Inferno::Render {
 
         auto& shader = Shaders->DepthObject;
 
-        int submodelIndex = 0;
-        for (auto& submodel : model.Submodels) {
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             // accumulate the offsets for each submodel
-            auto submodelOffset = Vector3::Zero;
-            auto* smc = &submodel;
-            while (smc->Parent != ROOT_SUBMODEL) {
-                submodelOffset += smc->Offset;
-                smc = &model.Submodels[smc->Parent];
-            }
 
-            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+            auto [submodelOffset, submodelAngle] = GetSubmodelOffsetAndRotation(object, model, submodel);
+            auto world = Matrix::CreateFromYawPitchRoll(submodelAngle) * Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
             shader.SetConstants(cmdList, constants);
 
             // get the mesh associated with the submodel
-            auto& subMesh = meshHandle.Meshes[submodelIndex++];
+            auto& subMesh = meshHandle.Meshes[submodel];
 
             for (int i = 0; i < subMesh.size(); i++) {
                 auto mesh = subMesh[i];
@@ -341,8 +336,8 @@ namespace Inferno::Render {
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             // accumulate the offsets for each submodel
-            auto submodelOffset = model.GetSubmodelOffset(submodel);
-            auto world = Matrix::CreateTranslation(submodelOffset) * transform;
+            auto [submodelOffset, submodelAngle] = GetSubmodelOffsetAndRotation(object, model, submodel);
+            auto world = Matrix::CreateFromYawPitchRoll(submodelAngle) * Matrix::CreateTranslation(submodelOffset) * transform;
             constants.World = world;
 
             // get the mesh associated with the submodel
@@ -355,7 +350,6 @@ namespace Inferno::Render {
                 bool isTransparent = mesh->IsTransparent || transparentOverride;
                 if (isTransparent && pass != RenderPass::Transparent) continue;
                 if (!isTransparent && pass != RenderPass::Opaque) continue;
-                //const Material2D& material = tid == TexID::None ? Materials->White() : Materials->Get(tid);
 
                 if (isTransparent) {
                     auto& material = Resources::GetMaterial(mesh->Texture);

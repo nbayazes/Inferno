@@ -55,6 +55,25 @@ namespace Inferno {
         ThiefWait = 17,
     };
 
+    enum class AIState : int8 {
+        None,
+        Idle,
+        Search,
+        Lock,
+        Flinch,
+        Fire,
+        Recoil,
+        Error
+    };
+
+    enum class AnimState : int8 {
+        Rest = 0,
+        Alert = 1,
+        Fire = 2,
+        Recoil = 3,
+        Flinch = 4
+    };
+
     // Runtime AI data
     struct AIRuntime {
         // How aware of the player this robot is. Ranges 0 to 1.
@@ -72,12 +91,14 @@ namespace Inferno {
         //float NextActionTime;
         float FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons
         //float AwarenessTime; // How long to remain aware of the player, 0 for unaware
-        double LastUpdate = -1; // time since this robot was updated
+        double LastUpdate = -1; // time when this robot was last updated
         float LastSeenPlayer; // Time in seconds since player was seen
         float LastSeenAttackingPlayer; // Time in seconds since at least awareness level 2
         float MiscSoundTime; // Time in seconds since the robot made angry or lurking noises
+        float AnimationTime = 0; // How much of the animation has passed
+        float AnimationDuration = 0; // Time in seconds to reach the goal angles
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
-        Array<sbyte, MAX_SUBMODELS> GoalState{}, AchievedState{};
+        Array<AIState, MAX_SUBMODELS> GoalState{}, AchievedState{};
 
         SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
         RoomID GoalRoom = RoomID::None;

@@ -9,7 +9,7 @@ namespace Inferno {
 
     //describes the position of a certain joint
     struct JointPos {
-        short ID;
+        short ID; // joint number
         Vector3 Angle;
     };
 
