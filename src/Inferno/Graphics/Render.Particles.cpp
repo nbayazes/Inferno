@@ -3,6 +3,7 @@
 #include "DataPool.h"
 #include "Render.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "Game.Segment.h"
 #include "MaterialLibrary.h"
 #include "Physics.h"
@@ -61,12 +62,12 @@ namespace Inferno::Render {
         ParticleEmitters.Add(emitter);
     }
 
-    Vector3 GetRandomPointOnObject(const Object& obj) {
+    // Returns the offset and submodel
+    SubmodelRef GetRandomPointOnObject(const Object& obj) {
         if (obj.Render.Type == RenderType::Model) {
             auto& model = Resources::GetModel(obj.Render.Model.ID);
-            auto sm = RandomInt((int)model.Submodels.size() - 1);
-            if (sm < 0) return Vector3::Zero;
-            auto offset = model.GetSubmodelOffset(sm); // todo: animation
+            auto sm = (short)RandomInt((int)model.Submodels.size() - 1);
+            if (sm < 0) return { 0 };
             int index = -1;
             if (!model.Submodels[sm].Indices.empty()) {
                 auto i = RandomInt((int)model.Submodels[sm].Indices.size() - 1);
@@ -77,15 +78,14 @@ namespace Inferno::Render {
                 index = model.Submodels[sm].FlatIndices[i];
             }
 
-            if (index < 0) return Vector3::Zero;
-            auto vert = model.Vertices[index] + offset;
+            if (index < 0) return { 0 };
+            Vector3 vert = model.Vertices[index];
             vert.z *= -1; // annoying flipped z
-            auto transform = obj.GetTransform(Game::LerpAmount);
-            auto value = Vector3::Transform(vert, transform);
-            return value;
+            return { sm, vert };
         }
         else {
-            return obj.GetPosition(Game::LerpAmount) + RandomPointOnSphere() * obj.Radius;
+            auto point = obj.GetPosition(Game::LerpAmount) + RandomPointOnSphere() * obj.Radius;
+            return { 0, point };
         }
     }
 
@@ -94,8 +94,10 @@ namespace Inferno::Render {
 
         if (auto parent = Game::Level.TryGetObject(Parent)) {
             auto pos = parent->GetPosition(Game::LerpAmount);
-            if (ParentOffset != Vector3::Zero)
-                pos += Vector3::Transform(ParentOffset, parent->GetRotation(Game::LerpAmount));
+            if (Submodel.ID > -1) {
+                auto offset = GetSubmodelOffset(*parent, Submodel);
+                pos += Vector3::Transform(offset, parent->GetRotation(Game::LerpAmount));
+            }
 
             Position = pos;
         }
@@ -126,7 +128,8 @@ namespace Inferno::Render {
         p.Clip = Clip;
         p.Duration = vclip.PlayTime;
         p.Parent = Parent;
-        p.ParentOffset = ParentOffset;
+        //p.Submodel.Offset = ParentOffset;
+        //p.Submodel.ID = 0;
         p.Position = Position;
         p.Radius = MinRadius + Random() * (MaxRadius - MinRadius);
 
@@ -190,9 +193,9 @@ namespace Inferno::Render {
             auto mesh = subMesh[i];
             if (!mesh) continue;
 
-            TexID tid = TexOverride;
-            if (tid == TexID::None)
-                tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
+            //TexID tid = TexOverride;
+            //if (tid == TexID::None)
+            //    tid = mesh->EffectClip == EClipID::None ? mesh->Texture : Resources::GetEffectClip(mesh->EffectClip).VClip.GetFrame(ElapsedTime);
 
             //const Material2D& material = tid == TexID::None ? Materials->White : Materials->Get(tid);
             //effect.Shader->SetMaterial(cmdList, material);
@@ -353,23 +356,28 @@ namespace Inferno::Render {
         BeamInfo Info;
     };
 
+    void InitRandomBeamPoints(BeamInfo& beam, const Object* object) {
+        if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
+            if (object)
+                beam.StartSubmodel = GetRandomPointOnObject(*object);
+        }
+
+        if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
+            if (object)
+                beam.EndSubmodel = GetRandomPointOnObject(*object);
+        }
+        else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
+            beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
+        }
+    }
+
     void AddBeam(BeamInfo& beam) {
         beam.Segment = FindContainingSegment(Game::Level, beam.Start);
         std::array tex = { beam.Texture };
         Render::Materials->LoadTextures(tex);
 
-        if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
-            if (auto obj = Game::Level.TryGetObject(beam.StartObj))
-                beam.Start = GetRandomPointOnObject(*obj);
-        }
-
-        if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
-            if (auto obj = Game::Level.TryGetObject(beam.StartObj))
-                beam.End = GetRandomPointOnObject(*obj);
-        }
-        else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
-            beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
-        }
+        if (beam.HasRandomEndpoints())
+            InitRandomBeamPoints(beam, Game::Level.TryGetObject(beam.StartObj));
 
         beam.Runtime.Length = (beam.Start - beam.End).Length();
         beam.Runtime.Width = beam.Width.GetRandom();
@@ -390,10 +398,15 @@ namespace Inferno::Render {
 
         if (obj) {
             beam.StartObj = start;
-            beam.Start = obj->Position;
+            if (startGun >= 0) {
+                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
+                beam.StartSubmodel = GetLocalGunpointOffset(*obj, (uint8)startGun);
+            }
+            else {
+                beam.Start = obj->Position;
+            }
             beam.Segment = obj->Segment;
             beam.End = end;
-            beam.StartObjGunpoint = startGun;
             beam.StartLife = beam.Life = life;
             AddBeam(beam);
         }
@@ -404,10 +417,14 @@ namespace Inferno::Render {
 
         if (obj) {
             beam.StartObj = start;
-            beam.Start = obj->Position;
+            if (startGun >= 0) {
+                beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
+                beam.StartSubmodel = GetLocalGunpointOffset(*obj, (uint8)startGun);
+            } else {
+                beam.Start = obj->Position;
+            }
             beam.Segment = obj->Segment;
             beam.EndObj = end;
-            beam.StartObjGunpoint = startGun;
             beam.StartLife = beam.Life = life;
             AddBeam(beam);
         }
@@ -474,38 +491,40 @@ namespace Inferno::Render {
 
             if (!beam.IsAlive()) continue;
 
+            Object* startObj = nullptr;
+            Object* endObj = nullptr;
+            if (beam.StartObj != ObjID::None) startObj = Game::Level.TryGetObject(beam.StartObj);
+            if (beam.EndObj != ObjID::None) endObj = Game::Level.TryGetObject(beam.EndObj);
+
             if (beam.StartObj != ObjID::None && !HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
-                if (auto obj = Game::Level.TryGetObject(beam.StartObj)) {
-                    if (beam.StartObjGunpoint > -1) {
-                        auto offset = Game::GetGunpointOffset(*obj, beam.StartObjGunpoint);
-                        beam.Start = Vector3::Transform(offset, obj->GetTransform(Game::LerpAmount));
+                if (startObj) {
+                    if (beam.StartSubmodel.ID > -1) {
+                        auto offset = GetSubmodelOffset(*startObj, beam.StartSubmodel);
+                        beam.Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
                     }
                     else {
-                        beam.Start = obj->GetPosition(Game::LerpAmount);
+                        beam.Start = startObj->GetPosition(Game::LerpAmount);
                     }
                 }
             }
 
-            if (beam.HasRandomEndpoints() && (float)Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
-                if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd)) {
-                    if (auto obj = Game::Level.TryGetObject(beam.StartObj))
-                        beam.End = GetRandomPointOnObject(*obj);
-                }
-                else if (HasFlag(beam.Flags, BeamFlag::RandomEnd)) {
-                    beam.End = GetRandomPoint(beam.Start, beam.Segment, beam.Radius.GetRandom());
-                }
-
-                if (HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
-                    if (auto obj = Game::Level.TryGetObject(beam.StartObj))
-                        beam.Start = GetRandomPointOnObject(*obj);
-                }
-
-                beam.Runtime.NextStrikeTime = (float)Render::ElapsedTime + beam.StrikeTime;
+            if (beam.HasRandomEndpoints() && Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
+                InitRandomBeamPoints(beam, startObj);
+                beam.Runtime.NextStrikeTime = Render::ElapsedTime + beam.StrikeTime;
             }
 
-            if (beam.EndObj != ObjID::None) {
-                if (auto obj = Game::Level.TryGetObject(beam.EndObj))
-                    beam.End = obj->GetPosition(Game::LerpAmount);
+            if (HasFlag(beam.Flags, BeamFlag::RandomObjStart) && startObj) {
+                auto offset = GetSubmodelOffset(*startObj, beam.StartSubmodel);
+                beam.Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
+            }
+
+            if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd) && startObj) {
+                // note that this effect uses the start object for begin and end
+                auto offset = GetSubmodelOffset(*startObj, beam.EndSubmodel);
+                beam.End = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
+            }
+            else if (endObj) {
+                beam.End = endObj->GetPosition(Game::LerpAmount);
             }
 
             beam.Time += Render::FrameTime;
@@ -536,13 +555,13 @@ namespace Inferno::Render {
 
             noise.resize(segments);
 
-            if (beam.Amplitude > 0 && (float)Render::ElapsedTime > beam.Runtime.NextUpdate) {
+            if (beam.Amplitude > 0 && Render::ElapsedTime > beam.Runtime.NextUpdate) {
                 if (HasFlag(beam.Flags, BeamFlag::SineNoise))
                     SineNoise(noise);
                 else
                     FractalNoise(noise);
 
-                beam.Runtime.NextUpdate = (float)Render::ElapsedTime + beam.Frequency;
+                beam.Runtime.NextUpdate = Render::ElapsedTime + beam.Frequency;
                 beam.Runtime.OffsetU = Random();
             }
 

@@ -2,7 +2,6 @@
 #include "DebugWindow.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Debug.h"
-#include "Graphics/Lighting.h"
 #include "Input.h"
 #include "../Editor.h"
 #include "Physics.h"
@@ -19,6 +18,7 @@ namespace Inferno::Editor {
 
     void DebugWindow::OnUpdate() {
         ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
+        ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
         ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
         ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);

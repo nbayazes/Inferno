@@ -3,6 +3,7 @@
 #include "DataPool.h"
 #include "EffectClip.h"
 #include "DirectX.h"
+#include "Game.Object.h"
 #include "Graphics/CommandContext.h"
 
 namespace Inferno {
@@ -65,7 +66,7 @@ namespace Inferno::Render {
         float Delay = 0;
         bool RandomRotation = true;
         //float FadeDuration = 0;
-        Vector3 ParentOffset;
+        SubmodelRef Submodel;
 
         bool Update(float dt) override;
         void Draw(Graphics::GraphicsContext&) override;
@@ -75,7 +76,7 @@ namespace Inferno::Render {
         VClipID Clip = VClipID::None;
         float Life = 0; // How long the emitter lives for
         ObjID Parent = ObjID::None; // Moves with this object
-        Vector3 ParentOffset; // Offset from parent
+        //Vector3 ParentOffset; // Offset from parent
         Vector3 Position;
         Vector3 Velocity;
 
@@ -173,7 +174,14 @@ namespace Inferno::Render {
         Vector3 Start; // Input: start of beam
         Vector3 End; // Input: end of beam
         ObjID StartObj = ObjID::None; // attaches start of beam to this object. Sets Start each update if valid.
-        int StartObjGunpoint = -1; // Gunpoint of StartObj to attach the beam to
+        //int StartObjGunpoint = -1; // Gunpoint of StartObj to attach the beam to
+        //int StartSubmodel = -1; // When set, Start is relative to this submodel
+        //int EndSubmodel = -1; // When set, End is relative to this submodel
+
+        //Vector3 StartOffset, EndOffset;
+        SubmodelRef StartSubmodel, EndSubmodel;
+
+
         ObjID EndObj = ObjID::None; // attaches end of beam to this object. Sets End each update if valid
 
         NumericRange<float> Radius; // If RandomEnd is true, randomly strike targets within this radius
@@ -203,8 +211,8 @@ namespace Inferno::Render {
             float Length;
             int Segments;
             List<float> Noise;
-            float NextUpdate;
-            float NextStrikeTime;
+            double NextUpdate;
+            double NextStrikeTime;
             float Width;
             float OffsetU; // Random amount to offset the texture by
         } Runtime{};
@@ -213,7 +221,7 @@ namespace Inferno::Render {
     };
 
     void AddBeam(BeamInfo, float life, const Vector3& start, const Vector3& end);
-    void AddBeam(BeamInfo, float life, ObjID start, const Vector3& end, int startGun = -1);
+    void AddBeam(BeamInfo, float life, ObjID start, const Vector3& end, int startGun);
     void AddBeam(BeamInfo, float life, ObjID start, ObjID end = ObjID::None, int startGun = -1);
 
     void DrawBeams(Graphics::GraphicsContext& ctx);

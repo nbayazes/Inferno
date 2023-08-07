@@ -7,6 +7,15 @@
 #include "Game.Wall.h"
 
 namespace Inferno {
+    uint8 GetGunSubmodel(const Object& obj, uint8 gun) {
+        if (obj.IsRobot()) {
+            auto& robot = Resources::GetRobotInfo(obj.ID);
+            return robot.GunSubmodels[gun];
+        }
+
+        return 0;
+    }
+
     Tuple<Vector3, Vector3> GetSubmodelOffsetAndRotation(const Object& object, const Model& model, int submodel) {
         if (!Seq::inRange(model.Submodels, submodel)) return { Vector3::Zero, Vector3::Zero };
 
@@ -25,8 +34,79 @@ namespace Inferno {
         return { submodelOffset, submodelAngle };
     }
 
+    Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel) {
+        if (submodel.ID == -1) 
+            return Vector3::Zero;
+
+        auto& model = Resources::GetModel(obj.Render.Model.ID);
+
+        auto sm = submodel.ID;
+        while (sm != ROOT_SUBMODEL) {
+            auto rotation = Matrix::CreateFromYawPitchRoll(obj.Render.Model.Angles[sm]);
+            submodel.Offset = Vector3::Transform(submodel.Offset, rotation) + model.Submodels[sm].Offset;
+            sm = model.Submodels[sm].Parent;
+        }
+
+        return submodel.Offset * Vector3(1, 1, -1);
+    }
+
+    SubmodelRef GetLocalGunpointOffset(const Object& obj, uint8 gun) {
+        gun = std::clamp(gun, (uint8)0, MAX_GUNS);
+
+        if (obj.Type == ObjectType::Robot) {
+            auto& robot = Resources::GetRobotInfo(obj.ID);
+            auto gunpoint = robot.GunPoints[gun];
+            return { robot.GunSubmodels[gun], gunpoint };
+        }
+
+        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
+            auto& gunpoint = Resources::GameData.PlayerShip.GunPoints[gun];
+            return { 0, gunpoint };
+        }
+
+        if (obj.Type == ObjectType::Reactor) {
+            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return { 0, Vector3::Zero };
+            auto& reactor = Resources::GameData.Reactors[obj.ID];
+            return { 0, reactor.GunPoints[gun] };
+        }
+
+        return { 0, Vector3::Zero };
+    }
+
+    Vector3 GetGunpointOffset(const Object& obj, uint8 gun) {
+        gun = std::clamp(gun, (uint8)0, MAX_GUNS);
+
+        if (obj.Type == ObjectType::Robot) {
+            auto& robot = Resources::GetRobotInfo(obj.ID);
+            auto& model = Resources::GetModel(robot.Model);
+            auto gunpoint = robot.GunPoints[gun];
+            auto submodel = robot.GunSubmodels[gun];
+
+            while (submodel != ROOT_SUBMODEL) {
+                auto rotation = Matrix::CreateFromYawPitchRoll(obj.Render.Model.Angles[submodel]);
+                gunpoint = Vector3::Transform(gunpoint, rotation) + model.Submodels[submodel].Offset;
+                submodel = model.Submodels[submodel].Parent;
+            }
+
+            return gunpoint * Vector3(1, 1, -1);
+        }
+
+        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
+            return Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
+            //offset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
+        }
+
+        if (obj.Type == ObjectType::Reactor) {
+            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return Vector3::Zero;
+            auto& reactor = Resources::GameData.Reactors[obj.ID];
+            return reactor.GunPoints[gun];
+        }
+
+        return Vector3::Zero;
+    }
+
     bool UpdateObjectSegment(Level& level, Object& obj) {
-        if (PointInSegment(level, obj.Segment, obj.Position)) 
+        if (PointInSegment(level, obj.Segment, obj.Position))
             return false; // Already in the right segment
 
         auto id = FindContainingSegment(level, obj.Position);

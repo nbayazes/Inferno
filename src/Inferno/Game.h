@@ -59,12 +59,8 @@ namespace Inferno::Game {
     void WeaponHitObject(const LevelHit& hit, Object& src);
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
-    void FireWeapon(ObjID objId, WeaponID id, const Vector3& position, const Vector3& direction, bool showFlash = true, bool playSound = true);
+    void FireWeapon(ObjID objId, WeaponID id, uint8 gun, Vector3* customDir = nullptr, bool showFlash = true, bool playSound = true);
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread);
-
-    // Fires a weapon straight ahead from the object's gunpoint
-    void FireWeaponFromGunpoint(ObjID objId, int gun, WeaponID id, bool showFlash = true);
-    Vector3 GetGunpointOffset(const Object& obj, int gun);
 
     // Detonates a weapon with a splash radius
     void ExplodeWeapon(const Object&);
@@ -93,7 +89,7 @@ namespace Inferno::Game {
         return time <= Time && time != -1;
     }
 
-    using GunIndex = int;
+    using GunIndex = uint8;
     using WeaponBehavior = std::function<void(Inferno::Player&, GunIndex, WeaponID)>;
     WeaponBehavior& GetWeaponBehavior(const string& name);
 

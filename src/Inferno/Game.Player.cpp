@@ -271,7 +271,7 @@ namespace Inferno {
 
     void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
-        Game::FireWeaponFromGunpoint(ID, 6, WeaponID::Flare);
+        Game::FireWeapon(ID, WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
     }
@@ -314,7 +314,7 @@ namespace Inferno {
 
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        Game::FireWeaponFromGunpoint(ID, 7, id);
+        Game::FireWeapon(ID, id, 7);
         ammo -= (uint16)weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
@@ -370,7 +370,7 @@ namespace Inferno {
         auto& sequence = ship.Weapons[(int)Primary].Firing;
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
-        for (int i = 0; i < 8; i++) {
+        for (uint8 i = 0; i < 8; i++) {
             bool quadFire = HasPowerup(PowerupFlag::QuadLasers) && ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
@@ -410,9 +410,9 @@ namespace Inferno {
         auto& sequence = ship.Weapons[10 + (int)Secondary].Firing;
         if (MissileFiringIndex >= sequence.size()) MissileFiringIndex = 0;
 
-        for (int i = 0; i < 8; i++) {
+        for (uint8 i = 0; i < 8; i++) {
             if (sequence[MissileFiringIndex].Gunpoints[i])
-                Game::FireWeaponFromGunpoint(ID, i, id);
+                Game::FireWeapon(ID, id, i);
         }
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;

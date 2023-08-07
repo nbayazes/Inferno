@@ -153,6 +153,7 @@ namespace Inferno {
     struct CheatSettings {
         bool DisableWeaponDamage = false;
         bool DisableWallCollision = false;
+        bool DisableAI = true;
     };
 
     namespace Settings {

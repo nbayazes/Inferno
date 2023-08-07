@@ -12,6 +12,8 @@ namespace Inferno {
         auto& obj = Game::Level.Objects[0];
         auto& physics = obj.Physics;
 
+        physics.Thrust = Vector3::Zero;
+        physics.AngularThrust = Vector3::Zero;
         auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
         auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
 

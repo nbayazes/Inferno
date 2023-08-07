@@ -1,12 +1,11 @@
 #pragma once
-#include "Polymodel.h"
 #include "Types.h"
 #include "Object.h"
 
 namespace Inferno {
     constexpr auto MAX_ROBOT_JOINTS = 1600;
-    constexpr auto MAX_GUNS = 8;
-    constexpr auto N_ANIM_STATES = 5;
+    constexpr uint8 MAX_GUNS = 8;
+    constexpr uint8 N_ANIM_STATES = 5;
 
     // describes a list of joint positions
     struct JointList {
@@ -30,7 +29,7 @@ namespace Inferno {
     struct RobotInfo {
         ModelID Model;
         Vector3 GunPoints[MAX_GUNS]; // where each gun model is
-        ubyte GunSubmodels[MAX_GUNS];   // which submodel is each gun in?
+        uint8 GunSubmodels[MAX_GUNS];   // which submodel each gun is attached to
 
         VClipID ExplosionClip1, ExplosionClip2;
 

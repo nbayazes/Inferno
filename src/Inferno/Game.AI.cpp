@@ -3,6 +3,7 @@
 #include "Types.h"
 #include "Game.AI.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "Resources.h"
 #include "Physics.h"
 #include "logging.h"
@@ -714,7 +715,7 @@ namespace Inferno {
         // dist_to_player < obj->size + ConsoleObject->size + F1_0 * 2
         auto aim = 8.0f - 7.0f * FixToFloat(robot.Aim << 8);
 
-        // todo: seismic disturbance
+        // todo: seismic disturbance inaccuracy
 
         // Randomize target based on difficulty
         Vector3 target = {
@@ -725,11 +726,11 @@ namespace Inferno {
 
         auto id = ObjID(&obj - Game::Level.Objects.data());
 
-        //void FireWeaponFromGunpoint(ObjID objId, int gun, WeaponID id, const Vector3 & direction, bool showFlash) {
-        auto gunOffset = Game::GetGunpointOffset(obj, gun);
+        // this duplicates position/direction calculation in FireWeapon...
+        auto gunOffset = GetSubmodelOffset(obj, { robot.GunSubmodels[gun], robot.GunPoints[gun] });
         auto position = Vector3::Transform(gunOffset, obj.GetTransform());
         auto direction = NormalizeDirection(target, position);
-        Game::FireWeapon(id, weapon, position, direction);
+        Game::FireWeapon(id, weapon, gun, &direction);
     }
 
     constexpr float FAST_WEAPON_SPEED = 200;
@@ -916,7 +917,7 @@ namespace Inferno {
             MoveAwayFromPlayer(level, player, robot);
     }
 
-    void PlayRobotAnimation(Object& robot, AnimState state, float moveMult) {
+    void PlayRobotAnimation(Object& robot, AnimState state, float time, float moveMult) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         auto& angles = robot.Render.Model.Angles;
         bool atGoal = true;
@@ -928,7 +929,12 @@ namespace Inferno {
         //for (auto& angle : angles)
         //    angle = Vector3::Zero;
 
-        ail.AnimationDuration = 0.4f;
+        // if a new animation is requested before the previous one finishes, speed up the new one as it has less distance
+        float remaining = 1;
+        if (ail.AnimationDuration > 0)
+            remaining = (ail.AnimationDuration - ail.AnimationTime) / ail.AnimationDuration;
+
+        ail.AnimationDuration = time * remaining;
         ail.AnimationTime = 0;
 
         for (int gun = 0; gun <= robotInfo.Guns; gun++) {
@@ -989,7 +995,7 @@ namespace Inferno {
         ai.FireDelay2 -= dt;
         AnimateRobot(robot, dt);
 
-        if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
+        if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time || Settings::Cheats.DisableAI)
             return;
 
         CheckProjectiles(Game::Level, robot, robotInfo);

@@ -150,7 +150,7 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt);
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness);
-    void PlayRobotAnimation(Object& robot, AnimState state, float moveMult = 5);
+    void PlayRobotAnimation(Object& robot, AnimState state, float time = 0.4f, float moveMult = 5);
 
     namespace Debug {
         inline int ActiveRobots = 0;

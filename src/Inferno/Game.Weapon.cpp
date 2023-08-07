@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Object.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "Game.Wall.h"
 #include "Physics.h"
 #include "SoundSystem.h"
@@ -8,39 +9,6 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
-    // Gets the gunpoint offset relative to the object center
-    Vector3 GetGunpointOffset(const Object& obj, int gun) {
-        gun = std::clamp(gun, 0, MAX_GUNS);
-
-        if (obj.Type == ObjectType::Robot) {
-            auto& robot = Resources::GetRobotInfo(obj.ID);
-            auto& model = Resources::GetModel(robot.Model);
-            auto gunpoint = robot.GunPoints[gun];
-            auto submodel = robot.GunSubmodels[gun];
-
-            while(submodel != ROOT_SUBMODEL) {
-                auto rotation = Matrix::CreateFromYawPitchRoll(obj.Render.Model.Angles[submodel]);
-                gunpoint = Vector3::Transform(gunpoint, rotation) + model.Submodels[submodel].Offset;
-                submodel = model.Submodels[submodel].Parent;
-            }
-
-            return gunpoint * Vector3(1, 1, -1);
-        }
-
-        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
-            return Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
-            //offset = Resources::GameData.PlayerShip.GunPoints[gun] * Vector3(1, 1, -1);
-        }
-
-        if (obj.Type == ObjectType::Reactor) {
-            if (!Seq::inRange(Resources::GameData.Reactors, obj.ID)) return Vector3::Zero;
-            auto& reactor = Resources::GameData.Reactors[obj.ID];
-            return reactor.GunPoints[gun];
-        }
-
-        return Vector3::Zero;
-    }
-
     void ExplodeWeapon(const Object& obj) {
         if (obj.Type != ObjectType::Weapon) return;
         const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
@@ -453,35 +421,21 @@ namespace Inferno::Game {
         return direction;
     }
 
-    //    // Hide flashes in first person for gunpoints under the ship
-    //    //bool showFlash = !(gun == 6 && (int)objId == 0 && Game::InGame());
-    //    FireWeapon(objId, id, position, direction, showFlash, true);
-    //}
-
-    void FireWeaponFromGunpoint(ObjID objId, int gun, WeaponID id, bool showFlash) {
-        auto& obj = Game::Level.Objects[(int)objId];
-        auto gunOffset = GetGunpointOffset(obj, gun);
-        auto position = Vector3::Transform(gunOffset, obj.GetTransform());
-        FireWeapon(objId, id, position, obj.Rotation.Forward(), showFlash, true);
-    }
-
-    void FireWeaponFromGunpoint(ObjID objId, int gun, WeaponID id, const Vector3& direction, bool showFlash) {
-        auto& obj = Game::Level.Objects[(int)objId];
-        auto gunOffset = GetGunpointOffset(obj, gun);
-        auto position = Vector3::Transform(gunOffset, obj.GetTransform());
-        FireWeapon(objId, id, position, direction, showFlash, true);
-    }
-
-    void FireSpreadWeapon(ObjID objId, int gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero) {
+    void FireSpreadWeapon(ObjID objId, uint8 gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero) {
         auto direction = GetSpreadDirection(objId, spread);
-        FireWeaponFromGunpoint(objId, gun, id, direction, showFlash);
+        FireWeapon(objId, id, gun, &direction, showFlash);
     }
 
-    void FireWeapon(ObjID objId, WeaponID id, const Vector3& position, const Vector3& direction, bool showFlash, bool playSound) {
+    void FireWeapon(ObjID objId, WeaponID id, uint8 gun, Vector3* customDir, bool showFlash, bool playSound) {
         auto& level = Game::Level;
         auto& obj = level.Objects[(int)objId];
 
         auto& weapon = Resources::GetWeapon(id);
+
+        auto gunSubmodel = GetLocalGunpointOffset(obj, gun);
+        auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
+        auto position = Vector3::Transform(objOffset, obj.GetTransform());
+        Vector3 direction = customDir ? *customDir : obj.Rotation.Forward();
 
         Object bullet{};
         bullet.Position = bullet.PrevPosition = position;
@@ -601,9 +555,8 @@ namespace Inferno::Game {
             p.Clip = weapon.FlashVClip;
             p.Position = position;
             p.Radius = weapon.FlashSize;
-            // todo: include submodel in offset
-            //p.Parent = objId;
-            //p.ParentOffset = obj.Position - position;
+            p.Parent = objId;
+            p.Submodel = gunSubmodel;
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor;
             Render::AddParticle(p, obj.Segment);
@@ -614,7 +567,7 @@ namespace Inferno::Game {
         AddObject(bullet);
     }
 
-    void SpreadfireBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+    void SpreadfireBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
         //constexpr float SPREAD_ANGLE = 1 / 16.0f * RadToDeg;
         auto spread = Resources::GetWeapon(wid).Extended.Spread * DegToRad;
 
@@ -648,7 +601,7 @@ namespace Inferno::Game {
         }
     }
 
-    void HelixBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+    void HelixBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
         player.HelixOrientation = (player.HelixOrientation + 1) % 8;
         auto offset = GetHelixOffset(player.HelixOrientation);
         FireSpreadWeapon(player.ID, gun, wid);
@@ -658,14 +611,14 @@ namespace Inferno::Game {
         FireSpreadWeapon(player.ID, gun, wid, false, -offset * 2);
     }
 
-    void VulcanBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
+    void VulcanBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
         //constexpr float SPREAD_ANGLE = 1 / 32.0f * RadToDeg; // -0.03125 to 0.03125 spread
         auto spread = Resources::GetWeapon(wid).Extended.Spread * DegToRad;
         auto point = RandomPointInCircle(spread);
         FireSpreadWeapon(player.ID, gun, wid, true, { point.x, point.y });
     }
 
-    void ShotgunBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
+    void ShotgunBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
         auto& weapon = Resources::GetWeapon(wid);
         auto spread = weapon.Extended.Spread * DegToRad;
 
@@ -714,7 +667,7 @@ namespace Inferno::Game {
         return result;
     }
 
-    void OmegaBehavior(Inferno::Player& player, int gun, WeaponID wid) {
+    void OmegaBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
         constexpr auto FOV = 12.5f * DegToRad;
         constexpr auto MAX_DIST = 60;
         constexpr auto MAX_TARGETS = 3;
@@ -728,8 +681,10 @@ namespace Inferno::Game {
         auto pObj = Game::Level.TryGetObject(player.ID);
         if (!pObj) return;
         auto& playerObj = *pObj;
-        auto gunOffset = GetGunpointOffset(playerObj, gun);
-        auto start = Vector3::Transform(gunOffset, playerObj.GetTransform());
+
+        auto gunSubmodel = GetLocalGunpointOffset(playerObj, gun);
+        auto objOffset = GetSubmodelOffset(playerObj, gunSubmodel);
+        auto start = Vector3::Transform(objOffset, playerObj.GetTransform());
         auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
 
         auto spark = Render::EffectLibrary.GetSparks("omega_hit");
@@ -847,7 +802,7 @@ namespace Inferno::Game {
         sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
         sound.Volume = 0.40f;
         sound.AttachToSource = true;
-        sound.AttachOffset = gunOffset;
+        sound.AttachOffset = gunSubmodel.Offset;
         sound.FromPlayer = true;
         Sound::Play(sound);
 
@@ -856,15 +811,15 @@ namespace Inferno::Game {
         p.Position = start;
         p.Radius = weapon.FlashSize;
         p.Parent = player.ID;
-        p.ParentOffset = gunOffset;
+        p.Submodel = gunSubmodel;
         p.FadeTime = 0.175f;
         p.Color = weapon.Extended.FlashColor;
         Render::AddParticle(p, playerObj.Segment);
     }
 
     // default weapon firing behavior
-    void DefaultBehavior(const Inferno::Player& player, int gun, WeaponID wid) {
-        FireWeaponFromGunpoint(player.ID, gun, wid);
+    void DefaultBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
+        FireWeapon(player.ID, wid, gun);
     }
 
     Dictionary<string, WeaponBehavior> WeaponFireBehaviors = {
