@@ -314,8 +314,8 @@ namespace Inferno {
     };
 
     struct ContainsData {
-        ObjectType Type = ObjectType::None;  // Type of object this object contains (eg, spider contains powerup)
-        int8 ID = 0;    // ID of object this object contains (eg, id = blue type = key)
+        ObjectType Type = ObjectType::None;  // Type of object this object contains
+        int8 ID = 0;    // ID of object this object contains (type = powerup, id = blue key)
         uint8 Count = 0; // number of objects of type:id this object contains
     };
 

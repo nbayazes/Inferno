@@ -317,7 +317,8 @@ namespace Inferno {
 
         setEntry(ObjectType::Weapon, ObjectType::Weapon, CollisionType::SphereSphere);
         setEntry(ObjectType::Weapon, ObjectType::Robot, CollisionType::SpherePoly); // Harder to hit
-        setEntry(ObjectType::Weapon, ObjectType::Player, CollisionType::SpherePoly); // Easier to dodge
+        //setEntry(ObjectType::Weapon, ObjectType::Player, CollisionType::SpherePoly); // Easier to dodge
+        setEntry(ObjectType::Weapon, ObjectType::Player, CollisionType::SphereSphere);
         setEntry(ObjectType::Weapon, ObjectType::Clutter, CollisionType::SpherePoly);
         setEntry(ObjectType::Weapon, ObjectType::Building, CollisionType::SpherePoly);
         setEntry(ObjectType::Weapon, ObjectType::Reactor, CollisionType::SpherePoly);

@@ -19,8 +19,8 @@ namespace Inferno {
         float TurnTime; // time in seconds to rotate 360 degrees in a dimension
         float Speed; // How quickly the robot moves
         float CircleDistance; // preferred distance from the player
-        sbyte BurstFire; // number of primary projectiles to fire per delay
-        sbyte EvadeSpeed;   // rate at which robot can evade shots, 0=none, 4=very fast
+        uint8 ShotCount; // number of primary shots to fire per delay
+        uint8 EvadeSpeed; // rate at which robot can evade shots, 0=none, 4=very fast
     };
     
     enum class CloakType : sbyte { None, Always, WhenNotFiring };
@@ -80,6 +80,7 @@ namespace Inferno {
         ubyte Glow;        // apply this light to robot itself. stored as 4:4 fixed-point
         ubyte Behavior;    // Default behavior
         ubyte Aim = 255;   // 255 is perfect aim. 0 is very inaccurate.
+        ubyte Multishot = 1; // Number of projectiles to fire at once if possible
 
         // Joint lookup for each gun and animation state
         JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];

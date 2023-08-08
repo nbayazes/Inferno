@@ -296,9 +296,10 @@ namespace Inferno {
         READ_PROP(Glow);
         READ_PROP(Behavior);
         READ_PROP(Aim);
+        READ_PROP(Multishot);
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{};
-        Array<sbyte, 5> burstFire{}, evasion{};
+        Array<int16, 5> shots{}, evasion{};
 
         bool hasFov = ReadArray<float>(node["FOV"], fov);
         for (auto& f : fov) {
@@ -312,16 +313,16 @@ namespace Inferno {
         bool hasTurnTime = ReadArray<float>(node["TurnTime"], turnTime);
         bool hasSpeed = ReadArray<float>(node["Speed"], speed);
         bool hasCircleDist = ReadArray<float>(node["CircleDistance"], circleDistance);
-        bool hasBurstFire = ReadArray<sbyte>(node["BurstFire"], burstFire);
-        bool hasEvasion = ReadArray<sbyte>(node["Evasion"], evasion);
+        bool hasShots = ReadArray<int16>(node["Shots"], shots);
+        bool hasEvasion = ReadArray<int16>(node["Evasion"], evasion);
 
         for (int i = 0; i < 5; i++) {
             auto& diff = robot.Difficulty[i];
             if (hasCircleDist) diff.CircleDistance = circleDistance[i];
             if (hasFireDelay) diff.FireDelay = fireDelay[i];
             if (hasFireDelay2) diff.FireDelay2 = fireDelay2[i];
-            if (hasEvasion) diff.EvadeSpeed = evasion[i];
-            if (hasBurstFire) diff.BurstFire = burstFire[i];
+            if (hasEvasion) diff.EvadeSpeed = (uint8)evasion[i];
+            if (hasShots) diff.ShotCount = (uint8)shots[i];
             if (hasSpeed) diff.Speed = speed[i];
             if (hasTurnTime) diff.TurnTime = turnTime[i];
             if (hasFov) diff.FieldOfView = fov[i];

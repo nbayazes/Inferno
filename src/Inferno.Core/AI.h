@@ -85,7 +85,7 @@ namespace Inferno {
         //uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
         //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
         PlayerVisibility PlayerVisibility;
-        uint8 RapidfireCount; // number of shots fired rapidly
+        uint8 Shots; // number of shots fired rapidly
         uint8 GunIndex = 0; // Which gun to fire from next
         AIMode Mode;
         //float NextActionTime;
@@ -97,8 +97,10 @@ namespace Inferno {
         float MiscSoundTime; // Time in seconds since the robot made angry or lurking noises
         float AnimationTime = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
+        AnimState AnimationState = {};
+
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
-        Array<AIState, MAX_SUBMODELS> GoalState{}, AchievedState{};
+        //Array<AIState, MAX_SUBMODELS> GoalState{}, AchievedState{};
 
         SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
         RoomID GoalRoom = RoomID::None;
@@ -112,5 +114,9 @@ namespace Inferno {
         //ObjID DangerLaserID{};  // what is a danger laser? for dodging?
         //ObjSig DangerLaserSig{};
         double DyingStartTime{}; // Time at which this robot started dying.
+
+        bool PlayingAnimation() const {
+            return AnimationTime < AnimationDuration;
+        }
     };
 }

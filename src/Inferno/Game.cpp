@@ -510,8 +510,8 @@ namespace Inferno::Game {
                     debris.PrevTransform = world;
                     debris.Mass = 1; // obj.Movement.Physics.Mass;
                     debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
-                    // It looks weird if the main body (sm 0) sticks around too long, so destroy it quicker
-                    debris.Duration = 0.5f + Random() * (sm == 0 ? 0.25f : 1.5f);
+                    // It looks weird if the main body (sm 0) sticks around, so destroy it quick
+                    debris.Duration = sm == 0 ? 0 : 0.75f + Random() * 1.5f;
                     debris.Radius = model.Submodels[sm].Radius;
                     //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
                     debris.Model = robot.Model;

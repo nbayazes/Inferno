@@ -19,6 +19,7 @@ namespace Inferno::Editor {
     void DebugWindow::OnUpdate() {
         ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
         ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
+        ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
         ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
         ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
@@ -26,8 +27,10 @@ namespace Inferno::Editor {
         if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
             EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
         }
+
         ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
+        ImGui::Separator();
 
         if (ImGui::Button("Set path target")) {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
@@ -85,6 +88,8 @@ namespace Inferno::Editor {
                 Seq::insert(Editor::Marked.Segments, room->Segments);
             }
         }
+
+        ImGui::Separator();
 
         _timeCounter += Render::FrameTime;
 

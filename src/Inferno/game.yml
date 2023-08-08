@@ -3,13 +3,13 @@ Weapons:
     Name: laser 1
     Mass: 0.15
     FireDelay: 0.25
-    Glow: 1, 0, 0, 12
     Size: 0.5
     ExplosionSound: LazorHitshrt
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    Glow: 1, 0.25, 0.25, 24
     LightColor: 1, 0.025, 0.025
     ExplosionColor: 0.8, 0.05, 0.05
     FlashColor: 1, 0.25, 0.25, 20
@@ -106,7 +106,6 @@ Weapons:
     Name: robot blue laser
     Mass: 0.05
     FireDelay: 0.25
-    Glow: .25, .25, 1, 8
     ModelName: bluelaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -115,9 +114,10 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    Glow: .25, .25, 1, 22
     LightColor: 0.15, 0.15, 0.6
     ExplosionColor: 0.15, 0.15, 0.6
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 0.7, 0.7, 1, 25
 
   - id: 30
     Name: laser 5
@@ -231,9 +231,9 @@ Weapons:
     ExplosionSize: 4.6
     ExplosionTime: 0.4
     LightRadius: 20
-    LightColor: 0.9, 0.0, 0.6
+    LightColor: 0.6, 0.1, 1, 4
     ExplosionColor: 0.6, 0.0, 0.4
-    FlashColor: 1, 1, 1, 25
+    FlashColor: 1, 1, 1, 35
     Mass: 3
 
   - id: 8
@@ -290,21 +290,19 @@ Weapons:
     Decal: scorchC
     DecalRadius: 4
     ExplosionColor: 1, 0.25, 0.0, 2
-    FlashColor: 1, .25, 0, 25
+    FlashColor: 1, 1, 1, 15
     Size: 1 # was 1.5
 
   - id: 24
     Name: robot red laser
     Mass: 0.15
-    Glow: 1, 0, 0, 6
-    ModelName: RedLaser.OOF
-    ModelScale: 0.7
     Size: 0.5
     ExplosionSound: LazorHitshrt
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    Glow: 1, 0.25, 0.25, 24
     LightColor: 1, 0.025, 0.025
     ExplosionColor: 0.8, 0.05, 0.05
     FlashColor: 1, 0.25, 0.25, 20
@@ -312,23 +310,21 @@ Weapons:
   - id: 25
     Name: robot green laser
     Mass: 0.05
-    Glow: .5, 1, .5, 3
-    ModelName: GreenLaser.OOF
-    ModelScale: 0.7
     Size: 0.5
     ExplosionSound: LazorHitshrt
     ExplosionTexture: GreenLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
+    Glow: .5, 1, .5, 8
     LightColor: 0.075, 0.6, 0.075
     ExplosionColor: 0.05, 0.4, 0.05
-    FlashColor: 1, 1, 1, 10
+    FlashColor: 1, 1, .125, 2
 
   - id: 26
     Name: robot plasma
     Decal: scorchB
-    Glow: 1, 1, 1, 5
+    Glow: 1, 1, 1, 2
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
@@ -442,6 +438,7 @@ Robots:
     CircleDistance: 60
     FOV: [ 90, 110, 130, 150, 180 ]
     Mass: 6.5
+    Multishot: 2
   - id: 1 # Medium lifter
     CircleDistance: 0
     Mass: 10
@@ -461,6 +458,7 @@ Robots:
     Mass: 5.5
   - id: 6 # Cloaked hulk
     CircleDistance: 60
+    Multishot: 2
     Mass: 6.5
   - id: 7 # Supervisor
     CircleDistance: 60
@@ -468,16 +466,27 @@ Robots:
   - id: 8 # Secondary Lifter (one arm)
     CircleDistance: 15
     Mass: 3
+    Drag: 0.15
   - id: 9 # Heavy driller
     CircleDistance: 30
+    Multishot: 2
     Mass: 6
+    Drag: 0.1
   - id: 10 # Gopher
   - id: 11 # Laser platform
-    CircleDistance: 10
-    Mass: 3.4
-  - id: 12 # Missile platform
     CircleDistance: 20
-    Mass: 3.4
+    Mass: 2.5
+    Multishot: 7 # shotgun all available projectiles
+    Aim: 125
+    Drag: 0.09
+  - id: 12 # Missile platform
+    #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
+    #Shots: [ 2, 2, 2, 3, 4 ]
+    FireDelay: [ 1.5, 1.5, 1, 1, .75 ]
+    Shots: 1
+    CircleDistance: 20
+    Mass: 2.5
+    Drag: 0.09
   - id: 13 # Pod
   - id: 14 # Spiderling
     CircleDistance: 15
@@ -485,10 +494,13 @@ Robots:
   - id: 15 # Fusion hulk
     CircleDistance: 15
     Mass: 20 # was 30
+    Multishot: 2
   - id: 16 # Red hulk
     CircleDistance: 80
+    Multishot: 2
     Mass: 7
   - id: 17 # Level 7 boss
+    Multishot: 2
     CircleDistance: 80
   - id: 18 # Cloaked lifter
     CircleDistance: 20
@@ -499,11 +511,20 @@ Robots:
   - id: 20 # Green hulk
     CircleDistance: 40
     Mass: 5.75
+    FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
+    Shots: [ 2, 2, 2, 4, 6 ]
+    Multishot: 2
+    Drag: 0.1
   - id: 21 # Advanced lifter
     CircleDistance: 0
     Mass: 9
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
+    Multishot: 2
+    Shots: 2
+    FireDelay: [ 1.00, 0.6, 0.15, 0.125, 0.10 ]
+    Aim: 190
+    Drag: 0.10
   - id: 23 # Level 27 boss
   - id: 24 # BEPR
   - id: 25 # Smelter

@@ -299,7 +299,7 @@ namespace Inferno::Render {
                 constants.Ambient = seg->VolumeLight.ToVector4() + object.DirectLight.GetColor().ToVector4();
                 constants.EmissiveLight = Color(0, 0, 0);
             }*/
-            constexpr float LEVEL_AMBIENT_MULT = 0.125f;
+            constexpr float LEVEL_AMBIENT_MULT = 0.25f;
             constants.Ambient = object.Ambient.GetColor().ToVector4() * LEVEL_AMBIENT_MULT + object.DirectLight.GetColor().ToVector4();
             constants.EmissiveLight = Color(0, 0, 0);
         }

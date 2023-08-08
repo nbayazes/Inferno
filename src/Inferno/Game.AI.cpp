@@ -139,8 +139,10 @@ namespace Inferno {
         robot.Control.AI.ail.Awareness = 1;
 
         // only play sound when robot was asleep
-        if (prevAwareness < 0.3f)
+        if (prevAwareness < 0.3f) {
             PlayAlertSound(robot, robotInfo);
+            PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
+        }
 
         return true;
     }
@@ -770,15 +772,13 @@ namespace Inferno {
     }
 
     void SetNextFireTime(AIRuntime& ai, const RobotInfo& robot) {
-        ai.RapidfireCount++;
-
-        if (ai.RapidfireCount < Difficulty(robot).BurstFire) {
+        if (ai.Shots < Difficulty(robot).ShotCount) {
             ai.FireDelay = std::min(1 / 8.0f, Difficulty(robot).FireDelay / 2);
         }
         else {
             ai.FireDelay = Difficulty(robot).FireDelay;
-            if (ai.RapidfireCount >= Difficulty(robot).BurstFire)
-                ai.RapidfireCount = 0;
+            if (ai.Shots >= Difficulty(robot).ShotCount)
+                ai.Shots = 0;
         }
     }
 
@@ -822,7 +822,6 @@ namespace Inferno {
 
         //aimTarget += RandomVector((5 - Game::Difficulty) * 2); // Randomize aim based on difficulty
         FireWeaponAtPoint(robot, robotInfo, gunIndex, aimTarget, robotInfo.WeaponType);
-        SetNextFireTime(ai, robotInfo);
     }
 
     void StopPathing(Object& robot) {
@@ -931,11 +930,12 @@ namespace Inferno {
 
         // if a new animation is requested before the previous one finishes, speed up the new one as it has less distance
         float remaining = 1;
-        if (ail.AnimationTime < ail.AnimationDuration)
-            remaining = (ail.AnimationDuration - ail.AnimationTime) / ail.AnimationDuration;
+        //if (ail.AnimationTime < ail.AnimationDuration)
+        //    remaining = (ail.AnimationDuration - ail.AnimationTime) / ail.AnimationDuration;
 
         ail.AnimationDuration = time * remaining;
         ail.AnimationTime = 0;
+        ail.AnimationState = state;
 
         for (int gun = 0; gun <= robotInfo.Guns; gun++) {
             const auto robotJoints = Resources::GetRobotJoints(robot.ID, gun, state);
@@ -954,14 +954,14 @@ namespace Inferno {
                 ail.DeltaAngles[joint.ID] = jointAngle * moveMult - angle;
             }
 
-            if (atGoal) {
-                ail.AchievedState[gun] = ail.GoalState[gun];
-                if (ail.AchievedState[gun] == AIState::Recoil)
-                    ail.GoalState[gun] = AIState::Fire;
+            //if (atGoal) {
+            //    ail.AchievedState[gun] = ail.GoalState[gun];
+            //    if (ail.AchievedState[gun] == AIState::Recoil)
+            //        ail.GoalState[gun] = AIState::Fire;
 
-                if (ail.AchievedState[gun] == AIState::Flinch)
-                    ail.GoalState[gun] = AIState::Lock;
-            }
+            //    if (ail.AchievedState[gun] == AIState::Flinch)
+            //        ail.GoalState[gun] = AIState::Lock;
+            //}
         }
     }
 
@@ -1025,12 +1025,41 @@ namespace Inferno {
             if (CanSeePlayer(robot, playerDir, dist)) {
                 TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
 
-                if (robotInfo.Attack == AttackType::Ranged) {
-                    if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0)
-                        FireRobotWeapon(robot, ai, robotInfo, player, false);
+                if (!ai.PlayingAnimation()) {
+                    PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+                }
 
-                    if (ai.FireDelay < 0)
-                        FireRobotWeapon(robot, ai, robotInfo, player, true);
+                if (robotInfo.Attack == AttackType::Ranged) {
+                    if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
+                        FireRobotWeapon(robot, ai, robotInfo, player, false);
+                        SetNextFireTime(ai, robotInfo);
+                    }
+
+
+                    if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
+                        PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
+                    }
+
+                    if (ai.FireDelay < 0) {
+                        ai.FireDelay = 0;
+                        // multishot: consume as many projectiles as possible based on burst count
+                        // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
+                        // Multishot incurs extra fire delay per projectile
+                        auto burstDelay = std::min(1 / 8.0f, Difficulty(robotInfo).FireDelay / 2);
+                        for (int i = 0; i < robotInfo.Multishot; i++) {
+                            ai.FireDelay += burstDelay;
+                            
+                            FireRobotWeapon(robot, ai, robotInfo, player, true);
+                            ai.Shots++;
+                            if (ai.Shots >= Difficulty(robotInfo).ShotCount) {
+                                ai.Shots = 0;
+                                ai.FireDelay += Difficulty(robotInfo).FireDelay;
+                                break; // Ran out of shots
+                            }
+                        }
+
+                        PlayRobotAnimation(robot, AnimState::Recoil, 0.25f);
+                    }
                 }
             }
             else {

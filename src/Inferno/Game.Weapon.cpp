@@ -170,10 +170,15 @@ namespace Inferno::Game {
         }
         else {
             if (!Settings::Cheats.DisableWeaponDamage) {
-                // Players don't take direct damage from explosive weapons for balance reasons
-                // The secondary explosion will still inflict damage
-                if (!(target.Type == ObjectType::Player && weapon.IsExplosive()))
+                if (target.IsPlayer()) {
+                    // Players don't take direct damage from explosive weapons for balance reasons
+                    // The secondary explosion will still inflict damage
+                    if (!weapon.IsExplosive())
+                        Game::Player.ApplyDamage(damage);
+                }
+                else {
                     target.ApplyDamage(damage);
+                }
             }
 
             //fmt::print("applied {} damage\n", damage);
@@ -430,7 +435,7 @@ namespace Inferno::Game {
         auto& level = Game::Level;
         auto& obj = level.Objects[(int)objId];
         auto& weapon = Resources::GetWeapon(id);
-        if (obj.IsPlayer() && gun == 0 && Game::GetState() == GameState::Game) 
+        if (obj.IsPlayer() && gun == 0 && Game::GetState() == GameState::Game)
             showFlash = false; // Hide flash in first person
 
         auto gunSubmodel = GetLocalGunpointOffset(obj, gun);

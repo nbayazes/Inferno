@@ -122,7 +122,7 @@ namespace Inferno {
 
         for (auto& d : ri.Difficulty) d.Speed = r.ReadFix();
         for (auto& d : ri.Difficulty) d.CircleDistance = r.ReadFix();
-        for (auto& d : ri.Difficulty) d.BurstFire = r.ReadByte();
+        for (auto& d : ri.Difficulty) d.ShotCount = r.ReadByte();
         for (auto& d : ri.Difficulty) d.EvadeSpeed = r.ReadByte();
 
         ri.Cloaking = (CloakType)r.ReadByte();
@@ -191,7 +191,7 @@ namespace Inferno {
         for (auto& d : ri.Difficulty) d.TurnTime = r.ReadFix();
         for (auto& d : ri.Difficulty) d.Speed = r.ReadFix();
         for (auto& d : ri.Difficulty) d.CircleDistance = r.ReadFix();
-        for (auto& d : ri.Difficulty) d.BurstFire = r.ReadByte();
+        for (auto& d : ri.Difficulty) d.ShotCount = r.ReadByte();
         for (auto& d : ri.Difficulty) d.EvadeSpeed = r.ReadByte();
 
         ri.Cloaking = (CloakType)r.ReadByte();
