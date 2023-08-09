@@ -438,7 +438,7 @@ Robots:
     CircleDistance: 60
     FOV: [ 90, 110, 130, 150, 180 ]
     Mass: 6.5
-    Multishot: 2
+    Multishot: 1
   - id: 1 # Medium lifter
     CircleDistance: 0
     Mass: 10
@@ -497,7 +497,7 @@ Robots:
     Multishot: 2
   - id: 16 # Red hulk
     CircleDistance: 80
-    Multishot: 2
+    Multishot: 1
     Mass: 7
   - id: 17 # Level 7 boss
     Multishot: 2
@@ -604,6 +604,18 @@ Effects:
       Life: 1.5
       Scale: 8
       FadeInOutTime: 0.5
+
+    - Name: stunned_object_arcs
+      Width: [ 0.05, 0.065 ]
+      Color: .1, .1, 1, 75
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: .3
+      FadeEnd: 1
+      RandomEnd: 1
+      StrikeTime: 0.25
+      RandomObjStart: 1
+      Radius: 4
 
     - Name: omega_beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]

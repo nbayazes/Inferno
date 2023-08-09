@@ -11,12 +11,18 @@
 #include "SoundSystem.h"
 #include "Editor/Editor.Selection.h"
 #include "Graphics/Render.Debug.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
     constexpr float AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
     constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
     constexpr float MAX_SLOW_EFFECT = 0.9f; // Max percentage of slow to apply to a robot
-    constexpr float MAX_SLOW_THRESHOLD = 0.4; // Percentage of life dealt to reach max slow
+    constexpr float MAX_SLOW_THRESHOLD = 0.4f; // Percentage of life dealt to reach max slow
+
+    constexpr float STUN_THRESHOLD = 27.5; // Minimum damage to stun a robot. Concussion is 30 damage.
+    constexpr float MAX_STUN_PERCENT = 0.5f; // Percentage of life required in one hit to reach max stun time
+    constexpr float MAX_STUN_TIME = 1.5f; // max stun in seconds
+    constexpr float MIN_STUN_TIME = 0.25f; // min stun in seconds
 
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
         return info.Difficulty[Game::Difficulty];
@@ -116,7 +122,7 @@ namespace Inferno {
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
-        auto id = ObjID(&obj - Game::Level.Objects.data());
+        auto id = Game::GetObjectID(obj);
         Sound3D sound(id);
         sound.AttachToSource = true;
         sound.Resource = Resources::GetSoundResource(robot.SeeSound);
@@ -146,7 +152,8 @@ namespace Inferno {
             PlayAlertSound(robot, robotInfo);
             PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
             // Delay firing after waking up
-            robot.Control.AI.ail.FireDelay = Difficulty(robotInfo).FireDelay;
+            float wakeTime = (5 - Game::Difficulty) * 0.3f;
+            robot.Control.AI.ail.FireDelay = std::min(Difficulty(robotInfo).FireDelay, wakeTime);
             robot.Control.AI.ail.FireDelay2 = Difficulty(robotInfo).FireDelay2;
         }
 
@@ -224,19 +231,25 @@ namespace Inferno {
         obj.Physics.Thrust += dir * thrust;
     }
 
-    void ClampThrust(Object& obj) {
-        auto& robot = Resources::GetRobotInfo(obj.ID);
+    void ClampThrust(Object& robot) {
+        if (robot.Control.AI.ail.RemainingStun > 0) {
+            robot.Physics.Thrust = Vector3::Zero;
+            robot.Physics.AngularThrust = Vector3::Zero;
+            return;
+        }
 
-        auto slow = obj.Control.AI.ail.RemainingSlow;
+        auto& robotInfo = Resources::GetRobotInfo(robot.ID);
+
+        auto slow = robot.Control.AI.ail.RemainingSlow;
         float slowScale = slow > 0 ? 1 - MAX_SLOW_EFFECT * slow / MAX_SLOW_TIME : 1;
 
-        auto maxSpeed = Difficulty(robot).Speed / 8 * slowScale;
+        auto maxSpeed = Difficulty(robotInfo).Speed / 8 * slowScale;
         Vector3 maxThrust(maxSpeed, maxSpeed, maxSpeed);
-        obj.Physics.Thrust.Clamp(-maxThrust, maxThrust);
+        robot.Physics.Thrust.Clamp(-maxThrust, maxThrust);
 
-        auto maxAngle = slowScale * 1 / Difficulty(robot).TurnTime;
+        auto maxAngle = slowScale * 1 / Difficulty(robotInfo).TurnTime;
         Vector3 maxAngVel(maxAngle, maxAngle, maxAngle);
-        obj.Physics.AngularThrust.Clamp(-maxAngVel, maxAngVel);
+        robot.Physics.AngularThrust.Clamp(-maxAngVel, maxAngVel);
     }
 
     Tag GetNextConnection(span<SegID> _path, Level& level, SegID segId) {
@@ -735,12 +748,12 @@ namespace Inferno {
             point.z + RandomN11() * (5 - Game::Difficulty - 1) * aim
         };
 
-        auto id = ObjID(&obj - Game::Level.Objects.data());
 
         // this duplicates position/direction calculation in FireWeapon...
         auto gunOffset = GetSubmodelOffset(obj, { robot.GunSubmodels[gun], robot.GunPoints[gun] });
         auto position = Vector3::Transform(gunOffset, obj.GetTransform());
         auto direction = NormalizeDirection(target, position);
+        auto id = Game::GetObjectID(obj);
         Game::FireWeapon(id, weapon, gun, &direction);
     }
 
@@ -778,17 +791,6 @@ namespace Inferno {
 
         float expectedTravelTime = targetDist / projectileSpeed;
         return target.Physics.Velocity * expectedTravelTime;
-    }
-
-    void SetNextFireTime(AIRuntime& ai, const RobotInfo& robot) {
-        if (ai.Shots < Difficulty(robot).ShotCount) {
-            ai.FireDelay = std::min(1 / 8.0f, Difficulty(robot).FireDelay / 2);
-        }
-        else {
-            ai.FireDelay = Difficulty(robot).FireDelay;
-            if (ai.Shots >= Difficulty(robot).ShotCount)
-                ai.Shots = 0;
-        }
     }
 
     void DecayAwareness(AIRuntime& ai) {
@@ -928,21 +930,14 @@ namespace Inferno {
     void PlayRobotAnimation(Object& robot, AnimState state, float time, float moveMult) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         auto& angles = robot.Render.Model.Angles;
-        bool atGoal = true;
         auto& ail = robot.Control.AI.ail;
 
-        //for (auto& angle : ail.DeltaAngles)
-        //    angle = Vector3::Zero;
-
-        //for (auto& angle : angles)
-        //    angle = Vector3::Zero;
-
+        //float remaining = 1;
         // if a new animation is requested before the previous one finishes, speed up the new one as it has less distance
-        float remaining = 1;
         //if (ail.AnimationTime < ail.AnimationDuration)
         //    remaining = (ail.AnimationDuration - ail.AnimationTime) / ail.AnimationDuration;
 
-        ail.AnimationDuration = time * remaining;
+        ail.AnimationDuration = time /** remaining*/;
         ail.AnimationTime = 0;
         ail.AnimationState = state;
 
@@ -990,14 +985,29 @@ namespace Inferno {
     }
 
     void DamageRobot(Object& robot, float damage) {
-        // slow or stun the robot based on amount of damage
         auto& info = Resources::GetRobotInfo(robot);
         auto& ai = robot.Control.AI.ail;
 
+        // Apply slow
         float damageScale = 1 - (info.HitPoints - damage) / info.HitPoints; // percentage of life dealt
         float slowTime = std::lerp(0.0f, 1.0f, damageScale / MAX_SLOW_THRESHOLD);
         if (ai.RemainingSlow > 0) slowTime += ai.RemainingSlow;
         ai.RemainingSlow = std::clamp(slowTime, 0.1f, MAX_SLOW_TIME);
+
+        // Apply stun
+        if (damage > STUN_THRESHOLD) {
+            float stunTime = std::lerp(0.0f, MAX_STUN_PERCENT, damageScale) * MAX_STUN_TIME;
+            if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
+            stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
+            ai.RemainingStun = stunTime;
+            PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
+
+            if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned_object_arcs")) {
+                auto startObj = Game::GetObjectID(robot);
+                Render::AddBeam(*beam, stunTime, startObj);
+                Render::AddBeam(*beam, stunTime, startObj);
+            }
+        }
 
         // todo: boss invulnerability
         if (!Settings::Cheats.DisableWeaponDamage)
@@ -1005,8 +1015,6 @@ namespace Inferno {
     }
 
     void UpdateRobotAI(Object& robot, float dt) {
-        //auto id = ObjID(&obj - Game::Level.Objects.data());
-
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
         auto& ai = robot.Control.AI.ail;
         auto& player = Game::GetPlayer();
@@ -1018,10 +1026,14 @@ namespace Inferno {
         ai.FireDelay -= dt;
         ai.FireDelay2 -= dt;
         ai.RemainingSlow -= dt;
+        ai.RemainingStun -= dt;
         AnimateRobot(robot, dt);
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time || Settings::Cheats.DisableAI)
             return;
+
+        if (robot.Control.AI.ail.RemainingStun > 0)
+            return; // Can't act while stunned
 
         CheckProjectiles(Game::Level, robot, robotInfo);
 
@@ -1059,7 +1071,7 @@ namespace Inferno {
                 if (robotInfo.Attack == AttackType::Ranged) {
                     if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
                         FireRobotWeapon(robot, ai, robotInfo, player, false);
-                        SetNextFireTime(ai, robotInfo);
+                        ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
                     }
 
 
@@ -1081,6 +1093,7 @@ namespace Inferno {
                             if (ai.Shots >= Difficulty(robotInfo).ShotCount) {
                                 ai.Shots = 0;
                                 ai.FireDelay += Difficulty(robotInfo).FireDelay;
+                                ai.FireDelay -= burstDelay; // undo burst delay if this was the last shot
                                 break; // Ran out of shots
                             }
                         }

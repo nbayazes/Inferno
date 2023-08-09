@@ -186,8 +186,8 @@ namespace Inferno::Render {
 
         NumericRange<float> Radius; // If RandomEnd is true, randomly strike targets within this radius
         NumericRange<float> Width = { 2.0f, 2.0f };
-        float Life = 0;
-        float StartLife = 0;
+        float Life = 0; // How long to live for
+        float StartLife = 0; // How much life the beam started with (runtime variable)
         Color Color = { 1, 1, 1 };
         float Noise = 0;
         string Texture;

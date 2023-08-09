@@ -433,7 +433,7 @@ namespace Inferno::Game {
 
         if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
             for (int i = 0; i < 4; i++) {
-                auto startObj = ObjID(&obj - Level.Objects.data());
+                auto startObj = Game::GetObjectID(obj);
                 beam->StartDelay = i * 0.4f + Random() * 0.125f;
                 Render::AddBeam(*beam, CountdownTimer + 5, startObj);
             }
@@ -667,7 +667,7 @@ namespace Inferno::Game {
         // Create sparks randomly
         if (Random() < chance * dt) {
             if (auto beam = Render::EffectLibrary.GetBeamInfo("damaged_object_arcs")) {
-                auto startObj = ObjID(&obj - Level.Objects.data());
+                auto startObj = Game::GetObjectID(obj);
                 Render::AddBeam(*beam, beam->Life, startObj);
             }
         }
@@ -1051,7 +1051,7 @@ namespace Inferno::Game {
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
         Render::InitEffects(Level);
-
+        Level.Rooms = CreateRooms(Level);
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

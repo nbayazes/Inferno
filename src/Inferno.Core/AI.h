@@ -111,6 +111,7 @@ namespace Inferno {
         Vector3 DodgeDirection;
 
         float RemainingSlow = 0;
+        float RemainingStun = 0;
         bool DyingSoundPlaying{};
         //ObjID DangerLaserID{};  // what is a danger laser? for dodging?
         //ObjSig DangerLaserSig{};

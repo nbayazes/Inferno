@@ -435,9 +435,15 @@ namespace Inferno::Game {
 
     void FireWeapon(ObjID objId, WeaponID id, uint8 gun, Vector3* customDir, bool showFlash, bool playSound) {
         auto& level = Game::Level;
-        auto& obj = level.Objects[(int)objId];
+        auto pObj = level.TryGetObject(objId);
+        if (!pObj) {
+            __debugbreak(); // tried to fire weapon from unknown object
+            return;
+        }
+        auto& obj = *pObj;
+
         auto& weapon = Resources::GetWeapon(id);
-        if (obj.IsPlayer() && gun == 0 && Game::GetState() == GameState::Game)
+        if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
             showFlash = false; // Hide flash in first person
 
         auto gunSubmodel = GetLocalGunpointOffset(obj, gun);
