@@ -1,4 +1,6 @@
 #include "pch.h"
+
+#include "Game.AI.h"
 #include "Object.h"
 #include "Game.h"
 #include "Game.Object.h"
@@ -169,16 +171,16 @@ namespace Inferno::Game {
                 return; // non-explosive weapons keep going
         }
         else {
-            if (!Settings::Cheats.DisableWeaponDamage) {
-                if (target.IsPlayer()) {
-                    // Players don't take direct damage from explosive weapons for balance reasons
-                    // The secondary explosion will still inflict damage
-                    if (!weapon.IsExplosive())
-                        Game::Player.ApplyDamage(damage);
-                }
-                else {
-                    target.ApplyDamage(damage);
-                }
+            if (target.IsPlayer()) {
+                // Players don't take direct damage from explosive weapons for balance reasons
+                // The secondary explosion will still inflict damage
+                if (!weapon.IsExplosive())
+                    Game::Player.ApplyDamage(damage);
+            }
+            else if(target.IsRobot()) {
+                DamageRobot(target, damage);
+            } else {
+                target.ApplyDamage(damage);
             }
 
             //fmt::print("applied {} damage\n", damage);

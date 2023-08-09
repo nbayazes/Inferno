@@ -1,6 +1,8 @@
 #include "pch.h"
 #define NOMINMAX
 #include "Physics.h"
+
+#include "Game.AI.h"
 #include "Physics.Math.h"
 #include "Resources.h"
 #include "Game.h"
@@ -151,7 +153,7 @@ namespace Inferno {
         if (IsZero(pd.AngularVelocity) && IsZero(pd.AngularThrust) && IsZero(pd.AngularAcceleration))
             return;
 
-        auto pdDrag = pd.Drag > 0 ? pd.Drag : 1;
+        auto pdDrag = pd.Drag > 0 ? pd.Drag : 0.001f;
         const auto drag = pdDrag * 5 / 2;
         const auto falloffScale = dt / Game::TICK_RATE; // adjusts falloff of values that expect a normal tick rate
 
@@ -693,15 +695,10 @@ namespace Inferno {
                 case ObjectType::Robot:
                 {
                     ApplyForce(target, forceVec);
-                    if (!Settings::Cheats.DisableWeaponDamage)
-                        target.ApplyDamage(damage);
+                    DamageRobot(target, damage);
 
                     target.LastHitForce = forceVec;
                     //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
-
-                    // stun robot if not boss
-
-                    // Boss invuln stuff
 
                     // guidebot ouchies
 
@@ -1377,7 +1374,7 @@ namespace Inferno {
                 PlayerPhysics(obj, dt);
                 AngularPhysics(obj, dt);
                 LinearPhysics(obj, dt);
-                
+
                 if (HasFlag(obj.Flags, ObjectFlag::Attached))
                     continue; // don't test collision of attached objects
 

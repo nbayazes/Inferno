@@ -520,10 +520,10 @@ Robots:
     Mass: 9
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
+    Aim: 190 # 255 perfect aim
     Multishot: 2
     Shots: 2
-    FireDelay: [ 1.00, 0.6, 0.15, 0.125, 0.10 ]
-    Aim: 190
+    FireDelay: [ 0.3, 0.25, 0.15, 0.125, 0.1 ]
     Drag: 0.10
   - id: 23 # Level 27 boss
   - id: 24 # BEPR
