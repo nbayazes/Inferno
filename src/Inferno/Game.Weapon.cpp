@@ -158,8 +158,9 @@ namespace Inferno::Game {
 
     void WeaponHitObject(const LevelHit& hit, Object& src) {
         assert(hit.HitObj);
+        assert(src.IsWeapon());
         const auto& weapon = Resources::GameData.Weapons[src.ID];
-        const float damage = weapon.Damage[Game::Difficulty];
+        const float damage = weapon.Damage[Game::Difficulty] * src.Control.Weapon.Multiplier;
 
         auto& target = *hit.HitObj;
         src.LastHitObject = target.Signature;
@@ -177,9 +178,10 @@ namespace Inferno::Game {
                 if (!weapon.IsExplosive())
                     Game::Player.ApplyDamage(damage);
             }
-            else if(target.IsRobot()) {
+            else if (target.IsRobot()) {
                 DamageRobot(target, damage);
-            } else {
+            }
+            else {
                 target.ApplyDamage(damage);
             }
 
@@ -433,7 +435,7 @@ namespace Inferno::Game {
         FireWeapon(objId, id, gun, &direction, showFlash);
     }
 
-    void FireWeapon(ObjID objId, WeaponID id, uint8 gun, Vector3* customDir, bool showFlash, bool playSound) {
+    void FireWeapon(ObjID objId, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, bool playSound) {
         auto& level = Game::Level;
         auto pObj = level.TryGetObject(objId);
         if (!pObj) {
@@ -480,6 +482,7 @@ namespace Inferno::Game {
         bullet.Control.Type = ControlType::Weapon;
         bullet.Control.Weapon = {};
         bullet.Control.Weapon.ParentType = obj.Type;
+        bullet.Control.Weapon.Multiplier = damageMultiplier;
 
         bullet.LightColor = weapon.Extended.LightColor;
         bullet.LightRadius = weapon.Extended.LightRadius;
@@ -831,6 +834,15 @@ namespace Inferno::Game {
         Render::AddParticle(p, playerObj.Segment);
     }
 
+    void FusionBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
+        // Fixes original behavior of fusion jumping from 2.9x to 4x damage at 4 seconds charge
+        constexpr auto MAX_FUSION_CHARGE_TIME = 4.0f; // Time in seconds for full charge
+        constexpr auto MAX_FUSION_CHARGE_MULT = 3.0f; // Bonus damage multiplier for full charge
+        float multiplier = MAX_FUSION_CHARGE_MULT * player.WeaponCharge / MAX_FUSION_CHARGE_TIME;
+        if (multiplier > MAX_FUSION_CHARGE_MULT) multiplier = MAX_FUSION_CHARGE_MULT;
+        FireWeapon(player.ID, wid, gun, nullptr, 1 + multiplier);
+    }
+
     // default weapon firing behavior
     void DefaultBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
         FireWeapon(player.ID, wid, gun);
@@ -842,7 +854,8 @@ namespace Inferno::Game {
         { "helix", HelixBehavior },
         { "spreadfire", SpreadfireBehavior },
         { "omega", OmegaBehavior },
-        { "shotgun", ShotgunBehavior }
+        { "shotgun", ShotgunBehavior },
+        { "fusion", FusionBehavior }
     };
 
     WeaponBehavior& GetWeaponBehavior(const string& name) {

@@ -997,10 +997,10 @@ namespace Inferno {
         // Apply stun
         if (damage > STUN_THRESHOLD) {
             float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
+            SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
             if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
             stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
             ai.RemainingStun = stunTime;
-            SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime);
             PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
 
             if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned_object_arcs")) {

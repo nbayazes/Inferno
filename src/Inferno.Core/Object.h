@@ -448,5 +448,6 @@ namespace Inferno {
         bool IsPlayer() const { return Type == ObjectType::Player; }
         bool IsCoop() const { return Type == ObjectType::Coop; }
         bool IsRobot() const { return Type == ObjectType::Robot; }
+        bool IsWeapon() const { return Type == ObjectType::Weapon; }
     };
 }
