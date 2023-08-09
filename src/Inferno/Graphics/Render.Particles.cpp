@@ -31,15 +31,17 @@ namespace Inferno::Render {
 
     void AddEffect(Ptr<EffectBase> e) {
         assert(e->Segment > SegID::None);
+        e->IsAlive = true;
         auto seg = (int)e->Segment;
 
         for (auto& effect : SegmentEffects[seg]) {
-            if (!effect || !effect->IsAlive()) {
+            if (!effect || !effect->IsAlive) {
                 effect = std::move(e);
                 return;
             }
         }
 
+        //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
         SegmentEffects[seg].push_back(std::move(e));
     }
 
@@ -140,7 +142,7 @@ namespace Inferno::Render {
 
     bool ParticleEmitter::Update(float dt) {
         if (!EffectBase::Update(dt)) return false;
-        if (!IsAlive()) return false;
+        if (!IsAlive) return false;
 
         if (_info.MaxDelay == 0 && _info.MinDelay == 0 && _info.ParticlesToSpawn > 0) {
             // Create all particles at once if delay is zero
@@ -264,19 +266,20 @@ namespace Inferno::Render {
             // todo: scorch marks on walls
         }
 
+        // todo: use cheaper way to update segments
         if (!PointInSegment(Game::Level, Segment, position)) {
             auto id = FindContainingSegment(Game::Level, position);
             if (id != SegID::None) Segment = id;
         }
+    }
 
-        if (Elapsed > Duration) {
-            ExplosionInfo e;
-            e.Radius = { Radius * 1.0f, Radius * 1.45f };
-            e.Variance = Radius * 1.0f;
-            e.Instances = 2;
-            e.Delay = { 0.15f, 0.3f };
-            CreateExplosion(e, Segment, PrevTransform.Translation());
-        }
+    void Debris::OnExpire() {
+        ExplosionInfo e;
+        e.Radius = { Radius * 2.0f, Radius * 2.45f };
+        //e.Instances = 2;
+        //e.Delay = { 0.15f, 0.3f };
+        SPDLOG_INFO("Create debris explosion");
+        CreateExplosion(e, Segment, PrevTransform.Translation());
     }
 
     void AddDebris(Debris& debris, SegID seg) {
@@ -419,7 +422,8 @@ namespace Inferno::Render {
             if (startGun >= 0) {
                 beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
                 beam.StartSubmodel = GetLocalGunpointOffset(*obj, (uint8)startGun);
-            } else {
+            }
+            else {
                 beam.Start = obj->Position;
             }
             beam.Segment = obj->Segment;
@@ -849,7 +853,7 @@ namespace Inferno::Render {
 
             for (auto& decal : Decals) {
                 if (!decal.Update(dt)) continue;
-                if (!decal.IsAlive()) continue;
+                if (!decal.IsAlive) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
                 effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
@@ -869,7 +873,7 @@ namespace Inferno::Render {
 
             for (auto& decal : AdditiveDecals) {
                 if (!decal.Update(dt)) continue;
-                if (!decal.IsAlive()) continue;
+                if (!decal.IsAlive) continue;
 
                 auto& material = Render::Materials->Get(decal.Texture);
                 effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
@@ -1064,25 +1068,29 @@ namespace Inferno::Render {
     }
 
     void UpdateEffects(float dt) {
-        UpdateExplosions(dt);
+        UpdateExplosions(dt); // Explosions generate sprites that are added as segment effects
 
         for (auto& effects : SegmentEffects) {
-            int i = 0;
             for (auto&& effect : effects) {
-                if (effect && effect->IsAlive())
+                if (effect && effect->IsAlive) 
                     effect->Update(dt);
-                i++;
+            }
+
+            // Do a second pass to expire effects in case other effects add new ones mid-frame
+            for (auto&& effect : effects) {
+                if (effect->IsAlive && effect->Elapsed >= effect->Duration) {
+                    effect->IsAlive = false;
+                    effect->OnExpire();
+                }
             }
         }
     }
 
     void FixedUpdateEffects(float dt) {
         for (auto& effects : SegmentEffects) {
-            int i = 0;
             for (auto&& effect : effects) {
-                if (effect && effect->IsAlive())
+                if (effect && effect->IsAlive)
                     effect->FixedUpdate(dt);
-                i++;
             }
         }
     }

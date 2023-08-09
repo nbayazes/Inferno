@@ -49,9 +49,10 @@ namespace Inferno::Render {
                 return l.Depth < r.Depth; // front to back, because the draw call flips it
             });
 
+            // todo: only visible segments
             for (int i = 0; i < level.Segments.size(); i++) {
                 for (auto& effect : GetEffectsInSegment(SegID(i))) {
-                    if (effect && effect->IsAlive()) {
+                    if (effect && effect->IsAlive) {
                         _transparentQueue.push_back({ effect.get(), GetRenderDepth(effect->Position) });
                     }
                 }
@@ -180,7 +181,7 @@ namespace Inferno::Render {
             }
 
             for (auto& effect : GetEffectsInSegment(item.Seg)) {
-                if (effect && effect->IsAlive()) {
+                if (effect && effect->IsAlive) {
                     Stats::EffectDraws++;
                     objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect.get() });
                 }

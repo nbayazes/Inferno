@@ -370,9 +370,9 @@ namespace Inferno::Render {
     List<LightData> LevelLights;
     Array<LightData, MAX_LIGHTS> LIGHT_BUFFER[2]{};
 
-    void GatherDecalLight(Array<LightData, MAX_LIGHTS>& buffer, int& lightIndex, DecalInfo& decal) {
+    void GatherDecalLight(Array<LightData, MAX_LIGHTS>& buffer, int& lightIndex, const DecalInfo& decal) {
         if (lightIndex >= buffer.size()) return;
-        if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive()) return;
+        if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive) return;
 
         auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed) * 1.5f / decal.FadeTime, 0.0f, 1.0f);
         if (t <= 0) return;
@@ -443,7 +443,7 @@ namespace Inferno::Render {
 
             for (auto& effect : GetEffectsInSegment(room)) {
                 if (lightIndex >= buffer.size()) break;
-                if (effect->LightRadius <= 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive()) continue;
+                if (effect->LightRadius <= 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive) continue;
 
                 float t = 0;
 

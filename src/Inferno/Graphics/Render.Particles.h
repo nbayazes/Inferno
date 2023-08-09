@@ -29,8 +29,9 @@ namespace Inferno::Render {
         float FadeTime = 0; // Fade time at the end of the particle's life
         float StartDelay = 0; // How long to wait in seconds before starting the effect
         ObjID Parent = ObjID::None;
+        bool IsAlive = false;
 
-        virtual bool IsAlive() { return Elapsed < Duration; }
+        //bool IsAlive() const { return Elapsed < Duration; }
 
         // Called once per frame
         virtual bool Update(float dt) {
@@ -48,6 +49,8 @@ namespace Inferno::Render {
         virtual void DepthPrepass(Graphics::GraphicsContext&) {
             assert(IsTransparent); // must provide a depth prepass if not transparent
         }
+
+        virtual void OnExpire() {}
 
         EffectBase() = default;
         virtual ~EffectBase() = default;
@@ -110,7 +113,6 @@ namespace Inferno::Render {
         //}
 
         bool Update(float dt) override;
-        bool IsAlive() const { return Elapsed < Duration; }
     };
 
     //void AddEmitter(ParticleEmitter& emitter, size_t capacity);
@@ -133,6 +135,7 @@ namespace Inferno::Render {
         void Draw(Graphics::GraphicsContext&) override;
         void DepthPrepass(Graphics::GraphicsContext&) override;
         void FixedUpdate(float dt) override;
+        void OnExpire() override;
     };
 
     void AddDebris(Debris&, SegID);
