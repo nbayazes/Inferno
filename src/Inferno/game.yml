@@ -285,6 +285,14 @@ Weapons:
     ExplosionColor: 0.3, 0.3, 0.75
     FlashColor: 1, 1, 1, 15
 
+  - id: 21
+    Name: robot homing missile
+    Decal: scorchC
+    DecalRadius: 4
+    ExplosionColor: 1, 0.25, 0.0, 2
+    FlashColor: 1, 1, 1, 15
+    Size: 1 # was 1.5
+
   - id: 22
     Name: robot concussion missile
     Decal: scorchC
@@ -606,16 +614,16 @@ Effects:
       FadeInOutTime: 0.5
 
     - Name: stunned_object_arcs
-      Width: [ 0.05, 0.065 ]
-      Color: .1, .1, 1, 75
+      Width: [ .1, .2 ]
+      Color: .2, .2, 1, 75
       Texture: Lightning3
       Frequency: 0.0333 # 1/30
-      Amplitude: .3
+      Amplitude: .35
       FadeEnd: 1
       RandomEnd: 1
-      StrikeTime: 0.25
+      StrikeTime: 0.5
       RandomObjStart: 1
-      Radius: 4
+      Radius: 8
 
     - Name: omega_beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]

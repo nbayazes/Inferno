@@ -814,7 +814,7 @@ namespace Inferno {
             if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
             if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
 
-            SPDLOG_INFO("Force: {}, {}, {}", force.x, force.y, force.z);
+            //SPDLOG_INFO("Force: {}, {}, {}", force.x, force.y, force.z);
             Matrix basis(target.Rotation);
             basis = basis.Invert();
             force = Vector3::Transform(force, basis); // transform force to basis of object
