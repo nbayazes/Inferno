@@ -386,79 +386,6 @@ namespace Inferno {
         return COLLISION_TABLE[(int)src.Type][(int)target.Type];
     }
 
-    // Finds the nearest sphere-level intersection for debris
-    // Debris only collide with robots, players and walls
-    bool IntersectLevelDebris(Level& level, const BoundingCapsule& capsule, SegID segId, LevelHit& hit) {
-        auto& pvs = GetPotentialSegments(level, segId, capsule.A, capsule.Radius);
-        auto dir = capsule.B - capsule.A;
-        dir.Normalize();
-        Ray ray(capsule.A, dir);
-
-        // Did we hit any objects?
-        for (auto& segment : pvs) {
-            auto& seg = level.GetSegment(segment);
-
-            for (int i = 0; i < seg.Objects.size(); i++) {
-                auto other = level.TryGetObject(seg.Objects[i]);
-
-                if (!other->IsAlive() || other->Segment != segment) continue;
-                if (other->Type != ObjectType::Player && other->Type != ObjectType::Robot && other->Type != ObjectType::Reactor)
-                    continue;
-
-                BoundingSphere sphere(other->Position, other->Radius);
-                float dist;
-                if (ray.Intersects(sphere, dist) && dist < other->Radius) {
-                    hit.Distance = dist;
-                    hit.Normal = -dir;
-                    hit.Point = capsule.A + dir * dist;
-                    return true;
-                }
-            }
-        }
-
-        // todo: add debris level hit testing. need to prevent duplicating triangle hit testing
-        //for (auto& side : SideIDs) {
-        //    auto face = Face::FromSide(level, seg, side);
-        //    auto& i = face.Side.GetRenderIndices();
-
-        //    Vector3 refPoint, normal;
-        //    float dist{};
-        //    if (capsule.Intersects(face[i[0]], face[i[1]], face[i[2]], face.Side.Normals[0], refPoint, normal, dist)) {
-        //        if (seg.SideIsSolid(side, level) && dist < hit.Distance) {
-        //            hit.Normal = normal;
-        //            hit.Point = refPoint;
-        //            hit.Distance = dist;
-        //            hit.Tag = { segId, side };
-        //        }
-        //        else {
-        //            // scan touching seg
-        //            auto conn = seg.GetConnection(side);
-        //            if (conn > SegID::None && !visitedSegs.contains(conn))
-        //                IntersectLevelDebris(level, capsule, conn, hit);
-        //        }
-        //    }
-
-        //    if (capsule.Intersects(face[i[3]], face[i[4]], face[i[5]], face.Side.Normals[1], refPoint, normal, dist)) {
-        //        if (seg.SideIsSolid(side, level)) {
-        //            if (dist < hit.Distance) {
-        //                hit.Normal = normal;
-        //                hit.Point = refPoint;
-        //                hit.Distance = dist;
-        //                hit.Tag = { segId, side };
-        //            }
-        //        }
-        //        else {
-        //            // scan touching seg
-        //            auto conn = seg.GetConnection(side);
-        //            if (conn > SegID::None && !visitedSegs.contains(conn))
-        //                IntersectLevelDebris(level, capsule, conn, hit);
-        //        }
-        //    }
-        //}
-
-        return (bool)hit;
-    }
-
     // intersects a ray with the level, returning hit information
     bool IntersectRayLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit) {
         if (start == SegID::None) return false;
@@ -1097,7 +1024,6 @@ namespace Inferno {
                     else {
                         // Use point-triangle intersections for everything else.
                         // Note that fast moving objects could clip through walls!
-
                         Plane plane(p0 + offset, p1 + offset, p2 + offset);
                         auto planeDist = plane.DotCoordinate(obj.Position);
                         if (planeDist > 0 || planeDist < -obj.Radius)
@@ -1261,6 +1187,42 @@ namespace Inferno {
         IntersectLevelMesh(level, obj, pvs, hit, dt);
         return (bool)hit;
     }
+
+
+    // Finds the nearest sphere-level intersection for debris
+    // Debris only collide with robots, players and walls
+    bool IntersectLevelDebris(Level& level, const BoundingSphere& debris, SegID segId, LevelHit& hit) {
+        auto& pvs = GetPotentialSegments(level, segId, debris.Center, debris.Radius * 2);
+
+        // Did we hit any objects?
+        for (auto& segment : pvs) {
+            auto& seg = level.GetSegment(segment);
+
+            for (int i = 0; i < seg.Objects.size(); i++) {
+                auto other = level.TryGetObject(seg.Objects[i]);
+
+                if (!other->IsAlive() || other->Segment != segment) continue;
+                if (other->Type != ObjectType::Player && other->Type != ObjectType::Robot && other->Type != ObjectType::Reactor)
+                    continue;
+
+                BoundingSphere sphere(other->Position, other->Radius);
+
+                if (auto sphereHit = IntersectSphereSphere(debris, sphere)) {
+                    hit.Distance = sphereHit.Distance;
+                    hit.Normal = sphereHit.Normal;
+                    hit.Point = sphereHit.Point;
+                    return true;
+                }
+            }
+        }
+
+        Object dummyObj{};
+        dummyObj.Position = debris.Center;
+        dummyObj.Radius = debris.Radius;
+        IntersectLevelMesh(level, dummyObj, pvs, hit, Game::TICK_RATE);
+        return (bool)hit;
+    }
+
 
     void BumpObject(Object& obj, Vector3 hitDir, float damage) {
         hitDir *= damage;

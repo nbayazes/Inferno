@@ -504,6 +504,9 @@ namespace Inferno::Game {
                     //debris.Velocity =  RandomVector(obj.Radius * 5);
                     debris.Velocity = sm == 0 ? hitForce : explosionDir * 20 + RandomVector(5) + hitForce;
                     debris.Velocity += obj.Physics.Velocity;
+                    debris.AngularVelocity.x = RandomN11();
+                    debris.AngularVelocity.y = RandomN11();
+                    debris.AngularVelocity.z = RandomN11();
                     //debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
                     debris.Transform = world;
                     //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));

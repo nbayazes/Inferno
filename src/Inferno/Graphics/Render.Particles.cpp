@@ -255,18 +255,14 @@ namespace Inferno::Render {
         Transform.Translation(position);
 
         LevelHit hit;
-        BoundingCapsule capsule = {
-            .A = PrevTransform.Translation(),
-            .B = Transform.Translation(),
-            .Radius = Radius
-        };
+        DirectX::BoundingSphere sphere{ Transform.Translation(), Radius};
 
-        if (IntersectLevelDebris(Game::Level, capsule, Segment, hit)) {
+        if (IntersectLevelDebris(Game::Level, sphere, Segment, hit)) {
             Elapsed = Duration; // destroy on contact
             // todo: scorch marks on walls
         }
 
-        // todo: use cheaper way to update segments
+        // todo: use cheaper way to update segments (scan touching)
         if (!PointInSegment(Game::Level, Segment, position)) {
             auto id = FindContainingSegment(Game::Level, position);
             if (id != SegID::None) Segment = id;

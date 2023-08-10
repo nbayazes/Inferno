@@ -14,10 +14,6 @@ namespace Inferno::Render {
     struct RenderCommand;
     float GetRenderDepth(const Vector3& pos);
 
-    //enum class EffectType {
-    //    None, Particle, Emitter, Debris, Tracer
-    //};
-
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position;
@@ -30,8 +26,6 @@ namespace Inferno::Render {
         float StartDelay = 0; // How long to wait in seconds before starting the effect
         ObjID Parent = ObjID::None;
         bool IsAlive = false;
-
-        //bool IsAlive() const { return Elapsed < Duration; }
 
         // Called once per frame
         virtual bool Update(float dt) {

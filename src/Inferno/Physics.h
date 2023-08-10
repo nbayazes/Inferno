@@ -2,7 +2,6 @@
 #include "Level.h"
 #include "Face.h"
 #include "DirectX.h"
-#include "Physics.Capsule.h"
 #include "Physics.Hit.h"
 
 namespace Inferno {
@@ -78,5 +77,5 @@ namespace Inferno {
     // Sets an object's angular velocity to turn towards a vector over a number of seconds.
     // Note that this is not additive, and overrides any existing angular velocity.
     void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
-    bool IntersectLevelDebris(Level& level, const BoundingCapsule&, SegID segId, LevelHit& hit);
+    bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere&, SegID segId, LevelHit& hit);
 }
