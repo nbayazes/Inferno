@@ -910,6 +910,7 @@ namespace Inferno::Render {
     }
 
     bool SparkEmitter::Update(float dt) {
+        if (!EffectBase::Update(dt)) return false;
         auto parent = Game::Level.TryGetObject(Parent);
 
         Vector3 parentPos = parent ? parent->GetPosition(Game::LerpAmount) : Vector3::Zero;

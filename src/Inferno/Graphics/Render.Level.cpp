@@ -389,8 +389,12 @@ namespace Inferno::Render {
 
     void UpdateDynamicLights(const Level& level, Array<LightData, MAX_LIGHTS>& buffer) {
         constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
-        for (int i = 0; i < LevelLights.size() && i < reserved; i++) {
-            buffer[i] = LevelLights[i];
+
+        for (int i = 0; i < buffer.size(); i++) {
+            if (i < LevelLights.size() && i < reserved)
+                buffer[i] = LevelLights[i];
+            else
+                buffer[i].radiusSq = 0; // clear remaining lights
         }
 
         int lightIndex = reserved;
@@ -399,7 +403,7 @@ namespace Inferno::Render {
             if (lightIndex >= buffer.size()) break;
             if (!obj.IsAlive()) continue;
 
-            auto& light = buffer[lightIndex++];
+            auto& light = buffer[lightIndex];
             light.color = obj.LightColor;
             light.radiusSq = obj.LightRadius * obj.LightRadius;
             auto mode = obj.LightMode;
@@ -430,6 +434,9 @@ namespace Inferno::Render {
                 light.pos += obj.Rotation.Backward() * 2.5f;
             }
             light.type = LightType::Point;
+
+            if (light.radiusSq > 0)
+                lightIndex++;
         }
 
         for (auto& decal : GetAdditiveDecals())
@@ -468,10 +475,6 @@ namespace Inferno::Render {
                 light.pos = effect->Position;
                 light.type = LightType::Point;
             }
-        }
-
-        for (int i = lightIndex; i < buffer.size(); i++) {
-            buffer[i].radiusSq = 0; // clear remaining lights
         }
     }
 

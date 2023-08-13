@@ -111,8 +111,8 @@ namespace Inferno::Game {
     void AddPointsToScore(int points);
 
     inline Color ScreenFlash = { 0, 0, 0 }; // Used when picking up an item or taking damage
-    constexpr float MAX_FLASH = 0.2f;
-    constexpr float FLASH_DECAY_RATE = MAX_FLASH / 0.5f;
+    constexpr float MAX_FLASH = 0.1f;
+    constexpr float FLASH_DECAY_RATE = MAX_FLASH * 0.75f;
 
     void AddScreenFlash(const Color&);
 
