@@ -63,7 +63,7 @@ namespace Inferno::Render {
         float Delay = 0;
         bool RandomRotation = true;
         //float FadeDuration = 0;
-        SubmodelRef Submodel;
+        SubmodelRef ParentSubmodel;
 
         bool Update(float dt) override;
         void Draw(Graphics::GraphicsContext&) override;
@@ -281,7 +281,7 @@ namespace Inferno::Render {
         bool _createdSparks = false;
 
     public:
-        string Texture = "sun";
+        string Texture = "tracer";
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
 
@@ -293,9 +293,20 @@ namespace Inferno::Render {
         float ConeRadius = 1.0f; // Used with direction to spread sparks. Value of 1 is 45 degrees.
         float Drag = 0.02f;
         float Restitution = 0.8f; // How much velocity to keep after hitting a wall
-
+        float SpawnRadius = 0; // Sphere to create new particles in
         float VelocitySmear = 0.04f; // Percentage of velocity to add to spark length
+        bool UseWorldGravity = true; // Uses world gravity
+        bool UsePointGravity = false; // Attracts sparks towards the center of the emitter
+        bool FadeSize = false; // Reduces size to 0 at end of life
+        Vector3 PointGravityOffset = Vector3::Zero; // Offset for the center of point gravity
+        Vector3 Offset; // Offset when creating particles. Uses relative rotations if has a parent.
+        Vector3 PointGravityVelocity = Vector3::Zero; // Applies a gravity field relative to the parent object rotation
+        float PointGravityStrength = 0;
+        ObjID Parent = ObjID::None;
+        SubmodelRef ParentSubmodel;
+        Vector3 PrevParentPosition;
 
+        bool Update(float dt) override;
         void FixedUpdate(float dt) override;
         void Draw(Graphics::GraphicsContext&) override;
 
@@ -304,7 +315,7 @@ namespace Inferno::Render {
     };
 
     //void AddSparkEmitter(SparkEmitter&);
-    void AddSparkEmitter(SparkEmitter&, SegID, const Vector3& position);
+    void AddSparkEmitter(SparkEmitter, SegID, const Vector3& worldPos = Vector3::Zero);
 
     void ResetParticles();
 

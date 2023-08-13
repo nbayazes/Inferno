@@ -573,7 +573,7 @@ namespace Inferno::Game {
             p.Position = position;
             p.Radius = weapon.FlashSize;
             p.Parent = objId;
-            p.Submodel = gunSubmodel;
+            p.ParentSubmodel = gunSubmodel;
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor;
             Render::AddParticle(p, obj.Segment);
@@ -828,7 +828,7 @@ namespace Inferno::Game {
         p.Position = start;
         p.Radius = weapon.FlashSize;
         p.Parent = player.ID;
-        p.Submodel = gunSubmodel;
+        p.ParentSubmodel = gunSubmodel;
         p.FadeTime = 0.175f;
         p.Color = weapon.Extended.FlashColor;
         Render::AddParticle(p, playerObj.Segment);

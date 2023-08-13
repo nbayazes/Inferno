@@ -95,8 +95,8 @@ namespace Inferno::Render {
 
         if (auto parent = Game::Level.TryGetObject(Parent)) {
             auto pos = parent->GetPosition(Game::LerpAmount);
-            if (Submodel.ID > -1) {
-                auto offset = GetSubmodelOffset(*parent, Submodel);
+            if (ParentSubmodel.ID > -1) {
+                auto offset = GetSubmodelOffset(*parent, ParentSubmodel);
                 pos += Vector3::Transform(offset, parent->GetRotation(Game::LerpAmount));
             }
 
@@ -255,7 +255,7 @@ namespace Inferno::Render {
         Transform.Translation(position);
 
         LevelHit hit;
-        DirectX::BoundingSphere sphere{ Transform.Translation(), Radius};
+        DirectX::BoundingSphere sphere{ Transform.Translation(), Radius };
 
         if (IntersectLevelDebris(Game::Level, sphere, Segment, hit)) {
             Elapsed = Duration; // destroy on contact
@@ -909,6 +909,46 @@ namespace Inferno::Render {
         }
     }
 
+    bool SparkEmitter::Update(float dt) {
+        auto parent = Game::Level.TryGetObject(Parent);
+
+        Vector3 parentPos = parent ? parent->GetPosition(Game::LerpAmount) : Vector3::Zero;
+        Vector3 parentDelta = parent ? parentPos - PrevParentPosition : Vector3::Zero;
+        if (parent) PrevParentPosition = parentPos;
+
+        for (auto& spark : _sparks) {
+            if (!spark.IsAlive()) continue;
+
+            spark.PrevPosition = spark.Position;
+            spark.PrevVelocity = spark.Velocity;
+
+            if (UseWorldGravity) spark.Velocity += Game::Gravity * dt;
+            if (UsePointGravity) {
+                auto center = Position;
+                if (parent && (PointGravityVelocity != Vector3::Zero || PointGravityOffset != Vector3::Zero)) {
+                    // Offset the gravity center over the lifetime of the particle
+                    auto t = SparkDuration.Max - (SparkDuration.Max - spark.Life);
+                    center += Vector3::Transform(PointGravityVelocity * t + PointGravityOffset + ParentSubmodel.Offset, parent->Rotation);
+                }
+
+                auto dir = center - spark.Position;
+                dir.Normalize();
+                spark.Velocity += dir * PointGravityStrength * dt;
+            }
+
+            if (parent) {
+                spark.Position += parentDelta;
+            }
+
+            spark.Velocity *= 1 - Drag;
+            spark.Position += spark.Velocity * dt;
+        }
+
+        if (parent) Position = parentPos;
+
+        return true;
+    }
+
     void SparkEmitter::FixedUpdate(float dt) {
         if (!_createdSparks) {
             // for now create all sparks when inserted. want to support random delay / permanent generators later.
@@ -922,12 +962,6 @@ namespace Inferno::Render {
         for (auto& spark : _sparks) {
             spark.Life -= dt;
             if (!spark.IsAlive()) continue;
-            spark.PrevPosition = spark.Position;
-            spark.PrevVelocity = spark.Velocity;
-
-            spark.Velocity += Game::Gravity * dt;
-            spark.Velocity *= 1 - Drag;
-            spark.Position += spark.Velocity * dt;
 
             auto dir = spark.Velocity;
             dir.Normalize();
@@ -984,9 +1018,10 @@ namespace Inferno::Render {
 
         for (auto& spark : _sparks) {
             if (spark.Life <= 0) continue;
-            auto pos = Vector3::Lerp(spark.PrevPosition, spark.Position, Game::LerpAmount);
-            auto vec = Vector3::Lerp(spark.PrevVelocity, spark.Velocity, Game::LerpAmount);
+            auto pos = spark.Position;
+            auto vec = spark.Position - spark.PrevPosition;
             vec.Normalize();
+
             Vector3 head = pos + vec * Width * 0.5;
             Vector3 tail = pos - vec * Width * 0.5;
 
@@ -997,8 +1032,11 @@ namespace Inferno::Render {
             auto tangent = GetBeamNormal(head, tail) * Width * 0.5f;
 
             auto color = Color;
-            if (FadeTime > 0)
-                color.w = std::lerp(1.0f, 0.0f, std::clamp((FadeTime - spark.Life) / FadeTime, 0.0f, 1.0f));
+            if (FadeTime > 0) {
+                auto t = 1 - std::clamp((FadeTime - spark.Life) / FadeTime, 0.0f, 1.0f);
+                color.w = t;
+                tangent *= t;
+            }
 
             ObjectVertex v0{ head + tangent, { 0, 1 }, color };
             ObjectVertex v1{ head - tangent, { 1, 1 }, color };
@@ -1014,7 +1052,11 @@ namespace Inferno::Render {
     void SparkEmitter::CreateSpark() {
         Spark spark;
         spark.Life = SparkDuration.GetRandom();
-        spark.Position = spark.PrevPosition = Position;
+        auto position = Position;
+        if (SpawnRadius > 0)
+            position += RandomPointOnSphere() * SpawnRadius;
+
+        spark.Position = spark.PrevPosition = position;
         spark.Segment = Segment;
 
         if (Direction == Vector3::Zero) {
@@ -1031,6 +1073,13 @@ namespace Inferno::Render {
             spark.Velocity = direction * Velocity.GetRandom();
         }
 
+        if (auto parent = Game::Level.TryGetObject(Parent)) {
+            PrevParentPosition = parent->Position;
+
+            //if (Offset != Vector3::Zero)
+            spark.Position += Vector3::Transform(ParentSubmodel.Offset + Offset, parent->Rotation);
+        }
+
         _sparks.Add(spark);
     }
 
@@ -1042,16 +1091,19 @@ namespace Inferno::Render {
     //    AddEffect(MakePtr<SparkEmitter>(emitter));
     //}
 
-    void AddSparkEmitter(SparkEmitter& emitter, SegID seg, const Vector3& position) {
+    void AddSparkEmitter(SparkEmitter emitter, SegID seg, const Vector3& worldPos) {
         emitter.Segment = seg;
-        emitter.Position = position;
+        emitter.Position = worldPos;
         emitter.Color *= emitter.Color.w;
         emitter.Color.w = 0;
+        if (auto parent = Game::Level.TryGetObject(emitter.Parent)) {
+            emitter.Position = parent->GetPosition(Game::LerpAmount);
+        }
 
         Render::Materials->LoadTexture(emitter.Texture);
         assert(emitter.Segment != SegID::None);
         if (emitter.Duration == 0) emitter.Duration = emitter.SparkDuration.Max;
-        AddEffect(MakePtr<SparkEmitter>(emitter));
+        AddEffect(MakePtr<SparkEmitter>(std::move(emitter)));
     }
 
     void ResetParticles() {
@@ -1068,7 +1120,7 @@ namespace Inferno::Render {
 
         for (auto& effects : SegmentEffects) {
             for (auto&& effect : effects) {
-                if (effect && effect->IsAlive) 
+                if (effect && effect->IsAlive)
                     effect->Update(dt);
             }
 

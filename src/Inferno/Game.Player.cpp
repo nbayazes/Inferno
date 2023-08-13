@@ -6,6 +6,7 @@
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
     constexpr uint8 SUPER_WEAPON = 5;
@@ -222,12 +223,14 @@ namespace Inferno {
                 AddScreenFlash(FLASH_FUSION_CHARGE);
                 FusionNextSoundDelay -= dt;
                 if (FusionNextSoundDelay < 0) {
+                    auto& player = Game::GetPlayer();
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
                         Sound3D sound(ID);
                         sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
                         sound.FromPlayer = true;
                         sound.Merge = false;
+                        sound.Position = player.Position;
                         Sound::Play(sound);
                         constexpr float OVERCHARGE_DAMAGE = 3.0f;
                         Shields -= Random() * OVERCHARGE_DAMAGE;
@@ -237,7 +240,19 @@ namespace Inferno {
                         Sound3D sound(ID);
                         sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
                         sound.FromPlayer = true;
+                        sound.Position = player.Position;
                         _fusionChargeSound = Sound::Play(sound);
+                        AlertEnemiesOfNoise(player, 50, 0.25f);
+                    }
+
+                    if (auto sparks = Render::EffectLibrary.GetSparks("fusion_charge")) {
+                        sparks->Parent = Game::Player.ID;
+                        auto gunOffset = GetGunpointOffset(player, 0);
+                        sparks->ParentSubmodel.Offset = GetGunpointOffset(player, 0);
+                        Render::AddSparkEmitter(*sparks, player.Segment);
+
+                        sparks->ParentSubmodel.Offset = GetGunpointOffset(player, 1);
+                        Render::AddSparkEmitter(*sparks, player.Segment);
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;

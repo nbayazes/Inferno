@@ -683,6 +683,24 @@ Effects:
       Width: 0.125
       VelocitySmear: 0.02
 
+    - Name: fusion_charge
+      Color: .6, 0, 1, 20
+      Count: 8
+      SparkDuration: [ .45, .5 ]
+      Drag: 0.01
+      Velocity: 0
+      FadeTime: .4
+      Texture: tracer
+      Width: 0.1
+      VelocitySmear: 0.05
+      UseWorldGravity: 0
+      UsePointGravity: 1
+      PointGravityStrength: 23 # How much velocity towards the point
+      PointGravityOffset: 0, 0, 2.5 # Starting offset for point gravity
+      PointGravityVelocity: 0, 0, -10 # Moves the center of gravity relative to start location
+      SpawnRadius: 2
+      Offset: 0, 0, -1.6 # Particle spawn offset
+
     - Name: overlay_destroyed
       ConeRadius: 1
       SparkDuration: [ 0.75, 2.4 ]
