@@ -230,7 +230,6 @@ namespace Inferno {
         short HideIndex{};   // Index in Path_seg_points
         short PathLength{};  // Length of hide path.
         int16 CurrentPathIndex{}; // Current index in path.
-        AIRuntime ail{};
 
         void SmartMineFlag(bool value) {
             if (value) Flags[4] |= 0x02;
@@ -297,8 +296,8 @@ namespace Inferno {
             ExplosionObjectInfo Explosion; //debris also uses this
             LightInfo Light;
             PowerupControlInfo Powerup;
-            RobotAI AI{}; // be sure to init using the largest struct
-            WeaponData Weapon;
+            RobotAI AI; 
+            WeaponData Weapon{}; // be sure to init using the largest struct
             //struct ReactorControlInfo Reactor; // Not in original data
         };
     };

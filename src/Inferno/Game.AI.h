@@ -4,6 +4,54 @@
 #include "Object.h"
 
 namespace Inferno {
+    // Runtime AI data
+    struct AIRuntime {
+        // How aware of the player this robot is. Ranges 0 to 1.
+        // Only seeing the player can set awareness to 1.
+        float Awareness = 0;
+        // How likely the robot is to flee. Increased by taking damage.
+        float Fear = 0;
+
+        //uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
+        //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
+        PlayerVisibility PlayerVisibility;
+        uint8 Shots; // number of shots fired rapidly
+        uint8 GunIndex = 0; // Which gun to fire from next
+        AIMode Mode;
+        //float NextActionTime;
+        float FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons
+        //float AwarenessTime; // How long to remain aware of the player, 0 for unaware
+        double LastUpdate = -1; // time when this robot was last updated
+        float LastSeenPlayer; // Time in seconds since player was seen
+        float LastSeenAttackingPlayer; // Time in seconds since at least awareness level 2
+        float MiscSoundTime; // Time in seconds since the robot made angry or lurking noises
+        float AnimationTime = 0; // How much of the animation has passed
+        float AnimationDuration = 0; // Time in seconds to reach the goal angles
+        AnimState AnimationState = {};
+
+        Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
+        //Array<AIState, MAX_SUBMODELS> GoalState{}, AchievedState{};
+
+        SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
+        RoomID GoalRoom = RoomID::None;
+        Vector3 GoalPosition; // position the robot wants to move to
+        //Vector3 AimTarget; // where the robot wants to aim
+
+        double LastDodgeTime = 0;
+        Vector3 DodgeDirection;
+
+        float RemainingSlow = 0;
+        float RemainingStun = 0;
+        bool DyingSoundPlaying{};
+        //ObjID DangerLaserID{};  // what is a danger laser? for dodging?
+        //ObjSig DangerLaserSig{};
+        double DyingStartTime{}; // Time at which this robot started dying.
+
+        bool PlayingAnimation() const {
+            return AnimationTime < AnimationDuration;
+        }
+    };
+
     class NavNetwork {
         struct NavNode {
             float Distances[6]{}; // Per side
@@ -150,10 +198,13 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt);
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness);
-    void PlayRobotAnimation(Object& robot, AnimState state, float time = 0.4f, float moveMult = 5);
+    void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5);
     void DamageRobot(Object& robot, float damage);
 
     namespace Debug {
         inline int ActiveRobots = 0;
     }
+
+    void ResetAI(); // Call on level start / load
+    void ResizeAI(size_t size);
 }

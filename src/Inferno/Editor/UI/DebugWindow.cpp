@@ -40,13 +40,13 @@ namespace Inferno::Editor {
                     auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
                     obj->NextThinkTime = 0;
 
-                    auto& ai = obj->Control.AI.ail;
+                    /*auto& ai = GetAI(obj);
                     ai.GoalSegment = Editor::Selection.Segment;
                     ai.GoalPosition = seg.Center;
                     ai.GoalRoom = Game::Level.FindRoomBySegment(Editor::Selection.Segment);
                     obj->GoalPath = path;
                     obj->GoalPathIndex = 0;
-                    obj->Room = Game::Level.FindRoomBySegment(obj->Segment);
+                    obj->Room = Game::Level.FindRoomBySegment(obj->Segment);*/
 
                     //auto tag = GetNextConnection(path, Game::Level, obj->Segment);
                     //auto& side = Game::Level.GetSide(tag);

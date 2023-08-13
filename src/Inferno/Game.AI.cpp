@@ -14,6 +14,22 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
+    List<AIRuntime> AI;
+
+    void ResetAI() {
+        for (auto& ai : AI)
+            ai = {};
+    }
+
+    void ResizeAI(size_t size) {
+        AI.resize(size);
+    }
+
+    AIRuntime& GetAI(const Object& obj) {
+        assert(obj.IsRobot());
+        return AI[(int)Game::GetObjectID(obj)];
+    }
+
     constexpr float AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
     constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
     constexpr float MAX_SLOW_EFFECT = 0.9f; // Max percentage of slow to apply to a robot
@@ -43,10 +59,9 @@ namespace Inferno {
         return !IntersectRayLevel(Game::Level, ray, obj.Segment, playerDist, true, false, hit);
     }
 
-    void AddAwareness(Object& obj, float awareness) {
-        if (!obj.IsRobot()) return;
-        obj.Control.AI.ail.Awareness += awareness;
-        if (obj.Control.AI.ail.Awareness > 1) obj.Control.AI.ail.Awareness = 1;
+    void AddAwareness(AIRuntime&ai, float awareness) {
+        ai.Awareness += awareness;
+        if (ai.Awareness > 1) ai.Awareness = 1;
     }
 
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness) {
@@ -61,7 +76,7 @@ namespace Inferno {
 
                     //auto falloff = std::clamp(std::lerp(awareness, 0.0f, (soundRadius - dist) / soundRadiusSq), 0.0f, 1.0f);
                     auto falloff = Saturate(InvLerp(soundRadius, 0, dist));
-                    auto& ai = obj->Control.AI.ail;
+                    auto& ai = GetAI(*obj);
 
                     auto prevAwareness = ai.Awareness;
                     ai.Awareness += awareness * falloff;
@@ -115,6 +130,7 @@ namespace Inferno {
             if (portalDist < soundRadius && SoundPassesThroughSide(level, side)) {
                 if (auto adjacentRoom = level.GetRoom(portal.Room)) {
                     // todo: this only alerts enemies in adjacent rooms which might cause problems around energy centers
+                    // todo: replace with nearby room tracking
                     AlertEnemiesInRoom(level, *adjacentRoom, source.Segment, source.Position, soundRadius, awareness);
                 }
             }
@@ -144,8 +160,9 @@ namespace Inferno {
         if (!InRobotFOV(robot, playerDir, robotInfo))
             return false;
 
-        auto prevAwareness = robot.Control.AI.ail.Awareness;
-        robot.Control.AI.ail.Awareness = 1;
+        auto& ai = GetAI(robot);
+        auto prevAwareness = ai.Awareness;
+        AddAwareness(ai, 1);
 
         // only play sound when robot was asleep
         if (prevAwareness < 0.3f) {
@@ -153,8 +170,8 @@ namespace Inferno {
             PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
             // Delay firing after waking up
             float wakeTime = (5 - Game::Difficulty) * 0.3f;
-            robot.Control.AI.ail.FireDelay = std::min(Difficulty(robotInfo).FireDelay, wakeTime);
-            robot.Control.AI.ail.FireDelay2 = Difficulty(robotInfo).FireDelay2;
+            ai.FireDelay = std::min(Difficulty(robotInfo).FireDelay, wakeTime);
+            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
         }
 
         return true;
@@ -172,9 +189,7 @@ namespace Inferno {
     //    return *ai.GoalPath.end();
     //}
 
-    bool PathIsValid(Object& obj) {
-        auto& ai = obj.Control.AI.ail;
-
+    bool PathIsValid(Object& obj, const AIRuntime& ai) {
         if (obj.GoalPath.empty()) return false;
         if (obj.GoalPath.back() != ai.GoalSegment) return false; // Goal isn't this path anymore
         return Seq::contains(obj.GoalPath, obj.Segment); // Check if robot strayed from path
@@ -231,8 +246,8 @@ namespace Inferno {
         obj.Physics.Thrust += dir * thrust;
     }
 
-    void ClampThrust(Object& robot) {
-        if (robot.Control.AI.ail.RemainingStun > 0) {
+    void ClampThrust(Object& robot, const AIRuntime& ai) {
+        if (ai.RemainingStun > 0) {
             robot.Physics.Thrust = Vector3::Zero;
             robot.Physics.AngularThrust = Vector3::Zero;
             return;
@@ -240,7 +255,7 @@ namespace Inferno {
 
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
 
-        auto slow = robot.Control.AI.ail.RemainingSlow;
+        auto slow = ai.RemainingSlow;
         float slowScale = slow > 0 ? 1 - MAX_SLOW_EFFECT * slow / MAX_SLOW_TIME : 1;
 
         auto maxSpeed = Difficulty(robotInfo).Speed / 8 * slowScale;
@@ -372,7 +387,7 @@ namespace Inferno {
     }
 
 
-    void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, Object& obj, float thrust, Vector3& target) {
+    void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, const Object& obj, float thrust, Vector3& target) {
         if (!seg.SideIsSolid(sideId, level)) return;
 
         // project ray onto side
@@ -512,7 +527,7 @@ namespace Inferno {
     //    }
     //}
 
-    void AvoidRoomEdges(Level& level, const Ray& ray, Object& obj, float thrust, Vector3& target) {
+    void AvoidRoomEdges(Level& level, const Ray& ray, const Object& obj, float thrust, Vector3& target) {
         auto room = level.GetRoom(obj.Room);
         if (!room) return;
 
@@ -525,8 +540,7 @@ namespace Inferno {
         }
     }
 
-    void PathTowardsGoal(Level& level, Object& obj, float /*dt*/) {
-        auto& ai = obj.Control.AI.ail;
+    void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, float /*dt*/) {
         //auto& seg = level.GetSegment(obj.Segment);
 
         auto checkGoalReached = [&obj, &ai] {
@@ -536,7 +550,7 @@ namespace Inferno {
             }
         };
 
-        if (!PathIsValid(obj)) {
+        if (!PathIsValid(obj, ai)) {
             // Calculate a new path
             SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
             obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, level);
@@ -835,14 +849,13 @@ namespace Inferno {
         FireWeaponAtPoint(robot, robotInfo, gunIndex, aimTarget, robotInfo.WeaponType);
     }
 
-    void StopPathing(Object& robot) {
-        auto& ai = robot.Control.AI.ail;
+    void StopPathing(Object& robot, AIRuntime& ai) {
         robot.GoalPath.clear();
         robot.GoalPathIndex = -1;
         ai.GoalSegment = SegID::None;
     }
 
-    void DodgeProjectile(Object& robot, const Object& projectile, const RobotInfo& robotInfo) {
+    void DodgeProjectile(const Object& robot, AIRuntime& ai, const Object& projectile, const RobotInfo& robotInfo) {
         if (projectile.Physics.Velocity.LengthSquared() < 5 * 5) return; // Don't dodge slow projectiles. also prevents crash at 0 velocity.
 
         auto [projDir, projDist] = GetDirectionAndDistance(projectile.Position, robot.Position);
@@ -856,17 +869,16 @@ namespace Inferno {
         Ray projRay = { projectile.Position, projTravelDir };
         auto dodgePoint = ProjectRayOntoPlane(projRay, robot.Position, -projTravelDir);
         if (!dodgePoint) return;
-        robot.Control.AI.ail.DodgeDirection = robot.Position - *dodgePoint;
-        robot.Control.AI.ail.LastDodgeTime = Game::Time;
+        ai.DodgeDirection = robot.Position - *dodgePoint;
+        ai.LastDodgeTime = Game::Time;
     }
 
     float EstimateDodgeDistance(const RobotInfo& robot) {
         return (4 / robot.Mass) * Difficulty(robot).Speed;
     }
 
-    void CheckProjectiles(Level& level, Object& robot, const RobotInfo& robotInfo) {
+    void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         auto room = level.GetRoom(robot.Room);
-        auto& ai = robot.Control.AI.ail;
         float dodgeDelay = (5 - Game::Difficulty) / 2.0f * 2.0f; // (2.5 to 0.5) * 2 delay
         dodgeDelay = 0;
         if (ai.LastDodgeTime + dodgeDelay > Game::Time) return; // not ready to dodge again
@@ -880,7 +892,7 @@ namespace Inferno {
                     if (auto parent = level.TryGetObject(weapon->Parent)) {
                         if (parent->IsRobot()) continue;
 
-                        DodgeProjectile(robot, *weapon, robotInfo);
+                        DodgeProjectile(robot, ai, *weapon, robotInfo);
                         return;
                     }
                 }
@@ -889,16 +901,16 @@ namespace Inferno {
     }
 
     // Tries to path towards the player or move directly to it if in the same room
-    void MoveTowardsPlayer(Level& level, const Object& player, Object& robot) {
+    void MoveTowardsPlayer(Level& level, const Object& player, Object& robot, AIRuntime& ai) {
         if (player.Room == robot.Room) {
             MoveTowardsPoint(robot, player.Position, 100);
         }
         else {
             if (robot.GoalPath.empty() || robot.GoalPath.back() != player.Segment) {
-                robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, robot.Control.AI.ail.GoalSegment, level);
+                robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.GoalSegment, level);
             }
 
-            PathTowardsGoal(level, robot, 0);
+            PathTowardsGoal(level, robot, ai, 0);
         }
     }
 
@@ -915,31 +927,31 @@ namespace Inferno {
         MoveTowardsPoint(robot, robot.Position - playerDir * 10, 10);
     }
 
-    void MoveToCircleDistance(Level& level, const Object& player, Object& robot, const RobotInfo& robotInfo) {
+    void MoveToCircleDistance(Level& level, const Object& player, Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         auto circleDistance = Difficulty(robotInfo).CircleDistance;
         auto distOffset = Vector3::Distance(player.Position, robot.Position) - circleDistance;
         if (abs(distOffset) < 20 && circleDistance > 10)
             return; // already close enough. Melee robots should always go to zero.
 
         if (distOffset > 0)
-            MoveTowardsPlayer(level, player, robot);
+            MoveTowardsPlayer(level, player, robot, ai);
         else
             MoveAwayFromPlayer(level, player, robot);
     }
 
-    void PlayRobotAnimation(Object& robot, AnimState state, float time, float moveMult) {
+    void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         auto& angles = robot.Render.Model.Angles;
-        auto& ail = robot.Control.AI.ail;
 
         //float remaining = 1;
         // if a new animation is requested before the previous one finishes, speed up the new one as it has less distance
         //if (ail.AnimationTime < ail.AnimationDuration)
         //    remaining = (ail.AnimationDuration - ail.AnimationTime) / ail.AnimationDuration;
 
-        ail.AnimationDuration = time /** remaining*/;
-        ail.AnimationTime = 0;
-        ail.AnimationState = state;
+        auto& ai = GetAI(robot);
+        ai.AnimationDuration = time /** remaining*/;
+        ai.AnimationTime = 0;
+        ai.AnimationState = state;
 
         for (int gun = 0; gun <= robotInfo.Guns; gun++) {
             const auto robotJoints = Resources::GetRobotJoints(robot.ID, gun, state);
@@ -950,12 +962,12 @@ namespace Inferno {
                 Vector3 jointAngle = joint.Angle;
 
                 if (angle == jointAngle * moveMult) {
-                    ail.DeltaAngles[joint.ID] = Vector3::Zero;
+                    ai.DeltaAngles[joint.ID] = Vector3::Zero;
                     continue;
                 }
 
-                ail.GoalAngles[joint.ID] = jointAngle;
-                ail.DeltaAngles[joint.ID] = jointAngle * moveMult - angle;
+                ai.GoalAngles[joint.ID] = jointAngle;
+                ai.DeltaAngles[joint.ID] = jointAngle * moveMult - angle;
             }
 
             //if (atGoal) {
@@ -969,24 +981,23 @@ namespace Inferno {
         }
     }
 
-    void AnimateRobot(Object& robot, float dt) {
+    void AnimateRobot(Object& robot, AIRuntime& ai, float dt) {
         assert(robot.IsRobot());
-        auto& ail = robot.Control.AI.ail;
         auto& model = Resources::GetModel(robot.Render.Model.ID);
 
-        ail.AnimationTime += dt;
-        if (ail.AnimationTime > ail.AnimationDuration) return;
+        ai.AnimationTime += dt;
+        if (ai.AnimationTime > ai.AnimationDuration) return;
         // todo: fix goal angle not being exactly reached?
 
         for (int joint = 1; joint < model.Submodels.size(); joint++) {
             auto& curAngle = robot.Render.Model.Angles[joint];
-            curAngle += ail.DeltaAngles[joint] / ail.AnimationDuration * dt;
+            curAngle += ai.DeltaAngles[joint] / ai.AnimationDuration * dt;
         }
     }
 
     void DamageRobot(Object& robot, float damage) {
         auto& info = Resources::GetRobotInfo(robot);
-        auto& ai = robot.Control.AI.ail;
+        auto& ai = GetAI(robot);
 
         // Apply slow
         float damageScale = 1 - (info.HitPoints - damage) / info.HitPoints; // percentage of life dealt
@@ -1016,8 +1027,8 @@ namespace Inferno {
     }
 
     void UpdateRobotAI(Object& robot, float dt) {
+        auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
-        auto& ai = robot.Control.AI.ail;
         auto& player = Game::GetPlayer();
 
         // Reset thrust accumulation
@@ -1028,15 +1039,15 @@ namespace Inferno {
         ai.FireDelay2 -= dt;
         ai.RemainingSlow -= dt;
         ai.RemainingStun -= dt;
-        AnimateRobot(robot, dt);
+        AnimateRobot(robot, ai, dt);
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time || Settings::Cheats.DisableAI)
             return;
 
-        if (robot.Control.AI.ail.RemainingStun > 0)
+        if (ai.RemainingStun > 0)
             return; // Can't act while stunned
 
-        CheckProjectiles(Game::Level, robot, robotInfo);
+        CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
         constexpr auto DODGE_TIME = 0.5f;
         if (ai.LastDodgeTime > Game::Time - DODGE_TIME) {
@@ -1045,10 +1056,10 @@ namespace Inferno {
 
         if (ai.GoalSegment != SegID::None) {
             // goal path takes priority over other behaviors
-            PathTowardsGoal(Game::Level, robot, dt);
+            PathTowardsGoal(Game::Level, robot, ai, dt);
 
             if (CheckPlayerVisibility(robot, robotInfo)) {
-                StopPathing(robot); // Stop pathing if robot sees the player
+                StopPathing(robot, ai); // Stop pathing if robot sees the player
                 PlayAlertSound(robot, robotInfo);
             }
 
@@ -1057,7 +1068,7 @@ namespace Inferno {
         else if (ai.Awareness > 0.5f) {
             // in combat
 
-            MoveToCircleDistance(Game::Level, player, robot, robotInfo);
+            MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
             if (CanSeePlayer(robot, playerDir, dist)) {
@@ -1124,13 +1135,11 @@ namespace Inferno {
 
         if (ai.Awareness > 1) ai.Awareness = 1;
 
-        ClampThrust(robot);
+        ClampThrust(robot, ai);
         ai.LastUpdate = Game::Time;
     }
 
     void UpdateAI(Object& obj, float dt) {
-        // todo: check if robot is in active segments (use rooms)
-
         if (obj.Type == ObjectType::Robot) {
             Debug::ActiveRobots++;
             UpdateRobotAI(obj, dt);
@@ -1143,6 +1152,8 @@ namespace Inferno {
     void UpdateNearbyAI(Level& level, float dt) {
         auto room = level.GetRoom(Game::GetPlayer().Room);
 
+        // todo: also update adjacent rooms
+        // todo: game should track active rooms based on portal changes
         for (auto& segId : room->Segments) {
             if (!level.SegmentExists(segId)) continue;
             auto& seg = level.GetSegment(segId);

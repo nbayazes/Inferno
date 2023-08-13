@@ -94,6 +94,9 @@ namespace Inferno::Game {
 
             UpdateDirectLight(obj, 0);
         }
+
+        ResizeAI(Level.Objects.size());
+        ResetAI();
     }
 
     void LoadLevel(Inferno::Level&& level) {
@@ -656,6 +659,7 @@ namespace Inferno::Game {
             }
         }
 
+        ResizeAI(Level.Objects.size());
         PendingNewObjects.clear();
     }
 
