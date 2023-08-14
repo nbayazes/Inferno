@@ -2,7 +2,7 @@
 #include "Types.h"
 
 namespace Inferno {
-    using SoundUID = unsigned int; // ID used to cancel a playing sound
+    enum class SoundUID : unsigned int { None = 0 }; // ID used to cancel a playing sound
 
     // Handle to a sound resource
     struct SoundResource {
@@ -25,4 +25,5 @@ namespace Inferno {
     };
 
     constexpr ObjID GLOBAL_SOUND_SOURCE = ObjID(9999); // Assign the source to this value to have it culled against all others
+    constexpr float DEFAULT_SOUND_RADIUS = 250;
 }

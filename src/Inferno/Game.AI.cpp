@@ -59,7 +59,7 @@ namespace Inferno {
         return !IntersectRayLevel(Game::Level, ray, obj.Segment, playerDist, true, false, hit);
     }
 
-    void AddAwareness(AIRuntime&ai, float awareness) {
+    void AddAwareness(AIRuntime& ai, float awareness) {
         ai.Awareness += awareness;
         if (ai.Awareness > 1) ai.Awareness = 1;
     }
@@ -387,7 +387,7 @@ namespace Inferno {
     }
 
 
-    void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, const Object& obj, float thrust, Vector3& target) {
+    void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, const Object& obj, float /*thrust*/, Vector3& target) {
         if (!seg.SideIsSolid(sideId, level)) return;
 
         // project ray onto side
@@ -774,7 +774,7 @@ namespace Inferno {
     constexpr float FAST_WEAPON_SPEED = 200;
 
     // Returns a vector to lead the target by
-    Vector3 LeadTarget(const Vector3& targetDir, float targetDist, const Object& target, float projectileSpeed) {
+    Vector3 LeadTarget(const Vector3& targetDir, float targetDist, const AITarget& target, float projectileSpeed) {
         constexpr float MAX_LEAD_DISTANCE = 200;
         constexpr float MIN_LEAD_SPEED = 4;
         constexpr float LEAD_ANGLE = 45 * DegToRad;
@@ -793,18 +793,18 @@ namespace Inferno {
         if (targetDist > MAX_LEAD_DISTANCE)
             return Vector3::Zero;
 
-        auto targetSpeed = target.Physics.Velocity.Length();
+        auto targetSpeed = target.Velocity.Length();
         if (targetSpeed < MIN_LEAD_SPEED)
             return Vector3::Zero; // don't lead slow targets
 
         Vector3 velDir;
-        target.Physics.Velocity.Normalize(velDir);
+        target.Velocity.Normalize(velDir);
         auto dot = targetDir.Dot(velDir);
         if (dot < -LEAD_ANGLE || dot > LEAD_ANGLE)
             return Vector3::Zero; // outside of reasonable lead angle
 
         float expectedTravelTime = targetDist / projectileSpeed;
-        return target.Physics.Velocity * expectedTravelTime;
+        return target.Velocity * expectedTravelTime;
     }
 
     void DecayAwareness(AIRuntime& ai) {
@@ -813,10 +813,10 @@ namespace Inferno {
         if (ai.Awareness < 0) ai.Awareness = 0;
     }
 
-    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Object& player, bool primary) {
+    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const AITarget& target, bool primary) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
-        auto [targetDir, targetDist] = GetDirectionAndDistance(player.Position, robot.Position);
+        auto [targetDir, targetDist] = GetDirectionAndDistance(target.Position, robot.Position);
         auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
         auto weaponSpeed = weapon.Speed[Game::Difficulty];
 
@@ -828,8 +828,8 @@ namespace Inferno {
         }
 
         uint8 gunIndex = primary ? ai.GunIndex : 0;
-        auto aimTarget = player.Position + LeadTarget(targetDir, targetDist, player, weaponSpeed);
-        aimTarget = player.Position;
+        auto aimTarget = target.Position + LeadTarget(targetDir, targetDist, target, weaponSpeed);
+        aimTarget = target.Position;
         auto aimDir = aimTarget - robot.Position;
         aimDir.Normalize();
         float maxAimAngle = weaponSpeed > FAST_WEAPON_SPEED ? 7.5f * DegToRad : 15.0f * DegToRad;
@@ -1026,6 +1026,83 @@ namespace Inferno {
             robot.HitPoints -= damage;
     }
 
+    enum class AIEvent {
+        HitByWeapon,
+        HitObj,
+        MeleeHit,
+        HearNoise,
+        SeePlayer,
+        TakeDamage,
+    };
+
+    //using RobotBehavior = std::function<void(Object&, AIRuntime&, AIEvent)>;
+    ////WeaponBehavior& GetWeaponBehavior(const string& name);
+
+    //Dictionary<string, RobotBehavior> RobotBehaviors = {
+    //    { "default", DefaultBehavior },
+    //    { "fusion-hulk", VulcanBehavior },
+    //    { "trooper", HelixBehavior },
+    //};
+
+    void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const AITarget& target) {
+        ai.FireDelay = 0;
+        // multishot: consume as many projectiles as possible based on burst count
+        // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
+        // Multishot incurs extra fire delay per projectile
+        auto burstDelay = std::min(1 / 8.0f, Difficulty(robotInfo).FireDelay / 2);
+        for (int i = 0; i < robotInfo.Multishot; i++) {
+            ai.FireDelay += burstDelay;
+
+            FireRobotWeapon(robot, ai, robotInfo, target, true);
+            ai.Shots++;
+            if (ai.Shots >= Difficulty(robotInfo).ShotCount) {
+                ai.Shots = 0;
+                ai.FireDelay += Difficulty(robotInfo).FireDelay;
+                ai.FireDelay -= burstDelay; // undo burst delay if this was the last shot
+                break; // Ran out of shots
+            }
+        }
+
+        PlayRobotAnimation(robot, AnimState::Recoil, 0.25f);
+    }
+
+    // start charging when player is in FOV and can fire
+    // keep charging even if player goes out of view
+    // fire at last known location
+
+    void WeaponChargeBehavior(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
+        ai.NextChargeSoundDelay -= dt;
+        ai.WeaponCharge += dt;
+
+        if (ai.NextChargeSoundDelay <= 0) {
+            ai.NextChargeSoundDelay = 0.125f + Random() / 8;
+
+            if (auto fx = Render::EffectLibrary.GetSparks("robot_fusion_charge")) {
+                auto id = Game::GetObjectID(robot);
+                fx->Parent = id;
+
+                Sound3D sound(id);
+                sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
+                sound.Position = robot.Position;
+                ai.SoundHandle = Sound::Play(sound);
+
+                for (uint8 i = 0; i < robotInfo.Guns; i++) {
+                    fx->ParentSubmodel.Offset = GetGunpointOffset(robot, i);
+                    Render::AddSparkEmitter(*fx, robot.Segment);
+                }
+            }
+        }
+
+        //if (ai.WeaponCharge >= Difficulty(info).FireDelay * 2) {
+        if (ai.WeaponCharge >= 1) {
+            Sound::Stop(ai.SoundHandle);
+            FireRobotPrimary(robot, ai, robotInfo, Game::GetPlayer());
+            ai.WeaponCharge = 0;
+        }
+    }
+
+    constexpr float COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
+
     void UpdateRobotAI(Object& robot, float dt) {
         auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
@@ -1037,6 +1114,8 @@ namespace Inferno {
 
         ai.FireDelay -= dt;
         ai.FireDelay2 -= dt;
+        if (ai.FireDelay < 0) ai.FireDelay = 0;
+        if (ai.FireDelay2 < 0) ai.FireDelay2 = 0;
         ai.RemainingSlow -= dt;
         ai.RemainingStun -= dt;
         AnimateRobot(robot, ai, dt);
@@ -1063,14 +1142,14 @@ namespace Inferno {
                 PlayAlertSound(robot, robotInfo);
             }
 
-            robot.NextThinkTime = Game::Time + Game::TICK_RATE;
         }
-        else if (ai.Awareness > 0.5f) {
+        else if (ai.Awareness > COMBAT_AWARENESS) {
             // in combat
 
             MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
+            // todo: rework this to aim at last seen location
             if (CanSeePlayer(robot, playerDir, dist)) {
                 //TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
                 float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
@@ -1091,26 +1170,15 @@ namespace Inferno {
                         PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
                     }
 
-                    if (ai.FireDelay < 0) {
-                        ai.FireDelay = 0;
-                        // multishot: consume as many projectiles as possible based on burst count
-                        // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
-                        // Multishot incurs extra fire delay per projectile
-                        auto burstDelay = std::min(1 / 8.0f, Difficulty(robotInfo).FireDelay / 2);
-                        for (int i = 0; i < robotInfo.Multishot; i++) {
-                            ai.FireDelay += burstDelay;
+                    auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
 
-                            FireRobotWeapon(robot, ai, robotInfo, player, true);
-                            ai.Shots++;
-                            if (ai.Shots >= Difficulty(robotInfo).ShotCount) {
-                                ai.Shots = 0;
-                                ai.FireDelay += Difficulty(robotInfo).FireDelay;
-                                ai.FireDelay -= burstDelay; // undo burst delay if this was the last shot
-                                break; // Ran out of shots
-                            }
+                    if (ai.FireDelay <= 0) {
+                        if (weapon.Extended.Chargable) {
+                            WeaponChargeBehavior(robot, ai, robotInfo, dt);
                         }
-
-                        PlayRobotAnimation(robot, AnimState::Recoil, 0.25f);
+                        else {
+                            FireRobotPrimary(robot, ai, robotInfo, player);
+                        }
                     }
                 }
             }
@@ -1120,14 +1188,12 @@ namespace Inferno {
                 // todo: move towards last known location if curious
             }
 
-            robot.NextThinkTime = Game::Time + Game::TICK_RATE;
         }
         else {
             if (CheckPlayerVisibility(robot, robotInfo)) {
-                robot.NextThinkTime = Game::Time + Game::TICK_RATE;
             }
             else {
-                // Nothing nearby
+                // Nothing nearby, sleep for longer
                 DecayAwareness(ai);
                 robot.NextThinkTime = Game::Time + Game::TICK_RATE * 16;
             }

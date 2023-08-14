@@ -19,7 +19,7 @@ namespace Inferno {
 
     // Extracted player state that was scattered across methods or globals as static variables
     struct Player : PlayerData {
-        const float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
+        float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
 
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::Laser;
         SecondaryWeaponIndex Secondary = SecondaryWeaponIndex::Concussion;
@@ -129,8 +129,8 @@ namespace Inferno {
         void ApplyDamage(float damage);
 
     private:
-        SoundUID _afterburnerSoundSig = 0;
-        SoundUID _fusionChargeSound = 0;
+        SoundUID _afterburnerSoundSig = SoundUID::None;
+        SoundUID _fusionChargeSound = SoundUID::None;
         float _prevAfterburnerCharge = 0;
         float _nextFlareFireTime = 0;
 

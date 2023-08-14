@@ -236,23 +236,21 @@ namespace Inferno {
                         Shields -= Random() * OVERCHARGE_DAMAGE;
                     }
                     else {
-                        // todo: increase robot awareness
                         Sound3D sound(ID);
                         sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
                         sound.FromPlayer = true;
                         sound.Position = player.Position;
                         _fusionChargeSound = Sound::Play(sound);
-                        AlertEnemiesOfNoise(player, 50, 0.25f);
+                        AlertEnemiesOfNoise(player, 60, 0.25f);
                     }
 
-                    if (auto sparks = Render::EffectLibrary.GetSparks("fusion_charge")) {
-                        sparks->Parent = Game::Player.ID;
-                        auto gunOffset = GetGunpointOffset(player, 0);
-                        sparks->ParentSubmodel.Offset = GetGunpointOffset(player, 0);
-                        Render::AddSparkEmitter(*sparks, player.Segment);
+                    if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {
+                        fx->Parent = Game::Player.ID;
+                        fx->ParentSubmodel.Offset = GetGunpointOffset(player, 0);
+                        Render::AddSparkEmitter(*fx, player.Segment);
 
-                        sparks->ParentSubmodel.Offset = GetGunpointOffset(player, 1);
-                        Render::AddSparkEmitter(*sparks, player.Segment);
+                        fx->ParentSubmodel.Offset = GetGunpointOffset(player, 1);
+                        Render::AddSparkEmitter(*fx, player.Segment);
                     }
 
                     FusionNextSoundDelay = 0.125f + Random() / 8;

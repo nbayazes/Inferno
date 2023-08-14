@@ -4,8 +4,6 @@
 #include "SoundTypes.h"
 
 namespace Inferno {
-    constexpr float DEFAULT_SOUND_RADIUS = 250;
-
     struct Sound3D {
         Sound3D(ObjID source) : Source(source) {}
         Sound3D(const Vector3& pos, SegID seg) : Position(pos), Segment(seg) {}
@@ -23,7 +21,7 @@ namespace Inferno {
         Vector3 AttachOffset; // The offset from the Source when attached
         bool FromPlayer = false; // For the player's firing sounds, afterburner, etc
         bool Merge = true; // Merge with other sounds played in a similar timeframe
-        SoundUID ID = 0;
+        SoundUID ID = SoundUID::None;
         bool Looped = false;
         uint32 LoopCount = 0;
         uint32 LoopStart = 0;

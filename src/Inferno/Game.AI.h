@@ -2,10 +2,21 @@
 
 #include "Level.h"
 #include "Object.h"
+#include "SoundTypes.h"
 
 namespace Inferno {
+    struct AITarget {
+        Vector3 Position;
+        Vector3 Velocity;
+
+        AITarget()  = default;
+        AITarget(const Object& obj) : Position(obj.Position), Velocity(obj.Physics.Velocity) {}
+    };
+
     // Runtime AI data
     struct AIRuntime {
+        double LastUpdate = -1; // time when this robot was last updated
+
         // How aware of the player this robot is. Ranges 0 to 1.
         // Only seeing the player can set awareness to 1.
         float Awareness = 0;
@@ -17,11 +28,10 @@ namespace Inferno {
         PlayerVisibility PlayerVisibility;
         uint8 Shots; // number of shots fired rapidly
         uint8 GunIndex = 0; // Which gun to fire from next
-        AIMode Mode;
+        //AIMode Mode;
         //float NextActionTime;
         float FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons
         //float AwarenessTime; // How long to remain aware of the player, 0 for unaware
-        double LastUpdate = -1; // time when this robot was last updated
         float LastSeenPlayer; // Time in seconds since player was seen
         float LastSeenAttackingPlayer; // Time in seconds since at least awareness level 2
         float MiscSoundTime; // Time in seconds since the robot made angry or lurking noises
@@ -30,22 +40,24 @@ namespace Inferno {
         AnimState AnimationState = {};
 
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
-        //Array<AIState, MAX_SUBMODELS> GoalState{}, AchievedState{};
 
         SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
         RoomID GoalRoom = RoomID::None;
         Vector3 GoalPosition; // position the robot wants to move to
-        //Vector3 AimTarget; // where the robot wants to aim
 
         double LastDodgeTime = 0;
         Vector3 DodgeDirection;
 
-        float RemainingSlow = 0;
-        float RemainingStun = 0;
-        bool DyingSoundPlaying{};
-        //ObjID DangerLaserID{};  // what is a danger laser? for dodging?
-        //ObjSig DangerLaserSig{};
-        double DyingStartTime{}; // Time at which this robot started dying.
+        float WeaponCharge = 0; // For robots with charging weapons (fusion hulks)
+        float NextChargeSoundDelay = 0; // Delay to play a sound when charging up
+        bool ChargingWeapon = false; // Set to true when
+        
+        SoundUID SoundHandle = SoundUID::None; // Used to cancel a playing sound when the robot is destroyed
+        float RemainingSlow = 0; // How long this robot is slowed (reduced movement and turn speed)
+        float RemainingStun = 0; // How long this robot is stunned (unable to act)
+
+        //bool DyingSoundPlaying{};
+        //double DyingStartTime{}; // Time at which this robot started dying.
 
         bool PlayingAnimation() const {
             return AnimationTime < AnimationDuration;
@@ -205,6 +217,7 @@ namespace Inferno {
         inline int ActiveRobots = 0;
     }
 
-    void ResetAI(); // Call on level start / load
+    void ResetAI(); // Call on level start / load to reset AI state
+    // Resizes the internal AI buffer. Keep in sync with the Level.Objects size.
     void ResizeAI(size_t size);
 }

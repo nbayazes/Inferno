@@ -392,11 +392,10 @@ namespace Inferno::Sound {
         return sound;
     }
 
-    SoundUID SoundUIDIndex = 1;
+    SoundUID SoundUIDIndex = SoundUID::None;
 
     SoundUID GetSoundUID() {
-        if (SoundUIDIndex == 0) SoundUIDIndex++;
-        return SoundUIDIndex++;
+        return SoundUIDIndex = SoundUID(int(SoundUIDIndex) + 1);
     }
 
     void Play(const SoundResource& resource, float volume, float pan, float pitch) {
@@ -425,7 +424,7 @@ namespace Inferno::Sound {
 
     SoundUID Play(const Sound3D& sound) {
         auto sfx = LoadSound(sound.Resource);
-        if (!sfx) return 0;
+        if (!sfx) return SoundUID::None;
 
         if (sound.Looped && sound.LoopStart > sound.LoopEnd)
             throw Exception("Loop start must be <= loop end");
@@ -454,8 +453,7 @@ namespace Inferno::Sound {
         }
 
         Sound3DInstance s(sound);
-        auto uid = GetSoundUID();
-        s.ID = uid;
+        s.ID = GetSoundUID();
         s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
         s.Instance->SetVolume(s.Volume);
         s.Instance->SetPitch(std::clamp(s.Pitch, -1.0f, 1.0f));
@@ -474,7 +472,7 @@ namespace Inferno::Sound {
         s.Alive = true;
 
         SoundInstances.AddBack(std::move(s));
-        return uid;
+        return s.ID;
     }
 
     void Reset() {
@@ -536,7 +534,7 @@ namespace Inferno::Sound {
     }
 
     void Stop(SoundUID id) {
-        if (!Alive || id == 0) return;
+        if (!Alive || id == SoundUID::None) return;
         std::scoped_lock lock(SoundInstancesMutex);
         StopSoundUIDs.push_back(id);
     }

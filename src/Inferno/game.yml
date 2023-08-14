@@ -501,7 +501,9 @@ Robots:
     CircleDistance: 15
     Mass: 1.9
   - id: 15 # Fusion hulk
-    CircleDistance: 15
+    FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
+    Shots: [ 1, 1, 2, 2, 2 ]
+    CircleDistance: 40
     Mass: 20 # was 30
     Multishot: 2
   - id: 16 # Red hulk
@@ -700,6 +702,24 @@ Effects:
       PointGravityVelocity: 0, 0, -10 # Moves the center of gravity relative to start location
       SpawnRadius: 2
       Offset: 0, 0, -1.6 # Particle spawn offset
+
+    - Name: robot_fusion_charge
+      Color: .6, 0, 1, 20
+      Count: 8
+      SparkDuration: [ .45, .5 ]
+      Drag: 0.01
+      Velocity: 0
+      FadeTime: .4
+      Texture: tracer
+      Width: 0.2
+      VelocitySmear: 0.05
+      UseWorldGravity: 0
+      UsePointGravity: 1
+      PointGravityStrength: 23 # How much velocity towards the point
+      PointGravityOffset: 0, 0, 2.5 # Starting offset for point gravity
+      PointGravityVelocity: 0, 0, -10 # Moves the center of gravity relative to start location
+      SpawnRadius: 3
+      Offset: 0, 0, -1.9 # Particle spawn offset
 
     - Name: overlay_destroyed
       ConeRadius: 1
