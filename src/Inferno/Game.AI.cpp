@@ -995,18 +995,18 @@ namespace Inferno {
         }
     }
 
-    void DamageRobot(Object& robot, float damage) {
+    void DamageRobot(Object& robot, float damage, float stunMult) {
         auto& info = Resources::GetRobotInfo(robot);
         auto& ai = GetAI(robot);
 
         // Apply slow
-        float damageScale = 1 - (info.HitPoints - damage) / info.HitPoints; // percentage of life dealt
+        float damageScale = 1 - (info.HitPoints - damage * stunMult) / info.HitPoints; // percentage of life dealt
         float slowTime = std::lerp(0.0f, 1.0f, damageScale / MAX_SLOW_THRESHOLD);
         if (ai.RemainingSlow > 0) slowTime += ai.RemainingSlow;
         ai.RemainingSlow = std::clamp(slowTime, 0.1f, MAX_SLOW_TIME);
 
         // Apply stun
-        if (damage > STUN_THRESHOLD) {
+        if (damage * stunMult > STUN_THRESHOLD) {
             float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
             SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
             if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;

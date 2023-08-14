@@ -68,6 +68,10 @@ namespace Inferno::Resources {
     bool IsLevelTexture(TexID id);
 
     Weapon& GetWeapon(WeaponID);
+    inline Weapon& GetWeapon(const Object& obj) {
+        assert(obj.IsWeapon());
+        return GetWeapon(WeaponID(obj.ID));
+    }
 
     string GetRobotName(uint id);
     // Can return none if the powerup is unused

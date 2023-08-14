@@ -552,7 +552,6 @@ namespace Inferno {
         float rate = obj.Physics.Mass / vecmag;
         if (obj.Type == ObjectType::Robot) {
             if (rate < 0.25f) rate = 0.25f;
-            // todo: stun robot?
         }
         else {
             if (rate < 0.5f) rate = 0.5f;
@@ -621,18 +620,23 @@ namespace Inferno {
 
                 case ObjectType::Robot:
                 {
+                    float stunMult = 1;
+                    if (source && source->IsWeapon()) {
+                        auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
+                        stunMult = weapon.Extended.StunMult;
+                    }
                     ApplyForce(target, forceVec);
-                    DamageRobot(target, damage);
+                    DamageRobot(target, damage, stunMult);
 
                     target.LastHitForce = forceVec;
                     //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
 
-                    // guidebot ouchies
+                    // todo: guidebot ouchies
 
                     //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
-                    // Don't apply rotation if source hit this object, so that it doesn't rotate oddly
+                    // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
                     if (!source || source->LastHitObject != target.Signature)
-                        ApplyRotation(target, forceVec);
+                        ApplyRotation(target, forceVec * stunMult);
                     break;
                 }
 

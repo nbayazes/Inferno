@@ -236,6 +236,7 @@ Weapons:
     FlashColor: 1, 1, 1, 35
     Mass: 3
     Behavior: fusion
+    StunMult: 0.5
 
   - id: 8
     Name: concussion missile
@@ -413,6 +414,7 @@ Weapons:
     Name: flash missile
     Decal: scorchC
     DecalRadius: 3
+    StunMult: 6 # Base damage of 9
 
   - id: 37
     Name: guided missile

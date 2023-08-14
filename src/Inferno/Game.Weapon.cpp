@@ -159,7 +159,7 @@ namespace Inferno::Game {
     void WeaponHitObject(const LevelHit& hit, Object& src) {
         assert(hit.HitObj);
         assert(src.IsWeapon());
-        const auto& weapon = Resources::GameData.Weapons[src.ID];
+        const auto& weapon = Resources::GetWeapon(src);
         const float damage = weapon.Damage[Game::Difficulty] * src.Control.Weapon.Multiplier;
 
         auto& target = *hit.HitObj;
@@ -179,7 +179,7 @@ namespace Inferno::Game {
                     Game::Player.ApplyDamage(damage);
             }
             else if (target.IsRobot()) {
-                DamageRobot(target, damage);
+                DamageRobot(target, damage, weapon.Extended.StunMult);
             }
             else {
                 target.ApplyDamage(damage);
