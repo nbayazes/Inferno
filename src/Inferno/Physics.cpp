@@ -816,22 +816,15 @@ namespace Inferno {
 #endif
 
         for (int smIndex = 0; smIndex < model.Submodels.size(); smIndex++) {
-            auto submodelOffset = model.GetSubmodelOffset(smIndex);
             auto& submodel = model.Submodels[smIndex];
+            auto smTransform = GetSubmodelTransform(meshSource, model, smIndex);
 
             auto hitTestIndices = [&](span<const uint16> indices, span<const Vector3> normals, int& normalIndex) {
                 for (int i = 0; i < indices.size(); i += 3) {
-                    // todo: account for animation
-                    Vector3 p0 = model.Vertices[indices[i + 0]] + submodelOffset;
-                    Vector3 p1 = model.Vertices[indices[i + 1]] + submodelOffset;
-                    Vector3 p2 = model.Vertices[indices[i + 2]] + submodelOffset;
-                    //p0.z *= -1; // flip z due to lh/rh differences
-                    //p1.z *= -1;
-                    //p2.z *= -1;
+                    Vector3 p0 = Vector3::Transform(model.Vertices[indices[i + 0]], smTransform);
+                    Vector3 p1 = Vector3::Transform(model.Vertices[indices[i + 1]], smTransform);
+                    Vector3 p2 = Vector3::Transform(model.Vertices[indices[i + 2]], smTransform);
                     Vector3 normal = normals[normalIndex++];
-                    //auto normal2 = -(p1 - p0).Cross(p2 - p0);
-                    //normal2.Normalize();
-                    //assert(normal == normal2);
 
                     bool triFacesObj = localDir.Dot(normal) <= 0;
                     auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
