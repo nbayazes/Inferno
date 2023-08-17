@@ -56,10 +56,10 @@ namespace Inferno {
     }
 
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel) {
-        if (submodel.ID == -1) 
-            return Vector3::Zero;
-
         auto& model = Resources::GetModel(obj.Render.Model.ID);
+
+        if (submodel.ID < 0 || submodel.ID >= model.Submodels.size())
+            return Vector3::Zero; // Unset
 
         auto sm = submodel.ID;
         while (sm != ROOT_SUBMODEL) {
@@ -77,6 +77,12 @@ namespace Inferno {
         if (obj.Type == ObjectType::Robot) {
             auto& robot = Resources::GetRobotInfo(obj.ID);
             auto gunpoint = robot.GunPoints[gun];
+
+#ifdef _DEBUG
+            auto& model = Resources::GetModel(obj);
+            if (robot.GunSubmodels[gun] >= model.Submodels.size())
+                __debugbreak(); // gunpoint submodel out of range
+#endif
             return { robot.GunSubmodels[gun], gunpoint };
         }
 

@@ -1015,7 +1015,7 @@ namespace Inferno {
             PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
 
             if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned_object_arcs")) {
-                auto startObj = Game::GetObjectID(robot);
+                auto startObj = Game::GetObjectRef(robot);
                 Render::AddBeam(*beam, stunTime, startObj);
                 Render::AddBeam(*beam, stunTime, startObj);
             }

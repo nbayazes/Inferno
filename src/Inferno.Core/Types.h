@@ -205,10 +205,23 @@ namespace Inferno {
     enum class DynamicLightMode { Constant, Flicker, Pulse, FastFlicker, BigPulse };
 
     enum class ObjID : int16 { None = -1 }; // Object ID
-    enum class ObjSig : uint16 { None = (uint16)-1 }; // Object signature
+    enum class ObjSig : uint16 { None = 0 }; // Object signature
     enum class SegID : int16 { None = -1, Exit = -2 }; // Segment ID
     enum class RoomID : int16 { None = -1 }; // Room ID
     enum class TexID : int16 { None = -1, Invalid = 0 }; // Texture ID (Pig)
+    enum class EffectID : int16 { None = -1 }; // Effect ID for visual effects
+
+    struct ObjRef {
+        ObjID Id = ObjID::None;
+        ObjSig Signature = ObjSig::None;
+        bool IsNull() const { return Id == ObjID::None || Signature == ObjSig::None; }
+
+        bool operator ==(const ObjRef ref) const {
+            if (IsNull() || ref.IsNull()) return false;
+            return Id == ref.Id && Signature == ref.Signature;
+        }
+    };
+
     // Level Texture ID. Maps to TexIDs.
     enum class LevelTexID : int16 {
         None = -1,

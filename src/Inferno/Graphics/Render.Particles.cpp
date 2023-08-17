@@ -22,27 +22,63 @@ namespace Inferno::Render {
 
         DataPool<ExplosionInfo> Explosions(&ExplosionInfo::IsAlive, 50);
         DataPool<ParticleEmitter> ParticleEmitters(&ParticleEmitter::IsAlive, 10);
-        List<List<Ptr<EffectBase>>> SegmentEffects; // equals segment count
+        List<Ptr<EffectBase>> VisualEffects;
     }
 
-    span<Ptr<EffectBase>> GetEffectsInSegment(SegID id) {
-        return SegmentEffects[(int)id];
+    EffectBase* GetEffect(EffectID effect) {
+        if (!Seq::inRange(VisualEffects, (int)effect)) return nullptr;
+        return VisualEffects[(int)effect].get();
+    }
+
+    // Links an effect to a segment, removing it from the existing one if necessary
+    void LinkEffect(EffectBase& effect, EffectID id, SegID segId) {
+        if (effect.Segment == segId) return;
+
+        // Remove from old segment
+        if (auto existing = Game::Level.TryGetSegment(effect.Segment)) {
+            //assert(Seq::contains(existing->Effects, id));
+            Seq::remove(existing->Effects, id);
+        }
+
+        if (segId == SegID::None) return;
+
+        // Add to new segment
+        if (auto seg = Game::Level.TryGetSegment(segId)) {
+            assert(!Seq::contains(seg->Effects, id));
+            seg->Effects.push_back(id);
+            effect.Segment = segId;
+        }
+    }
+
+    void UnlinkEffect(EffectBase& effect, EffectID id) {
+        LinkEffect(effect, id, SegID::None);
     }
 
     void AddEffect(Ptr<EffectBase> e) {
         assert(e->Segment > SegID::None);
         e->IsAlive = true;
-        auto seg = (int)e->Segment;
+        auto& seg = Game::Level.GetSegment(e->Segment);
 
-        for (auto& effect : SegmentEffects[seg]) {
-            if (!effect || !effect->IsAlive) {
+        auto newId = EffectID::None;
+
+        for (size_t i = 0; i < VisualEffects.size(); i++) {
+            auto& effect = VisualEffects[i];
+            if (!effect) {
                 effect = std::move(e);
-                return;
+                newId = EffectID(i);
+                break;
             }
         }
 
+        if (newId == EffectID::None) {
+            newId = EffectID(VisualEffects.size());
+            VisualEffects.push_back(std::move(e));
+        }
+
+        assert(newId != EffectID::None);
+        assert(!Seq::contains(seg.Effects, newId));
+        seg.Effects.push_back(newId);
         //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
-        SegmentEffects[seg].push_back(std::move(e));
     }
 
     void AddParticle(Particle& p, SegID seg) {
@@ -240,7 +276,7 @@ namespace Inferno::Render {
         }
     }
 
-    void Debris::FixedUpdate(float dt) {
+    void Debris::FixedUpdate(float dt, EffectID effectId) {
         Velocity += Game::Gravity * dt;
         Velocity *= 1 - Drag;
         Duration -= dt;
@@ -264,8 +300,7 @@ namespace Inferno::Render {
 
         // todo: use cheaper way to update segments (scan touching)
         if (!PointInSegment(Game::Level, Segment, position)) {
-            auto id = FindContainingSegment(Game::Level, position);
-            if (id != SegID::None) Segment = id;
+            LinkEffect(*this, effectId, Segment);
         }
     }
 
@@ -318,10 +353,11 @@ namespace Inferno::Render {
                 p.Color = expl.Color;
                 p.FadeTime = expl.FadeTime;
                 p.LightColor = expl.LightColor;
+                
                 // only apply light to first explosion instance
                 if (i == 0) p.LightRadius = expl.LightRadius < 0 ? expl.LightRadius : p.Radius * 4;
 
-                Render::AddParticle(p, expl.Segment);
+                AddParticle(p, expl.Segment);
 
                 if (expl.Instances > 1 && (expl.Delay.Min > 0 || expl.Delay.Max > 0)) {
                     expl.InitialDelay = expl.Delay.GetRandom();
@@ -391,7 +427,7 @@ namespace Inferno::Render {
         AddBeam(beam);
     }
 
-    void AddBeam(BeamInfo beam, float life, ObjID start, const Vector3& end, int startGun) {
+    void AddBeam(BeamInfo beam, float life, ObjRef start, const Vector3& end, int startGun) {
         auto obj = Game::Level.TryGetObject(start);
 
         if (obj) {
@@ -410,7 +446,7 @@ namespace Inferno::Render {
         }
     }
 
-    void AddBeam(BeamInfo beam, float life, ObjID start, ObjID end, int startGun) {
+    void AddBeam(BeamInfo beam, float life, ObjRef start, ObjRef end, int startGun) {
         auto obj = Game::Level.TryGetObject(start);
 
         if (obj) {
@@ -492,10 +528,10 @@ namespace Inferno::Render {
 
             Object* startObj = nullptr;
             Object* endObj = nullptr;
-            if (beam.StartObj != ObjID::None) startObj = Game::Level.TryGetObject(beam.StartObj);
-            if (beam.EndObj != ObjID::None) endObj = Game::Level.TryGetObject(beam.EndObj);
+            if (!beam.StartObj.IsNull()) startObj = Game::Level.TryGetObject(beam.StartObj);
+            if (!beam.EndObj.IsNull()) endObj = Game::Level.TryGetObject(beam.EndObj);
 
-            if (beam.StartObj != ObjID::None && !HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
+            if (!beam.StartObj.IsNull() && !HasFlag(beam.Flags, BeamFlag::RandomObjStart)) {
                 if (startObj) {
                     if (beam.StartSubmodel.ID > -1) {
                         auto offset = GetSubmodelOffset(*startObj, beam.StartSubmodel);
@@ -775,13 +811,13 @@ namespace Inferno::Render {
         }
     }
 
-    void AddTracer(TracerInfo& tracer, SegID seg, ObjID parent) {
+    void AddTracer(TracerInfo& tracer, SegID seg, ObjRef parent) {
         std::array tex = { tracer.Texture, tracer.BlobTexture };
         Render::Materials->LoadTextures(tex);
         tracer.Segment = seg;
         tracer.Parent = parent;
 
-        assert(tracer.Parent != ObjID::None);
+        assert(tracer.Parent.Id != ObjID::None);
 
         if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
             tracer.Position = obj->Position;
@@ -895,17 +931,17 @@ namespace Inferno::Render {
         }
     }
 
-    void RemoveEffects(ObjID id) {
+    void RemoveEffects(ObjRef id) {
         for (auto& beam : Beams) {
             if (beam.StartObj == id)
                 beam.Life = 0;
         }
 
-        if (auto obj = Game::Level.TryGetObject(id)) {
-            for (auto& effect : SegmentEffects[(int)obj->Segment]) {
-                if (effect->Parent == id)
-                    effect->Elapsed = effect->Duration; // expire the effect
-            }
+        // Expire effects attached to an object when it is destroyed
+        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
+            auto& effect = VisualEffects[effectId];
+            if (effect && effect->Parent == id)
+                effect->Elapsed = effect->Duration; // expire the effect
         }
     }
 
@@ -950,7 +986,7 @@ namespace Inferno::Render {
         return true;
     }
 
-    void SparkEmitter::FixedUpdate(float dt) {
+    void SparkEmitter::FixedUpdate(float dt, EffectID) {
         if (!_createdSparks) {
             // for now create all sparks when inserted. want to support random delay / permanent generators later.
             auto count = Count.GetRandom();
@@ -1119,33 +1155,32 @@ namespace Inferno::Render {
     void UpdateEffects(float dt) {
         UpdateExplosions(dt); // Explosions generate sprites that are added as segment effects
 
-        for (auto& effects : SegmentEffects) {
-            for (auto&& effect : effects) {
-                if (effect && effect->IsAlive)
-                    effect->Update(dt);
-            }
+        for (auto& effect : VisualEffects) {
+            if (effect && effect->IsAlive)
+                effect->Update(dt);
+        }
 
-            // Do a second pass to expire effects in case other effects add new ones mid-frame
-            for (auto&& effect : effects) {
-                if (effect->IsAlive && effect->Elapsed >= effect->Duration) {
-                    effect->IsAlive = false;
-                    effect->OnExpire();
-                }
+        // Do a second pass to expire effects in case other effects add new ones mid-frame
+        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
+            auto& effect = VisualEffects[effectId];
+            if (effect && effect->IsAlive && effect->Elapsed >= effect->Duration) {
+                effect->OnExpire();
+
+                UnlinkEffect(*effect, EffectID(effectId));
+                VisualEffects[effectId].reset();
             }
         }
     }
 
     void FixedUpdateEffects(float dt) {
-        for (auto& effects : SegmentEffects) {
-            for (auto&& effect : effects) {
-                if (effect && effect->IsAlive)
-                    effect->FixedUpdate(dt);
-            }
+        for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
+            auto& effect = VisualEffects[effectId];
+            if (effect && effect->IsAlive)
+                effect->FixedUpdate(dt, EffectID(effectId));
         }
     }
 
-    void InitEffects(const Level& level) {
-        SegmentEffects.clear();
-        SegmentEffects.resize(level.Segments.size());
+    void InitEffects() {
+        VisualEffects.clear();
     }
 }

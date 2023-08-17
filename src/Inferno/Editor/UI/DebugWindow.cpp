@@ -37,10 +37,10 @@ namespace Inferno::Editor {
                 auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, Game::Level);
 
                 if (obj->IsRobot()) {
-                    auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
                     obj->NextThinkTime = 0;
 
                     /*auto& ai = GetAI(obj);
+                    auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
                     ai.GoalSegment = Editor::Selection.Segment;
                     ai.GoalPosition = seg.Center;
                     ai.GoalRoom = Game::Level.FindRoomBySegment(Editor::Selection.Segment);

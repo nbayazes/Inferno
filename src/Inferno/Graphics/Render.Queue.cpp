@@ -51,9 +51,10 @@ namespace Inferno::Render {
 
             // todo: only visible segments
             for (int i = 0; i < level.Segments.size(); i++) {
-                for (auto& effect : GetEffectsInSegment(SegID(i))) {
+                for (auto& effectID : level.Segments[i].Effects) {
+                    auto effect = GetEffect(effectID);
                     if (effect && effect->IsAlive) {
-                        _transparentQueue.push_back({ effect.get(), GetRenderDepth(effect->Position) });
+                        _transparentQueue.push_back({ effect, GetRenderDepth(effect->Position) });
                     }
                 }
             }
@@ -180,10 +181,11 @@ namespace Inferno::Render {
                 }
             }
 
-            for (auto& effect : GetEffectsInSegment(item.Seg)) {
+            for (auto& effectId : seg->Effects) {
+                auto effect = GetEffect(effectId);
                 if (effect && effect->IsAlive) {
                     Stats::EffectDraws++;
-                    objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect.get() });
+                    objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
                 }
             }
 

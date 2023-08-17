@@ -44,6 +44,8 @@ namespace Inferno::Resources {
     LevelTexID GetDestroyedTexture(LevelTexID);
 
     const Model& GetModel(ModelID);
+    const Model& GetModel(const Object&);
+
     const RobotInfo& GetRobotInfo(uint);
     inline const RobotInfo& GetRobotInfo(const Object& obj) {
         assert(obj.IsRobot());

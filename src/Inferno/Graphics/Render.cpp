@@ -373,7 +373,7 @@ namespace Inferno::Render {
         //}
 
         ResetLightCache();
-        InitEffects(level);
+        InitEffects();
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
@@ -525,7 +525,7 @@ namespace Inferno::Render {
 
         if (LevelChanged) {
             if (Game::GetState() == GameState::Editor)
-                InitEffects(Game::Level); // this was added to prevent a crash during level editing
+                InitEffects(); // added to prevent a crash during level editing
 
             CopyMaterialData(ctx.GetCommandList());
             LoadVClips(ctx.GetCommandList()); // todo: only load on initial level load

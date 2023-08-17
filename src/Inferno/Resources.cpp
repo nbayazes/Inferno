@@ -161,6 +161,13 @@ namespace Inferno::Resources {
         return GameData.Models[(int)id];
     }
 
+    const Model& GetModel(const Object& obj) {
+        if (obj.Render.Type == RenderType::Model) {
+            return GetModel(obj.Render.Model.ID);
+        }
+        return DefaultModel;
+    }
+
     const RobotInfo& GetRobotInfo(uint id) {
         if (id >= GameData.Robots.size()) return DefaultRobotInfo;
         return GameData.Robots[id];

@@ -9,7 +9,7 @@ namespace Inferno::Debug {
 
 namespace Inferno::Graphics {
     constexpr int MAX_LIGHTS = 512;
-    constexpr int RESERVED_LIGHTS = 128; // for dynamics
+    constexpr int DYNAMIC_LIGHTS = 128; // for dynamics
 
     // First four bytes is the number of lights in the tile
     // size per light must be a multiple of 4

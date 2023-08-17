@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "Shell.h"
-#include "Application.h"
 #include "FileSystem.h"
 #include "OpenSimplex2.h"
 #include "Resources.h"
@@ -9,6 +8,7 @@
 #include "Editor/Bindings.h"
 #include "Graphics/Compiler.h"
 #include "ryml/ryml.hpp"
+#include "logging.h"
 
 using namespace Inferno;
 

@@ -140,4 +140,11 @@ namespace Inferno::Game {
         assert((int)id < Level.Objects.size() && (int)id >= 0); // Object wasn't in the level
         return id;
     }
+
+    // Returns an object reference based on its address
+    inline ObjRef GetObjectRef(const Object& obj) {
+        auto id = ObjID(&obj - Level.Objects.data());
+        assert((int)id < Level.Objects.size() && (int)id >= 0); // Object wasn't in the level
+        return { id, obj.Signature };
+    }
 }

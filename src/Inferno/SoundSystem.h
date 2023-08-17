@@ -11,7 +11,7 @@ namespace Inferno {
         Vector3 Position; // Position the sound comes from
         SegID Segment = SegID::None; // Segment the sound starts in, needed for occlusion
         SideID Side = SideID::None; // Side, used for turning of forcefields
-        ObjID Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
+        ObjRef Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
         float Volume = 1;
         float Pitch = 0; // -1 to 1;
         bool Occlusion = true; // Occludes level geometry when determining volume
@@ -91,7 +91,7 @@ namespace Inferno::Sound {
     void Stop2DSounds();
     void Stop(Tag);
     void Stop(SoundUID);
-    void Stop(ObjID);
+    void Stop(ObjRef);
 
     void AddEmitter(AmbientSoundEmitter&&);
     void UpdateSoundEmitters(float dt);

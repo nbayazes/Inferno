@@ -35,7 +35,9 @@ namespace Inferno::Game {
     void StartLevel();
 
     ObjSig GetObjectSig() {
-        return ObjSig(ObjSigIndex++);
+        ObjSigIndex++;
+        if (ObjSigIndex == (uint16)ObjSig::None) ObjSigIndex++; // Skip none after wrapping
+        return ObjSig(ObjSigIndex);
     }
 
     void ResetCountdown() {
@@ -436,7 +438,7 @@ namespace Inferno::Game {
 
         if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
             for (int i = 0; i < 4; i++) {
-                auto startObj = Game::GetObjectID(obj);
+                auto startObj = Game::GetObjectRef(obj);
                 beam->StartDelay = i * 0.4f + Random() * 0.125f;
                 Render::AddBeam(*beam, CountdownTimer + 5, startObj);
             }
@@ -645,16 +647,16 @@ namespace Inferno::Game {
             Level.GetSegment(obj.Segment).AddObject(id);
 
             // Hack to attach tracers due to not having the object ID in firing code
-            if (obj.Type == ObjectType::Weapon && Settings::Inferno.Descent3Enhanced) {
+            if (obj.IsWeapon()) {
                 //auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
                 if ((WeaponID)obj.ID == WeaponID::Vulcan) {
                     if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
-                        Render::AddTracer(*tracer, obj.Segment, id);
+                        Render::AddTracer(*tracer, obj.Segment, { id, obj.Signature });
                 }
 
                 if ((WeaponID)obj.ID == WeaponID::Gauss) {
                     if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
-                        Render::AddTracer(*tracer, obj.Segment, id);
+                        Render::AddTracer(*tracer, obj.Segment, { id, obj.Signature });
                 }
             }
         }
@@ -674,7 +676,7 @@ namespace Inferno::Game {
         // Create sparks randomly
         if (Random() < chance * dt) {
             if (auto beam = Render::EffectLibrary.GetBeamInfo("damaged_object_arcs")) {
-                auto startObj = Game::GetObjectID(obj);
+                auto startObj = Game::GetObjectRef(obj);
                 Render::AddBeam(*beam, beam->Life, startObj);
             }
         }
@@ -697,13 +699,14 @@ namespace Inferno::Game {
         // todo: track visible and nearby rooms
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
+            ObjRef objRef{ (ObjID)i, obj.Signature };
 
             if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
                 DestroyObject(obj);
                 // Keep playing effects from a dead reactor
                 if (obj.Type != ObjectType::Reactor) {
-                    Render::RemoveEffects((ObjID)i);
-                    Sound::Stop((ObjID)i); // stop any sounds playing from this object
+                    Render::RemoveEffects(objRef);
+                    Sound::Stop(objRef); // stop any sounds playing from this object
                 }
             }
             else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
@@ -1058,7 +1061,7 @@ namespace Inferno::Game {
         // Default the gravity direction to the player start
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
-        Render::InitEffects(Level);
+        Render::InitEffects();
         Level.Rooms = CreateRooms(Level);
 
         // init objects

@@ -19,12 +19,12 @@ namespace Inferno::Render {
         Vector3 Position;
         float Duration = 0; // How long the effect lasts
         float Elapsed = 0; // How long the effect has been alive for
-        bool IsTransparent = true;
+        bool IsTransparent = true; // Which queue to render to
         float LightRadius = -1; // Radius of emitted light
         Color LightColor; // Color of emitted light
         float FadeTime = 0; // Fade time at the end of the particle's life
         float StartDelay = 0; // How long to wait in seconds before starting the effect
-        ObjID Parent = ObjID::None;
+        ObjRef Parent;
         bool IsAlive = false;
 
         // Called once per frame
@@ -36,7 +36,7 @@ namespace Inferno::Render {
         }
 
         // Called per game tick
-        virtual void FixedUpdate(float /*dt*/) { }
+        virtual void FixedUpdate(float /*dt*/, EffectID) { }
 
         virtual void Draw(Graphics::GraphicsContext&) {}
 
@@ -72,7 +72,7 @@ namespace Inferno::Render {
     struct ParticleEmitterInfo {
         VClipID Clip = VClipID::None;
         float Life = 0; // How long the emitter lives for
-        ObjID Parent = ObjID::None; // Moves with this object
+        ObjRef Parent; // Moves with this object
         //Vector3 ParentOffset; // Offset from parent
         Vector3 Position;
         Vector3 Velocity;
@@ -128,7 +128,7 @@ namespace Inferno::Render {
 
         void Draw(Graphics::GraphicsContext&) override;
         void DepthPrepass(Graphics::GraphicsContext&) override;
-        void FixedUpdate(float dt) override;
+        void FixedUpdate(float dt, EffectID) override;
         void OnExpire() override;
     };
 
@@ -136,7 +136,7 @@ namespace Inferno::Render {
 
     // An explosion can consist of multiple particles
     struct ExplosionInfo {
-        ObjID Parent = ObjID::None;
+        ObjRef Parent;
         VClipID Clip = VClipID::SmallExplosion;
         SoundID Sound = SoundID::None;
         float Volume = 1.0f;
@@ -170,7 +170,7 @@ namespace Inferno::Render {
     struct BeamInfo {
         Vector3 Start; // Input: start of beam
         Vector3 End; // Input: end of beam
-        ObjID StartObj = ObjID::None; // attaches start of beam to this object. Sets Start each update if valid.
+        ObjRef StartObj; // attaches start of beam to this object. Sets Start each update if valid.
         //int StartObjGunpoint = -1; // Gunpoint of StartObj to attach the beam to
         //int StartSubmodel = -1; // When set, Start is relative to this submodel
         //int EndSubmodel = -1; // When set, End is relative to this submodel
@@ -179,7 +179,7 @@ namespace Inferno::Render {
         SubmodelRef StartSubmodel, EndSubmodel;
 
 
-        ObjID EndObj = ObjID::None; // attaches end of beam to this object. Sets End each update if valid
+        ObjRef EndObj; // attaches end of beam to this object. Sets End each update if valid
 
         NumericRange<float> Radius; // If RandomEnd is true, randomly strike targets within this radius
         NumericRange<float> Width = { 2.0f, 2.0f };
@@ -218,8 +218,8 @@ namespace Inferno::Render {
     };
 
     void AddBeam(BeamInfo, float life, const Vector3& start, const Vector3& end);
-    void AddBeam(BeamInfo, float life, ObjID start, const Vector3& end, int startGun);
-    void AddBeam(BeamInfo, float life, ObjID start, ObjID end = ObjID::None, int startGun = -1);
+    void AddBeam(BeamInfo, float life, ObjRef start, const Vector3& end, int startGun);
+    void AddBeam(BeamInfo, float life, ObjRef start, ObjRef end = {}, int startGun = -1);
 
     void DrawBeams(Graphics::GraphicsContext& ctx);
 
@@ -243,7 +243,7 @@ namespace Inferno::Render {
 
     // Adds a tracer effect attached to an object that is removed when the object dies.
     // Tracers are only drawn when the minimum length is reached
-    void AddTracer(TracerInfo&, SegID, ObjID parent);
+    void AddTracer(TracerInfo&, SegID, ObjRef parent);
 
     struct DecalInfo final : EffectBase {
         Vector3 Normal, Tangent, Bitangent;
@@ -266,7 +266,7 @@ namespace Inferno::Render {
     void RemoveDecals(Tag);
 
     // Removes all effects associated with an object
-    void RemoveEffects(ObjID);
+    void RemoveEffects(ObjRef);
 
     struct Spark {
         float Life = 0;
@@ -307,7 +307,7 @@ namespace Inferno::Render {
         Vector3 PrevParentPosition;
 
         bool Update(float dt) override;
-        void FixedUpdate(float dt) override;
+        void FixedUpdate(float dt, EffectID) override;
         void Draw(Graphics::GraphicsContext&) override;
 
     private:
@@ -319,9 +319,10 @@ namespace Inferno::Render {
 
     void ResetParticles();
 
-    span<Ptr<EffectBase>> GetEffectsInSegment(SegID);
+    // Gets a visual effect
+    EffectBase* GetEffect(EffectID effect);
 
-    void InitEffects(const Level& level);
+    void InitEffects();
     void UpdateEffects(float dt);
     void FixedUpdateEffects(float dt);
 

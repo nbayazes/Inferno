@@ -381,8 +381,14 @@ namespace Inferno {
         }
 
         Object* TryGetObject(ObjID id) {
-            if ((int)id < 0 || (int)id >= Objects.size()) return nullptr;
+            if (!Seq::inRange(Objects, (int)id)) return nullptr;
             return &Objects[(int)id];
+        }
+
+        Object* TryGetObject(ObjRef ref) {
+            auto obj = TryGetObject(ref.Id);
+            if (!obj || obj->Signature != ref.Signature) return nullptr;
+            return obj;
         }
 
         TriggerID GetTriggerID(WallID wid) const {
@@ -392,6 +398,7 @@ namespace Inferno {
         }
 
         Trigger& GetTrigger(TriggerID id) { return Triggers[(int)id]; }
+
         Trigger* TryGetTrigger(TriggerID id) {
             if ((int)id < 0 || (int)id >= Triggers.size()) return nullptr;
             return &Triggers[(int)id];

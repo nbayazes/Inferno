@@ -139,7 +139,7 @@ namespace Inferno::Sound {
     namespace {
         List<Tag> StopSoundTags;
         List<SoundUID> StopSoundUIDs;
-        List<ObjID> StopSoundSources;
+        List<ObjRef> StopSoundSources;
 
         DataPool<AmbientSoundEmitter> Emitters = { AmbientSoundEmitter::IsAlive, 10 };
 
@@ -434,7 +434,7 @@ namespace Inferno::Sound {
         std::scoped_lock lock(SoundInstancesMutex);
         auto currentTime = Inferno::Clock.GetTotalTimeSeconds();
 
-        if (sound.Merge && sound.Source != ObjID::None) {
+        if (sound.Merge && !sound.Source.IsNull()) {
             // Check if any emitters are already playing this sound from this source
             for (auto& instance : SoundInstances) {
                 if (instance.Source == sound.Source &&
@@ -539,7 +539,7 @@ namespace Inferno::Sound {
         StopSoundUIDs.push_back(id);
     }
 
-    void Stop(ObjID id) {
+    void Stop(ObjRef id) {
         if (!Alive) return;
         std::scoped_lock lock(SoundInstancesMutex);
         StopSoundSources.push_back(id);

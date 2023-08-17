@@ -126,7 +126,7 @@ Weapons:
     Glow: 1, .45, .09, 5.5
     ModelName: YellowLaser.OOF
     ModelScale: 0.7
-    Size: 0.275
+    Size: 0.5
     ExplosionSound: LazorHitshrt
     ExplosionTexture: YellowLaserHit
     ExplosionSize: 1.75
@@ -143,7 +143,7 @@ Weapons:
     Glow: .5, .5, 1, 5
     ModelName: WhiteLaser.OOF
     ModelScale: 0.7
-    Size: 0.275
+    Size: 0.5
     ExplosionSound: LazorHitshrt
     ExplosionTexture: WhiteLaserHit
     ExplosionSize: 1.75
@@ -173,13 +173,15 @@ Weapons:
     ExplosionSize: 0.6
     ExplosionTime: 0.4
     Damage: 6
-    Spread: 1.8 # spread in degrees
+    Spread: 1.2 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
     LightRadius: 3.75
     ExplosionColor: 1.0, 0.36, 0.0, 1.2
     Model: -1
     FlashColor: 1, 1, 1, 15
+    StunMult: 2 # Increase slow so vulcan can tag small fast enemies
+    Size: 0.75
     
   - id: 12 
     Name: spreadfire
@@ -775,15 +777,15 @@ Effects:
     - Name: vulcan_tracer
       Length: 30
       Width: 0.3
-      Texture: vausstracer
+      Texture: tracer
       BlobTexture: Tracerblob
-      Color: 1, 1, 1, 2
+      Color: 1, 0.36, 0, 10
       FadeSpeed: 0.2
 
     - Name: gauss_tracer
       Length: 25
       Width: 0.9
-      Texture: MassDriverTracer
-      BlobTexture: MassTracerblob
-      Color: 1, 1, 1, 2
+      Texture: tracer
+      BlobTexture: Tracerblob
+      Color: 1, .4, .4, 2
       FadeSpeed: 0.2

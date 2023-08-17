@@ -388,7 +388,7 @@ namespace Inferno::Render {
     }
 
     void UpdateDynamicLights(const Level& level, Array<LightData, MAX_LIGHTS>& buffer) {
-        constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::RESERVED_LIGHTS;
+        constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::DYNAMIC_LIGHTS;
 
         for (int i = 0; i < buffer.size(); i++) {
             if (i < LevelLights.size() && i < reserved)
@@ -445,10 +445,13 @@ namespace Inferno::Render {
         //for (auto& decal : GetDecals())
         //    GatherDecalLight(lightIndex, decal);
 
-        for (auto& room : _renderQueue.GetVisibleSegments()) {
+        for (auto& segId : _renderQueue.GetVisibleSegments()) {
             if (lightIndex >= buffer.size()) break;
 
-            for (auto& effect : GetEffectsInSegment(room)) {
+            auto& seg = level.GetSegment(segId);
+            for (auto& effectId : seg.Effects) {
+                auto effect = GetEffect(effectId);
+                if (!effect) continue;
                 if (lightIndex >= buffer.size()) break;
                 if (effect->LightRadius <= 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive) continue;
 

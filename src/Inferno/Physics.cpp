@@ -355,7 +355,7 @@ namespace Inferno {
             switch (target.Type) {
                 case ObjectType::Robot:
                 {
-                    auto targetId = ObjID(&target - &Game::Level.Objects[0]);
+                    auto targetId = Game::GetObjectRef(target);
                     if (src.Parent == targetId) return CollisionType::None; // Don't hit robot with their own shots
 
                     auto& ri = Resources::GetRobotInfo(target.ID);
@@ -366,7 +366,7 @@ namespace Inferno {
                 case ObjectType::Player:
                 {
                     if (target.ID > 0) return CollisionType::None; // Only hit player 0 in singleplayer
-                    if (src.Parent == ObjID(0)) return CollisionType::None; // Don't hit the player with their own shots
+                    if (src.Parent.Id == ObjID(0)) return CollisionType::None; // Don't hit the player with their own shots
                     if (WeaponIsMine((WeaponID)src.ID) && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
                         return CollisionType::None; // Mines can't hit the player until they arm
                     break;
@@ -643,7 +643,7 @@ namespace Inferno {
                 case ObjectType::Reactor:
                 {
                     // apply damage if source is player
-                    if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent == ObjID(0))
+                    if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent.Id == ObjID(0))
                         target.ApplyDamage(damage);
 
                     break;
@@ -797,7 +797,7 @@ namespace Inferno {
         auto transform = meshSource.GetTransform();
         auto invTransform = transform.Invert();
         auto invRotation = Matrix(meshSource.Rotation).Invert();
-        auto localPos = Vector3::Transform(sphereSource.Position, invTransform);
+        const auto localPos = Vector3::Transform(sphereSource.Position, invTransform);
         auto localDir = Vector3::TransformNormal(direction, invRotation);
         localDir.Normalize();
         Ray ray(localPos, localDir); // update the input ray
@@ -835,23 +835,32 @@ namespace Inferno {
 
                     bool triFacesObj = localDir.Dot(normal) <= 0;
                     auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
+                    Vector3 faceLocalPos = localPos;
 
                     if (needsRaycast) {
                         float dist;
-                        if (triFacesObj && ray.Intersects(p0, p1, p2, dist) && dist < travelDist) {
-                            // Move object to intersection of face then proceed as usual
-                            // Note that this might fail for fast, large objects due to the gaps between polygons.
-                            // In practice this is rarely an issue due to fast objects such as gauss and vulcan having small radii.
-                            localPos += localDir * (dist - sphereSource.Radius);
+                        Plane basePlane(p0, p1, p2);
+
+                        if (triFacesObj) {
+                            // todo: simplify this so multiple projections aren't necessary?
+                            if (ray.Intersects(p0, p1, p2, dist) && dist < travelDist) {
+                                // Move object to intersection of triangle and proceed
+                                faceLocalPos += localDir * (dist - sphereSource.Radius);
+                            }
+                            else if (ray.Intersects(basePlane, dist) && dist < travelDist) {
+                                // Move object to intersection of plane and proceed
+                                // This allows the radius of raycasted projectiles to have effect
+                                faceLocalPos += localDir * dist;
+                            }
                         }
                     }
 
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
-                    auto planeDist = -plane.DotCoordinate(localPos); // flipped winding
+                    auto planeDist = -plane.DotCoordinate(faceLocalPos); // flipped winding
                     if (planeDist > 0 || planeDist < -sphereSource.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
-                    auto point = ProjectPointOntoPlane(localPos, plane);
+                    auto point = ProjectPointOntoPlane(faceLocalPos, plane);
                     float hitDistance = FLT_MAX;
                     Vector3 hitPoint, hitNormal = normal;
 
@@ -870,7 +879,7 @@ namespace Inferno {
                     }
                     else {
                         // Point wasn't inside the triangle, check the edges
-                        auto [triPoint, triDist] = ClosestPointOnTriangle2(p0, p1, p2, localPos);
+                        auto [triPoint, triDist] = ClosestPointOnTriangle2(p0, p1, p2, faceLocalPos);
 
                         if (triDist <= sphereSource.Radius) {
                             auto edgeNormal = localPos - triPoint;
@@ -1142,7 +1151,8 @@ namespace Inferno {
                 auto pOther = level.TryGetObject(seg.Objects[i]);
                 if (!pOther) continue;
                 auto& other = *pOther;
-                if (id == other.Parent) continue; // Don't hit your children!
+                if (id == other.Parent.Id) continue; // Don't hit your children!
+                if (obj.Parent.Signature == pOther->Signature) continue; // Don't hit your parent!
 
                 switch (ObjectCanHitTarget(obj, other)) {
                     default:

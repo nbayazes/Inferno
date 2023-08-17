@@ -268,7 +268,7 @@ namespace Inferno::Game {
             if (!weapon.IsMatter) {
                 // Bounce energy weapons
                 obj.Physics.Bounces++;
-                obj.Parent = ObjID::None; // Make hostile to owner!
+                obj.Parent = {}; // Make hostile to owner!
 
                 Sound3D sound(hit.Point, hit.Tag.Segment);
                 sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
@@ -443,6 +443,7 @@ namespace Inferno::Game {
             return;
         }
         auto& obj = *pObj;
+        ObjRef parentRef{ objId, obj.Signature };
 
         auto& weapon = Resources::GetWeapon(id);
         if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
@@ -530,7 +531,7 @@ namespace Inferno::Game {
                 bullet.Render.Type = RenderType::None;
         }
         else if (weapon.RenderType == WeaponRenderType::None) {
-            bullet.Radius = 0.1f; // original game used a value of 1
+            bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : 1;
         }
 
         bullet.Render.Rotation = Random() * DirectX::XM_2PI;
@@ -539,7 +540,7 @@ namespace Inferno::Game {
         //bullet.Lifespan = 3; // for testing fade-out
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
-        bullet.Parent = objId;
+        bullet.Parent = parentRef;
         bullet.Segment = obj.Segment;
 
         bullet.Render.Emissive = weapon.Extended.Glow;
@@ -556,7 +557,7 @@ namespace Inferno::Game {
             sound.AttachOffset = obj.Position - position;
             sound.Radius = weapon.Extended.SoundRadius;
             sound.FromPlayer = obj.IsPlayer();
-            sound.Source = objId;
+            sound.Source = parentRef;
             sound.Merge = true;
 
             if (id == WeaponID::Vulcan) {
@@ -572,7 +573,7 @@ namespace Inferno::Game {
             p.Clip = weapon.FlashVClip;
             p.Position = position;
             p.Radius = weapon.FlashSize;
-            p.Parent = objId;
+            p.Parent = parentRef;
             p.ParentSubmodel = gunSubmodel;
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor;
@@ -698,6 +699,7 @@ namespace Inferno::Game {
         auto pObj = Game::Level.TryGetObject(player.ID);
         if (!pObj) return;
         auto& playerObj = *pObj;
+        ObjRef playerRef = { player.ID, playerObj.Signature };
 
         auto gunSubmodel = GetLocalGunpointOffset(playerObj, gun);
         auto objOffset = GetSubmodelOffset(playerObj, gunSubmodel);
@@ -723,7 +725,7 @@ namespace Inferno::Game {
             }
 
             //auto prevPosition = start;
-            ObjID prevObj = player.ID;
+            ObjRef prevRef = { player.ID, playerObj.Signature };
             int objGunpoint = gun;
 
             auto beam = Render::EffectLibrary.GetBeamInfo("omega_beam");
@@ -738,19 +740,20 @@ namespace Inferno::Game {
                 if (!Settings::Cheats.DisableWeaponDamage)
                     target->ApplyDamage(weapon.Damage[Difficulty]);
 
+                ObjRef targetRef = { targetObj, target->Signature };
                 // Beams between previous and next target
-                if (beam) Render::AddBeam(*beam, weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                if (beam) Render::AddBeam(*beam, weapon.FireDelay, prevRef, targetRef, objGunpoint);
                 if (beam2) {
-                    Render::AddBeam(*beam2, weapon.FireDelay, prevObj, targetObj, objGunpoint);
-                    Render::AddBeam(*beam2, weapon.FireDelay, prevObj, targetObj, objGunpoint);
+                    Render::AddBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
+                    Render::AddBeam(*beam2, weapon.FireDelay, prevRef, targetRef, objGunpoint);
                 }
 
-                prevObj = targetObj;
+                prevRef = targetRef;
                 objGunpoint = -1;
 
                 if (tracer) {
-                    Render::AddBeam(*tracer, weapon.FireDelay, targetObj);
-                    Render::AddBeam(*tracer, weapon.FireDelay, targetObj);
+                    Render::AddBeam(*tracer, weapon.FireDelay, targetRef);
+                    Render::AddBeam(*tracer, weapon.FireDelay, targetRef);
                 }
 
                 // Sparks and explosion
@@ -796,7 +799,7 @@ namespace Inferno::Game {
                 // Do wall hit stuff
                 Object dummy{};
                 dummy.Position = hit.Point;
-                dummy.Parent = player.ID;
+                dummy.Parent = playerRef;
                 dummy.ID = (int)WeaponID::Omega;
                 dummy.Type = ObjectType::Weapon;
                 dummy.Control.Weapon.ParentType = ObjectType::Player; // needed for wall triggers to work correctly
@@ -811,7 +814,7 @@ namespace Inferno::Game {
             }
 
             if (auto miss = Render::EffectLibrary.GetBeamInfo("omega_miss"))
-                Render::AddBeam(*miss, weapon.FireDelay, player.ID, tracerEnd, gun);
+                Render::AddBeam(*miss, weapon.FireDelay, playerRef, tracerEnd, gun);
         }
 
         // Fire sound
@@ -827,7 +830,7 @@ namespace Inferno::Game {
         p.Clip = weapon.FlashVClip;
         p.Position = start;
         p.Radius = weapon.FlashSize;
-        p.Parent = player.ID;
+        p.Parent = playerRef;
         p.ParentSubmodel = gunSubmodel;
         p.FadeTime = 0.175f;
         p.Color = weapon.Extended.FlashColor;

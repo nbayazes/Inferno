@@ -5,6 +5,8 @@
 #include <future>
 #include "Types.h"
 
+#define ASSERT(x) (void)( (!!(x)) || (__debugbreak(), 0))
+
 namespace Inferno {
     // Creates a four character code to identify file formats
     consteval uint32 MakeFourCC(const char cc[4]) {
@@ -218,7 +220,7 @@ namespace Inferno {
             fun();
         }); // future disposes itself on exit
     }
-
+    
     constexpr float Step(float value, float step) {
         if (step == 0.0f) return value;
         return step * std::round(value / step);

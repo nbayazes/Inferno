@@ -343,7 +343,7 @@ namespace Inferno {
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
         double Lifespan = OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
-        ObjID Parent = ObjID::None; // Parent for projectiles, maybe attached objects
+        ObjRef Parent; // Parent for projectiles, maybe attached objects
 
         MovementType Movement;
         PhysicsData Physics;

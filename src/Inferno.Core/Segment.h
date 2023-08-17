@@ -149,6 +149,8 @@ namespace Inferno {
         SoundFlag AmbientSound{};
 
         List<ObjID> Objects;
+        List<EffectID> Effects;
+
         // If bit n (1 << n) is set, then side #n in segment has had light subtracted from original (editor-computed) value.
         uint8 LightSubtracted;
         //uint8 SlideTextures;
