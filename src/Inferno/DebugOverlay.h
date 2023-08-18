@@ -60,6 +60,7 @@ namespace Inferno {
                     ImGui::Text("Segment: %d Type: %d", player->Segment, seg->Type);
                     string type = hasLava ? "Lava" : (hasWater ? "Water" : "Normal");
                     ImGui::Text("Room type: %s", type.c_str());
+                    ImGui::Text("Seg Effects: %d", seg->Effects.size());
                 }
                 ImGui::Text("Ship vel: %.2f", Debug::ShipVelocity.Length());
                 ImGui::Text("Ship thrust: %.2f", Debug::ShipThrust.Length());
@@ -67,9 +68,10 @@ namespace Inferno {
 
             ImGui::Text("Objects: %d", Game::Level.Objects.size());
             ImGui::Text("Segments: %d", Render::Stats::VisitedSegments);
-            ImGui::Text("Effects: %d", Render::Stats::EffectDraws);
+            //ImGui::Text("Total Effects: %d", Render::Stats::EffectDraws);
             ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());
             ImGui::Text("Collision segs: %d", Debug::SegmentsChecked);
+            ImGui::Text("Dynamic Lights: %d", Graphics::Lights.GetCount());
         }
         ImGui::End();
 

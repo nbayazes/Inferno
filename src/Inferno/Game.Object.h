@@ -6,6 +6,9 @@ namespace Inferno {
     struct SubmodelRef {
         short ID = -1; // Submodel index. -1 is unset
         Vector3 Offset; // Offset relative to submodel origin
+
+        bool IsNull() const { return ID == -1; }
+        explicit operator bool() const { return !IsNull(); }
     };
 
     // Gets the submodel a gun belongs to

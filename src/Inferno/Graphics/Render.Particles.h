@@ -20,23 +20,22 @@ namespace Inferno::Render {
         float Duration = 0; // How long the effect lasts
         float Elapsed = 0; // How long the effect has been alive for
         bool IsTransparent = true; // Which queue to render to
-        float LightRadius = -1; // Radius of emitted light
-        Color LightColor; // Color of emitted light
-        float FadeTime = 0; // Fade time at the end of the particle's life
+        float FadeTime = 0; // Fade time at the end of the effect's life
         float StartDelay = 0; // How long to wait in seconds before starting the effect
         ObjRef Parent;
+        SubmodelRef ParentSubmodel;
+
         bool IsAlive = false;
 
         // Called once per frame
-        virtual bool Update(float dt) {
-            if ((StartDelay -= dt) > 0) return false;
-            //if (!IsAlive()) return false;
-            Elapsed += dt;
-            return true;
-        }
+        void Update(float dt, EffectID id);
+
+        void FixedUpdate(float dt, EffectID);
+
+        virtual void OnUpdate(float /*dt*/, EffectID) {}
+        virtual void OnFixedUpdate(float /*dt*/, EffectID) {}
 
         // Called per game tick
-        virtual void FixedUpdate(float /*dt*/, EffectID) { }
 
         virtual void Draw(Graphics::GraphicsContext&) {}
 
@@ -54,6 +53,18 @@ namespace Inferno::Render {
         EffectBase& operator=(EffectBase&&) = default;
     };
 
+    struct DynamicLight final : EffectBase {
+        DynamicLightMode Mode = DynamicLightMode::Constant;
+        //float FlickerSpeed = 4.0f;
+        //float FlickerRadius = 0;
+        float LightRadius = -1; // Radius of emitted light
+        Color LightColor; // Color of emitted light
+        float FadeIn = 0; // Fade in at start of life
+        //float FadeOut = 0; // Fade out at end of life
+
+        void OnUpdate(float dt, EffectID) override;
+    };
+
     struct Particle final : EffectBase {
         VClipID Clip = VClipID::None;
         Vector3 Up = Vector3::Zero;
@@ -63,9 +74,7 @@ namespace Inferno::Render {
         float Delay = 0;
         bool RandomRotation = true;
         //float FadeDuration = 0;
-        SubmodelRef ParentSubmodel;
 
-        bool Update(float dt) override;
         void Draw(Graphics::GraphicsContext&) override;
     };
 
@@ -106,7 +115,7 @@ namespace Inferno::Render {
         //    _particles.Add(_info.CreateParticle());
         //}
 
-        bool Update(float dt) override;
+        void OnUpdate(float dt, EffectID) override;
     };
 
     //void AddEmitter(ParticleEmitter& emitter, size_t capacity);
@@ -128,7 +137,7 @@ namespace Inferno::Render {
 
         void Draw(Graphics::GraphicsContext&) override;
         void DepthPrepass(Graphics::GraphicsContext&) override;
-        void FixedUpdate(float dt, EffectID) override;
+        void OnFixedUpdate(float dt, EffectID) override;
         void OnExpire() override;
     };
 
@@ -171,15 +180,8 @@ namespace Inferno::Render {
         Vector3 Start; // Input: start of beam
         Vector3 End; // Input: end of beam
         ObjRef StartObj; // attaches start of beam to this object. Sets Start each update if valid.
-        //int StartObjGunpoint = -1; // Gunpoint of StartObj to attach the beam to
-        //int StartSubmodel = -1; // When set, Start is relative to this submodel
-        //int EndSubmodel = -1; // When set, End is relative to this submodel
-
-        //Vector3 StartOffset, EndOffset;
-        SubmodelRef StartSubmodel, EndSubmodel;
-
-
         ObjRef EndObj; // attaches end of beam to this object. Sets End each update if valid
+        SubmodelRef StartSubmodel, EndSubmodel;
 
         NumericRange<float> Radius; // If RandomEnd is true, randomly strike targets within this radius
         NumericRange<float> Width = { 2.0f, 2.0f };
@@ -202,7 +204,6 @@ namespace Inferno::Render {
         bool HasRandomEndpoints() const {
             return HasFlag(Flags, BeamFlag::RandomEnd) || HasFlag(Flags, BeamFlag::RandomObjEnd) || HasFlag(Flags, BeamFlag::RandomObjStart);
         } 
-
         
         struct {
             float Length;
@@ -237,7 +238,7 @@ namespace Inferno::Render {
         bool ParentIsLive = false;
         //static bool IsAlive(const TracerInfo& info) { return info.Elapsed < info.Duration; }
 
-        bool Update(float dt) override;
+        void OnUpdate(float dt, EffectID) override;
         void Draw(Graphics::GraphicsContext&) override;
     };
 
@@ -250,7 +251,7 @@ namespace Inferno::Render {
         string Texture = "scorchB";
 
         float Radius = 2;
-        float FadeRadius = 3.0; // Radius to fade to
+        float FadeRadius = 3.0; // Radius to grow to at end of life
 
         Color Color = { 1, 1, 1 };
         SideID Side;
@@ -303,11 +304,10 @@ namespace Inferno::Render {
         Vector3 PointGravityVelocity = Vector3::Zero; // Applies a gravity field relative to the parent object rotation
         float PointGravityStrength = 0;
         ObjID Parent = ObjID::None;
-        SubmodelRef ParentSubmodel;
         Vector3 PrevParentPosition;
 
-        bool Update(float dt) override;
-        void FixedUpdate(float dt, EffectID) override;
+        void OnUpdate(float dt, EffectID) override;
+        void OnFixedUpdate(float dt, EffectID) override;
         void Draw(Graphics::GraphicsContext&) override;
 
     private:
@@ -316,8 +316,9 @@ namespace Inferno::Render {
 
     //void AddSparkEmitter(SparkEmitter&);
     void AddSparkEmitter(SparkEmitter, SegID, const Vector3& worldPos = Vector3::Zero);
+    void AddDynamicLight(DynamicLight&);
 
-    void ResetParticles();
+    void ResetEffects();
 
     // Gets a visual effect
     EffectBase* GetEffect(EffectID effect);

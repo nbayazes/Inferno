@@ -11,22 +11,27 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
-    void ExplodeWeapon(const Object& obj) {
-        if (obj.Type != ObjectType::Weapon) return;
-        const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
-        if (weapon.SplashRadius <= 0) return; // don't explode weapons without a splash radius
-
+    void DrawWeaponExplosion(const Object& obj, const Weapon& weapon) {
         SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
         VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
-        float damage = weapon.Damage[Game::Difficulty];
 
         Render::ExplosionInfo e;
         e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
         e.Clip = vclip;
         e.Sound = soundId;
-        //e.Color = Color{ 1, 1, 1 };
-        e.FadeTime = 0.1f;
+        e.FadeTime = weapon.Extended.ExplosionTime; //  0.1f
+        if (weapon.Extended.ExplosionColor != Color(-1, -1, -1))
+            e.LightColor = weapon.Extended.ExplosionColor;
         Render::CreateExplosion(e, obj.Segment, obj.Position);
+    }
+
+    void ExplodeWeapon(const Object& obj) {
+        if (!obj.IsWeapon()) return;
+        const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+        if (weapon.SplashRadius <= 0) return; // don't explode weapons without a splash radius
+
+        float damage = weapon.Damage[Game::Difficulty];
+        DrawWeaponExplosion(obj, weapon);
 
         GameExplosion ge{};
         ge.Damage = damage;
@@ -150,10 +155,15 @@ namespace Inferno::Game {
         planar.FadeRadius = weapon.GetDecalSize() * 2.4f;
         planar.Additive = true;
         planar.Color = Color{ 1.5f, 1.5f, 1.5f };
-        planar.LightColor = weapon.Extended.ExplosionColor;
-        planar.LightRadius = weapon.Extended.LightRadius;
-
         Render::AddDecal(planar);
+
+        Render::DynamicLight light{};
+        light.LightColor = weapon.Extended.ExplosionColor;
+        light.LightRadius = weapon.Extended.LightRadius;
+        light.Position = hit.Point + hit.Normal * weapon.Extended.ExplosionSize;
+        light.Duration = light.FadeTime = weapon.Extended.ExplosionTime;
+        light.Segment = hit.Tag.Segment;
+        Render::AddDynamicLight(light);
     }
 
     void WeaponHitObject(const LevelHit& hit, Object& src) {
@@ -189,7 +199,7 @@ namespace Inferno::Game {
 
             // Always play hit sound for players. Explosions are separate.
             if (target.IsPlayer()) {
-                Sound3D sound(hit.Point, hit.Tag.Segment);
+                Sound3D sound(hit.Point, target.Segment);
                 sound.Resource = Resources::GetSoundResource(SoundID::HitPlayer);
                 Sound::Play(sound);
             }
@@ -202,7 +212,7 @@ namespace Inferno::Game {
                 expl.Radius = { weapon.ImpactSize * 0.85f, weapon.ImpactSize * 1.15f };
                 //expl.Color = Color{ 1.15f, 1.15f, 1.15f };
                 expl.FadeTime = 0.1f;
-                Render::CreateExplosion(expl, hit.HitObj->Segment, hit.Point);
+                Render::CreateExplosion(expl, target.Segment, hit.Point);
             }
 
             //AddPlanarExplosion(weapon, hit);
@@ -212,11 +222,17 @@ namespace Inferno::Game {
             if (auto sparks = Render::EffectLibrary.GetSparks("weapon_hit_obj")) {
                 sparks->Color += weapon.Extended.ExplosionColor * 60;
                 sparks->Color.w = 1;
-                sparks->LightColor = weapon.Extended.ExplosionColor;
-                sparks->LightRadius = weapon.Extended.LightRadius;
                 sparks->Count.Min = int(sparks->Count.Min * damageMult);
                 sparks->Count.Max = int(sparks->Count.Max * damageMult);
-                Render::AddSparkEmitter(*sparks, hit.HitObj->Segment, hit.Point);
+                Render::AddSparkEmitter(*sparks, target.Segment, hit.Point);
+
+                Render::DynamicLight light{};
+                light.LightColor = weapon.Extended.ExplosionColor;
+                light.LightRadius = weapon.Extended.LightRadius;
+                light.Position = hit.Point;
+                light.Duration = light.FadeTime = weapon.Extended.ExplosionTime;
+                light.Segment = target.Segment;
+                Render::AddDynamicLight(light);
             }
 
             //if (weapon.RobotHitSound != SoundID::None || !weapon.Extended.ExplosionSound.empty()) {
@@ -364,7 +380,7 @@ namespace Inferno::Game {
         if (hit.Bounced && !hitLiquid)
             return; // don't create explosions when bouncing
 
-        obj.Flags |= ObjectFlag::Dead; // remove weapon after hitting a wall
+        obj.Lifespan = 0; // remove weapon after hitting a wall
 
         auto dir = obj.Physics.PrevVelocity;
         dir.Normalize();
@@ -380,42 +396,14 @@ namespace Inferno::Game {
             Sound::Play(sound);
         }
 
-        if (vclip != VClipID::None) {
-            Render::ExplosionInfo e;
-            e.Radius = { impactSize * 0.9f, impactSize * 1.1f };
-            e.Clip = vclip;
-            e.Parent = obj.Parent;
+        // Move object to the desired explosion location
+        if (impactSize < 5)
+            obj.Position = hit.Point - dir * impactSize * 0.25f;
+        else
+            obj.Position = hit.Point - dir * 2.5;
 
-            Vector3 position;
-            // move explosions out of wall
-            if (impactSize < 5)
-                position = hit.Point - dir * impactSize * 0.25f;
-            else
-                position = hit.Point - dir * 2.5;
-
-            e.FadeTime = 0.1f;
-            if (weapon.Extended.ExplosionColor != Color(-1, -1, -1))
-                e.LightColor = weapon.Extended.ExplosionColor;
-            e.LightRadius = weapon.Extended.LightRadius;
-
-            if (obj.ID == (int)WeaponID::Concussion) {
-                e.Instances = 3;
-                e.Delay = { 0, 0 };
-            }
-
-            Render::CreateExplosion(e, hit.Tag.Segment, position);
-        }
-
-        if (splashRadius > 0) {
-            GameExplosion ge{};
-            ge.Segment = hit.Tag.Segment;
-            ge.Position = hit.Point + hit.Normal * obj.Radius; // shift explosion out of wall
-            ge.Damage = damage;
-            ge.Force = force;
-            ge.Radius = splashRadius;
-
-            CreateExplosion(level, &obj, ge);
-        }
+        if (vclip != VClipID::None && weapon.SplashRadius <= 0)
+            DrawWeaponExplosion(obj, weapon);
     }
 
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread) {
@@ -485,10 +473,6 @@ namespace Inferno::Game {
         bullet.Control.Weapon.ParentType = obj.Type;
         bullet.Control.Weapon.Multiplier = damageMultiplier;
 
-        bullet.LightColor = weapon.Extended.LightColor;
-        bullet.LightRadius = weapon.Extended.LightRadius;
-        bullet.LightMode = weapon.Extended.LightMode;
-
         if (weapon.RenderType == WeaponRenderType::Blob) {
             bullet.Render.Type = RenderType::Laser; // Blobs overload the laser render path
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : weapon.BlobSize;
@@ -537,7 +521,6 @@ namespace Inferno::Game {
         bullet.Render.Rotation = Random() * DirectX::XM_2PI;
 
         bullet.Lifespan = weapon.Lifetime;
-        //bullet.Lifespan = 3; // for testing fade-out
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
         bullet.Parent = parentRef;
@@ -578,6 +561,13 @@ namespace Inferno::Game {
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor;
             Render::AddParticle(p, obj.Segment);
+
+            //Render::DynamicLight light;
+            //light.LightColor = weapon.Extended.FlashColor;
+            //light.LightRadius = weapon.FlashSize * 4;
+            //light.FadeTime = light.Duration = 0.5f;
+            //light.Segment = obj.Segment;
+            //Render::AddDynamicLight(light);
         }
 
         bullet.Rotation.Normalize();

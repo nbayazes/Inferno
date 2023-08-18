@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Lighting.h"
 #include "Render.h"
-#include "Game.h"
 
 namespace Inferno::Graphics {
     void FillLightGridCS::SetLightConstants(uint32 width, uint32 height) {
@@ -85,5 +84,31 @@ namespace Inferno::Graphics {
         //depth.Transition(cmdList, depthState);
         linearDepth.Transition(cmdList, linearDepthState);
         PIXEndEvent(cmdList);
+    }
+
+    using namespace Render;
+
+    void ResetBuffer(Array<LightData, MAX_LIGHTS>& buffer) {
+        for (int i = 0; i < buffer.size(); i++) {
+            buffer[i].radiusSq = 0;
+        }
+    }
+
+    void LightBuffer::Dispatch(ID3D12GraphicsCommandList* cmdList) {
+        auto index = Adapter->GetCurrentFrameIndex();
+        auto& lightBuffer = _lights[index];
+        //UpdateDynamicLights(level, lightBuffer);
+        LightGrid->SetLights(cmdList, lightBuffer);
+        LightGrid->Dispatch(cmdList, Adapter->LinearizedDepthBuffer);
+
+        // Clear the next buffer
+        ResetBuffer(_lights[(index + 1) % 2]);
+        //_levelIndex = _dynamicIndex = 0;
+        _index = 0;
+    }
+
+    void LightBuffer::AddLight(const LightData& light) {
+        if(_index >= _lights->size()) return;
+        _lights[Adapter->GetCurrentFrameIndex()][_index++] = light;
     }
 }

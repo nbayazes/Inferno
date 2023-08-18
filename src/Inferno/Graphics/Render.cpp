@@ -372,7 +372,7 @@ namespace Inferno::Render {
         //    AddProcedural(*texture, TexID(1219));
         //}
 
-        ResetLightCache();
+        Graphics::Lights = {};
         InitEffects();
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);

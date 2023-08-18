@@ -368,118 +368,6 @@ namespace Inferno::Render {
 
     using namespace Graphics;
     List<LightData> LevelLights;
-    Array<LightData, MAX_LIGHTS> LIGHT_BUFFER[2]{};
-
-    void GatherDecalLight(Array<LightData, MAX_LIGHTS>& buffer, int& lightIndex, const DecalInfo& decal) {
-        if (lightIndex >= buffer.size()) return;
-        if (decal.LightRadius <= 0 || decal.Color == Color(0, 0, 0) || !decal.IsAlive) return;
-
-        auto t = std::clamp((decal.Duration - decal.FadeTime + decal.Elapsed) * 1.5f / decal.FadeTime, 0.0f, 1.0f);
-        if (t <= 0) return;
-
-        auto radius = std::lerp(decal.LightRadius, decal.LightRadius * 0.75f, t);
-        auto color = Color::Lerp(decal.LightColor, Color(0, 0, 0), t);
-
-        auto& light = buffer[lightIndex++];
-        light.color = color;
-        light.radiusSq = radius * radius;
-        light.pos = decal.Position + decal.Normal * 2; // shift light out of surface
-        light.type = LightType::Point;
-    }
-
-    void UpdateDynamicLights(const Level& level, Array<LightData, MAX_LIGHTS>& buffer) {
-        constexpr auto reserved = Graphics::MAX_LIGHTS - Graphics::DYNAMIC_LIGHTS;
-
-        for (int i = 0; i < buffer.size(); i++) {
-            if (i < LevelLights.size() && i < reserved)
-                buffer[i] = LevelLights[i];
-            else
-                buffer[i].radiusSq = 0; // clear remaining lights
-        }
-
-        int lightIndex = reserved;
-
-        for (auto& obj : level.Objects) {
-            if (lightIndex >= buffer.size()) break;
-            if (!obj.IsAlive()) continue;
-
-            auto& light = buffer[lightIndex];
-            light.color = obj.LightColor;
-            light.radiusSq = obj.LightRadius * obj.LightRadius;
-            auto mode = obj.LightMode;
-
-            if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::FastFlicker) {
-                //constexpr float FLICKER_INTERVAL = 15; // hz
-                //float interval = std::floor(Render::ElapsedTime * FLICKER_INTERVAL + (float)obj.Signature * 0.1747f) / FLICKER_INTERVAL;
-                const float flickerSpeed = mode == DynamicLightMode::Flicker ? 4.0f : 6.0f;
-                const float flickerRadius = mode == DynamicLightMode::Flicker ? 0.03f : 0.04f;
-                // slightly randomize the radius and brightness on an interval
-                auto noise = OpenSimplex2::Noise2((int)obj.Signature, Render::ElapsedTime * flickerSpeed, 0);
-                light.radiusSq += light.radiusSq * noise * flickerRadius;
-
-                if (mode == DynamicLightMode::FastFlicker)
-                    light.color *= 1 + noise * 0.025f;
-            }
-            else if (mode == DynamicLightMode::Pulse) {
-                light.radiusSq += light.radiusSq * sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)obj.Signature * 0.1747f) * 0.125f;
-            }
-            else if (mode == DynamicLightMode::BigPulse) {
-                light.radiusSq += light.radiusSq * sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)obj.Signature * 0.1747f) * 0.25f;
-            }
-
-            light.pos = obj.GetPosition(Game::LerpAmount);
-
-            if (obj.Type == ObjectType::Weapon && obj.ID == (int)WeaponID::Flare) {
-                // shift light position of flares backwards to move outside of walls
-                light.pos += obj.Rotation.Backward() * 2.5f;
-            }
-            light.type = LightType::Point;
-
-            if (light.radiusSq > 0)
-                lightIndex++;
-        }
-
-        for (auto& decal : GetAdditiveDecals())
-            GatherDecalLight(buffer, lightIndex, decal);
-
-        //for (auto& decal : GetDecals())
-        //    GatherDecalLight(lightIndex, decal);
-
-        for (auto& segId : _renderQueue.GetVisibleSegments()) {
-            if (lightIndex >= buffer.size()) break;
-
-            auto& seg = level.GetSegment(segId);
-            for (auto& effectId : seg.Effects) {
-                auto effect = GetEffect(effectId);
-                if (!effect) continue;
-                if (lightIndex >= buffer.size()) break;
-                if (effect->LightRadius <= 0 || effect->LightColor == Color(0, 0, 0) || !effect->IsAlive) continue;
-
-                float t = 0;
-
-                // TODO: move fade calc to effect
-                const float duration = effect->Duration * 0.75f;
-                //if (effect->Elapsed < duration * 0.5f)
-                //    t = effect->Elapsed / (duration * 0.5f) ;
-                //else
-                //    t = (duration - effect->Elapsed) / (duration * 0.5f); // reverse direction
-
-                t = (duration - effect->Elapsed) / duration; // reverse direction
-                t = std::clamp(t, 0.0f, 1.0f);
-
-                if (t == 0) continue;
-
-                auto color = Color::Lerp(Color(0, 0, 0), effect->LightColor, t);
-                auto radius = effect->LightRadius;
-
-                auto& light = buffer[lightIndex++];
-                light.color = color;
-                light.radiusSq = radius * radius;
-                light.pos = effect->Position;
-                light.type = LightType::Point;
-            }
-        }
-    }
 
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
@@ -497,11 +385,13 @@ namespace Inferno::Render {
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         DepthPrepass(ctx);
 
-        auto& lightBuffer = LIGHT_BUFFER[Adapter->GetCurrentFrameIndex()];
-        UpdateDynamicLights(level, lightBuffer);
-        LightGrid->SetLights(ctx.GetCommandList(), lightBuffer);
-        LightGrid->Dispatch(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer);
+        // todo: only add visible lights
+        for (auto& light : LevelLights) {
+            Graphics::Lights.AddLight(light);
+        }
 
+        Graphics::Lights.Dispatch(ctx.GetCommandList());
+        
         {
             ctx.BeginEvent(L"Level");
             auto& target = Adapter->GetHdrRenderTarget();
@@ -553,14 +443,6 @@ namespace Inferno::Render {
                 Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
         }
-    }
-
-    void ResetLightCache() {
-        for (auto& light : LIGHT_BUFFER[0])
-            light.radiusSq = 0;
-
-        for (auto& light : LIGHT_BUFFER[1])
-            light.radiusSq = 0;
     }
 
     int GetTransparentQueueSize() {

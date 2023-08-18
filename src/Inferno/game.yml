@@ -35,7 +35,7 @@ Weapons:
     Name: laser 2
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 1, 0.1667, 0.333, 6
+    Glow: 1, 0.1667, 0.333, 20
     ModelName: PurpleLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -52,7 +52,7 @@ Weapons:
     Name: laser 3
     Mass: 0.05
     FireDelay: 0.25
-    Glow: .25, .25, 1, 8
+    Glow: .25, .25, 1, 24
     ModelName: bluelaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -69,7 +69,7 @@ Weapons:
     Name: laser 4
     Mass: 0.05
     FireDelay: 0.25
-    Glow: .5, 1, .5, 3
+    Glow: .5, 1, .5, 16
     ModelName: GreenLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -80,7 +80,7 @@ Weapons:
     LightRadius: 16
     LightColor: 0.075, 0.6, 0.075
     ExplosionColor: 0.05, 0.4, 0.05
-    FlashColor: 1, 1, 1, 10
+    FlashColor: 1, 1, 1, 4
 
   - id: 5
     Name: class 1 drone fireball
@@ -207,7 +207,7 @@ Weapons:
   - id: 13
     Name: plasma
     Decal: scorchB
-    Glow: 1, 1, 1, 5
+    Glow: 1, 1, 1, .5
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
@@ -216,7 +216,7 @@ Weapons:
     LightRadius: 16
     LightColor: 0.1, 1, 0.1
     ExplosionColor: 0.1, 0.8, 0.1
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 4
 
   - id: 14
     Name: fusion
@@ -336,7 +336,7 @@ Weapons:
   - id: 26
     Name: robot plasma
     Decal: scorchB
-    Glow: 1, 1, 1, 2
+    Glow: 1, 1, 1, 0.5
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
@@ -345,7 +345,7 @@ Weapons:
     LightRadius: 16
     LightColor: 0.1, 1, 0.1
     ExplosionColor: 0.1, 0.8, 0.1
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 1, 1, 4
 
   - id: 27
     Name: spider fireball

@@ -645,19 +645,31 @@ namespace Inferno::Game {
             }
 
             Level.GetSegment(obj.Segment).AddObject(id);
+            ObjRef objRef = { id, obj.Signature };
 
             // Hack to attach tracers due to not having the object ID in firing code
             if (obj.IsWeapon()) {
-                //auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
-                if ((WeaponID)obj.ID == WeaponID::Vulcan) {
+                WeaponID weaponID{ obj.ID };
+
+                if (weaponID == WeaponID::Vulcan) {
                     if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
-                        Render::AddTracer(*tracer, obj.Segment, { id, obj.Signature });
+                        Render::AddTracer(*tracer, obj.Segment, objRef);
                 }
 
-                if ((WeaponID)obj.ID == WeaponID::Gauss) {
+                if (weaponID == WeaponID::Gauss) {
                     if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
-                        Render::AddTracer(*tracer, obj.Segment, { id, obj.Signature });
+                        Render::AddTracer(*tracer, obj.Segment, objRef);
                 }
+
+                auto& weapon = Resources::GetWeapon(weaponID);
+                Render::DynamicLight light;
+                light.LightColor = weapon.Extended.LightColor;
+                light.LightRadius = weapon.Extended.LightRadius;
+                light.Mode = weapon.Extended.LightMode;
+                light.Parent = objRef;
+                light.Duration = obj.Lifespan;
+                light.Segment = obj.Segment;
+                Render::AddDynamicLight(light);
             }
         }
 
@@ -712,13 +724,12 @@ namespace Inferno::Game {
             else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 ExplodeWeapon(obj); // explode expired weapons
                 obj.Flags |= ObjectFlag::Dead;
-            }
 
-            if (HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 if (auto seg = Level.TryGetSegment(obj.Segment))
                     seg->RemoveObject((ObjID)i);
             }
-            else {
+
+            if (!HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 if (obj.Type == ObjectType::Weapon)
                     UpdateWeapon(obj, dt);
 
@@ -838,7 +849,7 @@ namespace Inferno::Game {
                 Render::Camera = EditorCameraSnapshot;
                 Input::SetMouselook(false);
                 Sound::Reset();
-                Render::ResetParticles();
+                Render::ResetEffects();
                 LerpAmount = 1;
                 break;
 
@@ -1051,7 +1062,7 @@ namespace Inferno::Game {
 
         ResetCountdown();
         StuckObjects = {};
-        Render::ResetParticles();
+        Render::ResetEffects();
         Sound::WaitInitialized();
         Sound::Reset();
         Resources::LoadGameTable();

@@ -3,7 +3,6 @@
 #include "CommandContext.h"
 #include "Game.h"
 #include "Game.Object.h"
-#include "MaterialLibrary.h"
 #include "Render.Editor.h"
 #include "Render.h"
 #include "Resources.h"
@@ -307,8 +306,6 @@ namespace Inferno::Render {
         constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
 
         Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
-        //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
-
         bool transparentOverride = false;
         auto texOverride = TexID::None;
 

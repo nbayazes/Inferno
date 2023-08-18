@@ -7,8 +7,6 @@ namespace Inferno::Graphics {
 }
 
 namespace Inferno::Render {
-
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
-    void ResetLightCache();
     int GetTransparentQueueSize();
 }

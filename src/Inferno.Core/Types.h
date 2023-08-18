@@ -220,6 +220,8 @@ namespace Inferno {
             if (IsNull() || ref.IsNull()) return false;
             return Id == ref.Id && Signature == ref.Signature;
         }
+
+        explicit operator bool() const { return !IsNull(); }
     };
 
     // Level Texture ID. Maps to TexIDs.

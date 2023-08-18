@@ -10,6 +10,7 @@ namespace Inferno::Debug {
 namespace Inferno::Graphics {
     constexpr int MAX_LIGHTS = 512;
     constexpr int DYNAMIC_LIGHTS = 128; // for dynamics
+    constexpr int LEVEL_LIGHTS = MAX_LIGHTS - DYNAMIC_LIGHTS;
 
     // First four bytes is the number of lights in the tile
     // size per light must be a multiple of 4
@@ -171,4 +172,17 @@ namespace Inferno::Graphics {
 
         void Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth);
     };
+
+    class LightBuffer {
+        Array<LightData, MAX_LIGHTS> _lights[2]{}; // double buffered
+        int _index = 0;
+    public:
+        void Dispatch(ID3D12GraphicsCommandList* cmdList);
+
+        void AddLight(const LightData&);
+
+        size_t GetCount() const { return _index; }
+    };
+
+    inline LightBuffer Lights;
 }

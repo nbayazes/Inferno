@@ -35,7 +35,15 @@ namespace Inferno {
             if (NumFrames == 0) return TexID::None;
             auto frame = (int)std::floor(std::abs(elapsed) / (double)FrameTime) % NumFrames;
             return Frames[frame];
-        };
+        }
+
+        // Returns a non-looped frame for the vclip
+        TexID GetFrameClamped(double elapsed) const {
+            if (NumFrames == 0) return TexID::None;
+            auto frame = (int)std::floor(std::abs(elapsed) / (double)FrameTime);
+            if (frame > NumFrames) frame = NumFrames - 1;
+            return Frames[frame];
+        }
     };
 
     enum class EClipFlag : int32 { None = 0, Critical = 1, OneShot = 2, Stopped = 4 };
