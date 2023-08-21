@@ -28,7 +28,7 @@ namespace Inferno::Render {
         for (auto& mesh : levelMeshes)
             _opaqueQueue.push_back({ &mesh, 0 });
 
-        if (Game::GetState() == GameState::Editor || level.Objects.empty()) {
+        if (Game::GetState() == GameState::Editor) {
             for (auto& mesh : wallMeshes) {
                 float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
                 _transparentQueue.push_back({ &mesh, depth });
@@ -49,7 +49,6 @@ namespace Inferno::Render {
                 return l.Depth < r.Depth; // front to back, because the draw call flips it
             });
 
-            // todo: only visible segments
             for (int i = 0; i < level.Segments.size(); i++) {
                 for (auto& effectID : level.Segments[i].Effects) {
                     auto effect = GetEffect(effectID);
@@ -59,7 +58,7 @@ namespace Inferno::Render {
                 }
             }
         }
-        else {
+        else if (!level.Objects.empty()) {
             TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
         }
     }

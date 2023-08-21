@@ -47,6 +47,66 @@ namespace Inferno::Game {
         ScreenFlash = Color();
     }
 
+    // Attaches a light to an object based on its settings
+    void AttachLight(Object& obj, ObjRef ref) {
+        Render::DynamicLight light;
+
+        switch (obj.Type) {
+            case ObjectType::None:
+                break;
+            case ObjectType::Fireball:
+                break;
+            case ObjectType::Robot:
+                break;
+            case ObjectType::Hostage:
+                break;
+            case ObjectType::Player:
+                break;
+            case ObjectType::Weapon:
+            {
+                auto& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+                light.LightColor = weapon.Extended.LightColor;
+                light.Radius = weapon.Extended.LightRadius;
+                light.Mode = weapon.Extended.LightMode;
+                break;
+            }
+            case ObjectType::Powerup:
+            {
+                auto& info = Resources::GetPowerup(obj.ID);
+                light.LightColor = info.LightColor;
+                light.Radius = info.LightRadius;
+                light.Mode = info.LightMode;
+                break;
+            }
+            case ObjectType::Debris:
+                break;
+            case ObjectType::Reactor:
+            {
+                obj.LightColor = Color(2, 0, 0);
+                light.LightColor = Color(3, 0, 0);
+                light.Radius = 30;
+                light.Mode = DynamicLightMode::BigPulse;
+                break;
+            }
+            case ObjectType::Clutter:
+                break;
+            case ObjectType::Light:
+                break;
+            case ObjectType::Coop:
+                break;
+            case ObjectType::Marker:
+                break;
+            default: break;
+        }
+
+        if (light.LightColor != Color()) {
+            light.Parent = ref;
+            light.Duration = (float)obj.Lifespan;
+            light.Segment = obj.Segment;
+            Render::AddDynamicLight(light);
+        }
+    }
+
     void UpdateDirectLight(Object& obj, float duration) {
         Color directLight;
 
@@ -94,6 +154,7 @@ namespace Inferno::Game {
             if (auto seg = Level.TryGetSegment(obj.Segment))
                 seg->AddObject((ObjID)id);
 
+            AttachLight(obj, { (ObjID)id, obj.Signature });
             UpdateDirectLight(obj, 0);
         }
 
@@ -126,6 +187,7 @@ namespace Inferno::Game {
 
             Render::Materials->LoadLevelTextures(Level, forceReload);
             Render::LoadLevel(Level);
+            Render::ResetEffects();
             InitObjects();
 
             Level.Rooms = CreateRooms(Level);
@@ -497,7 +559,7 @@ namespace Inferno::Game {
                 for (int sm = 0; sm < model.Submodels.size(); sm++) {
                     Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), Game::LerpAmount);
                     auto world = GetSubmodelTransform(obj, model, sm) * transform;
-          
+
                     auto explosionDir = world.Translation() - obj.Position; // explode outwards
                     explosionDir.Normalize();
                     auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
@@ -644,8 +706,11 @@ namespace Inferno::Game {
                 Level.Objects.push_back(obj);
             }
 
+            ASSERT(id != ObjID::None);
             Level.GetSegment(obj.Segment).AddObject(id);
             ObjRef objRef = { id, obj.Signature };
+
+            Render::DynamicLight light;
 
             // Hack to attach tracers due to not having the object ID in firing code
             if (obj.IsWeapon()) {
@@ -660,17 +725,9 @@ namespace Inferno::Game {
                     if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
                         Render::AddTracer(*tracer, obj.Segment, objRef);
                 }
-
-                auto& weapon = Resources::GetWeapon(weaponID);
-                Render::DynamicLight light;
-                light.LightColor = weapon.Extended.LightColor;
-                light.LightRadius = weapon.Extended.LightRadius;
-                light.Mode = weapon.Extended.LightMode;
-                light.Parent = objRef;
-                light.Duration = obj.Lifespan;
-                light.Segment = obj.Segment;
-                Render::AddDynamicLight(light);
             }
+
+            AttachLight(obj, { id, obj.Signature });
         }
 
         ResizeAI(Level.Objects.size());
@@ -721,7 +778,7 @@ namespace Inferno::Game {
                     Sound::Stop(objRef); // stop any sounds playing from this object
                 }
             }
-            else if (obj.Lifespan < 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
+            else if (obj.Lifespan <= 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
                 ExplodeWeapon(obj); // explode expired weapons
                 obj.Flags |= ObjectFlag::Dead;
 
@@ -1062,25 +1119,21 @@ namespace Inferno::Game {
 
         ResetCountdown();
         StuckObjects = {};
-        Render::ResetEffects();
         Sound::WaitInitialized();
         Sound::Reset();
         Resources::LoadGameTable();
+        Render::ResetEffects();
         InitObjects();
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
-        Render::InitEffects();
         Level.Rooms = CreateRooms(Level);
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
-            obj.PrevPosition = obj.Position;
-            obj.PrevRotation = obj.Rotation;
-            obj.Signature = GetObjectSig();
 
             if (obj.IsPlayer())
                 obj.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;

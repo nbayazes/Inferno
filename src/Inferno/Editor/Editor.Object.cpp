@@ -234,7 +234,6 @@ namespace Inferno::Editor {
                 obj.Render.Type = RenderType::Powerup;
                 auto& info = Resources::GetPowerup(id);
                 obj.Render.VClip = { .ID = info.VClip };
-                //obj.Render.VClip.FrameTime = Resources::GetVideoClip(info.VClip).FrameTime;
                 obj.Radius = info.Size;
                 obj.LightRadius = info.LightRadius;
                 obj.LightColor = info.LightColor;
@@ -254,23 +253,15 @@ namespace Inferno::Editor {
                 }
 
                 obj.HitPoints = 200;
-                obj.LightRadius = 30;
-                obj.LightColor = Color(3, 0, 0);
-                obj.LightMode = DynamicLightMode::BigPulse;
                 break;
             }
 
             case ObjectType::Weapon: // For placeable mines
             {
-                auto& weapon = Resources::GetWeapon((WeaponID)id);
-                obj.LightColor = weapon.Extended.LightColor;
-                obj.LightRadius = weapon.Extended.LightRadius;
-                obj.LightMode = weapon.Extended.LightMode;
-
-                if ((WeaponID)id == WeaponID::LevelMine) {
+                if ((WeaponID)id == WeaponID::LevelMine)
                     InitPlaceableMine(obj);
-                }
-                //obj.Control.Weapon = weapon.Flags;
+
+                break;
             }
         }
 

@@ -373,7 +373,7 @@ namespace Inferno::Render {
         //}
 
         Graphics::Lights = {};
-        InitEffects();
+        ResetEffects();
         LevelChanged = true;
         //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
@@ -525,7 +525,13 @@ namespace Inferno::Render {
 
         if (LevelChanged) {
             if (Game::GetState() == GameState::Editor)
-                InitEffects(); // added to prevent a crash during level editing
+                ResetEffects(); // prevent crashes due to ids changing
+
+            // Reattach object lights
+            for (auto& obj : Game::Level.Objects) {
+                auto ref = Game::GetObjectRef(obj);
+                Game::AttachLight(obj, ref);
+            }
 
             CopyMaterialData(ctx.GetCommandList());
             LoadVClips(ctx.GetCommandList()); // todo: only load on initial level load

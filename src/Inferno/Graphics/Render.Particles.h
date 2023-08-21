@@ -16,7 +16,7 @@ namespace Inferno::Render {
 
     struct EffectBase {
         SegID Segment = SegID::None;
-        Vector3 Position;
+        Vector3 Position, PrevPosition;
         float Duration = 0; // How long the effect lasts
         float Elapsed = 0; // How long the effect has been alive for
         bool IsTransparent = true; // Which queue to render to
@@ -57,7 +57,7 @@ namespace Inferno::Render {
         DynamicLightMode Mode = DynamicLightMode::Constant;
         //float FlickerSpeed = 4.0f;
         //float FlickerRadius = 0;
-        float LightRadius = -1; // Radius of emitted light
+        float Radius = -1; // Radius of emitted light
         Color LightColor; // Color of emitted light
         float FadeIn = 0; // Fade in at start of life
         //float FadeOut = 0; // Fade out at end of life
@@ -225,17 +225,18 @@ namespace Inferno::Render {
     void DrawBeams(Graphics::GraphicsContext& ctx);
 
     struct TracerInfo final : EffectBase {
-        ObjSig Signature = {}; // signature of the parent
         float Length = 20; // How long the tracer is
         float Width = 2;
         string Texture, BlobTexture;
         Color Color = { 1, 1, 1 };
-        float FadeSpeed = 0.2f; // How quickly the tracer fades in and out
+        //float FadeSpeed = 0.2f; // How quickly the tracer fades in and out
 
         // Runtime vars
-        Vector3 End; // Updated in realtime. Used to fade out tracer after object dies.
-        float Fade = 0; // For fading the tracer in and out
-        bool ParentIsLive = false;
+        //Vector3 End; // Updated in realtime. Used to fade out tracer after object dies.
+        //float Fade = 0; // For fading the tracer in and out
+        //bool ParentIsLive = false;
+        Vector3 Direction; // Motion vector of the tracer
+        float TravelDist = 0;
         //static bool IsAlive(const TracerInfo& info) { return info.Elapsed < info.Duration; }
 
         void OnUpdate(float dt, EffectID) override;
@@ -323,7 +324,7 @@ namespace Inferno::Render {
     // Gets a visual effect
     EffectBase* GetEffect(EffectID effect);
 
-    void InitEffects();
+    void ResetEffects();
     void UpdateEffects(float dt);
     void FixedUpdateEffects(float dt);
 

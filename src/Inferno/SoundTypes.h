@@ -24,6 +24,6 @@ namespace Inferno {
         SoundResource Resource;
     };
 
-    constexpr ObjRef GLOBAL_SOUND_SOURCE = { ObjID(9999), ObjSig::None }; // Assign the source to this value to have it culled against all others
+    constexpr ObjRef GLOBAL_SOUND_SOURCE = { ObjID(9999), ObjSig(9999) }; // Assign the source to this value to have it culled against all others
     constexpr float DEFAULT_SOUND_RADIUS = 250;
 }

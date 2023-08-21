@@ -559,13 +559,13 @@ Robots:
 
 Powerups:
   - id: 1 # Energy
-    Glow: 1, 1, 1, 2
+    Glow: 1, 0.5, 0.5, 1
     LightColor: 1, .55, 0.05, 2.5
     LightRadius: 14
     LightMode: 1 # Flicker
 
   - id: 2 # Shield
-    Glow: 1, 1, 1, 0.5
+    Glow: 1, 1, 0.1, 0.75
     LightColor: 0.0125, 0.0125, 1, 2.5
     LightRadius: 14
     LightMode: 2 # Pulse
@@ -775,11 +775,11 @@ Effects:
 
   Tracers:
     - Name: vulcan_tracer
-      Length: 30
-      Width: 0.3
+      Length: 15
+      Width: 0.25
       Texture: tracer
       BlobTexture: Tracerblob
-      Color: 1, 0.36, 0, 10
+      Color: 1, 0.5, .2, 100
       FadeSpeed: 0.2
 
     - Name: gauss_tracer

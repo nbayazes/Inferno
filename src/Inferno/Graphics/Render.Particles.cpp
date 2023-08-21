@@ -79,10 +79,6 @@ namespace Inferno::Render {
         ASSERT(newId != EffectID::None);
         ASSERT(!Seq::contains(seg.Effects, newId));
         seg.Effects.push_back(newId);
-
-        if (auto effect = GetEffect(newId)) {
-            LinkEffect(*effect, newId, effect->Segment);
-        }
         //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
     }
 
@@ -323,6 +319,7 @@ namespace Inferno::Render {
                 Sound3D sound(expl.Position, expl.Segment);
                 sound.Resource = Resources::GetSoundResource(expl.Sound);
                 sound.Volume = expl.Volume;
+                sound.Source = GLOBAL_SOUND_SOURCE;
                 Sound::Play(sound);
                 //sound.Source = expl.Parent; // no parent so all nearby sounds merge
             }
@@ -344,7 +341,7 @@ namespace Inferno::Render {
                     light.Position = expl.Position;
                     light.FadeTime = light.Duration = Resources::GetVideoClip(p.Clip).PlayTime * 0.75f;
                     light.LightColor = expl.LightColor;
-                    light.LightRadius = expl.LightRadius < 0 ? expl.LightRadius : p.Radius * 4;
+                    light.Radius = expl.LightRadius < 0 ? expl.LightRadius : p.Radius * 4;
                     light.Segment = expl.Segment;
                     AddDynamicLight(light);
                 }
@@ -707,25 +704,14 @@ namespace Inferno::Render {
     //        QueueTransparent(cmd);
     //    }
     //}
+    constexpr float TRACER_MIN_DIST_MULT = 0.75;
 
     void TracerInfo::OnUpdate(float /*dt*/, EffectID) {
-        auto parentWasLive = ParentIsLive;
+        Direction = Position - PrevPosition;
+        TravelDist += Direction.Length();
+        Direction.Normalize();
 
-        const auto obj = Game::Level.TryGetObject(Parent);
-
-        if (obj && obj->Signature == Signature) {
-            ParentIsLive = obj->IsAlive();
-            End = obj->Position;
-            if (ParentIsLive)
-                Elapsed = 0; // Reset life
-        }
-        else {
-            ParentIsLive = false;
-        }
-
-        parentWasLive = parentWasLive && !ParentIsLive;
-        if (parentWasLive)
-            Elapsed = Duration - FadeSpeed; // Start fading out the tracer if parent dies
+        if (TravelDist < Length * TRACER_MIN_DIST_MULT) Elapsed = 0; // Don't start effect until tracer clears the start
     }
 
     void TracerInfo::Draw(Graphics::GraphicsContext& ctx) {
@@ -735,52 +721,47 @@ namespace Inferno::Render {
         effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
         effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
 
-        const auto delta = Position - End;
-        const auto dist = delta.Length();
+        if (TravelDist < Length * TRACER_MIN_DIST_MULT) return; // don't draw tracers that are too short
+        if (Direction == Vector3::Zero || PrevPosition == Position) return;
 
-        if (dist < Length + 2)
-            return; // don't draw tracers that are too short
+        float fade = 1;
+        float remaining = Duration - Elapsed;
+        if (remaining < FadeTime) {
+            //fade = 1 - (FadeTime - remaining) / FadeTime;
+        }
+        else if (Elapsed < FadeTime) {
+            fade = 1 - (FadeTime - Elapsed) / FadeTime;
+            fade = Elapsed / FadeTime;
+        }
 
-        // Fade tracer in or out based on parent being alive
-        auto fadeSpeed = FadeSpeed > 0 ? Render::FrameTime / FadeSpeed : 1;
-        if (ParentIsLive)
-            Fade += fadeSpeed;
-        else
-            Fade -= fadeSpeed;
+        fade = std::clamp(fade, 0.0f, 1.0f);
 
-        Fade = std::clamp(Fade, 0.0f, 1.0f);
-
-        Vector3 dir;
-        delta.Normalize(dir);
-
-        const auto lenMult = ParentIsLive ? 1 : Fade;
-        const auto len = std::min(dist, Length);
-        const auto start = End + dir * len * lenMult;
-        const auto end = End;
-
-        const auto normal = GetBeamNormal(start, End);
+        const auto lenMult = 0.5f + fade * 0.5f;
+        const auto head = Position;
+        const auto tail = Position - Direction * Length * lenMult;
+        const auto normal = GetBeamNormal(head, tail);
 
         // draw rectangular segment
         const auto halfWidth = Width * 0.5f;
         auto up = normal * halfWidth;
         auto color = Color;
-        color.w *= Fade;
+        color.w *= fade;
 
         if (!Texture.empty()) {
             auto& material = Render::Materials->Get(Texture);
             effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
             g_SpriteBatch->Begin(ctx.GetCommandList());
 
-            ObjectVertex v0{ start + up, { 0, 0 }, color };
-            ObjectVertex v1{ start - up, { 1, 0 }, color };
-            ObjectVertex v2{ end - up, { 1, 1 }, color };
-            ObjectVertex v3{ end + up, { 0, 1 }, color };
+            ObjectVertex v0{ head + up, { 0, 1 }, color };
+            ObjectVertex v1{ head - up, { 1, 1 }, color };
+            ObjectVertex v2{ tail - up, { 1, 0 }, color };
+            ObjectVertex v3{ tail + up, { 0, 0 }, color };
             g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
             g_SpriteBatch->End();
             Stats::DrawCalls++;
         }
 
-        if (!BlobTexture.empty() && dist > Length) {
+        if (!BlobTexture.empty() /*&& dist > Length*/) {
             auto& material = Render::Materials->Get(BlobTexture);
             effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
             g_SpriteBatch->Begin(ctx.GetCommandList());
@@ -788,7 +769,7 @@ namespace Inferno::Render {
             auto right = Render::Camera.GetRight() * halfWidth;
             up = Render::Camera.Up * halfWidth;
             constexpr float BLOB_OFFSET = 0.25f; // tracer textures are thickest about a quarter from the end
-            auto blob = End + dir * Length * BLOB_OFFSET * lenMult;
+            auto blob = head - Direction * Length * BLOB_OFFSET * lenMult;
 
             ObjectVertex v0{ blob + up - right, { 0, 0 }, color };
             ObjectVertex v1{ blob - up - right, { 1, 0 }, color };
@@ -801,20 +782,14 @@ namespace Inferno::Render {
     }
 
     void AddTracer(TracerInfo& tracer, SegID seg, ObjRef parent) {
+        assert(!parent.IsNull());
         std::array tex = { tracer.Texture, tracer.BlobTexture };
         Render::Materials->LoadTextures(tex);
         tracer.Segment = seg;
         tracer.Parent = parent;
 
-        assert(tracer.Parent.Id != ObjID::None);
-
         if (auto obj = Game::Level.TryGetObject(tracer.Parent)) {
-            tracer.Position = obj->Position;
-            tracer.Signature = obj->Signature;
-        }
-        else {
-            SPDLOG_WARN("Tried to add tracer to invalid object");
-            return;
+            tracer.PrevPosition = tracer.Position = obj->Position;
         }
 
         tracer.Elapsed = 0;
@@ -1129,17 +1104,8 @@ namespace Inferno::Render {
     }
 
     void AddDynamicLight(DynamicLight& light) {
-        if (light.LightRadius <= 0) return;
+        if (light.Radius <= 0) return;
         AddEffect(MakePtr<DynamicLight>(std::move(light)));
-    }
-
-    void ResetEffects() {
-        ParticleEmitters.Clear();
-        Beams.Clear();
-        Explosions.Clear();
-
-        for (auto& decal : Decals)
-            decal.Duration = 0;
     }
 
     void UpdateEffects(float dt) {
@@ -1171,10 +1137,17 @@ namespace Inferno::Render {
         }
     }
 
-    void InitEffects() {
+    void ResetEffects() {
         for (auto& seg : Game::Level.Segments)
             seg.Effects.clear();
         VisualEffects.clear();
+
+        ParticleEmitters.Clear();
+        Beams.Clear();
+        Explosions.Clear();
+
+        for (auto& decal : Decals)
+            decal.Duration = 0;
     }
 
     void EffectBase::Update(float dt, EffectID id) {
@@ -1182,6 +1155,7 @@ namespace Inferno::Render {
         if (StartDelay > 0) return;
 
         Elapsed += dt;
+        PrevPosition = Position;
 
         if (Parent) {
             auto parent = Game::Level.TryGetObject(Parent);
@@ -1212,7 +1186,7 @@ namespace Inferno::Render {
     }
 
     void DynamicLight::OnUpdate(float /*dt*/, EffectID id) {
-        float lightRadius = LightRadius;
+        float lightRadius = Radius;
         Color lightColor = LightColor;
 
         if (FadeTime > 0) {

@@ -41,6 +41,8 @@ namespace Inferno::Game {
     // is the game level loading?
     inline std::atomic IsLoading = false;
 
+    void AttachLight(Object& obj, ObjRef ref);
+
     void LoadLevel(Inferno::Level&&);
 
     void LoadMission(const filesystem::path& file);

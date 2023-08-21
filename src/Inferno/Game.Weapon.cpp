@@ -12,13 +12,13 @@
 
 namespace Inferno::Game {
     void DrawWeaponExplosion(const Object& obj, const Weapon& weapon) {
-        SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
+        //SoundID soundId = weapon.SplashRadius > 0 ? weapon.RobotHitSound : weapon.WallHitSound;
         VClipID vclip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
 
         Render::ExplosionInfo e;
         e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
         e.Clip = vclip;
-        e.Sound = soundId;
+        //e.Sound = soundId;
         e.FadeTime = weapon.Extended.ExplosionTime; //  0.1f
         if (weapon.Extended.ExplosionColor != Color(-1, -1, -1))
             e.LightColor = weapon.Extended.ExplosionColor;
@@ -159,7 +159,7 @@ namespace Inferno::Game {
 
         Render::DynamicLight light{};
         light.LightColor = weapon.Extended.ExplosionColor;
-        light.LightRadius = weapon.Extended.LightRadius;
+        light.Radius = weapon.Extended.LightRadius;
         light.Position = hit.Point + hit.Normal * weapon.Extended.ExplosionSize;
         light.Duration = light.FadeTime = weapon.Extended.ExplosionTime;
         light.Segment = hit.Tag.Segment;
@@ -228,7 +228,7 @@ namespace Inferno::Game {
 
                 Render::DynamicLight light{};
                 light.LightColor = weapon.Extended.ExplosionColor;
-                light.LightRadius = weapon.Extended.LightRadius;
+                light.Radius = weapon.Extended.LightRadius;
                 light.Position = hit.Point;
                 light.Duration = light.FadeTime = weapon.Extended.ExplosionTime;
                 light.Segment = target.Segment;
@@ -253,6 +253,7 @@ namespace Inferno::Game {
 
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId) {
         if (!hit.Tag) return;
+        if (obj.Lifespan <= 0) return; // Already dead
         bool isPlayer = obj.Control.Weapon.ParentType == ObjectType::Player;
         CheckDestroyableOverlay(level, hit.Point, hit.Tag, hit.Tri, isPlayer);
 

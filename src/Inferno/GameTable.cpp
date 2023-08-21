@@ -252,7 +252,7 @@ namespace Inferno {
         Yaml::ReadValue(node["Texture"], info.Texture);
         Yaml::ReadValue(node["BlobTexture"], info.BlobTexture);
         Yaml::ReadValue(node["Color"], info.Color);
-        Yaml::ReadValue(node["FadeSpeed"], info.FadeSpeed);
+        Yaml::ReadValue(node["FadeSpeed"], info.FadeTime);
         Yaml::ReadValue(node["Duration"], info.Duration);
 
         if (auto name = ReadEffectName(node))
