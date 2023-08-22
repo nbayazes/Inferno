@@ -5,7 +5,7 @@
 
 namespace Inferno {
     struct Sound3D {
-        Sound3D(ObjID source) : Source(source) {}
+        Sound3D(ObjRef source) : Source(source) {}
         Sound3D(const Vector3& pos, SegID seg) : Position(pos), Segment(seg) {}
 
         Vector3 Position; // Position the sound comes from

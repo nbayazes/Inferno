@@ -327,7 +327,7 @@ namespace Inferno {
         Powerup = 1 << 3 // Powerup or hostage
     };
 
-    constexpr double OBJECT_LIFE = 3600 * 100; // 100 hours
+    constexpr double MAX_OBJECT_LIFE = 3600 * 100; // 100 hours
 
     struct Object {
         ObjSig Signature{};     // Unique signature for each object
@@ -342,7 +342,7 @@ namespace Inferno {
         float MaxHitPoints = 100; // Starting maximum hit points
         ContainsData Contains{};
         sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
-        double Lifespan = OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
+        double Lifespan = MAX_OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
         ObjRef Parent; // Parent for projectiles, maybe attached objects
 
         MovementType Movement;

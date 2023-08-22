@@ -57,9 +57,9 @@ namespace Inferno::Render {
 
     void AddEffect(Ptr<EffectBase> e) {
         ASSERT(e->Segment > SegID::None);
+        e->OnInit();
         e->IsAlive = true;
         auto& seg = Game::Level.GetSegment(e->Segment);
-
         auto newId = EffectID::None;
 
         for (size_t i = 0; i < VisualEffects.size(); i++) {
@@ -94,12 +94,12 @@ namespace Inferno::Render {
         AddEffect(MakePtr<Particle>(p));
     }
 
-    void AddEmitter(const ParticleEmitterInfo& info, SegID) {
-        //info.Segment = seg;
-        Render::LoadTextureDynamic(info.Clip);
-        ParticleEmitter emitter(info, 100);
-        ParticleEmitters.Add(emitter);
-    }
+    //void AddEmitter(const ParticleEmitterInfo& info, SegID) {
+    //    //info.Segment = seg;
+    //    Render::LoadTextureDynamic(info.Clip);
+    //    ParticleEmitter emitter(info, 100);
+    //    ParticleEmitters.Add(emitter);
+    //}
 
     // Returns the offset and submodel
     SubmodelRef GetRandomPointOnObject(const Object& obj) {
@@ -336,7 +336,7 @@ namespace Inferno::Render {
                 p.FadeTime = expl.FadeTime;
 
                 // only apply light to first explosion instance
-                if (i == 0) {
+                if (i == 0 && expl.LightColor != LIGHT_UNSET) {
                     DynamicLight light{};
                     light.Position = expl.Position;
                     light.FadeTime = light.Duration = Resources::GetVideoClip(p.Clip).PlayTime * 0.75f;
@@ -909,7 +909,24 @@ namespace Inferno::Render {
         }
     }
 
+    void SparkEmitter::OnInit() {
+        _nextInterval = Interval.GetRandom();
+    }
+
     void SparkEmitter::OnUpdate(float dt, EffectID) {
+        _nextInterval -= dt;
+
+        if (_nextInterval <= 0) {
+            auto count = Count.GetRandom();
+            for (uint i = 0; i < count; i++)
+                CreateSpark();
+
+            if (Interval.Min == Interval.Max && Interval.Min == 0)
+                _nextInterval = FLT_MAX;
+            else
+                _nextInterval = Interval.GetRandom();
+        }
+
         auto parent = Game::Level.TryGetObject(Parent);
 
         Vector3 parentPos = parent ? parent->GetPosition(Game::LerpAmount) : Vector3::Zero;
@@ -936,9 +953,8 @@ namespace Inferno::Render {
                 spark.Velocity += dir * PointGravityStrength * dt;
             }
 
-            if (parent) {
-                spark.Position += parentDelta;
-            }
+            if (parent && Relative)
+                spark.Position += parentDelta; // Move particle with parent
 
             spark.Velocity *= 1 - Drag;
             spark.Position += spark.Velocity * dt;
@@ -948,56 +964,48 @@ namespace Inferno::Render {
     }
 
     void SparkEmitter::OnFixedUpdate(float dt, EffectID) {
-        if (!_createdSparks) {
-            // for now create all sparks when inserted. want to support random delay / permanent generators later.
-            auto count = Count.GetRandom();
-            for (uint i = 0; i < count; i++)
-                CreateSpark();
-
-            _createdSparks = true;
-        }
-
         for (auto& spark : _sparks) {
             spark.Life -= dt;
             if (!spark.IsAlive()) continue;
 
-            auto dir = spark.Velocity;
-            dir.Normalize();
+            if (Physics) {
+                auto dir = spark.Velocity;
+                dir.Normalize();
 
-            Ray ray(spark.Position, dir);
+                Ray ray(spark.Position, dir);
+                auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
+                LevelHit hit;
+                bool hitSomething = IntersectRayLevel(Game::Level, ray, spark.Segment, rayLen, true, true, hit);
 
-            auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
-            LevelHit hit;
-            bool hitSomething = IntersectRayLevel(Game::Level, ray, spark.Segment, rayLen, true, true, hit);
-
-            if (!hitSomething) {
-                // check surrounding segments
-                auto& seg = Game::Level.GetSegment(spark.Segment);
-                for (auto& side : SideIDs) {
-                    hitSomething = IntersectRayLevel(Game::Level, ray, seg.GetConnection(side), rayLen, true, true, hit);
-                    if (hitSomething)
-                        break;
+                if (!hitSomething) {
+                    // check surrounding segments
+                    auto& seg = Game::Level.GetSegment(spark.Segment);
+                    for (auto& side : SideIDs) {
+                        hitSomething = IntersectRayLevel(Game::Level, ray, seg.GetConnection(side), rayLen, true, true, hit);
+                        if (hitSomething)
+                            break;
+                    }
                 }
-            }
 
-            if (hitSomething) {
-                auto& side = Game::Level.GetSide(hit.Tag);
-                auto& ti = Resources::GetLevelTextureInfo(side.TMap);
-                if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
-                    // Remove sparks that hit a liquid
-                    spark.Life = -1;
-                    //Sound3D sound(hit.Point, hit.Tag.Segment);
-                    //sound.Resource = Resources::GetSoundResource(SoundID::MissileHitWater);
-                    //sound.Volume = 0.6f;
-                    //sound.Radius = 75;
-                    //sound.Occlusion = false;
-                    //Sound::Play(sound);
-                }
-                else {
-                    // bounce sparks that hit a wall
-                    spark.Velocity -= hit.Normal * hit.Normal.Dot(spark.Velocity) * (1 - Restitution);
-                    spark.Velocity = Vector3::Reflect(spark.Velocity, hit.Normal);
-                    spark.Segment = hit.Tag.Segment;
+                if (hitSomething) {
+                    auto& side = Game::Level.GetSide(hit.Tag);
+                    auto& ti = Resources::GetLevelTextureInfo(side.TMap);
+                    if (ti.HasFlag(TextureFlag::Volatile) || ti.HasFlag(TextureFlag::Water)) {
+                        // Remove sparks that hit a liquid
+                        spark.Life = -1;
+                        //Sound3D sound(hit.Point, hit.Tag.Segment);
+                        //sound.Resource = Resources::GetSoundResource(SoundID::MissileHitWater);
+                        //sound.Volume = 0.6f;
+                        //sound.Radius = 75;
+                        //sound.Occlusion = false;
+                        //Sound::Play(sound);
+                    }
+                    else {
+                        // bounce sparks that hit a wall
+                        spark.Velocity -= hit.Normal * hit.Normal.Dot(spark.Velocity) * (1 - Restitution);
+                        spark.Velocity = Vector3::Reflect(spark.Velocity, hit.Normal);
+                        spark.Segment = hit.Tag.Segment;
+                    }
                 }
             }
         }
@@ -1013,6 +1021,9 @@ namespace Inferno::Render {
         auto& material = Render::Materials->Get(Texture);
         effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
         g_SpriteBatch->Begin(ctx.GetCommandList());
+
+        auto remaining = Duration - Elapsed;
+        float fade = remaining < FadeTime ? remaining / FadeTime : 1; // global emitter fade
 
         for (auto& spark : _sparks) {
             if (spark.Life <= 0) continue;
@@ -1032,7 +1043,7 @@ namespace Inferno::Render {
             auto color = Color;
             if (FadeTime > 0) {
                 auto t = 1 - std::clamp((FadeTime - spark.Life) / FadeTime, 0.0f, 1.0f);
-                color.w = t;
+                color.w = t * fade;
                 tangent *= t;
             }
 
@@ -1170,10 +1181,16 @@ namespace Inferno::Render {
                 Position = pos;
             }
             else {
-                // Had a parent but was destroyed. Remove this effect.
-                Elapsed = Duration;
-                IsAlive = false;
-                return;
+                if (FadeTime > 0) {
+                    // Detach from parent and fade out
+                    Duration = FadeTime;
+                    Elapsed = 0;
+                    Parent = {};
+                }
+                else {
+                    Elapsed = Duration;
+                    return;
+                }
             }
         }
 

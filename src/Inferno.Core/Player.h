@@ -27,7 +27,7 @@ namespace Inferno {
         static constexpr int MAX_SECONDARY_WEAPONS = 10;
         static constexpr int CALLSIGN_LEN = 8; // so can be used as a 8.3 file name
 
-        ObjID ID = ObjID(0);       // What object number this player is
+        ObjRef Reference = { ObjID{0}, ObjSig{0} }; // Reference to player
 
         struct {
             char Callsign[CALLSIGN_LEN + 1];

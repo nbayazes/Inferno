@@ -84,10 +84,6 @@ namespace Inferno::Editor {
             ImGui::SetNextItemWidth(-1);
             ImGui::InputText("Search", search.data(), search.capacity());
 
-            Sound3D s(Editor::Selection.Object);
-            s.Volume = _vol;
-            s.Pitch = _pitch;
-            s.AttachToSource = true;
             auto searchstr = String::ToLower(string(search.data()));
 
             {
@@ -106,8 +102,14 @@ namespace Inferno::Editor {
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             if (_3d) {
+                                //if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                                Sound3D s(Game::GetObjectRef(Editor::Selection.Object));
+                                s.Volume = _vol;
+                                s.Pitch = _pitch;
+                                s.AttachToSource = true;
                                 s.Resource = { .D1 = i };
                                 Sound::Play(s);
+                                //}
                             }
                             else {
                                 Sound::Play({ .D1 = i }, _vol, _pan, _pitch);
@@ -128,6 +130,9 @@ namespace Inferno::Editor {
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             if (_3d) {
+                                Sound3D s(Game::GetObjectRef(Editor::Selection.Object));
+                                s.Volume = _vol;
+                                s.Pitch = _pitch;
                                 s.Resource = { .D2 = i };
                                 Sound::Play(s);
                             }
@@ -151,6 +156,9 @@ namespace Inferno::Editor {
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             if (_3d) {
+                                Sound3D s(Game::GetObjectRef(Editor::Selection.Object));
+                                s.Volume = _vol;
+                                s.Pitch = _pitch;
                                 s.Resource = { .D3 = sound.FileName };
                                 Sound::Play(s);
                             }

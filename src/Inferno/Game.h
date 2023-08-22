@@ -61,7 +61,7 @@ namespace Inferno::Game {
     void WeaponHitObject(const LevelHit& hit, Object& src);
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
-    void FireWeapon(ObjID objId, WeaponID id, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, bool playSound = true);
+    void FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, bool playSound = true);
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread);
 
     // Detonates a weapon with a splash radius
@@ -130,7 +130,7 @@ namespace Inferno::Game {
     inline NavigationNetwork Navigation;
 
     inline Object& GetPlayer() {
-        return Level.Objects[(int)Player.ID];
+        return Level.Objects[(int)Player.Reference.Id];
     }
 
     bool ObjectIsInFOV(const Ray& ray, const Object& other, float fov);
@@ -148,5 +148,13 @@ namespace Inferno::Game {
         auto id = ObjID(&obj - Level.Objects.data());
         assert((int)id < Level.Objects.size() && (int)id >= 0); // Object wasn't in the level
         return { id, obj.Signature };
+    }
+
+    // Returns an object reference based on its ID
+    inline ObjRef GetObjectRef(ObjID id) {
+        if(auto obj = Level.TryGetObject(id))
+            return { id, obj->Signature };
+        else
+            return {}; // null handle
     }
 }

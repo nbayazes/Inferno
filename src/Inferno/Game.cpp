@@ -68,6 +68,7 @@ namespace Inferno::Game {
                 light.LightColor = weapon.Extended.LightColor;
                 light.Radius = weapon.Extended.LightRadius;
                 light.Mode = weapon.Extended.LightMode;
+                light.FadeTime = weapon.Extended.LightFadeTime;
                 break;
             }
             case ObjectType::Powerup:
@@ -101,7 +102,7 @@ namespace Inferno::Game {
 
         if (light.LightColor != Color()) {
             light.Parent = ref;
-            light.Duration = (float)obj.Lifespan;
+            light.Duration = MAX_OBJECT_LIFE; // lights will be removed when their parent is destroyed
             light.Segment = obj.Segment;
             Render::AddDynamicLight(light);
         }
@@ -271,7 +272,7 @@ namespace Inferno::Game {
         if (Random() < 0.003f) {
             // Playing the sound at player is what the original game does,
             // but it would be nicer to come from the environment instead...
-            Sound3D s(ObjID(0));
+            Sound3D s(Player.Reference);
             s.Volume = Random() * 0.1f + 0.05f;
             s.Resource = Resources::GetSoundResource(sound);
             s.AttachToSource = true;
@@ -605,7 +606,7 @@ namespace Inferno::Game {
 
             case ObjectType::Weapon:
             {
-                // weapons are destroyed in physics
+                // weapons are destroyed in WeaponHitWall, WeaponHitObject and ExplodeWeapon
                 break;
             }
         }
@@ -715,6 +716,7 @@ namespace Inferno::Game {
             // Hack to attach tracers due to not having the object ID in firing code
             if (obj.IsWeapon()) {
                 WeaponID weaponID{ obj.ID };
+                auto& weapon = Resources::GetWeapon(weaponID);
 
                 if (weaponID == WeaponID::Vulcan) {
                     if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
@@ -724,6 +726,12 @@ namespace Inferno::Game {
                 if (weaponID == WeaponID::Gauss) {
                     if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
                         Render::AddTracer(*tracer, obj.Segment, objRef);
+                }
+
+                if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
+                    sparks->Parent = objRef;
+                    sparks->Duration = obj.Lifespan;
+                    Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
                 }
             }
 
@@ -852,7 +860,7 @@ namespace Inferno::Game {
 
         while (accumulator >= TICK_RATE) {
             for (auto& obj : Level.Objects)
-                obj.Lifespan -= dt;
+                obj.Lifespan -= TICK_RATE;
 
             UpdateDoors(Level, TICK_RATE);
             UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
@@ -1113,6 +1121,7 @@ namespace Inferno::Game {
 
         // Activate game mode
         Editor::InitObject(Level, *player, ObjectType::Player);
+        Player.Reference = { ObjID(0), player->Signature };
 
         Editor::History.SnapshotLevel("Playtest");
         State = GameState::Game;
@@ -1166,7 +1175,7 @@ namespace Inferno::Game {
             //}
 
             if (obj.Type == ObjectType::Reactor) {
-                Sound3D reactorHum((ObjID)id);
+                Sound3D reactorHum({ (ObjID)id, obj.Signature });
                 //reactorHum.Resource = { .D3 = "AmbDroneReactor" };
                 reactorHum.Resource = { .D3 = "AmbDroneM" }; // M is very bass heavy
                 reactorHum.Radius = 300;

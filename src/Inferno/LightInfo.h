@@ -1,4 +1,5 @@
 #pragma once
+#include "Types.h"
 
 // Functionality related to loading extended light data such as default colors
 // and point lights
@@ -18,8 +19,6 @@ namespace Inferno {
         EdgeU = 3,
         EdgeV = 4 // Wraps on V, but combines the first and last light when texture wraps on U
     };
-
-    constexpr Color LIGHT_UNSET = { -1, -1, -1 }; // Indicates that light from the level texture info should be used
 
     // Defines dynamic light sources on a texture
     struct TextureLightInfo {

@@ -24,6 +24,7 @@ namespace Inferno::Render {
         float StartDelay = 0; // How long to wait in seconds before starting the effect
         ObjRef Parent;
         SubmodelRef ParentSubmodel;
+        bool FadeOnParentDeath = false; // Detaches from the parent when it dies and uses FadeTime
 
         bool IsAlive = false;
 
@@ -44,6 +45,7 @@ namespace Inferno::Render {
         }
 
         virtual void OnExpire() {}
+        virtual void OnInit() {}
 
         EffectBase() = default;
         virtual ~EffectBase() = default;
@@ -59,8 +61,6 @@ namespace Inferno::Render {
         //float FlickerRadius = 0;
         float Radius = -1; // Radius of emitted light
         Color LightColor; // Color of emitted light
-        float FadeIn = 0; // Fade in at start of life
-        //float FadeOut = 0; // Fade out at end of life
 
         void OnUpdate(float dt, EffectID) override;
     };
@@ -109,11 +109,6 @@ namespace Inferno::Render {
             StartDelay = info.StartDelay;
             Position = info.Position;
         }
-
-        //span<const Particle> GetParticles() const { return _particles.GetLiveData(); }
-        //void AddParticle() {
-        //    _particles.Add(_info.CreateParticle());
-        //}
 
         void OnUpdate(float dt, EffectID) override;
     };
@@ -280,7 +275,7 @@ namespace Inferno::Render {
 
     class SparkEmitter final : public EffectBase {
         DataPool<Spark> _sparks = { &Spark::IsAlive, 100 };
-        bool _createdSparks = false;
+        float _nextInterval = 0;
 
     public:
         string Texture = "tracer";
@@ -290,6 +285,8 @@ namespace Inferno::Render {
         NumericRange<float> SparkDuration = { 1.0, 2.4f }; // Range for individual spark lifespans 
         NumericRange<uint> Count = { 80, 100 };
         NumericRange<float> Velocity = { 50, 75 };
+        NumericRange<float> Interval = { 0, 0 }; // Interval between creating sparks. When zero, only creates sparks once.
+
         Vector3 Direction; // if Zero, random direction
         Vector3 Up; // Used with direction
         float ConeRadius = 1.0f; // Used with direction to spread sparks. Value of 1 is 45 degrees.
@@ -304,9 +301,11 @@ namespace Inferno::Render {
         Vector3 Offset; // Offset when creating particles. Uses relative rotations if has a parent.
         Vector3 PointGravityVelocity = Vector3::Zero; // Applies a gravity field relative to the parent object rotation
         float PointGravityStrength = 0;
-        ObjID Parent = ObjID::None;
         Vector3 PrevParentPosition;
+        bool Relative = false; // Particles move relative to parent when updating instead of detaching into the world
+        bool Physics = true; // Collides with world geometry
 
+        void OnInit() override;
         void OnUpdate(float dt, EffectID) override;
         void OnFixedUpdate(float dt, EffectID) override;
         void Draw(Graphics::GraphicsContext&) override;
@@ -337,6 +336,7 @@ namespace Inferno::Render {
         // Create a copy of the effect so local changes aren't saved
         template <class T>
         Option<T> MaybeCopyValue(Dictionary<string, T>& data, const string& name) {
+            if (name.empty()) return {};
             if (auto value = TryGetValue(data, name)) return *value;
             return {};
         }

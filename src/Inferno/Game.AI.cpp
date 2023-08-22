@@ -138,7 +138,7 @@ namespace Inferno {
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
-        auto id = Game::GetObjectID(obj);
+        auto id = Game::GetObjectRef(obj);
         Sound3D sound(id);
         sound.AttachToSource = true;
         sound.Resource = Resources::GetSoundResource(robot.SeeSound);
@@ -767,7 +767,7 @@ namespace Inferno {
         auto gunOffset = GetSubmodelOffset(obj, { robot.GunSubmodels[gun], robot.GunPoints[gun] });
         auto position = Vector3::Transform(gunOffset, obj.GetTransform());
         auto direction = NormalizeDirection(target, position);
-        auto id = Game::GetObjectID(obj);
+        auto id = Game::GetObjectRef(obj);
         Game::FireWeapon(id, weapon, gun, &direction);
     }
 
@@ -1078,7 +1078,7 @@ namespace Inferno {
             ai.NextChargeSoundDelay = 0.125f + Random() / 8;
 
             if (auto fx = Render::EffectLibrary.GetSparks("robot_fusion_charge")) {
-                auto id = Game::GetObjectID(robot);
+                auto id = Game::GetObjectRef(robot);
                 fx->Parent = id;
 
                 Sound3D sound(id);

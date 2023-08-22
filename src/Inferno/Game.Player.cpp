@@ -67,7 +67,7 @@ namespace Inferno {
 
         // AB button held
         if (active && !AfterburnerActive) {
-            Sound3D sound(ID);
+            Sound3D sound(Reference);
             sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
             sound.FromPlayer = true;
             sound.Radius = 125;
@@ -81,7 +81,7 @@ namespace Inferno {
         // AB button released
         if (!active && AfterburnerActive) {
             Sound::Stop(_afterburnerSoundSig);
-            Sound3D sound(ID);
+            Sound3D sound(Reference);
             sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
             sound.FromPlayer = true;
             sound.Radius = 125;
@@ -188,7 +188,7 @@ namespace Inferno {
             RemovePowerup(PowerupFlag::Invulnerable);
         }
 
-        if (auto player = Game::Level.TryGetObject(ID)) {
+        if (auto player = Game::Level.TryGetObject(Reference)) {
             if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
                 if (seg->Type == SegmentType::Energy && Energy < 100) {
                     constexpr float ENERGY_PER_SECOND = 25.0f;
@@ -226,7 +226,7 @@ namespace Inferno {
                     auto& player = Game::GetPlayer();
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
-                        Sound3D sound(ID);
+                        Sound3D sound(Reference);
                         sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
                         sound.FromPlayer = true;
                         sound.Merge = false;
@@ -236,7 +236,7 @@ namespace Inferno {
                         Shields -= Random() * OVERCHARGE_DAMAGE;
                     }
                     else {
-                        Sound3D sound(ID);
+                        Sound3D sound(Reference);
                         sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
                         sound.FromPlayer = true;
                         sound.Position = player.Position;
@@ -245,7 +245,7 @@ namespace Inferno {
                     }
 
                     if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {
-                        fx->Parent = Game::Player.ID;
+                        fx->Parent = Reference;
                         fx->ParentSubmodel.Offset = GetGunpointOffset(player, 0);
                         Render::AddSparkEmitter(*fx, player.Segment);
 
@@ -284,7 +284,7 @@ namespace Inferno {
 
     void Player::FireFlare() {
         if (_nextFlareFireTime > Game::Time) return;
-        Game::FireWeapon(ID, WeaponID::Flare, 6);
+        Game::FireWeapon(Reference, WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
     }
@@ -327,7 +327,7 @@ namespace Inferno {
 
         auto id = GetSecondaryWeaponID(bomb);
         auto& weapon = Resources::GameData.Weapons[(int)id];
-        Game::FireWeapon(ID, id, 7);
+        Game::FireWeapon(Reference, id, 7);
         ammo -= (uint16)weapon.AmmoUsage;
 
         // Switch active bomb type if ran out of ammo
@@ -425,7 +425,7 @@ namespace Inferno {
 
         for (uint8 i = 0; i < 8; i++) {
             if (sequence[MissileFiringIndex].Gunpoints[i])
-                Game::FireWeapon(ID, id, i);
+                Game::FireWeapon(Reference, id, i);
         }
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
@@ -538,23 +538,20 @@ namespace Inferno {
         //if (Endlevel_sequence)
         //    return;
 
-        if (ID == ObjID(0)) {
-            constexpr float SCALE = 40;
-            if (HasPowerup(PowerupFlag::Invulnerable)) {
-                AddScreenFlash({ 0, 0, damage / SCALE });
-            }
-            else {
-                Shields -= damage;
-                AddScreenFlash({ damage / SCALE, -damage / SCALE, -damage / SCALE });
-            }
-
-            if (Shields < 0) {} // todo: kill player
-
-            // Keep player shields in sync with the object that represents it
-            if (auto player = Game::Level.TryGetObject(ID))
-                player->HitPoints = Shields;
+        constexpr float SCALE = 40;
+        if (HasPowerup(PowerupFlag::Invulnerable)) {
+            AddScreenFlash({ 0, 0, damage / SCALE });
+        }
+        else {
+            Shields -= damage;
+            AddScreenFlash({ damage / SCALE, -damage / SCALE, -damage / SCALE });
         }
 
+        if (Shields < 0) {} // todo: kill player
+
+        // Keep player shields in sync with the object that represents it
+        if (auto player = Game::Level.TryGetObject(Reference))
+            player->HitPoints = Shields;
     }
 
     bool Player::PickUpEnergy() {
@@ -944,7 +941,7 @@ namespace Inferno {
         if (used || ammoPickedUp) {
             obj.Lifespan = -1;
 
-            Sound3D sound(ObjID(0));
+            Sound3D sound(Reference);
             sound.Resource = Resources::GetSoundResource(powerup.HitSound);
             sound.FromPlayer = true;
             sound.Merge = false;
@@ -964,7 +961,7 @@ namespace Inferno {
             PrintHudMessage("hostage rescued!");
             AddScreenFlash({ 0, 0, MAX_FLASH });
 
-            Sound3D sound(ObjID(0));
+            Sound3D sound(Reference);
             sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
             sound.FromPlayer = true;
             sound.Merge = false;

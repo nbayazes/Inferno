@@ -131,8 +131,11 @@ namespace Inferno {
         Color LightColor; // color for projectile environment lighting
         float LightRadius = -1; // size of environment lighting
         DynamicLightMode LightMode = DynamicLightMode::Constant; // Effect to use for lighting
-        Color ExplosionColor = { -1, -1, -1 }; // color for contact explosion. size scales based on explosion size
+        float LightFadeTime = 0.25f; // Time to fade out light when expiring or hitting something
+        Color ExplosionColor = LIGHT_UNSET; // color for contact explosion. size scales based on explosion size
 
+        string Sparks; // Sparks to create while alive
+        string DeathSparks; // Sparks to create when expiring
         int Bounces = 0;
         bool Sticky = false; // Sticks to surfaces once Bounces = 0
         bool InheritParentVelocity = false; // Adds the parent velocity to weapon when firing

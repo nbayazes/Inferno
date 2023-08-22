@@ -1008,7 +1008,6 @@ namespace Inferno {
                     Render::Debug::DrawLine(p1, p2, { 0, 1, 0 });
                     Render::Debug::DrawLine(p2, p0, { 0, 1, 0 });
 #endif
-
                     // a size 4 object would need a velocity > 250 to clip through walls
                     if (obj.Type == ObjectType::Weapon) {
                         // Use raycasting for weapons because they are typically small and have high velocities
@@ -1088,7 +1087,7 @@ namespace Inferno {
                             // bounce velocity is handled after all hits are resolved so that overlapping
                             // triangle edges don't double the effect
                         }
-                        else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing)) {
+                        else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing) && !HasFlag(obj.Physics.Flags, PhysicsFlag::Stick)) {
                             obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
                         }
 
@@ -1119,7 +1118,15 @@ namespace Inferno {
             }
         }
 
-        if (hits > 0)
+        bool sticky = false;
+
+        if (obj.IsWeapon()) {
+            // Sticky weapons shouldn't be repositioned to geometry surface
+            auto& weapon = Resources::GetWeapon(obj);
+            sticky = weapon.Extended.Sticky;
+        }
+
+        if (hits > 0 && !sticky)
             obj.Position = averagePosition / (float)hits;
     }
 
@@ -1178,7 +1185,6 @@ namespace Inferno {
                             // Move players and robots when they collide with something
                             if ((obj.Type == ObjectType::Robot || obj.Type == ObjectType::Player) &&
                                 (other.Type == ObjectType::Robot || other.Type == ObjectType::Player)) {
-                                // todo: unify this math with intersect mesh and level hits
                                 auto hitSpeed = info.Normal.Dot(obj.Physics.Velocity);
                                 hit.Speed = std::abs(hitSpeed);
                                 obj.Position = info.Point + info.Normal * obj.Radius * radiusMult;

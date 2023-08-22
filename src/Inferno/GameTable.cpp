@@ -142,8 +142,11 @@ namespace Inferno {
         READ_PROP_EXT(StunMult);
 
         Yaml::ReadValue(node["LightMode"], (int&)weapon.Extended.LightMode);
+        READ_PROP_EXT(LightFadeTime);
         READ_PROP_EXT(ExplosionColor);
         READ_PROP_EXT(InheritParentVelocity);
+        READ_PROP_EXT(Sparks);
+        READ_PROP_EXT(DeathSparks);
 #undef READ_PROP_EXT
     }
 
@@ -222,7 +225,10 @@ namespace Inferno {
         READ_PROP(PointGravityOffset);
         READ_PROP(Offset);
         READ_PROP(FadeSize);
+        READ_PROP(Relative);
+        READ_PROP(Physics);
         ReadRange(node["SparkDuration"], info.SparkDuration);
+        ReadRange(node["Interval"], info.Interval);
         ReadRange(node["Velocity"], info.Velocity);
         ReadRange(node["Count"], info.Count);
 #undef READ_PROP

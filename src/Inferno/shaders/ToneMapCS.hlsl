@@ -138,7 +138,7 @@ void main(uint3 DTid : SV_DispatchThreadID) {
     hdrColor += bloom;
     // todo: dirt texture needs to maintain aspect ratio when scaling
     if (constants.EnableDirt)
-        hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 1.0;
+        hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 0.4;
     hdrColor *= constants.g_Exposure;
 
     // Tone map to SDR

@@ -11,7 +11,6 @@ Weapons:
     LightRadius: 16
     Glow: 1, 0.25, 0.25, 24
     LightColor: 1, 0.025, 0.025
-    ExplosionColor: 0.8, 0.05, 0.05
     FlashColor: 1, 0.25, 0.25, 20
 
   #- id: 0
@@ -45,7 +44,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.6, 0.05, 0.3
-    ExplosionColor: 0.4, 0.025, 0.2
     FlashColor: 1, 0.15, 0.6, 25
 
   - id: 2
@@ -62,7 +60,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.15, 0.15, 0.6
-    ExplosionColor: 0.15, 0.15, 0.6
     FlashColor: 1, 1, 1, 15
 
   - id: 3
@@ -79,7 +76,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.075, 0.6, 0.075
-    ExplosionColor: 0.05, 0.4, 0.05
     FlashColor: 1, 1, 1, 4
 
   - id: 5
@@ -88,7 +84,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 1, 0.25, 0.15, 1
-    ExplosionColor: 1, 0.25, 0.15
     FlashColor: 1, 0.3, 0.15, 40
     Glow: 1, .2, 0, 2
 
@@ -99,7 +94,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 1, 0.025, 0.025
-    ExplosionColor: 0.8, 0.05, 0.05
     FlashColor: 1, 0.25, 0.25, 20
 
   - id: 10
@@ -116,7 +110,6 @@ Weapons:
     LightRadius: 16
     Glow: .25, .25, 1, 22
     LightColor: 0.15, 0.15, 0.6
-    ExplosionColor: 0.15, 0.15, 0.6
     FlashColor: 0.7, 0.7, 1, 25
 
   - id: 30
@@ -133,7 +126,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.7, 0.4, 0.1, 2
-    ExplosionColor: 0.7, 0.4, 0.1
     FlashColor: 1, .75, .45, 15
 
   - id: 31
@@ -150,19 +142,21 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.54, 0.54, 1, 1.4
-    ExplosionColor: 0.54, 0.54, 1, 1.4
     FlashColor: .5, .5, 1, 15
 
   - id: 9
     Name: flare
     FireDelay: 0.5
     Lifetime: 15
-    Glow: 1, .66, 0.25, 3
+    Glow: 1, .66, 0.25, 20
     LightRadius: 40
-    LightColor: 1, .66, 0.25, 3
+    LightColor: 1, .66, 0.25, 1.5
     LightMode: 3 # Flicker
+    LightFadeTime: 0.4
     Sticky: 1
     FlashColor: 1, 1, 1, 15
+    Sparks: flare sparks # sparks to create while alive
+    DeathSparks: flare death sparks # sparks to create when expiring
 
   - id: 11
     Name: vulcan
@@ -195,7 +189,6 @@ Weapons:
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
     LightColor: 0.3, 0.3, 0.75
-    ExplosionColor: 0.3, 0.3, 0.75
     Mass: 0.05
     BlobSize: 0.6
     Damage: 7
@@ -215,7 +208,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.1, 1, 0.1
-    ExplosionColor: 0.1, 0.8, 0.1
     FlashColor: 1, 1, 1, 4
 
   - id: 14
@@ -234,7 +226,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 20
     LightColor: 0.6, 0.1, 1, 4
-    ExplosionColor: 0.6, 0.0, 0.4
     FlashColor: 1, 1, 1, 35
     Mass: 3
     Behavior: fusion
@@ -316,7 +307,6 @@ Weapons:
     LightRadius: 16
     Glow: 1, 0.25, 0.25, 24
     LightColor: 1, 0.025, 0.025
-    ExplosionColor: 0.8, 0.05, 0.05
     FlashColor: 1, 0.25, 0.25, 20
 
   - id: 25
@@ -330,7 +320,6 @@ Weapons:
     LightRadius: 16
     Glow: .5, 1, .5, 8
     LightColor: 0.075, 0.6, 0.075
-    ExplosionColor: 0.05, 0.4, 0.05
     FlashColor: 1, 1, .125, 2
 
   - id: 26
@@ -344,7 +333,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.1, 1, 0.1
-    ExplosionColor: 0.1, 0.8, 0.1
     FlashColor: 1, 1, 1, 4
 
   - id: 27
@@ -354,7 +342,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 1, 0.025, 0.025
-    ExplosionColor: 0.8, 0.05, 0.05
     FlashColor: 1, 0.25, 0.25, 20
 
   - id: 32
@@ -366,7 +353,6 @@ Weapons:
     ExplosionTime: 0.6
     Damage: 20
     AmmoUsage: 60
-    ExplosionColor: 1.6, 0.4, 0.0
     LightRadius: 6
     #ExplosionSound: ExpHardBullet
     ExplosionSound:
@@ -383,7 +369,6 @@ Weapons:
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
     LightColor: 0.2, 0.5, 0.5
-    ExplosionColor: 0.1, 0.4, 0.4
     FlashColor: 1, 1, 1, 15
 
   - id: 34
@@ -396,7 +381,6 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.6, 0.2, 0
-    ExplosionColor: 0.5, 0.1, 0
     FlashColor: 1, 1, 1, 25
 
   - id: 35
@@ -689,6 +673,32 @@ Effects:
       Width: 0.125
       VelocitySmear: 0.02
 
+    - Name: flare death sparks
+      Color: 1, 0.66, 0.1, 10
+      Count: 6
+      SparkDuration: [ 0.3, .35 ]
+      Restitution: 0.9
+      Drag: 0.08
+      Velocity: [ 40, 45 ]
+      FadeTime: 0.2
+      Texture: tracer
+      Width: 0.175
+      VelocitySmear: 0.03
+
+    - Name: flare sparks
+      Color: 1, 0.66, 0.1, 10
+      Count: [ 2, 4 ]
+      SparkDuration: [ 0.3, 0.6 ]
+      Restitution: 0.6
+      Drag: 0.08
+      Velocity: [ 14, 16]
+      Interval: [ 0.25, 0.9 ]
+      FadeTime: 0.3
+      Texture: tracer
+      Width: 0.2
+      VelocitySmear: 0.025
+      Physics: 1
+
     - Name: fusion_charge
       Color: .6, 0, 1, 20
       Count: 8
@@ -706,6 +716,7 @@ Effects:
       PointGravityVelocity: 0, 0, -10 # Moves the center of gravity relative to start location
       SpawnRadius: 2
       Offset: 0, 0, -1.6 # Particle spawn offset
+      Relative: 1 # Move the effect with the parent
 
     - Name: robot_fusion_charge
       Color: .6, 0, 1, 20

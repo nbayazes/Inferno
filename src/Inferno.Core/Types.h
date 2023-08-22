@@ -131,6 +131,8 @@ namespace Inferno {
     using DirectX::SimpleMath::Ray;
     using DirectX::SimpleMath::Quaternion;
 
+    constexpr Color LIGHT_UNSET = { -1, -1, -1 }; // 'Unset' value for lights
+
     ///////////////////////////////////////////////////////////////////////////
     // .NET Aliases
 
@@ -211,9 +213,15 @@ namespace Inferno {
     enum class TexID : int16 { None = -1, Invalid = 0 }; // Texture ID (Pig)
     enum class EffectID : int16 { None = -1 }; // Effect ID for visual effects
 
+    // Unique reference to an object that includes the signature.
+    // Relying only on ObjIDs causes problems when new objects are created in an existing slot.
     struct ObjRef {
         ObjID Id = ObjID::None;
         ObjSig Signature = ObjSig::None;
+
+        constexpr ObjRef(ObjID id, ObjSig sig) : Id(id), Signature(sig) { }
+        constexpr ObjRef() = default;
+
         bool IsNull() const { return Id == ObjID::None || Signature == ObjSig::None; }
 
         bool operator ==(const ObjRef ref) const {
