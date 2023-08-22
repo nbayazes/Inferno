@@ -81,8 +81,6 @@ namespace Inferno {
     }
 
     void SaveFireProcedural(ryml::NodeRef node, const Outrage::ProceduralInfo& info) {
-        node |= ryml::MAP;
-        node["EvalTime"] << info.EvalTime;
         node["Heat"] << info.Heat;
 
         ryml::Tree tree(1);
@@ -105,10 +103,7 @@ namespace Inferno {
     }
 
     void SaveWaterProcedural(ryml::NodeRef node, const Outrage::ProceduralInfo& info) {
-        node |= ryml::MAP;
-
         node["IsWater"] << true;
-        node["EvalTime"] << info.EvalTime;
         node["Thickness"] << info.Thickness;
         node["Light"] << info.Light;
         node["OscillateTime"] << info.OscillateTime;
@@ -149,11 +144,17 @@ namespace Inferno {
 
         if (auto proc = GetProcedural(id)) {
             auto procNode = node["Procedural"];
+            procNode |= ryml::MAP;
+
+            auto& procInfo = proc->Info.Procedural;
+
+            procNode["EvalTime"] << procInfo.EvalTime;
+            if (!procInfo.Wrap) procNode["Wrap"] << procInfo.Wrap;
 
             if (proc->Info.Procedural.IsWater)
-                SaveWaterProcedural(procNode, proc->Info.Procedural);
+                SaveWaterProcedural(procNode, procInfo);
             else
-                SaveFireProcedural(procNode, proc->Info.Procedural);
+                SaveFireProcedural(procNode, procInfo);
         }
     }
 
@@ -202,7 +203,8 @@ namespace Inferno {
             Outrage::ProceduralInfo proc{};
 
             ReadValue(procNode["IsWater"], proc.IsWater);
-            Yaml::ReadValue(procNode["EvalTime"], proc.EvalTime);
+            ReadValue(procNode["EvalTime"], proc.EvalTime);
+            ReadValue(procNode["Wrap"], proc.Wrap);
 
             if (proc.IsWater)
                 ReadWaterProcedural(procNode, proc);
@@ -268,5 +270,4 @@ namespace Inferno {
             SPDLOG_ERROR("Error saving level metadata:\n{}", e.what());
         }
     }
-
 }

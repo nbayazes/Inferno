@@ -276,6 +276,9 @@ namespace Inferno::Editor {
                                 info.EvalTime = 1 / (float)fps;
                             }
 
+                            ImGui::TableRowLabel("Wrap");
+                            ImGui::Checkbox("##Wrap", &info.Wrap);
+
                             if (info.IsWater) {
                                 ImGui::TableRowLabel("Thickness");
                                 ImGui::SetNextItemWidth(-1);

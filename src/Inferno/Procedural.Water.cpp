@@ -104,8 +104,8 @@ namespace Inferno {
         return AverageColor(x0, x1);
     }
 
-    List<Palette::Color> BilinearUpscale(const PigBitmap& src, int outputWidth) {
-        assert(src.Info.Width == 64 && src.Info.Height == 64);
+    List<Palette::Color> BilinearUpscale(const PigBitmap& src, int outputWidth, bool wrap) {
+        assert(src.Info.Width == 64 && src.Info.Height == 64); // Only tested with 64x64 textures
 
         auto srcWidth = src.Info.Width;
         auto srcHeight = src.Info.Height;
@@ -123,10 +123,23 @@ namespace Inferno {
                 float u = x + 0.5f;
                 float v = y + 0.5f;
 
-                int xl = (int)floor(ratioX * u) % srcWidth;
-                int yl = (int)floor(ratioY * v) % srcHeight;
-                int xh = (int)ceil(ratioX * u) % srcWidth;
-                int yh = (int)ceil(ratioY * v) % srcHeight;
+                int xl = (int)floor(ratioX * u);
+                int yl = (int)floor(ratioY * v);
+                int xh = (int)ceil(ratioX * u);
+                int yh = (int)ceil(ratioY * v);
+
+                if (wrap) {
+                    xl %= srcWidth;
+                    yl %= srcHeight;
+                    xh %= srcWidth;
+                    yh %= srcHeight;
+                }
+                else {
+                    xl = std::clamp(xl, 0, srcWidth - 1);
+                    yl = std::clamp(yl, 0, srcHeight - 1);
+                    xh = std::clamp(xh, 0, srcWidth - 1);
+                    yh = std::clamp(yh, 0, srcHeight - 1);
+                }
 
                 float xWeight = (ratioX * u) - xl;
                 float yWeight = (ratioY * v) - yl;
@@ -155,7 +168,7 @@ namespace Inferno {
             _waterBuffer[0].resize(_totalSize);
             _waterBuffer[1].resize(_totalSize);
             auto& texture = Resources::GetBitmap(baseTexture);
-            _baseTexture.Data = BilinearUpscale(texture, _resolution);
+            _baseTexture.Data = BilinearUpscale(texture, _resolution, info.Procedural.Wrap);
             _baseTexture.Info.Width = _resolution;
             _baseTexture.Info.Height = _resolution;
         }
@@ -321,6 +334,7 @@ namespace Inferno {
                 }
             }
         }
+
         void AddWaterLine(const Element& elem) {
             if (!ShouldDrawElement(elem))
                 return;
@@ -437,7 +451,7 @@ namespace Inferno {
                 }
                 else if (y == _resolution - 1) {
                     aboveoffset = _resolution;
-                    belowoffset = -(_resolution - 1) * _resolution;;
+                    belowoffset = -(_resolution - 1) * _resolution;
                 }
                 else {
                     belowoffset = aboveoffset = _resolution;
@@ -479,41 +493,56 @@ namespace Inferno {
             auto srcResmaskY = texture.Info.Height - 1;
 
             for (int y = 0; y < _resolution; y++) {
-                int topoffset, botoffset;
+                int topOffset, botOffset;
                 if (y == (_resolution - 1)) {
-                    botoffset = _resMask * _resolution;
-                    topoffset = _resolution;
+                    // wrap top edge
+                    botOffset = _resMask * _resolution;
+                    topOffset = _resolution;
                 }
                 else if (y == 0) {
-                    botoffset = -_resolution;
-                    topoffset = -_resMask * _resolution;
+                    // wrap bottom edge
+                    botOffset = -_resolution;
+                    topOffset = -_resMask * _resolution;
                 }
                 else {
-                    topoffset = _resolution;
-                    botoffset = -_resolution;
+                    topOffset = _resolution;
+                    botOffset = -_resolution;
                 }
 
                 for (int x = 0; x < _resolution; x++) {
-                    int offset = y * _resolution + x;
+                    int index = y * _resolution + x; // pixel index
 
-                    int horizheight;
-                    if (x == _resolution - 1)
-                        horizheight = heights[offset - 1] - heights[offset - _resolution + 1];
-                    else if (x == 0)
-                        horizheight = heights[offset + _resolution - 1] - heights[offset + 1];
-                    else
-                        horizheight = heights[offset - 1] - heights[offset + 1];
+                    int horizHeight;
+                    if (x == _resolution - 1) {
+                        // Wrap right edge
+                        horizHeight = heights[index - 1] - heights[index - _resolution + 1];
+                    }
+                    else if (x == 0) {
+                        // Wrap left edge
+                        horizHeight = heights[index + _resolution - 1] - heights[index + 1];
+                    }
+                    else {
+                        horizHeight = heights[index - 1] - heights[index + 1];
+                    }
 
-                    int vertheight = heights[offset - topoffset] - heights[offset - botoffset];
+                    int vertHeight = heights[index - topOffset] - heights[index - botOffset];
 
-                    int lightval = 32 - (horizheight >> lightshift);
+                    int lightval = 32 - (horizHeight >> lightshift);
                     if (lightval > 63)
                         lightval = 63;
                     if (lightval < 0)
                         lightval = 0;
 
-                    int xShift = int((horizheight >> 3) + x * xScale) % texture.Info.Width;
-                    int yShift = int((vertheight >> 3) + y * yScale) % texture.Info.Width;
+                    int xShift = int((horizHeight >> 3) + x * xScale);
+                    int yShift = int((vertHeight >> 3) + y * yScale);
+
+                    if (Info.Procedural.Wrap) {
+                        xShift %= texture.Info.Width;
+                        yShift %= texture.Info.Height;
+                    } else {
+                        xShift = std::clamp(xShift, 0, (int)texture.Info.Width - 1);
+                        yShift = std::clamp(yShift, 0, (int)texture.Info.Height - 1);
+                    }
 
                     int destOffset = y * _resolution + x;
 

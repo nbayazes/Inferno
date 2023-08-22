@@ -248,7 +248,6 @@ Materials:
     NormalStrength: 0.364
     Roughness: 0.738
   - TexID: 722
-    NormalStrength: 0.7
     SpecularStrength: 0.7
     Roughness: 0.7
   - TexID: 723
@@ -1243,8 +1242,8 @@ Materials:
     SpecularStrength: 0.186
     Roughness: 0.741
     Procedural:
-      IsWater: 1
       EvalTime: 0.037037037
+      IsWater: 1
       Thickness: 7
       Light: 5
       OscillateTime: 0
@@ -1263,8 +1262,8 @@ Materials:
     EmissiveStrength: 0.2
     LightReceived: 0
     Procedural:
-      IsWater: 1
       EvalTime: 0.033333335
+      IsWater: 1
       Thickness: 6
       Light: 8
       OscillateTime: 0
@@ -1299,12 +1298,13 @@ Materials:
     Roughness: 0.7
     EmissiveStrength: 2.5
   - TexID: 1116
-    NormalStrength: 0.5
+    NormalStrength: 0.2
     Metalness: 0.4
     Roughness: 0.7
     Procedural:
-      IsWater: 1
       EvalTime: 0.033333335
+      Wrap: 0
+      IsWater: 1
       Thickness: 6
       Light: 4
       OscillateTime: 0
@@ -1312,12 +1312,12 @@ Materials:
       Elements:
         - '{"Type": 2,"X1": 64,"Y1": 64,"Frequency": 60,"Size": 64,"Speed": -116}'
   - TexID: 1124
-    NormalStrength: 0.5
+    NormalStrength: 0.4
     Metalness: 0.4
     Roughness: 0.7
     Procedural:
-      IsWater: 1
       EvalTime: 0.033333335
+      IsWater: 1
       Thickness: 6
       Light: 4
       OscillateTime: 0
@@ -1414,8 +1414,8 @@ Materials:
     EmissiveStrength: 0.2
     LightReceived: 0
     Procedural:
-      IsWater: 1
       EvalTime: 0.037037037
+      IsWater: 1
       Thickness: 6
       Light: 8
       OscillateTime: 0
