@@ -173,7 +173,7 @@ Weapons:
     LightRadius: 3.75
     ExplosionColor: 1.0, 0.36, 0.0, 1.2
     Model: -1
-    FlashColor: 1, 1, 1, 15
+    FlashColor: 1, 0.6, .3, 6
     StunMult: 2 # Increase slow so vulcan can tag small fast enemies
     Size: 0.75
     

@@ -1101,6 +1101,7 @@ namespace Inferno::Render {
     //}
 
     void AddSparkEmitter(SparkEmitter emitter, SegID seg, const Vector3& worldPos) {
+        if (emitter.Color == LIGHT_UNSET) return;
         emitter.Segment = seg;
         emitter.Position = worldPos;
         emitter.Color *= emitter.Color.w;
@@ -1115,7 +1116,7 @@ namespace Inferno::Render {
     }
 
     void AddDynamicLight(DynamicLight& light) {
-        if (light.Radius <= 0) return;
+        if (light.Radius <= 0 || light.LightColor == LIGHT_UNSET) return;
         AddEffect(MakePtr<DynamicLight>(std::move(light)));
     }
 

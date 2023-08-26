@@ -531,7 +531,6 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage) {
-        if (Settings::Cheats.DisableWeaponDamage) return;
         //if (Player_is_dead)
         //    return;
 
@@ -539,7 +538,7 @@ namespace Inferno {
         //    return;
 
         constexpr float SCALE = 40;
-        if (HasPowerup(PowerupFlag::Invulnerable)) {
+        if (HasPowerup(PowerupFlag::Invulnerable) || Settings::Cheats.DisableWeaponDamage) {
             AddScreenFlash({ 0, 0, damage / SCALE });
         }
         else {

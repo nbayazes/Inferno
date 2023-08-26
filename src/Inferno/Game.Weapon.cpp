@@ -18,7 +18,7 @@ namespace Inferno::Game {
         Render::ExplosionInfo e;
         e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
         e.Clip = vclip;
-        //e.Sound = soundId;
+        //e.Sound = soundId; // Don't create sound here because if a liquid is hit the sound is different.
         e.FadeTime = weapon.Extended.ExplosionTime;
         e.LightColor = weapon.Extended.ExplosionColor;
         Render::CreateExplosion(e, obj.Segment, obj.Position);
@@ -37,6 +37,10 @@ namespace Inferno::Game {
             // Create explosion
             float damage = weapon.Damage[Game::Difficulty];
             DrawWeaponExplosion(obj, weapon);
+
+            Sound3D sound(obj.Position, obj.Segment);
+            sound.Resource = Resources::GetSoundResource(weapon.RobotHitSound);
+            Sound::Play(sound);
 
             GameExplosion ge{};
             ge.Damage = damage;
@@ -226,7 +230,12 @@ namespace Inferno::Game {
             // More damage creates more sparks
             float damageMult = std::clamp(damage / 20.0f, 1.0f, 2.0f);
             if (auto sparks = Render::EffectLibrary.GetSparks("weapon_hit_obj")) {
-                sparks->Color += weapon.Extended.ExplosionColor * 60;
+                // Mass weapons set explosion color, energy weapons set light color
+                if (weapon.Extended.ExplosionColor != LIGHT_UNSET)
+                    sparks->Color += weapon.Extended.ExplosionColor * 60;
+                else
+                    sparks->Color += weapon.Extended.LightColor * 60;
+
                 sparks->Color.w = 1;
                 sparks->Count.Min = int(sparks->Count.Min * damageMult);
                 sparks->Count.Max = int(sparks->Count.Max * damageMult);
@@ -557,7 +566,7 @@ namespace Inferno::Game {
         if (showFlash) {
             Render::Particle p{};
             p.Clip = weapon.FlashVClip;
-            p.Position = position;
+            p.Position = bullet.Position;
             p.Radius = weapon.FlashSize;
             p.Parent = ref;
             p.ParentSubmodel = gunSubmodel;
@@ -565,12 +574,14 @@ namespace Inferno::Game {
             p.Color = weapon.Extended.FlashColor;
             Render::AddParticle(p, obj.Segment);
 
-            //Render::DynamicLight light;
-            //light.LightColor = weapon.Extended.FlashColor;
-            //light.LightRadius = weapon.FlashSize * 4;
-            //light.FadeTime = light.Duration = 0.5f;
-            //light.Segment = obj.Segment;
-            //Render::AddDynamicLight(light);
+            // Muzzle flash. Important for mass weapons that don't emit lights on their own.
+            Render::DynamicLight light;
+            light.LightColor = weapon.Extended.FlashColor;
+            light.Radius = weapon.FlashSize * 4;
+            light.FadeTime = light.Duration = 0.25f;
+            light.Segment = obj.Segment;
+            light.Position = bullet.Position;
+            Render::AddDynamicLight(light);
         }
 
         bullet.Rotation.Normalize();
@@ -584,9 +595,9 @@ namespace Inferno::Game {
 
         if (player.SpreadfireToggle) {
             // Vertical
-            FireSpreadWeapon( player.Reference, gun, wid);
-            FireSpreadWeapon( player.Reference, gun, wid, false, { 0, -spread });
-            FireSpreadWeapon( player.Reference, gun, wid, false, { 0, spread });
+            FireSpreadWeapon(player.Reference, gun, wid);
+            FireSpreadWeapon(player.Reference, gun, wid, false, { 0, -spread });
+            FireSpreadWeapon(player.Reference, gun, wid, false, { 0, spread });
         }
         else {
             // Horizontal
