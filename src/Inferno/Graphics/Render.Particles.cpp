@@ -22,7 +22,6 @@ namespace Inferno::Render {
         uint16 AdditiveDecalIndex = 0;
 
         DataPool<ExplosionInfo> Explosions(&ExplosionInfo::IsAlive, 50);
-        DataPool<ParticleEmitter> ParticleEmitters(&ParticleEmitter::IsAlive, 10);
         List<Ptr<EffectBase>> VisualEffects;
     }
 
@@ -58,7 +57,6 @@ namespace Inferno::Render {
     void AddEffect(Ptr<EffectBase> e) {
         ASSERT(e->Segment > SegID::None);
         e->OnInit();
-        e->IsAlive = true;
         auto& seg = Game::Level.GetSegment(e->Segment);
         auto newId = EffectID::None;
 
@@ -93,13 +91,6 @@ namespace Inferno::Render {
         Render::LoadTextureDynamic(p.Clip);
         AddEffect(MakePtr<Particle>(p));
     }
-
-    //void AddEmitter(const ParticleEmitterInfo& info, SegID) {
-    //    //info.Segment = seg;
-    //    Render::LoadTextureDynamic(info.Clip);
-    //    ParticleEmitter emitter(info, 100);
-    //    ParticleEmitters.Add(emitter);
-    //}
 
     // Returns the offset and submodel
     SubmodelRef GetRandomPointOnObject(const Object& obj) {
@@ -848,7 +839,7 @@ namespace Inferno::Render {
             effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
 
             for (auto& decal : Decals) {
-                if (!decal.IsAlive) continue;
+                if (decal.Elapsed > decal.Duration) continue;
                 decal.Update(dt, EffectID(0));
 
                 auto& material = Render::Materials->Get(decal.Texture);
@@ -868,7 +859,7 @@ namespace Inferno::Render {
             effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
 
             for (auto& decal : AdditiveDecals) {
-                if (!decal.IsAlive) continue;
+                if (decal.Elapsed > decal.Duration) continue;
                 decal.Update(dt, EffectID(0));
 
                 auto& material = Render::Materials->Get(decal.Texture);
@@ -1124,8 +1115,7 @@ namespace Inferno::Render {
         UpdateExplosions(dt); // Explosions generate sprites that are added as segment effects
 
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
-            auto& effect = VisualEffects[effectId];
-            if (effect && effect->IsAlive)
+            if (auto& effect = VisualEffects[effectId])
                 effect->Update(dt, EffectID(effectId));
         }
 
@@ -1144,7 +1134,7 @@ namespace Inferno::Render {
     void FixedUpdateEffects(float dt) {
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             auto& effect = VisualEffects[effectId];
-            if (effect && effect->IsAlive)
+            if (effect)
                 effect->FixedUpdate(dt, EffectID(effectId));
         }
     }
@@ -1154,7 +1144,6 @@ namespace Inferno::Render {
             seg.Effects.clear();
         VisualEffects.clear();
 
-        ParticleEmitters.Clear();
         Beams.Clear();
         Explosions.Clear();
 
@@ -1199,7 +1188,6 @@ namespace Inferno::Render {
     }
 
     void EffectBase::FixedUpdate(float dt, EffectID id) {
-        if (!IsAlive) return;
         OnFixedUpdate(dt, id);
     }
 

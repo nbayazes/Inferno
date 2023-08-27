@@ -26,17 +26,14 @@ namespace Inferno::Render {
         SubmodelRef ParentSubmodel;
         bool FadeOnParentDeath = false; // Detaches from the parent when it dies and uses FadeTime
 
-        bool IsAlive = false;
-
         // Called once per frame
         void Update(float dt, EffectID id);
 
+        // Called per game tick
         void FixedUpdate(float dt, EffectID);
 
         virtual void OnUpdate(float /*dt*/, EffectID) {}
         virtual void OnFixedUpdate(float /*dt*/, EffectID) {}
-
-        // Called per game tick
 
         virtual void Draw(Graphics::GraphicsContext&) {}
 
@@ -113,7 +110,6 @@ namespace Inferno::Render {
         void OnUpdate(float dt, EffectID) override;
     };
 
-    //void AddEmitter(ParticleEmitter& emitter, size_t capacity);
     void AddParticle(Particle&, SegID);
 
     // Remains of a destroyed robot

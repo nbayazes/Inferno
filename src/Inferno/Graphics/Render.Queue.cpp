@@ -51,8 +51,7 @@ namespace Inferno::Render {
 
             for (int i = 0; i < level.Segments.size(); i++) {
                 for (auto& effectID : level.Segments[i].Effects) {
-                    auto effect = GetEffect(effectID);
-                    if (effect && effect->IsAlive) {
+                    if (auto effect = GetEffect(effectID)) {
                         _transparentQueue.push_back({ effect, GetRenderDepth(effect->Position) });
                     }
                 }
@@ -181,8 +180,7 @@ namespace Inferno::Render {
             }
 
             for (auto& effectId : seg->Effects) {
-                auto effect = GetEffect(effectId);
-                if (effect && effect->IsAlive) {
+                if (auto effect = GetEffect(effectId)) {
                     Stats::EffectDraws++;
                     objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
                 }
