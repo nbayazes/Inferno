@@ -390,6 +390,7 @@ namespace Inferno {
 
     struct ExplodingWall {
         Tag Tag;
+        RoomID Room = RoomID::None;
         float Time = 0;
         bool IsAlive() const { return Tag.HasValue(); }
     };
@@ -432,13 +433,15 @@ namespace Inferno {
                 auto& side = level.GetSide(wall.Tag);
                 pos += side.AverageNormal * size * float(TOTAL_FIREBALLS - e) / TOTAL_FIREBALLS;
 
-                if (!(e & 3)) {
+                if (e % 4 == 0) {
                     // Create a damaging explosion 1/4th of the time
                     GameExplosion expl{};
                     expl.Damage = 4;
                     expl.Radius = 20;
                     expl.Force = 50;
                     expl.Position = pos;
+                    expl.Segment = wall.Tag.Segment;
+                    expl.Room = wall.Room;
                     CreateExplosion(level, nullptr, expl);
                 }
 
@@ -461,7 +464,8 @@ namespace Inferno {
         sound.Resource = Resources::GetSoundResource(SoundID::ExplodingWall);
         Sound::Play(sound);
 
-        ExplodingWalls.Add({ tag });
+        auto room = level.FindRoomBySegment(tag.Segment);
+        ExplodingWalls.Add({ tag, room });
     }
 
     void DestroyWall(Level& level, Tag tag) {

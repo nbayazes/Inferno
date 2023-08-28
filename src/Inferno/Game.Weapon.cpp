@@ -47,6 +47,7 @@ namespace Inferno::Game {
             ge.Force = damage;
             ge.Radius = weapon.SplashRadius;
             ge.Segment = obj.Segment;
+            ge.Room = obj.Room;
             ge.Position = obj.Position;
             CreateExplosion(Game::Level, &obj, ge);
         }
@@ -538,6 +539,7 @@ namespace Inferno::Game {
         bullet.ID = (int8)id;
         bullet.Parent = ref;
         bullet.Segment = obj.Segment;
+        bullet.Room = obj.Room;
 
         bullet.Render.Emissive = weapon.Extended.Glow;
 

@@ -478,9 +478,14 @@ namespace Inferno {
     // Tags a point on a segment side
     struct PointTag : Tag { uint16 Point; };
 
-    // Connection between rooms. The segment and side are the containing room. The room id is the connected room.
-    struct Portal : Tag {
-        RoomID Room = RoomID::None;
+    // Connection between rooms
+    struct Portal {
+        //Portal() = default;
+        //Portal(Tag tag, RoomID roomLink, int portalLink) : Tag(tag), RoomLink(roomLink), PortalLink(portalLink) {  }
+
+        Tag Tag; // Side the portal is attached to
+        RoomID RoomLink = RoomID::None;
+        int PortalLink = -1; // ID of portal in connected room
     };
 
     constexpr Tag GetOppositeSide(Tag tag) {

@@ -563,108 +563,121 @@ namespace Inferno {
 
     // Creates an explosion that can cause damage or knockback
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion) {
-        // todo: only scan nearby objects
-        for (auto& target : level.Objects) {
-            if (&target == source) continue;
-            if (!target.IsAlive()) continue;
+        ASSERT(explosion.Room != RoomID::None);
 
-            if (target.Type == ObjectType::Weapon && (target.ID != (int)WeaponID::ProxMine && target.ID != (int)WeaponID::SmartMine && target.ID != (int)WeaponID::LevelMine))
-                continue; // only allow explosions to affect weapons that are mines
+        auto roomAction = [&](const Room& room) {
+            for (auto& segId : room.Segments) {
+                auto& seg = level.GetSegment(segId);
+                for (auto& objId : seg.Objects) {
+                    auto obj = level.TryGetObject(objId);
+                    if (!obj) continue;
+                    auto& target = *obj;
 
-            // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
-            //if (&level.GetObject(obj.Parent) == &source) continue; // don't hit your parent
+                    if (&target == source) continue;
+                    if (!target.IsAlive()) continue;
 
-            if (target.Type != ObjectType::Player && target.Type != ObjectType::Robot && target.Type != ObjectType::Weapon && target.Type != ObjectType::Reactor)
-                continue;
+                    if (target.Type == ObjectType::Weapon && (target.ID != (int)WeaponID::ProxMine && target.ID != (int)WeaponID::SmartMine && target.ID != (int)WeaponID::LevelMine))
+                        continue; // only allow explosions to affect weapons that are mines
 
-            auto dist = Vector3::Distance(target.Position, explosion.Position);
+                    // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
+                    //if (&level.GetObject(obj.Parent) == &source) continue; // don't hit your parent
 
-            // subtract object radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
-            // however don't apply it to players due to dramatically increasing the amount of damage taken
-            if (target.Type != ObjectType::Player && target.Type != ObjectType::Coop)
-                dist -= target.Radius;
+                    if (target.Type != ObjectType::Player && target.Type != ObjectType::Robot && target.Type != ObjectType::Weapon && target.Type != ObjectType::Reactor)
+                        continue;
 
-            if (dist >= explosion.Radius) continue;
-            dist = std::max(dist, 0.0f);
+                    auto dist = Vector3::Distance(target.Position, explosion.Position);
 
-            Vector3 dir = target.Position - explosion.Position;
-            dir.Normalize();
-            Ray ray(explosion.Position, dir);
-            LevelHit hit;
-            if (IntersectRayLevel(level, ray, explosion.Segment, dist, true, true, hit))
-                continue;
+                    // subtract object radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
+                    // however don't apply it to players due to dramatically increasing the amount of damage taken
+                    if (target.Type != ObjectType::Player && target.Type != ObjectType::Coop)
+                        dist -= target.Radius;
 
-            // linear damage falloff
-            float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
-            float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
+                    if (dist >= explosion.Radius) continue;
+                    dist = std::max(dist, 0.0f);
 
-            Vector3 forceVec = dir * force;
-            //auto hitPos = (source.Position - obj.Position) * obj.Radius / (obj.Radius + dist);
+                    Vector3 dir = target.Position - explosion.Position;
+                    dir.Normalize();
+                    Ray ray(explosion.Position, dir);
+                    LevelHit hit;
+                    // bug: this hit test should be against all geometry in the room and not just the start segment
+                    if (IntersectRayLevel(level, ray, explosion.Segment, dist, true, true, hit))
+                        continue;
 
-            // Find where the point of impact is... ( pos_hit )
-            //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
+                    // linear damage falloff
+                    float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
+                    float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
 
-            switch (target.Type) {
-                case ObjectType::Weapon:
-                {
-                    ApplyForce(target, forceVec);
-                    // Mines can blow up under enough force
-                    //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
-                    //    if (dist * force > 0.122f) {
-                    //        obj.Lifespan = 0;
-                    //        // explode()?
-                    //    }
-                    //}
-                    break;
-                }
+                    Vector3 forceVec = dir * force;
+                    //auto hitPos = (source.Position - obj.Position) * obj.Radius / (obj.Radius + dist);
 
-                case ObjectType::Robot:
-                {
-                    float stunMult = 1;
-                    if (source && source->IsWeapon()) {
-                        auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
-                        stunMult = weapon.Extended.StunMult;
+                    // Find where the point of impact is... ( pos_hit )
+                    //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
+
+                    switch (target.Type) {
+                        case ObjectType::Weapon:
+                        {
+                            ApplyForce(target, forceVec);
+                            // Mines can blow up under enough force
+                            //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
+                            //    if (dist * force > 0.122f) {
+                            //        obj.Lifespan = 0;
+                            //        // explode()?
+                            //    }
+                            //}
+                            break;
+                        }
+
+                        case ObjectType::Robot:
+                        {
+                            float stunMult = 1;
+                            if (source && source->IsWeapon()) {
+                                auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
+                                stunMult = weapon.Extended.StunMult;
+                            }
+                            ApplyForce(target, forceVec);
+                            DamageRobot(target, damage, stunMult);
+
+                            target.LastHitForce = forceVec;
+                            //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
+
+                            // todo: guidebot ouchies
+
+                            //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
+                            // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
+                            if (!source || source->LastHitObject != target.Signature)
+                                ApplyRotation(target, forceVec * stunMult);
+                            break;
+                        }
+
+                        case ObjectType::Reactor:
+                        {
+                            // apply damage if source is player
+                            if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent.Id == ObjID(0))
+                                target.ApplyDamage(damage);
+
+                            break;
+                        }
+
+                        case ObjectType::Player:
+                        {
+                            ApplyForce(target, forceVec);
+                            if (!source || source->LastHitObject != target.Signature)
+                                ApplyRotation(target, forceVec);
+
+                            // Quarter damage explosions on trainee
+                            if (Game::Difficulty == 0) damage /= 4;
+                            Game::Player.ApplyDamage(damage);
+                            break;
+                        }
+
+                        default:
+                            throw Exception("Invalid object type in CreateExplosion()");
                     }
-                    ApplyForce(target, forceVec);
-                    DamageRobot(target, damage, stunMult);
-
-                    target.LastHitForce = forceVec;
-                    //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
-
-                    // todo: guidebot ouchies
-
-                    //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
-                    // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
-                    if (!source || source->LastHitObject != target.Signature)
-                        ApplyRotation(target, forceVec * stunMult);
-                    break;
                 }
-
-                case ObjectType::Reactor:
-                {
-                    // apply damage if source is player
-                    if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent.Id == ObjID(0))
-                        target.ApplyDamage(damage);
-
-                    break;
-                }
-
-                case ObjectType::Player:
-                {
-                    ApplyForce(target, forceVec);
-                    if (!source || source->LastHitObject != target.Signature)
-                        ApplyRotation(target, forceVec);
-
-                    // Quarter damage explosions on trainee
-                    if (Game::Difficulty == 0) damage /= 4;
-                    Game::Player.ApplyDamage(damage);
-                    break;
-                }
-
-                default:
-                    throw Exception("Invalid object type in CreateExplosion()");
             }
-        }
+        };
+
+        Game::TraverseRoomsByDistance(level, explosion.Room, explosion.Position, explosion.Radius * 2, roomAction);
     }
 
     void IntersectBoundingBoxes(const Object& obj) {

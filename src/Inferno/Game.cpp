@@ -730,7 +730,7 @@ namespace Inferno::Game {
 
                 if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
                     sparks->Parent = objRef;
-                    sparks->Duration = obj.Lifespan;
+                    sparks->Duration = (float)obj.Lifespan;
                     Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
                 }
             }

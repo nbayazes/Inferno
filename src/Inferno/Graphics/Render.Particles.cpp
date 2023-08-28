@@ -281,7 +281,7 @@ namespace Inferno::Render {
         e.Radius = { Radius * 2.0f, Radius * 2.5f };
         //e.Instances = 2;
         //e.Delay = { 0.15f, 0.3f };
-        SPDLOG_INFO("Create debris explosion");
+        //SPDLOG_INFO("Create debris explosion");
         CreateExplosion(e, Segment, PrevTransform.Translation());
     }
 

@@ -75,7 +75,8 @@ namespace Inferno {
                     if (dist > soundRadius) return;
 
                     //auto falloff = std::clamp(std::lerp(awareness, 0.0f, (soundRadius - dist) / soundRadiusSq), 0.0f, 1.0f);
-                    auto falloff = Saturate(InvLerp(soundRadius, 0, dist));
+                    auto falloff = std::powf(1 - dist / soundRadius, 2); // inverse falloff 
+                    //auto falloff = Saturate(InvLerp(soundRadius, 0, dist));
                     auto& ai = GetAI(*obj);
 
                     auto prevAwareness = ai.Awareness;
@@ -121,20 +122,11 @@ namespace Inferno {
         auto room = level.GetRoom(source.Room);
         if (!room) return;
 
-        AlertEnemiesInRoom(level, *room, source.Segment, source.Position, soundRadius, awareness);
+        auto action = [&](const Room& r) {
+            AlertEnemiesInRoom(level, r, source.Segment, source.Position, soundRadius, awareness);
+        };
 
-        for (auto& portal : room->Portals) {
-            auto& side = level.GetSide(portal);
-
-            auto portalDist = Vector3::Distance(side.Center, source.Position);
-            if (portalDist < soundRadius && SoundPassesThroughSide(level, side)) {
-                if (auto adjacentRoom = level.GetRoom(portal.Room)) {
-                    // todo: this only alerts enemies in adjacent rooms which might cause problems around energy centers
-                    // todo: replace with nearby room tracking
-                    AlertEnemiesInRoom(level, *adjacentRoom, source.Segment, source.Position, soundRadius, awareness);
-                }
-            }
-        }
+        Game::TraverseRoomsByDistance(level, source.Room, source.Position, soundRadius, action);
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
@@ -151,7 +143,7 @@ namespace Inferno {
         return dot >= diff.FieldOfView;
     }
 
-    bool CheckPlayerVisibility(Object& robot, const RobotInfo& robotInfo) {
+    bool CheckPlayerVisibility(const Object& robot, const RobotInfo& robotInfo) {
         auto& player = Game::Level.Objects[0];
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
         if (!CanSeePlayer(robot, playerDir, dist)) return false;
@@ -1141,7 +1133,6 @@ namespace Inferno {
                 StopPathing(robot, ai); // Stop pathing if robot sees the player
                 PlayAlertSound(robot, robotInfo);
             }
-
         }
         else if (ai.Awareness > COMBAT_AWARENESS) {
             // in combat
@@ -1187,11 +1178,9 @@ namespace Inferno {
                 DecayAwareness(ai);
                 // todo: move towards last known location if curious
             }
-
         }
         else {
-            if (CheckPlayerVisibility(robot, robotInfo)) {
-            }
+            if (CheckPlayerVisibility(robot, robotInfo)) { }
             else {
                 // Nothing nearby, sleep for longer
                 DecayAwareness(ai);

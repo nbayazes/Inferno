@@ -58,15 +58,12 @@ namespace Inferno {
     // Explosion that can cause damage or knockback
     struct GameExplosion {
         Vector3 Position;
+        RoomID Room;
         SegID Segment;
 
         float Radius;
         float Damage;
         float Force;
-
-        //float Size;
-        //float VClipRadius;
-        //int VClip;
     };
 
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion);
@@ -77,5 +74,6 @@ namespace Inferno {
     // Sets an object's angular velocity to turn towards a vector over a number of seconds.
     // Note that this is not additive, and overrides any existing angular velocity.
     void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
+    void ApplyForce(Object& obj, const Vector3& force);
     bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere&, SegID segId, LevelHit& hit);
 }

@@ -42,9 +42,12 @@ namespace Inferno {
             return Seq::contains(Segments, id);
         }
 
-        void AddPortal(Portal tag) {
-            if (!Seq::contains(Portals, tag))
-                Portals.push_back(tag);
+        void AddPortal(Portal portal) {
+            for (auto& p : Portals) {
+                if (p.Tag == portal.Tag) return;
+            }
+
+            Portals.push_back(portal);
         }
 
         void AddSegment(SegID seg) {
@@ -54,15 +57,23 @@ namespace Inferno {
 
         Portal* GetPortal(Tag tag) {
             for (auto& portal : Portals) {
-                if (portal == tag) return &portal;
+                if (portal.Tag == tag) return &portal;
             }
 
             return nullptr;
         }
 
+        int GetPortalIndex(Tag tag) const {
+            for (int i = 0; i < Portals.size(); i++) {
+                if (Portals[i].Tag == tag) return i;
+            }
+
+            return -1;
+        }
+
         bool IsPortal(Tag tag) const {
             for (auto& portal : Portals) {
-                if (portal == tag) return true;
+                if (portal.Tag == tag) return true;
             }
 
             return false;

@@ -145,7 +145,7 @@ namespace Inferno {
         float Spread = 0; // Amount of spread in units
         Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites
         float Noise = 1; // How much noise (awareness) weapon creates when firing
-        float SoundRadius = 250; // Sound radius when firing
+        float SoundRadius = 240; // Sound radius when firing
         float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration.
 
         //struct FiringPattern {

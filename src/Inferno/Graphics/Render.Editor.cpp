@@ -455,9 +455,9 @@ namespace Inferno::Render {
             //}
 
             for (auto& portal : room.Portals) {
-                if (auto seg = level.TryGetSegment(portal)) {
-                    Debug::DrawSide(Game::Level, *seg, portal.Side, Colors::Portal);
-                    auto side = Face::FromSide(level, *seg, portal.Side);
+                if (auto seg = level.TryGetSegment(portal.Tag)) {
+                    Debug::DrawSide(Game::Level, *seg, portal.Tag.Side, Colors::Portal);
+                    auto side = Face::FromSide(level, *seg, portal.Tag.Side);
                     Debug::DrawArrow(side.Center(), side.Center() + side.AverageNormal() * 5, Color(0, 1, 0));
                 }
             }

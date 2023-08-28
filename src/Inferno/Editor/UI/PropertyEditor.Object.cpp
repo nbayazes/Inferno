@@ -605,6 +605,10 @@ namespace Inferno::Editor {
         if (SegmentDropdown(obj.Segment))
             Editor::History.SnapshotLevel("Change object segment");
 
+
+        ImGui::TableRowLabel("Room");
+        ImGui::Text("%i", obj.Room);
+
         ImGui::TableRowLabel("Type");
         ImGui::SetNextItemWidth(-1);
 

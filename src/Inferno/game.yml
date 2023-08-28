@@ -83,7 +83,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 1, 0.25, 0.15, 1
+    LightColor: 1, 0.15, 0.0, 1.5
     FlashColor: 1, 0.3, 0.15, 40
     Glow: 1, .2, 0, 2
 
@@ -690,7 +690,7 @@ Effects:
       Count: [ 2, 4 ]
       SparkDuration: [ 0.3, 0.6 ]
       Restitution: 0.6
-      Drag: 0.08
+      Drag: 0.04
       Velocity: [ 14, 16]
       Interval: [ 0.25, 0.9 ]
       FadeTime: 0.3

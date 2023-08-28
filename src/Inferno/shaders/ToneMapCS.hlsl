@@ -159,7 +159,11 @@ void main(uint3 DTid : SV_DispatchThreadID) {
 
         // blend with the original color to preserve reds
         //float lum = Luminance(hdrColor);
-        float lum = dot(sqrt(hdrColor), float3(0.5, 0.5, 0.5));
+
+        // Using a lower lum comparison results in more saturated colors but causes clipping
+        const float3 whitepoint = float3(0.75, 0.75, 0.75);
+        float lum = dot(sqrt(hdrColor), whitepoint);
+
         // lum = (hdrColor.r + hdrColor.b + hdrColor.g) / 3; // this renders lava correctly but clips very bright light
         // lowering the lower bound introduces more of the tone mapping, causing reds to be more pink
         // but also causes bright areas like reactor highlights to be smoother

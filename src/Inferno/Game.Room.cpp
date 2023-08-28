@@ -116,10 +116,10 @@ namespace Inferno::Game {
                 if (segments.contains(connId)) continue;
                 if (visited.contains(connId)) continue; // Another room is already using this
 
-                if (Seq::contains(room.Portals, Tag{ segId, side })) {
-                    SPDLOG_WARN("Tried adding a duplicate portal");
-                    continue;
-                }
+                //if (Seq::contains(room.Portals, Tag{ segId, side })) {
+                //    SPDLOG_WARN("Tried adding a duplicate portal");
+                //    continue;
+                //}
 
                 auto& cseg = level.GetSegment(connId);
 
@@ -197,6 +197,18 @@ namespace Inferno::Game {
         return RoomID::None;
     }
 
+    void UpdatePortalLinks(const Level& level, List<Room>& rooms) {
+        for (auto& room : rooms) {
+            for (auto& portal : room.Portals) {
+                ASSERT(Seq::inRange(rooms, (int)portal.RoomLink));
+                auto& croom = rooms[(int)portal.RoomLink];
+                auto conn = level.GetConnectedSide(portal.Tag);
+                portal.PortalLink = croom.GetPortalIndex(conn);
+                ASSERT(portal.PortalLink != -1);
+            }
+        }
+    }
+
     void AddPortalsToRoom(Level& level, span<Room> rooms, Room& room) {
         room.Portals.clear();
 
@@ -210,6 +222,12 @@ namespace Inferno::Game {
                 if (room.Contains(conn)) continue;
                 auto roomId = FindRoomBySegment(rooms, conn);
                 room.AddPortal({ segId, sideId, roomId });
+                //auto roomId = FindRoomBySegment(rooms, conn.Segment);
+                //if (roomId != RoomID::None) {
+                //    auto link = rooms[(int)roomId].GetPortalIndex(conn);
+                //    ASSERT(link != -1);
+                //    room.AddPortal({ segId, sideId, roomId, link });
+                //}
             }
         }
     }
@@ -294,10 +312,6 @@ namespace Inferno::Game {
                     auto conn = seg.GetConnection(SideID(side));
                     Tag tag = { segId, SideID(side) };
 
-                    if (conn > SegID::None && !Seq::contains(room.Segments, conn) && !Seq::contains(newRoom.Portals, tag)) {
-                        //newRoom.AddPortal({ tag }); // Connection to outside the room is a portal
-                    }
-
                     if (conn > SegID::None && newRoom.Segments.size() + search.size() >= maxSegs /*&& std::abs(node->Delta[side]) == 0*//* && node->Connections == 2*/) {
                         auto& cseg = level.GetSegment(conn);
                         if (canSearchSegment(conn)) {
@@ -324,7 +338,7 @@ namespace Inferno::Game {
             }
 
             if (search.empty() && !splits.empty()) {
-                if (/*!newRoom.Portals.empty() &&*/ !newRoom.Segments.empty()) {
+                if (!newRoom.Segments.empty()) {
                     for (auto& s : newRoom.Segments)
                         Seq::remove(room.Segments, s);
 
@@ -336,7 +350,6 @@ namespace Inferno::Game {
                 Tag tag = splits.top();
                 splits.pop();
                 auto conn = level.GetConnectedSide(tag);
-                //newRoom.AddPortal({ conn });
                 search.push_front(conn.Segment);
             }
         }
@@ -405,9 +418,9 @@ namespace Inferno::Game {
         for (int i = 0; i < room.Portals.size(); i++) {
             room.PortalDistances[i].resize(room.Portals.size());
 
-            auto& a = level.GetSide(room.Portals[i]);
+            auto& a = level.GetSide(room.Portals[i].Tag);
             for (int j = 0; j < room.Portals.size(); j++) {
-                auto& b = level.GetSide(room.Portals[j]);
+                auto& b = level.GetSide(room.Portals[j].Tag);
                 room.PortalDistances[i][j] = Vector3::Distance(a.Center, b.Center);
             }
         }
@@ -526,7 +539,6 @@ namespace Inferno::Game {
 
                     node.Connections.push_back((int)intermediateIndex);
                     room.NavNodes[connection].Connections.push_back((int)intermediateIndex);
-
                 }
                 else {
                     node.Connections.push_back(connection);
@@ -623,11 +635,11 @@ namespace Inferno::Game {
         Room* mergedNeighbor = nullptr;
 
         for (auto& portal : room.Portals) {
-            if (level.TryGetWall(portal))
+            if (level.TryGetWall(portal.Tag))
                 continue; // Don't merge a wall
 
             // Wasn't a wall, find the owning room and merge into it
-            auto connection = level.GetConnectedSide(portal);
+            auto connection = level.GetConnectedSide(portal.Tag);
             if (level.TryGetWall(connection))
                 continue; // Other side had a wall (check for one-sided walls)
 
@@ -691,8 +703,8 @@ namespace Inferno::Game {
 
             // Add connections
             for (auto& portal : room.Portals) {
-                auto& seg = level.GetSegment(portal);
-                auto conn = seg.GetConnection(portal.Side);
+                auto& seg = level.GetSegment(portal.Tag);
+                auto conn = seg.GetConnection(portal.Tag.Side);
                 assert(conn != SegID::None);
                 search.push(conn);
             }
@@ -721,23 +733,33 @@ namespace Inferno::Game {
 
         RemoveEmptyRooms(rooms);
 
-
         Stopwatch timer;
 
         Set<SegID> usedSegments;
-        for (auto& room : rooms) {
+        for (int roomId = 0; roomId < rooms.size(); roomId++) {
+            auto& room = rooms[roomId];
             AddPortalsToRoom(level, rooms, room);
 
             for (auto& segID : room.Segments) {
                 assert(!usedSegments.contains(segID));
                 usedSegments.insert(segID);
                 room.Center += level.GetSegment(segID).Center;
+
+                // Update object rooms
+                auto& seg = level.GetSegment(segID);
+                for (auto& objId : seg.Objects) {
+                    if (auto obj = level.TryGetObject(objId)) {
+                        obj->Room = (RoomID)roomId;
+                    }
+                }
             }
 
             room.Center /= (float)room.Segments.size();
             UpdatePortalDistances(level, room);
             //room.UpdateNavNodes(level);
         }
+
+        UpdatePortalLinks(level, rooms);
 
         SPDLOG_WARN("Update room nav nodes in {}", timer.GetElapsedSeconds());
         return rooms;
@@ -772,14 +794,14 @@ namespace Inferno::Game {
 
                 for (int portalIndex = 0; portalIndex < room->Portals.size(); portalIndex++) {
                     auto& portal = room->Portals[portalIndex];
-                    if (portal.Room != roomPath[i + 1])
+                    if (portal.RoomLink != roomPath[i + 1])
                         continue; // Portal doesn't connect to next room in the path
 
-                    auto& portalSide = level.GetSide(portal);
+                    auto& portalSide = level.GetSide(portal.Tag);
                     auto distance = Vector3::DistanceSquared(seg.Center, portalSide.Center);
                     if (distance < closestPortal) {
                         closestPortal = distance;
-                        bestPortal = Tag(portal);
+                        bestPortal = portal.Tag;
                     }
                 }
 
@@ -831,24 +853,24 @@ namespace Inferno::Game {
             auto room = &level.Rooms[current->Index];
 
             for (auto& portal : room->Portals) {
-                auto& segNode = _segmentNodes[(int)portal.Segment];
-                auto& nodeSide = segNode.Sides[(int)portal.Side];
+                auto& segNode = _segmentNodes[(int)portal.Tag.Segment];
+                auto& nodeSide = segNode.Sides[(int)portal.Tag.Side];
                 if (nodeSide.Connection <= SegID::None) continue;
                 if (nodeSide.Blocked) continue;
 
-                auto& neighbor = _traversalBuffer[(int)portal.Room];
+                auto& neighbor = _traversalBuffer[(int)portal.RoomLink];
 
                 if (!neighbor.Visited)
                     queue.push_back(&neighbor);
 
-                auto& portalSide = level.GetSide(portal);
+                auto& portalSide = level.GetSide(portal.Tag);
 
                 // If portal connects to goal room use distance 0 and not distance between centers
                 //
                 // This heuristic could be improved by taking the distance between the entrance
                 // and exit portals instead of the room centers.
                 auto localDistance = Vector3::DistanceSquared(room->Center, portalSide.Center);
-                float localGoal = portal.Room == goal ? current->LocalGoal : current->LocalGoal + localDistance;
+                float localGoal = portal.RoomLink == goal ? current->LocalGoal : current->LocalGoal + localDistance;
 
                 if (localGoal < neighbor.LocalGoal) {
                     neighbor.Parent = current->Index;
@@ -883,7 +905,7 @@ namespace Inferno::Game {
             _traversalBuffer[i] = {
                 .Index = i,
                 .GoalDistance = Heuristic(_segmentNodes[(int)start], _segmentNodes[(int)goal])
-        };
+            };
 
         std::list<TraversalNode*> queue;
         _traversalBuffer[(int)start].LocalGoal = 0;
@@ -1038,4 +1060,63 @@ namespace Inferno::Game {
     //    // Walk backwards, using the parent
     //    return path;
     //}
+
+    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, float distance, const std::function<void(Room&)>& action) {
+        struct TravelInfo {
+            Portal Portal;
+            float Remaining;
+        };
+
+        Stack<TravelInfo> stack;
+        Set<RoomID> visited;
+
+        {
+            auto room = level.GetRoom(startRoom);
+            if (!room) return;
+            visited.insert(startRoom);
+
+            // Check if any portals are in range of the start point
+            for (auto& portal : room->Portals) {
+                auto& side = level.GetSide(portal.Tag);
+                auto dist = Vector3::Distance(side.Center, position);
+
+                // Check projected distance in case point is on the portal face
+                auto proj = ProjectPointOntoPlane(position, side.Center, side.AverageNormal);
+                auto projDist = Vector3::Distance(proj, position);
+                if (projDist < dist) dist = projDist;
+
+                if (dist < distance) {
+                    if (auto conn = level.GetRoom(portal.RoomLink)) {
+                        auto& p = conn->Portals[portal.PortalLink];
+                        stack.push({ p, distance - dist });
+                    }
+                }
+            }
+        }
+
+        while (!stack.empty()) {
+            TravelInfo info = stack.top();
+            stack.pop();
+            auto room = level.GetRoom(info.Portal.RoomLink);
+            if (!room) continue;
+            SPDLOG_INFO("Executing on room {}", (int)info.Portal.RoomLink);
+            action(*room); // room was in range
+            visited.insert(info.Portal.RoomLink);
+
+            // check room portal distances
+            for (int i = 0; i < room->Portals.size(); i++) {
+                if (i == info.Portal.PortalLink) continue;
+
+                auto& portal = room->Portals[i];
+                auto& portalDistances = room->PortalDistances[i];
+
+                for (int j = 0; j < room->PortalDistances.size(); j++) {
+                    if (i == j) continue; // skip comparing to self
+                    if (portalDistances[j] < info.Remaining && !visited.contains(portal.RoomLink)) {
+                        stack.push({ portal, info.Remaining - portalDistances[j] });
+                    }
+                }
+            }
+        }
+    }
 }

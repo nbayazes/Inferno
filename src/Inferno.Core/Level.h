@@ -491,15 +491,23 @@ namespace Inferno {
             return RoomID::None;
         }
 
-        Room* GetConnectedRoom(Tag tag) {
+        Portal* GetPortal(Tag tag) {
             if (auto room = GetRoom(tag.Segment)) {
-                if (auto portal = room->GetPortal(tag)) {
-                    return GetRoom(portal->Room);
-                }
+                return room->GetPortal(tag);
             }
 
             return nullptr;
         }
+
+        //Room* GetConnectedRoom(Tag tag) {
+        //    if (auto room = GetRoom(tag.Segment)) {
+        //        if (auto portal = room->GetPortal(tag)) {
+        //            return GetRoom(portal->RoomLink);
+        //        }
+        //    }
+
+        //    return nullptr;
+        //}
 
         size_t Serialize(StreamWriter& writer);
         static Level Deserialize(span<ubyte>);

@@ -83,9 +83,11 @@ namespace Inferno::Editor {
 
         ImGui::SameLine();
         if (ImGui::Button("Mark connected room")) {
-            if (auto room = Game::Level.GetConnectedRoom(Editor::Selection.Tag())) {
-                Editor::Marked.Segments.clear();
-                Seq::insert(Editor::Marked.Segments, room->Segments);
+            if (auto portal = Game::Level.GetPortal(Editor::Selection.Tag())) {
+                if (auto room = Game::Level.GetRoom(portal->RoomLink)) {
+                    Editor::Marked.Segments.clear();
+                    Seq::insert(Editor::Marked.Segments, room->Segments);
+                }
             }
         }
 
