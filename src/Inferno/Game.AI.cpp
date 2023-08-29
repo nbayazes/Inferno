@@ -15,6 +15,10 @@
 
 namespace Inferno {
     List<AIRuntime> AI;
+    constexpr float AI_PATH_DELAY = 5; // Default delay for trying to path to the player
+    constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
+    constexpr float AI_COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
+    constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
 
     void ResetAI() {
         for (auto& ai : AI)
@@ -87,6 +91,7 @@ namespace Inferno {
                         SPDLOG_INFO("Enemy {} investigating sound at {}, {}, {}!", obj->Signature, position.x, position.y, position.z);
 
                         auto path = Game::Navigation.NavigateTo(obj->Segment, soundSeg, Game::Level);
+                        ai.PathDelay = AI_PATH_DELAY;
                         ai.GoalSegment = soundSeg;
                         ai.GoalPosition = position;
                         ai.GoalRoom = level.FindRoomBySegment(soundSeg);
@@ -533,8 +538,6 @@ namespace Inferno {
     }
 
     void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, float /*dt*/) {
-        //auto& seg = level.GetSegment(obj.Segment);
-
         auto checkGoalReached = [&obj, &ai] {
             if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
                 SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
@@ -543,9 +546,11 @@ namespace Inferno {
         };
 
         if (!PathIsValid(obj, ai)) {
+            if (ai.PathDelay > 0) return; // Don't spam trying to path to a goal
             // Calculate a new path
             SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
             obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, level);
+            ai.PathDelay = AI_PATH_DELAY;
             if (obj.GoalPath.empty()) {
                 // Unable to find a valid path, clear the goal and give up
                 ai.GoalSegment = SegID::None;
@@ -853,7 +858,7 @@ namespace Inferno {
         auto [projDir, projDist] = GetDirectionAndDistance(projectile.Position, robot.Position);
         // Looks weird to dodge distant projectiles. also they might hit another target
         // Consider increasing this for massive robots?
-        if (projDist > 40) return;
+        if (projDist > AI_MAX_DODGE_DISTANCE) return;
         if (!InRobotFOV(robot, projDir, robotInfo)) return;
 
         Vector3 projTravelDir;
@@ -861,8 +866,11 @@ namespace Inferno {
         Ray projRay = { projectile.Position, projTravelDir };
         auto dodgePoint = ProjectRayOntoPlane(projRay, robot.Position, -projTravelDir);
         if (!dodgePoint) return;
-        ai.DodgeDirection = robot.Position - *dodgePoint;
-        ai.LastDodgeTime = Game::Time;
+        auto dodgeDir = robot.Position - *dodgePoint;
+        if (dodgeDir.Length() > robot.Radius * 1.25f) return; // Don't dodge projectiles that won't hit us
+        ai.DodgeDirection = dodgeDir;
+        ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f * 2.0f * Random(); // (2.5 to 0.5) * 2 delay
+        ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
     }
 
     float EstimateDodgeDistance(const RobotInfo& robot) {
@@ -871,9 +879,7 @@ namespace Inferno {
 
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         auto room = level.GetRoom(robot.Room);
-        float dodgeDelay = (5 - Game::Difficulty) / 2.0f * 2.0f; // (2.5 to 0.5) * 2 delay
-        dodgeDelay = 0;
-        if (ai.LastDodgeTime + dodgeDelay > Game::Time) return; // not ready to dodge again
+        if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
         for (auto& segId : room->Segments) {
             if (!level.SegmentExists(segId)) continue;
@@ -1093,8 +1099,6 @@ namespace Inferno {
         }
     }
 
-    constexpr float COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
-
     void UpdateRobotAI(Object& robot, float dt) {
         auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
@@ -1104,12 +1108,18 @@ namespace Inferno {
         robot.Physics.Thrust = Vector3::Zero;
         robot.Physics.AngularThrust = Vector3::Zero;
 
-        ai.FireDelay -= dt;
-        ai.FireDelay2 -= dt;
-        if (ai.FireDelay < 0) ai.FireDelay = 0;
-        if (ai.FireDelay2 < 0) ai.FireDelay2 = 0;
-        ai.RemainingSlow -= dt;
-        ai.RemainingStun -= dt;
+        auto decr = [&dt](float& value) {
+            value -= dt;
+            if (value < 0) value = 0;
+        };
+
+        decr(ai.FireDelay);
+        decr(ai.FireDelay2);
+        decr(ai.RemainingSlow);
+        decr(ai.RemainingStun);
+        decr(ai.DodgeDelay);
+        decr(ai.DodgeTime);
+
         AnimateRobot(robot, ai, dt);
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time || Settings::Cheats.DisableAI)
@@ -1120,8 +1130,7 @@ namespace Inferno {
 
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
-        constexpr auto DODGE_TIME = 0.5f;
-        if (ai.LastDodgeTime > Game::Time - DODGE_TIME) {
+        if (ai.DodgeTime > 0) {
             robot.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
         }
 
@@ -1134,7 +1143,7 @@ namespace Inferno {
                 PlayAlertSound(robot, robotInfo);
             }
         }
-        else if (ai.Awareness > COMBAT_AWARENESS) {
+        else if (ai.Awareness > AI_COMBAT_AWARENESS) {
             // in combat
 
             MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);

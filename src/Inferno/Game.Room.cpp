@@ -1074,6 +1074,7 @@ namespace Inferno::Game {
             auto room = level.GetRoom(startRoom);
             if (!room) return;
             visited.insert(startRoom);
+            action(*room); // Execute on starting room
 
             // Check if any portals are in range of the start point
             for (auto& portal : room->Portals) {
@@ -1086,10 +1087,11 @@ namespace Inferno::Game {
                 if (projDist < dist) dist = projDist;
 
                 if (dist < distance) {
-                    if (auto conn = level.GetRoom(portal.RoomLink)) {
-                        auto& p = conn->Portals[portal.PortalLink];
-                        stack.push({ p, distance - dist });
-                    }
+                    stack.push({ portal, distance - dist });
+                    //if (auto conn = level.GetRoom(portal.RoomLink)) {
+                    //    auto& p = conn->Portals[portal.PortalLink];
+                    //    stack.push({ p, distance - dist });
+                    //}
                 }
             }
         }
