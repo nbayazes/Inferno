@@ -88,7 +88,7 @@ namespace Inferno {
                     //SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
 
                     if (prevAwareness < AWARENESS_INVESTIGATE && ai.Awareness > AWARENESS_INVESTIGATE) {
-                        SPDLOG_INFO("Enemy {} investigating sound at {}, {}, {}!", obj->Signature, position.x, position.y, position.z);
+                        SPDLOG_INFO("Enemy {}:{} investigating sound at {}, {}, {}!", objId, obj->Signature, position.x, position.y, position.z);
 
                         auto& robotInfo = Resources::GetRobotInfo(*obj);
                         auto path = Game::Navigation.NavigateTo(obj->Segment, soundSeg, !robotInfo.IsThief, Game::Level);
@@ -265,17 +265,17 @@ namespace Inferno {
         robot.Physics.AngularThrust.Clamp(-maxAngVel, maxAngVel);
     }
 
-    Tag GetNextConnection(span<SegID> _path, Level& level, SegID segId) {
+    Tag GetNextConnection(span<SegID> path, Level& level, SegID segId) {
         if (segId == SegID::None) return {};
 
-        for (int i = 0; i < _path.size() - 1; i++) {
-            if (_path[i] == segId) {
+        for (int i = 0; i < path.size() - 1; i++) {
+            if (path[i] == segId) {
                 auto& seg = level.GetSegment(segId);
 
                 // Find the connection to the next segment in the path
                 for (auto& sideId : SideIDs) {
                     auto connId = seg.GetConnection(sideId);
-                    if (connId == _path[i + 1]) {
+                    if (connId == path[i + 1]) {
                         return { segId, sideId };
                     }
                 }
@@ -1009,7 +1009,7 @@ namespace Inferno {
         // Apply stun
         if (damage * stunMult > STUN_THRESHOLD) {
             float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
-            SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
+            //SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
             if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
             stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
             ai.RemainingStun = stunTime;

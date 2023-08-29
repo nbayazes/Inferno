@@ -10,7 +10,7 @@
 #include "Game.h"
 
 namespace Inferno {
-    Tag GetNextConnection(span<SegID> _path, Level& level, SegID segId);
+    Tag GetNextConnection(span<SegID> path, Level& level, SegID segId);
 }
 
 namespace Inferno::Editor {

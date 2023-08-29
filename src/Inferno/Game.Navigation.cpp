@@ -14,6 +14,7 @@ namespace Inferno::Game {
         List<SegID> path;
         auto roomStartSeg = start;
         auto roomPath = NavigateAcrossRooms(level.FindRoomBySegment(start), level.FindRoomBySegment(goal), stopAtKeyDoors, level);
+        float totalDistance = 0;
 
         // starting at the first room, use the closest portal that matches the next room
         for (int i = 0; i < roomPath.size(); i++) {
@@ -44,6 +45,7 @@ namespace Inferno::Game {
 
                 if (!bestPortal) break; // Pathfinding to next portal failed
 
+                totalDistance += sqrt(closestPortal);
                 auto localPath = NavigateWithinRoom(roomStartSeg, bestPortal.Segment, *room);
                 Seq::append(path, localPath);
 
@@ -52,6 +54,7 @@ namespace Inferno::Game {
             }
         }
 
+        SPDLOG_INFO("Room path distance {}", totalDistance);
         return path;
     }
 
@@ -213,14 +216,15 @@ namespace Inferno::Game {
         return path;
     }
 
-    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, float distance, const std::function<void(Room&)>& action) {
+    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, float maxDistance, const std::function<void(Room&)>& action) {
         struct TravelInfo {
             Portal Portal;
-            float Remaining;
+            float Distance;
         };
 
         Stack<TravelInfo> stack;
         Set<RoomID> visited;
+        //SPDLOG_INFO("Traversing rooms");
 
         {
             auto room = level.GetRoom(startRoom);
@@ -238,8 +242,10 @@ namespace Inferno::Game {
                 auto projDist = Vector3::Distance(proj, position);
                 if (projDist < dist) dist = projDist;
 
-                if (dist < distance)
-                    stack.push({ portal, distance - dist });
+                if (dist < maxDistance) {
+                    stack.push({ portal, dist });
+                    //SPDLOG_INFO("Checking adjacent portal {}:{} dist: {}", portal.Tag.Segment, portal.Tag.Side, dist);
+                }
             }
         }
 
@@ -248,22 +254,22 @@ namespace Inferno::Game {
             stack.pop();
             auto room = level.GetRoom(info.Portal.RoomLink);
             if (!room) continue;
-            SPDLOG_INFO("Executing on room {}", (int)info.Portal.RoomLink);
+            //SPDLOG_INFO("Executing on room {} Distance {}", (int)info.Portal.RoomLink, info.Distance);
             action(*room); // room was in range
             visited.insert(info.Portal.RoomLink);
+
+            auto& startPortal = room->Portals[info.Portal.PortalLink];
+            auto& portalDistances = room->PortalDistances[info.Portal.PortalLink];
 
             // check room portal distances
             for (int i = 0; i < room->Portals.size(); i++) {
                 if (i == info.Portal.PortalLink) continue;
+                auto distance = info.Distance + portalDistances[i];
+                auto& endPortal = room->Portals[i];
 
-                auto& portal = room->Portals[i];
-                auto& portalDistances = room->PortalDistances[i];
-
-                for (int j = 0; j < room->PortalDistances.size(); j++) {
-                    if (i == j) continue; // skip comparing to self
-                    if (portalDistances[j] < info.Remaining && !visited.contains(portal.RoomLink)) {
-                        stack.push({ portal, info.Remaining - portalDistances[j] });
-                    }
+                if (distance < maxDistance && !visited.contains(startPortal.RoomLink)) {
+                    stack.push({ endPortal, distance });
+                    //SPDLOG_INFO("Checking portal {}:{} dist: {}", endPortal.Tag.Segment, endPortal.Tag.Side, distance);
                 }
             }
         }

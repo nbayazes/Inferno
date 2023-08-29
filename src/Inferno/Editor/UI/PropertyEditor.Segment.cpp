@@ -1177,6 +1177,9 @@ namespace Inferno::Editor {
         ImGui::TableRowLabel("Side");
         SideDropdown(Selection.Side);
 
+        ImGui::TableRowLabel("Room");
+        ImGui::Text("%i", seg.Room);
+
         {
             ImGui::TableRowLabel("Overlay angle");
             static const std::array angles = { "0 deg", "90 deg", "180 deg", "270 deg" };

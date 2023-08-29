@@ -157,6 +157,7 @@ namespace Inferno {
         Color VolumeLight = { 1, 1, 1 };
         bool LockVolumeLight; // Locks volume light from being updated
         Vector3 Center;
+        RoomID Room = RoomID::None; // Room this segment belongs to
 
         constexpr SegID GetConnection(SideID side) const { return Connections[(int)side]; }
         SegID& GetConnection(SideID side) { return Connections[(int)side]; }
