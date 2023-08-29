@@ -1,4 +1,5 @@
 #pragma once
+#include "Game.Navigation.h"
 #include "Level.h"
 #include "HogFile.h"
 #include "Mission.h"
@@ -134,10 +135,6 @@ namespace Inferno::Game {
     }
 
     bool ObjectIsInFOV(const Ray& ray, const Object& other, float fov);
-    List<Room> CreateRooms(Inferno::Level&);
-
-    // Executes a function on each room based on portal distance from a point
-    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, float distance, const std::function<void(Room&)>& action);
 
     // Returns the object ID based on its address
     inline ObjID GetObjectID(const Object& obj) {

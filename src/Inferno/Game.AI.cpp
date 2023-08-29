@@ -90,7 +90,8 @@ namespace Inferno {
                     if (prevAwareness < AWARENESS_INVESTIGATE && ai.Awareness > AWARENESS_INVESTIGATE) {
                         SPDLOG_INFO("Enemy {} investigating sound at {}, {}, {}!", obj->Signature, position.x, position.y, position.z);
 
-                        auto path = Game::Navigation.NavigateTo(obj->Segment, soundSeg, Game::Level);
+                        auto& robotInfo = Resources::GetRobotInfo(*obj);
+                        auto path = Game::Navigation.NavigateTo(obj->Segment, soundSeg, !robotInfo.IsThief, Game::Level);
                         ai.PathDelay = AI_PATH_DELAY;
                         ai.GoalSegment = soundSeg;
                         ai.GoalPosition = position;
@@ -549,7 +550,8 @@ namespace Inferno {
             if (ai.PathDelay > 0) return; // Don't spam trying to path to a goal
             // Calculate a new path
             SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
-            obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, level);
+            auto& robotInfo = Resources::GetRobotInfo(obj);
+            obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, !robotInfo.IsThief, level);
             ai.PathDelay = AI_PATH_DELAY;
             if (obj.GoalPath.empty()) {
                 // Unable to find a valid path, clear the goal and give up
@@ -905,7 +907,8 @@ namespace Inferno {
         }
         else {
             if (robot.GoalPath.empty() || robot.GoalPath.back() != player.Segment) {
-                robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.GoalSegment, level);
+                auto& robotInfo = Resources::GetRobotInfo(robot);
+                robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.GoalSegment, !robotInfo.IsThief, level);
             }
 
             PathTowardsGoal(level, robot, ai, 0);

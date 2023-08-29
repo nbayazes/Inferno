@@ -164,6 +164,7 @@
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.AI.cpp" />
     <ClCompile Include="Game.Input.cpp" />
+    <ClCompile Include="Game.Navigation.cpp" />
     <ClCompile Include="Game.Object.cpp" />
     <ClCompile Include="Game.Player.cpp" />
     <ClCompile Include="Game.Room.cpp" />
@@ -252,6 +253,7 @@
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.Input.h" />
+    <ClInclude Include="Game.Navigation.h" />
     <ClInclude Include="Game.Object.h" />
     <ClInclude Include="Game.Player.h" />
     <ClInclude Include="Editor\UI\ScaleWindow.h" />

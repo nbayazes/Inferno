@@ -34,13 +34,13 @@ namespace Inferno {
 
     enum class WallType : uint8 {
         None = 0,
-        Destroyable = 1,// Hostage and guidebot doors
-        Door = 2,       // Solid wall. Opens when triggered.
-        Illusion = 3,   // Wall with no collision
-        Open = 4,       // Invisible wall with no collision
-        Closed = 5,     // Solid wall. Fades in or out when triggered.
-        WallTrigger = 6,// For shootable triggers on a segment side
-        Cloaked = 7,    // Solid, transparent wall that fades in or out when triggered. Similar to Closed but untextured.
+        Destroyable = 1, // Hostage and guidebot doors
+        Door = 2, // Solid wall. Opens when triggered.
+        Illusion = 3, // Wall with no collision
+        Open = 4, // Invisible wall with no collision
+        Closed = 5, // Solid wall. Fades in or out when triggered.
+        WallTrigger = 6, // For shootable triggers on a segment side
+        Cloaked = 7, // Solid, transparent wall that fades in or out when triggered. Similar to Closed but untextured.
     };
 
     struct Wall {
@@ -77,12 +77,19 @@ namespace Inferno {
         void ClearFlag(WallFlag flag) { Flags &= ~flag; }
 
         void SetFlag(WallFlag flag, bool state) {
-            if (state) SetFlag(flag); else ClearFlag(flag);
+            if (state) SetFlag(flag);
+            else ClearFlag(flag);
+        }
+
+        bool IsKeyDoor() const {
+            if (Type != WallType::Door) return false;
+            return Keys > WallKey::None;
         }
 
         static constexpr auto CloakStep = 1.0f / 31.0f;
 
         constexpr float CloakValue() const { return float(cloak_value % 32) * CloakStep; }
+
         constexpr void CloakValue(float value) {
             value = std::clamp(value, 0.0f, 1.0f);
             cloak_value = sbyte(value / CloakStep);
@@ -109,9 +116,9 @@ namespace Inferno {
         IllusionOn = 6,
         UnlockDoor = 7,
         LockDoor = 8,
-        OpenWall = 9,       // Wall Closed -> Open
-        CloseWall = 10,     // Wall Open -> Closed
-        IllusoryWall = 11,  // Makes a wall illusory (fly-through)
+        OpenWall = 9, // Wall Closed -> Open
+        CloseWall = 10, // Wall Open -> Closed
+        IllusoryWall = 11, // Makes a wall illusory (fly-through)
         LightOff = 12,
         LightOn = 13,
         NumTriggerTypes
@@ -120,16 +127,16 @@ namespace Inferno {
     // Trigger flags for Descent 1
     enum class TriggerFlagD1 : uint16 {
         None,
-        OpenDoor = BIT(0),      // Control Trigger
-        ShieldDamage = BIT(1),  // Shield Damage Trigger. Not properly implemented
-        EnergyDrain = BIT(2),   // Energy Drain Trigger. Not properly implemented
-        Exit = BIT(3),          // End of level Trigger
-        On = BIT(4),            // Whether Trigger is active. Not properly implemented
-        OneShot = BIT(5),       // If Trigger can only be triggered once. Not properly implemented
-        Matcen = BIT(6),        // Trigger for materialization centers
-        IllusionOff = BIT(7),   // Switch Illusion OFF trigger
-        SecretExit = BIT(8),    // Exit to secret level
-        IllusionOn = BIT(9),    // Switch Illusion ON trigger
+        OpenDoor = BIT(0), // Control Trigger
+        ShieldDamage = BIT(1), // Shield Damage Trigger. Not properly implemented
+        EnergyDrain = BIT(2), // Energy Drain Trigger. Not properly implemented
+        Exit = BIT(3), // End of level Trigger
+        On = BIT(4), // Whether Trigger is active. Not properly implemented
+        OneShot = BIT(5), // If Trigger can only be triggered once. Not properly implemented
+        Matcen = BIT(6), // Trigger for materialization centers
+        IllusionOff = BIT(7), // Switch Illusion OFF trigger
+        SecretExit = BIT(8), // Exit to secret level
+        IllusionOn = BIT(9), // Switch Illusion ON trigger
     };
 
     enum class TriggerFlag : uint8 {
@@ -145,6 +152,7 @@ namespace Inferno {
             TriggerFlag Flags; // D2 flags
             TriggerFlagD1 FlagsD1{}; // D1 flags
         };
+
         int32 Value = 0; // used for shield and energy drain triggers in D1
         int32 Time = -1; // reduced every frame by passed time until 0
         //int8 linkNum = 0; // unused
@@ -157,5 +165,4 @@ namespace Inferno {
         bool HasFlag(TriggerFlagD1 flag) const { return bool(FlagsD1 & flag); }
         void SetFlag(TriggerFlagD1 flag) { Inferno::SetFlag(FlagsD1, flag); }
     };
-
 }

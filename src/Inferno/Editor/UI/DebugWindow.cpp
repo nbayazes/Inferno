@@ -31,10 +31,12 @@ namespace Inferno::Editor {
         ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
         ImGui::Separator();
+        static bool stopAtKeyDoors = true;
 
         if (ImGui::Button("Set path target")) {
+
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, Game::Level);
+                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, stopAtKeyDoors, Game::Level);
 
                 if (obj->IsRobot()) {
                     obj->NextThinkTime = 0;
@@ -69,6 +71,9 @@ namespace Inferno::Editor {
                 }
             }
         }
+
+        ImGui::SameLine();
+        ImGui::Checkbox("Stop at key doors", &stopAtKeyDoors);
 
         if (ImGui::Button("Update rooms")) {
             Game::Level.Rooms = Game::CreateRooms(Game::Level);
