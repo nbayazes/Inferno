@@ -371,7 +371,7 @@ namespace Inferno::Editor {
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                if (ImGui::Checkbox("Emission", &hasOverride)) {
+                if (ImGui::Checkbox("Color", &hasOverride)) {
                     side.LightOverride = hasOverride ? Option(light) : std::nullopt;
                     overrideChanged = true;
                 }

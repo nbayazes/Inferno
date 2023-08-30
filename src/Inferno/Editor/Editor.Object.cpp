@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Editor.Object.h"
 #include "Editor.h"
-#include "Editor.Segment.h"
 #include "Game.h"
 #include "Game.Segment.h"
 #include "Gizmo.h"
@@ -15,7 +14,14 @@ namespace Inferno::Editor {
 
         Events::ObjectsChanged();
         Seq::removeAt(level.Objects, (int)id);
-        // Shift object? are there any refs?
+
+        // Shift room objects
+        for (auto& seg : level.Segments) {
+            for (auto& objId : seg.Objects) {
+                if (objId == id) objId = ObjID::None;
+                if (objId > id) objId--;
+            }
+        }
     }
 
     // If center is true the object is moved to segment center, otherwise it is moved to the selected face.

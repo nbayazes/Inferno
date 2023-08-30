@@ -10,14 +10,17 @@
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
+    constexpr float LEVEL_AMBIENT_MULT = 0.25f;
+    constexpr Color MIN_POWERUP_AMBIENT = Color(0.1, 0.1, 0.1);
+
     // When up is provided, it constrains the sprite to that axis
     void DrawSprite(GraphicsContext& ctx,
                     const Object& object,
                     bool additive,
                     const Vector3* up = nullptr,
                     bool lit = false) {
-        Color color = lit ? Game::Level.GetSegment(object.Segment).VolumeLight : Color(1, 1, 1);
-        color += object.Render.Emissive;
+        Color color = lit ? object.Ambient.GetColor() + object.Render.Emissive : Color(1, 1, 1);
+        if (object.IsPowerup()) color += MIN_POWERUP_AMBIENT;
 
         auto pos = object.GetPosition(Game::LerpAmount);
 
@@ -298,8 +301,7 @@ namespace Inferno::Render {
                 constants.Ambient = seg->VolumeLight.ToVector4() + object.DirectLight.GetColor().ToVector4();
                 constants.EmissiveLight = Color(0, 0, 0);
             }*/
-            constexpr float LEVEL_AMBIENT_MULT = 0.25f;
-            constants.Ambient = object.Ambient.GetColor().ToVector4() * LEVEL_AMBIENT_MULT + object.DirectLight.GetColor().ToVector4();
+            constants.Ambient = object.Ambient.GetColor().ToVector4() * LEVEL_AMBIENT_MULT;
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
@@ -427,7 +429,7 @@ namespace Inferno::Render {
             case ObjectType::Powerup:
             {
                 if (pass != RenderPass::Transparent) return;
-                DrawSprite(ctx, object, false);
+                DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
 

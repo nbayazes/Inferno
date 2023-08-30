@@ -817,6 +817,7 @@ Materials:
     NormalStrength: 0.26
     Metalness: 1
     Roughness: 0.544
+    EmissiveStrength: 3
   - TexID: 937
     NormalStrength: 0.26
     SpecularStrength: 0.5

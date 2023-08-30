@@ -472,6 +472,18 @@ namespace Inferno {
 
         bool CanAddMatcen() const { return Matcens.size() < Limits.Matcens; }
 
+        RoomID GetRoomID(const Object& obj) {
+            if (auto seg = TryGetSegment(obj.Segment))
+                return seg->Room;
+            return RoomID::None;
+        }
+
+        Room* GetRoom(const Object& obj) {
+            auto id = GetRoomID(obj);
+            if (id == RoomID::None) return nullptr;
+            return &Rooms[(int)id];
+        }
+
         Room* GetRoom(RoomID id) {
             if (!Seq::inRange(Rooms, (int)id)) return nullptr;
             return &Rooms[(int)id];

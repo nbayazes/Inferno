@@ -173,7 +173,12 @@ namespace Inferno {
 
     // Returns the light contribution from both textures on this side
     Color GetLightColor(const SegmentSide& side, bool enableColor) {
-        if (side.LightOverride) return *side.LightOverride;
+        if (side.LightOverride) {
+            Color color = *side.LightOverride;
+            color.Premultiply();
+            color.w = 1;
+            return color;
+        }
 
         auto& tmap1 = Resources::GetLevelTextureInfo(side.TMap);
         auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
@@ -184,7 +189,7 @@ namespace Inferno {
 
         Color color;
 
-        auto lightInfo1 = Seq::findKey(Resources::LightInfoTable, side.TMap);
+        auto lightInfo1 = TryGetValue(Resources::LightInfoTable, side.TMap);
         if (lightInfo1 && lightInfo1->Color != LIGHT_UNSET) {
             color += lightInfo1->Color;
         }
@@ -193,7 +198,7 @@ namespace Inferno {
         }
 
         if (side.HasOverlay()) {
-            auto lightInfo2 = Seq::findKey(Resources::LightInfoTable, side.TMap2);
+            auto lightInfo2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
             if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
                 color += lightInfo2->Color;
             }
@@ -202,7 +207,8 @@ namespace Inferno {
             }
         }
 
-        color.w = 0;
+        color.Premultiply();
+        color.w = 1;
         return color /** light*/;
     }
 }

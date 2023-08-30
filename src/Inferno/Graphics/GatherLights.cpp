@@ -322,10 +322,9 @@ namespace Inferno::Graphics {
                 }
 
                 if (!info) info = &defaultInfo;
-                auto color = info->Color == LIGHT_UNSET ? GetLightColor(side, true) : info->Color;
+                auto color = GetLightColor(side, true);
                 auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
 
-                if (side.LightOverride) color = *side.LightOverride;
                 if (!CheckMinLight(color)) continue;
 
                 Vector2 minUV(FLT_MAX, FLT_MAX), maxUV(-FLT_MAX, -FLT_MAX);

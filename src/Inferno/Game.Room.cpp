@@ -748,12 +748,6 @@ namespace Inferno::Game {
                 // Update object rooms
                 auto& seg = level.GetSegment(segID);
                 seg.Room = (RoomID)roomId;
-
-                for (auto& objId : seg.Objects) {
-                    if (auto obj = level.TryGetObject(objId)) {
-                        obj->Room = (RoomID)roomId;
-                    }
-                }
             }
 
             room.Center /= (float)room.Segments.size();

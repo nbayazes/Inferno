@@ -111,25 +111,26 @@ namespace Inferno::Game {
     void UpdateDirectLight(Object& obj, float duration) {
         Color directLight;
 
-        for (auto& other : Level.Objects) {
-            if (other.LightRadius <= 0 || !other.IsAlive()) continue;
-            // todo: only scan nearby objects
-            auto lightDist = Vector3::Distance(obj.Position, other.Position);
-            if (lightDist > other.LightRadius) continue;
-            auto falloff = 1 - std::clamp(lightDist / other.LightRadius, 0.0f, 1.0f);
-            directLight += other.LightColor * falloff;
+        //for (auto& light : Graphics::Lights.GetLights()) {
+        //    if (light.radiusSq <= 0) continue;
+        //    // todo: only scan nearby lights
+        //    auto lightDist = Vector3::Distance(obj.Position, light.pos);
+        //    auto radius = sqrt(light.radiusSq);
+        //    if (lightDist > radius) continue;
+        //    auto falloff = 1 - std::clamp(lightDist / radius, 0.0f, 1.0f);
+        //    directLight += light.color * falloff;
 
-            //auto lightDistSq = Vector3::DistanceSquared(obj.Position, other.Position);
-            //auto lightRadiusSq = other.LightRadius * other.LightRadius;
-            //if (lightDistSq > lightRadiusSq) continue;
+        //    //auto lightDistSq = Vector3::DistanceSquared(obj.Position, other.Position);
+        //    //auto lightRadiusSq = other.LightRadius * other.LightRadius;
+        //    //if (lightDistSq > lightRadiusSq) continue;
 
-            //float factor = lightDistSq / lightRadiusSq;                   
-            //float smoothFactor = std::max(1.0f - pow(factor, 0.5f), 0.0f); // 0 to 1
-            //float falloff = smoothFactor * smoothFactor / std::max(sqrt(lightDistSq), 1e-4f);
-            //directLight += other.LightColor * falloff * 50;
-        }
+        //    //float factor = lightDistSq / lightRadiusSq;                   
+        //    //float smoothFactor = std::max(1.0f - pow(factor, 0.5f), 0.0f); // 0 to 1
+        //    //float falloff = smoothFactor * smoothFactor / std::max(sqrt(lightDistSq), 1e-4f);
+        //    //directLight += other.LightColor * falloff * 50;
+        //}
 
-        obj.DirectLight.SetTarget(directLight, Game::Time, duration);
+        //obj.DirectLight.SetTarget(directLight, Game::Time, duration);
     }
 
     void InitObjects() {
@@ -156,7 +157,7 @@ namespace Inferno::Game {
                 seg->AddObject((ObjID)id);
 
             AttachLight(obj, { (ObjID)id, obj.Signature });
-            UpdateDirectLight(obj, 0);
+            //UpdateDirectLight(obj, 0);
         }
 
         ResizeAI(Level.Objects.size());
@@ -847,8 +848,9 @@ namespace Inferno::Game {
             }
         }
 
+        // todo: only nearby objects
         for (auto& obj : Level.Objects) {
-            obj.DirectLight.Update(Game::Time);
+            //obj.DirectLight.Update(Game::Time);
             obj.Ambient.Update(Game::Time);
         }
 
@@ -1167,7 +1169,6 @@ namespace Inferno::Game {
             }
 
             UpdateObjectSegment(Level, obj);
-            obj.Room = Level.FindRoomBySegment(obj.Segment);
 
             //if (auto seg = Level.TryGetSegment(obj.Segment)) {
             //    seg->AddObject((ObjID)id);

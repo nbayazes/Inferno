@@ -19,9 +19,10 @@ namespace Inferno::Editor {
             };
 
             Events::SelectSegment += [this] {
-                const auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
-                auto [t1, t2] = seg.GetTexturesForSide(Editor::Selection.Side);
-                _selection = Resources::LookupTexID(t1);
+                if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+                    auto [t1, t2] = seg->GetTexturesForSide(Editor::Selection.Side);
+                    _selection = Resources::LookupTexID(t1);
+                }
             };
 
             Events::LevelLoaded += [this] {

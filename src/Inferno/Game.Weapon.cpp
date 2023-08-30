@@ -47,7 +47,6 @@ namespace Inferno::Game {
             ge.Force = damage;
             ge.Radius = weapon.SplashRadius;
             ge.Segment = obj.Segment;
-            ge.Room = obj.Room;
             ge.Position = obj.Position;
             CreateExplosion(Game::Level, &obj, ge);
         }
@@ -539,8 +538,6 @@ namespace Inferno::Game {
         bullet.ID = (int8)id;
         bullet.Parent = ref;
         bullet.Segment = obj.Segment;
-        bullet.Room = obj.Room;
-
         bullet.Render.Emissive = weapon.Extended.Glow;
 
         if (id == WeaponID::ProxMine || id == WeaponID::SmartMine) {
@@ -667,27 +664,34 @@ namespace Inferno::Game {
         auto result = ObjID::None;
         float minDist = FLT_MAX;
 
-        // todo: don't scan all objects, only nearby ones
-        for (int i = 0; i < Game::Level.Objects.size(); i++) {
-            auto& obj = Game::Level.Objects[i];
-            if (!obj.IsAlive()) continue;
-            if (!obj.PassesMask(mask)) continue;
+        auto action = [&] (const Room& room) {
+            for (auto& segId : room.Segments) {
+                auto& seg = Game::Level.GetSegment(segId);
+                
+                for (int i = 0; i < seg.Objects.size(); i++) {
+                    auto& obj = Game::Level.Objects[i];
+                    if (!obj.IsAlive()) continue;
+                    if (!obj.PassesMask(mask)) continue;
 
-            auto odist = obj.Distance(src);
-            if (odist > dist || odist >= minDist) continue;
+                    auto odist = obj.Distance(src);
+                    if (odist > dist || odist >= minDist) continue;
 
-            auto vec = obj.Position - src.Position;
-            vec.Normalize();
-            Ray targetRay(src.Position, vec);
-            LevelHit hit;
+                    auto vec = obj.Position - src.Position;
+                    vec.Normalize();
+                    Ray targetRay(src.Position, vec);
+                    LevelHit hit;
 
-            if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
-                !IntersectRayLevel(Game::Level, targetRay, src.Segment, odist, false, true, hit)) {
-                minDist = odist;
-                result = (ObjID)i;
+                    if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
+                        !IntersectRayLevel(Game::Level, targetRay, src.Segment, odist, false, true, hit)) {
+                        minDist = odist;
+                        result = (ObjID)i;
+                    }
+                }
             }
-        }
+        };
 
+        auto room = Game::Level.GetRoomID(src);
+        TraverseRoomsByDistance(Game::Level, room, src.Position, dist, action);
         return result;
     }
 

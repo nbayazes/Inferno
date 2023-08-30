@@ -335,7 +335,6 @@ namespace Inferno {
         int8 ID{};              // Index in powerups, robots, etc. Also used for player and co-op IDs.
         ObjectFlag Flags{};
         SegID Segment{};        // segment number containing object
-        RoomID Room{}; // Room containing object
 
         float Radius = 2;       // radius of object for collision detection
         float HitPoints = 100;  // Objects are destroyed when hitpoints go under 0
@@ -362,7 +361,7 @@ namespace Inferno {
         float LightRadius = 0; // Point light radius
         DynamicLightMode LightMode{}; // Point light mode
 
-        LerpedColor Ambient, DirectLight;
+        LerpedColor Ambient;
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0;
@@ -444,6 +443,7 @@ namespace Inferno {
             return ID == (int)id;
         }
 
+        bool IsPowerup() const { return Type == ObjectType::Powerup; }
         bool IsPlayer() const { return Type == ObjectType::Player; }
         bool IsCoop() const { return Type == ObjectType::Coop; }
         bool IsRobot() const { return Type == ObjectType::Robot; }

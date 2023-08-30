@@ -637,15 +637,6 @@ namespace Inferno {
             return iter == std::end(xs) ? nullptr : &(*iter);
         }
 
-        template <class TKey, class TValue>
-        TValue* findKey(std::unordered_map<TKey, TValue>& xs, const auto& value) {
-            auto index = xs.find(value);
-            if (index == xs.end())
-                return nullptr;
-
-            return &index->second;
-        }
-
         // Returns true if an element is found in the collection.
         constexpr bool contains(auto&& xs, auto&& element) {
             if (xs.empty()) return false;

@@ -125,14 +125,14 @@ namespace Inferno {
     // adds awareness to robots in nearby rooms
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness) {
         auto& level = Game::Level;
-        auto room = level.GetRoom(source.Room);
-        if (!room) return;
+        auto room = level.GetRoomID(source);
+        if (room == RoomID::None) return;
 
         auto action = [&](const Room& r) {
             AlertEnemiesInRoom(level, r, source.Segment, source.Position, soundRadius, awareness);
         };
 
-        Game::TraverseRoomsByDistance(level, source.Room, source.Position, soundRadius, action);
+        Game::TraverseRoomsByDistance(level, room, source.Position, soundRadius, action);
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
@@ -526,7 +526,7 @@ namespace Inferno {
     //}
 
     void AvoidRoomEdges(Level& level, const Ray& ray, const Object& obj, float thrust, Vector3& target) {
-        auto room = level.GetRoom(obj.Room);
+        auto room = level.GetRoom(obj);
         if (!room) return;
 
         for (auto& segId : room->Segments) {
@@ -880,7 +880,7 @@ namespace Inferno {
     }
 
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
-        auto room = level.GetRoom(robot.Room);
+        auto room = level.GetRoom(robot);
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
         for (auto& segId : room->Segments) {
@@ -902,7 +902,9 @@ namespace Inferno {
 
     // Tries to path towards the player or move directly to it if in the same room
     void MoveTowardsPlayer(Level& level, const Object& player, Object& robot, AIRuntime& ai) {
-        if (player.Room == robot.Room) {
+        auto playerRoom = level.GetRoomID(player);
+        auto robotRoom = level.GetRoomID(robot);
+        if (playerRoom == robotRoom) {
             MoveTowardsPoint(robot, player.Position, 100);
         }
         else {
@@ -1217,10 +1219,9 @@ namespace Inferno {
     }
 
     void UpdateNearbyAI(Level& level, float dt) {
-        auto room = level.GetRoom(Game::GetPlayer().Room);
+        auto room = level.GetRoom(Game::GetPlayer());
 
         // todo: also update adjacent rooms
-        // todo: game should track active rooms based on portal changes
         for (auto& segId : room->Segments) {
             if (!level.SegmentExists(segId)) continue;
             auto& seg = level.GetSegment(segId);

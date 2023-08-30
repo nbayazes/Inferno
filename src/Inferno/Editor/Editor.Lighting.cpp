@@ -409,7 +409,7 @@ namespace Inferno::Editor {
 
     void LightSegments(Level& level,
                        const SideLighting& lightColors,
-                       Set<SegID> segmentsToLight,
+                       const Set<SegID>& segmentsToLight,
                        Tag src,
                        bool bouncePass, // is this a bounce light pass?
                        LightRayCast& cast,
@@ -444,9 +444,9 @@ namespace Inferno::Editor {
 
                     // Move occlusion sample points off of faces to improve light wrapping around corners
                     auto destSamples =
-                        destSeg.IsZeroVolume(level) ?
-                        InsetTowardsPointPercentage(destFace.Center() + destFace.AverageNormal() * 5, destFace, 0.25f) :
-                        InsetTowardsPointPercentage(destSeg.Center, destFace, 0.1f);
+                        destSeg.IsZeroVolume(level)
+                        ? InsetTowardsPointPercentage(destFace.Center() + destFace.AverageNormal() * 5, destFace, 0.25f)
+                        : InsetTowardsPointPercentage(destSeg.Center, destFace, 0.1f);
 
                     auto calcIntensity = [&](int vertIndex) {
                         bool fullBright = !bouncePass && (src == dest || Seq::contains(lightVertIds, destVertIds[vertIndex]));
@@ -666,6 +666,11 @@ namespace Inferno::Editor {
             if (contributingSides == 0) continue;
             seg.VolumeLight += volume * (1.0f / (contributingSides * 4));
             seg.VolumeLight.A(1);
+
+            for (auto& objId : seg.Objects) {
+                if (auto obj = level.TryGetObject(objId))
+                    obj->Ambient.SetTarget(seg.VolumeLight, Game::Time, 0);
+            }
         }
     }
 
@@ -768,7 +773,7 @@ namespace Inferno::Editor {
             });
         }
 
-        SPDLOG_INFO("Delta lights: {} of {}\nIndices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);
+        SPDLOG_INFO("Delta lights: {} of {}; Indices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);
     }
 
     // Copies accumulated light to the level faces
