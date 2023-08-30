@@ -358,6 +358,8 @@ namespace Inferno::Editor {
         }
     }
 
+    Option<Color> SideLightBuffer;
+
     bool SideLighting(Level& level, Segment& seg, SegmentSide& side) {
         bool open = ImGui::TableBeginTreeNode("Light override");
         bool changed = false;
@@ -368,6 +370,21 @@ namespace Inferno::Editor {
                 bool overrideChanged = false;
                 bool hasOverride = side.LightOverride.has_value();
                 auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("Light Color");
+
+                ImGui::TableNextColumn();
+                if (ImGui::Button("Copy")) {
+                    SideLightBuffer = side.LightOverride;
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Paste")) {
+                    side.LightOverride = SideLightBuffer;
+                    overrideChanged = true;
+                }
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -421,6 +438,7 @@ namespace Inferno::Editor {
                         if (auto marked = level.TryGetSide(tag))
                             marked->LightRadiusOverride = side.LightRadiusOverride;
                     }
+
                     Events::LevelChanged();
                 }
             }
