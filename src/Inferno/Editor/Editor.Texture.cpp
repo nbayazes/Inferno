@@ -59,8 +59,8 @@ namespace Inferno::Editor {
             //auto ySign = xAxis.Cross(uv).x > 0 ? 1 : -1;  // point above x axis
             auto yDist = LineDistance(origin, origin + xAxis, uv);
             auto xDist = LineDistance(origin, origin + yAxis, uv);
-            auto ySign = PointIsLeftOfLine(origin, xb, uv) ? 1 : -1;  // point above x axis
-            auto xSign = PointIsLeftOfLine(origin, yb, uv) ? 1 : -1;  // point to right of axis
+            auto ySign = PointIsLeftOfLine(origin, xb, uv) ? 1 : -1; // point above x axis
+            auto xSign = PointIsLeftOfLine(origin, yb, uv) ? 1 : -1; // point to right of axis
             auto y = xAxis * (scale.y - 1.0f) * (float)ySign;
             auto x = xAxis * (scale.x - 1.0f) * (float)xSign;
 
@@ -73,7 +73,7 @@ namespace Inferno::Editor {
     }
 
     // Returns unscaled default UVs
-    Array<Vector2, 3> GetTriangleUVs(Array<Vector3, 3> verts) {
+    Array<Vector2, 3> GetTriangleUVs(const Array<Vector3, 3>& verts) {
         auto vec1 = verts[1] - verts[0];
         auto vec2 = verts[2] - verts[0];
         Vector3 proj = vec1;
@@ -84,7 +84,17 @@ namespace Inferno::Editor {
         auto projSF = proj.Dot(vec2);
         proj *= projSF;
         auto rej = vec2 - proj;
-        return { Vector2::Zero, {0, vec1.Length()}, {-rej.Length(), projSF} };
+        return { Vector2::Zero, { 0, vec1.Length() }, { -rej.Length(), projSF } };
+    }
+
+    // Fits the texture to the face using the selected edge as the base point
+    void FitUVs(Level& level, Tag tag, int edge) {
+        assert(edge >= 0);
+        auto& side = level.GetSide(tag);
+        side.UVs[(0 + edge) % 4] = Vector2{ 1, 1 };
+        side.UVs[(1 + edge) % 4] = Vector2{ 0, 1 };
+        side.UVs[(2 + edge) % 4] = Vector2{ 0, 0 };
+        side.UVs[(3 + edge) % 4] = Vector2{ 1, 0 };
     }
 
     void ResetUVs(Level& level, Tag tag, int edge, float extraAngle) {
@@ -147,7 +157,7 @@ namespace Inferno::Editor {
 
     void ResetUVs(Level& level, SegID seg) {
         for (auto& side : SideIDs)
-            ResetUVs(level, Tag{seg, side});
+            ResetUVs(level, Tag{ seg, side });
     }
 
     // Remaps UVs to their minimum values. i.e. u: 4-5 becomes u: 0-1
@@ -446,6 +456,14 @@ namespace Inferno::Editor {
         return "Reset UVs";
     }
 
+    string OnFitUVs() {
+        for (auto& face : GetSelectedFaces())
+            Editor::FitUVs(Game::Level, face, Editor::Selection.Point);
+
+        Events::LevelChanged();
+        return "Fit UVs";
+    }
+
     // Mirrors UVs along an axis
     void MirrorUVs(SegmentSide& side, const Vector2& p0, const Vector2& p1) {
         Vector2 u = p1 - p0;
@@ -690,8 +708,9 @@ namespace Inferno::Editor {
 
     namespace Commands {
         Command ResetUVs{ .SnapshotAction = OnResetUVs, .Name = "Reset UVs" };
+        Command FitUVs{ .SnapshotAction = OnFitUVs, .Name = "Fit UVs to Side" };
         Command AlignMarked{ .SnapshotAction = OnAlignMarked, .Name = "Align Marked" };
-        Command CopyUVsToFaces{ .SnapshotAction = OnCopyUVs, .Name = "Copy UVs to Faces" };
+        Command CopyUVsToFaces{ .SnapshotAction = OnCopyUVs, .Name = "Copy UVs to Sides" };
         Command PlanarMapping{ .SnapshotAction = OnPlanarMapping, .Name = "Planar Mapping" };
         Command CubeMapping{ .SnapshotAction = OnCubeMapping, .Name = "Cube Mapping" };
     }

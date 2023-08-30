@@ -73,7 +73,7 @@ namespace Inferno::Game {
             }
             case ObjectType::Powerup:
             {
-                auto& info = Resources::GetPowerup(obj.ID);
+                auto& info = Resources::GetPowerup((PowerupID)obj.ID);
                 light.LightColor = info.LightColor;
                 light.Radius = info.LightRadius;
                 light.Mode = info.LightMode;
@@ -337,7 +337,7 @@ namespace Inferno::Game {
         switch (contains.Type) {
             case ObjectType::Powerup:
             {
-                auto& pinfo = Resources::GetPowerup(contains.ID);
+                auto& pinfo = Resources::GetPowerup((PowerupID)contains.ID);
                 if (pinfo.VClip == VClipID::None) {
                     SPDLOG_WARN("Tried to drop an invalid powerup!");
                     return;
@@ -914,7 +914,7 @@ namespace Inferno::Game {
                 State = GameState::Editor;
                 ResetCountdown();
                 Render::Camera = EditorCameraSnapshot;
-                Input::SetMouselook(false);
+                Input::SetMouseMode(Input::MouseMode::Normal);
                 Sound::Reset();
                 Render::ResetEffects();
                 LerpAmount = 1;
@@ -1207,7 +1207,7 @@ namespace Inferno::Game {
 
         EditorCameraSnapshot = Render::Camera;
         Settings::Editor.RenderMode = RenderMode::Shaded;
-        Input::SetMouselook(true);
+        Input::SetMouseMode(Input::MouseMode::Mouselook);
         Render::LoadHUDTextures();
 
         PreloadTextures();

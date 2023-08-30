@@ -89,9 +89,46 @@ namespace Inferno::Editor {
                         Editor::Selection.Segment,
                         Editor::Selection.Side);
 
+            if (ImGui::IsItemHovered())
+                ShowStatsTooltip();
+
+
             ImGui::EndTable();
 
             Height = ImGui::GetWindowHeight();
+        }
+
+        static void ShowStatsTooltip() {
+            ImGui::BeginTooltip();
+
+            auto& level = Game::Level;
+
+            if (ImGui::BeginTable("count", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_SizingFixedFit)) {
+                ImGui::TableSetupColumn("c1_", 0, 80 * Shell::DpiScale);
+                ImGui::TableSetupColumn("c2_", 0, 80 * Shell::DpiScale);
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("Segments");
+                ImGui::TableNextColumn();
+                ImGui::Text("%i", level.Segments.size());
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("Vertices");
+                ImGui::TableNextColumn();
+                ImGui::Text("%i", level.Vertices.size());
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("Walls");
+                ImGui::TableNextColumn();
+                ImGui::Text("%i", level.Walls.size());
+
+                ImGui::EndTable();
+            }
+
+            ImGui::EndTooltip();
         }
     };
 }

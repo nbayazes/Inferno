@@ -19,7 +19,7 @@ namespace Inferno::Input {
     HWND Hwnd;
     int RawX, RawY;
 
-    bool Mouselook = false, RequestedMouselook = false;
+    MouseMode ActualMouseMode{}, RequestedMouseMode{};
     int WheelPrev = 0;
 
     SelectionState UpdateDragState(DirectX::Mouse::ButtonStateTracker::ButtonState buttonState, SelectionState dragState) {
@@ -61,18 +61,18 @@ namespace Inferno::Input {
     }
 
     void Update() {
-        if (RequestedMouselook != Mouselook) {
-            Mouselook = RequestedMouselook;
+        if (RequestedMouseMode != ActualMouseMode) {
+            ActualMouseMode = RequestedMouseMode;
             RawX = RawY = 0;
 
-            if (Mouselook) {
-                RECT r{};
+            if (ActualMouseMode != MouseMode::Normal) {
+                RECT r{}, frame{};
                 GetClientRect(Hwnd, &r);
                 POINT center = { (r.left + r.right) / 2, (r.top + r.bottom) / 2 };
                 WindowCenter = Vector2{ (float)center.x, (float)center.y };
             }
 
-            ShowCursor(!Mouselook);
+            ShowCursor(ActualMouseMode == MouseMode::Normal);
         }
 
         auto keyboardState = _keyboard.GetState();
@@ -80,31 +80,24 @@ namespace Inferno::Input {
         auto mouseState = _mouse.GetState();
         Mouse.Update(mouseState);
 
-        if (!Shell::HasFocus && Game::GetState() == GameState::Game) {
-            MouseDelta.x = MouseDelta.y = 0;
-            MousePrev = MousePosition;
+        if (ActualMouseMode != MouseMode::Normal) {
+            // keep the cursor in place in mouselook mode
+            MousePrev = WindowCenter;
+            MousePosition = WindowCenter;
+            POINT pt{ (int)WindowCenter.x, (int)WindowCenter.y };
+            ClientToScreen(Hwnd, &pt);
+            SetCursorPos(pt.x, pt.y);
+
+            //SPDLOG_INFO("Delta: {}, {}", MouseDelta.x, MouseDelta.y);
+            //SPDLOG_INFO("Raw: {}, {}", RawX, RawY);
+            MouseDelta.x = (float)RawX;
+            MouseDelta.y = (float)RawY;
+            RawX = RawY = 0;
         }
         else {
-            if (Mouselook) {
-                // keep the cursor in place in mouselook mode
-                MousePrev = WindowCenter;
-                MousePosition = WindowCenter;
-                POINT pt{ (int)WindowCenter.x, (int)WindowCenter.y };
-                ClientToScreen(Hwnd, &pt);
-                SetCursorPos(pt.x, pt.y);
-
-                //SPDLOG_INFO("Delta: {}, {}", MouseDelta.x, MouseDelta.y);
-                //SPDLOG_INFO("Raw: {}, {}", RawX, RawY);
-                MouseDelta.x = (float)RawX;
-                MouseDelta.y = (float)RawY;
-                RawX = RawY = 0;
-            }
-            else {
-                MousePosition = Vector2{ (float)mouseState.x, (float)mouseState.y };
-                MouseDelta = MousePrev - MousePosition;
-                MousePrev = MousePosition;
-            }
-
+            MousePosition = Vector2{ (float)mouseState.x, (float)mouseState.y };
+            MouseDelta = MousePrev - MousePosition;
+            MousePrev = MousePosition;
             WheelDelta = WheelPrev - mouseState.scrollWheelValue;
             WheelPrev = mouseState.scrollWheelValue;
         }
@@ -138,10 +131,10 @@ namespace Inferno::Input {
         return Keyboard.IsKeyPressed(key);
     }
 
-    bool GetMouselook() { return Mouselook; }
+    MouseMode GetMouseMode() { return ActualMouseMode; }
 
-    void SetMouselook(bool enable) {
-        RequestedMouselook = enable;
+    void SetMouseMode(MouseMode enable) {
+        RequestedMouseMode = enable;
     }
 
     void ResetState() {
@@ -187,7 +180,7 @@ namespace Inferno::Input {
 
         if (message == WM_INPUT) {
             RAWINPUT raw{};
-            UINT rawSize = sizeof(raw);
+            UINT rawSize = sizeof raw;
 
             UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
             if (resultData == UINT(-1))
@@ -196,7 +189,7 @@ namespace Inferno::Input {
             if (raw.header.dwType == RIM_TYPEMOUSE) {
                 RawX += raw.data.mouse.lLastX;
                 RawY += raw.data.mouse.lLastY;
-                //fmt::print("raw mouse x/y: {}, {}\n", RawX, RawY);
+
                 ResetEvent(RelativeReadEvent.get());
             }
         }

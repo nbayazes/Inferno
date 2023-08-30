@@ -15,6 +15,10 @@ namespace Inferno {
         enum class TexturePreviewSize {
             Small, Medium, Large
         };
+
+        enum class MiddleMouseMode {
+            Mouselook, Orbit
+        };
     }
 
     enum class RenderMode {
@@ -102,7 +106,9 @@ namespace Inferno {
         float WireframeOpacity = 0.5f;
 
         bool InvertY = false;
+        bool InvertOrbitY = false;
         float FieldOfView = 80;
+        Editor::MiddleMouseMode MiddleMouseMode = Editor::MiddleMouseMode::Mouselook;
 
         struct OpenWindows {
             bool Lighting = false;

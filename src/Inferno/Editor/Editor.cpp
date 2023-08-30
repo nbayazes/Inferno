@@ -188,7 +188,7 @@ namespace Inferno::Editor {
             return CursorDragMode::Transform;
         }
         else if (Settings::Editor.SelectionMode == SelectionMode::Segment &&
-                 !Settings::Editor.EnableTextureMode) {
+            !Settings::Editor.EnableTextureMode) {
             Editor::History.SnapshotSelection();
             auto segs = GetSelectedSegments();
             auto copy = CopySegments(level, segs);
@@ -248,12 +248,14 @@ namespace Inferno::Editor {
         auto mouselookKey = Bindings::Active.GetBindingKey(EditorAction::HoldMouselook);
 
         if (Input::Mouse.middleButton == Input::MouseState::PRESSED ||
-            Input::Keyboard.IsKeyPressed(mouselookKey))
-            Input::SetMouselook(true);
+            Input::Keyboard.IsKeyPressed(mouselookKey)) {
+            auto mode = Settings::Editor.MiddleMouseMode == MiddleMouseMode::Mouselook ? Input::MouseMode::Mouselook : Input::MouseMode::Orbit;
+            Input::SetMouseMode(mode);
+        }
 
         if (Input::Mouse.middleButton == Input::MouseState::RELEASED ||
             Input::Keyboard.IsKeyReleased(mouselookKey))
-            Input::SetMouselook(false);
+            Input::SetMouseMode(Input::MouseMode::Normal);
     }
 
     void CreateMatcenEffects(const Level& level) {
@@ -318,7 +320,7 @@ namespace Inferno::Editor {
             Editor::Gizmo.CancelDrag();
 
         // only update mouse functionality if mouse not over imgui and not in mouselook
-        if (ImGui::GetCurrentContext()->HoveredWindow && !Input::GetMouselook()) return;
+        if (ImGui::GetCurrentContext()->HoveredWindow && Input::GetMouseMode() != Input::MouseMode::Normal) return;
 
         DragMode = UpdateGizmoDragState();
 
@@ -354,7 +356,7 @@ namespace Inferno::Editor {
                     break;
             }
 
-            if (Input::GetMouselook() || Input::LeftDragState == SelectionState::None)
+            if (Input::GetMouseMode() != Input::MouseMode::Normal || Input::LeftDragState == SelectionState::None)
                 UpdateCamera(Render::Camera); // Only allow camera movement when not dragging unless in mouselook mode
         }
 
@@ -450,6 +452,42 @@ namespace Inferno::Editor {
         }
     }
 
+    void ResetObjects(Level& level) {
+        int id = 0;
+        for (auto& obj : level.Objects) {
+            if (obj.Type == ObjectType::Player) {
+                // Reload player settings
+                const auto& ship = Resources::GameData.PlayerShip;
+                auto& physics = obj.Physics;
+                physics.Brakes = physics.TurnRoll = 0;
+                physics.Drag = ship.Drag;
+                physics.Mass = ship.Mass;
+
+                physics.Flags |= PhysicsFlag::TurnRoll | PhysicsFlag::AutoLevel | PhysicsFlag::Wiggle | PhysicsFlag::UseThrust;
+
+                obj.Render.Model.ID = ship.Model;
+                obj.Render.Model.subobj_flags = 0;
+                obj.Render.Model.TextureOverride = LevelTexID::None;
+                for (auto& angle : obj.Render.Model.Angles)
+                    angle = Vector3::Zero;
+
+                obj.Flags = (ObjectFlag)0;
+            }
+
+            if (obj.Type == ObjectType::Robot && Seq::inRange(Resources::GameData.Robots, obj.ID)) {
+                auto& physics = obj.Physics;
+                auto& robot = Resources::GameData.Robots[obj.ID];
+                physics.Mass = robot.Mass;
+                physics.Drag = robot.Drag;
+            }
+
+            if (obj.Contains.Type == ObjectType::None && obj.Contains.Count > 0)
+                SPDLOG_WARN("Object {} has a contains count > 0 with no type. Resave to fix.", id);
+
+            id++;
+        }
+    }
+
     List<PointID> GetSelectedVertices() {
         auto verts = Editor::Marked.GetVertexHandles(Game::Level);
         if (verts.empty())
@@ -500,25 +538,38 @@ namespace Inferno::Editor {
     }
 
     void OnLevelLoad(bool reload) {
-        if (!reload)
-            Commands::ZoomExtents();
+        auto& level = Game::Level;
+        if (!reload) {
+            if (level.CameraUp != Vector3::Zero) {
+                Render::Camera.Position = level.CameraPosition;
+                Render::Camera.Target = level.CameraTarget;
+                Render::Camera.Up = level.CameraUp;
+            }
+            else {
+                Commands::ZoomExtents();
+            }
+        }
 
-        auto seg = Game::Level.Segments.empty() ? SegID::None : SegID(0);
-        Editor::Selection.Object = Game::Level.Objects.empty() ? ObjID::None : ObjID(0);
+        auto seg = level.Segments.empty() ? SegID::None : SegID(0);
+        Editor::Selection.Object = level.Objects.empty() ? ObjID::None : ObjID(0);
         Editor::Marked.Clear();
 
         Editor::Selection.SetSelection({ seg, SideID::Left });
-        Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
+        Editor::History = { &level, Settings::Editor.UndoLevels };
         UpdateSecretLevelReturnMarker();
-        ResetFlickeringLightTimers(Game::Level);
+        ResetFlickeringLightTimers(level);
+        ResetObjects(level);
 
-        for (auto& obj : Game::Level.Objects)
+        for (auto& obj : level.Objects)
             obj.Radius = GetObjectRadius(obj);
 
-        CheckTriggers(Game::Level);
+        CheckTriggers(level);
         Editor::Events::LevelLoaded();
-        SetStatusMessage("Loaded level with {} segments and {} vertices", Game::Level.Segments.size(), Game::Level.Vertices.size());
-        Editor::History = { &Game::Level, Settings::Editor.UndoLevels };
+        SetStatusMessage("Loaded level with {} segments and {} vertices", level.Segments.size(), level.Vertices.size());
+
+        if (!Resources::HasGameData())
+            Events::ShowDialog(DialogType::Settings);
+
         ResetAutosaveTimer();
     }
 
@@ -728,6 +779,5 @@ namespace Inferno::Editor {
             },
             .Name = "Toggle Wireframe"
         };
-
     }
 }

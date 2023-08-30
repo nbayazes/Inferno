@@ -92,6 +92,8 @@ namespace Inferno::Editor {
             RegisterDialog<AboutDialog>(DialogType::About);
 
             Events::ShowDialog += [this](DialogType type) {
+                // Don't show another dialog if one is already open as it will confuse imgui state
+                if (ImGui::GetTopMostPopupModal()) return;
                 if (auto& dialog = _dialogs[type]) dialog->Show();
             };
 
@@ -103,7 +105,7 @@ namespace Inferno::Editor {
 
     protected:
         void DrawMenu();
-        void DrawDockspace(const ImGuiViewport* viewport);
+        void DrawDockspace(const ImGuiViewport* viewport) const;
         ImGuiDockNode* CreateDockLayout(ImGuiID dockspaceId, const ImGuiViewport* viewport) const;
 
     };

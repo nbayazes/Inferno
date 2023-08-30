@@ -1,22 +1,36 @@
 #include "pch.h"
 #include "Editor.h"
 #include "Game.h"
+#include "Gizmo.h"
+#include "imgui.h"
 #include "Types.h"
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {
-
     void UpdateCamera(Camera& camera) {
         auto& delta = Input::MouseDelta;
         auto& wheelDelta = Input::WheelDelta;
 
-        if (Input::GetMouselook()) {
+        if (Input::GetMouseMode() == Input::MouseMode::Mouselook) {
             int inv = Settings::Editor.InvertY ? 1 : -1;
             camera.Rotate(delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
         }
 
-        if (wheelDelta < 0) camera.ZoomIn();
-        if (wheelDelta > 0) camera.ZoomOut();
+        if (Input::GetMouseMode() == Input::MouseMode::Orbit) {
+            if (Input::AltDown) {
+                camera.Pan(-delta.x * Settings::Editor.MoveSpeed * 0.001f, -delta.y * Settings::Editor.MoveSpeed * 0.001f);
+            }
+            else {
+                int inv = Settings::Editor.InvertOrbitY ? 1 : -1;
+                camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
+            }
+        }
+
+        // Only allow scrollwheel zooming when not over ImGui
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            if (wheelDelta < 0) camera.ZoomIn();
+            if (wheelDelta > 0) camera.ZoomOut();
+        }
     }
 
     void ZoomExtents(const Level& level, Camera& camera) {
@@ -74,19 +88,8 @@ namespace Inferno::Editor {
         };
 
         Command FocusSelection{
-            .Action = [] {
-                if (Settings::Editor.SelectionMode == SelectionMode::Object) {
-                    if (auto obj = Game::Level.TryGetObject(Selection.Object)) {
-                        Render::Camera.MoveTo(obj->Position);
-                        return;
-                    }
-                }
-
-                if (auto seg = Game::Level.TryGetSegment(Selection.Segment))
-                    Render::Camera.MoveTo(seg->Center);
-            },
+            .Action = [] { Render::Camera.MoveTo(Editor::Gizmo.Transform.Translation()); },
             .Name = "Focus Selection"
         };
     }
-
 }

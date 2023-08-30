@@ -91,18 +91,18 @@ namespace Inferno::Editor {
         }
 
         if (ImGui::BeginMenu("Add Object")) {
-            auto AddObjectType = [](const char* name, ObjectType type) {
+            auto addObjectType = [](const char* name, ObjectType type) {
                 if (ImGui::MenuItem(name)) {
                     auto id = AddObject(Game::Level, Editor::Selection.PointTag(), type);
                     if (id != ObjID::None) Editor::History.SnapshotLevel(fmt::format("Add {}", name));
                 }
             };
 
-            AddObjectType("Player", ObjectType::Player);
-            AddObjectType("Robot", ObjectType::Robot);
-            AddObjectType("Powerup", ObjectType::Powerup);
-            AddObjectType("Co-op", ObjectType::Coop);
-            AddObjectType("Hostage", ObjectType::Hostage);
+            addObjectType("Player", ObjectType::Player);
+            addObjectType("Robot", ObjectType::Robot);
+            addObjectType("Powerup", ObjectType::Powerup);
+            addObjectType("Co-op", ObjectType::Coop);
+            addObjectType("Hostage", ObjectType::Hostage);
             ImGui::EndMenu();
         }
 
@@ -133,20 +133,22 @@ namespace Inferno::Editor {
 
                 if (Game::Level.IsDescent2()) {
                     if (ImGui::BeginMenu("Palette")) {
-                        auto entry = [](const char* label, const string& palette) {
-                            if (ImGui::MenuItem(label, nullptr, String::ToUpper(Game::Level.Palette) == palette)) {
-                                Game::Level.Palette = palette;
-                                Resources::LoadLevel(Game::Level);
-                                Render::Materials->Reload();
-                            }
-                        };
+                        bool paletteChanged = false;
 
-                        entry("Default", "GROUPA.256");
-                        entry("Water", "WATER.256");
-                        entry("Fire", "FIRE.256");
-                        entry("Ice", "ICE.256");
-                        entry("Alien 1", "ALIEN1.256");
-                        entry("Alien 2", "ALIEN2.256");
+                        for (auto& palette : Resources::GetAvailablePalettes()) {
+                            if (ImGui::MenuItem(palette.Name.c_str(), nullptr, String::ToUpper(Game::Level.Palette) == palette.FileName)) {
+                                Game::Level.Palette = palette.FileName;
+                                paletteChanged = true;
+                            }
+                        }
+
+                        if (paletteChanged) {
+                            // Reloading should probably be done elsewhere, but it must be done after drawing the menu items
+                            // because loading the level changes the palette list.
+                            Resources::LoadLevel(Game::Level);
+                            Render::Materials->Reload();
+                        }
+
                         ImGui::EndMenu();
                     }
 
@@ -245,9 +247,9 @@ namespace Inferno::Editor {
             if (ImGui::BeginMenu("Geometry")) {
                 MenuCommand(Commands::ConnectSides, EditorAction::ConnectSides);
                 MenuCommand(Commands::JoinSides, EditorAction::JoinSides);
-                ImGui::Separator();
                 MenuCommand(Commands::JoinPoints, EditorAction::JoinPoints);
                 MenuCommand(Commands::JoinTouchingSegments, EditorAction::JoinTouchingSegments);
+                MenuCommand(Commands::AveragePoints, EditorAction::AveragePoints);
                 ImGui::Separator();
                 SplitMenu();
                 MenuCommand(Commands::MergeSegment, EditorAction::MergeSegment);
@@ -267,6 +269,7 @@ namespace Inferno::Editor {
 
             if (ImGui::BeginMenu("Texturing")) {
                 MenuCommand(Commands::ResetUVs, EditorAction::ResetUVs);
+                MenuCommand(Commands::FitUVs, EditorAction::FitUVs);
                 MenuCommand(Commands::AlignMarked, EditorAction::AlignMarked);
                 MenuCommand(Commands::CopyUVsToFaces, EditorAction::CopyUVsToFaces);
                 MenuCommand(Commands::PlanarMapping);
@@ -650,7 +653,7 @@ namespace Inferno::Editor {
 
     bool BeginContextMenu() {
         if (Editor::Gizmo.State == GizmoState::EndDrag ||
-            Input::GetMouselook() ||
+            Input::GetMouseMode() != Input::MouseMode::Normal ||
             (Editor::Gizmo.State == GizmoState::RightClick && Settings::Editor.EnableTextureMode) || // Disable right click in texture mode
             Input::LeftDragState == Input::SelectionState::Dragging ||
             ImGui::GetTopMostPopupModal())
@@ -706,6 +709,7 @@ namespace Inferno::Editor {
 
             if (mode != SelectionMode::Object && mode != SelectionMode::Transform) {
                 MenuCommand(Commands::ResetUVs, EditorAction::ResetUVs);
+                MenuCommand(Commands::FitUVs, EditorAction::FitUVs);
                 MenuCommand(Commands::AlignMarked, EditorAction::AlignMarked);
                 MenuCommand(Commands::CopyUVsToFaces, EditorAction::CopyUVsToFaces);
                 if (ImGui::MenuItem("Clear Overlay Texture"))
@@ -823,7 +827,7 @@ namespace Inferno::Editor {
         }
     }
 
-    void EditorUI::DrawDockspace(const ImGuiViewport* viewport) {
+    void EditorUI::DrawDockspace(const ImGuiViewport* viewport) const {
         float toolbarWidth = 0; // = ToolbarWidth;
         ImGui::SetNextWindowPos({ toolbarWidth, 0 });
         ImGui::SetNextWindowSize({ viewport->WorkSize.x - toolbarWidth, viewport->WorkSize.y + _mainMenuHeight - _statusBar.Height });

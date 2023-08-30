@@ -61,6 +61,9 @@ namespace Inferno::Editor {
         filesystem::path metadataPath = path;
         metadataPath.replace_extension(METADATA_EXTENSION);
         std::ofstream metadata(metadataPath);
+        level.CameraPosition = Render::Camera.Position;
+        level.CameraTarget = Render::Camera.Target;
+        level.CameraUp = Render::Camera.Up;
         SaveLevelMetadata(level, metadata);
         SetStatusMessage(L"Saved level to {}", path.wstring());
 
@@ -263,7 +266,9 @@ namespace Inferno::Editor {
                 if (!levelEntries.empty()) {
                     LoadLevelFromHOG(levelEntries[0].Name);
 
-                    if (levelEntries.size() > 1) // show hog editor if there's more than one level
+                    // Show hog editor if there's more than one level and game data is present.
+                    // If there's no game data, the config dialog will conflict causing the UI to get stuck.
+                    if (levelEntries.size() > 1 && Resources::HasGameData()) 
                         Events::ShowDialog(DialogType::HogEditor);
                 }
             }

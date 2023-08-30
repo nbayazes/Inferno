@@ -153,6 +153,10 @@ namespace Inferno {
 
         // Name of the level on the filesystem. Empty means it is in a hog or unsaved.
         filesystem::path Path;
+
+        Vector3 CameraPosition;
+        Vector3 CameraTarget;
+        Vector3 CameraUp;
 #pragma endregion
 
         bool IsDescent1() const { return Version == 1; }
@@ -222,12 +226,20 @@ namespace Inferno {
             return nullptr;
         }
 
+        constexpr WallID TryGetWallID(Tag tag) const {
+            if (!tag) return WallID::None;
+            if (auto seg = TryGetSegment(tag))
+                return seg->GetSide(tag.Side).Wall;
+
+            return WallID::None;
+        }
+
         constexpr Tuple<Wall*, Wall*> TryGetWalls(Tag tag) {
             if (!tag)
                 return { nullptr, nullptr };
 
             auto wall = TryGetWall(tag);
-            auto cwall = TryGetConnectedWall(tag);
+            auto cwall = TryGetWall(GetConnectedWall(tag));
             return { wall, cwall };
         }
 
@@ -293,23 +305,29 @@ namespace Inferno {
             return {};
         }
 
-        Wall* TryGetConnectedWall(Tag tag) {
-            auto other = GetConnectedSide(tag);
+        Wall* GetConnectedWall(const Wall& wall) {
+            auto other = GetConnectedSide(wall.Tag);
             return TryGetWall(other);
         }
 
         // Gets the wall connected to the other side of a wall (if present)
-        WallID GetConnectedWallID(WallID wallId) {
+        WallID GetConnectedWall(WallID wallId) {
             auto wall = TryGetWall(wallId);
             if (!wall) return WallID::None;
             auto other = GetConnectedSide(wall->Tag);
-            return GetWallID(other);
+            return TryGetWallID(other);
         }
 
         // Gets the wall connected to the other side of a wall (if present)
-        WallID GetConnectedWallID(Tag tag) const {
+        WallID GetConnectedWall(Tag tag) const {
             auto other = GetConnectedSide(tag);
-            return GetWallID(other);
+            return TryGetWallID(other);
+        }
+
+        // Gets the wall connected to the other side of a wall (if present)
+        Wall* TryGetConnectedWall(Tag tag) {
+            auto id = GetConnectedWall(tag);
+            return TryGetWall(id);
         }
 
         bool SegmentExists(SegID id) const {

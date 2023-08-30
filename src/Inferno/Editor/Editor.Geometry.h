@@ -6,6 +6,10 @@
 #include "Command.h"
 
 namespace Inferno::Editor {
+    // Returns the matching edge of the connected seg and side of the provided tag.
+    // Returns 0 if not found.
+    short GetPairedEdge(Level&, Tag, uint16 point);
+
     void DeleteSegment(Level&, SegID);
     void DeleteVertex(Level&, PointID);
 
@@ -54,5 +58,6 @@ namespace Inferno::Editor {
         // Joins nearby segment faces that overlap with the selected segment
         extern Command JoinTouchingSegments;
         extern Command DetachPoints;
+        extern Command AveragePoints;
     }
 }

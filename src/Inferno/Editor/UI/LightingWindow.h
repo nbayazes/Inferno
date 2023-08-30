@@ -3,7 +3,7 @@
 #include "WindowBase.h"
 
 namespace Inferno::Editor {
-    class LightingWindow : public WindowBase {
+    class LightingWindow final : public WindowBase {
     public:
         LightingWindow();
 

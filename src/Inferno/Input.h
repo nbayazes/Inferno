@@ -38,8 +38,14 @@ namespace Inferno::Input {
 
     inline SelectionState DragState, LeftDragState, RightDragState;
 
-    bool GetMouselook();
-    void SetMouselook(bool);
+    enum class MouseMode {
+        Normal,
+        Mouselook,
+        Orbit
+    };
+
+    MouseMode GetMouseMode();
+    void SetMouseMode(MouseMode);
 
     // Workaround for the relative mouse mode not summing deltas properly
     void ProcessRawMouseInput(UINT message, WPARAM, LPARAM);

@@ -57,6 +57,7 @@ namespace Inferno::Editor {
 
         // Update refs in the copied segments to be 0 based
         for (auto& seg : copy.Segments) {
+            // Break boundary connections
             for (auto& conn : seg.Connections) {
                 if (segIdMapping.contains(conn))
                     conn = segIdMapping[conn];
@@ -67,20 +68,22 @@ namespace Inferno::Editor {
             for (auto& sid : SideIDs) {
                 auto& side = seg.GetSide(sid);
                 if (auto wall = level.TryGetWall(side.Wall)) {
-                    if (wall->Type == WallType::WallTrigger || wall->Type == WallType::Open) {
+                    if (wall->Type != WallType::WallTrigger && seg.Connections[(int)sid] == SegID::None) {
+                        // Don't copy walls on the boundary of copied segments
                         side.Wall = WallID::None;
-                        continue; // Don't copy triggers, they need to be set up again by hand
-                    }
-
-                    if (seg.Connections[(int)sid] == SegID::None) {
-                        side.Wall = WallID::None;
-                        continue; // Skip wall if other side wasn't copied
+                        continue;
                     }
 
                     auto wallCopy = *wall;
-                    wallCopy.LinkedWall = (WallID)copy.Walls.size();
                     wallCopy.Tag.Segment = segIdMapping[wallCopy.Tag.Segment];
-                    side.Wall = wallCopy.LinkedWall;
+                    side.Wall = (WallID)copy.Walls.size(); // use local copy count as id
+
+                    // Copy triggers
+                    if (auto trigger = level.TryGetTrigger(wall->Trigger)) {
+                        wallCopy.Trigger = (TriggerID)copy.Triggers.size(); // use local copy count as id
+                        copy.Triggers.push_back(*trigger);
+                    }
+
                     copy.Walls.push_back(std::move(wallCopy));
                 }
             }
@@ -109,6 +112,7 @@ namespace Inferno::Editor {
     List<SegID> InsertSegments(Level& level, SegmentClipboardData copy) {
         auto vertexOffset = (PointID)level.Vertices.size();
         auto wallOffset = level.Walls.size();
+        auto triggerOffset = level.Triggers.size();
         auto segIdOffset = (SegID)level.Segments.size();
         auto matcenOffset = level.Matcens.size();
         Seq::move(level.Vertices, copy.Vertices);
@@ -129,12 +133,12 @@ namespace Inferno::Editor {
             for (auto& side : seg.Sides) {
                 if (Settings::Editor.PasteSegmentWalls) {
                     if (side.Wall != WallID::None) {
-                        auto woffset = (int)side.Wall + wallOffset;
-                        if (woffset >= level.Limits.Walls) {
+                        auto wallId = (int)side.Wall + wallOffset;
+                        if (wallId >= level.Limits.Walls) {
                             SPDLOG_WARN("Wall id is out of range!");
                             break;
                         }
-                        side.Wall = WallID(woffset);
+                        side.Wall = WallID(wallId);
                     }
                 }
                 else {
@@ -174,6 +178,24 @@ namespace Inferno::Editor {
                 }
 
                 wall.Tag.Segment += segIdOffset;
+                if (wall.Trigger != TriggerID::None) {
+                    auto& trigger = copy.Triggers[(int)wall.Trigger];
+
+                    // Remove any targets that point to segments that don't exist
+                    for (int i = (int)trigger.Targets.Count() - 1; i >= 0; i--) {
+                        if (!level.SegmentExists(trigger.Targets[i]))
+                            trigger.Targets.Remove(i);
+                    }
+
+                    level.Triggers.push_back(trigger);
+
+                    auto triggerId = (int)wall.Trigger + triggerOffset;
+                    if (triggerId >= level.Limits.Triggers) {
+                        SPDLOG_WARN("Ran out of space for triggers!");
+                        break;
+                    }
+                    wall.Trigger = TriggerID(triggerId);
+                }
                 level.Walls.push_back(std::move(wall));
             }
         }
@@ -266,10 +288,22 @@ namespace Inferno::Editor {
         for (auto& wall : copy.Walls) {
             auto& side = wall.Tag.Side;
             // swap sides 2/3 and 0/1
-            if (side == SideID(0)) { side = SideID(1); continue; }
-            if (side == SideID(1)) { side = SideID(0); continue; }
-            if (side == SideID(2)) { side = SideID(3); continue; }
-            if (side == SideID(3)) { side = SideID(2); continue; }
+            if (side == SideID(0)) {
+                side = SideID(1);
+                continue;
+            }
+            if (side == SideID(1)) {
+                side = SideID(0);
+                continue;
+            }
+            if (side == SideID(2)) {
+                side = SideID(3);
+                continue;
+            }
+            if (side == SideID(3)) {
+                side = SideID(2);
+                continue;
+            }
         }
 
         // Reverse face winding and fix the resulting texture mapping
@@ -338,6 +372,7 @@ namespace Inferno::Editor {
 
         Object obj = *ObjectClipboard;
         obj.Position = seg->Center;
+        obj.Segment = tag.Segment;
         level.Objects.push_back(obj);
         Editor::Selection.SetSelection(ObjID(level.Objects.size() - 1));
     }
@@ -362,7 +397,10 @@ namespace Inferno::Editor {
     void OnCopySide(Level& level, Tag tag) {
         SideClipboard1 = CopySide(level, tag);
         if (auto otherSide = level.GetConnectedSide(tag)) {
-            SideClipboard2 = CopySide(level, otherSide);
+            // if other side is valid it means this is an open side.
+            // check if there is actually a wall here to copy from to avoid copying blank data
+            if (level.TryGetWall(otherSide))
+                SideClipboard2 = CopySide(level, otherSide);
         }
         else {
             SideClipboard2 = {};
@@ -374,6 +412,13 @@ namespace Inferno::Editor {
             side->TMap = data.Side.TMap;
             side->TMap2 = data.Side.TMap2;
             side->OverlayRotation = data.Side.OverlayRotation;
+
+            side->LockLight = data.Side.LockLight;
+            side->LightOverride = data.Side.LightOverride;
+            side->LightRadiusOverride = data.Side.LightRadiusOverride;
+            side->LightPlaneOverride = data.Side.LightPlaneOverride;
+            side->DynamicMultiplierOverride = data.Side.DynamicMultiplierOverride;
+            side->EnableOcclusion = data.Side.EnableOcclusion;
 
             if (data.Wall)
                 AddWall(level, id, data.Wall->Type, side->TMap, side->TMap2, data.Wall->Flags);

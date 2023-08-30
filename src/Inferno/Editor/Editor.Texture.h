@@ -4,7 +4,7 @@
 
 namespace Inferno::Editor {
     // Resets UVs of a face, aligning it to the specified edge. Angle applies an additional rotation.
-    void ResetUVs(Level&, Tag, int edge = 0, float angle = 0);
+    void ResetUVs(Level&, Tag, int edge = 0, float extraAngle = 0);
 
     void ResetUVs(Level&, SegID);
 
@@ -22,5 +22,6 @@ namespace Inferno::Editor {
         void RotateOverlay();
         extern Command ResetUVs, AlignMarked;
         extern Command CopyUVsToFaces, PlanarMapping, CubeMapping;
+        extern Command FitUVs;
     }
 }

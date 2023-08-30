@@ -122,7 +122,7 @@ namespace Inferno::Editor {
         };
 
         Command ToggleMouselook{
-            .Action = [] { Input::SetMouselook(!Input::GetMouselook()); },
+            .Action = [] { Input::SetMouseMode(Input::GetMouseMode() == Input::MouseMode::Mouselook ? Input::MouseMode::Normal : Input::MouseMode::Mouselook); },
             .Name = "Toggle Mouselook"
         };
 
@@ -190,6 +190,7 @@ namespace Inferno::Editor {
             case EditorAction::ShowGotoDialog: return Commands::GotoSegment;
             case EditorAction::AlignMarked: return Commands::AlignMarked;
             case EditorAction::ResetUVs: return Commands::ResetUVs;
+            case EditorAction::FitUVs: return Commands::FitUVs;
             case EditorAction::CycleRenderMode: return Commands::CycleRenderMode;
             case EditorAction::ToggleWireframe: return Commands::ToggleWireframe;
 
@@ -211,6 +212,7 @@ namespace Inferno::Editor {
             case EditorAction::HideMarks: return Commands::HideMarks;
             case EditorAction::HoldMouselook: return Commands::HoldMouselook;
             case EditorAction::InsertAlignedSegment: return Commands::InsertAlignedSegment;
+            case EditorAction::AveragePoints: return Commands::AveragePoints;
         }
 
         return Commands::NullCommand;
@@ -476,6 +478,7 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::HoldMouselook });
         bindings.Add({ .Action = EditorAction::HideMarks, .Key = Keys::OemTilde });
         bindings.Add({ .Action = EditorAction::InsertAlignedSegment, .Key = Keys::Insert, .Control = true });
+        bindings.Add({ .Action = EditorAction::AveragePoints, .Key = Keys::V });
 
         Active = Default;
     }

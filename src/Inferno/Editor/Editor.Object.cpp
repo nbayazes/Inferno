@@ -122,15 +122,17 @@ namespace Inferno::Editor {
                 return 5;
 
             case ObjectType::Powerup:
-            {
-                auto& info = Resources::GameData.Powerups.at(obj.ID);
-                return info.Size;
-            }
+                return Resources::GetPowerup((PowerupID)obj.ID).Size;
 
             case ObjectType::Reactor:
             {
-                auto& info = Resources::GameData.Reactors.at(obj.ID);
-                return Resources::GetModel(info.Model).Radius;
+                if (Seq::inRange(Resources::GameData.Reactors, obj.ID)) {
+                    auto& info = Resources::GameData.Reactors.at(obj.ID);
+                    return Resources::GetModel(info.Model).Radius;
+                }
+                else {
+                    return obj.Radius;
+                }
             }
 
             case ObjectType::Weapon:
@@ -238,7 +240,7 @@ namespace Inferno::Editor {
             {
                 obj.Control.Type = ControlType::Powerup;
                 obj.Render.Type = RenderType::Powerup;
-                auto& info = Resources::GetPowerup(id);
+                auto& info = Resources::GetPowerup((PowerupID)id);
                 obj.Render.VClip = { .ID = info.VClip };
                 obj.Radius = info.Size;
                 obj.LightRadius = info.LightRadius;

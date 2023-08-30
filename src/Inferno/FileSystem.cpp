@@ -33,13 +33,17 @@ void Inferno::File::WriteAllBytes(const std::filesystem::path& path, span<ubyte>
 namespace Inferno::FileSystem {
     List<filesystem::path> Directories;
 
-    wstring FindFile(const filesystem::path& file) {
+    filesystem::path FindFile(const filesystem::path& file) {
         if (auto path = TryFindFile(file))
-            return path.value();
+            return *path;
 
         auto msg = fmt::format(L"File not found: {}", file.wstring());
         SPDLOG_ERROR(msg);
         throw Exception(Convert::ToString(msg).c_str());
+    }
+
+    span<filesystem::path> GetDirectories() {
+        return Directories;
     }
 
     void Init() {

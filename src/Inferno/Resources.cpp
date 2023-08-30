@@ -26,13 +26,14 @@ namespace Inferno::Resources {
         List<string> StringTable; // Text for the UI
 
         std::mutex PigMutex;
+        List<PaletteInfo> AvailablePalettes;
 
-        constexpr EffectClip DefaultEffectClip{};
-        constexpr VClip DefaultVClip{};
-        const RobotInfo DefaultRobotInfo{};
-        const DoorClip DefaultDoorClip{};
-        const Model DefaultModel{};
-        const LevelTexture DefaultTexture{};
+        constexpr VClip DEFAULT_VCLIP{};
+        const Model DEFAULT_MODEL{};
+        const LevelTexture DEFAULT_TEXTURE{};
+        Powerup DEFAULT_POWERUP{};
+        DoorClip DEFAULT_DOOR_CLIP{};
+        RobotInfo DEFAULT_ROBOT{};
 
         struct ModelEntry {
             string Name;
@@ -78,12 +79,10 @@ namespace Inferno::Resources {
         if (id >= PowerupNames.size() || PowerupNames[id] == "(not used)") return {};
         return { PowerupNames[id] };
     }
-
-    Powerup DEFAULT_POWERUP{};
-
-    Powerup& GetPowerup(uint id) {
-        if (!Seq::inRange(GameData.Powerups, id)) return DEFAULT_POWERUP;
-        return GameData.Powerups[id];
+    
+    const Powerup& GetPowerup(PowerupID id) {
+        if (!Seq::inRange(GameData.Powerups, (int)id)) return DEFAULT_POWERUP;
+        return GameData.Powerups[(int)id];
     }
 
     void Init() {
@@ -93,7 +92,7 @@ namespace Inferno::Resources {
     }
 
     const DoorClip& GetDoorClip(DClipID id) {
-        if (!Seq::inRange(GameData.DoorClips, (int)id)) return DefaultDoorClip;
+        if (!Seq::inRange(GameData.DoorClips, (int)id)) return DEFAULT_DOOR_CLIP;
         return GameData.DoorClips[(int)id];
     }
 
@@ -106,13 +105,11 @@ namespace Inferno::Resources {
         return DClipID::None;
     }
 
-    const EffectClip& GetEffectClip(EClipID id) {
-        if (!Seq::inRange(GameData.Effects, (int)id)) return DefaultEffectClip;
-        return GameData.Effects[(int)id];
-    }
+    EffectClip DEFAULT_EFFECT_CLIP = {};
 
-    const EffectClip& GetEffectClip(LevelTexID id) {
-        return GetEffectClip(LookupTexID(id));
+    const EffectClip& GetEffectClip(EClipID id) {
+        if (!Seq::inRange(GameData.Effects, (int)id)) return DEFAULT_EFFECT_CLIP;
+        return GameData.Effects[(int)id];
     }
 
     const EffectClip& GetEffectClip(TexID id) {
@@ -121,10 +118,17 @@ namespace Inferno::Resources {
                 return clip;
         }
 
-        return DefaultEffectClip;
+        return DEFAULT_EFFECT_CLIP;
+    }
+
+    const EffectClip& GetEffectClip(LevelTexID id) {
+        auto tid = LookupTexID(id);
+        return GetEffectClip(tid);
     }
 
     EClipID GetEffectClipID(TexID tid) {
+        if (tid == TexID::None) return EClipID::None;
+
         for (int i = 0; i < GameData.Effects.size(); i++) {
             if (GameData.Effects[i].VClip.Frames[0] == tid)
                 return EClipID(i);
@@ -135,7 +139,6 @@ namespace Inferno::Resources {
 
     EClipID GetEffectClipID(LevelTexID id) {
         auto tid = LookupTexID(id);
-        if (tid == TexID::None) return EClipID::None;
         return GetEffectClipID(tid);
     }
 
@@ -152,12 +155,13 @@ namespace Inferno::Resources {
     }
 
     const VClip& GetVideoClip(VClipID id) {
-        if (GameData.VClips.size() <= (int)id) return DefaultVClip;
+        if (GameData.VClips.size() <= (int)id) return DEFAULT_VCLIP;
         return GameData.VClips[(int)id];
     }
 
+
     const Inferno::Model& GetModel(ModelID id) {
-        if ((int)id >= GameData.Models.size()) return DefaultModel;
+        if (!Seq::inRange(GameData.Models, (int)id)) return DEFAULT_MODEL;
         return GameData.Models[(int)id];
     }
 
@@ -165,11 +169,11 @@ namespace Inferno::Resources {
         if (obj.Render.Type == RenderType::Model) {
             return GetModel(obj.Render.Model.ID);
         }
-        return DefaultModel;
+        return DEFAULT_MODEL;
     }
 
     const RobotInfo& GetRobotInfo(uint id) {
-        if (id >= GameData.Robots.size()) return DefaultRobotInfo;
+        if (!Seq::inRange(GameData.Robots, id)) return DEFAULT_ROBOT;
         return GameData.Robots[id];
     }
 
@@ -184,12 +188,12 @@ namespace Inferno::Resources {
     }
 
     const LevelTexture& GetLevelTextureInfo(LevelTexID id) {
-        if (!Seq::inRange(GameData.TexInfo, (int)id)) return DefaultTexture; // fix for invalid ids in some levels
+        if (!Seq::inRange(GameData.TexInfo, (int)id)) return DEFAULT_TEXTURE; // fix for invalid ids in some levels
         return GameData.TexInfo[(int)id];
     }
 
     const LevelTexture& GetLevelTextureInfo(TexID id) {
-        if (!Seq::inRange(GameData.LevelTexIdx, (int)id)) return DefaultTexture;
+        if (!Seq::inRange(GameData.LevelTexIdx, (int)id)) return DEFAULT_TEXTURE;
         auto ltid = GameData.LevelTexIdx[(int)id];
         return GetLevelTextureInfo(ltid);
     }
@@ -240,7 +244,8 @@ namespace Inferno::Resources {
     }
 
     TexID LookupModelTexID(const Model& m, int16 i) {
-        if (i < 0 || i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
+        if (i >= m.TextureCount || m.FirstTexture + i >= (int16)GameData.ObjectBitmapPointers.size()) return TexID::None;
+        //if (i < 0 || i >= m.TextureCount || m.FirstTexture + i >= GameData.ObjectBitmapPointers.size()) return TexID::None;
         auto ptr = GameData.ObjectBitmapPointers[m.FirstTexture + i];
         return GameData.ObjectBitmaps[ptr];
     }
@@ -284,8 +289,8 @@ namespace Inferno::Resources {
     }
 
     // Reads a file from the current mission or the file system
-    // Returns empty if not found
-    List<ubyte> TryReadMissionFile(const filesystem::path& path) {
+    // Returns empty list if not found
+    List<ubyte> TryReadFile(const filesystem::path& path) {
         auto fileName = path.filename().string();
         if (Game::Mission && Game::Mission->Exists(fileName)) {
             return Game::Mission->ReadEntry(fileName);
@@ -294,6 +299,19 @@ namespace Inferno::Resources {
         if (filesystem::exists(path)) {
             return File::ReadAllBytes(path);
         }
+
+        return {};
+    }
+
+    // Reads a file from the current mission or the file system
+    // Returns empty if not found
+    List<ubyte> TryReadMissionFile(const filesystem::path& path) {
+        auto fileName = path.filename().string();
+        if (Game::Mission && Game::Mission->Exists(fileName))
+            return Game::Mission->ReadEntry(fileName);
+
+        if (filesystem::exists(path))
+            return File::ReadAllBytes(path);
 
         return {};
     }
@@ -321,15 +339,30 @@ namespace Inferno::Resources {
     void LoadDescent2Resources(Level& level) {
         std::scoped_lock lock(PigMutex);
         SPDLOG_INFO("Loading Descent 2 level: '{}'\r\n Version: {} Segments: {} Vertices: {}", level.Name, level.Version, level.Segments.size(), level.Vertices.size());
-
         auto hamData = ReadGameResource("descent2.ham");
         StreamReader reader(hamData);
         auto ham = ReadHam(reader);
         auto hog = HogFile::Read(FileSystem::FindFile(L"descent2.hog"));
-        auto pigName = ReplaceExtension(level.Palette, ".pig");
-        auto pig = ReadPigFile(FileSystem::FindFile(pigName));
 
-        auto paletteData = hog.ReadEntry(level.Palette);
+        // Find the 256 for the palette first. In most cases it is located inside of the hog.
+        // But for custom palettes it is on the filesystem
+        auto paletteData = hog.TryReadEntry(level.Palette);
+        auto pigName = ReplaceExtension(level.Palette, ".pig");
+        auto pigPath = FileSystem::FindFile(pigName);
+
+        if (paletteData.empty()) {
+            // Wasn't in hog, find on filesystem
+            if (auto path256 = FileSystem::TryFindFile(level.Palette)) {
+                paletteData = File::ReadAllBytes(*path256);
+                pigPath = path256->replace_extension(".pig");
+            }
+            else {
+                // Give up and load groupa
+                paletteData = hog.ReadEntry("GROUPA.256");
+            }
+        }
+
+        auto pig = ReadPigFile(pigPath);
         auto palette = ReadPalette(paletteData);
         auto textures = ReadAllBitmaps(pig, palette);
 
@@ -393,6 +426,47 @@ namespace Inferno::Resources {
         if (auto s22 = FileSystem::TryFindFile(L"descent2.s22")) {
             SoundsD2 = ReadSoundFile(*s22);
         }
+    }
+
+    List<PaletteInfo> FindAvailablePalettes() {
+        if (Game::Level.IsDescent1()) return {};
+
+        // Hard coded palettes
+        List<PaletteInfo> palettes = {
+            { "GroupA", "GROUPA.256" },
+            { "Water", "WATER.256" },
+            { "Fire", "FIRE.256" },
+            { "Ice", "ICE.256" },
+            { "Alien 1", "ALIEN1.256" },
+            { "Alien 2", "ALIEN2.256" }
+        };
+
+        // Search game / data directories for matching pig and 256 files
+        for (auto& dir : FileSystem::GetDirectories()) {
+            for (auto& entry : filesystem::directory_iterator(dir)) {
+                filesystem::path path = entry.path();
+                if (path.extension() == ".256") {
+                    auto file = String::ToUpper(path.filename().string());
+                    filesystem::path pigPath = path;
+                    pigPath.replace_extension(".PIG");
+
+                    if (!FileSystem::TryFindFile(pigPath)) {
+                        SPDLOG_WARN("Ignoring `{}` with no matching PIG", path.string());
+                        continue; // 256 exists but the PIG doesn't
+                    }
+
+                    auto name = pigPath.filename().string();
+                    if (!Seq::exists(palettes, [&file](auto entry) { return entry.FileName == file; }))
+                        palettes.push_back({ name, file });
+                }
+            }
+        }
+
+        return palettes;
+    }
+
+    span<PaletteInfo> GetAvailablePalettes() {
+        return AvailablePalettes;
     }
 
     const string UNKNOWN_STRING = "???";
@@ -512,6 +586,7 @@ namespace Inferno::Resources {
     }
 
     void ResetResources() {
+        AvailablePalettes = {};
         LevelPalette = {};
         Pig = {};
         Hog = {};
@@ -562,12 +637,20 @@ namespace Inferno::Resources {
         return span{ &joints, (uint)animStates.Count };
     }
 
+    // Resets all object sizes to their resource defined values
+    //void ResetObjectSizes(Level& level) {
+    //    for (auto& obj : level.Objects) {
+    //        obj.Radius = Editor::GetObjectRadius(obj);
+    //    }
+    //}
+
     void LoadLevel(Level& level) {
         try {
             ResetResources();
 
             if (level.IsDescent2()) {
                 LoadDescent2Resources(level);
+                AvailablePalettes = FindAvailablePalettes();
             }
             else if (level.IsDescent1()) {
                 LoadDescent1Resources(level);
@@ -582,6 +665,9 @@ namespace Inferno::Resources {
             LoadDataTables(level);
             LoadStringTable();
             UpdateAverageTextureColor();
+
+            //FixObjectModelIds(level);
+            //ResetObjectSizes(level);
 
             for (auto& seg : level.Segments) {
                 // Clamp volume light because some D1 levels use unscaled values
@@ -614,10 +700,12 @@ namespace Inferno::Resources {
         SPDLOG_INFO("Reading level {}", name);
         List<ubyte> data;
 
-        // Search mounted mission first then main hog file
+        // Search mounted mission first
         if (Game::Mission && Game::Mission->Exists(name))
             data = Game::Mission->ReadEntry(name);
-        else if (Hog.Exists(name))
+
+        // Then main hog file
+        if (Hog.Exists(name))
             data = Hog.ReadEntry(name);
 
         if (data.empty()) {

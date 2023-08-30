@@ -49,7 +49,7 @@ namespace Inferno {
         }
 
     private:
-        void WriteVersionSpecificLevelInfo(StreamWriter& writer, const Level& level) {
+        static void WriteVersionSpecificLevelInfo(StreamWriter& writer, const Level& level) {
             if (level.Version >= 2)
                 writer.WriteNewlineTerminatedString(level.Palette, 13);
 
@@ -79,7 +79,7 @@ namespace Inferno {
             }
         }
 
-        void WriteDynamicLights(StreamWriter& writer, const Level& level, LevelFileInfo& info) {
+        static void WriteDynamicLights(StreamWriter& writer, const Level& level, LevelFileInfo& info) {
             info.DeltaLightIndices.Count = (int32)level.LightDeltaIndices.size();
             info.DeltaLightIndices.Offset = (int32)writer.Position();
             info.DeltaLightIndices.ElementSize = 6;
@@ -112,7 +112,7 @@ namespace Inferno {
             AssertDataSize(writer, info.DeltaLights);
         }
 
-        ubyte GetSegmentBitMask(const Level& level, const Segment& segment) {
+        static ubyte GetSegmentBitMask(const Level& level, const Segment& segment) {
             ubyte mask = 0;
 
             auto HasSpecialData = [&] {
@@ -132,7 +132,7 @@ namespace Inferno {
             return mask;
         }
 
-        bool SegmentIsFuelcen(const Segment& segment) {
+        static bool SegmentIsFuelcen(const Segment& segment) {
             switch (segment.Type) {
                 case SegmentType::Energy:
                 case SegmentType::Repair:
@@ -144,7 +144,7 @@ namespace Inferno {
             }
         }
 
-        void WriteSegmentSpecialData(StreamWriter& writer, const Level& level, const Segment& segment) {
+        static void WriteSegmentSpecialData(StreamWriter& writer, const Level& level, const Segment& segment) {
             writer.Write((ubyte)segment.Type);
             //ubyte matcenIndex = segment.Matcen == nullptr ? (ubyte)0xFF : level.Matcens(segment.Matcen);
             writer.Write((ubyte)segment.Matcen);
@@ -162,18 +162,18 @@ namespace Inferno {
             }
         }
 
-        void WriteSegmentVertices(StreamWriter& writer, const Segment& segment) {
+        static void WriteSegmentVertices(StreamWriter& writer, const Segment& segment) {
             writer.Write(segment.Indices);
         }
 
-        void WriteSegmentConnections(StreamWriter& writer, const Segment& segment) {
+        static void WriteSegmentConnections(StreamWriter& writer, const Segment& segment) {
             for (auto& connection : segment.Connections) {
                 if (connection != SegID::None)
                     writer.Write(connection);
             }
         }
 
-        void WriteWalls(StreamWriter& writer, const Segment& segment) {
+        static void WriteWalls(StreamWriter& writer, const Segment& segment) {
             ubyte mask = 0;
             for (short i = 0; i < MAX_SIDES; i++) {
                 if (segment.Sides[i].Wall != WallID::None)
@@ -189,13 +189,12 @@ namespace Inferno {
             }
         }
 
-        void WriteSegmentTextures(StreamWriter& writer, const Segment& seg) {
+        static void WriteSegmentTextures(StreamWriter& writer, const Segment& seg) {
             for (auto& sid : SideIDs) {
                 auto& side = seg.GetSide(sid);
                 auto conn = seg.GetConnection(sid);
                 if ((conn == SegID::None && conn != SegID::Exit) ||
                     side.Wall != WallID::None) {
-
                     // Writing None causes the file to be corrupted
                     auto tmap = (int16)(side.TMap == LevelTexID::None ? LevelTexID::Unset : side.TMap);
                     auto tmap2 = (int16)(side.TMap2 == LevelTexID::None ? LevelTexID::Unset : side.TMap2);
@@ -220,7 +219,7 @@ namespace Inferno {
             }
         }
 
-        void WriteMineData(StreamWriter& writer, const Level& level) {
+        static void WriteMineData(StreamWriter& writer, const Level& level) {
             writer.Write((ubyte)0); // Compiled mine version
             writer.Write((int16)level.Vertices.size());
             writer.Write((int16)level.Segments.size());
@@ -260,7 +259,6 @@ namespace Inferno {
                 for (auto& segment : level.Segments)
                     WriteSegmentSpecialData(writer, level, segment);
             }
-
         }
 
         void WriteLevelFileInfo(StreamWriter& writer, const LevelFileInfo& info) {
@@ -285,7 +283,7 @@ namespace Inferno {
             }
         }
 
-        void WriteObject(StreamWriter& writer, const Level& level, const Object& obj) {
+        static void WriteObject(StreamWriter& writer, const Level& level, const Object& obj) {
             if (obj.Type == ObjectType::SecretExitReturn) return;
             writer.Write(obj.Type);
             writer.Write(obj.ID); // subtype
@@ -299,7 +297,18 @@ namespace Inferno {
             writer.WriteFix(obj.Radius);
             writer.WriteFix(obj.HitPoints);
             writer.WriteVector(obj.PrevPosition);
-            writer.Write(obj.Contains);
+
+            // only write the contains count if the contains type is valid
+            if (obj.Contains.Type == ObjectType::Robot || obj.Contains.Type == ObjectType::Powerup) {
+                writer.Write(obj.Contains.Type);
+                writer.Write(obj.Contains.ID);
+                writer.Write(obj.Contains.Count);
+            }
+            else {
+                writer.Write((uint8)ObjectType::None);
+                writer.Write((int8)0);
+                writer.Write((int8)0);
+            }
 
             switch (obj.Movement) {
                 case MovementType::Physics:
@@ -369,7 +378,7 @@ namespace Inferno {
                     break;
                 default:
                     throw Exception("Unknown control type");
-            };
+            }
 
             switch (obj.Render.Type) {
                 case RenderType::None:
@@ -403,7 +412,8 @@ namespace Inferno {
             }
         }
 
-        void WriteTriggerTargets(StreamWriter& writer, const std::array<Tag, MAX_TRIGGER_TARGETS>& targets) {
+
+        static void WriteTriggerTargets(StreamWriter& writer, const std::array<Tag, MAX_TRIGGER_TARGETS>& targets) {
             for (auto& target : targets)
                 writer.Write((int16)target.Segment);
 
@@ -411,7 +421,7 @@ namespace Inferno {
                 writer.Write((int16)target.Side);
         }
 
-        void WriteTrigger(StreamWriter& writer, const Level& level, const Trigger& trigger) {
+        static void WriteTrigger(StreamWriter& writer, const Level& level, const Trigger& trigger) {
             if (level.Version > 1) {
                 // Descent 2
                 writer.Write((sbyte)trigger.Type);
@@ -436,17 +446,17 @@ namespace Inferno {
         }
 
 #ifdef _DEBUG
-        void AssertDataSize(const StreamWriter& writer, const GameDataHeader& data) {
+        static void AssertDataSize(const StreamWriter& writer, const GameDataHeader& data) {
             if (data.Offset == -1) return;
             //auto written = writer.Position() - data.Offset;
             //auto expected = data.ElementSize * data.Count;
             assert(writer.Position() - data.Offset == data.ElementSize * data.Count);
         };
 #else
-        void AssertDataSize(const StreamWriter&, const GameDataHeader&) {};
+            static void AssertDataSize(const StreamWriter&, const GameDataHeader&) {}
 #endif
 
-        void WritePofData(StreamWriter& writer, const Level& level) {
+        static void WritePofData(StreamWriter& writer, const Level& level) {
             int pofCount = 0;
             //string pofFile;
 
@@ -525,7 +535,13 @@ namespace Inferno {
                 writer.Write((sbyte)wall.Flags);
                 writer.Write((sbyte)wall.State);
                 writer.Write((sbyte)wall.Trigger);
-                writer.Write((sbyte)wall.Clip);
+
+                // Only write wall clip value if the wall is a door or destroyable door. Can cause crashes otherwise.
+                if (wall.Type == WallType::Door || wall.Type == WallType::Destroyable)
+                    writer.Write((sbyte)wall.Clip);
+                else
+                    writer.Write((sbyte)DClipID::None);
+
                 writer.Write((sbyte)wall.Keys);
                 writer.Write((sbyte)wall.ControllingTrigger);
                 writer.Write((sbyte)wall.cloak_value);

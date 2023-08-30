@@ -25,7 +25,7 @@ namespace Inferno::Render {
     }
 
     inline Color GetColor(Editor::GizmoAxis axis, const Editor::TransformGizmo& gizmo, Editor::TransformMode mode) {
-        if (Input::GetMouselook()) return Colors::Disabled;
+        if (Input::GetMouseMode() != Input::MouseMode::Normal) return Colors::Disabled;
 
         bool highlight = gizmo.SelectedAxis == axis && gizmo.Mode == mode;
         switch (axis) {

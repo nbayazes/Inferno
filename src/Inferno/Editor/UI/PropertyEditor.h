@@ -36,17 +36,15 @@ namespace Inferno::Editor {
         ImGui::Image((ImTextureID)material.Pointer(), size);
     }
 
-    inline bool SideDropdown(SideID& id) {
+    inline void SideDropdown(SideID& id) {
         ImGui::SetNextItemWidth(-1);
-        bool changed = false;
 
         auto label = std::to_string((int)id);
         if (ImGui::BeginCombo("##sides", label.c_str())) {
             for (int i = 0; i < 6; i++) {
                 const bool isSelected = (int)id == i;
-                auto itemLabel = std::to_string((int)i);
+                auto itemLabel = std::to_string(i);
                 if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
-                    changed = true;
                     id = (SideID)i;
                 }
 
@@ -56,8 +54,6 @@ namespace Inferno::Editor {
 
             ImGui::EndCombo();
         }
-
-        return changed;
     }
 
     class PropertyEditor : public WindowBase {

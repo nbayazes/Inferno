@@ -37,7 +37,7 @@ namespace Inferno {
         Destroyable = 1, // Hostage and guidebot doors
         Door = 2, // Solid wall. Opens when triggered.
         Illusion = 3, // Wall with no collision
-        Open = 4, // Invisible wall with no collision
+        Open = 4, // Invisible wall with no collision (Fly-through trigger)
         Closed = 5, // Solid wall. Fades in or out when triggered.
         WallTrigger = 6, // For shootable triggers on a segment side
         Cloaked = 7, // Solid, transparent wall that fades in or out when triggered. Similar to Closed but untextured.

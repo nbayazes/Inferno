@@ -72,10 +72,6 @@ void Application::Initialize(int width, int height) {
 
     OnActivated();
 
-    if (Settings::Inferno.Descent1Path.empty() && Settings::Inferno.Descent2Path.empty()) {
-        Events::ShowDialog(DialogType::Settings);
-    }
-
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };
@@ -131,7 +127,7 @@ bool Inferno::Application::OnClose() {
 // Message handlers
 void Application::OnActivated() {
     if (Game::GetState() == GameState::Game)
-        Input::SetMouselook(true);
+        Input::SetMouseMode(Input::MouseMode::Mouselook);
 
     Input::ResetState();
     _isForeground = true;
@@ -139,7 +135,7 @@ void Application::OnActivated() {
 }
 
 void Application::OnDeactivated() {
-    Input::SetMouselook(false);
+    Input::SetMouseMode(Input::MouseMode::Normal);
     Input::ResetState();
     _isForeground = false;
     UpdateFpsLimit();

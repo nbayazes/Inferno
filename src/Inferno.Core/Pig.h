@@ -240,7 +240,7 @@ namespace Inferno {
 
 
     Palette ReadPalette(span<ubyte> data);
-    PigFile ReadPigFile(wstring file);
+    PigFile ReadPigFile(const filesystem::path& file);
     PigEntry ReadD2BitmapHeader(StreamReader&, TexID);
     PigEntry ReadD1BitmapHeader(StreamReader&, TexID);
 }

@@ -9,7 +9,9 @@ namespace Inferno {
         Still = 0x80,
         Normal = 0x81,
         RunFrom = 0x83,
-        Station = 0x85,
+        // In D1 the robot will roam between the "Hide Segment" and the starting segment. 
+        // In D2 this seems to be broken.
+        Station = 0x85, 
         Hide = 0x82, // D1
         Behind = 0x82, // D2
         FollowPath = 0x84, // D1

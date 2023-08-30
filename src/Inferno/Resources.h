@@ -22,17 +22,18 @@ namespace Inferno::Resources {
     inline CustomTextureLibrary CustomTextures;
 
     extern SoundFile SoundsD1, SoundsD2;
-    SoundResource GetSoundResource(SoundID id);
-    string_view GetSoundName(SoundID id);
+    SoundResource GetSoundResource(SoundID);
+    string_view GetSoundName(SoundID);
     const Palette& GetPalette();
 
+    const Powerup& GetPowerup(PowerupID);
     DClipID GetDoorClipID(LevelTexID);
     const DoorClip& GetDoorClip(DClipID);
 
     const VClip& GetVideoClip(VClipID);
     const EffectClip& GetEffectClip(EClipID);
-    const EffectClip& GetEffectClip(LevelTexID);
     const EffectClip& GetEffectClip(TexID);
+    const EffectClip& GetEffectClip(LevelTexID);
 
     EClipID GetEffectClipID(LevelTexID);
     EClipID GetEffectClipID(TexID);
@@ -78,7 +79,6 @@ namespace Inferno::Resources {
     string GetRobotName(uint id);
     // Can return none if the powerup is unused
     Option<string> GetPowerupName(uint id);
-    Powerup& GetPowerup(uint id);
 
     void LoadDataTables(const Level& level);
 
@@ -93,8 +93,6 @@ namespace Inferno::Resources {
 
     // Returns a modifiable bitmap
     PigBitmap& AccessBitmap(TexID);
-
-    // Reads a file from the mission or game HOG
 
     // Reads a level from the mounted mission
     Level ReadLevel(string name);
@@ -143,4 +141,11 @@ namespace Inferno::Resources {
     inline MaterialInfo& GetMaterial(LevelTexID id) {
         return Materials.GetMaterialInfo(id);
     }
+
+    struct PaletteInfo {
+        string Name;
+        string FileName;
+    };
+
+    span<PaletteInfo> GetAvailablePalettes();
 }

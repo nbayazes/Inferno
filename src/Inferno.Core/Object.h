@@ -226,7 +226,7 @@ namespace Inferno {
     struct RobotAI {
         AIBehavior Behavior = AIBehavior::Normal;
         Array<sbyte, 11> Flags{};
-        SegID HideSegment{}; // Segment to go to for hiding.
+        SegID HideSegment{}; // Segment to go to for hiding. Also used for roaming / station behavior.
         short HideIndex{};   // Index in Path_seg_points
         short PathLength{};  // Length of hide path.
         int16 CurrentPathIndex{}; // Current index in path.

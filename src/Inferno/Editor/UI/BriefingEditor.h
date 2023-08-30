@@ -43,24 +43,22 @@ namespace Inferno::Editor {
             {
                 ImGui::BeginGroup();
 
-                //ImGui::BeginChild("editor", { 0, 0 }, true);
+                ImGui::BeginChild("editor", { 0, 0 }, true);
                 //ImGui::InputTextMultiline("##editor", _buffer.data(), BUFFER_SIZE, { -1, -1 }, ImGuiInputTextFlags_AllowTabInput);
                 //ImGui::EndChild();
 
                 //ImGui::SameLine();
 
-                ImGui::BeginChild("preview", { 0, 0 }, true);
-                {
-                    auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
-                    //auto srv = Render::Adapter->LinearizedDepthBuffer.GetSRV();
-                    //auto srv = Render::Adapter->GetLinearDepthBuffer().GetSRV();
-                    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
-                }
-                ImGui::SameLine();
-                {
-                    auto srv = Render::Adapter->BriefingScanlineBuffer.GetSRV();
-                    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
-                }
+                //ImGui::BeginChild("preview", { 0, 0 }, true);
+                //{
+                //    auto srv = Render::Adapter->BriefingColorBuffer.GetSRV();
+                //    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+                //}
+                //ImGui::SameLine();
+                //{
+                //    auto srv = Render::Adapter->BriefingScanlineBuffer.GetSRV();
+                //    ImGui::Image((ImTextureID)srv.ptr, { 640, 480 });
+                //}
 
                 ImGui::EndChild();
 

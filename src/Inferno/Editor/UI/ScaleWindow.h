@@ -69,6 +69,7 @@ namespace Inferno::Editor {
                 }
             }
 
+            Game::Level.UpdateAllGeometricProps();
             Editor::History.SnapshotLevel("Scale");
             Editor::Events::LevelChanged();
         }

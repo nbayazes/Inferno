@@ -8,8 +8,13 @@
 #include "Graphics/Render.h"
 
 namespace Inferno::Editor {
-    inline bool TriggerTypesDropdown(int& value) {
-        static const char* TriggerTypeLabels[] = {
+    // Sets snapshot to true when the previous item finishes editing
+    void CheckForSnapshot(bool& snapshot) {
+        if (ImGui::IsItemDeactivatedAfterEdit()) snapshot = true;
+    }
+
+    bool TriggerTypesDropdown(int& value) {
+        static const char* triggerTypeLabels[] = {
             "None", "Open Door", "Close Door", "Matcen", "Exit", "Secret Exit", "Illusion Off",
             "Illusion On", "Unlock Door", "Lock Door", "Open Wall", "Close Wall", "Illusory Wall",
             "Light Off", "Light On"
@@ -17,10 +22,10 @@ namespace Inferno::Editor {
 
         bool changed = false;
 
-        if (ImGui::BeginCombo("##triggertype", TriggerTypeLabels[value], ImGuiComboFlags_HeightLarge)) {
-            for (int i = 0; i < std::size(TriggerTypeLabels); i++) {
+        if (ImGui::BeginCombo("##triggertype", triggerTypeLabels[value], ImGuiComboFlags_HeightLarge)) {
+            for (int i = 0; i < std::size(triggerTypeLabels); i++) {
                 const bool isSelected = i == value;
-                if (ImGui::Selectable(TriggerTypeLabels[i], isSelected)) {
+                if (ImGui::Selectable(triggerTypeLabels[i], isSelected)) {
                     value = i;
                     changed = true;
                 }
@@ -81,7 +86,7 @@ namespace Inferno::Editor {
     }
 
     bool TriggerPropertiesD1(Level& level, WallID wid) {
-        bool changed = false;
+        bool snapshot = false;
         auto wall = level.TryGetWall(wid);
         DisableControls disable(!wall);
 
@@ -103,25 +108,25 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", wall->Trigger);
 
-                changed |= TriggerTargetsPicker(level, *trigger, wall->Trigger);
+                snapshot |= TriggerTargetsPicker(level, *trigger, wall->Trigger);
 
                 ImGui::TableRowLabel("Open door");
-                changed |= FlagCheckbox("##No Message", TriggerFlagD1::OpenDoor, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##No Message", TriggerFlagD1::OpenDoor, trigger->FlagsD1);
 
                 ImGui::TableRowLabel("Exit");
-                changed |= FlagCheckbox("##Exit", TriggerFlagD1::Exit, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##Exit", TriggerFlagD1::Exit, trigger->FlagsD1);
 
                 ImGui::TableRowLabel("Secret exit");
-                changed |= FlagCheckbox("##Secret exit", TriggerFlagD1::SecretExit, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##Secret exit", TriggerFlagD1::SecretExit, trigger->FlagsD1);
 
                 ImGui::TableRowLabel("Matcen");
-                changed |= FlagCheckbox("##Matcen", TriggerFlagD1::Matcen, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##Matcen", TriggerFlagD1::Matcen, trigger->FlagsD1);
 
                 ImGui::TableRowLabel("Illusion off");
-                changed |= FlagCheckbox("##IllusionOff", TriggerFlagD1::IllusionOff, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##IllusionOff", TriggerFlagD1::IllusionOff, trigger->FlagsD1);
 
                 ImGui::TableRowLabel("Illusion on");
-                changed |= FlagCheckbox("##IllusionOn", TriggerFlagD1::IllusionOn, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##IllusionOn", TriggerFlagD1::IllusionOn, trigger->FlagsD1);
             }
             else {
                 ImGui::TextDisabled("No trigger");
@@ -130,11 +135,11 @@ namespace Inferno::Editor {
             ImGui::TreePop();
         }
 
-        return changed;
+        return snapshot;
     }
 
-    bool TriggerProperties(Level& level, WallID wallId) {
-        bool changed = false;
+    bool TriggerPropertiesD2(Level& level, WallID wallId) {
+        bool snapshot = false;
         auto wall = level.TryGetWall(wallId);
         auto tid = level.GetTriggerID(wallId);
         auto trigger = level.TryGetTrigger(wallId);
@@ -159,7 +164,7 @@ namespace Inferno::Editor {
                         tid = AddTrigger(level, wallId, tt);
                     }
                 }
-                changed = true;
+                snapshot = true;
             }
 
             trigger = level.TryGetTrigger(wallId);
@@ -170,13 +175,13 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", tid);
 
-                changed |= TriggerTargetsPicker(level, *trigger, tid);
+                snapshot |= TriggerTargetsPicker(level, *trigger, tid);
 
                 ImGui::TableRowLabel("No message");
-                changed |= FlagCheckbox("##No Message", TriggerFlag::NoMessage, trigger->Flags);
+                snapshot |= FlagCheckbox("##No Message", TriggerFlag::NoMessage, trigger->Flags);
 
                 ImGui::TableRowLabel("One shot");
-                changed |= FlagCheckbox("##One shot", TriggerFlag::OneShot, trigger->Flags);
+                snapshot |= FlagCheckbox("##One shot", TriggerFlag::OneShot, trigger->Flags);
             }
             else {
                 ImGui::TextDisabled("No trigger");
@@ -185,12 +190,13 @@ namespace Inferno::Editor {
             ImGui::TreePop();
         }
 
-        return changed;
+        return snapshot;
     }
 
-    void FlickeringProperties(Level& level, Tag tag) {
+    bool FlickeringProperties(Level& level, Tag tag) {
         auto light = level.GetFlickeringLight(tag);
         bool open = ImGui::TableBeginTreeNode("Flickering light");
+        bool snapshot = false;
 
         if (!light) {
             DisableControls disable(!CanAddFlickeringLight(level, tag));
@@ -214,6 +220,8 @@ namespace Inferno::Editor {
                 if (ImGui::DragFloat("##Delay", &delay, 10.0f, 10, 1000, "%.0f ms"))
                     light->Delay = delay / 1000;
 
+                CheckForSnapshot(snapshot);
+
                 char mask[33]{};
                 for (int i = 0; i < 32; i++)
                     mask[31 - i] = (light->Mask >> i) & 0x1 ? '1' : '0';
@@ -229,50 +237,38 @@ namespace Inferno::Editor {
                     }
                 }
 
-                bool changed = false;
-
-                if (ImGui::IsItemDeactivatedAfterEdit())
-                    changed = true;
+                CheckForSnapshot(snapshot);
 
                 if (ImGui::Button("Shift Left", { 100 * Shell::DpiScale, 0 })) {
                     light->ShiftLeft();
-                    changed = true;
+                    snapshot = true;
                 }
 
                 ImGui::SameLine(0, 5);
                 if (ImGui::Button("Shift Right", { 100 * Shell::DpiScale, 0 })) {
                     light->ShiftRight();
-                    changed = true;
+                    snapshot = true;
                 }
 
                 if (ImGui::Button("Defaults..."))
                     ImGui::OpenPopup("FlickerDefaults");
 
                 ImGui::SetNextWindowSize({ 100 * Shell::DpiScale, -1 });
-                // todo: merge from main
-                //if (ImGui::BeginPopup("FlickerDefaults")) {
-                //    if (ImGui::Selectable("On")) {
-                //        light->Mask = FlickeringLight::Defaults::On;
-                //        changed = true;
-                //    }
-                //    if (ImGui::Selectable("Off")) {
-                //        light->Mask = 0;
-                //        changed = true;
-                //    }
-                //    if (ImGui::Selectable("Strobe / 4")) {
-                //        light->Mask = FlickeringLight::Defaults::Strobe4;
-                //        changed = true;
-                //    }
-                //    if (ImGui::Selectable("Strobe / 8")) {
-                //        light->Mask = FlickeringLight::Defaults::Strobe8;
-                //        changed = true;
-                //    }
-                //    if (ImGui::Selectable("Flicker")) {
-                //        light->Mask = FlickeringLight::Defaults::Flicker;
-                //        changed = true;
-                //    }
-                //    ImGui::EndPopup();
-                //}
+                if (ImGui::BeginPopup("FlickerDefaults")) {
+                    auto flickerDefault = [&light, &snapshot](const char* name, uint32 mask) {
+                        if (ImGui::Selectable(name)) {
+                            light->Mask = mask;
+                            snapshot = true;
+                        }
+                    };
+
+                    flickerDefault("On", FlickeringLight::Defaults::On);
+                    flickerDefault("Off", 0);
+                    flickerDefault("Strobe / 4", FlickeringLight::Defaults::Strobe4);
+                    flickerDefault("Strobe / 8", FlickeringLight::Defaults::Strobe8);
+                    flickerDefault("Flicker", FlickeringLight::Defaults::Flicker);
+                    ImGui::EndPopup();
+                }
 
                 // Update selected faces
                 if (orig.Delay != light->Delay || orig.Mask != light->Mask) {
@@ -283,17 +279,14 @@ namespace Inferno::Editor {
                         }
                     }
                 }
-
-                if (changed) {
-                    Editor::History.SnapshotSelection();
-                    Editor::History.SnapshotLevel("Change flickering light");
-                }
             }
             else {
                 ImGui::TextDisabled("No light");
             }
             ImGui::TreePop();
         }
+
+        return snapshot;
     }
 
     bool SegmentTypeDropdown(SegmentType& type) {
@@ -301,7 +294,7 @@ namespace Inferno::Editor {
             "None", "Energy", "Repair", "Reactor", "Matcen", "Blue Goal", "Red Goal"
         };
 
-        bool changed = false;
+        bool snapshot = false;
 
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##segtype", SegmentTypeLabels[(int)type])) {
@@ -310,7 +303,7 @@ namespace Inferno::Editor {
 
                 const bool isSelected = (int)type == i;
                 if (ImGui::Selectable(SegmentTypeLabels[i], isSelected)) {
-                    changed = true;
+                    snapshot = true;
                     type = (SegmentType)i;
                 }
 
@@ -321,7 +314,7 @@ namespace Inferno::Editor {
             ImGui::EndCombo();
         }
 
-        return changed;
+        return snapshot;
     }
 
     string GetMatcenRobotLabel(const Level& level, const Matcen& matcen) {
@@ -362,9 +355,17 @@ namespace Inferno::Editor {
 
     bool SideLighting(Level& level, Segment& seg, SegmentSide& side) {
         bool open = ImGui::TableBeginTreeNode("Light override");
-        bool changed = false;
+        bool levelChanged = false;
+        bool snapshot = false;
 
         if (open) {
+            auto applyToMarkedFaces = [&level](const std::function<void(SegmentSide&)>& action) {
+                for (auto& tag : GetSelectedFaces()) {
+                    if (auto marked = level.TryGetSide(tag))
+                        action(*marked);
+                }
+            };
+
             {
                 // Emission override
                 bool overrideChanged = false;
@@ -390,7 +391,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Color", &hasOverride)) {
                     side.LightOverride = hasOverride ? Option(light) : std::nullopt;
-                    overrideChanged = true;
+                    snapshot = overrideChanged = true;
                 }
 
                 ImGui::TableNextColumn();
@@ -400,14 +401,11 @@ namespace Inferno::Editor {
                     side.LightOverride = light;
                     overrideChanged = true;
                 }
+                CheckForSnapshot(snapshot);
 
                 if (overrideChanged) {
-                    // Also update marked faces
-                    for (auto& tag : GetSelectedFaces()) {
-                        if (auto marked = level.TryGetSide(tag))
-                            marked->LightOverride = side.LightOverride;
-                    }
-                    Events::LevelChanged();
+                    levelChanged = true;
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightOverride = side.LightOverride; });
                 }
             }
 
@@ -422,6 +420,7 @@ namespace Inferno::Editor {
                 if (ImGui::Checkbox("Radius", &hasOverride)) {
                     side.LightRadiusOverride = hasOverride ? Option(radius) : std::nullopt;
                     overrideChanged = true;
+                    snapshot = true;
                 }
 
                 ImGui::TableNextColumn();
@@ -431,15 +430,11 @@ namespace Inferno::Editor {
                     side.LightRadiusOverride = radius;
                     overrideChanged = true;
                 }
+                CheckForSnapshot(snapshot);
 
                 if (overrideChanged) {
-                    // Also update marked faces
-                    for (auto& tag : GetSelectedFaces()) {
-                        if (auto marked = level.TryGetSide(tag))
-                            marked->LightRadiusOverride = side.LightRadiusOverride;
-                    }
-
-                    Events::LevelChanged();
+                    levelChanged = true;
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightRadiusOverride = side.LightRadiusOverride; });
                 }
             }
 
@@ -452,8 +447,8 @@ namespace Inferno::Editor {
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Light plane", &hasOverride)) {
-                    side.LightPlaneOverride = hasOverride ? Option<float>(plane) : std::nullopt;
-                    overrideChanged = true;
+                    side.LightPlaneOverride = hasOverride ? Option(plane) : std::nullopt;
+                    snapshot = overrideChanged = true;
                 }
 
                 ImGui::TableNextColumn();
@@ -463,13 +458,11 @@ namespace Inferno::Editor {
                     side.LightPlaneOverride = plane;
                     overrideChanged = true;
                 }
+                CheckForSnapshot(snapshot);
 
                 if (overrideChanged) {
-                    // Also update marked faces
-                    for (auto& tag : GetSelectedFaces()) {
-                        if (auto marked = level.TryGetSide(tag))
-                            marked->LightPlaneOverride = side.LightPlaneOverride;
-                    }
+                    levelChanged = true;
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightPlaneOverride = side.LightPlaneOverride; });
                 }
             }
 
@@ -477,20 +470,19 @@ namespace Inferno::Editor {
                 // Occlusion
                 ImGui::TableRowLabel("Occlusion");
                 if (ImGui::Checkbox("##Occlusion", &side.EnableOcclusion)) {
-                    for (auto& tag : GetSelectedFaces()) {
-                        if (auto marked = level.TryGetSide(tag))
-                            marked->EnableOcclusion = side.EnableOcclusion;
-                    }
+                    levelChanged = snapshot = true;
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.EnableOcclusion = side.EnableOcclusion; });
                 }
             }
 
-            auto VertexLightSlider = [&changed, &side](const char* label, int point) {
+            auto vertexLightSlider = [&levelChanged, &snapshot, &side](const char* label, int point) {
                 if (point == (int)Editor::Selection.Point)
                     ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Checkbox(label, &side.LockLight[point]);
+                if (ImGui::Checkbox(label, &side.LockLight[point]))
+                    snapshot = true;
 
                 if (point == (int)Editor::Selection.Point)
                     ImGui::PopStyleColor();
@@ -498,27 +490,27 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-1);
                 DisableControls disable(!side.LockLight[point]);
-                if (ImGui::ColorEdit3(fmt::format("##{}", label).c_str(), &side.Light[point].x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
-                    changed = true;
-                }
+                levelChanged |= ImGui::ColorEdit3(fmt::format("##{}", label).c_str(), &side.Light[point].x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+                CheckForSnapshot(snapshot);
             };
 
-            VertexLightSlider("Point 0", 0);
-            VertexLightSlider("Point 1", 1);
-            VertexLightSlider("Point 2", 2);
-            VertexLightSlider("Point 3", 3);
+            vertexLightSlider("Point 0", 0);
+            vertexLightSlider("Point 1", 1);
+            vertexLightSlider("Point 2", 2);
+            vertexLightSlider("Point 3", 3);
 
             {
                 // Volume light
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
-                ImGui::Checkbox("Volume", &seg.LockVolumeLight);
+                if (ImGui::Checkbox("Volume", &seg.LockVolumeLight))
+                    snapshot = true;
 
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-1);
                 DisableControls disable(!seg.LockVolumeLight);
-                if (ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float))
-                    changed = true;
+                levelChanged |= ImGui::ColorEdit3("##volume", &seg.VolumeLight.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+                CheckForSnapshot(snapshot);
             }
 
             {
@@ -532,6 +524,7 @@ namespace Inferno::Editor {
                 if (ImGui::Checkbox("Dynamic multiplier", &hasOverride)) {
                     side.DynamicMultiplierOverride = hasOverride ? Option(mult) : std::nullopt;
                     overrideChanged = true;
+                    snapshot = true;
                 }
 
                 if (ImGui::IsItemHovered()) {
@@ -549,50 +542,61 @@ namespace Inferno::Editor {
                     side.DynamicMultiplierOverride = mult;
                     overrideChanged = true;
                 }
+                CheckForSnapshot(snapshot);
 
                 if (overrideChanged) {
-                    // Also update marked faces
-                    for (auto& tag : GetSelectedFaces()) {
-                        if (auto marked = level.TryGetSide(tag))
-                            marked->DynamicMultiplierOverride = side.DynamicMultiplierOverride;
-                    }
+                    levelChanged = true;
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.DynamicMultiplierOverride = side.DynamicMultiplierOverride; });
                 }
             }
 
             ImGui::TreePop();
         }
 
-        return changed;
+        if (levelChanged) Events::LevelChanged();
+        return snapshot;
     }
 
     bool SideUVs(SegmentSide& side) {
         bool changed = false;
+        bool snapshot = false;
 
         if (ImGui::TableBeginTreeNode("UVs")) {
-            ImGui::TableRowLabel("UV 0");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P0", &side.UVs[0].x, 0.01f);
+            auto addUVSlider = [&changed, &side, &snapshot](const char* label, int point) {
+                bool highlight = point == (int)Editor::Selection.Point;
 
-            ImGui::TableRowLabel("UV 1");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P1", &side.UVs[1].x, 0.01f);
+                if (Settings::Editor.SelectionMode == SelectionMode::Edge)
+                    highlight |= point == ((int)Editor::Selection.Point + 1) % 4;
 
-            ImGui::TableRowLabel("UV 2");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P2", &side.UVs[2].x, 0.01f);
+                if (highlight)
+                    ImGui::PushStyleColor(ImGuiCol_Text, { 0, 1, 0, 1 });
 
-            ImGui::TableRowLabel("UV 3");
-            ImGui::SetNextItemWidth(-1);
-            changed |= ImGui::DragFloat2("##P3", &side.UVs[3].x, 0.01f);
+                ImGui::TableRowLabel(label);
+
+                if (highlight)
+                    ImGui::PopStyleColor();
+
+                ImGui::SetNextItemWidth(-1);
+                changed |= ImGui::DragFloat2(fmt::format("##{}", label).c_str(), &side.UVs[point].x, 0.01f);
+
+                CheckForSnapshot(snapshot);
+            };
+
+            addUVSlider("UV 0", 0);
+            addUVSlider("UV 1", 1);
+            addUVSlider("UV 2", 2);
+            addUVSlider("UV 3", 3);
+
             ImGui::TreePop();
         }
 
-        return changed;
+        if (changed) Events::LevelChanged();
+        return snapshot;
     }
 
     bool WallTypeDropdown(Level& level, const char* label, WallType& value) {
-        static const char* WallTypeLabels[] = {
-            "None", "Destroyable", "Door", "Illusion", "Open", "Closed", "Wall Trigger", "Cloaked"
+        static const char* wallTypeLabels[] = {
+            "None", "Destroyable", "Door", "Illusion", "Fly-Through", "Closed", "Wall Trigger", "Cloaked"
         };
 
         auto& seg = level.GetSegment(Editor::Selection.Tag());
@@ -600,7 +604,7 @@ namespace Inferno::Editor {
 
         bool changed = false;
         ImGui::SetNextItemWidth(-1);
-        if (ImGui::BeginCombo(label, WallTypeLabels[(int)value])) {
+        if (ImGui::BeginCombo(label, wallTypeLabels[(int)value])) {
             for (int i = 0; i < wallTypes; i++) {
                 // Hide non-wall triggers for sides without connections. INVERSE FOR CONNECTIONS
                 if (!seg.SideHasConnection(Editor::Selection.Side) &&
@@ -608,7 +612,7 @@ namespace Inferno::Editor {
                     continue;
 
                 const bool isSelected = (uint8)value == i;
-                if (ImGui::Selectable(WallTypeLabels[i], isSelected)) {
+                if (ImGui::Selectable(wallTypeLabels[i], isSelected)) {
                     value = (WallType)i;
                     changed = true;
                     Events::LevelChanged();
@@ -624,10 +628,10 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    bool KeyDropdown(WallKey& value) {
-        static const char* KeyLabels[] = { "None", "Blue", "Gold", "Red" };
-        static constexpr WallKey KeyValues[] = { WallKey::None, WallKey::Blue, WallKey::Gold, WallKey::Red };
+    const char* KEY_LABELS[] = { "None", "Blue", "Gold", "Red" };
+    constexpr WallKey KEY_VALUES[] = { WallKey::None, WallKey::Blue, WallKey::Gold, WallKey::Red };
 
+    bool KeyDropdown(WallKey& value) {
         int selection = [&value] {
             if ((int)value & (int)WallKey::Blue) return 1;
             if ((int)value & (int)WallKey::Gold) return 2;
@@ -638,11 +642,11 @@ namespace Inferno::Editor {
         bool changed = false;
 
         ImGui::SetNextItemWidth(-1);
-        if (ImGui::BeginCombo("##Key", KeyLabels[selection])) {
-            for (int i = 0; i < std::size(KeyLabels); i++) {
+        if (ImGui::BeginCombo("##Key", KEY_LABELS[selection])) {
+            for (int i = 0; i < std::size(KEY_LABELS); i++) {
                 const bool isSelected = selection == i;
-                if (ImGui::Selectable(KeyLabels[i], isSelected)) {
-                    value = KeyValues[i];
+                if (ImGui::Selectable(KEY_LABELS[i], isSelected)) {
+                    value = KEY_VALUES[i];
                     changed = true;
                 }
 
@@ -694,17 +698,17 @@ namespace Inferno::Editor {
     }
 
     bool WallLightDropdown(Option<bool>& value) {
-        static const char* Labels[] = { "Default", "No", "Yes" };
+        static const char* labels[] = { "Default", "No", "Yes" };
         bool changed = false;
 
         int index = 0;
         if (value) index = *value ? 2 : 1;
 
         ImGui::SetNextItemWidth(-1);
-        if (ImGui::BeginCombo("##wallLightDropdown", Labels[index])) {
-            for (int i = 0; i < std::size(Labels); i++) {
+        if (ImGui::BeginCombo("##wallLightDropdown", labels[index])) {
+            for (int i = 0; i < std::size(labels); i++) {
                 const bool isSelected = i == index;
-                if (ImGui::Selectable(Labels[i], isSelected)) {
+                if (ImGui::Selectable(labels[i], isSelected)) {
                     if (i == 0) value.reset();
                     else value = (i == 2);
                     changed = true;
@@ -720,49 +724,87 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    void ChangeWallType(Wall* wall, WallType type) {
-        if (!wall) return;
-        wall->Type = type;
-        if (type == WallType::Cloaked)
-            wall->CloakValue(0.5f);
+    void ChangeWallType(Level& level, Tag src, const WallType& wallType) {
+        auto changeWall = [&](Tag tag) {
+            auto wall = level.TryGetWall(tag);
+
+            if (!wall && wallType != WallType::None) {
+                // No wall on this side, add a new one
+                AddWallHelper(level, tag, wallType);
+            }
+
+            if (wallType == WallType::None) {
+                // Remove the wall when type changes to none
+                auto wallId = level.TryGetWallID(tag);
+                Editor::RemoveWall(level, wallId);
+
+                if (Settings::Editor.EditBothWallSides) {
+                    auto other = level.GetConnectedWall(tag);
+                    Editor::RemoveWall(level, other);
+                }
+
+                wall = nullptr;
+            }
+            else if (wall) {
+                if (wall->Type == wallType) return; // no change
+                InitWall(level, *wall, wallType);
+
+                if (Settings::Editor.EditBothWallSides) {
+                    if (auto other = level.GetConnectedWall(*wall))
+                        InitWall(level, *other, wallType);
+                }
+            }
+        };
+
+        changeWall(src);
+
+        for (auto& marked : GetSelectedFaces())
+            changeWall(marked);
     }
 
     // Returns true if any wall properties changed
-    void WallProperties(Level& level, WallID id) {
+    bool WallProperties(Level& level, WallID id) {
         auto wall = level.TryGetWall(id);
-        auto other = level.TryGetConnectedWall(Editor::Selection.Tag());
+        auto tag = Editor::Selection.Tag();
+        auto other = level.TryGetWall(level.GetConnectedWall(tag));
         bool open = ImGui::TableBeginTreeNode("Wall type");
 
         auto wallType = wall ? wall->Type : WallType::None;
 
         if (WallTypeDropdown(level, "##WallType", wallType)) {
-            if (!wall && wallType != WallType::None) {
-                Commands::AddWallType(wallType);
-            }
-            else {
-                if (wallType == WallType::None) {
-                    Commands::RemoveWall();
-                }
-                else {
-                    ChangeWallType(wall, wallType);
+            Editor::History.SnapshotSelection();
+            ChangeWallType(level, tag, wallType);
+            Editor::History.SnapshotLevel("Change Wall Type");
 
-                    if (Settings::Editor.EditBothWallSides)
-                        ChangeWallType(other, wallType);
-
-                    // Change type of marked faces if they already have a wall
-                    for (auto& face : GetSelectedFaces())
-                        if (auto markedWall = Game::Level.TryGetWall(face))
-                            ChangeWallType(markedWall, wallType);
-
-                    Editor::History.SnapshotLevel("Change wall type");
-                }
-            }
-
-            // Wall might have been added or deleted so fetch it again
-            wall = level.TryGetWall(Editor::Selection.Tag());
+            // Wall might have been added or deleted on this side so fetch it again
+            wall = level.TryGetWall(tag);
         }
 
+        bool changed = false;
+
         if (open) {
+            auto changeWallClip = [&level, &wall, &other, &changed] {
+                OnChangeDoorClip(level, *wall);
+                if (other && Settings::Editor.EditBothWallSides) {
+                    other->Clip = wall->Clip;
+                    OnChangeDoorClip(level, *other);
+                }
+
+                for (auto& markedId : GetSelectedWalls()) {
+                    auto& markedWall = level.GetWall(markedId);
+                    markedWall.Clip = wall->Clip;
+                    OnChangeDoorClip(level, markedWall);
+
+                    auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                    if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == markedWall.Type) {
+                        markedOther->Clip = wall->Clip;
+                        OnChangeDoorClip(level, *markedOther);
+                    }
+                }
+
+                changed = true;
+            };
+
             if (wall) {
                 ImGui::TableRowLabel("ID");
                 ImGui::Text("%i", id);
@@ -771,13 +813,22 @@ namespace Inferno::Editor {
                 ImGui::TableRowLabel("Edit both sides");
                 ImGui::Checkbox("##bothsides", &Settings::Editor.EditBothWallSides);
 
-                auto flagCheckbox = [&other](const char* label, WallFlag flag, Wall* wall) {
+                auto flagCheckbox = [&other, &level, &changed](const char* label, WallFlag flag, Wall* w) {
                     ImGui::TableRowLabel(label);
-                    if (FlagCheckbox(fmt::format("##{}", label).c_str(), flag, wall->Flags)) {
-                        if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
-                            other->SetFlag(flag, wall->HasFlag(flag));
+                    if (FlagCheckbox(fmt::format("##{}", label).c_str(), flag, w->Flags)) {
+                        if (Settings::Editor.EditBothWallSides && other && other->Type == w->Type)
+                            other->SetFlag(flag, w->HasFlag(flag));
 
-                        return true;
+                        for (auto& markedId : GetSelectedWalls()) {
+                            auto& markedWall = level.GetWall(markedId);
+                            markedWall.SetFlag(flag, w->HasFlag(flag));
+
+                            auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                            if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == markedWall.Type)
+                                markedOther->SetFlag(flag, w->HasFlag(flag));
+                        }
+
+                        changed = true;
                     }
                     return false;
                 };
@@ -786,13 +837,8 @@ namespace Inferno::Editor {
                     case WallType::Destroyable:
                     {
                         ImGui::TableRowLabel("Clip");
-                        if (DoorClipDropdown(wall->Clip)) {
-                            OnChangeDoorClip(level, *wall);
-                            if (other && Settings::Editor.EditBothWallSides) {
-                                other->Clip = wall->Clip;
-                                OnChangeDoorClip(level, *other);
-                            }
-                        }
+                        if (DoorClipDropdown(wall->Clip))
+                            changeWallClip();
 
                         auto& clip = Resources::GetDoorClip(wall->Clip);
                         TexturePreview(clip.Frames[0]);
@@ -802,60 +848,50 @@ namespace Inferno::Editor {
                         if (ImGui::InputFloat("##Hit points", &wall->HitPoints, 1, 10, "%.0f")) {
                             if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                                 other->HitPoints = wall->HitPoints;
+
+                            for (auto& markedId : GetSelectedWalls()) {
+                                auto markedWall = level.TryGetWall(markedId);
+                                if (markedWall && markedWall->Type == WallType::Destroyable)
+                                    markedWall->HitPoints = wall->HitPoints;
+
+                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Destroyable)
+                                    markedOther->HitPoints = wall->HitPoints;
+                            }
                         }
 
-                        //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
+                        CheckForSnapshot(changed);
+                    //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
                         break;
                     }
 
                     case WallType::Door:
                     {
                         ImGui::TableRowLabel("Clip");
-                        if (DoorClipDropdown(wall->Clip)) {
-                            OnChangeDoorClip(level, *wall);
-                            if (other && Settings::Editor.EditBothWallSides) {
-                                other->Clip = wall->Clip;
-                                OnChangeDoorClip(level, *other);
-                            }
-                        }
+                        if (DoorClipDropdown(wall->Clip))
+                            changeWallClip();
 
                         auto& clip = Resources::GetDoorClip(wall->Clip);
                         TexturePreview(clip.Frames[0]);
 
                         ImGui::TableRowLabel("Key");
-                        if (KeyDropdown(wall->Keys))
+                        if (KeyDropdown(wall->Keys)) {
+                            changed = true;
                             if (other && Settings::Editor.EditBothWallSides)
                                 other->Keys = wall->Keys;
 
-                        if (flagCheckbox("Opened", WallFlag::DoorOpened, wall)) {
-                            // If opened, also set the wall state to open so that close triggers will work on it
-                            bool opened = wall->HasFlag(WallFlag::DoorOpened);
-                            auto& wclip = Resources::GetDoorClip(wall->Clip);
-                            auto tmap = opened ? wclip.GetFrames().back() : wclip.Frames[0];
+                            for (auto& markedId : GetSelectedWalls()) {
+                                auto markedWall = level.TryGetWall(markedId);
+                                if (markedWall && markedWall->Type == WallType::Door)
+                                    markedWall->Keys = wall->Keys;
 
-                            wall->State = opened ? WallState::DoorOpen : WallState::Closed;
-
-                            if (auto side = level.TryGetSide(wall->Tag)) {
-                                if (wclip.HasFlag(DoorClipFlag::TMap1))
-                                    side->TMap = tmap;
-                                else
-                                    side->TMap2 = tmap;
+                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Door)
+                                    markedOther->Keys = wall->Keys;
                             }
-
-                            if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type) {
-                                other->State = opened ? WallState::DoorOpen : WallState::Closed;
-
-                                if (auto side = level.TryGetSide(other->Tag)) {
-                                    if (wclip.HasFlag(DoorClipFlag::TMap1))
-                                        side->TMap = tmap;
-                                    else
-                                        side->TMap2 = tmap;
-                                }
-                            }
-
-                            Events::LevelChanged();
                         }
 
+                        flagCheckbox("Opened", WallFlag::DoorOpened, wall);
                         flagCheckbox("Locked", WallFlag::DoorLocked, wall);
                         flagCheckbox("Auto Close", WallFlag::DoorAuto, wall);
                         if (!level.IsDescent1())
@@ -881,21 +917,39 @@ namespace Inferno::Editor {
                             if (Settings::Editor.EditBothWallSides && other && other->Type == wall->Type)
                                 other->CloakValue(cloakValue / 100);
 
+                            for (auto& markedId : GetSelectedWalls()) {
+                                auto markedWall = level.TryGetWall(markedId);
+                                if (markedWall && markedWall->Type == WallType::Cloaked)
+                                    markedWall->CloakValue(cloakValue / 100);
+
+                                auto markedOther = level.TryGetWall(level.GetConnectedWall(markedId));
+                                if (Settings::Editor.EditBothWallSides && markedOther && markedOther->Type == WallType::Cloaked)
+                                    markedOther->CloakValue(cloakValue / 100);
+                            }
+
                             Events::LevelChanged();
                         }
 
+                        CheckForSnapshot(changed);
                         break;
                     }
                 }
 
                 ImGui::TableRowLabel("Blocks Light");
                 if (WallLightDropdown(wall->BlocksLight)) {
-                    for (auto& wid : GetSelectedWalls())
-                        if (auto w = level.TryGetWall(wid))
+                    for (auto& wid : GetSelectedWalls()) {
+                        if (auto w = level.TryGetWall(wid)) {
                             w->BlocksLight = wall->BlocksLight;
+                            auto cw = level.GetConnectedWall(*w);
+                            if (Settings::Editor.EditBothWallSides && cw)
+                                cw->BlocksLight = wall->BlocksLight;
+                        }
+                    }
 
                     if (Settings::Editor.EditBothWallSides && other)
                         other->BlocksLight = wall->BlocksLight;
+
+                    changed = true;
                 }
             }
             else {
@@ -904,25 +958,27 @@ namespace Inferno::Editor {
 
             ImGui::TreePop();
         }
+
+        return changed;
     }
 
     string TextureFlagToString(TextureFlag flags) {
         if ((int)flags == 0) return "None";
 
         string str;
-        auto AppendFlag = [&](TextureFlag flag, const string& name) {
+        auto appendFlag = [&](TextureFlag flag, const string& name) {
             if (HasFlag(flags, flag)) {
                 if (str.empty()) str = name;
                 else str += ", " + name;
             }
         };
 
-        AppendFlag(TextureFlag::Volatile, "Volatile");
-        AppendFlag(TextureFlag::Water, "Water");
-        AppendFlag(TextureFlag::ForceField, "ForceField");
-        AppendFlag(TextureFlag::GoalBlue, "GoalBlue");
-        AppendFlag(TextureFlag::GoalRed, "GoalRed");
-        AppendFlag(TextureFlag::GoalHoard, "GoalHoard");
+        appendFlag(TextureFlag::Volatile, "Volatile");
+        appendFlag(TextureFlag::Water, "Water");
+        appendFlag(TextureFlag::ForceField, "ForceField");
+        appendFlag(TextureFlag::GoalBlue, "GoalBlue");
+        appendFlag(TextureFlag::GoalRed, "GoalRed");
+        appendFlag(TextureFlag::GoalHoard, "GoalHoard");
         return str;
     }
 
@@ -1065,18 +1121,18 @@ namespace Inferno::Editor {
         }
     }
 
-    void TransformPosition(Level& level, const Segment& seg, Editor::SelectionMode mode) {
+    bool TransformPosition(Level& level, const Segment& seg, Editor::SelectionMode mode) {
         bool changed = false;
-        bool finishedEdit = false;
+        bool snapshot = false;
         auto speed = Settings::Editor.TranslationSnap > 0 ? Settings::Editor.TranslationSnap : 0.01f;
 
-        auto Slider = [&](const char* label, float& value) {
+        auto addSlider = [&](const char* label, float& value) {
             ImGui::Text(label);
             ImGui::SameLine(30 * Shell::DpiScale);
             ImGui::SetNextItemWidth(-1);
             ImGui::PushID(label);
             changed |= ImGui::DragFloat("##xyz", &value, speed, MIN_FIX, MAX_FIX, "%.2f", ImGuiSliderFlags_AlwaysClamp);
-            finishedEdit |= ImGui::IsItemDeactivatedAfterEdit();
+            CheckForSnapshot(snapshot);
             ImGui::PopID();
         };
 
@@ -1087,9 +1143,9 @@ namespace Inferno::Editor {
                 auto center = seg.Center;
                 auto original = center;
 
-                Slider("X", center.x);
-                Slider("Y", center.y);
-                Slider("Z", center.z);
+                addSlider("X", center.x);
+                addSlider("Y", center.y);
+                addSlider("Z", center.z);
 
                 if (changed) {
                     auto delta = center - original;
@@ -1107,9 +1163,9 @@ namespace Inferno::Editor {
                 auto center = face.Center();
                 auto original = center;
 
-                Slider("X", center.x);
-                Slider("Y", center.y);
-                Slider("Z", center.z);
+                addSlider("X", center.x);
+                addSlider("Y", center.y);
+                addSlider("Z", center.z);
 
                 if (changed) {
                     auto delta = center - original;
@@ -1127,9 +1183,9 @@ namespace Inferno::Editor {
                 auto center = face.GetEdgeMidpoint(Editor::Selection.Point);
                 auto original = center;
 
-                Slider("X", center.x);
-                Slider("Y", center.y);
-                Slider("Z", center.z);
+                addSlider("X", center.x);
+                addSlider("Y", center.y);
+                addSlider("Z", center.z);
 
                 if (changed) {
                     auto delta = center - original;
@@ -1146,9 +1202,9 @@ namespace Inferno::Editor {
                 auto face = Face::FromSide(level, Editor::Selection.Tag());
                 auto& point = face.GetPoint(Editor::Selection.Point);
 
-                Slider("X", point.x);
-                Slider("Y", point.y);
-                Slider("Z", point.z);
+                addSlider("X", point.x);
+                addSlider("Y", point.y);
+                addSlider("Z", point.z);
                 break;
             }
         }
@@ -1158,10 +1214,7 @@ namespace Inferno::Editor {
             Events::LevelChanged();
         }
 
-        if (finishedEdit) {
-            Editor::History.SnapshotSelection();
-            Editor::History.SnapshotLevel("Edit geometry position");
-        }
+        return snapshot;
     }
 
     void PropertyEditor::SegmentProperties() {
@@ -1172,7 +1225,7 @@ namespace Inferno::Editor {
             Editor::Selection.SetSelection(Selection.Segment);
 
         auto [seg, side] = level.GetSegmentAndSide(Selection.Tag());
-        bool changed = false;
+        bool snapshot = false;
 
         ImGui::TableRowLabel("Segment type");
         auto segType = seg.Type;
@@ -1200,7 +1253,7 @@ namespace Inferno::Editor {
 
         {
             ImGui::TableRowLabel("Overlay angle");
-            static const std::array angles = { "0 deg", "90 deg", "180 deg", "270 deg" };
+            static constexpr std::array angles = { "0 deg", "90 deg", "180 deg", "270 deg" };
             auto rotation = std::clamp((int)side.OverlayRotation, 0, 3);
             ImGui::SetNextItemWidth(-1);
             if (ImGui::SliderInt("##overlay", &rotation, 0, 3, angles[rotation])) {
@@ -1209,27 +1262,22 @@ namespace Inferno::Editor {
                     if (auto markedSide = level.TryGetSide(tag))
                         markedSide->OverlayRotation = side.OverlayRotation;
                 }
-                Editor::History.SnapshotLevel("Change overlay angle");
                 Events::LevelChanged();
             }
+
+            CheckForSnapshot(snapshot);
         }
 
-        WallProperties(level, side.Wall);
+        snapshot |= WallProperties(level, side.Wall);
 
-        bool triggerChanged = false;
+
         if (level.IsDescent1())
-            triggerChanged |= TriggerPropertiesD1(level, side.Wall);
+            snapshot |= TriggerPropertiesD1(level, side.Wall);
         else
-            triggerChanged |= TriggerProperties(level, side.Wall);
+            snapshot |= TriggerPropertiesD2(level, side.Wall);
 
-        if (triggerChanged) {
-            Editor::History.SnapshotSelection();
-            Editor::History.SnapshotLevel("Change Trigger");
-        }
-
-        if (!level.IsDescent1()) {
-            FlickeringProperties(level, Selection.Tag());
-        }
+        if (!level.IsDescent1())
+            snapshot |= FlickeringProperties(level, Selection.Tag());
 
         {
             auto& connection = seg.Connections[(int)Selection.Side];
@@ -1239,14 +1287,14 @@ namespace Inferno::Editor {
             bool isExit = connection == SegID::Exit;
             if (ImGui::Checkbox("##endofexit", &isExit)) {
                 connection = isExit ? SegID::Exit : SegID::None;
-                changed = true;
+                snapshot = true;
             }
         }
 
         TextureProperties("Base texture", side.TMap, false);
         TextureProperties("Overlay texture", side.TMap2, true);
-        changed |= SideLighting(level, seg, side);
-        changed |= SideUVs(side);
+        snapshot |= SideLighting(level, seg, side);
+        snapshot |= SideUVs(side);
 
         ImGui::TableRowLabel("Segment size");
         ImGui::Text("%.2f x %.2f x %.2f",
@@ -1254,10 +1302,24 @@ namespace Inferno::Editor {
                     Vector3::Distance(seg.Sides[1].Center, seg.Sides[3].Center),
                     Vector3::Distance(seg.Sides[4].Center, seg.Sides[5].Center));
 
-        TransformPosition(Game::Level, seg, Settings::Editor.SelectionMode);
+        auto face = Face::FromSide(level, Selection.Tag());
+        if (Settings::Editor.SelectionMode == SelectionMode::Point || Settings::Editor.SelectionMode == SelectionMode::Edge) {
+            ImGui::TableRowLabel("Edge length");
+            ImGui::Text("%.2f", Vector3::Distance(face.GetPoint(Editor::Selection.Point), face.GetPoint(Editor::Selection.Point + 1)));
+        }
+        else {
+            ImGui::TableRowLabel("Face Size");
+            ImGui::Text("%.2f x %.2f",
+                        Vector3::Distance(face.GetEdgeMidpoint(0), face.GetEdgeMidpoint(2)),
+                        Vector3::Distance(face.GetEdgeMidpoint(1), face.GetEdgeMidpoint(3)));
+        }
 
-        if (changed) {
+        snapshot |= TransformPosition(Game::Level, seg, Settings::Editor.SelectionMode);
+
+        if (snapshot) {
             Events::LevelChanged();
+            Editor::History.SnapshotSelection();
+            Editor::History.SnapshotLevel("Change side");
         }
     }
 }

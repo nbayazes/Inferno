@@ -68,7 +68,7 @@ namespace Inferno::Game {
                 if (auto wall = level.TryGetWall({ segId, side }))
                     addPortal |= shouldAddPortal(*wall);
 
-                if (auto wall = level.TryGetConnectedWall({ segId, side }))
+                if (auto wall = level.GetConnectedWall({ segId, side }))
                     addPortal |= shouldAddPortal(*wall);
 
                 addPortal |= cseg.Type != startSeg.Type; // new room if seg type changes

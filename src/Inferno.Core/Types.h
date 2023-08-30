@@ -549,12 +549,12 @@ namespace Inferno {
             return true;
         }
 
-        // Tries to remove element at index. Shifts remaining elements to the left.
+        // Tries to remove element at index. Shifts remaining elements.
         bool Remove(int index) {
             if (index < 0 || index >= Capacity || _count == 0)
                 return false;
 
-            // Shift existing items left
+            // Shift existing items
             for (int i = index; i < Capacity - 1; i++)
                 _data[i] = _data[i + 1];
 

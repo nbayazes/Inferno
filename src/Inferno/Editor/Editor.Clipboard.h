@@ -9,6 +9,7 @@ namespace Inferno::Editor {
         List<Segment> Segments;
         List<Object> Objects;
         List<Wall> Walls;
+        List<Trigger> Triggers;
         List<Matcen> Matcens;
         Matrix Reference;
     };
