@@ -266,6 +266,7 @@ namespace Inferno {
         RobotDestroyed = 21,
         DropBomb = 26,
         HitLockedDoor = 27,
+        HitInvulnerable = 27,
         HitControlCenter = 30,
         ExplodingWall = 31, // Long sound
         Siren = 32,

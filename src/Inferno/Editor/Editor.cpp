@@ -277,9 +277,8 @@ namespace Inferno::Editor {
                 p.Radius = up.Length() / 2;
                 up.Normalize(p.Up);
                 p.Duration = vclip.PlayTime;
-                p.Position = seg.Center;
                 p.RandomRotation = false;
-                Render::AddParticle(p, (SegID)id);
+                Render::AddParticle(p, (SegID)id, seg.Center);
             }
         }
     }

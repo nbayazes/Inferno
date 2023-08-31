@@ -66,7 +66,7 @@ namespace Inferno::Game {
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread);
 
     // Detonates a weapon with a splash radius
-    void ExplodeWeapon(const Object&);
+    void ExplodeWeapon(struct Level& level, const Object&);
 
     void Update(float dt);
 

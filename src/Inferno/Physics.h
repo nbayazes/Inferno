@@ -58,8 +58,8 @@ namespace Inferno {
     // Explosion that can cause damage or knockback
     struct GameExplosion {
         Vector3 Position;
-        RoomID Room;
-        SegID Segment;
+        RoomID Room = RoomID::None;
+        SegID Segment = SegID::None;
 
         float Radius;
         float Damage;

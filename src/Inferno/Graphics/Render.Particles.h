@@ -110,7 +110,7 @@ namespace Inferno::Render {
         void OnUpdate(float dt, EffectID) override;
     };
 
-    void AddParticle(Particle&, SegID);
+    void AddParticle(Particle&, SegID, const Vector3& position);
 
     // Remains of a destroyed robot
     struct Debris final : EffectBase {

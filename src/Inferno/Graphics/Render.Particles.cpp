@@ -80,11 +80,12 @@ namespace Inferno::Render {
         //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
     }
 
-    void AddParticle(Particle& p, SegID seg) {
+    void AddParticle(Particle& p, SegID seg, const Vector3& position) {
         auto& vclip = Resources::GetVideoClip(p.Clip);
         if (vclip.NumFrames <= 0) return;
         p.Duration = vclip.PlayTime;
         p.Segment = seg;
+        p.Position = position;
         if (p.RandomRotation)
             p.Rotation = Random() * DirectX::XM_2PI;
 
@@ -317,9 +318,9 @@ namespace Inferno::Render {
 
             for (int i = 0; i < expl.Instances; i++) {
                 Render::Particle p{};
-                p.Position = expl.Position;
+                auto position = expl.Position;
                 if (expl.Variance > 0)
-                    p.Position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
+                    position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
 
                 p.Radius = expl.Radius.GetRandom();
                 p.Clip = expl.Clip;
@@ -329,15 +330,15 @@ namespace Inferno::Render {
                 // only apply light to first explosion instance
                 if (i == 0 && expl.LightColor != LIGHT_UNSET) {
                     DynamicLight light{};
-                    light.Position = expl.Position;
+                    light.Position = position;
                     light.FadeTime = light.Duration = Resources::GetVideoClip(p.Clip).PlayTime * 0.75f;
                     light.LightColor = expl.LightColor;
-                    light.Radius = expl.LightRadius < 0 ? expl.LightRadius : p.Radius * 4;
+                    light.Radius = expl.LightRadius > 0 ? expl.LightRadius : p.Radius * 4;
                     light.Segment = expl.Segment;
                     AddDynamicLight(light);
                 }
 
-                AddParticle(p, expl.Segment);
+                AddParticle(p, expl.Segment, position);
 
                 if (expl.Instances > 1 && (expl.Delay.Min > 0 || expl.Delay.Max > 0)) {
                     expl.InitialDelay = expl.Delay.GetRandom();

@@ -788,7 +788,7 @@ namespace Inferno::Game {
                 }
             }
             else if (obj.Lifespan <= 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
-                ExplodeWeapon(obj); // explode expired weapons
+                ExplodeWeapon(Level, obj); // explode expired weapons
                 obj.Flags |= ObjectFlag::Dead;
 
                 if (auto seg = Level.TryGetSegment(obj.Segment))
