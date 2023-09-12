@@ -999,10 +999,19 @@ namespace Inferno::Game {
                     auto& destSide = destSeg.GetSide(destPortal->Tag.Side);
                     auto destFace = Face2::FromSide(level, destSeg, destPortal->Tag.Side);
 
+                    auto addLeafRoom = [&srcFace, &destFace, &room, &destPortal] {
+                        // Add the final leaf room without recursion if it is nearby
+                        constexpr float NEARBY_DIST = 120; // max dist for final leaf rooms
+                        if (Vector3::Distance(srcFace.Center(), destFace.Center()) < NEARBY_DIST)
+                            room.VisibleRooms.push_back(destPortal->RoomLink);
+                    };
+
                     // Check if the portals are in front of each other (note that src plane is flipped)
                     Plane destPlane(destFace.Center(), destFace.AverageNormal());
-                    if (!srcFace.InFrontOfPlane(destPlane, 0.1f) || !destFace.InFrontOfPlane(srcPortalPlane, -0.1f))
+                    if (!srcFace.InFrontOfPlane(destPlane, 0.1f) || !destFace.InFrontOfPlane(srcPortalPlane, -0.1f)) {
+                        addLeafRoom();
                         continue; // portals were behind each other
+                    }
 
                     auto destPoly0 = destFace.GetPoly(0);
                     auto destPoly1 = destFace.GetPoly(1);
@@ -1036,16 +1045,8 @@ namespace Inferno::Game {
                         }
                     }
 
-                    if (!foundPortal) {
-                        auto dist = Vector3::Distance(srcFace.Center(), destFace.Center());
-                        constexpr float NEARBY_DIST = 180; // max dist for final leaf rooms
-
-                        // Couldn't see the next portal, add all of the final touching rooms without recursion
-                        if (dist < NEARBY_DIST) {
-                            room.VisibleRooms.push_back(destPortal->RoomLink);
-                            visited.insert(destPortal->RoomLink);
-                        }
-                    }
+                    if (!foundPortal)
+                        addLeafRoom();
                 }
             }
         }
