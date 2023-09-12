@@ -6,7 +6,6 @@
 #include "Editor.Segment.h"
 #include "Editor.Object.h"
 #include "Editor.Undo.h"
-#include "OpenSimplexNoise.h"
 #include "Face.h"
 #include "Game.h"
 #include "Game.Object.h"
@@ -338,14 +337,12 @@ namespace Inferno::Editor {
     }
 
     void ApplyNoise(Level& level, span<PointID> points, float scale, const Vector3& strength, int64 seed) {
-        OpenSimplexNoise::Noise noise(seed);
-
         for (auto index : points) {
             auto& v = level.Vertices[index];
             auto p = v / scale;
-            auto x = (float)noise.eval(0, p.y, p.z) * strength.x;
-            auto y = (float)noise.eval(p.x, 0, p.z) * strength.y;
-            auto z = (float)noise.eval(p.x, p.y, 0) * strength.z;
+            auto x = OpenSimplex2::Noise3(seed, 0, p.y, p.z) * strength.x;
+            auto y = OpenSimplex2::Noise3(seed, p.x, 0, p.z) * strength.y;
+            auto z = OpenSimplex2::Noise3(seed, p.x, p.y, 0) * strength.z;
             v += { x, y, z };
         }
     }

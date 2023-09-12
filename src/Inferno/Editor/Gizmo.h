@@ -2,6 +2,7 @@
 
 #include "Input.h"
 #include "Camera.h"
+#include "Editor.Selection.h"
 #include "Level.h"
 
 namespace Inferno::Editor {

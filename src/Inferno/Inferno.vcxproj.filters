@@ -128,9 +128,6 @@
     <ClCompile Include="Editor\Command.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\vendor\OpenSimplexNoise.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="LevelSettings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -270,6 +267,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Game.Navigation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Game.Visibility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Intersect.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -556,9 +559,6 @@
     <ClInclude Include="Audio\SoundCommon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\vendor\OpenSimplexNoise.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Render.Queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -635,6 +635,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game.Navigation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.Visibility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Intersect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

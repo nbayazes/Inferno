@@ -63,6 +63,7 @@
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -142,14 +143,6 @@
     </ManifestResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\vendor\OpenSimplexNoise.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </DisableSpecificWarnings>
-      <DisableSpecificWarnings Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </DisableSpecificWarnings>
-    </ClCompile>
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Audio\AudioEngine.cpp" />
     <ClCompile Include="Audio\DynamicSoundEffectInstance.cpp" />
@@ -170,6 +163,7 @@
     <ClCompile Include="Game.Room.cpp" />
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
+    <ClCompile Include="Game.Visibility.cpp" />
     <ClCompile Include="Game.Wall.cpp" />
     <ClCompile Include="Game.Weapon.cpp" />
     <ClCompile Include="GameTable.cpp" />
@@ -201,6 +195,7 @@
     <ClCompile Include="Graphics\Render.Particles.cpp" />
     <ClCompile Include="HUD.cpp" />
     <ClCompile Include="imgui_local.cpp" />
+    <ClCompile Include="Intersect.cpp" />
     <ClCompile Include="LevelSettings.cpp" />
     <ClCompile Include="LightInfo.cpp" />
     <ClCompile Include="Editor\UI\LightingWindow.cpp" />
@@ -237,7 +232,6 @@
     <ClCompile Include="Shell.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\vendor\OpenSimplexNoise.h" />
     <ClInclude Include="Audio\Audio.h" />
     <ClInclude Include="Audio\SoundCommon.h" />
     <ClInclude Include="Audio\WAVFileReader.h" />
@@ -262,6 +256,7 @@
     <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />
     <ClInclude Include="Editor\UI\SoundBrowser.h" />
+    <ClInclude Include="Game.Visibility.h" />
     <ClInclude Include="Game.Wall.h" />
     <ClInclude Include="GameTable.h" />
     <ClInclude Include="Graphics\Buffers.h" />
@@ -298,6 +293,7 @@
     <ClInclude Include="Graphics\Render.Particles.h" />
     <ClInclude Include="Graphics\Render.Queue.h" />
     <ClInclude Include="HUD.h" />
+    <ClInclude Include="Intersect.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="LightInfo.h" />
     <ClInclude Include="Editor\UI\MaterialEditor.h" />

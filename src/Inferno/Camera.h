@@ -1,8 +1,7 @@
 #pragma once
 
 #include <DirectXMath.h>
-#include "Settings.h"
-#include "OpenSimplexNoise.h"
+#include "OpenSimplex2.h"
 
 namespace Inferno {
     using DirectX::SimpleMath::Viewport;
@@ -39,15 +38,15 @@ namespace Inferno {
             constexpr float period = 15;
 
             Vector3 shakeOffset(
-                _shake * (float)SimplexNoise.eval(t * period, 0.0),
-                _shake * (float)SimplexNoise.eval(t * period, t),
-                _shake * (float)SimplexNoise.eval(t * period, -t)
+                _shake * OpenSimplex2::Noise2(0, t * period, 0.0),
+                _shake * OpenSimplex2::Noise2(0, t * period, t),
+                _shake * OpenSimplex2::Noise2(0, t * period, -t)
             );
 
             Vector3 rot(
-                maxShakeAngle * (float)SimplexNoise.eval(t * period, 0.0),
-                maxShakeAngle * (float)SimplexNoise.eval(t * period, t),
-                maxShakeAngle * (float)SimplexNoise.eval(t * period, -t)
+                maxShakeAngle * OpenSimplex2::Noise2(0, t * period, 0.0),
+                maxShakeAngle * OpenSimplex2::Noise2(0, t * period, t),
+                maxShakeAngle * OpenSimplex2::Noise2(0, t * period, -t)
             );
 
             auto up = Up + rot;
