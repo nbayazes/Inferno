@@ -708,24 +708,6 @@ namespace Inferno::Game {
     // 
     using PortalProjection = Array<Ray, 4>;
 
-    //bool IntersectFaceToFace(Level& level, SegID startSeg, const Array<Vector3, 4>& srcPoints, const Array<Vector3, 4>& destPoints) {
-    //    // Cast from each point in src to dest
-    //    for (int i = 0; i < 4; i++) {
-    //        for (int j = 0; j < 4; j++) {
-    //            auto [dir, maxDist] = GetDirectionAndDistance(destPoints[j], srcPoints[i]);
-
-    //            Ray ray{ srcPoints[i], dir };
-    //            LevelHit hit{};
-
-    //            if (!IntersectRayLevel(level, ray, startSeg, maxDist, true, false, hit)) {
-    //                return false; // If _any_ rays reach the target, the portal is visible
-    //            }
-    //        }
-    //    }
-
-    //    return true;
-    //}
-
     void SegmentPlaneIntersection(const Plane& plane, const Vector3& p1, const Vector3& p2, List<Vector3>& points) {
         constexpr float EPSILON = 0.01f;
         float d1 = plane.DotCoordinate(p1); // Distance from plane
@@ -797,107 +779,9 @@ namespace Inferno::Game {
 
             if (d2 >= 0)
                 result.push_back(p2); // second point in front of plane
-
-            //float pdot = 0;
-            //auto idot = plane.Normal().Dot(face[0] - srcPortal[iSrc]);
-
-            //for (int i = 0; i < 4; i++) {
-            //    auto dot = plane.Normal().Dot(face[i] - srcPortal[iSrc]);
-            //    if (dot * pdot < 0) {
-            //        // t = pdot / (pdot - dot)
-            //        // I = Q_i-1 + t(Q_i - Q_i-1)
-            //        // insert I
-            //    }
-            //    if (dot > 0) {
-            //        // insert Q_i
-            //        pdot = dot;
-            //    }
-            //    if (pdot * idot < 0) {
-            //        // t = pdot / (pdot - idot)
-            //        // I = Q_n-1 + t(Q_0 - Q_n-1) 
-            //    }
-            //}
         }
 
         return result;
-    }
-
-    // Recursive function to determine visibility
-    void ProjectPortalIntoRoom(Level& level, List<Room> rooms, Face& srcPortal, Face& passPortal, const Room& room, List<RoomID>& visibleRooms) {
-        for (auto& portal : room.Portals) {
-            auto face = Face::FromSide(level, portal.Tag);
-            List<Vector3> points{ face[0], face[1], face[2], face[3] };
-
-            if (srcPortal.AverageNormal().Dot(face.AverageNormal()) <= 0)
-                continue; // Skip portal facing away from src
-
-            //SPDLOG_INFO("Tag: {}:{}", portal.Tag.Segment, portal.Tag.Side);
-            SPDLOG_INFO("Clipping portal: {}", portal.Tag);
-
-            for (int iSrc = 0; iSrc < 4; iSrc++) {
-                for (int iPass = 0; iPass < 4; iPass++) {
-                    // Create a plane from each edge
-                    Plane plane(srcPortal[iSrc], srcPortal[iSrc + 1], passPortal[iPass]);
-                    auto pdist = plane.DotCoordinate(passPortal.Center());
-                    //auto dist = DistanceFromPlane(passPortal.Center(), srcPortal[iSrc], plane.Normal());
-                    //auto dist_1 = plane.DotCoordinate(points[0]);
-                    //plane.Normal(-plane.Normal());
-                    //plane = -plane;
-                    //auto dist_11 = plane.DotCoordinate(points[0]);
-
-                    if (pdist <= 0) {
-                        plane = -plane;
-                        //plane.Normal(-plane.Normal()); // Flip the plane normal if it faces away from the pass portal
-                    }
-                    //dist = DistanceFromPlane(passPortal.Center(), srcPortal[iSrc], plane.Normal());
-
-                    auto newPoints = ClipConvexPolygon(points, plane);
-                    if (newPoints.size() != points.size()) {
-                        //auto dist1 = plane.DotCoordinate(points[0]);
-                        //auto dist2 = plane.DotCoordinate(points[1]);
-
-                        //if (Inferno::Render::Debug::StaticDebugPoints.empty()) {
-                        //    Inferno::Render::Debug::StaticDebugPoints.push_back(passPortal.Center());
-                        //    Inferno::Render::Debug::StaticDebugPoints.push_back(srcPortal[iSrc]);
-                        //    Inferno::Render::Debug::StaticDebugPoints.push_back(srcPortal[iSrc + 1]);
-                        //    Inferno::Render::Debug::StaticDebugPoints.push_back(passPortal[iPass]);
-                        //    Inferno::Render::Debug::StaticDebugPoints.push_back(srcPortal[iSrc] + plane.Normal() * 1);
-                        //}
-                    }
-                    points = newPoints;
-                }
-            }
-
-            if (points.empty()) {
-                SPDLOG_INFO("Portal rejected");
-                continue;
-            }
-
-            if (!points.empty()) {
-                if (auto linkedRoom = GetRoom(rooms, portal.RoomLink)) {
-                    //ASSERT(!Seq::contains(visibleRooms, portal.RoomLink));
-                    SPDLOG_INFO("Adding room: {}", portal.RoomLink);
-                    visibleRooms.push_back(portal.RoomLink);
-                    ProjectPortalIntoRoom(level, rooms, srcPortal, passPortal, *linkedRoom, visibleRooms);
-                }
-            }
-
-            // create planes from src portal and pass portal
-            // clip each portal by the four planes, and if any area remains the portal is visible
-
-
-            //auto linkedPortalFace = Face::FromSide(level, linkedPortal.Tag);
-            //if (srcNormal.Dot(linkedPortalFace.AverageNormal()) > 0)
-            //    continue; // Skip portal facing same direction as src
-
-            //auto destPoints = linkedPortalFace.Inset(0.1f, 0.1f);
-
-            //if (IntersectFaceToFace(level, portal.Tag.Segment, srcPoints, destPoints)) {
-            //    continue;
-            //}
-
-            //room.VisibleRooms.push_back(linkedPortal.RoomLink);
-        }
     }
 
     Matrix VectorToRotation(const Vector3& fvec) {
@@ -919,12 +803,6 @@ namespace Inferno::Game {
     }
 
     FaceInfo GetFaceBounds(span<Vector3> faceVerts, const Vector3& normal) {
-        //auto dx = faceVerts[1] - faceVerts[0];
-        //auto dy = faceVerts[2] - faceVerts[0];
-        //dx.Normalize();
-        //dy.Normalize();
-        //dx.Cross(dy, normal);
-
         // unrotate face verts to xy plane
         auto transform = VectorToRotation(normal);
         transform = transform.Transpose(); // invert rotation
@@ -1014,59 +892,21 @@ namespace Inferno::Game {
         return { .Width = xdiff, .Height = ydiff, .UpperLeft = upperLeft };
     }
 
-    constexpr int GRID_STEPS = 3;
-
-    // project a ray from a point to the portals in another room
-    bool PortalVisibleFromPoint(IntersectContext& intersect, Tag srcTag, const Vector3& srcPoint, const Face& destFace, const FaceInfo& destPortalBounds) {
-        // project rays from a point to a portal
-
-        auto transform = VectorToRotation(destFace.AverageNormal());
-
-        auto xstep = destPortalBounds.Width / (GRID_STEPS - 1);
-        auto ystep = -destPortalBounds.Height / (GRID_STEPS - 1);
-
-        for (int x = 1; x < GRID_STEPS - 1; x++) {
-            for (int y = 1; y < GRID_STEPS - 1; y++) {
-                auto pt = destPortalBounds.UpperLeft + transform.Right() * xstep * (float)x + transform.Up() * ystep * (float)y;
-                auto [dir, dist] = GetDirectionAndDistance(pt, srcPoint);
-                if (!FaceContainsPoint(destFace, pt)) continue;
-
-                Ray ray(srcPoint, dir);
-                LevelHit hit;
-
-                RayQuery query{ .MaxDistance = dist, .Start = srcTag.Segment, .IgnoreWalls = true };
-                if (!intersect.IntersectRayLevel(ray, query, hit)) {
-                    Inferno::Render::Debug::DebugPoints2.push_back(pt);
-                    Render::Debug::DebugLines.push_back(pt);
-                    Render::Debug::DebugLines.push_back(srcPoint);
-                    return true; // At least one ray can reach the portal
-                }
-            }
-        }
-
-        return false;
-    }
-
     constexpr float PADDING = 2.5f;
 
     // project a ray from a point to the portals in another room
-    bool PortalVisibleFromPoint(IntersectContext& intersect, Tag srcTag, const Vector3& srcPoint, const Array<Vector3, 3>& destTri, const Vector3& destNormal, const FaceInfo& destBounds) {
-        // project rays from a point to a portal
-
+    bool PortalVisibleFromPoint(IntersectContext& intersect, SegID srcSegment, const Vector3& srcPoint,
+                                const Array<Vector3, 3>& destTri, const Vector3& destNormal, const FaceInfo& destBounds,
+                                int steps) {
         auto transform = VectorToRotation(destNormal);
-        //Vector3 n(1, 0, 1);
-        //n.Normalize();
-        //transform = VectorToRotation(n);
+        auto xstep = (destBounds.Width - PADDING * 2) / (steps - 1);
+        auto ystep = -(destBounds.Height - PADDING * 2) / (steps - 1);
 
-        auto xstep = (destBounds.Width - PADDING * 2) / (GRID_STEPS - 1);
-        auto ystep = -(destBounds.Height - PADDING * 2) / (GRID_STEPS - 1);
-
-        for (int x = 0; x < GRID_STEPS; x++) {
-            for (int y = 0; y < GRID_STEPS; y++) {
-                //auto pt = destBounds.UpperLeft + transform.Right() * xstep * (float)x + transform.Up() * ystep * (float)y;
+        // Check the source point against the portal grid
+        for (int x = 0; x < steps; x++) {
+            for (int y = 0; y < steps; y++) {
                 auto pt = destBounds.UpperLeft + transform.Right() * PADDING + transform.Right() * xstep * (float)x
                     + transform.Up() * -PADDING + transform.Up() * ystep * (float)y;
-
 
                 auto [dir, dist] = GetDirectionAndDistance(pt, srcPoint);
                 if (!TriangleContainsPoint(destTri, pt)) continue;
@@ -1074,10 +914,7 @@ namespace Inferno::Game {
                 //Inferno::Render::Debug::DebugPoints2.push_back(pt);
                 Ray ray(srcPoint, dir);
                 LevelHit hit;
-
-                RayQuery query{ .MaxDistance = dist, .Start = srcTag.Segment, .IgnoreWalls = true };
-                //Render::Debug::DebugLines.push_back(pt);
-                //Render::Debug::DebugLines.push_back(srcPoint);
+                RayQuery query{ .MaxDistance = dist, .Start = srcSegment, .IgnoreWalls = true };
 
                 if (!intersect.IntersectRayLevel(ray, query, hit)) {
                     Render::Debug::DebugLines.push_back(pt);
@@ -1087,24 +924,19 @@ namespace Inferno::Game {
             }
         }
 
-        return false;
+        return false; // Wasn't visible
     }
 
-    // Determines the potentially visible rooms from this room
-    void ComputeRoomVisibility(Level& level, List<Room>& rooms, Room& room, List<Tuple<int, int>>& visiblePortalLinks) {
+    // Determines the potentially visible rooms from this room.
+    // Creates a grid of points across each face based on `steps`.
+    void ComputeRoomVisibility(Level& level, List<Room>& rooms, Room& room,
+                               List<Tuple<int, int>>& visiblePortalLinks, int steps) {
+        ASSERT(steps >= 2);
         room.VisibleRooms.clear();
         auto roomId = RoomID(&room - &rooms[0]);
-        SPDLOG_INFO("Base room: {}", roomId);
+        SPDLOG_INFO("Room Visibility: {}", roomId);
 
         IntersectContext intersect(level);
-        //List<Tag> visiblePortals;
-        visiblePortalLinks.reserve(rooms.size() * 3);
-
-        //auto arePortalsVisible = [&](Tag a, Tag b) {
-        //    auto ac = level.GetConnectedSide(a);
-        //    auto bc = level.GetConnectedSide(b);
-        //    if(Seq::contains(visiblePortalLinks))
-        //};
 
         for (auto& srcPortal : room.Portals) {
             room.VisibleRooms.push_back(srcPortal.RoomLink); // all adjacent rooms are visible
@@ -1112,57 +944,40 @@ namespace Inferno::Game {
             auto& srcSide = srcSeg.GetSide(srcPortal.Tag.Side);
             auto srcFace = Face2::FromSide(level, srcSeg, srcPortal.Tag.Side);
             auto connectedSide = level.GetConnectedSide(srcPortal.Tag);
-            //visiblePortals.clear();
 
+            // Check each triangle in the src portal face
+            for (int i = 0; i < 2; i++) {
+                auto destRoom = GetRoom(rooms, srcPortal.RoomLink);
+                if (!destRoom) continue;
 
-            //bool done = false;
-            for (int i = 0; i < 1 /*&& !done*/; i++) {
                 auto srcPoly = srcFace.GetPoly(i);
                 auto srcBounds = GetFaceBounds(srcPoly, srcSide.Normals[i]);
+                auto srcTransform = VectorToRotation(srcSide.Normals[i]);
+                auto xstep = (srcBounds.Width - PADDING * 2) / (steps - 1);
+                auto ystep = -(srcBounds.Height - PADDING * 2) / (steps - 1);
 
                 // Flip the source portal plane to look towards the opening
                 Plane srcPortalPlane(srcFace.Center(), -srcFace.AverageNormal());
-
-                //auto srcPlane0 = srcPortalFace.GetPlane(0);
-                //auto srcPlane1 = srcPortalFace.GetPlane(1);
-                //auto coplanar = srcPlane0.DotNormal(srcPlane1.Normal()) >= 0.999f;
-                //if (!coplanar)
-                //    continue; // debugging
-                // if plane0 dot plane1 > 0.9 .. planar enough
-
-                // create grid along source portal
-                auto srcTransform = VectorToRotation(srcSide.Normals[i]);
-
-                auto xstep = (srcBounds.Width - PADDING * 2) / (GRID_STEPS - 1);
-                auto ystep = -(srcBounds.Height - PADDING * 2) / (GRID_STEPS - 1);
-
-                auto passRoom = GetRoom(rooms, srcPortal.RoomLink);
-                if (!passRoom) continue;
-
                 //SPDLOG_INFO("Base portal: {}", srcPortal.Tag);
-                //SPDLOG_INFO("Pass room: {}", srcPortal.RoomLink);
-
-                //auto& debugPoints = Render::Debug::DebugPoints;
-                //debugPoints.push_back(bounds.UpperLeft);
 
                 Stack<Portal*> stack;
                 Set<RoomID> visited;
                 visited.insert(srcPortal.RoomLink);
 
-                for (auto& p : passRoom->Portals)
+                for (auto& p : destRoom->Portals)
                     stack.push(&p);
 
                 // Adds all portals in the room this portal links to
-                auto addLinkedRooms = [&visited, &room, &rooms, &stack](const Portal& portal) {
+                auto addLinkedRooms = [&visited, &room, &rooms, &stack](const Portal& portal, bool recursive = true) {
                     if (!visited.contains(portal.RoomLink) && !Seq::contains(room.VisibleRooms, portal.RoomLink)) {
-                        //ASSERT(!Seq::contains(room.VisibleRooms, portal.RoomLink));
                         room.VisibleRooms.push_back(portal.RoomLink);
                         visited.insert(portal.RoomLink);
-                        //visiblePortals.push_back(portal->Tag);
 
-                        if (auto nextRoom = GetRoom(rooms, portal.RoomLink))
-                            for (auto& p : nextRoom->Portals)
-                                stack.push(&p);
+                        if (recursive) {
+                            if (auto nextRoom = GetRoom(rooms, portal.RoomLink))
+                                for (auto& p : nextRoom->Portals)
+                                    stack.push(&p);
+                        }
                     }
                 };
 
@@ -1171,7 +986,6 @@ namespace Inferno::Game {
                     stack.pop();
 
                     if (destPortal->Tag == connectedSide) continue; // Don't test connected portal
-                    //if (Seq::contains(visiblePortals, portal->Tag)) continue; // Don't test a portal that is already visible
                     if (Seq::contains(visiblePortalLinks, Tuple{ destPortal->Id, srcPortal.Id })) {
                         // Portal is known to be visible, no need to recalculate it
                         addLinkedRooms(*destPortal);
@@ -1182,107 +996,49 @@ namespace Inferno::Game {
                     auto& destSide = destSeg.GetSide(destPortal->Tag.Side);
                     auto destFace = Face2::FromSide(level, destSeg, destPortal->Tag.Side);
 
-                    // Check if the starting portal is in front of the next portal
+                    // Check if the portals are in front of each other (note that src plane is flipped)
                     Plane destPlane(destFace.Center(), destFace.AverageNormal());
                     if (!srcFace.InFrontOfPlane(destPlane, 0.1f) || !destFace.InFrontOfPlane(srcPortalPlane, -0.1f))
                         continue; // portals were behind each other
 
-                    bool destPortalDone = false;
-
                     auto destPoly0 = destFace.GetPoly(0);
                     auto destPoly1 = destFace.GetPoly(1);
                     auto destBounds0 = GetFaceBounds(destPoly0, destSide.Normals[0]);
-                    auto destBounds1 = GetFaceBounds(destPoly0, destSide.Normals[1]);
+                    auto destBounds1 = GetFaceBounds(destPoly1, destSide.Normals[1]);
+                    bool foundPortal = false;
 
-                    //Render::Debug::DebugLines.push_back(destPoly0[0]);
-                    //Render::Debug::DebugLines.push_back(destPoly0[0] + destSide.Normals[0] * 2);
-
-                    //for (int j = 0; j < 1 && !destPortalDone; j++) {
-                    //auto destPoly = destFace.GetPoly(j);
-                    //Render::Debug::DebugPoints.push_back(destPoly0[0]);
-                    //Render::Debug::DebugPoints.push_back(destPoly0[1]);
-                    //Render::Debug::DebugPoints.push_back(destPoly0[2]);
-                    //auto& normal = destSide.Normals[j];
-                    //auto destBounds = GetFaceBounds(destPoly, normal);
-
-                    //Plane destPlane(destPoly[0], destPoly[1], destPoly[2]);
-
-                    //auto bounds = GetFaceBounds(portalPoints, portalFace.AverageNormal());
-
-                    //Plane plane(tri[0], tri[1], tri[2]);
-
-                    //Render::Debug::DebugPoints.push_back(pt);
-                    //Render::Debug::DebugPoints2.push_back(srcPortalFace.Center());
-
-                    //auto dist = srcPortalPlane.DotCoordinate(portalFace.Center());
-
-
-                    //auto portalPoints = portalFace.CopyPoints();
-
-
-                    //Inferno::Render::Debug::StaticDebugPoints.push_back(pt);
-                    for (int x = 0; x < GRID_STEPS && !destPortalDone; x++) {
-                        for (int y = 0; y < GRID_STEPS && !destPortalDone; y++) {
-                            auto pt = srcBounds.UpperLeft + srcTransform.Right() * PADDING + srcTransform.Right() * xstep * (float)x
+                    // Compare each point on the src portal grid to the dest portal
+                    for (int x = 0; x < steps && !foundPortal; x++) {
+                        for (int y = 0; y < steps && !foundPortal; y++) {
+                            auto pt = srcBounds.UpperLeft
+                                + srcTransform.Right() * PADDING + srcTransform.Right() * xstep * (float)x
                                 + srcTransform.Up() * -PADDING + srcTransform.Up() * ystep * (float)y;
 
-                            if (!TriangleContainsPoint(srcPoly, pt)) continue;
+                            if (!TriangleContainsPoint(srcPoly, pt)) continue; // Grid point wasn't inside triangle
 
-                            //debugPoints.push_back(pt);
                             pt += srcTransform.Forward() * 0.2f; // shift the point inside of the start room so parallel portals aren't marked as visible
-                            
-                            if (!PointInSegment(level, connectedSide.Segment, pt))
-                                continue; // Offsetting the point can cause it to rarely be pushed outside of the expected segment. Discard it.
 
-                            if (PortalVisibleFromPoint(intersect, connectedSide, pt, destPoly0, destSide.Normals[0], destBounds0) ||
-                                PortalVisibleFromPoint(intersect, connectedSide, pt, destPoly1, destSide.Normals[1], destBounds1)) {
-                                //debugPoints.push_back(pt);
+                            if (!PointInSegment(level, connectedSide.Segment, pt))
+                                continue; // Shifting the point rarely pushes it outside of the expected segment. Discard it if this happens.
+
+                            // Check the source triangle against both dest triangles
+                            if (PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, destPoly0, destSide.Normals[0], destBounds0, steps) ||
+                                PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, destPoly1, destSide.Normals[1], destBounds1, steps)) {
+                                // Add both pairs to simplify searching
                                 visiblePortalLinks.push_back({ destPortal->Id, srcPortal.Id });
                                 visiblePortalLinks.push_back({ srcPortal.Id, destPortal->Id });
                                 addLinkedRooms(*destPortal);
-                                //if (!visited.contains(portal->RoomLink)) {
-                                //    room.VisibleRooms.push_back(portal->RoomLink);
-                                //    visited.insert(portal->RoomLink);
-                                //    //visiblePortals.push_back(portal->Tag);
-
-                                //    if (auto nextRoom = GetRoom(rooms, portal->RoomLink))
-                                //        for (auto& p : nextRoom->Portals)
-                                //            stack.push(&p);
-                                //}
-
-                                destPortalDone = true;
+                                foundPortal = true;
                             }
                         }
                     }
-                    //}
+
+                    if (!foundPortal) {
+                        // Couldn't see the next portal, add all of the final touching rooms without recursion
+                        addLinkedRooms(*destPortal, false);
+                    }
                 }
             }
-
-            //auto srcPoints = srcPortal.Inset(0.1f, 0.1f);
-
-
-            //// Project from the start room portal to the linked room portal.
-            //// Then use these rays to intersect any further rooms.
-            //// Note that depending on winding the results will vary.
-            //for (auto& passPortal : passRoom->Portals) {
-            //    //ProjectPortalIntoRoom(srcPortal, *linkedRoom, room.VisibleRooms);
-
-            //    auto passPortalFace = Face::FromSide(level, passPortal.Tag);
-            //    if (srcPortal.AverageNormal().Dot(passPortalFace.AverageNormal()) <= 0)
-            //        continue; // Skip portal facing away from src
-
-            //    //auto destPoints = linkedPortalFace.Inset(0.1f, 0.1f);
-
-            //    //if (IntersectFaceToFace(level, portal.Tag.Segment, srcPoints, destPoints)) {
-            //    //    continue;
-            //    //}
-            //    SPDLOG_INFO("Pass portal: {}", passPortal.Tag);
-            //    if (auto nextRoom = GetRoom(rooms, passPortal.RoomLink)) {
-            //        SPDLOG_INFO("Linked room: {}", portal.RoomLink);
-            //        room.VisibleRooms.push_back(passPortal.RoomLink); // Linked room is also visible
-            //        ProjectPortalIntoRoom(level, rooms, srcPortal, passPortalFace, *nextRoom, room.VisibleRooms);
-            //    }
-            //}
         }
     }
 
@@ -1362,9 +1118,12 @@ namespace Inferno::Game {
 
         timer = {};
         List<Tuple<int, int>> visiblePortalLinks;
+        visiblePortalLinks.reserve(rooms.size() * 3);
+
+        int visibilitySteps = 4;
 
         for (auto& room : rooms)
-            ComputeRoomVisibility(level, rooms, room, visiblePortalLinks);
+            ComputeRoomVisibility(level, rooms, room, visiblePortalLinks, visibilitySteps);
 
         SPDLOG_INFO("Room visibility time {}", timer.GetElapsedSeconds());
 
