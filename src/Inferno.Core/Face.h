@@ -314,22 +314,22 @@ namespace Inferno {
 
     struct Face2 {
         Array<Vector3, 4> Points;
-        SegmentSide* Side;
+        const SegmentSide* Side;
         Array<PointID, 4> Indices;
 
-        Face2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, SegmentSide& side, Array<PointID, 4> indices) :
+        Face2(const Vector3& p0, const Vector3& p1, const Vector3& p2, const Vector3& p3, const SegmentSide& side, Array<PointID, 4> indices) :
             Points({ p0, p1, p2, p3 }), Side(&side), Indices(indices) {}
 
-        static Face2 FromSide(Level& level, SegID segId, SideID side) {
+        static Face2 FromSide(const Level& level, SegID segId, SideID side) {
             auto& seg = level.GetSegment(segId);
             return FromSide(level, seg, side);
         }
 
-        static Face2 FromSide(Level& level, Tag tag) {
+        static Face2 FromSide(const Level& level, Tag tag) {
             return FromSide(level, tag.Segment, tag.Side);
         }
 
-        static Face2 FromSide(const Level& level, Segment& seg, SideID side) {
+        static Face2 FromSide(const Level& level, const Segment& seg, SideID side) {
             auto& sideVerts = SIDE_INDICES[(int)side];
             auto& v0 = level.Vertices[seg.Indices[sideVerts[0]]];
             auto& v1 = level.Vertices[seg.Indices[sideVerts[1]]];

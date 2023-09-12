@@ -226,6 +226,19 @@ namespace Inferno {
             return nullptr;
         }
 
+        constexpr const Wall* TryGetWall(Tag tag) const {
+            if (!tag)
+                return nullptr;
+
+            if (auto seg = TryGetSegment(tag)) {
+                auto id = (int)seg->GetSide(tag.Side).Wall;
+                if (Seq::inRange(Walls, id))
+                    return &Walls[id];
+            }
+
+            return nullptr;
+        }
+
         constexpr WallID TryGetWallID(Tag tag) const {
             if (!tag) return WallID::None;
             if (auto seg = TryGetSegment(tag))
@@ -261,7 +274,6 @@ namespace Inferno {
 
             return nullptr;
         }
-
 
         const Wall* TryGetWall(WallID id) const {
             if (id == WallID::None || (int)id >= Walls.size())
@@ -358,7 +370,11 @@ namespace Inferno {
         // Unchecked access
         SegmentSide& GetSide(Tag tag) {
             return Segments[(int)tag.Segment].Sides[(int)tag.Side];
-        };
+        }
+
+        const SegmentSide& GetSide(Tag tag) const {
+            return Segments[(int)tag.Segment].Sides[(int)tag.Side];
+        }
 
         SegmentSide* TryGetSide(Tag tag) {
             if (tag.Side == SideID::None) return nullptr;

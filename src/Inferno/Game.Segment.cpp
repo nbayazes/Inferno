@@ -82,13 +82,14 @@ namespace Inferno {
     }
 
     // Returns true if a point is inside of a segment
-    bool PointInSegment(Level& level, SegID id, const Vector3& point) {
+    bool PointInSegment(const Level& level, SegID id, const Vector3& point) {
         if (!level.SegmentExists(id)) return false;
 
         // Use estimation that treats the sides as planes instead of triangles
-        for (auto& side : SideIDs) {
-            auto face = Face::FromSide(level, id, side);
-            if (face.Distance(point) < 0)
+        for (auto& sideId : SideIDs) {
+            auto& side = level.GetSide(Tag{ id, sideId });
+            Plane p(side.Center, side.AverageNormal);
+            if (p.DotCoordinate(point) < 0)
                 return false;
         }
 
@@ -137,7 +138,7 @@ namespace Inferno {
         return Seq::ofSet(nearby);
     }
 
-    SegID FindContainingSegment(Level& level, const Vector3& point) {
+    SegID FindContainingSegment(const Level& level, const Vector3& point) {
         for (int id = 0; id < level.Segments.size(); id++) {
             auto& seg = level.GetSegment((SegID)id);
             if (Vector3::Distance(seg.Center, point) > 200) continue;

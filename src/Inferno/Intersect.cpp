@@ -165,7 +165,7 @@ namespace Inferno {
     }
 
 
-    float FaceEdgeDistance(const Segment& seg, SideID side, const Face& face, const Vector3& point) {
+    float FaceEdgeDistance(const Segment& seg, SideID side, const Face2& face, const Vector3& point) {
         // Check the four outside edges of the face
         float mag1 = FLT_MAX, mag2 = FLT_MAX, mag3 = FLT_MAX, mag4 = FLT_MAX;
 
@@ -204,15 +204,15 @@ namespace Inferno {
         uv.y = std::fmodf(uv.y, 1);
     }
 
-    Vector2 IntersectFaceUVs(const Vector3& point, const Face& face, int tri) {
-        auto& indices = face.Side.GetRenderIndices();
+    Vector2 IntersectFaceUVs(const Vector3& point, const Face2& face, int tri) {
+        auto& indices = face.Side->GetRenderIndices();
         auto& v0 = face[indices[tri * 3 + 0]];
         auto& v1 = face[indices[tri * 3 + 1]];
         auto& v2 = face[indices[tri * 3 + 2]];
 
         Vector2 uvs[3]{};
         for (int i = 0; i < 3; i++)
-            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
+            uvs[i] = face.Side->UVs[indices[tri * 3 + i]];
 
         // Vectors of two edges
         auto xAxis = v1 - v0;
@@ -260,8 +260,8 @@ namespace Inferno {
         }
     }
 
-    bool WallPointIsTransparent(const Vector3& pnt, const Face& face, int tri) {
-        auto& side = face.Side;
+    bool WallPointIsTransparent(const Vector3& pnt, const Face2& face, int tri) {
+        auto& side = *face.Side;
         auto tmap = side.TMap2 > LevelTexID::Unset ? side.TMap2 : side.TMap;
         auto& bitmap = Resources::GetBitmap(Resources::LookupTexID(tmap));
         if (!bitmap.Info.Transparent) return false; // Must be flagged transparent
@@ -315,7 +315,7 @@ namespace Inferno {
             auto& seg = _level->GetSegment(segId);
 
             for (auto& side : SideIDs) {
-                auto face = Face::FromSide(*_level, seg, side);
+                auto face = Face2::FromSide(*_level, seg, side);
 
                 float dist{};
                 auto tri = face.Intersects(ray, dist);
@@ -343,7 +343,7 @@ namespace Inferno {
                         hit.Tag = tag;
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side.Tangents[tri];
+                        hit.Tangent = face.Side->Tangents[tri];
                         hit.Point = ray.position + ray.direction * dist;
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
@@ -380,7 +380,7 @@ namespace Inferno {
             auto& seg = level.GetSegment(segId);
 
             for (auto& side : SideIDs) {
-                auto face = Face::FromSide(level, seg, side);
+                auto face = Face2::FromSide(level, seg, side);
 
                 float dist{};
                 auto tri = face.Intersects(ray, dist);
@@ -408,7 +408,7 @@ namespace Inferno {
                         hit.Tag = tag;
                         hit.Distance = dist;
                         hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side.Tangents[tri];
+                        hit.Tangent = face.Side->Tangents[tri];
                         hit.Point = ray.position + ray.direction * dist;
                         hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                         return true;
@@ -435,7 +435,7 @@ namespace Inferno {
 
         for (auto& side : SideIDs) {
             if (!seg->SideIsSolid(side, level)) continue;
-            auto face = Face::FromSide(level, *seg, side);
+            auto face = Face2::FromSide(level, *seg, side);
 
             float dist{};
             auto tri = face.IntersectsOffset(ray, dist, offset);
@@ -462,7 +462,7 @@ namespace Inferno {
                     hit.Tag = tag;
                     hit.Distance = dist;
                     hit.Normal = face.AverageNormal();
-                    hit.Tangent = face.Side.Tangents[tri];
+                    hit.Tangent = face.Side->Tangents[tri];
                     hit.Point = ray.position + ray.direction * dist;
                     hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
                     *hitResult = hit;

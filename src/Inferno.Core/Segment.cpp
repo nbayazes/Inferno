@@ -21,7 +21,7 @@ namespace Inferno {
         Objects.push_back(id);
     }
 
-    bool Segment::SideIsSolid(SideID side, Level& level) const {
+    bool Segment::SideIsSolid(SideID side, const Level& level) const {
         if (SideHasConnection(side)) {
             if (auto wall = level.TryGetWall(Sides[(int)side].Wall))
                 return wall->IsSolid(); // walls might be solid

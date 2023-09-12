@@ -792,7 +792,7 @@ namespace Inferno {
             ActivateTriggerD2(level, trigger);
     }
 
-    bool WallIsTransparent(Level& level, Tag tag) {
+    bool WallIsTransparent(const Level& level, Tag tag) {
         auto seg = level.TryGetSegment(tag);
         if (!seg) return false;
         auto& side = seg->GetSide(tag.Side);

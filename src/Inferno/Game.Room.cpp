@@ -17,6 +17,11 @@ namespace Inferno::Game {
         return &rooms[(int)id];
     }
 
+    const Room* GetRoom(const List<Room>& rooms, RoomID id) {
+        if (!Seq::inRange(rooms, (int)id)) return nullptr;
+        return &rooms[(int)id];
+    }
+
     bool SegmentIsTunnel(Segment& seg) {
         int connections = 0;
         for (int i = 0; i < 6; i++) {
@@ -929,7 +934,7 @@ namespace Inferno::Game {
 
     // Determines the potentially visible rooms from this room.
     // Creates a grid of points across each face based on `steps`.
-    void ComputeRoomVisibility(Level& level, List<Room>& rooms, Room& room,
+    void ComputeRoomVisibility(const Level& level, const List<Room>& rooms, Room& room,
                                List<Tuple<int, int>>& visiblePortalLinks, int steps) {
         ASSERT(steps >= 2);
         room.VisibleRooms.clear();
@@ -960,7 +965,7 @@ namespace Inferno::Game {
                 Plane srcPortalPlane(srcFace.Center(), -srcFace.AverageNormal());
                 //SPDLOG_INFO("Base portal: {}", srcPortal.Tag);
 
-                Stack<Portal*> stack;
+                Stack<const Portal*> stack;
                 Set<RoomID> visited;
                 visited.insert(srcPortal.RoomLink);
 
@@ -968,16 +973,14 @@ namespace Inferno::Game {
                     stack.push(&p);
 
                 // Adds all portals in the room this portal links to
-                auto addLinkedRooms = [&visited, &room, &rooms, &stack](const Portal& portal, bool recursive = true) {
-                    if (!visited.contains(portal.RoomLink) && !Seq::contains(room.VisibleRooms, portal.RoomLink)) {
+                auto addLinkedRooms = [&visited, &room, &rooms, &stack](const Portal& portal) {
+                    if (!visited.contains(portal.RoomLink)) {
                         room.VisibleRooms.push_back(portal.RoomLink);
                         visited.insert(portal.RoomLink);
 
-                        if (recursive) {
-                            if (auto nextRoom = GetRoom(rooms, portal.RoomLink))
-                                for (auto& p : nextRoom->Portals)
-                                    stack.push(&p);
-                        }
+                        if (auto nextRoom = GetRoom(rooms, portal.RoomLink))
+                            for (auto& p : nextRoom->Portals)
+                                stack.push(&p);
                     }
                 };
 
@@ -1034,12 +1037,20 @@ namespace Inferno::Game {
                     }
 
                     if (!foundPortal) {
+                        auto dist = Vector3::Distance(srcFace.Center(), destFace.Center());
+                        constexpr float NEARBY_DIST = 180; // max dist for final leaf rooms
+
                         // Couldn't see the next portal, add all of the final touching rooms without recursion
-                        addLinkedRooms(*destPortal, false);
+                        if (dist < NEARBY_DIST) {
+                            room.VisibleRooms.push_back(destPortal->RoomLink);
+                            visited.insert(destPortal->RoomLink);
+                        }
                     }
                 }
             }
         }
+
+        Seq::distinct(room.VisibleRooms); // Clean up duplicates
     }
 
     List<Room> CreateRooms(Level& level) {

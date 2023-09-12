@@ -183,7 +183,7 @@ namespace Inferno {
             return Sides[(int)side].Wall != WallID::None;
         }
 
-        bool SideIsSolid(SideID side, Level& level) const;
+        bool SideIsSolid(SideID side, const Level& level) const;
 
         bool LightIsSubtracted(SideID side) const {
             return LightSubtracted & (1 << (int)side);
