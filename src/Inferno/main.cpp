@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Shell.h"
 #include "FileSystem.h"
+#include "Game.Room.h"
 #include "OpenSimplex2.h"
 #include "Resources.h"
 #include "Editor/Editor.h"
@@ -176,6 +177,19 @@ struct RymlExceptionHandler {
     }
 };
 
+
+void TestClipConvexPolygon() {
+    //List<Vector3> points = { { 0, 0, 0 }, { 0, 10, 0 }, { 10, 10, 0 }, { 10, 0, 0 } };
+    List<Vector3> points = { { -5, -5, 0 }, { -5, 5, 0 }, { 5, 5, 0 }, { 5, -5, 0 } };
+    Vector3 normal(1, 0, 0);
+    normal.Normalize();
+    Plane plane(normal, 100);
+    //auto dist2 = DirectX::XMPlaneDotCoord({ 1, 0, 0, -10 }, { 0, 0, 0 });
+    //auto dist = plane.DotCoordinate({ 0, 0, 0 });
+    auto clipped = Game::ClipConvexPolygon(points, plane);
+    plane = Plane(-normal, 5);
+}
+
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_opt_ HINSTANCE /*hPrevInstance*/,
                      _In_ LPSTR     /*lpCmdLine*/,
@@ -191,9 +205,13 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
     InitRandom();
     OpenSimplex2::Init();
 
+    TestClipConvexPolygon();
+
     // Replace ryml abort with exceptions
     RymlExceptionHandler handler;
     ryml::set_callbacks(handler.CreateCallbacks());
+
+    int result = 0;
 
     try {
         Inferno::Shell shell;
@@ -204,7 +222,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         FileSystem::Init();
         Resources::Init();
         Inferno::InitShaderCompiler();
-        shell.Show(1024, 768);
+        result = shell.Show(1024, 768);
         Settings::Save();
 
         //CoUninitialize();
@@ -213,5 +231,5 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         ShowErrorMessage(e);
     }
 
-    return 0;
+    return result;
 }

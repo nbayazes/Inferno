@@ -225,6 +225,15 @@ namespace Inferno::Render::Debug {
 
     void EndFrame(ID3D12GraphicsCommandList* cmdList) {
         if (!InFrame) throw Exception("Must call BeginFrame() first");
+        for (auto& point : DebugPoints)
+            DrawPoint(point, { 1, 0, 0 });
+
+        for (auto& point : DebugPoints2)
+            DrawPoint(point, { 0, 1, 0 });
+
+        for (int i = 0; i + 1 < DebugLines.size(); i += 2)
+            DrawLine(DebugLines[i], DebugLines[i + 1], { 1, 0, 0 });
+
         Resources->LineBatch.End(cmdList, Render::Effects->Line);
         Resources->PolygonBatch.End(cmdList, Render::Effects->Flat);
         Resources->AdditivePolygonBatch.End(cmdList, Render::Effects->FlatAdditive);

@@ -672,6 +672,7 @@ Effects:
       Texture: tracer
       Width: 0.125
       VelocitySmear: 0.02
+      Physics: 0
 
     - Name: flare death sparks
       Color: 1, 0.66, 0.1, 10
@@ -697,7 +698,6 @@ Effects:
       Texture: tracer
       Width: 0.2
       VelocitySmear: 0.025
-      Physics: 1
 
     - Name: fusion_charge
       Color: .6, 0, 1, 20

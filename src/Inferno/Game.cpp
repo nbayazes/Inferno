@@ -21,6 +21,8 @@
 #include "HUD.h"
 #include "Game.Wall.h"
 #include "Game.AI.h"
+#include "Game.Room.h"
+#include "Game.Visibility.h"
 
 using namespace DirectX;
 
@@ -108,8 +110,8 @@ namespace Inferno::Game {
         }
     }
 
-    void UpdateDirectLight(Object& obj, float duration) {
-        Color directLight;
+    void UpdateDirectLight(Object& /*obj*/, float /*duration*/) {
+        //Color directLight;
 
         //for (auto& light : Graphics::Lights.GetLights()) {
         //    if (light.radiusSq <= 0) continue;
@@ -644,7 +646,8 @@ namespace Inferno::Game {
             dir.Normalize();
             Ray ray(position, dir);
             LevelHit hit;
-            if (d <= maxDist && d < minDist && !IntersectRayLevel(Level, ray, seg, d, false, true, hit)) {
+            RayQuery query{ .MaxDistance = d, .Start = seg, .TestTextures = true };
+            if (d <= maxDist && d < minDist && !IntersectRayLevel(Level, ray, query, hit)) {
                 id = (ObjID)i;
                 minDist = d;
             }
@@ -865,7 +868,14 @@ namespace Inferno::Game {
                 obj.Lifespan -= TICK_RATE;
 
             UpdateDoors(Level, TICK_RATE);
-            UpdatePhysics(Game::Level, t, TICK_RATE); // catch up if physics falls behind
+
+            for (auto& id : GetActiveRooms()) {
+                if (auto room = Level.GetRoom(id)) {
+                    // catch up if physics falls behind
+                    UpdatePhysics(Game::Level, *room, t, TICK_RATE);
+                }
+            }
+
             FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
             t += TICK_RATE;
@@ -1141,6 +1151,7 @@ namespace Inferno::Game {
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
         Level.Rooms = CreateRooms(Level);
+        UpdateActiveRooms(Level, Level.GetRoomID(*player));
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

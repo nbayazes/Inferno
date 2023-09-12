@@ -4,8 +4,6 @@
 #include "HogFile.h"
 #include "Mission.h"
 #include "Game.Player.h"
-#include "Game.Room.h"
-#include "Room.h"
 #include "SystemClock.h"
 
 namespace Inferno {

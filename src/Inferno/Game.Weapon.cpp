@@ -715,9 +715,10 @@ namespace Inferno::Game {
                     vec.Normalize();
                     Ray targetRay(src.Position, vec);
                     LevelHit hit;
+                    RayQuery query{ .MaxDistance = odist, .Start = src.Segment, .TestTextures = true };
 
                     if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
-                        !IntersectRayLevel(Game::Level, targetRay, src.Segment, odist, false, true, hit)) {
+                        !IntersectRayLevel(Game::Level, targetRay, query, hit)) {
                         minDist = odist;
                         result = (ObjID)i;
                     }
@@ -832,9 +833,10 @@ namespace Inferno::Game {
             dir.Normalize();
 
             Vector3 tracerEnd;
-
             LevelHit hit;
-            if (IntersectRayLevel(Game::Level, { playerObj.Position, dir }, playerObj.Segment, MAX_DIST, false, true, hit)) {
+            RayQuery query{ .MaxDistance = MAX_DIST, .Start = playerObj.Segment, .TestTextures = true };
+
+            if (IntersectRayLevel(Game::Level, { playerObj.Position, dir }, query, hit)) {
                 //tracer.End = beam.End = hit.Point;
                 tracerEnd = hit.Point;
 

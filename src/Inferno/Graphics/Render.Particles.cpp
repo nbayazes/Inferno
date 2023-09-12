@@ -44,9 +44,11 @@ namespace Inferno::Render {
 
         // Add to new segment
         if (auto seg = Game::Level.TryGetSegment(segId)) {
-            assert(!Seq::contains(seg->Effects, id));
-            seg->Effects.push_back(id);
-            effect.Segment = segId;
+            //ASSERT(!Seq::contains(seg->Effects, id));
+            if (!Seq::contains(seg->Effects, id)) {
+                seg->Effects.push_back(id);
+                effect.Segment = segId;
+            }
         }
     }
 
@@ -356,7 +358,8 @@ namespace Inferno::Render {
         auto dir = RandomVector(1);
         dir.Normalize();
 
-        if (IntersectRayLevel(Game::Level, { pos, dir }, seg, radius, false, true, hit))
+        RayQuery query{ .MaxDistance = radius, .Start = seg, .TestTextures = true };
+        if (IntersectRayLevel(Game::Level, { pos, dir }, query, hit))
             return hit.Point;
         else
             return pos + dir * radius;
@@ -967,13 +970,15 @@ namespace Inferno::Render {
                 Ray ray(spark.Position, dir);
                 auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
                 LevelHit hit;
-                bool hitSomething = IntersectRayLevel(Game::Level, ray, spark.Segment, rayLen, true, true, hit);
+                RayQuery query{ .MaxDistance = rayLen, .Start = spark.Segment, .TestTextures = true };
+                bool hitSomething = IntersectRayLevel(Game::Level, ray, query, hit);
 
                 if (!hitSomething) {
                     // check surrounding segments
                     auto& seg = Game::Level.GetSegment(spark.Segment);
                     for (auto& side : SideIDs) {
-                        hitSomething = IntersectRayLevel(Game::Level, ray, seg.GetConnection(side), rayLen, true, true, hit);
+                        query.Start = seg.GetConnection(side);
+                        hitSomething = IntersectRayLevel(Game::Level, ray, query, hit);
                         if (hitSomething)
                             break;
                     }

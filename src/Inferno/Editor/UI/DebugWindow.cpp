@@ -8,6 +8,7 @@
 #include "Procedural.h"
 #include "Editor/Gizmo.h"
 #include "Game.h"
+#include "Game.Room.h"
 
 namespace Inferno {
     Tag GetNextConnection(span<SegID> path, Level& level, SegID segId);
@@ -24,6 +25,8 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
+        ImGui::Checkbox("Outline visible rooms", &Settings::Editor.ShowRoomVisibility);
+
         if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
             EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
         }

@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <DirectXTK12/SimpleMath.h>
 #include <ranges>
+#include <fmt/format.h>
 
 namespace DirectX::SimpleMath {
     struct Matrix3x3 : XMFLOAT3X3 {
@@ -68,6 +69,10 @@ namespace DirectX::SimpleMath {
             Forward(forward);
             Up(up);
             Right(right);
+        }
+
+        void Transpose() {
+            
         }
     };
 }
@@ -486,7 +491,8 @@ namespace Inferno {
 
         Tag Tag; // Side the portal is attached to
         RoomID RoomLink = RoomID::None;
-        int PortalLink = -1; // ID of portal in connected room
+        int PortalLink = -1; // Index of portal in connected room
+        int Id = -1; // Linked portals share the same id
     };
 
     constexpr Tag GetOppositeSide(Tag tag) {
@@ -600,6 +606,8 @@ namespace Inferno {
     constexpr auto format_as(TexID id) { return (int)id; }
     constexpr auto format_as(LevelTexID id) { return (int)id; }
     constexpr auto format_as(ObjSig id) { return (int)id; }
+    constexpr auto format_as(RoomID id) { return (int)id; }
+    inline auto format_as(Tag tag) { return fmt::format("{}:{}",tag.Segment, tag.Side); }
 }
 
 template <>

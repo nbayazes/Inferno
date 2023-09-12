@@ -4,6 +4,7 @@
 #include "Game.Object.h"
 #include "Game.h"
 #include "Game.Segment.h"
+#include "Game.Visibility.h"
 #include "Game.Wall.h"
 
 namespace Inferno {
@@ -170,7 +171,7 @@ namespace Inferno {
             }
         }
 
-        if (connection && obj.Type == ObjectType::Player) {
+        if (connection && obj.IsPlayer()) {
             // Activate triggers
             if (auto trigger = level.TryGetTrigger(connection)) {
                 fmt::print("Activating fly through trigger {}:{}\n", connection.Segment, connection.Side);
@@ -180,6 +181,7 @@ namespace Inferno {
         else if (!connection) {
             // object crossed multiple segments in a single update.
             // usually caused by fast moving projectiles, but can also happen if object is outside world.
+            // Rarely occurs when flying across the corner of four segments
             if (obj.Type == ObjectType::Player && prevSegId != obj.Segment)
                 SPDLOG_WARN("Player {} warped from segment {} to {}. Any fly-through triggers did not activate!", objId, prevSegId, obj.Segment);
         }
@@ -189,6 +191,9 @@ namespace Inferno {
         auto& seg = level.GetSegment(obj.Segment);
         seg.AddObject(objId);
         obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
+
+        if (obj.IsPlayer())
+            UpdateActiveRooms(level, level.GetRoomID(obj));
     }
 
     const std::set BOSS_IDS = { 17, 23, 31, 45, 46, 52, 62, 64, 75, 76 };

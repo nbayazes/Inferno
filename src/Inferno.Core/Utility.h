@@ -40,6 +40,14 @@ namespace Inferno {
         return v != 0 && (v & (v - 1)) == 0;
     }
 
+    // Returns the direction and distance between two points
+    inline Tuple<Vector3, float> GetDirectionAndDistance(const Vector3& target, const Vector3& point) {
+        auto dir = target - point;
+        float length = dir.Length();
+        dir.Normalize();
+        return { dir, length };
+    }
+
     void InitRandom();
 
     // Returns a random float between 0 and 1
@@ -220,7 +228,7 @@ namespace Inferno {
             fun();
         }); // future disposes itself on exit
     }
-    
+
     constexpr float Step(float value, float step) {
         if (step == 0.0f) return value;
         return step * std::round(value / step);
@@ -662,6 +670,12 @@ namespace Inferno {
         // Sorts a range in descending order
         constexpr void sortDescending(auto&& xs) {
             std::ranges::sort(xs, ranges::greater());
+        }
+
+        template <class T>
+        constexpr void distinct(std::vector<T>& xs) {
+            std::ranges::sort(xs);
+            xs.erase(ranges::unique(xs).begin(), xs.end());
         }
 
         // Tries to retrieve an element at index. Returns nullptr if not in range.

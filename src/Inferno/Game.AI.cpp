@@ -48,19 +48,13 @@ namespace Inferno {
         return info.Difficulty[Game::Difficulty];
     }
 
-    Tuple<Vector3, float> GetDirectionAndDistance(const Vector3& target, const Vector3& point) {
-        auto dir = target - point;
-        float length = dir.Length();
-        dir.Normalize();
-        return { dir, length };
-    }
-
     bool CanSeePlayer(const Object& obj, const Vector3& playerDir, float playerDist) {
         if (Game::Player.HasPowerup(PowerupFlag::Cloak)) return false; // Can't see cloaked player
 
         LevelHit hit{};
         Ray ray = { obj.Position, playerDir };
-        return !IntersectRayLevel(Game::Level, ray, obj.Segment, playerDist, true, false, hit);
+        RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .PassTransparent = true };
+        return !IntersectRayLevel(Game::Level, ray, query, hit);
     }
 
     void AddAwareness(AIRuntime& ai, float awareness) {
@@ -923,7 +917,8 @@ namespace Inferno {
         playerDir.Normalize();
         Ray ray(robot.Position, -playerDir);
         LevelHit hit;
-        if (IntersectRayLevel(level, ray, robot.Segment, 10, false, false, hit))
+        RayQuery query{ .MaxDistance = 10, .Start = robot.Segment };
+        if (IntersectRayLevel(level, ray, query, hit))
             return; // no room to move backwards
 
         // todo: try escaping through portals if there are any in the player's FOV

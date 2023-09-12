@@ -51,6 +51,9 @@ namespace Inferno::Render::Debug {
     void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 
     void DrawBoundingBox(const DirectX::BoundingOrientedBox&, const Color&);
+
+    inline List<Vector3> DebugPoints, DebugPoints2;
+    inline List<Vector3> DebugLines;
 }
 
 namespace Inferno::Render::Metrics {

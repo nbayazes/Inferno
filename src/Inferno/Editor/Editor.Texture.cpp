@@ -81,10 +81,10 @@ namespace Inferno::Editor {
             proj = Vector3::UnitY;
 
         proj.Normalize();
-        auto projSF = proj.Dot(vec2);
-        proj *= projSF;
+        auto projSf = proj.Dot(vec2);
+        proj *= projSf;
         auto rej = vec2 - proj;
-        return { Vector2::Zero, { 0, vec1.Length() }, { -rej.Length(), projSF } };
+        return { Vector2::Zero, { 0, vec1.Length() }, { -rej.Length(), projSf } };
     }
 
     // Fits the texture to the face using the selected edge as the base point
@@ -106,28 +106,28 @@ namespace Inferno::Editor {
             default:
             {
                 // Split on 0,2
-                auto C1 = GetTriangleUVs(face.VerticesForPoly0());
-                auto C2 = GetTriangleUVs(face.VerticesForPoly1());
+                auto c1 = GetTriangleUVs(face.GetPoly(0));
+                auto c2 = GetTriangleUVs(face.GetPoly(1));
 
                 // Rotate triangle C2 UVs onto C1 UVs so points 0 and 2 match (only need to calculate last point)
-                float angle = -atan2(-C1[2].x, C1[2].y);
-                RotateUV(C2[2], C2[0], angle);
+                float angle = -atan2(-c1[2].x, c1[2].y);
+                RotateUV(c2[2], c2[0], angle);
 
-                result = { C1[0], C1[1], C1[2], C2[2] };
+                result = { c1[0], c1[1], c1[2], c2[2] };
             }
             break;
 
             case SideSplitType::Tri13:
             {
                 // Split on 1,3
-                auto C1 = GetTriangleUVs(face.VerticesForPoly0());
-                auto C2 = GetTriangleUVs(face.VerticesForPoly1());
+                auto c1 = GetTriangleUVs(face.GetPoly(0));
+                auto c2 = GetTriangleUVs(face.GetPoly(1));
 
                 // Rotate and translate triangle C2 UVs onto C1 UVs so points 1 and 3 match
-                float angle = atan2(C1[1].x - C1[2].x, C1[1].y - C1[2].y);
-                RotateUV(C2[2], C2[0], angle);
-                C2[2] += C1[2];
-                result = { C1[0], C1[1], C2[2], C1[2] };
+                float angle = atan2(c1[1].x - c1[2].x, c1[1].y - c1[2].y);
+                RotateUV(c2[2], c2[0], angle);
+                c2[2] += c1[2];
+                result = { c1[0], c1[1], c2[2], c1[2] };
             }
             break;
         }

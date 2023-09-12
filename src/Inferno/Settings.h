@@ -103,6 +103,7 @@ namespace Inferno {
         bool ShowLighting = true;
         bool ShowMatcenEffects = false;
         bool ShowPortals = false;
+        bool ShowRoomVisibility = true;
         float WireframeOpacity = 0.5f;
 
         bool InvertY = false;

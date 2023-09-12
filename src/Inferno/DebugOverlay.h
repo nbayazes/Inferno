@@ -2,6 +2,7 @@
 
 #include "imgui_local.h"
 #include "Game.h"
+#include "Game.Visibility.h"
 #include "Physics.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
@@ -65,6 +66,8 @@ namespace Inferno {
                 ImGui::Text("Ship vel: %.2f", Debug::ShipVelocity.Length());
                 ImGui::Text("Ship thrust: %.2f", Debug::ShipThrust.Length());
             }
+
+            ImGui::Text("Active rooms: %d", GetActiveRooms().size());
 
             ImGui::Text("Objects: %d", Game::Level.Objects.size());
             ImGui::Text("Segments: %d", Render::Stats::VisitedSegments);

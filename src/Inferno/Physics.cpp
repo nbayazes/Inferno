@@ -14,6 +14,7 @@
 #include "Editor/Events.h"
 #include "Graphics/Render.Particles.h"
 #include "Game.Wall.h"
+#include "Intersect.h"
 #include "Editor/Editor.Segment.h"
 
 //#define DEBUG_OBJ_OUTLINE
@@ -386,118 +387,14 @@ namespace Inferno {
         return COLLISION_TABLE[(int)src.Type][(int)target.Type];
     }
 
-    // intersects a ray with the level, returning hit information
-    bool IntersectRayLevel(Level& level, const Ray& ray, SegID start, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit& hit) {
-        if (start == SegID::None) return false;
-        if (maxDist <= 0.01f) return false;
-        SegID next = start;
-        Set<SegID> visitedSegs;
-
-        while (next > SegID::None) {
-            SegID segId = next;
-            visitedSegs.insert(segId); // must track visited segs to prevent circular logic
-            next = SegID::None;
-            auto& seg = level.GetSegment(segId);
-
-            for (auto& side : SideIDs) {
-                auto face = Face::FromSide(level, seg, side);
-
-                float dist{};
-                auto tri = face.Intersects(ray, dist);
-                if (tri != -1 && dist < hit.Distance) {
-                    if (dist > maxDist) return {}; // hit is too far
-
-                    auto intersect = hit.Point = ray.position + ray.direction * dist;
-                    Tag tag{ segId, side };
-
-                    bool isSolid = false;
-                    if (seg.SideIsWall(side) && WallIsTransparent(level, tag)) {
-                        if (passTransparent)
-                            isSolid = false;
-                        else if (hitTestTextures)
-                            isSolid = !WallPointIsTransparent(intersect, face, tri);
-                    }
-                    else {
-                        isSolid = seg.SideIsSolid(side, level);
-                    }
-
-                    if (isSolid) {
-                        hit.Tag = tag;
-                        hit.Distance = dist;
-                        hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side.Tangents[tri];
-                        hit.Point = ray.position + ray.direction * dist;
-                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
-                        return true;
-                    }
-                    else {
-                        auto conn = seg.GetConnection(side);
-                        if (!visitedSegs.contains(conn))
-                            next = conn;
-                        break; // go to next segment
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult, float offset) {
-        if (maxDist <= 0.01f) return false;
-        LevelHit hit;
-
-        auto seg = level.TryGetSegment(segId);
-        if (!seg) return false;
-
-        for (auto& side : SideIDs) {
-            if (!seg->SideIsSolid(side, level)) continue;
-            auto face = Face::FromSide(level, *seg, side);
-
-            float dist{};
-            auto tri = face.IntersectsOffset(ray, dist, offset);
-            if (tri == -1 || dist > hit.Distance) continue;
-
-            if (dist > maxDist) return {}; // hit is too far
-
-            auto intersect = hit.Point = ray.position + ray.direction * dist;
-            Tag tag{ segId, side };
-
-            bool isSolid = false;
-            if (seg->SideIsWall(side) && WallIsTransparent(level, tag)) {
-                if (passTransparent)
-                    isSolid = false;
-                else if (hitTestTextures)
-                    isSolid = !WallPointIsTransparent(intersect, face, tri);
-            }
-            else {
-                isSolid = seg->SideIsSolid(side, level);
-            }
-
-            if (isSolid) {
-                if (hitResult) {
-                    hit.Tag = tag;
-                    hit.Distance = dist;
-                    hit.Normal = face.AverageNormal();
-                    hit.Tangent = face.Side.Tangents[tri];
-                    hit.Point = ray.position + ray.direction * dist;
-                    hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
-                    *hitResult = hit;
-                }
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent) {
         auto dir = b.Position - a.Position;
         auto dist = dir.Length();
         dir.Normalize();
         Ray ray(a.Position, dir);
         LevelHit hit;
-        return IntersectRayLevel(Game::Level, ray, a.Segment, dist, passTransparent, true, hit);
+        RayQuery query{ .MaxDistance = dist, .Start = a.Segment, .PassTransparent = passTransparent, .TestTextures = true };
+        return IntersectRayLevel(Game::Level, ray, query, hit);
     }
 
     // extract heading and pitch from a vector, assuming bank is 0
@@ -600,8 +497,8 @@ namespace Inferno {
                     dir.Normalize();
                     Ray ray(explosion.Position, dir);
                     LevelHit hit;
-                    // bug: this hit test should be against all geometry in the room and not just the start segment
-                    if (IntersectRayLevel(level, ray, explosion.Segment, dist, true, true, hit))
+                    RayQuery query{ .MaxDistance = dist, .Start = explosion.Segment, .PassTransparent = true, .TestTextures = true };
+                    if (IntersectRayLevel(level, ray, query, hit))
                         continue;
 
                     // linear damage falloff
@@ -1336,7 +1233,7 @@ namespace Inferno {
         }
     }
 
-    void UpdatePhysics(Level& level, double /*t*/, float dt) {
+    void UpdatePhysics(Level& level, const Room& room, double /*t*/, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
         Debug::SegmentsChecked = 0;
@@ -1345,90 +1242,97 @@ namespace Inferno {
         constexpr int STEPS = 2;
         dt /= STEPS;
 
-        for (int id = 0; id < level.Objects.size(); id++) {
-            auto& obj = level.Objects[id];
-            if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
-            if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
-            if (obj.Movement != MovementType::Physics) continue;
+        for (auto& segid : room.Segments) {
+            for (auto& id : level.GetSegment(segid).Objects) {
 
-            //if (obj.Type == ObjectType::Robot)
-            //    obj.Rotation *= Matrix::CreateFromAxisAngle(Vector3::UnitY, 3.14f * dt);
+                //    }
+                //}
 
-            for (int i = 0; i < STEPS; i++) {
-                obj.PrevPosition = obj.Position;
-                obj.PrevRotation = obj.Rotation;
-                obj.Physics.PrevVelocity = obj.Physics.Velocity;
-                assert(IsNormalized(obj.Rotation.Forward()));
+                //for (int id = 0; id < level.Objects.size(); id++) {
+                auto pobj = level.TryGetObject(id);
+                if (!pobj) continue;
+                auto& obj = *pobj;
 
-                PlayerPhysics(obj, dt);
-                AngularPhysics(obj, dt);
-                LinearPhysics(obj, dt);
+                if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
+                if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
+                if (obj.Movement != MovementType::Physics) continue;
 
-                if (HasFlag(obj.Flags, ObjectFlag::Attached))
-                    continue; // don't test collision of attached objects
+                for (int i = 0; i < STEPS; i++) {
+                    obj.PrevPosition = obj.Position;
+                    obj.PrevRotation = obj.Rotation;
+                    obj.Physics.PrevVelocity = obj.Physics.Velocity;
+                    assert(IsNormalized(obj.Rotation.Forward()));
 
-                //if (id != 0) continue; // player only testing
-                LevelHit hit{ .Source = &obj };
+                    PlayerPhysics(obj, dt);
+                    AngularPhysics(obj, dt);
+                    LinearPhysics(obj, dt);
 
-                if (IntersectLevel(level, obj, (ObjID)id, hit, dt)) {
-                    if (obj.Type == ObjectType::Weapon) {
-                        if (hit.HitObj) {
-                            Game::WeaponHitObject(hit, obj);
+                    if (HasFlag(obj.Flags, ObjectFlag::Attached))
+                        continue; // don't test collision of attached objects
+
+                    //if (id != 0) continue; // player only testing
+                    LevelHit hit{ .Source = &obj };
+
+                    if (IntersectLevel(level, obj, (ObjID)id, hit, dt)) {
+                        if (obj.Type == ObjectType::Weapon) {
+                            if (hit.HitObj) {
+                                Game::WeaponHitObject(hit, obj);
+                            }
+                            else {
+                                Game::WeaponHitWall(hit, obj, level, ObjID(id));
+                            }
                         }
-                        else {
-                            Game::WeaponHitWall(hit, obj, level, ObjID(id));
+
+                        if (auto wall = level.TryGetWall(hit.Tag)) {
+                            HitWall(level, hit.Point, obj, *wall);
                         }
-                    }
 
-                    if (auto wall = level.TryGetWall(hit.Tag)) {
-                        HitWall(level, hit.Point, obj, *wall);
-                    }
-
-                    if (obj.Type == ObjectType::Player && hit.HitObj) {
-                        Game::Player.TouchObject(*hit.HitObj);
-                    }
-
-                    const LevelTexture* ti = nullptr;
-                    if (auto side = level.TryGetSide(hit.Tag))
-                        ti = &Resources::GetLevelTextureInfo(side->TMap);
-
-                    if (hit.Bounced) {
-                        obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
-                        if (ti && ti->IsForceField())
-                            obj.Physics.Velocity *= 1.5f;
-
-                        // flip weapon to face the new direction
-                        if (obj.Type == ObjectType::Weapon)
-                            obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
-
-                        obj.Physics.Bounces--;
-                    }
-
-                    if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
-                        if (ti) {
-                            if (ti->IsLiquid())
-                                ScrapeWall(obj, hit, *ti, dt);
-                            else
-                                CheckForImpact(obj, hit, ti);
+                        if (obj.Type == ObjectType::Player && hit.HitObj) {
+                            Game::Player.TouchObject(*hit.HitObj);
                         }
-                        else {
-                            CheckForImpact(obj, hit, nullptr);
+
+                        const LevelTexture* ti = nullptr;
+                        if (auto side = level.TryGetSide(hit.Tag))
+                            ti = &Resources::GetLevelTextureInfo(side->TMap);
+
+                        if (hit.Bounced) {
+                            obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
+                            if (ti && ti->IsForceField())
+                                obj.Physics.Velocity *= 1.5f;
+
+                            // flip weapon to face the new direction
+                            if (obj.Type == ObjectType::Weapon)
+                                obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
+
+                            obj.Physics.Bounces--;
+                        }
+
+                        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
+                            if (ti) {
+                                if (ti->IsLiquid())
+                                    ScrapeWall(obj, hit, *ti, dt);
+                                else
+                                    CheckForImpact(obj, hit, ti);
+                            }
+                            else {
+                                CheckForImpact(obj, hit, nullptr);
+                            }
                         }
                     }
                 }
+
+                if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
+                    MoveObject(level, id);
+
+                if (id == (ObjID)0) {
+                    Debug::ShipVelocity = obj.Physics.Velocity;
+                    Debug::ShipPosition = obj.Position;
+                    Debug::ShipThrust = obj.Physics.Thrust;
+                    PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
+                }
+
+                assert(IsNormalized(obj.Rotation.Forward()));
             }
-
-            if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
-                MoveObject(level, (ObjID)id);
-
-            if (id == 0) {
-                Debug::ShipVelocity = obj.Physics.Velocity;
-                Debug::ShipPosition = obj.Position;
-                Debug::ShipThrust = obj.Physics.Thrust;
-                PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
-            }
-
-            assert(IsNormalized(obj.Rotation.Forward()));
         }
     }
 }

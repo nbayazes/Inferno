@@ -327,11 +327,27 @@ namespace Inferno::Render {
         }
     }
 
+    void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill = nullptr) {
+        auto vs = seg.GetVertices(level);
+
+        // Draw each of the 12 edges
+        for (int i = 0; i < 12; i++) {
+            auto& vi = VERTS_OF_EDGE[i];
+            auto v1 = vs[vi[0]];
+            auto v2 = vs[vi[1]];
+            Debug::DrawLine(*v1, *v2, color);
+        }
+
+        if (seg.Type != SegmentType::None && fill) {
+            for (auto& side : SideIDs)
+                Debug::DrawSide(Game::Level, seg, side, *fill);
+        }
+    }
+
     void DrawWireframe(Level& level) {
         bool hideMarks = Editor::Bindings::Active.IsBindingHeld(Editor::EditorAction::HideMarks);
 
         for (auto& seg : level.Segments) {
-            auto vs = seg.GetVertices(level);
             Color color = Colors::Wireframe;
             color.w = Settings::Editor.WireframeOpacity;
             Color fill;
@@ -339,18 +355,7 @@ namespace Inferno::Render {
             if (seg.Type != SegmentType::None)
                 std::tie(color, fill) = Colors::ForSegment(seg.Type);
 
-            // Draw each of the 12 edges
-            for (int i = 0; i < 12; i++) {
-                auto& vi = VERTS_OF_EDGE[i];
-                auto v1 = vs[vi[0]];
-                auto v2 = vs[vi[1]];
-                Debug::DrawLine(*v1, *v2, color);
-            }
-
-            if (seg.Type != SegmentType::None && !hideMarks) {
-                for (auto& side : SideIDs)
-                    Debug::DrawSide(Game::Level, seg, side, fill);
-            }
+            OutlineSegment(level, seg, color, &fill);
         }
 
         if (!hideMarks) {
@@ -464,6 +469,29 @@ namespace Inferno::Render {
         }
     }
 
+    void OutlineRoom(Level& level, const Room& room, const Color& color) {
+        for (auto& segId : room.Segments) {
+            if (auto seg = level.TryGetSegment(segId))
+                OutlineSegment(level, *seg, color);
+        }
+    }
+
+    void DrawRoomVisibility(Level& level, RoomID roomId) {
+        auto room = level.GetRoom(roomId);
+        if (!room) return;
+
+        Color color(0.39f, 0.58f, .93f, 0.5f);
+
+        OutlineRoom(level, *room, color);
+
+        for (auto& visRoomId : room->VisibleRooms) {
+            auto visRoom = level.GetRoom(visRoomId);
+            if (!visRoom) continue;
+
+            OutlineRoom(level, *visRoom, color);
+        }
+    }
+
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
         if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
@@ -516,6 +544,11 @@ namespace Inferno::Render {
 
         DrawPath(Inferno::Debug::NavigationPath, Color(0, 1, 0));
         DrawRooms(level);
+
+        if (Settings::Editor.ShowRoomVisibility) {
+            if (auto seg = level.TryGetSegment(Editor::Selection.Segment))
+                DrawRoomVisibility(level, seg->Room);
+        }
     }
 
     void CreateEditorResources() {}

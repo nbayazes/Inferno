@@ -106,7 +106,9 @@ namespace Inferno::Sound {
                         // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;
-                        if (IntersectRayLevel(Game::Level, ray, Segment, dist, true, false, hit)) {
+                        RayQuery query{ .MaxDistance = dist, .Start = Segment, .PassTransparent = true };
+
+                        if (IntersectRayLevel(Game::Level, ray, query, hit)) {
                             auto hitDist = (listener - hit.Point).Length();
                             // we hit a wall, muffle it based on the distance from the source
                             // a sound coming immediately around the corner shouldn't get muffled much
