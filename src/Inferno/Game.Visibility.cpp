@@ -2,10 +2,6 @@
 #include "Game.Visibility.h"
 
 namespace Inferno {
-    namespace {
-        List<RoomID> ActiveRooms;
-        RoomID ActiveRoom = RoomID::None;
-    }
 
     List<RoomID> GetRoomsByDepth(Inferno::Level& level, RoomID startRoom, float maxDistance) {
         struct TravelInfo {
@@ -54,14 +50,4 @@ namespace Inferno {
         return Seq::ofSet(rooms);
     }
 
-    span<RoomID> GetActiveRooms() {
-        return ActiveRooms;
-    }
-
-    void UpdateActiveRooms(Level& level, RoomID startRoom, float maxDistance) {
-        if (ActiveRoom == startRoom) return;
-        ActiveRoom = startRoom;
-        ActiveRooms = GetRoomsByDepth(level, startRoom, maxDistance);
-        // Also need to update active rooms if a player projectile flies through it
-    }
 }

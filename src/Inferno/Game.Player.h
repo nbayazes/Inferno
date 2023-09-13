@@ -91,6 +91,11 @@ namespace Inferno {
             ClearFlag(Powerups, powerup);
         }
 
+        void SetPowerup(PowerupFlag powerup, bool state) {
+            if (state) GivePowerup(powerup);
+            else RemovePowerup(powerup);
+        }
+
         void TouchPowerup(Object& obj);
         void TouchObject(Object& obj);
 

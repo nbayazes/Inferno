@@ -191,9 +191,6 @@ namespace Inferno {
         auto& seg = level.GetSegment(obj.Segment);
         seg.AddObject(objId);
         obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
-
-        if (obj.IsPlayer())
-            UpdateActiveRooms(level, level.GetRoomID(obj));
     }
 
     const std::set BOSS_IDS = { 17, 23, 31, 45, 46, 52, 62, 64, 75, 76 };

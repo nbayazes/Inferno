@@ -4,7 +4,7 @@
 #include "Intersect.h"
 
 namespace Inferno {
-    void UpdatePhysics(Level& level, const Room& room, double t, float dt);
+    void UpdatePhysics(Level& level, ObjID objId, float dt);
     bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer);
 
     namespace Debug {

@@ -1233,7 +1233,7 @@ namespace Inferno {
         }
     }
 
-    void UpdatePhysics(Level& level, const Room& room, double /*t*/, float dt) {
+    void UpdatePhysics(Level& level, ObjID objId, float dt) {
         Debug::Steps = 0;
         Debug::ClosestPoints.clear();
         Debug::SegmentsChecked = 0;
@@ -1242,97 +1242,89 @@ namespace Inferno {
         constexpr int STEPS = 2;
         dt /= STEPS;
 
-        for (auto& segid : room.Segments) {
-            for (auto& id : level.GetSegment(segid).Objects) {
+        //for (int id = 0; id < level.Objects.size(); id++) {
+        auto pobj = level.TryGetObject(objId);
+        if (!pobj) return;
+        auto& obj = *pobj;
 
-                //    }
-                //}
+        if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) return;
+        if (obj.Type == ObjectType::Player && obj.ID > 0) return; // singleplayer only
+        if (obj.Movement != MovementType::Physics) return;
 
-                //for (int id = 0; id < level.Objects.size(); id++) {
-                auto pobj = level.TryGetObject(id);
-                if (!pobj) continue;
-                auto& obj = *pobj;
+        for (int i = 0; i < STEPS; i++) {
+            obj.PrevPosition = obj.Position;
+            obj.PrevRotation = obj.Rotation;
+            obj.Physics.PrevVelocity = obj.Physics.Velocity;
+            assert(IsNormalized(obj.Rotation.Forward()));
 
-                if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) continue;
-                if (obj.Type == ObjectType::Player && obj.ID > 0) continue; // singleplayer only
-                if (obj.Movement != MovementType::Physics) continue;
+            PlayerPhysics(obj, dt);
+            AngularPhysics(obj, dt);
+            LinearPhysics(obj, dt);
 
-                for (int i = 0; i < STEPS; i++) {
-                    obj.PrevPosition = obj.Position;
-                    obj.PrevRotation = obj.Rotation;
-                    obj.Physics.PrevVelocity = obj.Physics.Velocity;
-                    assert(IsNormalized(obj.Rotation.Forward()));
+            if (HasFlag(obj.Flags, ObjectFlag::Attached))
+                continue; // don't test collision of attached objects
 
-                    PlayerPhysics(obj, dt);
-                    AngularPhysics(obj, dt);
-                    LinearPhysics(obj, dt);
+            //if (id != 0) continue; // player only testing
+            LevelHit hit{ .Source = &obj };
 
-                    if (HasFlag(obj.Flags, ObjectFlag::Attached))
-                        continue; // don't test collision of attached objects
-
-                    //if (id != 0) continue; // player only testing
-                    LevelHit hit{ .Source = &obj };
-
-                    if (IntersectLevel(level, obj, (ObjID)id, hit, dt)) {
-                        if (obj.Type == ObjectType::Weapon) {
-                            if (hit.HitObj) {
-                                Game::WeaponHitObject(hit, obj);
-                            }
-                            else {
-                                Game::WeaponHitWall(hit, obj, level, ObjID(id));
-                            }
-                        }
-
-                        if (auto wall = level.TryGetWall(hit.Tag)) {
-                            HitWall(level, hit.Point, obj, *wall);
-                        }
-
-                        if (obj.Type == ObjectType::Player && hit.HitObj) {
-                            Game::Player.TouchObject(*hit.HitObj);
-                        }
-
-                        const LevelTexture* ti = nullptr;
-                        if (auto side = level.TryGetSide(hit.Tag))
-                            ti = &Resources::GetLevelTextureInfo(side->TMap);
-
-                        if (hit.Bounced) {
-                            obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
-                            if (ti && ti->IsForceField())
-                                obj.Physics.Velocity *= 1.5f;
-
-                            // flip weapon to face the new direction
-                            if (obj.Type == ObjectType::Weapon)
-                                obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
-
-                            obj.Physics.Bounces--;
-                        }
-
-                        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
-                            if (ti) {
-                                if (ti->IsLiquid())
-                                    ScrapeWall(obj, hit, *ti, dt);
-                                else
-                                    CheckForImpact(obj, hit, ti);
-                            }
-                            else {
-                                CheckForImpact(obj, hit, nullptr);
-                            }
-                        }
+            if (IntersectLevel(level, obj, objId, hit, dt)) {
+                if (obj.Type == ObjectType::Weapon) {
+                    if (hit.HitObj) {
+                        Game::WeaponHitObject(hit, obj);
+                    }
+                    else {
+                        Game::WeaponHitWall(hit, obj, level, objId);
                     }
                 }
 
-                if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
-                    MoveObject(level, id);
-
-                if (id == (ObjID)0) {
-                    Debug::ShipVelocity = obj.Physics.Velocity;
-                    Debug::ShipPosition = obj.Position;
-                    Debug::ShipThrust = obj.Physics.Thrust;
-                    PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
+                if (auto wall = level.TryGetWall(hit.Tag)) {
+                    HitWall(level, hit.Point, obj, *wall);
                 }
 
-                assert(IsNormalized(obj.Rotation.Forward()));
+                if (obj.Type == ObjectType::Player && hit.HitObj) {
+                    Game::Player.TouchObject(*hit.HitObj);
+                }
+
+                const LevelTexture* ti = nullptr;
+                if (auto side = level.TryGetSide(hit.Tag))
+                    ti = &Resources::GetLevelTextureInfo(side->TMap);
+
+                if (hit.Bounced) {
+                    obj.Physics.Velocity = Vector3::Reflect(obj.Physics.PrevVelocity, hit.Normal);
+                    if (ti && ti->IsForceField())
+                        obj.Physics.Velocity *= 1.5f;
+
+                    // flip weapon to face the new direction
+                    if (obj.Type == ObjectType::Weapon)
+                        obj.Rotation = Matrix3x3(obj.Physics.Velocity, obj.Rotation.Up());
+
+                    obj.Physics.Bounces--;
+                }
+
+                if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Robot) {
+                    if (ti) {
+                        if (ti->IsLiquid())
+                            ScrapeWall(obj, hit, *ti, dt);
+                        else
+                            CheckForImpact(obj, hit, ti);
+                    }
+                    else {
+                        CheckForImpact(obj, hit, nullptr);
+                    }
+                }
             }
         }
+
+        if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
+            MoveObject(level, objId);
+
+        if (objId == (ObjID)0) {
+            Debug::ShipVelocity = obj.Physics.Velocity;
+            Debug::ShipPosition = obj.Position;
+            Debug::ShipThrust = obj.Physics.Thrust;
+            PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
+        }
+
+        assert(IsNormalized(obj.Rotation.Forward()));
     }
 }

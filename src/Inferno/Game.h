@@ -155,4 +155,14 @@ namespace Inferno::Game {
         else
             return {}; // null handle
     }
+
+    inline Room* GetCurrentRoom() {
+        if (Level.Objects.empty()) return nullptr;
+        // should technically get the room the camera is in
+        return Level.GetRoom(GetPlayer());
+    }
+
+    namespace Stats {
+        inline int LiveObjects = 0;
+    }
 }

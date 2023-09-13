@@ -26,6 +26,15 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
         ImGui::Checkbox("Outline visible rooms", &Settings::Editor.ShowRoomVisibility);
+        ImGui::Text("Keys");
+        auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
+        auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);
+        auto redKey = Game::Player.HasPowerup(PowerupFlag::RedKey);
+        if (ImGui::Checkbox("Blue", &blueKey)) Game::Player.SetPowerup(PowerupFlag::BlueKey, blueKey);
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Gold", &goldKey)) Game::Player.SetPowerup(PowerupFlag::GoldKey, goldKey);
+        ImGui::SameLine();
+        if (ImGui::Checkbox("Red", &redKey)) Game::Player.SetPowerup(PowerupFlag::RedKey, redKey);
 
         if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
             EnableProceduralTextures(Settings::Graphics.EnableProcedurals);

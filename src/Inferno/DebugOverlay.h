@@ -67,9 +67,10 @@ namespace Inferno {
                 ImGui::Text("Ship thrust: %.2f", Debug::ShipThrust.Length());
             }
 
-            ImGui::Text("Active rooms: %d", GetActiveRooms().size());
+            //ImGui::Text("Active rooms: %d", GetActiveRooms().size());
 
-            ImGui::Text("Objects: %d", Game::Level.Objects.size());
+            //ImGui::Text("Objects: %d", Game::Level.Objects.size());
+            ImGui::Text("Live Objects: %d", Game::Stats::LiveObjects);
             ImGui::Text("Segments: %d", Render::Stats::VisitedSegments);
             //ImGui::Text("Total Effects: %d", Render::Stats::EffectDraws);
             ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());

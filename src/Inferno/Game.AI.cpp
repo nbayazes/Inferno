@@ -1213,18 +1213,18 @@ namespace Inferno {
         }
     }
 
-    void UpdateNearbyAI(Level& level, float dt) {
-        auto room = level.GetRoom(Game::GetPlayer());
+    //void UpdateNearbyAI(Level& level, float dt) {
+    //    auto room = level.GetRoom(Game::GetPlayer());
 
-        // todo: also update adjacent rooms
-        for (auto& segId : room->Segments) {
-            if (!level.SegmentExists(segId)) continue;
-            auto& seg = level.GetSegment(segId);
-            for (auto& objId : seg.Objects) {
-                if (auto obj = level.TryGetObject(objId)) {
-                    UpdateAI(*obj, dt);
-                }
-            }
-        }
-    }
+    //    // todo: also update adjacent rooms
+    //    for (auto& segId : room->Segments) {
+    //        if (!level.SegmentExists(segId)) continue;
+    //        auto& seg = level.GetSegment(segId);
+    //        for (auto& objId : seg.Objects) {
+    //            if (auto obj = level.TryGetObject(objId)) {
+    //                UpdateAI(*obj, dt);
+    //            }
+    //        }
+    //    }
+    //}
 }

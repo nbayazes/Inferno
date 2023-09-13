@@ -922,8 +922,8 @@ namespace Inferno::Game {
                 RayQuery query{ .MaxDistance = dist, .Start = srcSegment, .IgnoreWalls = true };
 
                 if (!intersect.IntersectRayLevel(ray, query, hit)) {
-                    Render::Debug::DebugLines.push_back(pt);
-                    Render::Debug::DebugLines.push_back(srcPoint);
+                    //Render::Debug::DebugLines.push_back(pt);
+                    //Render::Debug::DebugLines.push_back(srcPoint);
                     return true; // At least one ray can reach the portal
                 }
             }
@@ -937,9 +937,10 @@ namespace Inferno::Game {
     void ComputeRoomVisibility(const Level& level, const List<Room>& rooms, Room& room,
                                List<Tuple<int, int>>& visiblePortalLinks, int steps) {
         ASSERT(steps >= 2);
-        room.VisibleRooms.clear();
         auto roomId = RoomID(&room - &rooms[0]);
         SPDLOG_INFO("Room Visibility: {}", roomId);
+        room.VisibleRooms.clear();
+        room.VisibleRooms.push_back(roomId); // Can see self
 
         IntersectContext intersect(level);
 

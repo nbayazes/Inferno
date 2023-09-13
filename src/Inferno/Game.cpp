@@ -763,6 +763,54 @@ namespace Inferno::Game {
         }
     }
 
+    void FixedUpdateObject(float dt, ObjID id, Object& obj) {
+        ObjRef objRef{ id, obj.Signature };
+
+        UpdatePhysics(Game::Level, id, dt);
+        obj.Ambient.Update(Game::Time); // should be 
+
+        if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
+            DestroyObject(obj);
+            // Keep playing effects from a dead reactor
+            if (obj.Type != ObjectType::Reactor) {
+                Render::RemoveEffects(objRef);
+                Sound::Stop(objRef); // stop any sounds playing from this object
+            }
+        }
+        else if (obj.Lifespan <= 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
+            ExplodeWeapon(Level, obj); // explode expired weapons
+            obj.Flags |= ObjectFlag::Dead;
+
+            if (auto seg = Level.TryGetSegment(obj.Segment))
+                seg->RemoveObject(id);
+        }
+
+        if (!HasFlag(obj.Flags, ObjectFlag::Dead)) {
+            if (obj.Type == ObjectType::Weapon)
+                UpdateWeapon(obj, dt);
+
+            UpdateDirectLight(obj, 0.10f);
+            AddDamagedEffects(obj, dt);
+            UpdateAI(obj, dt);
+        }
+    }
+
+    void UpdateLiveObjectCount() {
+        Stats::LiveObjects = 0;
+
+        if (auto currentRoom = GetCurrentRoom()) {
+            for (auto& roomId : currentRoom->VisibleRooms) {
+                auto room = Level.GetRoom(roomId);
+                if (!room) continue;
+
+                for (auto& segId : room->Segments) {
+                    auto& seg = Level.GetSegment(segId);
+                    Stats::LiveObjects += seg.Objects.size();
+                }
+            }
+        }
+    }
+
     // Updates on each game tick
     void FixedUpdate(float dt) {
         UpdatePlayerFireState(Player);
@@ -775,36 +823,28 @@ namespace Inferno::Game {
             UpdateReactorCountdown(dt);
         Render::FixedUpdateEffects(dt);
 
+        if (auto currentRoom = GetCurrentRoom()) {
+            for (auto& roomId : currentRoom->VisibleRooms) {
+                auto room = Level.GetRoom(roomId);
+                if (!room) continue;
 
-        // todo: check if object is in active rooms
-        // todo: track visible and nearby rooms
-        for (int i = 0; i < Level.Objects.size(); i++) {
-            auto& obj = Level.Objects[i];
-            ObjRef objRef{ (ObjID)i, obj.Signature };
-
-            if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
-                DestroyObject(obj);
-                // Keep playing effects from a dead reactor
-                if (obj.Type != ObjectType::Reactor) {
-                    Render::RemoveEffects(objRef);
-                    Sound::Stop(objRef); // stop any sounds playing from this object
+                for (auto& segId : room->Segments) {
+                    auto& seg = Level.GetSegment(segId);
+                    for (auto& objId : seg.Objects) {
+                        auto obj = Level.TryGetObject(objId);
+                        if (obj && obj->Type != ObjectType::Weapon)
+                            FixedUpdateObject(dt, objId, *obj);
+                    }
                 }
             }
-            else if (obj.Lifespan <= 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
-                ExplodeWeapon(Level, obj); // explode expired weapons
-                obj.Flags |= ObjectFlag::Dead;
+        }
 
-                if (auto seg = Level.TryGetSegment(obj.Segment))
-                    seg->RemoveObject((ObjID)i);
-            }
-
-            if (!HasFlag(obj.Flags, ObjectFlag::Dead)) {
-                if (obj.Type == ObjectType::Weapon)
-                    UpdateWeapon(obj, dt);
-
-                UpdateDirectLight(obj, 0.10f);
-                AddDamagedEffects(obj, dt);
-                UpdateAI(obj, dt);
+        // Always update weapons as they are removed from rooms when destroyed
+        // todo: update certain objects regardless of room (Flag: AlwaysUpdate). Thief
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+            if(obj.Type == ObjectType::Weapon) {
+                FixedUpdateObject(dt, ObjID(i), obj);
             }
         }
 
@@ -851,12 +891,6 @@ namespace Inferno::Game {
             }
         }
 
-        // todo: only nearby objects
-        for (auto& obj : Level.Objects) {
-            //obj.DirectLight.Update(Game::Time);
-            obj.Ambient.Update(Game::Time);
-        }
-
         static double accumulator = 0;
         static double t = 0;
 
@@ -868,14 +902,6 @@ namespace Inferno::Game {
                 obj.Lifespan -= TICK_RATE;
 
             UpdateDoors(Level, TICK_RATE);
-
-            for (auto& id : GetActiveRooms()) {
-                if (auto room = Level.GetRoom(id)) {
-                    // catch up if physics falls behind
-                    UpdatePhysics(Game::Level, *room, t, TICK_RATE);
-                }
-            }
-
             FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
             t += TICK_RATE;
@@ -885,6 +911,7 @@ namespace Inferno::Game {
         if (Game::ShowDebugOverlay) {
             auto vp = ImGui::GetMainViewport();
             constexpr float topOffset = 50;
+            UpdateLiveObjectCount();
             DrawDebugOverlay({ vp->Size.x, topOffset }, { 1, 0 });
             DrawGameDebugOverlay({ 10, topOffset }, { 0, 0 });
         }
@@ -1151,7 +1178,7 @@ namespace Inferno::Game {
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
         Level.Rooms = CreateRooms(Level);
-        UpdateActiveRooms(Level, Level.GetRoomID(*player));
+        //UpdateActiveRooms(Level, Level.GetRoomID(*player));
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

@@ -84,7 +84,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 1, 0.15, 0.0, 1.5
-    FlashColor: 1, 0.3, 0.15, 40
+    FlashColor: 1, 0.3, 0.15, 20
     Glow: 1, .2, 0, 2
 
   - id: 6
@@ -449,6 +449,7 @@ Robots:
     Drag: 0.1
   - id: 4 # Class 2 drone
     CircleDistance: 40
+    Drag: 0.075
     Mass: 3.0
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper

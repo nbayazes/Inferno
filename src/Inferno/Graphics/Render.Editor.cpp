@@ -482,8 +482,6 @@ namespace Inferno::Render {
 
         Color color(0.39f, 0.58f, .93f, 0.5f);
 
-        OutlineRoom(level, *room, color);
-
         for (auto& visRoomId : room->VisibleRooms) {
             auto visRoom = level.GetRoom(visRoomId);
             if (!visRoom) continue;
