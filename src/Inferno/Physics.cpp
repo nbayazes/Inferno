@@ -349,6 +349,10 @@ namespace Inferno {
             //return target.ID == (int)WeaponID::LevelMine
         }
 
+        if ((src.IsPlayer() && target.IsRobot() && HasFlag(target.Physics.Flags, PhysicsFlag::SphereCollidePlayer)) ||
+            (src.IsRobot() && target.IsPlayer() && HasFlag(src.Physics.Flags, PhysicsFlag::SphereCollidePlayer)))
+            return CollisionType::SphereSphere;
+
         if (src.Type == ObjectType::Weapon) {
             if (Seq::contains(src.Control.Weapon.RecentHits, target.Signature))
                 return CollisionType::None; // Don't hit objects recently hit by this weapon (for piercing)
@@ -714,7 +718,9 @@ namespace Inferno {
         Ray ray(localPos, localDir); // update the input ray
 
         HitInfo hit;
-        Vector3 averagePosition;
+        float averageHitDistance = 0;
+        Vector3 averageNormal;
+        Vector3 averageHitPoint;
         int hits = 0;
         int texNormalIndex = 0, flatNormalIndex = 0;
 
@@ -766,7 +772,7 @@ namespace Inferno {
 
                     auto point = ProjectPointOntoPlane(faceLocalPos, plane);
                     float hitDistance = FLT_MAX;
-                    Vector3 hitPoint, hitNormal = normal;
+                    Vector3 hitPoint, hitNormal;
 
 #ifdef DEBUG_OBJ_OUTLINE
                     drawTriangleEdge(p0, p1, { 0, 1, 0 });
@@ -787,7 +793,7 @@ namespace Inferno {
 
                         if (triDist <= sphereSource.Radius) {
                             auto edgeNormal = localPos - triPoint;
-                            edgeNormal.Normalize(hitNormal);
+                            edgeNormal.Normalize();
 
                             // If this is not present an object can become stuck inside of another one due to
                             // repositioning using an average.
@@ -802,6 +808,7 @@ namespace Inferno {
 
                             // Object hit a triangle edge
                             hitDistance = triDist;
+                            hitNormal = edgeNormal;
                             hitPoint = triPoint;
                         }
                     }
@@ -816,37 +823,14 @@ namespace Inferno {
                         //drawTriangleEdge(p1 + offset, p2 + offset);
                         //drawTriangleEdge(p2 + offset, p0 + offset);
 #endif
-                        // Transform from local back to world space
-                        hit.Point = Vector3::Transform(hitPoint, transform);
-                        hit.Normal = Vector3::TransformNormal(hitNormal, meshSource.Rotation);
-                        hit.Distance = hitDistance;
+                        // Transform from local to world space
+                        averageNormal += Vector3::TransformNormal(hitNormal, meshSource.Rotation);
+                        averageHitPoint += Vector3::Transform(hitPoint, transform);
+                        averageHitDistance += hitDistance;
+                        hits++;
 
-                        auto nDotVel = hit.Normal.Dot(sphereSource.Physics.Velocity);
-                        hit.Speed = speed;
-
-                        //Debug::ClosestPoints.push_back(hitPoint);
-                        //Render::Debug::DrawLine(hitPoint, hitPoint + hitNormal * 2, { 0, 1, 0 });
-
-                        if (!HasFlag(sphereSource.Physics.Flags, PhysicsFlag::Piercing)) {
-                            if (sphereSource.Type != ObjectType::Weapon)
-                                target.Physics.Velocity -= hit.Normal * nDotVel; // slide along triangle
-
-                            // Don't move weapons or reactor on colliding
-                            if (sphereSource.Type != ObjectType::Weapon && sphereSource.Type != ObjectType::Reactor) {
-                                auto pos = hit.Point + hit.Normal * sphereSource.Radius;
-
-                                if (travelDist < 0.1) {
-                                    // against immobile objects use average position to prevent
-                                    // clipping through walls (wedging player into reactor near wall)
-                                    averagePosition += pos;
-                                    hits++;
-                                }
-                                else {
-                                    // against moving objects position the object outside to prevent intersections
-                                    target.Position = pos;
-                                }
-                            }
-                        }
+                        //auto nDotVel = hit.Normal.Dot(sphereSource.Physics.Velocity);
+                        hit.Speed = std::max(speed, hit.Speed);
                     }
                 }
             };
@@ -855,10 +839,25 @@ namespace Inferno {
             hitTestIndices(submodel.FlatIndices, model.FlatNormals, flatNormalIndex);
         }
 
+        if (hits == 0)
+            return {};
+
+        averageHitPoint /= (float)hits;
+        averageNormal /= (float)hits;
+        averageHitDistance /= hits;
+
+        hit.Point = averageHitPoint;
+        hit.Normal = averageNormal;
+        hit.Distance = averageHitDistance;
+
         if (hits > 0 && sphereSource.Type != ObjectType::Weapon && sphereSource.Type != ObjectType::Reactor) {
             // Don't move weapons or reactors
             // Move objects to the average position of all hits. This fixes jitter against more complex geometry and when nudging between walls.
-            target.Position = averagePosition / (float)hits;
+            if (!HasFlag(sphereSource.Physics.Flags, PhysicsFlag::Piercing))
+                target.Position = hit.Point + hit.Normal * sphereSource.Radius;
+
+            auto nDotVel = hit.Normal.Dot(sphereSource.Physics.Velocity);
+            target.Physics.Velocity -= hit.Normal * nDotVel; // slide along triangle
         }
 
         return hit;
@@ -1072,14 +1071,14 @@ namespace Inferno {
                     case CollisionType::SpherePoly:
                         if (auto info = IntersectSpherePoly(obj, other, obj, dt)) {
                             hit.Update(info, &other);
-                            CollideObjects(hit, obj, other, dt);
+                            //CollideObjects(hit, obj, other, dt);
                         }
                         break;
                     case CollisionType::PolySphere:
                         // Reposition the other object, not this one while using the mesh from this object.
                         if (auto info = IntersectPolySphere(obj, other, dt)) {
                             hit.Update(info, &other);
-                            CollideObjects(hit, other, obj, dt);
+                            //CollideObjects(hit, other, obj, dt);
                         }
                         break;
 
@@ -1096,11 +1095,16 @@ namespace Inferno {
                             // Move players and robots when they collide with something
                             if ((obj.Type == ObjectType::Robot || obj.Type == ObjectType::Player) &&
                                 (other.Type == ObjectType::Robot || other.Type == ObjectType::Player)) {
-                                auto hitSpeed = info.Normal.Dot(obj.Physics.Velocity);
-                                hit.Speed = std::abs(hitSpeed);
+
+                                auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
+                                obj.Physics.Velocity -= info.Normal * nDotVel; // slide along normal
+                                hit.Speed = obj.Physics.Velocity.Length();
                                 obj.Position = info.Point + info.Normal * obj.Radius * radiusMult;
-                                obj.Physics.Velocity -= info.Normal * hitSpeed;
+                                //obj.Physics.Velocity += info.Normal * hitSpeed;
                             }
+
+                            //hit.Normal = -hit.Normal;
+                            CollideObjects(hit, obj, other, dt);
                         }
                         break;
                     }
