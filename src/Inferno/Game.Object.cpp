@@ -53,7 +53,23 @@ namespace Inferno {
         auto transform = Matrix::CreateFromYawPitchRoll(submodelAngle);
         transform.Translation(submodelOffset);
         return transform;
-        //return Matrix::CreateFromYawPitchRoll(submodelAngle)* Matrix::CreateTranslation(submodelOffset);
+    }
+
+    Matrix GetSubmodelTranslation(const Model& model, int submodel) {
+        if (!Seq::inRange(model.Submodels, submodel)) return Matrix::Identity;
+
+        // accumulate the offsets for each submodel
+        auto submodelOffset = Vector3::Zero;
+        auto* smc = &model.Submodels[submodel];
+        while (smc->Parent != ROOT_SUBMODEL) {
+            submodelOffset += smc->Offset;
+            smc = &model.Submodels[smc->Parent];
+        }
+
+        //auto transform = Matrix::CreateFromYawPitchRoll(submodelAngle);
+        Matrix transform;
+        transform.Translation(submodelOffset);
+        return transform;
     }
 
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel) {

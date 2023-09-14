@@ -79,7 +79,7 @@ namespace Inferno::Resources {
         if (id >= PowerupNames.size() || PowerupNames[id] == "(not used)") return {};
         return { PowerupNames[id] };
     }
-    
+
     const Powerup& GetPowerup(PowerupID id) {
         if (!Seq::inRange(GameData.Powerups, (int)id)) return DEFAULT_POWERUP;
         return GameData.Powerups[(int)id];
@@ -560,28 +560,6 @@ namespace Inferno::Resources {
                 line.replace(i, 2, "\t");
 
             StringTable.push_back(line);
-        }
-    }
-
-    void UpdateObjectRadii(Level& level) {
-        for (auto& obj : level.Objects) {
-            switch (obj.Type) {
-                case ObjectType::Robot:
-                {
-                    auto& info = Resources::GetRobotInfo(obj.ID);
-                    auto& model = Resources::GetModel(info.Model);
-                    obj.Radius = model.Radius;
-                    break;
-                }
-                case ObjectType::Coop:
-                case ObjectType::Player:
-                case ObjectType::Reactor:
-                {
-                    auto& model = Resources::GetModel(obj.Render.Model.ID);
-                    obj.Radius = model.Radius;
-                    break;
-                }
-            }
         }
     }
 

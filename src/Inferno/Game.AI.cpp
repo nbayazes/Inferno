@@ -90,9 +90,9 @@ namespace Inferno {
                         ai.GoalSegment = soundSeg;
                         ai.GoalPosition = position;
                         ai.GoalRoom = level.FindRoomBySegment(soundSeg);
+                        ai.GoalPath = path;
+                        ai.GoalPathIndex = 0;
                         obj->NextThinkTime = 0;
-                        obj->GoalPath = path;
-                        obj->GoalPathIndex = 0;
                     }
                 }
             }
@@ -182,9 +182,9 @@ namespace Inferno {
     //}
 
     bool PathIsValid(Object& obj, const AIRuntime& ai) {
-        if (obj.GoalPath.empty()) return false;
-        if (obj.GoalPath.back() != ai.GoalSegment) return false; // Goal isn't this path anymore
-        return Seq::contains(obj.GoalPath, obj.Segment); // Check if robot strayed from path
+        if (ai.GoalPath.empty()) return false;
+        if (ai.GoalPath.back() != ai.GoalSegment) return false; // Goal isn't this path anymore
+        return Seq::contains(ai.GoalPath, obj.Segment); // Check if robot strayed from path
     }
 
     SegID GetNextPathSegment(span<SegID> path, SegID current) {
@@ -379,7 +379,8 @@ namespace Inferno {
     }
 
 
-    void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, const Object& obj, float /*thrust*/, Vector3& target) {
+    // Updates the target position after avoiding edges of the current segment
+    void AvoidSideEdges(Level& level, const Ray& ray, Segment& seg, SideID sideId, const Object& obj, Vector3& target) {
         if (!seg.SideIsSolid(sideId, level)) return;
 
         // project ray onto side
@@ -519,7 +520,7 @@ namespace Inferno {
     //    }
     //}
 
-    void AvoidRoomEdges(Level& level, const Ray& ray, const Object& obj, float thrust, Vector3& target) {
+    void AvoidRoomEdges(Level& level, const Ray& ray, const Object& obj, Vector3& target) {
         auto room = level.GetRoom(obj);
         if (!room) return;
 
@@ -527,9 +528,30 @@ namespace Inferno {
             auto& seg = level.GetSegment(segId);
 
             for (auto& sideId : SideIDs) {
-                AvoidSideEdges(level, ray, seg, sideId, obj, thrust, target);
+                AvoidSideEdges(level, ray, seg, sideId, obj, target);
             }
         }
+    }
+
+    bool SetPathGoal(Level& level, Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition) {
+        if (ai.PathDelay > 0) return false; // Don't spam trying to path to a goal
+
+        // Calculate a new path
+        SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
+        auto& robotInfo = Resources::GetRobotInfo(obj);
+        ai.GoalSegment = goalSegment;
+        ai.GoalPosition = goalPosition;
+        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, !robotInfo.IsThief, level);
+        ai.PathDelay = AI_PATH_DELAY;
+
+        if (ai.GoalPath.empty()) {
+            // Unable to find a valid path, clear the goal and give up
+            ai.GoalSegment = SegID::None;
+            ai.GoalRoom = RoomID::None;
+            return false;
+        }
+
+        return true;
     }
 
     void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, float /*dt*/) {
@@ -537,24 +559,12 @@ namespace Inferno {
             if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
                 SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
                 ai.GoalSegment = SegID::None; // Reached the goal!
+                ai.GoalPath.clear();
             }
         };
 
-        if (!PathIsValid(obj, ai)) {
-            if (ai.PathDelay > 0) return; // Don't spam trying to path to a goal
-            // Calculate a new path
-            SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
-            auto& robotInfo = Resources::GetRobotInfo(obj);
-            obj.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, !robotInfo.IsThief, level);
-            ai.PathDelay = AI_PATH_DELAY;
-            if (obj.GoalPath.empty()) {
-                // Unable to find a valid path, clear the goal and give up
-                ai.GoalSegment = SegID::None;
-                ai.GoalRoom = RoomID::None;
-                return;
-            }
-        }
-
+        if (!PathIsValid(obj, ai)) return;
+        
         auto& robot = Resources::GetRobotInfo(obj.ID);
         auto thrust = Difficulty(robot).Speed / 8;
         auto turnTime = Difficulty(robot).TurnTime;
@@ -568,13 +578,13 @@ namespace Inferno {
             checkGoalReached();
         }
         else {
-            auto getPathSeg = [&obj](size_t index) {
+            auto getPathSeg = [&ai](size_t index) {
                 //if (!Seq::inRange(obj.GoalPath, index)) return obj.GoalPath.back();
-                if (!Seq::inRange(obj.GoalPath, index)) return SegID::None;
-                return obj.GoalPath[index];
+                if (!Seq::inRange(ai.GoalPath, index)) return SegID::None;
+                return ai.GoalPath[index];
             };
 
-            auto pathIndex = Seq::indexOf(obj.GoalPath, obj.Segment);
+            auto pathIndex = Seq::indexOf(ai.GoalPath, obj.Segment);
             if (!pathIndex) {
                 SPDLOG_ERROR("Invalid path index for obj {}", obj.Signature);
             }
@@ -587,7 +597,7 @@ namespace Inferno {
 
             SegID segs[] = { obj.Segment, next1, next2, next3 };
 
-            auto nextSideTag = GetNextConnection(obj.GoalPath, level, obj.Segment);
+            auto nextSideTag = GetNextConnection(ai.GoalPath, level, obj.Segment);
             auto& nextSide = level.GetSide(nextSideTag);
             Vector3 targetPosition = nextSide.Center; // default to the next side
 
@@ -806,10 +816,45 @@ namespace Inferno {
         if (ai.Awareness < 0) ai.Awareness = 0;
     }
 
-    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const AITarget& target, bool primary) {
+    //void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const AITarget& target, bool primary) {
+    //    if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
+
+    //    //auto [targetDir, targetDist] = GetDirectionAndDistance(target.Position, robot.Position);
+    //    auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
+    //    auto weaponSpeed = weapon.Speed[Game::Difficulty];
+
+    //    // only fire if target is within certain angle. for fast require a more precise alignment
+    //    if (primary) {
+    //        ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
+    //        if (robotInfo.WeaponType2 != WeaponID::None && ai.GunIndex == 0)
+    //            ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
+    //    }
+
+    //    uint8 gunIndex = primary ? ai.GunIndex : 0;
+    //    //auto aimTarget = target.Position + LeadTarget(targetDir, targetDist, target, weaponSpeed);
+    //    auto aimTarget = target.Position;
+    //    auto aimDir = aimTarget - robot.Position;
+    //    aimDir.Normalize();
+    //    float maxAimAngle = weaponSpeed > FAST_WEAPON_SPEED ? 7.5f * DegToRad : 15.0f * DegToRad;
+
+    //    if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) > maxAimAngle) {
+    //        aimDir = (aimDir + robot.Rotation.Forward()) / 2.0f;
+    //        aimDir.Normalize();
+    //        if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) > maxAimAngle) {
+    //            // todo: if robot wants to fire but can't, reset rapidfire if fire delay passes
+    //            return; // couldn't aim to the target close enough
+    //        }
+    //    }
+
+    //    // todo: fire at target if within facing angle regardless of aim assist
+
+    //    //aimTarget += RandomVector((5 - Game::Difficulty) * 2); // Randomize aim based on difficulty
+    //    FireWeaponAtPoint(robot, robotInfo, gunIndex, aimTarget, robotInfo.WeaponType);
+    //}
+
+    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target, bool primary) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
-        auto [targetDir, targetDist] = GetDirectionAndDistance(target.Position, robot.Position);
         auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
         auto weaponSpeed = weapon.Speed[Game::Difficulty];
 
@@ -821,9 +866,7 @@ namespace Inferno {
         }
 
         uint8 gunIndex = primary ? ai.GunIndex : 0;
-        auto aimTarget = target.Position + LeadTarget(targetDir, targetDist, target, weaponSpeed);
-        aimTarget = target.Position;
-        auto aimDir = aimTarget - robot.Position;
+        auto aimDir = target - robot.Position;
         aimDir.Normalize();
         float maxAimAngle = weaponSpeed > FAST_WEAPON_SPEED ? 7.5f * DegToRad : 15.0f * DegToRad;
 
@@ -837,15 +880,7 @@ namespace Inferno {
         }
 
         // todo: fire at target if within facing angle regardless of aim assist
-
-        //aimTarget += RandomVector((5 - Game::Difficulty) * 2); // Randomize aim based on difficulty
-        FireWeaponAtPoint(robot, robotInfo, gunIndex, aimTarget, robotInfo.WeaponType);
-    }
-
-    void StopPathing(Object& robot, AIRuntime& ai) {
-        robot.GoalPath.clear();
-        robot.GoalPathIndex = -1;
-        ai.GoalSegment = SegID::None;
+        FireWeaponAtPoint(robot, robotInfo, gunIndex, target, robotInfo.WeaponType);
     }
 
     void DodgeProjectile(const Object& robot, AIRuntime& ai, const Object& projectile, const RobotInfo& robotInfo) {
@@ -895,19 +930,18 @@ namespace Inferno {
     }
 
     // Tries to path towards the player or move directly to it if in the same room
-    void MoveTowardsPlayer(Level& level, const Object& player, Object& robot, AIRuntime& ai) {
-        auto playerRoom = level.GetRoomID(player);
-        auto robotRoom = level.GetRoomID(robot);
-        if (playerRoom == robotRoom) {
-            MoveTowardsPoint(robot, player.Position, 100);
+    void MoveTowardsPlayer(Level& level, const Object& player, Object& robot, AIRuntime& ai, const Vector3& playerDir, float playerDist) {
+        if (/*level.GetRoomID(player) == level.GetRoomID(robot) ||*/ CanSeePlayer(robot, playerDir, playerDist)) {
+            Ray ray(robot.Position, playerDir);
+            //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
+            Vector3 playerPosition = player.Position;
+            AvoidRoomEdges(level, ray, robot, playerPosition);
+            //auto& seg = level.GetSegment(robot.Segment);
+            //AvoidSideEdges(level, ray, seg, side, robot, 0, player.Position);
+            MoveTowardsPoint(robot, playerPosition, 100); // todo: thrust from difficulty
         }
         else {
-            if (robot.GoalPath.empty() || robot.GoalPath.back() != player.Segment) {
-                auto& robotInfo = Resources::GetRobotInfo(robot);
-                robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.GoalSegment, !robotInfo.IsThief, level);
-            }
-
-            PathTowardsGoal(level, robot, ai, 0);
+            SetPathGoal(level, robot, ai, player.Segment, player.Position);
         }
     }
 
@@ -927,12 +961,13 @@ namespace Inferno {
 
     void MoveToCircleDistance(Level& level, const Object& player, Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         auto circleDistance = Difficulty(robotInfo).CircleDistance;
-        auto distOffset = Vector3::Distance(player.Position, robot.Position) - circleDistance;
-        if (abs(distOffset) < 20 && circleDistance > 10)
-            return; // already close enough. Melee robots should always go to zero.
+        auto [dir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
+        auto distOffset = dist - circleDistance;
+        if (abs(distOffset) < 20 && circleDistance > 10 && robotInfo.Attack == AttackType::Ranged)
+            return; // already close enough
 
         if (distOffset > 0)
-            MoveTowardsPlayer(level, player, robot, ai);
+            MoveTowardsPlayer(level, player, robot, ai, dir, dist);
         else
             MoveAwayFromPlayer(level, player, robot);
     }
@@ -1042,7 +1077,7 @@ namespace Inferno {
     //    { "trooper", HelixBehavior },
     //};
 
-    void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const AITarget& target) {
+    void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target) {
         ai.FireDelay = 0;
         // multishot: consume as many projectiles as possible based on burst count
         // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
@@ -1094,7 +1129,8 @@ namespace Inferno {
         //if (ai.WeaponCharge >= Difficulty(info).FireDelay * 2) {
         if (ai.WeaponCharge >= 1) {
             Sound::Stop(ai.SoundHandle);
-            FireRobotPrimary(robot, ai, robotInfo, Game::GetPlayer());
+            auto target = ai.KnownPlayerPosition ? *ai.KnownPlayerPosition : robot.Position + robot.Rotation.Forward() * 40;
+            FireRobotPrimary(robot, ai, robotInfo, target);
             ai.WeaponCharge = 0;
         }
     }
@@ -1119,10 +1155,19 @@ namespace Inferno {
         decr(ai.RemainingStun);
         decr(ai.DodgeDelay);
         decr(ai.DodgeTime);
+        decr(ai.MeleeHitDelay);
+        decr(ai.PathDelay);
 
+        if (ai.Awareness < AI_COMBAT_AWARENESS) {
+            ai.KnownPlayerPosition = {}; // Clear last known position if robot loses interest.
+            ai.KnownPlayerSegment = SegID::None;
+        }
+
+        //PlayRobotAnimation(robot, AnimState::Fire);
         AnimateRobot(robot, ai, dt);
+        if (Settings::Cheats.DisableAI) return;
 
-        if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time || Settings::Cheats.DisableAI)
+        if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
 
         if (ai.RemainingStun > 0)
@@ -1135,33 +1180,38 @@ namespace Inferno {
         }
 
         if (ai.GoalSegment != SegID::None) {
-            // goal path takes priority over other behaviors
+            // goal pathing takes priority over other behaviors
             PathTowardsGoal(Game::Level, robot, ai, dt);
 
-            if (CheckPlayerVisibility(robot, robotInfo)) {
-                StopPathing(robot, ai); // Stop pathing if robot sees the player
-                PlayAlertSound(robot, robotInfo);
-            }
+            if (CheckPlayerVisibility(robot, robotInfo))
+                ai.ClearPath(); // Stop pathing if robot sees the player
         }
-        else if (ai.Awareness > AI_COMBAT_AWARENESS) {
+        else if (ai.Awareness >= AI_COMBAT_AWARENESS) {
             // in combat
 
+            // this causes the robot to pursue the player if out of sight as well
             MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-            // todo: rework this to aim at last seen location
-            if (CanSeePlayer(robot, playerDir, dist)) {
+            // todo: rework this to aim at last seen location. A target cloaking shouldn't immediately stop the attack
+            bool canSeePlayer = CanSeePlayer(robot, playerDir, dist);
+            if (canSeePlayer) {
+                ai.KnownPlayerPosition = player.Position;
+                ai.KnownPlayerSegment = player.Segment;
+            }
+
+            if (ai.KnownPlayerPosition) {
                 //TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
                 float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
-                RotateTowards(robot, player.Position, turnTime);
-
-                if (!ai.PlayingAnimation()) {
-                    PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
-                }
+                RotateTowards(robot, *ai.KnownPlayerPosition, turnTime);
 
                 if (robotInfo.Attack == AttackType::Ranged) {
+                    if (!ai.PlayingAnimation()) {
+                        PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+                    }
+
                     if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
-                        FireRobotWeapon(robot, ai, robotInfo, player, false);
+                        FireRobotWeapon(robot, ai, robotInfo, *ai.KnownPlayerPosition, false);
                         ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
                     }
 
@@ -1177,15 +1227,92 @@ namespace Inferno {
                             WeaponChargeBehavior(robot, ai, robotInfo, dt);
                         }
                         else {
-                            FireRobotPrimary(robot, ai, robotInfo, player);
+                            FireRobotPrimary(robot, ai, robotInfo, *ai.KnownPlayerPosition);
                         }
+                    }
+                }
+                else if (robotInfo.Attack == AttackType::Melee) {
+                    constexpr float MELEE_RANGE = 10; // how close to actually deal damage
+                    constexpr float MELEE_SWING_TIME = 0.175f;
+                    constexpr float BACKSWING_TIME = 0.45f;
+                    constexpr float BACKSWING_RANGE = MELEE_RANGE * 3; // When to prepare a swing
+                    constexpr float MELEE_GIVE_UP = 2.0f;
+
+                    //PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+                    if (ai.ChargingWeapon)
+                        ai.WeaponCharge += dt; // Raising arms to swing counts as "charging"
+
+                    if (!ai.PlayingAnimation()) {
+                        if (ai.ChargingWeapon) {
+                            if (ai.AnimationState == AnimState::Fire) {
+                                // Arms are raised
+                                if (dist < robot.Radius + MELEE_RANGE) {
+                                    // Player moved close enough, swing
+                                    PlayRobotAnimation(robot, AnimState::Recoil, MELEE_SWING_TIME);
+                                    ai.MeleeHitDelay = MELEE_SWING_TIME / 2;
+                                }
+                                else if (ai.WeaponCharge > MELEE_GIVE_UP) {
+                                    // Player moved out of range for too long, give up
+                                    PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
+                                    ai.ChargingWeapon = false;
+                                    ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                                }
+                            }
+                        }
+                        else {
+                            PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
+                        }
+                    }
+
+                    if (ai.AnimationState == AnimState::Recoil) {
+                        if (ai.ChargingWeapon && ai.MeleeHitDelay <= 0) {
+                            ai.ChargingWeapon = false;
+                            // todo: multishot can swing multiple times instead of using full fire delay
+                            ai.FireDelay = Difficulty(robotInfo).FireDelay;
+
+                            // check that object is in front?
+                            // damage objects in a cone?
+                            if (dist < robot.Radius + MELEE_RANGE) {
+                                // Still in range
+                                auto id = Game::GetObjectRef(robot);
+                                Sound3D sound(id);
+                                sound.AttachToSource = true;
+                                sound.Resource = Resources::GetSoundResource(robotInfo.ClawSound);
+                                Sound::Play(sound);
+                                Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage);
+
+                                player.Physics.Velocity += playerDir * 20; // shove the player backwards
+
+                                if (auto sparks = Render::EffectLibrary.GetSparks("melee hit")) {
+                                    auto position = robot.Position + playerDir * robot.Radius;
+                                    Render::AddSparkEmitter(*sparks, robot.Segment, position);
+
+                                    Render::DynamicLight light{};
+                                    light.LightColor = sparks->Color;
+                                    light.Radius = 15;
+                                    light.Position = position;
+                                    light.Duration = light.FadeTime = 0.5f;
+                                    light.Segment = robot.Segment;
+                                    Render::AddDynamicLight(light);
+                                }
+                            }
+                        }
+                    }
+                    else if (ai.FireDelay <= 0 && dist < robot.Radius + BACKSWING_RANGE && !ai.ChargingWeapon) {
+                        PlayRobotAnimation(robot, AnimState::Fire, BACKSWING_TIME); // raise arms to attack
+                        ai.ChargingWeapon = true;
+                        ai.WeaponCharge = 0;
                     }
                 }
             }
             else {
+                //if (ai.KnownPlayerSegment != SegID::None) {
+                //    robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.KnownPlayerSegment, !robotInfo.IsThief, Game::Level);
+                //    ai.GoalSegment = ai.KnownPlayerSegment;
+                //}
+
                 // Lost sight of player, decay awareness based on AI
                 DecayAwareness(ai);
-                // todo: move towards last known location if curious
             }
         }
         else {
@@ -1212,19 +1339,4 @@ namespace Inferno {
             // check facing, fire weapon from gunpoint
         }
     }
-
-    //void UpdateNearbyAI(Level& level, float dt) {
-    //    auto room = level.GetRoom(Game::GetPlayer());
-
-    //    // todo: also update adjacent rooms
-    //    for (auto& segId : room->Segments) {
-    //        if (!level.SegmentExists(segId)) continue;
-    //        auto& seg = level.GetSegment(segId);
-    //        for (auto& objId : seg.Objects) {
-    //            if (auto obj = level.TryGetObject(objId)) {
-    //                UpdateAI(*obj, dt);
-    //            }
-    //        }
-    //    }
-    //}
 }

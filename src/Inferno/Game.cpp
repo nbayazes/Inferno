@@ -805,7 +805,7 @@ namespace Inferno::Game {
 
                 for (auto& segId : room->Segments) {
                     auto& seg = Level.GetSegment(segId);
-                    Stats::LiveObjects += seg.Objects.size();
+                    Stats::LiveObjects += (int)seg.Objects.size();
                 }
             }
         }
@@ -1236,6 +1236,7 @@ namespace Inferno::Game {
 
             if (obj.Type == ObjectType::Robot) {
                 obj.NextThinkTime = Time + 0.5f;
+                SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
             }
         }
 

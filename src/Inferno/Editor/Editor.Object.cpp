@@ -115,7 +115,10 @@ namespace Inferno::Editor {
             case ObjectType::Robot:
             {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
-                return Resources::GetModel(ri.Model).Radius;
+                if (ri.Radius > 0)
+                    return ri.Radius;
+                else
+                    return Resources::GetModel(ri.Model).Radius;
             }
 
             case ObjectType::Hostage:
@@ -126,13 +129,10 @@ namespace Inferno::Editor {
 
             case ObjectType::Reactor:
             {
-                if (Seq::inRange(Resources::GameData.Reactors, obj.ID)) {
-                    auto& info = Resources::GameData.Reactors.at(obj.ID);
-                    return Resources::GetModel(info.Model).Radius;
-                }
-                else {
+                if (auto info = Seq::tryItem(Resources::GameData.Reactors, obj.ID))
+                    return Resources::GetModel(info->Model).Radius;
+                else
                     return obj.Radius;
-                }
             }
 
             case ObjectType::Weapon:

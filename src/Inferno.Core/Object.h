@@ -46,16 +46,17 @@ namespace Inferno {
 
     enum class PhysicsFlag : int16 {
         None = 0,
-        TurnRoll = 0x01,        // roll when turning
-        AutoLevel = 0x02,       // align object with nearby side
-        Bounce = 0x04,          // bounce instead of slide when hitting a wall
-        Wiggle = 0x08,          // wiggle while flying
-        Stick = 0x10,           // object sticks (stops moving) when hits wall
-        Piercing = 0x20,        // object keeps going even after it hits another object
-        UseThrust = 0x40,       // this object uses its thrust
-        BouncedOnce = 0x80,     // Weapon has bounced once
-        FixedAngVel = 0x100,    // Drag does not apply to rotation of this object
-        BouncesTwice = 0x200,   // This weapon bounces twice, then dies
+        TurnRoll = 1 << 0,        // roll when turning
+        AutoLevel = 1 << 1,       // align object with nearby side
+        Bounce = 1 << 2,          // bounce instead of slide when hitting a wall
+        Wiggle = 1 << 3,          // wiggle while flying
+        Stick = 1 << 4,           // object sticks (stops moving) when hits wall
+        Piercing = 1 << 5,        // object keeps going even after it hits another object
+        UseThrust = 1 << 6,       // this object uses its thrust
+        BouncedOnce = 1 << 7,     // Weapon has bounced once
+        FixedAngVel = 1 << 8,     // Drag does not apply to rotation of this object
+        BouncesTwice = 1 << 9,    // This weapon bounces twice, then dies
+        SphereCollidePlayer = 1 << 10, // Use spheres when colliding with the player
     };
 
     enum class PowerupID : uint8 {
@@ -365,10 +366,6 @@ namespace Inferno {
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0;
-
-        //List<Vector3> GoalPath; // For robot pathing. Here because unions can't contain vectors.
-        List<SegID> GoalPath; // For robot pathing. Here because unions can't contain vectors.
-        int16 GoalPathIndex = -1;
 
         Matrix GetTransform() const {
             Matrix m(Rotation);

@@ -293,6 +293,7 @@ namespace Inferno {
         READ_PROP(HitPoints);
         READ_PROP(Mass);
         READ_PROP(Drag);
+        READ_PROP(Radius);
 
         READ_TAG(Cloaking);
         READ_TAG(Attack);
@@ -315,7 +316,7 @@ namespace Inferno {
         READ_PROP(Aim);
         READ_PROP(Multishot);
 
-        Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{};
+        Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};
         Array<int16, 5> shots{}, evasion{};
 
         bool hasFov = ReadArray<float>(node["FOV"], fov);
@@ -330,6 +331,7 @@ namespace Inferno {
         bool hasTurnTime = ReadArray<float>(node["TurnTime"], turnTime);
         bool hasSpeed = ReadArray<float>(node["Speed"], speed);
         bool hasCircleDist = ReadArray<float>(node["CircleDistance"], circleDistance);
+        bool hasMeleeDamage = ReadArray<float>(node["MeleeDamage"], meleeDamage);
         bool hasShots = ReadArray<int16>(node["Shots"], shots);
         bool hasEvasion = ReadArray<int16>(node["Evasion"], evasion);
 
@@ -343,6 +345,7 @@ namespace Inferno {
             if (hasSpeed) diff.Speed = speed[i];
             if (hasTurnTime) diff.TurnTime = turnTime[i];
             if (hasFov) diff.FieldOfView = fov[i];
+            if (hasMeleeDamage) diff.MeleeDamage = meleeDamage[i];
         }
 
 #undef READ_PROP

@@ -437,8 +437,9 @@ Robots:
     Mass: 6.5
     Multishot: 1
   - id: 1 # Medium lifter
-    CircleDistance: 0
-    Mass: 10
+    CircleDistance: 12
+    Mass: 8
+    MeleeDamage: [ 5, 7, 10, 12, 15 ]
   - id: 2 # Spider
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
@@ -672,6 +673,18 @@ Effects:
       FadeTime: 1
       Texture: tracer
       Width: 0.125
+      VelocitySmear: 0.02
+      Physics: 0
+
+    - Name: melee hit
+      Color: 1, .5, .3, 20
+      Count: 20
+      SparkDuration: [ 0.55, 1.15 ]
+      Drag: 0.02
+      Velocity: [ 25, 35 ]
+      FadeTime: 1
+      Texture: tracer
+      Width: 0.15
       VelocitySmear: 0.02
       Physics: 0
 

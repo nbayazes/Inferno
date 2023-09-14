@@ -20,6 +20,9 @@ namespace Inferno {
     // Gets the object space transform of a submodel
     Matrix GetSubmodelTransform(const Object& object, const Model& model, int submodel);
 
+    // Gets the object space translation matrix of a submodel. No animation.
+    Matrix GetSubmodelTranslation(const Model& model, int submodel);
+
     // Transforms a point from submodel space to object space. Includes animations.
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel);
 

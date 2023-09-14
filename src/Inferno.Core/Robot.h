@@ -21,6 +21,7 @@ namespace Inferno {
         float CircleDistance; // preferred distance from the player
         uint8 ShotCount; // number of primary shots to fire per delay
         uint8 EvadeSpeed; // rate at which robot can evade shots, 0=none, 4=very fast
+        float MeleeDamage; // Damage of a melee swing
     };
     
     enum class CloakType : sbyte { None, Always, WhenNotFiring };
@@ -50,6 +51,7 @@ namespace Inferno {
         float HitPoints;
 
         float Mass, Drag;
+        float Radius = 0; // Radius override for collision
 
         Array<RobotDifficultyInfo, 5> Difficulty{};
         

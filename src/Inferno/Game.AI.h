@@ -37,7 +37,11 @@ namespace Inferno {
         float MiscSoundTime; // Time in seconds since the robot made angry or lurking noises
         float AnimationTime = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
+        float MeleeHitDelay = 0; // How long before a melee swing deals damage
         AnimState AnimationState = {};
+
+        SegID KnownPlayerSegment = SegID::None; // Last segment the player was seen in
+        Option<Vector3> KnownPlayerPosition;
 
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
 
@@ -52,7 +56,7 @@ namespace Inferno {
 
         float WeaponCharge = 0; // For robots with charging weapons (fusion hulks)
         float NextChargeSoundDelay = 0; // Delay to play a sound when charging up
-        bool ChargingWeapon = false; // Set to true when
+        bool ChargingWeapon = false; // Set to true when charging a weapon
         
         SoundUID SoundHandle = SoundUID::None; // Used to cancel a playing sound when the robot is destroyed
         float RemainingSlow = 0; // How long this robot is slowed (reduced movement and turn speed)
@@ -61,8 +65,17 @@ namespace Inferno {
         //bool DyingSoundPlaying{};
         //double DyingStartTime{}; // Time at which this robot started dying.
 
+        List<SegID> GoalPath; // For pathing to another segment
+        int16 GoalPathIndex = -1;
+
         bool PlayingAnimation() const {
             return AnimationTime < AnimationDuration;
+        }
+
+        void ClearPath() {
+            GoalPath.clear();
+            GoalPathIndex = -1;
+            GoalSegment = SegID::None;
         }
     };
 
