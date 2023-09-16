@@ -17,7 +17,6 @@
 #include "Physics.h"
 #include "Render.Object.h"
 #include "Shell.h"
-#include "OpenSimplex2.h"
 #include "Procedural.h"
 #include "SoundSystem.h"
 
@@ -381,6 +380,11 @@ namespace Inferno::Render {
         }
 
         _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes());
+        for (auto& id : _renderQueue.GetVisibleRooms()) {
+            if (auto room = level.GetRoom(id))
+                Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
+        }
+
 
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         DepthPrepass(ctx);
@@ -391,7 +395,7 @@ namespace Inferno::Render {
         }
 
         Graphics::Lights.Dispatch(ctx.GetCommandList());
-        
+
         {
             ctx.BeginEvent(L"Level");
             auto& target = Adapter->GetHdrRenderTarget();

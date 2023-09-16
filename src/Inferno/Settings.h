@@ -103,7 +103,7 @@ namespace Inferno {
         bool ShowLighting = true;
         bool ShowMatcenEffects = false;
         bool ShowPortals = false;
-        bool ShowRoomVisibility = true;
+        bool ShowRoomVisibility = false;
         float WireframeOpacity = 0.5f;
 
         bool InvertY = false;
@@ -170,6 +170,6 @@ namespace Inferno {
         inline CheatSettings Cheats;
 
         void Save(const filesystem::path& path = "inferno.cfg");
-        void Load(filesystem::path path = "inferno.cfg");
+        void Load(const filesystem::path& path = "inferno.cfg");
     }
 }

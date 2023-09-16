@@ -52,6 +52,9 @@ namespace Inferno::Render::Debug {
 
     void DrawBoundingBox(const DirectX::BoundingOrientedBox&, const Color&);
 
+    void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill = nullptr);
+    void OutlineRoom(Level& level, const Room& room, const Color& color);
+
     inline List<Vector3> DebugPoints, DebugPoints2;
     inline List<Vector3> DebugLines;
 }

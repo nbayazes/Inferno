@@ -61,6 +61,11 @@ namespace Inferno {
         return Random() - Random();
     }
 
+    // Returns true if b is between a and c
+    constexpr bool Between(float a, float b, float c) {
+        return a < c ? a < b && b < c : c < b && b < a;
+    }
+
     // Returns the normalized direction between two points
     inline Vector3 NormalizeDirection(const Vector3& target, const Vector3& start) {
         auto direction = target - start;

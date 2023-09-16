@@ -195,7 +195,7 @@ namespace Inferno {
         }
 
         // Projects a world coordinate into screen space
-        Vector3 Project(Vector3 p, const Matrix& world) const {
+        Vector3 Project(Vector3 p, const Matrix& world = Matrix::Identity) const {
             return Viewport.Project(p, Projection, View, world);
         }
 

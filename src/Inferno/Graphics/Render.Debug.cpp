@@ -457,6 +457,30 @@ namespace Inferno::Render::Debug {
         Render::Debug::DrawLine(corners[7], corners[4], color);
     }
 
+    void OutlineSegment(const Level& level, Segment& seg, const Color& color, const Color* fill) {
+        auto vs = seg.GetVertices(level);
+
+        // Draw each of the 12 edges
+        for (int i = 0; i < 12; i++) {
+            auto& vi = VERTS_OF_EDGE[i];
+            auto v1 = vs[vi[0]];
+            auto v2 = vs[vi[1]];
+            Debug::DrawLine(*v1, *v2, color);
+        }
+
+        if (seg.Type != SegmentType::None && fill) {
+            for (auto& side : SideIDs)
+                Debug::DrawSide(level, seg, side, *fill);
+        }
+    }
+
+    void OutlineRoom(Level& level, const Room& room, const Color& color) {
+        for (auto& segId : room.Segments) {
+            if (auto seg = level.TryGetSegment(segId))
+                Debug::OutlineSegment(level, *seg, color);
+        }
+    }
+
     void DrawSide(Level& level, Tag tag, const Color& color) {
         auto [seg, side] = level.GetSegmentAndSide(tag);
         auto& i = side.GetRenderIndices();

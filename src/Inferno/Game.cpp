@@ -829,11 +829,12 @@ namespace Inferno::Game {
                 if (!room) continue;
 
                 for (auto& segId : room->Segments) {
-                    auto& seg = Level.GetSegment(segId);
-                    for (auto& objId : seg.Objects) {
-                        auto obj = Level.TryGetObject(objId);
-                        if (obj && obj->Type != ObjectType::Weapon)
-                            FixedUpdateObject(dt, objId, *obj);
+                    if (auto seg = Level.TryGetSegment(segId)) {
+                        for (auto& objId : seg->Objects) {
+                            auto obj = Level.TryGetObject(objId);
+                            if (obj && obj->Type != ObjectType::Weapon)
+                                FixedUpdateObject(dt, objId, *obj);
+                        }
                     }
                 }
             }

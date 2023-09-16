@@ -628,11 +628,6 @@ namespace Inferno::Editor {
         Editor::History.SnapshotSelection();
     }
 
-    // Returns true if b is between a and c
-    constexpr bool Between(float a, float b, float c) {
-        return a < c ? a < b && b < c : c < b && b < a;
-    }
-
     void MultiSelection::UpdateFromWindow(Level& level, Vector2 p0, Vector2 p1, const Camera& camera) {
         auto markOrUnmark = [&](const Vector3& pos, auto&& collection, auto val) {
             if (Between(p0.x, pos.x, p1.x) && Between(p0.y, pos.y, p1.y)) {

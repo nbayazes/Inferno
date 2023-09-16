@@ -9,6 +9,15 @@ namespace Inferno::Render {
         LevelMesh, Object, Effect
     };
 
+    struct Bounds2D {
+        Vector2 Min, Max;
+
+        bool Overlaps(const Bounds2D& bounds) const {
+            return Min.x < bounds.Max.x && Max.x > bounds.Min.x &&
+                Max.y > bounds.Min.y && Min.y < bounds.Max.y;
+        }
+    };
+
     struct RenderCommand {
         float Depth; // Scene depth for sorting
         RenderCommandType Type;
@@ -45,13 +54,16 @@ namespace Inferno::Render {
         List<RenderCommand> _transparentQueue;
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
+        List<RoomID> _roomQueue;
     public:
-        const Set<SegID>& GetVisibleSegments() { return _visited; }
         void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
+        span<RoomID> GetVisibleRooms() { return _roomQueue; }
     private:
         void QueueEditorObject(Object& obj, float lerp);
         void TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes);
+        void CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth);
+        void TraverseLevelRooms(RoomID startRoomId, Level& level,span<LevelMesh> wallMeshes);
     };
 }

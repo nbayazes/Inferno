@@ -357,7 +357,7 @@ namespace Inferno {
         }
     }
 
-    void Settings::Load(filesystem::path path) {
+    void Settings::Load(const filesystem::path& path) {
         try {
             std::ifstream file(path);
             if (!file) return;

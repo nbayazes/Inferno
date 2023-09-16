@@ -3,6 +3,7 @@
 #include "Level.h"
 
 namespace Inferno::Graphics {
+    // Gathers static lights across the level
     List<LightData> GatherLightSources(Level& level, float multiplier = 1, float defaultRadius = 20);
 }
 

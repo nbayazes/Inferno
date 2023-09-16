@@ -58,7 +58,11 @@ namespace Inferno::Render {
             }
         }
         else if (!level.Objects.empty()) {
+            // todo: should start at camera position
             TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
+
+            auto roomId = level.GetRoomID(Game::GetPlayer());
+            TraverseLevelRooms(roomId, level, wallMeshes);
         }
     }
 
@@ -113,6 +117,8 @@ namespace Inferno::Render {
             EffectBase* Effect;
         };
         List<ObjDepth> objects;
+
+        // todo: add visible lights. Graphics::Lights.AddLight(light);
 
         while (!_search.empty()) {
             SegDepth item = _search.front();
@@ -235,5 +241,137 @@ namespace Inferno::Render {
         }
 
         Stats::VisitedSegments = (uint16)_visited.size();
+    }
+
+
+    Bounds2D GetBounds(const Array<Vector3, 4>& points) {
+        Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
+
+        for (auto& p : points) {
+            if (p.x < min.x)
+                min.x = p.x;
+            if (p.y < min.y)
+                min.y = p.y;
+            if (p.x > max.x)
+                max.x = p.x;
+            if (p.y > max.y)
+                max.y = p.y;
+        }
+
+        return { min, max };
+    }
+
+
+    //Vector3 GetNdc(const Face2& face, int i) {
+    //    auto clip = Vector4::Transform(Vector4(face[i].x, face[i].y, face[i].z, 1), Render::ViewProjection);
+    //    // Take abs of w, otherwise points behind the plane cause their coords to flip
+    //    return Vector3(clip / abs(clip.w));
+    //};
+
+    constexpr int MAX_PORTAL_DEPTH = 50;
+
+    // Returns the points of a face in NDC. Returns empty if all points are behind the view plane.
+    Option<Array<Vector3, 4>> GetNdc(const Face2& face, const Matrix& viewProj) {
+        Array<Vector3, 4> points;
+        int behind = 0;
+        for (int i = 0; i < 4; i++) {
+            auto clip = Vector4::Transform(Vector4(face[i].x, face[i].y, face[i].z, 1), viewProj);
+            if (clip.w < 0) behind++; // return {};
+            points[i] = Vector3(clip / abs(clip.w));
+        }
+
+        if (behind == 4) return {}; // all points behind plane
+        return points;
+    }
+
+    void RenderQueue::CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth) {
+        if (depth > MAX_PORTAL_DEPTH) return; // Prevent stack overflow
+
+        for (auto& portal : room.Portals) {
+            if (!WallIsTransparent(level, portal.Tag))
+                continue; // stop at opaque walls
+
+            auto face = Face2::FromSide(level, portal.Tag);
+            auto ndc = GetNdc(face, Render::ViewProjection);
+            if (!ndc) continue;
+            auto bounds = GetBounds(*ndc);
+
+            if (srcBounds.Overlaps(bounds) && !Seq::contains(_roomQueue, portal.RoomLink)) {
+                _roomQueue.push_back(portal.RoomLink);
+                if (auto linkedRoom = level.GetRoom(portal.RoomLink))
+                    CheckRoomVisibility(level, *linkedRoom, bounds, depth++);
+            }
+        }
+    }
+
+    void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes) {
+        _roomQueue.clear();
+        _roomQueue.push_back(startRoomId);
+        int index = 0;
+        //Plane cameraPlane(Camera.Position, Camera.GetForward());
+
+        auto startRoom = level.GetRoom(startRoomId);
+        if (!startRoom) return;
+
+        //Bounds2D screenBounds = { { 0, 0 }, { (float)Adapter->GetWidth(), (float)Adapter->GetHeight() } };
+        Bounds2D screenBounds = { { -1, -1 }, { 1, 1 } };
+
+        for (auto& basePortal : startRoom->Portals) {
+            if (!WallIsTransparent(level, basePortal.Tag))
+                continue; // stop at opaque walls
+
+            auto baseFace = Face2::FromSide(level, basePortal.Tag);
+            //bool inFrontOfPlane = false;
+            //bool behindPlane = false;
+            //for (int i = 0; i < 4; i++) {
+            //    if (cameraPlane.DotCoordinate(baseFace[i]) > 0)
+            //        inFrontOfPlane = true;
+            //    else
+            //        behindPlane = true;
+            //}
+            //if (!baseFace.InFrontOfPlane(cameraPlane))
+            //continue; // Portal behind camera plane
+
+            //if (!inFrontOfPlane)
+            //    continue; // Portal behind camera plane
+
+            //if (!CameraFrustum.Contains(baseFace[0], baseFace[1], baseFace[2]) &&
+            //    !CameraFrustum.Contains(baseFace[2], baseFace[3], baseFace[0]))
+            //    continue; // Portal not in frustum
+
+
+            auto basePoints = GetNdc(baseFace, Render::ViewProjection);
+            if (!basePoints) continue;
+            auto startBounds = GetBounds(*basePoints);
+
+            // If the portal crosses the camera plane then treat it as visible
+            /*if (inFrontOfPlane && behindPlane) {
+                startBounds = screenBounds;
+            }
+            else */if (!screenBounds.Overlaps(startBounds)) {
+                continue; // Portal not on screen
+            }
+
+            //Bounds2D startBounds{};
+
+            //// Workaround for if the initial portal crosses the camera plane. Treat it as visible
+            //if (inFrontOfPlane && behindPlane) {
+            //    startBounds = screenBounds;
+            //}
+            //else {
+            //    auto basePoints = GetNdc(baseFace);
+            //    if (!basePoints) continue; // Portal behind camera
+
+            //    if (!screenBounds.Overlaps(startBounds)) {
+            //        continue; // Portal not on screen
+            //    }
+            //}
+
+            if (auto linkedRoom = level.GetRoom(basePortal.RoomLink)) {
+                CheckRoomVisibility(level, *linkedRoom, startBounds, 0);
+                if (!Seq::contains(_roomQueue, basePortal.RoomLink))
+                    _roomQueue.push_back(basePortal.RoomLink);
+            }
+        }
     }
 }
