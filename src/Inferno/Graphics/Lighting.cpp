@@ -104,11 +104,12 @@ namespace Inferno::Graphics {
         // Clear the next buffer
         ResetBuffer(_lights[(index + 1) % 2]);
         //_levelIndex = _dynamicIndex = 0;
+        _dispatchCount = _index;
         _index = 0;
     }
 
     void LightBuffer::AddLight(const LightData& light) {
-        if(_index >= _lights->size()) return;
+        if (_index >= _lights->size()) return;
         _lights[Adapter->GetCurrentFrameIndex()][_index++] = light;
     }
 }

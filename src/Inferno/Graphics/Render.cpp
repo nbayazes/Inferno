@@ -17,6 +17,7 @@
 #include "HUD.h"
 #include <ScopedTimer.h>
 
+#include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Procedural.h"
 #include "Render.Level.h"
@@ -517,8 +518,6 @@ namespace Inferno::Render {
         Stats::DrawCalls = 0;
         Stats::PolygonCount = 0;
 
-        UpdateEffects(FrameTime);
-
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
         Heaps->SetDescriptorHeaps(ctx.GetCommandList());
@@ -546,18 +545,26 @@ namespace Inferno::Render {
         if (Game::GetState() == GameState::Game)
             DrawHud(ctx);
 
+        //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);
         if (Settings::Graphics.MsaaSamples > 1)
             Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.GetCommandList(), Adapter->MsaaColorBuffer);
+        //LegitProfiler::AddCpuTask(std::move(resolve));
 
+        LegitProfiler::ProfilerTask postProcess("Post process");
         PostProcess(ctx);
+        LegitProfiler::AddCpuTask(std::move(postProcess));
         DrawUI(ctx);
 
+        LegitProfiler::ProfilerTask present("Present", LegitProfiler::Colors::NEPHRITIS);
         Adapter->Present();
+        LegitProfiler::AddCpuTask(std::move(present));
         //Adapter->WaitForGpu();
-        Materials->Dispatch();
 
+        LegitProfiler::ProfilerTask copy("Copy materials", LegitProfiler::Colors::BELIZE_HOLE);
+        Materials->Dispatch();
         CopyProceduralsToMainThread();
         _graphicsMemory->Commit(Adapter->BatchUploadQueue->Get());
+        LegitProfiler::AddCpuTask(std::move(copy));
     }
 
     void ReloadTextures() {

@@ -23,6 +23,7 @@ namespace Inferno {
         List<SegID> Segments;
         List<Portal> Portals; // Which tags of this room have connections to other rooms
         List<RoomID> VisibleRooms; // Rooms potentially visible from this one
+        List<EffectID> Effects; // Effects visible in this room
 
         //Sound::Reverb Reverb = Sound::Reverb::Generic;
         Color Fog;

@@ -134,12 +134,12 @@ namespace Inferno::Graphics {
     //    return Vector3::Barycentric(v0, v1, v2, f, g);
     //}
 
-    Option<Vector3> TriangleContainsUV(const Face& face, int tri, Vector2 uv) {
-        auto& indices = face.Side.GetRenderIndices();
+    Option<Vector3> TriangleContainsUV(const Face2& face, int tri, Vector2 uv) {
+        auto& indices = face.Side->GetRenderIndices();
 
         Vector2 uvs[3];
         for (int i = 0; i < 3; i++) {
-            uvs[i] = face.Side.UVs[indices[tri * 3 + i]];
+            uvs[i] = face.Side->UVs[indices[tri * 3 + i]];
         }
 
         // https://math.stackexchange.com/a/28552
@@ -164,7 +164,7 @@ namespace Inferno::Graphics {
         return Vector3::Barycentric(v0, v1, v2, f, g);
     }
 
-    Option<Vector3> FaceContainsUV(const Face& face, Vector2 uv) {
+    Option<Vector3> FaceContainsUV(const Face2& face, Vector2 uv) {
         auto pos = TriangleContainsUV(face, 0, uv);
         if (!pos) pos = TriangleContainsUV(face, 1, uv);
         return pos;
@@ -186,307 +186,302 @@ namespace Inferno::Graphics {
         return {};
     }
 
-    List<LightData> GatherLightSources(Level& level, float multiplier, float defaultRadius) {
-        List<LightData> sources;
 
-        // The empty light texture is only used for ambient lighting
+    List<LightData> GatherSegmentLights(Level& level, const Segment& seg, float multiplier, float defaultRadius) {
+        List<LightData> sources;
         TextureLightInfo defaultInfo{ .Radius = defaultRadius };
 
-        for (int segIdx = 0; segIdx < level.Segments.size(); segIdx++) {
-            auto& seg = level.Segments[segIdx];
+        if (seg.Type == SegmentType::Energy) {
+            auto len = seg.GetLongestSide();
 
-            if (seg.Type == SegmentType::Energy) {
-                auto len = seg.GetLongestSide();
+            auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
+            auto mat = TryGetValue(Resources::LightInfoTable, energyId);
+            auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
 
-                auto energyId = level.IsDescent1() ? LevelTexID(328) : LevelTexID(353);
-                auto mat = TryGetValue(Resources::LightInfoTable, energyId);
-                auto color = mat ? mat->Color : Color(0.63f, 0.315f, 0.045f);
+            LightData light{};
+            light.color = color;
+            light.radiusSq = len * len * 4;
+            light.type = LightType::Point;
+            light.pos = seg.Center;
+            sources.push_back(light);
+        }
 
-                LightData light{};
-                light.color = color;
-                light.radiusSq = len * len * 4;
-                light.type = LightType::Point;
-                light.pos = seg.Center;
-                sources.push_back(light);
-            }
+        //if (HasFlag(seg.AmbientSound, SoundFlag::AmbientLava)) {
+        {
+            // todo: only do this on rooms containing lava
+            auto lavaId = LevelTexID::None;
 
-            //if (HasFlag(seg.AmbientSound, SoundFlag::AmbientLava)) {
-            {
-                // todo: only do this on segments containing lava
-                auto lavaId = LevelTexID::None;
+            Vector3 center;
+            int sideCount = 0;
+            float maxArea = 0;
+            auto lavaSide = SideID::None;
 
-                Vector3 center;
-                int sideCount = 0;
-                float maxArea = 0;
-                auto lavaSide = SideID::None;
-
-                // there might be lava on a side, check them
-                for (auto& sideId : SideIDs) {
-                    if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
-
-                    auto& side = seg.GetSide(sideId);
-                    auto tmap = LevelTexID::None;
-
-                    if (Resources::GetLevelTextureInfo(side.TMap).HasFlag(TextureFlag::Volatile)) {
-                        tmap = side.TMap;
-                        center += side.Center + side.AverageNormal; // center + offset
-                        sideCount++;
-                    }
-
-                    if (Resources::GetLevelTextureInfo(side.TMap2).HasFlag(TextureFlag::Volatile)) {
-                        tmap = side.TMap2;
-                        center += side.Center + side.AverageNormal; // center + offset
-                        sideCount++;
-                    }
-
-                    if (tmap != LevelTexID::None) {
-                        // check if this side is the biggest
-                        auto face = Face::FromSide(level, seg, sideId);
-                        auto v0 = face[1] - face[0];
-                        auto v1 = face[3] - face[0];
-                        auto area = v0.Cross(v1).Length();
-
-                        if (area > maxArea) {
-                            maxArea = area;
-                            lavaSide = sideId;
-                            lavaId = tmap;
-                        }
-                    }
-                }
-
-                if (lavaSide != SideID::None && lavaId != LevelTexID::None && sideCount > 0) {
-                    // Lava in this seg, add point lights
-                    center /= (float)sideCount;
-
-                    auto mat = TryGetValue(Resources::LightInfoTable, lavaId);
-                    auto color = mat ? mat->Color : Color(1.0f, 0.0f, 0.0f);
-
-                    auto face = Face::FromSide(level, seg, lavaSide);
-                    auto iLongest = face.GetLongestEdge();
-                    auto longestVec = face[iLongest + 1] - face[iLongest];
-                    auto maxLen = longestVec.Length();
-                    auto iShortest = face.GetShortestEdge();
-                    auto shortestLen = (face[iShortest + 1] - face[iShortest]).Length();
-                    auto ratio = longestVec.Length() / std::max(0.1f, shortestLen);
-
-                    auto addLavaPoint = [&sources, &color](const Vector3& p, float radius) {
-                        LightData light{};
-                        light.color = color;
-                        light.radiusSq = radius * radius * 2.0f;
-                        light.type = LightType::Point;
-                        light.pos = p;
-                        sources.push_back(light);
-                    };
-
-                    maxLen = std::clamp(maxLen, 0.0f, 60.0f); // clamp for perf reasons
-
-                    constexpr float SPLIT_RATIO = 2.5f;
-                    if (ratio > SPLIT_RATIO && maxLen > 45) {
-                        addLavaPoint(center + longestVec / 4, maxLen * 0.5f);
-                        addLavaPoint(center - longestVec / 4, maxLen * 0.5f);
-                    }
-                    else {
-                        addLavaPoint(center, maxLen * 1.25f);
-                    }
-                }
-            }
-
+            // there might be lava on a side, check them
             for (auto& sideId : SideIDs) {
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
-                if (auto wall = level.TryGetWall(seg.GetSide(sideId).Wall)) {
-                    if (wall->Type == WallType::Open) continue; // Skip open walls
+
+                auto& side = seg.GetSide(sideId);
+                auto tmap = LevelTexID::None;
+
+                if (Resources::GetLevelTextureInfo(side.TMap).HasFlag(TextureFlag::Volatile)) {
+                    tmap = side.TMap;
+                    center += side.Center + side.AverageNormal; // center + offset
+                    sideCount++;
                 }
 
-                auto face = Face::FromSide(level, seg, sideId);
-                auto& side = face.Side;
+                if (Resources::GetLevelTextureInfo(side.TMap2).HasFlag(TextureFlag::Volatile)) {
+                    tmap = side.TMap2;
+                    center += side.Center + side.AverageNormal; // center + offset
+                    sideCount++;
+                }
 
-                bool useOverlay = side.TMap2 > LevelTexID::Unset;
+                if (tmap != LevelTexID::None) {
+                    // check if this side is the biggest
+                    auto face = Face2::FromSide(level, seg, sideId);
+                    auto v0 = face[1] - face[0];
+                    auto v1 = face[3] - face[0];
+                    auto area = v0.Cross(v1).Length();
 
-                TextureLightInfo* info = nullptr;
+                    if (area > maxArea) {
+                        maxArea = area;
+                        lavaSide = sideId;
+                        lavaId = tmap;
+                    }
+                }
+            }
 
-                // priority: mat2, tmap2, mat1, tmap1
-                auto mat2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
-                if (mat2) {
-                    info = mat2;
+            if (lavaSide != SideID::None && lavaId != LevelTexID::None && sideCount > 0) {
+                // Lava in this seg, add point lights
+                center /= (float)sideCount;
+
+                auto mat = TryGetValue(Resources::LightInfoTable, lavaId);
+                auto color = mat ? mat->Color : Color(1.0f, 0.0f, 0.0f);
+
+                auto face = Face2::FromSide(level, seg, lavaSide);
+                auto iLongest = face.GetLongestEdge();
+                auto longestVec = face[iLongest + 1] - face[iLongest];
+                auto maxLen = longestVec.Length();
+                auto iShortest = face.GetShortestEdge();
+                auto shortestLen = (face[iShortest + 1] - face[iShortest]).Length();
+                auto ratio = longestVec.Length() / std::max(0.1f, shortestLen);
+
+                auto addLavaPoint = [&sources, &color](const Vector3& p, float radius) {
+                    LightData light{};
+                    light.color = color;
+                    light.radiusSq = radius * radius * 2.0f;
+                    light.type = LightType::Point;
+                    light.pos = p;
+                    sources.push_back(light);
+                };
+
+                maxLen = std::clamp(maxLen, 0.0f, 60.0f); // clamp for perf reasons
+
+                constexpr float SPLIT_RATIO = 2.5f;
+                if (ratio > SPLIT_RATIO && maxLen > 45) {
+                    addLavaPoint(center + longestVec / 4, maxLen * 0.5f);
+                    addLavaPoint(center - longestVec / 4, maxLen * 0.5f);
                 }
                 else {
-                    auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
-                    if (tmap2.Lighting <= 0)
-                        useOverlay = false;
+                    addLavaPoint(center, maxLen * 1.25f);
                 }
+            }
+        }
 
-                if (!useOverlay) {
-                    auto mat = TryGetValue(Resources::LightInfoTable, side.TMap);
-                    if (mat)
-                        info = mat;
-                }
+        for (auto& sideId : SideIDs) {
+            if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
+            if (auto wall = level.TryGetWall(seg.GetSide(sideId).Wall)) {
+                if (wall->Type == WallType::Open) continue; // Skip open walls
+            }
 
-                if (!info) info = &defaultInfo;
-                auto color = GetLightColor(side, true);
-                auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
+            auto face = Face2::FromSide(level, seg, sideId);
+            auto& side = *face.Side;
 
-                if (!CheckMinLight(color)) continue;
+            bool useOverlay = side.TMap2 > LevelTexID::Unset;
 
-                Vector2 minUV(FLT_MAX, FLT_MAX), maxUV(-FLT_MAX, -FLT_MAX);
-                for (int j = 0; j < 4; j++) {
-                    auto& uv = side.UVs[j];
-                    minUV = Vector2::Min(minUV, uv);
-                    maxUV = Vector2::Max(maxUV, uv);
-                }
+            TextureLightInfo* info = nullptr;
 
-                auto xMin = (int)std::round(minUV.x);
-                auto yMin = (int)std::round(minUV.y);
-                auto xMax = (int)std::round(maxUV.x);
-                auto yMax = (int)std::round(maxUV.y);
-                auto isFarFromEdge = [](float f) {
-                    auto diff = std::abs(f - std::round(f));
-                    return diff > 0.01f;
-                };
-                if (isFarFromEdge(minUV.x)) xMin -= 1;
-                if (isFarFromEdge(minUV.y)) yMin -= 1;
-                if (isFarFromEdge(maxUV.x)) xMax += 1;
-                if (isFarFromEdge(maxUV.y)) yMax += 1;
+            // priority: mat2, tmap2, mat1, tmap1
+            auto mat2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
+            if (mat2) {
+                info = mat2;
+            }
+            else {
+                auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
+                if (tmap2.Lighting <= 0)
+                    useOverlay = false;
+            }
 
-                float overlayAngle = useOverlay ? GetOverlayRotationAngle(side.OverlayRotation) : 0;
+            if (!useOverlay) {
+                auto mat = TryGetValue(Resources::LightInfoTable, side.TMap);
+                if (mat)
+                    info = mat;
+            }
 
-                constexpr float SAMPLE_DIST = 0.1f;
-                auto getUVScale = [&face](const Vector3& pos, Vector2 uv) {
-                    auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
-                    auto upPos = FaceContainsUV(face, uv + Vector2(0, SAMPLE_DIST));
-                    if (!rightPos || !upPos) return Vector2(1, 1);
-                    auto widthScale = (*rightPos - pos).Length() / SAMPLE_DIST;
-                    auto heightScale = (*upPos - pos).Length() / SAMPLE_DIST;
-                    return Vector2(widthScale, heightScale);
-                };
+            if (!info) info = &defaultInfo;
+            auto color = GetLightColor(side, true);
+            auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
 
-                Vector2 prevIntersects[2];
+            if (!CheckMinLight(color)) continue;
 
-                // iterate each tile, checking the defined UVs
-                for (int ix = xMin; ix < xMax; ix++) {
-                    for (int iy = yMin; iy < yMax; iy++) {
-                        for (Vector2 lt : info->Points) {
-                            LightData light{};
-                            light.color = color * multiplier;
-                            light.radiusSq = radius * radius;
-                            light.normal = side.AverageNormal;
-                            light.type = info->Type;
+            Vector2 minUV(FLT_MAX, FLT_MAX), maxUV(-FLT_MAX, -FLT_MAX);
+            for (int j = 0; j < 4; j++) {
+                auto& uv = side.UVs[j];
+                minUV = Vector2::Min(minUV, uv);
+                maxUV = Vector2::Max(maxUV, uv);
+            }
 
-                            if (info->Wrap == LightWrapMode::U || info->Wrap == LightWrapMode::V) {
-                                //if (info.IsContinuous()) {
-                                // project the uv to the edge and create two points offset by the light radius
-                                Vector2 uvOffset{ (float)ix, (float)iy };
+            auto xMin = (int)std::round(minUV.x);
+            auto yMin = (int)std::round(minUV.y);
+            auto xMax = (int)std::round(maxUV.x);
+            auto yMax = (int)std::round(maxUV.y);
+            auto isFarFromEdge = [](float f) {
+                auto diff = std::abs(f - std::round(f));
+                return diff > 0.01f;
+            };
+            if (isFarFromEdge(minUV.x)) xMin -= 1;
+            if (isFarFromEdge(minUV.y)) yMin -= 1;
+            if (isFarFromEdge(maxUV.x)) xMax += 1;
+            if (isFarFromEdge(maxUV.y)) yMax += 1;
 
-                                auto uv0 = lt;
-                                auto uv1 = lt;
-                                if (info->Wrap == LightWrapMode::U)
-                                    uv1 += Vector2(1, 0);
+            float overlayAngle = useOverlay ? GetOverlayRotationAngle(side.OverlayRotation) : 0;
 
-                                if (info->Wrap == LightWrapMode::V)
-                                    uv1 += Vector2(0, 1);
+            constexpr float SAMPLE_DIST = 0.1f;
+            auto getUVScale = [&face](const Vector3& pos, Vector2 uv) {
+                auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
+                auto upPos = FaceContainsUV(face, uv + Vector2(0, SAMPLE_DIST));
+                if (!rightPos || !upPos) return Vector2(1, 1);
+                auto widthScale = (*rightPos - pos).Length() / SAMPLE_DIST;
+                auto heightScale = (*upPos - pos).Length() / SAMPLE_DIST;
+                return Vector2(widthScale, heightScale);
+            };
 
-                                if (useOverlay && overlayAngle != 0) {
-                                    constexpr Vector2 offset(0.5, 0.5);
-                                    uv0 = RotateVector(uv0 - offset, -overlayAngle) + offset;
-                                    uv1 = RotateVector(uv1 - offset, -overlayAngle) + offset;
-                                }
+            Vector2 prevIntersects[2];
 
-                                uv0 += uvOffset;
-                                uv1 += uvOffset;
+            // iterate each tile, checking the defined UVs
+            for (int ix = xMin; ix < xMax; ix++) {
+                for (int iy = yMin; iy < yMax; iy++) {
+                    for (Vector2 lt : info->Points) {
+                        LightData light{};
+                        light.color = color * multiplier;
+                        light.radiusSq = radius * radius;
+                        light.normal = side.AverageNormal;
+                        light.type = info->Type;
 
-                                // Extend the begin/end uvs so they should always cross
-                                auto uvVec = uv1 - uv0;
-                                uvVec.Normalize();
-                                //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
-                                //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
+                        if (info->Wrap == LightWrapMode::U || info->Wrap == LightWrapMode::V) {
+                            //if (info.IsContinuous()) {
+                            // project the uv to the edge and create two points offset by the light radius
+                            Vector2 uvOffset{ (float)ix, (float)iy };
 
-                                uv0 -= uvVec * Vector2(100, 100);
-                                uv1 += uvVec * Vector2(100, 100);
+                            auto uv0 = lt;
+                            auto uv1 = lt;
+                            if (info->Wrap == LightWrapMode::U)
+                                uv1 += Vector2(1, 0);
 
-                                int found = 0;
-                                Vector2 intersects[2];
+                            if (info->Wrap == LightWrapMode::V)
+                                uv1 += Vector2(0, 1);
 
-                                // there should always be two intersections
-                                for (int i = 0; i < 4; i++) {
-                                    if (auto intersect = IntersectLines(uv0, uv1, side.UVs[i], side.UVs[(i + 1) % 4])) {
-                                        intersects[found++] = *intersect;
-                                        if (found > 1) break;
-                                    }
-                                }
+                            if (useOverlay && overlayAngle != 0) {
+                                constexpr Vector2 offset(0.5, 0.5);
+                                uv0 = RotateVector(uv0 - offset, -overlayAngle) + offset;
+                                uv1 = RotateVector(uv1 - offset, -overlayAngle) + offset;
+                            }
 
-                                if (found == 2) {
-                                    // Check if the previous intersections are on top of this one
-                                    if ((intersects[0] - prevIntersects[0]).Length() < 0.1 &&
-                                        (intersects[1] - prevIntersects[1]).Length() < 0.1)
-                                        continue; // Skip overlap
+                            uv0 += uvOffset;
+                            uv1 += uvOffset;
 
-                                    prevIntersects[0] = intersects[0];
-                                    prevIntersects[1] = intersects[1];
+                            // Extend the begin/end uvs so they should always cross
+                            auto uvVec = uv1 - uv0;
+                            uvVec.Normalize();
+                            //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
+                            //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
 
-                                    auto uvIntVec = intersects[1] - intersects[0];
-                                    uvIntVec.Normalize();
-                                    constexpr float uvIntOffset = 0.01;
+                            uv0 -= uvVec * Vector2(100, 100);
+                            uv1 += uvVec * Vector2(100, 100);
 
-                                    auto uvEdge0 = intersects[0] + uvIntVec * uvIntOffset;
-                                    auto uvEdge1 = intersects[1] - uvIntVec * uvIntOffset;
-                                    auto pos = FaceContainsUV(face, uvEdge0);
-                                    auto pos2 = FaceContainsUV(face, uvEdge1);
+                            int found = 0;
+                            Vector2 intersects[2];
 
-                                    if (pos && pos2) {
-                                        // 'up' is the wrapped axis
-                                        auto delta = *pos2 - *pos;
-                                        auto up = delta / 2;
-                                        auto center = (*pos2 + *pos) / 2;
-                                        Vector3 upVec;
-                                        up.Normalize(upVec);
-                                        auto rightVec = side.AverageNormal.Cross(upVec);
-                                        auto centerUv = (uvEdge0 + uvEdge1) / 2;
-                                        auto uvScale = getUVScale(*pos, centerUv);
-
-                                        light.type = LightType::Rectangle;
-                                        light.pos = center + side.AverageNormal * info->Offset;
-                                        light.right = rightVec * info->Width * uvScale.x;
-                                        light.up = up;
-                                        light.up -= upVec * 1; // offset the ends to prevent hotspots
-                                        sources.push_back(light);
-                                    }
+                            // there should always be two intersections
+                            for (int i = 0; i < 4; i++) {
+                                if (auto intersect = IntersectLines(uv0, uv1, side.UVs[i], side.UVs[(i + 1) % 4])) {
+                                    intersects[found++] = *intersect;
+                                    if (found > 1) break;
                                 }
                             }
-                            else {
-                                if (useOverlay && overlayAngle != 0) {
-                                    constexpr Vector2 offset(0.5, 0.5);
-                                    lt = RotateVector(lt - offset, -overlayAngle) + offset;
-                                }
 
-                                Vector2 uv = { ix + lt.x, iy + lt.y };
+                            if (found == 2) {
+                                // Check if the previous intersections are on top of this one
+                                if ((intersects[0] - prevIntersects[0]).Length() < 0.1 &&
+                                    (intersects[1] - prevIntersects[1]).Length() < 0.1)
+                                    continue; // Skip overlap
 
-                                // Check both faces
-                                auto pos = FaceContainsUV(face, uv);
+                                prevIntersects[0] = intersects[0];
+                                prevIntersects[1] = intersects[1];
 
-                                // Sample points near the light position to determine UV scale
-                                auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
+                                auto uvIntVec = intersects[1] - intersects[0];
+                                uvIntVec.Normalize();
+                                constexpr float uvIntOffset = 0.01;
 
-                                if (pos && rightPos) {
-                                    auto rightVec = *rightPos - *pos;
-                                    rightVec.Normalize();
+                                auto uvEdge0 = intersects[0] + uvIntVec * uvIntOffset;
+                                auto uvEdge1 = intersects[1] - uvIntVec * uvIntOffset;
+                                auto pos = FaceContainsUV(face, uvEdge0);
+                                auto pos2 = FaceContainsUV(face, uvEdge1);
 
-                                    auto upVec = side.AverageNormal.Cross(rightVec);
-                                    upVec.Normalize();
+                                if (pos && pos2) {
+                                    // 'up' is the wrapped axis
+                                    auto delta = *pos2 - *pos;
+                                    auto up = delta / 2;
+                                    auto center = (*pos2 + *pos) / 2;
+                                    Vector3 upVec;
+                                    up.Normalize(upVec);
+                                    auto rightVec = side.AverageNormal.Cross(upVec);
+                                    auto centerUv = (uvEdge0 + uvEdge1) / 2;
+                                    auto uvScale = getUVScale(*pos, centerUv);
 
-                                    // Rotate the direction vectors to match the overlay
-                                    if (useOverlay && overlayAngle != 0) {
-                                        auto rotation = Matrix::CreateFromAxisAngle(side.AverageNormal, -overlayAngle);
-                                        upVec = Vector3::Transform(upVec, rotation);
-                                        rightVec = Vector3::Transform(rightVec, rotation);
-                                    }
-
-                                    auto uvScale = getUVScale(*pos, uv);
-
-                                    // sample points close to the uv to get up/right axis
-                                    light.pos = *pos + side.AverageNormal * info->Offset;
+                                    light.type = LightType::Rectangle;
+                                    light.pos = center + side.AverageNormal * info->Offset;
                                     light.right = rightVec * info->Width * uvScale.x;
-                                    light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
+                                    light.up = up;
+                                    light.up -= upVec * 1; // offset the ends to prevent hotspots
                                     sources.push_back(light);
                                 }
+                            }
+                        }
+                        else {
+                            if (useOverlay && overlayAngle != 0) {
+                                constexpr Vector2 offset(0.5, 0.5);
+                                lt = RotateVector(lt - offset, -overlayAngle) + offset;
+                            }
+
+                            Vector2 uv = { ix + lt.x, iy + lt.y };
+
+                            // Check both faces
+                            auto pos = FaceContainsUV(face, uv);
+
+                            // Sample points near the light position to determine UV scale
+                            auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
+
+                            if (pos && rightPos) {
+                                auto rightVec = *rightPos - *pos;
+                                rightVec.Normalize();
+
+                                auto upVec = side.AverageNormal.Cross(rightVec);
+                                upVec.Normalize();
+
+                                // Rotate the direction vectors to match the overlay
+                                if (useOverlay && overlayAngle != 0) {
+                                    auto rotation = Matrix::CreateFromAxisAngle(side.AverageNormal, -overlayAngle);
+                                    upVec = Vector3::Transform(upVec, rotation);
+                                    rightVec = Vector3::Transform(rightVec, rotation);
+                                }
+
+                                auto uvScale = getUVScale(*pos, uv);
+
+                                // sample points close to the uv to get up/right axis
+                                light.pos = *pos + side.AverageNormal * info->Offset;
+                                light.right = rightVec * info->Width * uvScale.x;
+                                light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
+                                sources.push_back(light);
                             }
                         }
                     }
@@ -495,5 +490,23 @@ namespace Inferno::Graphics {
         }
 
         return sources;
+    }
+
+    List<List<LightData>> GatherLightSources(Level& level, float multiplier, float defaultRadius) {
+        List<List<LightData>> roomSources;
+
+        for (auto& room : level.Rooms) {
+            List<LightData> sources;
+            for (auto& segId : room.Segments) {
+                if (auto seg = level.TryGetSegment(segId)) {
+                    auto segLights = GatherSegmentLights(level, *seg, multiplier, defaultRadius);
+                    Seq::append(sources, segLights);
+                }
+            }
+
+            roomSources.push_back(std::move(sources));
+        }
+
+        return roomSources;
     }
 }

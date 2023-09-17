@@ -921,7 +921,7 @@ namespace Inferno::Game {
                 LevelHit hit;
                 RayQuery query{ .MaxDistance = dist, .Start = srcSegment, .IgnoreWalls = true };
 
-                if (!intersect.IntersectRayLevel(ray, query, hit)) {
+                if (!intersect.RayLevel(ray, query, hit)) {
                     //Render::Debug::DebugLines.push_back(pt);
                     //Render::Debug::DebugLines.push_back(srcPoint);
                     return true; // At least one ray can reach the portal

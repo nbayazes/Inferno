@@ -30,6 +30,7 @@ namespace Inferno::Sound {
         constexpr float MERGE_WINDOW = 1 / 14.0f; // Merge the same sound being played by a source within a window
 
         std::condition_variable InitializeCondition;
+        IntersectContext Intersect({});
     }
 
     void WaitInitialized() {
@@ -108,7 +109,7 @@ namespace Inferno::Sound {
                         LevelHit hit;
                         RayQuery query{ .MaxDistance = dist, .Start = Segment, .PassTransparent = true };
 
-                        if (IntersectRayLevel(Game::Level, ray, query, hit)) {
+                        if (Intersect.RayLevel(ray, query, hit)) {
                             auto hitDist = (listener - hit.Point).Length();
                             // we hit a wall, muffle it based on the distance from the source
                             // a sound coming immediately around the corner shouldn't get muffled much
@@ -333,6 +334,7 @@ namespace Inferno::Sound {
     void Init(HWND, milliseconds pollRate) {
         WorkerThread = std::jthread(SoundWorker, pollRate);
         Listener.pCone = (X3DAUDIO_CONE*)&c_listenerCone;
+        Intersect = IntersectContext(Game::Level);
     }
 
     void SetReverb(Reverb reverb) {

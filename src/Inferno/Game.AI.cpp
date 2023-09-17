@@ -20,6 +20,10 @@ namespace Inferno {
     constexpr float AI_COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
     constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
 
+    namespace {
+        IntersectContext Intersect(Game::Level);
+    }
+
     void ResetAI() {
         for (auto& ai : AI)
             ai = {};
@@ -54,7 +58,7 @@ namespace Inferno {
         LevelHit hit{};
         Ray ray = { obj.Position, playerDir };
         RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .PassTransparent = true };
-        return !IntersectRayLevel(Game::Level, ray, query, hit);
+        return !Intersect.RayLevel(ray, query, hit);
     }
 
     void AddAwareness(AIRuntime& ai, float awareness) {
@@ -946,13 +950,13 @@ namespace Inferno {
     }
 
     // Moves towards a random segment further away from the player. Prefers room portals.
-    void MoveAwayFromPlayer(Level& level, const Object& player, Object& robot) {
+    void MoveAwayFromPlayer(Level& /*level*/, const Object& player, Object& robot) {
         auto playerDir = player.Position - robot.Position;
         playerDir.Normalize();
         Ray ray(robot.Position, -playerDir);
         LevelHit hit;
         RayQuery query{ .MaxDistance = 10, .Start = robot.Segment };
-        if (IntersectRayLevel(level, ray, query, hit))
+        if (Intersect.RayLevel(ray, query, hit))
             return; // no room to move backwards
 
         // todo: try escaping through portals if there are any in the player's FOV

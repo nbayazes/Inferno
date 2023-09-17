@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <functional>
+#include <span>
 
 namespace Inferno {
     // Contiguous data pool that reuses elements when a condition is met.
@@ -78,8 +79,8 @@ namespace Inferno {
         bool InRange(TKey index) const { return index >= (TKey)0 && index < (TKey)_data.size(); }
 
         // return a span of mostly-live data
-        span<const TData> GetLiveData() const {
-            return span<const TData>(_data.begin(), _liveItems);
+        std::span<const TData> GetLiveData() const {
+            return std::span<const TData>(_data.begin(), _liveItems);
         }
 
         [[nodiscard]] auto at(size_t index) { return _data.at(index); }

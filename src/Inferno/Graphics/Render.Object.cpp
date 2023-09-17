@@ -19,9 +19,12 @@ namespace Inferno::Render {
                     bool additive,
                     const Vector3* up = nullptr,
                     bool lit = false) {
+
         Color color = lit ? object.Ambient.GetColor() : Color(1, 1, 1);
-        color += object.Render.Emissive;
         if (object.IsPowerup()) color += MIN_POWERUP_AMBIENT;
+
+        if (object.Render.Emissive != Color())
+            color = object.Render.Emissive;
 
         auto pos = object.GetPosition(Game::LerpAmount);
 

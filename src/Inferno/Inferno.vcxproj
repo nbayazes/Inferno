@@ -294,6 +294,7 @@
     <ClInclude Include="Graphics\Render.Queue.h" />
     <ClInclude Include="HUD.h" />
     <ClInclude Include="Intersect.h" />
+    <ClInclude Include="LegitProfiler.h" />
     <ClInclude Include="LevelSettings.h" />
     <ClInclude Include="LightInfo.h" />
     <ClInclude Include="Editor\UI\MaterialEditor.h" />

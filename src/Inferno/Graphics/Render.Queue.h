@@ -55,6 +55,14 @@ namespace Inferno::Render {
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
         List<RoomID> _roomQueue;
+
+        struct ObjDepth {
+            Object* Obj = nullptr;
+            float Depth = 0;
+            EffectBase* Effect;
+        };
+
+        List<ObjDepth> _objects;
     public:
         void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
@@ -62,6 +70,7 @@ namespace Inferno::Render {
         span<RoomID> GetVisibleRooms() { return _roomQueue; }
     private:
         void QueueEditorObject(Object& obj, float lerp);
+        void QueueSegmentObjects(Level& level, const Segment& seg);
         void TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes);
         void CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth);
         void TraverseLevelRooms(RoomID startRoomId, Level& level,span<LevelMesh> wallMeshes);

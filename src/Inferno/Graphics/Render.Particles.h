@@ -14,12 +14,18 @@ namespace Inferno::Render {
     struct RenderCommand;
     float GetRenderDepth(const Vector3& pos);
 
+    enum class RenderQueueType {
+        None,
+        Opaque,
+        Transparent
+    };
+
     struct EffectBase {
         SegID Segment = SegID::None;
         Vector3 Position, PrevPosition;
         float Duration = 0; // How long the effect lasts
         float Elapsed = 0; // How long the effect has been alive for
-        bool IsTransparent = true; // Which queue to render to
+        RenderQueueType Queue = RenderQueueType::Transparent; // Which queue to render to
         float FadeTime = 0; // Fade time at the end of the effect's life
         float StartDelay = 0; // How long to wait in seconds before starting the effect
         ObjRef Parent;
@@ -38,7 +44,7 @@ namespace Inferno::Render {
         virtual void Draw(Graphics::GraphicsContext&) {}
 
         virtual void DepthPrepass(Graphics::GraphicsContext&) {
-            assert(IsTransparent); // must provide a depth prepass if not transparent
+            ASSERT(Queue == RenderQueueType::Transparent); // must provide a depth prepass if not transparent
         }
 
         virtual void OnExpire() {}
@@ -53,6 +59,8 @@ namespace Inferno::Render {
     };
 
     struct DynamicLight final : EffectBase {
+        DynamicLight() { Queue = RenderQueueType::None; }
+
         DynamicLightMode Mode = DynamicLightMode::Constant;
         //float FlickerSpeed = 4.0f;
         //float FlickerRadius = 0;
@@ -60,6 +68,10 @@ namespace Inferno::Render {
         Color LightColor; // Color of emitted light
 
         void OnUpdate(float dt, EffectID) override;
+
+    private:
+        Color _currentColor;
+        float _currentRadius = 0;
     };
 
     struct Particle final : EffectBase {
@@ -114,7 +126,7 @@ namespace Inferno::Render {
 
     // Remains of a destroyed robot
     struct Debris final : EffectBase {
-        Debris() { IsTransparent = false; }
+        Debris() { Queue = RenderQueueType::Opaque; }
 
         Matrix Transform, PrevTransform;
         Vector3 Velocity;
@@ -135,8 +147,9 @@ namespace Inferno::Render {
     void AddDebris(Debris&, SegID);
 
     // An explosion can consist of multiple particles
-    struct ExplosionInfo {
-        ObjRef Parent;
+    struct ExplosionInfo : EffectBase {
+        ExplosionInfo() { Queue = RenderQueueType::None; }
+
         VClipID Clip = VClipID::SmallExplosion;
         SoundID Sound = SoundID::None;
         float Volume = 1.0f;
@@ -148,11 +161,9 @@ namespace Inferno::Render {
         Color LightColor = { 4.0f, 1.0f, 0.1f }; // Color of emitted light
         float LightRadius = 0;
         Color Color = { 2.75f, 2.25f, 2.25f }; // Particle color
-        float FadeTime = 0; // How long it takes to fade the particles out
-        SegID Segment = SegID::None;
-        Vector3 Position;
 
         bool IsAlive() const { return InitialDelay >= 0; }
+        void OnUpdate(float, EffectID) override;
     };
 
     void CreateExplosion(ExplosionInfo&, SegID, const Vector3& position);
@@ -274,6 +285,7 @@ namespace Inferno::Render {
         float _nextInterval = 0;
 
     public:
+        SparkEmitter() { Queue = RenderQueueType::None; }
         string Texture = "tracer";
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
@@ -314,14 +326,17 @@ namespace Inferno::Render {
     void AddSparkEmitter(SparkEmitter, SegID, const Vector3& worldPos = Vector3::Zero);
     void AddDynamicLight(DynamicLight&);
 
-    void ResetEffects();
-
     // Gets a visual effect
     EffectBase* GetEffect(EffectID effect);
 
     void ResetEffects();
-    void UpdateEffects(float dt);
+    void UpdateEffect(float dt, EffectID id);
+    
+    // Either call this or individual effects using UpdateEffect()
+    void UpdateAllEffects(float dt);
     void FixedUpdateEffects(float dt);
+    void BeginUpdateEffects();
+    void EndUpdateEffects();
 
     namespace Stats {
         inline uint EffectDraws = 0;

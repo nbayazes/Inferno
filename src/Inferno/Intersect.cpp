@@ -297,7 +297,7 @@ namespace Inferno {
         }
     }
 
-    bool IntersectContext::IntersectRayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit) {
+    bool IntersectContext::RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit) {
         SegID next = query.Start;
         if (next == SegID::None)
             next = FindContainingSegment(*_level, ray.position);
@@ -360,6 +360,7 @@ namespace Inferno {
 
         return false;
     }
+
     // intersects a ray with the level, returning hit information
     bool IntersectRayLevel(Level& level, const Ray& ray, const RayQuery& query, LevelHit& hit) {
         SegID next = query.Start;

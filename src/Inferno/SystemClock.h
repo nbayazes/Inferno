@@ -97,9 +97,15 @@ namespace Inferno {
             return (double)GetTotalMilliseconds() / 1000.0;
         }
 
-        // Time since the last update
+        // The duration of the last update in seconds
         double GetFrameTimeSeconds() const {
             return (double)_frameTime / 1'000'000'000.0;
+        }
+
+        // returns the time in seconds from the start of this frame
+        double GetFrameStartOffsetSeconds() const {
+            auto delta = GetClockTimeNs() - _currentFrameStartTime;
+            return (double)delta / 1'000'000'000.0;
         }
 
         //double GetInputFrac(bool synchronised, double tickRate) {
@@ -160,7 +166,7 @@ namespace Inferno {
 
         uint64_t GetClockTimeNs() const {
             using namespace std::chrono;
-            auto time = (uint64_t)(duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count());
+            auto time = (uint64_t)duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
             return TimeScale == 1.0 ? time : time * (uint64_t)(TimeScale * 1000);
         }
     };

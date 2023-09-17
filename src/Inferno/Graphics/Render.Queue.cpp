@@ -3,6 +3,7 @@
 
 #include "Game.h"
 #include "Game.Wall.h"
+#include "LegitProfiler.h"
 #include "Render.Debug.h"
 #include "Render.Editor.h"
 #include "Render.Particles.h"
@@ -18,9 +19,11 @@ namespace Inferno::Render {
     }
 
     void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes) {
+        LegitProfiler::ProfilerTask task("Render queue", LegitProfiler::Colors::ALIZARIN);
         _transparentQueue.clear();
         _opaqueQueue.clear();
         _visited.clear();
+        _roomQueue.clear();
 
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
@@ -29,6 +32,8 @@ namespace Inferno::Render {
             _opaqueQueue.push_back({ &mesh, 0 });
 
         if (Game::GetState() == GameState::Editor) {
+            UpdateAllEffects(FrameTime);
+
             for (auto& mesh : wallMeshes) {
                 float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
                 _transparentQueue.push_back({ &mesh, depth });
@@ -56,14 +61,21 @@ namespace Inferno::Render {
                     }
                 }
             }
+
+            // Mark all rooms as visible in editor mode
+            for (int i = 0; i < level.Rooms.size(); i++) {
+                _roomQueue.push_back((RoomID)i);
+            }
         }
         else if (!level.Objects.empty()) {
             // todo: should start at camera position
-            TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
+            //TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
 
             auto roomId = level.GetRoomID(Game::GetPlayer());
             TraverseLevelRooms(roomId, level, wallMeshes);
         }
+
+        LegitProfiler::AddCpuTask(std::move(task));
     }
 
     void RenderQueue::QueueEditorObject(Object& obj, float lerp) {
@@ -104,19 +116,75 @@ namespace Inferno::Render {
         }
     }
 
+    void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg) {
+        _objects.clear();
+
+        // queue objects in segment
+        for (auto oid : seg.Objects) {
+            if (auto obj = level.TryGetObject(oid)) {
+                if (!ShouldDrawObject(*obj)) continue;
+
+                //DirectX::BoundingSphere bounds(obj->Position, obj->Radius);
+                //if (CameraFrustum.Contains(bounds))
+                _objects.push_back({ obj, GetRenderDepth(obj->Position) });
+            }
+        }
+
+        for (auto& effectId : seg.Effects) {
+            if (auto effect = GetEffect(effectId)) {
+                Stats::EffectDraws++;
+                _objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
+            }
+        }
+
+        // Sort objects in segment by depth
+        Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
+            return a.Depth < b.Depth;
+        });
+
+        // Queue objects in seg
+        for (auto& obj : _objects) {
+            if (obj.Obj) {
+                if (obj.Obj->Render.Type == RenderType::Model &&
+                    obj.Obj->Render.Model.ID != ModelID::None) {
+                    // always submit objects to opaque queue, as the renderer will skip
+                    // non-transparent submeshes
+                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+
+                    if (obj.Obj->Render.Model.Outrage) {
+                        //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
+                        //if (mesh.HasTransparentTexture)
+                        // outrage models do not setting transparent texture flag, but many are
+                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
+                    else {
+                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+                        if (mesh.IsTransparent)
+                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
+                }
+                else {
+                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                }
+            }
+            else if (obj.Effect) {
+                auto depth = GetRenderDepth(obj.Effect->Position);
+
+                if (obj.Effect->Queue == RenderQueueType::Transparent)
+                    _transparentQueue.push_back({ obj.Effect, depth });
+                else if (obj.Effect->Queue == RenderQueueType::Opaque)
+                    _opaqueQueue.push_back({ obj.Effect, depth });
+            }
+        }
+    }
+
     void RenderQueue::TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes) {
         ScopedTimer levelTimer(&Render::Metrics::QueueLevel);
 
+        _objects.clear();
         _visited.clear();
         _search.push({ startId, 0 });
         Stats::EffectDraws = 0;
-
-        struct ObjDepth {
-            Object* Obj = nullptr;
-            float Depth = 0;
-            EffectBase* Effect;
-        };
-        List<ObjDepth> objects;
 
         // todo: add visible lights. Graphics::Lights.AddLight(light);
 
@@ -172,65 +240,7 @@ namespace Inferno::Render {
                 }
             }
 
-            objects.clear();
-
-            // queue objects in segment
-            for (auto oid : seg->Objects) {
-                if (auto obj = level.TryGetObject(oid)) {
-                    if (!ShouldDrawObject(*obj)) continue;
-
-                    //DirectX::BoundingSphere bounds(obj->Position, obj->Radius);
-                    //if (CameraFrustum.Contains(bounds))
-                    objects.push_back({ obj, GetRenderDepth(obj->Position) });
-                }
-            }
-
-            for (auto& effectId : seg->Effects) {
-                if (auto effect = GetEffect(effectId)) {
-                    Stats::EffectDraws++;
-                    objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
-                }
-            }
-
-            // Sort objects in segment by depth
-            Seq::sortBy(objects, [](const ObjDepth& a, const ObjDepth& b) {
-                return a.Depth < b.Depth;
-            });
-
-            // Queue objects in seg
-            for (auto& obj : objects) {
-                if (obj.Obj) {
-                    if (obj.Obj->Render.Type == RenderType::Model &&
-                        obj.Obj->Render.Model.ID != ModelID::None) {
-                        // always submit objects to opaque queue, as the renderer will skip
-                        // non-transparent submeshes
-                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-
-                        if (obj.Obj->Render.Model.Outrage) {
-                            //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
-                            //if (mesh.HasTransparentTexture)
-                            // outrage models do not setting transparent texture flag, but many are
-                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                        }
-                        else {
-                            auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                            if (mesh.IsTransparent)
-                                _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                        }
-                    }
-                    else {
-                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                    }
-                }
-                else if (obj.Effect) {
-                    auto depth = GetRenderDepth(obj.Effect->Position);
-
-                    if (obj.Effect->IsTransparent)
-                        _transparentQueue.push_back({ obj.Effect, depth });
-                    else
-                        _opaqueQueue.push_back({ obj.Effect, depth });
-                }
-            }
+            QueueSegmentObjects(level, *seg);
 
             // queue visible walls (this does not scale well)
             // todo: track walls as iterating
@@ -270,13 +280,13 @@ namespace Inferno::Render {
 
     constexpr int MAX_PORTAL_DEPTH = 50;
 
-    // Returns the points of a face in NDC. Returns empty if all points are behind the view plane.
+    // Returns the points of a face in NDC. Returns empty if all points are behind the face.
     Option<Array<Vector3, 4>> GetNdc(const Face2& face, const Matrix& viewProj) {
         Array<Vector3, 4> points;
         int behind = 0;
         for (int i = 0; i < 4; i++) {
             auto clip = Vector4::Transform(Vector4(face[i].x, face[i].y, face[i].z, 1), viewProj);
-            if (clip.w < 0) behind++; // return {};
+            if (clip.w < 0) behind++;
             points[i] = Vector3(clip / abs(clip.w));
         }
 
@@ -306,71 +316,73 @@ namespace Inferno::Render {
 
     void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes) {
         _roomQueue.clear();
+        _objects.clear();
         _roomQueue.push_back(startRoomId);
-        int index = 0;
-        //Plane cameraPlane(Camera.Position, Camera.GetForward());
 
         auto startRoom = level.GetRoom(startRoomId);
         if (!startRoom) return;
 
-        //Bounds2D screenBounds = { { 0, 0 }, { (float)Adapter->GetWidth(), (float)Adapter->GetHeight() } };
+        //Seq::append(_roomQueue, startRoom->VisibleRooms);
+
         Bounds2D screenBounds = { { -1, -1 }, { 1, 1 } };
+        // Portals closer than this are always treated as visible.
+        // This is so that lights behind or near the camera don't get culled
+        constexpr float MIN_PORTAL_DIST = 100;
 
         for (auto& basePortal : startRoom->Portals) {
             if (!WallIsTransparent(level, basePortal.Tag))
-                continue; // stop at opaque walls
+                continue; // stop at opaque walls like closed doors
 
             auto baseFace = Face2::FromSide(level, basePortal.Tag);
-            //bool inFrontOfPlane = false;
-            //bool behindPlane = false;
-            //for (int i = 0; i < 4; i++) {
-            //    if (cameraPlane.DotCoordinate(baseFace[i]) > 0)
-            //        inFrontOfPlane = true;
-            //    else
-            //        behindPlane = true;
-            //}
-            //if (!baseFace.InFrontOfPlane(cameraPlane))
-            //continue; // Portal behind camera plane
+            auto dist = Vector3::Distance(Render::Camera.Position, baseFace.Center());
+            auto startBounds = screenBounds;
 
-            //if (!inFrontOfPlane)
-            //    continue; // Portal behind camera plane
+            if (dist > MIN_PORTAL_DIST) {
+                auto basePoints = GetNdc(baseFace, Render::ViewProjection);
+                if (!basePoints) continue;
+                startBounds = GetBounds(*basePoints);
 
-            //if (!CameraFrustum.Contains(baseFace[0], baseFace[1], baseFace[2]) &&
-            //    !CameraFrustum.Contains(baseFace[2], baseFace[3], baseFace[0]))
-            //    continue; // Portal not in frustum
-
-
-            auto basePoints = GetNdc(baseFace, Render::ViewProjection);
-            if (!basePoints) continue;
-            auto startBounds = GetBounds(*basePoints);
-
-            // If the portal crosses the camera plane then treat it as visible
-            /*if (inFrontOfPlane && behindPlane) {
-                startBounds = screenBounds;
+                if (!screenBounds.Overlaps(startBounds))
+                    continue; // Portal not on screen
             }
-            else */if (!screenBounds.Overlaps(startBounds)) {
-                continue; // Portal not on screen
-            }
-
-            //Bounds2D startBounds{};
-
-            //// Workaround for if the initial portal crosses the camera plane. Treat it as visible
-            //if (inFrontOfPlane && behindPlane) {
-            //    startBounds = screenBounds;
-            //}
-            //else {
-            //    auto basePoints = GetNdc(baseFace);
-            //    if (!basePoints) continue; // Portal behind camera
-
-            //    if (!screenBounds.Overlaps(startBounds)) {
-            //        continue; // Portal not on screen
-            //    }
-            //}
 
             if (auto linkedRoom = level.GetRoom(basePortal.RoomLink)) {
                 CheckRoomVisibility(level, *linkedRoom, startBounds, 0);
-                if (!Seq::contains(_roomQueue, basePortal.RoomLink))
+                if (!Seq::contains(_roomQueue, basePortal.RoomLink)) {
                     _roomQueue.push_back(basePortal.RoomLink);
+                }
+            }
+        }
+
+        //SPDLOG_INFO("Update effects");
+
+        for (auto& rid : _roomQueue) {
+            if (auto room = level.GetRoom(rid)) {
+                for (auto& sid : room->Segments) {
+
+                    if (auto seg = level.TryGetSegment(sid)) {
+                        //if (!seg->Effects.empty())
+                        //    SPDLOG_INFO("Seg {}", sid);
+                        /*if(seg->Effects.size() > 0)
+                            UpdateEffect(FrameTime, seg->Effects[0]);*/
+
+                        for (int i = 0; i < seg->Effects.size(); i++) {
+                            //SPDLOG_INFO("{}", (int)seg->Effects[i]);
+                            UpdateEffect(FrameTime, seg->Effects[i]);
+                        }
+
+                        // bug: this doesn't sort properly
+                        QueueSegmentObjects(level, *seg);
+                    }
+                }
+
+                for (auto& portal : room->Portals) {
+                    // queue visible walls (this does not scale well)
+                    for (auto& mesh : wallMeshes) {
+                        if (mesh.Chunk->Tag.Segment == portal.Tag.Segment)
+                            _transparentQueue.push_back({ &mesh, 0 });
+                    }
+                }
             }
         }
     }

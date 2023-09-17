@@ -176,12 +176,13 @@ namespace Inferno::Graphics {
     class LightBuffer {
         Array<LightData, MAX_LIGHTS> _lights[2]{}; // double buffered
         int _index = 0;
+        int _dispatchCount = 0;
     public:
         void Dispatch(ID3D12GraphicsCommandList* cmdList);
 
         void AddLight(const LightData&);
 
-        size_t GetCount() const { return _index; }
+        size_t GetCount() const { return _dispatchCount; }
     };
 
     inline LightBuffer Lights;

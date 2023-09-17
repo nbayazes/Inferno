@@ -137,7 +137,7 @@ namespace Inferno {
         SoundUID _afterburnerSoundSig = SoundUID::None;
         SoundUID _fusionChargeSound = SoundUID::None;
         float _prevAfterburnerCharge = 0;
-        float _nextFlareFireTime = 0;
+        double _nextFlareFireTime = 0;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {

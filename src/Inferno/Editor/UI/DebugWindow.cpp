@@ -25,7 +25,7 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
-        ImGui::Checkbox("Outline visible rooms", &Settings::Editor.ShowRoomVisibility);
+        ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
         ImGui::Text("Keys");
         auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
         auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);

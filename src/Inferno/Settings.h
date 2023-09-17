@@ -103,7 +103,6 @@ namespace Inferno {
         bool ShowLighting = true;
         bool ShowMatcenEffects = false;
         bool ShowPortals = false;
-        bool ShowRoomVisibility = false;
         float WireframeOpacity = 0.5f;
 
         bool InvertY = false;
@@ -144,6 +143,10 @@ namespace Inferno {
         bool NewLightMode = true;
         int ToneMapper = 1;
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
+
+        // Debugging
+
+        bool OutlineVisibleRooms = false;
     };
 
     struct InfernoSettings {

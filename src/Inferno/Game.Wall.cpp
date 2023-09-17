@@ -448,6 +448,7 @@ namespace Inferno {
                 Render::Particle p{};
                 p.Clip = VClipID::SmallExplosion;
                 p.Radius = size / 2;
+                p.Color = Color(1, .75f, .75f, 2.0f);
                 Render::AddParticle(p, wall.Tag.Segment, pos);
             }
 

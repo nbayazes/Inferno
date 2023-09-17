@@ -1,8 +1,8 @@
 #include "pch.h"
 #define NOMINMAX
-#include "Game.h"
 #include <numeric>
 
+#include "Game.h"
 #include "FileSystem.h"
 #include "Graphics/Render.h"
 #include "Resources.h"
@@ -23,6 +23,7 @@
 #include "Game.AI.h"
 #include "Game.Room.h"
 #include "Game.Visibility.h"
+#include "LegitProfiler.h"
 
 using namespace DirectX;
 
@@ -286,7 +287,7 @@ namespace Inferno::Game {
 
     using Keys = Keyboard::Keys;
 
-    void HandleGlobalInput() {
+    void CheckGlobalHotkeys() {
         if (Input::IsKeyPressed(Keys::F1))
             Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
 
@@ -647,7 +648,7 @@ namespace Inferno::Game {
             Ray ray(position, dir);
             LevelHit hit;
             RayQuery query{ .MaxDistance = d, .Start = seg, .TestTextures = true };
-            if (d <= maxDist && d < minDist && !IntersectRayLevel(Level, ray, query, hit)) {
+            if (d <= maxDist && d < minDist && !Game::Intersect.RayLevel(ray, query, hit)) {
                 id = (ObjID)i;
                 minDist = d;
             }
@@ -764,6 +765,8 @@ namespace Inferno::Game {
     }
 
     void FixedUpdateObject(float dt, ObjID id, Object& obj) {
+        if (HasFlag(obj.Flags, ObjectFlag::Updated)) return;
+        SetFlag(obj.Flags, ObjectFlag::Updated);
         ObjRef objRef{ id, obj.Signature };
 
         UpdatePhysics(Game::Level, id, dt);
@@ -823,6 +826,16 @@ namespace Inferno::Game {
             UpdateReactorCountdown(dt);
         Render::FixedUpdateEffects(dt);
 
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+            ClearFlag(obj.Flags, ObjectFlag::Updated);
+
+            // Always update weapons in case they go out of sight
+            if (obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate)) {
+                FixedUpdateObject(dt, ObjID(i), obj);
+            }
+        }
+
         if (auto currentRoom = GetCurrentRoom()) {
             for (auto& roomId : currentRoom->VisibleRooms) {
                 auto room = Level.GetRoom(roomId);
@@ -832,20 +845,13 @@ namespace Inferno::Game {
                     if (auto seg = Level.TryGetSegment(segId)) {
                         for (auto& objId : seg->Objects) {
                             auto obj = Level.TryGetObject(objId);
-                            if (obj && obj->Type != ObjectType::Weapon)
+                            if (obj && obj->Type != ObjectType::Weapon) {
+                                // When physics moves an object to another seg it gets updated twice
                                 FixedUpdateObject(dt, objId, *obj);
+                            }
                         }
                     }
                 }
-            }
-        }
-
-        // Always update weapons as they are removed from rooms when destroyed
-        // todo: update certain objects regardless of room (Flag: AlwaysUpdate). Thief
-        for (int i = 0; i < Level.Objects.size(); i++) {
-            auto& obj = Level.Objects[i];
-            if(obj.Type == ObjectType::Weapon) {
-                FixedUpdateObject(dt, ObjID(i), obj);
             }
         }
 
@@ -898,6 +904,7 @@ namespace Inferno::Game {
         accumulator += dt;
         accumulator = std::min(accumulator, 2.0);
 
+        //LegitProfiler::ProfilerTask task("Fixed update");
         while (accumulator >= TICK_RATE) {
             for (auto& obj : Level.Objects)
                 obj.Lifespan -= TICK_RATE;
@@ -908,6 +915,7 @@ namespace Inferno::Game {
             t += TICK_RATE;
             Game::DeltaTime += TICK_RATE;
         }
+        //LegitProfiler::AddCpuTask(std::move(task));
 
         if (Game::ShowDebugOverlay) {
             auto vp = ImGui::GetMainViewport();
@@ -973,8 +981,10 @@ namespace Inferno::Game {
     }
 
     void Update(float dt) {
+        LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
+
         Inferno::Input::Update();
-        HandleGlobalInput();
+        CheckGlobalHotkeys();
         Render::Debug::BeginFrame(); // enable debug calls during updates
         Game::DeltaTime = 0;
         UpdateState();
@@ -1008,10 +1018,17 @@ namespace Inferno::Game {
                 break;
         }
 
+        LegitProfiler::AddCpuTask(std::move(update));
+        LegitProfiler::Profiler.Render();
+
         g_ImGuiBatch->EndFrame();
         Render::Present();
-    }
 
+        LegitProfiler::Profiler.cpuGraph.LoadFrameData(LegitProfiler::CpuTasks);
+        LegitProfiler::Profiler.gpuGraph.LoadFrameData(LegitProfiler::GpuTasks);
+        LegitProfiler::CpuTasks.clear();
+        LegitProfiler::GpuTasks.clear();
+    }
 
     SoundID GetSoundForSide(const SegmentSide& side) {
         auto& ti1 = Resources::GetEffectClip(side.TMap);
@@ -1180,6 +1197,9 @@ namespace Inferno::Game {
 
         Level.Rooms = CreateRooms(Level);
         //UpdateActiveRooms(Level, Level.GetRoomID(*player));
+
+        //for (auto& seg : Level.Segments)
+        //    seg.Effects.clear();
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

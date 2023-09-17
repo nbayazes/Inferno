@@ -27,6 +27,10 @@ namespace Inferno {
     constexpr auto PlayerTurnRollScale = FixToFloat(0x4ec4 / 2) * XM_2PI;
     constexpr auto PlayerTurnRollRate = FixToFloat(0x2000) * XM_2PI;
 
+    namespace {
+        IntersectContext Intersect(Game::Level);
+    }
+
     // returns true if overlay was destroyed
     bool CheckDestroyableOverlay(Level& level, const Vector3& point, Tag tag, int tri, bool isPlayer) {
         tri = std::clamp(tri, 0, 1);
@@ -398,7 +402,7 @@ namespace Inferno {
         Ray ray(a.Position, dir);
         LevelHit hit;
         RayQuery query{ .MaxDistance = dist, .Start = a.Segment, .PassTransparent = passTransparent, .TestTextures = true };
-        return IntersectRayLevel(Game::Level, ray, query, hit);
+        return Intersect.RayLevel(ray, query, hit);
     }
 
     // extract heading and pitch from a vector, assuming bank is 0
@@ -502,7 +506,7 @@ namespace Inferno {
                     Ray ray(explosion.Position, dir);
                     LevelHit hit;
                     RayQuery query{ .MaxDistance = dist, .Start = explosion.Segment, .PassTransparent = true, .TestTextures = true };
-                    if (IntersectRayLevel(level, ray, query, hit))
+                    if (Intersect.RayLevel(ray, query, hit))
                         continue;
 
                     // linear damage falloff

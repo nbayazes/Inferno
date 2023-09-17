@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Segment.h"
+#include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "OpenSimplex2.h"
 #include "Physics.h"
@@ -21,7 +22,6 @@ namespace Inferno::Render {
         uint16 DecalIndex = 0;
         uint16 AdditiveDecalIndex = 0;
 
-        DataPool<ExplosionInfo> Explosions(&ExplosionInfo::IsAlive, 50);
         List<Ptr<EffectBase>> VisualEffects;
     }
 
@@ -46,6 +46,7 @@ namespace Inferno::Render {
         if (auto seg = Game::Level.TryGetSegment(segId)) {
             //ASSERT(!Seq::contains(seg->Effects, id));
             if (!Seq::contains(seg->Effects, id)) {
+                SPDLOG_INFO("Moving effect {} from seg {} to seg {}", (int)id, effect.Segment, segId);
                 seg->Effects.push_back(id);
                 effect.Segment = segId;
             }
@@ -273,7 +274,6 @@ namespace Inferno::Render {
             // todo: scorch marks on walls
         }
 
-        // todo: use cheaper way to update segments (scan touching)
         if (!PointInSegment(Game::Level, Segment, position)) {
             LinkEffect(*this, effectId, Segment);
         }
@@ -299,54 +299,52 @@ namespace Inferno::Render {
         if (e.Instances < 0) e.Instances = 1;
         e.Segment = seg;
         e.Position = position;
-        Explosions.Add(e);
+        AddEffect(MakePtr<ExplosionInfo>(e));
     }
 
-    void UpdateExplosions(float dt) {
-        for (auto& expl : Explosions) {
-            if (expl.InitialDelay < 0) continue;
-            expl.InitialDelay -= dt;
-            if (expl.InitialDelay > 0) continue;
+    void ExplosionInfo::OnUpdate(float dt, EffectID) {
+        if (InitialDelay < 0) return;
+        InitialDelay -= dt;
+        if (InitialDelay > 0) return;
 
-            if (expl.Sound != SoundID::None) {
-                //fmt::print("playing expl sound\n");
-                Sound3D sound(expl.Position, expl.Segment);
-                sound.Resource = Resources::GetSoundResource(expl.Sound);
-                sound.Volume = expl.Volume;
-                sound.Source = GLOBAL_SOUND_SOURCE;
-                Sound::Play(sound);
-                //sound.Source = expl.Parent; // no parent so all nearby sounds merge
+        if (Sound != SoundID::None) {
+            //fmt::print("playing expl sound\n");
+            Sound3D sound(Position, Segment);
+            sound.Resource = Resources::GetSoundResource(Sound);
+            sound.Volume = Volume;
+            sound.Source = GLOBAL_SOUND_SOURCE;
+            Sound::Play(sound);
+            //sound.Source = expl.Parent; // no parent so all nearby sounds merge
+        }
+
+        for (int i = 0; i < Instances; i++) {
+            Render::Particle p{};
+            auto position = Position;
+            if (Variance > 0)
+                position += Vector3(RandomN11() * Variance, RandomN11() * Variance, RandomN11() * Variance);
+
+            p.Radius = Radius.GetRandom();
+            p.Clip = Clip;
+            p.Color = Color;
+            p.FadeTime = FadeTime;
+
+            // only apply light to first explosion instance
+            if (i == 0 && LightColor != LIGHT_UNSET) {
+                DynamicLight light{};
+                light.Position = position;
+                light.FadeTime = light.Duration = Resources::GetVideoClip(p.Clip).PlayTime * 0.75f;
+                light.LightColor = LightColor;
+                light.Radius = LightRadius > 0 ? LightRadius : p.Radius * 4;
+                light.Segment = Segment;
+                AddDynamicLight(light);
             }
 
-            for (int i = 0; i < expl.Instances; i++) {
-                Render::Particle p{};
-                auto position = expl.Position;
-                if (expl.Variance > 0)
-                    position += Vector3(RandomN11() * expl.Variance, RandomN11() * expl.Variance, RandomN11() * expl.Variance);
+            AddParticle(p, Segment, position);
 
-                p.Radius = expl.Radius.GetRandom();
-                p.Clip = expl.Clip;
-                p.Color = expl.Color;
-                p.FadeTime = expl.FadeTime;
-
-                // only apply light to first explosion instance
-                if (i == 0 && expl.LightColor != LIGHT_UNSET) {
-                    DynamicLight light{};
-                    light.Position = position;
-                    light.FadeTime = light.Duration = Resources::GetVideoClip(p.Clip).PlayTime * 0.75f;
-                    light.LightColor = expl.LightColor;
-                    light.Radius = expl.LightRadius > 0 ? expl.LightRadius : p.Radius * 4;
-                    light.Segment = expl.Segment;
-                    AddDynamicLight(light);
-                }
-
-                AddParticle(p, expl.Segment, position);
-
-                if (expl.Instances > 1 && (expl.Delay.Min > 0 || expl.Delay.Max > 0)) {
-                    expl.InitialDelay = expl.Delay.GetRandom();
-                    expl.Instances--;
-                    break;
-                }
+            if (Instances > 1 && (Delay.Min > 0 || Delay.Max > 0)) {
+                InitialDelay = Delay.GetRandom();
+                Instances--;
+                break;
             }
         }
     }
@@ -359,7 +357,7 @@ namespace Inferno::Render {
         dir.Normalize();
 
         RayQuery query{ .MaxDistance = radius, .Start = seg, .TestTextures = true };
-        if (IntersectRayLevel(Game::Level, { pos, dir }, query, hit))
+        if (Game::Intersect.RayLevel({ pos, dir }, query, hit))
             return hit.Point;
         else
             return pos + dir * radius;
@@ -954,8 +952,6 @@ namespace Inferno::Render {
             spark.Velocity *= 1 - Drag;
             spark.Position += spark.Velocity * dt;
         }
-
-        if (parent) Position = parentPos;
     }
 
     void SparkEmitter::OnFixedUpdate(float dt, EffectID) {
@@ -971,14 +967,14 @@ namespace Inferno::Render {
                 auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
                 LevelHit hit;
                 RayQuery query{ .MaxDistance = rayLen, .Start = spark.Segment, .TestTextures = true };
-                bool hitSomething = IntersectRayLevel(Game::Level, ray, query, hit);
+                bool hitSomething = Game::Intersect.RayLevel(ray, query, hit);
 
                 if (!hitSomething) {
                     // check surrounding segments
                     auto& seg = Game::Level.GetSegment(spark.Segment);
                     for (auto& side : SideIDs) {
                         query.Start = seg.GetConnection(side);
-                        hitSomething = IntersectRayLevel(Game::Level, ray, query, hit);
+                        hitSomething = Game::Intersect.RayLevel(ray, query, hit);
                         if (hitSomething)
                             break;
                     }
@@ -1089,14 +1085,6 @@ namespace Inferno::Render {
         _sparks.Add(spark);
     }
 
-    //void AddSparkEmitter(SparkEmitter& emitter) {
-    //    std::array tex = { emitter.Texture };
-    //    Render::Materials->LoadTextures(tex);
-    //    assert(emitter.Segment != SegID::None);
-    //    if (emitter.Duration == 0) emitter.Duration = emitter.DurationRange.Max;
-    //    AddEffect(MakePtr<SparkEmitter>(emitter));
-    //}
-
     void AddSparkEmitter(SparkEmitter emitter, SegID seg, const Vector3& worldPos) {
         if (emitter.Color == LIGHT_UNSET) return;
         emitter.Segment = seg;
@@ -1117,15 +1105,21 @@ namespace Inferno::Render {
         AddEffect(MakePtr<DynamicLight>(std::move(light)));
     }
 
-    void UpdateEffects(float dt) {
-        UpdateExplosions(dt); // Explosions generate sprites that are added as segment effects
+    void UpdateEffect(float dt, EffectID id) {
+        if (auto& effect = VisualEffects[(int)id]) {
+            effect->Update(dt, id);
+        }
+    }
+
+    void UpdateAllEffects(float dt) {
+        LegitProfiler::ProfilerTask task("Update effects");
 
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             if (auto& effect = VisualEffects[effectId])
                 effect->Update(dt, EffectID(effectId));
         }
 
-        // Do a second pass to expire effects in case other effects add new ones mid-frame
+        // Expire effects in case other effects add new ones mid-frame
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             auto& effect = VisualEffects[effectId];
             if (effect && effect->Elapsed >= effect->Duration) {
@@ -1135,6 +1129,8 @@ namespace Inferno::Render {
                 VisualEffects[effectId].reset();
             }
         }
+
+        LegitProfiler::AddCpuTask(std::move(task));
     }
 
     void FixedUpdateEffects(float dt) {
@@ -1145,13 +1141,43 @@ namespace Inferno::Render {
         }
     }
 
+    void BeginUpdateEffects() {
+        for (int id = 0; id < VisualEffects.size(); id++) {
+            auto& effect = VisualEffects[id];
+            if (!effect) continue;
+
+            // Relink effects in case their parent segment changed
+            auto parent = Game::Level.TryGetObject(effect->Parent);
+            if (parent && parent->IsAlive()) {
+                if (parent->Segment != effect->Segment) {
+                    LinkEffect(*effect, (EffectID)id, parent->Segment);
+                }
+            }
+        }
+    }
+
+    void EndUpdateEffects() {
+        for (int id = 0; id < VisualEffects.size(); id++) {
+            auto& effect = VisualEffects[id];
+            if (!effect) continue;
+
+            // Remove dead effects
+            if (effect->Elapsed >= effect->Duration) {
+                effect->OnExpire();
+
+                UnlinkEffect(*effect, (EffectID)id);
+                effect.reset();
+            }
+        }
+    }
+
     void ResetEffects() {
         for (auto& seg : Game::Level.Segments)
             seg.Effects.clear();
+
         VisualEffects.clear();
 
         Beams.Clear();
-        Explosions.Clear();
 
         for (auto& decal : Decals)
             decal.Duration = 0;
@@ -1159,8 +1185,7 @@ namespace Inferno::Render {
 
     void EffectBase::Update(float dt, EffectID id) {
         StartDelay -= dt;
-        if (StartDelay > 0) return;
-
+        if (StartDelay > 0 /*|| Updates > 0*/) return;
         Elapsed += dt;
         PrevPosition = Position;
 
@@ -1173,7 +1198,6 @@ namespace Inferno::Render {
                     pos += Vector3::Transform(offset, parent->GetRotation(Game::LerpAmount));
                 }
 
-                LinkEffect(*this, id, parent->Segment);
                 Position = pos;
             }
             else {
@@ -1202,11 +1226,10 @@ namespace Inferno::Render {
         Color lightColor = LightColor;
 
         if (FadeTime > 0) {
-            //auto t = std::clamp((Duration - FadeTime + Elapsed) / FadeTime, 0.0f, 1.0f);
-            //if (t <= 0) return;
-            auto t = Elapsed / Duration;
-            lightRadius = std::lerp(lightRadius, lightRadius * 0.75f, t);
-            lightColor = Color::Lerp(lightColor, Color(0, 0, 0), t);
+            auto t = std::clamp((Duration - Elapsed) / FadeTime, 0.0f, 1.0f);
+            if (t <= 0) return; // Invisible at t = 0
+            lightRadius = std::lerp(lightRadius * 0.75f, lightRadius, t);
+            lightColor = Color::Lerp(Color(0, 0, 0), lightColor, t);
         }
 
         if (Mode == DynamicLightMode::Flicker || Mode == DynamicLightMode::FastFlicker) {

@@ -13,6 +13,7 @@
 #include "Object.h"
 #include "DirectX.h"
 #include "Game.Wall.h"
+#include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Physics.h"
 #include "Render.Object.h"
@@ -336,8 +337,8 @@ namespace Inferno::Render {
                 break;
 
             case RenderCommandType::Effect:
-                if ((pass == RenderPass::Opaque && !cmd.Data.Effect->IsTransparent) ||
-                    (pass == RenderPass::Transparent && cmd.Data.Effect->IsTransparent))
+                if ((pass == RenderPass::Opaque && cmd.Data.Effect->Queue == RenderQueueType::Opaque) ||
+                    (pass == RenderPass::Transparent && cmd.Data.Effect->Queue == RenderQueueType::Transparent))
                     cmd.Data.Effect->Draw(ctx);
                 break;
         }
@@ -366,7 +367,8 @@ namespace Inferno::Render {
     }
 
     using namespace Graphics;
-    List<LightData> LevelLights;
+    // List of lights in each room
+    List<List<LightData>> RoomLights;
 
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
@@ -375,28 +377,34 @@ namespace Inferno::Render {
         if (LevelChanged) {
             Adapter->WaitForGpu();
             _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
-            LevelLights = Graphics::GatherLightSources(level);
+            RoomLights = Graphics::GatherLightSources(level);
             LevelChanged = false;
         }
 
+        BeginUpdateEffects();
         _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes());
+
         for (auto& id : _renderQueue.GetVisibleRooms()) {
-            if (auto room = level.GetRoom(id))
-                Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
+            if (Seq::inRange(RoomLights, (int)id)) {
+                for (auto& light : RoomLights[(int)id]) {
+                    Graphics::Lights.AddLight(light);
+                }
+            }
+
+            if (Settings::Graphics.OutlineVisibleRooms && Game::GetState() != GameState::Editor) {
+                if (auto room = level.GetRoom(id))
+                    Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));
+            }
         }
-
-
+        LegitProfiler::ProfilerTask depth("Depth prepass", LegitProfiler::Colors::SUN_FLOWER);
         ctx.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         DepthPrepass(ctx);
-
-        // todo: only add visible lights
-        for (auto& light : LevelLights) {
-            Graphics::Lights.AddLight(light);
-        }
+        LegitProfiler::AddCpuTask(std::move(depth));
 
         Graphics::Lights.Dispatch(ctx.GetCommandList());
 
         {
+            LegitProfiler::ProfilerTask queue("Execute queues", LegitProfiler::Colors::AMETHYST);
             ctx.BeginEvent(L"Level");
             auto& target = Adapter->GetHdrRenderTarget();
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
@@ -426,6 +434,7 @@ namespace Inferno::Render {
             ctx.EndEvent();
 
             ctx.EndEvent(); // level
+            LegitProfiler::AddCpuTask(std::move(queue));
 
             //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
             //    ExecuteRenderCommand(cmdList, cmd, true);
@@ -437,16 +446,20 @@ namespace Inferno::Render {
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
 
             if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
+                LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
                 ctx.BeginEvent(L"Editor");
                 DrawEditor(ctx.GetCommandList(), level);
                 DrawDebug(level);
                 ctx.EndEvent();
+                LegitProfiler::AddCpuTask(std::move(editor));
             }
             else {
                 //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
                 Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
             }
         }
+
+        EndUpdateEffects();
     }
 
     int GetTransparentQueueSize() {

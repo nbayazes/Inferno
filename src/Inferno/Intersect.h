@@ -90,7 +90,7 @@ namespace Inferno {
         bool IgnoreWalls = false; // Skips walls
     };
 
-    bool IntersectRayLevel(Level& level, const Ray& ray, const RayQuery& query, LevelHit& hit);
+    //bool IntersectRayLevel(Level& level, const Ray& ray, const RayQuery& query, LevelHit& hit);
     bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult = nullptr, float offset = 0);
     
     class IntersectContext {
@@ -100,6 +100,6 @@ namespace Inferno {
         IntersectContext(const Level& level) : _level(&level) {}
 
         // intersects a ray with the level, returning hit information
-        bool IntersectRayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit);
+        bool RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit);
     };
 }

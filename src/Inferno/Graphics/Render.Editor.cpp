@@ -521,7 +521,7 @@ namespace Inferno::Render {
         DrawPath(Inferno::Debug::NavigationPath, Color(0, 1, 0));
         DrawRooms(level);
 
-        if (Settings::Editor.ShowRoomVisibility) {
+        if (Settings::Graphics.OutlineVisibleRooms) {
             if (auto seg = level.TryGetSegment(Editor::Selection.Segment))
                 DrawRoomVisibility(level, seg->Room);
         }

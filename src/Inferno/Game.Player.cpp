@@ -286,7 +286,7 @@ namespace Inferno {
         if (_nextFlareFireTime > Game::Time) return;
         Game::FireWeapon(Reference, WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
-        _nextFlareFireTime = (float)Game::Time + weapon.FireDelay;
+        _nextFlareFireTime = Game::Time + weapon.FireDelay;
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {

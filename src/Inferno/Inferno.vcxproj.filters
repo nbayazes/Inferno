@@ -643,6 +643,9 @@
     <ClInclude Include="Intersect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="LegitProfiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\compile.bat">

@@ -33,7 +33,7 @@ namespace Inferno {
     };
 
     // misc object flags
-    enum class ObjectFlag : uint8 {
+    enum class ObjectFlag : uint16 {
         None = 0,
         Exploding = 1,
         Dead = 2,           // Scheduled for deletion
@@ -42,9 +42,11 @@ namespace Inferno {
         Attached = 16,      // Object is attached to another object or wall. Disables hit testing.
         Harmless = 32,      // Does no damage
         PlayerDropped = 64, // Dropped by player (death?)
+        AlwaysUpdate = 128, // Always update this object regardless of visibility. Thief, Weapons
+        Updated = 256, // Was updated this frame
     };
 
-    enum class PhysicsFlag : int16 {
+    enum class PhysicsFlag : uint16 {
         None = 0,
         TurnRoll = 1 << 0,        // roll when turning
         AutoLevel = 1 << 1,       // align object with nearby side

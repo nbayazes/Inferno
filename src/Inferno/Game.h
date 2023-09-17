@@ -4,6 +4,7 @@
 #include "HogFile.h"
 #include "Mission.h"
 #include "Game.Player.h"
+#include "Intersect.h"
 #include "SystemClock.h"
 
 namespace Inferno {
@@ -30,6 +31,7 @@ namespace Inferno::Game {
 
     // The loaded level. Only one level can be active at a time.
     inline Inferno::Level Level;
+    inline IntersectContext Intersect(Level);
 
     // The loaded mission. Not always present.
     inline Option<HogFile> Mission;
