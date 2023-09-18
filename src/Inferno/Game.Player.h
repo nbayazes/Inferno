@@ -133,6 +133,19 @@ namespace Inferno {
 
         void ApplyDamage(float damage);
 
+        // Call after respawning
+        void ResetInventory(int difficulty) {
+            LaserLevel = 0;
+            Powerups = {};
+            PrimaryWeapons = {};
+            SecondaryWeapons = {};
+            ranges::fill(SecondaryAmmo, 0);
+            ranges::fill(PrimaryAmmo, 0);
+
+            PickUpPrimary(PrimaryWeaponIndex::Laser);
+            PickUpSecondary(SecondaryWeaponIndex::Concussion, 7 - difficulty);
+        }
+
     private:
         SoundUID _afterburnerSoundSig = SoundUID::None;
         SoundUID _fusionChargeSound = SoundUID::None;
