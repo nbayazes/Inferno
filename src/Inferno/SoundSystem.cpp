@@ -449,7 +449,7 @@ namespace Inferno::Sound {
                         instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 
                     instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
-                    instance.Volume += sound.Volume;
+                    instance.Volume += sound.Volume * 0.5f;
                     //fmt::print("Merged sound effect {}\n", sound.Resource.GetID());
                     return instance.ID; // Don't play sounds within the merge window
                 }

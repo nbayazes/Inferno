@@ -62,7 +62,7 @@ namespace Inferno::Game {
     void WeaponHitObject(const LevelHit& hit, Object& src);
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
-    void FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, bool playSound = true);
+    void FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, float volume = 0.55f);
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread);
 
     // Detonates a weapon with a splash radius

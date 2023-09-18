@@ -473,7 +473,7 @@ namespace Inferno::Game {
         FireWeapon(ref, id, gun, &direction, showFlash);
     }
 
-    void FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, bool playSound) {
+    void FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, float volume) {
         auto& level = Game::Level;
         auto pObj = level.TryGetObject(ref);
         if (!pObj) {
@@ -580,10 +580,10 @@ namespace Inferno::Game {
             bullet.NextThinkTime = (float)Game::Time + MINE_ARM_TIME;
         }
 
-        if (playSound) {
+        if (showFlash && volume > 0) {
             Sound3D sound(ref);
             sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
-            sound.Volume = 0.55f;
+            sound.Volume = volume;
             sound.AttachToSource = true;
             sound.AttachOffset = obj.Position - position;
             sound.Radius = weapon.Extended.SoundRadius;
@@ -883,7 +883,9 @@ namespace Inferno::Game {
     }
 
     void FusionBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
-        // Fixes original behavior of fusion jumping from 2.9x to 4x damage at 4 seconds charge
+        // Fixes original behavior of fusion jumping from 2.9x to 4x damage at 4 seconds charge.
+        // This is believed to be a logic error. One could argue the charge multiplier should
+        // be 4 and not 3, but that would make fusion stronger under normal usage.
         constexpr auto MAX_FUSION_CHARGE_TIME = 4.0f; // Time in seconds for full charge
         constexpr auto MAX_FUSION_CHARGE_MULT = 3.0f; // Bonus damage multiplier for full charge
         float multiplier = MAX_FUSION_CHARGE_MULT * player.WeaponCharge / MAX_FUSION_CHARGE_TIME;
