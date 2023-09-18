@@ -256,37 +256,39 @@ namespace Inferno {
         Debug::ShipAcceleration = Vector3::Zero;
     }
 
-    Set<SegID> g_VisitedSegs; // global visited segments buffer
-    Queue<SegID> g_VisitedStack;
+    //using PotentialSegments = Array<SegID, 10>;
+    List<SegID> g_VisitedStack; // global visited segments buffer
 
-    Set<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius) {
-        g_VisitedSegs.clear();
-        g_VisitedStack.push(start);
-        int depth = 0; // Always add segments touching the start segment, otherwise overlapping objects might be missed
+    List<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius) {
+        g_VisitedStack.clear();
+        g_VisitedStack.push_back(start);
+        int index = 0;
 
-        while (!g_VisitedStack.empty()) {
-            auto segId = g_VisitedStack.front();
-            g_VisitedStack.pop();
-            g_VisitedSegs.insert(segId);
+        while (index < g_VisitedStack.size()) {
+            auto segId = g_VisitedStack[index];
             auto& seg = level.GetSegment(segId);
 
             for (auto& sideId : SideIDs) {
                 auto& side = seg.GetSide(sideId);
 
+                // Don't hit the other side of walls. Note that projectiles will still pass through transparent pixels.
+                if (level.TryGetWall(side.Wall))
+                    continue; 
+
                 Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
-                if (depth == 0 || p.DotCoordinate(point) <= 0) {
+                if (index == 0 || p.DotCoordinate(point) <= 0) {
                     // Point was behind the plane or this was the starting segment
                     auto conn = seg.GetConnection(sideId);
-                    if (conn != SegID::None && !g_VisitedSegs.contains(conn))
-                        g_VisitedStack.push(conn);
+                    if (conn != SegID::None && !Seq::contains(g_VisitedStack, conn)) {
+                        g_VisitedStack.push_back(conn);
+                    }
                 }
             }
 
-            depth++;
-            // todo: detail segments
+            index++;
         }
 
-        return g_VisitedSegs;
+        return g_VisitedStack;
     }
 
     enum class CollisionType {
@@ -583,7 +585,7 @@ namespace Inferno {
             }
         };
 
-        Game::TraverseRoomsByDistance(level, explosion.Room, explosion.Position, 
+        Game::TraverseRoomsByDistance(level, explosion.Room, explosion.Position,
                                       explosion.Radius * 2, false, roomAction);
     }
 
@@ -877,7 +879,7 @@ namespace Inferno {
 
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
 
-    void IntersectLevelMesh(Level& level, Object& obj, Set<SegID>& pvs, LevelHit& hit, float dt) {
+    void IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;
         int hits = 0;
         auto speed = obj.Physics.Velocity.Length();
@@ -1100,7 +1102,6 @@ namespace Inferno {
                             // Move players and robots when they collide with something
                             if ((obj.Type == ObjectType::Robot || obj.Type == ObjectType::Player) &&
                                 (other.Type == ObjectType::Robot || other.Type == ObjectType::Player)) {
-
                                 auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
                                 obj.Physics.Velocity -= info.Normal * nDotVel; // slide along normal
                                 hit.Speed = obj.Physics.Velocity.Length();

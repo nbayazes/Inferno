@@ -580,7 +580,7 @@ namespace Inferno::Game {
             bullet.NextThinkTime = (float)Game::Time + MINE_ARM_TIME;
         }
 
-        if (showFlash && volume > 0) {
+        if (volume > 0) {
             Sound3D sound(ref);
             sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
             sound.Volume = volume;

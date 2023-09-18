@@ -68,7 +68,10 @@ namespace Inferno {
 
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness) {
         for (auto& segId : room.Segments) {
-            auto& seg = level.GetSegment(segId);
+            auto pseg = level.TryGetSegment(segId);
+            if (!pseg) continue;
+            auto& seg = *pseg;
+
             for (auto& objId : seg.Objects) {
                 if (auto obj = level.TryGetObject(objId)) {
                     if (!obj->IsRobot()) continue;
