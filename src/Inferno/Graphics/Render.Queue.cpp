@@ -123,9 +123,6 @@ namespace Inferno::Render {
         for (auto oid : seg.Objects) {
             if (auto obj = level.TryGetObject(oid)) {
                 if (!ShouldDrawObject(*obj)) continue;
-
-                //DirectX::BoundingSphere bounds(obj->Position, obj->Radius);
-                //if (CameraFrustum.Contains(bounds))
                 _objects.push_back({ obj, GetRenderDepth(obj->Position) });
             }
         }
@@ -154,7 +151,70 @@ namespace Inferno::Render {
                     if (obj.Obj->Render.Model.Outrage) {
                         //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
                         //if (mesh.HasTransparentTexture)
-                        // outrage models do not setting transparent texture flag, but many are
+                        // outrage models do not set transparent texture flag, but many contain transparent faces
+                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
+                    else {
+                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+                        if (mesh.IsTransparent)
+                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
+                }
+                else {
+                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                }
+            }
+            else if (obj.Effect) {
+                auto depth = GetRenderDepth(obj.Effect->Position);
+
+                if (obj.Effect->Queue == RenderQueueType::Transparent)
+                    _transparentQueue.push_back({ obj.Effect, depth });
+                else if (obj.Effect->Queue == RenderQueueType::Opaque)
+                    _opaqueQueue.push_back({ obj.Effect, depth });
+            }
+        }
+    }
+
+    void RenderQueue::QueueRoomObjects(Level& level, const Room& room) {
+        _objects.clear();
+
+        for (auto& segId : room.Segments) {
+            auto pseg = level.TryGetSegment(segId);
+            if (!pseg) continue;
+            auto& seg = *pseg;
+
+            // queue objects in segment
+            for (auto oid : seg.Objects) {
+                if (auto obj = level.TryGetObject(oid)) {
+                    if (!ShouldDrawObject(*obj)) continue;
+                    _objects.push_back({ obj, GetRenderDepth(obj->Position) });
+                }
+            }
+
+            for (auto& effectId : seg.Effects) {
+                if (auto effect = GetEffect(effectId)) {
+                    Stats::EffectDraws++;
+                    _objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
+                }
+            }
+        }
+
+        // Sort objects in room by depth
+        Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
+            return a.Depth < b.Depth;
+        });
+
+        // Add objects to queue
+        for (auto& obj : _objects) {
+            if (obj.Obj) {
+                if (obj.Obj->Render.Type == RenderType::Model &&
+                    obj.Obj->Render.Model.ID != ModelID::None) {
+                    // always submit objects to opaque queue, as the renderer will skip
+                    // non-transparent submeshes
+                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+
+                    if (obj.Obj->Render.Model.Outrage) {
+                        // outrage models do not set transparent texture flag, but many contain transparent faces
                         _transparentQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
@@ -322,35 +382,24 @@ namespace Inferno::Render {
         auto startRoom = level.GetRoom(startRoomId);
         if (!startRoom) return;
 
-        //Seq::append(_roomQueue, startRoom->VisibleRooms);
-
-        Bounds2D screenBounds = { { -1, -1 }, { 1, 1 } };
-        // Portals closer than this are always treated as visible.
-        // This is so that lights behind or near the camera don't get culled
-        constexpr float MIN_PORTAL_DIST = 100;
-
         for (auto& basePortal : startRoom->Portals) {
             if (!WallIsTransparent(level, basePortal.Tag))
                 continue; // stop at opaque walls like closed doors
 
             auto baseFace = Face2::FromSide(level, basePortal.Tag);
-            auto dist = Vector3::Distance(Render::Camera.Position, baseFace.Center());
-            auto startBounds = screenBounds;
-
-            if (dist > MIN_PORTAL_DIST) {
-                auto basePoints = GetNdc(baseFace, Render::ViewProjection);
-                if (!basePoints) continue;
-                startBounds = GetBounds(*basePoints);
-
-                if (!screenBounds.Overlaps(startBounds))
-                    continue; // Portal not on screen
-            }
+            auto basePoints = GetNdc(baseFace, Render::ViewProjection);
 
             if (auto linkedRoom = level.GetRoom(basePortal.RoomLink)) {
-                CheckRoomVisibility(level, *linkedRoom, startBounds, 0);
-                if (!Seq::contains(_roomQueue, basePortal.RoomLink)) {
-                    _roomQueue.push_back(basePortal.RoomLink);
+                // Search next room if portal is on screen
+                if (basePoints) {
+                    auto bounds = GetBounds(*basePoints);
+                    CheckRoomVisibility(level, *linkedRoom, bounds, 0);
                 }
+
+                // always add immediately connected rooms to prevent flickering
+                // when lights or effects are slightly out of view in another room
+                if (!Seq::contains(_roomQueue, basePortal.RoomLink))
+                    _roomQueue.push_back(basePortal.RoomLink);
             }
         }
 
@@ -358,21 +407,14 @@ namespace Inferno::Render {
 
         for (auto& rid : _roomQueue) {
             if (auto room = level.GetRoom(rid)) {
+                QueueRoomObjects(level, *room);
+
+                // Update effects in the room
                 for (auto& sid : room->Segments) {
-
                     if (auto seg = level.TryGetSegment(sid)) {
-                        //if (!seg->Effects.empty())
-                        //    SPDLOG_INFO("Seg {}", sid);
-                        /*if(seg->Effects.size() > 0)
-                            UpdateEffect(FrameTime, seg->Effects[0]);*/
-
                         for (int i = 0; i < seg->Effects.size(); i++) {
-                            //SPDLOG_INFO("{}", (int)seg->Effects[i]);
                             UpdateEffect(FrameTime, seg->Effects[i]);
                         }
-
-                        // bug: this doesn't sort properly
-                        QueueSegmentObjects(level, *seg);
                     }
                 }
 

@@ -46,7 +46,7 @@ namespace Inferno::Render {
         if (auto seg = Game::Level.TryGetSegment(segId)) {
             //ASSERT(!Seq::contains(seg->Effects, id));
             if (!Seq::contains(seg->Effects, id)) {
-                SPDLOG_INFO("Moving effect {} from seg {} to seg {}", (int)id, effect.Segment, segId);
+                //SPDLOG_INFO("Moving effect {} from seg {} to seg {}", (int)id, effect.Segment, segId);
                 seg->Effects.push_back(id);
                 effect.Segment = segId;
             }

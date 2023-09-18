@@ -47,7 +47,7 @@ namespace Inferno::Render::Debug {
     void DrawSide(Level&, Tag, const Color&);
     void DrawSide(const Level& level, Segment& seg, SideID side, const Color& color);
     void DrawSideOutline(Level&, Tag, const Color&);
-    void DrawSideOutline(const Level& level, Segment& seg, SideID side, const Color& color);
+    void DrawSideOutline(const Level& level, const Segment& seg, SideID side, const Color& color);
     void DrawPlane(const Vector3& pos, const Vector3& right, const Vector3& up, const Color& color, float size);
 
     void DrawBoundingBox(const DirectX::BoundingOrientedBox&, const Color&);

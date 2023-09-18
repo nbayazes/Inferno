@@ -511,7 +511,7 @@ namespace Inferno::Render::Debug {
         DrawLine(v[si[3]], v[si[0]], color);
     }
 
-    void DrawSideOutline(const Level& level, Segment& seg, SideID side, const Color& color) {
+    void DrawSideOutline(const Level& level, const Segment& seg, SideID side, const Color& color) {
         auto& v = level.Vertices;
         auto si = seg.GetVertexIndices(side);
 
