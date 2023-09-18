@@ -583,7 +583,8 @@ namespace Inferno {
             }
         };
 
-        Game::TraverseRoomsByDistance(level, explosion.Room, explosion.Position, explosion.Radius * 2, roomAction);
+        Game::TraverseRoomsByDistance(level, explosion.Room, explosion.Position, 
+                                      explosion.Radius * 2, false, roomAction);
     }
 
     void IntersectBoundingBoxes(const Object& obj) {

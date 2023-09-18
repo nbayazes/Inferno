@@ -65,5 +65,6 @@ namespace Inferno::Game {
     };
 
     // Executes a function on each room based on portal distance from a point
-    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, float maxDistance, const std::function<void(Room&)>& action);
+    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, 
+                                 float maxDistance, bool soundMode, const std::function<void(Room&)>& action);
 }

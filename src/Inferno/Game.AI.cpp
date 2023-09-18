@@ -103,23 +103,6 @@ namespace Inferno {
         }
     }
 
-    bool SoundPassesThroughSide(Level& level, const SegmentSide& side) {
-        auto wall = level.TryGetWall(side.Wall);
-        if (!wall) return true; // open side
-        if (!wall->IsSolid()) return true; // wall is destroyed or open
-
-        // Check if the textures are transparent
-        auto& tmap1 = Resources::GetTextureInfo(side.TMap);
-        bool transparent = tmap1.Transparent;
-
-        if (side.HasOverlay()) {
-            auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
-            transparent |= tmap2.SuperTransparent;
-        }
-
-        return transparent;
-    }
-
     // adds awareness to robots in nearby rooms
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness) {
         auto& level = Game::Level;
@@ -130,7 +113,7 @@ namespace Inferno {
             AlertEnemiesInRoom(level, r, source.Segment, source.Position, soundRadius, awareness);
         };
 
-        Game::TraverseRoomsByDistance(level, room, source.Position, soundRadius, action);
+        Game::TraverseRoomsByDistance(level, room, source.Position, soundRadius, true, action);
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
@@ -1202,6 +1185,8 @@ namespace Inferno {
             if (canSeePlayer) {
                 ai.KnownPlayerPosition = player.Position;
                 ai.KnownPlayerSegment = player.Segment;
+            } else {
+                DecayAwareness(ai);
             }
 
             if (ai.KnownPlayerPosition) {
@@ -1309,15 +1294,13 @@ namespace Inferno {
                     }
                 }
             }
-            else {
-                //if (ai.KnownPlayerSegment != SegID::None) {
-                //    robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.KnownPlayerSegment, !robotInfo.IsThief, Game::Level);
-                //    ai.GoalSegment = ai.KnownPlayerSegment;
-                //}
+            
+            //if (ai.KnownPlayerSegment != SegID::None) {
+            //    robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.KnownPlayerSegment, !robotInfo.IsThief, Game::Level);
+            //    ai.GoalSegment = ai.KnownPlayerSegment;
+            //}
 
-                // Lost sight of player, decay awareness based on AI
-                DecayAwareness(ai);
-            }
+            // Lost sight of player, decay awareness based on AI
         }
         else {
             if (CheckPlayerVisibility(robot, robotInfo)) { }

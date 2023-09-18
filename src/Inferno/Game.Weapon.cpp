@@ -727,7 +727,7 @@ namespace Inferno::Game {
         };
 
         auto room = Game::Level.GetRoomID(src);
-        TraverseRoomsByDistance(Game::Level, room, src.Position, dist, action);
+        TraverseRoomsByDistance(Game::Level, room, src.Position, dist, false, action);
         return result;
     }
 

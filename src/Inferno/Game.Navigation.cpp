@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Game.Navigation.h"
 
+#include "Resources.h"
+
 namespace Inferno::Game {
     List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, Level& level) {
         auto startRoom = level.GetRoom(start);
@@ -216,7 +218,25 @@ namespace Inferno::Game {
         return path;
     }
 
-    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, float maxDistance, const std::function<void(Room&)>& action) {
+    bool SoundPassesThroughSide(Level& level, const SegmentSide& side) {
+        auto wall = level.TryGetWall(side.Wall);
+        if (!wall) return true; // open side
+        if (!wall->IsSolid()) return true; // wall is destroyed or open
+
+        // Check if the textures are transparent
+        auto& tmap1 = Resources::GetTextureInfo(side.TMap);
+        bool transparent = tmap1.Transparent;
+
+        if (side.HasOverlay()) {
+            auto& tmap2 = Resources::GetTextureInfo(side.TMap2);
+            transparent |= tmap2.SuperTransparent;
+        }
+
+        return transparent;
+    }
+
+    void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position,
+                                 float maxDistance, bool soundMode, const std::function<void(Room&)>& action) {
         struct TravelInfo {
             Portal Portal;
             float Distance;
@@ -235,6 +255,9 @@ namespace Inferno::Game {
             // Check if any portals are in range of the start point
             for (auto& portal : room->Portals) {
                 auto& side = level.GetSide(portal.Tag);
+                if (soundMode && !SoundPassesThroughSide(level, side))
+                    continue;
+
                 auto dist = Vector3::Distance(side.Center, position);
 
                 // Check projected distance in case point is on the portal face
