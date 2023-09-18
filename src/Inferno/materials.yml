@@ -538,6 +538,9 @@ Materials:
   - TexID: 868
     NormalStrength: 1.3
     Roughness: 0.92
+  - TexID: 869
+    SpecularStrength: 0.5
+    Roughness: 0.93
   - TexID: 870
     NormalStrength: -2
     Roughness: 0.95

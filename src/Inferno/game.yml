@@ -43,7 +43,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.6, 0.05, 0.3
+    LightColor: 0.6, 0.05, 0.3, 2.5
     FlashColor: 1, 0.15, 0.6, 25
 
   - id: 2
@@ -59,7 +59,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.15, 0.15, 0.6
+    LightColor: 0.15, 0.15, 0.6, 3.5
     FlashColor: 1, 1, 1, 15
 
   - id: 3
@@ -75,7 +75,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.075, 0.6, 0.075
+    LightColor: 0.075, 0.6, 0.075, 2.5
     FlashColor: 1, 1, 1, 4
 
   - id: 5
@@ -85,7 +85,7 @@ Weapons:
     LightRadius: 16
     LightColor: 1, 0.15, 0.0, 1.5
     FlashColor: 1, 0.3, 0.15, 20
-    Glow: 1, .2, 0, 2
+    Glow: 2, 1.2, 1, 2
 
   - id: 6
     Name: reactor energy ball
@@ -200,7 +200,7 @@ Weapons:
   - id: 13
     Name: plasma
     Decal: scorchB
-    Glow: 1, 1, 1, .5
+    Glow: 1, 1, 1, 1.5
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
@@ -326,7 +326,7 @@ Weapons:
   - id: 26
     Name: robot plasma
     Decal: scorchB
-    Glow: 1, 1, 1, 0.5
+    Glow: 1, 1, 1, 1.5
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
@@ -338,7 +338,7 @@ Weapons:
 
   - id: 27
     Name: spider fireball
-    Glow: 1, 0, 0, 6
+    Glow: 1, .5, .5, 10
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
@@ -559,11 +559,13 @@ Powerups:
 
   - id: 23 # Cloak
     LightColor: .5, 0, 1, 2
+    Glow: 1, 1, 1
     LightRadius: 13
     LightMode: 2 # Pulse
 
   - id: 25 # Invuln
     LightColor: 0.1, 0, 1, 2
+    Glow: 1, 1, 1
     LightRadius: 14
     LightMode: 2 # Pulse
 
@@ -755,8 +757,9 @@ Effects:
       ConeRadius: 1
       SparkDuration: [ 0.75, 2.4 ]
       Restitution: 0.6
-      Velocity: [ 50, 65 ]
-      Count: [ 80, 100 ]
+      Velocity: [ 35, 40 ]
+      Count: [ 35, 40 ]
+      Drag: 0.01
       FadeTime: 0.5
       Texture: tracer
       Width: 0.2
@@ -766,7 +769,7 @@ Effects:
       SparkDuration: [ 0.75, 2.4 ]
       Restitution: 0.6
       Velocity: [ 65, 85 ]
-      Count: [ 120, 120 ]
+      Count: [ 40, 40 ]
       Color: 1, .75, .75, 4
       FadeTime: 0.5
       Texture: tracer # hotspark
