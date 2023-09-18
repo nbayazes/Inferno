@@ -235,4 +235,6 @@ namespace Inferno {
     void ResetAI(); // Call on level start / load to reset AI state
     // Resizes the internal AI buffer. Keep in sync with the Level.Objects size.
     void ResizeAI(size_t size);
+
+    AIRuntime& GetAI(const Object& obj);
 }

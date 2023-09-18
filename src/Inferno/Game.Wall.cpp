@@ -9,6 +9,7 @@
 #include "Graphics/Render.Particles.h"
 #include "HUD.h"
 #include "DataPool.h"
+#include "Game.AI.h"
 #include "Resources.h"
 #include "Editor/Events.h"
 
@@ -539,12 +540,29 @@ namespace Inferno {
         }
     }
 
-    bool RobotCanOpenDoor(const Wall& wall) {
+    bool RobotCanOpenDoor(Level& level, const Wall& wall, const Object& robot) {
+        // Don't allow sleeping robots to open walls. Important because several
+        // robots in official levels are positioned on top of secret doors.
+        auto& ai = GetAI(robot);
+        if(ai.Awareness <= 0) 
+            return false;
+
         if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
             return false;
 
         if (HasFlag(wall.Keys, WallKey::Red) || HasFlag(wall.Keys, WallKey::Gold) || HasFlag(wall.Keys, WallKey::Blue))
             return false;
+
+        // Don't allow robots to open locked doors from the back even if they are open.
+        // Can cause sequence breaking or undesired behavior. Note that the thief
+        // could originally open locked doors from the back.
+        if (auto cwall = level.GetConnectedWall(wall)) {
+            if (cwall->Type != WallType::Door || cwall->HasFlag(WallFlag::DoorLocked))
+                return false;
+
+            if (HasFlag(cwall->Keys, WallKey::Red) || HasFlag(cwall->Keys, WallKey::Gold) || HasFlag(cwall->Keys, WallKey::Blue))
+                return false;
+        }
 
         return true;
     }
@@ -560,7 +578,7 @@ namespace Inferno {
         else if (wall.Type == WallType::Door) {
             if (src.IsRobot()) {
                 // Allow robots to open normal doors
-                if (RobotCanOpenDoor(wall))
+                if (RobotCanOpenDoor(level, wall, src))
                     OpenDoor(level, wall.Tag);
             }
             else if (isPlayerSource && Game::Player.CanOpenDoor(wall)) {
