@@ -285,7 +285,7 @@ namespace Inferno::Render {
         float _nextInterval = 0;
 
     public:
-        SparkEmitter() { Queue = RenderQueueType::None; }
+        SparkEmitter() { Queue = RenderQueueType::Transparent; }
         string Texture = "tracer";
         Color Color = { 3.0, 3.0, 3.0 };
         float Width = 0.35f;
@@ -335,7 +335,6 @@ namespace Inferno::Render {
     // Either call this or individual effects using UpdateEffect()
     void UpdateAllEffects(float dt);
     void FixedUpdateEffects(float dt);
-    void BeginUpdateEffects();
     void EndUpdateEffects();
 
     namespace Stats {

@@ -381,7 +381,6 @@ namespace Inferno::Render {
             LevelChanged = false;
         }
 
-        BeginUpdateEffects();
         _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes());
 
         for (auto& id : _renderQueue.GetVisibleRooms()) {

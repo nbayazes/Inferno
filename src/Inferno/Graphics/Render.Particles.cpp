@@ -1141,7 +1141,8 @@ namespace Inferno::Render {
         }
     }
 
-    void BeginUpdateEffects() {
+    // Updates owners and releases expired effects
+    void EndUpdateEffects() {
         for (int id = 0; id < VisualEffects.size(); id++) {
             auto& effect = VisualEffects[id];
             if (!effect) continue;
@@ -1153,13 +1154,6 @@ namespace Inferno::Render {
                     LinkEffect(*effect, (EffectID)id, parent->Segment);
                 }
             }
-        }
-    }
-
-    void EndUpdateEffects() {
-        for (int id = 0; id < VisualEffects.size(); id++) {
-            auto& effect = VisualEffects[id];
-            if (!effect) continue;
 
             // Remove dead effects
             if (effect->Elapsed >= effect->Duration) {
