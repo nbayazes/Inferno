@@ -116,7 +116,7 @@ namespace Inferno::Render {
         ctx.ClearColor(target);
         ctx.ClearDepth(depthBuffer);
         ctx.ClearColor(linearDepthBuffer);
-        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+        ctx.SetViewportAndScissor(UINT(target.GetWidth() * RenderScale), UINT(target.GetHeight() * RenderScale));
         linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
 
@@ -408,10 +408,10 @@ namespace Inferno::Render {
             auto& target = Adapter->GetHdrRenderTarget();
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-            ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+            ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
-            LightGrid->SetLightConstants((UINT)target.GetWidth(), (UINT)target.GetHeight());
+            LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
             ctx.BeginEvent(L"Opaque queue");
             for (auto& cmd : _renderQueue.Opaque())

@@ -35,6 +35,8 @@ namespace Inferno::Render {
     inline bool DebugEmissive = false;
     inline Ptr<TextureCache> NewTextureCache;
 
+    inline float RenderScale = 1; // Scale of 3D render target
+
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetWrappedTextureSampler() {
         return Settings::Graphics.FilterMode == TextureFilterMode::Point ? Heaps->States.PointWrap() : Heaps->States.AnisotropicWrap();
     }

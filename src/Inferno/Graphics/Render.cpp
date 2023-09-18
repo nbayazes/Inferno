@@ -20,7 +20,6 @@
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Procedural.h"
-#include "Render.Level.h"
 
 using namespace DirectX;
 using namespace Inferno::Graphics;
@@ -186,6 +185,7 @@ namespace Inferno::Render {
         {
             RenderTargetState rtState(Adapter->GetBackBufferFormat(), Adapter->SceneDepthBuffer.GetFormat());
             SpriteBatchPipelineStateDescription pd(rtState);
+            pd.samplerDescriptor = Heaps->States.PointClamp();
             _postBatch = MakePtr<SpriteBatch>(Device, resourceUpload, pd);
         }
 
@@ -387,25 +387,13 @@ namespace Inferno::Render {
         return _meshBuffer->GetOutrageHandle(id);
     }
 
-    void ClearMainRenderTarget(const GraphicsContext& ctx) {
-        //ctx.BeginEvent(L"Clear");
-
-        auto& target = Adapter->GetHdrRenderTarget();
-        auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-        ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-        //ctx.ClearColor(target);
-        //ctx.ClearDepth(depthBuffer);
-        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
-
-        //ctx.EndEvent();
-    }
-
     void PostProcess(const GraphicsContext& ctx) {
         ctx.BeginEvent(L"Post");
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
         ctx.ClearColor(*backBuffer);
         ctx.SetRenderTarget(backBuffer->GetRTV());
+        ctx.SetViewportAndScissor((UINT)backBuffer->GetWidth(), (UINT)backBuffer->GetHeight());
 
         auto cmdList = ctx.GetCommandList();
         Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -417,11 +405,7 @@ namespace Inferno::Render {
         _postBatch->SetViewport(Adapter->GetScreenViewport());
         _postBatch->Begin(cmdList);
         auto size = Adapter->GetOutputSize();
-        _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)size.x, (uint)size.y }, XMFLOAT2{ 0, 0 });
-
-        //if (DebugEmissive)
-        //    draw with shader that subtracts 1 from all values;
-
+        _postBatch->Draw(Adapter->SceneColorBuffer.GetSRV(), XMUINT2{ (uint)(size.x / RenderScale), (uint)(size.y / RenderScale) }, XMFLOAT2{ 0, 0 });
         _postBatch->End();
     }
 
@@ -440,7 +424,9 @@ namespace Inferno::Render {
         ctx.BeginEvent(L"Briefing");
         ctx.ClearColor(target);
         ctx.SetRenderTarget(target.GetRTV());
-        ctx.SetViewportAndScissor((UINT)target.GetWidth(), (UINT)target.GetHeight());
+        float scale = 1;
+        ctx.SetViewport(UINT(target.GetWidth() * scale), UINT(target.GetHeight() * scale));
+        ctx.SetScissor(UINT(target.GetWidth() * scale), UINT(target.GetHeight() * scale));
         auto& briefing = Editor::BriefingEditor::DebugBriefing;
         BriefingCanvas->SetSize((uint)target.GetWidth(), (uint)target.GetHeight());
         if (!briefing.Screens.empty() && !briefing.Screens[0].Pages.empty()) {
@@ -465,10 +451,10 @@ namespace Inferno::Render {
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
-    void UpdateFrameConstants() {
+    void UpdateFrameConstants(float viewportScale) {
         auto output = Adapter->GetOutputSize();
         Camera.Update(FrameTime);
-        Camera.SetViewport(output.x, output.y);
+        Camera.SetViewport(output.x * viewportScale, output.y * viewportScale);
         Camera.LookAtPerspective(Settings::Editor.FieldOfView, Game::Time);
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
@@ -479,7 +465,7 @@ namespace Inferno::Render {
         frameConstants.NearClip = Camera.NearClip;
         frameConstants.FarClip = Camera.FarClip;
         frameConstants.Eye = Camera.Position;
-        frameConstants.FrameSize = Adapter->GetOutputSize();
+        frameConstants.FrameSize = Adapter->GetOutputSize() * Render::RenderScale;
         frameConstants.GlobalDimming = Game::ControlCenterDestroyed ? float(sin(Game::CountdownTimer * 4) * 0.5 + 0.5) : 1;
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;
@@ -537,7 +523,7 @@ namespace Inferno::Render {
         }
 
         //DrawBriefing(ctx, Adapter->BriefingColorBuffer);
-        UpdateFrameConstants();
+        UpdateFrameConstants(1);
 
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(ctx.GetCommandList());

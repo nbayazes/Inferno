@@ -143,7 +143,7 @@ namespace Inferno {
             ranges::fill(PrimaryAmmo, 0);
 
             PickUpPrimary(PrimaryWeaponIndex::Laser);
-            PickUpSecondary(SecondaryWeaponIndex::Concussion, 7 - difficulty);
+            PickUpSecondary(SecondaryWeaponIndex::Concussion, uint16(7 - difficulty));
         }
 
     private:

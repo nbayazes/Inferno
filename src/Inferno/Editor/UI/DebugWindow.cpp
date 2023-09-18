@@ -26,6 +26,22 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
         ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
+
+        if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
+            EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
+        }
+
+        ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
+
+        {
+        static constexpr std::array angles = { "25%%", "50%%", "75%%", "100%%" };
+        int renderScale = std::clamp(int(Render::RenderScale * 4) - 1, 0, 3);
+        ImGui::SetNextItemWidth(175);
+        if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
+            Render::RenderScale = (renderScale + 1) / 4.0f;
+        }
+
+        ImGui::Separator();
         ImGui::Text("Keys");
         auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
         auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);
@@ -36,13 +52,6 @@ namespace Inferno::Editor {
         ImGui::SameLine();
         if (ImGui::Checkbox("Red", &redKey)) Game::Player.SetPowerup(PowerupFlag::RedKey, redKey);
 
-        if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
-            EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
-        }
-
-        ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
-
-        ImGui::Separator();
         if (ImGui::Button("Reset inventory"))
             Game::Player.ResetInventory(Game::Difficulty);
 

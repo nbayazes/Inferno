@@ -123,7 +123,7 @@ namespace Inferno {
 
     constexpr float CLOAK_TIME = 30.0f;
     constexpr float INVULN_TIME = 30.0f;
-    constexpr float VULCAN_AMMO_PICKUP = 2500; // Ammo per vulcan pickup
+    constexpr int VULCAN_AMMO_PICKUP = 2500; // Ammo per vulcan pickup
 
     // Object types
     enum class ObjectType : uint8 {

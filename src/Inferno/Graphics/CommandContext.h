@@ -176,19 +176,25 @@ namespace Inferno::Graphics {
             _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.StencilDepth, 0, (rect == nullptr) ? 0 : 1, rect);
         }
 
-        void SetViewportAndScissor(UINT width, UINT height) const {
+        void SetScissor(UINT width, UINT height) const {
             D3D12_RECT scissor{};
             scissor.right = (LONG)width;
             scissor.bottom = (LONG)height;
+            _cmdList->RSSetScissorRects(1, &scissor);
+        }
 
+        void SetViewport(UINT width, UINT height) const {
             D3D12_VIEWPORT viewport{};
             viewport.Width = (float)width;
             viewport.Height = (float)height;
             viewport.MinDepth = D3D12_MIN_DEPTH;
             viewport.MaxDepth = D3D12_MAX_DEPTH;
-
             _cmdList->RSSetViewports(1, &viewport);
-            _cmdList->RSSetScissorRects(1, &scissor);
+        }
+
+        void SetViewportAndScissor(UINT width, UINT height) const {
+            SetViewport(width, height);
+            SetScissor(width, height);
         }
 
         template <class T>
