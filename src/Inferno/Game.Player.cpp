@@ -874,7 +874,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::VulcanAmmo:
-                if (PickUpAmmo(PrimaryWeaponIndex::Vulcan, 2500)) {
+                if (PickUpAmmo(PrimaryWeaponIndex::Vulcan, VULCAN_AMMO_PICKUP)) {
                     AddScreenFlash(FLASH_PRIMARY * 0.66f);
                     PrintHudMessage("vulcan ammo!");
                     used = true;

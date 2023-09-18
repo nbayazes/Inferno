@@ -247,6 +247,10 @@ namespace Inferno::Editor {
                 obj.LightColor = info.LightColor;
                 obj.LightMode = info.LightMode;
                 obj.Render.Emissive = info.Glow;
+
+                if ((PowerupID)id == PowerupID::Vulcan || (PowerupID)id == PowerupID::Gauss)
+                    obj.Control.Powerup.Count = VULCAN_AMMO_PICKUP;
+
                 break;
             }
 

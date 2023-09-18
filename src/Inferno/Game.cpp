@@ -340,7 +340,13 @@ namespace Inferno::Game {
         switch (contains.Type) {
             case ObjectType::Powerup:
             {
-                auto& pinfo = Resources::GetPowerup((PowerupID)contains.ID);
+                auto pid = (PowerupID)contains.ID;
+                // Replace Vulcan/Gauss with ammo drops if player already has it
+                if ((pid == PowerupID::Vulcan && Game::Player.HasWeapon(PrimaryWeaponIndex::Vulcan)) ||
+                    (pid == PowerupID::Gauss && Game::Player.HasWeapon(PrimaryWeaponIndex::Gauss)))
+                    pid = PowerupID::VulcanAmmo;
+
+                auto& pinfo = Resources::GetPowerup(pid);
                 if (pinfo.VClip == VClipID::None) {
                     SPDLOG_WARN("Tried to drop an invalid powerup!");
                     return;
@@ -348,7 +354,7 @@ namespace Inferno::Game {
 
                 for (int i = 0; i < contains.Count; i++) {
                     Object powerup{};
-                    Editor::InitObject(Level, powerup, ObjectType::Powerup, contains.ID);
+                    Editor::InitObject(Level, powerup, ObjectType::Powerup, (int)pid);
                     powerup.Position = position;
                     powerup.Segment = segment;
 
