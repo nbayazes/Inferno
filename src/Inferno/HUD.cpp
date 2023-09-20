@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "HUD.h"
 #include "Game.h"
+#include "SoundSystem.h"
 #include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
 
@@ -28,6 +29,7 @@ namespace Inferno {
         int _requested = -1; // The requested weapon
         int _requestedLaserLevel = -1;
         bool _primary;
+
     public:
         MonitorState(bool primary) : _primary(primary) {}
 
@@ -215,10 +217,10 @@ namespace Inferno {
         DrawReticleBitmap(primaryOffset, Gauges::ReticlePrimary, primaryFrame, scale);
 
         int secondaryFrame = secondaryReady;
-        static constexpr uint8_t Secondary_weapon_to_gun_num[10] = { 4,4,7,7,7,4,4,7,4,7 };
+        static constexpr uint8_t Secondary_weapon_to_gun_num[10] = { 4, 4, 7, 7, 7, 4, 4, 7, 4, 7 };
 
         if (Secondary_weapon_to_gun_num[(int)Game::Player.Secondary] == 7)
-            secondaryFrame += 3;		//now value is 0,1 or 3,4
+            secondaryFrame += 3; //now value is 0,1 or 3,4
         else if (secondaryFrame && !(Game::Player.MissileFiringIndex & 1))
             secondaryFrame++;
 
@@ -283,7 +285,7 @@ namespace Inferno {
         float percent = player.AfterburnerCharge;
         auto scale = Render::HudCanvas->GetScale();
         auto hex = Color(1, 1, 1).RGBA().v;
-        auto pos = Vector2{ x - 151, -37 } *scale;
+        auto pos = Vector2{ x - 151, -37 } * scale;
         auto& material = Render::Materials->Get("gauge02b");
         Vector2 size = {
             (float)material.Textures[0].GetWidth() * scale,
@@ -368,9 +370,7 @@ namespace Inferno {
         {
             float resScale = Game::Level.IsDescent1() ? 2.0f : 1.0f; // todo: check resource path instead?
             WeaponID wid =
-                weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4 ?
-                WeaponID::Laser5 :
-                PrimaryToWeaponID[(int)weaponIndex];
+                weaponIndex == PrimaryWeaponIndex::Laser && state.LaserLevel >= 4 ? WeaponID::Laser5 : PrimaryToWeaponID[(int)weaponIndex];
 
             auto texId = GetWeaponTexID(Resources::GetWeapon(wid));
 
@@ -473,8 +473,8 @@ namespace Inferno {
             Vector2 v2 = { x1 + width * 2, y1 };
             Vector2 v3 = { x1, y1 };
 
-            payload.V0 = CanvasVertex{ v0, { 1 - vStep * float(i)    , 0 }, color.RGBA().v }; // bottom left
-            payload.V1 = CanvasVertex{ v1, { 1 - vStep * float(i)    , 1 }, color.RGBA().v }; // bottom right
+            payload.V0 = CanvasVertex{ v0, { 1 - vStep * float(i), 0 }, color.RGBA().v }; // bottom left
+            payload.V1 = CanvasVertex{ v1, { 1 - vStep * float(i), 1 }, color.RGBA().v }; // bottom right
             payload.V2 = CanvasVertex{ v2, { 1 - vStep * float(i + 1), 1 }, color.RGBA().v }; // top right
             payload.V3 = CanvasVertex{ v3, { 1 - vStep * float(i + 1), 0 }, color.RGBA().v }; // top left
             Render::HudGlowCanvas->Draw(payload);
@@ -618,7 +618,8 @@ namespace Inferno {
                 }
             }
 
-            if (frame != 9) { // Frame 9 is 'missing' - no shields
+            if (frame != 9) {
+                // Frame 9 is 'missing' - no shields
                 auto shieldGfx = fmt::format("gauge01b#{}", frame);
                 DrawShipBitmap({ 0, -29 }, Render::Materials->Get(shieldGfx), 1, 1);
             }
@@ -631,8 +632,11 @@ namespace Inferno {
         MonitorState _leftMonitor = { true }, _rightMonitor = { false };
         float _scoreTime = 0;
         int _scoreAdded = 0;
+
     public:
         void Draw(float dt, Player& player, const Color& ambient) {
+            CheckLockWarning();
+
             float spacing = 100;
             _leftMonitor.Update(dt, player, (int)player.Primary);
             _rightMonitor.Update(dt, player, (int)player.Secondary);
@@ -702,16 +706,16 @@ namespace Inferno {
                 }
             }
 
-            {
+            if (Game::Time - _lastLockWarningTime < _lockTextTime) {
                 // Lock text
                 Render::DrawTextInfo info;
                 info.Font = FontSize::Small;
                 info.Color = RED_TEXT;
-                info.Position = Vector2(0, 40) * scale;
+                info.Position = Vector2(0, 30) * scale;
                 info.HorizontalAlign = AlignH::Center;
                 info.VerticalAlign = AlignV::CenterTop;
                 info.Scanline = 0.8f;
-                //DrawMonitorText("!LOCK!", info);
+                DrawMonitorText("!LOCK!", info);
             }
 
             if (Game::ControlCenterDestroyed && Game::CountdownSeconds >= 0) {
@@ -756,6 +760,22 @@ namespace Inferno {
             _scoreTime = std::clamp(_scoreTime, 0.0f, BASE_SCORE_WINDOW * 2);
         }
 
+    private:
+        double _lastLockWarningTime = -1;
+        float _lockTextTime = 0;
+
+        void CheckLockWarning() {
+            if (Game::Player.HomingObjectDist >= 0) {
+                auto delay = Game::Player.HomingObjectDist / 128.0f;
+                delay = std::clamp(delay, 1 / 8.0f, 1.0f);
+                if (Game::Time - _lastLockWarningTime > delay / 2) {
+                    auto resource = Resources::GetSoundResource(SoundID::HomingWarning);
+                    Sound::Play(resource);
+                    _lastLockWarningTime = Game::Time;
+                    _lockTextTime = delay / 4;
+                }
+            }
+        }
     } Hud;
 
     void DrawHUD(float dt, Color ambient) {
