@@ -355,7 +355,7 @@ namespace Inferno::Game {
             e.Clip = vclip;
             e.FadeTime = weapon.Extended.ExplosionTime;
             e.Color = Color{ 1, .7, .7, 2 };
-            e.LightColor = Color{ 1.0f, 4.0f, 0.1f };
+            e.LightColor = Color{ 1.0f, 0.05f, 0.05f, 4 };
             e.LightRadius = splashRadius;
             Render::CreateExplosion(e, obj.Segment, obj.Position);
 

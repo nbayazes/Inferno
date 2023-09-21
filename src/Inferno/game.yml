@@ -256,7 +256,9 @@ Weapons:
     Name: proximity mine
     behavior: proxmine
     InheritVelocity: true
-    LightRadius: 20
+    FlashColor: 0, 0, 0
+    LightRadius: 14
+    LightColor: 1, 0.1, 0.1
 
   - id: 17
     Name: smart missile
