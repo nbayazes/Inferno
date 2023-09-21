@@ -544,7 +544,7 @@ namespace Inferno {
         // Don't allow sleeping robots to open walls. Important because several
         // robots in official levels are positioned on top of secret doors.
         auto& ai = GetAI(robot);
-        if(ai.Awareness <= 0) 
+        if (ai.Awareness <= 0)
             return false;
 
         if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
@@ -570,15 +570,18 @@ namespace Inferno {
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall) {
         auto parent = level.TryGetObject(src.Parent);
         bool isPlayerSource = src.IsPlayer() || (parent && parent->IsPlayer());
+        // Should robots only be able to open doors by touching them?
+        //const Object* pRobot = src.IsRobot() ? &src : nullptr; // Only allow touching
+        const Object* pRobot = src.IsRobot() ? &src : (parent && parent->IsRobot() ? parent : nullptr);
 
         if (wall.Type == WallType::Destroyable && isPlayerSource && src.Type == ObjectType::Weapon) {
             auto& weapon = Resources::GetWeapon((WeaponID)src.ID);
             DamageWall(level, wall.Tag, weapon.Damage[Game::Difficulty]);
         }
         else if (wall.Type == WallType::Door) {
-            if (src.IsRobot()) {
+            if (pRobot) {
                 // Allow robots to open normal doors
-                if (RobotCanOpenDoor(level, wall, src))
+                if (RobotCanOpenDoor(level, wall, *pRobot))
                     OpenDoor(level, wall.Tag);
             }
             else if (isPlayerSource && Game::Player.CanOpenDoor(wall)) {
@@ -588,8 +591,6 @@ namespace Inferno {
                 // Can't open door
                 Sound3D sound(point, wall.Tag.Segment);
                 sound.Resource = Resources::GetSoundResource(SoundID::HitLockedDoor);
-                //sound.Source = src.Parent;
-                //sound.FromPlayer = true;
                 sound.Position = point;
                 Sound::Play(sound);
 
