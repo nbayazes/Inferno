@@ -242,7 +242,7 @@ namespace Inferno {
                         sound.FromPlayer = true;
                         sound.Position = player.Position;
                         _fusionChargeSound = Sound::Play(sound);
-                        AlertEnemiesOfNoise(player, 60, 0.25f);
+                        AlertEnemiesOfNoise(player, 100, 0.25f);
                     }
 
                     if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {
@@ -288,6 +288,7 @@ namespace Inferno {
         Game::FireWeapon(Reference, WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
+        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, 1);
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {

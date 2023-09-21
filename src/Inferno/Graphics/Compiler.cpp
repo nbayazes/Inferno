@@ -43,14 +43,14 @@ namespace Inferno {
         ));
     }
 
-    std::filesystem::path GetBinaryPath(std::filesystem::path file, std::string ext) {
+    std::filesystem::path GetBinaryPath(const std::filesystem::path& file, const std::string& ext) {
         auto name = file.stem().string() + ext;
         return file.parent_path() / "bin" / name;
     }
 
     void CheckCompilerResult(IDxcResult* result/*, const std::filesystem::path& file*/) {
         ComPtr<IDxcBlobUtf8> pErrors;
-        result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(pErrors.GetAddressOf()), nullptr);
+        ThrowIfFailed(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(pErrors.GetAddressOf()), nullptr));
         if (pErrors && pErrors->GetStringLength() > 0) {
             throw Inferno::Exception((char*)pErrors->GetBufferPointer());
         }
@@ -84,7 +84,7 @@ namespace Inferno {
         uint32_t codePage = CP_UTF8;
         ComPtr<IDxcBlobEncoding> sourceBlob;
         ThrowIfFailed(Utils->LoadFile(file.c_str(), &codePage, &sourceBlob));
-        sourceBlob.As(&result);
+        ThrowIfFailed(sourceBlob.As(&result));
     }
 
     void CompileShader(const filesystem::path& file, span<LPCWSTR> args, ComPtr<ID3DBlob>& result) {
@@ -97,12 +97,12 @@ namespace Inferno {
         sourceBuffer.Size = source->GetBufferSize();
 
         ComPtr<IDxcResult> dxcResult;
-        Compiler->Compile(&sourceBuffer, args.data(), (uint32)args.size(), IncludeHandler.Get(), IID_PPV_ARGS(&dxcResult));
+        ThrowIfFailed(Compiler->Compile(&sourceBuffer, args.data(), (uint32)args.size(), IncludeHandler.Get(), IID_PPV_ARGS(&dxcResult)));
         CheckCompilerResult(dxcResult.Get());
 
         ComPtr<IDxcBlob> resultBlob;
-        dxcResult->GetResult(&resultBlob);
-        resultBlob.As(&result);
+        ThrowIfFailed(dxcResult->GetResult(&resultBlob));
+        ThrowIfFailed(resultBlob.As(&result));
     }
 
     ComPtr<ID3DBlob> LoadComputeShader(const filesystem::path& file, ComPtr<ID3D12RootSignature>& rootSignature, ComPtr<ID3D12PipelineState>& pso, wstring entryPoint) {
@@ -127,12 +127,12 @@ namespace Inferno {
         psoDesc.CS.pShaderBytecode = shader->GetBufferPointer();
         psoDesc.CS.BytecodeLength = shader->GetBufferSize();
 
-        rootSignature->SetName(file.c_str());
+        ThrowIfFailed(rootSignature->SetName(file.c_str()));
         ThrowIfFailed(Render::Device->CreateComputePipelineState(
             &psoDesc,
             IID_PPV_ARGS(pso.ReleaseAndGetAddressOf())
         ));
-        pso->SetName(file.c_str());
+        ThrowIfFailed(pso->SetName(file.c_str()));
 
         return shader;
     }
@@ -158,7 +158,7 @@ namespace Inferno {
 
         // load root sig from the shader hlsl
         LoadShaderRootSig(*shader.Get(), rootSignature);
-        rootSignature->SetName(file.c_str());
+        ThrowIfFailed(rootSignature->SetName(file.c_str()));
 
         return shader;
     }
@@ -185,7 +185,7 @@ namespace Inferno {
         try {
             ThrowIfFailed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&Utils)));
             ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&Compiler)));
-            Utils->CreateDefaultIncludeHandler(&IncludeHandler);
+            ThrowIfFailed(Utils->CreateDefaultIncludeHandler(&IncludeHandler));
         }
         catch (...) {
             SPDLOG_ERROR("Error creating DXC compiler");

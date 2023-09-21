@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Game.Navigation.h"
-
 #include "Resources.h"
+#include "logging.h"
 
 namespace Inferno::Game {
     List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, Level& level) {
@@ -242,15 +242,20 @@ namespace Inferno::Game {
             float Distance;
         };
 
-        Stack<TravelInfo> stack;
-        Set<RoomID> visited;
         //SPDLOG_INFO("Traversing rooms");
+        static List<RoomID> visited;
+        static List<TravelInfo> stack;
+        stack.clear();
+        visited.clear();
+
+        int stackIndex = 0;
 
         {
             auto room = level.GetRoom(startRoom);
             if (!room) return;
-            visited.insert(startRoom);
+            visited.push_back(startRoom);
             action(*room); // Execute on starting room
+            //SPDLOG_INFO("Executing on room {}", (int)startRoom);
 
             // Check if any portals are in range of the start point
             for (auto& portal : room->Portals) {
@@ -266,32 +271,32 @@ namespace Inferno::Game {
                 if (projDist < dist) dist = projDist;
 
                 if (dist < maxDistance) {
-                    stack.push({ portal, dist });
+                    stack.push_back({ portal, dist });
                     //SPDLOG_INFO("Checking adjacent portal {}:{} dist: {}", portal.Tag.Segment, portal.Tag.Side, dist);
                 }
             }
         }
 
-        while (!stack.empty()) {
-            TravelInfo info = stack.top();
-            stack.pop();
+        while (stackIndex < stack.size()) {
+            TravelInfo& info = stack[stackIndex++];
+            visited.push_back(info.Portal.RoomLink);
             auto room = level.GetRoom(info.Portal.RoomLink);
             if (!room) continue;
             //SPDLOG_INFO("Executing on room {} Distance {}", (int)info.Portal.RoomLink, info.Distance);
-            action(*room); // room was in range
-            visited.insert(info.Portal.RoomLink);
+            action(*room); // act on the room
 
-            auto& startPortal = room->Portals[info.Portal.PortalLink];
             auto& portalDistances = room->PortalDistances[info.Portal.PortalLink];
 
             // check room portal distances
             for (int i = 0; i < room->Portals.size(); i++) {
-                if (i == info.Portal.PortalLink) continue;
+                if (i == info.Portal.PortalLink) continue; // Don't backtrack
                 auto distance = info.Distance + portalDistances[i];
                 auto& endPortal = room->Portals[i];
+                if (Seq::contains(visited, endPortal.RoomLink))
+                    continue; // Linked room already visited
 
-                if (distance < maxDistance && !visited.contains(startPortal.RoomLink)) {
-                    stack.push({ endPortal, distance });
+                if (distance < maxDistance) {
+                    stack.push_back({ endPortal, distance });
                     //SPDLOG_INFO("Checking portal {}:{} dist: {}", endPortal.Tag.Segment, endPortal.Tag.Side, distance);
                 }
             }

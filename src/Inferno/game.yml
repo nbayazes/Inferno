@@ -157,6 +157,7 @@ Weapons:
     FlashColor: 1, 1, 1, 15
     Sparks: flare sparks # sparks to create while alive
     DeathSparks: flare death sparks # sparks to create when expiring
+    SoundRadius: 150
 
   - id: 11
     Name: vulcan
@@ -235,6 +236,8 @@ Weapons:
     Name: concussion missile
     Decal: scorchC
     DecalRadius: 4
+    LightRadius: 14
+    LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
@@ -244,6 +247,7 @@ Weapons:
     Decal: scorchC
     DecalRadius: 4
     LightRadius: 14
+    LightColor: 0.25, 0.25, 0.75, 2
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
@@ -262,6 +266,7 @@ Weapons:
     Decal: scorchC
     DecalRadius: 4
     LightRadius: 14
+    LightColor: 0.25, 0.75, 0, 4
     SpawnCount: 6
     Spawn: 19
     Size: 1 # was 1.5
@@ -290,6 +295,7 @@ Weapons:
     Mass: 4
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 60
+    LightColor: 0.75, 0.25, 0.25, 2
     Size: 1.25 # was 0.2 due odd length ratio
 
   - id: 20 
@@ -310,6 +316,8 @@ Weapons:
     DecalRadius: 4
     ExplosionColor: 1, 0.25, 0.0, 5
     FlashColor: 1, 0.4, 0.4, 5
+    LightRadius: 14
+    LightColor: 0.25, 0.25, 0.75, 2
     Size: 1 # was 1.5
 
   - id: 22
