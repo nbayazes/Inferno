@@ -76,7 +76,7 @@ namespace Inferno {
 
         uint16 HostagesRescued; // Hostages rescued by the player on the current level.
         uint8 HostagesOnShip;   // How many poor souls get killed when ship is lost
-        float HomingObjectDist; // Distance of nearest homing object. Used for lock indicators.
+        float HomingObjectDist = -1; // Distance of nearest homing object. Used for lock indicators.
     };
 
 }

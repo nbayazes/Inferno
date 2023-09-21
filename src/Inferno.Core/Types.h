@@ -607,7 +607,12 @@ namespace Inferno {
     constexpr auto format_as(LevelTexID id) { return (int)id; }
     constexpr auto format_as(ObjSig id) { return (int)id; }
     constexpr auto format_as(RoomID id) { return (int)id; }
-    inline auto format_as(Tag tag) { return fmt::format("{}:{}",tag.Segment, tag.Side); }
+    inline auto format_as(Tag tag) { return fmt::format("{}:{}", tag.Segment, tag.Side); }
+    inline auto format_as(ObjRef ref) { return fmt::format("{}:{}", (int)ref.Id, (int)ref.Signature); }
+}
+
+namespace DirectX::SimpleMath {
+    inline auto format_as(const Vector3& v) { return fmt::format("({}, {}, {})", v.x, v.y, v.z); }
 }
 
 template <>

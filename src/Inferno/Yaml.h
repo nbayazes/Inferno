@@ -3,6 +3,7 @@
 #ifndef C4_USE_ASSERT
 // Bad data shouldn't cause an assertion, even in debug
 #define C4_USE_ASSERT 0
+#include "Weapon.h"
 #endif
 
 #include <ryml/ryml_std.hpp>
@@ -43,6 +44,12 @@ namespace Yaml {
     inline void ReadValue(ryml::ConstNodeRef node, Inferno::SoundID& id) {
         if (!node.valid()) return;
         node >> (int&)id;
+    }
+
+    template<>
+    inline void ReadValue(ryml::ConstNodeRef node, Inferno::WeaponID& id) {
+        if (!node.valid()) return;
+        node >> (Inferno::int8&)id;
     }
 
     template<>

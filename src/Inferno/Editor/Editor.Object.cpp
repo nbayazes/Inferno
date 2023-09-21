@@ -153,8 +153,7 @@ namespace Inferno::Editor {
         auto& weapon = Resources::GetWeapon(WeaponID::LevelMine);
 
         obj.Control.Type = ControlType::Weapon;
-        obj.Control.Weapon.Parent = ObjID::None;
-        obj.Control.Weapon.ParentSig = ObjSig::None;
+        obj.Control.Weapon.Parent = {};
         obj.Control.Weapon.ParentType = obj.Type;
         obj.Movement = MovementType::Physics;
 
@@ -224,6 +223,8 @@ namespace Inferno::Editor {
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
                 obj.Render.Model = { .ID = ri.Model };
+                obj.Cloaked = ri.Cloaking != CloakType::None;
+
                 if (fullReset) {
                     obj.Control.AI.Behavior = AIBehavior::Normal;
                     obj.Contains.Type = ObjectType::None;

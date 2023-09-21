@@ -195,14 +195,29 @@ namespace Inferno {
         auto& pd = obj.Physics;
         const auto stepScale = dt / Game::TICK_RATE;
 
+        Weapon* weapon = obj.IsWeapon() ? &Resources::GetWeapon(obj) : nullptr;
+
+        // Apply weapon thrust
+        if (weapon && weapon->Thrust != 0)
+            pd.Thrust = obj.Rotation.Forward() * weapon->Thrust * dt;
+
         if (pd.Velocity == Vector3::Zero && pd.Thrust == Vector3::Zero)
             return;
 
-        if (pd.Drag > 0) {
-            if (pd.Thrust != Vector3::Zero && pd.Mass > 0)
-                pd.Velocity += pd.Thrust / pd.Mass * stepScale; // acceleration
+        if (pd.Thrust != Vector3::Zero && pd.Mass > 0)
+            pd.Velocity += pd.Thrust / pd.Mass * stepScale; // acceleration
 
+        if (pd.Drag > 0)
             pd.Velocity *= 1 - pd.Drag * stepScale;
+
+        // Cap the max speed of weapons with thrust
+        if (weapon && weapon->Thrust != 0) {
+            auto maxSpeed = weapon->Speed[Game::Difficulty];
+            if (pd.Velocity.Length() > maxSpeed) {
+                Vector3 dir;
+                pd.Velocity.Normalize(dir);
+                pd.Velocity = dir * maxSpeed;
+            }
         }
 
         obj.Position += pd.Velocity * dt;
@@ -273,7 +288,7 @@ namespace Inferno {
 
                 // Don't hit the other side of walls. Note that projectiles will still pass through transparent pixels.
                 if (level.TryGetWall(side.Wall))
-                    continue; 
+                    continue;
 
                 Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
                 if (index == 0 || p.DotCoordinate(point) <= 0) {

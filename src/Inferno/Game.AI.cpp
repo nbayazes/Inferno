@@ -1128,7 +1128,7 @@ namespace Inferno {
     void UpdateRobotAI(Object& robot, float dt) {
         auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
-        auto& player = Game::GetPlayer();
+        auto& player = Game::GetPlayerObject();
 
         // Reset thrust accumulation
         robot.Physics.Thrust = Vector3::Zero;

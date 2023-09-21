@@ -327,7 +327,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::TableRowLabel("Robot ID");
-        ImGui::Text("%i", obj.ID);
+        ImGui::Text("%i:%i", obj.ID, obj.Signature);
 
         ImGui::TableRowLabel("Behavior");
         ImGui::SetNextItemWidth(-1);

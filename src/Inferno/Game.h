@@ -22,7 +22,10 @@ namespace Inferno {
 }
 
 namespace Inferno::Game {
-    constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second (homing missiles use 32 ticks per second)
+    constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second
+    constexpr float HOMING_TICK_RATE = 1.0f / 32; // 32 ticks per second for homing weapons
+    constexpr float WEAPON_HOMING_DELAY = 1 / 8.0f; // Delay before homing weapons start turning
+    constexpr float DEFAULT_WEAPON_VOLUME = 0.55f; // Default volume when firing weapons
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
 
@@ -62,7 +65,8 @@ namespace Inferno::Game {
     void WeaponHitObject(const LevelHit& hit, Object& src);
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
-    void FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, float volume = 0.55f);
+    // Fires a weapon from a model gunpoint
+    void FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, float volume = DEFAULT_WEAPON_VOLUME);
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread);
 
     // Detonates a weapon with a splash radius
@@ -71,8 +75,10 @@ namespace Inferno::Game {
     void Update(float dt);
 
     // Finds the nearest object ID to an object
-    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
-    Tuple<ObjID, float> FindNearestVisibleObject(const Vector3& position, SegID, float maxDist, ObjectMask, span<ObjID> objFilter);
+    Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
+    Tuple<ObjRef, float> FindNearestVisibleObject(const Vector3& position, SegID, float maxDist, ObjectMask, span<ObjRef> objFilter);
+
+    void CreateMissileSpawn(const Object& missile, uint blobs);
 
     void UpdateWeapon(Object&, float dt);
 
@@ -130,11 +136,11 @@ namespace Inferno::Game {
     inline bool InGame() { return GetState() == GameState::Game; }
     inline NavigationNetwork Navigation;
 
-    inline Object& GetPlayer() {
+    inline Object& GetPlayerObject() {
         return Level.Objects[(int)Player.Reference.Id];
     }
 
-    bool ObjectIsInFOV(const Ray& ray, const Object& other, float fov);
+    bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 
     // Returns the object ID based on its address
     inline ObjID GetObjectID(const Object& obj) {
@@ -152,7 +158,7 @@ namespace Inferno::Game {
 
     // Returns an object reference based on its ID
     inline ObjRef GetObjectRef(ObjID id) {
-        if(auto obj = Level.TryGetObject(id))
+        if (auto obj = Level.TryGetObject(id))
             return { id, obj->Signature };
         else
             return {}; // null handle
@@ -161,7 +167,7 @@ namespace Inferno::Game {
     inline Room* GetCurrentRoom() {
         if (Level.Objects.empty()) return nullptr;
         // should technically get the room the camera is in
-        return Level.GetRoom(GetPlayer());
+        return Level.GetRoom(GetPlayerObject());
     }
 
     namespace Stats {

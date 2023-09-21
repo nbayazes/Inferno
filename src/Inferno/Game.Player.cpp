@@ -181,6 +181,7 @@ namespace Inferno {
         if (HasPowerup(PowerupFlag::Cloak) && Game::Time > CloakTime + CLOAK_TIME) {
             Sound::Play(Resources::GetSoundResource(SoundID::CloakOff));
             RemovePowerup(PowerupFlag::Cloak);
+            Game::GetPlayerObject().Cloaked = false;
         }
 
         if (HasPowerup(PowerupFlag::Invulnerable) && Game::Time > InvulnerableTime + INVULN_TIME) {
@@ -223,7 +224,7 @@ namespace Inferno {
                 AddScreenFlash(FLASH_FUSION_CHARGE);
                 FusionNextSoundDelay -= dt;
                 if (FusionNextSoundDelay < 0) {
-                    auto& player = Game::GetPlayer();
+                    auto& player = Game::GetPlayerObject();
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
                         Sound3D sound(Reference);
@@ -395,7 +396,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
-        AlertEnemiesOfNoise(Game::GetPlayer(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
+        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
@@ -430,7 +431,7 @@ namespace Inferno {
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
-        AlertEnemiesOfNoise(Game::GetPlayer(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
+        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
 
         if (!CanFireSecondary(Secondary))
             AutoselectSecondary(); // Swap to different weapon if out of ammo
@@ -894,6 +895,7 @@ namespace Inferno {
                     GivePowerup(PowerupFlag::Cloak);
                     CloakTime = (float)Game::Time;
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
+                    Game::GetPlayerObject().Cloaked = true;
                     used = true;
                 }
                 break;

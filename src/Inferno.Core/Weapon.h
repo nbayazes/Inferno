@@ -147,6 +147,7 @@ namespace Inferno {
         float Noise = 1; // How much noise (awareness) weapon creates when firing
         float SoundRadius = 240; // Sound radius when firing
         float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration.
+        Array<float, 5> InitialSpeed; // Speed to spawn with
 
         //struct FiringPattern {
         //    string Crosshair;
@@ -193,14 +194,15 @@ namespace Inferno {
         sbyte Bounce = 0;           // 1 always bounces, 2 bounces twice
         bool IsHoming = false;
 
-        float SpeedVariance = 1;  // Randomized speed multiplier. 0.5 is 50-100%
+        float SpeedVariance = 1;  // Randomized speed multiplier. 0.5 is 50-100%, 1.5 is 150-100%
 
         WeaponFlag Flags{};
 
         sbyte FlashStrength = 0; // Blinding flash effect strength
         sbyte TrailSize; // Size of blobs in 1/16 units. Player afterburner size = 2.5.
 
-        WeaponID Children = WeaponID::None;  // Weapon to spawn when destroyed
+        WeaponID Spawn = WeaponID::None;  // Weapon to spawn when destroyed
+        uint SpawnCount = 0; // NEW: number of children to spawn
 
         float EnergyUsage;
         float FireDelay;

@@ -789,27 +789,9 @@ namespace Inferno::Game {
         return result;
     }
 
-    Matrix VectorToRotation(const Vector3& fvec) {
-        Vector3 rvec;
-        Vector3 uvec;
-
-        // vec is straight up or down
-        if (fvec.x == 0 && fvec.z == 0) {
-            rvec = Vector3(1, 0, 0);
-            uvec.z = fvec.y < 0 ? 1.0f : -1.0f;
-        }
-        else {
-            rvec = Vector3(fvec.z, 0, -fvec.x);
-            rvec.Normalize();
-            uvec = fvec.Cross(rvec);
-        }
-
-        return Matrix{ rvec, uvec, fvec };
-    }
-
     FaceInfo GetFaceBounds(span<Vector3> faceVerts, const Vector3& normal) {
         // unrotate face verts to xy plane
-        auto transform = VectorToRotation(normal);
+        auto transform = Matrix(VectorToRotation(normal));
         transform = transform.Transpose(); // invert rotation
         Vector3 center;
         Array<Vector3, 4> verts; // Max of 4 verts per face
@@ -1053,6 +1035,15 @@ namespace Inferno::Game {
         }
 
         Seq::distinct(room.VisibleRooms); // Clean up duplicates
+
+        // Store visible segments
+        for (auto& rid : room.VisibleRooms) {
+            if(auto pRoom = GetRoom(rooms, rid)) {
+                Seq::append(room.VisibleSegments, pRoom->Segments);
+            }
+        }
+
+        Seq::distinct(room.VisibleSegments); // Clean up duplicates
     }
 
     List<Room> CreateRooms(Level& level) {

@@ -453,18 +453,15 @@ namespace Inferno::Render {
     }
 
 
-
     void DrawRoomVisibility(Level& level, RoomID roomId) {
         auto room = level.GetRoom(roomId);
         if (!room) return;
 
         Color color(0.39f, 0.58f, .93f, 0.5f);
 
-        for (auto& visRoomId : room->VisibleRooms) {
-            auto visRoom = level.GetRoom(visRoomId);
-            if (!visRoom) continue;
-
-            Debug::OutlineRoom(level, *visRoom, color);
+        for (auto& segId : room->VisibleSegments) {
+            if (auto seg = level.TryGetSegment(segId))
+                Debug::OutlineSegment(level, *seg, color);
         }
     }
 

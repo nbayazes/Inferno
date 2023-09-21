@@ -8,6 +8,8 @@
 #include "imgui_local.h"
 #include "Input.h"
 #include "Version.h"
+#include "logging.h"
+#include "Convert.h"
 
 //#include <versionhelpers.h>
 

@@ -42,10 +42,10 @@ namespace Inferno::Graphics {
         _lightData.Transition(cmdList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         _lightGrid.Transition(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         _bitMask.Transition(cmdList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        auto renderWidth = _width * Render::RenderScale;
-        auto renderHeight = _height * Render::RenderScale;
+        auto renderWidth = int(_width * Render::RenderScale);
+        auto renderHeight = int(_height * Render::RenderScale);
 
-        uint32_t tileCountX = AlignedCeil((int)renderWidth, LIGHT_GRID);
+        uint32_t tileCountX = AlignedCeil(renderWidth, LIGHT_GRID);
         //uint32_t tileCountY = AlignedCeil((int)color.GetHeight(), LIGHT_GRID);
 
         float farClip = Inferno::Render::Camera.FarClip;

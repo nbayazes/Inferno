@@ -71,7 +71,7 @@ namespace Inferno::Render {
             // todo: should start at camera position
             //TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
 
-            auto roomId = level.GetRoomID(Game::GetPlayer());
+            auto roomId = level.GetRoomID(Game::GetPlayerObject());
             TraverseLevelRooms(roomId, level, wallMeshes);
         }
 

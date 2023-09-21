@@ -37,8 +37,8 @@ namespace Inferno::Editor {
         for (int id = 0; id < level.Objects.size(); id++) {
             if (auto obj = level.TryGetObject((ObjID)id)) {
                 if (obj->Type == ObjectType::Weapon) {
-                    obj->Control.Weapon.Parent = (ObjID)id;
-                    obj->Control.Weapon.ParentSig = (ObjSig)id;
+                    obj->Control.Weapon.Parent.Id = (ObjID)id;
+                    obj->Control.Weapon.Parent.Signature = obj->Signature;
                     obj->Control.Weapon.ParentType = obj->Type;
                 }
 

@@ -429,6 +429,26 @@ namespace Inferno {
         return AngleBetweenVectors(v0, v1, normal);
     }
 
+    // Creates a rotation matrix from a vector
+    inline Matrix3x3 VectorToRotation(const Vector3& fvec) {
+        Vector3 rvec;
+        Vector3 uvec;
+
+        // vec is straight up or down
+        if (fvec.x == 0 && fvec.z == 0) {
+            rvec = Vector3(1, 0, 0);
+            uvec.z = fvec.y < 0 ? 1.0f : -1.0f;
+        }
+        else {
+            rvec = Vector3(fvec.z, 0, -fvec.x);
+            rvec.Normalize();
+            uvec = fvec.Cross(rvec);
+        }
+
+        return Matrix3x3{ rvec, uvec, fvec };
+    }
+
+
     constexpr float PaletteToRGB(uint16 color) {
         return color >= 31 ? 1.0f : float(color) / 31.0f;
     }

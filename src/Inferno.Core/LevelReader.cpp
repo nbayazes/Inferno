@@ -293,8 +293,8 @@ namespace Inferno {
                 {
                     auto& weapon = obj.Control.Weapon;
                     weapon.ParentType = (ObjectType)_reader.ReadInt16();
-                    weapon.Parent = (ObjID)_reader.ReadInt16();
-                    weapon.ParentSig = (ObjSig)_reader.ReadInt32();
+                    weapon.Parent.Id = (ObjID)_reader.ReadInt16();
+                    weapon.Parent.Signature = (ObjSig)_reader.ReadInt32();
                     break;
                 }
 

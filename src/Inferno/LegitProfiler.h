@@ -185,7 +185,7 @@ namespace LegitProfiler {
             constexpr float markerRightRectHeight = 10.0f;
             constexpr float markerRightRectSpacing = 8.0f;
             constexpr float nameOffset = 40.0f;
-            Vector2 textMargin(5.0f, -3.0f);
+            Vector2 textMargin(5.0f, -6.0f);
 
             auto& currFrame = _frames[(_currFrameIndex - frameIndexOffset - 1 + 2 * _frames.size()) % _frames.size()];
             auto maxTasksCount = size_t(legendSize.y / (markerRightRectHeight + markerRightRectSpacing));
@@ -407,13 +407,13 @@ namespace LegitProfiler {
 
             int sizeMargin = int(ImGui::GetStyle().ItemSpacing.y);
             int maxGraphHeight = 300;
-            int availableGraphHeight = (int(canvasSize.y) - sizeMargin) / 2;
+            int availableGraphHeight = (int(canvasSize.y) - sizeMargin) /*/ 2*/;
             int graphHeight = std::min(maxGraphHeight, availableGraphHeight);
             int legendWidth = 250;
             int graphWidth = int(canvasSize.x) - legendWidth;
-            gpuGraph.RenderTimings(graphWidth, legendWidth, graphHeight, frameOffset);
+            //gpuGraph.RenderTimings(graphWidth, legendWidth, graphHeight, frameOffset);
             cpuGraph.RenderTimings(graphWidth, legendWidth, graphHeight, frameOffset);
-            if (graphHeight * 2 + sizeMargin + sizeMargin < canvasSize.y) {
+            if (graphHeight /** 2*/ + sizeMargin + sizeMargin < canvasSize.y) {
                 ImGui::Columns(2);
                 //size_t textSize = 50;
                 ImGui::Checkbox("Stop profiling", &stopProfiling);
@@ -424,7 +424,6 @@ namespace LegitProfiler {
 
                 ImGui::SliderInt("Frame width", &frameWidth, 1, 4);
                 ImGui::SliderInt("Frame spacing", &frameSpacing, 0, 2);
-                ImGui::SliderFloat("Transparency", &ImGui::GetStyle().Colors[ImGuiCol_WindowBg].w, 0.0f, 1.0f);
                 ImGui::Columns(1);
             }
             if (!stopProfiling)

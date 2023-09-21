@@ -622,8 +622,8 @@ namespace Inferno::Game {
         }
     }
 
-    Tuple<ObjID, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask) {
-        auto id = ObjID::None;
+    Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask) {
+        ObjRef ref;
         //auto& srcObj = Level.GetObject(src);
         float dist = FLT_MAX;
 
@@ -632,22 +632,23 @@ namespace Inferno::Game {
             if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
             auto d = Vector3::Distance(obj.Position, position);
             if (d <= maxDist && d < dist) {
-                id = (ObjID)i;
+                ref = { (ObjID)i, obj.Signature };
                 dist = d;
             }
         }
 
-        return { id, dist };
+        return { ref, dist };
     }
 
-    Tuple<ObjID, float> FindNearestVisibleObject(const Vector3& position, SegID seg, float maxDist, ObjectMask mask, span<ObjID> objFilter) {
-        auto id = ObjID::None;
+    Tuple<ObjRef, float> FindNearestVisibleObject(const Vector3& position, SegID seg, float maxDist, ObjectMask mask, span<ObjRef> objFilter) {
+        ObjRef id;
         float minDist = FLT_MAX;
 
         for (int i = 0; i < Level.Objects.size(); i++) {
             auto& obj = Level.Objects[i];
             if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
-            if (Seq::contains(objFilter, (ObjID)i)) continue;
+            ObjRef ref = { (ObjID)i, obj.Signature };
+            if (Seq::contains(objFilter, ref)) continue;
             auto dir = obj.Position - position;
             auto d = dir.Length();
             dir.Normalize();
@@ -655,7 +656,7 @@ namespace Inferno::Game {
             LevelHit hit;
             RayQuery query{ .MaxDistance = d, .Start = seg, .TestTextures = true };
             if (d <= maxDist && d < minDist && !Game::Intersect.RayLevel(ray, query, hit)) {
-                id = (ObjID)i;
+                id = ref;
                 minDist = d;
             }
         }
@@ -843,18 +844,13 @@ namespace Inferno::Game {
         }
 
         if (auto currentRoom = GetCurrentRoom()) {
-            for (auto& roomId : currentRoom->VisibleRooms) {
-                auto room = Level.GetRoom(roomId);
-                if (!room) continue;
-
-                for (auto& segId : room->Segments) {
-                    if (auto seg = Level.TryGetSegment(segId)) {
-                        for (auto& objId : seg->Objects) {
-                            auto obj = Level.TryGetObject(objId);
-                            if (obj && obj->Type != ObjectType::Weapon) {
-                                // When physics moves an object to another seg it gets updated twice
-                                FixedUpdateObject(dt, objId, *obj);
-                            }
+            for (auto& segId : currentRoom->VisibleSegments) {
+                if (auto seg = Level.TryGetSegment(segId)) {
+                    for (auto& objId : seg->Objects) {
+                        auto obj = Level.TryGetObject(objId);
+                        if (obj && obj->Type != ObjectType::Weapon) {
+                            // When physics moves an object to another seg it gets updated twice
+                            FixedUpdateObject(dt, objId, *obj);
                         }
                     }
                 }
@@ -887,6 +883,8 @@ namespace Inferno::Game {
                 HandleInput(dt);
             }
         }
+
+        Game::Player.HomingObjectDist = -1; // Clear each frame. Updating objects sets this.
 
         DecayScreenFlash(dt);
 
@@ -1297,7 +1295,7 @@ namespace Inferno::Game {
         Player.SecondaryWeapons = 0xffff;
         int weaponCount = Level.IsDescent2() ? 10 : 5;
         for (int i = 0; i < weaponCount; ++i) {
-            Player.SecondaryAmmo[i] = 10;
+            Player.SecondaryAmmo[i] = 99;
             Player.PrimaryAmmo[i] = 5000;
         }
     }

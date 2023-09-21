@@ -246,14 +246,13 @@ namespace Inferno {
     };
 
     struct WeaponData {
-        ObjectType ParentType{}; // The type of the parent of this object
-        ObjID Parent = ObjID::None;     // The object's parent's number
-        ObjSig ParentSig = ObjSig(-1);
+        ObjectType ParentType{}; // The type of the parent of this object. Important for triggers and opening doors.
+        ObjRef Parent;
 
         float AliveTime = 0; // How long the weapon has been alive
         bool SineMovement = false;
 
-        ObjID TrackingTarget = ObjID::None; // Object this object is tracking.
+        ObjRef TrackingTarget = {}; // Object this weapon is tracking.
         float Multiplier{}; // Power if this is a fusion bolt
         float SoundDelay = 0;
         bool DetonateMine = false;
@@ -366,6 +365,7 @@ namespace Inferno {
         DynamicLightMode LightMode{}; // Point light mode
 
         LerpedColor Ambient;
+        bool Cloaked = false; // Draws using 'cloaked' effect and is untargetable by homing weapons
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0;

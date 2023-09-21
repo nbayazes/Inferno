@@ -273,7 +273,7 @@ namespace Inferno {
         w.FlashStrength = r.ReadByte();
         w.TrailSize = r.ReadByte();
 
-        w.Children = (WeaponID)r.ReadByte();
+        w.Spawn = (WeaponID)r.ReadByte();
 
         w.EnergyUsage = r.ReadFix();
         w.FireDelay = r.ReadFix();

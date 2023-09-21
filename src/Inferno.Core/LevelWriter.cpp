@@ -367,8 +367,8 @@ namespace Inferno {
                     break;
                 case ControlType::Weapon:
                     writer.Write((int16)obj.Control.Weapon.ParentType);
-                    writer.Write((int16)obj.Control.Weapon.Parent);
-                    writer.Write((int32)obj.Control.Weapon.ParentSig);
+                    writer.Write((int16)obj.Control.Weapon.Parent.Id);
+                    writer.Write((int32)obj.Control.Weapon.Parent.Signature);
                     break;
                 case ControlType::None:
                 case ControlType::Flying:

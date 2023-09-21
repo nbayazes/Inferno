@@ -94,6 +94,7 @@ namespace Inferno {
         READ_PROP(FireDelay);
         READ_PROP(Lifetime);
         READ_PROP(FireCount);
+        READ_PROP(SpeedVariance);
 
         READ_PROP(BlobSize);
         Yaml::ReadValue(node["BlobBitmap"], (int&)weapon.BlobBitmap);
@@ -101,6 +102,8 @@ namespace Inferno {
         READ_PROP(ImpactSize);
         READ_PROP(SplashRadius);
         READ_PROP(TrailSize);
+        READ_PROP(Spawn);
+        READ_PROP(SpawnCount);
 
         READ_PROP(FlashSize);
         Yaml::ReadValue(node["FlashVClip"], (int&)weapon.FlashVClip);
@@ -140,6 +143,7 @@ namespace Inferno {
         READ_PROP_EXT(LightColor);
         READ_PROP_EXT(SoundRadius);
         READ_PROP_EXT(StunMult);
+        ReadArray<float>(node["InitialSpeed"], weapon.Extended.InitialSpeed);
 
         Yaml::ReadValue(node["LightMode"], (int&)weapon.Extended.LightMode);
         READ_PROP_EXT(LightFadeTime);

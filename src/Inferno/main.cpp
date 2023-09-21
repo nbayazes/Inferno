@@ -190,14 +190,19 @@ void TestClipConvexPolygon() {
     plane = Plane(-normal, 5);
 }
 
+void CreateConsoleWindow() {
+    AllocConsole();
+    // Bind standard output streams
+    freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
+    freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
+    freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+}
+
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_opt_ HINSTANCE /*hPrevInstance*/,
                      _In_ LPSTR     /*lpCmdLine*/,
                      _In_ int       /*nCmdShow*/) {
-    AllocConsole();
-    freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
-    freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
-    freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+    CreateConsoleWindow();
 
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");

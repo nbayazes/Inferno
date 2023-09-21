@@ -7,6 +7,7 @@
 #include "Game.Wall.h"
 #include "Physics.h"
 #include "SoundSystem.h"
+#include "Graphics/Render.Debug.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 
@@ -22,7 +23,7 @@ namespace Inferno::Game {
 
     void ExplodeWeapon(struct Level& level, const Object& obj) {
         if (!obj.IsWeapon()) return;
-        const Weapon& weapon = Resources::GetWeapon((WeaponID)obj.ID);
+        const Weapon& weapon = Resources::GetWeapon(obj);
 
         // Create sparks
         if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.DeathSparks)) {
@@ -47,6 +48,9 @@ namespace Inferno::Game {
             ge.Room = level.GetRoomID(obj);
             CreateExplosion(level, &obj, ge);
         }
+
+        if (weapon.Spawn != WeaponID::None && weapon.SpawnCount > 0)
+            CreateMissileSpawn(obj, 6);
     }
 
     void ProxMineBehavior(Object& obj) {
@@ -56,25 +60,25 @@ namespace Inferno::Game {
         auto& cw = obj.Control.Weapon;
 
         if (TimeHasElapsed(obj.NextThinkTime)) {
-            obj.NextThinkTime = (float)Game::Time + 0.25f;
+            obj.NextThinkTime = Game::Time + 0.25f;
 
             // Try to find a nearby target
-            if (cw.TrackingTarget == ObjID::None) {
+            if (cw.TrackingTarget) {
                 // todo: filter targets based on if mine owner is a player
-                auto [id, dist] = Game::FindNearestObject(obj.Position, PROX_WAKE_RANGE, ObjectMask::Enemy);
-                if (id != ObjID::None && dist <= PROX_WAKE_RANGE)
-                    cw.TrackingTarget = id; // New target!
+                auto [ref, dist] = Game::FindNearestObject(obj.Position, PROX_WAKE_RANGE, ObjectMask::Enemy);
+                if (ref && dist <= PROX_WAKE_RANGE)
+                    cw.TrackingTarget = ref; // New target!
             }
         }
 
-        if (cw.TrackingTarget == ObjID::None)
+        if (!cw.TrackingTarget)
             return; // Still no target
 
         auto target = Game::Level.TryGetObject(cw.TrackingTarget);
         auto dist = target ? obj.Distance(*target) : FLT_MAX;
 
         if (dist > PROX_WAKE_RANGE) {
-            cw.TrackingTarget = ObjID::None; // Went out of range
+            cw.TrackingTarget = {}; // Went out of range
         }
         else {
             //auto lerp = std::lerp(1.00f, 2.00f, (dist - PROX_ACTIVATE_RANGE) / (PROX_WAKE_RANGE - PROX_ACTIVATE_RANGE));
@@ -101,48 +105,6 @@ namespace Inferno::Game {
                 }
             }
         }
-    }
-
-    void CreateSmartBlobs(const Object& obj) {
-        auto parentType = obj.Control.Weapon.ParentType;
-
-        List<ObjID> targets;
-        targets.reserve(30);
-
-        for (int i = 0; i < Game::Level.Objects.size(); i++) {
-            auto& other = Game::Level.Objects[i];
-            auto validTarget = other.Type == ObjectType::Robot && !other.Control.AI.IsCloaked() || other.Type == ObjectType::Player;
-
-            if (!validTarget || (ObjID)i == other.Control.Weapon.Parent)
-                continue; // Don't target cloaked robots (todo: or players?) or the owner
-
-            if (other.Type == ObjectType::Player && parentType == ObjectType::Player)
-                continue; // don't track the owning player
-
-            if (other.Type == ObjectType::Robot && parentType == ObjectType::Robot)
-                continue; // robot blobs can't track other robots
-
-            auto dist = Vector3::Distance(other.Position, obj.Position);
-            constexpr auto MAX_SMART_DISTANCE = 150.0f;
-            if (dist <= MAX_SMART_DISTANCE) {
-                if (ObjectToObjectVisibility(obj, other, true))
-                    targets.push_back((ObjID)i);
-            }
-        }
-
-        //const int children = 6; // todo: add to extended weapon data
-        //auto wid = parentType == ObjectType::Player ? WeaponID::PlayerSmartBlob : WeaponID::RobotSmartBlob;
-
-        //if (targets.empty()) {
-        //    for (int i = 0; i < children; i++) {
-        //        //CreateHomingWeapon(-1); // random target
-        //    }
-        //}
-        //else {
-        //    for (int i = 0; i < children; i++) {
-        //        //CreateHomingWeapon(); // use random target in list
-        //    }
-        //}
     }
 
     void AddPlanarExplosion(const Weapon& weapon, const LevelHit& hit) {
@@ -343,7 +305,7 @@ namespace Inferno::Game {
             return;
         }
 
-        {
+        if (!hit.Bounced) {
             // Move object to the desired explosion location
             auto dir = obj.Physics.PrevVelocity;
             dir.Normalize();
@@ -365,7 +327,7 @@ namespace Inferno::Game {
                 Sound::Play(sound);
             }
         }
-        if (hitLava) {
+        else if (hitLava) {
             if (!isLargeExplosion) {
                 // add volatile size and damage bonuses to smaller explosions
                 vclip = VClipID::HitLava;
@@ -440,7 +402,8 @@ namespace Inferno::Game {
             // Hit normal wall
             AddWeaponDecal(hit, weapon);
 
-            if (splashRadius <= 0) {
+            // Explosive weapons play their effects on death instead of here
+            if (!hit.Bounced && splashRadius <= 0) {
                 if (vclip != VClipID::None)
                     DrawWeaponExplosion(obj, weapon);
 
@@ -473,38 +436,33 @@ namespace Inferno::Game {
         FireWeapon(ref, id, gun, &direction, showFlash);
     }
 
-    void FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, float volume) {
-        auto& level = Game::Level;
-        auto pObj = level.TryGetObject(ref);
-        if (!pObj) {
-            __debugbreak(); // tried to fire weapon from unknown object
-            return;
-        }
-        auto& obj = *pObj;
+    Object CreateWeaponProjectile(WeaponID id, const Vector3& position, const Vector3& direction,
+                                  SegID segment, ObjRef parentRef,
+                                  float damageMultiplier = 1, float volume = DEFAULT_WEAPON_VOLUME) {
+        auto parent = Game::Level.TryGetObject(parentRef);
 
         auto& weapon = Resources::GetWeapon(id);
-        if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
-            showFlash = false; // Hide flash in first person
-
-        auto gunSubmodel = GetLocalGunpointOffset(obj, gun);
-        auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
-        auto position = Vector3::Transform(objOffset, obj.GetTransform());
-        Vector3 direction = customDir ? *customDir : obj.Rotation.Forward();
-
         Object bullet{};
         bullet.Position = bullet.PrevPosition = position;
-
-        // Align to direction
-        auto forward = -direction;
-        auto right = obj.Rotation.Up().Cross(forward);
-        auto up = right.Cross(forward);
-        right = up.Cross(forward); // ensure orthogonal
-        bullet.Rotation = bullet.PrevRotation = Matrix3x3(right, up, forward);
+        auto rotation = VectorToRotation(direction);
+        rotation.Forward(-rotation.Forward());
+        bullet.Rotation = bullet.PrevRotation = rotation;
 
         bullet.Movement = MovementType::Physics;
-        bullet.Physics.Velocity = direction * weapon.Speed[Game::Difficulty]/* * 0.01f*/;
-        if (weapon.Extended.InheritParentVelocity)
-            bullet.Physics.Velocity += obj.Physics.Velocity;
+        // todo: speedvar
+        //auto speedvar = weapon.SpeedVariance != 1 ? 1 - weapon.SpeedVariance * Random() : 1;
+        float speed = 0;
+
+        if (weapon.Extended.InitialSpeed[Game::Difficulty] != 0)
+            speed = weapon.Extended.InitialSpeed[Game::Difficulty];
+        else
+            speed = weapon.Speed[Game::Difficulty];
+
+        bullet.Physics.Velocity = direction * speed;
+
+        //bullet.Physics.Velocity *= 0.5f;
+        if (weapon.Extended.InheritParentVelocity && parent)
+            bullet.Physics.Velocity += parent->Physics.Velocity;
 
         bullet.Physics.Flags |= weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
         bullet.Physics.AngularVelocity = weapon.Extended.RotationalVelocity;
@@ -519,7 +477,7 @@ namespace Inferno::Game {
 
         bullet.Control.Type = ControlType::Weapon;
         bullet.Control.Weapon = {};
-        bullet.Control.Weapon.ParentType = obj.Type;
+        bullet.Control.Weapon.ParentType = parent ? parent->Type : ObjectType::None;
         bullet.Control.Weapon.Multiplier = damageMultiplier;
 
         if (weapon.RenderType == WeaponRenderType::Blob) {
@@ -552,8 +510,8 @@ namespace Inferno::Game {
             }
 
             // Randomize the rotation of models
-            auto rotation = Matrix::CreateFromAxisAngle(bullet.Rotation.Forward(), Random() * DirectX::XM_2PI);
-            bullet.Rotation *= rotation;
+            auto randomRotation = Matrix::CreateFromAxisAngle(bullet.Rotation.Forward(), Random() * DirectX::XM_2PI);
+            bullet.Rotation *= randomRotation;
             bullet.PrevRotation = bullet.Rotation;
 
             //auto length = model.Radius * 2;
@@ -572,23 +530,28 @@ namespace Inferno::Game {
         bullet.Lifespan = weapon.Lifetime;
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
-        bullet.Parent = ref;
-        bullet.Segment = obj.Segment;
+        bullet.Parent = parent->IsWeapon() ? parent->Parent : parentRef; // If the parent is a weapon, hopefully its parent is a robot or player
+        bullet.Segment = segment;
         bullet.Render.Emissive = weapon.Extended.Glow;
 
         if (id == WeaponID::ProxMine || id == WeaponID::SmartMine) {
-            bullet.NextThinkTime = (float)Game::Time + MINE_ARM_TIME;
+            bullet.NextThinkTime = Game::Time + MINE_ARM_TIME;
+        }
+        else {
+            bullet.NextThinkTime = 0;
         }
 
         if (volume > 0) {
-            Sound3D sound(ref);
+            Sound3D sound(parentRef);
             sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
             sound.Volume = volume;
-            sound.AttachToSource = true;
-            sound.AttachOffset = obj.Position - position;
             sound.Radius = weapon.Extended.SoundRadius;
-            sound.FromPlayer = obj.IsPlayer();
-            sound.Merge = true;
+
+            if (parent) {
+                sound.AttachToSource = true;
+                sound.AttachOffset = parent->Position - position;
+                sound.FromPlayer = parent->IsPlayer();
+            }
 
             if (id == WeaponID::Vulcan) {
                 sound.Merge = false;
@@ -598,6 +561,35 @@ namespace Inferno::Game {
             Sound::Play(sound);
         }
 
+        bullet.Rotation.Normalize();
+        bullet.PrevRotation = bullet.Rotation;
+
+        // If a weapon creates children, they should bounce for a short duration so they aren't immediately destroyed
+        if (parent && parent->IsWeapon())
+            bullet.Physics.Bounces = 1;
+
+        return bullet;
+    }
+
+    void FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, float volume) {
+        auto& level = Game::Level;
+        auto pObj = level.TryGetObject(ref);
+        if (!pObj) {
+            __debugbreak(); // tried to fire weapon from unknown object
+            return;
+        }
+        auto& obj = *pObj;
+
+        if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
+            showFlash = false; // Hide flash in first person
+
+        auto gunSubmodel = GetLocalGunpointOffset(obj, gun);
+        auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
+        auto position = Vector3::Transform(objOffset, obj.GetTransform());
+        Vector3 direction = customDir ? *customDir : obj.Rotation.Forward();
+        auto projectile = CreateWeaponProjectile(id, position, direction, obj.Segment, ref, damageMultiplier, volume);
+        auto& weapon = Resources::GetWeapon(id);
+
         if (showFlash) {
             Render::Particle p{};
             p.Clip = weapon.FlashVClip;
@@ -606,7 +598,7 @@ namespace Inferno::Game {
             p.ParentSubmodel = gunSubmodel;
             p.FadeTime = 0.175f;
             p.Color = weapon.Extended.FlashColor;
-            Render::AddParticle(p, obj.Segment, bullet.Position);
+            Render::AddParticle(p, obj.Segment, position);
 
             // Muzzle flash. Important for mass weapons that don't emit lights on their own.
             Render::DynamicLight light;
@@ -614,13 +606,11 @@ namespace Inferno::Game {
             light.Radius = weapon.FlashSize * 4;
             light.FadeTime = light.Duration = 0.25f;
             light.Segment = obj.Segment;
-            light.Position = bullet.Position;
+            light.Position = position;
             Render::AddDynamicLight(light);
         }
 
-        bullet.Rotation.Normalize();
-        bullet.PrevRotation = bullet.Rotation;
-        AddObject(bullet);
+        AddObject(projectile);
     }
 
     void SpreadfireBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
@@ -687,48 +677,78 @@ namespace Inferno::Game {
     }
 
     // FOV in 0 to PI
-    bool ObjectIsInFOV(const Ray& ray, const Object& other, float fov) {
-        auto vec = other.Position - ray.position;
+    bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov) {
+        auto vec = obj.Position - ray.position;
         vec.Normalize();
         auto angle = AngleBetweenVectors(ray.direction, vec);
         return angle <= fov;
     }
 
+    bool CanTrackTarget(const Object& obj, const Object& target, float fov, float maxDistance) {
+        if (!target.IsAlive()) return false;
+        auto [dir, dist] = GetDirectionAndDistance(target.Position, obj.Position);
+        if (dist > maxDistance) return false;
+
+        //auto vec = obj.Position - src.Position;
+        //vec.Normalize();
+        Ray targetRay(obj.Position, dir);
+        LevelHit hit;
+        RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .TestTextures = true };
+
+        bool inFov = ObjectIsInFOV(Ray(obj.Position, obj.Rotation.Forward()), target, fov);
+        return inFov && !Intersect.RayLevel(targetRay, query, hit);
+    }
+
     // Used for omega and homing weapons
-    ObjID GetClosestObjectInFOV(const Object& src, float fov, float dist, ObjectMask mask) {
-        auto result = ObjID::None;
-        float minDist = FLT_MAX;
+    ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask) {
+        ObjRef target;
+        float dotFov = -1;
+        auto forward = src.Rotation.Forward();
 
         auto action = [&](const Room& room) {
             for (auto& segId : room.Segments) {
                 auto& seg = Game::Level.GetSegment(segId);
 
-                for (int i = 0; i < seg.Objects.size(); i++) {
-                    auto& obj = Game::Level.Objects[i];
+                for (auto& objId : seg.Objects) {
+                    auto pobj = Game::Level.TryGetObject(objId);
+                    if (!pobj) continue;
+                    auto obj = *pobj;
                     if (!obj.IsAlive()) continue;
                     if (!obj.PassesMask(mask)) continue;
 
-                    auto odist = obj.Distance(src);
-                    if (odist > dist || odist >= minDist) continue;
+                    auto odir = obj.Position - src.Position;
+                    odir.Normalize();
+                    auto dot = odir.Dot(forward);
+                    if (target && dot < dotFov)
+                        continue; // Already found a target and this one is further from center FOV
 
-                    auto vec = obj.Position - src.Position;
-                    vec.Normalize();
-                    Ray targetRay(src.Position, vec);
-                    LevelHit hit;
-                    RayQuery query{ .MaxDistance = odist, .Start = src.Segment, .TestTextures = true };
-
-                    if (ObjectIsInFOV(Ray(src.Position, src.Rotation.Forward()), obj, fov) &&
-                        !Intersect.RayLevel(targetRay, query, hit)) {
-                        minDist = odist;
-                        result = (ObjID)i;
+                    if (CanTrackTarget(src, obj, fov, maxDist)) {
+                        dotFov = dot;
+                        target = { objId, obj.Signature };
                     }
+
+                    //auto odist = obj.Distance(src);
+                    /*if (result && (odist > dist || odist >= minDist)) 
+                        continue;*/
+
+                    //auto vec = obj.Position - src.Position;
+                    //vec.Normalize();
+                    //Ray targetRay(src.Position, odir);
+                    //LevelHit hit;
+                    //RayQuery query{ .MaxDistance = odist, .Start = src.Segment, .TestTextures = true };
+
+                    //bool inFov = ObjectIsInFOV(Ray(src.Position, forward), obj, fov);
+                    //if (inFov && !Intersect.RayLevel(targetRay, query, hit)) {
+                    //    dotFov = dot;
+                    //    target = { objId, obj.Signature };
+                    //}
                 }
             }
         };
 
         auto room = Game::Level.GetRoomID(src);
-        TraverseRoomsByDistance(Game::Level, room, src.Position, dist, false, action);
-        return result;
+        TraverseRoomsByDistance(Game::Level, room, src.Position, maxDist, false, action);
+        return target;
     }
 
     void OmegaBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {
@@ -753,18 +773,18 @@ namespace Inferno::Game {
 
         auto spark = Render::EffectLibrary.GetSparks("omega_hit");
 
-        if (initialTarget != ObjID::None) {
+        if (initialTarget) {
             // found a target! try chaining to others
-            std::array<ObjID, MAX_TARGETS> targets{};
-            targets.fill(ObjID::None);
+            std::array<ObjRef, MAX_TARGETS> targets{};
+            //targets.fill(ObjID::None);
             targets[0] = initialTarget;
 
             for (int i = 0; i < MAX_TARGETS - 1; i++) {
-                if (targets[i] == ObjID::None) break;
+                if (!targets[i]) break;
 
                 if (auto src = Game::Level.TryGetObject(targets[i])) {
                     auto [id, dist] = Game::FindNearestVisibleObject(src->Position, src->Segment, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
-                    if (id != ObjID::None)
+                    if (id)
                         targets[i + 1] = id;
                 }
             }
@@ -778,14 +798,13 @@ namespace Inferno::Game {
             auto tracer = Render::EffectLibrary.GetBeamInfo("omega_tracer");
 
             // Apply damage and visuals to each target
-            for (auto& targetObj : targets) {
-                if (targetObj == ObjID::None) continue;
-                auto target = Game::Level.TryGetObject(targetObj);
+            for (auto& targetRef : targets) {
+                if (!targetRef) continue;
+                auto target = Game::Level.TryGetObject(targetRef);
                 if (!target) continue;
                 if (!Settings::Cheats.DisableWeaponDamage)
                     target->ApplyDamage(weapon.Damage[Difficulty]);
 
-                ObjRef targetRef = { targetObj, target->Signature };
                 // Beams between previous and next target
                 if (beam) Render::AddBeam(*beam, weapon.FireDelay, prevRef, targetRef, objGunpoint);
                 if (beam2) {
@@ -916,9 +935,193 @@ namespace Inferno::Game {
         return WeaponFireBehaviors["default"];
     }
 
-    void UpdateWeapon(Object& obj, float dt) {
-        obj.Control.Weapon.AliveTime += dt;
-        if (obj.ID == (int)WeaponID::ProxMine)
-            ProxMineBehavior(obj);
+    template <uint32 TResults = 30>
+    Array<ObjRef, TResults> GetNearbyVisibleObjects(const Object& object, float maxDist, int& count, ObjectMask mask) {
+        Array<ObjRef, TResults> targets{};
+        count = 0;
+
+        auto startRoom = Game::Level.GetRoom(object);
+        if (!startRoom) return targets;
+
+        for (auto& segId : startRoom->VisibleSegments) {
+            if (auto seg = Game::Level.TryGetSegment(segId)) {
+                for (auto& objId : seg->Objects) {
+                    if (auto obj = Game::Level.TryGetObject(objId)) {
+                        if (!obj->IsAlive()) continue;
+                        if (!obj->PassesMask(mask)) continue;
+                        if (obj->Cloaked) continue; // cloaked objects aren't visible
+                        auto [dir, dist] = GetDirectionAndDistance(obj->Position, object.Position);
+
+                        if (dist < maxDist) {
+                            Ray ray(object.Position, dir);
+                            RayQuery query;
+                            query.Start = object.Segment;
+                            query.MaxDistance = dist;
+                            query.TestTextures = true;
+                            LevelHit hit;
+                            if (!Intersect.RayLevel(ray, query, hit)) {
+                                targets[count] = { objId, obj->Signature };
+                                count++;
+                                if (count >= targets.size()) {
+                                    SPDLOG_WARN("Max nearby targets reached");
+                                    return targets;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return targets;
+    }
+
+    // For smart missiles, energy retaliation
+    void CreateHomingBlob(WeaponID type, const Object& parent, ObjRef targetId = {}) {
+        Vector3 dir;
+
+        if (auto target = Game::Level.TryGetObject(targetId)) {
+            dir = target->Position - parent.Position;
+            dir.Normalize();
+            //dir += RandomVector(0.25f); // Slightly randomize direction so the blobs don't stack
+            dir.Normalize();
+        }
+        else {
+            dir = RandomVector();
+        }
+
+        SPDLOG_INFO("Tracking: {} dir: {}", targetId, dir);
+        auto parentRef = Game::GetObjectRef(parent);
+        auto blob = CreateWeaponProjectile(type, parent.Position, dir, parent.Segment, parentRef, 1, 0);
+        blob.Control.Weapon.TrackingTarget = targetId;
+        AddObject(blob);
+    }
+
+    void CreateMissileSpawn(const Object& missile, uint blobs) {
+        constexpr float SMART_HOME_DIST = 150;
+
+        auto mask = missile.Control.Weapon.ParentType == ObjectType::Player ? ObjectMask::Enemy : ObjectMask::Player;
+        int targetCount;
+        auto targets = GetNearbyVisibleObjects(missile, SMART_HOME_DIST, targetCount, mask);
+
+        const Weapon& weapon = Resources::GetWeapon(missile);
+        const Weapon& spawnWeapon = Resources::GetWeapon(weapon.Spawn);
+
+        Sound3D sound(missile.Position, missile.Segment);
+        sound.Resource = Resources::GetSoundResource(spawnWeapon.FlashSound);
+        sound.Volume = DEFAULT_WEAPON_VOLUME * 1.2f;
+        sound.Radius = spawnWeapon.Extended.SoundRadius;
+        Sound::Play(sound);
+
+        if (targetCount > 0) {
+            SPDLOG_INFO("Found blob targets");
+            // if found targets, pick random target from array
+            for (size_t i = 0; i < blobs; i++)
+                CreateHomingBlob(weapon.Spawn, missile, targets[RandomInt(targetCount - 1)]);
+        }
+        else {
+            SPDLOG_INFO("No blob targets");
+            // Otherwise random points
+            for (size_t i = 0; i < blobs; i++)
+                CreateHomingBlob(weapon.Spawn, missile);
+        }
+    }
+
+    void TurnTowardsNormal(Object& obj, const Vector3& normal, float /*dt*/) {
+        Vector3 fvec = normal;
+        //constexpr float HOMING_MISSILE_SCALE = 8;
+        //fvec *= dt * HOMING_MISSILE_SCALE;
+        fvec += obj.Rotation.Forward();
+        fvec.Normalize();
+        obj.Rotation = Matrix3x3(VectorToRotation(fvec));
+        obj.Rotation.Forward(-obj.Rotation.Forward()); // correct for lh model
+    }
+
+    void UpdateHomingWeapon(Object& weapon, const Weapon& weaponInfo, float dt) {
+        if (!weaponInfo.IsHoming) return;
+
+        if (!TimeHasElapsed(weapon.NextThinkTime))
+            return; // Not ready to think
+
+        // Homing weapons update slower to match the original behavior
+        weapon.NextThinkTime = Game::Time + HOMING_TICK_RATE;
+
+        if (weapon.Control.Weapon.AliveTime < WEAPON_HOMING_DELAY)
+            return; // Not ready to start homing yet
+
+        weapon.Physics.Bounces = 0; // Hack for smart missile blob bounces
+        auto& targetRef = weapon.Control.Weapon.TrackingTarget;
+
+        constexpr float HOMING_FOV = 45 * DegToRad;
+        constexpr float HOMING_DISTANCE = 300;
+
+        // Check if the target is still trackable
+        if (targetRef) {
+            auto target = Game::Level.TryGetObject(targetRef);
+            if (!target || !CanTrackTarget(weapon, *target, HOMING_FOV, HOMING_DISTANCE)) {
+                SPDLOG_INFO("Lost tracking target");
+                targetRef = {}; // target destroyed or out of view
+            }
+        }
+
+        if (!targetRef) {
+            // Find a new target
+            auto mask = ObjectMask::Enemy;
+            if (auto parent = Game::Level.TryGetObject(weapon.Parent))
+                if (parent->IsRobot())
+                    mask = ObjectMask::Player;
+
+            targetRef = GetClosestObjectInFOV(weapon, HOMING_FOV, HOMING_DISTANCE, mask);
+            if (targetRef)
+                SPDLOG_INFO("Locking onto {}", targetRef);
+            /*if(auto ref = GetClosestObjectInFOV(weapon, 45 * DegToRad, 300, mask)) {
+                weapon.Control.Weapon.TrackingTarget = ref;
+            }*/
+        }
+        else if (auto target = Game::Level.TryGetObject(targetRef)) {
+            // turn towards target
+            auto [targetDir, targetDist] = GetDirectionAndDistance(target->Position, weapon.Position);
+
+            if (target->IsPlayer()) {
+                if (Game::Player.HomingObjectDist < 0 || targetDist < Game::Player.HomingObjectDist)
+                    Game::Player.HomingObjectDist = targetDist;
+            }
+
+            Vector3 dir = weapon.Physics.Velocity;
+            auto speed = dir.Length();
+            dir.Normalize();
+
+            // Hack for smart missile blobs to speed up over time
+            /*auto maxSpeed = weaponInfo.Speed[Game::Difficulty];
+            if (speed + 1 < maxSpeed) {
+                speed += maxSpeed * HOMING_TICK_RATE / 2;
+                if (speed > maxSpeed) speed = maxSpeed;
+            }*/
+
+            dir *= 4; // NEW: Increase weighting of existing direction to smooth turn radius. This does slightly reduce turn speed.
+            dir += targetDir;
+
+            // make smart blobs track better (hacky, add homing speed to weapon info)
+            if (weapon.Render.Type != RenderType::Model)
+                dir += targetDir;
+
+            dir.Normalize();
+            weapon.Physics.Velocity = dir * speed;
+
+            Render::Debug::DrawLine(weapon.Position, target->Position, Color(1, 0, 0));
+
+            // Remove life based on amount turned ... ?
+            //auto dot = tempVel.Dot(targetDir);
+            TurnTowardsNormal(weapon, dir, dt);
+        }
+    }
+
+    void UpdateWeapon(Object& weapon, float dt) {
+        weapon.Control.Weapon.AliveTime += dt;
+        if (weapon.ID == (int)WeaponID::ProxMine)
+            ProxMineBehavior(weapon);
+
+        auto& weaponInfo = Resources::GetWeapon(weapon);
+        UpdateHomingWeapon(weapon, weaponInfo, dt);
     }
 }
