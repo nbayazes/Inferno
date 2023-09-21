@@ -126,6 +126,7 @@ bool Inferno::Application::OnClose() {
 
 // Message handlers
 void Application::OnActivated() {
+    Input::HasFocus = true;
     if (Game::GetState() == GameState::Game)
         Input::SetMouseMode(Input::MouseMode::Mouselook);
 
@@ -135,6 +136,7 @@ void Application::OnActivated() {
 }
 
 void Application::OnDeactivated() {
+    Input::HasFocus = false;
     Input::SetMouseMode(Input::MouseMode::Normal);
     Input::ResetState();
     _isForeground = false;

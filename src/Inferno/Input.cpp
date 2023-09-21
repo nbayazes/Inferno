@@ -66,7 +66,7 @@ namespace Inferno::Input {
             RawX = RawY = 0;
 
             if (ActualMouseMode != MouseMode::Normal) {
-                RECT r{}, frame{};
+                RECT r{};
                 GetClientRect(Hwnd, &r);
                 POINT center = { (r.left + r.right) / 2, (r.top + r.bottom) / 2 };
                 WindowCenter = Vector2{ (float)center.x, (float)center.y };

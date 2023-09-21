@@ -108,6 +108,7 @@ namespace Inferno {
         physics.Thrust = Vector3::Zero;
         physics.AngularThrust = Vector3::Zero;
 
+        if (!Input::HasFocus) return; // No player input without window focus
         HandleWeaponKeys();
 
         //auto ht0 = GetHoldTime(true, 0, frameTime);

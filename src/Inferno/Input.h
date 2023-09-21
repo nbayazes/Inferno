@@ -15,6 +15,7 @@ namespace Inferno::Input {
     inline bool ControlDown;
     inline bool ShiftDown;
     inline bool AltDown;
+    inline bool HasFocus = true; // Window has focus
 
     void Update();
     void Initialize(HWND);

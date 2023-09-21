@@ -167,7 +167,7 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
     ExplosionTime: 0.4
-    Damage: 6
+    Damage: 7
     Spread: 1.2 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB
@@ -181,6 +181,7 @@ Weapons:
   - id: 12 
     Name: spreadfire
     # Behavior: shotgun
+    # FireCount: 5
     Behavior: spreadfire
     # RenderType: 0 # laser
     Glow: 1, 1, 1, 5
@@ -192,10 +193,9 @@ Weapons:
     LightColor: 0.3, 0.3, 0.75
     Mass: 0.05
     BlobSize: 0.6
-    Damage: 7
+    Damage: 12 # 10 
     Speed: 200
-    Spread: 3.6 # 3.6 originally
-    FireCount: 5
+    Spread: 3.6 # 3.6
     FlashColor: 1, 1, 1, 15
 
   - id: 13
