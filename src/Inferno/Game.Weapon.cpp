@@ -530,16 +530,14 @@ namespace Inferno::Game {
         bullet.Lifespan = weapon.Lifetime;
         bullet.Type = ObjectType::Weapon;
         bullet.ID = (int8)id;
-        bullet.Parent = parent->IsWeapon() ? parent->Parent : parentRef; // If the parent is a weapon, hopefully its parent is a robot or player
+        bullet.Parent = parent && parent->IsWeapon() ? parent->Parent : parentRef; // If the parent is a weapon, hopefully its parent is a robot or player
         bullet.Segment = segment;
         bullet.Render.Emissive = weapon.Extended.Glow;
 
-        if (id == WeaponID::ProxMine || id == WeaponID::SmartMine) {
+        if (id == WeaponID::ProxMine || id == WeaponID::SmartMine)
             bullet.NextThinkTime = Game::Time + MINE_ARM_TIME;
-        }
-        else {
+        else
             bullet.NextThinkTime = 0;
-        }
 
         if (volume > 0) {
             Sound3D sound(parentRef);
@@ -703,6 +701,7 @@ namespace Inferno::Game {
     ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask) {
         ObjRef target;
         float dotFov = -1;
+        float dist = FLT_MAX;
         auto forward = src.Rotation.Forward();
 
         auto action = [&](const Room& room) {
@@ -716,32 +715,21 @@ namespace Inferno::Game {
                     if (!obj.IsAlive()) continue;
                     if (!obj.PassesMask(mask)) continue;
 
-                    auto odir = obj.Position - src.Position;
-                    odir.Normalize();
+                    auto [odir, odist] = GetDirectionAndDistance(obj.Position, src.Position);
                     auto dot = odir.Dot(forward);
-                    if (target && dot < dotFov)
+                    bool isClose = target ? dot > dotFov - 0.1f : true; // Is the new target closer to center of FOV?
+
+                    if (target && dot < dotFov && !isClose)
                         continue; // Already found a target and this one is further from center FOV
 
                     if (CanTrackTarget(src, obj, fov, maxDist)) {
-                        dotFov = dot;
-                        target = { objId, obj.Signature };
+                        // new target is closer to center FOV 
+                        if (isClose && odist < dist) {
+                            dotFov = dot;
+                            dist = odist;
+                            target = { objId, obj.Signature };
+                        }
                     }
-
-                    //auto odist = obj.Distance(src);
-                    /*if (result && (odist > dist || odist >= minDist)) 
-                        continue;*/
-
-                    //auto vec = obj.Position - src.Position;
-                    //vec.Normalize();
-                    //Ray targetRay(src.Position, odir);
-                    //LevelHit hit;
-                    //RayQuery query{ .MaxDistance = odist, .Start = src.Segment, .TestTextures = true };
-
-                    //bool inFov = ObjectIsInFOV(Ray(src.Position, forward), obj, fov);
-                    //if (inFov && !Intersect.RayLevel(targetRay, query, hit)) {
-                    //    dotFov = dot;
-                    //    target = { objId, obj.Signature };
-                    //}
                 }
             }
         };
@@ -983,7 +971,7 @@ namespace Inferno::Game {
         if (auto target = Game::Level.TryGetObject(targetId)) {
             dir = target->Position - parent.Position;
             dir.Normalize();
-            //dir += RandomVector(0.25f); // Slightly randomize direction so the blobs don't stack
+            dir += RandomVector(0.25f); // Slightly randomize direction so the blobs don't stack
             dir.Normalize();
         }
         else {
@@ -1074,9 +1062,6 @@ namespace Inferno::Game {
             targetRef = GetClosestObjectInFOV(weapon, HOMING_FOV, HOMING_DISTANCE, mask);
             if (targetRef)
                 SPDLOG_INFO("Locking onto {}", targetRef);
-            /*if(auto ref = GetClosestObjectInFOV(weapon, 45 * DegToRad, 300, mask)) {
-                weapon.Control.Weapon.TrackingTarget = ref;
-            }*/
         }
         else if (auto target = Game::Level.TryGetObject(targetRef)) {
             // turn towards target

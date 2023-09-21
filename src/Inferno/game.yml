@@ -279,7 +279,7 @@ Weapons:
     LightColor: 0.1, 1, 0.1
     FlashColor: 1, 1, 1, 4
     Glow: 1, 1, 1, 1.5
-    Mass: 2
+    Mass: 1
     Thrust: 22.5 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
 
