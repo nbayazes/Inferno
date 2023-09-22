@@ -438,10 +438,12 @@ namespace Inferno::Game {
         }
 
         if (CountdownTimer > 0) {
+            // play siren every 2 seconds
+            constexpr float SIREN_DELAY = 3.25f; // Seconds after the reactor is destroyed to start playing siren. Exists due to self destruct message.
             auto size = (float)TotalCountdown - CountdownTimer / 0.65f;
             auto oldSize = (float)TotalCountdown - time / 0.65f;
-            if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - 5)
-                Sound::Play(Resources::GetSoundResource(SoundID::Siren)); // play siren every 2 seconds
+            if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - SIREN_DELAY)
+                Sound::Play(Resources::GetSoundResource(SoundID::Siren));
         }
         else {
             if (time > 0)

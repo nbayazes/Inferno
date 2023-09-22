@@ -592,6 +592,9 @@ namespace Inferno::Game {
         auto projectile = CreateWeaponProjectile(id, position, direction, obj.Segment, ref, damageMultiplier, volume);
         auto& weapon = Resources::GetWeapon(id);
 
+        if (weapon.Extended.Recoil)
+            obj.Physics.Thrust += obj.Rotation.Backward() * weapon.Extended.Recoil;
+
         if (showFlash) {
             Render::Particle p{};
             p.Clip = weapon.FlashVClip;

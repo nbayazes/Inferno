@@ -88,7 +88,7 @@ namespace Inferno {
                     ai.Awareness += awareness * falloff;
                     //SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
 
-                    Render::Debug::DrawPoint(obj->Position, Color(1, 1, 0));
+                    //Render::Debug::DrawPoint(obj->Position, Color(1, 1, 0));
 
                     if (prevAwareness < AWARENESS_INVESTIGATE && ai.Awareness > AWARENESS_INVESTIGATE) {
                         SPDLOG_INFO("Enemy {}:{} investigating sound at {}, {}, {}!", objId, obj->Signature, position.x, position.y, position.z);

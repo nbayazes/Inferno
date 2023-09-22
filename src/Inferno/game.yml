@@ -235,6 +235,7 @@ Weapons:
     Mass: 3
     Behavior: fusion
     StunMult: 0.5
+    Recoil: 50
 
   - id: 8
     Name: concussion missile
@@ -305,6 +306,7 @@ Weapons:
     LightRadius: 60
     LightColor: 0.75, 0.25, 0.25, 2
     Size: 1.25 # was 0.2 due odd length ratio
+    Recoil: 175
 
   - id: 20 
     Name: robot spreadfire
