@@ -28,6 +28,7 @@ namespace Inferno::Game {
     constexpr float DEFAULT_WEAPON_VOLUME = 0.55f; // Default volume when firing weapons
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
+    inline bool NeedsResourceReload = false; // Indicates that resources should be reloaded, typically due to changes in graphics settings
 
     constexpr int DEFAULT_GRAVITY = 30;
     inline Vector3 Gravity = { 0, -DEFAULT_GRAVITY, 0 }; // u/s acceleration

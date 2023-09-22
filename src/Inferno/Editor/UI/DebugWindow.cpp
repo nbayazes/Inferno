@@ -22,7 +22,10 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
         ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
         ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
-        ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps);
+        if (ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps)) {
+            Game::NeedsResourceReload = true;
+        }
+
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
         ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
@@ -136,7 +139,7 @@ namespace Inferno::Editor {
 
         ImGui::Separator();
 
-        _timeCounter += Render::FrameTime;
+        /*_timeCounter += Render::FrameTime;
 
         if (_timeCounter > 0.5f) {
             _frameTime = Render::FrameTime;
@@ -144,7 +147,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::Text("Frame Time: %.2f ms FPS: %.0f Calls %d", _frameTime * 1000, 1 / _frameTime, Render::Stats::DrawCalls);
-        ImGui::Text("Procedural time: %.2f ms", Debug::ProceduralUpdateRate * 1000);
+        ImGui::Text("Procedural time: %.2f ms", Debug::ProceduralUpdateRate * 1000);*/
 
         //ImGui::Text("Light View pos: %.2f, %.2f, %.2f", Debug::LightPosition.x, Debug::LightPosition.y, Debug::LightPosition.z);
         //ImGui::Text("Inside frustum: %i", Debug::InsideFrustum);

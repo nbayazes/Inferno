@@ -177,9 +177,11 @@ namespace Inferno::Game {
             Editor::LoadTextureFilter(level);
             bool forceReload =
                 level.IsDescent2() != Level.IsDescent2() ||
+                NeedsResourceReload ||
                 Resources::CustomTextures.Any() ||
                 !String::InvariantEquals(level.Palette, Level.Palette);
 
+            NeedsResourceReload = false;
             //Rooms.clear();
             IsLoading = true;
 
