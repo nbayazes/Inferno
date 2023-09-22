@@ -271,6 +271,11 @@ namespace Inferno::Editor {
 
             case ObjectType::Weapon: // For placeable mines
             {
+                obj.Physics.Flags = {};
+                auto& weapon = Resources::GetWeapon((WeaponID)id);
+                if (weapon.Extended.PointCollideWalls)
+                    obj.Physics.Flags = PhysicsFlag::PointCollideWalls;
+
                 if ((WeaponID)id == WeaponID::LevelMine)
                     InitPlaceableMine(obj);
 

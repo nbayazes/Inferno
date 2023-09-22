@@ -413,7 +413,7 @@ namespace Inferno::Render {
                 else {
                     if (pass != RenderPass::Transparent) return;
                     bool additive = object.ID != (int8)WeaponID::ProxMine && object.ID != (int8)WeaponID::SmartMine;
-                    DrawSprite(ctx, object, additive);
+                    DrawSprite(ctx, object, additive, nullptr, !additive);
                 }
                 break;
 

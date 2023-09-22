@@ -59,6 +59,7 @@ namespace Inferno {
         FixedAngVel = 1 << 8,     // Drag does not apply to rotation of this object
         BouncesTwice = 1 << 9,    // This weapon bounces twice, then dies
         SphereCollidePlayer = 1 << 10, // Use spheres when colliding with the player
+        PointCollideWalls = 1 << 11, // Use raycasting against walls, otherwise use spheres
     };
 
     enum class PowerupID : uint8 {
@@ -206,7 +207,7 @@ namespace Inferno {
         Vector3 AngularAcceleration;
         Vector3 AngularThrust;  // Rotational acceleration from player input (pitch, yaw, roll)
         float TurnRoll;   // Rotation caused by turn banking
-        PhysicsFlag Flags;
+        PhysicsFlag Flags = PhysicsFlag::PointCollideWalls;
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
         int Bounces = 0; // Number of remaining bounces
         float Wiggle = 0; // Amplitude of wiggle

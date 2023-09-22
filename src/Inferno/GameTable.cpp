@@ -143,6 +143,7 @@ namespace Inferno {
         READ_PROP_EXT(LightColor);
         READ_PROP_EXT(SoundRadius);
         READ_PROP_EXT(StunMult);
+        READ_PROP_EXT(PointCollideWalls);
         ReadArray<float>(node["InitialSpeed"], weapon.Extended.InitialSpeed);
 
         Yaml::ReadValue(node["LightMode"], (int&)weapon.Extended.LightMode);

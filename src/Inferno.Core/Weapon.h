@@ -148,6 +148,7 @@ namespace Inferno {
         float SoundRadius = 240; // Sound radius when firing
         float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration.
         Array<float, 5> InitialSpeed; // Speed to spawn with
+        bool PointCollideWalls = true; // Use raycasting against level geometry. Otherwise use spheres.
 
         //struct FiringPattern {
         //    string Crosshair;

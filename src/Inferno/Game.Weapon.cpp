@@ -465,6 +465,9 @@ namespace Inferno::Game {
         if (weapon.Extended.InheritParentVelocity && parent)
             bullet.Physics.Velocity += parent->Physics.Velocity;
 
+        if (!weapon.Extended.PointCollideWalls)
+            ClearFlag(bullet.Physics.Flags, PhysicsFlag::PointCollideWalls);
+
         bullet.Physics.Flags |= weapon.Bounce > 0 ? PhysicsFlag::Bounce : PhysicsFlag::None;
         bullet.Physics.AngularVelocity = weapon.Extended.RotationalVelocity;
         bullet.Physics.Flags |= PhysicsFlag::FixedAngVel; // HACK
