@@ -53,19 +53,20 @@ namespace Inferno::Game {
             CreateMissileSpawn(obj, 6);
     }
 
-    void ProxMineBehavior(Object& obj) {
+    void ProxMineBehavior(Object& mine) {
         constexpr auto PROX_WAKE_RANGE = 60;
         constexpr auto PROX_ACTIVATE_RANGE = 30;
 
-        auto& cw = obj.Control.Weapon;
+        auto& cw = mine.Control.Weapon;
 
-        if (TimeHasElapsed(obj.NextThinkTime)) {
-            obj.NextThinkTime = Game::Time + 0.25f;
+        if (TimeHasElapsed(mine.NextThinkTime)) {
+            mine.Parent = {}; // Clear parent so player can hit it
+            mine.NextThinkTime = Game::Time + 0.25f;
 
             // Try to find a nearby target
-            if (cw.TrackingTarget) {
+            if (!cw.TrackingTarget) {
                 // todo: filter targets based on if mine owner is a player
-                auto [ref, dist] = Game::FindNearestObject(obj.Position, PROX_WAKE_RANGE, ObjectMask::Enemy);
+                auto [ref, dist] = Game::FindNearestObject(mine.Position, PROX_WAKE_RANGE, ObjectMask::Enemy);
                 if (ref && dist <= PROX_WAKE_RANGE)
                     cw.TrackingTarget = ref; // New target!
             }
@@ -75,7 +76,7 @@ namespace Inferno::Game {
             return; // Still no target
 
         auto target = Game::Level.TryGetObject(cw.TrackingTarget);
-        auto dist = target ? obj.Distance(*target) : FLT_MAX;
+        auto dist = target ? mine.Distance(*target) : FLT_MAX;
 
         if (dist > PROX_WAKE_RANGE) {
             cw.TrackingTarget = {}; // Went out of range
@@ -95,13 +96,13 @@ namespace Inferno::Game {
             if (dist <= PROX_ACTIVATE_RANGE && !cw.DetonateMine) {
                 // Commit to the target
                 cw.DetonateMine = true;
-                obj.Lifespan = 2;
-                ClearFlag(obj.Physics.Flags, PhysicsFlag::Bounce); // explode on contacting walls
+                mine.Lifespan = 2;
+                ClearFlag(mine.Physics.Flags, PhysicsFlag::Bounce); // explode on contacting walls
 
                 if (target) {
-                    auto delta = target->Position - obj.Position;
+                    auto delta = target->Position - mine.Position;
                     delta.Normalize();
-                    obj.Physics.Thrust = delta * 0.9; // fire and forget thrust
+                    mine.Physics.Thrust = delta * 0.9; // fire and forget thrust
                 }
             }
         }
