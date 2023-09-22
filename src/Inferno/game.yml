@@ -490,7 +490,8 @@ Robots:
     Mass: 3.0
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper
-    Mass: 5.5
+    Mass: 6.5 # Heavier than regular due to cloaking device
+    Drag: 0.15
   - id: 6 # Cloaked hulk
     CircleDistance: 60
     Multishot: 2
@@ -545,6 +546,7 @@ Robots:
   - id: 19 # Class 1 driller
     CircleDistance: 100 # sniper
     Mass: 5.5
+    Drag: 0.1
   - id: 20 # Green hulk
     CircleDistance: 40
     Mass: 5.75

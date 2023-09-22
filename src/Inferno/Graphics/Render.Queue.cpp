@@ -405,7 +405,7 @@ namespace Inferno::Render {
 
         //SPDLOG_INFO("Update effects");
 
-        for (auto& rid : _roomQueue) {
+        for (auto rid : _roomQueue) {
             if (auto room = level.GetRoom(rid)) {
                 QueueRoomObjects(level, *room);
 

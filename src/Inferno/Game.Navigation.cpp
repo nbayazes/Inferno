@@ -243,19 +243,23 @@ namespace Inferno::Game {
         };
 
         //SPDLOG_INFO("Traversing rooms");
-        static List<RoomID> visited;
         static List<TravelInfo> stack;
         stack.clear();
-        visited.clear();
+
+        auto roomIsVisited = [] (RoomID id) {
+            for (auto& item : stack) {
+                if(item.Portal.RoomLink == id) return true;
+            }
+            return false;
+        };
 
         int stackIndex = 0;
 
         {
             auto room = level.GetRoom(startRoom);
             if (!room) return;
-            visited.push_back(startRoom);
             action(*room); // Execute on starting room
-            //SPDLOG_INFO("Executing on room {}", (int)startRoom);
+            SPDLOG_INFO("Executing on room {}", (int)startRoom);
 
             // Check if any portals are in range of the start point
             for (auto& portal : room->Portals) {
@@ -270,19 +274,19 @@ namespace Inferno::Game {
                 auto projDist = Vector3::Distance(proj, position);
                 if (projDist < dist) dist = projDist;
 
-                if (dist < maxDistance) {
+                // todo: if multiple portals connect to the same room, pick the closer one
+                if (dist < maxDistance && !roomIsVisited(portal.RoomLink)) {
                     stack.push_back({ portal, dist });
-                    //SPDLOG_INFO("Checking adjacent portal {}:{} dist: {}", portal.Tag.Segment, portal.Tag.Side, dist);
+                    SPDLOG_INFO("Checking adjacent portal {}:{} dist: {}", portal.Tag.Segment, portal.Tag.Side, dist);
                 }
             }
         }
 
         while (stackIndex < stack.size()) {
-            TravelInfo& info = stack[stackIndex++];
-            visited.push_back(info.Portal.RoomLink);
+            TravelInfo info = stack[stackIndex++]; // Intentional copy due to modifying stack
             auto room = level.GetRoom(info.Portal.RoomLink);
             if (!room) continue;
-            //SPDLOG_INFO("Executing on room {} Distance {}", (int)info.Portal.RoomLink, info.Distance);
+            SPDLOG_INFO("Executing on room {} Distance {}", (int)info.Portal.RoomLink, info.Distance);
             action(*room); // act on the room
 
             auto& portalDistances = room->PortalDistances[info.Portal.PortalLink];
@@ -290,9 +294,17 @@ namespace Inferno::Game {
             // check room portal distances
             for (int i = 0; i < room->Portals.size(); i++) {
                 if (i == info.Portal.PortalLink) continue; // Don't backtrack
-                auto distance = info.Distance + portalDistances[i];
                 auto& endPortal = room->Portals[i];
-                if (Seq::contains(visited, endPortal.RoomLink))
+
+                auto& side = level.GetSide(endPortal.Tag);
+                if (soundMode && !SoundPassesThroughSide(level, side))
+                    continue;
+
+                auto distance = info.Distance + portalDistances[i];
+                if (endPortal.RoomLink == startRoom) 
+                    continue; // Start room already executed
+
+                if (roomIsVisited(endPortal.RoomLink))
                     continue; // Linked room already visited
 
                 if (distance < maxDistance) {

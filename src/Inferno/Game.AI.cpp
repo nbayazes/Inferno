@@ -77,7 +77,7 @@ namespace Inferno {
                     if (!obj->IsRobot()) continue;
 
                     auto dist = Vector3::Distance(obj->Position, position);
-                    if (dist > soundRadius) return;
+                    if (dist > soundRadius) continue;
 
                     //auto falloff = std::clamp(std::lerp(awareness, 0.0f, (soundRadius - dist) / soundRadiusSq), 0.0f, 1.0f);
                     auto falloff = std::powf(1 - dist / soundRadius, 2); // inverse falloff 
@@ -87,6 +87,8 @@ namespace Inferno {
                     auto prevAwareness = ai.Awareness;
                     ai.Awareness += awareness * falloff;
                     //SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
+
+                    Render::Debug::DrawPoint(obj->Position, Color(1, 1, 0));
 
                     if (prevAwareness < AWARENESS_INVESTIGATE && ai.Awareness > AWARENESS_INVESTIGATE) {
                         SPDLOG_INFO("Enemy {}:{} investigating sound at {}, {}, {}!", objId, obj->Signature, position.x, position.y, position.z);
