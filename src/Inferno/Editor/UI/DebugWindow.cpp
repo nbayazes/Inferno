@@ -34,11 +34,11 @@ namespace Inferno::Editor {
         ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
         {
-        static constexpr std::array angles = { "25%%", "50%%", "75%%", "100%%" };
-        int renderScale = std::clamp(int(Render::RenderScale * 4) - 1, 0, 3);
-        ImGui::SetNextItemWidth(175);
-        if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
-            Render::RenderScale = (renderScale + 1) / 4.0f;
+            static constexpr std::array angles = { "25%%", "50%%", "75%%", "100%%" };
+            int renderScale = std::clamp(int(Render::RenderScale * 4) - 1, 0, 3);
+            ImGui::SetNextItemWidth(175);
+            if (ImGui::SliderInt("Render scale", &renderScale, 0, 3, angles[renderScale]))
+                Render::RenderScale = (renderScale + 1) / 4.0f;
         }
 
         ImGui::Separator();
@@ -54,6 +54,19 @@ namespace Inferno::Editor {
 
         if (ImGui::Button("Reset inventory"))
             Game::Player.ResetInventory(Game::Difficulty);
+
+        bool invulnerable = Game::Player.HasPowerup(PowerupFlag::Invulnerable);
+        if (ImGui::Checkbox("Invulnerable", &invulnerable)) {
+            SetFlag(Game::Player.Powerups, PowerupFlag::Invulnerable, invulnerable);
+            Game::Player.InvulnerableTime = invulnerable ? 3600 : 0;
+        }
+
+        ImGui::SameLine();
+        bool cloak = Game::Player.HasPowerup(PowerupFlag::Cloak);
+        if (ImGui::Checkbox("Cloaked", &cloak)) {
+            SetFlag(Game::Player.Powerups, PowerupFlag::Cloak, cloak);
+            Game::Player.CloakTime = cloak ? 3600 : 0;
+        }
 
         ImGui::Separator();
 

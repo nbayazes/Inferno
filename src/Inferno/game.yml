@@ -603,13 +603,13 @@ Powerups:
   - id: 23 # Cloak
     LightColor: .5, 0, 1, 2
     Glow: 1, 1, 1
-    LightRadius: 13
+    LightRadius: 18
     LightMode: 2 # Pulse
 
   - id: 25 # Invuln
     LightColor: 0.1, 0, 1, 2
     Glow: 1, 1, 1
-    LightRadius: 14
+    LightRadius: 18
     LightMode: 2 # Pulse
 
 Effects:

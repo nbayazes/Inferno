@@ -418,8 +418,9 @@ namespace Inferno::Game {
         auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
 
         // Shake the player ship
-        Level.Objects[0].Physics.AngularVelocity.x += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
-        Level.Objects[0].Physics.AngularVelocity.z += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
+        auto& player = Game::GetPlayerObject();
+        player.Physics.AngularVelocity.z += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
+        player.Physics.AngularVelocity.x += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
 
         auto time = CountdownTimer;
         CountdownTimer -= dt;
@@ -439,7 +440,7 @@ namespace Inferno::Game {
 
         if (CountdownTimer > 0) {
             // play siren every 2 seconds
-            constexpr float SIREN_DELAY = 3.25f; // Seconds after the reactor is destroyed to start playing siren. Exists due to self destruct message.
+            constexpr float SIREN_DELAY = 3.4f; // Seconds after the reactor is destroyed to start playing siren. Exists due to self destruct message.
             auto size = (float)TotalCountdown - CountdownTimer / 0.65f;
             auto oldSize = (float)TotalCountdown - time / 0.65f;
             if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - SIREN_DELAY)

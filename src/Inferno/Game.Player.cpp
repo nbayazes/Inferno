@@ -177,14 +177,16 @@ namespace Inferno {
     void Player::Update(float dt) {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
+        CloakTime -= dt;
+        InvulnerableTime -= dt;
 
-        if (HasPowerup(PowerupFlag::Cloak) && Game::Time > CloakTime + CLOAK_TIME) {
+        if (HasPowerup(PowerupFlag::Cloak) && CloakTime <= 0) {
             Sound::Play(Resources::GetSoundResource(SoundID::CloakOff));
             RemovePowerup(PowerupFlag::Cloak);
             Game::GetPlayerObject().Cloaked = false;
         }
 
-        if (HasPowerup(PowerupFlag::Invulnerable) && Game::Time > InvulnerableTime + INVULN_TIME) {
+        if (HasPowerup(PowerupFlag::Invulnerable) && InvulnerableTime <= 0) {
             Sound::Play(Resources::GetSoundResource(SoundID::InvulnOff));
             RemovePowerup(PowerupFlag::Invulnerable);
         }
@@ -913,7 +915,7 @@ namespace Inferno {
                 }
                 else {
                     GivePowerup(PowerupFlag::Cloak);
-                    CloakTime = (float)Game::Time;
+                    CloakTime = CLOAK_TIME;
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
                     Game::GetPlayerObject().Cloaked = true;
                     used = true;
@@ -928,7 +930,7 @@ namespace Inferno {
                 }
                 else {
                     GivePowerup(PowerupFlag::Invulnerable);
-                    InvulnerableTime = (float)Game::Time;
+                    InvulnerableTime = INVULN_TIME;
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
                     used = true;
                 }
