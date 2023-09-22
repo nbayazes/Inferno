@@ -61,14 +61,14 @@ namespace Inferno::Editor {
         bool invulnerable = Game::Player.HasPowerup(PowerupFlag::Invulnerable);
         if (ImGui::Checkbox("Invulnerable", &invulnerable)) {
             SetFlag(Game::Player.Powerups, PowerupFlag::Invulnerable, invulnerable);
-            Game::Player.InvulnerableTime = invulnerable ? 3600 : 0;
+            Game::Player.InvulnerableTime = invulnerable ? 3600.0f : 0;
         }
 
         ImGui::SameLine();
         bool cloak = Game::Player.HasPowerup(PowerupFlag::Cloak);
         if (ImGui::Checkbox("Cloaked", &cloak)) {
             SetFlag(Game::Player.Powerups, PowerupFlag::Cloak, cloak);
-            Game::Player.CloakTime = cloak ? 3600 : 0;
+            Game::Player.CloakTime = cloak ? 3600.0f : 0;
         }
 
         ImGui::Separator();

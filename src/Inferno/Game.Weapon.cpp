@@ -35,8 +35,7 @@ namespace Inferno::Game {
             float damage = weapon.Damage[Game::Difficulty];
             DrawWeaponExplosion(obj, weapon);
 
-            Sound3D sound(obj.Position, obj.Segment);
-            sound.Resource = Resources::GetSoundResource(weapon.RobotHitSound);
+            Sound3D sound({ weapon.RobotHitSound }, obj.Position, obj.Segment);
             Sound::Play(sound);
 
             GameExplosion ge{};
@@ -159,7 +158,9 @@ namespace Inferno::Game {
                     Game::Player.ApplyDamage(damage);
             }
             else if (target.IsRobot()) {
-                DamageRobot(target, damage, weapon.Extended.StunMult);
+                Vector3 srcDir;
+                src.Physics.Velocity.Normalize(srcDir);
+                DamageRobot(target.Position - srcDir * 5, target, damage, weapon.Extended.StunMult);
             }
             else {
                 target.ApplyDamage(damage);
@@ -170,8 +171,7 @@ namespace Inferno::Game {
             // Always play hit sound for players. Explosions are separate.
             if (target.IsPlayer()) {
                 auto soundId = Game::Player.HasPowerup(PowerupFlag::Invulnerable) ? SoundID::HitInvulnerable : SoundID::HitPlayer;
-                Sound3D sound(hit.Point, target.Segment);
-                sound.Resource = Resources::GetSoundResource(soundId);
+                Sound3D sound({ soundId }, hit.Point, target.Segment);
                 Sound::Play(sound);
             }
             else if (!weapon.IsExplosive()) {
@@ -323,8 +323,7 @@ namespace Inferno::Game {
                 obj.Physics.Bounces++;
                 obj.Parent = {}; // Make hostile to owner!
 
-                Sound3D sound(hit.Point, hit.Tag.Segment);
-                sound.Resource = Resources::GetSoundResource(SoundID::WeaponHitForcefield);
+                Sound3D sound({ SoundID::WeaponHitForcefield }, hit.Point, hit.Tag.Segment);
                 Sound::Play(sound);
             }
         }
@@ -360,8 +359,7 @@ namespace Inferno::Game {
             e.LightRadius = splashRadius;
             Render::CreateExplosion(e, obj.Segment, obj.Position);
 
-            Sound3D sound(hit.Point, hit.Tag.Segment);
-            sound.Resource = Resources::GetSoundResource(SoundID::HitLava);
+            Sound3D sound({ SoundID::HitLava }, hit.Point, hit.Tag.Segment);
             Sound::Play(sound);
         }
         else if (hitWater) {
@@ -395,8 +393,8 @@ namespace Inferno::Game {
             e.Color = Color(1, 1, 1);
             Render::AddParticle(e, obj.Segment, obj.Position);
 
-            Sound3D sound(hit.Point, hit.Tag.Segment);
-            sound.Resource = Resources::GetSoundResource(weapon.IsMatter ? SoundID::MissileHitWater : SoundID::HitWater);
+            auto splashId = weapon.IsMatter ? SoundID::MissileHitWater : SoundID::HitWater;
+            Sound3D sound({ splashId }, hit.Point, hit.Tag.Segment);
             Sound::Play(sound);
         }
         else {
@@ -408,10 +406,9 @@ namespace Inferno::Game {
                 if (vclip != VClipID::None)
                     DrawWeaponExplosion(obj, weapon);
 
-                Sound3D sound(hit.Point, hit.Tag.Segment);
-                sound.Resource = Resources::GetSoundResource(soundId);
-                sound.Resource.D3 = weapon.Extended.ExplosionSound;
-                sound.Source = obj.Parent;
+                SoundResource resource = { soundId };
+                resource.D3 = weapon.Extended.ExplosionSound; // Will take priority if D3 is loaded
+                Sound3D sound(resource, hit.Point, hit.Tag.Segment);
                 Sound::Play(sound);
             }
         }
@@ -544,8 +541,7 @@ namespace Inferno::Game {
             bullet.NextThinkTime = 0;
 
         if (volume > 0) {
-            Sound3D sound(parentRef);
-            sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
+            Sound3D sound({ weapon.FlashSound }, parentRef);
             sound.Volume = volume;
             sound.Radius = weapon.Extended.SoundRadius;
 
@@ -831,8 +827,8 @@ namespace Inferno::Game {
             // Hit sound
             constexpr std::array hitSounds = { "EnvElectricA", "EnvElectricB", "EnvElectricC", "EnvElectricD", "EnvElectricE", "EnvElectricF" };
             if (auto initialTargetObj = Game::Level.TryGetObject(initialTarget)) {
-                Sound3D hitSound(initialTargetObj->Position, initialTargetObj->Segment);
-                hitSound.Resource = { .D3 = hitSounds[RandomInt((int)hitSounds.size() - 1)] };
+                auto name = hitSounds[RandomInt((int)hitSounds.size() - 1)];
+                Sound3D hitSound({ name }, initialTargetObj->Position, initialTargetObj->Segment);
                 hitSound.Volume = 2.00f;
                 hitSound.Radius = 200;
                 Sound::Play(hitSound);
@@ -878,8 +874,7 @@ namespace Inferno::Game {
         }
 
         // Fire sound
-        Sound3D sound(player.Reference);
-        sound.Resource = Resources::GetSoundResource(weapon.FlashSound);
+        Sound3D sound({ weapon.FlashSound }, player.Reference);
         sound.Volume = 0.40f;
         sound.AttachToSource = true;
         sound.AttachOffset = gunSubmodel.Offset;
@@ -1002,8 +997,7 @@ namespace Inferno::Game {
         const Weapon& weapon = Resources::GetWeapon(missile);
         const Weapon& spawnWeapon = Resources::GetWeapon(weapon.Spawn);
 
-        Sound3D sound(missile.Position, missile.Segment);
-        sound.Resource = Resources::GetSoundResource(spawnWeapon.FlashSound);
+        Sound3D sound({ spawnWeapon.FlashSound }, missile.Position, missile.Segment);
         sound.Volume = DEFAULT_WEAPON_VOLUME * 1.2f;
         sound.Radius = spawnWeapon.Extended.SoundRadius;
         Sound::Play(sound);

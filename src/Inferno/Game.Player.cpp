@@ -67,8 +67,7 @@ namespace Inferno {
 
         // AB button held
         if (active && !AfterburnerActive) {
-            Sound3D sound(Reference);
-            sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerIgnite);
+            Sound3D sound({ SoundID::AfterburnerIgnite }, Reference);
             sound.FromPlayer = true;
             sound.Radius = 125;
             sound.LoopStart = 32027;
@@ -81,8 +80,7 @@ namespace Inferno {
         // AB button released
         if (!active && AfterburnerActive) {
             Sound::Stop(_afterburnerSoundSig);
-            Sound3D sound(Reference);
-            sound.Resource = Resources::GetSoundResource(SoundID::AfterburnerStop);
+            Sound3D sound({ SoundID::AfterburnerStop }, Reference);
             sound.FromPlayer = true;
             sound.Radius = 125;
             Sound::Play(sound);
@@ -98,7 +96,7 @@ namespace Inferno {
         auto weapon = (uint8)index;
 
         if (index == Primary && Game::Level.IsDescent1()) {
-            Sound::Play(Resources::GetSoundResource(SoundID::AlreadySelected));
+            Sound::Play({ SoundID::AlreadySelected });
             return;
         }
 
@@ -121,11 +119,11 @@ namespace Inferno {
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
             auto msg = fmt::format("{} {}!", Resources::GetString(GameString::DontHave), Resources::GetPrimaryName(index));
             PrintHudMessage(msg);
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            Sound::Play({ SoundID::SelectFail });
             return;
         }
 
-        Sound::Play(Resources::GetSoundResource(SoundID::SelectPrimary));
+        Sound::Play({ SoundID::SelectPrimary });
         PrimaryDelay = RearmTime;
         Primary = (PrimaryWeaponIndex)weapon;
         PrimaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
@@ -139,7 +137,7 @@ namespace Inferno {
         auto weapon = (uint8)index;
 
         if (index == Secondary && Game::Level.IsDescent1()) {
-            Sound::Play(Resources::GetSoundResource(SoundID::AlreadySelected));
+            Sound::Play({ SoundID::AlreadySelected });
             return;
         }
 
@@ -162,11 +160,11 @@ namespace Inferno {
         if (!CanFireSecondary((SecondaryWeaponIndex)weapon)) {
             auto msg = fmt::format("you have no {}s!", Resources::GetSecondaryName(index));
             PrintHudMessage(msg);
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            Sound::Play({ SoundID::SelectFail });
             return;
         }
 
-        Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+        Sound::Play({ SoundID::SelectSecondary });
         SecondaryDelay = RearmTime;
         Secondary = (SecondaryWeaponIndex)weapon;
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
@@ -181,13 +179,13 @@ namespace Inferno {
         InvulnerableTime -= dt;
 
         if (HasPowerup(PowerupFlag::Cloak) && CloakTime <= 0) {
-            Sound::Play(Resources::GetSoundResource(SoundID::CloakOff));
+            Sound::Play({ SoundID::CloakOff });
             RemovePowerup(PowerupFlag::Cloak);
             Game::GetPlayerObject().Cloaked = false;
         }
 
         if (HasPowerup(PowerupFlag::Invulnerable) && InvulnerableTime <= 0) {
-            Sound::Play(Resources::GetSoundResource(SoundID::InvulnOff));
+            Sound::Play({ SoundID::InvulnOff });
             RemovePowerup(PowerupFlag::Invulnerable);
         }
 
@@ -198,7 +196,7 @@ namespace Inferno {
                     AddEnergy(ENERGY_PER_SECOND * dt);
 
                     if (RefuelSoundTime <= Game::Time) {
-                        Sound::Play(Resources::GetSoundResource(SoundID::Refuel), 0.5f);
+                        Sound::Play({ SoundID::Refuel }, 0.5f);
                         constexpr float REFUEL_SOUND_DELAY = 0.25f;
                         RefuelSoundTime = (float)Game::Time + REFUEL_SOUND_DELAY;
                     }
@@ -229,8 +227,7 @@ namespace Inferno {
                     auto& player = Game::GetPlayerObject();
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
-                        Sound3D sound(Reference);
-                        sound.Resource = Resources::GetSoundResource(SoundID::Explosion);
+                        Sound3D sound({ SoundID::Explosion }, Reference);
                         sound.FromPlayer = true;
                         sound.Merge = false;
                         sound.Position = player.Position;
@@ -239,8 +236,7 @@ namespace Inferno {
                         Shields -= Random() * OVERCHARGE_DAMAGE;
                     }
                     else {
-                        Sound3D sound(Reference);
-                        sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
+                        Sound3D sound({ SoundID::FusionWarmup }, Reference);
                         sound.FromPlayer = true;
                         sound.Position = player.Position;
                         _fusionChargeSound = Sound::Play(sound);
@@ -300,7 +296,7 @@ namespace Inferno {
     void Player::CycleBombs() {
         if (Game::Level.IsDescent1()) {
             BombIndex = 0;
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            Sound::Play({ SoundID::SelectFail });
             return;
         }
 
@@ -309,14 +305,14 @@ namespace Inferno {
 
         if (BombIndex == 0 && smartAmmo > 0) {
             BombIndex = 1;
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+            Sound::Play({ SoundID::SelectSecondary });
         }
         else if (BombIndex == 1 && proxAmmo > 0) {
             BombIndex = 0;
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+            Sound::Play({ SoundID::SelectSecondary });
         }
         else {
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            Sound::Play({ SoundID::SelectFail });
         }
     }
 
@@ -324,7 +320,7 @@ namespace Inferno {
         auto bomb = GetActiveBomb();
         auto& ammo = SecondaryAmmo[(int)bomb];
         if (ammo == 0) {
-            Sound::Play(Resources::GetSoundResource(SoundID::SelectFail));
+            Sound::Play({ SoundID::SelectFail });
             PrintHudMessage("you have no bombs!");
             return;
         }
@@ -338,11 +334,11 @@ namespace Inferno {
         if (ammo == 0 && !Game::Level.IsDescent1()) {
             if (BombIndex == 0 && SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine]) {
                 BombIndex = 1;
-                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+                Sound::Play({ SoundID::SelectSecondary });
             }
             else if (BombIndex == 1 && SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity]) {
                 BombIndex = 0;
-                Sound::Play(Resources::GetSoundResource(SoundID::SelectSecondary));
+                Sound::Play({ SoundID::SelectSecondary });
             }
         }
     }
@@ -811,7 +807,7 @@ namespace Inferno {
 
                         if (Primary == PrimaryWeaponIndex::Laser) {
                             // Fake a weapon swap if the laser is already selected and super laser is picked up
-                            Sound::Play(Resources::GetSoundResource(SoundID::SelectPrimary));
+                            Sound::Play({ SoundID::SelectPrimary });
                             PrimaryDelay = RearmTime;
                         }
                         else if (GetWeaponPriority(PrimaryWeaponIndex::SuperLaser) < GetWeaponPriority(Primary)) {
@@ -964,8 +960,7 @@ namespace Inferno {
         if (used || ammoPickedUp) {
             obj.Lifespan = -1;
 
-            Sound3D sound(Reference);
-            sound.Resource = Resources::GetSoundResource(powerup.HitSound);
+            Sound3D sound({ powerup.HitSound }, Reference);
             sound.FromPlayer = true;
             sound.Merge = false;
             Sound::Play(sound);
@@ -984,8 +979,7 @@ namespace Inferno {
             PrintHudMessage("hostage rescued!");
             AddScreenFlash({ 0, 0, MAX_FLASH });
 
-            Sound3D sound(Reference);
-            sound.Resource = Resources::GetSoundResource(SoundID::RescueHostage);
+            Sound3D sound({ SoundID::RescueHostage }, Reference);
             sound.FromPlayer = true;
             sound.Merge = false;
             Sound::Play(sound);

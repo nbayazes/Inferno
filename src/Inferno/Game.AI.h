@@ -226,7 +226,10 @@ namespace Inferno {
     void UpdateAI(Object& obj, float dt);
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness);
     void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5);
-    void DamageRobot(Object& robot, float damage, float stunMult);
+
+    // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
+    // Rotates towards source if asleep
+    void DamageRobot(const Vector3& source, Object& robot, float damage, float stunMult);
 
     namespace Debug {
         inline int ActiveRobots = 0;

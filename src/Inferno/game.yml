@@ -549,6 +549,7 @@ Robots:
   - id: 18 # Cloaked lifter
     CircleDistance: 20
     Mass: 9.5
+    MeleeDamage: [ 5, 7, 10, 12, 15 ]
   - id: 19 # Class 1 driller
     CircleDistance: 100 # sniper
     Mass: 5.5
@@ -561,8 +562,9 @@ Robots:
     Multishot: 2
     Drag: 0.1
   - id: 21 # Advanced lifter
-    CircleDistance: 0
+    CircleDistance: 12
     Mass: 9
+    MeleeDamage: [ 5, 7, 10, 12, 15 ]
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
     Aim: 190 # 255 perfect aim

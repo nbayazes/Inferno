@@ -57,7 +57,7 @@ namespace Inferno {
 
         LevelHit hit{};
         Ray ray = { obj.Position, playerDir };
-        RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .TestTextures = true };
+        RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .PassTransparent = true };
         return !Intersect.RayLevel(ray, query, hit);
     }
 
@@ -123,9 +123,8 @@ namespace Inferno {
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
         auto id = Game::GetObjectRef(obj);
-        Sound3D sound(id);
+        Sound3D sound({ robot.SeeSound }, id);
         sound.AttachToSource = true;
-        sound.Resource = Resources::GetSoundResource(robot.SeeSound);
         Sound::Play(sound);
     }
 
@@ -546,6 +545,12 @@ namespace Inferno {
         return true;
     }
 
+    float GetRotationSpeed(const RobotInfo& ri) {
+        auto turnTime = Difficulty(ri).TurnTime;
+        if (turnTime <= 0) turnTime = 1.0f;
+        return 1 / turnTime / 8;
+    }
+
     void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, float /*dt*/) {
         auto checkGoalReached = [&obj, &ai] {
             if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
@@ -559,9 +564,7 @@ namespace Inferno {
 
         auto& robot = Resources::GetRobotInfo(obj.ID);
         auto thrust = Difficulty(robot).Speed / 8;
-        auto turnTime = Difficulty(robot).TurnTime;
-        if (turnTime <= 0) turnTime = 1.0f;
-        auto angThrust = 1 / turnTime / 8;
+        auto angThrust = GetRotationSpeed(robot);
 
         if (ai.GoalSegment == obj.Segment) {
             // Reached the goal segment
@@ -1020,9 +1023,17 @@ namespace Inferno {
         }
     }
 
-    void DamageRobot(Object& robot, float damage, float stunMult) {
+    void DamageRobot(const Vector3& source, Object& robot, float damage, float stunMult) {
         auto& info = Resources::GetRobotInfo(robot);
         auto& ai = GetAI(robot);
+
+        // Wake up a robot if it gets hit
+        if (ai.Awareness < .30f) {
+            ai.Awareness = .30f;
+            auto vec = source - robot.Position;
+            vec.Normalize();
+            TurnTowardsVector(robot, vec, Difficulty(info).TurnTime);
+        }
 
         // Apply slow
         float damageScale = 1 - (info.HitPoints - damage * stunMult) / info.HitPoints; // percentage of life dealt
@@ -1106,9 +1117,7 @@ namespace Inferno {
                 auto id = Game::GetObjectRef(robot);
                 fx->Parent = id;
 
-                Sound3D sound(id);
-                sound.Resource = Resources::GetSoundResource(SoundID::FusionWarmup);
-                sound.Position = robot.Position;
+                Sound3D sound({ SoundID::FusionWarmup }, id);
                 ai.SoundHandle = Sound::Play(sound);
 
                 for (uint8 i = 0; i < robotInfo.Guns; i++) {
@@ -1267,10 +1276,9 @@ namespace Inferno {
                             // damage objects in a cone?
                             if (dist < robot.Radius + MELEE_RANGE) {
                                 // Still in range
+                                auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
                                 auto id = Game::GetObjectRef(robot);
-                                Sound3D sound(id);
-                                sound.AttachToSource = true;
-                                sound.Resource = Resources::GetSoundResource(robotInfo.ClawSound);
+                                Sound3D sound({ soundId }, id);
                                 Sound::Play(sound);
                                 Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage);
 

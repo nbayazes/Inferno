@@ -288,6 +288,8 @@ namespace Inferno {
         PlayerHitWall = 70,
         HitPlayer = 71,
         // WallScrape = 72,
+        TearD1_01 = 190,
+        TearD1_02 = 191,
         RescueHostage = 91,
         BriefingHum = 94,
         BriefingPrint = 95,

@@ -309,8 +309,7 @@ namespace Inferno::Render {
 
         if (Sound != SoundID::None) {
             //fmt::print("playing expl sound\n");
-            Sound3D sound(Position, Segment);
-            sound.Resource = Resources::GetSoundResource(Sound);
+            Sound3D sound({ Sound }, Position, Segment);
             sound.Volume = Volume;
             sound.Source = GLOBAL_SOUND_SOURCE;
             Sound::Play(sound);

@@ -441,6 +441,7 @@ namespace Inferno::Sound {
         if (sound.Merge && !sound.Source.IsNull()) {
             // Check if any emitters are already playing this sound from this source
             for (auto& instance : SoundInstances) {
+                if (!instance.IsAlive()) continue;
                 if (instance.Source == sound.Source &&
                     instance.Resource == sound.Resource &&
                     instance.StartTime + MERGE_WINDOW > currentTime &&
@@ -566,13 +567,12 @@ namespace Inferno::Sound {
             if (Game::Time >= emitter.NextPlayTime) {
                 auto index = int(Random() * (emitter.Sounds.size() - 1));
                 emitter.NextPlayTime = Game::Time + emitter.Delay.GetRandom();
-                SoundResource resource{ .D3 = emitter.Sounds[index] };
+                SoundResource resource{ emitter.Sounds[index] };
 
                 if (emitter.Distance > 0) {
-                    Sound3D sound(Listener.Position + RandomVector(emitter.Distance), SegID::None);
+                    Sound3D sound(resource, Listener.Position + RandomVector(emitter.Distance), SegID::None);
                     sound.Occlusion = false;
                     sound.Volume = emitter.Volume.GetRandom();
-                    sound.Resource = resource;
                     sound.Radius = emitter.Distance * 3; // Random?
                     Play(sound);
                 }

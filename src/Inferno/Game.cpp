@@ -22,7 +22,6 @@
 #include "Game.Wall.h"
 #include "Game.AI.h"
 #include "Game.Room.h"
-#include "Game.Visibility.h"
 #include "LegitProfiler.h"
 
 using namespace DirectX;
@@ -278,9 +277,8 @@ namespace Inferno::Game {
         if (Random() < 0.003f) {
             // Playing the sound at player is what the original game does,
             // but it would be nicer to come from the environment instead...
-            Sound3D s(Player.Reference);
+            Sound3D s({ sound }, Player.Reference);
             s.Volume = Random() * 0.1f + 0.05f;
-            s.Resource = Resources::GetSoundResource(sound);
             s.AttachToSource = true;
             s.FromPlayer = true;
             Sound::Play(s);
@@ -430,14 +428,14 @@ namespace Inferno::Game {
 
         constexpr float COUNTDOWN_VOICE_TIME = 12.75f;
         if (time > COUNTDOWN_VOICE_TIME && CountdownTimer <= COUNTDOWN_VOICE_TIME) {
-            Sound::Play(Resources::GetSoundResource(SoundID::Countdown13));
+            Sound::Play({ SoundID::Countdown13 });
         }
 
         if (int(time + 7.0f / 8) != CountdownSeconds) {
             if (CountdownSeconds >= 0 && CountdownSeconds < 10)
-                Sound::Play(Resources::GetSoundResource(SoundID((int)SoundID::Countdown0 + CountdownSeconds)));
+                Sound::Play({ SoundID((int)SoundID::Countdown0 + CountdownSeconds) });
             if (CountdownSeconds == TotalCountdown - 1)
-                Sound::Play(Resources::GetSoundResource(SoundID::SelfDestructActivated));
+                Sound::Play({ SoundID::SelfDestructActivated });
         }
 
         if (CountdownTimer > 0) {
@@ -446,11 +444,11 @@ namespace Inferno::Game {
             auto size = (float)TotalCountdown - CountdownTimer / 0.65f;
             auto oldSize = (float)TotalCountdown - time / 0.65f;
             if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - SIREN_DELAY)
-                Sound::Play(Resources::GetSoundResource(SoundID::Siren));
+                Sound::Play({ SoundID::Siren });
         }
         else {
             if (time > 0)
-                Sound::Play(Resources::GetSoundResource(SoundID::MineBlewUp));
+                Sound::Play({ SoundID::MineBlewUp });
 
             auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
             ScreenFlash = Color{ flash, flash, flash };
@@ -1069,10 +1067,9 @@ namespace Inferno::Game {
                         continue; // skip sound on lower numbered segment
                 }
 
-                Sound3D s(side.Center, segid);
+                Sound3D s({ sound }, side.Center, segid);
                 s.Looped = true;
                 s.Radius = 80;
-                s.Resource = Resources::GetSoundResource(sound);
                 s.Volume = 0.50f;
                 s.Occlusion = false;
                 s.Side = sid;
@@ -1204,6 +1201,7 @@ namespace Inferno::Game {
         // Default the gravity direction to the player start
         Gravity = player->Rotation.Up() * -DEFAULT_GRAVITY;
 
+        Navigation = NavigationNetwork(Level);
         Level.Rooms = CreateRooms(Level);
         //UpdateActiveRooms(Level, Level.GetRoomID(*player));
 
@@ -1244,9 +1242,8 @@ namespace Inferno::Game {
             //}
 
             if (obj.Type == ObjectType::Reactor) {
-                Sound3D reactorHum({ (ObjID)id, obj.Signature });
-                //reactorHum.Resource = { .D3 = "AmbDroneReactor" };
-                reactorHum.Resource = { .D3 = "AmbDroneM" }; // M is very bass heavy
+                // M is very bass heavy "AmbDroneReactor"
+                Sound3D reactorHum({ "AmbDroneM" }, { (ObjID)id, obj.Signature });
                 reactorHum.Radius = 300;
                 reactorHum.Looped = true;
                 reactorHum.Volume = 0.3f;
@@ -1255,7 +1252,7 @@ namespace Inferno::Game {
                 reactorHum.Segment = obj.Segment;
                 Sound::Play(reactorHum);
 
-                reactorHum.Resource = { .D3 = "Indoor Ambient 5" };
+                reactorHum.Resource = { "Indoor Ambient 5" };
                 reactorHum.Radius = 160;
                 reactorHum.Looped = true;
                 reactorHum.Occlusion = true;

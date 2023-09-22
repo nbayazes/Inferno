@@ -409,7 +409,7 @@ namespace Inferno::Editor {
                 ImGui::PushID(imId++);
                 ImGui::TableRowLabel(label);
                 if (ImGui::Button(Resources::GetSoundName(id).data(), { -1, 0 }))
-                    Sound::Play(Resources::GetSoundResource(id));
+                    Sound::Play({ id });
                 ImGui::PopID();
             };
 

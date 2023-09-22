@@ -22,7 +22,6 @@ namespace Inferno::Resources {
     inline CustomTextureLibrary CustomTextures;
 
     extern SoundFile SoundsD1, SoundsD2;
-    SoundResource GetSoundResource(SoundID);
     string_view GetSoundName(SoundID);
     const Palette& GetPalette();
 

@@ -225,15 +225,6 @@ namespace Inferno::Resources {
         return Pig.Get(LookupTexID(id));
     }
 
-    SoundResource GetSoundResource(SoundID id) {
-        if (!Seq::inRange(GameData.Sounds, (int)id)) return {};
-
-        if (Game::Level.IsDescent1())
-            return { .D1 = GameData.Sounds[(int)id] };
-        else
-            return { .D2 = GameData.Sounds[(int)id] };
-    }
-
     string_view GetSoundName(SoundID id) {
         if (!Seq::inRange(GameData.Sounds, (int)id)) return "None";
         auto index = GameData.Sounds[(int)id];

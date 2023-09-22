@@ -230,6 +230,7 @@
     </ClCompile>
     <ClCompile Include="Editor\UI\TextureBrowserUI.cpp" />
     <ClCompile Include="Shell.cpp" />
+    <ClCompile Include="SoundTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />

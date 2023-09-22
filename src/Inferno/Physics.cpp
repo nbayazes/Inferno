@@ -120,8 +120,7 @@ namespace Inferno {
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
         auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
-        Sound3D sound(point, tag.Segment);
-        sound.Resource = Resources::GetSoundResource(soundId);
+        Sound3D sound({ soundId }, point, tag.Segment);
         Sound::Play(sound);
 
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
@@ -558,7 +557,7 @@ namespace Inferno {
                                 stunMult = weapon.Extended.StunMult;
                             }
                             ApplyForce(target, forceVec);
-                            DamageRobot(target, damage, stunMult);
+                            DamageRobot(explosion.Position, target, damage, stunMult);
 
                             target.LastHitForce = forceVec;
                             //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
@@ -1198,8 +1197,7 @@ namespace Inferno {
                 lastScrapeTime = Game::Time;
 
                 auto soundId = ti.HasFlag(TextureFlag::Volatile) ? SoundID::TouchLava : SoundID::TouchWater;
-                Sound3D sound(hit.Point, hit.Tag.Segment);
-                sound.Resource = Resources::GetSoundResource(soundId);
+                Sound3D sound({ soundId }, hit.Point, hit.Tag.Segment);
                 Sound::Play(sound);
             }
 
@@ -1227,8 +1225,7 @@ namespace Inferno {
             damage *= 8;
             Game::AddScreenFlash({ 0, 0, 1 });
 
-            Sound3D sound(hit.Point, hit.Tag.Segment);
-            sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitForcefield);
+            Sound3D sound({ SoundID::PlayerHitForcefield }, hit.Point, hit.Tag.Segment);
             Sound::Play(sound);
 
             auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
@@ -1239,8 +1236,7 @@ namespace Inferno {
 
             if (volume > 0) {
                 // todo: make noise to notify nearby enemies
-                Sound3D sound(hit.Point, hit.Tag.Segment);
-                sound.Resource = Resources::GetSoundResource(SoundID::PlayerHitWall);
+                Sound3D sound({ SoundID::PlayerHitWall }, hit.Point, hit.Tag.Segment);
                 Sound::Play(sound);
             }
         }

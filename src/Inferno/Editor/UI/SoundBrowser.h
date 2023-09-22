@@ -12,7 +12,7 @@ namespace Inferno::Editor {
         bool _3d = false;
         Sound::Reverb _reverb{};
 
-        const std::map<Sound::Reverb, const char*> ReverbLabels = {
+        std::map<Sound::Reverb, const char*> ReverbLabels = {
             { Sound::Reverb::Off, "Off" },
             { Sound::Reverb::Default, "Default" },
             { Sound::Reverb::Generic, "Generic" },
@@ -101,18 +101,18 @@ namespace Inferno::Editor {
                         auto label = fmt::format("{}: {}", i, sound.Name);
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
+                            SoundResource resource;
+                            resource.D1 = i;
+
                             if (_3d) {
-                                //if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                                Sound3D s(Game::GetObjectRef(Editor::Selection.Object));
+                                Sound3D s(resource, Game::GetObjectRef(Editor::Selection.Object));
                                 s.Volume = _vol;
                                 s.Pitch = _pitch;
                                 s.AttachToSource = true;
-                                s.Resource = { .D1 = i };
                                 Sound::Play(s);
-                                //}
                             }
                             else {
-                                Sound::Play({ .D1 = i }, _vol, _pan, _pitch);
+                                Sound::Play(resource, _vol, _pan, _pitch);
                             }
                         }
                     }
@@ -129,15 +129,17 @@ namespace Inferno::Editor {
                         auto label = fmt::format("{}: {}", i, sound.Name);
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
+                            SoundResource resource;
+                            resource.D2 = i;
+
                             if (_3d) {
-                                Sound3D s(Game::GetObjectRef(Editor::Selection.Object));
+                                Sound3D s(resource, Game::GetObjectRef(Editor::Selection.Object));
                                 s.Volume = _vol;
                                 s.Pitch = _pitch;
-                                s.Resource = { .D2 = i };
                                 Sound::Play(s);
                             }
                             else {
-                                Sound::Play({ .D2 = i }, _vol, _pan, _pitch);
+                                Sound::Play(resource, _vol, _pan, _pitch);
                             }
                         }
                     }
@@ -156,14 +158,13 @@ namespace Inferno::Editor {
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             if (_3d) {
-                                Sound3D s(Game::GetObjectRef(Editor::Selection.Object));
+                                Sound3D s({ sound.FileName }, Game::GetObjectRef(Editor::Selection.Object));
                                 s.Volume = _vol;
                                 s.Pitch = _pitch;
-                                s.Resource = { .D3 = sound.FileName };
                                 Sound::Play(s);
                             }
                             else {
-                                Sound::Play({ .D3 = sound.FileName }, _vol, _pan, _pitch);
+                                Sound::Play({ sound.FileName }, _vol, _pan, _pitch);
                             }
                         }
                     }
