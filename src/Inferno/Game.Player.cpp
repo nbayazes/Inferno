@@ -51,13 +51,13 @@ namespace Inferno {
             if (AfterburnerCharge < 0) AfterburnerCharge = 0;
             float count = AfterburnerCharge / USE_SPEED;
 
-            if (oldCount != count) {}                           // drop blobs
+            if (oldCount != count) {} // drop blobs
             thrust = 1 + std::min(0.5f, AfterburnerCharge) * 2; // Falloff from 2 under 50% charge
         }
         else {
             float chargeUp = std::min(dt / 8, 1 - AfterburnerCharge); // 8 second recharge
-            float energy = std::max(Energy - 10, 0.0f);               // don't drop below 10 energy
-            chargeUp = std::min(chargeUp, energy / 10);               // limit charge if <= 10 energy
+            float energy = std::max(Energy - 10, 0.0f); // don't drop below 10 energy
+            chargeUp = std::min(chargeUp, energy / 10); // limit charge if <= 10 energy
             AfterburnerCharge += chargeUp;
             AddEnergy(-chargeUp * 100 / 10); // full charge uses 10% energy
         }
@@ -211,11 +211,11 @@ namespace Inferno {
                 if (CanFirePrimary(Primary) && PrimaryDelay <= 0) {
                     WeaponCharge = 0.001f;
                     FusionNextSoundDelay = 0.25f;
-                    SubtractEnergy(weapon.EnergyUsage);
+                    SubtractEnergy(GetPrimaryEnergyCost());
                 }
             }
             else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
-                SubtractEnergy(dt);
+                SubtractEnergy(dt); // 1 energy cost per second
                 WeaponCharge += dt;
                 if (Energy <= 0) {
                     Energy = 0;
@@ -376,17 +376,17 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(id);
         PrimaryDelay = weapon.FireDelay;
 
+        // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
-            AddEnergy(-weapon.EnergyUsage);             // Charged weapons drain energy on button down
+            AddEnergy(-GetPrimaryEnergyCost());
             PrimaryAmmo[1] -= (uint16)weapon.AmmoUsage; // only vulcan ammo
         }
 
-        auto& ship = PyroGX;
-        auto& sequence = ship.Weapons[(int)Primary].Firing;
+        auto& sequence = Ship.Weapons[(int)Primary].Firing;
         if (FiringIndex >= sequence.size()) FiringIndex = 0;
 
         for (uint8 i = 0; i < 8; i++) {
-            bool quadFire = HasPowerup(PowerupFlag::QuadLasers) && ship.Weapons[(int)Primary].QuadGunpoints[i];
+            bool quadFire = HasPowerup(PowerupFlag::QuadLasers) && Ship.Weapons[(int)Primary].QuadGunpoints[i];
             if (sequence[FiringIndex].Gunpoints[i] || quadFire) {
                 auto& behavior = Game::GetWeaponBehavior(weapon.Extended.Behavior);
                 behavior(*this, i, id);
@@ -555,6 +555,25 @@ namespace Inferno {
             player->HitPoints = Shields;
     }
 
+    float Player::GetPrimaryEnergyCost() const {
+        const auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
+
+        bool quadFire = false;
+        if (HasPowerup(PowerupFlag::QuadLasers)) {
+            for (auto& gp : Ship.Weapons[(int)Primary].QuadGunpoints) {
+                if (gp) {
+                    quadFire = true;
+                    break;
+                }
+            }
+        }
+
+        float energyUsage = weapon.EnergyUsage * Ship.EnergyMultiplier;
+
+        // Double the cost of quad fire weapons. Note this expects the base cost to be lowered.
+        return quadFire ? energyUsage * 2 : energyUsage;
+    }
+
     bool Player::PickUpEnergy() {
         if (Energy < MAX_ENERGY) {
             bool canFire = CanFirePrimary(Primary);
@@ -613,9 +632,9 @@ namespace Inferno {
             canFire &= weapon.AmmoUsage <= PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
 
         if (index == PrimaryWeaponIndex::Omega)
-            canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST;  // it's annoying to switch to omega with no energy
+            canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST; // it's annoying to switch to omega with no energy
 
-        canFire &= weapon.EnergyUsage <= Energy;
+        canFire &= GetPrimaryEnergyCost() <= Energy;
         return canFire;
     }
 
@@ -629,7 +648,7 @@ namespace Inferno {
 
     void Player::TouchPowerup(Object& obj) {
         if (obj.Lifespan == -1) return; // Already picked up
-        if (Shields < 0) return;        // Player is dead!
+        if (Shields < 0) return; // Player is dead!
 
         assert(obj.Type == ObjectType::Powerup);
 

@@ -57,7 +57,7 @@ namespace Inferno {
 
         LevelHit hit{};
         Ray ray = { obj.Position, playerDir };
-        RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .PassTransparent = true };
+        RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .TestTextures = true };
         return !Intersect.RayLevel(ray, query, hit);
     }
 
@@ -556,7 +556,7 @@ namespace Inferno {
         };
 
         if (!PathIsValid(obj, ai)) return;
-        
+
         auto& robot = Resources::GetRobotInfo(obj.ID);
         auto thrust = Difficulty(robot).Speed / 8;
         auto turnTime = Difficulty(robot).TurnTime;
@@ -1185,12 +1185,11 @@ namespace Inferno {
             MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-            // todo: rework this to aim at last seen location. A target cloaking shouldn't immediately stop the attack
-            bool canSeePlayer = CanSeePlayer(robot, playerDir, dist);
-            if (canSeePlayer) {
+            if (CanSeePlayer(robot, playerDir, dist)) {
                 ai.KnownPlayerPosition = player.Position;
                 ai.KnownPlayerSegment = player.Segment;
-            } else {
+            }
+            else {
                 DecayAwareness(ai);
             }
 
@@ -1299,7 +1298,7 @@ namespace Inferno {
                     }
                 }
             }
-            
+
             //if (ai.KnownPlayerSegment != SegID::None) {
             //    robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.KnownPlayerSegment, !robotInfo.IsThief, Game::Level);
             //    ai.GoalSegment = ai.KnownPlayerSegment;

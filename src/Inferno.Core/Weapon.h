@@ -234,6 +234,7 @@ namespace Inferno {
 
     struct ShipInfo {
         float DamageMultiplier = 1.0f; // Multiplier on damage taken
+        float EnergyMultiplier = 1.0f; // Multiplier for weapon energy costs
 
         //struct PrimaryAmmo {
         //    int Max = 10000;

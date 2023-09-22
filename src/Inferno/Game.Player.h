@@ -48,6 +48,7 @@ namespace Inferno {
         bool AfterburnerActive = false;
         int BombIndex = 0; // 0 is proxy, 1 is smart mine
         double LastPrimaryFireTime = 0;
+        ShipInfo Ship = PyroGX;
 
         void GiveWeapon(PrimaryWeaponIndex weapon) {
             PrimaryWeapons |= (1 << (uint16)weapon);
@@ -151,6 +152,8 @@ namespace Inferno {
         SoundUID _fusionChargeSound = SoundUID::None;
         float _prevAfterburnerCharge = 0;
         double _nextFlareFireTime = 0;
+
+        float GetPrimaryEnergyCost() const;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {
