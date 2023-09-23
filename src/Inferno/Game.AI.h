@@ -41,7 +41,7 @@ namespace Inferno {
         AnimState AnimationState = {};
 
         SegID KnownPlayerSegment = SegID::None; // Last segment the player was seen in
-        Option<Vector3> KnownPlayerPosition;
+        Option<Vector3> Target;
 
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
 

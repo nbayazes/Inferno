@@ -769,7 +769,7 @@ namespace Inferno {
                     Vector3 faceLocalPos = localPos;
 
                     if (needsRaycast) {
-                        float dist;
+                        float dist{};
                         Plane basePlane(p0, p1, p2);
 
                         if (triFacesObj) {

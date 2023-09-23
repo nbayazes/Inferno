@@ -134,8 +134,8 @@ namespace Inferno {
         return dot >= diff.FieldOfView;
     }
 
-    bool CheckPlayerVisibility(const Object& robot, const RobotInfo& robotInfo) {
-        auto& player = Game::Level.Objects[0];
+    bool CanSeePlayer(const Object& robot, const RobotInfo& robotInfo) {
+        auto& player = Game::GetPlayerObject();
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
         if (!CanSeePlayer(robot, playerDir, dist)) return false;
 
@@ -1030,9 +1030,7 @@ namespace Inferno {
         // Wake up a robot if it gets hit
         if (ai.Awareness < .30f) {
             ai.Awareness = .30f;
-            auto vec = source - robot.Position;
-            vec.Normalize();
-            TurnTowardsVector(robot, vec, Difficulty(info).TurnTime);
+            ai.Target = source;
         }
 
         // Apply slow
@@ -1131,7 +1129,7 @@ namespace Inferno {
         //if (ai.WeaponCharge >= Difficulty(info).FireDelay * 2) {
         if (ai.WeaponCharge >= 1) {
             Sound::Stop(ai.SoundHandle);
-            auto target = ai.KnownPlayerPosition ? *ai.KnownPlayerPosition : robot.Position + robot.Rotation.Forward() * 40;
+            auto target = ai.Target ? *ai.Target : robot.Position + robot.Rotation.Forward() * 40;
             FireRobotPrimary(robot, ai, robotInfo, target);
             ai.WeaponCharge = 0;
         }
@@ -1160,13 +1158,20 @@ namespace Inferno {
         decr(ai.MeleeHitDelay);
         decr(ai.PathDelay);
 
-        if (ai.Awareness < AI_COMBAT_AWARENESS) {
-            ai.KnownPlayerPosition = {}; // Clear last known position if robot loses interest.
+        if (ai.Awareness <= 0) {
+            ai.Target = {}; // Clear target if robot loses interest.
             ai.KnownPlayerSegment = SegID::None;
         }
 
         //PlayRobotAnimation(robot, AnimState::Fire);
         AnimateRobot(robot, ai, dt);
+
+        if (ai.Target) {
+            //TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
+            float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
+            RotateTowards(robot, *ai.Target, turnTime);
+        }
+
         if (Settings::Cheats.DisableAI) return;
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
@@ -1185,7 +1190,7 @@ namespace Inferno {
             // goal pathing takes priority over other behaviors
             PathTowardsGoal(Game::Level, robot, ai, dt);
 
-            if (CheckPlayerVisibility(robot, robotInfo))
+            if (CanSeePlayer(robot, robotInfo))
                 ai.ClearPath(); // Stop pathing if robot sees the player
         }
         else if (ai.Awareness >= AI_COMBAT_AWARENESS) {
@@ -1196,28 +1201,23 @@ namespace Inferno {
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
             if (CanSeePlayer(robot, playerDir, dist)) {
-                ai.KnownPlayerPosition = player.Position;
+                ai.Target = player.Position;
                 ai.KnownPlayerSegment = player.Segment;
             }
             else {
                 DecayAwareness(ai);
             }
 
-            if (ai.KnownPlayerPosition) {
-                //TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
-                float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
-                RotateTowards(robot, *ai.KnownPlayerPosition, turnTime);
-
+            if (ai.Target) {
                 if (robotInfo.Attack == AttackType::Ranged) {
                     if (!ai.PlayingAnimation()) {
                         PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
                     }
 
                     if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
-                        FireRobotWeapon(robot, ai, robotInfo, *ai.KnownPlayerPosition, false);
+                        FireRobotWeapon(robot, ai, robotInfo, *ai.Target, false);
                         ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
                     }
-
 
                     if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
                         PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
@@ -1230,7 +1230,7 @@ namespace Inferno {
                             WeaponChargeBehavior(robot, ai, robotInfo, dt);
                         }
                         else {
-                            FireRobotPrimary(robot, ai, robotInfo, *ai.KnownPlayerPosition);
+                            FireRobotPrimary(robot, ai, robotInfo, *ai.Target);
                         }
                     }
                 }
@@ -1308,16 +1308,9 @@ namespace Inferno {
                     }
                 }
             }
-
-            //if (ai.KnownPlayerSegment != SegID::None) {
-            //    robot.GoalPath = Game::Navigation.NavigateTo(robot.Segment, ai.KnownPlayerSegment, !robotInfo.IsThief, Game::Level);
-            //    ai.GoalSegment = ai.KnownPlayerSegment;
-            //}
-
-            // Lost sight of player, decay awareness based on AI
         }
         else {
-            if (CheckPlayerVisibility(robot, robotInfo)) { }
+            if (CanSeePlayer(robot, robotInfo)) { }
             else {
                 // Nothing nearby, sleep for longer
                 DecayAwareness(ai);
@@ -1326,7 +1319,6 @@ namespace Inferno {
         }
 
         if (ai.Awareness > 1) ai.Awareness = 1;
-
         ClampThrust(robot, ai);
         ai.LastUpdate = Game::Time;
     }
