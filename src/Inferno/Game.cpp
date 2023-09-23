@@ -336,7 +336,7 @@ namespace Inferno::Game {
     // Exists to prevent modifying object list size mid-update.
     List<Object> PendingNewObjects;
 
-    void SpawnContained(const ContainsData& contains, const Vector3& position, SegID segment) {
+    void SpawnContained(const ContainsData& contains, const Vector3& position, SegID segment, const Vector3& force) {
         switch (contains.Type) {
             case ObjectType::Powerup:
             {
@@ -359,7 +359,7 @@ namespace Inferno::Game {
                     powerup.Segment = segment;
 
                     powerup.Movement = MovementType::Physics;
-                    powerup.Physics.Velocity = RandomVector(32);
+                    powerup.Physics.Velocity = RandomVector(32) + force;
                     powerup.Physics.Mass = 1;
                     powerup.Physics.Drag = 0.01f;
                     powerup.Physics.Flags = PhysicsFlag::Bounce;
@@ -381,7 +381,7 @@ namespace Inferno::Game {
         assert(obj.Type == ObjectType::Robot);
 
         if (obj.Contains.Type != ObjectType::None) {
-            SpawnContained(obj.Contains, obj.Position, obj.Segment);
+            SpawnContained(obj.Contains, obj.Position, obj.Segment, obj.LastHitForce);
         }
         else {
             auto& ri = Resources::GetRobotInfo(obj.ID);
@@ -390,7 +390,7 @@ namespace Inferno::Game {
                     auto div = (float)ri.Contains.Count / 1.001f; // 1.001f so never exactly equals count
                     auto contains = ri.Contains;
                     contains.Count = (int8)std::floor(Random() * div) + (int8)1;
-                    SpawnContained(contains, obj.Position, obj.Segment);
+                    SpawnContained(contains, obj.Position, obj.Segment, obj.LastHitForce);
                 }
             }
         }
@@ -409,6 +409,7 @@ namespace Inferno::Game {
         // This doesn't account for negative scoring (which never happens in D2)
         auto lives = Player.Score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
         if (lives > 0) {
+            Sound::Play({ SoundID::ExtraLife });
             Player.GiveExtraLife((uint8)lives);
         }
     }

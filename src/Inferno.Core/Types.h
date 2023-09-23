@@ -290,6 +290,7 @@ namespace Inferno {
         // WallScrape = 72,
         TearD1_01 = 190,
         TearD1_02 = 191,
+        ExtraLife = 82,
         RescueHostage = 91,
         BriefingHum = 94,
         BriefingPrint = 95,

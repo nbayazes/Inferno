@@ -1092,14 +1092,14 @@ namespace Inferno {
                     case CollisionType::SpherePoly:
                         if (auto info = IntersectSpherePoly(obj, other, obj, dt)) {
                             hit.Update(info, &other);
-                            //CollideObjects(hit, obj, other, dt);
+                            CollideObjects(hit, obj, other, dt);
                         }
                         break;
                     case CollisionType::PolySphere:
                         // Reposition the other object, not this one while using the mesh from this object.
                         if (auto info = IntersectPolySphere(obj, other, dt)) {
                             hit.Update(info, &other);
-                            //CollideObjects(hit, other, obj, dt);
+                            CollideObjects(hit, other, obj, dt);
                         }
                         break;
 

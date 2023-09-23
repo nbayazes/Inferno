@@ -1118,6 +1118,7 @@ namespace Inferno {
                 fx->Parent = id;
 
                 Sound3D sound({ SoundID::FusionWarmup }, id);
+                sound.AttachToSource = true;
                 ai.SoundHandle = Sound::Play(sound);
 
                 for (uint8 i = 0; i < robotInfo.Guns; i++) {
@@ -1279,6 +1280,7 @@ namespace Inferno {
                                 auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
                                 auto id = Game::GetObjectRef(robot);
                                 Sound3D sound({ soundId }, id);
+                                sound.Position = robot.Position;
                                 Sound::Play(sound);
                                 Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage);
 

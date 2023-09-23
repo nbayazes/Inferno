@@ -212,7 +212,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.1, 1, 0.1
-    FlashColor: 1, 1, 1, 4
+    FlashColor: .1, 1, .1, 4
     Glow: 1, 1, 1, 1.5
 
   - id: 14
@@ -553,7 +553,7 @@ Robots:
   - id: 19 # Class 1 driller
     CircleDistance: 100 # sniper
     Mass: 5.5
-    Drag: 0.1
+    Drag: 0.05
   - id: 20 # Green hulk
     CircleDistance: 40
     Mass: 5.75
@@ -590,6 +590,12 @@ Robots:
     Mass: 2
 
 Powerups:
+  - id: 0 # Extra life
+    LightColor: 0.2, 1, .2, 1.5
+    Glow: 1, 1, 1
+    LightRadius: 16
+    LightMode: 2 # Pulse
+
   - id: 1 # Energy
     Glow: 1, 0.80, 0.80, 2.25
     LightColor: 1, .55, 0.10, 3

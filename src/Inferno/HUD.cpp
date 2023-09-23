@@ -481,60 +481,6 @@ namespace Inferno {
         }
     }
 
-    string HudMessages[4]{};
-    int HudMessageCount = 0;
-    float HudTimer = 0;
-
-    // Shifts all messages down by one
-    void ShiftHudMessages() {
-        if (HudMessageCount <= 0) return;
-
-        for (int i = 0; i < (int)std::size(HudMessages) - 1; i++) {
-            HudMessages[i] = std::move(HudMessages[i + 1]);
-            //HudMessages[i] = HudMessages[i + 1];
-        }
-
-        HudMessages[std::size(HudMessages) - 1] = "";
-        HudMessageCount--;
-    }
-
-    void PrintHudMessage(string_view msg) {
-        if (HudMessageCount > 0 && msg == HudMessages[HudMessageCount - 1])
-            return; // duplicated
-
-        if (HudMessageCount >= std::size(HudMessages)) {
-            ShiftHudMessages();
-        }
-
-        HudMessages[HudMessageCount] = msg.data();
-        HudMessageCount++;
-        HudTimer = 3;
-    }
-
-    void DrawHudMessages(float dt) {
-        auto scale = Render::HudCanvas->GetScale();
-        float offset = 5;
-
-        Render::DrawTextInfo info;
-        info.Font = FontSize::Small;
-        info.Color = GREEN_TEXT;
-        info.HorizontalAlign = AlignH::Center;
-        info.VerticalAlign = AlignV::Top;
-        info.Scanline = 0.5f;
-
-        for (auto& msg : HudMessages) {
-            info.Position = Vector2(0, offset) * scale;
-            Render::HudCanvas->DrawGameText(msg, info);
-            offset += 16;
-        }
-
-        HudTimer -= dt;
-        if (HudTimer <= 0) {
-            ShiftHudMessages();
-            HudTimer = 3;
-        }
-    }
-
     float GetCloakAlpha(const Player& player) {
         if (!player.HasPowerup(PowerupFlag::Cloak)) return 1;
 
@@ -633,6 +579,11 @@ namespace Inferno {
         MonitorState _leftMonitor = { true }, _rightMonitor = { false };
         float _scoreTime = 0;
         int _scoreAdded = 0;
+        string _messages[4]{};
+        int _messageCount = 0;
+        float _messageTimer = 0;
+        double _lastLockWarningTime = -1;
+        float _lockTextTime = 0;
 
     public:
         void Draw(float dt, Player& player, const Color& ambient) {
@@ -761,10 +712,20 @@ namespace Inferno {
             _scoreTime = std::clamp(_scoreTime, 0.0f, BASE_SCORE_WINDOW * 2);
         }
 
-    private:
-        double _lastLockWarningTime = -1;
-        float _lockTextTime = 0;
+        void PrintHudMessage(string_view msg) {
+            if (_messageCount > 0 && msg == _messages[_messageCount - 1])
+                return; // duplicated
 
+            if (_messageCount >= std::size(_messages)) {
+                ShiftHudMessages();
+            }
+
+            _messages[_messageCount] = msg.data();
+            _messageCount++;
+            _messageTimer = 3;
+        }
+
+    private:
         void CheckLockWarning() {
             if (Game::Player.HomingObjectDist >= 0) {
                 auto delay = Game::Player.HomingObjectDist / 128.0f;
@@ -776,7 +737,48 @@ namespace Inferno {
                 }
             }
         }
+
+        // Shifts all messages down by one
+        void ShiftHudMessages() {
+            if (_messageCount <= 0) return;
+
+            for (int i = 0; i < (int)std::size(_messages) - 1; i++) {
+                _messages[i] = _messages[i + 1];
+                _messages[i + 1] = "";
+            }
+
+            _messages[std::size(_messages) - 1] = "";
+            _messageCount--;
+        }
+
+        void DrawHudMessages(float dt) {
+            auto scale = Render::HudCanvas->GetScale();
+            float offset = 5;
+
+            Render::DrawTextInfo info;
+            info.Font = FontSize::Small;
+            info.Color = GREEN_TEXT;
+            info.HorizontalAlign = AlignH::Center;
+            info.VerticalAlign = AlignV::Top;
+            info.Scanline = 0.5f;
+
+            for (auto& msg : _messages) {
+                info.Position = Vector2(0, offset) * scale;
+                Render::HudCanvas->DrawGameText(msg, info);
+                offset += 16;
+            }
+
+            _messageTimer -= dt;
+            if (_messageTimer <= 0) {
+                ShiftHudMessages();
+                _messageTimer = 3;
+            }
+        }
     } Hud;
+
+    void PrintHudMessage(string_view msg) {
+        Hud.PrintHudMessage(msg);
+    }
 
     void DrawHUD(float dt, Color ambient) {
         constexpr Color minLight(0.5f, 0.5f, 0.5f, 1);
