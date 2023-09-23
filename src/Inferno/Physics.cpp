@@ -1217,7 +1217,8 @@ namespace Inferno {
         constexpr float DAMAGE_THRESHOLD = 1 / 3.0f;
         auto speed = obj.Physics.Velocity.Length() - obj.Physics.PrevVelocity.Length();
         bool isForceField = ti && ti->IsForceField();
-        if (speed < 0 && !isForceField) return; // Object sped up
+        if (speed > 0 && !isForceField) return; // Object sped up
+        speed = abs(speed);
 
         auto damage = speed / DAMAGE_SCALE;
 
