@@ -174,9 +174,7 @@ namespace Inferno::Editor {
         obj.Movement = {};
         if (fullReset) obj.Control = {};
         obj.Render = {};
-        obj.LightRadius = {};
-        obj.LightColor = Color(0, 0, 0);
-        obj.LightMode = {};
+        obj.Light = {};
         obj.Physics = {};
 
         switch (type) {
@@ -244,9 +242,9 @@ namespace Inferno::Editor {
                 auto& info = Resources::GetPowerup((PowerupID)id);
                 obj.Render.VClip = { .ID = info.VClip };
                 obj.Radius = info.Size;
-                obj.LightRadius = info.LightRadius;
-                obj.LightColor = info.LightColor;
-                obj.LightMode = info.LightMode;
+                obj.Light.Radius = info.LightRadius;
+                obj.Light.Color = info.LightColor;
+                obj.Light.Mode = info.LightMode;
                 obj.Render.Emissive = info.Glow;
 
                 if ((PowerupID)id == PowerupID::Vulcan || (PowerupID)id == PowerupID::Gauss)

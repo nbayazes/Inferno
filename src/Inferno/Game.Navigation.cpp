@@ -15,7 +15,7 @@ namespace Inferno::Game {
 
         List<SegID> path;
         auto roomStartSeg = start;
-        auto roomPath = NavigateAcrossRooms(level.FindRoomBySegment(start), level.FindRoomBySegment(goal), stopAtKeyDoors, level);
+        auto roomPath = NavigateAcrossRooms(level.GetRoomID(start), level.GetRoomID(goal), stopAtKeyDoors, level);
         float totalDistance = 0;
 
         // starting at the first room, use the closest portal that matches the next room

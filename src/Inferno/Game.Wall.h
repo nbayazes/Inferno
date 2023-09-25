@@ -13,7 +13,7 @@ namespace Inferno {
     // Updates opened doors
     void UpdateDoors(Level& level, float dt);
 
-    void ActivateTrigger(Level& level, Trigger& trigger);
+    void ActivateTrigger(Level& level, Trigger& trigger, Tag src);
 
     // Returns true if the wall has transparent or supertransparent textures, or is an open side.
     bool WallIsTransparent(const Level& level, Tag tag);

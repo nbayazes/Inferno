@@ -344,7 +344,7 @@ namespace Inferno {
         float HitPoints = 100;  // Objects are destroyed when hitpoints go under 0
         float MaxHitPoints = 100; // Starting maximum hit points
         ContainsData Contains{};
-        sbyte matcen_creator{}; // Materialization center that created this object, high bit set if matcen-created
+        MatcenID SourceMatcen = MatcenID::None; // Materialization center that created this object
         double Lifespan = MAX_OBJECT_LIFE; // how long before despawning. Missiles explode when expiring.
         ObjRef Parent; // Parent for projectiles, maybe attached objects
 
@@ -361,15 +361,18 @@ namespace Inferno {
         Vector3 PrevPosition; // The position from the previous update. Used for graphics interpolation.
         Matrix3x3 PrevRotation; // The rotation from the previous update. Used for graphics interpolation.
 
-        Color LightColor; // Point light color
-        float LightRadius = 0; // Point light radius
-        DynamicLightMode LightMode{}; // Point light mode
+        // Lighting chunk
+        struct {
+            Color Color;
+            float Radius = 0;
+            DynamicLightMode Mode{};
+        } Light;
 
         LerpedColor Ambient;
         bool Cloaked = false; // Draws using 'cloaked' effect and is untargetable by homing weapons
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
-        float Scale = 1.0;
+        float Scale = 1.0; // Model / sprite scale
 
         Matrix GetTransform() const {
             Matrix m(Rotation);

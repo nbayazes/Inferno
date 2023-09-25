@@ -530,7 +530,7 @@ namespace Inferno {
         AddScreenFlash(FLASH_WHITE);
     }
 
-    void Player::ApplyDamage(float damage) {
+    void Player::ApplyDamage(float damage, bool playSound) {
         //if (Player_is_dead)
         //    return;
 
@@ -549,8 +549,15 @@ namespace Inferno {
         if (Shields < 0) {} // todo: kill player
 
         // Keep player shields in sync with the object that represents it
-        if (auto player = Game::Level.TryGetObject(Reference))
+        if (auto player = Game::Level.TryGetObject(Reference)) {
             player->HitPoints = Shields;
+
+            if (playSound) {
+                auto soundId = Game::Player.HasPowerup(PowerupFlag::Invulnerable) ? SoundID::HitInvulnerable : SoundID::HitPlayer;
+                Sound3D sound({ soundId }, player->Position, player->Segment);
+                Sound::Play(sound);
+            }
+        }
     }
 
     float Player::GetPrimaryEnergyCost() const {

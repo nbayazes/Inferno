@@ -14,9 +14,18 @@ namespace Inferno {
         uint32 Robots{};
         uint32 Robots2{}; // Additional D2 robot flag
         SegID Segment = SegID::None; // Segment this is attached to
-        int16 Producer{}; // runtime fuelcen link??
-        int32 HitPoints{}; // runtime
-        int32 Interval{}; // runtime
+        int16 Producer{}; // Index to matcen runtime data
+        int32 HitPoints{}; // Unused but present in file data
+        int32 Interval{}; // Unused but present in file data
+
+        int8 Lives{}; // Number of times it can be activated
+        bool Active{};
+        float ActiveTime; // Time to be alive
+        int8 Count{}; // Number of robots to create
+        float Timer{};
+        float Delay{}; // Randomized delay to the next robot
+        bool CreateRobotState = false;
+        List<SegID> TriggerPath; // Path to the trigger that last activated this matcen. Used for robot pathing.
     };
 
     struct LightDeltaIndex {
@@ -512,6 +521,14 @@ namespace Inferno {
             return RoomID::None;
         }
 
+        RoomID GetRoomID(SegID seg) {
+            for (int i = 0; i < Rooms.size(); i++) {
+                if (Seq::contains(Rooms[i].Segments, seg)) return RoomID(i);
+            }
+
+            return RoomID::None;
+        }
+
         Room* GetRoom(const Object& obj) {
             auto id = GetRoomID(obj);
             if (id == RoomID::None) return nullptr;
@@ -524,18 +541,12 @@ namespace Inferno {
         }
 
         Room* GetRoom(SegID id) {
-            auto roomId = FindRoomBySegment(id);
+            auto roomId = GetRoomID(id);
             if (roomId == RoomID::None) return nullptr;
             return &Rooms[(int)roomId];
         }
 
-        RoomID FindRoomBySegment(SegID seg) {
-            for (int i = 0; i < Rooms.size(); i++) {
-                if (Seq::contains(Rooms[i].Segments, seg)) return RoomID(i);
-            }
 
-            return RoomID::None;
-        }
 
         Portal* GetPortal(Tag tag) {
             if (auto room = GetRoom(tag.Segment)) {

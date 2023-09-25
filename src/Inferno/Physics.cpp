@@ -126,7 +126,7 @@ namespace Inferno {
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
             SPDLOG_INFO("Activating switch {}:{}\n", tag.Segment, tag.Side);
             //fmt::print("Activating switch {}:{}\n", tag.Segment, tag.Side);
-            ActivateTrigger(level, *trigger);
+            ActivateTrigger(level, *trigger, tag);
         }
 
         return true; // was destroyed!
@@ -588,7 +588,7 @@ namespace Inferno {
 
                             // Quarter damage explosions on trainee
                             if (Game::Difficulty == 0) damage /= 4;
-                            Game::Player.ApplyDamage(damage);
+                            Game::Player.ApplyDamage(damage, false);
                             break;
                         }
 
@@ -1184,7 +1184,7 @@ namespace Inferno {
                 auto damage = ti.Damage * dt;
                 if (obj.IsPlayer()) {
                     if (Game::Difficulty == 0) damage *= 0.5f; // half damage on trainee
-                    Game::Player.ApplyDamage(damage);
+                    Game::Player.ApplyDamage(damage, false);
                 }
                 else {
                     obj.ApplyDamage(damage);
@@ -1247,7 +1247,7 @@ namespace Inferno {
         if (damage > DAMAGE_THRESHOLD) {
             if (obj.Type == ObjectType::Player) {
                 if (obj.HitPoints > 10 || isForceField)
-                    Game::Player.ApplyDamage(damage);
+                    Game::Player.ApplyDamage(damage, false);
             }
             else {
                 obj.ApplyDamage(damage);

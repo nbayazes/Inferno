@@ -1,9 +1,13 @@
 #include "pch.h"
 #include "Game.Segment.h"
 
+#include "Game.h"
 #include "Resources.h"
 #include "Graphics/Render.h"
 #include "Settings.h"
+#include "SoundSystem.h"
+#include "Editor/Editor.Object.h"
+#include "Graphics/Render.Particles.h"
 
 namespace Inferno {
     void ChangeLight(Level& level, const LightDeltaIndex& index, float multiplier = 1.0f) {
@@ -112,7 +116,10 @@ namespace Inferno {
 
     List<SegID> GetConnectedSegments(Level& level, SegID start, int maxDepth) {
         Set<SegID> nearby;
-        struct SearchTag { SegID Seg; int Depth; };
+        struct SearchTag {
+            SegID Seg;
+            int Depth;
+        };
         Stack<SearchTag> search;
         search.push({ start, 0 });
 
@@ -211,5 +218,239 @@ namespace Inferno {
         color.Premultiply();
         color.w = 1;
         return color /** light*/;
+    }
+
+    // Returns a vector that exits the segment
+    Vector3 GetExitVector(Level& level, Segment& seg, const Matcen& matcen) {
+        // Use active path side
+        if (matcen.TriggerPath.size() >= 2) {
+            auto& p0 = Game::Level.GetSegment(matcen.TriggerPath[0]);
+            auto& p1 = Game::Level.GetSegment(matcen.TriggerPath[1]);
+            auto exit = p1.Center - p0.Center;
+            exit.Normalize();
+            return exit;
+        }
+
+        // Fallback to open side
+        Vector3 exit;
+
+        for (auto& sid : SideIDs) {
+            if (!seg.SideHasConnection(sid)) continue;
+            auto& side = seg.GetSide(sid);
+
+            if (auto wall = level.TryGetWall(side.Wall)) {
+                if (wall->IsSolid()) continue;
+            }
+
+            exit = side.Center - seg.Center;
+            exit.Normalize();
+            break;
+        }
+
+        return exit;
+    }
+
+    void CreateMatcenEffect(const Level& level, SegID segId) {
+        if (auto seg = level.TryGetSegment(segId)) {
+            auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
+            const auto& top = seg->GetSide(SideID::Top).Center;
+            const auto& bottom = seg->GetSide(SideID::Bottom).Center;
+
+            Render::Particle p{};
+            auto up = top - bottom;
+            p.Clip = VClipID::Matcen;
+            p.Radius = up.Length() / 2;
+            up.Normalize(p.Up);
+            p.Duration = vclip.PlayTime;
+            p.RandomRotation = false;
+            Render::AddParticle(p, segId, seg->Center);
+
+            Render::DynamicLight light;
+            light.Radius = p.Radius * 2.0f;
+            light.LightColor = Color(1, 0, 0.8f, 5.0f);
+            light.Position = seg->Center;
+            light.Duration = vclip.PlayTime * 2;
+            light.FadeTime = vclip.PlayTime;
+            light.Segment = segId;
+            Render::AddDynamicLight(light);
+        }
+    }
+
+    void UpdateMatcen(Level& level, Matcen& matcen, float dt) {
+        if (!matcen.Active || matcen.Segment == SegID::None)
+            return;
+
+        auto matcenId = MatcenID(&matcen - &level.Matcens[0]);
+
+        if (matcen.Count <= 0) {
+            matcen.Active = false;
+
+            for (auto& obj : level.Objects) {
+                if (obj.SourceMatcen == matcenId && obj.Type == ObjectType::Light)
+                    obj.Lifespan = 1; // Expire the light object
+            }
+            return;
+        }
+
+        //if (matcen.ActiveTime > 0) {
+        //    matcen.ActiveTime -= dt;
+        //    if (matcen.ActiveTime <= 0)
+        //        matcen.Active = false;
+        //}
+
+        auto seg = level.TryGetSegment(matcen.Segment);
+        if (!seg) {
+            SPDLOG_WARN("Matcen {} has invalid segment set", (int)matcenId);
+            return;
+        }
+
+        matcen.Timer += dt;
+
+        // Alternates between playing the spawn effect and actually creating the robot
+        if (!matcen.CreateRobotState) {
+            if (matcen.Timer < matcen.Delay) return; // Not ready!
+
+            // limit live created robots
+            int liveRobots = 0;
+            for (auto& obj : level.Objects) {
+                if (obj.SourceMatcen == matcenId)
+                    liveRobots++;
+            }
+
+            if (liveRobots > Game::Difficulty + 3) {
+                SPDLOG_INFO("Matcen {} already has too many active robots", (int)matcenId);
+                matcen.Timer /= 2;
+            }
+
+            for (auto& objid : seg->Objects) {
+                if (auto obj = level.TryGetObject(objid)) {
+                    if (!obj->IsAlive()) continue;
+
+                    if (obj->IsRobot()) {
+                        auto dir = GetExitVector(level, *seg, matcen);
+                        obj->Physics.Thrust += dir * 20;
+                        return; // Don't spawn robot
+                    }
+                    else if (obj->IsPlayer()) {
+                        Game::Player.ApplyDamage(4, true);
+                        auto dir = GetExitVector(level, *seg, matcen);
+                        dir += RandomVector(0.25f);
+                        dir.Normalize();
+                        obj->Physics.Thrust += dir * 20;
+                        return; // Don't spawn robot
+                    }
+                }
+            }
+
+            auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
+            Sound::Play(Sound3D({ vclip.Sound }, seg->Center, matcen.Segment));
+
+            CreateMatcenEffect(level, matcen.Segment);
+
+            matcen.Timer = 0;
+            matcen.CreateRobotState = true;
+        }
+        else {
+            auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
+            if (matcen.Timer < vclip.PlayTime / 2)
+                return; // Wait until half way through animation to create robot
+
+            matcen.Timer = 0;
+            matcen.Delay = 1.5f + Random() * 2.0f;
+
+            if (!matcen.Robots && !matcen.Robots2) {
+                SPDLOG_WARN("Tried activating matcen {} with no robots set", (int)matcenId);
+                return;
+            }
+
+            // Merge set robots from both flags
+            int8 legalTypes[64]{}; // max of 64 different robots set on matcen
+
+            int numTypes = 0;
+            for (int8 i = 0; i < 2; i++) {
+                int8 robotIndex = i * 32;
+                auto flags = i == 0 ? matcen.Robots : matcen.Robots2;
+                while (flags) {
+                    if (flags & 1)
+                        legalTypes[numTypes++] = robotIndex;
+                    flags >>= 1;
+                    robotIndex++;
+                }
+            }
+
+            ASSERT(numTypes != 0);
+            auto type = numTypes == 1 ? legalTypes[0] : legalTypes[RandomInt(numTypes - 1)];
+            //CreateRobot(matcen.Segment, seg->Center, type, matcenId);
+
+            Object obj{};
+            Editor::InitObject(Game::Level, obj, ObjectType::Robot, type);
+            obj.Position = seg->Center;
+            obj.Segment = matcen.Segment;
+            obj.SourceMatcen = matcenId;
+
+            auto facing = GetExitVector(Game::Level, *seg, matcen);
+            obj.Rotation = VectorToRotation(-facing);
+            Game::AddObject(obj);
+
+            matcen.Count--;
+            matcen.CreateRobotState = false;
+        }
+    }
+
+    void UpdateMatcens(Level& level, float dt) {
+        for (auto& matcen : level.Matcens) {
+            UpdateMatcen(level, matcen, dt);
+        }
+    }
+
+    void TriggerMatcen(Level& level, SegID segId, SegID triggerSeg) {
+        auto seg = level.TryGetSegment(segId);
+        if (!seg || seg->Type != SegmentType::Matcen) {
+            SPDLOG_WARN("Tried to activate matcen on invalid segment {}", segId);
+            return;
+        }
+
+        auto matcen = level.TryGetMatcen(seg->Matcen);
+        if (!matcen) {
+            SPDLOG_WARN("Matcen data is missing for {}", (int)seg->Matcen);
+            return;
+        }
+
+        if (matcen->Lives <= 0 || matcen->Active)
+            return; // Already active or out of lives
+
+        matcen->Active = true;
+        //matcen->ActiveTime = 30 - 2 * (float)Game::Difficulty;
+        matcen->Timer = 0;
+        matcen->Delay = 0;
+        matcen->Count = (int8)Game::Difficulty + 3; // 3 to 7
+        matcen->TriggerPath = Game::Navigation.NavigateTo(segId, triggerSeg, false, level);
+        // Matcens work forever on insane (D2 only)
+        //if (Game::Difficulty < 4)
+        matcen->Lives--;
+
+        Object light{};
+        light.Type = ObjectType::Light;
+        light.Light.Radius = seg->GetLongestEdge() * 2;
+        light.Light.Color = Color(1, 0, 0.8f, 1.0f);
+        light.Position = seg->Center;
+        light.Segment = matcen->Segment;
+        light.SourceMatcen = MatcenID(matcen - &level.Matcens[0]);
+        Game::AddObject(light);
+
+        seg->Matcen;
+    }
+
+    void InitializeMatcens(Level& level) {
+        // Increase number of lives on ace and insane.
+        // Replaces the infinite lives on insane that D2 added.
+        int8 lives = 3;
+        if (Game::Difficulty == 3) lives = 4; // Ace
+        if (Game::Difficulty >= 4) lives = 5; // Insane or above
+
+        for (auto& matcen : level.Matcens) {
+            matcen.Lives = lives;
+            matcen.CreateRobotState = false;
+        }
     }
 }

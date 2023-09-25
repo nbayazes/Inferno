@@ -718,10 +718,10 @@ namespace Inferno::Editor {
 
         ImGui::TableRowLabel("Light Color");
         ImGui::SetNextItemWidth(-1);
-        ImGui::ColorEdit3("##customcolor", &obj.LightColor.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
+        ImGui::ColorEdit3("##customcolor", &obj.Light.Color.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float);
 
         ImGui::TableRowLabel("Light Radius");
         ImGui::SetNextItemWidth(-1);
-        ImGui::SliderFloat("##RADIUS", &obj.LightRadius, 0, 50);
+        ImGui::SliderFloat("##RADIUS", &obj.Light.Radius, 0, 50);
     }
 }

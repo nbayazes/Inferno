@@ -390,6 +390,25 @@ namespace Inferno::Render {
                 }
             }
 
+            //if (auto room = level.GetRoom(id)) {
+            //    for (auto& segid : room->Segments) {
+            //        if(auto seg = level.TryGetSegment(segid)) {
+            //            for (auto& objid : seg->Objects) {
+            //                if(auto obj = level.TryGetObject(objid)) {
+            //                    if(obj->Light.Radius > 0) {
+            //                        LightData light;
+            //                        light.radiusSq = obj->Light.Radius * obj->Light.Radius;
+            //                        light.color = obj->Light.Color;
+            //                        light.pos = obj->Position;
+            //                        light.type = LightType::Point;
+            //                        Graphics::Lights.AddLight(light);
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
+
             if (Settings::Graphics.OutlineVisibleRooms && Game::GetState() != GameState::Editor) {
                 if (auto room = level.GetRoom(id))
                     Debug::OutlineRoom(level, *room, Color(1, 1, 1, 0.5f));

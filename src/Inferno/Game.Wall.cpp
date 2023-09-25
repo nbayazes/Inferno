@@ -458,7 +458,7 @@ namespace Inferno {
         Sound3D sound({ SoundID::ExplodingWall }, side.Center, tag.Segment);
         Sound::Play(sound);
 
-        auto room = level.FindRoomBySegment(tag.Segment);
+        auto room = level.GetRoomID(tag.Segment);
         ExplodingWalls.Add({ tag, room });
     }
 
@@ -619,10 +619,6 @@ namespace Inferno {
         }
     }
 
-    void TriggerMatcen(SegID /*seg*/) {
-        // do matcen stuff
-    }
-
     void IllusionOn(Level& level, Tag tag) {
         auto [wall, cwall] = level.TryGetWalls(tag);
         if (wall) wall->SetFlag(WallFlag::IllusionOff);
@@ -645,7 +641,7 @@ namespace Inferno {
         }
     }
 
-    void ActivateTriggerD1(Level& level, Trigger& trigger) {
+    void ActivateTriggerD1(Level& level, Trigger& trigger, Tag src) {
         if (trigger.HasFlag(TriggerFlagD1::OneShot)) {
             if (!trigger.HasFlag(TriggerFlagD1::On))
                 return;
@@ -663,7 +659,9 @@ namespace Inferno {
         }
 
         if (trigger.HasFlag(TriggerFlagD1::Matcen)) {
-            // todo: matcen trigger
+            fmt::print("Trigger Matcen\n");
+            for (auto& tag : trigger.Targets)
+                TriggerMatcen(level, tag.Segment, src.Segment);
         }
 
         if (trigger.HasFlag(TriggerFlagD1::IllusionOn)) {
@@ -681,7 +679,7 @@ namespace Inferno {
         // omitted: energy and shield drain
     }
 
-    void ActivateTriggerD2(Level& level, Trigger& trigger) {
+    void ActivateTriggerD2(Level& level, Trigger& trigger, Tag src) {
         if (trigger.HasFlag(TriggerFlag::Disabled))
             return;
 
@@ -787,19 +785,18 @@ namespace Inferno {
 
             case TriggerType::Matcen:
                 fmt::print("Trigger Matcen\n");
-                PrintHudMessage("Trigger matcen");
-                for (auto& tag : trigger.Targets) {
-                    TriggerMatcen(tag.Segment);
-                }
+                for (auto& tag : trigger.Targets)
+                    TriggerMatcen(level, tag.Segment, src.Segment);
+
                 break;
         }
     }
 
-    void ActivateTrigger(Level& level, Trigger& trigger) {
+    void ActivateTrigger(Level& level, Trigger& trigger, Tag src) {
         if (level.IsDescent1())
-            ActivateTriggerD1(level, trigger);
+            ActivateTriggerD1(level, trigger, src);
         else
-            ActivateTriggerD2(level, trigger);
+            ActivateTriggerD2(level, trigger, src);
     }
 
     bool WallIsTransparent(const Level& level, Tag tag) {

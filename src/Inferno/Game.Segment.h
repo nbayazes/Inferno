@@ -20,4 +20,8 @@ namespace Inferno {
     short GetPairedEdge(Level&, Tag, short point);
 
     Color GetLightColor(const SegmentSide& side, bool enableColor);
+    void CreateMatcenEffect(const Level& level, SegID segId);
+    void UpdateMatcens(Level& level, float dt);
+    void TriggerMatcen(Level& level, SegID segId, SegID triggerSeg);
+    void InitializeMatcens(Level& level);
 }

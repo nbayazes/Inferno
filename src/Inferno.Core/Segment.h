@@ -238,6 +238,7 @@ namespace Inferno {
         // Updates the normals and centers
         void UpdateGeometricProps(const Level&);
         float GetEstimatedVolume() const;
+        float GetLongestEdge() const;
         bool IsZeroVolume(Level&);
 
         // Returns the vertices of the segment

@@ -263,23 +263,12 @@ namespace Inferno::Editor {
         if (nextMatcenTime > Game::Time) return;
 
         auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
-        nextMatcenTime = (float)Game::Time + vclip.PlayTime;
+        nextMatcenTime = (float)Game::Time + vclip.PlayTime + 1;
 
         for (int id = 0; id < level.Segments.size(); id++) {
             auto& seg = level.Segments[id];
-            if (seg.Type == SegmentType::Matcen) {
-                const auto& top = seg.GetSide(SideID::Top).Center;
-                const auto& bottom = seg.GetSide(SideID::Bottom).Center;
-
-                Render::Particle p{};
-                auto up = top - bottom;
-                p.Clip = VClipID::Matcen;
-                p.Radius = up.Length() / 2;
-                up.Normalize(p.Up);
-                p.Duration = vclip.PlayTime;
-                p.RandomRotation = false;
-                Render::AddParticle(p, (SegID)id, seg.Center);
-            }
+            if (seg.Type == SegmentType::Matcen)
+                CreateMatcenEffect(level, (SegID)id);
         }
     }
 

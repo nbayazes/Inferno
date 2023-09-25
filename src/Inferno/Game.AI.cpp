@@ -14,28 +14,33 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
-    List<AIRuntime> AI;
     constexpr float AI_PATH_DELAY = 5; // Default delay for trying to path to the player
     constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
     constexpr float AI_COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
     constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
 
     namespace {
+        List<AIRuntime> RuntimeState;
         IntersectContext Intersect(Game::Level);
     }
 
     void ResetAI() {
-        for (auto& ai : AI)
+        for (auto& ai : RuntimeState)
             ai = {};
     }
 
     void ResizeAI(size_t size) {
-        AI.resize(size);
+        if (size > RuntimeState.capacity()) {
+            size = size + 50;
+            SPDLOG_INFO("Resizing AI state");
+        }
+
+        RuntimeState.resize(size);
     }
 
     AIRuntime& GetAI(const Object& obj) {
         assert(obj.IsRobot());
-        return AI[(int)Game::GetObjectID(obj)];
+        return RuntimeState[(int)Game::GetObjectRef(obj).Id];
     }
 
     constexpr float AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
@@ -64,6 +69,35 @@ namespace Inferno {
     void AddAwareness(AIRuntime& ai, float awareness) {
         ai.Awareness += awareness;
         if (ai.Awareness > 1) ai.Awareness = 1;
+    }
+
+    void AI::SetPath(Object& obj, const List<SegID>& path, const Vector3* endPosition) {
+        if (!obj.IsRobot() || path.empty()) {
+            ASSERT(false);
+            SPDLOG_WARN("Tried to set invalid path on object");
+            return;
+        }
+
+        ASSERT(obj.IsRobot());
+        auto& ai = GetAI(obj);
+        auto endSeg = Game::Level.TryGetSegment(path.back());
+        auto endRoom = Game::Level.GetRoomID(path.back());
+
+        if (!endSeg || endRoom == RoomID::None) {
+            SPDLOG_WARN("Path end isn't valid");
+            return;
+        }
+
+        Vector3 position = endPosition ? *endPosition : endSeg->Center;
+
+        //auto path = Game::Navigation.NavigateTo(obj.Segment, soundSeg, !robotInfo.IsThief, Game::Level);
+        ai.PathDelay = AI_PATH_DELAY;
+        ai.GoalSegment = path.back();
+        ai.GoalPosition = position;
+        ai.GoalRoom = endRoom;
+        ai.GoalPath = path;
+        ai.GoalPathIndex = 0;
+        obj.NextThinkTime = 0;
     }
 
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness) {
@@ -98,7 +132,7 @@ namespace Inferno {
                         ai.PathDelay = AI_PATH_DELAY;
                         ai.GoalSegment = soundSeg;
                         ai.GoalPosition = position;
-                        ai.GoalRoom = level.FindRoomBySegment(soundSeg);
+                        ai.GoalRoom = level.GetRoomID(soundSeg);
                         ai.GoalPath = path;
                         ai.GoalPathIndex = 0;
                         obj->NextThinkTime = 0;
@@ -1282,7 +1316,7 @@ namespace Inferno {
                                 Sound3D sound({ soundId }, id);
                                 sound.Position = robot.Position;
                                 Sound::Play(sound);
-                                Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage);
+                                Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false);
 
                                 player.Physics.Velocity += playerDir * 20; // shove the player backwards
 

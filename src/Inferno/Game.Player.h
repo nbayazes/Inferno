@@ -132,7 +132,7 @@ namespace Inferno {
         void AutoselectSecondary();
         void GiveExtraLife(uint8 lives = 1);
 
-        void ApplyDamage(float damage);
+        void ApplyDamage(float damage, bool playSound);
 
         // Call after respawning
         void ResetInventory(int difficulty) {

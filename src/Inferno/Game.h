@@ -143,17 +143,10 @@ namespace Inferno::Game {
 
     bool ObjectIsInFOV(const Ray& ray, const Object& obj, float fov);
 
-    // Returns the object ID based on its address
-    inline ObjID GetObjectID(const Object& obj) {
-        auto id = ObjID(&obj - Level.Objects.data());
-        assert((int)id < Level.Objects.size() && (int)id >= 0); // Object wasn't in the level
-        return id;
-    }
-
     // Returns an object reference based on its address
     inline ObjRef GetObjectRef(const Object& obj) {
         auto id = ObjID(&obj - Level.Objects.data());
-        assert((int)id < Level.Objects.size() && (int)id >= 0); // Object wasn't in the level
+        ASSERT((int)id < Level.Objects.size() && (int)id >= 0); // Object wasn't in the level data (programming error)
         return { id, obj.Signature };
     }
 

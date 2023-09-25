@@ -114,35 +114,35 @@ namespace Inferno::Editor {
     // Shifts any segment references greater or equal to ref by value.
     // For use with delete / undo
     void ShiftSegmentRefs(Level& level, SegID ref, int value) {
-        auto Shift = [value, ref](SegID& id) {
+        auto shift = [value, ref](SegID& id) {
             if (id >= ref) id += (SegID)value;
         };
 
         // Update connections
         for (auto& seg : level.Segments) {
             for (auto& c : seg.Connections)
-                Shift(c);
+                shift(c);
         }
 
         // Update object owners
         for (auto& obj : level.Objects)
-            Shift(obj.Segment);
+            shift(obj.Segment);
 
         for (auto& matcen : level.Matcens)
-            Shift(matcen.Segment);
+            shift(matcen.Segment);
 
         // Update triggers
         for (auto& trigger : level.Triggers) {
             for (auto& target : trigger.Targets)
-                Shift(target.Segment);
+                shift(target.Segment);
         }
 
         for (auto& trigger : level.ReactorTriggers)
-            Shift(trigger.Segment);
+            shift(trigger.Segment);
 
         // Update walls
         for (auto& wall : level.Walls)
-            Shift(wall.Tag.Segment);
+            shift(wall.Tag.Segment);
     }
 
     // Creates a 20x20 face aligned to the selected edge and centered to the source face
@@ -488,8 +488,8 @@ namespace Inferno::Editor {
         auto destFace = Face::FromSide(level, destId);
         auto original = srcFace.CopyPoints();
 
-        static const std::array forward = { 0, 1, 2, 3 };
-        static const std::array reverse = { 3, 2, 1, 0 };
+        static constexpr std::array forward = { 0, 1, 2, 3 };
+        static constexpr std::array reverse = { 3, 2, 1, 0 };
 
         float minCornerAngle = 1000;
         int bestMatch = -1;
@@ -991,14 +991,14 @@ namespace Inferno::Editor {
         auto endFace = Face::FromSide(level, opposite);
         auto selFace = Face::FromSide(level, tag);
 
-        static const std::array FORWARD = { 0, 1, 2, 3 };
-        static const std::array REVERSE = { 3, 2, 1, 0 };
+        static constexpr std::array forward = { 0, 1, 2, 3 };
+        static constexpr std::array reverse = { 3, 2, 1, 0 };
         bool foundValid = false;
 
         // try attaching the segment to the dest in each orientation until one isn't degenerate
         for (int i = 0; i < 8; i++) {
             //int i = 0;
-            auto order = i < 4 ? FORWARD : REVERSE;
+            auto order = i < 4 ? forward : reverse;
 
             // copy point locations from dest to src
             for (int f = 0; f < 4; f++) {

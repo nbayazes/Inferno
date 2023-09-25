@@ -240,4 +240,8 @@ namespace Inferno {
     void ResizeAI(size_t size);
 
     AIRuntime& GetAI(const Object& obj);
+
+    namespace AI {
+        void SetPath(Object& obj, const List<SegID>& path, const Vector3* endPosition = nullptr);
+    }
 }

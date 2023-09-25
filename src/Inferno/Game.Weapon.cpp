@@ -155,7 +155,7 @@ namespace Inferno::Game {
                 // Players don't take direct damage from explosive weapons for balance reasons
                 // The secondary explosion will still inflict damage
                 if (!weapon.IsExplosive())
-                    Game::Player.ApplyDamage(damage);
+                    Game::Player.ApplyDamage(damage, false);
             }
             else if (target.IsRobot()) {
                 Vector3 srcDir;
@@ -168,13 +168,7 @@ namespace Inferno::Game {
 
             //fmt::print("applied {} damage\n", damage);
 
-            // Always play hit sound for players. Explosions are separate.
-            if (target.IsPlayer()) {
-                auto soundId = Game::Player.HasPowerup(PowerupFlag::Invulnerable) ? SoundID::HitInvulnerable : SoundID::HitPlayer;
-                Sound3D sound({ soundId }, hit.Point, target.Segment);
-                Sound::Play(sound);
-            }
-            else if (!weapon.IsExplosive()) {
+            if (!target.IsPlayer() && !weapon.IsExplosive()) {
                 // Missiles create their explosion effects when expiring
                 Render::ExplosionInfo expl;
                 expl.Sound = weapon.RobotHitSound;

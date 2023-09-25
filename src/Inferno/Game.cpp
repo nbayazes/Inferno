@@ -22,6 +22,7 @@
 #include "Game.Wall.h"
 #include "Game.AI.h"
 #include "Game.Room.h"
+#include "Game.Segment.h"
 #include "LegitProfiler.h"
 
 using namespace DirectX;
@@ -32,13 +33,24 @@ namespace Inferno::Game {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
+
+        // Objects to be added at the end of this tick.
+        // Exists to prevent modifying object list size mid-update.
+        List<Object> PendingNewObjects;
     }
 
     void StartLevel();
 
     ObjSig GetObjectSig() {
         ObjSigIndex++;
-        if (ObjSigIndex == (uint16)ObjSig::None) ObjSigIndex++; // Skip none after wrapping
+        if (ObjSigIndex == (uint16)ObjSig::None)
+            ObjSigIndex++; // Skip none after wrapping. Note that wrapping is actually a failure case.
+
+        if (std::numeric_limits<unsigned short>::max() == ObjSigIndex) {
+            __debugbreak();
+            SPDLOG_ERROR("Maximum number of object signatures generated! Behavior is undefined.");
+        }
+
         return ObjSig(ObjSigIndex);
     }
 
@@ -85,7 +97,9 @@ namespace Inferno::Game {
                 break;
             case ObjectType::Reactor:
             {
-                obj.LightColor = Color(2, 0, 0);
+                //obj.Light.Color = Color(1, 0, 0);
+                //obj.Light.Radius = 50;
+                //obj.Light.Mode = DynamicLightMode::BigPulse;
                 light.LightColor = Color(3, 0, 0);
                 light.Radius = 30;
                 light.Mode = DynamicLightMode::BigPulse;
@@ -94,6 +108,13 @@ namespace Inferno::Game {
             case ObjectType::Clutter:
                 break;
             case ObjectType::Light:
+                light.LightColor = obj.Light.Color;
+                light.Radius = obj.Light.Radius;
+                light.Mode = obj.Light.Mode;
+                if (obj.SourceMatcen != MatcenID::None) {
+                    light.FadeOnParentDeath = true;
+                    light.FadeTime = 0.5f;
+                }
                 break;
             case ObjectType::Coop:
                 break;
@@ -102,7 +123,7 @@ namespace Inferno::Game {
             default: break;
         }
 
-        if (light.LightColor != Color()) {
+        if (light.Radius > 0 && light.LightColor != Color()) {
             light.Parent = ref;
             light.Duration = MAX_OBJECT_LIFE; // lights will be removed when their parent is destroyed
             light.Segment = obj.Segment;
@@ -332,10 +353,6 @@ namespace Inferno::Game {
         return Level.Objects.emplace_back(Object{});
     }
 
-    // Objects to be added at the end of this tick.
-    // Exists to prevent modifying object list size mid-update.
-    List<Object> PendingNewObjects;
-
     void SpawnContained(const ContainsData& contains, const Vector3& position, SegID segment, const Vector3& force) {
         switch (contains.Type) {
             case ObjectType::Powerup:
@@ -394,10 +411,6 @@ namespace Inferno::Game {
                 }
             }
         }
-    }
-
-    void AddObject(const Object& obj) {
-        PendingNewObjects.push_back(obj);
     }
 
     void AddPointsToScore(int points) {
@@ -699,33 +712,45 @@ namespace Inferno::Game {
         }
     }
 
+    void AddObject(const Object& obj) {
+        PendingNewObjects.push_back(obj);
+    }
+
     void AddPendingObjects() {
-        for (auto& obj : PendingNewObjects) {
+        ResizeAI(Level.Objects.size() + PendingNewObjects.size());
+
+        for (auto& pending : PendingNewObjects) {
+            auto id = ObjID::None;
+            pending.Signature = GetObjectSig();
+
+            {
+                // Find or create a slot for the new object
+                bool foundExisting = false;
+
+                for (int i = 0; i < Level.Objects.size(); i++) {
+                    auto& o = Level.Objects[i];
+                    if (!o.IsAlive()) {
+                        o = pending;
+                        foundExisting = true;
+                        id = ObjID(i);
+                        break;
+                    }
+                }
+
+                if (!foundExisting) {
+                    id = ObjID(Level.Objects.size());
+                    Level.Objects.push_back(pending);
+                }
+
+                ASSERT(id != ObjID::None);
+            }
+
+            auto& obj = Level.Objects[(int)id];
             obj.PrevPosition = obj.Position;
             obj.PrevRotation = obj.Rotation;
-            obj.Signature = GetObjectSig();
 
-            bool foundExisting = false;
-            auto id = ObjID::None;
-
-            for (int i = 0; i < Level.Objects.size(); i++) {
-                auto& o = Level.Objects[i];
-                if (!o.IsAlive()) {
-                    o = obj;
-                    foundExisting = true;
-                    id = ObjID(i);
-                    break;
-                }
-            }
-
-            if (!foundExisting) {
-                id = ObjID(Level.Objects.size());
-                Level.Objects.push_back(obj);
-            }
-
-            ASSERT(id != ObjID::None);
-            Level.GetSegment(obj.Segment).AddObject(id);
-            ObjRef objRef = { id, obj.Signature };
+            Level.GetSegment(pending.Segment).AddObject(id);
+            ObjRef objRef = { id, pending.Signature };
 
             Render::DynamicLight light;
 
@@ -751,10 +776,16 @@ namespace Inferno::Game {
                 }
             }
 
+            if (obj.IsRobot()) {
+                // Path newly created robots to their matcen triggers
+                if (auto matcen = Level.TryGetMatcen(obj.SourceMatcen)) {
+                    AI::SetPath(obj, matcen->TriggerPath);
+                }
+            }
+
             AttachLight(obj, { id, obj.Signature });
         }
 
-        ResizeAI(Level.Objects.size());
         PendingNewObjects.clear();
     }
 
@@ -781,7 +812,7 @@ namespace Inferno::Game {
         ObjRef objRef{ id, obj.Signature };
 
         UpdatePhysics(Game::Level, id, dt);
-        obj.Ambient.Update(Game::Time); // should be 
+        obj.Ambient.Update(Game::Time);
 
         if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
             DestroyObject(obj);
@@ -831,6 +862,8 @@ namespace Inferno::Game {
         Player.Update(dt);
 
         UpdateAmbientSounds();
+        UpdateMatcens(Game::Level, dt);
+
         Sound::UpdateSoundEmitters(dt);
         UpdateExplodingWalls(Game::Level, dt);
         if (ControlCenterDestroyed)
@@ -1197,6 +1230,7 @@ namespace Inferno::Game {
         Resources::LoadGameTable();
         Render::ResetEffects();
         InitObjects();
+        InitializeMatcens(Level);
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start

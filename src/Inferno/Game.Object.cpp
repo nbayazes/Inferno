@@ -6,6 +6,7 @@
 #include "Game.Segment.h"
 #include "Game.Visibility.h"
 #include "Game.Wall.h"
+#include "Editor/Editor.Object.h"
 
 namespace Inferno {
     uint8 GetGunSubmodel(const Object& obj, uint8 gun) {
@@ -191,7 +192,7 @@ namespace Inferno {
             // Activate triggers
             if (auto trigger = level.TryGetTrigger(connection)) {
                 fmt::print("Activating fly through trigger {}:{}\n", connection.Segment, connection.Side);
-                ActivateTrigger(level, *trigger);
+                ActivateTrigger(level, *trigger, connection);
             }
         }
         else if (!connection) {
@@ -213,5 +214,14 @@ namespace Inferno {
 
     bool IsBossRobot(const Object& obj) {
         return obj.Type == ObjectType::Robot && BOSS_IDS.contains(obj.ID);
+    }
+
+    void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen) {
+        Object obj{};
+        Editor::InitObject(Game::Level, obj, ObjectType::Robot, type);
+        obj.Position = position ;
+        obj.Segment = segment;
+        obj.SourceMatcen = srcMatcen;
+        Game::AddObject(obj);
     }
 }

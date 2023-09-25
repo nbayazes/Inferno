@@ -39,6 +39,7 @@ namespace Inferno {
     void MoveObject(Level& level, ObjID objId);
 
     bool IsBossRobot(const Object& obj);
+    void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen = MatcenID::None);
     inline bool IsReactor(const Object& obj) { return obj.Type == ObjectType::Reactor; }
     inline bool IsPlayer(const Object& obj) { return obj.Type == ObjectType::Player; }
 }

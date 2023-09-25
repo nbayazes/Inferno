@@ -98,6 +98,13 @@ namespace Inferno {
         //return front.Area() * bottom.Area();
     }
 
+    float Segment::GetLongestEdge() const {
+        auto d0 = Vector3::Distance(Sides[0].Center, Sides[2].Center);
+        auto d1 = Vector3::Distance(Sides[1].Center, Sides[3].Center);
+        auto d2 = Vector3::Distance(Sides[4].Center, Sides[5].Center);
+        return std::max(d0, std::max(d1, d2));
+    }
+
     bool Segment::IsZeroVolume(Level& level) {
         auto front = Face::FromSide(level, *this, SideID::Front);
         auto back = Face::FromSide(level, *this, SideID::Back);

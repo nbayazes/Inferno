@@ -245,7 +245,7 @@ namespace Inferno {
     enum class WallID : int16 { None = -1, Max = 255 }; // Unfortunately segments save their wall IDs as bytes, limiting us to 255
     enum class DClipID : sbyte { None = -1, Unset = 2 }; // Door clip ID (wall clips)
     enum class EClipID : int16 { None = -1 }; // Effect clip ID (animation on a wall)
-    enum class MatcenID : uint8 { None = 255 };
+    enum class MatcenID : uint8 { None = 255, Boss = 254 };
     enum class TriggerID : uint8 { None = 255 };
 
     // Video clips of explosions or other particle effects
