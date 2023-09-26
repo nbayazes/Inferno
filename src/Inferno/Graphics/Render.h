@@ -52,7 +52,8 @@ namespace Inferno::Render {
     enum class RenderPass {
         Opaque,     // Solid level geometry or objects
         Walls,      // Level walls, might be transparent
-        Transparent // Sprites, transparent portions of models
+        Transparent, // Sprites, transparent portions of models
+        Distortion // Cloaked enemies, shockwaves
     };
 
     //void DrawVClip(Graphics::GraphicsContext& ctx, const VClip& vclip, const Vector3& position, float radius, const Color& color, float elapsed, bool additive = false, float rotation = 0, const Vector3* up = nullptr);

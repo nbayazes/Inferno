@@ -44,7 +44,7 @@ namespace Inferno {
         DeviceResources(DeviceResources const&) = delete;
         DeviceResources& operator= (DeviceResources const&) = delete;
 
-        float RenderScale = 1.0;
+        float RenderScale = 1.0; // Scaling applied to 3D render targets
 
         void CreateDeviceResources();
         void CreateWindowSizeDependentResources();
@@ -90,6 +90,7 @@ namespace Inferno {
         Inferno::RenderTarget MsaaColorBuffer;
         Inferno::DepthBuffer MsaaDepthBuffer;
         Inferno::ColorBuffer MsaaLinearizedDepthBuffer;
+        Inferno::ColorBuffer /*MsaaDistortionBuffer,*/ DistortionBuffer; // Color buffers for distortion effects
 
         Inferno::RenderTarget SceneColorBuffer;
         Inferno::DepthBuffer SceneDepthBuffer;
@@ -115,6 +116,10 @@ namespace Inferno {
         Inferno::ColorBuffer& GetLinearDepthBuffer() {
             return Settings::Graphics.MsaaSamples > 1 ? MsaaLinearizedDepthBuffer : LinearizedDepthBuffer;
         }
+
+        /*Inferno::ColorBuffer& GetDistortionBuffer() {
+            return Settings::Graphics.MsaaSamples > 1 ? MsaaDistortionBuffer : DistortionBuffer;
+        }*/
 
         static constexpr size_t MAX_BACK_BUFFER_COUNT = 2;
         RenderTarget BackBuffers[MAX_BACK_BUFFER_COUNT];

@@ -1060,7 +1060,7 @@ namespace Inferno::Game {
         }
 
         LegitProfiler::AddCpuTask(std::move(update));
-        LegitProfiler::Profiler.Render();
+        //LegitProfiler::Profiler.Render();
 
         g_ImGuiBatch->EndFrame();
         Render::Present();

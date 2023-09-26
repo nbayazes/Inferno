@@ -465,7 +465,7 @@ namespace Inferno::Render {
         frameConstants.NearClip = Camera.NearClip;
         frameConstants.FarClip = Camera.FarClip;
         frameConstants.Eye = Camera.Position;
-        frameConstants.FrameSize = Adapter->GetOutputSize() * Render::RenderScale;
+        frameConstants.Size = Adapter->GetOutputSize() * Render::RenderScale;
         frameConstants.GlobalDimming = Game::ControlCenterDestroyed ? float(sin(Game::CountdownTimer * 4) * 0.5 + 0.5) : 1;
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
         frameConstants.FilterMode = Settings::Graphics.FilterMode;

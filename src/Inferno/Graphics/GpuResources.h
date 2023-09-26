@@ -65,6 +65,12 @@ namespace Inferno {
             return originalState;
         }
 
+        void CopyTo(ID3D12GraphicsCommandList* cmdList, GpuResource& dest) {
+            dest.Transition(cmdList, D3D12_RESOURCE_STATE_COPY_DEST);
+            Transition(cmdList, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            cmdList->CopyResource(dest.Get(), _resource.Get());
+        }
+
         void CreateOnUploadHeap(wstring_view name, const D3D12_CLEAR_VALUE* clearValue = nullptr) {
             Create(D3D12_HEAP_TYPE_UPLOAD, name, clearValue);
         }

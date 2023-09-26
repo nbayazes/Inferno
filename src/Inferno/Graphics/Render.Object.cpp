@@ -19,7 +19,6 @@ namespace Inferno::Render {
                     bool additive,
                     const Vector3* up = nullptr,
                     bool lit = false) {
-
         Color color = lit ? object.Ambient.GetColor() : Color(1, 1, 1);
         if (object.IsPowerup()) color += MIN_POWERUP_AMBIENT;
 
@@ -269,10 +268,64 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawCloakedModel(GraphicsContext& ctx,
+                          const Object& object,
+                          ModelID modelId,
+                          RenderPass pass) {
+        if (pass != RenderPass::Distortion) return;
+
+        auto cmdList = ctx.GetCommandList();
+        auto& effect = Effects->ObjectDistortion;
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+        effect.Shader->SetFrameTexture(cmdList, Adapter->DistortionBuffer.GetSRV());
+
+        auto& model = Resources::GetModel(modelId);
+        if (model.DataSize == 0) {
+            DrawObjectOutline(object);
+            return;
+        }
+
+        auto& meshHandle = GetMeshHandle(modelId);
+        Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
+        ObjectDistortionShader::Constants constants{};
+        constants.TimeOffset = (float)object.Signature * 0.762f; // randomize time across objects
+        constexpr float flickerSpeed = 3.75f;
+        auto noise = OpenSimplex2::Noise2((int)object.Signature, Render::ElapsedTime * flickerSpeed, 0);
+        constants.Noise = (1 + noise) * 0.5f; // Map to 0-1
+        auto noise2 = OpenSimplex2::Noise2((int)object.Signature, constants.TimeOffset + Render::ElapsedTime * flickerSpeed * 0.5f, 0);
+        constants.Noise2 = (1 + noise2) * 0.5f; // Map to 0-1
+
+        for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
+            auto world = GetSubmodelTransform(object, model, submodel) * transform;
+            constants.World = world;
+
+            // get the mesh for the submodel
+            auto& subMesh = meshHandle.Meshes[submodel];
+
+            for (int i = 0; i < subMesh.size(); i++) {
+                auto mesh = subMesh[i];
+                if (!mesh) continue;
+
+                effect.Shader->SetConstants(cmdList, constants);
+
+                cmdList->IASetVertexBuffers(0, 1, &mesh->VertexBuffer);
+                cmdList->IASetIndexBuffer(&mesh->IndexBuffer);
+                cmdList->DrawIndexedInstanced(mesh->IndexCount, 1, 0, 0, 0);
+                Stats::DrawCalls++;
+            }
+        }
+    }
+
     void DrawModel(GraphicsContext& ctx,
                    const Object& object,
                    ModelID modelId,
                    RenderPass pass) {
+        if (object.Cloaked) {
+            DrawCloakedModel(ctx, object, modelId, pass);
+            return;
+        }
+
         auto& effect = Effects->Object;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
@@ -283,8 +336,6 @@ namespace Inferno::Render {
             DrawObjectOutline(object);
             return;
         }
-
-        auto& meshHandle = GetMeshHandle(modelId);
 
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
@@ -329,6 +380,8 @@ namespace Inferno::Render {
             else
                 constants.TexIdOverride = (int)texOverride;
         }
+
+        auto& meshHandle = GetMeshHandle(modelId);
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             auto world = GetSubmodelTransform(object, model, submodel) * transform;

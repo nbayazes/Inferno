@@ -735,6 +735,9 @@
     <CopyFileToFolders Include="shaders\Common.hlsli">
       <Filter>Shaders</Filter>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\ObjectDistortion.hlsl">
+      <Filter>Shaders</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc">

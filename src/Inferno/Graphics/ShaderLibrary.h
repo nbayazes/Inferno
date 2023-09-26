@@ -21,7 +21,7 @@ namespace Inferno {
         Matrix ViewProjection;
         Vector3 Eye;
         float ElapsedTime;
-        Vector2 FrameSize;
+        Vector2 Size;
         float NearClip, FarClip;
         float GlobalDimming;
         HlslBool NewLightMode;
@@ -397,6 +397,32 @@ namespace Inferno {
         }
     };
 
+    class ObjectDistortionShader : public IShader {
+        enum RootParameterIndex : uint {
+            FrameConstants, // b0
+            InstanceConstants, // b1
+            FrameTexture, // t0
+        };
+    public:
+        struct Constants {
+            Matrix World;
+            float TimeOffset;
+            float Noise, Noise2;
+        };
+
+        ObjectDistortionShader(const ShaderInfo& info) : IShader(info) {
+            InputLayout = ObjectVertex::Layout;
+        }
+
+        static void SetFrameTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(FrameTexture, texture);
+        }
+
+        static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
+            commandList->SetGraphicsRoot32BitConstants(InstanceConstants, sizeof consts / 4, &consts, 0);
+        }
+    };
+
     class FlatShader : public IShader {
         enum RootParameterIndex : uint {
             ConstantBuffer,
@@ -485,6 +511,7 @@ namespace Inferno {
         HudShader Hud = ShaderInfo{ L"shaders/HUD.hlsl" };
         SpriteShader Sprite = ShaderInfo{ L"shaders/sprite.hlsl" };
         ObjectShader Object = ShaderInfo{ L"shaders/object.hlsl" };
+        ObjectDistortionShader ObjectDistortion = ShaderInfo{ L"shaders/ObjectDistortion.hlsl" };
     };
 
     class EffectResources {
@@ -505,7 +532,8 @@ namespace Inferno {
         
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
-        
+        Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
+
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<HudShader> HudAdditive = { &_shaders->Hud, { BlendMode::Additive, CullMode::None, DepthMode::None } };
@@ -526,6 +554,7 @@ namespace Inferno {
             CompileShader(&_shaders->UserInterface);
             CompileShader(&_shaders->Sprite);
             CompileShader(&_shaders->Object);
+            CompileShader(&_shaders->ObjectDistortion);
             CompileShader(&_shaders->Depth);
             CompileShader(&_shaders->DepthObject);
             CompileShader(&_shaders->DepthCutout);
@@ -555,6 +584,7 @@ namespace Inferno {
 
             compile(Object);
             compile(ObjectGlow);
+            compile(ObjectDistortion);
             compile(Sprite);
             compile(SpriteAdditive);
             compile(SpriteMultiply);

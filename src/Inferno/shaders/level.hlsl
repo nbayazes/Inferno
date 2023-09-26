@@ -105,7 +105,7 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal, float power) {
 }
 
 //float4 ApplyLinearFog(float4 pixel, float4 pos, float start, float end, float4 fogColor) {
-//    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / Frame.FrameSize).x;
+//    float depth = Depth.Sample(LinearSampler, (pos.xy + 0.5) / Frame.Size).x;
 //    float f = saturate((((end - start) / Frame.FarClip) - depth) / ((end - start) / Frame.FarClip));
 //    //float f = saturate(1 / exp(pow(depth * 5, 2)));
 //    return f * pixel + (1 - f) * fogColor;

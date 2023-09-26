@@ -593,39 +593,40 @@ namespace Inferno {
     }
 
     void DeviceResources::CreateBuffers(UINT width, UINT height) {
-        auto scaledWidth = UINT(width * RenderScale);
-        auto scaledHeight = UINT(height * RenderScale);
-
         // Order of buffer creation matters
         Color clearColor(0.1f, 0.1f, 0.1f);
         clearColor.x = std::pow(clearColor.x, 2.2f);
         clearColor.y = std::pow(clearColor.y, 2.2f);
         clearColor.z = std::pow(clearColor.z, 2.2f);
 
-        //constexpr auto linearBufferFormat = IntermediateFormat;
-        LinearizedDepthBuffer.Create(L"Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat);
+        LinearizedDepthBuffer.Create(L"Linear depth buffer", width, height, DepthShader::OutputFormat);
         LinearizedDepthBuffer.AddShaderResourceView();
         LinearizedDepthBuffer.AddUnorderedAccessView();
         LinearizedDepthBuffer.AddRenderTargetView();
-        SceneColorBuffer.Create(L"Scene color buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, 1);
+        SceneColorBuffer.Create(L"Scene color buffer", width, height, IntermediateFormat, clearColor, 1);
         SceneColorBuffer.AddUnorderedAccessView();
-        SceneDepthBuffer.Create(L"Scene depth buffer", scaledWidth, scaledHeight, m_depthBufferFormat, 1);
+        DistortionBuffer.Create(L"Scene distortion buffer", width, height, IntermediateFormat, 1);
+        DistortionBuffer.AddShaderResourceView();
+        SceneDepthBuffer.Create(L"Scene depth buffer", width, height, m_depthBufferFormat, 1);
         BriefingColorBuffer.Create(L"Briefing color buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
         BriefingScanlineBuffer.Create(L"Briefing scanline buffer", 640, 480, DXGI_FORMAT_R8G8B8A8_UNORM, { 0, 0, 0, 0 });
         BriefingScanlineBuffer.AddUnorderedAccessView();
         //FrameConstantsBuffer.CreateGenericBuffer(L"Frame constants");
 
         if (Settings::Graphics.MsaaSamples > 1) {
-            MsaaColorBuffer.Create(L"MSAA Color Buffer", scaledWidth, scaledHeight, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
-            MsaaDepthBuffer.Create(L"MSAA Depth Buffer", scaledWidth, scaledHeight, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
-            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", scaledWidth, scaledHeight, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
+            MsaaColorBuffer.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
+            MsaaDepthBuffer.Create(L"MSAA Depth Buffer", width, height, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
+            MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", width, height, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
+            //MsaaDistortionBuffer.Create(L"MSAA distortion buffer", width, height, IntermediateFormat, Settings::Graphics.MsaaSamples);
+            //MsaaDistortionBuffer.AddShaderResourceView();
         }
         else {
             MsaaColorBuffer.Release();
             MsaaDepthBuffer.Release();
             MsaaLinearizedDepthBuffer.Release();
+            //MsaaDistortionBuffer.Release();
         }
     }
 

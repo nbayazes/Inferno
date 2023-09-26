@@ -13,7 +13,7 @@ struct FrameConstants {
     float4x4 ViewProjectionMatrix;
     float3 Eye; // Camera direction
     float Time; // elapsed game time in seconds
-    float2 FrameSize; // Output resolution?
+    float2 Size; // Frame width and height
     float NearClip, FarClip;
     float GlobalDimming;
     bool NewLightMode; // dynamic light mode

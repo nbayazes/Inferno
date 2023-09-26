@@ -52,6 +52,7 @@ namespace Inferno::Render {
 
         List<RenderCommand> _opaqueQueue;
         List<RenderCommand> _transparentQueue;
+        List<RenderCommand> _distortionQueue;
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
         List<RoomID> _roomQueue;
@@ -67,6 +68,7 @@ namespace Inferno::Render {
         void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
+        span<RenderCommand> Distortion() { return _distortionQueue; }
         span<RoomID> GetVisibleRooms() { return _roomQueue; }
     private:
         void QueueEditorObject(Object& obj, float lerp);

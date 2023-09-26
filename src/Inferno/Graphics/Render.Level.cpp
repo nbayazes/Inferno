@@ -140,7 +140,7 @@ namespace Inferno::Render {
                 {
                     // Models
                     auto& object = *cmd.Data.Object;
-                    if (object.Render.Type != RenderType::Model) continue;
+                    if (object.Render.Type != RenderType::Model || object.Cloaked) continue;
                     auto model = object.Render.Model.ID;
 
                     if (object.Render.Model.Outrage) {
@@ -450,6 +450,19 @@ namespace Inferno::Render {
             for (auto& cmd : _renderQueue.Transparent() | views::reverse)
                 ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             ctx.EndEvent();
+
+            // Copy the contents of the render target to the distortion buffer
+            auto cmdList = ctx.GetCommandList();
+            auto& renderTarget = Adapter->GetHdrRenderTarget();
+            Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);
+            Adapter->DistortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            renderTarget.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+            //auto& distortionBuffer = Adapter->GetDistortionBuffer();
+            //renderTarget.CopyTo(cmdList, distortionBuffer);
+            //distortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
+            for (auto& cmd : _renderQueue.Distortion() | views::reverse)
+                ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
 
             ctx.EndEvent(); // level
             LegitProfiler::AddCpuTask(std::move(queue));

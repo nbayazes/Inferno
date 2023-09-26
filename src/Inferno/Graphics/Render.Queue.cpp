@@ -23,6 +23,7 @@ namespace Inferno::Render {
         _transparentQueue.clear();
         _opaqueQueue.clear();
         _visited.clear();
+        _distortionQueue.clear();
         _roomQueue.clear();
 
         if (Settings::Editor.RenderMode == RenderMode::None) return;
@@ -96,20 +97,25 @@ namespace Inferno::Render {
             _transparentQueue.push_back({ &obj, depth });
         }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
-            _opaqueQueue.push_back({ &obj, depth });
-
-            bool transparentOverride = false;
-            auto texOverride = TexID::None;
-
-            if (obj.Render.Model.TextureOverride != LevelTexID::None) {
-                texOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
-                if (texOverride != TexID::None)
-                    transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
+            if(obj.Cloaked) {
+                _distortionQueue.push_back({ &obj, depth });
             }
+            else {
+                _opaqueQueue.push_back({ &obj, depth });
 
-            auto& mesh = GetMeshHandle(obj.Render.Model.ID);
-            if (mesh.IsTransparent || transparentOverride)
-                _transparentQueue.push_back({ &obj, depth });
+                bool transparentOverride = false;
+                auto texOverride = TexID::None;
+
+                if (obj.Render.Model.TextureOverride != LevelTexID::None) {
+                    texOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
+                    if (texOverride != TexID::None)
+                        transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
+                }
+
+                auto& mesh = GetMeshHandle(obj.Render.Model.ID);
+                if (mesh.IsTransparent || transparentOverride)
+                    _transparentQueue.push_back({ &obj, depth });
+            }
         }
         else {
             _transparentQueue.push_back({ &obj, depth });
@@ -144,20 +150,26 @@ namespace Inferno::Render {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
-                    // always submit objects to opaque queue, as the renderer will skip
-                    // non-transparent submeshes
-                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-
-                    if (obj.Obj->Render.Model.Outrage) {
-                        //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
-                        //if (mesh.HasTransparentTexture)
-                        // outrage models do not set transparent texture flag, but many contain transparent faces
-                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    if (obj.Obj->Cloaked) {
+                        // Cloaked objects render using a different queue
+                        _distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
-                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                        if (mesh.IsTransparent)
+                        // always submit objects to opaque queue, as the renderer will skip
+                        // non-transparent submeshes
+                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+
+                        if (obj.Obj->Render.Model.Outrage) {
+                            //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
+                            //if (mesh.HasTransparentTexture)
+                            // outrage models do not set transparent texture flag, but many contain transparent faces
                             _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        }
+                        else {
+                            auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+                            if (mesh.IsTransparent)
+                                _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        }
                     }
                 }
                 else {
@@ -209,18 +221,23 @@ namespace Inferno::Render {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
-                    // always submit objects to opaque queue, as the renderer will skip
-                    // non-transparent submeshes
-                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-
-                    if (obj.Obj->Render.Model.Outrage) {
-                        // outrage models do not set transparent texture flag, but many contain transparent faces
-                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    if (obj.Obj->Cloaked) {
+                        _distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
-                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                        if (mesh.IsTransparent)
+                        // always submit objects to opaque queue, as the renderer will skip
+                        // non-transparent submeshes
+                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+
+                        if (obj.Obj->Render.Model.Outrage) {
+                            // outrage models do not set transparent texture flag, but many contain transparent faces
                             _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        }
+                        else {
+                            auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+                            if (mesh.IsTransparent)
+                                _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                        }
                     }
                 }
                 else {
