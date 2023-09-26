@@ -26,7 +26,7 @@ namespace Inferno {
         //uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
         //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
         PlayerVisibility PlayerVisibility;
-        uint8 Shots; // number of shots fired rapidly
+        uint8 BurstShots; // number of shots fired rapidly
         uint8 GunIndex = 0; // Which gun to fire from next
         //AIMode Mode;
         //float NextActionTime;

@@ -57,13 +57,15 @@ namespace Inferno {
         return info.Difficulty[Game::Difficulty];
     }
 
-    bool CanSeePlayer(const Object& obj, const Vector3& playerDir, float playerDist) {
+    bool CanSeePlayer(const Object& obj, const Vector3& playerDir, float playerDist, AIRuntime& ai) {
         if (Game::Player.HasPowerup(PowerupFlag::Cloak)) return false; // Can't see cloaked player
 
         LevelHit hit{};
         Ray ray = { obj.Position, playerDir };
         RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .PassTransparent = true };
-        return !Intersect.RayLevel(ray, query, hit);
+        bool visible = !Intersect.RayLevel(ray, query, hit);
+        if (visible) ai.LastSeenPlayer = 0;
+        return visible;
     }
 
     void AddAwareness(AIRuntime& ai, float awareness) {
@@ -171,13 +173,13 @@ namespace Inferno {
     bool CanSeePlayer(const Object& robot, const RobotInfo& robotInfo) {
         auto& player = Game::GetPlayerObject();
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-        if (!CanSeePlayer(robot, playerDir, dist)) return false;
+        auto& ai = GetAI(robot);
+        if (!CanSeePlayer(robot, playerDir, dist, ai)) return false;
 
         //auto angle = AngleBetweenVectors(playerDir, obj.Rotation.Forward());
         if (!InRobotFOV(robot, playerDir, robotInfo))
             return false;
 
-        auto& ai = GetAI(robot);
         auto prevAwareness = ai.Awareness;
         AddAwareness(ai, 1);
 
@@ -960,7 +962,7 @@ namespace Inferno {
 
     // Tries to path towards the player or move directly to it if in the same room
     void MoveTowardsPlayer(Level& level, const Object& player, Object& robot, AIRuntime& ai, const Vector3& playerDir, float playerDist) {
-        if (/*level.GetRoomID(player) == level.GetRoomID(robot) ||*/ CanSeePlayer(robot, playerDir, playerDist)) {
+        if (/*level.GetRoomID(player) == level.GetRoomID(robot) ||*/ CanSeePlayer(robot, playerDir, playerDist, ai)) {
             Ray ray(robot.Position, playerDir);
             //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
             Vector3 playerPosition = player.Position;
@@ -1122,9 +1124,9 @@ namespace Inferno {
             ai.FireDelay += burstDelay;
 
             FireRobotWeapon(robot, ai, robotInfo, target, true);
-            ai.Shots++;
-            if (ai.Shots >= Difficulty(robotInfo).ShotCount) {
-                ai.Shots = 0;
+            ai.BurstShots++;
+            if (ai.BurstShots >= Difficulty(robotInfo).ShotCount) {
+                ai.BurstShots = 0;
                 ai.FireDelay += Difficulty(robotInfo).FireDelay;
                 ai.FireDelay -= burstDelay; // undo burst delay if this was the last shot
                 break; // Ran out of shots
@@ -1191,6 +1193,7 @@ namespace Inferno {
         decr(ai.DodgeTime);
         decr(ai.MeleeHitDelay);
         decr(ai.PathDelay);
+        ai.LastSeenPlayer += dt;
 
         if (ai.Awareness <= 0) {
             ai.Target = {}; // Clear target if robot loses interest.
@@ -1210,6 +1213,9 @@ namespace Inferno {
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
+
+        if (ai.LastSeenPlayer > Difficulty(robotInfo).FireDelay)
+            ai.BurstShots = 0; // Reset burst fire if player hasn't been seen recently
 
         if (ai.RemainingStun > 0)
             return; // Can't act while stunned
@@ -1234,7 +1240,7 @@ namespace Inferno {
             MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-            if (CanSeePlayer(robot, playerDir, dist)) {
+            if (CanSeePlayer(robot, playerDir, dist, ai)) {
                 ai.Target = player.Position;
                 ai.KnownPlayerSegment = player.Segment;
             }
