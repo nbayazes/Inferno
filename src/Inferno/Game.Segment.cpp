@@ -282,7 +282,7 @@ namespace Inferno {
 
         auto matcenId = MatcenID(&matcen - &level.Matcens[0]);
 
-        if (matcen.Count <= 0) {
+        if (matcen.RobotCount <= 0) {
             matcen.Active = false;
 
             for (auto& obj : level.Objects) {
@@ -392,7 +392,7 @@ namespace Inferno {
             obj.Rotation = VectorToRotation(-facing);
             Game::AddObject(obj);
 
-            matcen.Count--;
+            matcen.RobotCount--;
             matcen.CreateRobotState = false;
         }
     }
@@ -423,7 +423,7 @@ namespace Inferno {
         //matcen->ActiveTime = 30 - 2 * (float)Game::Difficulty;
         matcen->Timer = 0;
         matcen->Delay = 0;
-        matcen->Count = (int8)Game::Difficulty + 3; // 3 to 7
+        matcen->RobotCount = (int8)Game::Difficulty + 3; // 3 to 7
         matcen->TriggerPath = Game::Navigation.NavigateTo(segId, triggerSeg, false, level);
         // Matcens work forever on insane (D2 only)
         //if (Game::Difficulty < 4)

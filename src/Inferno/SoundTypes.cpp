@@ -6,10 +6,8 @@
 
 namespace Inferno {
     SoundResource::SoundResource(SoundID id) {
-        if (!Seq::inRange(Resources::GameData.Sounds, (int)id)) {
-            SPDLOG_INFO("Tried to create a sound with invalid id {}", (int)id);
+        if (!Seq::inRange(Resources::GameData.Sounds, (int)id))
             return;
-        }
 
         if (Game::Level.IsDescent1())
             D1 = Resources::GameData.Sounds[(int)id];

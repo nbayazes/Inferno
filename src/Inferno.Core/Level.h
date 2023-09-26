@@ -20,8 +20,7 @@ namespace Inferno {
 
         int8 Lives{}; // Number of times it can be activated
         bool Active{};
-        float ActiveTime; // Time to be alive
-        int8 Count{}; // Number of robots to create
+        int8 RobotCount{}; // Number of robots to create per activation
         float Timer{};
         float Delay{}; // Randomized delay to the next robot
         bool CreateRobotState = false;

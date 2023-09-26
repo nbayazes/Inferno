@@ -155,7 +155,7 @@ namespace Inferno::Game {
                 // Players don't take direct damage from explosive weapons for balance reasons
                 // The secondary explosion will still inflict damage
                 if (!weapon.IsExplosive())
-                    Game::Player.ApplyDamage(damage, false);
+                    Game::Player.ApplyDamage(damage, true);
             }
             else if (target.IsRobot()) {
                 Vector3 srcDir;
