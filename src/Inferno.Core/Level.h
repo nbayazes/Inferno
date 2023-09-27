@@ -18,13 +18,14 @@ namespace Inferno {
         int32 HitPoints{}; // Unused but present in file data
         int32 Interval{}; // Unused but present in file data
 
-        int8 Lives{}; // Number of times it can be activated
+        int8 Energy{}; // Number of times it can be activated
         bool Active{};
         int8 RobotCount{}; // Number of robots to create per activation
         float Timer{};
         float Delay{}; // Randomized delay to the next robot
         bool CreateRobotState = false;
         List<SegID> TriggerPath; // Path to the trigger that last activated this matcen. Used for robot pathing.
+        EffectID Light = EffectID::None; // Permanent light to indicate the matcen has activations remaining
     };
 
     struct LightDeltaIndex {

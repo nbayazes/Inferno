@@ -4,10 +4,11 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "RootConstants(b1, num32BitConstants = 26), "\
+    "RootConstants(b1, num32BitConstants = 31), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t6), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t7), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t11), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -19,18 +20,21 @@ struct Constants {
     float4x4 WorldMatrix;
     float4 EmissiveLight; // for additive objects like lasers
     float4 Ambient;
+    float4 DissolveColor;
     int TexIdOverride;
     float TimeOffset;
+    float DissolveAmount;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
-ConstantBuffer<Constants> Args : register(b1);
+ConstantBuffer<Constants> Object : register(b1);
 // lighting constants are register b2
 
 SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
 StructuredBuffer<MaterialInfo> Materials : register(t5);
 StructuredBuffer<VClip> VClips : register(t6);
+Texture2D DissolveTexture : register(t7);
 
 Texture2D TextureTable[] : register(t0, space1);
 
@@ -57,7 +61,7 @@ struct PS_INPUT {
 
 [RootSignature(RS)]
 PS_INPUT vsmain(ObjectVertex input) {
-    float4x4 wvp = mul(Frame.ViewProjectionMatrix, Args.WorldMatrix);
+    float4x4 wvp = mul(Frame.ViewProjectionMatrix, Object.WorldMatrix);
     PS_INPUT output;
     output.pos = mul(wvp, float4(input.pos, 1));
     output.col = input.col;
@@ -65,10 +69,10 @@ PS_INPUT vsmain(ObjectVertex input) {
 
     // transform from object space to world space
     //input.normal.z *= -1;
-    output.normal = normalize(mul((float3x3)Args.WorldMatrix, input.normal));
-    output.tangent = normalize(mul((float3x3)Args.WorldMatrix, input.tangent));
-    output.bitangent = normalize(mul((float3x3)Args.WorldMatrix, input.bitangent));
-    output.world = mul(Args.WorldMatrix, float4(input.pos, 1)).xyz;
+    output.normal = normalize(mul((float3x3)Object.WorldMatrix, input.normal));
+    output.tangent = normalize(mul((float3x3)Object.WorldMatrix, input.tangent));
+    output.bitangent = normalize(mul((float3x3)Object.WorldMatrix, input.bitangent));
+    output.world = mul(Object.WorldMatrix, float4(input.pos, 1)).xyz;
     output.texid = input.texid;
     return output;
 }
@@ -91,33 +95,41 @@ float4 psmain(PS_INPUT input) : SV_Target {
     int texid = input.texid;
     int matid = input.texid;
 
-    if (Args.TexIdOverride >= 0) {
-        matid = texid = Args.TexIdOverride;
+    if (Object.TexIdOverride >= 0) {
+        matid = texid = Object.TexIdOverride;
     }
 
     // Lookup VClip texids
     if (texid > VCLIP_RANGE) {
         matid = VClips[texid - VCLIP_RANGE].Frames[0];
-        texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time + Args.TimeOffset);
+        texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time + Object.TimeOffset);
     }
 
     float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
     float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rrr;
     float3 lighting = float3(0, 0, 0);
 
+    float3 dissolveColor = 0;
+    //float argDissolve = frac(Frame.Time * .5);
+    if (Object.DissolveAmount > 0) {
+        float dissolveTex = 1 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r - 0.05;
+        clip(Object.DissolveAmount - dissolveTex);
+        dissolveColor = Object.DissolveColor.rgb * step(Object.DissolveAmount - dissolveTex, 0.05f);
+    }
+
     if (!Frame.NewLightMode) {
         float3 lightDir = float3(0, -1, 0);
         //float sum = emissive.r + emissive.g + emissive.b; // is there a better way to sum this?
         //float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
         //lighting += Ambient + pow(emissive * mult, 4);
-        lighting += Args.Ambient.rgb;
+        lighting += Object.Ambient.rgb;
         lighting += diffuse.rgb * emissive * 4;
         lighting *= Specular(lightDir, viewDir, input.normal);
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
     else {
-        if (any(Args.EmissiveLight.rgb)) {
-            lighting += Args.EmissiveLight.rgb * Args.EmissiveLight.a * diffuse.rgb;
+        if (any(Object.EmissiveLight.rgb)) {
+            lighting += Object.EmissiveLight.rgb * Object.EmissiveLight.a * diffuse.rgb;
         }
         else {
             //float specularMask = Specular1.Sample(Sampler, input.uv).r;
@@ -139,9 +151,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived * 1.5;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
-            lighting += Args.Ambient.rgb * diffuse.rgb * material.LightReceived;
+            lighting += Object.Ambient.rgb * diffuse.rgb * material.LightReceived;
         }
 
+        
+        lighting.rgb += dissolveColor;
+
+        //if (argDissolve - dissolveTex < 0) lighting.rgb = float3(1, 0, 1);
         return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
 }

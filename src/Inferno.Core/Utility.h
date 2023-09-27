@@ -56,6 +56,9 @@ namespace Inferno {
     // Returns a random int between 0 and maximum
     int RandomInt(int maximum);
 
+    // Returns a random int between min and max
+    int RandomInt(int minimum, int maximum);
+
     // Returns a random value between -1 and 1
     inline float RandomN11() {
         return Random() - Random();

@@ -174,6 +174,8 @@ namespace Inferno {
         enum RootParameterIndex : uint {
             FrameConstants,
             RootConstants,
+            DissolveTexture,
+            Sampler,
             RootParameterCount
         };
     public:
@@ -184,10 +186,20 @@ namespace Inferno {
 
         struct Constants {
             Matrix World;
+            float DissolveAmount;
+            float TimeOffset;
         };
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
+        }
+
+        static void SetDissolveTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(DissolveTexture, texture);
+        }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
     };
 
@@ -349,6 +361,7 @@ namespace Inferno {
             Material, // t0 - t4
             MaterialInfoBuffer, // t5
             VClipTable, // t6
+            DissolveTexture, // t7
             Sampler, // s0
             NormalSampler, // s1
             LightGrid, // t11, t12, t13, b2
@@ -357,8 +370,10 @@ namespace Inferno {
         struct Constants {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
+            Color DissolveColor; // For the leading edge of dissolves
             int TexIdOverride = -1;
             float TimeOffset;
+            float DissolveAmount; // 0 to 1. 1 is fully dissolved (invisible)
         };
 
         ObjectShader(const ShaderInfo& info) : IShader(info) {
@@ -371,6 +386,10 @@ namespace Inferno {
 
         static void SetVClipTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
             commandList->SetGraphicsRootDescriptorTable(VClipTable, start);
+        }
+
+        static void SetDissolveTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(DissolveTexture, texture);
         }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {

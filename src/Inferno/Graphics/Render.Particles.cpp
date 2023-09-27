@@ -57,12 +57,13 @@ namespace Inferno::Render {
         LinkEffect(effect, id, SegID::None);
     }
 
-    void AddEffect(Ptr<EffectBase> e) {
+    EffectID AddEffect(Ptr<EffectBase> e) {
         ASSERT(e->Segment > SegID::None);
         e->OnInit();
         auto& seg = Game::Level.GetSegment(e->Segment);
         auto newId = EffectID::None;
 
+        // Find an unused effect slot
         for (size_t i = 0; i < VisualEffects.size(); i++) {
             auto& effect = VisualEffects[i];
             if (!effect) {
@@ -72,6 +73,7 @@ namespace Inferno::Render {
             }
         }
 
+        // Add a new slot
         if (newId == EffectID::None) {
             newId = EffectID(VisualEffects.size());
             VisualEffects.push_back(std::move(e));
@@ -80,6 +82,7 @@ namespace Inferno::Render {
         ASSERT(newId != EffectID::None);
         ASSERT(!Seq::contains(seg.Effects, newId));
         seg.Effects.push_back(newId);
+        return newId;
         //SPDLOG_INFO("Add effect {}", SegmentEffects[seg].size());
     }
 
@@ -1099,9 +1102,10 @@ namespace Inferno::Render {
         AddEffect(MakePtr<SparkEmitter>(std::move(emitter)));
     }
 
-    void AddDynamicLight(DynamicLight& light) {
-        if (light.Radius <= 0 || light.LightColor == LIGHT_UNSET) return;
-        AddEffect(MakePtr<DynamicLight>(std::move(light)));
+    EffectID AddDynamicLight(DynamicLight& light) {
+        ASSERT(light.Duration > 0);
+        if (light.Radius <= 0 || light.LightColor == LIGHT_UNSET) return EffectID::None;
+        return AddEffect(MakePtr<DynamicLight>(std::move(light)));
     }
 
     void UpdateEffect(float dt, EffectID id) {

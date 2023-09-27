@@ -3,6 +3,7 @@
 #include "CommandContext.h"
 #include "Game.h"
 #include "Game.Object.h"
+#include "MaterialLibrary.h"
 #include "Render.Editor.h"
 #include "Render.h"
 #include "Resources.h"
@@ -12,6 +13,10 @@ namespace Inferno::Render {
 
     constexpr float LEVEL_AMBIENT_MULT = 0.15f;
     constexpr Color MIN_POWERUP_AMBIENT = Color(0.1, 0.1, 0.1);
+
+    constexpr float GetTimeOffset(const Object& obj) {
+        return (float)obj.Signature * 0.762f; // randomize time across objects
+    }
 
     // When up is provided, it constrains the sprite to that axis
     void DrawSprite(GraphicsContext& ctx,
@@ -82,9 +87,16 @@ namespace Inferno::Render {
             transparentOverride = Resources::GetTextureInfo(texOverride).Transparent;
 
         ObjectDepthShader::Constants constants = {};
+        constants.TimeOffset = GetTimeOffset(object);
         auto transform = Matrix::CreateScale(object.Scale) * Matrix::Lerp(object.GetPrevTransform(), object.GetTransform(), Game::LerpAmount);
 
         auto& shader = Shaders->DepthObject;
+
+        if (object.DissolveTime > 0) {
+            shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+            shader.SetSampler(cmdList, GetWrappedTextureSampler());
+            constants.DissolveAmount = object.DissolveTime / object.TotalDissolveTime;
+        }
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             constants.World = GetSubmodelTransform(object, model, submodel) * transform;
@@ -289,7 +301,7 @@ namespace Inferno::Render {
         auto& meshHandle = GetMeshHandle(modelId);
         Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
         ObjectDistortionShader::Constants constants{};
-        constants.TimeOffset = (float)object.Signature * 0.762f; // randomize time across objects
+        constants.TimeOffset = GetTimeOffset(object);
         constexpr float flickerSpeed = 3.75f;
         auto noise = OpenSimplex2::Noise2((int)object.Signature, Render::ElapsedTime * flickerSpeed, 0);
         constants.Noise = (1 + noise) * 0.5f; // Map to 0-1
@@ -345,6 +357,14 @@ namespace Inferno::Render {
         effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
         ObjectShader::Constants constants = {};
+        if (object.DissolveTime > 0) {
+            effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+            constants.DissolveAmount = object.DissolveTime / object.TotalDissolveTime;
+            constants.DissolveColor = Color(8, 0, 8);
+        }
+        //constants.DissolveColor = Color(8, 0, 8);
+        //constants.DissolveAmount = 0.5f;
+        //effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
 
         if (object.Render.Emissive != Color(0, 0, 0)) {
             // Change the ambient color to white if object has any emissivity
@@ -360,7 +380,7 @@ namespace Inferno::Render {
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
-        constants.TimeOffset = (float)object.Signature * 0.762f; // randomize vclips across objects
+        constants.TimeOffset = GetTimeOffset(object);
 
         Matrix transform = Matrix::CreateScale(object.Scale) * object.GetTransform(Game::LerpAmount);
         bool transparentOverride = false;

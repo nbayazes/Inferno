@@ -21,4 +21,9 @@ namespace Inferno {
         std::uniform_int_distribution range(0, maximum);
         return range(gen);
     }
+
+    int RandomInt(int minimum, int maximum) {
+        std::uniform_int_distribution range(minimum, maximum);
+        return range(gen);
+    }
 }

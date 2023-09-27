@@ -645,6 +645,31 @@ Effects:
       RandomObjStart: 1
       StrikeTime: 0.5
 
+    - Name: matcen # lightning between the segment sides of matcens
+      Width:  [ 0.8, .9 ]
+      Color: 1, 0, 1, 15
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: 1
+      FadeEnd: 1
+      FadeStart: 1
+      # RandomEnd: 1
+      StrikeTime: .5
+      FadeInOutTime: 0.4
+
+    - Name: matcen arcs # robot matcen arcs
+      Radius: [ 15, 20 ]
+      Width:  [ .35, .45 ]
+      Color: 1, .2, 1, 13
+      Texture: Lightning3
+      Frequency: 0.0333 # 1/30
+      Amplitude: .4
+      FadeEnd: 1
+      FadeStart: 1
+      RandomEnd: 1
+      StrikeTime: .2
+      FadeInOutTime: 0.3
+
     - Name: damaged_object_arcs
       Width: [ 0.05, 0.065 ]
       Color: .1, .1, 1, 75

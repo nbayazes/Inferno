@@ -373,6 +373,8 @@ namespace Inferno {
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0; // Model / sprite scale
+        float TotalDissolveTime = 0; // When > 0 dissolving in is enabled
+        float DissolveTime = 0; // How far into the dissolve
 
         Matrix GetTransform() const {
             Matrix m(Rotation);

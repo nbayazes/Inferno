@@ -250,6 +250,7 @@ namespace Inferno {
         return exit;
     }
 
+    // Visual effects when creating a new robot
     void CreateMatcenEffect(const Level& level, SegID segId) {
         if (auto seg = level.TryGetSegment(segId)) {
             auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
@@ -263,6 +264,7 @@ namespace Inferno {
             up.Normalize(p.Up);
             p.Duration = vclip.PlayTime;
             p.RandomRotation = false;
+            p.Color = Color(.2, 1, .2, 5);
             Render::AddParticle(p, segId, seg->Center);
 
             Render::DynamicLight light;
@@ -273,7 +275,31 @@ namespace Inferno {
             light.FadeTime = vclip.PlayTime;
             light.Segment = segId;
             Render::AddDynamicLight(light);
+
+            if (auto beam = Render::EffectLibrary.GetBeamInfo("matcen")) {
+                for (int i = 0; i < 4; i++) {
+                    //beam->StartDelay = i * 0.4f + Random() * 0.125f;
+                    Render::AddBeam(*beam, vclip.PlayTime, top, bottom);
+                }
+            }
+
+            if (auto beam = Render::EffectLibrary.GetBeamInfo("matcen arcs")) {
+                for (int i = 0; i < 8; i++) {
+                    //beam->StartDelay = i * 0.4f + Random() * 0.125f;
+                    Render::AddBeam(*beam, vclip.PlayTime, seg->Center, {});
+                }
+            }
         }
+    }
+
+    int GetLiveRobots(const Level& level, MatcenID matcen) {
+        int liveRobots = 0;
+        for (auto& obj : level.Objects) {
+            if (obj.IsAlive() && obj.SourceMatcen == matcen)
+                liveRobots++;
+        }
+
+        return liveRobots;
     }
 
     void UpdateMatcen(Level& level, Matcen& matcen, float dt) {
@@ -283,11 +309,18 @@ namespace Inferno {
         auto matcenId = MatcenID(&matcen - &level.Matcens[0]);
 
         if (matcen.RobotCount <= 0) {
+            // No more robots to spawn
             matcen.Active = false;
 
             for (auto& obj : level.Objects) {
                 if (obj.SourceMatcen == matcenId && obj.Type == ObjectType::Light)
                     obj.Lifespan = 1; // Expire the light object
+            }
+
+            if (matcen.Energy <= 0) {
+                // Remove the ambient light if out of energy
+                if (auto effect = Render::GetEffect(matcen.Light))
+                    effect->Duration = 0;
             }
             return;
         }
@@ -311,16 +344,13 @@ namespace Inferno {
             if (matcen.Timer < matcen.Delay) return; // Not ready!
 
             // limit live created robots
-            int liveRobots = 0;
-            for (auto& obj : level.Objects) {
-                if (obj.SourceMatcen == matcenId)
-                    liveRobots++;
-            }
-
-            if (liveRobots > Game::Difficulty + 3) {
-                SPDLOG_INFO("Matcen {} already has too many active robots", (int)matcenId);
+            auto robots = GetLiveRobots(level, matcenId);
+            if (robots >= Game::Difficulty + 3) {
+                SPDLOG_INFO("Matcen {} already has {} active robots", (int)matcenId, robots);
                 matcen.Timer /= 2;
             }
+
+            bool wasBlocked = false;
 
             for (auto& objid : seg->Objects) {
                 if (auto obj = level.TryGetObject(objid)) {
@@ -328,18 +358,23 @@ namespace Inferno {
 
                     if (obj->IsRobot()) {
                         auto dir = GetExitVector(level, *seg, matcen);
-                        obj->Physics.Thrust += dir * 20;
-                        return; // Don't spawn robot
+                        obj->Physics.Velocity += dir * 50;
+                        wasBlocked = true;
                     }
                     else if (obj->IsPlayer()) {
                         Game::Player.ApplyDamage(4, true);
                         auto dir = GetExitVector(level, *seg, matcen);
                         dir += RandomVector(0.25f);
                         dir.Normalize();
-                        obj->Physics.Thrust += dir * 20;
-                        return; // Don't spawn robot
+                        obj->Physics.Velocity += dir * 50;
+                        wasBlocked = true;
                     }
                 }
+            }
+
+            if (wasBlocked) {
+                matcen.Timer = matcen.Delay - 1.5f;
+                return; // Don't spawn robot when matcen is blocked by another object
             }
 
             auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
@@ -380,13 +415,15 @@ namespace Inferno {
 
             ASSERT(numTypes != 0);
             auto type = numTypes == 1 ? legalTypes[0] : legalTypes[RandomInt(numTypes - 1)];
-            //CreateRobot(matcen.Segment, seg->Center, type, matcenId);
 
+            // Create a new robot
             Object obj{};
             Editor::InitObject(Game::Level, obj, ObjectType::Robot, type);
             obj.Position = seg->Center;
             obj.Segment = matcen.Segment;
             obj.SourceMatcen = matcenId;
+            obj.TotalDissolveTime = 2;
+            obj.DissolveTime = 0;
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
             obj.Rotation = VectorToRotation(-facing);
@@ -416,23 +453,27 @@ namespace Inferno {
             return;
         }
 
-        if (matcen->Lives <= 0 || matcen->Active)
+        if (matcen->Energy <= 0 || matcen->Active)
             return; // Already active or out of lives
 
+        auto matcenId = MatcenID(matcen - &level.Matcens[0]);
+        auto robots = GetLiveRobots(level, matcenId);
+        if (GetLiveRobots(level, matcenId) >= Game::Difficulty + 3)
+            return; // Maximum robots already alive
+
+        SPDLOG_INFO("Triggering matcen {} Live robots {}", (int)matcenId, robots);
         matcen->Active = true;
-        //matcen->ActiveTime = 30 - 2 * (float)Game::Difficulty;
         matcen->Timer = 0;
         matcen->Delay = 0;
         matcen->RobotCount = (int8)Game::Difficulty + 3; // 3 to 7
         matcen->TriggerPath = Game::Navigation.NavigateTo(segId, triggerSeg, false, level);
-        // Matcens work forever on insane (D2 only)
-        //if (Game::Difficulty < 4)
-        matcen->Lives--;
+        matcen->Energy--;
 
+        // Light for when matcen is active
         Object light{};
         light.Type = ObjectType::Light;
         light.Light.Radius = seg->GetLongestEdge() * 2;
-        light.Light.Color = Color(1, 0, 0.8f, 1.0f);
+        light.Light.Color = Color(1, 0, 0.8f, 0.5f);
         light.Position = seg->Center;
         light.Segment = matcen->Segment;
         light.SourceMatcen = MatcenID(matcen - &level.Matcens[0]);
@@ -442,15 +483,28 @@ namespace Inferno {
     }
 
     void InitializeMatcens(Level& level) {
-        // Increase number of lives on ace and insane.
-        // Replaces the infinite lives on insane that D2 added.
-        int8 lives = 3;
-        if (Game::Difficulty == 3) lives = 4; // Ace
-        if (Game::Difficulty >= 4) lives = 5; // Insane or above
+        // Increase amount of energy on ace and insane.
+        // Replaces the infinite spawns on insane that D2 added.
+        int8 energy = 3;
+        if (Game::Difficulty == 3) energy = 4; // Ace
+        if (Game::Difficulty >= 4) energy = 5; // Insane or above
 
         for (auto& matcen : level.Matcens) {
-            matcen.Lives = lives;
+            matcen.Energy = energy;
             matcen.CreateRobotState = false;
+            if (matcen.Light == EffectID::None) {
+                if (auto seg = level.TryGetSegment(matcen.Segment)) {
+                    // Ambient light while matcen has energy remaining
+                    Render::DynamicLight light;
+                    light.Radius = seg->GetLongestEdge() * 1.5f;
+                    light.LightColor = Color(1, 0, 0.8f, 0.05f);
+                    light.Position = seg->Center;
+                    light.Segment = matcen.Segment;
+                    light.Mode = DynamicLightMode::BigPulse;
+                    light.Duration = MAX_OBJECT_LIFE;
+                    matcen.Light = Render::AddDynamicLight(light);
+                }
+            }
         }
     }
 }

@@ -630,33 +630,38 @@ namespace Inferno {
         }
     }
 
-    void DeviceResources::PrintMemoryUsage() const {
-        ComPtr<IDXGIFactory4> dxgiFactory;
-        CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory));
+    void DeviceResources::PrintMemoryUsage() {
+        try {
+            ComPtr<IDXGIFactory4> dxgiFactory;
+            ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&dxgiFactory)));
 
-        ComPtr<IDXGIAdapter3> dxgiAdapter;
-        ComPtr<IDXGIAdapter1> tmpDxgiAdapter;
-        UINT adapterIndex = 0;
-        while (dxgiFactory->EnumAdapters1(adapterIndex, &tmpDxgiAdapter) != DXGI_ERROR_NOT_FOUND) {
-            DXGI_ADAPTER_DESC1 desc;
-            tmpDxgiAdapter->GetDesc1(&desc);
-            if (!dxgiAdapter && desc.Flags == 0) // Flags == 0 filters to hardware GPUs (not software or remote)
-                tmpDxgiAdapter->QueryInterface(IID_PPV_ARGS(&dxgiAdapter));
-            ++adapterIndex;
+            ComPtr<IDXGIAdapter3> dxgiAdapter;
+            ComPtr<IDXGIAdapter1> tmpDxgiAdapter;
+            UINT adapterIndex = 0;
+            while (dxgiFactory->EnumAdapters1(adapterIndex, &tmpDxgiAdapter) != DXGI_ERROR_NOT_FOUND) {
+                DXGI_ADAPTER_DESC1 desc;
+                ThrowIfFailed(tmpDxgiAdapter->GetDesc1(&desc));
+                if (!dxgiAdapter && desc.Flags == 0) // Flags == 0 filters to hardware GPUs (not software or remote)
+                    ThrowIfFailed(tmpDxgiAdapter->QueryInterface(IID_PPV_ARGS(&dxgiAdapter)));
+                ++adapterIndex;
+            }
+
+            DXGI_QUERY_VIDEO_MEMORY_INFO info = {};
+            ThrowIfFailed(dxgiAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info));
+
+            //SPDLOG_INFO("Graphics memory:\r\nAvailable: {} MB\r\nBudget: {} MB\r\nCurrent Reservation: {} MB\r\nCurrent Usage: {} MB",
+            //            info.AvailableForReservation / 1024 / 1024, // Reservation hints OS at the minimum memory required for the app to run
+            //            info.Budget / 1024 / 1024, // The available memory for usage
+            //            info.CurrentReservation / 1024 / 1024,
+            //            info.CurrentUsage / 1024 / 1024);
+
+            SPDLOG_INFO("Graphics memory usage: {} / {} MB",
+                        info.CurrentUsage / 1024 / 1024,
+                        info.Budget / 1024 / 1024);
         }
-
-        DXGI_QUERY_VIDEO_MEMORY_INFO info = {};
-        dxgiAdapter->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info);
-
-        //SPDLOG_INFO("Graphics memory:\r\nAvailable: {} MB\r\nBudget: {} MB\r\nCurrent Reservation: {} MB\r\nCurrent Usage: {} MB",
-        //            info.AvailableForReservation / 1024 / 1024, // Reservation hints OS at the minimum memory required for the app to run
-        //            info.Budget / 1024 / 1024, // The available memory for usage
-        //            info.CurrentReservation / 1024 / 1024,
-        //            info.CurrentUsage / 1024 / 1024);
-
-        SPDLOG_INFO("Graphics memory usage: {} / {} MB",
-                    info.CurrentUsage / 1024 / 1024,
-                    info.Budget / 1024 / 1024);
+        catch (...) {
+            SPDLOG_ERROR("Error querying GPU memory usage");
+        }
     }
 
     // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better

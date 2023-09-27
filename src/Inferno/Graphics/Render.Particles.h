@@ -324,7 +324,7 @@ namespace Inferno::Render {
 
     //void AddSparkEmitter(SparkEmitter&);
     void AddSparkEmitter(SparkEmitter, SegID, const Vector3& worldPos = Vector3::Zero);
-    void AddDynamicLight(DynamicLight&);
+    EffectID AddDynamicLight(DynamicLight&);
 
     // Gets a visual effect
     EffectBase* GetEffect(EffectID effect);

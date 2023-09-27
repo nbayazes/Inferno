@@ -62,7 +62,7 @@ namespace Inferno::Game {
     }
 
     // Attaches a light to an object based on its settings
-    void AttachLight(Object& obj, ObjRef ref) {
+    void AttachLight(const Object& obj, ObjRef ref) {
         Render::DynamicLight light;
 
         switch (obj.Type) {
@@ -213,6 +213,9 @@ namespace Inferno::Game {
                 Render::Materials->Unload();
 
             Render::Materials->LoadLevelTextures(Level, forceReload);
+            string extraTextures[] = { "noise" };
+            Render::Materials->LoadTextures(extraTextures);
+
             Render::LoadLevel(Level);
             Render::ResetEffects();
             InitObjects();
@@ -362,6 +365,15 @@ namespace Inferno::Game {
                 if ((pid == PowerupID::Vulcan && Game::Player.HasWeapon(PrimaryWeaponIndex::Vulcan)) ||
                     (pid == PowerupID::Gauss && Game::Player.HasWeapon(PrimaryWeaponIndex::Gauss)))
                     pid = PowerupID::VulcanAmmo;
+                else if (
+                    (pid == PowerupID::Laser && Game::Player.HasWeapon(PrimaryWeaponIndex::Laser)) ||
+                    (pid == PowerupID::Spreadfire && Game::Player.HasWeapon(PrimaryWeaponIndex::Spreadfire)) ||
+                    (pid == PowerupID::Helix && Game::Player.HasWeapon(PrimaryWeaponIndex::Helix)) ||
+                    (pid == PowerupID::Plasma && Game::Player.HasWeapon(PrimaryWeaponIndex::Plasma)) ||
+                    (pid == PowerupID::Phoenix && Game::Player.HasWeapon(PrimaryWeaponIndex::Phoenix)) ||
+                    (pid == PowerupID::Fusion && Game::Player.HasWeapon(PrimaryWeaponIndex::Fusion)) ||
+                    (pid == PowerupID::Omega && Game::Player.HasWeapon(PrimaryWeaponIndex::Omega)))
+                    pid = PowerupID::Energy;
 
                 auto& pinfo = Resources::GetPowerup(pid);
                 if (pinfo.VClip == VClipID::None) {
@@ -404,9 +416,8 @@ namespace Inferno::Game {
             auto& ri = Resources::GetRobotInfo(obj.ID);
             if (ri.Contains.Count > 0) {
                 if (Random() < (float)ri.ContainsChance / 16.0f) {
-                    auto div = (float)ri.Contains.Count / 1.001f; // 1.001f so never exactly equals count
                     auto contains = ri.Contains;
-                    contains.Count = (int8)std::floor(Random() * div) + (int8)1;
+                    contains.Count = ri.Contains.Count == 1 ? 1 : RandomInt(1, ri.Contains.Count);
                     SpawnContained(contains, obj.Position, obj.Segment, obj.LastHitForce);
                 }
             }
@@ -730,6 +741,11 @@ namespace Inferno::Game {
                 for (int i = 0; i < Level.Objects.size(); i++) {
                     auto& o = Level.Objects[i];
                     if (!o.IsAlive()) {
+                        if (auto seg = Level.TryGetSegment(o.Segment)) {
+                            Seq::remove(seg->Objects, (ObjID)i); // ensure dead object is removed from segment
+                            //ASSERT(!Seq::contains(seg->Objects, (ObjID)i));
+                        }
+
                         o = pending;
                         foundExisting = true;
                         id = ObjID(i);
@@ -751,8 +767,6 @@ namespace Inferno::Game {
 
             Level.GetSegment(pending.Segment).AddObject(id);
             ObjRef objRef = { id, pending.Signature };
-
-            Render::DynamicLight light;
 
             // Hack to attach tracers due to not having the object ID in firing code
             if (obj.IsWeapon()) {
@@ -1202,7 +1216,9 @@ namespace Inferno::Game {
             "Hilite",
             "SmHilite",
             "tracer",
-            "Lightning3"
+            "Lightning",
+            "Lightning3",
+            "noise"
         };
 
         Render::Materials->LoadTextures(customHudTextures);

@@ -97,7 +97,7 @@ namespace Inferno::Render {
             _transparentQueue.push_back({ &obj, depth });
         }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
-            if(obj.Cloaked) {
+            if (obj.Cloaked) {
                 _distortionQueue.push_back({ &obj, depth });
             }
             else {
@@ -431,6 +431,17 @@ namespace Inferno::Render {
                     if (auto seg = level.TryGetSegment(sid)) {
                         for (int i = 0; i < seg->Effects.size(); i++) {
                             UpdateEffect(FrameTime, seg->Effects[i]);
+                        }
+
+                        // Update dissolve effect
+                        for (auto& objId : seg->Objects) {
+                            if (auto obj = level.TryGetObject(objId)) {
+                                if (obj->TotalDissolveTime > 0) {
+                                    obj->DissolveTime += FrameTime;
+                                    if (obj->DissolveTime > obj->TotalDissolveTime)
+                                        obj->TotalDissolveTime = 0;
+                                }
+                            }
                         }
                     }
                 }
