@@ -266,4 +266,38 @@ namespace Inferno::Game {
             Reactor.FireDelay = ((int)DifficultyLevel::Count - Game::Difficulty) / 4.0f;
         }
     }
+
+    void InitReactor(const Inferno::Level& level, Object& reactor) {
+        if (level.ReactorStrength > 0) {
+            reactor.HitPoints = (float)level.ReactorStrength;
+        }
+        else {
+            // Scale reactor health scales with number
+            if (Game::LevelNumber >= 0) {
+                reactor.HitPoints = 200.0f + 200.0f / 4 * Game::LevelNumber;
+            }
+            else {
+                // Secret levels
+                reactor.HitPoints = 200.0f - Game::LevelNumber * 100.0f;
+            }
+        }
+
+        // M is very bass heavy "AmbDroneReactor"
+        Sound3D reactorHum({ "AmbDroneM" }, Game::GetObjectRef(reactor));
+        reactorHum.Radius = 300;
+        reactorHum.Looped = true;
+        reactorHum.Volume = 0.3f;
+        reactorHum.Occlusion = false;
+        reactorHum.Position = reactor.Position;
+        reactorHum.Segment = reactor.Segment;
+        Sound::Play(reactorHum);
+
+        reactorHum.Resource = { "Indoor Ambient 5" };
+        reactorHum.Radius = 160;
+        reactorHum.Looped = true;
+        reactorHum.Occlusion = true;
+        reactorHum.Volume = 1.1f;
+        reactorHum.Position = reactor.Position;
+        Sound::Play(reactorHum);
+    }
 }

@@ -1183,13 +1183,11 @@ namespace Inferno::Game {
                 //obj.Physics.WiggleRate = 0.33f;
             }
 
-            if (obj.IsPowerup(PowerupID::Gauss) || obj.IsPowerup(PowerupID::Vulcan)) {
+            if (obj.IsPowerup(PowerupID::Gauss) || obj.IsPowerup(PowerupID::Vulcan))
                 obj.Control.Powerup.Count = 2500;
-            }
 
-            if (obj.IsPowerup(PowerupID::FlagBlue) || obj.IsPowerup(PowerupID::FlagRed)) {
+            if (obj.IsPowerup(PowerupID::FlagBlue) || obj.IsPowerup(PowerupID::FlagRed))
                 obj.Lifespan = -1; // Remove CTF flags (no multiplayer)
-            }
 
             UpdateObjectSegment(Level, obj);
 
@@ -1198,25 +1196,8 @@ namespace Inferno::Game {
             //    obj.Ambient.SetTarget(seg->VolumeLight, 0);
             //}
 
-            if (obj.Type == ObjectType::Reactor) {
-                // M is very bass heavy "AmbDroneReactor"
-                Sound3D reactorHum({ "AmbDroneM" }, { (ObjID)id, obj.Signature });
-                reactorHum.Radius = 300;
-                reactorHum.Looped = true;
-                reactorHum.Volume = 0.3f;
-                reactorHum.Occlusion = false;
-                reactorHum.Position = obj.Position;
-                reactorHum.Segment = obj.Segment;
-                Sound::Play(reactorHum);
-
-                reactorHum.Resource = { "Indoor Ambient 5" };
-                reactorHum.Radius = 160;
-                reactorHum.Looped = true;
-                reactorHum.Occlusion = true;
-                reactorHum.Volume = 1.1f;
-                reactorHum.Position = obj.Position;
-                Sound::Play(reactorHum);
-            }
+            if (obj.Type == ObjectType::Reactor)
+                InitReactor(Level, obj);
 
             if (obj.Type == ObjectType::Robot) {
                 obj.NextThinkTime = Time + 0.5f;
