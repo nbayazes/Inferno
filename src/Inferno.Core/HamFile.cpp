@@ -134,10 +134,10 @@ namespace Inferno {
         ri.AttackSound = (SoundID)r.ReadByte();
         ri.ClawSound = (SoundID)r.ReadByte();
 
-        for (auto j = 0; j < MAX_GUNS + 1; j++) {
+        for (auto& joint : ri.Joints) {
             for (auto k = 0; k < N_ANIM_STATES; k++) {
-                ri.Joints[j][k].Count = r.ReadInt16();
-                ri.Joints[j][k].Offset = r.ReadInt16();
+                joint[k].Count = r.ReadInt16();
+                joint[k].Offset = r.ReadInt16();
             }
         }
 
@@ -341,7 +341,7 @@ namespace Inferno {
         return model;
     }
 
-    void ReadModelData(StreamReader& r, Model& m, const Palette* palette = nullptr) {
+    void ReadModelData(const StreamReader& r, Model& m, const Palette* palette = nullptr) {
         List<ubyte> data;
         data.resize(m.DataSize);
         r.ReadBytes(data.data(), data.size());
@@ -370,8 +370,14 @@ namespace Inferno {
         Reactor reactor{};
         reactor.Model = (ModelID)r.ReadInt32();
         reactor.Guns = r.ReadInt32();
-        for (auto& g : reactor.GunPoints) g = r.ReadVector();
-        for (auto& g : reactor.GunDirs) g = r.ReadVector();
+        for (auto& g : reactor.GunPoints) {
+            g = r.ReadVector();
+            g.z *= -1; // flip lh/rh
+        }
+        for (auto& g : reactor.GunDirs) {
+            g = r.ReadVector();
+            g.z *= -1; // flip lh/rh
+        }
         return reactor;
     }
 

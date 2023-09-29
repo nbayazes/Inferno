@@ -169,57 +169,33 @@ namespace Inferno::Game {
         }
     }
 
-    int GetBestGun(const Object& reactor, const Vector3& target) {
+    Tuple<int, Vector3> GetBestGun(const Object& reactor, const Vector3& target) {
         if (reactor.Type != ObjectType::Reactor)
-            return -1;
+            return { -1, {} };
 
         auto& info = Resources::GameData.Reactors[reactor.ID];
         float bestDot = -2;
         int bestGun = -1;
+        Vector3 gunPoint;
 
-        for (int i = 0; i < info.Guns; i++) {
-            auto gunPoint = Vector3::Transform(info.GunPoints[i], reactor.Rotation) + reactor.Position;
+        for (int gun = 0; gun < info.Guns; gun++) {
+            gunPoint = Vector3::Transform(info.GunPoints[gun], reactor.GetTransform());
             auto targetDir = target - gunPoint;
             targetDir.Normalize();
 
-            auto gunDir = Vector3::Transform(info.GunDirs[i], reactor.Rotation);
+            auto& dir = info.GunDirs[gun];
+            auto gunDir = Vector3::Transform(dir, reactor.Rotation);
             auto dot = targetDir.Dot(gunDir);
 
             if (dot > bestDot) {
                 bestDot = dot;
-                bestGun = i;
+                bestGun = gun;
             }
         }
 
         ASSERT(bestGun != -1);
-
-        return bestDot < 0 ? -1 : bestGun;
-
-        //fix best_dot = -F1_0 * 2;
-        //int best_gun = -1;
-
-        //for (int i = 0; i < num_guns; i++) {
-        //	fix			dot;
-        //	vms_vector	gun_vec;
-
-        //	vm_vec_sub(&gun_vec, objpos, &gun_pos[i]);
-        //	vm_vec_normalize_quick(&gun_vec);
-        //	dot = vm_vec_dot(&gun_dir[i], &gun_vec);
-
-        //	if (dot > best_dot) {
-        //		best_dot = dot;
-        //		best_gun = i;
-        //	}
-        //}
-
-        //Assert(best_gun != -1);		// Contact Mike.  This is impossible.  Or maybe you're getting an unnormalized vector somewhere.
-
-        //if (best_dot < 0)
-        //	return -1;
-        //else
-        //	return best_gun;
+        return bestDot < 0 ? Tuple<int, Vector3>{ -1, {} } : Tuple{ bestGun, gunPoint };
     }
-
 
     constexpr float REACTOR_SIGHT_DISTANCE = 200;
     constexpr float REACTOR_FORGET_TIME = 5; // How long to keep firing after last seeing the player
@@ -270,10 +246,8 @@ namespace Inferno::Game {
             return;
 
         if (Reactor.FireDelay < 0) {
-            auto gun = GetBestGun(reactor, Reactor.KnownPlayerPosition);
+            auto [gun, gunPoint] = GetBestGun(reactor, Reactor.KnownPlayerPosition);
             if (gun >= 0) {
-                auto& info = Resources::GameData.Reactors[reactor.ID];
-                auto gunPoint = Vector3::Transform(info.GunPoints[gun], reactor.Rotation) + reactor.Position;
                 auto dir = Reactor.KnownPlayerPosition - gunPoint;
                 dir.Normalize();
 

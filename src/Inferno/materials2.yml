@@ -303,8 +303,8 @@ Materials:
     Roughness: 0.6
   - TexID: 77
     NormalStrength: 0.259
-    Metalness: 0.954
-    Roughness: 0.6
+    Metalness: 1
+    Roughness: 0.5
   - TexID: 78
     NormalStrength: 0.259
     Metalness: 0.954
@@ -2089,6 +2089,7 @@ Materials:
     NormalStrength: 0.245
     Metalness: 1
     Roughness: 0.608
+    EmissiveStrength: 0.5
   - TexID: 1620
     NormalStrength: 0.232
     Metalness: 1
@@ -2135,6 +2136,17 @@ Materials:
     Metalness: 0.94
     Roughness: 0.609
     EmissiveStrength: 40
+  - TexID: 1853
+    Roughness: 0.6
+    EmissiveStrength: 12
+  - TexID: 1861
+    Metalness: 1
+    Roughness: 0.5
+    EmissiveStrength: 15
+  - TexID: 1864
+    Metalness: 1
+    Roughness: 0.5
+    EmissiveStrength: 2.5
   - TexID: 1884
     Roughness: 0.6
     EmissiveStrength: 40
@@ -2142,8 +2154,8 @@ Materials:
     NormalStrength: 0.086
     Roughness: 0.323
     Procedural:
-      IsWater: 1
       EvalTime: 0.025
+      IsWater: 1
       Thickness: 8
       Light: 6
       OscillateTime: 1
@@ -2169,8 +2181,8 @@ Materials:
     EmissiveStrength: 0.25
     LightReceived: 0
     Procedural:
-      IsWater: 1
       EvalTime: 0.0625
+      IsWater: 1
       Thickness: 7
       Light: 20
       OscillateTime: 0
@@ -2194,8 +2206,8 @@ Materials:
     EmissiveStrength: 0.25
     LightReceived: 0
     Procedural:
-      IsWater: 1
       EvalTime: 0.05
+      IsWater: 1
       Thickness: 8
       Light: 10
       OscillateTime: 0
@@ -2214,8 +2226,8 @@ Materials:
     EmissiveStrength: 0.25
     LightReceived: 0
     Procedural:
-      IsWater: 1
       EvalTime: 0.05
+      IsWater: 1
       Thickness: 8
       Light: 10
       OscillateTime: 0
@@ -2234,8 +2246,8 @@ Materials:
     EmissiveStrength: 0.25
     LightReceived: 0
     Procedural:
-      IsWater: 1
       EvalTime: 0.0625
+      IsWater: 1
       Thickness: 7
       Light: 10
       OscillateTime: 0
@@ -2291,8 +2303,8 @@ Materials:
     LightReceived: 0
     Additive: 1
     Procedural:
-      IsWater: 1
       EvalTime: 0.027027028
+      IsWater: 1
       Thickness: 5
       Light: 6
       OscillateTime: 0
@@ -2305,6 +2317,10 @@ Materials:
   - TexID: 2006
     NormalStrength: 0.086
     Roughness: 0.323
+  - TexID: 2019
+    Metalness: 1
+    Roughness: 0.798
+    EmissiveStrength: 2
   - TexID: 2028
     Roughness: 0.6
     EmissiveStrength: 4
@@ -2322,8 +2338,8 @@ Materials:
     LightReceived: 0
     Additive: 1
     Procedural:
-      IsWater: 1
       EvalTime: 0.027027028
+      IsWater: 1
       Thickness: 5
       Light: 6
       OscillateTime: 0

@@ -45,7 +45,7 @@ namespace Inferno {
         List<ubyte> _data;
 
         template<class T>
-        T Read() {
+        T Read() const {
             T b{};
             _stream->read((char*)&b, sizeof(T));
             return b;
@@ -129,7 +129,7 @@ namespace Inferno {
         }
 
         // Reads a newline terminated string up to the max length
-        string ReadStringToNewline(size_t maxLen) {
+        string ReadStringToNewline(size_t maxLen) const {
             std::vector<char> chars;
             for (int i = 0; i < maxLen; i++) {
                 char c = (char)ReadByte();
@@ -143,7 +143,7 @@ namespace Inferno {
             return { chars.data() };
         }
 
-        ubyte ReadByte() { return Read<ubyte>(); }
+        ubyte ReadByte() const { return Read<ubyte>(); }
         int16 ReadInt16() { return Read<int16>(); }
         uint16 ReadUInt16() { return Read<uint16>(); }
         uint32 ReadUInt32() { return Read<uint32>(); }
@@ -235,14 +235,14 @@ namespace Inferno {
 
     // Specialized stream writer for Descent binary files
     class StreamWriter {
-        std::ostream& _stream;
+        std::ostream* _stream;
         std::streampos _start;
 
     public:
         // Creates a stream writer over an output stream.
         // If relative is true, positions and seeking will be relative to when the writer
         // is created, and not the absolute beginning.
-        StreamWriter(std::ostream& stream, bool relative = false) : _stream(stream) {
+        StreamWriter(std::ostream& stream, bool relative = false) : _stream(&stream) {
             _start = relative ? stream.tellp() : std::streampos(0);
         }
 
@@ -250,7 +250,7 @@ namespace Inferno {
         void Write(const T value) {
             static_assert(!std::is_floating_point<T>()); // serializing a float is always wrong for Descent files
             static_assert(!std::is_same_v<T, Vector3>); // ambiguous
-            _stream.write((char*)&value, sizeof(T));
+            _stream->write((char*)&value, sizeof(T));
         }
 
         void WriteFix(float f) {
@@ -282,7 +282,7 @@ namespace Inferno {
         }
 
         void WriteBytes(span<const ubyte> data) const {
-            _stream.write((char*)data.data(), data.size());
+            _stream->write((char*)data.data(), data.size());
         }
 
         void WriteNewlineTerminatedString(string s, size_t maxLen) const {
@@ -292,7 +292,7 @@ namespace Inferno {
 
             s += '\n';
 
-            _stream.write(s.data(), s.size());
+            _stream->write(s.data(), s.size());
         }
 
         // Writes a null terminated string
@@ -302,7 +302,7 @@ namespace Inferno {
                 s = s.substr(0, maxLen - 1);
 
             s += '\0';
-            _stream.write(s.data(), s.size());
+            _stream->write(s.data(), s.size());
         }
 
         // Writes a fixed length string
@@ -311,23 +311,23 @@ namespace Inferno {
 
             for (size_t i = 0; i < length; i++) {
                 if (i < s.length())
-                    _stream.put(s[i]);
+                    _stream->put(s[i]);
                 else
-                    _stream.put('\0');
+                    _stream->put('\0');
             }
         }
 
         // Current stream position
-        size_t Position() const { return _stream.tellp() - _start; }
+        size_t Position() const { return _stream->tellp() - _start; }
 
         // Seek from the beginning
         void Seek(const std::streampos& offset) const {
-            _stream.seekp(_start + offset, std::ios_base::beg);
+            _stream->seekp(_start + offset, std::ios_base::beg);
         }
 
         // Seek forward from the current position
         void SeekForward(size_t offset) const {
-            _stream.seekp(offset, std::ios_base::cur);
+            _stream->seekp(offset, std::ios_base::cur);
         }
     };
 }

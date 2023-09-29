@@ -1525,10 +1525,10 @@ Materials:
     Roughness: 0.578
     EmissiveStrength: 25
   - TexID: 1313
-    NormalStrength: 0.422
+    NormalStrength: 0.4
     Metalness: 1
-    Roughness: 0.578
-    EmissiveStrength: 3.985
+    Roughness: 0.55
+    EmissiveStrength: 4
   - TexID: 1333
     NormalStrength: 0.25
     Metalness: 0.96
