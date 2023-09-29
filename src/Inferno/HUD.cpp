@@ -240,7 +240,7 @@ namespace Inferno {
 
         auto halign = flipX ? AlignH::CenterRight : AlignH::CenterLeft;
         auto alignment = Render::GetAlignment(size, halign, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
-        auto hex = Color(1 * MONITOR_BRIGHTNESS, 1 * MONITOR_BRIGHTNESS, 1 * MONITOR_BRIGHTNESS).RGBA().v;
+        auto color = Color(1 * MONITOR_BRIGHTNESS, 1 * MONITOR_BRIGHTNESS, 1 * MONITOR_BRIGHTNESS);
 
         // Adjust for percentage
         auto offset = size.x * (1 - percent);
@@ -264,11 +264,11 @@ namespace Inferno {
             flip(v3.x);
         }
 
-        Render::CanvasPayload payload{};
-        payload.V0 = { v0, uv0, hex }; // bottom left
-        payload.V1 = { v1, uv1, hex }; // bottom right
-        payload.V2 = { v2, uv2, hex }; // top right
-        payload.V3 = { v3, uv3, hex }; // top left
+        Render::HudCanvasPayload payload{};
+        payload.V0 = { v0, uv0, color }; // bottom left
+        payload.V1 = { v1, uv1, color }; // bottom right
+        payload.V2 = { v2, uv2, color }; // top right
+        payload.V3 = { v3, uv3, color }; // top left
         payload.Texture = material.Handle();
         payload.Scanline = 1.0f;
 
@@ -284,7 +284,6 @@ namespace Inferno {
 
         float percent = player.AfterburnerCharge;
         auto scale = Render::HudCanvas->GetScale();
-        auto hex = Color(1, 1, 1).RGBA().v;
         auto pos = Vector2{ x - 151, -37 } * scale;
         auto& material = Render::Materials->Get("gauge02b");
         Vector2 size = {
@@ -295,11 +294,11 @@ namespace Inferno {
         auto alignment = Render::GetAlignment(size, AlignH::CenterLeft, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
         float uvTop = 1 - percent;
 
-        Render::CanvasPayload info{};
-        info.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { 0, 1 }, hex }; // bottom left
-        info.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, { 1, 1 }, hex }; // bottom right
-        info.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { 1, uvTop }, hex }; // top right
-        info.V3 = { Vector2{ pos.x, pos.y } + alignment, { 0, uvTop }, hex }; // top left
+        Render::HudCanvasPayload info{};
+        info.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { 0, 1 } }; // bottom left
+        info.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, { 1, 1 } }; // bottom right
+        info.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { 1, uvTop } }; // top right
+        info.V3 = { Vector2{ pos.x, pos.y } + alignment, { 0, uvTop } }; // top left
         info.Texture = material.Handle();
         info.Scanline = DEFAULT_SCANLINE;
         Render::HudGlowCanvas->Draw(info);
@@ -460,7 +459,7 @@ namespace Inferno {
         float yOffset = 10 * scale;
 
         for (int i = 0; i < steps; i++) {
-            Render::CanvasPayload payload;
+            Render::HudCanvasPayload payload;
             payload.Texture = material.Handle();
 
             float x0 = -cos((steps - i) * 3.14f / steps / 2 + 0.2f) * width * scale * 0.7f + offset;
@@ -473,10 +472,10 @@ namespace Inferno {
             Vector2 v2 = { x1 + width * 2, y1 };
             Vector2 v3 = { x1, y1 };
 
-            payload.V0 = CanvasVertex{ v0, { 1 - vStep * float(i), 0 }, color.RGBA().v }; // bottom left
-            payload.V1 = CanvasVertex{ v1, { 1 - vStep * float(i), 1 }, color.RGBA().v }; // bottom right
-            payload.V2 = CanvasVertex{ v2, { 1 - vStep * float(i + 1), 1 }, color.RGBA().v }; // top right
-            payload.V3 = CanvasVertex{ v3, { 1 - vStep * float(i + 1), 0 }, color.RGBA().v }; // top left
+            payload.V0 = HudVertex{ v0, { 1 - vStep * float(i), 0 }, color }; // bottom left
+            payload.V1 = HudVertex{ v1, { 1 - vStep * float(i), 1 }, color }; // bottom right
+            payload.V2 = HudVertex{ v2, { 1 - vStep * float(i + 1), 1 }, color }; // top right
+            payload.V3 = HudVertex{ v3, { 1 - vStep * float(i + 1), 0 }, color }; // top left
             Render::HudGlowCanvas->Draw(payload);
         }
     }
@@ -781,8 +780,10 @@ namespace Inferno {
     }
 
     void DrawHUD(float dt, Color ambient) {
-        constexpr Color minLight(0.5f, 0.5f, 0.5f, 1);
-        ambient = Vector4::Max(minLight, ambient);
+        constexpr Color minLight(0.2f, 0.2f, 0.2f);
+        ambient *= 3;
+        ambient += minLight;
+        ambient.A(1);
         Hud.Draw(dt, Game::Player, ambient);
     }
 

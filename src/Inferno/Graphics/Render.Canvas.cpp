@@ -94,11 +94,11 @@ namespace Inferno::Render {
         auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
         auto cmdList = ctx.GetCommandList();
-        ctx.ApplyEffect(_effect);
-        _effect.Shader->SetWorldViewProjection(cmdList, orthoProj);
+        ctx.ApplyEffect(*_effect);
+        _effect->Shader->SetWorldViewProjection(cmdList, orthoProj);
 
         for (auto& group : _commands | views::values) {
-            _effect.Shader->SetDiffuse(cmdList, group.front().Texture);
+            _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
             _batch.Begin(cmdList);
             for (auto& c : group)
                 _batch.DrawQuad(c.V0, c.V1, c.V2, c.V3);
@@ -111,9 +111,9 @@ namespace Inferno::Render {
     }
 
     void Canvas2D::DrawGameText(string_view str,
-                                         float x, float y,
-                                         FontSize size, Color color,
-                                         float scale, AlignH alignH, AlignV alignV) {
+                                float x, float y,
+                                FontSize size, Color color,
+                                float scale, AlignH alignH, AlignV alignV) {
         float xOffset = 0, yOffset = 0;
         auto font = Atlas.GetFont(size);
         if (!font) return;
@@ -185,8 +185,7 @@ namespace Inferno::Render {
     }
 
     void HudCanvas2D::DrawBitmap(const CanvasBitmapInfo& info) {
-        CanvasPayload payload{};
-        auto hex = info.Color.RGBA().v;
+        HudCanvasPayload payload{};
         auto& pos = info.Position;
         auto size = info.Size;
         auto alignment = GetAlignment(size, info.HorizontalAlign, info.VerticalAlign, _size);
@@ -194,10 +193,10 @@ namespace Inferno::Render {
         auto uv1 = info.UV1;
         if (info.MirrorX) std::swap(uv0.x, uv1.x);
 
-        payload.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { uv0.x, uv1.y }, hex }; // bottom left
-        payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, uv1, hex }; // bottom right
-        payload.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { uv1.x, uv0.y }, hex }; // top right
-        payload.V3 = { Vector2{ pos.x, pos.y } + alignment, uv0, hex }; // top left
+        payload.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { uv0.x, uv1.y }, info.Color }; // bottom left
+        payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, uv1, info.Color }; // bottom right
+        payload.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { uv1.x, uv0.y }, info.Color }; // top right
+        payload.V3 = { Vector2{ pos.x, pos.y } + alignment, uv0, info.Color }; // top left
         payload.Texture = info.Texture;
         payload.Scanline = info.Scanline;
         Draw(payload);
@@ -208,17 +207,17 @@ namespace Inferno::Render {
         //auto orthoProj = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
         auto cmdList = ctx.GetCommandList();
-        ctx.ApplyEffect(_effect);
+        ctx.ApplyEffect(*_effect);
 
         HudShader::Constants constants;
         constants.Transform = Matrix::CreateOrthographicOffCenter(0, _size.x, _size.y, 0.0, 0.0, -2.0f);
 
         for (auto& group : _commands | views::values) {
-            _effect.Shader->SetDiffuse(cmdList, group.front().Texture);
+            _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
             _batch.Begin(cmdList);
             for (auto& g : group) {
                 constants.ScanlinePitch = g.Scanline;
-                _effect.Shader->SetConstants(ctx.GetCommandList(), constants);
+                _effect->Shader->SetConstants(ctx.GetCommandList(), constants);
                 _batch.DrawQuad(g.V0, g.V1, g.V2, g.V3);
             }
 

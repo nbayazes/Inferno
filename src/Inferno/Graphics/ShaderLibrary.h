@@ -43,15 +43,15 @@ namespace Inferno {
         int TexID1 = 0, TexID2 = -1;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
-            { "POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",     0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD",  1, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TANGENT",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "BASE",      0, DXGI_FORMAT_R32_SINT,           0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "OVERLAY",   0, DXGI_FORMAT_R32_SINT,           0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BASE", 0, DXGI_FORMAT_R32_SINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "OVERLAY", 0, DXGI_FORMAT_R32_SINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
@@ -62,8 +62,8 @@ namespace Inferno {
         Color Color;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
@@ -76,27 +76,27 @@ namespace Inferno {
         uint32 Color;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
     };
 
-    //struct HudVertex {
-    //    Vector2 Position;
-    //    Vector2 UV;
-    //    Color Color;
+    struct HudVertex {
+        Vector2 Position;
+        Vector2 UV;
+        Color Color = { 1, 1, 1, 1 };
 
-    //    static inline const D3D12_INPUT_ELEMENT_DESC Description[] = {
-    //        { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-    //    };
+        static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
 
-    //    static inline const D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
-    //};
+        static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
+    };
 
     struct ObjectVertex {
         Vector3 Position;
@@ -108,13 +108,13 @@ namespace Inferno {
         int TexID;
 
         static inline constexpr D3D12_INPUT_ELEMENT_DESC Description[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "BITANGENT",0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXID",0, DXGI_FORMAT_R32_SINT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXID", 0, DXGI_FORMAT_R32_SINT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         static inline constexpr D3D12_INPUT_LAYOUT_DESC Layout = CreateLayout(Description);
@@ -150,6 +150,7 @@ namespace Inferno {
             FrameConstants,
             RootParameterCount
         };
+
     public:
         FlatLevelShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
@@ -161,6 +162,7 @@ namespace Inferno {
             FrameConstants,
             RootParameterCount
         };
+
     public:
         constexpr static auto OutputFormat = DXGI_FORMAT_R16_FLOAT;
 
@@ -178,6 +180,7 @@ namespace Inferno {
             Sampler,
             RootParameterCount
         };
+
     public:
         ObjectDepthShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = LevelVertex::Layout;
@@ -214,6 +217,7 @@ namespace Inferno {
             Sampler,
             RootParameterCount
         };
+
     public:
         struct Constants {
             Vector2 Scroll, Scroll2; // For UV scrolling
@@ -266,6 +270,7 @@ namespace Inferno {
             MaterialInfoBuffer, // t14
             LightGrid, // t11, t12, t13, b2
         };
+
     public:
         struct InstanceConstants {
             Vector2 Scroll, Scroll2; // For UV scrolling
@@ -335,6 +340,7 @@ namespace Inferno {
             Sampler,
             RootParameterCount
         };
+
     public:
         SpriteShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = ObjectVertex::Layout;
@@ -366,6 +372,7 @@ namespace Inferno {
             NormalSampler, // s1
             LightGrid, // t11, t12, t13, b2
         };
+
     public:
         struct Constants {
             Matrix World;
@@ -422,6 +429,7 @@ namespace Inferno {
             InstanceConstants, // b1
             FrameTexture, // t0
         };
+
     public:
         struct Constants {
             Matrix World;
@@ -447,6 +455,7 @@ namespace Inferno {
             ConstantBuffer,
             RootParameterCount
         };
+
     public:
         FlatShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = FlatVertex::Layout;
@@ -469,6 +478,7 @@ namespace Inferno {
             Sampler,
             RootParameterCount
         };
+
     public:
         UIShader(const ShaderInfo& info) : IShader(info) {
             InputLayout = CanvasVertex::Layout;
@@ -491,6 +501,7 @@ namespace Inferno {
             Sampler,
             RootParameterCount
         };
+
     public:
         struct Constants {
             Matrix Transform = Matrix::Identity;
@@ -500,7 +511,7 @@ namespace Inferno {
         };
 
         HudShader(const ShaderInfo& info) : IShader(info) {
-            InputLayout = CanvasVertex::Layout;
+            InputLayout = HudVertex::Layout;
             Format = DXGI_FORMAT_R11G11B10_FLOAT;
         }
 
@@ -512,7 +523,6 @@ namespace Inferno {
             commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(constants) / 4, &constants, 0);
         }
     };
-
 
 
     void CompileShader(IShader*) noexcept;
@@ -535,6 +545,7 @@ namespace Inferno {
 
     class EffectResources {
         ShaderResources* _shaders;
+
     public:
         EffectResources(ShaderResources* shaders) : _shaders(shaders) {}
 
@@ -543,12 +554,12 @@ namespace Inferno {
         Effect<LevelShader> LevelWallAdditive = { &_shaders->Level, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatLevelShader> LevelFlat = { &_shaders->LevelFlat, { BlendMode::Opaque, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatLevelShader> LevelWallFlat = { &_shaders->LevelFlat, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
-        
+
         Effect<DepthShader> Depth = { &_shaders->Depth, { BlendMode::Opaque } };
         Effect<DepthCutoutShader> DepthCutout = { &_shaders->DepthCutout, { BlendMode::Opaque } };
         Effect<ObjectDepthShader> DepthObject = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::None } };
         Effect<ObjectDepthShader> DepthObjectFlipped = { &_shaders->DepthObject, { BlendMode::Opaque, CullMode::Clockwise } };
-        
+
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
         Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
@@ -560,7 +571,7 @@ namespace Inferno {
         Effect<FlatShader> FlatAdditive = { &_shaders->Flat, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<FlatShader> EditorSelection = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
         Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
-       
+
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };

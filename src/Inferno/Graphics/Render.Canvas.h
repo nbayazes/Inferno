@@ -49,12 +49,12 @@ namespace Inferno::Render {
     class Canvas2D {
         DirectX::PrimitiveBatch<CanvasVertex> _batch;
         Dictionary<uint64, List<CanvasPayload>> _commands;
-        Effect<UIShader>& _effect;
+        Effect<UIShader>* _effect;
         Vector2 _size = { 1024, 1024 };
         float _scale = 1;
 
     public:
-        Canvas2D(ID3D12Device* device, Effect<UIShader>& effect) : _batch(device), _effect(effect) {}
+        Canvas2D(ID3D12Device* device, Effect<UIShader>& effect) : _batch(device), _effect(&effect) {}
 
         // Sets the size of the canvas. Affects alignment.
         void SetSize(uint width, uint height, uint targetScreenHeight = 480) {
@@ -98,15 +98,21 @@ namespace Inferno::Render {
                           AlignH alignH = AlignH::Left, AlignV alignV = AlignV::Top);
     };
 
+    struct HudCanvasPayload {
+        HudVertex V0, V1, V2, V3;
+        D3D12_GPU_DESCRIPTOR_HANDLE Texture{};
+        float Scanline = 0;
+    };
+
     class HudCanvas2D {
-        DirectX::PrimitiveBatch<CanvasVertex> _batch;
-        Dictionary<uint64, List<CanvasPayload>> _commands;
-        Effect<HudShader>& _effect;
+        DirectX::PrimitiveBatch<HudVertex> _batch;
+        Dictionary<uint64, List<HudCanvasPayload>> _commands;
+        Effect<HudShader>* _effect;
         Vector2 _size = { 1024, 1024 };
         float _scale = 1;
 
     public:
-        HudCanvas2D(ID3D12Device* device, Effect<HudShader>& effect) : _batch(device), _effect(effect) {}
+        HudCanvas2D(ID3D12Device* device, Effect<HudShader>& effect) : _batch(device), _effect(&effect) {}
 
         // Sets the size of the canvas. Affects alignment.
         void SetSize(uint width, uint height, uint targetScreenHeight = 480) {
@@ -123,7 +129,7 @@ namespace Inferno::Render {
 
         void DrawGameText(string_view str, const DrawTextInfo& info);
 
-        void Draw(const CanvasPayload& payload) {
+        void Draw(const HudCanvasPayload& payload) {
             if (!payload.Texture.ptr) return;
             _commands[payload.Texture.ptr].push_back(payload);
         }

@@ -9,7 +9,7 @@
         "visibility=SHADER_VISIBILITY_PIXEL)"
 
 struct Arguments {
-        float4x4 ProjectionMatrix;
+    float4x4 ProjectionMatrix;
     float4 Color;
     float ScanlinePitch, ScanlineIntensity;
 };
@@ -35,7 +35,7 @@ struct PS_INPUT {
 PS_INPUT vsmain(VS_INPUT input) {
     PS_INPUT output;
     output.pos = mul(Args.ProjectionMatrix, float4(input.pos.xy, 0.f, 1.f));
-    output.col = input.col * Args.Color;
+    output.col = input.col;
     output.uv = input.uv;
     output.uvScreen = (input.pos.xy) /* * float2(1 / 64.0, 1 / 64.0)*/; // todo from screen res
     return output;
@@ -43,9 +43,17 @@ PS_INPUT vsmain(VS_INPUT input) {
             
 float4 psmain(PS_INPUT input) : SV_Target {
     float2 uv = float2(0, 0);
-    float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0) * input.col;
+    float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0) /** input.col*/;
+    //color.rgb *= float3(10, 0, 0);
+    color.rgb *= input.col.rgb;
+    //color.rgb *= Args.Color.rgb;
+
+    //if(length(color) > 1.0002)
+    //    color.rgb *= 1 + input.col.rgb;
+        //color.rgb = float3(1, 0, 0);
     
     if (Args.ScanlinePitch > 0.1) {
+
         //dc *= dc;
         // warp the fragment coordinates
         //float2 dc = abs(0.5 - input.uvScreen);
@@ -65,6 +73,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         color.a = saturate(color.a);
         color = lerp(float4(0, 0, 0, 0), color * 1.05, 1 - apply * 0.3);
         //color.rgb *= 0.6;
+    } else {
+        //color.rgb = color;
     }
     //float4 color = lerp(Diffuse.SampleLevel(Sampler, input.uv + uv, 0), float4(0, 0, 0, 0), apply);
     //color += Diffuse.SampleLevel(Sampler, input.uv + float2(0.01, 0.01), 0)  * float4(0.5, 0.5, 0.5, 0.01);
