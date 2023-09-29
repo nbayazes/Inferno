@@ -420,19 +420,31 @@ namespace Inferno::Game {
             }
             case ObjectType::Robot:
             {
-                // todo: spawn robots
+                for (int i = 0; i < contains.Count; i++) {
+                    Object spawn{};
+                    Editor::InitObject(Level, spawn, ObjectType::Robot, contains.ID);
+                    spawn.Position = position;
+                    spawn.Segment = segment;
+                    spawn.Type = ObjectType::Robot;
+                    spawn.Physics.Velocity = RandomVector(32) + force;
+                    spawn.NextThinkTime = 0;
+                    AddObject(spawn);
+                }
+
                 break;
             }
         }
     }
 
-    void DropContainedItems(const Object& obj) {
+    void DropContents(const Object& obj) {
         assert(obj.Type == ObjectType::Robot);
 
         if (obj.Contains.Type != ObjectType::None) {
+            // Editor specified contents override robot contents
             SpawnContained(obj.Contains, obj.Position, obj.Segment, obj.LastHitForce);
         }
         else {
+            // Robot defined contents
             auto& ri = Resources::GetRobotInfo(obj.ID);
             if (ri.Contains.Count > 0) {
                 if (Random() < (float)ri.ContainsChance / 16.0f) {
@@ -525,7 +537,7 @@ namespace Inferno::Game {
 
                 // todo: spawn particles
 
-                DropContainedItems(obj);
+                DropContents(obj);
                 obj.Flags |= ObjectFlag::Dead;
                 break;
             }
