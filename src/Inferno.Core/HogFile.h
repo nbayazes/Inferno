@@ -1,8 +1,7 @@
 #pragma once
-#include <variant>
+#include <fstream>
 #include "Types.h"
 #include "Utility.h"
-#include <fstream>
 #include "Streams.h"
 
 namespace Inferno {
@@ -70,6 +69,15 @@ namespace Inferno {
             return false;
         }
 
+        // Returns the first file with the provided extension
+        Option<HogEntry> FindEntryOfType(string_view extension) {
+            for (auto& entry : Entries) {
+                if (entry.Name.ends_with(extension)) return entry;
+            }
+
+            return {};
+        }
+
         bool IsDescent1() const { return ContainsFileType("rdl"); }
         bool IsDescent2() const { return ContainsFileType("rl2"); }
 
@@ -87,14 +95,14 @@ namespace Inferno {
         HogFile& operator=(const HogFile&) = delete;
         HogFile& operator=(HogFile&&) = default;
 
-        static HogFile Read(std::filesystem::path file);
+        static HogFile Read(const std::filesystem::path& file);
         static constexpr int MAX_ENTRIES = 250;
 
         List<string> GetContents() {
             return Seq::map(Entries, [](const auto& e) { return e.Name; });
         }
 
-        List<string> GetContents(string filter) const {
+        List<string> GetContents(const string& filter) const {
             auto entries = Seq::map(Entries, [](const HogEntry& e) { return e.Name; });
             return Seq::filter(entries, filter, true);
         }
@@ -110,7 +118,7 @@ namespace Inferno {
         int _entries = 0;
         static constexpr int MAX_ENTRIES = 250;
     public:
-        HogWriter(filesystem::path path) : _stream(path, std::ios::binary), _writer(_stream) {
+        HogWriter(const filesystem::path& path) : _stream(path, std::ios::binary), _writer(_stream) {
             _writer.WriteString("DHF", 3);
         }
 

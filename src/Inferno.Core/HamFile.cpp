@@ -647,7 +647,7 @@ namespace Inferno {
         return w;
     }
 
-    std::tuple<HamFile, PigFile, SoundFile> ReadDescent1GameData(StreamReader& reader, Palette& palette) {
+    std::tuple<HamFile, PigFile, SoundFile> ReadDescent1GameData(StreamReader& reader, const Palette& palette) {
         HamFile ham;
         auto dataOffset = reader.ReadInt32();
 
@@ -756,9 +756,9 @@ namespace Inferno {
         for (auto& o : objectTypes) o.strength = reader.ReadFix();
 
         ham.FirstMultiplayerBitmap = reader.ReadInt32();
-        /*auto reactorNumGuns =*/ reader.ReadElementCount();
-
         auto& reactor = ham.Reactors[0];
+        reactor.Guns = reader.ReadInt32();
+        ASSERT(reactor.Guns == 4);
         reactor.Model = ModelID(39); // Hard code the model because it's missing from the ham file
         for (int i = 0; i < 4; i++) reactor.GunPoints[i] = reader.ReadVector();
         for (int i = 0; i < 4; i++) reactor.GunDirs[i] = reader.ReadVector();

@@ -1188,7 +1188,7 @@ namespace Inferno::Render {
 
         if (Parent) {
             auto parent = Game::Level.TryGetObject(Parent);
-            if (parent && parent->IsAlive()) {
+            if (parent && parent->IsAlive() && !HasFlag(parent->Flags, ObjectFlag::Destroyed)) {
                 auto pos = parent->GetPosition(Game::LerpAmount);
                 if (ParentSubmodel) {
                     auto offset = GetSubmodelOffset(*parent, ParentSubmodel);

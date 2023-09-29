@@ -160,6 +160,7 @@
     <ClCompile Include="Game.Navigation.cpp" />
     <ClCompile Include="Game.Object.cpp" />
     <ClCompile Include="Game.Player.cpp" />
+    <ClCompile Include="Game.Reactor.cpp" />
     <ClCompile Include="Game.Room.cpp" />
     <ClCompile Include="Game.Text.cpp" />
     <ClCompile Include="Game.Segment.cpp" />
@@ -253,6 +254,7 @@
     <ClInclude Include="Game.Player.h" />
     <ClInclude Include="Editor\UI\ScaleWindow.h" />
     <ClInclude Include="Editor\UI\TextureEditor.h" />
+    <ClInclude Include="Game.Reactor.h" />
     <ClInclude Include="Game.Room.h" />
     <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />

@@ -4,6 +4,7 @@
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Object.h"
+#include "Game.Reactor.h"
 #include "Resources.h"
 #include "Physics.h"
 #include "logging.h"
@@ -1369,7 +1370,7 @@ namespace Inferno {
             UpdateRobotAI(obj, dt);
         }
         else if (obj.Type == ObjectType::Reactor) {
-            // check facing, fire weapon from gunpoint
+            Game::UpdateReactorAI(obj, dt);
         }
     }
 }

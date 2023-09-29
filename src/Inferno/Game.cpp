@@ -21,6 +21,7 @@
 #include "HUD.h"
 #include "Game.Wall.h"
 #include "Game.AI.h"
+#include "Game.Reactor.h"
 #include "Game.Room.h"
 #include "Game.Segment.h"
 #include "LegitProfiler.h"
@@ -187,6 +188,64 @@ namespace Inferno::Game {
         ResetAI();
     }
 
+
+    // Tries to read the mission file (msn / mn2) for the loaded mission
+    Option<MissionInfo> TryReadMissionInfo() {
+        try {
+            if (!Mission) return {};
+            MissionInfo mission{};
+
+            // Read mission from filesystem
+            std::ifstream file(Mission->GetMissionPath());
+            if (mission.Read(file)) 
+                return mission;
+
+            // Descent2 stores its mn2 in the hog file
+            auto ext = Level.IsDescent1() ? "msn" : "mn2";
+
+            if (auto entry = Mission->FindEntryOfType(ext)) {
+                auto bytes = Mission->ReadEntry(*entry);
+                string str((char*)bytes.data(), bytes.size());
+                std::stringstream stream(str);
+                mission.Read(stream);
+                return mission;
+            }
+
+            return {};
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR(e.what());
+            return {};
+        }
+    }
+
+    int GetLevelNumber(Inferno::Level& level) {
+        if (Game::Mission) {
+            auto filename = Game::Mission->Path.filename().string();
+            //auto levels = Game::Mission->GetLevels();
+            if (auto info = Game::TryReadMissionInfo()) {
+                if (auto index = Seq::indexOf(info->Levels, level.FileName))
+                    return 1 + (int)index.value();
+
+                if (auto index = Seq::indexOf(info->SecretLevels, level.FileName))
+                    return -1 - (int)index.value(); // Secret levels have a negative index
+            }
+            else if (String::ToUpper(filename) == "DESCENT.HOG") {
+                // Descent 1 doesn't have a msn file and relies on hard coded values
+                if (level.FileName.starts_with("levelS")) {
+                    auto index = level.FileName.substr(6, 1);
+                    return -std::stoi(index);
+                }
+                else if (level.FileName.starts_with("level")) {
+                    auto index = level.FileName.substr(5, 2);
+                    return std::stoi(index);
+                }
+            }
+        }
+
+        return 1;
+    }
+
     void LoadLevel(Inferno::Level&& level) {
         Inferno::Level backup = Level;
 
@@ -208,6 +267,9 @@ namespace Inferno::Game {
             Level = std::move(level); // Move to global so resource loading works properly
             FreeProceduralTextures();
             Resources::LoadLevel(Level);
+            Level.Rooms = CreateRooms(Level);
+            Navigation = NavigationNetwork(Level);
+            LevelNumber = GetLevelNumber(Level);
 
             if (forceReload || Resources::CustomTextures.Any()) // Check for custom textures before or after load
                 Render::Materials->Unload();
@@ -220,8 +282,6 @@ namespace Inferno::Game {
             Render::ResetEffects();
             InitObjects();
 
-            Level.Rooms = CreateRooms(Level);
-            Navigation = NavigationNetwork(Level);
 
             Editor::OnLevelLoad(reload);
             Render::Materials->Prune();
@@ -237,46 +297,6 @@ namespace Inferno::Game {
 
     void LoadMission(const filesystem::path& file) {
         Mission = HogFile::Read(FileSystem::FindFile(file));
-    }
-
-    // Tries to read the mission file (msn / mn2) for the loaded mission
-    Option<MissionInfo> TryReadMissionInfo() {
-        try {
-            if (!Mission) return {};
-            auto path = Mission->GetMissionPath();
-            MissionInfo mission{};
-            if (!mission.Read(path)) return {};
-            return mission;
-        }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR(e.what());
-            return {};
-        }
-    }
-
-    void PlaySelfDestructSounds(float delay) {
-        AmbientSoundEmitter explosions{};
-        explosions.Delay = { 0.5f, 3.0f };
-        explosions.Sounds = {
-            "AmbExplosionFarA", "AmbExplosionFarB", "AmbExplosionFarC", "AmbExplosionFarE",
-            "AmbExplosionFarF", /*"AmbExplosionFarG",*/ "AmbExplosionFarI"
-        };
-        explosions.Volume = { 3.5f, 4.5f };
-        explosions.Distance = 500;
-        explosions.NextPlayTime = Time + delay;
-        Sound::AddEmitter(std::move(explosions));
-
-        AmbientSoundEmitter creaks{};
-        creaks.Delay = { 3.0f, 6.0f };
-        creaks.Sounds = {
-            "AmbPipeKnockB", "AmbPipeKnockC",
-            "AmbEnvSlowMetal", "AmbEnvShortMetal",
-            "EnvSlowCreakB2", "EnvSlowCreakC", /*"EnvSlowCreakD",*/ "EnvSlowCreakE"
-        };
-        creaks.Volume = { 1.5f, 2.00f };
-        creaks.Distance = 100;
-        creaks.NextPlayTime = Time + delay;
-        Sound::AddEmitter(std::move(creaks));
     }
 
     void UpdateAmbientSounds() {
@@ -417,7 +437,7 @@ namespace Inferno::Game {
             if (ri.Contains.Count > 0) {
                 if (Random() < (float)ri.ContainsChance / 16.0f) {
                     auto contains = ri.Contains;
-                    contains.Count = ri.Contains.Count == 1 ? 1 : RandomInt(1, ri.Contains.Count);
+                    contains.Count = ri.Contains.Count == 1 ? 1 : (uint8)RandomInt(1, ri.Contains.Count);
                     SpawnContained(contains, obj.Position, obj.Segment, obj.LastHitForce);
                 }
             }
@@ -436,132 +456,6 @@ namespace Inferno::Game {
             Sound::Play({ SoundID::ExtraLife });
             Player.GiveExtraLife((uint8)lives);
         }
-    }
-
-    void UpdateReactorCountdown(float dt) {
-        auto fc = std::min(CountdownSeconds, 16);
-        auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
-
-        // Shake the player ship
-        auto& player = Game::GetPlayerObject();
-        player.Physics.AngularVelocity.z += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
-        player.Physics.AngularVelocity.x += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
-
-        auto time = CountdownTimer;
-        CountdownTimer -= dt;
-        CountdownSeconds = int(CountdownTimer + 7.0f / 8);
-
-        constexpr float COUNTDOWN_VOICE_TIME = 12.75f;
-        if (time > COUNTDOWN_VOICE_TIME && CountdownTimer <= COUNTDOWN_VOICE_TIME) {
-            Sound::Play({ SoundID::Countdown13 });
-        }
-
-        if (int(time + 7.0f / 8) != CountdownSeconds) {
-            if (CountdownSeconds >= 0 && CountdownSeconds < 10)
-                Sound::Play({ SoundID((int)SoundID::Countdown0 + CountdownSeconds) });
-            if (CountdownSeconds == TotalCountdown - 1)
-                Sound::Play({ SoundID::SelfDestructActivated });
-        }
-
-        if (CountdownTimer > 0) {
-            // play siren every 2 seconds
-            constexpr float SIREN_DELAY = 3.4f; // Seconds after the reactor is destroyed to start playing siren. Exists due to self destruct message.
-            auto size = (float)TotalCountdown - CountdownTimer / 0.65f;
-            auto oldSize = (float)TotalCountdown - time / 0.65f;
-            if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - SIREN_DELAY)
-                Sound::Play({ SoundID::Siren });
-        }
-        else {
-            if (time > 0)
-                Sound::Play({ SoundID::MineBlewUp });
-
-            auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
-            ScreenFlash = Color{ flash, flash, flash };
-
-            if (CountdownTimer < -4) {
-                // todo: kill player, show "you have died in the mine" message
-                SetState(GameState::Editor);
-            }
-        }
-    }
-
-    void DestroyReactor(Object& obj) {
-        assert(obj.Type == ObjectType::Reactor);
-
-        obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
-        Render::LoadModelDynamic(obj.Render.Model.ID);
-
-        AddPointsToScore(REACTOR_SCORE);
-
-        for (auto& tag : Level.ReactorTriggers) {
-            if (auto wall = Level.TryGetWall(tag)) {
-                if (wall->Type == WallType::Door && wall->State == WallState::Closed)
-                    OpenDoor(Level, tag);
-
-                if (wall->Type == WallType::Destroyable)
-                    DestroyWall(Level, tag);
-            }
-        }
-
-        if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
-            TotalCountdown = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
-        }
-        else {
-            constexpr std::array DefaultCountdownTimes = { 90, 60, 45, 35, 30 };
-            TotalCountdown = DefaultCountdownTimes[Difficulty];
-        }
-
-        //TotalCountdown = 30; // debug
-        CountdownTimer = (float)TotalCountdown;
-        ControlCenterDestroyed = true;
-
-        if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
-            Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
-
-        if (auto e = Render::EffectLibrary.GetExplosion("reactor_initial_explosion")) {
-            e->Radius = { obj.Radius * 0.5f, obj.Radius * 0.7f };
-            e->Variance = obj.Radius * 0.9f;
-            Render::CreateExplosion(*e, obj.Segment, obj.Position);
-        }
-
-        if (auto e = Render::EffectLibrary.GetExplosion("reactor_large_explosions")) {
-            // Larger periodic explosions with sound
-            e->Variance = obj.Radius * 0.45f;
-            e->Instances = TotalCountdown;
-            Render::CreateExplosion(*e, obj.Segment, obj.Position);
-        }
-
-        if (auto e = Render::EffectLibrary.GetExplosion("reactor_small_explosions")) {
-            e->Variance = obj.Radius * 0.55f;
-            e->Instances = TotalCountdown * 10;
-            Render::CreateExplosion(*e, obj.Segment, obj.Position);
-        }
-
-        if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
-            for (int i = 0; i < 4; i++) {
-                auto startObj = Game::GetObjectRef(obj);
-                beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                Render::AddBeam(*beam, CountdownTimer + 5, startObj);
-            }
-        }
-
-        //if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_internal_arcs")) {
-        //    for (int i = 0; i < 4; i++) {
-        //        auto startObj = ObjID(&obj - Level.Objects.data());
-        //        beam->StartDelay = i * 0.4f + Random() * 0.125f;
-        //        Render::AddBeam(*beam, CountdownTimer + 5, startObj);
-        //    }
-        //}
-
-        // Load critical clips
-        Set<TexID> ids;
-        for (auto& eclip : Resources::GameData.Effects) {
-            auto& crit = Resources::GetEffectClip(eclip.CritClip);
-            Seq::insert(ids, crit.VClip.GetFrames());
-        }
-
-        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
-        PlaySelfDestructSounds(3);
     }
 
     void DestroyObject(Object& obj) {

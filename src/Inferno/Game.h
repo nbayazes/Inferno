@@ -19,6 +19,15 @@ namespace Inferno {
         MainMenu,
         Editor
     };
+
+    enum class DifficultyLevel {
+        Trainee,
+        Rookie,
+        Hotshot,
+        Ace,
+        Insane,
+        Count
+    };
 }
 
 namespace Inferno::Game {
@@ -28,6 +37,7 @@ namespace Inferno::Game {
     constexpr float DEFAULT_WEAPON_VOLUME = 0.55f; // Default volume when firing weapons
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
+    inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
     inline bool NeedsResourceReload = false; // Indicates that resources should be reloaded, typically due to changes in graphics settings
 
     constexpr int DEFAULT_GRAVITY = 30;
@@ -36,6 +46,16 @@ namespace Inferno::Game {
     // The loaded level. Only one level can be active at a time.
     inline Inferno::Level Level;
     inline IntersectContext Intersect(Level);
+
+    // Returns true if an object has line of sight to a target. Also checks if the target is cloaked.
+    inline bool ObjectCanSeeObject(const Object& obj, const Object& target) {
+        if (target.Cloaked) return false;
+        auto [dir, dist] = GetDirectionAndDistance(target.Position, obj.Position);
+        Ray ray(obj.Position, dir);
+        LevelHit hit;
+        RayQuery query(dist, obj.Segment, true);
+        return !Intersect.RayLevel(ray, query, hit);
+    }
 
     // The loaded mission. Not always present.
     inline Option<HogFile> Mission;

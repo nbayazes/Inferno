@@ -533,20 +533,20 @@ namespace Inferno {
         const std::string Whitespace = " \n\r\t\f\v";
 
         // Remove whitespace from the beginning
-        inline string TrimStart(const string& s) {
-            auto start = s.find_first_not_of(Whitespace);
+        inline string TrimStart(const string& s, const std::string& token = Whitespace) {
+            auto start = s.find_first_not_of(token);
             return start == std::string::npos ? "" : s.substr(start);
         }
 
         // Remove whitespace from the end
-        inline string TrimEnd(const string& s) {
-            auto end = s.find_last_not_of(Whitespace);
+        inline string TrimEnd(const string& s, std::string token = Whitespace) {
+            auto end = s.find_last_not_of(token);
             return end == std::string::npos ? "" : s.substr(0, end + 1);
         }
 
         // Remove whitespace from both ends
-        inline string Trim(const string& s) {
-            return TrimStart(TrimEnd(s));
+        inline string Trim(const string& s, std::string token = Whitespace) {
+            return TrimStart(TrimEnd(s, token), token);
         }
 
         // Returns an uppercase copy of the string

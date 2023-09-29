@@ -278,6 +278,9 @@
     <ClCompile Include="SoundTypes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Game.Reactor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -647,6 +650,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LegitProfiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.Reactor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

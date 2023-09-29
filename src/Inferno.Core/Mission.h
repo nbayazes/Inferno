@@ -5,7 +5,6 @@
 #include <string>
 #include "Types.h"
 #include "Utility.h"
-#include "Streams.h"
 
 namespace Inferno {
     enum class MissionEnhancement {
@@ -14,7 +13,7 @@ namespace Inferno {
         VertigoHam, // Descent 2 mission with v1.2 V-HAM
     };
 
-    // Mission file describing the level order a HOG (.MSN / .MN2).
+    // Mission file describing the level order in a HOG (.MSN / .MN2).
     struct MissionInfo {
         static constexpr auto MaxNameLength = 25;
         string Name;
@@ -27,16 +26,15 @@ namespace Inferno {
         // Extra data not used by the game at runtime
         std::map<string, string> Metadata;
 
-        void SetBool(string key, bool value) {
+        void SetBool(const string& key, bool value) {
             Metadata[key] = value ? "yes" : "no";
         }
 
-        bool GetBool(string key) {
+        bool GetBool(const string& key) {
             return Metadata[key] == "yes";
         }
 
-        bool Read(std::filesystem::path path) {
-            std::ifstream file(path);
+        bool Read(std::istream& file) {
             if (!file) return false;
 
             string line;
@@ -72,6 +70,7 @@ namespace Inferno {
                             auto count = std::stoi(value);
                             for (int i = 0; i < count; i++) {
                                 std::getline(file, line);
+                                line = String::Trim(line);
                                 Levels.push_back(line);
                             }
                             break;
@@ -81,6 +80,7 @@ namespace Inferno {
                             auto count = std::stoi(value);
                             for (int i = 0; i < count; i++) {
                                 std::getline(file, line);
+                                line = String::Trim(line);
                                 SecretLevels.push_back(line);
                             }
                             break;

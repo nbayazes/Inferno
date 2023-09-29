@@ -60,6 +60,7 @@ namespace Inferno {
         Laser2 = 1,
         Laser3 = 2,
         Laser4 = 3,
+        ReactorBlob = 6,
         Concussion = 8,
         Flare = 9,
         Vulcan = 11,

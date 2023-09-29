@@ -93,7 +93,7 @@ Weapons:
 
   - id: 6
     Name: reactor energy ball
-    Glow: 1, 0, 0, 6
+    Glow: 1, 0.2, 0.2, 6
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
@@ -842,14 +842,16 @@ Effects:
       Color: 1, .5, .166, 6
 
     - Name: reactor_destroyed
-      SparkDuration: [ 0.75, 2.4 ]
+      SparkDuration: [ 0.75, 0.95 ]
       Restitution: 0.6
-      Velocity: [ 65, 85 ]
-      Count: [ 40, 40 ]
-      Color: 1, .75, .75, 4
-      FadeTime: 0.5
+      Velocity: [ 60, 100 ]
+      Count: 60
+      Color: 1, 0.05, 0.05, 20
+      FadeTime: 0.4
+      Drag: 0.04
       Texture: tracer # hotspark
-      Width: 0.5
+      Width: 0.35
+      Physics: 0
 
   Explosions:
     - Name: reactor_initial_explosion

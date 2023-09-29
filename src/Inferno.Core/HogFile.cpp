@@ -1,14 +1,9 @@
-#include "HogFile.h"
 #include "pch.h"
-#include "IO.h"
 #include "HogFile.h"
 #include "Pig.h"
-#include <fstream>
-#include "Streams.h"
-#include "Utility.h"
 
 namespace Inferno {
-    List<ubyte> ReadFileToMemory(wstring file, size_t offset, size_t length) {
+    List<ubyte> ReadFileToMemory(const wstring& file, size_t offset, size_t length) {
         if (offset == 0)
             throw Exception("Hog entry offset cannot be 0");
 
@@ -70,7 +65,7 @@ namespace Inferno {
         throw Exception("File not found in hog file");
     }
 
-    HogFile HogFile::Read(filesystem::path file) {
+    HogFile HogFile::Read(const filesystem::path& file) {
         HogFile hog{};
         hog.Path = file;
         StreamReader reader(file);

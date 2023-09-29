@@ -116,5 +116,5 @@ namespace Inferno {
     EffectClip ReadEffect(StreamReader&);
     JointPos ReadRobotJoint(StreamReader&);
 
-    std::tuple<HamFile, PigFile, SoundFile> ReadDescent1GameData(StreamReader&, Palette& palette);
+    std::tuple<HamFile, PigFile, SoundFile> ReadDescent1GameData(StreamReader&, const Palette& palette);
 }
