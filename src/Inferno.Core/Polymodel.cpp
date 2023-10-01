@@ -79,6 +79,7 @@ namespace Inferno {
         int16 glow = -1;
         int16 glowIndex = 0, flatGlowIndex = 0;
         auto& angles = model.angles;
+        model.Vertices.reserve(1000);
 
         // must use std::function instead of auto here to allow recursive calls
         std::function<void(size_t, Submodel&)> readChunk = [&](size_t chunkStart, Submodel& submodel) {
@@ -94,21 +95,21 @@ namespace Inferno {
 
                     case OpCode::DefpointStart: // indicates the start of a submodel
                     {
-                        auto n = reader.ReadInt16();
-                        // Discard the point index. This assumes that vertices are always stored in submodel order
-                        // which holds true for all official models.
-                        /*auto pointIndex =*/
-                        reader.ReadInt16();
+                        auto count = reader.ReadInt16();
+                        auto pointOffset = reader.ReadInt16();
                         auto zero = reader.ReadInt16();
                         if (zero != 0) throw Exception("Defpoint Start must equal zero");
 
-                        for (int i = 0; i < n; i++) {
+                        for (int i = 0; i < count; i++) {
                             auto vert = reader.ReadVector();
                             vert.z *= -1; // flip rh/lh
-                            model.Vertices.push_back(vert);
+                            if (model.Vertices.size() < i + pointOffset + 1)
+                                model.Vertices.resize(i + pointOffset + 1);
+
+                            model.Vertices[i + pointOffset] = vert;
                         }
 
-                        chunkLen = n * 12 /*sizeof(vector)*/ + 8;
+                        chunkLen = count * 12 /*sizeof(vector)*/ + 8;
                         break;
                     }
                     case OpCode::FlatPoly:
@@ -118,9 +119,7 @@ namespace Inferno {
                             throw Exception("Polygon must have between 3 and 64 points");
 
                         // vectors used for normal facing checks (no longer needed)
-                        /*auto v0 =*/
                         reader.ReadVector(); // @4
-                        /*auto v1 =*/
                         reader.ReadVector(); // @16
 
                         auto color = reader.ReadUInt16();
