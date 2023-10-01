@@ -52,9 +52,9 @@ namespace Inferno::Render {
             // load vertex buffer
             for (int i = 0; i < vertexCount; i++) {
                 // combine points and uvs into vertices
-                auto& uv = i >= submodel.UVs.size() ? Vector3() : submodel.UVs[i];
+                auto& uv = i >= submodel.UVs.size() ? Vector2() : submodel.UVs[i];
                 auto& p = submodel.ExpandedPoints[i];
-                ObjectVertex v{ p.Point, Vector2{ uv.x, uv.y }, submodel.ExpandedColors[i] };
+                ObjectVertex v{ p.Point, uv, submodel.ExpandedColors[i] };
                 if (p.TexSlot == -1) {
                     v.TexID = (int)WHITE_MATERIAL;
                 }

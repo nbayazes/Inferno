@@ -35,7 +35,7 @@ namespace Inferno {
 
         // Mesh data
         List<uint16> Indices;
-        List<Vector3> UVs;
+        List<Vector2> UVs;
         List<uint16> FlatIndices;
         List<int16> TMaps;
         List<Color> FlatVertexColors;

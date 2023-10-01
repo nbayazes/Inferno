@@ -19,8 +19,57 @@ namespace Inferno {
         Glow = 8
     };
 
+    Array<Vector2, 3> CubeMap(const Array<Vector3, 3>& face, float scale) {
+        Array<Vector2, 3> uvs;
+
+        auto projectUV = [&](const Vector3& vert, const Vector3& normal) {
+            auto shifted = vert - face[0];
+            shifted.Normalize();
+
+            std::array angles = {
+                std::min(AngleBetweenVectors(normal, Vector3::UnitX), AngleBetweenVectors(normal, -Vector3::UnitX)),
+                std::min(AngleBetweenVectors(normal, Vector3::UnitY), AngleBetweenVectors(normal, -Vector3::UnitY)),
+                std::min(AngleBetweenVectors(normal, Vector3::UnitZ), AngleBetweenVectors(normal, -Vector3::UnitZ))
+            };
+
+            auto minIndex = std::distance(angles.begin(), ranges::min_element(angles));
+
+            float x{}, y{};
+            switch (minIndex) {
+                case 0: // x axis
+                    x = Vector3::UnitY.Dot(shifted);
+                    y = Vector3::UnitZ.Dot(shifted);
+                    break;
+
+                case 1: // y axis
+                    x = Vector3::UnitX.Dot(shifted);
+                    y = Vector3::UnitZ.Dot(shifted);
+                    break;
+
+                case 2: // z axis
+                    x = Vector3::UnitX.Dot(shifted);
+                    y = Vector3::UnitY.Dot(shifted);
+                    break;
+            }
+
+            //x = Vector3::UnitX.Dot(shifted);
+            //y = Vector3::UnitY.Dot(shifted);
+            return Vector2(x * scale, y * scale);
+        };
+
+        auto normal = CreateNormal(face[0], face[1], face[2]);
+
+        for (int i = 0; i < face.size(); i++)
+            uvs[i] = projectUV(face[i], normal);
+
+        return uvs;
+    }
+
     // 'Expands' vertices in each submodel to a buffer for each texture
     void Expand(Model& model) {
+        auto bounds = model.MaxBounds - model.MinBounds;
+        auto uvScale = std::max(bounds.x, std::max(bounds.y, bounds.z)) / 20;
+
         for (auto& sm : model.Submodels) {
             // expand submodel vertices from indices for use in buffers
             // +1 slot is for flat polygons
@@ -46,6 +95,18 @@ namespace Inferno {
                 sm.ExpandedIndices[0].push_back(flatOffset + i);
                 sm.ExpandedPoints.push_back({ p, -1 });
                 sm.ExpandedColors.push_back(color);
+
+                if (i % 3 == 0 && i + 2 < sm.FlatIndices.size()) {
+                    Array<Vector3, 3> face = {
+                        model.Vertices[sm.FlatIndices[i]],
+                        model.Vertices[sm.FlatIndices[i + 1]],
+                        model.Vertices[sm.FlatIndices[i + 2]]
+                    };
+
+                    // Generate and append cube mapped UVs for flat polygons
+                    auto uvs = CubeMap(face, uvScale);
+                    Seq::append(sm.UVs, uvs);
+                }
             }
         }
     }
@@ -167,10 +228,9 @@ namespace Inferno {
                             throw Exception("Polygon must have between 3 and 64 points");
 
                         // vectors used for normal facing checks (no longer needed)
-                        /*auto v0 =*/
                         reader.ReadVector(); // @4
-                        /*auto v1 =*/
                         reader.ReadVector(); // @16
+
                         auto tmap = reader.ReadInt16(); // @28
                         if (tmap > highestTex) highestTex = tmap;
 
@@ -204,9 +264,9 @@ namespace Inferno {
 
                         for (int i = 0; i < n - 2; i++) {
                             auto uv = reader.ReadVector();
-                            submodel.UVs.push_back(uv0);
-                            submodel.UVs.push_back(uvx);
-                            submodel.UVs.push_back(uv);
+                            submodel.UVs.push_back(Vector2(uv0));
+                            submodel.UVs.push_back(Vector2(uvx));
+                            submodel.UVs.push_back(Vector2(uv));
                             uvx = uv;
                         }
 
