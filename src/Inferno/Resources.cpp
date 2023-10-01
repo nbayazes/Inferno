@@ -358,10 +358,13 @@ namespace Inferno::Resources {
         auto textures = ReadAllBitmaps(pig, palette);
 
         if (level.IsVertigo()) {
-            auto vHog = HogFile::Read(FileSystem::FindFile(L"d2x.hog"));
-            auto data = vHog.ReadEntry("d2x.ham");
-            StreamReader vReader(data);
-            AppendVHam(vReader, ham);
+            std::filesystem::path vhamPath = Game::Mission->Path;
+            vhamPath.replace_extension(".ham");
+            auto vham = TryReadMissionFile(vhamPath);
+            if (!vham.empty()) {
+                StreamReader vReader(vham);
+                AppendVHam(vReader, ham);
+            }
         }
 
         filesystem::path folder = level.Path;
