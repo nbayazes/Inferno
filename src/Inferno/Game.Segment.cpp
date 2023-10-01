@@ -10,6 +10,8 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
+    constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
+
     void ChangeLight(Level& level, const LightDeltaIndex& index, float multiplier = 1.0f) {
         for (int j = 0; j < index.Count; j++) {
             auto& dlp = level.LightDeltas[index.Index + j];
@@ -422,8 +424,7 @@ namespace Inferno {
             obj.Position = seg->Center;
             obj.Segment = matcen.Segment;
             obj.SourceMatcen = matcenId;
-            obj.TotalDissolveTime = 2;
-            obj.DissolveTime = 0;
+            obj.PhaseIn(2, MATCEN_PHASING_COLOR);
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
             obj.Rotation = VectorToRotation(-facing);

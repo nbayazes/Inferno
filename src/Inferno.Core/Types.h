@@ -314,6 +314,10 @@ namespace Inferno {
 
         InvulnOff = 163,
 
+        BossSee = 183,
+        BossAttack = 184, // D1 only?
+        BossDie = 185,
+
         OpenWall = 246,
 
         Cheater = 200,

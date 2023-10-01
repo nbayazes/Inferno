@@ -34,24 +34,7 @@ namespace Inferno::Game {
         Sound::AddEmitter(std::move(creaks));
     }
 
-    void DestroyReactor(Object& obj) {
-        assert(obj.Type == ObjectType::Reactor);
-
-        obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
-        Render::LoadModelDynamic(obj.Render.Model.ID);
-
-        AddPointsToScore(REACTOR_SCORE);
-
-        for (auto& tag : Level.ReactorTriggers) {
-            if (auto wall = Level.TryGetWall(tag)) {
-                if (wall->Type == WallType::Door && wall->State == WallState::Closed)
-                    OpenDoor(Level, tag);
-
-                if (wall->Type == WallType::Destroyable)
-                    DestroyWall(Level, tag);
-            }
-        }
-
+    void SelfDestruct() {
         if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
             TotalCountdown = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
         }
@@ -63,6 +46,36 @@ namespace Inferno::Game {
         //TotalCountdown = 30; // debug
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
+
+        // Load critical clips
+        Set<TexID> ids;
+        for (auto& eclip : Resources::GameData.Effects) {
+            auto& crit = Resources::GetEffectClip(eclip.CritClip);
+            Seq::insert(ids, crit.VClip.GetFrames());
+        }
+
+        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
+        PlaySelfDestructSounds(3);
+    }
+
+    void DestroyReactor(Object& obj) {
+        assert(obj.Type == ObjectType::Reactor);
+
+        obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
+        Render::LoadModelDynamic(obj.Render.Model.ID);
+
+        AddPointsToScore(REACTOR_SCORE);
+        SelfDestruct();
+
+        for (auto& tag : Level.ReactorTriggers) {
+            if (auto wall = Level.TryGetWall(tag)) {
+                if (wall->Type == WallType::Door && wall->State == WallState::Closed)
+                    OpenDoor(Level, tag);
+
+                if (wall->Type == WallType::Destroyable)
+                    DestroyWall(Level, tag);
+            }
+        }
 
         if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
@@ -99,7 +112,7 @@ namespace Inferno::Game {
             for (int i = 0; i < 4; i++) {
                 auto startObj = Game::GetObjectRef(obj);
                 beam->StartDelay = i * 0.4f + Random() * 0.125f;
-                Render::AddBeam(*beam, CountdownTimer + 5, startObj);
+                Render::AddBeam(*beam, (float)TotalCountdown + 5, startObj);
             }
         }
 
@@ -110,16 +123,6 @@ namespace Inferno::Game {
         //        Render::AddBeam(*beam, CountdownTimer + 5, startObj);
         //    }
         //}
-
-        // Load critical clips
-        Set<TexID> ids;
-        for (auto& eclip : Resources::GameData.Effects) {
-            auto& crit = Resources::GetEffectClip(eclip.CritClip);
-            Seq::insert(ids, crit.VClip.GetFrames());
-        }
-
-        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
-        PlaySelfDestructSounds(3);
     }
 
     void UpdateReactorCountdown(float dt) {

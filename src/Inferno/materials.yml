@@ -1601,10 +1601,10 @@ Materials:
   - TexID: 1415
     Roughness: 0.689
   - TexID: 1416
-    NormalStrength: 0.662
-    SpecularStrength: 0.603
-    Metalness: 0.897
-    Roughness: 0.628
+    NormalStrength: 0.224
+    SpecularStrength: 3
+    Metalness: 1
+    Roughness: 0.558
   - TexID: 1424
     NormalStrength: 0.629
     Roughness: 0.406

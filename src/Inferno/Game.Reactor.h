@@ -3,6 +3,7 @@
 #include "Object.h"
 
 namespace Inferno::Game {
+    void SelfDestruct();
     void DestroyReactor(Object& obj);
     void UpdateReactorCountdown(float dt);
     void UpdateReactorAI(const Inferno::Object& reactor, float dt);

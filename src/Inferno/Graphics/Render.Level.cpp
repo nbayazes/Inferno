@@ -140,7 +140,7 @@ namespace Inferno::Render {
                 {
                     // Models
                     auto& object = *cmd.Data.Object;
-                    if (object.Render.Type != RenderType::Model || object.Cloaked) continue;
+                    if (object.Render.Type != RenderType::Model || object.IsCloaked()) continue;
                     auto model = object.Render.Model.ID;
 
                     if (object.Render.Model.Outrage) {

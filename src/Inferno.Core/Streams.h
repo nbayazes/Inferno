@@ -207,7 +207,7 @@ namespace Inferno {
         }
 
         // Reads a 6 byte RGB color
-        Color ReadRGB() {
+        Color ReadRGB() const {
             auto r = ReadByte();
             auto g = ReadByte();
             auto b = ReadByte();

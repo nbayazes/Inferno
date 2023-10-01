@@ -45,7 +45,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float2 uv = float2(0, 0);
     float4 color = Diffuse.SampleLevel(Sampler, input.uv + uv, 0) /** input.col*/;
     //color.rgb *= float3(10, 0, 0);
-    color.rgb *= input.col.rgb;
+    color *= input.col;
     //color.rgb *= Args.Color.rgb;
 
     //if(length(color) > 1.0002)

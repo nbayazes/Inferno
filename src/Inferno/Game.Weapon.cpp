@@ -920,7 +920,7 @@ namespace Inferno::Game {
     }
 
     template <uint32 TResults = 30>
-    Array<ObjRef, TResults> GetNearbyVisibleObjects(const Object& object, float maxDist, int& count, ObjectMask mask) {
+    Array<ObjRef, TResults> GetNearbyLockTargets(const Object& object, float maxDist, int& count, ObjectMask mask) {
         Array<ObjRef, TResults> targets{};
         count = 0;
 
@@ -931,9 +931,18 @@ namespace Inferno::Game {
             if (auto seg = Game::Level.TryGetSegment(segId)) {
                 for (auto& objId : seg->Objects) {
                     if (auto obj = Game::Level.TryGetObject(objId)) {
-                        if (!obj->IsAlive()) continue;
                         if (!obj->PassesMask(mask)) continue;
-                        if (obj->Cloaked) continue; // cloaked objects aren't visible
+                        //if (Game::ObjectCanSeeObject(object, *obj, maxDist)) {
+                        //    targets[count] = { objId, obj->Signature };
+                        //    count++;
+                        //    if (count >= targets.size()) {
+                        //        SPDLOG_WARN("Max nearby targets reached");
+                        //        return targets;
+                        //    }
+                        //}
+
+                        if (!obj->IsAlive()) continue;
+                        if (obj->IsCloaked() || obj->IsPhasing()) continue; // cloaked objects aren't visible
                         auto [dir, dist] = GetDirectionAndDistance(obj->Position, object.Position);
 
                         if (dist < maxDist) {
@@ -986,7 +995,7 @@ namespace Inferno::Game {
 
         auto mask = missile.Control.Weapon.ParentType == ObjectType::Player ? ObjectMask::Enemy : ObjectMask::Player;
         int targetCount;
-        auto targets = GetNearbyVisibleObjects(missile, SMART_HOME_DIST, targetCount, mask);
+        auto targets = GetNearbyLockTargets(missile, SMART_HOME_DIST, targetCount, mask);
 
         const Weapon& weapon = Resources::GetWeapon(missile);
         const Weapon& spawnWeapon = Resources::GetWeapon(weapon.Spawn);

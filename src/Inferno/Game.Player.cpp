@@ -175,31 +175,29 @@ namespace Inferno {
     void Player::Update(float dt) {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
-        CloakTime -= dt;
-        InvulnerableTime -= dt;
 
-        if (HasPowerup(PowerupFlag::Cloak) && CloakTime <= 0) {
+        if (Game::Level.Objects.empty()) return;
+        auto& player = Game::GetPlayerObject();
+
+        if (HasPowerup(PowerupFlag::Cloak) && player.Effects.CloakTimer >= player.Effects.CloakDuration) {
             Sound::Play({ SoundID::CloakOff });
             RemovePowerup(PowerupFlag::Cloak);
-            Game::GetPlayerObject().Cloaked = false;
         }
 
-        if (HasPowerup(PowerupFlag::Invulnerable) && InvulnerableTime <= 0) {
+        if (HasPowerup(PowerupFlag::Invulnerable) && player.Effects.InvulnerableTimer >= player.Effects.InvulnerableDuration) {
             Sound::Play({ SoundID::InvulnOff });
             RemovePowerup(PowerupFlag::Invulnerable);
         }
 
-        if (auto player = Game::Level.TryGetObject(Reference)) {
-            if (auto seg = Game::Level.TryGetSegment(player->Segment)) {
-                if (seg->Type == SegmentType::Energy && Energy < 100) {
-                    constexpr float ENERGY_PER_SECOND = 25.0f;
-                    AddEnergy(ENERGY_PER_SECOND * dt);
+        if (auto seg = Game::Level.TryGetSegment(player.Segment)) {
+            if (seg->Type == SegmentType::Energy && Energy < 100) {
+                constexpr float ENERGY_PER_SECOND = 25.0f;
+                AddEnergy(ENERGY_PER_SECOND * dt);
 
-                    if (RefuelSoundTime <= Game::Time) {
-                        Sound::Play({ SoundID::Refuel }, 0.5f);
-                        constexpr float REFUEL_SOUND_DELAY = 0.25f;
-                        RefuelSoundTime = (float)Game::Time + REFUEL_SOUND_DELAY;
-                    }
+                if (RefuelSoundTime <= Game::Time) {
+                    Sound::Play({ SoundID::Refuel }, 0.5f);
+                    constexpr float REFUEL_SOUND_DELAY = 0.25f;
+                    RefuelSoundTime = (float)Game::Time + REFUEL_SOUND_DELAY;
                 }
             }
         }
@@ -224,7 +222,6 @@ namespace Inferno {
                 AddScreenFlash(FLASH_FUSION_CHARGE);
                 FusionNextSoundDelay -= dt;
                 if (FusionNextSoundDelay < 0) {
-                    auto& player = Game::GetPlayerObject();
                     if (WeaponCharge > weapon.Extended.MaxCharge) {
                         // Self damage
                         Sound3D sound({ SoundID::Explosion }, Reference);
@@ -918,9 +915,8 @@ namespace Inferno {
                 }
                 else {
                     GivePowerup(PowerupFlag::Cloak);
-                    CloakTime = CLOAK_TIME;
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
-                    Game::GetPlayerObject().Cloaked = true;
+                    Game::GetPlayerObject().Cloak(CLOAK_TIME);
                     used = true;
                 }
                 break;
@@ -933,7 +929,7 @@ namespace Inferno {
                 }
                 else {
                     GivePowerup(PowerupFlag::Invulnerable);
-                    InvulnerableTime = INVULN_TIME;
+                    Game::GetPlayerObject().MakeInvulnerable(CLOAK_TIME);
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
                     used = true;
                 }

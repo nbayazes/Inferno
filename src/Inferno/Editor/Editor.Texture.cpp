@@ -609,7 +609,7 @@ namespace Inferno::Editor {
         const auto zAxis = alignmentFace.AverageNormal();
         const auto yAxis = xAxis.Cross(zAxis);
 
-        auto ProjectUV = [&](const Vector3& vert, const Vector3& normal) {
+        auto projectUV = [&](const Vector3& vert, const Vector3& normal) {
             auto shifted = vert - origin;
 
             std::array angles = {
@@ -647,7 +647,7 @@ namespace Inferno::Editor {
             auto face = Face::FromSide(level, id);
 
             for (int i = 0; i < 4; i++)
-                face.Side.UVs[i] = ProjectUV(face[i], face.AverageNormal());
+                face.Side.UVs[i] = projectUV(face[i], face.AverageNormal());
 
             RemapUVs(face.Side);
         }
@@ -668,7 +668,7 @@ namespace Inferno::Editor {
         xAxis.Normalize();
         auto yAxis = xAxis.Cross(alignmentFace.AverageNormal());
 
-        auto ProjectUV = [&](const Vector3& vert) {
+        auto projectUV = [&](const Vector3& vert) {
             auto shifted = vert - origin;
             auto x = xAxis.Dot(shifted); // project shifted point onto each axis
             auto y = yAxis.Dot(shifted);
@@ -681,7 +681,7 @@ namespace Inferno::Editor {
             auto face = Face::FromSide(level, id);
 
             for (int i = 0; i < 4; i++)
-                face.Side.UVs[i] = ProjectUV(face[i]);
+                face.Side.UVs[i] = projectUV(face[i]);
 
             RemapUVs(face.Side);
         }

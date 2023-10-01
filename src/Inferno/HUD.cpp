@@ -483,12 +483,13 @@ namespace Inferno {
     float GetCloakAlpha(const Player& player) {
         if (!player.HasPowerup(PowerupFlag::Cloak)) return 1;
 
-        auto remaining = player.CloakTime;
+        auto& playerObj = Game::GetPlayerObject();
+        auto timer = playerObj.Effects.CloakTimer;
+        auto remaining = playerObj.Effects.CloakDuration - timer;
 
-        // Check upper range due to permanent cloak cheat
-        if (remaining > CLOAK_TIME - 0.5f && remaining <= CLOAK_TIME) {
+        if (timer < 0.5f) {
             // Cloak just picked up, fade out
-            return 1 - (CLOAK_TIME - player.CloakTime) / 0.5f;
+            return 1 - timer / 0.5f;
         }
         else if (remaining < 2.5f) {
             // Cloak close to expiring, fade in/out every 0.5 seconds for 2.5 seconds
@@ -555,7 +556,8 @@ namespace Inferno {
             int frame = std::clamp((int)((100 - player.Shields) / 10), 0, 9);
 
             if (player.HasPowerup(PowerupFlag::Invulnerable)) {
-                auto remaining = player.InvulnerableTime;
+                auto& playerObj = Game::GetPlayerObject();
+                auto remaining = playerObj.Effects.InvulnerableDuration - playerObj.Effects.InvulnerableTimer;
                 int invFrame = 10 + (int)(remaining * 5) % 10; // frames 10 to 19, 5 fps
 
                 if (remaining > 4.0f || std::fmod(remaining, 1.0f) < 0.5f) {
@@ -791,3 +793,4 @@ namespace Inferno {
         Hud.AddPoints(points);
     }
 }
+

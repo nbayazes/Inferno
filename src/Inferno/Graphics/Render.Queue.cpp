@@ -97,7 +97,7 @@ namespace Inferno::Render {
             _transparentQueue.push_back({ &obj, depth });
         }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
-            if (obj.Cloaked) {
+            if (obj.IsCloaked()) {
                 _distortionQueue.push_back({ &obj, depth });
             }
             else {
@@ -150,7 +150,7 @@ namespace Inferno::Render {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
-                    if (obj.Obj->Cloaked) {
+                    if (obj.Obj->IsCloaked()) {
                         // Cloaked objects render using a different queue
                         _distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
@@ -221,7 +221,7 @@ namespace Inferno::Render {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
-                    if (obj.Obj->Cloaked) {
+                    if (obj.Obj->IsCloaked()) {
                         _distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
@@ -431,17 +431,6 @@ namespace Inferno::Render {
                     if (auto seg = level.TryGetSegment(sid)) {
                         for (int i = 0; i < seg->Effects.size(); i++) {
                             UpdateEffect(FrameTime, seg->Effects[i]);
-                        }
-
-                        // Update dissolve effect
-                        for (auto& objId : seg->Objects) {
-                            if (auto obj = level.TryGetObject(objId)) {
-                                if (obj->TotalDissolveTime > 0) {
-                                    obj->DissolveTime += FrameTime;
-                                    if (obj->DissolveTime > obj->TotalDissolveTime)
-                                        obj->TotalDissolveTime = 0;
-                                }
-                            }
                         }
                     }
                 }

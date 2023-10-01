@@ -57,9 +57,6 @@ namespace Inferno {
         int Score;
         int64 LevelTime, TotalTime;
 
-        float CloakTime; // When cloak was picked up
-        float InvulnerableTime; // When invuln was picked up
-
         void SubtractEnergy(float energy) {
             Energy -= energy;
             if (Energy < 0) Energy = 0;

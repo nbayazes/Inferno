@@ -22,6 +22,8 @@ namespace Inferno {
             if (D1 != -1 && rhs.D1 != -1) return D1 == rhs.D1;
             return D2 == rhs.D2;
         }
+
+        float GetDuration() const;
     };
 
     struct Sound2D {

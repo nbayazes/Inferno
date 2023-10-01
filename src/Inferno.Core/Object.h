@@ -5,42 +5,42 @@
 namespace Inferno {
     // Control types - what tells this object what do do
     enum class ControlType : uint8 {
-        None = 0,       // No movement
+        None = 0, // No movement
         AI = 1,
-        Explosion = 2,  // Explosion sequence
+        Explosion = 2, // Explosion sequence
         Flying = 4,
-        Slew = 5,       // Editor camera?
+        Slew = 5, // Editor camera?
         FlyThrough = 6,
         Weapon = 9,
         Repaircen = 10, // Unused
-        Morph = 11,     // Matcen morphing in
-        Debris = 12,    // Debris of destroyed robot
+        Morph = 11, // Matcen morphing in
+        Debris = 12, // Debris of destroyed robot
         Powerup = 13,
-        Light = 14,     // Unused
-        Remote = 15,    // Multiplayer
+        Light = 14, // Unused
+        Remote = 15, // Multiplayer
         Reactor = 16,
     };
 
     enum class RenderType : uint8 {
-        None = 0,           // Invisible
-        Model = 1,          // Object model  
-        Fireball = 2,       // Animated effect
-        Laser = 3,          // Weapon using a model?
-        Hostage = 4,        // Axis aligned sprite
-        Powerup = 5,        // Sprite
-        Morph = 6,          // Robot being constructed by a matcen
-        WeaponVClip = 7,    // Animated weapon projectile
+        None = 0, // Invisible
+        Model = 1, // Object model  
+        Fireball = 2, // Animated effect
+        Laser = 3, // Weapon using a model?
+        Hostage = 4, // Axis aligned sprite
+        Powerup = 5, // Sprite
+        Morph = 6, // Robot being constructed by a matcen
+        WeaponVClip = 7, // Animated weapon projectile
     };
 
     // misc object flags
     enum class ObjectFlag : uint16 {
         None = 0,
-        Exploding = 1,
-        Dead = 2,           // Scheduled for deletion
-        Destroyed = 4,      // Object has been destroyed from damage. Can change model appearance.
-        Silent = 8,         // No sound when colliding
-        Attached = 16,      // Object is attached to another object or wall. Disables hit testing.
-        Harmless = 32,      // Does no damage
+        Exploding = 1, // Object is exploding with a delay. Ship, robots, bosses.
+        Dead = 2, // Scheduled for deletion
+        Destroyed = 4, // Object has been destroyed from damage. Can change model appearance.
+        Silent = 8, // No sound when colliding
+        Attached = 16, // Object is attached to another object or wall. Disables hit testing.
+        Harmless = 32, // Does no damage
         PlayerDropped = 64, // Dropped by player (death?)
         AlwaysUpdate = 128, // Always update this object regardless of visibility. Thief, Weapons
         Updated = 256, // Was updated this frame
@@ -48,16 +48,16 @@ namespace Inferno {
 
     enum class PhysicsFlag : uint16 {
         None = 0,
-        TurnRoll = 1 << 0,        // roll when turning
-        AutoLevel = 1 << 1,       // align object with nearby side
-        Bounce = 1 << 2,          // bounce instead of slide when hitting a wall
-        Wiggle = 1 << 3,          // wiggle while flying
-        Stick = 1 << 4,           // object sticks (stops moving) when hits wall
-        Piercing = 1 << 5,        // object keeps going even after it hits another object
-        UseThrust = 1 << 6,       // this object uses its thrust
-        BouncedOnce = 1 << 7,     // Weapon has bounced once
-        FixedAngVel = 1 << 8,     // Drag does not apply to rotation of this object
-        BouncesTwice = 1 << 9,    // This weapon bounces twice, then dies
+        TurnRoll = 1 << 0, // roll when turning
+        AutoLevel = 1 << 1, // align object with nearby side
+        Bounce = 1 << 2, // bounce instead of slide when hitting a wall
+        Wiggle = 1 << 3, // wiggle while flying
+        Stick = 1 << 4, // object sticks (stops moving) when hits wall
+        Piercing = 1 << 5, // object keeps going even after it hits another object
+        UseThrust = 1 << 6, // this object uses its thrust
+        BouncedOnce = 1 << 7, // Weapon has bounced once
+        FixedAngVel = 1 << 8, // Drag does not apply to rotation of this object
+        BouncesTwice = 1 << 9, // This weapon bounces twice, then dies
         SphereCollidePlayer = 1 << 10, // Use spheres when colliding with the player
         PointCollideWalls = 1 << 11, // Use raycasting against walls, otherwise use spheres
     };
@@ -123,35 +123,35 @@ namespace Inferno {
     };
 
     constexpr float CLOAK_TIME = 30.0f;
-    constexpr float INVULN_TIME = 30.0f;
+    constexpr float INVULNERABLE_TIME = 30.0f;
     constexpr int VULCAN_AMMO_PICKUP = 2500; // Ammo per vulcan pickup
 
     // Object types
     enum class ObjectType : uint8 {
-        None = 255,     // unused object
+        None = 255, // unused object
         SecretExitReturn = 254, // Editor only secret exit return. Not serialized.
-        Wall = 0,       // Not actually an object. Used for collisions
-        Fireball = 1,   // Explosion effect. no collision?
+        Wall = 0, // Not actually an object. Used for collisions
+        Fireball = 1, // Explosion effect. no collision?
         Robot = 2,
         Hostage = 3,
         Player = 4,
         Weapon = 5, // A projectile from a weapon?
         Camera = 6,
         Powerup = 7,
-        Debris = 8,     // remains of a destroyed robot
+        Debris = 8, // remains of a destroyed robot
         Reactor = 9,
-        Clutter = 11,   // Unused, would be for random clutter placed in the level like barrels or boxes
-        Ghost = 12,     // Dead player / spectator
-        Light = 13,     // Unused
-        Coop = 14,      // Co-op player
-        Marker = 15,    // A marker placed by the player
-        Building = 16,  // D3
-        Door = 17       // D3
+        Clutter = 11, // Unused, would be for random clutter placed in the level like barrels or boxes
+        Ghost = 12, // Dead player / spectator
+        Light = 13, // Unused
+        Coop = 14, // Co-op player
+        Marker = 15, // A marker placed by the player
+        Building = 16, // D3
+        Door = 17 // D3
     };
 
     enum class MovementType : uint8 {
         None = 0, // No physics or movement
-        Physics = 1,  // Affected by physics
+        Physics = 1, // Affected by physics
         Spinning = 3, // Spins in place
     };
 
@@ -176,8 +176,8 @@ namespace Inferno {
         // r: response ramping. 0..1 input is delayed. 1: immediate response >1: overshoots target  <0 predicts movement
         SecondOrderDynamics(float f = 1, float z = 1, float r = 0, T initialValue = {})
             : _k1(z / (DirectX::XM_PI * f)),
-            _k2(1 / std::pow(DirectX::XM_2PI * f, 2.0f)),
-            _k3(r* z / (DirectX::XM_2PI * f)) {
+              _k2(1 / std::pow(DirectX::XM_2PI * f, 2.0f)),
+              _k3(r * z / (DirectX::XM_2PI * f)) {
             _prevValue = initialValue;
             _y = initialValue;
         }
@@ -199,14 +199,14 @@ namespace Inferno {
 
     struct PhysicsData {
         Vector3 Velocity, PrevVelocity;
-        Vector3 Thrust;     // Constant force applied
+        Vector3 Thrust; // Constant force applied
         float Mass;
         float Drag;
         float Brakes;
         Vector3 AngularVelocity; // Rotational velocity (pitch, yaw, roll)
         Vector3 AngularAcceleration;
-        Vector3 AngularThrust;  // Rotational acceleration from player input (pitch, yaw, roll)
-        float TurnRoll;   // Rotation caused by turn banking
+        Vector3 AngularThrust; // Rotational acceleration from player input (pitch, yaw, roll)
+        float TurnRoll; // Rotation caused by turn banking
         PhysicsFlag Flags = PhysicsFlag::PointCollideWalls;
         Vector3 SpinRate; // Fixed speed rotation. Was part of Spinning type.
         int Bounces = 0; // Number of remaining bounces
@@ -232,8 +232,8 @@ namespace Inferno {
         AIBehavior Behavior = AIBehavior::Normal;
         Array<sbyte, 11> Flags{};
         SegID HideSegment{}; // Segment to go to for hiding. Also used for roaming / station behavior.
-        short HideIndex{};   // Index in Path_seg_points
-        short PathLength{};  // Length of hide path.
+        short HideIndex{}; // Index in Path_seg_points
+        short PathLength{}; // Length of hide path.
         int16 CurrentPathIndex{}; // Current index in path.
 
         void SmartMineFlag(bool value) {
@@ -270,10 +270,10 @@ namespace Inferno {
     };
 
     struct ExplosionObjectInfo {
-        float SpawnTime{};  // when lifeleft is < this, spawn another
+        float SpawnTime{}; // when lifeleft is < this, spawn another
         float DeleteTime{}; // when to delete object
         ObjID DeleteObject{}; // and what object to delete
-        ObjID Parent = ObjID::None;     // explosion is attached to this object
+        ObjID Parent = ObjID::None; // explosion is attached to this object
         ObjID PrevAttach = ObjID::None; // previous explosion in attach list
         ObjID NextAttach = ObjID::None; // next explosion in attach list
     };
@@ -296,11 +296,12 @@ namespace Inferno {
 
     struct ControlData {
         ControlType Type = ControlType::None;
+
         union {
             ExplosionObjectInfo Explosion; //debris also uses this
             LightInfo Light;
             PowerupControlInfo Powerup;
-            RobotAI AI; 
+            RobotAI AI;
             WeaponData Weapon{}; // be sure to init using the largest struct
             //struct ReactorControlInfo Reactor; // Not in original data
         };
@@ -310,15 +311,16 @@ namespace Inferno {
         RenderType Type;
         Color Emissive;
         float Rotation = 0;
+
         union {
             ModelData Model{}; // polygon model
-            VClipData VClip;   // vclip
+            VClipData VClip; // vclip
         };
     };
 
     struct ContainsData {
-        ObjectType Type = ObjectType::None;  // Type of object this object contains
-        int8 ID = 0;    // ID of object this object contains (type = powerup, id = blue key)
+        ObjectType Type = ObjectType::None; // Type of object this object contains
+        int8 ID = 0; // ID of object this object contains (type = powerup, id = blue key)
         uint8 Count = 0; // number of objects of type:id this object contains
     };
 
@@ -326,22 +328,83 @@ namespace Inferno {
 
     enum class ObjectMask {
         Any = 0, // No masking
-        Enemy = 1 << 1, // Reactor or robot
-        Player = 1 << 2, // Player or Coop
-        Powerup = 1 << 3 // Powerup or hostage
+        Enemy = 1 << 0, // Reactor or robot
+        Player = 1 << 1, // Player or Coop
+        Powerup = 1 << 2 // Powerup or hostage
     };
 
     constexpr double MAX_OBJECT_LIFE = 3600 * 100; // 100 hours
 
-    struct Object {
-        ObjSig Signature{};     // Unique signature for each object
-        ObjectType Type{};
-        int8 ID{};              // Index in powerups, robots, etc. Also used for player and co-op IDs.
-        ObjectFlag Flags{};
-        SegID Segment{};        // segment number containing object
+    enum class EffectFlags {
+        None,
+        Cloaked = 1 << 0,
+        Invulnerable = 1 << 1,
+        PhaseIn = 1 << 2, // Becoming solid
+        PhaseOut = 1 << 3,
+        Ignited = 1 << 4
+    };
 
-        float Radius = 2;       // radius of object for collision detection
-        float HitPoints = 100;  // Objects are destroyed when hitpoints go under 0
+    struct ObjectEffects {
+        EffectFlags Flags;
+
+        float CloakTimer; // Elapsed cloaking
+        float CloakDuration; // How long cloaking lasts
+
+        float InvulnerableTimer;
+        float InvulnerableDuration; // How long invulnerability lasts
+
+        Color PhaseColor;
+        float PhaseTimer;
+        float PhaseDuration;
+
+        float IgniteDuration;
+
+        float GetCloakPercent() const { return Saturate(CloakTimer / CloakDuration); }
+        float GetPhasePercent() const { return Saturate(PhaseTimer / PhaseDuration); }
+
+        void Update(float dt) {
+            if (HasFlag(Flags, EffectFlags::Cloaked)) {
+                CloakTimer += dt;
+                if (CloakTimer >= CloakDuration)
+                    ClearFlag(Flags, EffectFlags::Cloaked);
+            }
+
+            if (HasFlag(Flags, EffectFlags::Invulnerable)) {
+                InvulnerableTimer += dt;
+                if (InvulnerableTimer >= InvulnerableDuration)
+                    ClearFlag(Flags, EffectFlags::Invulnerable);
+            }
+
+            if (HasFlag(Flags, EffectFlags::PhaseIn)) {
+                PhaseTimer += dt;
+                if (PhaseTimer >= PhaseDuration)
+                    ClearFlag(Flags, EffectFlags::PhaseIn);
+            }
+
+            if (HasFlag(Flags, EffectFlags::PhaseOut)) {
+                PhaseTimer += dt;
+                if (PhaseTimer >= PhaseDuration)
+                    ClearFlag(Flags, EffectFlags::PhaseOut);
+            }
+
+            if (HasFlag(Flags, EffectFlags::Ignited)) {
+                IgniteDuration -= dt;
+                if (IgniteDuration <= 0)
+                    ClearFlag(Flags, EffectFlags::Ignited);
+            }
+        }
+    };
+
+    struct Object {
+        ObjSig Signature{}; // Unique signature for each object
+        ObjectType Type{};
+        int8 ID{}; // Index in powerups, robots, etc. Also used for player and co-op IDs.
+        ObjectFlag Flags{};
+        SegID Segment = SegID::None; // segment number containing object
+        ObjectEffects Effects{};
+
+        float Radius = 2; // radius of object for collision detection
+        float HitPoints = 100; // Objects are destroyed when hitpoints go under 0
         float MaxHitPoints = 100; // Starting maximum hit points
         ContainsData Contains{};
         MatcenID SourceMatcen = MatcenID::None; // Materialization center that created this object
@@ -369,12 +432,9 @@ namespace Inferno {
         } Light;
 
         LerpedColor Ambient;
-        bool Cloaked = false; // Draws using 'cloaked' effect and is untargetable by homing weapons
 
         double NextThinkTime = NEVER_THINK; // Game time of next think event
         float Scale = 1.0; // Model / sprite scale
-        float TotalDissolveTime = 0; // When > 0 dissolving in is enabled
-        float DissolveTime = 0; // How far into the dissolve
 
         Matrix GetTransform() const {
             Matrix m(Rotation);
@@ -418,6 +478,59 @@ namespace Inferno {
         }
 
         bool IsAlive() const { return !HasFlag(Flags, ObjectFlag::Dead); }
+
+        bool IsCloaked() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked); }
+
+        void Cloak(float duration) {
+            ASSERT(duration > 0);
+            SetFlag(Effects.Flags, EffectFlags::Cloaked);
+            Effects.CloakDuration = duration;
+            Effects.CloakTimer = 0;
+        }
+
+        void Uncloak() {
+            ClearFlag(Effects.Flags, EffectFlags::Cloaked);
+        }
+
+        bool IsInvulnerable() const { return HasFlag(Effects.Flags, EffectFlags::Invulnerable); }
+
+        void MakeInvulnerable(float duration) {
+            ASSERT(duration > 0);
+            SetFlag(Effects.Flags, EffectFlags::Invulnerable);
+            Effects.InvulnerableDuration = duration;
+            Effects.InvulnerableTimer = 0;
+        }
+
+        void MakeVulnerable() {
+            ClearFlag(Effects.Flags, EffectFlags::Invulnerable);
+        }
+
+        void PhaseIn(float duration, const Color& color) {
+            ASSERT(duration > 0);
+            SetFlag(Effects.Flags, EffectFlags::PhaseIn);
+            ClearFlag(Effects.Flags, EffectFlags::PhaseOut);
+            Effects.PhaseDuration = duration;
+            Effects.PhaseTimer = 0;
+            Effects.PhaseColor = color;
+        }
+
+        void PhaseOut(float duration, const Color& color) {
+            ASSERT(duration > 0);
+            SetFlag(Effects.Flags, EffectFlags::PhaseOut);
+            ClearFlag(Effects.Flags, EffectFlags::PhaseIn);
+            Effects.PhaseDuration = duration;
+            Effects.PhaseTimer = 0;
+            Effects.PhaseColor = color;
+        }
+
+        bool IsPhasing() const {
+            return HasFlag(Effects.Flags, EffectFlags::PhaseIn) || HasFlag(Effects.Flags, EffectFlags::PhaseOut);
+        }
+
+        // Returns true if homing weapons can lock onto this object
+        bool CanHomingLock() const {
+            return !IsPhasing() and !IsCloaked();
+        }
 
         float Distance(const Object& obj) const {
             return Vector3::Distance(Position, obj.Position);

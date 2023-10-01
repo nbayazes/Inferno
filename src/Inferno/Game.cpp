@@ -197,7 +197,7 @@ namespace Inferno::Game {
 
             // Read mission from filesystem
             std::ifstream file(Mission->GetMissionPath());
-            if (mission.Read(file)) 
+            if (mission.Read(file))
                 return mission;
 
             // Descent2 stores its mn2 in the hog file
@@ -734,7 +734,10 @@ namespace Inferno::Game {
         UpdatePhysics(Game::Level, id, dt);
         obj.Ambient.Update(Game::Time);
 
-        if (obj.HitPoints < 0 && obj.Lifespan > 0 && !HasFlag(obj.Flags, ObjectFlag::Destroyed)) {
+        if (!HasFlag(obj.Flags, ObjectFlag::Destroyed) &&
+            ((obj.HitPoints < 0 && obj.Lifespan > 0) || (obj.Lifespan <= 0 && HasFlag(obj.Flags, ObjectFlag::Exploding)))) {
+            // Check if a live object has been destroyed.
+            // This can happen by running out of hit points or by being set to explode
             DestroyObject(obj);
             // Keep playing effects from a dead reactor
             if (obj.Type != ObjectType::Reactor) {
@@ -798,6 +801,8 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate)) {
                 FixedUpdateObject(dt, ObjID(i), obj);
             }
+
+            obj.Effects.Update(dt);
         }
 
         if (auto currentRoom = GetCurrentRoom()) {

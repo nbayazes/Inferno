@@ -920,7 +920,7 @@ namespace Inferno::Game {
                                List<Tuple<int, int>>& visiblePortalLinks, int steps) {
         ASSERT(steps >= 2);
         auto roomId = RoomID(&room - &rooms[0]);
-        SPDLOG_INFO("Room Visibility: {}", roomId);
+        //SPDLOG_INFO("Room Visibility: {}", roomId);
         room.VisibleRooms.clear();
         room.VisibleRooms.push_back(roomId); // Can see self
 

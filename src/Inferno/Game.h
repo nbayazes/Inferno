@@ -48,9 +48,12 @@ namespace Inferno::Game {
     inline IntersectContext Intersect(Level);
 
     // Returns true if an object has line of sight to a target. Also checks if the target is cloaked.
-    inline bool ObjectCanSeeObject(const Object& obj, const Object& target) {
-        if (target.Cloaked) return false;
+    inline bool ObjectCanSeeObject(const Object& obj, const Object& target, float maxDist = -1) {
+        if (target.IsCloaked() || !target.IsAlive()) return false;
         auto [dir, dist] = GetDirectionAndDistance(target.Position, obj.Position);
+        if (maxDist > 0)
+            if (dist >= maxDist) return false;
+
         Ray ray(obj.Position, dir);
         LevelHit hit;
         RayQuery query(dist, obj.Segment, true);

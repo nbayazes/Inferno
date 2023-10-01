@@ -14,7 +14,7 @@ namespace Inferno {
     struct SoundFile {
         struct Header {
             string Name;
-            int Length;
+            int Length; // Length in samples. Divide by frequency to get duration in seconds.
             int DataLength;
             int Offset;
         };

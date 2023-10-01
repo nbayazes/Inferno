@@ -86,6 +86,8 @@ namespace Inferno {
 
         // Joint lookup for each gun and animation state
         JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];
+
+        List<int> GatedRobots; // Robots to gate in when hit. For bosses.
     };
 
 }

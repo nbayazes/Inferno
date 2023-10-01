@@ -8,6 +8,8 @@
 #include "Render.h"
 #include "Resources.h"
 
+//#define DEBUG_DISSOLVE
+
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
@@ -92,11 +94,18 @@ namespace Inferno::Render {
 
         auto& shader = Shaders->DepthObject;
 
-        if (object.DissolveTime > 0) {
+#ifdef DEBUG_DISSOLVE
+        shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+        shader.SetSampler(cmdList, GetWrappedTextureSampler());
+        double x;
+        constants.DissolveAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
+#else
+        if (object.IsPhasing()) {
             shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
             shader.SetSampler(cmdList, GetWrappedTextureSampler());
-            constants.DissolveAmount = object.DissolveTime / object.TotalDissolveTime;
+            constants.DissolveAmount = std::max(object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
         }
+#endif
 
         for (int submodel = 0; submodel < model.Submodels.size(); submodel++) {
             constants.World = GetSubmodelTransform(object, model, submodel) * transform;
@@ -333,7 +342,7 @@ namespace Inferno::Render {
                    const Object& object,
                    ModelID modelId,
                    RenderPass pass) {
-        if (object.Cloaked) {
+        if (object.IsCloaked()) {
             DrawCloakedModel(ctx, object, modelId, pass);
             return;
         }
@@ -357,14 +366,19 @@ namespace Inferno::Render {
         effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
 
         ObjectShader::Constants constants = {};
-        if (object.DissolveTime > 0) {
+#ifdef DEBUG_DISSOLVE
+        constants.DissolveColor = object.Effects.PhaseColor;
+        effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+        double x;
+        constants.DissolveAmount = (float)std::modf(Clock.GetTotalTimeSeconds() * 0.5, &x);
+#else
+        if (object.IsPhasing()) {
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
-            constants.DissolveAmount = object.DissolveTime / object.TotalDissolveTime;
-            constants.DissolveColor = Color(8, 0, 8);
+            constants.DissolveAmount = std::max(object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
+            constants.DissolveColor = object.Effects.PhaseColor;
         }
-        //constants.DissolveColor = Color(8, 0, 8);
-        //constants.DissolveAmount = 0.5f;
-        //effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
+#endif
 
         if (object.Render.Emissive != Color(0, 0, 0)) {
             // Change the ambient color to white if object has any emissivity

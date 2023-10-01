@@ -52,7 +52,7 @@ namespace Inferno {
     constexpr float STUN_THRESHOLD = 27.5; // Minimum damage to stun a robot. Concussion is 30 damage.
     constexpr float MAX_STUN_PERCENT = 0.6f; // Percentage of life required in one hit to reach max stun time
     constexpr float MAX_STUN_TIME = 1.5f; // max stun in seconds
-    constexpr float MIN_STUN_TIME = 0.25f; // min stun in seconds
+    constexpr float MIN_STUN_TIME = 0.25f; // min stun in seconds. Stuns under this duration are discarded.
 
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
         return info.Difficulty[Game::Difficulty];
@@ -1076,9 +1076,10 @@ namespace Inferno {
         if (ai.RemainingSlow > 0) slowTime += ai.RemainingSlow;
         ai.RemainingSlow = std::clamp(slowTime, 0.1f, MAX_SLOW_TIME);
 
+        float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
+
         // Apply stun
-        if (damage * stunMult > STUN_THRESHOLD) {
-            float stunTime = damageScale / MAX_STUN_PERCENT * MAX_STUN_TIME;
+        if (damage * stunMult > STUN_THRESHOLD && stunTime > MIN_STUN_TIME) {
             //SPDLOG_INFO("Stunning {} for {}", robot.Signature, stunTime > MAX_STUN_TIME ? MAX_STUN_TIME : stunTime);
             if (ai.RemainingStun > 0) stunTime += ai.RemainingStun;
             stunTime = std::clamp(stunTime, MIN_STUN_TIME, MAX_STUN_TIME);
@@ -1092,7 +1093,6 @@ namespace Inferno {
             }
         }
 
-        // todo: boss invulnerability
         if (!Settings::Cheats.DisableWeaponDamage)
             robot.HitPoints -= damage;
     }

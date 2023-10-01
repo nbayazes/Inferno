@@ -221,7 +221,7 @@ namespace Inferno::Editor {
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
                 obj.Render.Model = { .ID = ri.Model };
-                obj.Cloaked = ri.Cloaking != CloakType::None;
+                if (ri.Cloaking != CloakType::None) obj.Cloak((float)obj.Lifespan);
 
                 if (fullReset) {
                     obj.Control.AI.Behavior = AIBehavior::Normal;
