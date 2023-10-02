@@ -123,7 +123,6 @@ namespace Inferno {
         bool Chargable = false; // Fusion, Mass Driver
         float MaxCharge = 2; // Max charge time for full power
         int Crosshair = 0; // Crosshair shown when selected but not ready to fire
-        float HomingTurnRate = 0; // Amount of rotational force to apply each second for homing weapons
         List<int> Levels; // Weapon ID fired at each upgrade level (for lasers)
 
         bool SilentSelectFail = false; // Hide HUD errors when selecting
@@ -151,6 +150,9 @@ namespace Inferno {
         Array<float, 5> InitialSpeed; // Speed to spawn with
         bool PointCollideWalls = true; // Use raycasting against level geometry. Otherwise use spheres.
         float Recoil = 0; // How much backwards force to apply when firing
+        float HomingFov = 0; // Homing FOV in degrees
+        float HomingDistance = 0; // Distance to look for new targets
+        //float HomingTurnRate = 0; // Amount of rotational force to apply each second for homing weapons
 
         //struct FiringPattern {
         //    string Crosshair;

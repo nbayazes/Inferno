@@ -360,7 +360,15 @@ namespace Inferno {
         float IgniteDuration;
 
         float GetCloakPercent() const { return Saturate(CloakTimer / CloakDuration); }
-        float GetPhasePercent() const { return Saturate(PhaseTimer / PhaseDuration); }
+
+        float GetPhasePercent() const {
+            if (HasFlag(Flags, EffectFlags::PhaseOut))
+                return 1 - Saturate(PhaseTimer / PhaseDuration);
+            else if (HasFlag(Flags, EffectFlags::PhaseIn))
+                return Saturate(PhaseTimer / PhaseDuration);
+
+            return 0;
+        }
 
         void Update(float dt) {
             if (HasFlag(Flags, EffectFlags::Cloaked)) {

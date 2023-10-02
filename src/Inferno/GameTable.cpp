@@ -153,6 +153,13 @@ namespace Inferno {
         READ_PROP_EXT(InheritParentVelocity);
         READ_PROP_EXT(Sparks);
         READ_PROP_EXT(DeathSparks);
+
+        READ_PROP_EXT(HomingFov);
+        READ_PROP_EXT(HomingDistance);
+
+        if (weapon.Extended.HomingFov > 0)
+            weapon.Extended.HomingFov = sin(weapon.Extended.HomingFov * DegToRad);
+
 #undef READ_PROP_EXT
     }
 

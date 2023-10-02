@@ -183,6 +183,7 @@ namespace Inferno {
             return Sides[(int)side].Wall != WallID::None;
         }
 
+        // Returns true if there is no connection or a solid wall blocks this side
         bool SideIsSolid(SideID side, const Level& level) const;
 
         bool LightIsSubtracted(SideID side) const {

@@ -238,14 +238,3 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
 
     return result;
 }
-
-
-
-void f() {
-    int i;
-    i = 1;
-
-    int j;
-    j = 2;
-}
-

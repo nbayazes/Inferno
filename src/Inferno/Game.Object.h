@@ -35,6 +35,9 @@ namespace Inferno {
     // Updates the segment of an object based on position. Returns true if the segment changed.
     bool UpdateObjectSegment(Level& level, Object& obj);
 
+    // Links an object to a new segment
+    void RelinkObject(Level& level, Object& obj, SegID newSegment);
+
     // Updates the segment the object is in based on position and activates triggers.
     void MoveObject(Level& level, ObjID objId);
 

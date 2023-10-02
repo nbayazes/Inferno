@@ -2,6 +2,8 @@
 
 #include "Types.h"
 #include "Game.AI.h"
+
+#include "Game.Boss.h"
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Reactor.h"
@@ -28,6 +30,8 @@ namespace Inferno {
     void ResetAI() {
         for (auto& ai : RuntimeState)
             ai = {};
+
+        Game::InitBoss();
     }
 
     void ResizeAI(size_t size) {
@@ -1060,15 +1064,18 @@ namespace Inferno {
         }
     }
 
-    void DamageRobot(const Vector3& source, Object& robot, float damage, float stunMult) {
+    void DamageRobot(const Vector3& source, bool sourceIsPlayer, Object& robot, float damage, float stunMult) {
         auto& info = Resources::GetRobotInfo(robot);
         auto& ai = GetAI(robot);
 
         // Wake up a robot if it gets hit
         if (ai.Awareness < .30f) {
             ai.Awareness = .30f;
-            ai.Target = source;
+            ai.Target = source; // Ok to look at ally if they woke this robot up
         }
+
+        if (sourceIsPlayer)
+            ai.LastHitByPlayer = 0;
 
         // Apply slow
         float damageScale = 1 - (info.HitPoints - damage * stunMult) / info.HitPoints; // percentage of life dealt
@@ -1227,6 +1234,9 @@ namespace Inferno {
             robot.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
         }
 
+        if (robotInfo.IsBoss)
+            Game::UpdateBoss(robot, dt);
+
         if (ai.GoalSegment != SegID::None) {
             // goal pathing takes priority over other behaviors
             PathTowardsGoal(Game::Level, robot, ai, dt);
@@ -1249,7 +1259,8 @@ namespace Inferno {
                 DecayAwareness(ai);
             }
 
-            if (ai.Target) {
+            // Prevent attacking during phasing (matcens and teleports)
+            if (ai.Target && !robot.IsPhasing()) {
                 if (robotInfo.Attack == AttackType::Ranged) {
                     if (!ai.PlayingAnimation()) {
                         PlayRobotAnimation(robot, AnimState::Alert, 1.0f);

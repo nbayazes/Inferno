@@ -163,6 +163,16 @@ namespace Inferno {
         return true;
     }
 
+    void RelinkObject(Level& level, Object& obj, SegID newSegment) {
+        auto id = Game::GetObjectRef(obj).Id;
+        auto& prevSeg = level.GetSegment(obj.Segment);
+        prevSeg.RemoveObject(id);
+        auto& seg = level.GetSegment(newSegment);
+        seg.AddObject(id);
+        obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
+        obj.Segment = newSegment;
+    }
+
     void MoveObject(Level& level, ObjID objId) {
         auto pObj = level.TryGetObject(objId);
         if (!pObj) return;

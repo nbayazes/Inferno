@@ -160,7 +160,9 @@ namespace Inferno::Game {
             else if (target.IsRobot()) {
                 Vector3 srcDir;
                 src.Physics.Velocity.Normalize(srcDir);
-                DamageRobot(target.Position - srcDir * 5, target, damage, weapon.Extended.StunMult);
+                auto parent = Game::Level.TryGetObject(src.Parent);
+                bool srcIsPlayer = parent ? parent->IsPlayer() : false;
+                DamageRobot(target.Position - srcDir * 5, srcIsPlayer, target, damage, weapon.Extended.StunMult);
             }
             else {
                 target.ApplyDamage(damage);
@@ -991,17 +993,19 @@ namespace Inferno::Game {
     }
 
     void CreateMissileSpawn(const Object& missile, uint blobs) {
-        constexpr float SMART_HOME_DIST = 150;
-
         auto mask = missile.Control.Weapon.ParentType == ObjectType::Player ? ObjectMask::Enemy : ObjectMask::Player;
         int targetCount;
-        auto targets = GetNearbyLockTargets(missile, SMART_HOME_DIST, targetCount, mask);
 
         const Weapon& weapon = Resources::GetWeapon(missile);
-        const Weapon& spawnWeapon = Resources::GetWeapon(weapon.Spawn);
 
+        auto spawn = weapon.Spawn;
+        if (missile.Control.Weapon.ParentType != ObjectType::Player && spawn == WeaponID::PlayerSmartBlob)
+            spawn = WeaponID::RobotSmartBlob; // HACK: Override blobs for robot smart missiles
+
+        const Weapon& spawnWeapon = Resources::GetWeapon(spawn);
+        auto targets = GetNearbyLockTargets(missile, spawnWeapon.Extended.HomingDistance, targetCount, mask);
         Sound3D sound({ spawnWeapon.FlashSound }, missile.Position, missile.Segment);
-        sound.Volume = DEFAULT_WEAPON_VOLUME * 1.2f;
+        sound.Volume = DEFAULT_WEAPON_VOLUME * 1.5f;
         sound.Radius = spawnWeapon.Extended.SoundRadius;
         Sound::Play(sound);
 
@@ -1009,13 +1013,13 @@ namespace Inferno::Game {
             SPDLOG_INFO("Found blob targets");
             // if found targets, pick random target from array
             for (size_t i = 0; i < blobs; i++)
-                CreateHomingBlob(weapon.Spawn, missile, targets[RandomInt(targetCount - 1)]);
+                CreateHomingBlob(spawn, missile, targets[RandomInt(targetCount - 1)]);
         }
         else {
             SPDLOG_INFO("No blob targets");
             // Otherwise random points
             for (size_t i = 0; i < blobs; i++)
-                CreateHomingBlob(weapon.Spawn, missile);
+                CreateHomingBlob(spawn, missile);
         }
     }
 
@@ -1044,13 +1048,10 @@ namespace Inferno::Game {
         weapon.Physics.Bounces = 0; // Hack for smart missile blob bounces
         auto& targetRef = weapon.Control.Weapon.TrackingTarget;
 
-        constexpr float HOMING_FOV = 45 * DegToRad;
-        constexpr float HOMING_DISTANCE = 300;
-
         // Check if the target is still trackable
         if (targetRef) {
             auto target = Game::Level.TryGetObject(targetRef);
-            if (!target || !CanTrackTarget(weapon, *target, HOMING_FOV, HOMING_DISTANCE)) {
+            if (!target || !CanTrackTarget(weapon, *target, weaponInfo.Extended.HomingFov, weaponInfo.Extended.HomingDistance)) {
                 SPDLOG_INFO("Lost tracking target");
                 targetRef = {}; // target destroyed or out of view
             }
@@ -1063,7 +1064,7 @@ namespace Inferno::Game {
                 if (parent->IsRobot())
                     mask = ObjectMask::Player;
 
-            targetRef = GetClosestObjectInFOV(weapon, HOMING_FOV, HOMING_DISTANCE, mask);
+            targetRef = GetClosestObjectInFOV(weapon, weaponInfo.Extended.HomingFov, weaponInfo.Extended.HomingDistance, mask);
             if (targetRef)
                 SPDLOG_INFO("Locking onto {}", targetRef);
         }
@@ -1091,8 +1092,8 @@ namespace Inferno::Game {
             dir += targetDir;
 
             // make smart blobs track better (hacky, add homing speed to weapon info)
-            if (weapon.Render.Type != RenderType::Model)
-                dir += targetDir;
+            //if (weapon.Render.Type != RenderType::Model)
+            //    dir += targetDir;
 
             dir.Normalize();
             weapon.Physics.Velocity = dir * speed;

@@ -557,7 +557,9 @@ namespace Inferno {
                                 stunMult = weapon.Extended.StunMult;
                             }
                             ApplyForce(target, forceVec);
-                            DamageRobot(explosion.Position, target, damage, stunMult);
+                            auto parent = Game::Level.TryGetObject(source->Parent);
+                            bool srcIsPlayer = parent ? parent->IsPlayer() : false;
+                            DamageRobot(explosion.Position, srcIsPlayer, target, damage, stunMult);
 
                             target.LastHitForce = forceVec;
                             //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
@@ -892,6 +894,94 @@ namespace Inferno {
     }
 
     constexpr float MIN_TRAVEL_DISTANCE = 0.001f; // Min distance an object must move to test collision
+
+    bool IntersectLevelSegment(Level& level, const Vector3& position, float radius, SegID segId, LevelHit& hit) {
+        Debug::SegmentsChecked++;
+        auto& seg = level.Segments[(int)segId];
+
+        for (auto& sideId : SideIDs) {
+            if (!seg.SideIsSolid(sideId, level)) continue;
+            if (Settings::Cheats.DisableWallCollision && seg.GetSide(sideId).HasWall()) continue;
+            auto& side = seg.GetSide(sideId);
+            auto face = Face2::FromSide(level, seg, sideId);
+            auto& indices = side.GetRenderIndices();
+            float edgeDistance = 0; // 0 for edge tests
+
+            // Check the position against each triangle
+            for (int tri = 0; tri < 2; tri++) {
+                Vector3 tangent = face.Side->Tangents[tri];
+                // Offset the triangle by the object radius and then do a point-triangle intersection.
+                // This leaves space at the edges to do capsule intersection checks.
+                const auto offset = side.Normals[tri] * radius;
+                const Vector3 p0 = face[indices[tri * 3 + 0]];
+                const Vector3 p1 = face[indices[tri * 3 + 1]];
+                const Vector3 p2 = face[indices[tri * 3 + 2]];
+
+                float hitDistance = FLT_MAX;
+                Vector3 hitPoint, hitNormal;
+
+                // Use point-triangle intersections for everything else.
+                // Note that fast moving objects could clip through walls!
+                Plane plane(p0 + offset, p1 + offset, p2 + offset);
+                auto planeDist = plane.DotCoordinate(position);
+                if (planeDist > 0 || planeDist < -radius)
+                    continue; // Object isn't close enough to the triangle plane
+
+                auto point = ProjectPointOntoPlane(position, plane);
+
+                if (TriangleContainsPoint(p0 + offset, p1 + offset, p2 + offset, point)) {
+                    // point was inside the triangle and behind the plane
+                    hitPoint = point - offset;
+                    hitNormal = side.Normals[tri];
+                    hitDistance = planeDist;
+                    edgeDistance = FaceEdgeDistance(seg, sideId, face, hitPoint);
+                }
+                else {
+                    // Point wasn't inside the triangle, check the edges
+                    int edgeIndex;
+                    auto [triPoint, triDist] = ClosestPointOnTriangle2(p0, p1, p2, position, &edgeIndex);
+
+                    if (triDist <= radius) {
+                        auto normal = position - triPoint;
+                        normal.Normalize(hitNormal);
+
+                        // Object hit a triangle edge
+                        hitDistance = triDist;
+                        hitPoint = triPoint;
+
+                        Vector3 tanVec;
+                        if (edgeIndex == 0)
+                            tanVec = p1 - p0;
+                        else if (edgeIndex == 1)
+                            tanVec = p2 - p1;
+                        else
+                            tanVec = p0 - p2;
+
+                        tanVec.Normalize(tangent);
+                    }
+                }
+
+                if (hitDistance < radius + 0.001f) {
+                    // Check if hit is transparent (duplicate check due to triangle edges)
+                    //if (obj.Type == ObjectType::Weapon && WallPointIsTransparent(hitPoint, face, tri))
+                    //    continue; // skip projectiles that hit transparent part of a wall
+
+                    if (hitDistance < hit.Distance) {
+                        // Store the closest overall hit as the final hit
+                        hit.Distance = hitDistance;
+                        hit.Normal = hitNormal;
+                        hit.Point = hitPoint;
+                        hit.Tag = { segId, sideId };
+                        hit.Tangent = tangent;
+                        hit.EdgeDistance = edgeDistance;
+                        hit.Tri = tri;
+                    }
+                }
+            }
+        }
+
+        return (bool)hit.Tag;
+    }
 
     void IntersectLevelMesh(Level& level, Object& obj, span<SegID> pvs, LevelHit& hit, float dt) {
         Vector3 averagePosition;

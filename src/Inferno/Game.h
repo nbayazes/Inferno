@@ -32,7 +32,7 @@ namespace Inferno {
 
 namespace Inferno::Game {
     constexpr float TICK_RATE = 1.0f / 64; // 64 ticks per second
-    constexpr float HOMING_TICK_RATE = 1.0f / 32; // 32 ticks per second for homing weapons
+    constexpr float HOMING_TICK_RATE = 1.0f / 32; // ticks per second for homing weapons
     constexpr float WEAPON_HOMING_DELAY = 1 / 8.0f; // Delay before homing weapons start turning
     constexpr float DEFAULT_WEAPON_VOLUME = 0.55f; // Default volume when firing weapons
 

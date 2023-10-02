@@ -16,6 +16,7 @@ namespace Inferno {
     // Runtime AI data
     struct AIRuntime {
         double LastUpdate = -1; // time when this robot was last updated
+        float LastHitByPlayer = -1; // time in seconds since last hit by the player
 
         // How aware of the player this robot is. Ranges 0 to 1.
         // Only seeing the player can set awareness to 1.
@@ -64,6 +65,7 @@ namespace Inferno {
 
         //bool DyingSoundPlaying{};
         //double DyingStartTime{}; // Time at which this robot started dying.
+        float TeleportDelay = 0; // Delay before next teleport
 
         List<SegID> GoalPath; // For pathing to another segment
         int16 GoalPathIndex = -1;
@@ -229,7 +231,7 @@ namespace Inferno {
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
     // Rotates towards source if asleep
-    void DamageRobot(const Vector3& source, Object& robot, float damage, float stunMult);
+    void DamageRobot(const Vector3& source, bool sourceIsPlayer, Object& robot, float damage, float stunMult);
 
     namespace Debug {
         inline int ActiveRobots = 0;

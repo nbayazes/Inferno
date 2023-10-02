@@ -223,7 +223,7 @@ Weapons:
     Glow: .3, 0, 1, 30
     EnergyUsage: 2
     ModelName: FusionBlobNewJ.OOF
-    ModelScale: 0.85 # D3 fusion is huge
+    ModelScale: 1 # 0.85 # D3 fusion is huge
     RotationalVelocity: 0, 0, 1.5708
     Size: 2.1
     ExplosionTexture: FusionHit
@@ -256,6 +256,20 @@ Weapons:
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
+    HomingFov: 45 # was 48.6 (dot = .75)
+    HomingDistance: 300
+
+  - id: 21
+    Name: robot homing missile
+    Decal: scorchC
+    DecalRadius: 4
+    LightRadius: 14
+    LightColor: 0.25, 0.25, 0.75, 2
+    ExplosionColor: 1, 0.25, 0.0, 10
+    FlashColor: 1, 0.25, 0.0, 2
+    Size: 1 # was 1.5
+    HomingFov: 45
+    HomingDistance: 300
 
   - id: 16
     Name: proximity mine
@@ -294,8 +308,29 @@ Weapons:
     FlashColor: 1, 1, 1, 4
     Glow: 1, 1, 1, 1.5
     Mass: 1
-    Thrust: 22.5 # Thrust to apply each second
+    Thrust: 40 # Thrust to apply each second
     InitialSpeed: 22.5 # How fast when spawning
+    HomingFov: 30
+    HomingDistance: 150
+
+  - id: 29
+    Name: robot smart missile blob
+    Decal: scorchB
+    Size: 1.5
+    ImpactSize: 4
+    ExplosionSound: PlasmaHit1
+    ExplosionTexture: PlasmaRing
+    ExplosionSize: 2.3
+    ExplosionTime: 0.4
+    LightRadius: 16
+    LightColor: 0.1, 1, 0.1
+    FlashColor: 1, 1, 1, 4
+    Glow: 1, 1, 1, 1.5
+    Mass: 1
+    Thrust: 40 # Thrust to apply each second
+    InitialSpeed: 22.5 # How fast when spawning
+    HomingFov: 30 # Reduced due to overly aggressive tracking
+    HomingDistance: 150
 
   - id: 18
     Name: mega missile
@@ -307,6 +342,21 @@ Weapons:
     LightColor: 0.75, 0.25, 0.25, 2
     Size: 1.25 # was 0.2 due odd length ratio
     Recoil: 175
+    HomingFov: 45
+    HomingDistance: 300
+
+  - id: 28
+    Name: robot mega missile
+    Decal: scorchC
+    DecalRadius: 8
+    Mass: 4
+    ExplosionColor: 15, 0.5, 0.5
+    LightRadius: 60
+    LightColor: 0.75, 0.25, 0.25, 2
+    Size: 1.25
+    Recoil: 175
+    HomingFov: 45
+    HomingDistance: 300
 
   - id: 20 
     Name: robot spreadfire
@@ -319,16 +369,6 @@ Weapons:
     LightColor: 0.3, 0.3, 0.75
     ExplosionColor: 0.3, 0.3, 0.75
     FlashColor: 1, 1, 1, 15
-
-  - id: 21
-    Name: robot homing missile
-    Decal: scorchC
-    DecalRadius: 4
-    ExplosionColor: 1, 0.25, 0.0, 5
-    FlashColor: 1, 0.4, 0.4, 5
-    LightRadius: 14
-    LightColor: 0.25, 0.25, 0.75, 2
-    Size: 1 # was 1.5
 
   - id: 22
     Name: robot concussion missile
@@ -547,6 +587,8 @@ Robots:
     Mass: 100
     Multishot: 2
     CircleDistance: 200
+    TurnTime: 0.05 # Turn time reduced to compensate for increased mass
+    HitPoints: 2500 # Increased slightly due to warping being more generous to player
   - id: 18 # Cloaked lifter
     CircleDistance: 20
     Mass: 9.5
@@ -576,6 +618,7 @@ Robots:
   - id: 23 # level 27 boss
     Mass: 100
     GatedRobots: [ 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22, 0, 8, 11, 19, 20, 8, 20, 8 ]
+    TurnTime: 0.05 # Turn time reduced to compensate for increased mass
   - id: 24 # BEPR
   - id: 25 # Smelter
 #Ice Spider

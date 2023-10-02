@@ -156,6 +156,7 @@
     <ClCompile Include="BitmapCache.cpp" />
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.AI.cpp" />
+    <ClCompile Include="Game.Boss.cpp" />
     <ClCompile Include="Game.Input.cpp" />
     <ClCompile Include="Game.Navigation.cpp" />
     <ClCompile Include="Game.Object.cpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.AI.h" />
+    <ClInclude Include="Game.Boss.h" />
     <ClInclude Include="Game.Input.h" />
     <ClInclude Include="Game.Navigation.h" />
     <ClInclude Include="Game.Object.h" />

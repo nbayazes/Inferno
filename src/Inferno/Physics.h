@@ -34,5 +34,8 @@ namespace Inferno {
     // Note that this is not additive, and overrides any existing angular velocity.
     void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
     void ApplyForce(Object& obj, const Vector3& force);
+
+    // Returns true if a sphere intersects with a segment
+    bool IntersectLevelSegment(Level& level, const Vector3& position, float radius, SegID segId, LevelHit& hit);
     bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere&, SegID segId, LevelHit& hit);
 }
