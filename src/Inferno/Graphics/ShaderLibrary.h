@@ -377,10 +377,10 @@ namespace Inferno {
         struct Constants {
             Matrix World;
             Vector4 EmissiveLight, Ambient;
-            Color DissolveColor; // For the leading edge of dissolves
+            Color PhaseColor; // For the leading edge of dissolves
             int TexIdOverride = -1;
             float TimeOffset;
-            float DissolveAmount; // 0 to 1. 1 is fully dissolved (invisible)
+            float PhaseAmount; // 0 to 1. 1 is fully dissolved (invisible)
         };
 
         ObjectShader(const ShaderInfo& info) : IShader(info) {

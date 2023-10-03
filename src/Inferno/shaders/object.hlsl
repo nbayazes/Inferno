@@ -20,10 +20,10 @@ struct Constants {
     float4x4 WorldMatrix;
     float4 EmissiveLight; // for additive objects like lasers
     float4 Ambient;
-    float4 DissolveColor;
+    float4 PhaseColor;
     int TexIdOverride;
     float TimeOffset;
-    float DissolveAmount;
+    float PhaseAmount;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -111,10 +111,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     float3 dissolveColor = 0;
     //float argDissolve = frac(Frame.Time * .5);
-    if (Object.DissolveAmount > 0) {
+    if (Object.PhaseAmount > 0) {
         float dissolveTex = .95 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r;
-        clip(Object.DissolveAmount - dissolveTex);
-        dissolveColor = Object.DissolveColor.rgb * step(Object.DissolveAmount - dissolveTex, 0.05);
+        clip(Object.PhaseAmount - dissolveTex);
+        dissolveColor = Object.PhaseColor.rgb * step(Object.PhaseAmount - dissolveTex, 0.05);
     }
 
     if (!Frame.NewLightMode) {
