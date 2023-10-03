@@ -106,6 +106,12 @@ namespace Inferno::Render {
     Set<TexID> GetLevelSegmentTextures(const Inferno::Level& level) {
         Set<TexID> ids;
 
+        auto insertEClip = [&ids](EClipID id) {
+            if (id == EClipID::None) return;
+            auto& clip = Resources::GetEffectClip(id);
+            Seq::insert(ids, clip.VClip.GetFrames());
+        };
+
         for (auto& seg : level.Segments) {
             for (auto& sideId : SideIDs) {
                 auto& side = seg.GetSide(sideId);
@@ -113,19 +119,18 @@ namespace Inferno::Render {
                     ids.insert(Resources::LookupTexID(side.TMap));
                     auto& eclip = Resources::GetEffectClip(side.TMap);
                     Seq::insert(ids, eclip.VClip.GetFrames());
-                    auto& crit = Resources::GetEffectClip(eclip.CritClip);
-                    Seq::insert(ids, crit.VClip.GetFrames());
+                    insertEClip(eclip.CritClip);
+                    insertEClip(eclip.DestroyedEClip);
                 }
 
                 if (side.HasOverlay()) {
                     ids.insert(Resources::LookupTexID(side.TMap2));
                     auto& eclip = Resources::GetEffectClip(side.TMap2);
                     Seq::insert(ids, eclip.VClip.GetFrames());
-                    auto& crit = Resources::GetEffectClip(eclip.CritClip);
-                    Seq::insert(ids, crit.VClip.GetFrames());
-
                     auto& destroyed = Resources::GetVideoClip(eclip.DestroyedVClip);
                     Seq::insert(ids, destroyed.GetFrames());
+                    insertEClip(eclip.CritClip);
+                    insertEClip(eclip.DestroyedEClip);
 
                     ids.insert(Resources::LookupTexID(eclip.DestroyedTexture));
                 }
@@ -153,9 +158,10 @@ namespace Inferno::Render {
 
         // Load all weapon clips and models
         for (auto& weapon : Resources::GameData.Weapons) {
-            insertClip(weapon.FlashVClip);
-            insertClip(weapon.RobotHitVClip);
-            insertClip(weapon.WallHitVClip);
+            //insertClip(weapon.FlashVClip);
+            //insertClip(weapon.RobotHitVClip);
+            //insertClip(weapon.WallHitVClip);
+            //insertClip(weapon.WeaponVClip);
 
             ids.insert(weapon.BlobBitmap);
             ids.insert(weapon.HiresIcon);
@@ -164,13 +170,10 @@ namespace Inferno::Render {
             Seq::insert(ids, GetTexturesForModel(weapon.Model));
         }
 
-        insertClip(VClipID::HitPlayer);
-        insertClip(VClipID::SmallExplosion);
-        insertClip(VClipID::HitLava);
-        insertClip(VClipID::Matcen);
-        insertClip(VClipID::PlayerSpawn);
-        insertClip(VClipID::Despawn);
-        insertClip(VClipID::HitWater);
+        // Load all vclips
+        for (auto& vclip : Resources::GameData.VClips) {
+            Seq::insert(ids, vclip.GetFrames());
+        }
 
         return ids;
     }

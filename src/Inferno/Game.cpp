@@ -476,7 +476,7 @@ namespace Inferno::Game {
         switch (obj.Type) {
             case ObjectType::Reactor:
             {
-                DestroyReactor(obj);
+                //DestroyReactor(obj);
                 break;
             }
 
@@ -804,6 +804,9 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate)) {
                 FixedUpdateObject(dt, ObjID(i), obj);
             }
+
+            if (obj.Type == ObjectType::Reactor)
+                UpdateReactor(obj);
 
             obj.Effects.Update(dt);
         }

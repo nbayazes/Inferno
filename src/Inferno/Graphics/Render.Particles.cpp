@@ -101,9 +101,9 @@ namespace Inferno::Render {
 
     // Returns the offset and submodel
     SubmodelRef GetRandomPointOnObject(const Object& obj) {
-        if (obj.Render.Type == RenderType::Model) {
+        if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
             auto& model = Resources::GetModel(obj.Render.Model.ID);
-            auto sm = (short)RandomInt((int)model.Submodels.size() - 1);
+            auto sm = (short)RandomInt(std::max((int)model.Submodels.size() - 1, 0));
             if (sm < 0) return { 0 };
             int index = -1;
             if (!model.Submodels[sm].Indices.empty()) {

@@ -783,7 +783,7 @@ namespace Inferno {
 
     void DrawHUD(float dt, Color ambient) {
         constexpr Color minLight(0.2f, 0.2f, 0.2f);
-        ambient *= 3;
+        ambient *= 2;
         ambient += minLight;
         ambient.A(1);
         Hud.Draw(dt, Game::Player, ambient);

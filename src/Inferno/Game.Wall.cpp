@@ -563,6 +563,7 @@ namespace Inferno {
     void HitWall(Level& level, const Vector3& point, const Object& src, const Wall& wall) {
         auto parent = level.TryGetObject(src.Parent);
         bool isPlayerSource = src.IsPlayer() || (parent && parent->IsPlayer());
+        bool isRobotSource = src.IsRobot() || (parent && parent->IsRobot());
         // Should robots only be able to open doors by touching them?
         //const Object* pRobot = src.IsRobot() ? &src : nullptr; // Only allow touching
         const Object* pRobot = src.IsRobot() ? &src : (parent && parent->IsRobot() ? parent : nullptr);
@@ -572,19 +573,20 @@ namespace Inferno {
             DamageWall(level, wall.Tag, weapon.Damage[Game::Difficulty]);
         }
         else if (wall.Type == WallType::Door) {
-            if (pRobot) {
+            if (pRobot && RobotCanOpenDoor(level, wall, *pRobot)) {
                 // Allow robots to open normal doors
-                if (RobotCanOpenDoor(level, wall, *pRobot))
-                    OpenDoor(level, wall.Tag);
+                OpenDoor(level, wall.Tag);
             }
             else if (isPlayerSource && Game::Player.CanOpenDoor(wall)) {
                 OpenDoor(level, wall.Tag);
             }
             else if (src.Type == ObjectType::Weapon) {
                 // Can't open door
-                Sound3D sound({ SoundID::HitLockedDoor }, point, wall.Tag.Segment);
-                sound.Position = point;
-                Sound::Play(sound);
+                if (isPlayerSource || isRobotSource) {
+                    Sound3D sound({ SoundID::HitLockedDoor }, point, wall.Tag.Segment);
+                    sound.Position = point;
+                    Sound::Play(sound);
+                }
 
                 if (isPlayerSource) {
                     string msg;

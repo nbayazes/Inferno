@@ -159,7 +159,7 @@ namespace Inferno::Game {
                                      BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
             if (explode) {
                 SelfDestructMine();
-                ExplodeObject(boss, 0.25f);
+                ExplodeObject(boss);
                 BossDying = false; // safeguard
             }
             return false;

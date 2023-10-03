@@ -62,9 +62,13 @@ namespace Inferno::Game {
 
     void DestroyReactor(Object& obj) {
         assert(obj.Type == ObjectType::Reactor);
+        if (HasFlag(obj.Flags, ObjectFlag::Destroyed)) return;
+        SetFlag(obj.Flags, ObjectFlag::Destroyed);
 
-        obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
-        Render::LoadModelDynamic(obj.Render.Model.ID);
+        if (Seq::inRange(Resources::GameData.DeadModels, (int)obj.Render.Model.ID)) {
+            obj.Render.Model.ID = Resources::GameData.DeadModels[(int)obj.Render.Model.ID];
+            Render::LoadModelDynamic(obj.Render.Model.ID);
+        }
 
         AddPointsToScore(REACTOR_SCORE);
         SelfDestructMine();
@@ -207,6 +211,13 @@ namespace Inferno::Game {
 
     namespace {
         ReactorState Reactor{};
+    }
+
+    void UpdateReactor(Inferno::Object& reactor) {
+        // Update reactor is separate from AI because the player might destroy it with a guided missile
+        // outside of the normal AI update range
+        if (reactor.HitPoints <= 0)
+            DestroyReactor(reactor);
     }
 
     void UpdateReactorAI(const Inferno::Object& reactor, float dt) {

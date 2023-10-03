@@ -120,7 +120,7 @@ namespace Inferno::Render {
         // Returns true if any tids are unloaded
         bool HasUnloadedTextures(span<const TexID> tids) const {
             for (auto& id : tids) {
-                if (id <= TexID::None) continue;
+                if (id <= TexID::Invalid) continue;
                 if (_materials[(int)id].State != TextureState::Vacant) continue;
                 return true;
             }

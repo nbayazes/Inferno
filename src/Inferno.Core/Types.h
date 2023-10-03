@@ -251,11 +251,14 @@ namespace Inferno {
     // Video clips of explosions or other particle effects
     enum class VClipID : int32 {
         None = -1,
+        Explosion = 0,
         HitPlayer = 1,
         SmallExplosion = 2,
         LightExplosion = 3, // A light or monitor exploding
         HitLava = 5,
+        ExplosionB = 7,
         Matcen = 10,
+        BigExplosion = 60,
         PlayerSpawn = 61,
         Despawn = 62,
         HitWater = 84,
