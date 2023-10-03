@@ -163,6 +163,7 @@ namespace Inferno {
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
+        if (robot.IsBoss) return; // Bosses handle sound differently
         auto id = Game::GetObjectRef(obj);
         Sound3D sound({ robot.SeeSound }, id);
         sound.AttachToSource = true;

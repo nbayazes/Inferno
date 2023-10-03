@@ -5,7 +5,6 @@
 #include "SoundSystem.h"
 
 namespace Inferno::Editor {
-
     class SoundBrowser final : public WindowBase {
         int _selection = 0;
         float _vol = 1, _pan = 0, _pitch = 0;
@@ -38,6 +37,9 @@ namespace Inferno::Editor {
             { Sound::Reverb::LargeHall, "LargeHall" },
             { Sound::Reverb::Plate, "Plate" },
         };
+
+        List<SoundID> _soundIdLookup;
+        int _selectedGame = 0;
 
     public:
         SoundBrowser() : WindowBase("Sounds", &Settings::Editor.Windows.Sound) {}
@@ -74,8 +76,11 @@ namespace Inferno::Editor {
             }
 
 
-            static int selectedGame = 0;
-            ImGui::Combo("Game", &selectedGame, "Descent 1\0Descent 2\0Descent 3\0");
+            if (ImGui::Combo("Game", &_selectedGame, "Descent 1\0Descent 2\0Descent 3\0"))
+                _soundIdLookup.clear();
+
+            if (_selectedGame != 2 && _soundIdLookup.empty())
+                _soundIdLookup = UpdateSoundIdLookup();
 
             static List<char> search(50);
             ImGui::Separator();
@@ -89,7 +94,7 @@ namespace Inferno::Editor {
             {
                 ImGui::BeginChild("sounds", { -1, -1 }, true);
 
-                if (selectedGame == 0) {
+                if (_selectedGame == 0) {
                     for (int i = 0; i < Resources::SoundsD1.Sounds.size(); i++) {
                         auto& sound = Resources::SoundsD1.Sounds[i];
 
@@ -98,7 +103,12 @@ namespace Inferno::Editor {
                                 continue;
                         }
 
-                        auto label = fmt::format("{}: {}", i, sound.Name);
+                        string label;
+                        if (_soundIdLookup.empty())
+                            label = fmt::format("{}: {}", i, sound.Name);
+                        else
+                            label = fmt::format("{} [{}]: {}", i, (int)_soundIdLookup[i], sound.Name);
+
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             SoundResource resource;
@@ -117,7 +127,7 @@ namespace Inferno::Editor {
                         }
                     }
                 }
-                else if (selectedGame == 1) {
+                else if (_selectedGame == 1) {
                     for (int i = 0; i < Resources::SoundsD2.Sounds.size(); i++) {
                         auto& sound = Resources::SoundsD2.Sounds[i];
 
@@ -126,7 +136,12 @@ namespace Inferno::Editor {
                                 continue;
                         }
 
-                        auto label = fmt::format("{}: {}", i, sound.Name);
+                        string label;
+                        if (_soundIdLookup.empty())
+                            label = fmt::format("{}: {}", i, sound.Name);
+                        else
+                            label = fmt::format("{} [{}]: {}", i, (int)_soundIdLookup[i], sound.Name);
+
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             SoundResource resource;
@@ -144,7 +159,7 @@ namespace Inferno::Editor {
                         }
                     }
                 }
-                else if (selectedGame == 2) {
+                else if (_selectedGame == 2) {
                     for (int i = 0; i < Resources::GameTable.Sounds.size(); i++) {
                         auto& sound = Resources::GameTable.Sounds[i];
 
@@ -172,6 +187,30 @@ namespace Inferno::Editor {
 
                 ImGui::EndChild();
             }
+        }
+
+    private:
+        List<SoundID> UpdateSoundIdLookup() const {
+            List<SoundFile::Header>* headers = nullptr;
+            List<SoundID> lookup;
+
+            if (_selectedGame == 0 && Game::Level.IsDescent1())
+                headers = &Resources::SoundsD1.Sounds;
+            else if (_selectedGame == 1 && Game::Level.IsDescent2())
+                headers = &Resources::SoundsD2.Sounds;
+
+            if (!headers) return lookup;
+            lookup.resize(headers->size());
+            ranges::fill(lookup, SoundID::None);
+
+            for (int i = 0; i < headers->size(); i++) {
+                for (int soundId = 0; soundId < Resources::GameData.Sounds.size(); soundId++) {
+                    if (i == Resources::GameData.Sounds[soundId])
+                        lookup[i] = (SoundID)soundId;
+                }
+            }
+
+            return lookup;
         }
     };
 }

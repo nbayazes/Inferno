@@ -3,7 +3,6 @@
 #ifndef C4_USE_ASSERT
 // Bad data shouldn't cause an assertion, even in debug
 #define C4_USE_ASSERT 0
-#include "Weapon.h"
 #endif
 
 #include <ryml/ryml_std.hpp>
@@ -33,29 +32,10 @@ namespace Yaml {
         node >> value;
     }
 
-    // Specification for bools. Reading them as bools has undeseriable behavior.
-    template<>
-    inline void ReadValue(ryml::ConstNodeRef node, Inferno::VClipID& id) {
+    template<Inferno::IsEnum T>
+    void ReadValue(ryml::ConstNodeRef node, T& id) {
         if (!node.valid()) return;
-        node >> (int&)id;
-    }
-
-    template<>
-    inline void ReadValue(ryml::ConstNodeRef node, Inferno::SoundID& id) {
-        if (!node.valid()) return;
-        node >> (int&)id;
-    }
-
-    template<>
-    inline void ReadValue(ryml::ConstNodeRef node, Inferno::WeaponID& id) {
-        if (!node.valid()) return;
-        node >> (Inferno::int8&)id;
-    }
-
-    template<>
-    inline void ReadValue(ryml::ConstNodeRef node, Inferno::TexID& id) {
-        if (!node.valid()) return;
-        node >> (Inferno::int16&)id;
+        node >> (std::underlying_type_t<T>&)id;
     }
 
     template<>
@@ -165,7 +145,6 @@ namespace Yaml {
     inline std::string EncodeArray(const std::array<bool, 4>& a) {
         return fmt::format("{}, {}, {}, {}", (int)a[0], (int)a[1], (int)a[2], (int)a[3]);
     }
-
 
     inline std::string EncodeVector(const DirectX::SimpleMath::Vector2& v) {
         return fmt::format("{}, {}", v.x, v.y);

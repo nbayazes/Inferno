@@ -88,6 +88,7 @@ namespace Inferno {
         JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];
 
         List<int> GatedRobots; // Robots to gate in when hit. For bosses.
+        float TeleportInterval; // Interval between boss teleports.
     };
 
 }

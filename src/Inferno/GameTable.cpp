@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "HamFile.h"
+#include "Resources.h"
 #include "Yaml.h"
 #include "Graphics/Render.Particles.h"
 
@@ -286,13 +287,12 @@ namespace Inferno {
         ReadArray<Vector3>(node["GunPoints"], robot.GunPoints);
         ReadArray<ubyte>(node["GunSubmodels"], robot.GunSubmodels);
 
-#define READ_TAG(name) Yaml::ReadValue(node[#name], (int&)robot.##name)
 #define READ_PROP(name) Yaml::ReadValue(node[#name], robot.##name)
-        READ_TAG(Model);
-        READ_TAG(ExplosionClip1);
-        READ_TAG(ExplosionClip2);
-        Yaml::ReadValue(node["WeaponType"], (int&)robot.WeaponType);
-        Yaml::ReadValue(node["WeaponType2"], (int&)robot.WeaponType2);
+        READ_PROP(Model);
+        READ_PROP(ExplosionClip1);
+        READ_PROP(ExplosionClip2);
+        READ_PROP(WeaponType);
+        READ_PROP(WeaponType2);
         READ_PROP(Guns);
 
         // todo: contains data
@@ -308,16 +308,16 @@ namespace Inferno {
         READ_PROP(Drag);
         READ_PROP(Radius);
 
-        READ_TAG(Cloaking);
-        READ_TAG(Attack);
+        READ_PROP(Cloaking);
+        READ_PROP(Attack);
 
-        READ_TAG(ExplosionSound1);
-        READ_TAG(ExplosionSound2);
-        READ_TAG(SeeSound);
-        READ_TAG(AttackSound);
-        READ_TAG(ClawSound);
-        READ_TAG(TauntSound);
-        READ_TAG(DeathrollSound);
+        READ_PROP(ExplosionSound1);
+        READ_PROP(ExplosionSound2);
+        READ_PROP(SeeSound);
+        READ_PROP(AttackSound);
+        READ_PROP(ClawSound);
+        READ_PROP(TauntSound);
+        READ_PROP(DeathrollSound);
 
         READ_PROP(IsThief);
         READ_PROP(Pursues);
@@ -328,6 +328,7 @@ namespace Inferno {
         READ_PROP(Behavior);
         READ_PROP(Aim);
         READ_PROP(Multishot);
+        READ_PROP(TeleportInterval);
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};
         Array<int16, 5> shots{}, evasion{};
@@ -369,7 +370,6 @@ namespace Inferno {
                     robot.GatedRobots.push_back(robotId);
             }
         }
-#undef READ_PROP
 #undef READ_TAG
     }
 
@@ -404,6 +404,7 @@ namespace Inferno {
                     }
                 }
             }
+            ASSERT(ham.Robots[17].IsBoss);
 
             if (auto robots = root["Robots"]; !robots.is_seed()) {
                 for (const auto& robot : robots.children()) {
@@ -416,6 +417,7 @@ namespace Inferno {
                     }
                 }
             }
+            ASSERT(ham.Robots[17].IsBoss);
 
             if (auto powerups = root["Powerups"]; !powerups.is_seed()) {
                 for (const auto& powerup : powerups.children()) {

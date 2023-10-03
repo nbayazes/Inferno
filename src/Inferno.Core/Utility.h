@@ -194,13 +194,13 @@ namespace Inferno {
         else flags &= ~flag;
     }
 
-    //template <class T>
-    //concept IsEnum = is_scoped_enum_v<T>;
+    template <class T>
+    concept IsEnum = is_scoped_enum_v<T>;
 
-    //// Converts an enum to the underlying type
-    //constexpr auto ToUnderlying(IsEnum auto e) {
-    //    return static_cast<std::underlying_type<declspec(e)>::type>(e);
-    //};
+    // Converts an enum to the underlying type
+    constexpr auto ToUnderlying(IsEnum auto e) {
+        return static_cast<std::underlying_type_t<decltype(e)>>(e);
+    };
 
     //inline _ENUM_FLAG_CONSTEXPR ENUMTYPE operator | (ENUMTYPE a, ENUMTYPE b) WIN_NOEXCEPT { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) | ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
     //    inline ENUMTYPE& operator |= (ENUMTYPE& a, ENUMTYPE b) WIN_NOEXCEPT { return (ENUMTYPE&)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type&)a) |= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \

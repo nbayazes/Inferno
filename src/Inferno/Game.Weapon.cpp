@@ -683,6 +683,7 @@ namespace Inferno::Game {
 
     bool CanTrackTarget(const Object& obj, const Object& target, float fov, float maxDistance) {
         if (!target.IsAlive()) return false;
+        if (target.IsCloaked() || target.IsPhasing()) return false;
         auto [dir, dist] = GetDirectionAndDistance(target.Position, obj.Position);
         if (dist > maxDistance) return false;
 

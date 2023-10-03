@@ -135,9 +135,9 @@ namespace Inferno {
         ri.ClawSound = (SoundID)r.ReadByte();
 
         for (auto& joint : ri.Joints) {
-            for (auto k = 0; k < N_ANIM_STATES; k++) {
-                joint[k].Count = r.ReadInt16();
-                joint[k].Offset = r.ReadInt16();
+            for (auto& k : joint) {
+                k.Count = r.ReadInt16();
+                k.Offset = r.ReadInt16();
             }
         }
 

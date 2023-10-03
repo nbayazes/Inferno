@@ -587,8 +587,11 @@ Robots:
     Mass: 100
     Multishot: 2
     CircleDistance: 200
-    TurnTime: 0.05 # Turn time reduced to compensate for increased mass
-    HitPoints: 2500 # Increased slightly due to warping being more generous to player
+    TurnTime: 0.025 # Turn time reduced to compensate for increased mass
+    HitPoints: 2500 # Increased slightly due to teleporting being more generous to player
+    DeathrollSound: 185 # d1
+    SeeSound: 183 # d1
+    TeleportInterval: 8 # 8 original
   - id: 18 # Cloaked lifter
     CircleDistance: 20
     Mass: 9.5

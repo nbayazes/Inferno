@@ -112,9 +112,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 dissolveColor = 0;
     //float argDissolve = frac(Frame.Time * .5);
     if (Object.DissolveAmount > 0) {
-        float dissolveTex = 1 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r - 0.05;
+        float dissolveTex = .95 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r;
         clip(Object.DissolveAmount - dissolveTex);
-        dissolveColor = Object.DissolveColor.rgb * step(Object.DissolveAmount - dissolveTex, 0.05f);
+        dissolveColor = Object.DissolveColor.rgb * step(Object.DissolveAmount - dissolveTex, 0.05);
     }
 
     if (!Frame.NewLightMode) {

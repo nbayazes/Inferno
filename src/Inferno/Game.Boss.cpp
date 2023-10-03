@@ -16,7 +16,8 @@ namespace Inferno::Game {
         constexpr float BOSS_CLOAK_DURATION = 7;
         constexpr float BOSS_DEATH_SOUND_VOLUME = 2;
         constexpr float BOSS_PHASE_TIME = 1.25f;
-        constexpr Color BOSS_PHASE_COLOR = { 20, 0, 0 };
+        //float3(.2, .2, 25)
+        constexpr Color BOSS_PHASE_COLOR = { 25, 0, 0 };
 
         // Boss state is intentionally shared. Defeating one boss causes the others to start
         // exploding and some custom levels rely on this.
@@ -161,7 +162,7 @@ namespace Inferno::Game {
         // use materialize effect
     }
 
-    void TeleportBoss(Object& boss, AIRuntime& ai) {
+    void TeleportBoss(Object& boss, AIRuntime& ai, const RobotInfo& info) {
         if (TeleportSegments.empty()) {
             SPDLOG_WARN("No teleport segments found for boss!");
             return;
@@ -182,7 +183,8 @@ namespace Inferno::Game {
             auto& seg = Level.GetSegment(TeleportSegments[random]);
             boss.Position = boss.PrevPosition = seg.Center;
             RelinkObject(Game::Level, boss, TeleportSegments[random]);
-        } else {
+        }
+        else {
             SPDLOG_WARN("Boss was unable to find a new segment to warp to");
         }
 
@@ -192,7 +194,7 @@ namespace Inferno::Game {
         boss.Rotation = VectorToRotation(facing);
         boss.Rotation.Forward(-boss.Rotation.Forward());
 
-        ai.TeleportDelay = 7;
+        ai.TeleportDelay = info.TeleportInterval;
         ai.Awareness = 0; // Make unaware of player so teleport doesn't start counting down immediately
         boss.PhaseIn(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
     }
@@ -200,18 +202,6 @@ namespace Inferno::Game {
     void UpdateBoss(Object& boss, float dt) {
         auto& ri = Resources::GetRobotInfo(boss);
         auto& ai = GetAI(boss);
-
-        if (ai.Awareness > 0.3f)
-            ai.TeleportDelay -= dt; // Only teleport when aware of player
-
-        if (ai.TeleportDelay <= BOSS_PHASE_TIME && !boss.IsPhasing()) {
-            //float3(.2, .2, 25)
-            boss.PhaseOut(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
-        }
-
-        if (ai.TeleportDelay <= 0) {
-            TeleportBoss(boss, ai);
-        }
 
         if (BossDying) {
             BossDyingElapsed += dt;
@@ -226,24 +216,39 @@ namespace Inferno::Game {
             return;
         }
 
+        if (ai.Awareness > 0.3f)
+            ai.TeleportDelay -= dt; // Only teleport when aware of player
 
-        if (HasFlag(boss.Effects.Flags, EffectFlags::PhaseIn)) {
-            // boss phases in / out over 1/3 of the cloak duration and then teleports
-
-            // cloaking is shared for all bosses, but should be per-robot
-
-            // teleports are stored per-boss type, but should probably be per robot
-            // when the boss is hit, the teleport delay is reduced by 1/4
-
-            // d2 level 4 boss has a special case for teleporting out of a room
-
-            //if(ElapsedBossCloak > BOSS_CLOAK_DURATION / 3
+        if (ai.TeleportDelay <= BOSS_PHASE_TIME && !boss.IsPhasing()) {
+            boss.PhaseOut(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
         }
-        else { }
+
+        if (ai.TeleportDelay <= 0) {
+            TeleportBoss(boss, ai, ri);
+        }
     }
 
     void InitBoss() {
         TeleportSegments = GetBossSegments(Game::Level, true);
         GateSegments = GetBossSegments(Game::Level, false);
+
+        // Attach sound to boss
+        for (auto& obj : Game::Level.Objects) {
+            if (obj.IsRobot()) {
+                auto& info = Resources::GetRobotInfo(obj);
+                if (!info.IsBoss) continue;
+
+                auto& ai = GetAI(obj);
+                ai.TeleportDelay = info.TeleportInterval;
+
+                Sound3D sound(info.SeeSound, Game::GetObjectRef(obj));
+                sound.Radius = 400;
+                sound.Looped = true;
+                sound.Volume = 0.85f;
+                sound.Occlusion = false;
+                sound.AttachToSource = true;
+                Sound::Play(sound);
+            }
+        }
     }
 }
