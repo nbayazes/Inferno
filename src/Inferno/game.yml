@@ -579,6 +579,8 @@ Robots:
     CircleDistance: 40
     Mass: 20 # was 30
     Multishot: 2
+    DeathRoll: 2
+    # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
     CircleDistance: 80
     Multishot: 1
@@ -952,6 +954,7 @@ Effects:
       Color: 1, .8, .8, 2.75
       Instances: 1
       Clip: 2 # Small explosion
+      UseParentVertices: 1
 
     - Name: large fireball
       FadeTime: 0.25
@@ -961,6 +964,7 @@ Effects:
       Clip: 2 # Small explosion
       Sound: 31 # Exploding wall
       Instances: 1
+      UseParentVertices: 1
 
     - Name: boss small fireball
       FadeTime: 0.25

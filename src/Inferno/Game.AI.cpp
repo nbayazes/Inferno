@@ -1268,9 +1268,8 @@ namespace Inferno {
         if (robot.HitPoints <= 0 && robotInfo.DeathRoll > 0) {
             ai.DeathRollTimer += dt;
             auto duration = std::min(robotInfo.DeathRoll / 2 + 1, 6);
-            auto elapsed = duration - ai.DeathRollTimer;
-            auto volume = robotInfo.DeathRoll / 4.0f;
-            bool explode = DeathRoll(robot, duration, elapsed, robotInfo.DeathRollSound, ai.DyingSoundPlaying, volume, dt);
+            //auto volume = robotInfo.DeathRoll / 4.0f;
+            bool explode = DeathRoll(robot, duration, ai.DeathRollTimer, robotInfo.DeathRollSound, ai.DyingSoundPlaying, 1.0f, dt);
 
             if (explode) {
                 ExplodeObject(robot);

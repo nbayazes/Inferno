@@ -165,7 +165,7 @@ namespace Inferno::Game {
             return false;
         }
 
-        if (Settings::Cheats.DisableAI) 
+        if (Settings::Cheats.DisableAI)
             return false;
 
         if (ai.Awareness > 0.3f)
@@ -188,7 +188,9 @@ namespace Inferno::Game {
 
     void InitBoss() {
         TeleportSegments = GetBossSegments(Game::Level, true);
-        GateSegments = GetBossSegments(Game::Level, false);
+        if (Game::Level.IsDescent1())
+            GateSegments = GetBossSegments(Game::Level, false);
+
         BossDying = false;
         BossDyingElapsed = 0;
         BossDyingSoundPlaying = false;
