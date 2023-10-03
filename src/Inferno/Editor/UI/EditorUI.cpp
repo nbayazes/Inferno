@@ -5,6 +5,7 @@
 #include "Settings.h"
 #include "imgui_local.h"
 #include "DebugOverlay.h"
+#include "OutrageRoom.h"
 #include "Editor/Editor.h"
 
 namespace Inferno::Editor {
@@ -58,6 +59,22 @@ namespace Inferno::Editor {
         MenuCommand(Commands::MoveObjectToSegment);
         MenuCommand(Commands::MoveObjectToUserCSys);
         MenuCommand(Commands::AlignObjectToSide);
+    }
+
+    void ExportSegmentsToORF() {
+        if (Editor::Marked.Segments.empty()) {
+            SetStatusMessageWarn("Select segments before exporting");
+            return;
+        }
+
+        List<COMDLG_FILTERSPEC> filter = { { L"Outrage Room File", L"*.orf" } };
+
+        auto path = SaveFileDialog(filter, 0, L"room.orf", L"Export orf");
+        if (path) {
+            if (!path->has_extension()) path->replace_extension(".orf");
+            auto segs = Seq::ofSet(Editor::Marked.Segments);
+            WriteSegmentsToOrf(Game::Level, segs, *path);
+        }
     }
 
     void InsertMenuItems() {
@@ -356,6 +373,13 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Enable Physics", nullptr, &Settings::Editor.EnablePhysics);
                 ImGui::MenuItem("Show ImGui Demo", nullptr, &_showImguiDemo);
 #endif
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Export")) {
+                if (ImGui::MenuItem("Segments to ORF"))
+                    ExportSegmentsToORF();
+
                 ImGui::EndMenu();
             }
 

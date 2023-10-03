@@ -252,6 +252,10 @@ namespace Inferno {
             _stream.write((char*)&value, sizeof(T));
         }
 
+        void WriteFloat(float value) const {
+            _stream.write((char*)&value, sizeof(float));
+        }
+
         void WriteFix(float f) {
             Write(FloatToFix(f));
         }
