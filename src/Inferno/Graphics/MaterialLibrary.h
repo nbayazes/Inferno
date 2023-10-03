@@ -92,6 +92,7 @@ namespace Inferno::Render {
 
         void LoadLevelTextures(const Inferno::Level& level, bool force);
         void LoadTextures(span<const string> names);
+        void LoadGameTextures();
 
         // Tries to load a texture and returns true if it exists
         bool LoadTexture(const string& name) {

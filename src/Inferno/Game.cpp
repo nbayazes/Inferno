@@ -1159,6 +1159,7 @@ namespace Inferno::Game {
         Sound::Reset();
         Resources::LoadGameTable();
         Render::ResetEffects();
+        Render::Materials->LoadGameTextures();
         InitObjects();
         InitializeMatcens(Level);
 
@@ -1168,10 +1169,6 @@ namespace Inferno::Game {
 
         Navigation = NavigationNetwork(Level);
         Level.Rooms = CreateRooms(Level);
-        //UpdateActiveRooms(Level, Level.GetRoomID(*player));
-
-        //for (auto& seg : Level.Segments)
-        //    seg.Effects.clear();
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

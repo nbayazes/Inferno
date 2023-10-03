@@ -4,12 +4,13 @@
 #include "Game.Wall.h"
 #include "Resources.h"
 #include "SoundSystem.h"
-#include "Graphics/MaterialLibrary.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
     void PlaySelfDestructSounds(float delay) {
+        if (!Settings::Inferno.Descent3Enhanced) return;
+
         AmbientSoundEmitter explosions{};
         explosions.Delay = { 0.5f, 3.0f };
         explosions.Sounds = {
@@ -56,15 +57,6 @@ namespace Inferno::Game {
         //TotalCountdown = 30; // debug
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
-
-        // Load critical clips
-        Set<TexID> ids;
-        for (auto& eclip : Resources::GameData.Effects) {
-            auto& crit = Resources::GetEffectClip(eclip.CritClip);
-            Seq::insert(ids, crit.VClip.GetFrames());
-        }
-
-        Render::Materials->LoadMaterials(Seq::ofSet(ids), false);
         PlaySelfDestructSounds(3);
     }
 
