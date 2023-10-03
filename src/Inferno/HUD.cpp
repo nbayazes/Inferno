@@ -732,7 +732,7 @@ namespace Inferno {
                 auto delay = Game::Player.HomingObjectDist / 128.0f;
                 delay = std::clamp(delay, 1 / 8.0f, 1.0f);
                 if (Game::Time - _lastLockWarningTime > delay / 2) {
-                    Sound::Play({ SoundID::HomingWarning });
+                    Sound::Play({ SoundID::HomingWarning }, 0.55f);
                     _lastLockWarningTime = Game::Time;
                     _lockTextTime = delay / 4;
                 }

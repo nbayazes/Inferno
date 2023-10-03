@@ -64,7 +64,7 @@ namespace Inferno {
         SoundID AttackSound = SoundID::None;
         SoundID ClawSound = SoundID::None;
         SoundID TauntSound = SoundID::None;
-        SoundID DeathrollSound = SoundID::None;
+        SoundID DeathRollSound = SoundID::None;
 
         bool IsBoss;
         bool IsCompanion;    // Companion robot, leads you to things.
@@ -75,7 +75,7 @@ namespace Inferno {
         bool IsThief;
         bool Pursues;       // Chases player after going around a corner.  4 = 4/2 pursue up to 4/2 seconds after becoming invisible if up to 4 segments away
         sbyte LightCast;    // Amount of light cast. 1 is default.  10 is very large.
-        sbyte DeathRoll;   // 0 = dies without death roll. !0 means does death roll, larger = faster and louder
+        ubyte DeathRoll;   // 0 = dies without death roll. !0 means does death roll, larger = faster and louder
 
         ubyte Flags;   // misc properties
 

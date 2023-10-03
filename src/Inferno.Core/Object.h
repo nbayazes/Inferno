@@ -35,7 +35,7 @@ namespace Inferno {
     // misc object flags
     enum class ObjectFlag : uint16 {
         None = 0,
-        Exploding = 1, // Object is exploding with a delay. Ship, robots, bosses.
+        Exploding = 1, // Object is exploding with a delay. Prevents exploding immediately when hp reaches 0.
         Dead = 2, // Scheduled for deletion
         Destroyed = 4, // Object has been destroyed from damage. Can change model appearance.
         Silent = 8, // No sound when colliding
@@ -361,11 +361,12 @@ namespace Inferno {
 
         float GetCloakPercent() const { return Saturate(CloakTimer / CloakDuration); }
 
+        // Returns 0 when solid, 1 when completely phased out
         float GetPhasePercent() const {
             if (HasFlag(Flags, EffectFlags::PhaseOut))
-                return 1 - Saturate(PhaseTimer / PhaseDuration);
-            else if (HasFlag(Flags, EffectFlags::PhaseIn))
                 return Saturate(PhaseTimer / PhaseDuration);
+            else if (HasFlag(Flags, EffectFlags::PhaseIn))
+                return 1 - Saturate(PhaseTimer / PhaseDuration);
 
             return 0;
         }

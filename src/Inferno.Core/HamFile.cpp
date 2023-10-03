@@ -217,7 +217,7 @@ namespace Inferno {
         r.ReadByte();
         r.ReadByte();
 
-        ri.DeathrollSound = (SoundID)r.ReadByte();
+        ri.DeathRollSound = (SoundID)r.ReadByte();
         ri.Glow = r.ReadByte();
         ri.Behavior = r.ReadByte();
         ri.Aim = r.ReadByte();

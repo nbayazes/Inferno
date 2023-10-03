@@ -255,11 +255,13 @@ namespace Inferno {
         Render::ExplosionInfo info;
         Yaml::ReadValue(node["Instances"], info.Instances);
         Yaml::ReadValue(node["FadeTime"], info.FadeTime);
+        Yaml::ReadValue(node["UseParentVertices"], info.UseParentVertices);
         ReadRange(node["Radius"], info.Radius);
         ReadRange(node["Delay"], info.Delay);
         Yaml::ReadValue(node["Clip"], (int&)info.Clip);
         Yaml::ReadValue(node["Sound"], (int&)info.Sound);
         Yaml::ReadValue(node["Volume"], info.Volume);
+        Yaml::ReadValue(node["Variance"], info.Variance);
 
         if (auto name = ReadEffectName(node))
             explosions[*name] = info;
@@ -317,7 +319,7 @@ namespace Inferno {
         READ_PROP(AttackSound);
         READ_PROP(ClawSound);
         READ_PROP(TauntSound);
-        READ_PROP(DeathrollSound);
+        READ_PROP(DeathRollSound);
 
         READ_PROP(IsThief);
         READ_PROP(Pursues);

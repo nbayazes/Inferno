@@ -719,7 +719,11 @@ namespace Inferno::Game {
 
         // Create sparks randomly
         if (Random() < chance * dt) {
-            if (auto beam = Render::EffectLibrary.GetBeamInfo("damaged_object_arcs")) {
+            auto effect = obj.IsRobot() && Resources::GetRobotInfo(obj).IsBoss
+                ? "damaged boss arcs"
+                : "damaged object arcs";
+
+            if (auto beam = Render::EffectLibrary.GetBeamInfo(effect)) {
                 auto startObj = Game::GetObjectRef(obj);
                 Render::AddBeam(*beam, beam->Life, startObj);
             }
@@ -734,8 +738,7 @@ namespace Inferno::Game {
         UpdatePhysics(Game::Level, id, dt);
         obj.Ambient.Update(Game::Time);
 
-        if (!HasFlag(obj.Flags, ObjectFlag::Destroyed) &&
-            ((obj.HitPoints < 0 && obj.Lifespan > 0) || (obj.Lifespan <= 0 && HasFlag(obj.Flags, ObjectFlag::Exploding)))) {
+        if (!HasFlag(obj.Flags, ObjectFlag::Destroyed) && (obj.Lifespan <= 0 && HasFlag(obj.Flags, ObjectFlag::Exploding))) {
             // Check if a live object has been destroyed.
             // This can happen by running out of hit points or by being set to explode
             DestroyObject(obj);

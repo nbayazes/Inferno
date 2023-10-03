@@ -419,7 +419,7 @@ namespace Inferno::Editor {
             soundRow("Taunt", robot.TauntSound);
             soundRow("Explosion 1", robot.ExplosionSound1);
             soundRow("Explosion 2", robot.ExplosionSound2);
-            soundRow("Deathroll", robot.DeathrollSound);
+            soundRow("Deathroll", robot.DeathRollSound);
             ImGui::TreePop();
         }
 

@@ -63,8 +63,8 @@ namespace Inferno {
         float RemainingSlow = 0; // How long this robot is slowed (reduced movement and turn speed)
         float RemainingStun = 0; // How long this robot is stunned (unable to act)
 
-        //bool DyingSoundPlaying{};
-        //double DyingStartTime{}; // Time at which this robot started dying.
+        bool DyingSoundPlaying = false;
+        float DeathRollTimer = 0; // time passed since dying
         float TeleportDelay = 0; // Delay before next teleport
 
         List<SegID> GoalPath; // For pathing to another segment
@@ -246,4 +246,6 @@ namespace Inferno {
     namespace AI {
         void SetPath(Object& obj, const List<SegID>& path, const Vector3* endPosition = nullptr);
     }
+
+    bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
 }

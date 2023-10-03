@@ -34,7 +34,17 @@ namespace Inferno::Game {
         Sound::AddEmitter(std::move(creaks));
     }
 
-    void SelfDestruct() {
+    void SelfDestructMine() {
+        for (auto& tag : Level.ReactorTriggers) {
+            if (auto wall = Level.TryGetWall(tag)) {
+                if (wall->Type == WallType::Door && wall->State == WallState::Closed)
+                    OpenDoor(Level, tag);
+
+                if (wall->Type == WallType::Destroyable)
+                    DestroyWall(Level, tag);
+            }
+        }
+
         if (Level.BaseReactorCountdown != DEFAULT_REACTOR_COUNTDOWN) {
             TotalCountdown = Level.BaseReactorCountdown + Level.BaseReactorCountdown * (5 - Difficulty - 1) / 2;
         }
@@ -65,17 +75,7 @@ namespace Inferno::Game {
         Render::LoadModelDynamic(obj.Render.Model.ID);
 
         AddPointsToScore(REACTOR_SCORE);
-        SelfDestruct();
-
-        for (auto& tag : Level.ReactorTriggers) {
-            if (auto wall = Level.TryGetWall(tag)) {
-                if (wall->Type == WallType::Door && wall->State == WallState::Closed)
-                    OpenDoor(Level, tag);
-
-                if (wall->Type == WallType::Destroyable)
-                    DestroyWall(Level, tag);
-            }
-        }
+        SelfDestructMine();
 
         if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);

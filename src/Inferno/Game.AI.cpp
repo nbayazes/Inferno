@@ -247,6 +247,54 @@ namespace Inferno {
     //    return result;
     //}
 
+    bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt) {
+        auto& angularVel = obj.Physics.AngularVelocity;
+
+        angularVel.x = elapsedTime / 9.0f;
+        angularVel.y = elapsedTime / 5.0f;
+        angularVel.z = elapsedTime / 7.0f;
+        if ((int)obj.Signature % 2) angularVel.x *= -1;
+        if ((int)obj.Signature % 3) angularVel.y *= -1;
+        if ((int)obj.Signature % 5) angularVel.z *= -1;
+
+        SoundResource resource(soundId);
+        auto soundDuration = resource.GetDuration();
+        auto& ri = Resources::GetRobotInfo(obj);
+
+        if (elapsedTime > rollDuration - soundDuration) {
+            // Going critical!
+            if (!dyingSoundPlaying) {
+                Sound3D sound(resource, Game::GetObjectRef(obj));
+                sound.Volume = volume;
+                sound.Radius = 400; // Should be a global radius for bosses
+                sound.AttachToSource = true;
+                Sound::Play(sound);
+                dyingSoundPlaying = true;
+            }
+
+            if (Random() < dt * 16) {
+                auto effect = ri.IsBoss ? "boss large fireball" : "large fireball";
+                if (auto e = Render::EffectLibrary.GetExplosion(effect)) {
+                    // Larger periodic explosions with sound
+                    //e->Variance = obj.Radius * 0.75f;
+                    e->Parent = Game::GetObjectRef(obj);
+                    Render::CreateExplosion(*e, obj.Segment, obj.Position);
+                }
+            }
+        }
+        else if (Random() < dt * 8) {
+            // Winding up, create fireballs on object
+            auto effect = ri.IsBoss ? "boss small fireball" : "small fireball";
+            if (auto e = Render::EffectLibrary.GetExplosion(effect)) {
+                //e->Variance = obj.Radius * 0.65f;
+                e->Parent = Game::GetObjectRef(obj);
+                Render::CreateExplosion(*e, obj.Segment, obj.Position);
+            }
+        }
+
+        return elapsedTime > rollDuration;
+    }
+
     // Similar to TurnTowardsVector but adds angular thrust
     void RotateTowards(Object& obj, Vector3 point, float angularThrust) {
         auto dir = point - obj.Position;
@@ -1101,8 +1149,12 @@ namespace Inferno {
             }
         }
 
-        if (!Settings::Cheats.DisableWeaponDamage)
-            robot.HitPoints -= damage;
+        if (Settings::Cheats.DisableWeaponDamage) return;
+
+        robot.HitPoints -= damage;
+        if (info.IsBoss) return;
+        if (robot.HitPoints <= 0 && info.DeathRoll == 0)
+            ExplodeObject(robot); // Explode normal robots immediately
     }
 
     enum class AIEvent {
@@ -1204,6 +1256,35 @@ namespace Inferno {
         decr(ai.PathDelay);
         ai.LastSeenPlayer += dt;
 
+        //if (HasFlag(robot.Flags, ObjectFlag::Exploding)) {
+        //    if (ai.DyingTimer == -1) ai.DyingTimer = 0;
+        //    ai.DyingTimer += dt;
+        //}
+
+        if (robotInfo.IsBoss)
+            if (!Game::UpdateBoss(robot, dt))
+                return; // UpdateBoss returns false when dying
+
+        if (robot.HitPoints <= 0 && robotInfo.DeathRoll > 0) {
+            ai.DeathRollTimer += dt;
+            auto duration = std::min(robotInfo.DeathRoll / 2 + 1, 6);
+            auto elapsed = duration - ai.DeathRollTimer;
+            auto volume = robotInfo.DeathRoll / 4.0f;
+            bool explode = DeathRoll(robot, duration, elapsed, robotInfo.DeathRollSound, ai.DyingSoundPlaying, volume, dt);
+
+            if (explode) {
+                ExplodeObject(robot);
+
+                // explode object, create sound
+                if (Game::LevelNumber < 0) {
+                    // todo: respawn thief on secret levels
+                }
+            }
+            return; // Can't act while dying
+        }
+
+        if (Settings::Cheats.DisableAI) return;
+
         if (ai.Awareness <= 0) {
             ai.Target = {}; // Clear target if robot loses interest.
             ai.KnownPlayerSegment = SegID::None;
@@ -1217,8 +1298,6 @@ namespace Inferno {
             float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
             RotateTowards(robot, *ai.Target, turnTime);
         }
-
-        if (Settings::Cheats.DisableAI) return;
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
@@ -1235,8 +1314,6 @@ namespace Inferno {
             robot.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
         }
 
-        if (robotInfo.IsBoss)
-            Game::UpdateBoss(robot, dt);
 
         if (ai.GoalSegment != SegID::None) {
             // goal pathing takes priority over other behaviors

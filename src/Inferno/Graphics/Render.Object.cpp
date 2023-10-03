@@ -103,7 +103,7 @@ namespace Inferno::Render {
         if (object.IsPhasing()) {
             shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
             shader.SetSampler(cmdList, GetWrappedTextureSampler());
-            constants.DissolveAmount = std::max(object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
+            constants.DissolveAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
         }
 #endif
 
@@ -375,7 +375,7 @@ namespace Inferno::Render {
 #else
         if (object.IsPhasing()) {
             effect.Shader->SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
-            constants.DissolveAmount = std::max(object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
+            constants.DissolveAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
             constants.DissolveColor = object.Effects.PhaseColor;
         }
 #endif

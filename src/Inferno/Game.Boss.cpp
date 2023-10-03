@@ -11,9 +11,8 @@
 
 namespace Inferno::Game {
     namespace {
-        constexpr float BOSS_DEATH_DURATION = 6;
+        constexpr float BOSS_DEATH_DURATION = 5.5f;
         constexpr float DEATH_SOUND_DURATION = 2.68f;
-        constexpr float BOSS_CLOAK_DURATION = 7;
         constexpr float BOSS_DEATH_SOUND_VOLUME = 2;
         constexpr float BOSS_PHASE_TIME = 1.25f;
         //float3(.2, .2, 25)
@@ -102,62 +101,6 @@ namespace Inferno::Game {
         return 4.0f - Game::Difficulty * 2.0f / 3.0f;
     }
 
-    // Causes an object to start exploding with a delay
-    void ExplodeObject(Object& obj, float delay) {
-        if (HasFlag(obj.Flags, ObjectFlag::Exploding)) return;
-
-        obj.Lifespan = delay;
-        SetFlag(obj.Flags, ObjectFlag::Exploding);
-    }
-
-    bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt) {
-        auto& angularVel = obj.Physics.AngularVelocity;
-
-        //auto roll = elapsedTime / rollDuration;
-        //angularVel.x = cos(roll * roll);
-        //angularVel.y = sin(roll);
-        //angularVel.z = cos(roll - 1 / 8.0f);
-
-        angularVel.x = elapsedTime / 9.0f;
-        angularVel.y = elapsedTime / 5.0f;
-        angularVel.z = elapsedTime / 7.0f;
-
-        SoundResource resource(soundId);
-        auto soundDuration = resource.GetDuration();
-
-        if (elapsedTime > rollDuration - soundDuration) {
-            // Going critical!
-            if (!dyingSoundPlaying) {
-                Sound3D sound3d(resource, Game::GetObjectRef(obj));
-                sound3d.Volume = volume;
-                sound3d.Radius = 400; // Should be a global radius for bosses
-                Sound::Play(sound3d);
-                dyingSoundPlaying = true;
-            }
-
-            if (Random() < dt * 16) {
-                if (auto e = Render::EffectLibrary.GetExplosion("large fireballs")) {
-                    // Larger periodic explosions with sound
-                    e->Variance = obj.Radius * 0.45f;
-                    e->Instances = (int)soundDuration;
-                    e->Duration = soundDuration;
-                    Render::CreateExplosion(*e, obj.Segment, obj.Position);
-                }
-            }
-        }
-        else if (Random() < dt * 8) {
-            // Winding up, create fireballs on object
-            if (auto e = Render::EffectLibrary.GetExplosion("small fireballs")) {
-                e->Variance = obj.Radius * 0.55f;
-                e->Duration = rollDuration;
-                e->Instances = (int)rollDuration;
-                Render::CreateExplosion(*e, obj.Segment, obj.Position);
-            }
-        }
-
-        return rollDuration < elapsedTime;
-    }
-
     void GateInRobot() {
         // use materialize effect
     }
@@ -199,22 +142,31 @@ namespace Inferno::Game {
         boss.PhaseIn(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
     }
 
-    void UpdateBoss(Object& boss, float dt) {
+    bool UpdateBoss(Object& boss, float dt) {
         auto& ri = Resources::GetRobotInfo(boss);
         auto& ai = GetAI(boss);
 
-        if (BossDying) {
-            BossDyingElapsed += dt;
-            DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, ri.DeathrollSound,
-                      BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
+        if (boss.HitPoints <= 0)
+            BossDying = true;
 
-            if (BossDyingElapsed > BOSS_DEATH_DURATION) {
-                SelfDestruct();
+        if (BossDying) {
+            // Phase the boss back in if it dies while warping out
+            if (HasFlag(boss.Effects.Flags, EffectFlags::PhaseOut))
+                boss.PhaseIn(boss.Effects.PhaseTimer / 2, BOSS_PHASE_COLOR);
+
+            BossDyingElapsed += dt;
+            bool explode = DeathRoll(boss, BOSS_DEATH_DURATION, BossDyingElapsed, ri.DeathRollSound,
+                                     BossDyingSoundPlaying, BOSS_DEATH_SOUND_VOLUME, dt);
+            if (explode) {
+                SelfDestructMine();
                 ExplodeObject(boss, 0.25f);
                 BossDying = false; // safeguard
             }
-            return;
+            return false;
         }
+
+        if (Settings::Cheats.DisableAI) 
+            return false;
 
         if (ai.Awareness > 0.3f)
             ai.TeleportDelay -= dt; // Only teleport when aware of player
@@ -226,11 +178,20 @@ namespace Inferno::Game {
         if (ai.TeleportDelay <= 0) {
             TeleportBoss(boss, ai, ri);
         }
+
+        return true;
+    }
+
+    void StartBossDeath() {
+        BossDying = true;
     }
 
     void InitBoss() {
         TeleportSegments = GetBossSegments(Game::Level, true);
         GateSegments = GetBossSegments(Game::Level, false);
+        BossDying = false;
+        BossDyingElapsed = 0;
+        BossDyingSoundPlaying = false;
 
         // Attach sound to boss
         for (auto& obj : Game::Level.Objects) {

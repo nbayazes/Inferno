@@ -161,6 +161,7 @@ namespace Inferno::Render {
         Color LightColor = { 4.0f, 1.0f, 0.1f }; // Color of emitted light
         float LightRadius = 0;
         Color Color = { 2.75f, 2.25f, 2.25f }; // Particle color
+        bool UseParentVertices = false; // Creates explosions on the parent vertices, offset from center using variance
 
         bool IsAlive() const { return InitialDelay >= 0; }
         void OnUpdate(float, EffectID) override;

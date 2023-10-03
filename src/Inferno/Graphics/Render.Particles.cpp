@@ -322,8 +322,21 @@ namespace Inferno::Render {
         for (int i = 0; i < Instances; i++) {
             Render::Particle p{};
             auto position = Position;
-            if (Variance > 0)
+
+            if (UseParentVertices && Parent) {
+                if (auto parent = Game::Level.TryGetObject(Parent)) {
+                    auto offset = GetRandomPointOnObject(*parent).Offset;
+                    position = Vector3::Transform(offset, parent->GetTransform(Game::LerpAmount));
+                    if (Variance > 0) {
+                        auto dir = position - parent->Position;
+                        dir.Normalize();
+                        position += dir * Random() * Variance;
+                    }
+                }
+            }
+            else if (Variance > 0) {
                 position += Vector3(RandomN11() * Variance, RandomN11() * Variance, RandomN11() * Variance);
+            }
 
             p.Radius = Radius.GetRandom();
             p.Clip = Clip;
@@ -532,9 +545,13 @@ namespace Inferno::Render {
                 beam.Runtime.NextStrikeTime = Render::ElapsedTime + beam.StrikeTime;
             }
 
+            float dissolveFade = 1;
+
             if (HasFlag(beam.Flags, BeamFlag::RandomObjStart) && startObj) {
                 auto offset = GetSubmodelOffset(*startObj, beam.StartSubmodel);
                 beam.Start = Vector3::Transform(offset, startObj->GetTransform(Game::LerpAmount));
+                if (startObj->IsPhasing())
+                    dissolveFade = 1 - startObj->Effects.GetPhasePercent();
             }
 
             if (HasFlag(beam.Flags, BeamFlag::RandomObjEnd) && startObj) {
@@ -613,6 +630,8 @@ namespace Inferno::Render {
                     fade = 1 - (beam.FadeInOutTime - beam.Life) / beam.FadeInOutTime;
                 }
             }
+
+            fade *= dissolveFade;
 
             for (int i = 0; i < segments; i++) {
                 BeamSeg nextSeg{ .color = beam.Color };

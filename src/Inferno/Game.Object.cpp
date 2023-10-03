@@ -234,4 +234,12 @@ namespace Inferno {
         obj.SourceMatcen = srcMatcen;
         Game::AddObject(obj);
     }
+
+    void ExplodeObject(Object& obj, float delay) {
+        if (HasFlag(obj.Flags, ObjectFlag::Exploding)) return;
+
+        obj.Lifespan = delay;
+        SetFlag(obj.Flags, ObjectFlag::Exploding);
+    }
+
 }
