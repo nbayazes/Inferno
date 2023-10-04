@@ -428,6 +428,11 @@ namespace Inferno {
             return &Objects[(int)id];
         }
 
+        const Object* TryGetObject(ObjID id) const {
+            if (!Seq::inRange(Objects, (int)id)) return nullptr;
+            return &Objects[(int)id];
+        }
+
         Object* TryGetObject(ObjRef ref) {
             auto obj = TryGetObject(ref.Id);
             if (!obj || obj->Signature != ref.Signature) return nullptr;
@@ -461,7 +466,7 @@ namespace Inferno {
         }
 
         // Returns segments that contain a given vertex
-        List<SegID> SegmentsByVertex(uint i);
+        List<SegID> SegmentsByVertex(uint i) const;
 
         Array<Vector3, 4> VerticesForSide(Tag tag) const {
             Array<Vector3, 4> verts{};

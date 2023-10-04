@@ -498,7 +498,9 @@ namespace Inferno::Game {
                 expl.Variance = obj.Radius * 0.5f;
                 Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(LerpAmount));
 
-                AddPointsToScore(robot.Score);
+                // Don't give score from robots created by bosses to prevent score farming
+                if (obj.SourceMatcen != MatcenID::Boss)
+                    AddPointsToScore(robot.Score);
 
                 auto& model = Resources::GetModel(robot.Model);
                 for (int sm = 0; sm < model.Submodels.size(); sm++) {

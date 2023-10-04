@@ -139,7 +139,7 @@ namespace Inferno::Game {
         assert(hit.HitObj);
         assert(src.IsWeapon());
         const auto& weapon = Resources::GetWeapon(src);
-        const float damage = weapon.Damage[Game::Difficulty] * src.Control.Weapon.Multiplier;
+        float damage = weapon.Damage[Game::Difficulty] * src.Control.Weapon.Multiplier;
 
         auto& target = *hit.HitObj;
         src.LastHitObject = target.Signature;
@@ -153,9 +153,12 @@ namespace Inferno::Game {
         else {
             if (target.IsPlayer()) {
                 // Players don't take direct damage from explosive weapons for balance reasons
-                // The secondary explosion will still inflict damage
-                if (!weapon.IsExplosive())
-                    Game::Player.ApplyDamage(damage, true);
+                // The secondary explosion will still inflict damage.
+                // However we still apply damage so the correct sound effect plays.
+                if (weapon.IsExplosive())
+                    damage = 0;
+
+                Game::Player.ApplyDamage(damage, true);
             }
             else if (target.IsRobot()) {
                 Vector3 srcDir;

@@ -3,6 +3,8 @@
 #include <sstream>
 #include <concepts>
 #include <future>
+#include <random>
+
 #include "Types.h"
 
 #define ASSERT(x) (void)( (!!(x)) || (__debugbreak(), 0))
@@ -48,6 +50,8 @@ namespace Inferno {
         return { dir, length };
     }
 
+    std::mt19937& InternalMt19937();
+
     void InitRandom();
 
     // Returns a random float between 0 and 1
@@ -58,6 +62,10 @@ namespace Inferno {
 
     // Returns a random int between min and max
     int RandomInt(int minimum, int maximum);
+
+    void Shuffle(auto&& range) {
+        ranges::shuffle(range, InternalMt19937());
+    }
 
     // Returns a random value between -1 and 1
     inline float RandomN11() {

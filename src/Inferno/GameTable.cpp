@@ -369,7 +369,7 @@ namespace Inferno {
                 int robotId = -1;
                 Yaml::ReadValue(gatedRobot, robotId);
                 if (robotId != -1)
-                    robot.GatedRobots.push_back(robotId);
+                    robot.GatedRobots.push_back((int8)robotId);
             }
         }
 #undef READ_TAG

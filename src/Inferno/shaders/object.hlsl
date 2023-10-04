@@ -109,12 +109,12 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rrr;
     float3 lighting = float3(0, 0, 0);
 
-    float3 dissolveColor = 0;
+    float3 phaseColor = 0;
     //float argDissolve = frac(Frame.Time * .5);
     if (Object.PhaseAmount > 0) {
         float dissolveTex = .95 - Sample2D(DissolveTexture, input.uv + float2(Object.TimeOffset, Object.TimeOffset), Sampler, Frame.FilterMode).r;
         clip(Object.PhaseAmount - dissolveTex);
-        dissolveColor = Object.PhaseColor.rgb * step(Object.PhaseAmount - dissolveTex, 0.05);
+        phaseColor = Object.PhaseColor.rgb * step(Object.PhaseAmount - dissolveTex, 0.05);
     }
 
     if (!Frame.NewLightMode) {
@@ -155,7 +155,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         }
 
         
-        lighting.rgb += dissolveColor;
+        lighting.rgb += phaseColor;
 
         //if (argDissolve - dissolveTex < 0) lighting.rgb = float3(1, 0, 1);
         return float4(lighting * Frame.GlobalDimming, diffuse.a);

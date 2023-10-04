@@ -1110,6 +1110,7 @@ namespace Inferno {
                         }
                         else if (!HasFlag(obj.Physics.Flags, PhysicsFlag::Piercing) && !HasFlag(obj.Physics.Flags, PhysicsFlag::Stick)) {
                             obj.Physics.Velocity += hitNormal * hitSpeed; // slide along wall
+                            //SPDLOG_INFO("Sliding along wall, speed: {}", hitSpeed);
                         }
 
                         averagePosition += hitPoint + hitNormal * obj.Radius;
@@ -1367,7 +1368,7 @@ namespace Inferno {
             obj.PrevPosition = obj.Position;
             obj.PrevRotation = obj.Rotation;
             obj.Physics.PrevVelocity = obj.Physics.Velocity;
-            assert(IsNormalized(obj.Rotation.Forward()));
+            ASSERT(IsNormalized(obj.Rotation.Forward()));
 
             PlayerPhysics(obj, dt);
             AngularPhysics(obj, dt);

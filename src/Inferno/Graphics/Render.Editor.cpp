@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Render.Editor.h"
 
+#include "Game.Boss.h"
 #include "Game.Object.h"
 #include "Object.h"
 #include "Render.h"
@@ -81,6 +82,13 @@ namespace Inferno::Render {
 
         color.A(0.5f);
         DrawFacingCircle(object.Position, object.Radius, color);
+    }
+
+    void OutlineTeleportSegments() {
+        for (auto& [segid, pos] : Game::GetTeleportSegments()) {
+            if (auto seg = Game::Level.TryGetSegment(segid))
+                Render::Debug::OutlineSegment(Game::Level, *seg, Color(0, 1, 0));
+        }
     }
 
     void DrawTunnelPathNode(const Editor::PathNode& node) {
@@ -517,6 +525,7 @@ namespace Inferno::Render {
 
         DrawPath(Inferno::Debug::NavigationPath, Color(0, 1, 0));
         DrawRooms(level);
+        OutlineTeleportSegments();
 
         if (Settings::Graphics.OutlineVisibleRooms) {
             if (auto seg = level.TryGetSegment(Editor::Selection.Segment))

@@ -10,8 +10,6 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
-    constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
-
     void ChangeLight(Level& level, const LightDeltaIndex& index, float multiplier = 1.0f) {
         for (int j = 0; j < index.Count; j++) {
             auto& dlp = level.LightDeltas[index.Index + j];
@@ -424,7 +422,7 @@ namespace Inferno {
             obj.Position = seg->Center;
             obj.Segment = matcen.Segment;
             obj.SourceMatcen = matcenId;
-            obj.PhaseIn(2, MATCEN_PHASING_COLOR);
+            obj.PhaseIn(2, Game::MATCEN_PHASING_COLOR);
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
             obj.Rotation = VectorToRotation(-facing);
@@ -507,5 +505,26 @@ namespace Inferno {
                 }
             }
         }
+    }
+
+    Vector3 RandomPointInSegment(const Level& level, const Segment& seg) {
+        auto verts = seg.GetVertices(level);
+        auto vert = verts[RandomInt((int)verts.size() - 1)];
+        auto offset = *vert - seg.Center;
+        return seg.Center + offset * Random() * 0.5f;
+    }
+
+    bool NewObjectIntersects(const Level& level, const Segment& seg, const Vector3& position, float radius, ObjectMask mask) {
+        for (auto& objid : seg.Objects) {
+            if (auto obj = level.TryGetObject(objid)) {
+                if (!obj->PassesMask(mask)) 
+                    continue;
+
+                if (Vector3::Distance(obj->Position, position) < obj->Radius + radius)
+                    return true;
+            }
+        }
+
+        return false;
     }
 }

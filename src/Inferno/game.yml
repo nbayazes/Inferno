@@ -339,11 +339,13 @@ Weapons:
     Mass: 4
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 60
-    LightColor: 0.75, 0.25, 0.25, 2
+    LightColor: 0.75, 0.125, 0.125, 2
     Size: 1.25 # was 0.2 due odd length ratio
     Recoil: 175
     HomingFov: 45
     HomingDistance: 300
+    FlashColor: 0.75, 0.125, 0.125, 15
+    SoundRadius: 500
 
   - id: 28
     Name: robot mega missile
@@ -352,11 +354,14 @@ Weapons:
     Mass: 4
     ExplosionColor: 15, 0.5, 0.5
     LightRadius: 60
-    LightColor: 0.75, 0.25, 0.25, 2
+    LightColor: 0.75, 0.125, 0.125, 2
     Size: 1.25
     Recoil: 175
     HomingFov: 45
     HomingDistance: 300
+    FlashSize: 12
+    FlashColor: 0.75, 0.125, 0.125, 15
+    SoundRadius: 500
 
   - id: 20 
     Name: robot spreadfire
@@ -625,6 +630,12 @@ Robots:
     Mass: 100
     GatedRobots: [ 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22, 0, 8, 11, 19, 20, 8, 20, 8 ]
     TurnTime: 0.05 # Turn time reduced to compensate for increased mass
+    DeathRollSound: 185 # d1
+    DeathRoll: 10 # max death roll
+    SeeSound: 183 # d1
+    TeleportInterval: 3 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
+    FireDelay: 1
+    Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
   - id: 24 # BEPR
   - id: 25 # Smelter
 #Ice Spider

@@ -78,6 +78,7 @@ namespace Inferno {
             GoalPath.clear();
             GoalPathIndex = -1;
             GoalSegment = SegID::None;
+            GoalRoom = RoomID::None;
         }
     };
 

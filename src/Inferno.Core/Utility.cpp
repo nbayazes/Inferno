@@ -3,9 +3,13 @@
 #include <random>
 
 namespace Inferno {
-    constexpr int RANDOM_MAX = 0x7FFFFFFFUL;
-    std::mt19937 gen; //seed for rd(Mersenne twister)
-    std::uniform_int_distribution randomRange(0, RANDOM_MAX);
+    namespace {
+        constexpr int RANDOM_MAX = 0x7FFFFFFFUL;
+        std::mt19937 gen; //seed for rd(Mersenne twister)
+        std::uniform_int_distribution randomRange(0, RANDOM_MAX);
+    }
+
+    std::mt19937& InternalMt19937() { return gen; }
 
     void InitRandom() {
         std::random_device rd; //seed

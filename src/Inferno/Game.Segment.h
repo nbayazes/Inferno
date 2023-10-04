@@ -24,4 +24,7 @@ namespace Inferno {
     void UpdateMatcens(Level& level, float dt);
     void TriggerMatcen(Level& level, SegID segId, SegID triggerSeg);
     void InitializeMatcens(Level& level);
+    Vector3 RandomPointInSegment(const Level& level, const Segment& seg);
+    // Returns true if a new object at the given position and radius would intersect with an existing object
+    bool NewObjectIntersects(const Level& level, const Segment& seg, const Vector3& position, float radius, ObjectMask mask);
 }

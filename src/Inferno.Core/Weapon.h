@@ -143,7 +143,7 @@ namespace Inferno {
         float Size = -1; // Overrides Blob Size and Model Size
 
         float Spread = 0; // Amount of spread in units
-        Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites
+        Color FlashColor = { 1, 1, 1 }; // Color for muzzle flash sprites and lighting
         float Noise = 1; // How much noise (awareness) weapon creates when firing
         float SoundRadius = 240; // Sound radius when firing
         float StunMult = 1; // how effective this weapon is at stunning robots. 0.5 would halve stun duration.

@@ -189,7 +189,7 @@ namespace Inferno {
 
         struct Constants {
             Matrix World;
-            float DissolveAmount;
+            float PhaseAmount;
             float TimeOffset;
         };
 

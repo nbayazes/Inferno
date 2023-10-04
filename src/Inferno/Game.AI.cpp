@@ -837,8 +837,6 @@ namespace Inferno {
     AiExtended DefaultAi{};
 
     void FireWeaponAtPoint(const Object& obj, const RobotInfo& robot, uint8 gun, const Vector3& point, WeaponID weapon) {
-        // for melee robots...
-        // dist_to_player < obj->size + ConsoleObject->size + F1_0 * 2
         auto aim = 8.0f - 7.0f * FixToFloat(robot.Aim << 8);
 
         // todo: seismic disturbance inaccuracy
@@ -849,7 +847,6 @@ namespace Inferno {
             point.y + RandomN11() * (5 - Game::Difficulty - 1) * aim,
             point.z + RandomN11() * (5 - Game::Difficulty - 1) * aim
         };
-
 
         // this duplicates position/direction calculation in FireWeapon...
         auto gunOffset = GetSubmodelOffset(obj, { robot.GunSubmodels[gun], robot.GunPoints[gun] });
@@ -946,6 +943,9 @@ namespace Inferno {
         // only fire if target is within certain angle. for fast require a more precise alignment
         if (primary) {
             ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
+            if (Game::Level.IsDescent1() && robot.ID == 23 && ai.GunIndex == 2)
+                ai.GunIndex = 3; // HACK: skip to 3 due to gunpoint 2 being zero-filled on the D1 final boss
+
             if (robotInfo.WeaponType2 != WeaponID::None && ai.GunIndex == 0)
                 ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
         }
@@ -1267,7 +1267,7 @@ namespace Inferno {
 
         if (robot.HitPoints <= 0 && robotInfo.DeathRoll > 0) {
             ai.DeathRollTimer += dt;
-            auto duration = std::min(robotInfo.DeathRoll / 2 + 1, 6);
+            auto duration = (float)std::min(robotInfo.DeathRoll / 2 + 1, 6);
             //auto volume = robotInfo.DeathRoll / 4.0f;
             bool explode = DeathRoll(robot, duration, ai.DeathRollTimer, robotInfo.DeathRollSound, ai.DyingSoundPlaying, 1.0f, dt);
 

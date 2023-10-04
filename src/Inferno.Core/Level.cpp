@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Level.h"
-#include "Streams.h"
 
 namespace Inferno {
     bool Level::HasSecretExit() const {
@@ -15,7 +14,7 @@ namespace Inferno {
     }
 
 
-    List<SegID> Level::SegmentsByVertex(uint i) {
+    List<SegID> Level::SegmentsByVertex(uint i) const {
         List<SegID> segments;
         auto id = SegID(0);
 

@@ -1,12 +1,16 @@
 #include "pch.h"
 #include "Game.Boss.h"
 
+#include <numeric>
+
 #include "Game.AI.h"
 #include "Game.h"
 #include "Game.Reactor.h"
+#include "Game.Segment.h"
 #include "Physics.h"
 #include "Resources.h"
 #include "SoundSystem.h"
+#include "Editor/Editor.Object.h"
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
@@ -23,38 +27,42 @@ namespace Inferno::Game {
         bool BossDying = false;
         bool BossDyingSoundPlaying = false;
         float BossDyingElapsed = 0;
-        List<SegID> TeleportSegments;
+        List<TeleportTarget> TeleportTargets;
         List<SegID> GateSegments;
+        float GateInterval = 10; // D1 gate interval
+        float GateTimer = 0; // Gates in a robot when timer reaches interval
     }
 
-    bool BossFitsInSegment(Inferno::Level& level, SegID segId, const Object& boss) {
+    span<TeleportTarget> GetTeleportSegments() { return TeleportTargets; }
+
+    Option<Vector3> BossFitsInSegment(Inferno::Level& level, SegID segId, const Object& boss) {
         // Checks if the boss can fit at 9 different locations within the segment,
         // towards each corner and the center.
         auto seg = level.TryGetSegment(segId);
-        if (!seg) return false;
-        auto vertices = seg->GetVertices(level);
+        if (!seg) return {};
         float radius = boss.Radius * 4 / 3.0f;
 
-        for (int i = 0; i < 9; i++) {
-            Vector3 position = seg->Center;
-            if (i < vertices.size())
-                position = (*vertices[i] + seg->Center) / 2;
-
+        {
             LevelHit hit;
-            if (!IntersectLevelSegment(level, position, radius, segId, hit))
-                return true;
+            if (!IntersectLevelSegment(level, seg->Center, radius, segId, hit))
+                return seg->Center;
         }
 
-        return false;
+        for (auto& sideid : SideIDs) {
+            auto position = (seg->GetSide(sideid).Center + seg->Center) / 2;
+            LevelHit hit;
+            if (!IntersectLevelSegment(level, position, radius, segId, hit))
+                return position;
+        }
+
+        return {};
     }
 
-    List<SegID> GetBossSegments(Inferno::Level& level, bool sizeCheck) {
+    List<TeleportTarget> FindTeleportTargets(Inferno::Level& level, bool sizeCheck) {
         Object* boss = nullptr;
         List<int8> visited;
         visited.resize(level.Segments.size());
-        //ranges::fill(visited, 0);
-        List<SegID> segments;
-
+        List<TeleportTarget> targets;
 
         for (int i = 0; i < level.Objects.size(); i++) {
             auto& obj = level.Objects[i];
@@ -71,13 +79,16 @@ namespace Inferno::Game {
         queue.reserve(256);
         queue.push_back(boss->Segment);
 
-        segments.push_back(boss->Segment);
         int index = 0;
 
         while (index < queue.size()) {
             auto segid = queue[index++];
             auto seg = level.TryGetSegment(segid);
             if (!seg) continue;
+
+            auto position = BossFitsInSegment(level, segid, *boss);
+            if (!sizeCheck || position)
+                targets.push_back({ segid, position.value_or(seg->Center) });
 
             for (auto& sideid : SideIDs) {
                 if (seg->SideIsSolid(sideid, level)) continue;
@@ -87,59 +98,114 @@ namespace Inferno::Game {
                 if (isVisited) continue; // already visited
                 isVisited = true;
                 queue.push_back(connection);
-                if (!sizeCheck || BossFitsInSegment(level, segid, *boss)) {
-                    segments.push_back(connection);
-                }
             }
         }
 
-        Seq::sort(segments);
-        return segments;
+        return targets;
     }
 
     float GetGateInterval() {
         return 4.0f - Game::Difficulty * 2.0f / 3.0f;
     }
 
-    void GateInRobot() {
+    void GateInRobotD1(int8 id) {
+        if (GateSegments.empty()) {
+            SPDLOG_WARN("Gate segments empty, unable to gate in robot");
+            return;
+        }
+
+        auto segId = GateSegments[RandomInt((int)GateSegments.size() - 1)];
+        auto& seg = Game::Level.GetSegment(segId);
+        auto& robotInfo = Resources::GetRobotInfo(id);
+
+        int count = 0;
+        for (auto& obj : Game::Level.Objects) {
+            if (obj.IsRobot() && obj.SourceMatcen == MatcenID::Boss)
+                count++;
+        }
+
+        if (count > 2 * Game::Difficulty + 3) {
+            GateTimer = GateInterval * 0.75f;
+            return;
+        }
+
+        auto point = RandomPointInSegment(Game::Level, seg);
+        auto mask = ObjectMask::Player | ObjectMask::Enemy;
+        if (NewObjectIntersects(Game::Level, seg, point, robotInfo.Radius, mask)) {
+            GateTimer = GateInterval * 0.75f;
+            return;
+        }
+
         // use materialize effect
+        auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
+        Sound3D sound({ vclip.Sound }, point, segId);
+        sound.Radius = 400.0f;
+        Sound::Play(sound);
+
+        // Create a new robot
+        Object obj{};
+        Editor::InitObject(Game::Level, obj, ObjectType::Robot, id);
+        obj.Position = point;
+        obj.Segment = segId;
+        obj.SourceMatcen = MatcenID::Boss;
+        obj.PhaseIn(2, MATCEN_PHASING_COLOR);
+
+        auto dir = Game::GetPlayerObject().Position - point;
+        dir.Normalize();
+        obj.Rotation = VectorToRotation(-dir);
+        Game::AddObject(obj);
+
+        GateTimer = 0;
     }
 
     void TeleportBoss(Object& boss, AIRuntime& ai, const RobotInfo& info) {
-        if (TeleportSegments.empty()) {
+        if (TeleportTargets.empty()) {
             SPDLOG_WARN("No teleport segments found for boss!");
             return;
         }
 
         auto& player = Game::GetPlayerObject();
 
-        // Avoid warping the boss directly on top of the player or itself
-        int random = -1;
-        for (int retry = 0; retry < 5; retry++) {
-            random = RandomInt((int)TeleportSegments.size() - 1);
-            if (player.Segment != TeleportSegments[random] &&
-                boss.Segment != TeleportSegments[random])
-                break;
+        // Find a valid segment to warp to
+        TeleportTarget* target = nullptr;
+
+        Shuffle(TeleportTargets);
+        for (auto& t : TeleportTargets) {
+            if (player.Segment == t.Segment || boss.Segment == t.Segment)
+                continue; // Avoid teleporting on top of self or the player
+
+            if (auto seg = Game::Level.TryGetSegment(t.Segment)) {
+                auto mask = ObjectMask::Player | ObjectMask::Enemy;
+                if (NewObjectIntersects(Game::Level, *seg, t.Position, boss.Radius, mask))
+                    continue; // Avoid teleporting on top of an existing object
+
+                target = &t;
+                break; // Found a valid segment
+            }
         }
 
-        if (random != -1) {
-            auto& seg = Level.GetSegment(TeleportSegments[random]);
-            boss.Position = boss.PrevPosition = seg.Center;
-            RelinkObject(Game::Level, boss, TeleportSegments[random]);
+        if (!target) {
+            SPDLOG_WARN("Boss was unable to find a new segment to warp to");
         }
         else {
-            SPDLOG_WARN("Boss was unable to find a new segment to warp to");
+            boss.Position = boss.PrevPosition = target->Position;
+            boss.Physics.PrevVelocity = boss.Physics.Velocity = Vector3();
+            boss.Physics.Thrust = Vector3();
+            SPDLOG_INFO("Teleporting boss to segment {}", target->Segment);
+            RelinkObject(Game::Level, boss, target->Segment);
         }
 
         // Face towards player after teleporting
         auto facing = player.Position - boss.Position;
         facing.Normalize();
-        boss.Rotation = VectorToRotation(facing);
-        boss.Rotation.Forward(-boss.Rotation.Forward());
+        boss.Rotation = VectorToRotation(-facing);
+        boss.Rotation.Forward(boss.Rotation.Forward());
+        boss.PrevRotation = boss.Rotation;
 
         ai.TeleportDelay = info.TeleportInterval;
         ai.Awareness = 0; // Make unaware of player so teleport doesn't start counting down immediately
         boss.PhaseIn(BOSS_PHASE_TIME, BOSS_PHASE_COLOR);
+        ai.ClearPath();
     }
 
     bool UpdateBoss(Object& boss, float dt) {
@@ -161,12 +227,34 @@ namespace Inferno::Game {
                 SelfDestructMine();
                 ExplodeObject(boss);
                 BossDying = false; // safeguard
+                Sound3D sound({ ri.ExplosionSound2 }, boss.Position, boss.Segment);
+                sound.Volume = 3;
+                sound.Radius = 1000;
+                Sound::Play(sound);
+
+                Render::DynamicLight light;
+                light.Radius = 200;
+                light.Duration = light.FadeTime = 0.25f;
+                light.LightColor = Color(1, 0.45, 0.25, 25);
+                light.Position = boss.Position;
+                light.Segment = boss.Segment;
+                Render::AddDynamicLight(light);
             }
             return false;
         }
 
         if (Settings::Cheats.DisableAI)
             return false;
+
+        if (Game::Level.IsDescent1()) {
+            if (!ri.GatedRobots.empty()) {
+                GateTimer += dt;
+                if (GateTimer >= GateInterval) {
+                    auto robotId = ri.GatedRobots[RandomInt((int)ri.GatedRobots.size() - 1)];
+                    //GateInRobotD1(robotId);
+                }
+            }
+        }
 
         if (ai.Awareness > 0.3f)
             ai.TeleportDelay -= dt; // Only teleport when aware of player
@@ -187,13 +275,21 @@ namespace Inferno::Game {
     }
 
     void InitBoss() {
-        TeleportSegments = GetBossSegments(Game::Level, true);
-        if (Game::Level.IsDescent1())
-            GateSegments = GetBossSegments(Game::Level, false);
+        // todo: add hack for D2 level 4 boss to check past 1 wall for teleport targets
+        GateSegments.clear();
+        TeleportTargets = FindTeleportTargets(Game::Level, true);
+        if (Game::Level.IsDescent1()) {
+            for (auto& [seg, pos] : FindTeleportTargets(Game::Level, false))
+                GateSegments.push_back(seg);
+            GateInterval = 5.0f - Game::Difficulty / 2.0f;
+        }
 
         BossDying = false;
         BossDyingElapsed = 0;
         BossDyingSoundPlaying = false;
+        GateTimer = 0;
+
+        if (Game::GetState() == GameState::Editor) return;
 
         // Attach sound to boss
         for (auto& obj : Game::Level.Objects) {
