@@ -5,6 +5,11 @@
 #include "SoundTypes.h"
 
 namespace Inferno {
+    constexpr float AI_PATH_DELAY = 5; // Default delay for trying to path to the player
+    constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
+    constexpr float AI_COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
+    constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
+
     struct AITarget {
         Vector3 Position;
         Vector3 Velocity;
@@ -244,9 +249,10 @@ namespace Inferno {
 
     AIRuntime& GetAI(const Object& obj);
 
-    namespace AI {
-        void SetPath(Object& obj, const List<SegID>& path, const Vector3* endPosition = nullptr);
-    }
-
     bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
+    void RotateTowards(Object& obj, Vector3 point, float angularThrust);
+    void MoveTowardsPoint(Object& obj, const Vector3& point, float thrust);
+
+    struct RobotInfo;
+    float GetRotationSpeed(const RobotInfo& ri);
 }

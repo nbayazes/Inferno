@@ -3,6 +3,7 @@
 #include "Level.h"
 #include "Game.Object.h"
 #include "Game.AI.h"
+#include "Game.AI.Pathing.h"
 #include "Game.h"
 #include "Game.Segment.h"
 #include "Game.Visibility.h"

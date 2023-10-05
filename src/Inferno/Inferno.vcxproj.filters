@@ -284,6 +284,9 @@
     <ClCompile Include="Game.Boss.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Game.AI.Pathing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -659,6 +662,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game.Boss.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.AI.Pathing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
