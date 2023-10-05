@@ -666,20 +666,20 @@ Powerups:
     LightMode: 1 # Flicker
 
   - id: 2 # Shield
-    Glow: 1, 1, .5, 2.5
+    Glow: 1, 1, .5, 4.5
     LightColor: 0.0125, 0.0125, 1, 2.5
     LightRadius: 18
     LightMode: 2 # Pulse
 
   - id: 23 # Cloak
     LightColor: .5, 0, 1, 2
-    Glow: 1, 1, 1
+    Glow: 1, 1, 1, 2
     LightRadius: 18
     LightMode: 2 # Pulse
 
   - id: 25 # Invuln
-    LightColor: 0.1, 0, 1, 2
-    Glow: 1, 1, 1
+    Glow: 1, 1, 1, 2
+    LightColor: 0.1, 0, 1, 4
     LightRadius: 18
     LightMode: 2 # Pulse
 

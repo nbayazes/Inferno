@@ -727,6 +727,21 @@ namespace Inferno::Render {
         Render::Adapter->PrintMemoryUsage();
     }
 
+    void MaterialLibrary::UnloadNamedTextures() {
+        SPDLOG_INFO("Unloading extended textures");
+        Render::Adapter->WaitForGpu();
+
+        for (auto& id : _namedMaterials | views::values) {
+            if (id <= TexID::Invalid) continue;
+            auto& material = Get(id);
+            ResetMaterial(material);
+        }
+
+        _namedMaterials.clear();
+        _looseTexId = LOOSE_TEXID_START;
+        Render::Adapter->PrintMemoryUsage();
+    }
+
     void MaterialLibrary::LoadDefaults() {
         for (int i = 0; i < _materials.size(); i++) {
             auto& material = _materials[i];

@@ -108,6 +108,7 @@ namespace Inferno::Render {
         // Unloads unused materials
         void Prune() { _requestPrune = true; }
         void Unload();
+        void UnloadNamedTextures();
 
         // Materials to keep loaded after a prune
         Set<TexID> KeepLoaded;

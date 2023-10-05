@@ -213,6 +213,7 @@ namespace Inferno {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
 
+        UpdateFireState();
         if (Game::Level.Objects.empty()) return;
         auto& player = Game::GetPlayerObject();
 

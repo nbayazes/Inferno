@@ -9,7 +9,6 @@
 #include "SoundSystem.h"
 #include "Input.h"
 #include "Graphics/Render.Particles.h"
-#include "Physics.h"
 #include "Graphics/Render.Debug.h"
 #include "imgui_local.h"
 #include "Editor/Editor.h"
@@ -33,12 +32,9 @@ namespace Inferno::Game {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
-
-
     }
 
     void StartLevel();
-
 
     void ResetCountdown() {
         ControlCenterDestroyed = false;
@@ -618,6 +614,7 @@ namespace Inferno::Game {
         Sound::Reset();
         Resources::LoadGameTable();
         Render::ResetEffects();
+        Render::Materials->UnloadNamedTextures();
         Render::Materials->LoadGameTextures();
         InitObjects(Level);
         InitializeMatcens(Level);
