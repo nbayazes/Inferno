@@ -441,8 +441,7 @@ namespace Inferno::Game {
         auto& weapon = Resources::GetWeapon(id);
         Object bullet{};
         bullet.Position = bullet.PrevPosition = position;
-        auto rotation = VectorToRotation(direction);
-        rotation.Forward(-rotation.Forward());
+        auto rotation = VectorToObjectRotation(direction);
         bullet.Rotation = bullet.PrevRotation = rotation;
 
         bullet.Movement = MovementType::Physics;
@@ -1033,8 +1032,7 @@ namespace Inferno::Game {
         //fvec *= dt * HOMING_MISSILE_SCALE;
         fvec += obj.Rotation.Forward();
         fvec.Normalize();
-        obj.Rotation = Matrix3x3(VectorToRotation(fvec));
-        obj.Rotation.Forward(-obj.Rotation.Forward()); // correct for lh model
+        obj.Rotation = VectorToObjectRotation(fvec);
     }
 
     void UpdateHomingWeapon(Object& weapon, const Weapon& weaponInfo, float dt) {

@@ -410,7 +410,7 @@ namespace Inferno {
             obj.PhaseIn(2, Game::MATCEN_PHASING_COLOR);
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
-            obj.Rotation = VectorToRotation(-facing);
+            obj.Rotation = VectorToRotation(facing);
             Game::AddObject(obj);
 
             matcen.RobotCount--;

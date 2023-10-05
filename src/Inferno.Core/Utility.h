@@ -440,7 +440,7 @@ namespace Inferno {
         return AngleBetweenVectors(v0, v1, normal);
     }
 
-    // Creates a rotation matrix from a vector
+    // Creates a world rotation matrix from a vector
     inline Matrix3x3 VectorToRotation(const Vector3& fvec) {
         Vector3 rvec;
         Vector3 uvec;
@@ -459,6 +459,10 @@ namespace Inferno {
         return Matrix3x3{ rvec, uvec, fvec };
     }
 
+    // Creates an object rotation matrix from a vector
+    inline Matrix3x3 VectorToObjectRotation(const Vector3& fvec) {
+        return VectorToRotation(-fvec); // Flip the forward vector to correct for lh/rh
+    }
 
     constexpr float PaletteToRGB(uint16 color) {
         return color >= 31 ? 1.0f : float(color) / 31.0f;

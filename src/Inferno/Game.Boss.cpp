@@ -152,7 +152,7 @@ namespace Inferno::Game {
 
         auto dir = Game::GetPlayerObject().Position - point;
         dir.Normalize();
-        obj.Rotation = VectorToRotation(-dir);
+        obj.Rotation = VectorToObjectRotation(dir);
         Game::AddObject(obj);
 
         GateTimer = 0;
@@ -198,7 +198,7 @@ namespace Inferno::Game {
         // Face towards player after teleporting
         auto facing = player.Position - boss.Position;
         facing.Normalize();
-        boss.Rotation = VectorToRotation(-facing);
+        boss.Rotation = VectorToObjectRotation(facing);
         boss.Rotation.Forward(boss.Rotation.Forward());
         boss.PrevRotation = boss.Rotation;
 
