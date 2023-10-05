@@ -251,7 +251,7 @@ namespace Inferno::Game {
                 GateTimer += dt;
                 if (GateTimer >= GateInterval) {
                     auto robotId = ri.GatedRobots[RandomInt((int)ri.GatedRobots.size() - 1)];
-                    //GateInRobotD1(robotId);
+                    GateInRobotD1(robotId);
                 }
             }
         }

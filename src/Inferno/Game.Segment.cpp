@@ -398,23 +398,8 @@ namespace Inferno {
                 return;
             }
 
-            // Merge set robots from both flags
-            int8 legalTypes[64]{}; // max of 64 different robots set on matcen
-
-            int numTypes = 0;
-            for (int8 i = 0; i < 2; i++) {
-                int8 robotIndex = i * 32;
-                auto flags = i == 0 ? matcen.Robots : matcen.Robots2;
-                while (flags) {
-                    if (flags & 1)
-                        legalTypes[numTypes++] = robotIndex;
-                    flags >>= 1;
-                    robotIndex++;
-                }
-            }
-
-            ASSERT(numTypes != 0);
-            auto type = numTypes == 1 ? legalTypes[0] : legalTypes[RandomInt(numTypes - 1)];
+            auto robots = matcen.GetEnabledRobots();
+            auto type = robots[RandomInt(robots.size() - 1)];
 
             // Create a new robot
             Object obj{};

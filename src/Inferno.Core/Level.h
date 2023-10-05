@@ -26,6 +26,9 @@ namespace Inferno {
         bool CreateRobotState = false;
         List<SegID> TriggerPath; // Path to the trigger that last activated this matcen. Used for robot pathing.
         EffectID Light = EffectID::None; // Permanent light to indicate the matcen has activations remaining
+
+        // Returns the robot ids from merging the two flags
+        List<int8> GetEnabledRobots() const;
     };
 
     struct LightDeltaIndex {

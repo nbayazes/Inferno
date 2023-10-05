@@ -12,8 +12,7 @@ namespace Inferno {
     std::mt19937& InternalMt19937() { return gen; }
 
     void InitRandom() {
-        std::random_device rd; //seed
-        gen = std::mt19937(rd());
+        gen = std::mt19937(std::random_device{}());
     }
 
     float Random() {

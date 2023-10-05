@@ -53,24 +53,21 @@ namespace Inferno::Render {
         task.wait();
     }
 
-    List<TexID> GetTexturesForModel(ModelID id) {
-        List<TexID> ids;
-        if (id == ModelID::None) return ids;
+    void GetTexturesForModel(ModelID id, Set<TexID>& ids) {
+        if (id == ModelID::None) return;
 
         auto& model = Resources::GetModel(id);
 
         for (int16 i = 0; i < model.TextureCount; i++) {
             auto tid = Resources::LookupModelTexID(model, i);
-            ids.push_back(tid);
+            ids.insert(tid);
 
             // Also load effect clip frames
             auto& eclip = Resources::GetEffectClip(tid);
-            Seq::append(ids, eclip.VClip.GetFrames());
+            Seq::insert(ids, eclip.VClip.GetFrames());
             auto& crit = Resources::GetEffectClip(eclip.CritClip);
-            Seq::append(ids, crit.VClip.GetFrames());
+            Seq::insert(ids, crit.VClip.GetFrames());
         }
-
-        return ids;
     }
 
     Set<TexID> GetLevelModelTextures(const Inferno::Level& level) {
@@ -82,8 +79,8 @@ namespace Inferno::Render {
                 case ObjectType::Robot:
                 {
                     auto& info = Resources::GetRobotInfo(object.ID);
-                    auto modelIds = GetTexturesForModel(info.Model);
-                    ids.insert(modelIds.begin(), modelIds.end());
+                    GetTexturesForModel(info.Model, ids);
+
                     if (object.Render.Model.TextureOverride != LevelTexID::None) {
                         auto id = Resources::LookupTexID(object.Render.Model.TextureOverride);
                         ids.insert(id);
@@ -92,10 +89,8 @@ namespace Inferno::Render {
                     break;
                 }
                 default:
-                    if (object.Render.Type == RenderType::Model) {
-                        auto modelIds = GetTexturesForModel(object.Render.Model.ID);
-                        ids.insert(modelIds.begin(), modelIds.end());
-                    }
+                    if (object.Render.Type == RenderType::Model)
+                        GetTexturesForModel(object.Render.Model.ID, ids);
                     break;
             }
         }
@@ -150,29 +145,36 @@ namespace Inferno::Render {
     Set<TexID> GetGameplayTextures() {
         Set<TexID> ids;
 
-        auto insertClip = [&ids] (VClipID id) {
-            if (id == VClipID::None) return;
-            auto& clip = Resources::GetVideoClip(id);
-            Seq::insert(ids, clip.GetFrames());
-        };
-
         // Load all weapon clips and models
         for (auto& weapon : Resources::GameData.Weapons) {
-            //insertClip(weapon.FlashVClip);
-            //insertClip(weapon.RobotHitVClip);
-            //insertClip(weapon.WallHitVClip);
-            //insertClip(weapon.WeaponVClip);
-
             ids.insert(weapon.BlobBitmap);
             ids.insert(weapon.HiresIcon);
             ids.insert(weapon.Icon);
 
-            Seq::insert(ids, GetTexturesForModel(weapon.Model));
+            GetTexturesForModel(weapon.Model, ids);
         }
 
         // Load all vclips
         for (auto& vclip : Resources::GameData.VClips) {
             Seq::insert(ids, vclip.GetFrames());
+        }
+
+        // Load robots from bosses
+        for (auto& obj : Game::Level.Objects) {
+            if (obj.IsRobot()) {
+                for (auto& rid : Resources::GetRobotInfo(obj).GatedRobots) {
+                    auto& ri = Resources::GetRobotInfo(rid);
+                    GetTexturesForModel(ri.Model, ids);
+                }
+            }
+        }
+
+        // Load robots from matcens
+        for (auto& matcen : Game::Level.Matcens) {
+            for (auto& rid : matcen.GetEnabledRobots()) {
+                auto& ri = Resources::GetRobotInfo(rid);
+                GetTexturesForModel(ri.Model, ids);
+            }
         }
 
         return ids;

@@ -279,8 +279,10 @@ namespace Inferno::Render {
     void LoadModelDynamic(ModelID id) {
         if (!_meshBuffer) return;
         _meshBuffer->LoadModel(id);
-        auto ids = GetTexturesForModel(id);
-        Materials->LoadMaterials(ids, false);
+        Set<TexID> ids;
+        GetTexturesForModel(id, ids);
+        auto tids = Seq::ofSet(ids);
+        Materials->LoadMaterials(tids, false);
     }
 
     void LoadTextureDynamic(LevelTexID id) {
