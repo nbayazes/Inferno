@@ -46,6 +46,20 @@ namespace Inferno {
 
     // Flags an object to be destroyed
     void ExplodeObject(Object& obj, float delay = 0);
+
     inline bool IsReactor(const Object& obj) { return obj.Type == ObjectType::Reactor; }
     inline bool IsPlayer(const Object& obj) { return obj.Type == ObjectType::Player; }
+
+    void FixedUpdateObject(float dt, ObjID id, Object& obj);
+
+    namespace Game {
+        Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);
+        Tuple<ObjRef, float> FindNearestVisibleObject(const Vector3& position, SegID seg, float maxDist, ObjectMask mask, span<ObjRef> objFilter);
+        void AttachLight(const Object& obj, ObjRef ref);
+
+        // Schedules an object to be added at end of update
+        void AddObject(const Object& obj);
+        void AddPendingObjects(Inferno::Level& level);
+        void InitObjects(Inferno::Level& level);
+    }
 }

@@ -3,6 +3,7 @@
 #include "Game.AI.h"
 #include "Game.h"
 #include "HUD.h"
+#include "Input.h"
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
@@ -170,6 +171,42 @@ namespace Inferno {
         SecondaryWasSuper[weapon % SUPER_WEAPON] = weapon >= SUPER_WEAPON;
 
         PrintHudMessage(fmt::format("{} selected!", Resources::GetSecondaryName(Secondary)));
+    }
+
+
+    void Player::UpdateFireState() {
+        using Keys = DirectX::Keyboard::Keys;
+
+        auto state = Game::GetState();
+
+        // must check held keys inside of fixed updates so events aren't missed due to the state changing
+        // on a frame that doesn't have a game tick
+        if ((state == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
+            (state != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
+            if (PrimaryState == FireState::None)
+                PrimaryState = FireState::Press;
+            else if (PrimaryState == FireState::Press)
+                PrimaryState = FireState::Hold;
+        }
+        else {
+            if (PrimaryState == FireState::Release)
+                PrimaryState = FireState::None;
+            else if (PrimaryState != FireState::None)
+                PrimaryState = FireState::Release;
+        }
+
+        if (state != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD) {
+            if (SecondaryState == FireState::None)
+                SecondaryState = FireState::Press;
+            else if (SecondaryState == FireState::Press)
+                SecondaryState = FireState::Hold;
+        }
+        else {
+            if (SecondaryState == FireState::Release)
+                SecondaryState = FireState::None;
+            else if (SecondaryState != FireState::None)
+                SecondaryState = FireState::Release;
+        }
     }
 
     void Player::Update(float dt) {

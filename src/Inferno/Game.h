@@ -70,8 +70,6 @@ namespace Inferno::Game {
     // is the game level loading?
     inline std::atomic IsLoading = false;
 
-    void AttachLight(const Object& obj, ObjRef ref);
-
     void LoadLevel(Inferno::Level&&);
 
     void LoadMission(const filesystem::path& file);
@@ -99,10 +97,6 @@ namespace Inferno::Game {
 
     void Update(float dt);
 
-    // Finds the nearest object ID to an object
-    Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask = ObjectMask::Any);
-    Tuple<ObjRef, float> FindNearestVisibleObject(const Vector3& position, SegID, float maxDist, ObjectMask, span<ObjRef> objFilter);
-
     void CreateMissileSpawn(const Object& missile, uint blobs);
 
     void UpdateWeapon(Object&, float dt);
@@ -110,9 +104,6 @@ namespace Inferno::Game {
     inline bool ShowDebugOverlay = false;
 
     inline bool SecretLevelDestroyed = false;
-
-    // Schedules an object to be added at end of update
-    void AddObject(const Object&);
 
     /*inline bool ObjShouldThink(const Object& obj) {
         return obj.NextThinkTime <= Time && obj.NextThinkTime != -1;

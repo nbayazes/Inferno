@@ -118,6 +118,7 @@ namespace Inferno {
         void SelectSecondary(SecondaryWeaponIndex index);
 
         void Update(float dt);
+        void UpdateFireState();
 
         void FireFlare();
         void FirePrimary();
