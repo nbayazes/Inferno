@@ -261,8 +261,8 @@ namespace Inferno {
             }
         }
 
-        void WriteLevelFileInfo(StreamWriter& writer, const LevelFileInfo& info) {
-            writer.Write(info.SIGNATURE);
+        static void WriteLevelFileInfo(StreamWriter& writer, const LevelFileInfo& info) {
+            writer.Write(LevelFileInfo::SIGNATURE);
             writer.Write(info.GameVersion);
             writer.Write(info.Size);
             writer.WriteString(info.FileName, 15);
@@ -485,7 +485,7 @@ namespace Inferno {
                 writer.WriteString("inferno.pof", 13);
         }
 
-        size_t WriteGameData(StreamWriter& writer, const Level& level) {
+        static size_t WriteGameData(StreamWriter& writer, const Level& level) {
             auto offset = writer.Position();
 
             LevelFileInfo info{};
@@ -503,7 +503,6 @@ namespace Inferno {
             }
 
             WritePofData(writer, level);
-
 
             // Player info (empty)
             info.PlayerOffset = (int32)writer.Position();
@@ -591,6 +590,7 @@ namespace Inferno {
 
             auto size = writer.Position();
 
+            // rewrite fileinfo with offsets
             writer.Seek(offset);
             WriteLevelFileInfo(writer, info);
 

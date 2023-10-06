@@ -16,7 +16,6 @@
 namespace Inferno::Game {
     namespace {
         constexpr float BOSS_DEATH_DURATION = 5.5f;
-        constexpr float DEATH_SOUND_DURATION = 2.68f;
         constexpr float BOSS_DEATH_SOUND_VOLUME = 2;
         constexpr float BOSS_PHASE_TIME = 1.25f;
         //float3(.2, .2, 25)

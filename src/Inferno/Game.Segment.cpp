@@ -399,7 +399,7 @@ namespace Inferno {
             }
 
             auto robots = matcen.GetEnabledRobots();
-            auto type = robots[RandomInt(robots.size() - 1)];
+            auto type = robots[RandomInt((int)robots.size() - 1)];
 
             // Create a new robot
             Object obj{};

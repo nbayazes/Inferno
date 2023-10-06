@@ -247,6 +247,16 @@ Weapons:
     FlashColor: 1, 0.25, 0.0, 2
     Size: 1 # was 1.5
 
+  - id: 22
+    Name: robot concussion missile
+    Decal: scorchC
+    DecalRadius: 4
+    LightRadius: 14
+    LightColor: 1, .5, .25, 2
+    ExplosionColor: 1, 0.25, 0.0, 10
+    FlashColor: 1, 0.25, 0.0, 2
+    Size: 1 # was 1.5
+
   - id: 15
     Name: homing missile
     Decal: scorchC
@@ -374,14 +384,6 @@ Weapons:
     LightColor: 0.3, 0.3, 0.75
     ExplosionColor: 0.3, 0.3, 0.75
     FlashColor: 1, 1, 1, 15
-
-  - id: 22
-    Name: robot concussion missile
-    Decal: scorchC
-    DecalRadius: 4
-    ExplosionColor: 1, 0.25, 0.0, 2
-    FlashColor: 1, 1, 1, 15
-    Size: 1 # was 1.5
 
   - id: 24
     Name: robot red laser
@@ -584,7 +586,7 @@ Robots:
     CircleDistance: 40
     Mass: 20 # was 30
     Multishot: 2
-    DeathRoll: 2
+    DeathRoll: 3
     # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
     CircleDistance: 80
@@ -633,7 +635,7 @@ Robots:
     DeathRollSound: 185 # d1
     DeathRoll: 10 # max death roll
     SeeSound: 183 # d1
-    TeleportInterval: 3 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
+    TeleportInterval: 7 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
     FireDelay: 1
     Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
   - id: 24 # BEPR

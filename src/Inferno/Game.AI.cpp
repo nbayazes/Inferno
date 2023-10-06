@@ -189,6 +189,7 @@ namespace Inferno {
 
         SoundResource resource(soundId);
         auto soundDuration = resource.GetDuration();
+        if (soundDuration == 0) soundDuration = DEATH_SOUND_DURATION;
         auto& ri = Resources::GetRobotInfo(obj);
 
         if (elapsedTime > rollDuration - soundDuration) {
@@ -208,6 +209,7 @@ namespace Inferno {
                     // Larger periodic explosions with sound
                     //e->Variance = obj.Radius * 0.75f;
                     e->Parent = Game::GetObjectRef(obj);
+                    e->Volume = volume;
                     Render::CreateExplosion(*e, obj.Segment, obj.Position);
                 }
             }
@@ -218,6 +220,7 @@ namespace Inferno {
             if (auto e = Render::EffectLibrary.GetExplosion(effect)) {
                 //e->Variance = obj.Radius * 0.65f;
                 e->Parent = Game::GetObjectRef(obj);
+                e->Volume = volume;
                 Render::CreateExplosion(*e, obj.Segment, obj.Position);
             }
         }
@@ -382,13 +385,22 @@ namespace Inferno {
     //    FireWeaponAtPoint(robot, robotInfo, gunIndex, aimTarget, robotInfo.WeaponType);
     //}
 
-    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target, bool primary) {
+    // Vectors must have same origin and be on same plane
+    float SignedAngleBetweenVectors(const Vector3& a, const Vector3& b, const Vector3& normal) {
+        return std::atan2(a.Cross(b).Dot(normal), a.Dot(b));
+    }
+
+    // Returns the max amount of aim assist a weapon can have when fired by a robot
+    float GetAimAssistAngle(const Weapon& weapon) {
+        // Fast weapons get less assistance for balance reasons
+        return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 30.0f * DegToRad;
+    }
+
+    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
         auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
-        auto weaponSpeed = weapon.Speed[Game::Difficulty];
 
-        // only fire if target is within certain angle. for fast require a more precise alignment
         if (primary) {
             ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
             if (Game::Level.IsDescent1() && robot.ID == 23 && ai.GunIndex == 2)
@@ -399,20 +411,24 @@ namespace Inferno {
         }
 
         uint8 gunIndex = primary ? ai.GunIndex : 0;
-        auto aimDir = target - robot.Position;
-        aimDir.Normalize();
-        float maxAimAngle = weaponSpeed > FAST_WEAPON_SPEED ? 7.5f * DegToRad : 15.0f * DegToRad;
+        auto [aimDir, aimDist] = GetDirectionAndDistance(target, robot.Position);
 
-        if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) > maxAimAngle) {
-            aimDir = (aimDir + robot.Rotation.Forward()) / 2.0f;
-            aimDir.Normalize();
-            if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) > maxAimAngle) {
-                // todo: if robot wants to fire but can't, reset rapidfire if fire delay passes
-                return; // couldn't aim to the target close enough
-            }
+        float aimAssist = GetAimAssistAngle(weapon);
+        auto forward = robot.Rotation.Forward();
+
+        if (AngleBetweenVectors(aimDir, forward) > aimAssist) {
+            // clamp the angle if target it outside of the max aim assist
+            auto normal = forward.Cross(aimDir);
+            if (normal.Dot(robot.Rotation.Up()) < 0) normal *= -1;
+
+            auto angle = SignedAngleBetweenVectors(forward, aimDir, normal);
+            auto aimAngle = aimAssist;
+            if (angle < 0) aimAngle *= -1;
+
+            auto transform = Matrix::CreateFromAxisAngle(normal, aimAngle);
+            target = robot.Position + Vector3::Transform(forward, transform) * aimDist;
         }
 
-        // todo: fire at target if within facing angle regardless of aim assist
         FireWeaponAtPoint(robot, robotInfo, gunIndex, target, robotInfo.WeaponType);
     }
 
@@ -716,8 +732,9 @@ namespace Inferno {
         if (robot.HitPoints <= 0 && robotInfo.DeathRoll > 0) {
             ai.DeathRollTimer += dt;
             auto duration = (float)std::min(robotInfo.DeathRoll / 2 + 1, 6);
-            //auto volume = robotInfo.DeathRoll / 4.0f;
-            bool explode = DeathRoll(robot, duration, ai.DeathRollTimer, robotInfo.DeathRollSound, ai.DyingSoundPlaying, 1.0f, dt);
+            auto volume = robotInfo.IsBoss ? 2 : robotInfo.DeathRoll / 4.0f;
+            bool explode = DeathRoll(robot, duration, ai.DeathRollTimer, robotInfo.DeathRollSound,
+                                     ai.DyingSoundPlaying, volume, dt);
 
             if (explode) {
                 ExplodeObject(robot);
@@ -787,26 +804,33 @@ namespace Inferno {
             // Prevent attacking during phasing (matcens and teleports)
             if (ai.Target && !robot.IsPhasing()) {
                 if (robotInfo.Attack == AttackType::Ranged) {
-                    if (!ai.PlayingAnimation()) {
-                        PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
-                    }
-
                     if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
+                        // Secondary weapons have no animations or wind up
                         FireRobotWeapon(robot, ai, robotInfo, *ai.Target, false);
                         ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
                     }
+                    else {
+                        if (ai.AnimationState != AnimState::Fire && !ai.PlayingAnimation()) {
+                            PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+                        }
 
-                    if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
-                        PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
-                    }
+                        auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
 
-                    auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
+                        if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
+                            auto aimDir = *ai.Target - robot.Position;
+                            aimDir.Normalize();
+                            float aimAssist = GetAimAssistAngle(weapon);
+                            if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
+                                // Target is within the cone of the weapon, start firing
+                                PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
+                            }
+                        }
 
-                    if (ai.FireDelay <= 0) {
-                        if (weapon.Extended.Chargable) {
+                        if (ai.AnimationState == AnimState::Fire && weapon.Extended.Chargable) {
                             WeaponChargeBehavior(robot, ai, robotInfo, dt);
                         }
-                        else {
+                        else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
+                            // Fire animation finished, release a projectile
                             FireRobotPrimary(robot, ai, robotInfo, *ai.Target);
                         }
                     }

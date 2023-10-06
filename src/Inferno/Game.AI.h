@@ -9,6 +9,7 @@ namespace Inferno {
     constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
     constexpr float AI_COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
     constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
+    constexpr float DEATH_SOUND_DURATION = 2.68f;
 
     struct AITarget {
         Vector3 Position;
