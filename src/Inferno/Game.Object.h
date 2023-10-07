@@ -27,10 +27,13 @@ namespace Inferno {
     Vector3 GetSubmodelOffset(const Object& obj, SubmodelRef submodel);
 
     // Gets the gunpoint offset submodel space and submodel index. Does not include animations.
-    SubmodelRef GetLocalGunpointOffset(const Object& obj, uint8 gun);
+    SubmodelRef GetGunpointSubmodelOffset(const Object& obj, uint8 gun);
 
     // Gets the gunpoint offset in object space. Includes animations.
     Vector3 GetGunpointOffset(const Object& obj, uint8 gun);
+
+    // Gets the gunpoint position in world space. Includes animations.
+    Vector3 GetGunpointWorldPosition(const Object& obj, uint8 gun);
 
     // Updates the segment of an object based on position. Returns true if the segment changed.
     bool UpdateObjectSegment(Level& level, Object& obj);

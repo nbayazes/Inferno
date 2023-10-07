@@ -327,10 +327,11 @@ namespace Inferno {
     constexpr double NEVER_THINK = -1;
 
     enum class ObjectMask {
-        Any = 0, // No masking
-        Enemy = 1 << 0, // Reactor or robot
+        None = 0,
+        Robot = 1 << 0, // Reactor or robot
         Player = 1 << 1, // Player or Coop
-        Powerup = 1 << 2 // Powerup or hostage
+        Powerup = 1 << 2, // Powerup or hostage
+        Any = Robot | Player | Powerup,
     };
 
     constexpr double MAX_OBJECT_LIFE = 3600 * 100; // 100 hours
@@ -547,11 +548,12 @@ namespace Inferno {
 
         bool PassesMask(ObjectMask mask) const {
             if (mask == ObjectMask::Any) return true;
+            if (mask == ObjectMask::None) return false;
 
             switch (Type) {
                 case ObjectType::Reactor:
                 case ObjectType::Robot:
-                    return HasFlag(mask, ObjectMask::Enemy);
+                    return HasFlag(mask, ObjectMask::Robot);
 
                 case ObjectType::Player:
                 case ObjectType::Coop:

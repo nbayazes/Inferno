@@ -127,31 +127,32 @@ namespace Inferno {
         Sound::Play(sound);
     }
 
-    bool InRobotFOV(const Object& robot, const Vector3& pointDir, const RobotInfo& robotInfo) {
+    bool PointInFOV(const Object& robot, const Vector3& pointDir, const RobotInfo& robotInfo) {
         auto dot = robot.Rotation.Forward().Dot(pointDir);
         auto& diff = robotInfo.Difficulty[Game::Difficulty];
         return dot >= diff.FieldOfView;
     }
 
-    bool CanSeePlayer(const Object& obj, const Vector3& playerDir, float playerDist, AIRuntime& ai) {
-        if (Game::Player.HasPowerup(PowerupFlag::Cloak)) return false; // Can't see cloaked player
+    bool CanSeeObject(const Object& obj, const Vector3& objDir, float objDist, AIRuntime& ai) {
+        if (obj.IsCloaked()) return false; // Can't see cloaked object
 
         LevelHit hit{};
-        Ray ray = { obj.Position, playerDir };
-        RayQuery query{ .MaxDistance = playerDist, .Start = obj.Segment, .PassTransparent = true };
+        Ray ray = { obj.Position, objDir };
+        RayQuery query{ .MaxDistance = objDist, .Start = obj.Segment, .PassTransparent = true };
         bool visible = !Game::Intersect.RayLevel(ray, query, hit);
         if (visible) ai.LastSeenPlayer = 0;
         return visible;
     }
 
+    // Player visibility doesn't account for direct line of sight like weapon fire does (other robots, walls)
     bool CanSeePlayer(const Object& robot, const RobotInfo& robotInfo) {
         auto& player = Game::GetPlayerObject();
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
         auto& ai = GetAI(robot);
-        if (!CanSeePlayer(robot, playerDir, dist, ai)) return false;
+        if (!CanSeeObject(robot, playerDir, dist, ai))
+            return false;
 
-        //auto angle = AngleBetweenVectors(playerDir, obj.Rotation.Forward());
-        if (!InRobotFOV(robot, playerDir, robotInfo))
+        if (!PointInFOV(robot, playerDir, robotInfo))
             return false;
 
         auto prevAwareness = ai.Awareness;
@@ -349,42 +350,6 @@ namespace Inferno {
         if (ai.Awareness < 0) ai.Awareness = 0;
     }
 
-    //void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const AITarget& target, bool primary) {
-    //    if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
-
-    //    //auto [targetDir, targetDist] = GetDirectionAndDistance(target.Position, robot.Position);
-    //    auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
-    //    auto weaponSpeed = weapon.Speed[Game::Difficulty];
-
-    //    // only fire if target is within certain angle. for fast require a more precise alignment
-    //    if (primary) {
-    //        ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
-    //        if (robotInfo.WeaponType2 != WeaponID::None && ai.GunIndex == 0)
-    //            ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
-    //    }
-
-    //    uint8 gunIndex = primary ? ai.GunIndex : 0;
-    //    //auto aimTarget = target.Position + LeadTarget(targetDir, targetDist, target, weaponSpeed);
-    //    auto aimTarget = target.Position;
-    //    auto aimDir = aimTarget - robot.Position;
-    //    aimDir.Normalize();
-    //    float maxAimAngle = weaponSpeed > FAST_WEAPON_SPEED ? 7.5f * DegToRad : 15.0f * DegToRad;
-
-    //    if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) > maxAimAngle) {
-    //        aimDir = (aimDir + robot.Rotation.Forward()) / 2.0f;
-    //        aimDir.Normalize();
-    //        if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) > maxAimAngle) {
-    //            // todo: if robot wants to fire but can't, reset rapidfire if fire delay passes
-    //            return; // couldn't aim to the target close enough
-    //        }
-    //    }
-
-    //    // todo: fire at target if within facing angle regardless of aim assist
-
-    //    //aimTarget += RandomVector((5 - Game::Difficulty) * 2); // Randomize aim based on difficulty
-    //    FireWeaponAtPoint(robot, robotInfo, gunIndex, aimTarget, robotInfo.WeaponType);
-    //}
-
     // Vectors must have same origin and be on same plane
     float SignedAngleBetweenVectors(const Vector3& a, const Vector3& b, const Vector3& normal) {
         return std::atan2(a.Cross(b).Dot(normal), a.Dot(b));
@@ -396,19 +361,19 @@ namespace Inferno {
         return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 30.0f * DegToRad;
     }
 
+    void CycleGunpoint(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
+        ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
+        if (Game::Level.IsDescent1() && robot.ID == 23 && ai.GunIndex == 2)
+            ai.GunIndex = 3; // HACK: skip to 3 due to gunpoint 2 being zero-filled on the D1 final boss
+
+        if (robotInfo.WeaponType2 != WeaponID::None && ai.GunIndex == 0)
+            ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
+    }
+
     void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
         auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
-
-        if (primary) {
-            ai.GunIndex = robotInfo.Guns > 0 ? (ai.GunIndex + 1) % robotInfo.Guns : 0;
-            if (Game::Level.IsDescent1() && robot.ID == 23 && ai.GunIndex == 2)
-                ai.GunIndex = 3; // HACK: skip to 3 due to gunpoint 2 being zero-filled on the D1 final boss
-
-            if (robotInfo.WeaponType2 != WeaponID::None && ai.GunIndex == 0)
-                ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
-        }
 
         uint8 gunIndex = primary ? ai.GunIndex : 0;
         auto [aimDir, aimDist] = GetDirectionAndDistance(target, robot.Position);
@@ -430,6 +395,9 @@ namespace Inferno {
         }
 
         FireWeaponAtPoint(robot, robotInfo, gunIndex, target, robotInfo.WeaponType);
+
+        if (primary)
+            CycleGunpoint(robot, ai, robotInfo);
     }
 
     void DodgeProjectile(const Object& robot, AIRuntime& ai, const Object& projectile, const RobotInfo& robotInfo) {
@@ -439,7 +407,7 @@ namespace Inferno {
         // Looks weird to dodge distant projectiles. also they might hit another target
         // Consider increasing this for massive robots?
         if (projDist > AI_MAX_DODGE_DISTANCE) return;
-        if (!InRobotFOV(robot, projDir, robotInfo)) return;
+        if (!PointInFOV(robot, projDir, robotInfo)) return;
 
         Vector3 projTravelDir;
         projectile.Physics.Velocity.Normalize(projTravelDir);
@@ -479,18 +447,19 @@ namespace Inferno {
     }
 
     // Tries to path towards the player or move directly to it if in the same room
-    void MoveTowardsPlayer(Level& level, const Object& player, Object& robot, AIRuntime& ai, const Vector3& playerDir, float playerDist) {
-        if (/*level.GetRoomID(player) == level.GetRoomID(robot) ||*/ CanSeePlayer(robot, playerDir, playerDist, ai)) {
-            Ray ray(robot.Position, playerDir);
+    void MoveTowardsObject(Level& level, const Object& object, Object& robot, 
+                           AIRuntime& ai, const Vector3& objDir, float objDist) {
+        if (CanSeeObject(robot, objDir, objDist, ai)) {
+            Ray ray(robot.Position, objDir);
             //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
-            Vector3 playerPosition = player.Position;
+            Vector3 playerPosition = object.Position;
             AvoidRoomEdges(level, ray, robot, playerPosition);
             //auto& seg = level.GetSegment(robot.Segment);
             //AvoidSideEdges(level, ray, seg, side, robot, 0, player.Position);
             MoveTowardsPoint(robot, playerPosition, 100); // todo: thrust from difficulty
         }
         else {
-            SetPathGoal(level, robot, ai, player.Segment, player.Position);
+            SetPathGoal(level, robot, ai, object.Segment, object.Position);
         }
     }
 
@@ -516,7 +485,7 @@ namespace Inferno {
             return; // already close enough
 
         if (distOffset > 0)
-            MoveTowardsPlayer(level, player, robot, ai, dir, dist);
+            MoveTowardsObject(level, player, robot, ai, dir, dist);
         else
             MoveAwayFromPlayer(level, player, robot);
     }
@@ -569,7 +538,6 @@ namespace Inferno {
 
         ai.AnimationTime += dt;
         if (ai.AnimationTime > ai.AnimationDuration) return;
-        // todo: fix goal angle not being exactly reached?
 
         for (int joint = 1; joint < model.Submodels.size(); joint++) {
             auto& curAngle = robot.Render.Model.Angles[joint];
@@ -696,6 +664,160 @@ namespace Inferno {
         }
     }
 
+    // Returns true if a point has line of sight to a target
+    bool HasLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask) {
+        auto gunPosition = GetGunpointWorldPosition(obj, gun);
+        // todo: check if segment contains gunpoint. it's possible an adjacent segment contains it instead.
+        auto [dir, distance] = GetDirectionAndDistance(target, gunPosition);
+        LevelHit hit{};
+        RayQuery query{ .MaxDistance = distance, .Start = obj.Segment, .TestTextures = true };
+
+        bool visible = !Game::Intersect.RayLevel({ gunPosition, dir }, query, hit, mask, Game::GetObjectRef(obj).Id);
+        Render::Debug::DrawLine(gunPosition, target, visible ? Color(0, 1, 0) : Color(1, 0, 0));
+        return visible;
+    }
+
+    // Wiggles a robot along its x/y plane
+    void WiggleRobot(const Object& robot, AIRuntime& ai, float time) {
+        if (ai.WiggleTime > 0) return; // Don't wiggle if already doing so
+        // dir is a random vector on the xy/plane of the robot
+        Vector3 dir(RandomN11(), RandomN11(), 0);
+        dir.Normalize();
+        ai.DodgeDirection = Vector3::Transform(dir * 0.5f, robot.Rotation);
+        ai.WiggleTime = time;
+    }
+
+    void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt) {
+        if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
+            if (!HasLineOfSight(robot, 0, *ai.Target, ObjectMask::Robot)) {
+                WiggleRobot(robot, ai, 0.5f);
+                return;
+            }
+
+            // Secondary weapons have no animations or wind up
+            FireRobotWeapon(robot, ai, robotInfo, *ai.Target, false);
+            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
+        }
+        else {
+            if (ai.AnimationState != AnimState::Fire && !ai.PlayingAnimation()) {
+                PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+            }
+
+            auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
+
+            if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
+                // Can fire a weapon soon, try to do so.
+                // But only fire if there is nothing blocking LOS to the target
+                if (!HasLineOfSight(robot, ai.GunIndex, *ai.Target, ObjectMask::Robot)) {
+                    WiggleRobot(robot, ai, 0.5f);
+                    CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
+                    ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
+                    return;
+                }
+
+                ai.DodgeTime = 0; // Stop dodging when firing (hack used to stop wiggle, use different timer?)
+
+                auto aimDir = *ai.Target - robot.Position;
+                aimDir.Normalize();
+                float aimAssist = GetAimAssistAngle(weapon);
+                if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
+                    // Target is within the cone of the weapon, start firing
+                    PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
+                }
+            }
+            else if (ai.AnimationState == AnimState::Fire && weapon.Extended.Chargable) {
+                WeaponChargeBehavior(robot, ai, robotInfo, dt); // Charge up during fire animation
+            }
+            else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
+                // Check that the target hasn't gone out of LOS when using explosive weapons. as
+                // Robots can easily blow themselves up in this case.
+                if (weapon.SplashRadius > 0 && !HasLineOfSight(robot, ai.GunIndex, *ai.Target, ObjectMask::None)) {
+                    CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
+                    WiggleRobot(robot, ai, 0.5f);
+                    return;
+                }
+
+                // Fire animation finished, release a projectile
+                FireRobotPrimary(robot, ai, robotInfo, *ai.Target);
+            }
+        }
+    }
+
+    void UpdateMeleeAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dist,
+                       Object& player, const Vector3& playerDir, float dt) {
+        constexpr float MELEE_RANGE = 10; // how close to actually deal damage
+        constexpr float MELEE_SWING_TIME = 0.175f;
+        constexpr float BACKSWING_TIME = 0.45f;
+        constexpr float BACKSWING_RANGE = MELEE_RANGE * 3; // When to prepare a swing
+        constexpr float MELEE_GIVE_UP = 2.0f;
+
+        //PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+        if (ai.ChargingWeapon)
+            ai.WeaponCharge += dt; // Raising arms to swing counts as "charging"
+
+        if (!ai.PlayingAnimation()) {
+            if (ai.ChargingWeapon) {
+                if (ai.AnimationState == AnimState::Fire) {
+                    // Arms are raised
+                    if (dist < robot.Radius + MELEE_RANGE) {
+                        // Player moved close enough, swing
+                        PlayRobotAnimation(robot, AnimState::Recoil, MELEE_SWING_TIME);
+                        ai.MeleeHitDelay = MELEE_SWING_TIME / 2;
+                    }
+                    else if (ai.WeaponCharge > MELEE_GIVE_UP) {
+                        // Player moved out of range for too long, give up
+                        PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
+                        ai.ChargingWeapon = false;
+                        ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                    }
+                }
+            }
+            else {
+                PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
+            }
+        }
+
+        if (ai.AnimationState == AnimState::Recoil) {
+            if (ai.ChargingWeapon && ai.MeleeHitDelay <= 0) {
+                ai.ChargingWeapon = false;
+                // todo: multishot can swing multiple times instead of using full fire delay
+                ai.FireDelay = Difficulty(robotInfo).FireDelay;
+
+                // check that object is in front?
+                // damage objects in a cone?
+                if (dist < robot.Radius + MELEE_RANGE) {
+                    // Still in range
+                    auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
+                    auto id = Game::GetObjectRef(robot);
+                    Sound3D sound({ soundId }, id);
+                    sound.Position = robot.Position;
+                    Sound::Play(sound);
+                    Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false);
+
+                    player.Physics.Velocity += playerDir * 20; // shove the player backwards
+
+                    if (auto sparks = Render::EffectLibrary.GetSparks("melee hit")) {
+                        auto position = robot.Position + playerDir * robot.Radius;
+                        Render::AddSparkEmitter(*sparks, robot.Segment, position);
+
+                        Render::DynamicLight light{};
+                        light.LightColor = sparks->Color;
+                        light.Radius = 15;
+                        light.Position = position;
+                        light.Duration = light.FadeTime = 0.5f;
+                        light.Segment = robot.Segment;
+                        Render::AddDynamicLight(light);
+                    }
+                }
+            }
+        }
+        else if (ai.FireDelay <= 0 && dist < robot.Radius + BACKSWING_RANGE && !ai.ChargingWeapon) {
+            PlayRobotAnimation(robot, AnimState::Fire, BACKSWING_TIME); // raise arms to attack
+            ai.ChargingWeapon = true;
+            ai.WeaponCharge = 0;
+        }
+    }
+
     void UpdateRobotAI(Object& robot, float dt) {
         auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
@@ -774,10 +896,9 @@ namespace Inferno {
 
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
-        if (ai.DodgeTime > 0) {
+        if (ai.DodgeTime > 0 || ai.WiggleTime > 0) {
             robot.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
         }
-
 
         if (ai.GoalSegment != SegID::None) {
             // goal pathing takes priority over other behaviors
@@ -793,7 +914,7 @@ namespace Inferno {
             MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-            if (CanSeePlayer(robot, playerDir, dist, ai)) {
+            if (CanSeeObject(robot, playerDir, dist, ai)) {
                 ai.Target = player.Position;
                 ai.KnownPlayerSegment = player.Segment;
             }
@@ -804,109 +925,10 @@ namespace Inferno {
             // Prevent attacking during phasing (matcens and teleports)
             if (ai.Target && !robot.IsPhasing()) {
                 if (robotInfo.Attack == AttackType::Ranged) {
-                    if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
-                        // Secondary weapons have no animations or wind up
-                        FireRobotWeapon(robot, ai, robotInfo, *ai.Target, false);
-                        ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
-                    }
-                    else {
-                        if (ai.AnimationState != AnimState::Fire && !ai.PlayingAnimation()) {
-                            PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
-                        }
-
-                        auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
-
-                        if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
-                            auto aimDir = *ai.Target - robot.Position;
-                            aimDir.Normalize();
-                            float aimAssist = GetAimAssistAngle(weapon);
-                            if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
-                                // Target is within the cone of the weapon, start firing
-                                PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
-                            }
-                        }
-
-                        if (ai.AnimationState == AnimState::Fire && weapon.Extended.Chargable) {
-                            WeaponChargeBehavior(robot, ai, robotInfo, dt);
-                        }
-                        else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
-                            // Fire animation finished, release a projectile
-                            FireRobotPrimary(robot, ai, robotInfo, *ai.Target);
-                        }
-                    }
+                    UpdateRangedAI(robot, robotInfo, ai, dt);
                 }
                 else if (robotInfo.Attack == AttackType::Melee) {
-                    constexpr float MELEE_RANGE = 10; // how close to actually deal damage
-                    constexpr float MELEE_SWING_TIME = 0.175f;
-                    constexpr float BACKSWING_TIME = 0.45f;
-                    constexpr float BACKSWING_RANGE = MELEE_RANGE * 3; // When to prepare a swing
-                    constexpr float MELEE_GIVE_UP = 2.0f;
-
-                    //PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
-                    if (ai.ChargingWeapon)
-                        ai.WeaponCharge += dt; // Raising arms to swing counts as "charging"
-
-                    if (!ai.PlayingAnimation()) {
-                        if (ai.ChargingWeapon) {
-                            if (ai.AnimationState == AnimState::Fire) {
-                                // Arms are raised
-                                if (dist < robot.Radius + MELEE_RANGE) {
-                                    // Player moved close enough, swing
-                                    PlayRobotAnimation(robot, AnimState::Recoil, MELEE_SWING_TIME);
-                                    ai.MeleeHitDelay = MELEE_SWING_TIME / 2;
-                                }
-                                else if (ai.WeaponCharge > MELEE_GIVE_UP) {
-                                    // Player moved out of range for too long, give up
-                                    PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
-                                    ai.ChargingWeapon = false;
-                                    ai.FireDelay = Difficulty(robotInfo).FireDelay;
-                                }
-                            }
-                        }
-                        else {
-                            PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
-                        }
-                    }
-
-                    if (ai.AnimationState == AnimState::Recoil) {
-                        if (ai.ChargingWeapon && ai.MeleeHitDelay <= 0) {
-                            ai.ChargingWeapon = false;
-                            // todo: multishot can swing multiple times instead of using full fire delay
-                            ai.FireDelay = Difficulty(robotInfo).FireDelay;
-
-                            // check that object is in front?
-                            // damage objects in a cone?
-                            if (dist < robot.Radius + MELEE_RANGE) {
-                                // Still in range
-                                auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
-                                auto id = Game::GetObjectRef(robot);
-                                Sound3D sound({ soundId }, id);
-                                sound.Position = robot.Position;
-                                Sound::Play(sound);
-                                Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false);
-
-                                player.Physics.Velocity += playerDir * 20; // shove the player backwards
-
-                                if (auto sparks = Render::EffectLibrary.GetSparks("melee hit")) {
-                                    auto position = robot.Position + playerDir * robot.Radius;
-                                    Render::AddSparkEmitter(*sparks, robot.Segment, position);
-
-                                    Render::DynamicLight light{};
-                                    light.LightColor = sparks->Color;
-                                    light.Radius = 15;
-                                    light.Position = position;
-                                    light.Duration = light.FadeTime = 0.5f;
-                                    light.Segment = robot.Segment;
-                                    Render::AddDynamicLight(light);
-                                }
-                            }
-                        }
-                    }
-                    else if (ai.FireDelay <= 0 && dist < robot.Radius + BACKSWING_RANGE && !ai.ChargingWeapon) {
-                        PlayRobotAnimation(robot, AnimState::Fire, BACKSWING_TIME); // raise arms to attack
-                        ai.ChargingWeapon = true;
-                        ai.WeaponCharge = 0;
-                    }
+                    UpdateMeleeAI(robot, robotInfo, ai, dist, player, playerDir, dt);
                 }
             }
         }

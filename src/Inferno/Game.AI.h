@@ -59,6 +59,7 @@ namespace Inferno {
         float DodgeDelay = 0; // Delay before trying to dodge
         float PathDelay = 0; // Delay before trying to path to a new location
         float DodgeTime = 0; // Remaining time to dodge for
+        float WiggleTime = 0; // Remaining wiggle time
         Vector3 DodgeDirection;
 
         float WeaponCharge = 0; // For robots with charging weapons (fusion hulks)

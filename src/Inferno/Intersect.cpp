@@ -297,7 +297,7 @@ namespace Inferno {
         }
     }
 
-    bool IntersectContext::RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit) {
+    bool IntersectContext::RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
         SegID next = query.Start;
         if (next == SegID::None)
             next = FindContainingSegment(*_level, ray.position);
@@ -313,6 +313,20 @@ namespace Inferno {
             _visitedSegs.push_back(segId); // must track visited segs to prevent circular logic
             next = SegID::None;
             auto& seg = _level->GetSegment(segId);
+
+            if (mask != ObjectMask::None) {
+                for (auto& objid : seg.Objects) {
+                    if (source == objid) continue;
+                    if (auto obj = _level->TryGetObject(objid)) {
+                        if (!obj->PassesMask(mask)) continue;
+
+                        BoundingSphere sphere(obj->Position, obj->Radius);
+                        float dist;
+                        if (ray.Intersects(sphere, dist) && dist < query.MaxDistance)
+                            return true; // Intersected an object
+                    }
+                }
+            }
 
             for (auto& side : SideIDs) {
                 auto face = Face2::FromSide(*_level, seg, side);
@@ -474,5 +488,4 @@ namespace Inferno {
 
         return false;
     }
-
 }

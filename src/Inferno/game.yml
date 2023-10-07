@@ -236,6 +236,8 @@ Weapons:
     Behavior: fusion
     StunMult: 0.5
     Recoil: 50
+    Damage: 60
+    PlayerDamageScale: 0.5 # Halve robot damage to players
 
   - id: 8
     Name: concussion missile
@@ -244,7 +246,7 @@ Weapons:
     LightRadius: 14
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 10
-    FlashColor: 1, 0.25, 0.0, 2
+    FlashColor: 1, .5, .25, 5
     Size: 1 # was 1.5
 
   - id: 22
@@ -254,7 +256,7 @@ Weapons:
     LightRadius: 14
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 10
-    FlashColor: 1, 0.25, 0.0, 2
+    FlashColor: 1, .5, .25, 5
     Size: 1 # was 1.5
 
   - id: 15
@@ -577,9 +579,10 @@ Robots:
     Mass: 2.5
     Drag: 0.09
   - id: 13 # Pod
-  - id: 14 # Spiderling
-    CircleDistance: 15
+  - id: 14 # Baby spider
+    CircleDistance: 12.5
     Mass: 1.9
+    Drag: 0.025
   - id: 15 # Fusion hulk
     FireDelay: [ 2, 1.25, 1.5, 1, .5 ] # Reduced by 1 second due to charge time
     Shots: [ 1, 1, 2, 2, 2 ]

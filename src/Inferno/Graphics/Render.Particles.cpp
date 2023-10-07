@@ -431,7 +431,7 @@ namespace Inferno::Render {
             beam.StartObj = start;
             if (startGun >= 0) {
                 beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.StartSubmodel = GetLocalGunpointOffset(*obj, (uint8)startGun);
+                beam.StartSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
             }
             else {
                 beam.Start = obj->Position;
@@ -450,7 +450,7 @@ namespace Inferno::Render {
             beam.StartObj = start;
             if (startGun >= 0) {
                 beam.Start = GetGunpointOffset(*obj, (uint8)startGun);
-                beam.StartSubmodel = GetLocalGunpointOffset(*obj, (uint8)startGun);
+                beam.StartSubmodel = GetGunpointSubmodelOffset(*obj, (uint8)startGun);
             }
             else {
                 beam.Start = obj->Position;

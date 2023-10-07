@@ -65,7 +65,7 @@ namespace Inferno::Game {
             // Try to find a nearby target
             if (!cw.TrackingTarget) {
                 // todo: filter targets based on if mine owner is a player
-                auto [ref, dist] = Game::FindNearestObject(mine.Position, PROX_WAKE_RANGE, ObjectMask::Enemy);
+                auto [ref, dist] = Game::FindNearestObject(mine.Position, PROX_WAKE_RANGE, ObjectMask::Robot);
                 if (ref && dist <= PROX_WAKE_RANGE)
                     cw.TrackingTarget = ref; // New target!
             }
@@ -158,7 +158,7 @@ namespace Inferno::Game {
                 if (weapon.IsExplosive())
                     damage = 0;
 
-                Game::Player.ApplyDamage(damage, true);
+                Game::Player.ApplyDamage(damage * weapon.PlayerDamageScale, true);
             }
             else if (target.IsRobot()) {
                 Vector3 srcDir;
@@ -579,7 +579,7 @@ namespace Inferno::Game {
         if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
             showFlash = false; // Hide flash in first person
 
-        auto gunSubmodel = GetLocalGunpointOffset(obj, gun);
+        auto gunSubmodel = GetGunpointSubmodelOffset(obj, gun);
         auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
         auto position = Vector3::Transform(objOffset, obj.GetTransform());
         Vector3 direction = customDir ? *customDir : obj.Rotation.Forward();
@@ -756,10 +756,10 @@ namespace Inferno::Game {
         if (!pObj) return;
         auto& playerObj = *pObj;
 
-        auto gunSubmodel = GetLocalGunpointOffset(playerObj, gun);
+        auto gunSubmodel = GetGunpointSubmodelOffset(playerObj, gun);
         auto objOffset = GetSubmodelOffset(playerObj, gunSubmodel);
         auto start = Vector3::Transform(objOffset, playerObj.GetTransform());
-        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Enemy);
+        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot);
 
         auto spark = Render::EffectLibrary.GetSparks("omega_hit");
 
@@ -773,7 +773,7 @@ namespace Inferno::Game {
                 if (!targets[i]) break;
 
                 if (auto src = Game::Level.TryGetObject(targets[i])) {
-                    auto [id, dist] = Game::FindNearestVisibleObject(src->Position, src->Segment, MAX_CHAIN_DIST, ObjectMask::Enemy, targets);
+                    auto [id, dist] = Game::FindNearestVisibleObject(src->Position, src->Segment, MAX_CHAIN_DIST, ObjectMask::Robot, targets);
                     if (id)
                         targets[i + 1] = id;
                 }
@@ -996,7 +996,7 @@ namespace Inferno::Game {
     }
 
     void CreateMissileSpawn(const Object& missile, uint blobs) {
-        auto mask = missile.Control.Weapon.ParentType == ObjectType::Player ? ObjectMask::Enemy : ObjectMask::Player;
+        auto mask = missile.Control.Weapon.ParentType == ObjectType::Player ? ObjectMask::Robot : ObjectMask::Player;
         int targetCount;
 
         const Weapon& weapon = Resources::GetWeapon(missile);
@@ -1061,7 +1061,7 @@ namespace Inferno::Game {
 
         if (!targetRef) {
             // Find a new target
-            auto mask = ObjectMask::Enemy;
+            auto mask = ObjectMask::Robot;
             if (auto parent = Game::Level.TryGetObject(weapon.Parent))
                 if (parent->IsRobot())
                     mask = ObjectMask::Player;

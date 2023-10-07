@@ -129,7 +129,7 @@ namespace Inferno::Game {
         }
 
         auto point = RandomPointInSegment(Game::Level, seg);
-        auto mask = ObjectMask::Player | ObjectMask::Enemy;
+        auto mask = ObjectMask::Player | ObjectMask::Robot;
         if (NewObjectIntersects(Game::Level, seg, point, robotInfo.Radius, mask)) {
             GateTimer = GateInterval * 0.75f;
             return;
@@ -174,7 +174,7 @@ namespace Inferno::Game {
                 continue; // Avoid teleporting on top of self or the player
 
             if (auto seg = Game::Level.TryGetSegment(t.Segment)) {
-                auto mask = ObjectMask::Player | ObjectMask::Enemy;
+                auto mask = ObjectMask::Player | ObjectMask::Robot;
                 if (NewObjectIntersects(Game::Level, *seg, t.Position, boss.Radius, mask))
                     continue; // Avoid teleporting on top of an existing object
 

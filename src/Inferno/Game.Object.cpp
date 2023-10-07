@@ -6,7 +6,6 @@
 #include "Game.AI.Pathing.h"
 #include "Game.h"
 #include "Game.Segment.h"
-#include "Game.Visibility.h"
 #include "Game.Wall.h"
 #include "Physics.h"
 #include "SoundSystem.h"
@@ -23,9 +22,18 @@ namespace Inferno {
     }
 
     uint8 GetGunSubmodel(const Object& obj, uint8 gun) {
-        if (obj.IsRobot()) {
-            auto& robot = Resources::GetRobotInfo(obj.ID);
-            return robot.GunSubmodels[gun];
+        gun = std::clamp(gun, (uint8)0, MAX_GUNS);
+
+        if (obj.Type == ObjectType::Robot) {
+            return Resources::GetRobotInfo(obj.ID).GunSubmodels[gun];
+        }
+
+        if (obj.Type == ObjectType::Player || obj.Type == ObjectType::Coop) {
+            return 0;
+        }
+
+        if (obj.Type == ObjectType::Reactor) {
+            return 0;
         }
 
         return 0;
@@ -102,7 +110,7 @@ namespace Inferno {
         return submodel.Offset;
     }
 
-    SubmodelRef GetLocalGunpointOffset(const Object& obj, uint8 gun) {
+    SubmodelRef GetGunpointSubmodelOffset(const Object& obj, uint8 gun) {
         gun = std::clamp(gun, (uint8)0, MAX_GUNS);
 
         if (obj.Type == ObjectType::Robot) {
@@ -160,6 +168,12 @@ namespace Inferno {
         }
 
         return Vector3::Zero;
+    }
+
+    Vector3 GetGunpointWorldPosition(const Object& obj, uint8 gun) {
+        auto gunSubmodel = GetGunpointSubmodelOffset(obj, gun);
+        auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
+        return Vector3::Transform(objOffset, obj.GetTransform());
     }
 
     bool UpdateObjectSegment(Level& level, Object& obj) {

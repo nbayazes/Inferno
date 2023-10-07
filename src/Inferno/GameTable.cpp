@@ -2,7 +2,6 @@
 #include <fstream>
 
 #include "HamFile.h"
-#include "Resources.h"
 #include "Yaml.h"
 #include "Graphics/Render.Particles.h"
 
@@ -96,6 +95,7 @@ namespace Inferno {
         READ_PROP(Lifetime);
         READ_PROP(FireCount);
         READ_PROP(SpeedVariance);
+        READ_PROP(PlayerDamageScale);
 
         READ_PROP(BlobSize);
         Yaml::ReadValue(node["BlobBitmap"], (int&)weapon.BlobBitmap);
