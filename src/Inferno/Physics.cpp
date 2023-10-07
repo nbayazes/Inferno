@@ -557,7 +557,7 @@ namespace Inferno {
                                 stunMult = weapon.Extended.StunMult;
                             }
                             ApplyForce(target, forceVec);
-                            auto parent = Game::Level.TryGetObject(source->Parent);
+                            auto parent = source ? Game::Level.TryGetObject(source->Parent) : nullptr;
                             bool srcIsPlayer = parent ? parent->IsPlayer() : false;
                             DamageRobot(explosion.Position, srcIsPlayer, target, damage, stunMult);
 
