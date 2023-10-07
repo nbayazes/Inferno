@@ -94,92 +94,12 @@ namespace Inferno {
         return result;
     }
 
-    inline Option<filesystem::path> OpenFileDialog(span<const COMDLG_FILTERSPEC> filter, wstring title) {
+    inline Option<filesystem::path> OpenFileDialog(span<const COMDLG_FILTERSPEC> filter, const wstring& title) {
         try {
             ComPtr<IFileOpenDialog> dialog;
             ThrowIfFailed(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog)));
-            dialog->SetFileTypes((int)filter.size(), filter.data());
-            dialog->SetTitle(title.c_str());
-            auto hr = dialog->Show(Shell::Hwnd);
-            Input::ResetState(); // Fix for keys getting stuck after showing a dialog
-            if (!SUCCEEDED(hr)) return {}; // includes cancelled dialog
-
-            ComPtr<IShellItem> result;
-            ThrowIfFailed(dialog->GetResult(&result));
-
-            ComMemPtr<WCHAR> filePath;
-            ThrowIfFailed(result->GetDisplayName(SIGDN_FILESYSPATH, &filePath));
-
-            if (!filePath) return {};
-            return { *filePath };
-        }
-        catch (const std::exception& e) {
-            ShowErrorMessage(e);
-            return {};
-        }
-    }
-
-    inline List<filesystem::path> OpenMultipleFilesDialog(span<const COMDLG_FILTERSPEC> filter, wstring title) {
-        try {
-            ComPtr<IFileOpenDialog> dialog;
-            ThrowIfFailed(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog)));
-            dialog->SetFileTypes((int)filter.size(), filter.data());
-            dialog->SetTitle(title.c_str());
-            dialog->SetOptions(FOS_ALLOWMULTISELECT);
-            auto hr = dialog->Show(Shell::Hwnd);
-            Input::ResetState(); // Fix for keys getting stuck after showing a dialog
-            if (!SUCCEEDED(hr)) return {}; // includes cancelled dialog
-
-            List<filesystem::path> paths;
-
-            auto AppendFile = [&paths](ComPtr<IShellItem>& item) {
-                ComMemPtr<WCHAR> filePath;
-                if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
-                    paths.push_back(*filePath);
-            };
-
-            // Check for single selection
-            ComPtr<IShellItem> result;
-            hr = dialog->GetResult(&result);
-            if (SUCCEEDED(hr)) {
-                AppendFile(result);
-            }
-            else {
-                // check for multiple selections
-                ComPtr<IShellItemArray> results;
-                hr = dialog->GetResults(&results);
-                if (SUCCEEDED(hr)) {
-                    ComPtr<IEnumShellItems> items;
-                    ThrowIfFailed(results->EnumItems(&items));
-
-                    ComPtr<IShellItem> item;
-                    ULONG fetched{};
-                    while (items->Next(1, &item, &fetched) == S_OK)
-                        AppendFile(item);
-                }
-            }
-
-            return paths;
-        }
-        catch (const std::exception& e) {
-            ShowErrorMessage(e);
-            return {};
-        }
-    }
-
-    inline Option<filesystem::path> SaveFileDialog(span<const COMDLG_FILTERSPEC> filter, uint selectedFilterIndex, wstring defaultName, wstring title = L"Save File As") {
-        try {
-            ComPtr<IFileSaveDialog> dialog;
-            ThrowIfFailed(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog)));
-            dialog->SetFileTypes((int)filter.size(), filter.data());
-            dialog->SetFileTypeIndex(selectedFilterIndex);
-            if (selectedFilterIndex > 0) { // note that filter indices are 1 based not 0 based
-                auto ext = String::Extension(wstring(filter[selectedFilterIndex - 1].pszSpec));
-                dialog->SetDefaultExtension(ext.c_str());
-            }
-
-            dialog->SetFileName(defaultName.c_str());
-            dialog->SetTitle(title.c_str());
+            ThrowIfFailed(dialog->SetFileTypes((int)filter.size(), filter.data()));
+            ThrowIfFailed(dialog->SetTitle(title.c_str()));
             auto hr = dialog->Show(Shell::Hwnd);
             Input::ResetState(); // Fix for keys getting stuck after showing a dialog
             if (FAILED(hr)) return {}; // includes cancelled dialog
@@ -199,12 +119,93 @@ namespace Inferno {
         }
     }
 
-    inline Option<filesystem::path> BrowseFolderDialog(wstring title = L"Browse For Folder") {
+    inline List<filesystem::path> OpenMultipleFilesDialog(span<const COMDLG_FILTERSPEC> filter, const wstring& title) {
         try {
             ComPtr<IFileOpenDialog> dialog;
             ThrowIfFailed(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog)));
-            dialog->SetOptions(FOS_PICKFOLDERS);
-            dialog->SetTitle(title.c_str());
+            ThrowIfFailed(dialog->SetFileTypes((int)filter.size(), filter.data()));
+            ThrowIfFailed(dialog->SetTitle(title.c_str()));
+            ThrowIfFailed(dialog->SetOptions(FOS_ALLOWMULTISELECT));
+            auto hr = dialog->Show(Shell::Hwnd);
+            Input::ResetState(); // Fix for keys getting stuck after showing a dialog
+            if (FAILED(hr)) return {}; // includes cancelled dialog
+
+            List<filesystem::path> paths;
+
+            auto appendFile = [&paths](const ComPtr<IShellItem>& item) {
+                ComMemPtr<WCHAR> filePath;
+                if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &filePath)))
+                    paths.push_back(*filePath);
+            };
+
+            // Check for single selection
+            ComPtr<IShellItem> result;
+            hr = dialog->GetResult(&result);
+            if (SUCCEEDED(hr)) {
+                appendFile(result);
+            }
+            else {
+                // check for multiple selections
+                ComPtr<IShellItemArray> results;
+                hr = dialog->GetResults(&results);
+                if (SUCCEEDED(hr)) {
+                    ComPtr<IEnumShellItems> items;
+                    ThrowIfFailed(results->EnumItems(&items));
+
+                    ComPtr<IShellItem> item;
+                    ULONG fetched{};
+                    while (items->Next(1, &item, &fetched) == S_OK)
+                        appendFile(item);
+                }
+            }
+
+            return paths;
+        }
+        catch (const std::exception& e) {
+            ShowErrorMessage(e);
+            return {};
+        }
+    }
+
+    inline Option<filesystem::path> SaveFileDialog(span<const COMDLG_FILTERSPEC> filter, uint selectedFilterIndex, 
+                                                   const wstring& defaultName, const wstring& title = L"Save File As") {
+        try {
+            ComPtr<IFileSaveDialog> dialog;
+            ThrowIfFailed(CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog)));
+            ThrowIfFailed(dialog->SetFileTypes((int)filter.size(), filter.data()));
+            ThrowIfFailed(dialog->SetFileTypeIndex(selectedFilterIndex));
+            if (selectedFilterIndex > 0) { // note that filter indices are 1 based not 0 based
+                auto ext = String::Extension(wstring(filter[selectedFilterIndex - 1].pszSpec));
+                ThrowIfFailed(dialog->SetDefaultExtension(ext.c_str()));
+            }
+
+            ThrowIfFailed(dialog->SetFileName(defaultName.c_str()));
+            ThrowIfFailed(dialog->SetTitle(title.c_str()));
+            auto hr = dialog->Show(Shell::Hwnd);
+            Input::ResetState(); // Fix for keys getting stuck after showing a dialog
+            if (FAILED(hr)) return {}; // includes cancelled dialog
+
+            ComPtr<IShellItem> result;
+            ThrowIfFailed(dialog->GetResult(&result));
+
+            ComMemPtr<WCHAR> filePath;
+            ThrowIfFailed(result->GetDisplayName(SIGDN_FILESYSPATH, &filePath));
+
+            if (!filePath) return {};
+            return { *filePath };
+        }
+        catch (const std::exception& e) {
+            ShowErrorMessage(e);
+            return {};
+        }
+    }
+
+    inline Option<filesystem::path> BrowseFolderDialog(const wstring& title = L"Browse For Folder") {
+        try {
+            ComPtr<IFileOpenDialog> dialog;
+            ThrowIfFailed(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_PPV_ARGS(&dialog)));
+            ThrowIfFailed(dialog->SetOptions(FOS_PICKFOLDERS));
+            ThrowIfFailed(dialog->SetTitle(title.c_str()));
             auto hr = dialog->Show(Shell::Hwnd);
             Input::ResetState(); // Fix for keys getting stuck after showing a dialog
             if (FAILED(hr)) return {}; // includes cancelled dialog
