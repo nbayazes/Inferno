@@ -1094,6 +1094,10 @@ namespace Inferno {
                     }
 
                     float hitSpeed = 0;
+                    if (hitDistance < -.5f && hitDistance > -obj.Radius) {
+                        SPDLOG_WARN("Moved object {} to wall surface", Game::GetObjectRef(obj).Id);
+                        obj.Position = hit.Point + hit.Normal * obj.Radius;
+                    }
 
                     if (hitDistance < obj.Radius + 0.001f) {
                         // Check if hit is transparent (duplicate check due to triangle edges)

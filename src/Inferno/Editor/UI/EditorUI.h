@@ -55,6 +55,38 @@ namespace Inferno::Editor {
         }
     };
 
+    class GotoObjectDialog : public ModalWindowBase {
+        int _value = 0;
+        int _maxValue = 0;
+
+    public:
+        GotoObjectDialog() : ModalWindowBase("Go To Object") {
+            Width = 350;
+        };
+
+    protected:
+        bool OnOpen() override {
+            _value = (int)Editor::Selection.Object;
+            _maxValue = (int)Game::Level.Objects.size() - 1;
+            return true;
+        }
+
+        void OnUpdate() override {
+            ImGui::Text("Object Number 0 - %i", _maxValue);
+
+            SetInitialFocus();
+            if (ImGui::InputInt("##input", &_value, 0))
+                _value = std::clamp(_value, 0, _maxValue);
+            EndInitialFocus();
+
+            AcceptButtons("OK", "Cancel");
+        }
+
+        void OnAccept() override {
+            Editor::Selection.SetSelection((ObjID)_value);
+        }
+    };
+
     class EditorUI {
         TextureBrowserUI _textureBrowser;
         TextureEditor _textureEditor;
@@ -83,6 +115,7 @@ namespace Inferno::Editor {
     public:
         EditorUI() {
             RegisterDialog<GotoSegmentDialog>(DialogType::GotoSegment);
+            RegisterDialog<GotoObjectDialog>(DialogType::GotoObject);
             RegisterDialog<RenameLevelDialog>(DialogType::RenameLevel);
             RegisterDialog<MissionEditor>(DialogType::MissionEditor);
             RegisterDialog<NewLevelDialog>(DialogType::NewLevel);
