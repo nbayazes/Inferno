@@ -26,6 +26,7 @@ namespace Inferno {
         float GlobalDimming;
         HlslBool NewLightMode;
         TextureFilterMode FilterMode;
+        float RenderScale;
     };
 
     constexpr D3D12_INPUT_LAYOUT_DESC CreateLayout(span<const D3D12_INPUT_ELEMENT_DESC> desc) {

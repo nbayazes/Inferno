@@ -60,7 +60,7 @@ namespace Inferno::PostFx {
     public:
         UpsampleAndBlurCS() : ComputeShader(8, 8) { }
 
-        float UpsampleBlendFactor = 0.45f; // How much to blend between low and high res
+        float UpsampleBlendFactor = 0.325f; // How much to blend between low and high res
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& highResSrc, PixelBuffer& lowerResSrc, PixelBuffer& dest) const;
     };
@@ -72,7 +72,7 @@ namespace Inferno::PostFx {
         ToneMapCS() : ComputeShader(8, 8) {}
 
         float Exposure = 1.0f; // final scene exposure
-        float BloomStrength = 0.45f;
+        float BloomStrength = 0.35f;
 
         void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest, Texture2D& dirt) const;
     };

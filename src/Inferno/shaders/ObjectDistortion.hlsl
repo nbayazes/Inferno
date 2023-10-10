@@ -59,22 +59,20 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 deltax = ddx(input.pos.xyz);
     float3 deltay = ddy(input.pos.xyz);
     float3 normal = normalize(cross(deltax, deltay));
-
-    float dx = 5 / Frame.Size.x;
-    float dy = 5 / Frame.Size.y;
+    float2 scale = 5 / Frame.Size * Frame.RenderScale * Frame.RenderScale;
 
     float noise = 0.98 - (Instance.Noise * 0.2);
     float time = Frame.Time + Instance.TimeOffset;
-    float2 offset = float2(sin(input.pos.y * dy + time), cos(input.pos.x * dx + time) * 3);
-    float2 samplePos = (input.pos.xy + offset) / Frame.Size;
-    samplePos = saturate(samplePos + normal.xy * 30 * noise);
+    float2 offset = float2(sin(input.pos.y * scale.y + time), cos(input.pos.x * scale.x + time) * 3);
+    float2 samplePos = (input.pos.xy + offset) / Frame.Size * Frame.RenderScale;
+    samplePos = saturate(samplePos + normal.xy * 30 * noise * Frame.RenderScale);
 
     float3 sample = float3(0, 0, 0);
     sample += FrameTexture.SampleLevel(LinearBorder, samplePos, 0).rgb;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(dx, -dy), 0).rgb * 0.5;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-dx, -dy), 0).rgb * 0.5;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-dx, -dy), 0).rgb * 0.5;
-    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(dx, dy), 0).rgb * 0.5;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, -scale.y), 0).rgb * 0.5;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.5;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(-scale.x, -scale.y), 0).rgb * 0.5;
+    sample += FrameTexture.SampleLevel(LinearBorder, samplePos + float2(scale.x, scale.y), 0).rgb * 0.5;
     sample /= 4;
     return float4(sample.rgb * noise, 1);
 }

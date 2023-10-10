@@ -99,7 +99,11 @@ namespace Inferno::PostFx {
         lowerResSrc.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         dest.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-        DirectX::XMFLOAT3 constants = { 1.0f / highResSrc.GetWidth(), 1.0f / highResSrc.GetHeight(), UpsampleBlendFactor };
+        DirectX::XMFLOAT3 constants = {
+            1.0f / highResSrc.GetWidth(),
+            1.0f / highResSrc.GetHeight(),
+            UpsampleBlendFactor * Render::RenderScale
+        };
 
         commandList->SetComputeRootSignature(_rootSignature.Get());
         commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
