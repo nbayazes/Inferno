@@ -435,7 +435,12 @@ namespace Inferno::Render {
             // Copy the contents of the render target to the distortion buffer
             auto cmdList = ctx.GetCommandList();
             auto& renderTarget = Adapter->GetHdrRenderTarget();
-            Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);
+            
+            if (Settings::Graphics.MsaaSamples > 1)
+                Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);
+            else
+                renderTarget.CopyTo(cmdList, Adapter->DistortionBuffer);
+
             Adapter->DistortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
             renderTarget.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
             //auto& distortionBuffer = Adapter->GetDistortionBuffer();
