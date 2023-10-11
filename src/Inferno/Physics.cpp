@@ -438,50 +438,6 @@ namespace Inferno {
         return angles;
     }
 
-    void TurnTowardsVector(Object& obj, Vector3 towards, float rate) {
-        if (towards == Vector3::Zero) return;
-        // transform towards to local coordinates
-        Matrix basis(obj.Rotation);
-        basis = basis.Invert();
-        towards = Vector3::Transform(towards, basis); // transform towards to basis of object
-        towards.z *= -1; // hack: correct for LH object matrix
-
-        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, towards); // rotation to the target vector
-        auto euler = rotation.ToEuler() / rate / DirectX::XM_2PI; // Physics update multiplies by XM_2PI so divide it here
-        euler.z = 0; // remove roll
-        obj.Physics.AngularVelocity = euler;
-    }
-
-    void ApplyForce(Object& obj, const Vector3& force) {
-        if (obj.Movement != MovementType::Physics) return;
-        if (obj.Physics.Mass == 0) return;
-        obj.Physics.Velocity += force / obj.Physics.Mass;
-    }
-
-    void ApplyRotation(Object& obj, const Vector3& force) {
-        if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
-        auto vecmag = force.Length();
-        if (vecmag == 0) return;
-        vecmag /= 8.0f;
-
-        //if (vecmag < 1 / 256.0f || vecmag < obj.Physics.Mass) {
-        //    rate = 4;
-        //}
-        //else {
-
-        // rate should go down as vecmag or mass goes up
-        float rate = obj.Physics.Mass / vecmag;
-        if (obj.Type == ObjectType::Robot) {
-            if (rate < 0.25f) rate = 0.25f;
-        }
-        else {
-            if (rate < 0.5f) rate = 0.5f;
-        }
-        //}
-
-        TurnTowardsVector(obj, force, rate);
-    }
-
     // Creates an explosion that can cause damage or knockback
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion) {
         ASSERT(explosion.Room != RoomID::None);
@@ -529,6 +485,9 @@ namespace Inferno {
                     float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
                     float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
 
+                    dir += RandomVector(0.25f);
+                    dir.Normalize();
+
                     Vector3 forceVec = dir * force;
                     //auto hitPos = (source.Position - obj.Position) * obj.Radius / (obj.Radius + dist);
 
@@ -568,8 +527,9 @@ namespace Inferno {
 
                             //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
                             // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
-                            if (!source || source->LastHitObject != target.Signature)
-                                ApplyRotation(target, forceVec * stunMult);
+                            if (!source || source->LastHitObject != target.Signature) {
+                                RotateTowards(target, target.Position + dir, force / 8.0f);
+                            }
                             break;
                         }
 

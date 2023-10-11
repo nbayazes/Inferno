@@ -269,7 +269,6 @@ namespace Inferno {
         SetFlag(obj.Flags, ObjectFlag::Exploding);
     }
 
-
     Object& AllocObject(Inferno::Level& level) {
         for (auto& obj : level.Objects) {
             if (!obj.IsAlive()) {
@@ -388,6 +387,17 @@ namespace Inferno {
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
                 Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
+
+                if (robot.ExplosionStrength > 0) {
+                    GameExplosion ge{};
+                    ge.Damage = robot.ExplosionStrength;
+                    ge.Radius = robot.ExplosionStrength * 4.0f;
+                    ge.Force = robot.ExplosionStrength * 35.0f;
+                    ge.Segment = obj.Segment;
+                    ge.Position = obj.Position;
+                    ge.Room = Game::Level.GetRoomID(obj);
+                    CreateExplosion(Game::Level, &obj, ge);
+                }
 
                 // Don't give score from robots created by bosses to prevent score farming
                 if (obj.SourceMatcen != MatcenID::Boss)
@@ -767,4 +777,62 @@ namespace Inferno {
             UpdateAI(obj, dt);
         }
     }
+
+
+    void TurnTowardsVector(Object& obj, Vector3 towards, float rate) {
+        if (towards == Vector3::Zero) return;
+        // transform towards to local coordinates
+        Matrix basis(obj.Rotation);
+        basis = basis.Invert();
+        towards = Vector3::Transform(towards, basis); // transform towards to basis of object
+        towards.z *= -1; // hack: correct for LH object matrix
+
+        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, towards); // rotation to the target vector
+        auto euler = rotation.ToEuler() / rate / DirectX::XM_2PI; // Physics update multiplies by XM_2PI so divide it here
+        euler.z = 0; // remove roll
+        obj.Physics.AngularVelocity = euler;
+    }
+
+    void RotateTowards(Object& obj, Vector3 point, float angularThrust) {
+        auto dir = point - obj.Position;
+        dir.Normalize();
+
+        // transform towards to local coordinates
+        Matrix basis(obj.Rotation);
+        basis = basis.Invert();
+        dir = Vector3::Transform(dir, basis); // transform towards to basis of object
+        dir.z *= -1; // hack: correct for LH object matrix
+
+        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, dir); // rotation to the target vector
+        auto euler = rotation.ToEuler() * angularThrust;
+        euler.z = 0; // remove roll
+        //obj.Physics.AngularVelocity = euler;
+        obj.Physics.AngularThrust += euler;
+    }
+
+    void ApplyForce(Object& obj, const Vector3& force) {
+        if (obj.Movement != MovementType::Physics) return;
+        if (obj.Physics.Mass == 0) return;
+        obj.Physics.Velocity += force / obj.Physics.Mass;
+    }
+
+    void ApplyRotation(Object& obj, const Vector3& force) {
+        if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
+        auto vecmag = force.Length();
+        if (vecmag == 0) return;
+        vecmag /= 8.0f;
+
+        // rate should go down as vecmag or mass goes up
+        float rate = obj.Physics.Mass / vecmag;
+        if (obj.Type == ObjectType::Robot) {
+            if (rate < 0.25f) rate = 0.25f;
+        }
+        else {
+            if (rate < 0.5f) rate = 0.5f;
+        }
+        //}
+
+        TurnTowardsVector(obj, force, rate);
+    }
+
 }

@@ -176,7 +176,7 @@ namespace Inferno {
         ri.Kamikaze = r.ReadByte();
 
         ri.Score = r.ReadInt16();
-        ri.Badass = r.ReadByte();
+        ri.ExplosionStrength = r.ReadByte();
         ri.EnergyDrain = r.ReadByte();
 
         ri.Lighting = r.ReadFix();

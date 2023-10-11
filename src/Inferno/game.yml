@@ -537,8 +537,8 @@ Robots:
   - id: 3 # Class 1 drone
     CircleDistance: 40
     FOV: [ 110, 130, 150, 170, 200 ]
-    Mass: 2.2
-    Drag: 0.1
+    Mass: 3.2
+    Drag: 0.04
   - id: 4 # Class 2 drone
     CircleDistance: 40
     Drag: 0.075
@@ -590,6 +590,7 @@ Robots:
     Mass: 20 # was 30
     Multishot: 2
     DeathRoll: 3
+    ExplosionStrength: 15
     # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
     CircleDistance: 80

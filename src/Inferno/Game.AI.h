@@ -252,7 +252,6 @@ namespace Inferno {
     AIRuntime& GetAI(const Object& obj);
 
     bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
-    void RotateTowards(Object& obj, Vector3 point, float angularThrust);
     void MoveTowardsPoint(Object& obj, const Vector3& point, float thrust);
 
     struct RobotInfo;

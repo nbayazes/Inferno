@@ -229,24 +229,6 @@ namespace Inferno {
         return elapsedTime > rollDuration;
     }
 
-    // Similar to TurnTowardsVector but adds angular thrust
-    void RotateTowards(Object& obj, Vector3 point, float angularThrust) {
-        auto dir = point - obj.Position;
-        dir.Normalize();
-
-        // transform towards to local coordinates
-        Matrix basis(obj.Rotation);
-        basis = basis.Invert();
-        dir = Vector3::Transform(dir, basis); // transform towards to basis of object
-        dir.z *= -1; // hack: correct for LH object matrix
-
-        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, dir); // rotation to the target vector
-        auto euler = rotation.ToEuler() * angularThrust;
-        euler.z = 0; // remove roll
-        //obj.Physics.AngularVelocity = euler;
-        obj.Physics.AngularThrust += euler;
-    }
-
     void MoveTowardsPoint(Object& obj, const Vector3& point, float thrust) {
         auto dir = point - obj.Position;
         dir.Normalize();

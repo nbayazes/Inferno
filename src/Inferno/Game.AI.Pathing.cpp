@@ -3,6 +3,7 @@
 #include "Game.AI.Pathing.h"
 #include "Game.AI.h"
 #include "Game.h"
+#include "Game.Object.h"
 #include "Resources.h"
 #include "Robot.h"
 #include "Graphics/Render.Debug.h"

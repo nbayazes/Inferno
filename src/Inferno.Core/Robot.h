@@ -40,11 +40,10 @@ namespace Inferno {
 
         ContainsData Contains;
         sbyte ContainsChance;   // Probability that this instance will contain something in N/16
-
-        sbyte Kamikaze;        // Strength of suicide explosion and knockback
+        sbyte Kamikaze;        // Rushes at player and explodes on contact
 
         short Score;
-        int8 Badass;         // Dies with badass explosion. > 0 specifies strength (damage?)
+        int8 ExplosionStrength; // Radius and force of explosion on death
         int8 EnergyDrain;    // Energy drained when touched
 
         float Lighting;

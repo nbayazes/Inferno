@@ -30,11 +30,6 @@ namespace Inferno {
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion);
     bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent);
 
-    // Sets an object's angular velocity to turn towards a vector over a number of seconds.
-    // Note that this is not additive, and overrides any existing angular velocity.
-    void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
-    void ApplyForce(Object& obj, const Vector3& force);
-
     // Returns true if a sphere intersects with a segment
     bool IntersectLevelSegment(Level& level, const Vector3& position, float radius, SegID segId, LevelHit& hit);
     bool IntersectLevelDebris(Level& level, const DirectX::BoundingSphere&, SegID segId, LevelHit& hit);

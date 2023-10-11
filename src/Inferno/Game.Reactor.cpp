@@ -221,6 +221,7 @@ namespace Inferno::Game {
     }
 
     void UpdateReactorAI(const Inferno::Object& reactor, float dt) {
+        if (Settings::Cheats.DisableAI) return;
         Reactor.ThinkDelay -= dt;
         Reactor.FireDelay -= dt;
 

@@ -4,6 +4,7 @@
 #include "HamFile.h"
 #include "Yaml.h"
 #include "Graphics/Render.Particles.h"
+#include "logging.h"
 
 namespace Inferno {
     template <class T>
@@ -302,7 +303,7 @@ namespace Inferno {
 
         READ_PROP(Kamikaze);
         READ_PROP(Score);
-        READ_PROP(Badass);
+        READ_PROP(ExplosionStrength);
         READ_PROP(EnergyDrain);
         READ_PROP(Lighting);
         READ_PROP(HitPoints);
