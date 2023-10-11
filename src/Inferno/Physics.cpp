@@ -1095,7 +1095,8 @@ namespace Inferno {
 
                     float hitSpeed = 0;
                     if (hitDistance < -.5f && hitDistance > -obj.Radius) {
-                        SPDLOG_WARN("Moved object {} to wall surface", Game::GetObjectRef(obj).Id);
+                        //if (obj.Type != ObjectType::Debris)
+                        //    SPDLOG_WARN("Moved object {} to wall surface", Game::GetObjectRef(obj).Id);
                         obj.Position = hit.Point + hit.Normal * obj.Radius;
                     }
 
@@ -1262,6 +1263,7 @@ namespace Inferno {
         Object dummyObj{};
         dummyObj.Position = debris.Center;
         dummyObj.Radius = debris.Radius;
+        dummyObj.Type = ObjectType::Debris;
         IntersectLevelMesh(level, dummyObj, pvs, hit, Game::TICK_RATE);
         return (bool)hit;
     }

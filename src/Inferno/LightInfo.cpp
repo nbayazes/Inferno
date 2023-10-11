@@ -67,17 +67,16 @@ namespace Inferno {
             ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(yaml));
             ryml::NodeRef root = doc.rootref();
 
-            if (root.is_map()) {
-                auto levelTextureNode = root["Lights"];
-                if (levelTextureNode.valid() && !levelTextureNode.is_seed()) {
-                    for (const auto& node : levelTextureNode.children()) {
-                        if (!node.valid() || node.is_seed()) continue;
-                        auto info = ReadLightInfo(node);
-                        if (lightInfo.contains(info.Id))
-                            SPDLOG_WARN("Redefined texture {} due to duplicate entry", (int)info.Id);
+            if (!root.is_map()) return lightInfo;
 
-                        lightInfo[info.Id] = info;
-                    }
+            if (auto node = root["Lights"]; node.valid() && !node.is_seed()) {
+                for (const auto& child : node.children()) {
+                    if (!child.valid() || child.is_seed()) continue;
+                    auto info = ReadLightInfo(child);
+                    if (lightInfo.contains(info.Id))
+                        SPDLOG_WARN("Redefined texture {} due to duplicate entry", (int)info.Id);
+
+                    lightInfo[info.Id] = info;
                 }
             }
 
@@ -90,7 +89,7 @@ namespace Inferno {
         return lightInfo;
     }
 
-    
+
     void SaveLightTable(std::ostream& stream, const Dictionary<LevelTexID, TextureLightInfo>& lightInfo) {
         try {
             ryml::Tree doc(30, 128);

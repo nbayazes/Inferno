@@ -105,7 +105,7 @@ namespace Inferno {
 
     void SaveLightSettings(ryml::NodeRef node, const LightSettings& s) {
         node |= ryml::MAP;
-        node["Ambient"] << EncodeColor(s.Ambient);
+        node["Ambient"] << EncodeColor3(s.Ambient);
         node["AccurateVolumes"] << s.AccurateVolumes;
         node["Bounces"] << s.Bounces;
         node["DistanceThreshold"] << s.DistanceThreshold;
@@ -117,6 +117,86 @@ namespace Inferno {
         node["Radius"] << s.Radius;
         node["Reflectance"] << s.Reflectance;
         node["Multithread"] << s.Multithread;
+    }
+
+    void SavePalette(ryml::NodeRef node, const Array<Color, PALETTE_SIZE>& palette) {
+        node |= ryml::SEQ;
+        for (auto& color : palette) {
+            node.append_child() << EncodeColor3(color);
+        }
+    }
+
+    Array<Color, PALETTE_SIZE> LoadPalette(ryml::NodeRef node) {
+        Array<Color, PALETTE_SIZE> palette{};
+
+        int i = 0;
+        auto addColor = [&i, &palette](const Color& color) {
+            if (i >= palette.size()) return;
+            palette[i++] = color;
+        };
+
+        if (!node.valid() || node.is_seed()) {
+            // Load defaults (D3 light colors)
+            addColor({ .25, .3, .4 }); // bluish
+            addColor({ .5, .5, .66 }); // blue lamp
+            addColor({ .47, .50, .55 }); // white lamp
+            addColor({ .3, .3, .3 }); // white
+            addColor({ .3, .4, .4 }); // rusty teal
+            addColor({ .12, .16, .16 }); // strip teal
+
+            addColor({ .4, .2, .2 }); // reddish
+            addColor({ 1.3, .3, .3 }); // super red
+            addColor({ .4, .05, .05 }); // red
+            addColor({ .24, .06, 0 }); // strip red
+            addColor({ .5, .1, 0 }); // bright orange
+            addColor({ .5, .3, .1 }); // bright orange
+
+            addColor({ .4, .2, .05 }); // orange
+            addColor({ .4, .3, .2 }); // orangish
+            addColor({ .44, .32, .16 }); // bright orange
+            addColor({ .2, .15, .1 }); // strip orange
+            addColor({ .44, .44, .33 }); // bright yellow
+            addColor({ .4, .4, .1 }); // yellow
+
+            //addColor({ .4, .4, .3 }); // yellowish
+            //addColor({ .2, .2, .15 }); // strip yellow
+
+            addColor({ .2, .4, .3 }); // Greenish
+            addColor({ .02, .3, .29 }); // teal (custom)
+            addColor({ .25, .5, .15 }); // bright green
+            addColor({ .05, .4, .2 }); // green
+            addColor({ .16, .48, .32 }); // bright teal
+            addColor({ .16, .32, .16 }); // strip green
+
+            addColor({ .1, .24, .55 }); // bright blue
+            addColor({ .05, .15, .40 }); // blue
+            addColor({ .07, .14, .28 }); // strip blue
+            addColor({ .12, .12, .43 }); // deep blue
+            addColor({});
+            addColor({});
+
+            addColor({ 2, .6, 1.2 }); // super purple
+            addColor({ .3, .05, .4 }); // purple
+            addColor({ .4, .35, .45 }); // bright purple
+            addColor({ .24, .24, .48 }); // purple
+            addColor({ .14, .12, .20 }); // purple
+            addColor({ .3, .25, .40 }); // purplish
+
+            // Boost brightness
+            for (auto& c : palette) {
+                c *= 2.5f;
+                c.w = 1;
+            }
+            return palette;
+        }
+
+        for (const auto& child : node.children()) {
+            Color color;
+            ReadValue(child, color);
+            addColor(color);
+        }
+
+        return palette;
     }
 
     LightSettings LoadLightSettings(ryml::NodeRef node) {
@@ -255,6 +335,7 @@ namespace Inferno {
         SaveSelectionSettings(node["Selection"], s.Selection);
         SaveOpenWindows(node["Windows"], s.Windows);
         SaveLightSettings(node["Lighting"], s.Lighting);
+        SavePalette(node["Palette"], s.Palette);
     }
 
     EditorSettings LoadEditorSettings(ryml::NodeRef node, InfernoSettings& settings) {
@@ -327,6 +408,7 @@ namespace Inferno {
         ReadValue(node["TexturePreviewSize"], (int&)s.TexturePreviewSize);
         ReadValue(node["ShowLevelTitle"], s.ShowLevelTitle);
 
+        s.Palette = LoadPalette(node["Palette"]);
         s.Selection = LoadSelectionSettings(node["Selection"]);
         s.Windows = LoadOpenWindows(node["Windows"]);
         s.Lighting = LoadLightSettings(node["Lighting"]);
@@ -396,4 +478,3 @@ namespace Inferno {
         }
     }
 }
-

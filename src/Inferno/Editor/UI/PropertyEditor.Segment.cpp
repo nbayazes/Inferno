@@ -6,6 +6,7 @@
 #include "Editor/Editor.Segment.h"
 #include "Editor/Editor.Wall.h"
 #include "Graphics/Render.h"
+#include "Editor/Editor.Lighting.h"
 
 namespace Inferno::Editor {
     // Sets snapshot to true when the previous item finishes editing
@@ -353,6 +354,151 @@ namespace Inferno::Editor {
 
     Option<Color> SideLightBuffer;
 
+    ImVec4 GetPreviewColor(Color color) {
+        auto max = std::max({ color.x, color.y, color.z });
+        if (max > 0) color.w = 1 / max;
+        color.Premultiply();
+        return { color.x, color.y, color.z, color.w };
+    }
+
+    bool ColorPicker(Color& color, bool& snapshot, bool& relightLevel) {
+        auto maybeRelightLevel = [&relightLevel] {
+            relightLevel = ImGui::IsKeyDown(ImGuiKey::ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey::ImGuiKey_RightCtrl);
+        };
+
+        static Color previous;
+        bool changed = false;
+
+        if (ImGui::ColorButton("##ColorPickerButton", GetPreviewColor(color))) {
+            ImGui::OpenPopup("ColorPicker");
+            previous = color;
+        }
+
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(-1);
+        float h, s, v;
+        ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
+        if (ImGui::DragFloat("##value", &v, 0.05f, 0.05f, 100, "%.2f")) {
+            if (v <= 0) v = 0.05f;
+            ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
+            changed = true;
+        }
+
+        if (ImGui::IsItemDeactivatedAfterEdit())
+            snapshot = changed = true; // Snapshot after the user releases the mouse button
+
+        if (!ImGui::BeginPopup("ColorPicker"))
+            return changed;
+
+        changed |= ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+
+        if (ImGui::IsItemDeactivatedAfterEdit())
+            snapshot = changed = true; // Snapshot after the user releases the mouse button
+
+        ImGui::SameLine();
+        {
+            ImGui::BeginGroup();
+
+            {
+                ImGui::BeginGroup();
+                ImGui::Text("Current");
+                auto previewColor = GetPreviewColor(color);
+                if (ImGui::ColorButton("##current", previewColor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop, ImVec2(60, 40)))
+                    maybeRelightLevel();
+
+                // Override ColorButton drag and drop because we want the real color - not the preview color
+                if (ImGui::BeginDragDropSource()) {
+                    ImGui::SetDragDropPayload(IMGUI_PAYLOAD_TYPE_COLOR_4F, &color, sizeof(float) * 4, ImGuiCond_Once);
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::EndGroup();
+            }
+
+            ImGui::SameLine(0, 20);
+            {
+                ImGui::BeginGroup();
+                ImGui::Text("Previous");
+                auto previewColor = GetPreviewColor(previous);
+                if (ImGui::ColorButton("##previous", previewColor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop, ImVec2(60, 40))) {
+                    color = previous;
+                    snapshot = changed = true;
+                    maybeRelightLevel();
+                }
+
+                // Override ColorButton drag and drop because we want the real color - not the preview color
+                if (ImGui::BeginDragDropSource()) {
+                    ImGui::SetDragDropPayload(IMGUI_PAYLOAD_TYPE_COLOR_4F, &color, sizeof(float) * 4, ImGuiCond_Once);
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::EndGroup();
+            }
+
+            ImGui::Dummy({ 0, 20 });
+
+            auto& palette = Settings::Editor.Palette;
+            static int dragSource = -1;
+
+            for (int n = 0; n < std::size(palette); n++) {
+                ImGui::PushID(n);
+                if (n % 6 != 0)
+                    ImGui::SameLine(0.0f, ImGui::GetStyle().ItemSpacing.y);
+
+                ImGuiColorEditFlags paletteButtonFlags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoDragDrop;
+                auto previewColor = GetPreviewColor(palette[n]);
+
+                if (ImGui::ColorButton("##palette", previewColor, paletteButtonFlags, ImVec2(32, 32))) {
+                    color = palette[n];
+                    snapshot = changed = true;
+                    maybeRelightLevel();
+                }
+
+                if (ImGui::BeginDragDropSource()) {
+                    ImGui::SetDragDropPayload(IMGUI_PAYLOAD_TYPE_COLOR_4F, &color, sizeof(float) * 4, ImGuiCond_Once);
+                    ImGui::EndDragDropSource();
+                    dragSource = n;
+                }
+
+                //if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
+                //    auto& pcolor = palette[n];
+                //    ImGui::ColorConvertRGBtoHSV(pcolor.x, pcolor.y, pcolor.z, h, s, v);
+                //    ImGui::SetTooltip("%.2f, %.2f, %.2f v: %.2f", pcolor.x, pcolor.y, pcolor.z, v);
+                //}
+
+                // Allow user to drop colors into each palette entry. Note that ColorButton() is already a
+                // drag source by default, unless specifying the ImGuiColorEditFlags_NoDragDrop flag.
+                if (ImGui::BeginDragDropTarget()) {
+                    /*if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(IMGUI_PAYLOAD_TYPE_COLOR_3F))
+                        memcpy(&palette[n], payload->Data, sizeof(float) * 3);*/
+
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(IMGUI_PAYLOAD_TYPE_COLOR_4F)) {
+                        if (dragSource != -1) {
+                            // Dragged from another palette entry, swap them
+                            std::swap(palette[n], palette[dragSource]);
+                            dragSource = -1;
+                        }
+                        else {
+                            // Dragged from outside palette
+                            memcpy(&palette[n], payload->Data, sizeof(float) * 4);
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::Text("Hold ctrl when picking color\nto relight level");
+            ImGui::EndGroup();
+        }
+
+        ImGui::EndPopup();
+
+        //color = Color(imColor.x, imColor.y, imColor.z, imColor.w);
+        return changed;
+    }
+
     bool SideLighting(Level& level, Segment& seg, SegmentSide& side) {
         bool open = ImGui::TableBeginTreeNode("Light override");
         bool levelChanged = false;
@@ -387,6 +533,10 @@ namespace Inferno::Editor {
                     overrideChanged = true;
                 }
 
+                ImGui::SameLine();
+                if (ImGui::Button("Select"))
+                    Commands::MarkLightColor();
+
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Color", &hasOverride)) {
@@ -397,16 +547,21 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::ColorEdit3("##customcolor", &light.x, ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_Float)) {
+
+                bool relightLevel = false;
+
+                if (ColorPicker(light, snapshot, relightLevel)) {
                     side.LightOverride = light;
                     overrideChanged = true;
                 }
-                CheckForSnapshot(snapshot);
 
                 if (overrideChanged) {
                     levelChanged = true;
                     applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightOverride = side.LightOverride; });
                 }
+
+                if (relightLevel)
+                    Commands::LightLevel(Game::Level, Settings::Editor.Lighting);
             }
 
             {
@@ -861,7 +1016,7 @@ namespace Inferno::Editor {
                         }
 
                         CheckForSnapshot(changed);
-                    //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
+                        //FlagCheckbox("Destroyed", WallFlag::Blasted, wall.flags); // Same as creating an illusionary wall on the final frame of a destroyable effect
                         break;
                     }
 

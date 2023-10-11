@@ -72,6 +72,9 @@ void Application::Initialize(int width, int height) {
 
     OnActivated();
 
+    // Set color picker to use wheel and HDR by default
+    ImGui::SetColorEditOptions(ImGuiColorEditFlags_Float | ImGuiColorEditFlags_HDR | ImGuiColorEditFlags_PickerHueWheel);
+
     Events::SettingsChanged += [this] {
         UpdateFpsLimit();
     };

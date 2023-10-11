@@ -155,18 +155,18 @@ namespace Yaml {
     }
 
     inline std::string EncodeColor(const DirectX::SimpleMath::Color& color) {
-        return fmt::format("{}, {}, {}, {}", color.R(), color.G(), color.B(), color.A());
+        return fmt::format("{:.3g}, {:.3g}, {:.3g}, {:.3g}", color.R(), color.G(), color.B(), color.A());
     }
 
     inline std::string EncodeColor3(const DirectX::SimpleMath::Color& color) {
-        return fmt::format("{}, {}, {}", color.R(), color.G(), color.B());
+        return fmt::format("{:.3g}, {:.3g}, {:.3g}", color.R(), color.G(), color.B());
     }
 
     inline std::string EncodeTag(Inferno::Tag tag) {
         return fmt::format("{}:{}", (int)tag.Segment, (int)tag.Side);
     }
 
-    inline void ReadString(ryml::NodeRef node, std::string& value) {
+    inline void ReadString(const ryml::NodeRef& node, std::string& value) {
         return ReadValue<std::string>(node, value);
     }
 

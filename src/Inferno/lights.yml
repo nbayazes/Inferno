@@ -52,7 +52,7 @@ Lights:
       Wrap: 2
       Width: 0.01
       Offset: -1
-      Color: 0.30, 0.25, 0.25
+      Color: 0.30, 0.25, 0.25, 1.3
       Radius: 25
   
     - ID: 251 # red
@@ -61,7 +61,7 @@ Lights:
       Wrap: 2
       Width: 0.01
       Offset: -1
-      Color: 0.3, 0.0, 0.0
+      Color: 0.3, 0.0, 0.0, 1.5
       Radius: 25
   
     - ID: 252 # blue
@@ -70,7 +70,7 @@ Lights:
       Wrap: 2
       Width: 0.01
       Offset: -1
-      Color: 0.05, 0.05, .8
+      Color: 0.1, 0.1, .8, 1
       Radius: 25
   
     - ID: 253 # yellow
@@ -109,7 +109,7 @@ Lights:
     - ID: 282 # small round
       Radius: 40
       Points: 0.5, 0.5
-      Color: 0.65, 0.55, 0.55
+      Color: 0.60, 0.55, 0.55
 
     - ID: 283 # small square
       Color: 0.55, 0.55, 0.65 # cooler
@@ -197,7 +197,7 @@ Lights:
         - 0.55, 0.75
       Width: .35
       Height: .05 
-      Color: 0.15, 0.15, 0.20
+      Color: 0.15, 0.15, 0.20, 2
       Offset: 0.01
   
     - ID: 288
@@ -207,7 +207,7 @@ Lights:
         - 0.5, 0.75
       Width: .001
       Wrap: 1
-      Color: 0.15, 0.15, 0.20
+      Color: 0.15, 0.15, 0.20, 2
       Offset: 0.01
       Radius: 15
   
@@ -218,13 +218,13 @@ Lights:
         - 0.75, 0.75
       Width: .2
       Height: 0.05
-      Color: 0.15, 0.15, 0.20
+      Color: 0.15, 0.15, 0.20, 2
       Offset: 0.01
 
     # lava
     - ID: 333
       Points: []
-      Color: 1.0, 0.25, .05, 0.5
+      Color: 1.0, 0.25, .05, .75
 
     - ID: 356
       Points: []
@@ -237,6 +237,7 @@ Lights:
       Wrap: 2
       Color: 0.1, 0.00, 0.00
       Offset: 0
+      Radius: 10
       #Radius: 50
 
     # remove lights from reactor walls as emissives work better
@@ -254,11 +255,11 @@ Lights:
       Points: []
 
     - ID: 289 # blank light texture. only used for ambient lighting
-      Color: 0, 0, 0
+      Color: 1, 1, 1, 1
       Points: []
 
     - ID: 328 # energy field
-      Color: 0.75, 0.245, 0.020, 4
+      Color: 0.75, 0.245, 0.020, 1
       Points: []      
 
 #    - ID: 343 # paired monitor

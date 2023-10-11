@@ -87,7 +87,7 @@ namespace Inferno::Editor {
             ImGui::HelpMarker("Causes level geometry to block light");
             ImGui::SameLine();
             ImGui::Checkbox("Accurate Volumes", &settings.AccurateVolumes);
-            ImGui::HelpMarker("Calculates light on connected sides to improve volumetric accuracy.\nHas a high performance impact.");
+            ImGui::HelpMarker("Calculates light on open sides to improve volumetric accuracy.\nHas a high performance impact.");
 
             ImGui::Checkbox("Color", &settings.EnableColor);
             ImGui::HelpMarker("Enables colored lighting. Currently is not saved to the level.");
@@ -101,14 +101,12 @@ namespace Inferno::Editor {
         }
 
 
-        if (ImGui::Button("Light Level")) {
+        if (ImGui::Button("Light Level"))
             Commands::LightLevel(Game::Level, settings);
-            Events::LevelChanged();
-        }
 
         ImGui::Text("Time: %.3f s", (float)Metrics::LightCalculationTime / 1000000.0f);
-        ImGui::Text("Ray Casts: %s", std::to_string(Metrics::RaysCast).c_str());
-        ImGui::Text("Ray Hits: %s", std::to_string(Metrics::RayHits).c_str());
+        ImGui::Text("Rays cast: %s", std::to_string(Metrics::RaysCast).c_str());
+        ImGui::Text("Rays discarded: %s", std::to_string(Metrics::RayHits).c_str());
         ImGui::Text("Cache hits: %s", std::to_string(Metrics::CacheHits).c_str());
 
         ToggleLight();

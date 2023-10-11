@@ -290,6 +290,6 @@ namespace Inferno::Editor {
         void MarkCoplanar(Tag);
         void SelectTexture(bool usePrimary, bool useSecondary);
 
-        extern Command ToggleMarked, ClearMarked, MarkAll, InvertMarked;
+        extern Command ToggleMarked, ClearMarked, MarkAll, InvertMarked, MarkLightColor;
     }
 }

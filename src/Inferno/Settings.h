@@ -49,6 +49,7 @@ namespace Inferno {
         bool CheckCoplanar = true;
     };
 
+    constexpr int PALETTE_SIZE = 36;
 
     struct EditorSettings {
         bool ShowLevelTitle = true;
@@ -58,6 +59,7 @@ namespace Inferno {
         Editor::CoordinateSystem CoordinateSystem{};
         Editor::TexturePreviewSize TexturePreviewSize = Editor::TexturePreviewSize::Medium;
 
+        Array<Color, PALETTE_SIZE> Palette; // User color palette
         LightSettings Lighting;
         float MouselookSensitivity = 0.005f; // Editor mouselook
         float MoveSpeed = 120.0f; // Editor move speed

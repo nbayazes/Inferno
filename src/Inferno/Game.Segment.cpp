@@ -195,7 +195,7 @@ namespace Inferno {
         if (!enableColor)
             return { light, light, light };
 
-        Color color;
+        Color color(0, 0, 0, 0);
 
         auto lightInfo1 = TryGetValue(Resources::LightInfoTable, side.TMap);
         if (lightInfo1 && lightInfo1->Color != LIGHT_UNSET) {
@@ -205,7 +205,10 @@ namespace Inferno {
             color += Resources::GetTextureInfo(side.TMap).AverageColor;
         }
 
+        color.Premultiply();
+
         if (side.HasOverlay()) {
+            color.w = 0;
             auto lightInfo2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
             if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
                 color += lightInfo2->Color;
@@ -213,11 +216,11 @@ namespace Inferno {
             else if (tmap2.Lighting > 0) {
                 color += Resources::GetTextureInfo(side.TMap2).AverageColor;
             }
+            color.Premultiply();
         }
 
-        color.Premultiply();
         color.w = 1;
-        return color /** light*/;
+        return color;
     }
 
     // Returns a vector that exits the segment
@@ -410,7 +413,7 @@ namespace Inferno {
             obj.PhaseIn(2, Game::MATCEN_PHASING_COLOR);
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
-            obj.Rotation = VectorToRotation(facing);
+            obj.Rotation = VectorToObjectRotation(facing);
             Game::AddObject(obj);
 
             matcen.RobotCount--;

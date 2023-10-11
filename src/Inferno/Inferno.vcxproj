@@ -316,6 +316,7 @@
     <ClInclude Include="Procedural.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SoundTypes.h" />
+    <ClInclude Include="unordered_dense.h" />
     <ClInclude Include="Version.h" />
     <ClInclude Include="WindowsDialogs.h" />
     <ClInclude Include="Editor\Gizmo.h" />

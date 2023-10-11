@@ -11,6 +11,7 @@
 #include "Editor.Lighting.h"
 #include "Game.Segment.h"
 #include "WindowsDialogs.h"
+#include "unordered_dense.h"
 
 namespace Inferno::Editor {
     constexpr float PLANE_TOLERANCE = -0.01f;
@@ -126,7 +127,8 @@ namespace Inferno::Editor {
         Dictionary<Tag, LightRayCast> RayCasts;
 
         // Key is a combination of src seg, src vertex and dest vertex. Value indicates if dest is visible.
-        Dictionary<int64, bool> HitTests;
+        //Dictionary<int64, bool> HitTests;
+        ankerl::unordered_dense::pmr::map<int64, bool> HitTests;
 
         List<LightSource> Lights;
         LightSettings Settings;
@@ -772,8 +774,6 @@ namespace Inferno::Editor {
                 .Index = startIndex
             });
         }
-
-        SPDLOG_INFO("Delta lights: {} of {}; Indices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);
     }
 
     // Copies accumulated light to the level faces
@@ -936,8 +936,8 @@ namespace Inferno::Editor {
 
             // If single threaded, preallocate a single large buffer
             if (availThreads == 1) {
-                threads[0].HitTests = Dictionary<int64, bool>{ 1'000'000 };
-                threads[0].RayCasts = Dictionary<Tag, LightRayCast>{ 1000 };
+                threads[0].HitTests.reserve(1'000'000);
+                threads[0].RayCasts.reserve(1000);
             }
 
             // Dispatch worker threads
@@ -981,8 +981,8 @@ namespace Inferno::Editor {
             for (auto& ctx : threads) {
                 // updating the level must be done in serial
                 SetSideLighting(level, ctx.RayCasts, max, settings.EnableColor);
-                if (settings.EnableColor)
-                    ClampColorBrightness(level, settings.MaxValue);
+                //if (settings.EnableColor)
+                //    ClampColorBrightness(level, settings.MaxValue);
 
                 SetDynamicLights(level, ctx.RayCasts);
                 Metrics::CacheHits += ctx.CacheHits;
@@ -990,9 +990,11 @@ namespace Inferno::Editor {
                 Metrics::RaysCast += ctx.CastStats;
             }
 
-            SetVolumeLight(level, settings.AccurateVolumes);
+            SPDLOG_INFO("Delta lights: {} of {}; Indices: {} of {}", level.LightDeltaIndices.size(), MAX_DYNAMIC_LIGHTS, level.LightDeltas.size(), MAX_LIGHT_DELTAS);
 
+            SetVolumeLight(level, settings.AccurateVolumes);
             Editor::History.SnapshotLevel("Light Level");
+            Events::LevelChanged();
         }
         catch (const std::exception& e) {
             ShowErrorMessage(e);

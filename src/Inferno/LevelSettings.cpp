@@ -2,6 +2,7 @@
 #include "LevelSettings.h"
 #include "Yaml.h"
 #include "Resources.h"
+#include "Settings.h"
 
 using namespace Yaml;
 
@@ -166,23 +167,125 @@ namespace Inferno {
         }
     }
 
-    void LoadLevelMetadata(Level& level, const string& data) {
-        try {
-            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
-            ryml::NodeRef root = doc.rootref();
+    constexpr int SEGMENT_LIGHT_VALUES = 1 + 4 * 6;
 
-            if (root.is_map()) {
-                Settings::Editor.Lighting = LoadLightSettings(root["Lighting"]);
-                ReadSegmentInfo(root["Segments"], level);
-                ReadSideInfo(root["Sides"], level);
-                ReadWallInfo(root["Walls"], level);
-                ReadValue(root["CameraPosition"], level.CameraPosition);
-                ReadValue(root["CameraTarget"], level.CameraTarget);
-                ReadValue(root["CameraUp"], level.CameraUp);
+    List<Color> ParseSegmentLighting(const string& line) {
+        List<string> tokens;
+
+        {
+            bool inColorToken = false;
+            string token;
+
+            for (auto& c : line) {
+                if (c == '[') {
+                    inColorToken = true;
+                    token = "";
+                }
+                else if (inColorToken) {
+                    if (c == ']') {
+                        inColorToken = false;
+                        tokens.push_back(token);
+                    }
+                    else {
+                        token += c;
+                    }
+                }
+                else {
+                    // not in a token
+                    if (c == '0') {
+                        tokens.push_back(""); // empty element
+                        tokens.push_back(""); // empty element
+                        tokens.push_back(""); // empty element
+                        tokens.push_back(""); // empty element
+                    }
+                    // do nothing with whitespace
+                }
             }
         }
-        catch (const std::exception& e) {
-            SPDLOG_ERROR("Error loading level metadata:\n{}", e.what());
+
+        ASSERT(tokens.size() == SEGMENT_LIGHT_VALUES);
+
+        List<Color> colors;
+        for (auto& token : tokens) {
+            if (token.empty()) {
+                colors.push_back({});
+                continue;
+            }
+
+            auto channels = Inferno::String::Split(token, ',', true);
+
+            float rgb[3]{};
+            for (int i = 0; i < channels.size(); i++)
+                ParseFloat(channels[i], rgb[i]);
+
+            colors.push_back({ rgb[0], rgb[1], rgb[2] });
+        }
+
+        ASSERT(colors.size() == SEGMENT_LIGHT_VALUES);
+        return colors;
+    }
+
+    void ReadLevelLighting(ryml::NodeRef node, Level& level) {
+        if (!node.valid() || node.is_seed()) return;
+
+        int segid = 0;
+        for (const auto& child : node.children()) {
+            string line;
+            child >> line;
+
+            auto colors = ParseSegmentLighting(line);
+
+            if (colors.size() != SEGMENT_LIGHT_VALUES) {
+                SPDLOG_WARN("Unexpected number of color light elements, skipping seg {}", segid);
+                continue;
+            }
+
+            auto& seg = level.Segments[segid];
+            seg.VolumeLight = colors[0];
+            for (int i = 0; i < 6; i++) {
+                for (auto j = 0; j < 4; j++) {
+                    seg.Sides[i].Light[j] = colors[1 + 4 * i + j];
+                }
+            }
+
+            segid++;
+            if (segid >= level.Segments.size())
+                break;
+        }
+
+        SPDLOG_INFO("Loaded color lighting for {} segments", segid - 1);
+    }
+
+    void SaveLevelLighting(ryml::NodeRef node, const Level& level) {
+        // Array of colors. First value is volume light. Followed by six x4 vertex light colors.
+        // 0 skips the side
+        // [1, 1, 1], 0, [3, 0, 1], [0.11, 0.22, 0.33], ...
+
+        node |= ryml::SEQ;
+
+        auto encodeColor = [](const Color& color) {
+            return fmt::format("[{:.3g},{:.3g},{:.3g}]", color.x, color.y, color.z);
+        };
+
+        for (auto& seg : level.Segments) {
+            string line = encodeColor(seg.VolumeLight);
+            line.reserve(256);
+
+            for (auto& sideid : SideIDs) {
+                auto& side = seg.GetSide(sideid);
+
+                if (seg.SideHasConnection(sideid) && side.Wall == WallID::None) {
+                    // Write 0 for open side with no wall
+                    line += ",0";
+                }
+                else {
+                    for (auto& light : side.Light) {
+                        line += "," + encodeColor(light);
+                    }
+                }
+            }
+
+            node.append_child() << line;
         }
     }
 
@@ -203,10 +306,35 @@ namespace Inferno {
                 doc["CameraUp"] << EncodeVector(level.CameraUp);
             }
 
+            SaveLevelLighting(doc["LevelLighting"], level);
+
             stream << doc;
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error saving level metadata:\n{}", e.what());
         }
     }
+
+    void LoadLevelMetadata(Level& level, const string& data) {
+        try {
+            SPDLOG_INFO("Loading level metadata");
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
+            ryml::NodeRef root = doc.rootref();
+
+            if (root.is_map()) {
+                Settings::Editor.Lighting = LoadLightSettings(root["Lighting"]);
+                ReadSegmentInfo(root["Segments"], level);
+                ReadSideInfo(root["Sides"], level);
+                ReadWallInfo(root["Walls"], level);
+                ReadValue(root["CameraPosition"], level.CameraPosition);
+                ReadValue(root["CameraTarget"], level.CameraTarget);
+                ReadValue(root["CameraUp"], level.CameraUp);
+                ReadLevelLighting(root["LevelLighting"], level);
+            }
+        }
+        catch (const std::exception& e) {
+            SPDLOG_ERROR("Error loading level metadata:\n{}", e.what());
+        }
+    }
+
 }

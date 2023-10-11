@@ -875,7 +875,35 @@ namespace Inferno::Editor {
         }
     }
 
+    void OnMarkLightColor() {
+        auto& level = Game::Level;
+        auto srcSide = level.TryGetSide(Editor::Selection.Tag());
+        if (!srcSide) return;
+
+        auto srcColor = GetLightColor(*srcSide, true);
+        Editor::Marked.Faces.clear();
+
+        for (int id = 0; id < level.Segments.size(); id++) {
+            for (auto& sid : SideIDs) {
+                auto& side = level.Segments[id].GetSide(sid);
+                auto color = GetLightColor(side, true);
+
+                if(color == srcColor)
+                    Editor::Marked.Faces.insert({ (SegID)id, sid });
+            }
+        }
+    }
+
     namespace Commands {
+        Command MarkLightColor{
+            .Action = [] {
+                Editor::History.SnapshotSelection();
+                OnMarkLightColor();
+                Editor::History.SnapshotSelection();
+            },
+            .Name = "Mark Light Color"
+        };
+
         Command ToggleMarked{
             .Action = [] {
                 Marked.ToggleMark();

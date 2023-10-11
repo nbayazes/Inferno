@@ -250,41 +250,41 @@ namespace Inferno::Graphics {
                 }
             }
 
-            if (lavaSide != SideID::None && lavaId != LevelTexID::None && sideCount > 0) {
-                // Lava in this seg, add point lights
-                center /= (float)sideCount;
+            //if (lavaSide != SideID::None && lavaId != LevelTexID::None && sideCount > 0) {
+            //    // Lava in this seg, add point lights
+            //    center /= (float)sideCount;
 
-                auto mat = TryGetValue(Resources::LightInfoTable, lavaId);
-                auto color = mat ? mat->Color : Color(1.0f, 0.0f, 0.0f);
+            //    auto mat = TryGetValue(Resources::LightInfoTable, lavaId);
+            //    auto color = mat ? mat->Color : Color(1.0f, 0.0f, 0.0f);
 
-                auto face = Face2::FromSide(level, seg, lavaSide);
-                auto iLongest = face.GetLongestEdge();
-                auto longestVec = face[iLongest + 1] - face[iLongest];
-                auto maxLen = longestVec.Length();
-                auto iShortest = face.GetShortestEdge();
-                auto shortestLen = (face[iShortest + 1] - face[iShortest]).Length();
-                auto ratio = longestVec.Length() / std::max(0.1f, shortestLen);
+            //    auto face = Face2::FromSide(level, seg, lavaSide);
+            //    auto iLongest = face.GetLongestEdge();
+            //    auto longestVec = face[iLongest + 1] - face[iLongest];
+            //    auto maxLen = longestVec.Length();
+            //    auto iShortest = face.GetShortestEdge();
+            //    auto shortestLen = (face[iShortest + 1] - face[iShortest]).Length();
+            //    auto ratio = longestVec.Length() / std::max(0.1f, shortestLen);
 
-                auto addLavaPoint = [&sources, &color](const Vector3& p, float radius) {
-                    LightData light{};
-                    light.color = color;
-                    light.radiusSq = radius * radius * 2.0f;
-                    light.type = LightType::Point;
-                    light.pos = p;
-                    sources.push_back(light);
-                };
+            //    auto addLavaPoint = [&sources, &color](const Vector3& p, float radius) {
+            //        LightData light{};
+            //        light.color = color;
+            //        light.radiusSq = radius * radius * 2.0f;
+            //        light.type = LightType::Point;
+            //        light.pos = p;
+            //        sources.push_back(light);
+            //    };
 
-                maxLen = std::clamp(maxLen, 0.0f, 60.0f); // clamp for perf reasons
+            //    maxLen = std::clamp(maxLen, 0.0f, 60.0f); // clamp for perf reasons
 
-                constexpr float SPLIT_RATIO = 2.5f;
-                if (ratio > SPLIT_RATIO && maxLen > 45) {
-                    addLavaPoint(center + longestVec / 4, maxLen * 0.5f);
-                    addLavaPoint(center - longestVec / 4, maxLen * 0.5f);
-                }
-                else {
-                    addLavaPoint(center, maxLen * 1.25f);
-                }
-            }
+            //    constexpr float SPLIT_RATIO = 2.5f;
+            //    if (ratio > SPLIT_RATIO && maxLen > 45) {
+            //        addLavaPoint(center + longestVec / 4, maxLen * 0.5f);
+            //        addLavaPoint(center - longestVec / 4, maxLen * 0.5f);
+            //    }
+            //    else {
+            //        addLavaPoint(center, maxLen * 1.25f);
+            //    }
+            //}
         }
 
         for (auto& sideId : SideIDs) {

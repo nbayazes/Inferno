@@ -552,9 +552,9 @@ Materials:
     Roughness: 0.6
   - TexID: 875
     NormalStrength: 0.35
-    SpecularStrength: 5
+    SpecularStrength: 15
     Metalness: 1
-    Roughness: 0.6
+    Roughness: 0.8
   - TexID: 876
     NormalStrength: 0.35
     SpecularStrength: 5

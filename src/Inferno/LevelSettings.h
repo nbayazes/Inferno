@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Types.h"
-#include "Settings.h"
 #include "Level.h"
 
 namespace Inferno {
