@@ -234,6 +234,27 @@ namespace Inferno::Editor {
         Events::LevelChanged();
     }
 
+    void RemoveDeadObjects(Level& level) {
+        for (int i = 0; i < level.Objects.size(); i++) {
+            if (!level.Objects[i].IsAlive()) {
+                if (auto seg = level.TryGetSegment(level.Objects[i].Segment)) {
+                    // Remove dead object from its segment
+                    seg->RemoveObject(ObjID(i));
+                }
+
+                if (auto seg = level.TryGetSegment(level.Objects.back().Segment)) {
+                    // Reinsert live object with new ID
+                    seg->RemoveObject(ObjID(level.Objects.size() - 1));
+                    seg->AddObject(ObjID(i));
+                }
+
+                SPDLOG_WARN("Replacing dead object {} with {}", i, level.Objects.size() - 1);
+                std::swap(level.Objects[i], level.Objects.back());
+                level.Objects.pop_back();
+            }
+        }
+    }
+
     void FixLevel(Level& level) {
         //FixSegmentConnections(level);
         FixObjects(level);
@@ -241,6 +262,7 @@ namespace Inferno::Editor {
         FixTriggers(level);
         SetPlayerStartIDs(level);
         FixMatcens(level);
+        RemoveDeadObjects(level);
 
         if (!level.SegmentExists(level.SecretExitReturn))
             level.SecretExitReturn = SegID(0);
