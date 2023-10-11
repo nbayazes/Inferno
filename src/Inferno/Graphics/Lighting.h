@@ -118,58 +118,6 @@ namespace Inferno::Graphics {
 
         void SetLights(ID3D12GraphicsCommandList* cmdList, span<LightData> lights);
 
-        Matrix GetProjMatrixTest(float yFov, float aspect, float nearClip, float farClip) {
-            //float    SinFov;
-            //float    CosFov;
-            //DirectX::XMScalarSinCos(&SinFov, &CosFov, 0.5f * yFov);
-
-            //float Height = CosFov / SinFov;
-            //float Width = Height / aspect;
-            //float fRange = farClip / (farClip - nearClip);
-
-            //=====
-            float Y = 1.0f / std::tanf(yFov * 0.5f);
-            float X = Y * aspect;
-            float Q1 = farClip / (nearClip - farClip);
-            float Q2 = Q1 * nearClip;
-
-            return Matrix{
-                Vector4(X, 0.0f, 0.0f, 0.0f),
-                Vector4(0.0f, Y, 0.0f, 0.0f),
-                Vector4(0.0f, 0.0f, Q1, -1.0f),
-                Vector4(0.0f, 0.0f, Q2, 0.0f)
-            };
-        }
-
-        Matrix SetLookDirection(Vector3 forward, Vector3 up) {
-            //auto invSqrt = [](auto x) { return 1 / std::sqrt(x); };
-
-            forward.Normalize();
-
-            // Given, but ensure normalization
-            /*auto forwardLenSq = forward.LengthSquared();
-            InvSqrt();
-            forward = Select(forward * invSqrt(forwardLenSq), -Vector3(kZUnitVector), forwardLenSq < 0.000001f);*/
-
-            // Deduce a valid, orthogonal right vector
-            Vector3 right = forward.Cross(up);
-            right.Normalize();
-
-            //auto rightLenSq = right.LengthSquared();
-            //right = Select(right * invSqrt(rightLenSq), Quaternion(Vector3(kYUnitVector), -XM_PIDIV2) * forward, rightLenSq < Scalar(0.000001f));
-
-            // Compute actual up vector
-            up = right.Cross(forward);
-
-            // Finish constructing basis
-            Matrix basis(right, up, -forward);
-            auto q = Quaternion::CreateFromRotationMatrix(basis);
-            Quaternion q2;
-            q.Conjugate(q2);
-            return Matrix::CreateFromQuaternion(q2);
-            //m_CameraToWorld.SetRotation(Quaternion(m_Basis));
-        }
-
         void Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth);
     };
 

@@ -12,6 +12,7 @@
 #include "Game.Segment.h"
 #include "WindowsDialogs.h"
 #include "unordered_dense.h"
+#include "logging.h"
 
 namespace Inferno::Editor {
     constexpr float PLANE_TOLERANCE = -0.01f;

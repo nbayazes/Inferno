@@ -59,6 +59,7 @@ namespace Inferno::Render {
 
     EffectID AddEffect(Ptr<EffectBase> e) {
         ASSERT(e->Segment > SegID::None);
+        e->UpdatePositionFromParent();
         e->OnInit();
         auto& seg = Game::Level.GetSegment(e->Segment);
         auto newId = EffectID::None;
@@ -1206,17 +1207,8 @@ namespace Inferno::Render {
         PrevPosition = Position;
 
         if (Parent) {
-            auto parent = Game::Level.TryGetObject(Parent);
-            if (parent && parent->IsAlive() && !HasFlag(parent->Flags, ObjectFlag::Destroyed)) {
-                auto pos = parent->GetPosition(Game::LerpAmount);
-                if (ParentSubmodel) {
-                    auto offset = GetSubmodelOffset(*parent, ParentSubmodel);
-                    pos += Vector3::Transform(offset, parent->GetRotation(Game::LerpAmount));
-                }
-
-                Position = pos;
-            }
-            else {
+            if (!UpdatePositionFromParent()) {
+                // Had a parent but it was destroyed
                 if (FadeTime > 0) {
                     // Detach from parent and fade out
                     Duration = FadeTime;
@@ -1235,6 +1227,21 @@ namespace Inferno::Render {
 
     void EffectBase::FixedUpdate(float dt, EffectID id) {
         OnFixedUpdate(dt, id);
+    }
+
+    bool EffectBase::UpdatePositionFromParent() {
+        auto parent = Game::Level.TryGetObject(Parent);
+        if (!parent || !parent->IsAlive() || HasFlag(parent->Flags, ObjectFlag::Destroyed))
+            return false;
+
+        auto pos = parent->GetPosition(Game::LerpAmount);
+        if (ParentSubmodel) {
+            auto offset = GetSubmodelOffset(*parent, ParentSubmodel);
+            pos += Vector3::Transform(offset, parent->GetRotation(Game::LerpAmount));
+        }
+
+        Position = pos;
+        return true;
     }
 
     void DynamicLight::OnUpdate(float /*dt*/, EffectID id) {

@@ -493,6 +493,7 @@ namespace Inferno {
 
     // Attaches a light to an object based on its settings
     void Game::AttachLight(const Object& obj, ObjRef ref) {
+        if (!obj.IsAlive()) return;
         Render::DynamicLight light;
 
         switch (obj.Type) {

@@ -38,6 +38,8 @@ namespace Inferno::Render {
         // Called per game tick
         void FixedUpdate(float dt, EffectID);
 
+        bool UpdatePositionFromParent();
+
         virtual void OnUpdate(float /*dt*/, EffectID) {}
         virtual void OnFixedUpdate(float /*dt*/, EffectID) {}
 
