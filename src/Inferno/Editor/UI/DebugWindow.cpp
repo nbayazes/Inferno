@@ -29,6 +29,7 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
         ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
+        ImGui::Checkbox("Outline teleport segs", &Settings::Editor.OutlineTeleportSegments);
 
         if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
             EnableProceduralTextures(Settings::Graphics.EnableProcedurals);

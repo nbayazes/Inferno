@@ -106,7 +106,8 @@ namespace Inferno::Editor {
 
         ImGui::Text("Time: %.3f s", (float)Metrics::LightCalculationTime / 1000000.0f);
         ImGui::Text("Rays cast: %s", std::to_string(Metrics::RaysCast).c_str());
-        ImGui::Text("Rays discarded: %s", std::to_string(Metrics::RayHits).c_str());
+        auto pct = Metrics::RaysCast ? (float)Metrics::RayHits / (float)Metrics::RaysCast : 0;
+        ImGui::Text("Rays discarded: %s (%.2f%%)", std::to_string(Metrics::RayHits).c_str(), pct);
         ImGui::Text("Cache hits: %s", std::to_string(Metrics::CacheHits).c_str());
 
         ToggleLight();

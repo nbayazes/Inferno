@@ -138,11 +138,6 @@ namespace Inferno::Editor {
         uint64 CacheHits = 0;
         int Id = 0;
 
-        LightContext() {
-            HitTests.reserve(100'000);
-            RayCasts.reserve(50);
-        }
-
         // Initial lighting pass from direct light sources
         void EmitDirectLight(Level& level);
     };
@@ -931,13 +926,19 @@ namespace Inferno::Editor {
                 auto len = src.size() / 2;
                 std::move(src.begin() + len, src.end(), std::back_inserter(dst));
                 src.resize(src.size() - dst.size());
+
                 //assert(originalLen == src.size() + dst.size());
             }
 
             // If single threaded, preallocate a single large buffer
-            if (availThreads == 1) {
-                threads[0].HitTests.reserve(1'000'000);
-                threads[0].RayCasts.reserve(1000);
+            //if (availThreads == 1) {
+            //    threads[0].HitTests.reserve(1'000'000);
+            //    threads[0].RayCasts.reserve(1000);
+            //}
+
+            for (auto& thread : threads) {
+                thread.HitTests.reserve(1000 * thread.Lights.size());
+                thread.RayCasts.reserve(20 * thread.Lights.size());
             }
 
             // Dispatch worker threads
