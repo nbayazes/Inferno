@@ -24,7 +24,7 @@
 struct Arguments {
     uint ViewportWidth, ViewportHeight;
     float InvTileDim; // 1 / LIGHT_GRID_DIM = 1 / 16
-    float RcpZMagic;
+    float RcpZMagic; // near / (far - near)
     uint TileCountX;
     float4x4 ViewMatrix;
     float4x4 InverseProjection;
@@ -61,7 +61,7 @@ groupshared uint rectLightIndices[MAX_LIGHTS];
 
 struct Plane {
     float3 N; // Plane normal.
-    float d;  // Distance to origin.
+    float d; // Distance to origin.
 };
 
 struct Frustum {
@@ -95,8 +95,7 @@ Plane ComputePlane(float3 p0, float3 p1, float3 p2) {
 }
 
 float PlaneDist(Plane plane, float3 pos) {
-    float dist = dot(plane.N, pos) - plane.d;
-    return dist;
+    return dot(plane.N, pos) - plane.d;
 }
 
 bool SphereBehindPlane(float3 pos, float radius, Plane plane) {
@@ -160,7 +159,7 @@ void main(uint2 group : SV_GroupID,
     // View space eye position is always at the origin.
     const float3 eyePos = float3(0, 0, 0);
 
-    Plane planes[4];                                              // planes are in view space
+    Plane planes[4]; // planes are in view space
     planes[0] = ComputePlane(eyePos, viewSpace[2], viewSpace[0]); // Left plane
     planes[1] = ComputePlane(eyePos, viewSpace[1], viewSpace[3]); // Right plane
     planes[2] = ComputePlane(eyePos, viewSpace[0], viewSpace[1]); // Top plane
@@ -168,11 +167,9 @@ void main(uint2 group : SV_GroupID,
 
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
-
     float zFar = tileMaxDepth / Args.RcpZMagic;
     float zNear = tileMinDepth / Args.RcpZMagic;
     zNear = max(zNear, FLT_MIN); // don't allow a zNear of 0
-
     uint tileIndex = GetTileIndex(group.xy, Args.TileCountX);
     uint tileOffset = GetTileOffset(tileIndex);
 
@@ -181,38 +178,30 @@ void main(uint2 group : SV_GroupID,
         LightData lightData = Lights[lightIndex];
         //float3 lightWorldPos = lightData.pos;
         //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
-        float lightRadius = sqrt(lightData.radiusSq);
+        float lightRadius = lightData.radius;
         bool inside = true;
 
-        // project light from world to view space
+        // project light from world to view space (depth is zNear to zFar)
         float3 lightPos = mul(Args.ViewMatrix, float4(lightData.pos, 1)).xyz;
 
-        if (lightData.type == 2 && lightData.radiusSq > 0) {
-            float len = sqrt(dot(lightData.right, lightData.right) + dot(lightData.up, lightData.up));
-            //float len = max(length(lightData.right), length(lightData.up));
-            lightRadius += len; // extend radius by rectangle area
+        if (lightData.radius > 0 && lightData.type == 2) {
+            // extend radius by largest width
+            lightRadius += max(length(lightData.right), length(lightData.up));
         }
 
-        if (lightData.radiusSq > 0) {
-            // scale light radius larger as it becomes more distant due to bug in clipping?
-            // Otherwise distant lights cull incorrectly
-            lightRadius *= (1 + saturate(lightPos.z / zFar));
-        }
-
-        // cull the light if is behind the camera (negative z is behind)
+        // cull the light if is behind the camera (negative z is behind) or too far
         if (lightPos.z + lightRadius < zNear || lightPos.z - lightRadius > zFar) {
             inside = false;
         }
 
         for (int i = 0; i < 4; i++) {
-            Plane plane = planes[i];
-            float dist = PlaneDist(plane, lightPos); // positive value is inside
-            if (dist < -lightRadius - 1) {
+            Plane plane = planes[i]; // planes are in view space
+            float dist = dot(plane.N, lightPos) + plane.d; // distance from plane
+            if (dist > lightRadius)
                 inside = false;
-            }
         }
 
-        if (!inside || lightData.radiusSq <= 0)
+        if (!inside || lightData.radius <= 0)
             continue;
 
         uint slot;
