@@ -6,6 +6,7 @@
 #include "Editor.Segment.h"
 #include "Editor.Wall.h"
 #include "Face.h"
+#include "Logging.h"
 
 namespace Inferno::Editor {
     struct SideClipboardData {
@@ -41,8 +42,8 @@ namespace Inferno::Editor {
         Dictionary<SegID, SegID> segIdMapping; // to map the original IDs to 0 based ids
 
         for (auto& id : segments) {
-            if (auto seg = level.TryGetSegment(id)) {
-                auto& segCopy = *seg;
+            if (const auto seg = level.TryGetSegment(id)) {
+                Segment segCopy = *seg;
                 insertVertices(segCopy);
                 segIdMapping[id] = (SegID)copy.Segments.size();
 
