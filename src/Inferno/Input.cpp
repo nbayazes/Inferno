@@ -72,7 +72,12 @@ namespace Inferno::Input {
                 WindowCenter = Vector2{ (float)center.x, (float)center.y };
             }
 
-            ShowCursor(ActualMouseMode == MouseMode::Normal);
+            static bool isHidden = false;
+            auto shouldHide = ActualMouseMode != MouseMode::Normal;
+            if (isHidden != shouldHide) {
+                ShowCursor(!shouldHide);
+                isHidden = shouldHide;
+            }
         }
 
         auto keyboardState = _keyboard.GetState();
