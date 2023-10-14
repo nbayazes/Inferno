@@ -4,7 +4,7 @@
 namespace Inferno {
     enum class BlendMode { Opaque, Alpha, StraightAlpha, Additive, Multiply };
     enum class CullMode { None, CounterClockwise, Clockwise };
-    enum class DepthMode { ReadWrite, Read, ReadDecalBiased, ReadSpriteBiased, None };
+    enum class DepthMode { ReadWrite, Read, ReadDecalBiased, ReadSpriteBiased, ReadEqual, None };
 
     struct EffectSettings {
         BlendMode Blend = BlendMode::Opaque;

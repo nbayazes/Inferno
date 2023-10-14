@@ -200,7 +200,7 @@ namespace Inferno::Graphics {
 
             LightData light{};
             light.color = color;
-            light.radiusSq = len * len * 4;
+            light.radius = len * 4;
             light.type = LightType::Point;
             light.pos = seg.Center;
             sources.push_back(light);
@@ -319,7 +319,9 @@ namespace Inferno::Graphics {
 
             if (!info) info = &defaultInfo;
             auto color = GetLightColor(side, true);
-            auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
+            // todo: need a separate property for dynamic light radius for perf reasons
+            //auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
+            auto radius = info->Radius;
 
             if (!CheckMinLight(color)) continue;
 
@@ -363,7 +365,7 @@ namespace Inferno::Graphics {
                     for (Vector2 lt : info->Points) {
                         LightData light{};
                         light.color = color * multiplier;
-                        light.radiusSq = radius * radius;
+                        light.radius = radius;
                         light.normal = side.AverageNormal;
                         light.type = info->Type;
 

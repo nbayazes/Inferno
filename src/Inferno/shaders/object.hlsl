@@ -106,7 +106,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
 
     float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
-    float3 emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).rrr;
+    float emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).r;
     float3 lighting = float3(0, 0, 0);
 
     float3 phaseColor = 0;
@@ -123,7 +123,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
         //lighting += Ambient + pow(emissive * mult, 4);
         lighting += Object.Ambient.rgb;
-        lighting += diffuse.rgb * emissive * 4;
         lighting *= Specular(lightDir, viewDir, input.normal);
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
@@ -151,6 +150,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived * 1.5;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
+            lighting += emissive * diffuse.rgb * material.EmissiveStrength * Object.Ambient.rgb;
             lighting += Object.Ambient.rgb * diffuse.rgb * material.LightReceived;
         }
 

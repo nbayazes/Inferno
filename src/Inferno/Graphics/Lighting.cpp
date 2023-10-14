@@ -92,7 +92,7 @@ namespace Inferno::Graphics {
 
     void ResetBuffer(Array<LightData, MAX_LIGHTS>& buffer) {
         for (int i = 0; i < buffer.size(); i++) {
-            buffer[i].radiusSq = 0;
+            buffer[i].radius = 0;
         }
     }
 

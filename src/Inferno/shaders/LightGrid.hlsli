@@ -18,7 +18,7 @@
 
 struct LightData {
     float3 pos;
-    float radiusSq;
+    float radius;
 
     float4 color; // color and intensity
 

@@ -276,9 +276,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         // AA sampling causes artifacts on sharp highlights. Use plain point sampling instead.
         //float3 overlayNormal = clamp(SampleData2D(Normal2, input.uv2, Sampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
-        float3 overlayNormal = SampleNormal(Normal2, input.uv2, NormalSampler);
         //float3 overlayNormal = SampleNormal(GetTexture(input.Tex2, MAT_NORM), input.uv2, NormalSampler);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
+        float3 overlayNormal = SampleNormal(Normal2, input.uv2, NormalSampler);
         overlayNormal.xy *= mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
 
@@ -299,7 +299,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     }
 
     if (emissive > 0 && mat1.LightReceived == 0) 
-        emissive = emissive  + 1; // make lava and forcefields full bright
+        emissive = emissive + 1; // make lava and forcefields full bright
 
     // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
     if (diffuse.a <= 0)
@@ -334,6 +334,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //colorSum *= flatness;
         lighting += colorSum * material.LightReceived;
         lighting += emissive * diffuse.rgb;
+        lighting += emissive * diffuse.rgb * vertexLighting * material.LightReceived;
         lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
 
         //lighting.rgb += vertexLighting * 1.0;

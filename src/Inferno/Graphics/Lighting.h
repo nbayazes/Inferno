@@ -21,7 +21,7 @@ namespace Inferno::Graphics {
     // must keep in sync with HLSL
     struct LightData {
         Vector3 pos;
-        float radiusSq;
+        float radius;
 
         Color color;
 

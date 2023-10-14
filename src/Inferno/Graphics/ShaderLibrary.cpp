@@ -99,7 +99,7 @@ namespace Inferno {
                 case DepthMode::None: return CommonStates::DepthNone;
                 case DepthMode::ReadWrite: return CommonStates::DepthDefault;
                 case DepthMode::Read: default: return CommonStates::DepthRead;
-                //case DepthMode::ReadEqual: return DepthEqual;
+                case DepthMode::ReadEqual: return DEPTH_EQUAL;
             }
         }();
         

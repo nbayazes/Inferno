@@ -1275,7 +1275,7 @@ namespace Inferno::Render {
         }
 
         Graphics::LightData light{};
-        light.radiusSq = lightRadius * lightRadius;
+        light.radius = lightRadius;
         light.color = lightColor;
         light.type = LightType::Point;
         light.pos = Position;
