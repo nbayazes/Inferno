@@ -11,7 +11,7 @@
 // Author(s):	Alex Nankervis
 //
 
-#include "LightGrid.hlsli"
+#include "Lighting.hlsli"
 
 #define RS \
     "RootFlags(0), " \
@@ -102,6 +102,13 @@ bool SphereBehindPlane(float3 pos, float radius, Plane plane) {
     return dot(plane.N, pos) - plane.d < -radius;
 }
 
+//float3 ClosestPointOnLine(float3 a, float3 b, float3 p) {
+//    float3 ab = b - a;
+//    float t = dot(p -a, ab) / dot(ab, ab);
+//    t = saturate(t);
+//    return a + t * ab;
+//}
+
 [RootSignature(RS)]
 [numthreads(BLOCK_SIZE, BLOCK_SIZE, 1)]
 void main(uint2 group : SV_GroupID,
@@ -165,6 +172,8 @@ void main(uint2 group : SV_GroupID,
     planes[2] = ComputePlane(eyePos, viewSpace[0], viewSpace[1]); // Top plane
     planes[3] = ComputePlane(eyePos, viewSpace[3], viewSpace[2]); // Bottom plane
 
+    float3 frustumCenter = (viewSpace[0] + viewSpace[1] + viewSpace[2] + viewSpace[3]) / 4;
+
     float tileMinDepth = asfloat(minDepthUInt);
     float tileMaxDepth = asfloat(maxDepthUInt);
     float zFar = tileMaxDepth / Args.RcpZMagic;
@@ -173,20 +182,51 @@ void main(uint2 group : SV_GroupID,
     uint tileIndex = GetTileIndex(group.xy, Args.TileCountX);
     uint tileOffset = GetTileOffset(tileIndex);
 
+    float3 eyeDir = normalize(frustumCenter - eyePos);
+
     // find set of lights that overlap this tile
     for (uint lightIndex = groupIndex; lightIndex < MAX_LIGHTS; lightIndex += BLOCK_SIZE * BLOCK_SIZE) {
-        LightData lightData = Lights[lightIndex];
-        //float3 lightWorldPos = lightData.pos;
-        //lightWorldPos = float3(0, 0, 0); // makes all pass the plane check
-        float lightRadius = lightData.radius;
+        LightData light = Lights[lightIndex];
+        float lightRadius = light.radius;
+        //lightRadius = length(light.up);
         bool inside = true;
 
         // project light from world to view space (depth is zNear to zFar)
-        float3 lightPos = mul(Args.ViewMatrix, float4(lightData.pos, 1)).xyz;
+        float3 lightPos = mul(Args.ViewMatrix, float4(light.pos, 1)).xyz;
 
-        if (lightData.radius > 0 && lightData.type == 2) {
-            // extend radius by largest width
-            lightRadius += max(length(lightData.right), length(lightData.up));
+
+        if (light.radius > 0 && light.type == 2) {
+#if false
+            // solve the light vectors in view space
+            float3 right = mul(Args.ViewMatrix, float4(light.right, 0)).xyz;
+            float3 up = mul(Args.ViewMatrix, float4(light.up, 0)).xyz;
+            float3 rvec = normalize(right);
+            float3 uvec = normalize(up);
+
+            float3 normal = cross(up, right);
+            normal = normalize(normal);
+
+            //if (dot(normal, eyeDir) < 0.25)
+            //{
+            //    // fall back to light radius if light plane is too oblique
+            //    lightRadius += max(length(light.right), length(light.up));
+            //}
+            //else
+            //{
+
+            // find where the cluster centerline intersects the light plane
+            float3 closestFrustumPoint = RayPlaneIntersect(eyePos, eyeDir, lightPos, normal);
+            //lightPos = eyePos;
+            //lightPos = ClosestPointInRectangle(closestFrustumPoint, lightPos, normal, right + rvec * light.radius, up + uvec * light.radius);
+            //lightPos = closestFrustumPoint;
+            //lightPos = ClosestPointOnRectangleEdge(closestFrustumPoint, lightPos, float3(0, 0, 0), right, up);
+                //lightRadius *= 1.5f; // fudge the radius
+            //}
+            //lightRadius += min(length(light.right), length(light.up)) * 4;
+#else
+            // extend radius by largest width for rectangular lights
+            lightRadius += max(length(light.right), length(light.up));
+#endif
         }
 
         // cull the light if is behind the camera (negative z is behind) or too far
@@ -201,12 +241,12 @@ void main(uint2 group : SV_GroupID,
                 inside = false;
         }
 
-        if (!inside || lightData.radius <= 0)
+        if (!inside || light.radius <= 0)
             continue;
 
         uint slot;
 
-        switch (lightData.type) {
+        switch (light.type) {
             case 0: // point
                 InterlockedAdd(pointLightCount, 1, slot);
                 pointLightIndices[slot] = lightIndex;

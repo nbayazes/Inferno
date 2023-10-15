@@ -2,6 +2,8 @@
 
 static const float SMOL_EPS = .000002;
 static const float PI = 3.14159265f;
+static const float GLOBAL_LIGHT_MULT = 50;
+static const float FRESNEL_MULT = 50;
 
 struct MaterialInfo {
     float NormalStrength;
@@ -142,16 +144,16 @@ void CutoffLightValue(float lightRadius, float dist, float cutoff, inout float v
         value = saturate(lerp(value, 0, (dist - specCutoff) / (lightRadius - specCutoff)));
 }
 
-static const float GLOBAL_LIGHT_MULT = 50;
-static const float FRESNEL_MULT = 50;
-
 float Attenuate(float lightDistSq, float lightRadius) {
     // https://google.github.io/filament/Filament.md.html#lighting/directlighting/punctuallights
     float factor = lightDistSq / (lightRadius * lightRadius); // 0 to 1
-    float smoothFactor = max(1 - pow(factor, 0.5), 0);                            // 0 to 1
-    float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4); // was lightDistSq no sqrt
+    //float smoothFactor = max(1 - factor, 0); // 0 to 1, original
+    //float falloff = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4); // original
+    float smoothFactor = max(1 - pow(factor, 0.5), 0); // 0 to 1
+    float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4);
     //float falloff = (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
-    return clamp(falloff * GLOBAL_LIGHT_MULT, 0, 20); // clamp nearby surface distance to prevent hotspots
+    return falloff;
+    //return clamp(falloff * GLOBAL_LIGHT_MULT, 0, 10); // clamp nearby surface distance to prevent hotspots
 }
 
 float3 ApplyPointLight(
@@ -182,9 +184,13 @@ float3 ApplyPointLight(
     float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
     //specularFactor *= SpecularMultFromRoughness(roughness);
     specularFactor *= 1 + pow(1 - saturate(dot(lightDir, halfVec)), 5) * FRESNEL_MULT; // fresnel
+    //specularFactor = clamp(specularFactor, 0, MAX_SPEC_MULT);
+    //float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
+    //specularFactor = lerp(specularFactor, 1, fresnel);
+
     //float3 specular = specularColor * specularFactor * nDotL * falloff;
-    float3 specular = max(0, specularFactor * nDotL * specularColor * falloff);
-    return falloff * nDotL * lightColor * diffuse + specular;
+    float3 specular = max(0, specularFactor * specularColor);
+    return nDotL * falloff * (lightColor * diffuse + specular) * GLOBAL_LIGHT_MULT;
 }
 
 
@@ -397,7 +403,7 @@ float rectSolidAngle(float3 v0, float3 v1, float3 v2, float3 v3) {
     return g0 + g1 + g2 + g3 - 2.0 * PI;
 }
 
-float3 rayPlaneIntersect(float3 rayPos, float3 rayDir, float3 planeCenter, float3 planeNormal) {
+float3 RayPlaneIntersect(float3 rayPos, float3 rayDir, float3 planeCenter, float3 planeNormal) {
     return rayPos + rayDir * (dot(planeNormal, planeCenter - rayPos) / dot(planeNormal, rayDir));
 }
 
@@ -428,7 +434,32 @@ float3 LengthSq(float3 v) {
 }
 
 
-float3 ClosestPointOnRectangle(float3 pt, float3 origin, float3 normal, float3 right, float3 up) {
+float3 ClosestPointInRectangle(float3 pt, float3 origin, float3 normal, float3 right, float3 up) {
+    float3 v0 = origin + right + up;
+    float3 v1 = origin - right + up;
+    float3 v2 = origin - right - up;
+    float3 v3 = origin + right - up;
+
+    float3 pointOnPlane = pt - dot(pt - origin, normal);
+
+    float3 ab = v1 - v0;
+    float3 ad = v3 - v0;
+    float3 am = pointOnPlane - v0;
+    float amDotAb = dot(am, ab);
+    float amDotAd = dot(am, ad);
+    
+    if (amDotAb < dot(ab, ab) &&
+        amDotAd < dot(ad, ad))
+        return pointOnPlane;
+    
+    if (0 < amDotAb && amDotAb < dot(ab, ab) &&
+        0 < amDotAd && amDotAd < dot(ad, ad))
+        return pointOnPlane;
+
+    return v0;
+}
+
+float3 ClosestPointOnRectangleEdge(float3 pt, float3 origin, float3 normal, float3 right, float3 up) {
     //normal = float3(-1, 0, 0);
     //right = float3(0, 0, -1);
     //up = float3(0, 20, 0);
@@ -496,7 +527,7 @@ float3 ApplyRectLight2(
 ) {
     // https://alextardif.com/arealights.html
     // https://www.shadertoy.com/view/3dsBD4
-    specularColor *= 0.2; // tweak to match point lights
+    specularColor *= 0.15; // tweak to match point lights
 
     //lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
 
@@ -547,31 +578,37 @@ float3 ApplyRectLight2(
         float nDotH = saturate(dot(-h, normal));
         float gloss = RoughnessToGloss(roughness);
 
-        float specFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-        // fade out the specularity as it gets further from the reflected plane
+        float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
         //float planeDist = length(nearestReflectedPoint - reflectedPlanePoint);
         //float planeDist = dot(planeNormal, nearestReflectedPoint - reflectedPlanePoint);
         //plane dist = dot(planeNormal, lightPos) + plane.d
 
         //planeDist = min(planeDist, 0);
         //float planeFactor = 1.0 - planeDist * (1 - roughness) * (1 - roughness);
-        float planeFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * pow(1 - roughness, 2.2));
-        specFactor *= planeFactor;
 
         //float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
         //float3 lightDir = normalize(lightPos - worldPos);
 
         //float3 halfVec = normalize(lightDir - viewDir);
-        specFactor *= 1 + pow(1 - max(dot(h, viewDir), 0), 5) * FRESNEL_MULT; // fresnel
+        specularFactor *= 1 + pow(1 - max(dot(h, viewDir), 0), 5) * FRESNEL_MULT; // fresnel
+        //float f = 1 - pow(1 - max(dot(h, viewDir), 0), 5);
+        //diffuse *= f;
+
+        //float fresnel = pow(1 - saturate(dot(h, viewDir)), 5);
+        //specularFactor = lerp(specFactor, 1, fresnel);
+
+        // fade out the specularity as it gets further from the reflected plane
+        float planeFactor = 1.0 - saturate(length(nearestReflectedPoint - reflectedPlanePoint) * pow(1 - roughness, 2.2));
+        specularFactor *= planeFactor;
 
         // fade out specular as it gets closer to view angle
         float viewFactor = dot(cross(planeRight, planeUp), l);
-        specFactor *= saturate(viewFactor - 1.3);
-        //specFactor *= SpecularMultFromRoughness(roughness);
+        specularFactor *= saturate(viewFactor - 1.3);
+        //specularFactor *= SpecularMultFromRoughness(roughness);
 
         const float3 vLight = lightPos - worldPos;
         float rDotL = dot(r, normalize(vLight));
-        specular = max(0, specFactor * rDotL * specularColor);
+        specular = max(0, specularFactor * rDotL * specularColor);
     }
 
     float nDotL = HalfLambert(normal, normalize(closestDiffusePoint - worldPos));
@@ -581,7 +618,7 @@ float3 ApplyRectLight2(
 
     float falloff = Attenuate(lightDistSq, lightRadius);
     //return max(0, falloff * specular);
-    return max(0, falloff * nDotL * (lightColor * diffuse + specular));
+    return max(0, falloff * nDotL * (lightColor * diffuse + specular) * GLOBAL_LIGHT_MULT);
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
 
