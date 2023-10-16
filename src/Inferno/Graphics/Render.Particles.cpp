@@ -1251,7 +1251,7 @@ namespace Inferno::Render {
         if (FadeTime > 0) {
             auto t = std::clamp((Duration - Elapsed) / FadeTime, 0.0f, 1.0f);
             if (t <= 0) return; // Invisible at t = 0
-            lightRadius = std::lerp(lightRadius * 0.75f, lightRadius, t);
+            //lightRadius = std::lerp(lightRadius * 0.75f, lightRadius, t);
             lightColor = Color::Lerp(Color(0, 0, 0), lightColor, t);
         }
 

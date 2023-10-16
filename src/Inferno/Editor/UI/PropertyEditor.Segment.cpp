@@ -378,7 +378,7 @@ namespace Inferno::Editor {
         ImGui::SetNextItemWidth(-1);
         float h, s, v;
         ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-        if (ImGui::DragFloat("##value", &v, 0.05f, 0.05f, 100, "%.2f")) {
+        if (ImGui::DragFloat("##value", &v, 0.01f, 0.01f, 100, "%.2f")) {
             if (v <= 0) v = 0.05f;
             ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
             changed = true;
@@ -489,7 +489,27 @@ namespace Inferno::Editor {
                 ImGui::PopID();
             }
 
-            ImGui::Text("Hold ctrl when picking color\nto relight level");
+            ImGui::Text("Brightness");
+            ImGui::SameLine();
+            static float valueIncrement = 0.25f;
+            if (ImGui::Button("-.25")) {
+                ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
+                v -= valueIncrement;
+                if (v < 0.05f) v = 0.05f;
+                ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
+                changed = true;
+                maybeRelightLevel();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("+.25")) {
+                ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
+                v += valueIncrement;
+                ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
+                changed = true;
+                maybeRelightLevel();
+            }
+
+            ImGui::Text("Hold ctrl when picking a\ncolor to relight level");
             ImGui::EndGroup();
         }
 
@@ -513,7 +533,7 @@ namespace Inferno::Editor {
             };
 
             {
-                // Emission override
+                // Light color override
                 bool overrideChanged = false;
                 bool hasOverride = side.LightOverride.has_value();
                 auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
@@ -545,7 +565,6 @@ namespace Inferno::Editor {
                 }
 
                 ImGui::TableNextColumn();
-                DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
 
                 bool relightLevel = false;
@@ -579,9 +598,9 @@ namespace Inferno::Editor {
                 }
 
                 ImGui::TableNextColumn();
-                DisableControls disable(!hasOverride);
+                //DisableControls disable(!hasOverride);
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::SliderFloat("##radius", &radius, 0, 30, "%.1f")) {
+                if (ImGui::SliderFloat("##radius", &radius, 10, 50, "%.1f")) {
                     side.LightRadiusOverride = radius;
                     overrideChanged = true;
                 }

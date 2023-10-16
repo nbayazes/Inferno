@@ -172,7 +172,8 @@ namespace Inferno::Editor {
                         ImGui::Text(label.c_str());
                         if (ImGui::Button("Apply texture", buttonSize))
                             ApplyTexture(ti.ID);
-
+                        if (ImGui::Button("Select overlay", buttonSize))
+                            ToggleSelection();
                         ImGui::EndChild();
                     }
 
@@ -325,7 +326,7 @@ namespace Inferno::Editor {
         }
 
     private:
-        void ApplyTexture(TexID id) const {
+        static void ApplyTexture(TexID id) {
             auto tid = Resources::LookupLevelTexID(id);
             auto& info = Resources::GetTextureInfo(id);
             if (Resources::IsLevelTexture(id)) {
@@ -333,6 +334,16 @@ namespace Inferno::Editor {
                     Events::SelectTexture(LevelTexID::None, tid); // overlay
                 else
                     Events::SelectTexture(tid, LevelTexID::None);
+            }
+        }
+
+        void ToggleSelection() {
+            if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+                auto [t1, t2] = seg->GetTexturesForSide(Editor::Selection.Side);
+                auto tid1 = Resources::LookupTexID(t1);
+                auto tid2 = Resources::LookupTexID(t2);
+
+                _selection = _selection != tid2 ? tid2 : tid1;
             }
         }
     };

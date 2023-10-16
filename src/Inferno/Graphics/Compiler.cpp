@@ -1,10 +1,10 @@
 #include "pch.h"
+#include <filesystem>
+#include <dxcapi.h>
 #include "Types.h"
 #include "Compiler.h"
 #include "Render.h"
-#include "logging.h"
-#include <filesystem>
-#include <dxcapi.h>
+#include "Logging.h"
 
 namespace Inferno {
     namespace {
@@ -73,10 +73,9 @@ namespace Inferno {
         args.push_back(L"-Qstrip_debug");
         args.push_back(L"-Qstrip_reflect");
 
+        args.push_back(L"-Zi"); // Debug, profiling
 #if defined(_DEBUG)
-        args.push_back(DXC_ARG_DEBUG);
         args.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
-#else
 #endif
     }
 

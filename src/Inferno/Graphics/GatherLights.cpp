@@ -200,7 +200,7 @@ namespace Inferno::Graphics {
 
             LightData light{};
             light.color = color;
-            light.radius = len * 4;
+            light.radius = len * 2.0f;
             light.type = LightType::Point;
             light.pos = seg.Center;
             sources.push_back(light);

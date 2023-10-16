@@ -256,7 +256,7 @@ namespace Inferno {
     void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen) {
         Object obj{};
         Editor::InitObject(Game::Level, obj, ObjectType::Robot, type);
-        obj.Position = position ;
+        obj.Position = position;
         obj.Segment = segment;
         obj.SourceMatcen = srcMatcen;
         Game::AddObject(obj);
@@ -512,7 +512,17 @@ namespace Inferno {
             case ObjectType::Fireball:
                 break;
             case ObjectType::Robot:
-                break;
+            {
+                // If final D1 boss add a green glow for the eye
+                if (obj.ID == 23) {
+                    light.LightColor = Color(0.2f, 1, 0.2f, 1.75f);
+                    light.Radius = 45;
+                    light.ParentSubmodel.ID = 0;
+                    light.ParentSubmodel.Offset = Vector3(0, -2.5f, -5);
+                }
+            }
+            break;
+
             case ObjectType::Hostage:
                 break;
             case ObjectType::Player:
@@ -834,5 +844,4 @@ namespace Inferno {
 
         TurnTowardsVector(obj, force, rate);
     }
-
 }

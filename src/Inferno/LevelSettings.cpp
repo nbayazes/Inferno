@@ -253,7 +253,8 @@ namespace Inferno {
                 break;
         }
 
-        SPDLOG_INFO("Loaded color lighting for {} segments", segid - 1);
+        if (segid > 0)
+            SPDLOG_INFO("Loaded color lighting for {} segments", segid);
     }
 
     void SaveLevelLighting(ryml::NodeRef node, const Level& level) {
