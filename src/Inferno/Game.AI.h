@@ -62,6 +62,9 @@ namespace Inferno {
         float WiggleTime = 0; // Remaining wiggle time
         Vector3 DodgeDirection;
 
+        float StrafeAngle = 0; // Angle relative to the right axis to strafe in
+        float StrafeTime = 0; // How long to strafe for
+
         float WeaponCharge = 0; // For robots with charging weapons (fusion hulks)
         float NextChargeSoundDelay = 0; // Delay to play a sound when charging up
         bool ChargingWeapon = false; // Set to true when charging a weapon

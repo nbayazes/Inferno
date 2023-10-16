@@ -63,7 +63,6 @@ namespace Inferno {
         if (ai.Awareness > 1) ai.Awareness = 1;
     }
 
-
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness) {
         for (auto& segId : room.Segments) {
             auto pseg = level.TryGetSegment(segId);
@@ -429,7 +428,7 @@ namespace Inferno {
     }
 
     // Tries to path towards the player or move directly to it if in the same room
-    void MoveTowardsObject(Level& level, const Object& object, Object& robot, 
+    void MoveTowardsObject(Level& level, const Object& object, Object& robot,
                            AIRuntime& ai, const Vector3& objDir, float objDist) {
         if (CanSeeObject(robot, objDir, objDist, ai)) {
             Ray ray(robot.Position, objDir);
@@ -669,10 +668,46 @@ namespace Inferno {
         ai.WiggleTime = time;
     }
 
+
+    // Tries to circle strafe the target.
+    // Checks level geometry. Returns false if strafing isn't possible.
+    void CircleStrafe(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
+        ai.StrafeTime -= dt;
+
+        if (!ai.Target)
+            ai.StrafeTime = 0;
+
+        if (ai.StrafeTime <= 0)
+            return;
+
+        auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), ai.StrafeAngle);
+        auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
+        robot.Physics.Thrust += dir * Difficulty(robotInfo).Speed;
+    }
+
+    void TryStartCircleStrafe(const Object& robot, AIRuntime& ai, float time) {
+        if (ai.StrafeTime > 0) return;
+
+        ai.StrafeAngle = Random() * DirectX::XM_2PI;
+
+        // Check if the new direction intersects level
+        LevelHit hit{};
+        RayQuery query{ .MaxDistance = 20, .Start = robot.Segment };
+
+        auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), ai.StrafeAngle);
+        auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
+        Ray ray(robot.Position, dir);
+        if (Game::Intersect.RayLevel(ray, query, hit))
+            return; // Try again
+
+        ai.StrafeTime = time;
+    }
+
     void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt) {
         if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
             if (!HasLineOfSight(robot, 0, *ai.Target, ObjectMask::Robot)) {
-                WiggleRobot(robot, ai, 0.5f);
+                //WiggleRobot(robot, ai, 0.5f);
+                TryStartCircleStrafe(robot, ai, 2);
                 return;
             }
 
@@ -691,13 +726,14 @@ namespace Inferno {
                 // Can fire a weapon soon, try to do so.
                 // But only fire if there is nothing blocking LOS to the target
                 if (!HasLineOfSight(robot, ai.GunIndex, *ai.Target, ObjectMask::Robot)) {
-                    WiggleRobot(robot, ai, 0.5f);
+                    //WiggleRobot(robot, ai, 0.5f);
+                    TryStartCircleStrafe(robot, ai, 2);
                     CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
                     ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
                     return;
                 }
 
-                ai.DodgeTime = 0; // Stop dodging when firing (hack used to stop wiggle, use different timer?)
+                //ai.DodgeTime = 0; // Stop dodging when firing (hack used to stop wiggle, use different timer?)
 
                 auto aimDir = *ai.Target - robot.Position;
                 aimDir.Normalize();
@@ -715,7 +751,7 @@ namespace Inferno {
                 // Robots can easily blow themselves up in this case.
                 if (weapon.SplashRadius > 0 && !HasLineOfSight(robot, ai.GunIndex, *ai.Target, ObjectMask::None)) {
                     CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
-                    WiggleRobot(robot, ai, 0.5f);
+                    //WiggleRobot(robot, ai, 0.5f);
                     return;
                 }
 
@@ -865,6 +901,7 @@ namespace Inferno {
             //TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
             float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
             RotateTowards(robot, *ai.Target, turnTime);
+            CircleStrafe(robot, ai, robotInfo, dt);
         }
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
