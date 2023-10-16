@@ -49,6 +49,10 @@ float3 fresnelSchlick(float3 F0, float dotProd) {
     return F0 + (1 - F0) * pow(1 - dotProd, 5);
 }
 
+float FresnelRoughnessSimple(float cosTheta, float roughness) {
+    return (1.0 - roughness) * pow(max(1.0 - cosTheta, 0), 5.0);
+}
+
 float Lambert(float3 normal, float3 lightDir) {
     return saturate(dot(normal, lightDir));
 }
@@ -168,7 +172,7 @@ float3 ApplyPointLight(
     float lightRadius,
     float3 lightColor // Radiance of directional light
 ) {
-    specularColor *= 0.25; // tweak to match area lights
+    //specularColor *= 0.25; // tweak to match area lights
     float3 lightDir = lightPos - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
     lightDir = normalize(lightDir);
@@ -183,7 +187,7 @@ float3 ApplyPointLight(
 
     float specularFactor = specularMask * pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
     //specularFactor *= SpecularMultFromRoughness(roughness);
-    specularFactor *= 1 + pow(1 - saturate(dot(lightDir, halfVec)), 5) * FRESNEL_MULT; // fresnel
+    specularFactor *= 1 + FresnelRoughnessSimple(dot(lightDir, halfVec), roughness) * FRESNEL_MULT;
     //specularFactor = clamp(specularFactor, 0, MAX_SPEC_MULT);
     //float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
     //specularFactor = lerp(specularFactor, 1, fresnel);
@@ -527,7 +531,7 @@ float3 ApplyRectLight2(
 ) {
     // https://alextardif.com/arealights.html
     // https://www.shadertoy.com/view/3dsBD4
-    specularColor *= 0.15; // tweak to match point lights
+    //specularColor *= 0.15; // tweak to match point lights
 
     //lightPos -= planeNormal * 1.1; // hack: workaround for light being 1 unit off of surface for some reason
 
@@ -590,7 +594,7 @@ float3 ApplyRectLight2(
         //float3 lightDir = normalize(lightPos - worldPos);
 
         //float3 halfVec = normalize(lightDir - viewDir);
-        specularFactor *= 1 + pow(1 - max(dot(h, viewDir), 0), 5) * FRESNEL_MULT; // fresnel
+        specularFactor *= 1 + FresnelRoughnessSimple(dot(h, viewDir), roughness) * FRESNEL_MULT;
         //float f = 1 - pow(1 - max(dot(h, viewDir), 0), 5);
         //diffuse *= f;
 
