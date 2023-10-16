@@ -7,7 +7,6 @@ Lights:
       Width: 0.01
       Wrap: 1
       Color: 0.15, 0.15, 0.4 # cooler
-      Offset: -1
   
     - ID: 213
       Type: 2
@@ -16,7 +15,6 @@ Lights:
       Height: 0.01
       Radius: 40
       Color: 0.1, 0.1, 0.3 # cooler
-      Offset: 0.01
   
     - ID: 214
       Type: 2
@@ -25,7 +23,6 @@ Lights:
       Height: 0.01
       Radius: 40
       Color: 0.1, 0.1, 0.3 # cooler
-      Offset: 0.01
   
     - ID: 221
       Type: 2
@@ -34,7 +31,6 @@ Lights:
       Height: 0.01
       Radius: 40
       Color: 0.1, 0.1, 0.3 # cooler
-      Offset: 0.01
   
     - ID: 222
       Type: 2
@@ -43,7 +39,7 @@ Lights:
       Height: 0.05
       Radius: 60
       Color: 0.1, 0.1, 0.3 # cooler
-      Offset: 0.01
+      Offset: 0
   
     # Door strips
     - ID: 250 # white
@@ -51,7 +47,7 @@ Lights:
       Points: 0.125, 0
       Wrap: 2
       Width: 0.01
-      Offset: -1
+      Offset: 0
       Color: 0.30, 0.25, 0.25, 1.3
       Radius: 25
   
@@ -60,7 +56,7 @@ Lights:
       Points: 0.125, 0
       Wrap: 2
       Width: 0.01
-      Offset: -1
+      Offset: 0
       Color: 0.3, 0.0, 0.0, 1.5
       Radius: 25
   
@@ -69,7 +65,7 @@ Lights:
       Points: 0.125, 0
       Wrap: 2
       Width: 0.01
-      Offset: -1
+      Offset: 0
       Color: 0.1, 0.1, .8, 1
       Radius: 25
   
@@ -78,7 +74,7 @@ Lights:
       Points: 0.125, 0
       Wrap: 2
       Width: 0.02
-      Offset: -1
+      Offset: 0
       Radius: 25
       Color: 0.45, 0.35, 0
 
@@ -118,19 +114,19 @@ Lights:
 
     - ID: 284 # small square
       Radius: 40
-      Offset: 2
+      Offset: 0
       Points: 0.5, 0.5
       Color: 0.6, 0.6, 0.6 # cooler
 
     - ID: 293 # small square
       Radius: 35
-      Offset: 2
+      Offset: 0
       Points: 0.5, 0.5
       Color: 0.5, 0.5, 0.5
 
     - ID: 294 # rectangle
       Radius: 35
-      Offset: 2
+      Offset: 0
       Points: 0.5, 0.5
       Color: 0.6, 0.6, 0.65 # cooler
 
@@ -143,7 +139,7 @@ Lights:
       Width: .2
       Height: .1
       Color: 0.25, 0.25, 0.28 # cooler
-      Offset: 0.01
+      Offset: 0
       Radius: 40
 
     # Double edge wrapped lights
@@ -154,7 +150,7 @@ Lights:
         - 0.95, 0.5
       Width: 0.05
       Wrap: 2
-      Offset: 0.01
+      Offset: 0
       Color: 0.20, 0.15, 0.15
       Radius: 20
       
@@ -176,7 +172,7 @@ Lights:
         - 0.95, 0.4
       Width: 0.05
       Height: 0.02
-      Offset: 0.01
+      Offset: 0
   
     # Strip lights with the same heights
     - ID: 286
@@ -187,7 +183,7 @@ Lights:
       Width: .32
       Height: 0.05
       Color: 0.3, 0.3, 0.4
-      Offset: 0.01
+      Offset: 0
       Radius: 30
   
     - ID: 287
@@ -198,7 +194,7 @@ Lights:
       Width: .35
       Height: .05 
       Color: 0.15, 0.15, 0.20, 2
-      Offset: 0.01
+      Offset: 0
   
     - ID: 288
       Type: 2
@@ -208,7 +204,7 @@ Lights:
       Width: .001
       Wrap: 1
       Color: 0.15, 0.15, 0.20, 2
-      Offset: 0.01
+      Offset: 0
       Radius: 15
   
     - ID: 292
@@ -219,7 +215,7 @@ Lights:
       Width: .2
       Height: 0.05
       Color: 0.15, 0.15, 0.20, 2
-      Offset: 0.01
+      Offset: 0
 
     # lava
     - ID: 333
@@ -260,7 +256,7 @@ Lights:
       Points: []
 
     - ID: 328 # energy field
-      Color: 0.75, 0.245, 0.020, 1
+      Color: 1, 0.443, 0.027, 0.75
       Points: []      
 
 #    - ID: 343 # paired monitor

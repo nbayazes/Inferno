@@ -25,7 +25,7 @@ namespace Inferno {
         LevelTexID Id = LevelTexID::None;
         LightType Type = LightType::Point;
         List<Vector2> Points = { { 0.5f, 0.5f } }; // UV positions for each light
-        float Offset = 2; // light surface offset
+        float Offset = 0; // light surface offset
         float Radius = 40; // light radius
         float Width = 0.25f; // U Width for rectangular lights. For wrapped lights this is aligned to the wrap direction.
         float Height = 0.25f; // V Height for rectangular lights. Unused for wrapped lights.
