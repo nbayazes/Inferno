@@ -630,8 +630,14 @@ namespace Inferno::Game {
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
 
-            if (obj.IsPlayer())
+            if (obj.IsPlayer()) {
                 obj.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
+                if (Player.HasPowerup(PowerupFlag::Invulnerable))
+                    obj.MakeInvulnerable(3600.0f);
+
+                if (Player.HasPowerup(PowerupFlag::Cloak))
+                    obj.Cloak(3600.0f);
+            }
 
             if ((obj.IsPlayer() && obj.ID != 0) || obj.IsCoop())
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
