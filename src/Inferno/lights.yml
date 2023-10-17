@@ -93,7 +93,7 @@ Lights:
       Points: 0.5, 0.5
       Width: 0.2
       Height: 0.2
-      Radius: 30
+      Radius: 35
       Color: 0.5, 0.5, 0.675 # very cool
       Offset: 0
 
@@ -180,11 +180,11 @@ Lights:
       Points:
         - 0.5, 0.23
         - 0.5, 0.75
-      Width: .32
+      Width: .35
       Height: 0.05
       Color: 0.3, 0.3, 0.4
       Offset: 0
-      Radius: 30
+      Radius: 35
   
     - ID: 287
       Type: 2

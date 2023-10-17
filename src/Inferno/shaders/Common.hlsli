@@ -63,6 +63,7 @@ float4 Sample2D(Texture2D tex, float2 uv, SamplerState texSampler, int filterMod
 }
 
 float3 SampleNormal(Texture2D tex, float2 uv, SamplerState texSampler) {
+    return clamp(Sample2D(tex, uv, texSampler, FILTER_ENHANCED_POINT).rgb * 2 - 1, -1, 1);
     // AA sampling causes artifacts on sharp highlights when using AA mode. Use plain point sampling instead.
     return clamp(tex.Sample(texSampler, uv).rgb * 2 - 1, -1, 1);
 }

@@ -98,15 +98,15 @@ Materials:
     EmissiveStrength: 15
     LightReceived: 0
   - TexID: 25
-    NormalStrength: 0.26
-    SpecularStrength: 0.45
+    NormalStrength: 0.3
+    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.544
+    Roughness: 0.65
   - TexID: 26
-    NormalStrength: 0.612
-    SpecularStrength: 0.206
+    NormalStrength: 0.3
+    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.419
+    Roughness: 0.65
   - TexID: 27
     NormalStrength: 0.25
     Metalness: 0.96
@@ -248,16 +248,14 @@ Materials:
     NormalStrength: 0.364
     Roughness: 0.738
   - TexID: 722
+    NormalStrength: 0.485
     SpecularStrength: 0.7
-    Roughness: 0.7
+    Roughness: 0.769
   - TexID: 723
-    NormalStrength: 0.6
-    SpecularStrength: 0.5
-    Roughness: 0.5
+    Roughness: 0.7
   - TexID: 724
-    NormalStrength: 1.508
-    SpecularStrength: 0.3
-    Roughness: 0.5
+    NormalStrength: 0.5
+    Roughness: 0.6
   - TexID: 725
     NormalStrength: 0.6
     Roughness: 0.9
@@ -296,7 +294,6 @@ Materials:
     Roughness: 0.44
   - TexID: 735
     NormalStrength: 0.6
-    SpecularStrength: 0.5
     Roughness: 0.85
   - TexID: 736
     NormalStrength: 1.3
@@ -364,15 +361,14 @@ Materials:
     Roughness: 0.8
   - TexID: 764
     NormalStrength: 1.5
-    SpecularStrength: 0.6
-    Roughness: 0.97
+    Roughness: 0.759
   - TexID: 765
     SpecularStrength: 0.604
     Roughness: 0.95
   - TexID: 766
     NormalStrength: 0.5
-    SpecularStrength: 0.5
-    Roughness: 0.49
+    Metalness: 0.2
+    Roughness: 0.691
   - TexID: 768
     NormalStrength: 0.4
     SpecularStrength: 0.6
@@ -396,8 +392,6 @@ Materials:
     NormalStrength: 1.6
     Roughness: 0.8
   - TexID: 779
-    NormalStrength: 0.6
-    SpecularStrength: 0.7
     Roughness: 0.7
   - TexID: 780
     NormalStrength: 0.8
@@ -410,7 +404,7 @@ Materials:
     Roughness: 0.9
   - TexID: 785
     NormalStrength: -1
-    Roughness: 0.82
+    Roughness: 0.858
   - TexID: 786
     NormalStrength: 1.2
     SpecularStrength: 0.7
@@ -443,7 +437,8 @@ Materials:
     Roughness: 0.6
   - TexID: 804
     NormalStrength: 1.1
-    Roughness: 0.4
+    SpecularStrength: 0.313
+    Roughness: 0.493
   - TexID: 807
     NormalStrength: 0.4
     Roughness: 0.9
@@ -458,7 +453,7 @@ Materials:
     NormalStrength: 0.4
     Roughness: 0.85
   - TexID: 814
-    NormalStrength: 0.8
+    NormalStrength: 0.742
     Roughness: 0.85
   - TexID: 817
     Metalness: 0.3
@@ -504,16 +499,15 @@ Materials:
     SpecularStrength: 0.325
     Roughness: 0.65
   - TexID: 849
-    NormalStrength: 0.5
+    NormalStrength: 0.809
     SpecularStrength: 0.3
-    Roughness: 0.85
+    Roughness: 0.886
   - TexID: 852
     NormalStrength: 1.1
     Roughness: 0.75
   - TexID: 854
-    NormalStrength: 2
-    SpecularStrength: 0.5
-    Roughness: 0.65
+    NormalStrength: 1.5
+    Roughness: 0.796
   - TexID: 859
     NormalStrength: 0.6
     SpecularStrength: 0.7
@@ -552,9 +546,9 @@ Materials:
     Roughness: 0.6
   - TexID: 875
     NormalStrength: 0.35
-    SpecularStrength: 15
-    Metalness: 1
-    Roughness: 0.8
+    SpecularStrength: 10
+    Metalness: 0.97
+    Roughness: 0.6
   - TexID: 876
     NormalStrength: 0.35
     SpecularStrength: 5
@@ -575,10 +569,10 @@ Materials:
     Metalness: 1
     Roughness: 0.544
   - TexID: 880
-    NormalStrength: 0.524
-    SpecularStrength: 0.5
+    NormalStrength: 0.2
+    SpecularStrength: 2
     Metalness: 1
-    Roughness: 0.394
+    Roughness: 0.507
   - TexID: 881
     NormalStrength: 0.26
     SpecularStrength: 0.45
@@ -636,9 +630,8 @@ Materials:
     Roughness: 0.544
   - TexID: 892
     NormalStrength: 0.26
-    SpecularStrength: 0.45
     Metalness: 1
-    Roughness: 0.544
+    Roughness: 0.5
   - TexID: 893
     NormalStrength: 0.26
     SpecularStrength: 0.45
@@ -682,9 +675,10 @@ Materials:
     Metalness: 1
     Roughness: 0.457
   - TexID: 904
-    NormalStrength: 0.406
-    Metalness: 1
-    Roughness: 0.457
+    NormalStrength: 0.6
+    SpecularStrength: 15
+    Metalness: 0.97
+    Roughness: 0.6
   - TexID: 905
     NormalStrength: 0.406
     Metalness: 1
@@ -940,9 +934,9 @@ Materials:
     Roughness: 0.65
   - TexID: 966
     NormalStrength: 0.25
-    Metalness: 0.8
-    Roughness: 0.5
-    EmissiveStrength: 2
+    Metalness: 0.96
+    Roughness: 0.8
+    EmissiveStrength: 0.5
   - TexID: 967
     NormalStrength: 0.25
     Metalness: 0.8
@@ -950,9 +944,9 @@ Materials:
     EmissiveStrength: 3
   - TexID: 968
     NormalStrength: 0.25
-    Metalness: 0.8
-    Roughness: 0.5
-    EmissiveStrength: 3.5
+    Metalness: 0.96
+    Roughness: 0.8
+    EmissiveStrength: 4
   - TexID: 969
     NormalStrength: 0.25
     Metalness: 0.8
@@ -963,9 +957,10 @@ Materials:
     Metalness: 0.9
     Roughness: 0.55
   - TexID: 971
-    NormalStrength: 0.9
-    Metalness: 0.86
-    Roughness: 0.65
+    NormalStrength: 0.848
+    SpecularStrength: 6
+    Metalness: 0.873
+    Roughness: 0.458
   - TexID: 972
     NormalStrength: 0.318
     Metalness: 1
@@ -1015,11 +1010,9 @@ Materials:
     Roughness: 0.6
   - TexID: 987
     NormalStrength: 0.5
-    SpecularStrength: 0.4
     Roughness: 0.5
   - TexID: 988
     NormalStrength: 0.5
-    SpecularStrength: 0.4
     Roughness: 0.5
   - TexID: 989
     NormalStrength: 0.5
@@ -1031,11 +1024,10 @@ Materials:
     Roughness: 0.6
   - TexID: 991
     NormalStrength: 0.5
-    SpecularStrength: 0.4
     Roughness: 0.5
   - TexID: 992
     Metalness: 0.3
-    Roughness: 0.5
+    Roughness: 0.605
   - TexID: 993
     Metalness: 0.3
     Roughness: 0.5
@@ -1054,7 +1046,7 @@ Materials:
     NormalStrength: 0.3
     SpecularStrength: 0
     Roughness: 0.8
-    EmissiveStrength: 3
+    EmissiveStrength: 0.5
   - TexID: 998
     NormalStrength: 0.1
     SpecularStrength: 0
@@ -1079,7 +1071,7 @@ Materials:
     NormalStrength: 0.1
     SpecularStrength: 0
     Roughness: 0.8
-    EmissiveStrength: 3
+    EmissiveStrength: 1
   - TexID: 1003
     NormalStrength: 0.1
     SpecularStrength: 0
@@ -1132,9 +1124,9 @@ Materials:
     Roughness: 0.5
   - TexID: 1018
     NormalStrength: 0.25
-    SpecularStrength: 0.755
+    SpecularStrength: 4
     Metalness: 0.9
-    Roughness: 0.7
+    Roughness: 0.61
   - TexID: 1019
     NormalStrength: 0.25
     SpecularStrength: 0.755
@@ -1185,14 +1177,14 @@ Materials:
     Roughness: 0.95
   - TexID: 1030
     NormalStrength: 0.05
-    Metalness: 0.25
-    Roughness: 0.95
+    Metalness: 0.155
+    Roughness: 0.703
   - TexID: 1031
     NormalStrength: 0.5
     Metalness: 0.4
     Roughness: 0.7
   - TexID: 1032
-    NormalStrength: 1.2
+    NormalStrength: 0.8
     Metalness: 0.7
     Roughness: 0.5
   - TexID: 1033
@@ -1538,13 +1530,12 @@ Materials:
     Roughness: 0.582
   - TexID: 1348
     NormalStrength: 0.543
-    SpecularStrength: 0.523
     Metalness: 1
-    Roughness: 0.529
+    Roughness: 0.664
   - TexID: 1359
     NormalStrength: 0.603
     Metalness: 1
-    Roughness: 0.605
+    Roughness: 0.483
   - TexID: 1370
     NormalStrength: 1.072
     SpecularStrength: 0.14
@@ -1552,8 +1543,9 @@ Materials:
     Roughness: 0.539
   - TexID: 1371
     NormalStrength: 0.203
-    Metalness: 0.801
-    Roughness: 0.605
+    SpecularStrength: 2
+    Metalness: 0.951
+    Roughness: 0.458
   - TexID: 1372
     NormalStrength: 0.867
     Roughness: 0.625
@@ -1635,9 +1627,8 @@ Materials:
     NormalStrength: 0.4
     Roughness: 0.85
   - TexID: 1493
-    NormalStrength: 0.205
-    Metalness: 1
-    Roughness: 0.628
+    NormalStrength: 1.5
+    Roughness: 0.796
   - TexID: 1494
     NormalStrength: 0.517
     Metalness: 0.791
