@@ -666,7 +666,7 @@ Powerups:
     LightMode: 2 # Pulse
 
   - id: 1 # Energy
-    Glow: 1, 0.80, 0.80, 2.25
+    Glow: 1, 0.80, 0.80, 6.25
     LightColor: 1, .55, 0.10, 3
     LightRadius: 18
     LightMode: 1 # Flicker

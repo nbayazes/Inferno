@@ -17,10 +17,7 @@
     "DescriptorTable(SRV(t12), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13), visibility=SHADER_VISIBILITY_PIXEL), " \
     "CBV(b2), "\
-    "StaticSampler(s2," \
-        "filter = FILTER_MIN_POINT_MAG_MIP_LINEAR,"\
-        "addressU = TEXTURE_ADDRESS_WRAP, addressV = TEXTURE_ADDRESS_WRAP,"\
-        "visibility=SHADER_VISIBILITY_PIXEL)"
+
 Texture2D TextureTable[] : register(t0, space1);
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used but reserved for descriptor table
@@ -37,7 +34,6 @@ Texture2D Normal2 : register(t9);
 Texture2D Depth : register(t10);
 SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
-SamplerState NormalSampler2 : register(s2);
 // t11, t12, t13
 StructuredBuffer<MaterialInfo> Materials : register(t14);
 
@@ -225,7 +221,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
 
     float4 base = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
-    float3 normal = SampleNormal(Normal1, input.uv, Sampler);
+    float3 normal = SampleNormal(Normal1, input.uv, Sampler, Frame.FilterMode);
     //float4 base = Sample2D(GetTexture(input.Tex1, MAT_DIFF), input.uv, Sampler, Frame.FilterMode);
     //float3 normal = SampleNormal(GetTexture(input.Tex1, MAT_NORM), input.uv, NormalSampler);
 
@@ -283,7 +279,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float3 overlayNormal = clamp(SampleData2D(Normal2, input.uv2, Sampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
         //float3 overlayNormal = SampleNormal(GetTexture(input.Tex2, MAT_NORM), input.uv2, NormalSampler);
         //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
-        float3 overlayNormal = SampleNormal(Normal2, input.uv2, Sampler);
+        float3 overlayNormal = SampleNormal(Normal2, input.uv2, Sampler, Frame.FilterMode);
         overlayNormal.xy *= mat2.NormalStrength;
         overlayNormal = normalize(overlayNormal);
 

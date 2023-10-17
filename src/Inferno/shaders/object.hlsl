@@ -119,9 +119,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     if (!Frame.NewLightMode) {
         float3 lightDir = float3(0, -1, 0);
-        //float sum = emissive.r + emissive.g + emissive.b; // is there a better way to sum this?
-        //float mult = (1 + smoothstep(5, 1.0, sum) * 1); // magic constants!
-        //lighting += Ambient + pow(emissive * mult, 4);
         lighting += Object.Ambient.rgb;
         lighting *= Specular(lightDir, viewDir, input.normal);
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
@@ -135,7 +132,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float specularMask = Sample2D(TextureTable[texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
 
             MaterialInfo material = Materials[matid];
-            float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler);
+            float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler, Frame.FilterMode);
             //return float4(normal, 1);
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);

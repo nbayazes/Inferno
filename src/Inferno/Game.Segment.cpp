@@ -212,11 +212,12 @@ namespace Inferno {
             auto lightInfo2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
             if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
                 color += lightInfo2->Color;
+                color.Premultiply();
             }
             else if (tmap2.Lighting > 0) {
                 color += Resources::GetTextureInfo(side.TMap2).AverageColor;
+                color.Premultiply();
             }
-            color.Premultiply();
         }
 
         color.w = 1;

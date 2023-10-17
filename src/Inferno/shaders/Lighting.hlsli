@@ -182,7 +182,7 @@ float3 ApplyPointLight(
     float3 halfVec = normalize(lightDir - viewDir);
     float nDotH = saturate(dot(halfVec, normal));
 
-    float gloss = RoughnessToGloss(pow(roughness, 1.5));
+    float gloss = RoughnessToGloss(roughness);
     float nDotL = HalfLambert(normal, lightDir);
 
     float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
@@ -617,6 +617,7 @@ float3 ApplyRectLight2(
 
         // clip specular behind the light plane
         float viewFactor = dot(-planeNormal, l);
+        //specularFactor *= saturate(viewFactor * 0.75 - 1); // shift inward by 1.25
         specularFactor *= saturate(viewFactor - 1.25); // shift inward by 1.25
 
         const float3 vLight = lightPos - worldPos;
@@ -631,7 +632,8 @@ float3 ApplyRectLight2(
     float3 lightDir = closestDiffusePoint - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
 
-    float falloff = Attenuate(lightDistSq, lightRadius + min(vHeight, vWidth));
+    float minR = min(vHeight, vWidth);
+    float falloff = Attenuate(lightDistSq, lightRadius/* + minR*/);
     //return max(0, falloff * specular);
     return max(0, falloff * nDotL * (lightColor * diffuse + specular) * GLOBAL_LIGHT_MULT);
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
