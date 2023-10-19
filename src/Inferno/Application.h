@@ -9,7 +9,7 @@ namespace Inferno {
         bool _isForeground = false;
     public:
         Application() = default;
-        void OnShutdown();
+        ~Application();
         // Initialization and management
         void Initialize(int width, int height);
         void Tick();

@@ -52,7 +52,7 @@ namespace Inferno {
         ComPtr<IDxcBlobUtf8> pErrors;
         ThrowIfFailed(result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(pErrors.GetAddressOf()), nullptr));
         if (pErrors && pErrors->GetStringLength() > 0) {
-            throw Inferno::Exception((char*)pErrors->GetBufferPointer());
+            throw std::exception((char*)pErrors->GetBufferPointer());
         }
     }
 
@@ -73,8 +73,8 @@ namespace Inferno {
         args.push_back(L"-Qstrip_debug");
         args.push_back(L"-Qstrip_reflect");
 
-        args.push_back(L"-Zi"); // Debug, profiling
 #if defined(_DEBUG)
+        args.push_back(L"-Zi"); // Debug, profiling
         args.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
 #endif
     }

@@ -52,7 +52,7 @@ void LoadAllD3Models() {
     }
 }
 
-void Application::OnShutdown() {
+Application::~Application() {
     Render::Shutdown();
     Sound::Shutdown();
 }
