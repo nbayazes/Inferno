@@ -70,13 +70,14 @@ struct Frustum {
 
 // Convert screen space coordinates to view space.
 float3 ScreenToView(float4 screen) {
+    // https://mynameismjp.wordpress.com/2009/03/10/reconstructing-position-from-depth/
     // Convert to normalized texture coordinates
     float2 texCoord = screen.xy / float2(Args.ViewportWidth, Args.ViewportHeight);
     texCoord.y = 1 - texCoord.y; // flip y axis
     // Convert to clip space. * 2 - 1 transforms from -1, 1 to 0 1
-    float4 clip = float4(texCoord * 2.0f - 1.0f, screen.z, screen.w);
-    float4 view = mul(Args.InverseProjection, clip);
-    return view.xyz / view.w;
+    float4 clip = float4(texCoord * 2 - 1, screen.z, screen.w);
+    float4 view = mul(Args.InverseProjection, clip); // Transform by the inverse projection matrix
+    return view.xyz / view.w; // Divide by w to get the view-space position
 }
 
 // Compute a plane from 3 noncollinear points that form a triangle.
@@ -92,6 +93,22 @@ Plane ComputePlane(float3 p0, float3 p1, float3 p2) {
     //plane.d = dot(plane.N, p0);
     plane.d = 0; // view plane always crosses origin
     return plane;
+}
+
+float3 ProjectPointOntoPlane(float3 pt, float3 origin, float3 normal) {
+    return pt - dot(normal, pt - origin) * normal;
+}
+
+bool ProjectRayOntoPlane(float3 rayOrigin, float3 rayDir, float3 planeOrigin, float3 planeNormal, out float3 result) {
+    result = 0;
+    float denom = dot(planeNormal, rayDir);
+    if (abs(denom) < 0.01f) return false;
+
+    float t = dot(planeNormal, planeOrigin - rayOrigin) / denom;
+    if (abs(t) < 0.01f) return false;
+
+    result = rayOrigin + rayDir * t;
+    return true;
 }
 
 float PlaneDist(Plane plane, float3 pos) {
@@ -182,7 +199,7 @@ void main(uint2 group : SV_GroupID,
     uint tileIndex = GetTileIndex(group.xy, Args.TileCountX);
     uint tileOffset = GetTileOffset(tileIndex);
 
-    float3 eyeDir = normalize(frustumCenter - eyePos);
+    //float3 eyeDir = normalize(frustumCenter - eyePos);
 
     // find set of lights that overlap this tile
     for (uint lightIndex = groupIndex; lightIndex < MAX_LIGHTS; lightIndex += BLOCK_SIZE * BLOCK_SIZE) {
@@ -193,7 +210,6 @@ void main(uint2 group : SV_GroupID,
 
         // project light from world to view space (depth is zNear to zFar)
         float3 lightPos = mul(Args.ViewMatrix, float4(light.pos, 1)).xyz;
-
 
         if (light.radius > 0 && light.type == 2) {
 #if false
@@ -229,6 +245,86 @@ void main(uint2 group : SV_GroupID,
 #endif
         }
 
+        if (any(light.normal)) {
+            // Check if all frustum points are behind plane
+            float3 lightNormal = mul(Args.ViewMatrix, float4(light.normal, 0)).xyz;
+            //float3 lightPos2 = lightPos;
+            //lightPos2.z = 1;
+
+            //float3 pt = frustumCenter;
+            //pt.z = zNear;
+
+
+            float3 eyeDir = normalize(frustumCenter);
+            //float3 pt = eyeDir * zFar;
+            //if (dot(lightNormal,  pt - lightPos) <= 0)
+            //    inside = false;
+
+            float3 cellPoint;
+            //float3 lightPoint;
+            float z = dot(eyeDir, lightNormal) > 0 ? zFar : zNear;
+            if (ProjectRayOntoPlane(float3(0, 0, 0), eyeDir, float3(0, 0, z), float3(0, 0, -1), cellPoint)) {
+                if (dot(lightNormal, cellPoint - lightPos) < -5)
+                    inside = false;
+            }
+
+
+            //if (ProjectRayOntoPlane(float3(0, 0, 0), normalize(frustumCenter), float3(0, 0, zNear), float3(0, 0, -1), cellPoint)) {
+            //    if (dot(lightNormal, cellPoint - lightPos) < -5)
+            //        inside = false;
+            //}
+
+ 
+            //inside = false;
+
+            // zFar >= zNear
+            //if (zFar > 50)
+            //inside = true;
+
+            //bool behindPlane = false;
+
+            //behindPlane = true;
+            //for (int i = 0; i < 4; i++)
+            //{
+            //    if (ProjectRayOntoPlane(float3(0, 0, 0), normalize(frustumPointsViewspace[i]), float3(0, 0, z), float3(0, 0, -1), cellPoint))
+            //    {
+            //        if (dot(lightNormal, cellPoint - lightPos) > -1)
+            //            behindPlane = false;
+            //    }
+            //}
+
+
+            //bool behindPlane = true;
+            //for (int i = 0; i < 4; i++)
+            //{
+            //    float3 cellPoint;
+
+            //    if(ProjectRayOntoPlane(float3(0,0,0), normalize(frustumPointsViewspace[i]), float3(0,0, zNear), float3(0,0, -1), cellPoint)) {
+            //        if (dot(lightNormal, cellPoint - lightPos) > -1)
+            //            behindPlane = false;
+            //    }
+
+            //    //float3 eyeDir = normalize(frustumPointsViewspace[i]);
+            //    //float3 pt = eyeDir * zNear;
+
+            //    //float3 intersect;
+            //    //float3 planeNormal = planes[i].N;
+            //    //if (abs(dot(planeNormal, lightNormal)) > 0.25)
+            //    //{
+            //    //    if (ProjectRayOntoPlane(lightPos, lightNormal, float3(0, 0, 0), planeNormal, intersect))
+            //    //    {
+            //    //        pt = intersect;
+            //    //    }
+
+            //    //    if (dot(lightNormal, pt - lightPos) > 0) // distance to plane
+            //    //        behindPlane = false;
+            //    //}
+            //}
+
+            //if (behindPlane)
+            //    inside = false;
+        }
+
         // cull the light if is behind the camera (negative z is behind) or too far
         if (lightPos.z + lightRadius < zNear || lightPos.z - lightRadius > zFar) {
             inside = false;
@@ -236,7 +332,7 @@ void main(uint2 group : SV_GroupID,
 
         for (int i = 0; i < 4; i++) {
             Plane plane = planes[i]; // planes are in view space
-            float dist = dot(plane.N, lightPos) + plane.d; // distance from plane
+            float dist = dot(plane.N, lightPos) /*+ plane.d*/; // distance from plane
             if (dist > lightRadius)
                 inside = false;
         }
