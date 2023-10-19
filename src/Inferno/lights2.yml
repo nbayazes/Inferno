@@ -72,11 +72,11 @@ Lights:
 
     - ID: 293 # small white round
       Radius: 35
-      Offset: 3
+      Offset: 0
       Color: 0.6, 0.6, 0.6
     - ID: 295 # small white square
       Radius: 40
-      Offset: 3
+      Offset: 0
       Color: 0.6, 0.6, 0.6
     
     - ID: 296 # Stacked light

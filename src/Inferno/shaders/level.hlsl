@@ -225,12 +225,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float4 base = Sample2D(GetTexture(input.Tex1, MAT_DIFF), input.uv, Sampler, Frame.FilterMode);
     //float3 normal = SampleNormal(GetTexture(input.Tex1, MAT_NORM), input.uv, NormalSampler);
 
-    //return float4(normal, 1);
     MaterialInfo mat1 = Materials[Args.Tex1];
-    //MaterialInfo mat1 = Materials[input.Tex1];
     normal.xy *= mat1.NormalStrength;
     normal = normalize(normal);
-    //return float4(normal, 1);
 
     // 'automap' shader?
     //float2 fw = fwidth(input.uv);
@@ -268,7 +265,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //float mask = 1 - Sample2D(GetTexture(input.Tex2, MAT_MASK), input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         base *= mask;
 
-        float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
+        float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode);
         //float4 overlay = Sample2D(GetTexture(input.Tex2, MAT_DIFF), input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
         float out_a = overlay.a + base.a * (1 - overlay.a);
         float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
@@ -329,14 +326,16 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //normal = input.normal; // debug
         //diffuse.rgb = 0.5; // debug
         //specularMask = 0; // debug
+        //diffuse.rgb = lerp(diffuse.rgb, GetMetalDiffuse(diffuse.rgb), material.Metalness);
+
         ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
         //gloss = exp2(lerp(0, log2(gloss), flatness));
         //colorSum *= flatness;
         lighting += colorSum * material.LightReceived;
-        lighting += emissive * diffuse.rgb;
-        lighting += emissive * diffuse.rgb * vertexLighting * material.LightReceived;
-        lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived; // ambient
+        lighting += emissive * diffuse.rgb; // emissive
+        lighting += emissive * diffuse.rgb * vertexLighting * material.LightReceived; // also tint emissive by ambient
+        lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived * (1 - material.Metalness * .75); // ambient
 
         //lighting.rgb += vertexLighting * 1.0;
         //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
