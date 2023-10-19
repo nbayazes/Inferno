@@ -32,9 +32,8 @@ void EnableDarkMode(HWND hwnd) {
     BOOL useDarkMode = true;
     //IsWindowsVersionOrGreater(); 
     // support for this attribute was added in Windows 10 20H1, whatever version that was
-    DwmSetWindowAttribute(
-        hwnd, DWMWINDOWATTRIBUTE::DWMWA_USE_IMMERSIVE_DARK_MODE,
-        &useDarkMode, sizeof(useDarkMode));
+    DwmSetWindowAttribute(hwnd, DWMWINDOWATTRIBUTE::DWMWA_USE_IMMERSIVE_DARK_MODE,
+                          &useDarkMode, sizeof(useDarkMode));
 }
 
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -61,16 +60,16 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             Input::ProcessRawMouseInput(message, wParam, lParam);
             break;
 
-            //case WM_PAINT:
-            //    if (/*AppMoving &&*/ app) {
-            //        app->Tick();
-            //    }
-            //    else {
-            //        PAINTSTRUCT ps;
-            //        (void)BeginPaint(hWnd, &ps);
-            //        EndPaint(hWnd, &ps);
-            //    }
-            //    break;
+        //case WM_PAINT:
+        //    if (/*AppMoving &&*/ app) {
+        //        app->Tick();
+        //    }
+        //    else {
+        //        PAINTSTRUCT ps;
+        //        (void)BeginPaint(hWnd, &ps);
+        //        EndPaint(hWnd, &ps);
+        //    }
+        //    break;
 
         case WM_MOVE:
             if (app) app->OnWindowMoved();
@@ -213,9 +212,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_CHAR:
             if (wParam > 0 && wParam < 0x10000)
-                if (app) {
-
-                }
+                if (app) { }
             break;
     }
 
@@ -255,22 +252,21 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
 
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
 
+    // TODO: Change to CreateWindowExW(WS_EX_TOPMOST, , , WS_POPUP, to default to fullscreen.
     HWND hwnd = CreateWindowEx(0, WindowClass, Convert::ToWideString(APP_TITLE).c_str(),
                                WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
                                rc.right - rc.left, rc.bottom - rc.top,
                                nullptr, nullptr, _hInstance, nullptr);
-    // TODO: Change to CreateWindowExW(WS_EX_TOPMOST, , , WS_POPUP,
-    // to default to fullscreen.
 
     if (!hwnd)
-        return 1;
+        throw std::exception("Failed to create window");
 
     Shell::DpiScale = (float)GetDpiForWindow(hwnd) / 96.0f;
 
     EnableDarkMode(hwnd);
     Shell::Hwnd = hwnd;
-    ShowWindow(hwnd, nCmdShow);
     // TODO: Change nCmdShow to SW_SHOWMAXIMIZED to default to fullscreen.
+    ShowWindow(hwnd, nCmdShow);
 
     Application app;
     SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(&app));
@@ -289,10 +285,7 @@ int Inferno::Shell::Show(int width, int height, int nCmdShow) const {
         }
     }
 
-    app.OnShutdown();
     DestroyWindow(hwnd);
     DeleteObject(BackgroundBrush);
     return (int)msg.wParam;
 }
-
-

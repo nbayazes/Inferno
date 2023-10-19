@@ -544,7 +544,7 @@ namespace Inferno::Editor {
 
                 ImGui::TableNextColumn();
                 if (ImGui::Button("Copy")) {
-                    SideLightBuffer = side.LightOverride;
+                    SideLightBuffer = light;
                 }
 
                 ImGui::SameLine();

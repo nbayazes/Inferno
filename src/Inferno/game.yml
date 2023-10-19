@@ -151,7 +151,7 @@ Weapons:
   - id: 9
     Name: flare
     FireDelay: 0.5
-    Lifetime: 15
+    Lifetime: 10
     Glow: 1, .66, 0.25, 20
     LightRadius: 40
     LightColor: 1, .66, 0.25, 1.5

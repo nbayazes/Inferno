@@ -9,7 +9,7 @@ namespace Inferno {
     List<IShader> CompiledShaders;
 
     // Recompiles a shader
-    void CompileShader(IShader* shader) noexcept {
+    void CompileShader(IShader* shader) {
         try {
             auto vertexShader = LoadVertexShader(shader->Info.File, shader->RootSignature, shader->Info.VSEntryPoint);
             auto pixelShader = LoadPixelShader(shader->Info.File, shader->Info.PSEntryPoint);
@@ -21,7 +21,11 @@ namespace Inferno {
             }
         }
         catch (std::exception& e) {
-            SPDLOG_ERROR(e.what());    
+            SPDLOG_ERROR(e.what());
+            if (!shader->VertexShader || !shader->PixelShader) {
+                auto msg = fmt::format("Unable to compile {}\n\n{}", Convert::ToString(shader->Info.File), e.what());
+                throw std::exception(msg.c_str()); // never initialized, crash
+            }
         }
     }
 
@@ -102,7 +106,7 @@ namespace Inferno {
                 case DepthMode::ReadEqual: return DEPTH_EQUAL;
             }
         }();
-        
+
         psoDesc.SampleMask = UINT_MAX;
         psoDesc.PrimitiveTopologyType = effect.TopologyType;
         psoDesc.NumRenderTargets = renderTargets;
@@ -128,4 +132,3 @@ namespace Inferno {
         return psoDesc;
     }
 }
-

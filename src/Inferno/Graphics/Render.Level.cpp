@@ -387,6 +387,14 @@ namespace Inferno::Render {
             if (Seq::inRange(RoomLights, (int)id)) {
                 for (auto& light : RoomLights[(int)id]) {
                     Graphics::Lights.AddLight(light);
+
+                    if (Settings::Editor.ShowLights && light.type == LightType::Rectangle) {
+                        Color color(1, .6, .2);
+                        Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, color); // right
+                        Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, color); // bottom
+                        Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, color); // left
+                        Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, color); // top
+                    }
                 }
             }
 

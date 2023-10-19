@@ -25,7 +25,7 @@ namespace Inferno {
         Vector3 Target = Vector3::Zero;
         Vector3 Up = Vector3::UnitY;
 
-        float MinimumZoom = 10; // closest the camera can get to the target
+        float MinimumZoom = 5; // closest the camera can get to the target
         Viewport Viewport = { 0, 0, 1024, 768, NearClip, FarClip };
 
         void SetViewport(float width, float height) {
@@ -165,7 +165,7 @@ namespace Inferno {
             direction.Normalize();
 
             // scale zoom amount based on distance from target
-            auto value = std::clamp(delta.Length() / 6, 10.0f, 100.0f);
+            auto value = std::clamp(delta.Length() / 6, MinimumZoom, 100.0f);
             Vector3 pos = Position + direction * value;
 
             if (Vector3::Distance(pos, Target) > MinimumZoom)

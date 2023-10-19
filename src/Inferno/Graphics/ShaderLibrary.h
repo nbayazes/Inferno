@@ -526,7 +526,7 @@ namespace Inferno {
     };
 
 
-    void CompileShader(IShader*) noexcept;
+    void CompileShader(IShader*);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC BuildPipelineStateDesc(EffectSettings effect, IShader* shader, uint msaaSamples, uint renderTargets = 1);
 
