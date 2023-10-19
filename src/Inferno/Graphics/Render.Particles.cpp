@@ -541,11 +541,6 @@ namespace Inferno::Render {
                 }
             }
 
-            if (beam.HasRandomEndpoints() && Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
-                InitRandomBeamPoints(beam, startObj);
-                beam.Runtime.NextStrikeTime = Render::ElapsedTime + beam.StrikeTime;
-            }
-
             float dissolveFade = 1;
 
             if (HasFlag(beam.Flags, BeamFlag::RandomObjStart) && startObj) {
@@ -562,6 +557,11 @@ namespace Inferno::Render {
             }
             else if (endObj) {
                 beam.End = endObj->GetPosition(Game::LerpAmount);
+            }
+
+            if (beam.HasRandomEndpoints() && Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
+                InitRandomBeamPoints(beam, startObj); // Relies on beam.Start being updated
+                beam.Runtime.NextStrikeTime = Render::ElapsedTime + beam.StrikeTime;
             }
 
             beam.Time += Render::FrameTime;

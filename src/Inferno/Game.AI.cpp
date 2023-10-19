@@ -555,10 +555,14 @@ namespace Inferno {
             ai.RemainingStun = stunTime;
             PlayRobotAnimation(robot, AnimState::Flinch, 0.2f);
 
-            if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned_object_arcs")) {
+            if (auto beam = Render::EffectLibrary.GetBeamInfo("stunned object arcs")) {
                 auto startObj = Game::GetObjectRef(robot);
+                beam->Radius = { robot.Radius * 0.6f, robot.Radius * 0.9f };
                 Render::AddBeam(*beam, stunTime, startObj);
-                Render::AddBeam(*beam, stunTime, startObj);
+                beam->StartDelay = stunTime / 3;
+                Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
+                beam->StartDelay = stunTime * 2 / 3;
+                Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
             }
         }
 

@@ -241,6 +241,8 @@ Weapons:
 
   - id: 8
     Name: concussion missile
+    StunMult: 1.5 # It's called a concussion missile, it should stun things
+    Speed: 115 # Original speed of 90 feels weak. Mercuries are 400. Lasers are 120
     Decal: scorchC
     DecalRadius: 4
     LightRadius: 14
@@ -769,7 +771,7 @@ Effects:
       Scale: 8
       FadeInOutTime: 0.5
 
-    - Name: stunned_object_arcs
+    - Name: stunned object arcs
       Width: [ .1, .2 ]
       Color: .2, .2, 1, 75
       Texture: Lightning3
@@ -777,9 +779,9 @@ Effects:
       Amplitude: .35
       FadeEnd: 1
       RandomEnd: 1
-      StrikeTime: 0.5
+      StrikeTime: 0.35
       RandomObjStart: 1
-      Radius: 8
+      # Radius: [ 5, 8 ] Radius is set in code as a ratio of the object size
 
     - Name: omega_beam # used when omega hits a target
       Width: [ 1.25, 1.5 ]
