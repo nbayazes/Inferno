@@ -801,5 +801,23 @@ namespace Inferno::Render {
             else
                 Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
         }
+
+        for (uint i = 0; i < Material2D::Count; i++) {
+            auto handle = Render::Heaps->Materials.GetHandle((int)SHINY_FLAT_MATERIAL * 5 + i);
+            auto& material = _materials[(int)SHINY_FLAT_MATERIAL];
+            material.Name = "white";
+            material.Handles[i] = handle.GetGpuHandle();
+            material.State = TextureState::Resident;
+            material.ID = SHINY_FLAT_MATERIAL;
+
+            if (i == Material2D::Diffuse)
+                Render::StaticTextures->White.CreateShaderResourceView(handle.GetCpuHandle());
+            else if (i == Material2D::Normal)
+                Render::StaticTextures->Normal.CreateShaderResourceView(handle.GetCpuHandle());
+            else if (i == Material2D::Specular)
+                Render::StaticTextures->White.CreateShaderResourceView(handle.GetCpuHandle());
+            else
+                Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
+        }
     }
 }

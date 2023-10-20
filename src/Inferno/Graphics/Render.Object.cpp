@@ -13,7 +13,7 @@
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
-    constexpr float LEVEL_AMBIENT_MULT = 0.15f;
+    constexpr float LEVEL_AMBIENT_MULT = 0.25f;
     constexpr Color MIN_POWERUP_AMBIENT = Color(0.1, 0.1, 0.1);
 
     constexpr float GetTimeOffset(const Object& obj) {

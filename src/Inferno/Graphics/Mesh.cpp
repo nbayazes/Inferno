@@ -49,6 +49,8 @@ namespace Inferno::Render {
             auto texId = TexID::None; // estimated material for this mesh
             bool isTransparent = false;
 
+            TexID flatMaterial = SHINY_FLAT_MATERIAL;
+
             // load vertex buffer
             for (int i = 0; i < vertexCount; i++) {
                 // combine points and uvs into vertices
@@ -56,7 +58,7 @@ namespace Inferno::Render {
                 auto& p = submodel.ExpandedPoints[i];
                 ObjectVertex v{ p.Point, uv, submodel.ExpandedColors[i] };
                 if (p.TexSlot == -1) {
-                    v.TexID = (int)WHITE_MATERIAL;
+                    v.TexID = (int)flatMaterial;
                 }
                 else {
                     texId = Resources::LookupModelTexID(model, p.TexSlot);
@@ -90,8 +92,7 @@ namespace Inferno::Render {
                 mesh.VertexBuffer = vertexView;
                 mesh.IndexBuffer = _buffer.PackIndices(indices);
                 mesh.IndexCount = (uint)indices.size();
-                mesh.Texture = texId == TexID::None ? WHITE_MATERIAL : texId; // for flat shaded meshes
-                //if (mesh.Texture == TexID::None) mesh.Texture = WHITE_MATERIAL; 
+                mesh.Texture = texId == TexID::None ? flatMaterial : texId; // for flat shaded meshes
                 mesh.EffectClip = Resources::GetEffectClipID(mesh.Texture);
                 mesh.IsTransparent = isTransparent;
                 handle.IsTransparent = isTransparent;

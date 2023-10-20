@@ -20,6 +20,7 @@ namespace Inferno::Render {
     constexpr auto MISSING_MATERIAL = TexID(2900);
     constexpr auto WHITE_MATERIAL = TexID(2901);
     constexpr auto BLACK_MATERIAL = TexID(2902);
+    constexpr auto SHINY_FLAT_MATERIAL = TexID(2903); // For flat untextured polygons on models
 
     // Supports loading and unloading materials
     class MaterialLibrary {

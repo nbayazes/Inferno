@@ -4,6 +4,7 @@
 #include "Procedural.h"
 #include "Resources.h"
 #include "Yaml.h"
+#include "Graphics/MaterialLibrary.h"
 
 using namespace Yaml;
 
@@ -245,6 +246,14 @@ namespace Inferno {
                     }
                 }
             }
+
+            // Hard code special flat material
+            auto& flat = materials[(int)Render::SHINY_FLAT_MATERIAL];
+            flat.ID = (int)Render::SHINY_FLAT_MATERIAL;
+            flat.Metalness = 0.97f;
+            flat.Roughness = 0.375f;
+            flat.LightReceived = 0.5f;
+            flat.SpecularStrength = .20f;
             SPDLOG_INFO("Loaded {} material definitions", count);
         }
         catch (const std::exception& e) {
