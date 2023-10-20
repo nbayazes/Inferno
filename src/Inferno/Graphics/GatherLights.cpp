@@ -351,13 +351,24 @@ namespace Inferno::Graphics {
             auto getUVScale = [&face](const Vector3& pos, Vector2 uv) {
                 auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
                 auto upPos = FaceContainsUV(face, uv + Vector2(0, SAMPLE_DIST));
-                if (!rightPos || !upPos) return Vector2(1, 1);
+                if (!rightPos || !upPos) return Vector2(20, 20);
                 auto widthScale = (*rightPos - pos).Length() / SAMPLE_DIST;
                 auto heightScale = (*upPos - pos).Length() / SAMPLE_DIST;
                 return Vector2(widthScale, heightScale);
             };
 
+            Vector2 centerUv = (side.UVs[0] + side.UVs[1] + side.UVs[2] + side.UVs[3]) / 4;
+            auto uvScale = getUVScale(side.Center, centerUv);
+            if (useOverlay && overlayAngle != 0) {
+                constexpr Vector2 offset(0.5, 0.5);
+                uvScale = RotateVector(uvScale - offset, -overlayAngle) + offset;
+            }
+
             Vector2 prevIntersects[2];
+
+            float offset = info->Offset;
+            //if (side.Normals[0].Dot(side.Normals[1]) < 0.9f)
+            //    offset += 2.0f; // Move lights of non-planar surfaces outward to prevent intersection with the wall
 
             // iterate each tile, checking the defined UVs
             for (int ix = xMin; ix < xMax; ix++) {
@@ -437,11 +448,9 @@ namespace Inferno::Graphics {
                                     Vector3 upVec;
                                     up.Normalize(upVec);
                                     auto rightVec = side.AverageNormal.Cross(upVec);
-                                    auto centerUv = (uvEdge0 + uvEdge1) / 2;
-                                    auto uvScale = getUVScale(*pos, centerUv);
 
                                     light.type = LightType::Rectangle;
-                                    light.pos = center + side.AverageNormal * info->Offset;
+                                    light.pos = center + side.AverageNormal * offset;
                                     light.right = rightVec * info->Width * uvScale.x;
                                     light.up = up;
                                     light.up -= upVec * 1; // offset the ends to prevent hotspots
@@ -451,8 +460,8 @@ namespace Inferno::Graphics {
                         }
                         else {
                             if (useOverlay && overlayAngle != 0) {
-                                constexpr Vector2 offset(0.5, 0.5);
-                                lt = RotateVector(lt - offset, -overlayAngle) + offset;
+                                constexpr Vector2 origin(0.5, 0.5);
+                                lt = RotateVector(lt - origin, -overlayAngle) + origin;
                             }
 
                             Vector2 uv = { ix + lt.x, iy + lt.y };
@@ -477,10 +486,8 @@ namespace Inferno::Graphics {
                                     rightVec = Vector3::Transform(rightVec, rotation);
                                 }
 
-                                auto uvScale = getUVScale(*pos, uv);
-
                                 // sample points close to the uv to get up/right axis
-                                light.pos = *pos + side.AverageNormal * info->Offset;
+                                light.pos = *pos + side.AverageNormal * offset;
                                 light.right = rightVec * info->Width * uvScale.x;
                                 light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
                                 sources.push_back(light);
