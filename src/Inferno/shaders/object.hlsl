@@ -119,7 +119,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     if (!Frame.NewLightMode) {
         float3 lightDir = float3(0, -1, 0);
-        lighting += Object.Ambient.rgb;
+        lighting += saturate(Object.Ambient.rgb * 4);
+        lighting.rgb = saturate(Luminance(lighting.rgb)); // Desaturate
         lighting *= Specular(lightDir, viewDir, input.normal);
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
@@ -145,7 +146,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             //specularMask = 1;
             //normal = input.normal;
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-            lighting += colorSum * material.LightReceived * 1.5;
+            lighting += colorSum * material.LightReceived;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength * Object.Ambient.rgb;
             lighting += Object.Ambient.rgb * diffuse.rgb * material.LightReceived;
@@ -154,7 +155,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         
         lighting.rgb += phaseColor;
 
-        //if (argDissolve - dissolveTex < 0) lighting.rgb = float3(1, 0, 1);
         return float4(lighting * Frame.GlobalDimming, diffuse.a);
     }
 }

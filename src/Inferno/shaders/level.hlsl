@@ -317,6 +317,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     if (!Frame.NewLightMode) {
         lighting.rgb += vertexLighting;
+        lighting.rgb = saturate(Luminance(lighting.rgb)/* + emissive*/); // Desaturate
         return float4(diffuse.rgb * lighting.rgb * Frame.GlobalDimming, diffuse.a);
     }
     else {

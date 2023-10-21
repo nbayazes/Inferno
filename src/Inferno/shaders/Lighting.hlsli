@@ -629,13 +629,13 @@ float3 ApplyRectLight2(
 }
 
 float Luminance(float3 v) {
+    //0.299,0.587,0.114
     return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
 }
 
-static const float DIFFUSE_MULT = 0.5; // overall brightness
 static const float METAL_DIFFUSE_FACTOR = 3; // overall brightness of metal
-static const float METAL_SPECULAR_FACTOR = 0.5; // reduce this after increasing specular exponent
-static const float METAL_SPECULAR_EXP = 4; // increase this to get more diffuse color contribution
+static const float METAL_SPECULAR_FACTOR = 1; // reduce this after increasing specular exponent
+static const float METAL_SPECULAR_EXP = 2.0; // increase this to get more diffuse color contribution
 
 float3 GetMetalDiffuse(float3 diffuse) {
     float3 intensity = dot(diffuse, float3(0.299, 0.587, 0.114));
@@ -647,13 +647,12 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     lightColor = lerp(lightRgb, 0, material.Metalness);
     float3 metalDiffuse = GetMetalDiffuse(diffuse);
 
-    //specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * light.color * METAL_SPECULAR_FACTOR, material.Metalness);
-    specularColor = lightColor + lerp(0, (pow(metalDiffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_FACTOR, material.Metalness);
+    specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_FACTOR, material.Metalness);
     specularColor *= material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
     lightColor += lerp(0, diffuse * lightRgb * METAL_DIFFUSE_FACTOR, material.Metalness);
     //lightColor *= (1 - material.Metalness);
-    lightColor *= DIFFUSE_MULT;
+    lightColor *= 1;
 }
 
 void ShadeLights(inout float3 colorSum,
