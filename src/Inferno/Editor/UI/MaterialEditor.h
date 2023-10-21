@@ -65,7 +65,7 @@ namespace Inferno::Editor {
             //ImGui::Checkbox("Enable loading", &_enableLoading);
 
             ImGui::SameLine(contentMax.x - 150);
-            if (ImGui::Button("Save All", { 150 * Shell::DpiScale, 0 }))
+            if (ImGui::Button("Save Materials", { 150 * Shell::DpiScale, 0 }))
                 OnSave();
 
             ImGui::Dummy({ 0, 4 });
@@ -166,9 +166,15 @@ namespace Inferno::Editor {
 
                     ImGui::SameLine();
                     {
-                        ImGui::BeginChild("previewdetails", tileSize);
+                        ImGui::BeginChild("previewdetails", { 0, 128 * Shell::DpiScale });
                         ImGui::Text(ti.Name.c_str());
-                        auto label = fmt::format("Tex ID: {}", ti.ID);
+
+                        string label;
+                        if (auto ltid = Resources::LookupLevelTexID(ti.ID); (int)ltid != 255)
+                            label = fmt::format("Tex ID: {}  Level ID: {}", (int)ti.ID, (int)ltid);
+                        else
+                            label = fmt::format("Tex ID: {}", (int)ti.ID);
+
                         ImGui::Text(label.c_str());
                         if (ImGui::Button("Apply texture", buttonSize))
                             ApplyTexture(ti.ID);
@@ -227,7 +233,7 @@ namespace Inferno::Editor {
 
                         ImGui::TableRowLabel("Normal Strength");
                         ImGui::SetNextItemWidth(-1);
-                        if (ImGui::SliderFloat("##Normal", &material.NormalStrength, -2, 2)) {
+                        if (ImGui::SliderFloat("##Normal", &material.NormalStrength, -1, 1)) {
                             onMaterialChanged();
                         }
 

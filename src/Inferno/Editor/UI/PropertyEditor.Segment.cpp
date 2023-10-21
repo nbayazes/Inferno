@@ -1217,53 +1217,6 @@ namespace Inferno::Editor {
             ImGui::AlignTextToFramePadding();
             ImGui::Text(TextureFlagToString(lti.Flags).c_str());
 
-            auto& material = Resources::GetMaterial(ti.ID);
-            auto onMaterialChanged = [&] {
-                material.ID = (int)ti.ID;
-                Events::LevelChanged();
-            };
-
-            ImGui::TableRowLabel("Roughness");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##Roughness", &material.Roughness, 0.3, 1)) {
-                material.Roughness = std::clamp(material.Roughness, 0.0f, 1.0f);
-                onMaterialChanged();
-            }
-
-            ImGui::TableRowLabel("Metalness");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##Metalness", &material.Metalness, 0, 1)) {
-                material.Metalness = std::clamp(material.Metalness, 0.0f, 1.0f);
-                onMaterialChanged();
-            }
-
-            ImGui::TableRowLabel("Normal Strength");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##Normal", &material.NormalStrength, -2, 2)) {
-                onMaterialChanged();
-            }
-
-            ImGui::TableRowLabel("Specular Strength");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##SpecularStrength", &material.SpecularStrength, 0, 2)) {
-                material.SpecularStrength = std::max(material.SpecularStrength, 0.0f);
-                onMaterialChanged();
-            }
-
-            ImGui::TableRowLabel("Emissive Strength");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##EmissiveStrength", &material.EmissiveStrength, 0, 10)) {
-                material.EmissiveStrength = std::max(material.EmissiveStrength, 0.0f);
-                onMaterialChanged();
-            }
-
-            ImGui::TableRowLabel("Light Received");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##LightReceived", &material.LightReceived, 0, 1)) {
-                material.LightReceived = std::max(material.LightReceived, 0.0f);
-                onMaterialChanged();
-            }
-
             ImGui::TreePop();
         }
 

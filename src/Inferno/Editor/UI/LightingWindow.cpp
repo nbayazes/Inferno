@@ -76,7 +76,7 @@ namespace Inferno::Editor {
         {
             ImGui::SliderInt("Bounces", &settings.Bounces, 0, 5);
             ImGui::SliderFloat("Reflectance", &settings.Reflectance, 0, 1);
-            ImGui::HelpMarker("How much light to keep after each bounce");
+            ImGui::HelpMarker("How much light to conserve after each bounce.\nHigher values contribute more surface color to lighting.");
             //ImGui::Checkbox("Skip first bounce", &settings.SkipFirstPass);
             //ImGui::HelpMarker("Experimental: Skip the first bounce of radiosity.\nReduces artifacting and smoothes the final result but loses saturation.");
         }

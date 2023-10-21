@@ -191,7 +191,7 @@ namespace Inferno::Editor {
         return 1.0f / (1.0f + a * dist + b * dist * dist);
     }
 
-    // Returns the falloff using a cutoff 
+    // Returns the attenuation using a cutoff value
     constexpr float Attenuate2(float dist, float radius, float cutoff) {
         // https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
         float denom = dist / radius + 1;

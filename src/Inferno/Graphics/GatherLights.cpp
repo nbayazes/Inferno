@@ -189,7 +189,7 @@ namespace Inferno::Graphics {
 
     List<LightData> GatherSegmentLights(Level& level, const Segment& seg, float multiplier, float defaultRadius) {
         List<LightData> sources;
-        TextureLightInfo defaultInfo{ .Radius = defaultRadius };
+        TextureLightInfo defaultInfo{ .Points = {}, .Radius = defaultRadius  };
 
         if (seg.Type == SegmentType::Energy) {
             auto len = seg.GetLongestSide();
@@ -209,46 +209,46 @@ namespace Inferno::Graphics {
         //if (HasFlag(seg.AmbientSound, SoundFlag::AmbientLava)) {
         {
             // todo: only do this on rooms containing lava
-            auto lavaId = LevelTexID::None;
+            //auto lavaId = LevelTexID::None;
 
-            Vector3 center;
-            int sideCount = 0;
-            float maxArea = 0;
-            auto lavaSide = SideID::None;
+            //Vector3 center;
+            //int sideCount = 0;
+            //float maxArea = 0;
+            //auto lavaSide = SideID::None;
 
-            // there might be lava on a side, check them
-            for (auto& sideId : SideIDs) {
-                if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
+            //// there might be lava on a side, check them
+            //for (auto& sideId : SideIDs) {
+            //    if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
 
-                auto& side = seg.GetSide(sideId);
-                auto tmap = LevelTexID::None;
+            //    auto& side = seg.GetSide(sideId);
+            //    auto tmap = LevelTexID::None;
 
-                if (Resources::GetLevelTextureInfo(side.TMap).HasFlag(TextureFlag::Volatile)) {
-                    tmap = side.TMap;
-                    center += side.Center + side.AverageNormal; // center + offset
-                    sideCount++;
-                }
+            //    if (Resources::GetLevelTextureInfo(side.TMap).HasFlag(TextureFlag::Volatile)) {
+            //        tmap = side.TMap;
+            //        center += side.Center + side.AverageNormal; // center + offset
+            //        sideCount++;
+            //    }
 
-                if (Resources::GetLevelTextureInfo(side.TMap2).HasFlag(TextureFlag::Volatile)) {
-                    tmap = side.TMap2;
-                    center += side.Center + side.AverageNormal; // center + offset
-                    sideCount++;
-                }
+            //    if (Resources::GetLevelTextureInfo(side.TMap2).HasFlag(TextureFlag::Volatile)) {
+            //        tmap = side.TMap2;
+            //        center += side.Center + side.AverageNormal; // center + offset
+            //        sideCount++;
+            //    }
 
-                if (tmap != LevelTexID::None) {
-                    // check if this side is the biggest
-                    auto face = Face2::FromSide(level, seg, sideId);
-                    auto v0 = face[1] - face[0];
-                    auto v1 = face[3] - face[0];
-                    auto area = v0.Cross(v1).Length();
+            //    if (tmap != LevelTexID::None) {
+            //        // check if this side is the biggest
+            //        auto face = Face2::FromSide(level, seg, sideId);
+            //        auto v0 = face[1] - face[0];
+            //        auto v1 = face[3] - face[0];
+            //        auto area = v0.Cross(v1).Length();
 
-                    if (area > maxArea) {
-                        maxArea = area;
-                        lavaSide = sideId;
-                        lavaId = tmap;
-                    }
-                }
-            }
+            //        if (area > maxArea) {
+            //            maxArea = area;
+            //            lavaSide = sideId;
+            //            lavaId = tmap;
+            //        }
+            //    }
+            //}
 
             //if (lavaSide != SideID::None && lavaId != LevelTexID::None && sideCount > 0) {
             //    // Lava in this seg, add point lights
@@ -394,9 +394,9 @@ namespace Inferno::Graphics {
                                 uv1 += Vector2(0, 1);
 
                             if (useOverlay && overlayAngle != 0) {
-                                constexpr Vector2 offset(0.5, 0.5);
-                                uv0 = RotateVector(uv0 - offset, -overlayAngle) + offset;
-                                uv1 = RotateVector(uv1 - offset, -overlayAngle) + offset;
+                                constexpr Vector2 origin(0.5, 0.5);
+                                uv0 = RotateVector(uv0 - origin, -overlayAngle) + origin;
+                                uv1 = RotateVector(uv1 - origin, -overlayAngle) + origin;
                             }
 
                             uv0 += uvOffset;
