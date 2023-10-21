@@ -422,8 +422,10 @@ namespace Inferno::Render {
             else {
                 if (i == Material2D::Normal)
                     texture = &Render::StaticTextures->Normal;
+                else if (i == Material2D::Emissive || i == Material2D::Specular)
+                    texture = &Render::StaticTextures->White;
                 else
-                    texture = info.Transparent && i == Material2D::Specular ? &Render::StaticTextures->White : &Render::StaticTextures->Black;
+                    texture = &Render::StaticTextures->Black;
             }
 
             texture->CreateShaderResourceView(handle);
