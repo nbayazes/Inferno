@@ -104,9 +104,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         matid = VClips[texid - VCLIP_RANGE].Frames[0];
         texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time + Object.TimeOffset);
     }
-
-    float4 diffuse = Sample2D(TextureTable[texid * 5], input.uv, Sampler, Frame.FilterMode) * input.col;
-    float emissive = Sample2D(TextureTable[texid * 5 + 2], input.uv, Sampler, Frame.FilterMode).r;
+    
+    float4 diffuse = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5)], input.uv, Sampler, Frame.FilterMode) * input.col;
+    return diffuse;
+    float emissive = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 2)], input.uv, Sampler, Frame.FilterMode).r;
     float3 lighting = float3(0, 0, 0);
 
     float3 phaseColor = 0;
@@ -130,10 +131,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         }
         else {
             //float specularMask = Specular1.Sample(Sampler, input.uv).r;
-            float specularMask = Sample2D(TextureTable[texid * 5 + 3], input.uv, Sampler, Frame.FilterMode).r;
+            float specularMask = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 3)], input.uv, Sampler, Frame.FilterMode).r;
 
             MaterialInfo material = Materials[matid];
-            float3 normal = SampleNormal(TextureTable[texid * 5 + 4], input.uv, NormalSampler, Frame.FilterMode);
+            float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
             //return float4(normal, 1);
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);
