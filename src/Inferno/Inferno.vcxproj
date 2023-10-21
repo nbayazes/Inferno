@@ -391,9 +391,9 @@
     </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
-    <None Include="game.yml">
+    <CopyFileToFolders Include="game.yml">
       <FileType>Text</FileType>
-    </None>
+    </CopyFileToFolders>
     <CopyFileToFolders Include="lights.yml">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Text</FileType>

@@ -676,7 +676,6 @@
       <Filter>Source Files</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="game.yml" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="shaders\DownsampleBloomCS.hlsl">
@@ -764,6 +763,7 @@
     <CopyFileToFolders Include="lights2.yml" />
     <CopyFileToFolders Include="materials.yml" />
     <CopyFileToFolders Include="materials2.yml" />
+    <CopyFileToFolders Include="game.yml" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc">
