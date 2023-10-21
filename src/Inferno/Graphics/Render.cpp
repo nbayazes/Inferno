@@ -398,11 +398,11 @@ namespace Inferno::Render {
         ctx.SetViewportAndScissor((UINT)backBuffer->GetWidth(), (UINT)backBuffer->GetHeight());
 
         auto cmdList = ctx.GetCommandList();
-        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
             Bloom->Apply(cmdList, Adapter->SceneColorBuffer);
 
+        Adapter->SceneColorBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         // draw to backbuffer using a shader + polygon
         _postBatch->SetViewport(Adapter->GetScreenViewport());
         _postBatch->Begin(cmdList);
