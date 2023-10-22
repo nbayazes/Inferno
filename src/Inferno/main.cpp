@@ -199,6 +199,9 @@ void CreateConsoleWindow() {
     freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
 }
 
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION; }
+extern "C" { __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\"; }
+
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_opt_ HINSTANCE /*hPrevInstance*/,
                      _In_ LPSTR     /*lpCmdLine*/,
