@@ -55,7 +55,8 @@ namespace Inferno {
 
             ThrowIfFailed(Render::Device->CreateDescriptorHeap(&_desc, IID_PPV_ARGS(_heap.ReleaseAndGetAddressOf())));
             _descriptorSize = Render::Device->GetDescriptorHandleIncrementSize(_desc.Type);
-            _start = { _heap->GetCPUDescriptorHandleForHeapStart(), _heap->GetGPUDescriptorHandleForHeapStart() };
+            D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = shaderVisible ? _heap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{};
+            _start = { _heap->GetCPUDescriptorHandleForHeapStart(), gpuHandle };
         }
 
         auto Size() const { return _desc.NumDescriptors; }
