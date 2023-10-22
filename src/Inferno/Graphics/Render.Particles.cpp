@@ -1,4 +1,5 @@
 #include "pch.h"
+#include <pix3.h>
 #include "Render.Particles.h"
 #include "DataPool.h"
 #include "Render.h"
@@ -858,7 +859,7 @@ namespace Inferno::Render {
 
     void DrawDecals(Graphics::GraphicsContext& ctx, float dt) {
         auto cmdList = ctx.GetCommandList();
-        PIXScopedEventObject decalEvent(cmdList, PIX_COLOR_INDEX(0), "Decals");
+        PIXScopedEvent(cmdList, PIX_COLOR_INDEX(0), "Decals");
 
         {
             auto& effect = Effects->SpriteMultiply;

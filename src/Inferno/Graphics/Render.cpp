@@ -390,7 +390,7 @@ namespace Inferno::Render {
     }
 
     void PostProcess(const GraphicsContext& ctx) {
-        PIXScopedEventObject pixEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(8), "Post");
+        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(8), "Post");
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
         ctx.ClearColor(*backBuffer);
@@ -412,7 +412,7 @@ namespace Inferno::Render {
     }
 
     void DrawUI(GraphicsContext& ctx) {
-        PIXScopedEventObject pixEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(9), "UI");
+        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(9), "UI");
         ScopedTimer imguiTimer(&Metrics::ImGui);
         Canvas->Render(ctx);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
@@ -422,7 +422,7 @@ namespace Inferno::Render {
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
         if (!Settings::Editor.Windows.BriefingEditor) return;
 
-        PIXScopedEventObject pixEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
+        PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
         ctx.ClearColor(target);
         ctx.SetRenderTarget(target.GetRTV());
         float scale = 1;

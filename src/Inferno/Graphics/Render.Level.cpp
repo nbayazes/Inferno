@@ -122,7 +122,7 @@ namespace Inferno::Render {
 
     void DepthPrepass(GraphicsContext& ctx) {
         auto cmdList = ctx.GetCommandList();
-        PIXScopedEventObject pixEvent(cmdList, PIX_COLOR_DEFAULT, "Depth prepass");
+        PIXScopedEvent(cmdList, PIX_COLOR_DEFAULT, "Depth prepass");
 
         // Depth prepass
         ClearDepthPrepass(ctx);
@@ -412,7 +412,7 @@ namespace Inferno::Render {
         Graphics::Lights.Dispatch(cmdList);
 
         {
-            PIXScopedEventObject levelEvent(cmdList, PIX_COLOR_INDEX(5), "Level");
+            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(5), "Level");
             LegitProfiler::ProfilerTask queue("Execute queues", LegitProfiler::Colors::AMETHYST);
             auto& target = Adapter->GetHdrRenderTarget();
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
@@ -423,13 +423,13 @@ namespace Inferno::Render {
             LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
             {
-                PIXScopedEventObject queueEvent(cmdList, PIX_COLOR_INDEX(1), "Opaque queue");
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(1), "Opaque queue");
                 for (auto& cmd : _renderQueue.Opaque())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Opaque);
             }
 
             {
-                PIXScopedEventObject queueEvent(cmdList, PIX_COLOR_INDEX(2), "Wall queue");
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Wall queue");
                 for (auto& cmd : _renderQueue.Transparent() | views::reverse)
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
             }
@@ -437,7 +437,7 @@ namespace Inferno::Render {
             DrawDecals(ctx, Render::FrameTime);
 
             {
-                PIXScopedEventObject queueEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
                 for (auto& cmd : _renderQueue.Transparent() | views::reverse)
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             }
@@ -472,7 +472,7 @@ namespace Inferno::Render {
         }
 
         if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
-            PIXScopedEventObject editorEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
+            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
             LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
             DrawEditor(ctx.GetCommandList(), level);
             DrawDebug(level);

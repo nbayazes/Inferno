@@ -160,7 +160,7 @@ namespace Inferno {
             if (!IsEnabled()) return;
             _copyCommands->Reset();
             {
-                PIXScopedEventObject pixEvent(_copyCommands->GetCommandList(), PIX_COLOR_INDEX(0), "Copy procedurals");
+                PIXScopedEvent(_copyCommands->GetCommandList(), PIX_COLOR_INDEX(0), "Copy procedurals");
 
                 for (auto& proc : Procedurals) {
                     proc->CopyToMainThread(_copyCommands->GetCommandList());
@@ -179,7 +179,7 @@ namespace Inferno {
             auto currentTime = Clock.GetTotalTimeSeconds();
 
             {
-                PIXScopedEventObject pixEvent(_uploadCommands->GetCommandList(), PIX_COLOR_INDEX(1), "Update procedurals");
+                PIXScopedEvent(_uploadCommands->GetCommandList(), PIX_COLOR_INDEX(1), "Update procedurals");
                 for (auto& proc : Procedurals) {
                     if (proc->Update(_uploadCommands->GetCommandList(), currentTime)) {
                         didWork = true;
