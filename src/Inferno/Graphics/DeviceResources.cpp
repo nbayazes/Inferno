@@ -106,7 +106,7 @@ namespace Inferno {
 
         // Determines whether tearing support is available for fullscreen borderless windows.
         if (m_options & c_AllowTearing) {
-            bool allowTearing = false;
+            BOOL allowTearing = false;
 
             ComPtr<IDXGIFactory5> factory5;
             HRESULT hr = m_dxgiFactory.As(&factory5);
