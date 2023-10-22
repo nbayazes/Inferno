@@ -432,7 +432,7 @@ namespace Inferno::Game {
 
     void FireSpreadWeapon(ObjRef ref, uint8 gun, WeaponID id, bool showFlash = true, const Vector2& spread = Vector2::Zero) {
         auto direction = GetSpreadDirection(ref.Id, spread);
-        FireWeapon(ref, id, gun, &direction, showFlash);
+        FireWeapon(ref, id, gun, &direction, 1, showFlash);
     }
 
     Object CreateWeaponProjectile(WeaponID id, const Vector3& position, const Vector3& direction,
