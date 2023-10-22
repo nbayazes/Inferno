@@ -109,14 +109,6 @@ namespace Inferno::Graphics {
         ID3D12GraphicsCommandList* GetCommandList() const { return _cmdList.Get(); }
         ID3D12CommandQueue* GetCommandQueue() const { return _queue->Get(); }
 
-        void BeginEvent(wstring_view name) const {
-            PIXBeginEvent(_cmdList.Get(), PIX_COLOR_DEFAULT, name.data());
-        }
-
-        void EndEvent() const {
-            PIXEndEvent(_cmdList.Get());
-        }
-
         void Reset() const {
             ThrowIfFailed(_allocator->Reset());
             ThrowIfFailed(_cmdList->Reset(_allocator.Get(), nullptr));

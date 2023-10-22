@@ -390,7 +390,7 @@ namespace Inferno::Render {
     }
 
     void PostProcess(const GraphicsContext& ctx) {
-        ctx.BeginEvent(L"Post");
+        PIXScopedEventObject pixEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(8), "Post");
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
         ctx.ClearColor(*backBuffer);
@@ -412,18 +412,17 @@ namespace Inferno::Render {
     }
 
     void DrawUI(GraphicsContext& ctx) {
-        ctx.BeginEvent(L"UI");
+        PIXScopedEventObject pixEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(9), "UI");
         ScopedTimer imguiTimer(&Metrics::ImGui);
         Canvas->Render(ctx);
         // Imgui batch modifies render state greatly. Normal geometry will likely not render correctly afterwards.
         g_ImGuiBatch->Render(ctx.GetCommandList());
-        ctx.EndEvent();
     }
 
     void DrawBriefing(GraphicsContext& ctx, RenderTarget& target) {
         if (!Settings::Editor.Windows.BriefingEditor) return;
 
-        ctx.BeginEvent(L"Briefing");
+        PIXScopedEventObject pixEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(10), "Briefing");
         ctx.ClearColor(target);
         ctx.SetRenderTarget(target.GetRTV());
         float scale = 1;
@@ -439,8 +438,6 @@ namespace Inferno::Render {
         Adapter->Scanline.Execute(ctx.GetCommandList(), target, Adapter->BriefingScanlineBuffer);
         Adapter->BriefingScanlineBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         target.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-        ctx.EndEvent();
     }
 
     void CopyMaterialData(ID3D12GraphicsCommandList* cmdList) {

@@ -219,7 +219,7 @@ namespace Inferno::PostFx {
 
     void Bloom::Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source) {
         //g_Descriptors->SetDescriptorHeaps(commandList);
-        PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Bloom");
+        PIXScopedEventObject pixEvent(commandList, PIX_COLOR_DEFAULT, "Bloom");
         BloomExtractDownsample.Execute(commandList, source, Buffers.DownsampleBlur, Buffers.DownsampleLuma);
         DownsampleBloom.Execute(commandList, Buffers.DownsampleBlur, Buffers.Downsample[0]);
         Blur.Execute(commandList, Buffers.Downsample[3], Buffers.Blur);
@@ -228,6 +228,5 @@ namespace Inferno::PostFx {
         Upsample.Execute(commandList, Buffers.Downsample[0], Buffers.Upsample[2], Buffers.Upsample[1]);
         Upsample.Execute(commandList, Buffers.DownsampleBlur, Buffers.Upsample[1], Buffers.Upsample[0]);
         ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], source, Buffers.OutputLuma, Dirt);
-        PIXEndEvent(commandList);
     }
 }

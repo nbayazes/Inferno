@@ -512,8 +512,9 @@ namespace Inferno::Render {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
+        auto cmdList = ctx.GetCommandList();
+        effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
         for (auto& beam : Beams) {
             if (beam.StartDelay > 0) {
@@ -612,9 +613,9 @@ namespace Inferno::Render {
             auto vStep = length / 20 * div * beam.Scale;
 
             auto& material = Render::Materials->Get(beam.Texture);
-            effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
+            effect.Shader->SetDiffuse(cmdList, material.Handle());
             Stats::DrawCalls++;
-            g_SpriteBatch->Begin(ctx.GetCommandList());
+            g_SpriteBatch->Begin(cmdList);
 
             Vector3 prevNormal;
             Vector3 prevUp;
@@ -733,8 +734,9 @@ namespace Inferno::Render {
         auto& effect = Effects->SpriteAdditive;
         ctx.ApplyEffect(effect);
         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-        effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
+        auto cmdList = ctx.GetCommandList();
+        effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+        effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
         if (TravelDist < Length * TRACER_MIN_DIST_MULT) return; // don't draw tracers that are too short
         if (Direction == Vector3::Zero || PrevPosition == Position) return;
@@ -764,8 +766,8 @@ namespace Inferno::Render {
 
         if (!Texture.empty()) {
             auto& material = Render::Materials->Get(Texture);
-            effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
-            g_SpriteBatch->Begin(ctx.GetCommandList());
+            effect.Shader->SetDiffuse(cmdList, material.Handle());
+            g_SpriteBatch->Begin(cmdList);
 
             ObjectVertex v0{ head + up, { 0, 1 }, color };
             ObjectVertex v1{ head - up, { 1, 1 }, color };
@@ -778,8 +780,8 @@ namespace Inferno::Render {
 
         if (!BlobTexture.empty() /*&& dist > Length*/) {
             auto& material = Render::Materials->Get(BlobTexture);
-            effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
-            g_SpriteBatch->Begin(ctx.GetCommandList());
+            effect.Shader->SetDiffuse(cmdList, material.Handle());
+            g_SpriteBatch->Begin(cmdList);
 
             auto right = Render::Camera.GetRight() * halfWidth;
             up = Render::Camera.Up * halfWidth;
@@ -855,20 +857,23 @@ namespace Inferno::Render {
     }
 
     void DrawDecals(Graphics::GraphicsContext& ctx, float dt) {
+        auto cmdList = ctx.GetCommandList();
+        PIXScopedEventObject decalEvent(cmdList, PIX_COLOR_INDEX(0), "Decals");
+
         {
             auto& effect = Effects->SpriteMultiply;
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-            effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-            effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
+            effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+            effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
             for (auto& decal : Decals) {
                 if (decal.Elapsed > decal.Duration) continue;
                 decal.Update(dt, EffectID(0));
 
                 auto& material = Render::Materials->Get(decal.Texture);
-                effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
-                g_SpriteBatch->Begin(ctx.GetCommandList());
+                effect.Shader->SetDiffuse(cmdList, material.Handle());
+                g_SpriteBatch->Begin(cmdList);
                 DrawDecal(decal, *g_SpriteBatch.get());
                 g_SpriteBatch->End();
                 Stats::DrawCalls++;
@@ -879,16 +884,16 @@ namespace Inferno::Render {
             auto& effect = Effects->SpriteAdditiveBiased;
             ctx.ApplyEffect(effect);
             ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-            effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
-            effect.Shader->SetSampler(ctx.GetCommandList(), Render::GetWrappedTextureSampler());
+            effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+            effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
             for (auto& decal : AdditiveDecals) {
                 if (decal.Elapsed > decal.Duration) continue;
                 decal.Update(dt, EffectID(0));
 
                 auto& material = Render::Materials->Get(decal.Texture);
-                effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
-                g_SpriteBatch->Begin(ctx.GetCommandList());
+                effect.Shader->SetDiffuse(cmdList, material.Handle());
+                g_SpriteBatch->Begin(cmdList);
                 DrawDecal(decal, *g_SpriteBatch.get());
                 g_SpriteBatch->End();
                 Stats::DrawCalls++;
@@ -1034,8 +1039,8 @@ namespace Inferno::Render {
 
         effect.Shader->SetSampler(cmdList, Render::GetClampedTextureSampler());
         auto& material = Render::Materials->Get(Texture);
-        effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
-        g_SpriteBatch->Begin(ctx.GetCommandList());
+        effect.Shader->SetDiffuse(cmdList, material.Handle());
+        g_SpriteBatch->Begin(cmdList);
 
         auto remaining = Duration - Elapsed;
         float fade = remaining < FadeTime ? remaining / FadeTime : 1; // global emitter fade

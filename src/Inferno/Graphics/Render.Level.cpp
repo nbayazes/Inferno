@@ -121,10 +121,11 @@ namespace Inferno::Render {
     }
 
     void DepthPrepass(GraphicsContext& ctx) {
-        ctx.BeginEvent(L"Depth prepass");
+        auto cmdList = ctx.GetCommandList();
+        PIXScopedEventObject pixEvent(cmdList, PIX_COLOR_DEFAULT, "Depth prepass");
+
         // Depth prepass
         ClearDepthPrepass(ctx);
-        auto cmdList = ctx.GetCommandList();
 
         // Opaque geometry prepass
         for (auto& cmd : _renderQueue.Opaque()) {
@@ -200,7 +201,6 @@ namespace Inferno::Render {
 
         Adapter->LinearizedDepthBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         Adapter->GetHdrDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
-        ctx.EndEvent();
     }
 
     void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
@@ -408,11 +408,12 @@ namespace Inferno::Render {
         DepthPrepass(ctx);
         LegitProfiler::AddCpuTask(std::move(depth));
 
-        Graphics::Lights.Dispatch(ctx.GetCommandList());
+        auto cmdList = ctx.GetCommandList();
+        Graphics::Lights.Dispatch(cmdList);
 
         {
+            PIXScopedEventObject levelEvent(cmdList, PIX_COLOR_INDEX(5), "Level");
             LegitProfiler::ProfilerTask queue("Execute queues", LegitProfiler::Colors::AMETHYST);
-            ctx.BeginEvent(L"Level");
             auto& target = Adapter->GetHdrRenderTarget();
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
             ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
@@ -421,29 +422,29 @@ namespace Inferno::Render {
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
             LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
-            ctx.BeginEvent(L"Opaque queue");
-            for (auto& cmd : _renderQueue.Opaque())
-                ExecuteRenderCommand(ctx, cmd, RenderPass::Opaque);
-            ctx.EndEvent();
+            {
+                PIXScopedEventObject queueEvent(cmdList, PIX_COLOR_INDEX(1), "Opaque queue");
+                for (auto& cmd : _renderQueue.Opaque())
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Opaque);
+            }
 
-            ctx.BeginEvent(L"Wall queue");
-            for (auto& cmd : _renderQueue.Transparent() | views::reverse)
-                ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
-            ctx.EndEvent();
+            {
+                PIXScopedEventObject queueEvent(cmdList, PIX_COLOR_INDEX(2), "Wall queue");
+                for (auto& cmd : _renderQueue.Transparent() | views::reverse)
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
+            }
 
-            ctx.BeginEvent(L"Decals");
             DrawDecals(ctx, Render::FrameTime);
-            ctx.EndEvent();
 
-            ctx.BeginEvent(L"Transparent queue");
-            for (auto& cmd : _renderQueue.Transparent() | views::reverse)
-                ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
-            ctx.EndEvent();
+            {
+                PIXScopedEventObject queueEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
+                for (auto& cmd : _renderQueue.Transparent() | views::reverse)
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
+            }
 
             // Copy the contents of the render target to the distortion buffer
-            auto cmdList = ctx.GetCommandList();
             auto& renderTarget = Adapter->GetHdrRenderTarget();
-            
+
             if (Settings::Graphics.MsaaSamples > 1)
                 Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);
             else
@@ -458,7 +459,6 @@ namespace Inferno::Render {
             for (auto& cmd : _renderQueue.Distortion() | views::reverse)
                 ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
 
-            ctx.EndEvent(); // level
             LegitProfiler::AddCpuTask(std::move(queue));
 
             //for (auto& cmd : _transparentQueue) // draw transparent geometry on models
@@ -469,19 +469,18 @@ namespace Inferno::Render {
 
             DrawBeams(ctx);
             Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+        }
 
-            if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
-                LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
-                ctx.BeginEvent(L"Editor");
-                DrawEditor(ctx.GetCommandList(), level);
-                DrawDebug(level);
-                ctx.EndEvent();
-                LegitProfiler::AddCpuTask(std::move(editor));
-            }
-            else {
-                //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
-                Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
-            }
+        if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
+            PIXScopedEventObject editorEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
+            LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
+            DrawEditor(ctx.GetCommandList(), level);
+            DrawDebug(level);
+            LegitProfiler::AddCpuTask(std::move(editor));
+        }
+        else {
+            //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
+            Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
         }
 
         EndUpdateEffects();

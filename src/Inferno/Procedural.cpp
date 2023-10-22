@@ -159,12 +159,14 @@ namespace Inferno {
         void CopyProceduralsToMainThread() const {
             if (!IsEnabled()) return;
             _copyCommands->Reset();
-            _copyCommands->BeginEvent(L"Copy procedurals");
-            for (auto& proc : Procedurals) {
-                proc->CopyToMainThread(_copyCommands->GetCommandList());
+            {
+                PIXScopedEventObject pixEvent(_copyCommands->GetCommandList(), PIX_COLOR_INDEX(0), "Copy procedurals");
+
+                for (auto& proc : Procedurals) {
+                    proc->CopyToMainThread(_copyCommands->GetCommandList());
+                }
             }
 
-            _copyCommands->EndEvent();
             _copyCommands->Execute();
             _copyCommands->WaitForIdle();
         }
@@ -172,18 +174,18 @@ namespace Inferno {
     protected:
         void Task() {
             _uploadCommands->Reset();
-            _uploadCommands->BeginEvent(L"Update procedurals");
 
             bool didWork = false;
             auto currentTime = Clock.GetTotalTimeSeconds();
 
-            for (auto& proc : Procedurals) {
-                if (proc->Update(_uploadCommands->GetCommandList(), currentTime)) {
-                    didWork = true;
+            {
+                PIXScopedEventObject pixEvent(_uploadCommands->GetCommandList(), PIX_COLOR_INDEX(1), "Update procedurals");
+                for (auto& proc : Procedurals) {
+                    if (proc->Update(_uploadCommands->GetCommandList(), currentTime)) {
+                        didWork = true;
+                    }
                 }
             }
-
-            _uploadCommands->EndEvent();
             _uploadCommands->Execute();
             _uploadCommands->WaitForIdle();
 

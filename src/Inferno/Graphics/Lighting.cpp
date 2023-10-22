@@ -32,8 +32,7 @@ namespace Inferno::Graphics {
     }
 
     void FillLightGridCS::Dispatch(ID3D12GraphicsCommandList* cmdList, ColorBuffer& linearDepth) {
-        //ScopedTimer _prof(L"FillLightGrid", gfxContext);
-        PIXBeginEvent(cmdList, PIX_COLOR_DEFAULT, L"Fill Light Grid");
+        PIXScopedEventObject pixEvent(cmdList, PIX_COLOR_DEFAULT, "Fill Light Grid");
 
         //ColorBuffer& LinearDepth = g_LinearDepth[TemporalEffects::GetFrameIndexMod2()];
 
@@ -85,7 +84,6 @@ namespace Inferno::Graphics {
         _bitMask.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
         //depth.Transition(cmdList, depthState);
         linearDepth.Transition(cmdList, linearDepthState);
-        PIXEndEvent(cmdList);
     }
 
     using namespace Render;
