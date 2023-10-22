@@ -290,7 +290,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
         float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
         //float overlaySpecularMask = Sample2D(GetTexture(input.Tex2, MAT_SPEC), input.uv2, Sampler, Frame.FilterMode).r;
-        specularMask = lerp(specularMask, overlaySpecularMask, overlay.a);
+        specularMask = lerp(specularMask, overlaySpecularMask, max(overlay.a, 1 - mask));
         // layer the emissive over the base emissive
         emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
         //emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
