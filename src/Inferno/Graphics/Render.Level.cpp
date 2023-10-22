@@ -388,12 +388,21 @@ namespace Inferno::Render {
                 for (auto& light : RoomLights[(int)id]) {
                     Graphics::Lights.AddLight(light);
 
-                    if (Settings::Editor.ShowLights && light.type == LightType::Rectangle) {
+                    if (Settings::Editor.ShowLights) {
                         Color color(1, .6, .2);
-                        Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, color); // right
-                        Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, color); // bottom
-                        Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, color); // left
-                        Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, color); // top
+                        if (light.type == LightType::Rectangle) {
+                            Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, color); // right
+                            Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, color); // bottom
+                            Debug::DrawLine(light.pos - light.right + light.up, light.pos - light.right - light.up, color); // left
+                            Debug::DrawLine(light.pos - light.right + light.up, light.pos + light.right + light.up, color); // top
+                        }
+                        else {
+                            Debug::DrawPoint(light.pos, color);
+                            //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
+                            auto transform = Matrix(VectorToRotation(light.normal));
+                            transform.Translation(light.pos);
+                            Debug::DrawCircle(5 /*light.radius*/, transform, color);
+                        }
                     }
                 }
             }

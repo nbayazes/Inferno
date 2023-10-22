@@ -189,7 +189,7 @@ namespace Inferno::Graphics {
 
     List<LightData> GatherSegmentLights(Level& level, const Segment& seg, float multiplier, float defaultRadius) {
         List<LightData> sources;
-        TextureLightInfo defaultInfo{ .Points = {}, .Radius = defaultRadius  };
+        TextureLightInfo defaultInfo{ .Points = {}, .Radius = defaultRadius };
 
         if (seg.Type == SegmentType::Energy) {
             auto len = seg.GetLongestSide();
@@ -367,6 +367,7 @@ namespace Inferno::Graphics {
             Vector2 prevIntersects[2];
 
             float offset = info->Offset;
+            bool isPlanar = side.Normals[0].Dot(side.Normals[1]) > 0.9f;
             //if (side.Normals[0].Dot(side.Normals[1]) < 0.9f)
             //    offset += 2.0f; // Move lights of non-planar surfaces outward to prevent intersection with the wall
 
@@ -472,22 +473,30 @@ namespace Inferno::Graphics {
                             // Sample points near the light position to determine UV scale
                             auto rightPos = FaceContainsUV(face, uv + Vector2(SAMPLE_DIST, 0));
 
+                            if (info->Type == LightType::Point && !isPlanar) {
+                                // use the triangle the point is on as normal
+                                if (TriangleContainsUV(face, 0, uv))
+                                    light.normal = side.Normals[0];
+                                else if (TriangleContainsUV(face, 1, uv))
+                                    light.normal = side.Normals[1];
+                            }
+
                             if (pos && rightPos) {
                                 auto rightVec = *rightPos - *pos;
                                 rightVec.Normalize();
 
-                                auto upVec = side.AverageNormal.Cross(rightVec);
+                                auto upVec = light.normal.Cross(rightVec);
                                 upVec.Normalize();
 
                                 // Rotate the direction vectors to match the overlay
                                 if (useOverlay && overlayAngle != 0) {
-                                    auto rotation = Matrix::CreateFromAxisAngle(side.AverageNormal, -overlayAngle);
+                                    auto rotation = Matrix::CreateFromAxisAngle(light.normal, -overlayAngle);
                                     upVec = Vector3::Transform(upVec, rotation);
                                     rightVec = Vector3::Transform(rightVec, rotation);
                                 }
 
                                 // sample points close to the uv to get up/right axis
-                                light.pos = *pos + side.AverageNormal * offset;
+                                light.pos = *pos + light.normal * offset;
                                 light.right = rightVec * info->Width * uvScale.x;
                                 light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
                                 sources.push_back(light);
