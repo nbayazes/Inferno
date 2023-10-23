@@ -616,7 +616,7 @@ float3 ApplyRectLight2(
     float diffCutoff = saturate(planeFactor - .25); // Adding less offset decreases brightness
     float specCutoff = saturate(planeFactor - 1);
 
-    float nDotL = Lambert(normal, normalize(closestDiffusePoint - worldPos));
+    float nDotL = HalfLambert(normal, normalize(closestDiffusePoint - worldPos));
 
     float3 lightDir = closestDiffusePoint - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
@@ -645,14 +645,14 @@ float3 GetMetalDiffuse(float3 diffuse) {
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     const float3 lightRgb = light.color.rgb * light.color.a;
     lightColor = lerp(lightRgb, 0, material.Metalness);
-    float3 metalDiffuse = GetMetalDiffuse(diffuse);
+    //float3 metalDiffuse = GetMetalDiffuse(diffuse);
 
     specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_FACTOR, material.Metalness);
     specularColor *= material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
     lightColor += lerp(0, diffuse * lightRgb * METAL_DIFFUSE_FACTOR, material.Metalness);
     //lightColor *= (1 - material.Metalness);
-    lightColor *= 1;
+    //lightColor *= 1;
 }
 
 void ShadeLights(inout float3 colorSum,
