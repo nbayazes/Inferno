@@ -38,19 +38,44 @@ namespace Inferno {
         return delta;
     }
 
+    //  Returns the lowest 3 indices of a side, used for stable comparison of joined sides
+    Array<int, 3> GetLowestIndices(SideID side, const Array<PointID, MAX_VERTICES>& segIndices) {
+        auto& sideVerts = SIDE_INDICES[(int)side];
+
+        Array<int, 4> indices = {
+            segIndices[sideVerts[0]],
+            segIndices[sideVerts[1]],
+            segIndices[sideVerts[2]],
+            segIndices[sideVerts[3]]
+        };
+
+        ranges::sort(indices);
+        return { indices[0], indices[1], indices[2] };
+    }
+
     void Segment::UpdateGeometricProps(const Level& level) {
-        for (auto& s : SideIDs) {
-            auto& side = GetSide(s);
-            auto& sideVerts = SIDE_INDICES[(int)s];
+        for (auto& sideId : SideIDs) {
+            auto& side = GetSide(sideId);
+            auto& sideVerts = SIDE_INDICES[(int)sideId];
             auto& v0 = level.Vertices[Indices[sideVerts[0]]];
             auto& v1 = level.Vertices[Indices[sideVerts[1]]];
             auto& v2 = level.Vertices[Indices[sideVerts[2]]];
             auto& v3 = level.Vertices[Indices[sideVerts[3]]];
 
-            // Always split sides to be convex
             auto n0 = CreateNormal(v0, v1, v2);
-            auto dot = n0.Dot(v3 - v1);
-            side.Type = dot >= 0 ? SideSplitType::Tri02 : SideSplitType::Tri13;
+
+            if (SideHasConnection(sideId)) {
+                // Use the same triangle to compare both open sides so they join consistently
+                auto indices = GetLowestIndices(sideId, Indices);
+                auto normal = CreateNormal(level.Vertices[indices[0]], level.Vertices[indices[1]], level.Vertices[indices[2]]);
+                auto dotNormal = n0.Dot(normal); // Check if ref triangle is flipped
+                side.Type = dotNormal >= 0 ? SideSplitType::Tri02 : SideSplitType::Tri13;
+            }
+            else {
+                // Always split solid sides to be convex
+                auto dot = n0.Dot(v3 - v1);
+                side.Type = dot >= 0 ? SideSplitType::Tri02 : SideSplitType::Tri13;
+            }
 
             if (side.Type == SideSplitType::Tri02) {
                 side.Normals[0] = CreateNormal(v0, v1, v2); // 0-2 split
@@ -70,7 +95,7 @@ namespace Inferno {
             }
 
             auto dist = abs(PointToPlaneDistance(v3, v0, n0));
-            if (dist <= FixToFloat(250)) {
+            if (dist <= PLANAR_TOLERANCE) {
                 side.Type = SideSplitType::Quad;
             }
 
@@ -104,6 +129,7 @@ namespace Inferno {
         auto d2 = Vector3::Distance(Sides[4].Center, Sides[5].Center);
         return std::max(d0, std::max(d1, d2));
     }
+
 
     bool Segment::IsZeroVolume(Level& level) {
         auto front = Face::FromSide(level, *this, SideID::Front);

@@ -3,6 +3,8 @@
 #include "Types.h"
 
 namespace Inferno {
+    constexpr float PLANAR_TOLERANCE = 0.004f;
+
     enum class SideSplitType : uint8 {
         Quad = 1, // render side as quadrilateral
         Tri02 = 2, // render side as two triangles, triangulated along edge from 0 to 2
