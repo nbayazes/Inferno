@@ -1382,7 +1382,6 @@ Materials:
     NormalStrength: 0.344
     Metalness: 0.805
     Roughness: 0.507
-    EmissiveStrength: 5
   - TexID: 1258
     Roughness: 0.719
   - TexID: 1259
@@ -1392,7 +1391,6 @@ Materials:
     NormalStrength: 0.344
     Metalness: 0.805
     Roughness: 0.507
-    EmissiveStrength: 5
   - TexID: 1265
     NormalStrength: 0.344
     Metalness: 0.805
@@ -1414,8 +1412,7 @@ Materials:
     Roughness: 0.507
     EmissiveStrength: 5
   - TexID: 1272
-    NormalStrength: 2
-    Roughness: 0.903
+    Roughness: 0.879
   - TexID: 1273
     NormalStrength: 0.702
     Roughness: 0.8
@@ -1636,7 +1633,6 @@ Materials:
     Metalness: 0.136
     Roughness: 0.547
   - TexID: 1408
-    NormalStrength: 1.252
     Roughness: 0.928
   - TexID: 1411
     Metalness: 0.5
@@ -1915,8 +1911,8 @@ Materials:
     Metalness: 0.908
     Roughness: 0.549
   - TexID: 1496
-    NormalStrength: 0.133
-    Metalness: 0.708
+    NormalStrength: 0.099
+    Metalness: 0.913
     Roughness: 0.652
   - TexID: 1497
     NormalStrength: 0.841
@@ -2058,9 +2054,9 @@ Materials:
     Roughness: 0.587
     EmissiveStrength: 1
   - TexID: 1569
-    NormalStrength: 0.318
-    Metalness: 0.844
-    Roughness: 0.557
+    NormalStrength: 0.31
+    Metalness: 1
+    Roughness: 0.389
   - TexID: 1570
     NormalStrength: 0.238
     Metalness: 0.514
@@ -2364,9 +2360,10 @@ Materials:
     Metalness: 1
     Roughness: 0.663
   - TexID: 2143
-    NormalStrength: 0.345
+    NormalStrength: 0.388
     Metalness: 1
-    Roughness: 0.592
+    Roughness: 0.484
+    LightReceived: 0.5
   - TexID: 2163
     NormalStrength: 0.815
     Metalness: 1
@@ -2375,6 +2372,10 @@ Materials:
     NormalStrength: 0.325
     Metalness: 1
     Roughness: 0.656
+  - TexID: 2329
+    NormalStrength: 0.795
+    Metalness: 1
+    Roughness: 0.489
   - TexID: 2367
     NormalStrength: 0.464
     Metalness: 1

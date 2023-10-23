@@ -83,11 +83,8 @@ Lights:
       Color: 1, 1, .75, 0.75
 
     - ID: 265
-      Type: 2
+      Radius: 40
       Points: 0.5, 0.5
-      Width: .2
-      Height: .2
-      Radius: 30
       Color: 1, 1, .75, 0.5
 
     - ID: 268 # small square
@@ -184,8 +181,8 @@ Lights:
     - ID: 287
       Type: 2
       Points: 
-        - 0.55, 0.23
-        - 0.55, 0.75
+        - 0.55, 0.24
+        - 0.55, 0.74
       Width: .35
       Height: .06 
       Color: 0.15, 0.15, 0.20, 2
@@ -193,8 +190,8 @@ Lights:
     - ID: 288
       Type: 2
       Points:
-        - 0.5, 0.23
-        - 0.5, 0.75
+        - 0.5, 0.24
+        - 0.5, 0.74
       Width: .06
       Wrap: 1
       Color: 0.15, 0.15, 0.20, 2
@@ -203,8 +200,8 @@ Lights:
     - ID: 292
       Type: 2
       Points:
-        - 0.75, 0.23
-        - 0.75, 0.75
+        - 0.75, 0.24
+        - 0.75, 0.74
       Width: .2
       Height: 0.06
       Color: 0.15, 0.15, 0.20, 2
