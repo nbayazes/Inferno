@@ -35,7 +35,7 @@ namespace Inferno {
                         DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT,
                         UINT backBufferCount = 2,
                         D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0,
-                        unsigned int flags = 0) noexcept(false);
+                        unsigned int flags = c_AllowTearing) noexcept(false);
         ~DeviceResources();
 
         DeviceResources(DeviceResources&&) = default;

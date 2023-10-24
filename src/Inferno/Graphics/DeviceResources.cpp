@@ -238,14 +238,17 @@ namespace Inferno {
         CreateBuffers(backBufferWidth, backBufferHeight);
 
         // If the swap chain already exists, resize it, otherwise create one.
-        if (m_swapChain) {
+        // Note that the "allow tearing" flag cannot be set by ResizeBuffers,
+        // so it necessitates a new swapchain being created when toggling
+        // vsync off.
+        if (m_swapChain && Settings::Graphics.UseVsync) {
             // If the swap chain already exists, resize it.
             HRESULT hr = m_swapChain->ResizeBuffers(
                 m_backBufferCount,
                 backBufferWidth,
                 backBufferHeight,
                 backBufferFormat,
-                (m_options & c_AllowTearing) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+                0u
             );
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
@@ -267,6 +270,9 @@ namespace Inferno {
             }
         }
         else {
+            if (m_swapChain)
+                m_swapChain.Reset();
+
             // Create a descriptor for the swap chain.
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
             swapChainDesc.Width = backBufferWidth;
@@ -279,7 +285,7 @@ namespace Inferno {
             swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
             swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
             swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-            swapChainDesc.Flags = (m_options & c_AllowTearing) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
+            swapChainDesc.Flags = (m_options & c_AllowTearing && !Settings::Graphics.UseVsync) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 
             DXGI_SWAP_CHAIN_FULLSCREEN_DESC fsSwapChainDesc = {};
             fsSwapChainDesc.Windowed = TRUE;
@@ -396,7 +402,7 @@ namespace Inferno {
         context->Execute();
 
         HRESULT hr{};
-        if (m_options & c_AllowTearing) {
+        if (m_options & c_AllowTearing && !Settings::Graphics.UseVsync) {
             // Recommended to always use tearing if supported when using a sync interval of 0.
             // Note this will fail if in true 'fullscreen' mode.
             hr = m_swapChain->Present(0, DXGI_PRESENT_ALLOW_TEARING);
