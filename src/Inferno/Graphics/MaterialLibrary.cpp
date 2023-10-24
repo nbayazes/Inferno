@@ -296,8 +296,8 @@ namespace Inferno::Render {
     }
 
     // Expands a supertransparent mask by 1 pixel. Fixes artifacts around supertransparent pixels.
-    void ExpandMask(const PigEntry& bmp, List<Palette::Color>& data) {
-        auto getPixel = [&](int x, int y) -> Palette::Color& {
+    void ExpandMask(const PigEntry& bmp, List<uint8>& data) {
+        auto getPixel = [&](int x, int y) -> uint8& {
             if (x < 0) x += bmp.Width;
             if (x > bmp.Width - 1) x -= bmp.Width;
             if (y < 0) y += bmp.Height;
@@ -307,11 +307,7 @@ namespace Inferno::Render {
             return data[offset];
         };
 
-        auto markMask = [](Palette::Color& dst) {
-            dst.r = 128;
-            dst.g = 0;
-            dst.b = 0;
-        };
+        auto markMask = [](uint8& dst) { dst = 128; };
 
         // row pass. starts at top left.
         for (int y = 0; y < bmp.Height; y++) {
@@ -320,10 +316,10 @@ namespace Inferno::Render {
                 auto& below = getPixel(x, y + 1);
                 auto& above = getPixel(x, y - 1);
                 // row below is masked and this one isn't
-                if (below.r == 255 && px.r != 255) markMask(px);
+                if (below == 255 && px != 255) markMask(px);
 
                 // row above is masked and this one isn't
-                if (above.r == 255 && px.r != 255) markMask(px);
+                if (above == 255 && px != 255) markMask(px);
             }
         }
 
@@ -334,16 +330,16 @@ namespace Inferno::Render {
                 auto& left = getPixel(x - 1, y);
                 auto& right = getPixel(x + 1, y);
                 // column left is masked and this one isn't
-                if (left.r == 255 && px.r != 255) markMask(px);
+                if (left == 255 && px != 255) markMask(px);
 
                 // column right is masked and this one isn't
-                if (right.r == 255 && px.r != 255) markMask(px);
+                if (right == 255 && px != 255) markMask(px);
             }
         }
 
         // Update the marked pixels to 255
         for (auto& px : data) {
-            if (px.r > 0) px.r = 255;
+            if (px > 0) px = 255;
         }
     }
 
@@ -389,9 +385,13 @@ namespace Inferno::Render {
         }
 
         if (!material.Textures[Material2D::SuperTransparency] && upload.SuperTransparent) {
-            List<Palette::Color> mask = upload.Bitmap->Mask; // copy mask, as modifying the original would affect collision
+            List<uint8> mask;
+            mask.resize(upload.Bitmap->Mask.size());
+            for (size_t i = 0; i < upload.Bitmap->Mask.size(); i++)
+                mask[i] = upload.Bitmap->Mask[i].r;
+
             ExpandMask(upload.Bitmap->Info, mask);
-            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+            material.Textures[Material2D::SuperTransparency].Load(batch, mask.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
         }
 
         if (auto path = FileSystem::TryFindFile(baseName + "_e.dds"))
@@ -405,7 +405,7 @@ namespace Inferno::Render {
         //if (!material.Textures[Material2D::Specular] && Resources::IsLevelTexture(upload.ID)) {
         if (!material.Textures[Material2D::Specular] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {
             auto specular = CreateSpecularMap(*upload.Bitmap);
-            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8G8B8A8_UNORM);
+            material.Textures[Material2D::Specular].Load(batch, specular.data(), width, height, Convert::ToWideString(material.Name), true, DXGI_FORMAT_R8_UNORM);
         }
 
         if (!material.Textures[Material2D::Normal] && info.Width == 64 && info.Height == 64 && Settings::Inferno.GenerateMaps) {

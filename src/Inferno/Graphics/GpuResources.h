@@ -361,9 +361,11 @@ namespace Inferno {
             auto mips = enableMips && width == 64 && height == 64 ? 7u : 1u; // enable mips on standard level textures
             SetDesc(width, height, (uint16)mips, format);
 
+            uint64 bpp = format == DXGI_FORMAT_R8_UNORM ? 1 : 4;
+
             D3D12_SUBRESOURCE_DATA upload = {};
             upload.pData = data;
-            upload.RowPitch = GetWidth() * 4;
+            upload.RowPitch = GetWidth() * bpp;
             upload.SlicePitch = upload.RowPitch * GetHeight();
 
             if (!_resource)
