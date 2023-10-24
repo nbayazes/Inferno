@@ -68,7 +68,7 @@ namespace Inferno::Editor {
             ImGui::Separator();
 
             const auto labelWidth = 165 * Shell::DpiScale;
-            const auto columnHeight = 425 * Shell::DpiScale;
+            const auto columnHeight = 450 * Shell::DpiScale;
             ImGui::BeginChild("left", { Width / 2 - 25 * Shell::DpiScale, columnHeight });
 
 
@@ -438,7 +438,7 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            ImGui::BeginChild("prop_panel", { -1, 800 * Shell::DpiScale });
+            ImGui::BeginChild("prop_panel", { -1, 825 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
@@ -495,7 +495,7 @@ namespace Inferno::Editor {
             Events::SettingsChanged();
 
             if (vsyncChanged) {
-                Render::Adapter->CreateWindowSizeDependentResources();
+                Render::Adapter->CreateWindowSizeDependentResources(true);
             }
 
             if (resourcesChanged) {

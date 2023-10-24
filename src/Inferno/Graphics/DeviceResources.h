@@ -47,7 +47,7 @@ namespace Inferno {
         float RenderScale = 1.0; // Scaling applied to 3D render targets
 
         void CreateDeviceResources();
-        void CreateWindowSizeDependentResources();
+        void CreateWindowSizeDependentResources(bool forceSwapChainRebuild = false);
         void SetWindow(HWND window, int width, int height) noexcept;
         bool WindowSizeChanged(int width, int height);
         void HandleDeviceLost();

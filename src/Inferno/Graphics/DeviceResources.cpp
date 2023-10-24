@@ -218,7 +218,9 @@ namespace Inferno {
     }
 
     // These resources need to be recreated every time the window size is changed.
-    void DeviceResources::CreateWindowSizeDependentResources() {
+    // forceSwapChainRebuild is needed when changing the vsync option, as the
+    // relevant swap chain flag cannot be changed with ResizeBuffers.
+    void DeviceResources::CreateWindowSizeDependentResources(bool forceSwapChainRebuild) {
         if (!m_window)
             throw std::exception("Call SetWindow with a valid Win32 window handle");
 
@@ -238,17 +240,14 @@ namespace Inferno {
         CreateBuffers(backBufferWidth, backBufferHeight);
 
         // If the swap chain already exists, resize it, otherwise create one.
-        // Note that the "allow tearing" flag cannot be set by ResizeBuffers,
-        // so it necessitates a new swapchain being created when toggling
-        // vsync off.
-        if (m_swapChain && Settings::Graphics.UseVsync) {
+        if (m_swapChain && !forceSwapChainRebuild) {
             // If the swap chain already exists, resize it.
             HRESULT hr = m_swapChain->ResizeBuffers(
                 m_backBufferCount,
                 backBufferWidth,
                 backBufferHeight,
                 backBufferFormat,
-                0u
+                (m_options & c_AllowTearing && !Settings::Graphics.UseVsync) ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
             );
 
             if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET) {
