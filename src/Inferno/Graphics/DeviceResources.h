@@ -35,7 +35,7 @@ namespace Inferno {
                         DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT,
                         UINT backBufferCount = 2,
                         D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0,
-                        unsigned int flags = 0) noexcept(false);
+                        unsigned int flags = c_AllowTearing) noexcept(false);
         ~DeviceResources();
 
         DeviceResources(DeviceResources&&) = default;
@@ -47,7 +47,7 @@ namespace Inferno {
         float RenderScale = 1.0; // Scaling applied to 3D render targets
 
         void CreateDeviceResources();
-        void CreateWindowSizeDependentResources();
+        void CreateWindowSizeDependentResources(bool forceSwapChainRebuild = false);
         void SetWindow(HWND window, int width, int height) noexcept;
         bool WindowSizeChanged(int width, int height);
         void HandleDeviceLost();

@@ -68,7 +68,7 @@ namespace Inferno::Editor {
             ImGui::Separator();
 
             const auto labelWidth = 165 * Shell::DpiScale;
-            const auto columnHeight = 425 * Shell::DpiScale;
+            const auto columnHeight = 450 * Shell::DpiScale;
             ImGui::BeginChild("left", { Width / 2 - 25 * Shell::DpiScale, columnHeight });
 
 
@@ -120,8 +120,12 @@ namespace Inferno::Editor {
                 ImGui::TextDisabled("Graphics");
                 ImGui::NextColumn();
                 ImGui::NextColumn();
+                
+                ImGui::ColumnLabelEx("Vsync", "Prevents screen tearing, and limits maximum frame rate to the\nscreen's refresh rate. Can cause an increase in input latency.");
+                ImGui::Checkbox("##vsync", &_graphics.UseVsync);
+                ImGui::NextColumn();
 
-                ImGui::ColumnLabelEx("MSAA", "Multisample antialiasinging\n\nReduces jagged edges of polygons.\nHas a potentially high performance impact.");
+                ImGui::ColumnLabelEx("MSAA", "Multisample antialiasing\n\nReduces jagged edges of polygons.\nHas a potentially high performance impact.");
                 ImGui::SetNextItemWidth(-1);
 
                 auto msaa = [](int samples) {
@@ -434,7 +438,7 @@ namespace Inferno::Editor {
         }
 
         void OnUpdate() override {
-            ImGui::BeginChild("prop_panel", { -1, 800 * Shell::DpiScale });
+            ImGui::BeginChild("prop_panel", { -1, 825 * Shell::DpiScale });
 
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
@@ -466,6 +470,7 @@ namespace Inferno::Editor {
             CopyBindingEntries(_bindingEntries);
 
             bool resourcesChanged = false;
+            bool vsyncChanged = false;
             auto dataPathsChanged = _inferno.DataPaths != Settings::Inferno.DataPaths;
             if (dataPathsChanged || _inferno.Descent1Path != Settings::Inferno.Descent1Path || _inferno.Descent2Path != Settings::Inferno.Descent2Path) {
                 resourcesChanged = true;
@@ -479,11 +484,19 @@ namespace Inferno::Editor {
                 resourcesChanged = true;
             }
 
+            if (_graphics.UseVsync != Settings::Graphics.UseVsync) {
+                vsyncChanged = true;
+            }
+
             Settings::Inferno = _inferno;
             Settings::Editor = _editor;
             Settings::Graphics = _graphics;
             Settings::Save();
             Events::SettingsChanged();
+
+            if (vsyncChanged) {
+                Render::Adapter->CreateWindowSizeDependentResources(true);
+            }
 
             if (resourcesChanged) {
                 FileSystem::Init();

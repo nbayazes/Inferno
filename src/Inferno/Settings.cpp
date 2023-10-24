@@ -31,6 +31,7 @@ namespace Inferno {
         node["MsaaSamples"] << s.MsaaSamples;
         node["ForegroundFpsLimit"] << s.ForegroundFpsLimit;
         node["BackgroundFpsLimit"] << s.BackgroundFpsLimit;
+        node["UseVsync"] << s.UseVsync;
         node["FilterMode"] << (int)s.FilterMode;
     }
 
@@ -45,6 +46,7 @@ namespace Inferno {
 
         ReadValue(node["ForegroundFpsLimit"], s.ForegroundFpsLimit);
         ReadValue(node["BackgroundFpsLimit"], s.BackgroundFpsLimit);
+        ReadValue(node["UseVsync"], s.UseVsync);
         ReadValue(node["FilterMode"], (int&)s.FilterMode);
         return s;
     }

@@ -144,6 +144,7 @@ namespace Inferno {
         bool EnableProcedurals = true;
         int MsaaSamples = 1;
         int ForegroundFpsLimit = -1, BackgroundFpsLimit = 20;
+        bool UseVsync = true;
         bool NewLightMode = true;
         int ToneMapper = 1;
         TextureFilterMode FilterMode = TextureFilterMode::EnhancedPoint;
