@@ -50,7 +50,7 @@ namespace Inferno::Editor {
         };
     }
 
-    List<TextureFilter> ParseFilter(filesystem::path path) {
+    List<TextureFilter> ParseFilter(const filesystem::path& path) {
         List<TextureFilter> filters;
 
         try {
@@ -66,7 +66,7 @@ namespace Inferno::Editor {
                     continue;
                 }
 
-                FilterGroup group = FilterGroup::None;
+                auto group = FilterGroup::None;
                 for (auto& g : String::Split(tokens[1], '|'))
                     group |= ParseFilterGroup(g);
 
@@ -183,7 +183,8 @@ namespace Inferno::Editor {
         ImGui::Text("Filters");
 
         if (isOpen) {
-            auto ToggleGroupButtons = [&](const char* label, std::function<void(bool)> fn, std::function<bool(void)> getCheckState) {
+            auto toggleGroupButtons = [&](const char* label, const std::function<void(bool)>& fn,
+                                          const std::function<bool()>& getCheckState) {
                 ImGui::PushID(label);
                 ImGui::AlignTextToFramePadding();
                 bool open = ImGui::TreeNodeEx("##label", flags);
@@ -197,7 +198,7 @@ namespace Inferno::Editor {
                 return open;
             };
 
-            if (ToggleGroupButtons("Rock", [&s](bool b) { s.SelectRock(b); }, [&s] { return s.SelectRock(); })) {
+            if (toggleGroupButtons("Rock", [&s](bool b) { s.SelectRock(b); }, [&s] { return s.SelectRock(); })) {
                 ImGui::Checkbox("Gray Rock", &s.GrayRock);
                 if (twoColumn) ImGui::SameLine(ColumnWidth, -1);
                 ImGui::Checkbox("Brown Rock", &s.BrownRock);
@@ -213,7 +214,7 @@ namespace Inferno::Editor {
                 ImGui::TreePop();
             }
 
-            if (ToggleGroupButtons("Natural Materials", [&s](bool b) { s.SelectNatural(b); }, [&s] { return s.SelectNatural(); })) {
+            if (toggleGroupButtons("Natural Materials", [&s](bool b) { s.SelectNatural(b); }, [&s] { return s.SelectNatural(); })) {
                 ImGui::Checkbox("Ice", &s.Ice);
                 if (twoColumn) ImGui::SameLine(ColumnWidth, -1);
                 ImGui::Checkbox("Stones", &s.Stones);
@@ -226,7 +227,7 @@ namespace Inferno::Editor {
                 ImGui::TreePop();
             }
 
-            if (ToggleGroupButtons("Structural Materials", [&s](bool b) { s.SelectBuilding(b); }, [&s] { return s.SelectBuilding(); })) {
+            if (toggleGroupButtons("Structural Materials", [&s](bool b) { s.SelectBuilding(b); }, [&s] { return s.SelectBuilding(); })) {
                 ImGui::Checkbox("Steel", &s.Steel);
                 if (twoColumn) ImGui::SameLine(ColumnWidth, -1);
                 ImGui::Checkbox("Concrete", &s.Concrete);
@@ -240,7 +241,7 @@ namespace Inferno::Editor {
                 ImGui::TreePop();
             }
 
-            if (ToggleGroupButtons("Doors, Fans and Grates", [&s](bool b) { s.SelectMisc(b); }, [&s] { return s.SelectMisc(); })) {
+            if (toggleGroupButtons("Doors, Fans and Grates", [&s](bool b) { s.SelectMisc(b); }, [&s] { return s.SelectMisc(); })) {
                 ImGui::Checkbox("Grates", &s.Grate);
                 if (twoColumn) ImGui::SameLine(ColumnWidth, -1);
                 ImGui::Checkbox("Fans", &s.Fan);
@@ -248,7 +249,7 @@ namespace Inferno::Editor {
                 ImGui::TreePop();
             }
 
-            if (ToggleGroupButtons("Technical Materials", [&s](bool b) { s.SelectTechnical(b); }, [&s] { return s.SelectTechnical(); })) {
+            if (toggleGroupButtons("Technical Materials", [&s](bool b) { s.SelectTechnical(b); }, [&s] { return s.SelectTechnical(); })) {
                 ImGui::Checkbox("Lights", &s.Light);
                 if (twoColumn) ImGui::SameLine(ColumnWidth, -1);
                 ImGui::Checkbox("Energy", &s.Energy);
@@ -259,7 +260,7 @@ namespace Inferno::Editor {
                 ImGui::TreePop();
             }
 
-            if (ToggleGroupButtons("Signs and Monitors", [&s](bool b) { s.SelectSigns(b); }, [&s] { return s.SelectSigns(); })) {
+            if (toggleGroupButtons("Signs and Monitors", [&s](bool b) { s.SelectSigns(b); }, [&s] { return s.SelectSigns(); })) {
                 ImGui::Checkbox("Labels", &s.Labels);
                 if (twoColumn) ImGui::SameLine(ColumnWidth, -1);
                 ImGui::Checkbox("Monitors", &s.Monitors);
@@ -284,7 +285,7 @@ namespace Inferno::Editor {
 
         DrawFilter();
 
-        LevelTexID tmap1 = LevelTexID::None, tmap2 = LevelTexID::Unset;
+        auto tmap1 = LevelTexID::None, tmap2 = LevelTexID::Unset;
         if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
             std::tie(tmap1, tmap2) = seg->GetTexturesForSide(Editor::Selection.Side);
         }
