@@ -246,6 +246,7 @@ namespace Inferno::Game {
 
                 if (room.Contains(conn)) continue;
                 auto roomId = FindRoomBySegment(rooms, conn);
+                ASSERT(roomId != RoomID::None);
                 room.AddPortal({ segId, sideId, roomId });
                 //auto roomId = FindRoomBySegment(rooms, conn.Segment);
                 //if (roomId != RoomID::None) {
@@ -367,7 +368,7 @@ namespace Inferno::Game {
                     for (auto& s : newRoom.Segments)
                         Seq::remove(room.Segments, s);
 
-                    AddPortalsToRoom(level, rooms, newRoom);
+                    //AddPortalsToRoom(level, rooms, newRoom);
                     rooms.push_back(newRoom);
                     newRoom = {};
                 }
@@ -379,10 +380,111 @@ namespace Inferno::Game {
             }
         }
 
-        AddPortalsToRoom(level, rooms, newRoom);
+        //AddPortalsToRoom(level, rooms, newRoom);
         room = newRoom; // copy remaining segs back to room
 
         //SPDLOG_INFO("Split room into {} rooms", rooms.size());
+        return rooms;
+    }
+
+    // Splits isolated segments into separate lists
+    List<List<SegID>> SplitIsolatedSegments(const Level& level, span<SegID> source) {
+        if (source.empty()) return {};
+        List<SegID> visited;
+        List<List<SegID>> results;
+
+        while (visited.size() != source.size()) {
+            Set<SegID> segments;
+            Stack<SegID> search;
+            auto start = SegID::None;
+            for (auto& segid : source) {
+                if (!Seq::contains(visited, segid)) {
+                    start = segid;
+                    break;
+                }
+            }
+
+            ASSERT(start != SegID::None);
+            search.push(start);
+            visited.push_back(start);
+
+            while (!search.empty()) {
+                auto segId = search.top();
+                search.pop();
+
+                auto seg = level.TryGetSegment(segId);
+                if (!seg) continue;
+                segments.insert(segId);
+
+                for (auto& side : SideIDs) {
+                    auto connId = seg->GetConnection(side);
+                    if (connId != SegID::None &&
+                        //!segments.contains(connId) &&
+                        !Seq::contains(visited, connId) &&
+                        Seq::contains(source, connId)) {
+                        ASSERT(!Seq::contains(visited, connId));
+                        search.push(connId);
+                        visited.push_back(connId);
+                    }
+                }
+            }
+
+            results.push_back(Seq::ofSet(segments));
+        }
+
+        return results;
+    }
+
+    // Splits a large room in half
+    List<Room> SubdivideLargeRoom(Level& level, Room& room, int maxSegs) {
+        if (room.Segments.size() < maxSegs || room.Type != SegmentType::None)
+            return {};
+
+        auto bounds = room.GetBounds(level);
+        int axis = 0;
+        float maxValue = -FLT_MAX;
+        Array<float, 3> extents = { bounds.Extents.x, bounds.Extents.y, bounds.Extents.z };
+        for (int i = 0; i < 3; i++) {
+            if (extents[i] > maxValue) {
+                maxValue = extents[i];
+                axis = i;
+            }
+        }
+
+        Vector3 normal = Vector3::UnitX;
+        if (axis == 1) normal = Vector3::UnitY;
+        if (axis == 2) normal = Vector3::UnitZ;
+        Plane plane(bounds.Center, normal);
+
+        List<SegID> roomSegments, otherSegments;
+
+        for (auto& segid : room.Segments) {
+            if (auto seg = level.TryGetSegment(segid)) {
+                if (plane.DotCoordinate(seg->Center) > 0) {
+                    otherSegments.push_back(segid);
+                }
+                else {
+                    roomSegments.push_back(segid);
+                }
+            }
+        }
+
+        List<Room> rooms;
+
+        auto splitSegs = SplitIsolatedSegments(level, roomSegments);
+        Seq::append(splitSegs, SplitIsolatedSegments(level, otherSegments));
+
+        size_t segCheck = 0;
+
+        for (auto& segs : splitSegs) {
+            Room newRoom{};
+            newRoom.Segments = segs;
+            rooms.push_back(newRoom);
+            segCheck += segs.size();
+        }
+
+        ASSERT(segCheck == room.Segments.size());
+        room.Segments = {}; // empty the original room
         return rooms;
     }
 
@@ -575,79 +677,79 @@ namespace Inferno::Game {
         //return;
 
         // Add new connections between visible nodes
-        for (int i = 0; i < room.NavNodes.size(); i++) {
-            auto& node = room.NavNodes[i];
-            //bool isPortal = IsPortal(node.Tag);
-            if (node.Segment == SegID::None) continue; // don't insert connections to intermediates
+        //for (int i = 0; i < room.NavNodes.size(); i++) {
+        //    auto& node = room.NavNodes[i];
+        //    //bool isPortal = IsPortal(node.Tag);
+        //    if (node.Segment == SegID::None) continue; // don't insert connections to intermediates
 
-            for (int j = 0; j < room.NavNodes.size(); j++) {
-                if (i == j) continue; // skip self
-                if (Seq::contains(node.Connections, j)) continue; // Already has connection
+        //    for (int j = 0; j < room.NavNodes.size(); j++) {
+        //        if (i == j) continue; // skip self
+        //        if (Seq::contains(node.Connections, j)) continue; // Already has connection
 
-                auto& other = room.NavNodes[j];
-                auto otherIsPortal = room.IsPortal(other.Tag);
-                auto dir = other.Position - node.Position;
-                //auto maxDist = dir.Length();
-                dir.Normalize();
-                //Ray ray = { node.Position, dir };
+        //        auto& other = room.NavNodes[j];
+        //        auto otherIsPortal = room.IsPortal(other.Tag);
+        //        auto dir = other.Position - node.Position;
+        //        //auto maxDist = dir.Length();
+        //        dir.Normalize();
+        //        //Ray ray = { node.Position, dir };
 
-                if (/*isPortal ||*/ otherIsPortal) {
-                    // if this node is a portal, don't connect to nodes behind because other portals might be facing it
+        //        if (/*isPortal ||*/ otherIsPortal) {
+        //            // if this node is a portal, don't connect to nodes behind because other portals might be facing it
 
-                    //if (isPortal && dir.Dot(level.GetSide(node.Tag).AverageNormal) <= 0)
-                    //    continue; // direction towards portal face, skip it
+        //            //if (isPortal && dir.Dot(level.GetSide(node.Tag).AverageNormal) <= 0)
+        //            //    continue; // direction towards portal face, skip it
 
-                    if (otherIsPortal && dir.Dot(level.GetSide(other.Tag).AverageNormal) <= 0)
-                        continue; // direction towards portal face, skip it
-                }
+        //            if (otherIsPortal && dir.Dot(level.GetSide(other.Tag).AverageNormal) <= 0)
+        //                continue; // direction towards portal face, skip it
+        //        }
 
-                //bool blocked = false;
+        //        //bool blocked = false;
 
-                BoundingCapsule capsule(node.Position, other.Position, NAV_OBJECT_RADIUS);
+        //        BoundingCapsule capsule(node.Position, other.Position, NAV_OBJECT_RADIUS);
 
-                auto blocked = FloodFill(level, room, node.Segment, [&room, &level, &capsule, &node](Tag tag) {
-                    auto& seg = level.GetSegment(tag);
+        //        auto blocked = FloodFill(level, room, node.Segment, [&room, &level, &capsule, &node](Tag tag) {
+        //            auto& seg = level.GetSegment(tag);
 
-                    if (node.Tag == tag) return false; // don't hit test self
-                    if (seg.SideHasConnection(tag.Side) && !room.IsPortal(tag))
-                        return false; // skip open sides, but only if they aren't portals
+        //            if (node.Tag == tag) return false; // don't hit test self
+        //            if (seg.SideHasConnection(tag.Side) && !room.IsPortal(tag))
+        //                return false; // skip open sides, but only if they aren't portals
 
-                    return IntersectCapsuleSide(level, capsule, tag);
-                });
+        //            return IntersectCapsuleSide(level, capsule, tag);
+        //        });
 
-                //for (auto& segId : Segments) {
-                //    if (!level.SegmentExists(segId)) continue;
-                //    auto& seg = level.GetSegment(segId);
-                //    for (auto& sideId : SideIDs) {
-                //        if (seg.SideHasConnection(sideId) && !IsPortal({ segId, sideId }))
-                //            continue; // skip open sides, but only if they aren't portals
+        //        //for (auto& segId : Segments) {
+        //        //    if (!level.SegmentExists(segId)) continue;
+        //        //    auto& seg = level.GetSegment(segId);
+        //        //    for (auto& sideId : SideIDs) {
+        //        //        if (seg.SideHasConnection(sideId) && !IsPortal({ segId, sideId }))
+        //        //            continue; // skip open sides, but only if they aren't portals
 
-                //        if (IntersectCapsuleSide(level, capsule, { segId, sideId })) {
-                //            //if (IntersectRaySegment(level, ray, segId, maxDist, false, false, nullptr)) {
-                //            blocked = true;
-                //            break;
-                //        }
+        //        //        if (IntersectCapsuleSide(level, capsule, { segId, sideId })) {
+        //        //            //if (IntersectRaySegment(level, ray, segId, maxDist, false, false, nullptr)) {
+        //        //            blocked = true;
+        //        //            break;
+        //        //        }
 
-                //        //auto face = Face::FromSide(level, seg, sideId);
+        //        //        //auto face = Face::FromSide(level, seg, sideId);
 
-                //        //// Check 4 additional rays, 1 in each edge direction
-                //        //for (int edge = 0; edge < 4; edge++) {
-                //        //    auto edgeDir = face.GetEdgeMidpoint(edge) - face.Center();
-                //        //    edgeDir.Normalize();
-                //        //    Ray offsetRay = { node.Position + edgeDir * NAV_OBJECT_RADIUS, dir };
+        //        //        //// Check 4 additional rays, 1 in each edge direction
+        //        //        //for (int edge = 0; edge < 4; edge++) {
+        //        //        //    auto edgeDir = face.GetEdgeMidpoint(edge) - face.Center();
+        //        //        //    edgeDir.Normalize();
+        //        //        //    Ray offsetRay = { node.Position + edgeDir * NAV_OBJECT_RADIUS, dir };
 
-                //        //    if (IntersectRaySegment(level, offsetRay, segId, maxDist, false, false, nullptr)) {
-                //        //        blocked = true;
-                //        //        break;
-                //        //    }
-                //        //}
-                //    }
-                //}
+        //        //        //    if (IntersectRaySegment(level, offsetRay, segId, maxDist, false, false, nullptr)) {
+        //        //        //        blocked = true;
+        //        //        //        break;
+        //        //        //    }
+        //        //        //}
+        //        //    }
+        //        //}
 
-                if (blocked) continue;
-                node.Connections.push_back(j);
-            }
-        }
+        //        if (blocked) continue;
+        //        node.Connections.push_back(j);
+        //    }
+        //}
     }
 
     void MergeSmallRoom(Level& level, List<Room>& rooms, Room& room, int minSize) {
@@ -656,6 +758,8 @@ namespace Inferno::Game {
             return; // Don't merge energy centers
 
         Room* mergedNeighbor = nullptr;
+
+        AddPortalsToRoom(level, rooms, room); // Refresh portals
 
         for (auto& portal : room.Portals) {
             if (level.TryGetWall(portal.Tag))
@@ -1038,7 +1142,7 @@ namespace Inferno::Game {
 
         // Store visible segments
         for (auto& rid : room.VisibleRooms) {
-            if(auto pRoom = GetRoom(rooms, rid)) {
+            if (auto pRoom = GetRoom(rooms, rid)) {
                 Seq::append(room.VisibleSegments, pRoom->Segments);
             }
         }
@@ -1046,9 +1150,33 @@ namespace Inferno::Game {
         Seq::distinct(room.VisibleSegments); // Clean up duplicates
     }
 
+    // Splits a large room in half along its longest axis.
+    // Can create multiple rooms from one is several leaf rooms are formed.
+    void SplitLargeRooms(Level& level, List<Room>& rooms, int maxSize) {
+        bool maybeBigRoom = true;
+        while (maybeBigRoom) {
+            maybeBigRoom = false;
+            List<Room> roomBuffer;
+
+            for (auto& room : rooms) {
+                auto subdivisions = SubdivideLargeRoom(level, room, maxSize);
+                for (auto& sub : subdivisions) {
+                    if (sub.Segments.size() > maxSize)
+                        maybeBigRoom = true;
+                }
+                Seq::append(roomBuffer, subdivisions);
+            }
+
+            Seq::append(rooms, roomBuffer);
+            RemoveEmptyRooms(rooms);
+        }
+    }
+
     List<Room> CreateRooms(Level& level) {
         Set<SegID> visited;
         List<Room> rooms;
+
+        Stopwatch timer;
 
         Stack<SegID> search;
         search.push(SegID(0));
@@ -1085,14 +1213,10 @@ namespace Inferno::Game {
         // Merge small rooms into adjacent rooms
         for (auto& room : rooms)
             MergeSmallRoom(level, rooms, room, 2);
-
-        // Do a second pass as circular tunnels can cause isolated rooms
-        //for (auto& room : rooms)
-        //    MergeSmallRoom(level, rooms, room, 2);
-
         RemoveEmptyRooms(rooms);
 
-        Stopwatch timer;
+        // Split big rooms in half until they are no longer big
+        SplitLargeRooms(level, rooms, 90);
 
         Set<SegID> usedSegments;
         for (int roomId = 0; roomId < rooms.size(); roomId++) {
@@ -1118,7 +1242,7 @@ namespace Inferno::Game {
         Render::Debug::DebugLines.clear();
         UpdatePortalLinks(level, rooms);
         //ComputeRoomVisibility(level, rooms, rooms[4]);
-        SPDLOG_INFO("Room navmesh time {}", timer.GetElapsedSeconds());
+        SPDLOG_INFO("Room generation time {}", timer.GetElapsedSeconds());
 
         timer = {};
         List<Tuple<int, int>> visiblePortalLinks;
@@ -1126,8 +1250,10 @@ namespace Inferno::Game {
 
         int visibilitySteps = 4;
 
-        for (auto& room : rooms)
+        for (auto& room : rooms) {
             ComputeRoomVisibility(level, rooms, room, visiblePortalLinks, visibilitySteps);
+            //UpdateNavNodes(level, room);
+        }
 
         SPDLOG_INFO("Room visibility time {}", timer.GetElapsedSeconds());
 
