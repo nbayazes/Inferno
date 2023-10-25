@@ -708,8 +708,8 @@ namespace Inferno::Game {
     // Used for omega and homing weapons
     ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask) {
         ObjRef target;
-        float dotFov = -1;
-        float dist = FLT_MAX;
+        float bestDotFov = -1;
+        //float dist = FLT_MAX;
         auto forward = src.Rotation.Forward();
 
         auto action = [&](const Room& room) {
@@ -725,18 +725,14 @@ namespace Inferno::Game {
 
                     auto [odir, odist] = GetDirectionAndDistance(obj.Position, src.Position);
                     auto dot = odir.Dot(forward);
-                    bool isClose = target ? dot > dotFov - 0.1f : true; // Is the new target closer to center of FOV?
 
-                    if (target && dot < dotFov && !isClose)
+                    if (target && dot < bestDotFov /*&& !isClose*/)
                         continue; // Already found a target and this one is further from center FOV
 
                     if (CanTrackTarget(src, obj, fov, maxDist)) {
-                        // new target is closer to center FOV 
-                        if (isClose && odist < dist) {
-                            dotFov = dot;
-                            dist = odist;
-                            target = { objId, obj.Signature };
-                        }
+                        bestDotFov = dot;
+                        //dist = odist;
+                        target = { objId, obj.Signature };
                     }
                 }
             }
