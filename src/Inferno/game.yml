@@ -196,9 +196,9 @@ Weapons:
     LightRadius: 14
     LightColor: 0.3, 0.3, 0.75
     Mass: 0.05
-    BlobSize: 0.6
-    Damage: 12 # 10 
+    Damage: 12 # 10
     Speed: 200
+    Size: 1.25
     Spread: 3.6 # 3.6
     FlashColor: 1, 1, 1, 15
 

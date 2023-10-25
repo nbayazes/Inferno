@@ -181,7 +181,8 @@ Lights:
         - 0.925, 0.5
       Width: 0.015
       Wrap: 2
-      Radius: 20
+      Radius: 30
+      Color: 0.10, 0.10, 0.15, 2
   
     - ID: 290
       Type: 2
