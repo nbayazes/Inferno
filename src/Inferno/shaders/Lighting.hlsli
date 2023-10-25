@@ -158,6 +158,15 @@ float3 ApplyPointLight(
     float3 lightColor, // Radiance of directional light
     float3 planeNormal
 ) {
+    float planeFactor = 1;
+
+    // clip specular behind the light plane. todo: move to hemisphere light
+    if (any(planeNormal)) {
+        //lightPos -= planeNormal * 3; // undo offset
+        planeFactor = -dot(planeNormal, lightPos - worldPos);
+        lightPos += planeNormal * 1.0;
+    }
+
     float3 lightDir = lightPos - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
     lightDir = normalize(lightDir);
@@ -172,15 +181,9 @@ float3 ApplyPointLight(
 
     float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
     specularFactor *= 1 + FresnelRoughnessSimple(dot(lightDir, halfVec), roughness) * FRESNEL_MULT;
-    //specularFactor = clamp(specularFactor, 0, MAX_SPEC_MULT);
 
-    // clip specular behind the light plane. todo: move to hemisphere light
-    if (any(planeNormal)) {
-        //lightPos -= planeNormal * 3; // undo offset
-        float planeFactor = -dot(planeNormal, lightPos - worldPos);
-        specularFactor *= saturate(planeFactor); // *2 to fade quicker
-        falloff *= saturate(planeFactor * 4 + 1);
-    }
+    specularFactor *= saturate(planeFactor);
+    falloff *= saturate(planeFactor * 4 + 1);
 
     float3 specular = max(0, specularFactor * specularColor * specularMask);
     return nDotL * falloff * (lightColor * diffuse + specular) * GLOBAL_LIGHT_MULT;

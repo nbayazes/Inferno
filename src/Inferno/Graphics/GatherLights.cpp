@@ -454,7 +454,7 @@ namespace Inferno::Graphics {
                                     light.pos = center + side.AverageNormal * offset;
                                     light.right = rightVec * info->Width * uvScale.x;
                                     light.up = up;
-                                    light.up -= upVec * 1; // offset the ends to prevent hotspots
+                                    light.up -= upVec * 1.5f; // offset the ends to prevent hotspots
                                     sources.push_back(light);
                                 }
                             }
