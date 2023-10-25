@@ -106,8 +106,8 @@ namespace Inferno {
         List<LevelMesh> _wallMeshes;
         ChunkCache _chunks;
     public:
-        List<LevelMesh>& GetMeshes() { return _meshes; }
-        List<LevelMesh>& GetWallMeshes() { return _wallMeshes; }
+        span<LevelMesh> GetMeshes() { return _meshes; }
+        span<LevelMesh> GetWallMeshes() { return _wallMeshes; }
 
         void Update(Level& level, PackedBuffer& buffer);
 

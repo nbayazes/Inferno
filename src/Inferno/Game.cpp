@@ -625,6 +625,7 @@ namespace Inferno::Game {
 
         Navigation = NavigationNetwork(Level);
         Level.Rooms = CreateRooms(Level);
+        Render::LevelChanged = true; // regenerate level meshes
 
         // init objects
         for (int id = 0; id < Level.Objects.size(); id++) {

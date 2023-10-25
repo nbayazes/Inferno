@@ -377,6 +377,18 @@ namespace Inferno::Render {
         if (LevelChanged) {
             Adapter->WaitForGpu();
             _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
+
+            for (auto& room : level.Rooms) {
+                room.WallMeshes.clear();
+            }
+
+            // Update wall meshes in the room
+            auto wallMeshes = _levelMeshBuilder.GetWallMeshes();
+            for (int i = 0; i < wallMeshes.size(); i++) {
+                if (auto room = level.GetRoom(wallMeshes[i].Chunk->Tag.Segment)) {
+                    room->WallMeshes.push_back(i);
+                }
+            }
             RoomLights = Graphics::GatherLightSources(level);
             LevelChanged = false;
         }

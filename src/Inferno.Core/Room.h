@@ -25,6 +25,7 @@ namespace Inferno {
         List<RoomID> VisibleRooms; // Rooms potentially visible from this one
         List<SegID> VisibleSegments; // Segments potentially visible from this room
         List<EffectID> Effects; // Effects visible in this room
+        List<int> WallMeshes; // Index for which wall meshes to render
 
         //Sound::Reverb Reverb = Sound::Reverb::Generic;
         Color Fog;

@@ -327,6 +327,7 @@ namespace Inferno::Render {
             }
         }
 
+
         Stats::VisitedSegments = (uint16)_visited.size();
     }
 
@@ -435,12 +436,12 @@ namespace Inferno::Render {
                     }
                 }
 
-                for (auto& portal : room->Portals) {
-                    // queue visible walls (this does not scale well)
-                    for (auto& mesh : wallMeshes) {
-                        if (mesh.Chunk->Tag.Segment == portal.Tag.Segment)
-                            _transparentQueue.push_back({ &mesh, 0 });
-                    }
+                // queue wall meshes
+                for (auto& index : room->WallMeshes) {
+                    if (!Seq::inRange(wallMeshes, index)) continue;
+                    auto& mesh = wallMeshes[index];
+                    float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
+                    _transparentQueue.push_back({ &mesh, depth });
                 }
             }
         }

@@ -249,7 +249,8 @@ Weapons:
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 10
     FlashColor: 1, .5, .25, 5
-    Size: 1 # was 1.5
+    Size: 1.5 # was 1.5
+    Mass: 1.5 # was 1
 
   - id: 22
     Name: robot concussion missile
@@ -540,7 +541,7 @@ Robots:
     CircleDistance: 40
     FOV: [ 110, 130, 150, 170, 200 ]
     Mass: 3.2
-    Drag: 0.04
+    Drag: 0.025
   - id: 4 # Class 2 drone
     CircleDistance: 40
     Drag: 0.075
@@ -558,8 +559,8 @@ Robots:
     Mass: 3.25
   - id: 8 # Secondary Lifter (one arm)
     CircleDistance: 15
-    Mass: 3
-    Drag: 0.15
+    Mass: 3.5
+    Drag: 0.03
   - id: 9 # Heavy driller
     CircleDistance: 30
     Multishot: 2
@@ -618,11 +619,11 @@ Robots:
     Drag: 0.05
   - id: 20 # Green hulk
     CircleDistance: 40
-    Mass: 5.75
+    Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
     Shots: [ 2, 2, 2, 4, 6 ]
     Multishot: 2
-    Drag: 0.1
+    Drag: 0.03
   - id: 21 # Advanced lifter
     CircleDistance: 12
     Mass: 9
