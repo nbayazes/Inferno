@@ -95,5 +95,7 @@ namespace Inferno {
 
             return index;
         }
+
+        DirectX::BoundingBox GetBounds(Level& level) const;
     };
 }

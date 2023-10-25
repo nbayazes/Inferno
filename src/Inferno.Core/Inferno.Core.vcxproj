@@ -151,6 +151,7 @@
     </ClCompile>
     <ClCompile Include="Pig.cpp" />
     <ClCompile Include="Polymodel.cpp" />
+    <ClCompile Include="Room.cpp" />
     <ClCompile Include="Segment.cpp" />
     <ClCompile Include="Sound.cpp" />
     <ClCompile Include="Utility.cpp" />
