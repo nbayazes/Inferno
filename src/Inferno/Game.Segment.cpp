@@ -91,11 +91,7 @@ namespace Inferno {
 
         for (auto& sideId : SideIDs) {
             auto& dist = distances[(int)sideId];
-            auto& seg = level.GetSegment(id);
             auto face = Face2::FromSide(level, Tag{ id, sideId });
-            if(seg.SideHasConnection(sideId)) {
-                int x =0;
-            }
 
             if (face.Side->Type == SideSplitType::Tri02) {
                 Plane p0(face[1], face.Side->Normals[0]);
