@@ -409,6 +409,7 @@ namespace Inferno {
             SegID segs[] = { obj.Segment, next1, next2, next3 };
 
             auto nextSideTag = GetNextConnection(ai.GoalPath, level, obj.Segment);
+            ASSERT(nextSideTag);
             auto& nextSide = level.GetSide(nextSideTag);
             Vector3 targetPosition = nextSide.Center; // default to the next side
 
