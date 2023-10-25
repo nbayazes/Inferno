@@ -17,6 +17,7 @@
 #include "Editor.IO.h"
 #include "Version.h"
 #include "Game.Segment.h"
+#include "TunnelBuilder.h"
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Editor {
@@ -420,6 +421,30 @@ namespace Inferno::Editor {
             : fmt::format("{} - {}", levelName, APP_TITLE);
 
         SetWindowTextW(Shell::Hwnd, Convert::ToWideString(title).c_str());
+    }
+
+    void EditorHistory::Undo() {
+        if (!CanUndo()) return;
+        SetStatusMessage("Undo: {}", _snapshot->Name);
+
+        if (auto snapshot = FindPastDataSnapshot())
+            snapshot->Restore(_level);
+
+        // Snapshots can delete the current segment, try to find a valid selection
+        for (std::list<Snapshot>::reverse_iterator snapshot(_snapshot); snapshot != _snapshots.rend(); snapshot++) {
+            if (_level->SegmentExists(snapshot->Selection)) {
+                snapshot->RestoreSelection();
+                break;
+            }
+        }
+
+        _snapshot--;
+
+        // Clear tunnel preview when undoing, selection state is unknown
+        TunnelBuilderArgs = {};
+        UpdateTunnelPreview();
+        UpdateWindowTitle();
+        Events::SnapshotChanged();
     }
 
     void AlignViewToFace(Level& level, Camera& camera, Tag tag, int point);

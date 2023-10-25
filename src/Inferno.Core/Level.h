@@ -3,7 +3,6 @@
 #include "Types.h"
 #include "Utility.h"
 #include "Object.h"
-#include "EffectClip.h"
 #include "Streams.h"
 #include "Wall.h"
 #include "DataPool.h"

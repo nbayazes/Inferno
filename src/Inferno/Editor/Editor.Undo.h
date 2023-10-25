@@ -120,25 +120,7 @@ namespace Inferno::Editor {
             return std::next(_snapshot)->Name;
         }
 
-        void Undo() {
-            if (!CanUndo()) return;
-            SetStatusMessage("Undo: {}", _snapshot->Name);
-
-            if (auto snapshot = FindPastDataSnapshot())
-                snapshot->Restore(_level);
-
-            // Snapshots can delete the current segment, try to find a valid selection
-            for (std::list<Snapshot>::reverse_iterator snapshot(_snapshot); snapshot != _snapshots.rend(); snapshot++) {
-                if (_level->SegmentExists(snapshot->Selection)) {
-                    snapshot->RestoreSelection();
-                    break;
-                }
-            }
-
-            _snapshot--;
-            UpdateWindowTitle();
-            Events::SnapshotChanged();
-        }
+        void Undo();
 
         void Redo() {
             if (!CanRedo()) return;

@@ -5,35 +5,35 @@
 
 namespace Inferno::Editor {
     class TunnelBuilderWindow final : public WindowBase {
-        TunnelArgs _args;
-
     public:
         TunnelBuilderWindow() : WindowBase("Tunnel Builder", &Settings::Editor.Windows.TunnelBuilder) {
-            Events::LevelChanged += [this] { if (IsOpen()) RefreshTunnel(); };
+            Events::LevelChanged += [this] { if (IsOpen()) UpdateTunnelPreview(); };
         }
 
     protected:
         void OnUpdate() override {
+            auto& args = TunnelBuilderArgs;
+
             if (ImGui::Button("Pick Start", { 100, 0 })) {
-                _args.Start.Tag = Editor::Selection.PointTag();
+                args.Start.Tag = Editor::Selection.PointTag();
                 UpdateInitialLengths();
-                RefreshTunnel();
+                UpdateTunnelPreview();
             }
 
             ImGui::SameLine();
-            if (!_args.Start.Tag)
+            if (!args.Start.Tag)
                 ImGui::Text("None");
             else
-                ImGui::Text("%i:%i:%i", _args.Start.Tag.Segment, _args.Start.Tag.Side, _args.Start.Tag.Point);
+                ImGui::Text("%i:%i:%i", args.Start.Tag.Segment, args.Start.Tag.Side, args.Start.Tag.Point);
 
-            if (ImGui::Button("Rotate##Start", { 100, 0 }) && _args.Start.Tag) {
-                _args.Start.Tag.Point = (_args.Start.Tag.Point + 1) % 4;
-                RefreshTunnel();
+            if (ImGui::Button("Rotate##Start", { 100, 0 }) && args.Start.Tag) {
+                args.Start.Tag.Point = (args.Start.Tag.Point + 1) % 4;
+                UpdateTunnelPreview();
             }
 
-            if (ImGui::DragFloat("Length##Start", &_args.Start.Length, 1.0f, TunnelHandle::MIN_LENGTH, TunnelHandle::MAX_LENGTH, "%.1f")) {
-                _args.ClampInputs();
-                RefreshTunnel();
+            if (ImGui::DragFloat("Length##Start", &args.Start.Length, 1.0f, TunnelHandle::MIN_LENGTH, TunnelHandle::MAX_LENGTH, "%.1f")) {
+                args.ClampInputs();
+                UpdateTunnelPreview();
             }
 
             ImGui::Dummy({ 0, 5 });
@@ -41,42 +41,42 @@ namespace Inferno::Editor {
             ImGui::Dummy({ 0, 5 });
 
             if (ImGui::Button("Pick End", { 100, 0 })) {
-                _args.End.Tag = Editor::Selection.PointTag();
+                args.End.Tag = Editor::Selection.PointTag();
                 UpdateInitialLengths();
-                RefreshTunnel();
+                UpdateTunnelPreview();
             }
 
             ImGui::SameLine();
-            if (!_args.End.Tag)
+            if (!args.End.Tag)
                 ImGui::Text("None");
             else
-                ImGui::Text("%i:%i:%i", _args.End.Tag.Segment, _args.End.Tag.Side, _args.End.Tag.Point);
+                ImGui::Text("%i:%i:%i", args.End.Tag.Segment, args.End.Tag.Side, args.End.Tag.Point);
 
-            if (ImGui::Button("Rotate##End", { 100, 0 }) && _args.End.Tag) {
-                _args.End.Tag.Point = (_args.End.Tag.Point + 1) % 4;
-                RefreshTunnel();
+            if (ImGui::Button("Rotate##End", { 100, 0 }) && args.End.Tag) {
+                args.End.Tag.Point = (args.End.Tag.Point + 1) % 4;
+                UpdateTunnelPreview();
             }
 
-            if (ImGui::DragFloat("Length##End", &_args.End.Length, 1.0f, TunnelHandle::MIN_LENGTH, TunnelHandle::MAX_LENGTH, "%.1f")) {
-                _args.ClampInputs();
-                RefreshTunnel();
+            if (ImGui::DragFloat("Length##End", &args.End.Length, 1.0f, TunnelHandle::MIN_LENGTH, TunnelHandle::MAX_LENGTH, "%.1f")) {
+                args.ClampInputs();
+                UpdateTunnelPreview();
             }
 
             ImGui::Dummy({ 0, 5 });
             ImGui::Separator();
             ImGui::Dummy({ 0, 5 });
 
-            if (ImGui::InputInt("Steps", &_args.Steps, 1, 5)) {
-                _args.ClampInputs();
-                RefreshTunnel();
+            if (ImGui::InputInt("Steps", &args.Steps, 1, 5)) {
+                args.ClampInputs();
+                UpdateTunnelPreview();
             }
 
-            if (ImGui::Checkbox("Twist", &_args.Twist))
-                RefreshTunnel();
+            if (ImGui::Checkbox("Twist", &args.Twist))
+                UpdateTunnelPreview();
 
             if (ImGui::Button("Swap Ends", { 100, 0 })) {
-                std::swap(_args.Start, _args.End);
-                RefreshTunnel();
+                std::swap(args.Start, args.End);
+                UpdateTunnelPreview();
             }
             ImGui::HelpMarker("Sometimes the solver does not exactly match the tunnel end.\nSwapping ends might fix this.");
 
@@ -86,48 +86,42 @@ namespace Inferno::Editor {
                 Reset();
             {
                 ImGui::SameLine(ImGui::GetWindowWidth() - 100 - 20);
-                DisableControls disable(!_args.IsValid());
+                DisableControls disable(!args.IsValid());
                 if (ImGui::Button("Generate", { 100, 0 }))
                     GenerateTunnel();
             }
-
         }
 
-        void RefreshTunnel() {
-            PreviewTunnel = CreateTunnel(Game::Level, _args);
-            PreviewTunnelStart = _args.Start;
-            PreviewTunnelEnd = _args.End;
-        }
-
-        void GenerateTunnel() {
-            CreateTunnelSegments(Game::Level, _args);
+        static void GenerateTunnel() {
+            CreateTunnelSegments(Game::Level, TunnelBuilderArgs);
             PreviewTunnel = {};
         }
 
-        void UpdateInitialLengths() {
-            if (!Game::Level.SegmentExists(_args.Start.Tag) || !Game::Level.SegmentExists(_args.End.Tag))
+        static void UpdateInitialLengths() {
+            auto& args = TunnelBuilderArgs;
+            if (!Game::Level.SegmentExists(args.Start.Tag) || !Game::Level.SegmentExists(args.End.Tag))
                 return;
 
-            auto start = Face::FromSide(Game::Level, _args.Start.Tag);
-            auto end = Face::FromSide(Game::Level, _args.End.Tag);
+            auto start = Face::FromSide(Game::Level, args.Start.Tag);
+            auto end = Face::FromSide(Game::Level, args.End.Tag);
 
             // calculate the initial length of each end of the bezier curve
-            _args.Start.Length = _args.End.Length = (end.Center() - start.Center()).Length() * 0.5f;
+            args.Start.Length = args.End.Length = (end.Center() - start.Center()).Length() * 0.5f;
 
             // Estimate the number of segments based on the length
             BezierCurve curve;
             curve.Points[0] = start.Center();
-            curve.Points[1] = start.Center() + start.AverageNormal() * _args.Start.Length;
-            curve.Points[2] = end.Center() - end.AverageNormal() * _args.End.Length;
+            curve.Points[1] = start.Center() + start.AverageNormal() * args.Start.Length;
+            curve.Points[2] = end.Center() - end.AverageNormal() * args.End.Length;
             curve.Points[3] = end.Center();
-            _args.Steps = int(curve.EstimateLength(20) / 20);
+            args.Steps = int(curve.EstimateLength(20) / 20);
 
-            _args.ClampInputs();
+            args.ClampInputs();
         }
 
         void Reset() {
-            _args = {};
-            RefreshTunnel();
+            TunnelBuilderArgs = {};
+            UpdateTunnelPreview();
         }
     };
 }

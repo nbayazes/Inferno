@@ -472,6 +472,12 @@ namespace Inferno::Editor {
         Events::LevelChanged();
     }
 
+    void UpdateTunnelPreview() {
+        PreviewTunnel = CreateTunnel(Game::Level, TunnelBuilderArgs);
+        PreviewTunnelStart = TunnelBuilderArgs.Start;
+        PreviewTunnelEnd = TunnelBuilderArgs.End;
+    }
+
     TunnelPath CreateTunnel(Level& level, TunnelArgs& args) {
         if (!level.SegmentExists(args.Start.Tag) || !level.SegmentExists(args.End.Tag) || !args.IsValid())
             return {};

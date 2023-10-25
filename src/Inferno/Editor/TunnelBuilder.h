@@ -1,5 +1,6 @@
 #pragma once
 #include "Level.h"
+#include "Types.h"
 
 namespace Inferno::Editor {
 
@@ -67,4 +68,7 @@ namespace Inferno::Editor {
     inline List<Vector3> DebugTunnelLines;
     inline TunnelPath PreviewTunnel;
     inline TunnelHandle PreviewTunnelStart, PreviewTunnelEnd;
+    inline TunnelArgs TunnelBuilderArgs;
+
+    void UpdateTunnelPreview();
 }
