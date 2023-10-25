@@ -434,8 +434,6 @@ namespace Inferno::Editor {
             }
 
             for (auto& sideId : SideIDs) {
-                WallKey keys{};
-
                 auto& side = seg.GetSide(sideId);
                 if (side.Wall != WallID::None) {
                     if (usedWalls.contains(side.Wall)) {
@@ -454,8 +452,6 @@ namespace Inferno::Editor {
                         else if (wall->Trigger != TriggerID::None) {
                             usedTriggers.insert(wall->Trigger);
                         }
-
-                        keys = wall->Keys;
                     }
                 }
 
@@ -501,13 +497,6 @@ namespace Inferno::Editor {
                                 auto msg = fmt::format("Mismatched connection to {}", connId);
                                 results.push_back({ 1, { segid, sideId }, msg });
                             }
-                        }
-                    }
-
-                    if (auto wall = level.TryGetWall(other)) {
-                        if (wall->Keys != keys && wall->Type == WallType::Door) {
-                            auto msg = fmt::format("Door has mismatched keys", connId);
-                            results.push_back({ 2, { segid, sideId }, msg });
                         }
                     }
                 }
