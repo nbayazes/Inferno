@@ -92,6 +92,9 @@ namespace Inferno {
 
     //bool IntersectRayLevel(Level& level, const Ray& ray, const RayQuery& query, LevelHit& hit);
     bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult = nullptr, float offset = 0);
+
+    // Returns the segment side hit by a ray. Returns SideID::None if the ray is outside the segment or too far.
+    SideID IntersectRaySegmentSide(Level& level, const Ray& ray, Tag tag, float maxDist);
     
     class IntersectContext {
         List<SegID> _visitedSegs;

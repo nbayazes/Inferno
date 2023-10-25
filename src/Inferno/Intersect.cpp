@@ -488,4 +488,15 @@ namespace Inferno {
 
         return false;
     }
+
+    SideID IntersectRaySegmentSide(Level& level, const Ray& ray, Tag tag, float maxDist) {
+        auto seg = level.TryGetSegment(tag);
+        if (!seg) return SideID::None;
+
+        auto face = Face2::FromSide(level, *seg, tag.Side);
+        float dist{};
+        auto tri = face.Intersects(ray, dist);
+        if (tri == -1 || dist > maxDist) return SideID::None;
+        return tag.Side;
+    }
 }

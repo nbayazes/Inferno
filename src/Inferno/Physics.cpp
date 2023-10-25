@@ -273,10 +273,17 @@ namespace Inferno {
     //using PotentialSegments = Array<SegID, 10>;
     List<SegID> g_VisitedStack; // global visited segments buffer
 
-    List<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius) {
+    List<SegID>& GetPotentialSegments(Level& level, SegID start, const Vector3& point, float radius, const Vector3& velocity, float /*dt*/) {
         g_VisitedStack.clear();
         g_VisitedStack.push_back(start);
         int index = 0;
+
+        Vector3 direction;
+        velocity.Normalize(direction);
+        //Ray ray(point, direction);
+        //const float speed = velocity.Length();
+        //const float travelDist = speed * dt * 2;
+        //const bool needsRaycast = travelDist > radius;
 
         while (index < g_VisitedStack.size()) {
             auto segId = g_VisitedStack[index];
@@ -289,14 +296,23 @@ namespace Inferno {
                 if (level.TryGetWall(side.Wall))
                     continue;
 
-                Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
-                if (index == 0 || p.DotCoordinate(point) <= 0) {
-                    // Point was behind the plane or this was the starting segment
-                    auto conn = seg.GetConnection(sideId);
-                    if (conn != SegID::None && !Seq::contains(g_VisitedStack, conn)) {
-                        g_VisitedStack.push_back(conn);
+                //if (needsRaycast) {
+                //    auto raySide = IntersectRaySegmentSide(level, ray, { segId, sideId }, travelDist);
+                //    if (raySide != SideID::None) {
+                //        if (auto conn = seg.GetConnection(raySide); conn != SegID::None)
+                //            g_VisitedStack.push_back(conn);
+                //    }
+                //}
+                //else {
+                    Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
+                    if (index == 0 || p.DotCoordinate(point) <= 0) {
+                        // Point was behind the plane or this was the starting segment
+                        auto conn = seg.GetConnection(sideId);
+                        if (conn != SegID::None && !Seq::contains(g_VisitedStack, conn)) {
+                            g_VisitedStack.push_back(conn);
+                        }
                     }
-                }
+                //}
             }
 
             index++;
@@ -668,7 +684,7 @@ namespace Inferno {
 
         const float speed = sphereSource.Physics.Velocity.Length();
         const float travelDist = speed * dt;
-        const bool needsRaycast = travelDist > sphereSource.Radius * 1.5f;
+        const bool needsRaycast = travelDist > sphereSource.Radius /** 1.5f*/;
         Vector3 direction;
         sphereSource.Physics.Velocity.Normalize(direction);
 
@@ -750,7 +766,7 @@ namespace Inferno {
 
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
                     auto planeDist = -plane.DotCoordinate(faceLocalPos); // flipped winding
-                    if (planeDist > 0 || planeDist < -sphereSource.Radius)
+                    if (planeDist > 0 || planeDist < -sphereSource.Radius/* * 1.1f*/)
                         continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(faceLocalPos, plane);
@@ -1120,14 +1136,14 @@ namespace Inferno {
     bool IntersectLevel(Level& level, Object& obj, ObjID id, LevelHit& hit, float dt) {
         // Don't hit test objects that haven't moved unless they are the player
         // This is so moving powerups are tested against the player
-        //if (travelDistance <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Player) return false;
+        if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE /*&& obj.Type != ObjectType::Player*/) return false;
         //Vector3 direction;
         //obj.Physics.Velocity.Normalize(direction);
         //Ray pathRay(obj.PrevPosition, direction);
 
         // Use a larger radius for the object so the large objects in adjacent segments are found.
         // Needs testing against boss robots
-        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2);
+        auto& pvs = GetPotentialSegments(level, obj.Segment, obj.Position, obj.Radius * 2, obj.Physics.Velocity, dt);
 
         // Did we hit any objects?
         for (auto& segId : pvs) {
@@ -1196,7 +1212,7 @@ namespace Inferno {
     // Finds the nearest sphere-level intersection for debris
     // Debris only collide with robots, players and walls
     bool IntersectLevelDebris(Level& level, const BoundingSphere& debris, SegID segId, LevelHit& hit) {
-        auto& pvs = GetPotentialSegments(level, segId, debris.Center, debris.Radius * 2);
+        auto& pvs = GetPotentialSegments(level, segId, debris.Center, debris.Radius * 2, Vector3::Zero, Game::TICK_RATE);
 
         // Did we hit any objects?
         for (auto& segment : pvs) {
@@ -1340,6 +1356,9 @@ namespace Inferno {
             AngularPhysics(obj, dt);
             LinearPhysics(obj, dt);
 
+            if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
+                MoveObject(level, objId);
+
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of attached objects
 
@@ -1393,9 +1412,6 @@ namespace Inferno {
                 }
             }
         }
-
-        if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
-            MoveObject(level, objId);
 
         if (objId == (ObjID)0) {
             Debug::ShipVelocity = obj.Physics.Velocity;

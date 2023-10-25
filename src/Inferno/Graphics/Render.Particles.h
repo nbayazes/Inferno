@@ -314,7 +314,7 @@ namespace Inferno::Render {
         float PointGravityStrength = 0;
         Vector3 PrevParentPosition;
         bool Relative = false; // Particles move relative to parent when updating instead of detaching into the world
-        bool Physics = true; // Collides with world geometry
+        bool Physics = false; // Collides with world geometry
 
         void OnInit() override;
         void OnUpdate(float dt, EffectID) override;

@@ -294,6 +294,8 @@ namespace Inferno::Game {
             }
         }
 
+        SPDLOG_INFO("Reactor has {} hit points", reactor.HitPoints);
+
         // M is very bass heavy "AmbDroneReactor"
         Sound3D reactorHum({ "AmbDroneM" }, Game::GetObjectRef(reactor));
         reactorHum.Radius = 300;
