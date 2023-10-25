@@ -102,14 +102,10 @@ float4 Specular(float3 lightDir, float3 eyeDir, float3 normal) {
 float4 PSLevel(PS_INPUT input) : SV_Target {
     //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Eye);
-    //float4 specular = Specular(LightDirection, viewDir, input.normal);
     float4 lighting = lerp(1, max(0, input.col), LightingScale);
     float4 specular = Specular(-viewDir, viewDir, input.normal);
-    //float4 base;
 
     float4 base = Sample2DAA(Diffuse, input.uv);
-    float4 emissive = Sample2DAA(Emissive, input.uv) * base;
-    emissive.a = 0;
 
     if (HasOverlay) {
         // Apply supertransparency mask
@@ -126,33 +122,9 @@ float4 PSLevel(PS_INPUT input) : SV_Target {
         if (diffuse.a < 0.01f)
             discard;
         
-        // layer the emissive over the base emissive
-        float4 emissive2 = Sample2DAA(Emissive2, input.uv2) * diffuse;
-        emissive2.a = 0;
-        emissive2 += emissive * (1 - src.a); // mask the base emissive by the overlay alpha
-
-        //lighting += specular * src.a * 0.125; // reduce specularity until specular maps are in
-        //lighting = max(lighting, emissive); // lighting should always be at least as bright as the emissive texture
-        lighting += emissive2 * 3;
-        // Boost the intensity of single channel colors
-        // 2 / 1 -> 2, 2 / 0.33 -> 6
-        //emissive *= 1.0 / max(length(emissive), 0.5); // white -> 1, single channel -> 0.33
-        //float multiplier = length(emissive.rgb); 
-        //lighting.a = saturate(lighting.a);
-        //output.Color = diffuse * lighting;
         return diffuse * lighting;
-        // assume overlay is only emissive source for now
-        //output.Emissive = float4(diffuse.rgb * src.a, 1) * emissive * 1;
-        //output.Emissive = diffuse * (1 + lighting);
-        //output.Emissive = float4(diffuse.rgb * src.a * emissive.rgb, out_a);
     }
     else {
-        //lighting = max(lighting, emissive); // lighting should always be at least as bright as the emissive texture
-        lighting += emissive * 3;
-        //output.Color = base * lighting;
-
-        //base.rgb *= emissive.rgb * 0.5;
-        //output.Emissive = base * lighting;
         if (base.a < 0.01f)
             discard;
         return base * lighting;

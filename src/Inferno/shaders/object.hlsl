@@ -60,13 +60,11 @@ float4 Fresnel(float3 eyeDir, float3 normal, float4 color, float power) {
 float4 PSMain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(Eye - input.world);
     float4 diffuse = Diffuse.Sample(sampler0, input.uv) * input.col;
-    float4 emissive = Emissive.Sample(sampler0, input.uv) * diffuse;
-    emissive.a = 0;
 
-    float4 ambient = saturate(Colors[0]);
+    float4 ambient = Colors[0];
     float3 lightDir = float3(0, -1, 0);
-    float4 light = ambient + emissive + pow(emissive, 3);
+    float4 light = ambient;
     light *= Specular(lightDir, viewDir, input.normal);
     light.a = 1;
-    return diffuse * light;
+    return diffuse * saturate(light);
 }

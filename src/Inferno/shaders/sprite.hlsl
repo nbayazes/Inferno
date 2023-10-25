@@ -35,5 +35,5 @@ float4 PSMain(PS_INPUT input) : SV_Target {
     float4 diffuse = Diffuse.Sample(sampler0, input.uv);
     if (diffuse.a < 0.02f)
         discard;
-    return diffuse * input.col;
+    return diffuse * saturate(input.col);
 }
