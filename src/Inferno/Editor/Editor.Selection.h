@@ -30,6 +30,7 @@ namespace Inferno::Editor {
         float Distance = 0;
         ObjID Object = ObjID::None;
         bool operator<=>(const SelectionHit& rhs) const = default;
+
         bool operator==(const SelectionHit& rhs) const {
             return Tag == rhs.Tag && Edge == rhs.Edge && Object == rhs.Object;
         }
@@ -99,6 +100,7 @@ namespace Inferno::Editor {
         Tuple<LevelTexID, LevelTexID> GetTextures() const;
 
         void SelectByTexture(LevelTexID);
+
         void Reset() {
             Segment = SegID::None;
             Object = ObjID::None;
@@ -255,10 +257,14 @@ namespace Inferno::Editor {
 
         void ClearCurrentMode() {
             switch (Settings::Editor.SelectionMode) {
-                case SelectionMode::Face: Faces.clear(); break;
-                case SelectionMode::Segment: Segments.clear(); break;
-                case SelectionMode::Point: Points.clear(); break;
-                case SelectionMode::Object: Objects.clear(); break;
+                case SelectionMode::Face: Faces.clear();
+                    break;
+                case SelectionMode::Segment: Segments.clear();
+                    break;
+                case SelectionMode::Point: Points.clear();
+                    break;
+                case SelectionMode::Object: Objects.clear();
+                    break;
             }
         }
 
@@ -270,6 +276,15 @@ namespace Inferno::Editor {
 
     Option<Tuple<int16, int16>> FindSharedEdges(Level&, Tag src, Tag dest);
     bool HasVisibleTexture(Level&, Tag);
+
+    inline List<Tag> FacesForSegment(SegID seg) {
+        List<Tag> faces;
+        for (auto& side : SideIDs) {
+            faces.push_back({ seg, side });
+        }
+
+        return faces;
+    }
 
     // Returns all faces of the segments
     inline List<Tag> FacesForSegments(span<SegID> segs) {

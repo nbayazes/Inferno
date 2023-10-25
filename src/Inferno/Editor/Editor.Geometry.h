@@ -20,7 +20,7 @@ namespace Inferno::Editor {
     void JoinTouchingSegments(Level&, SegID, span<SegID>, float tolerance, bool skipValidation = false);
 
     // Joins all segments nearby to each segment excluding segments in the source
-    void JoinTouchingSegmentsExclusive(Level&, span<Tag>, float tolerance);
+    void JoinTouchingSides(Level&, span<Tag>, float tolerance);
 
     bool PruneVertices(Level&);
 

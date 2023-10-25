@@ -14,7 +14,7 @@ namespace Inferno::Editor {
     };
 
     SegmentClipboardData CopySegments(Level& level, span<SegID> segments, bool segmentsOnly = false);
-    void PasteSegmentsInPlace(Level&, const SegmentClipboardData&);
+    void PasteSegmentsInPlace(Level&, const SegmentClipboardData&, bool markSegs = false);
 
     namespace Commands {
         extern Command Cut, Copy, Paste;

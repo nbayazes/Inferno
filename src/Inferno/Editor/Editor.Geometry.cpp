@@ -116,7 +116,7 @@ namespace Inferno::Editor {
         WeldVertices(level, segIds, Settings::Editor.CleanupTolerance);
     }
 
-    void JoinTouchingSegmentsExclusive(Level& level, span<Tag> tags, float tolerance) {
+    void JoinTouchingSides(Level& level, span<Tag> tags, float tolerance) {
         auto segs = Seq::map(tags, Tag::GetSegID);
         auto nearby = GetNearbySegmentsExclusive(level, segs);
 
@@ -222,7 +222,7 @@ namespace Inferno::Editor {
         auto segs = Seq::map(GetSelectedFaces(), Tag::GetSegID);
         ResetSegmentUVs(level, segs);
         auto faces = FacesForSegments(segs);
-        JoinTouchingSegmentsExclusive(level, faces, 0.09f);
+        JoinTouchingSides(level, faces, 0.09f);
         return true;
     }
 
@@ -507,9 +507,9 @@ namespace Inferno::Editor {
     }
 
     // Joins nearby segment faces that overlap with the selected segment
-    string OnJoinTouchingSegments() {
+    string OnJoinTouchingSides() {
         auto faces = GetSelectedFaces();
-        JoinTouchingSegmentsExclusive(Game::Level, faces, Settings::Editor.WeldTolerance);
+        JoinTouchingSides(Game::Level, faces, Settings::Editor.WeldTolerance);
         Events::LevelChanged();
         return "Join Nearby Sides";
     }
@@ -650,7 +650,7 @@ namespace Inferno::Editor {
     namespace Commands {
         Command WeldVertices{ .SnapshotAction = OnWeldVertices, .Name = "Weld Vertices" };
         Command MakeCoplanar{ .SnapshotAction = OnMakeCoplanar, .Name = "Make Coplanar" };
-        Command JoinTouchingSegments{ .SnapshotAction = OnJoinTouchingSegments, .Name = "Join Nearby Sides" };
+        Command JoinTouchingSegments{ .SnapshotAction = OnJoinTouchingSides, .Name = "Join Touching Sides" };
         Command DetachPoints{ .SnapshotAction = OnDetachPoints, .Name = "Detach Points" };
         Command AveragePoints{ .SnapshotAction = OnAveragePoints, .Name = "Average Points" };
     }

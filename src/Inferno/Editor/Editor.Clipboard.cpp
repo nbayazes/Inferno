@@ -245,7 +245,7 @@ namespace Inferno::Editor {
     void InsertCopiedSegments(Level& level, const SegmentClipboardData& copy) {
         auto newIds = InsertSegments(level, copy);
         auto faces = FacesForSegments(newIds);
-        JoinTouchingSegmentsExclusive(level, faces, 0.01f); // Join everything nearby
+        JoinTouchingSides(level, faces, 0.01f); // Join everything nearby
         Editor::Marked.Segments.clear();
         Seq::insert(Editor::Marked.Segments, newIds);
         Events::LevelChanged();
@@ -259,11 +259,13 @@ namespace Inferno::Editor {
         InsertCopiedSegments(level, copy);
     }
 
-    void PasteSegmentsInPlace(Level& level, const SegmentClipboardData& data) {
+    void PasteSegmentsInPlace(Level& level, const SegmentClipboardData& data, bool markSegs) {
         if (data.Segments.empty()) return;
         auto newIds = InsertSegments(level, data);
         Editor::Marked.Segments.clear();
-        Seq::insert(Editor::Marked.Segments, newIds);
+        if (markSegs)
+            Seq::insert(Editor::Marked.Segments, newIds);
+
         if (!newIds.empty())
             JoinTouchingSegments(level, newIds[0], newIds, 0.01f); // try joining the segment we pasted onto
     }

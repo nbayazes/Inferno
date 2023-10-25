@@ -11,6 +11,15 @@
 #include "Game.Segment.h"
 
 namespace Inferno::Editor {
+    void JoinAllTouchingSides(Level& level, span<SegID> segs) {
+        level.UpdateAllGeometricProps();
+
+        for (auto& seg : segs) {
+            auto faces = FacesForSegment(seg);
+            JoinTouchingSides(level, faces, Settings::Editor.CleanupTolerance);
+        }
+    }
+
     void RemoveLightDeltasForSegment(Level& level, SegID seg) {
         int16 removed = 0;
         for (auto& index : level.LightDeltaIndices) {
@@ -231,7 +240,10 @@ namespace Inferno::Editor {
     // Returns connected segments up to a depth
     List<SegID> GetConnectedSegments(Level& level, SegID start, int maxDepth) {
         Set<SegID> nearby;
-        struct SearchTag { SegID Seg; int Depth; };
+        struct SearchTag {
+            SegID Seg;
+            int Depth;
+        };
         Stack<SearchTag> search;
         search.push({ start, 0 });
 
@@ -581,7 +593,7 @@ namespace Inferno::Editor {
         if (JoinSides(Game::Level, { seg, Editor::Selection.Side }, *Editor::Marked.Faces.begin())) {
             std::array segs = { seg };
             auto tags = FacesForSegments(segs);
-            JoinTouchingSegmentsExclusive(Game::Level, tags, 0.01f);
+            JoinTouchingSides(Game::Level, tags, 0.01f);
             ResetSegmentUVs(Game::Level, segs);
 
             Editor::Selection.SetSelection(seg);
@@ -892,12 +904,10 @@ namespace Inferno::Editor {
         return Seq::ofSet(faces);
     }
 
-    string OnDetachSegments() {
-        Editor::History.SnapshotSelection();
-        auto segs = GetSelectedSegments();
-        auto copy = CopySegments(Game::Level, segs);
-        DeleteSegments(Game::Level, segs);
-        PasteSegmentsInPlace(Game::Level, copy);
+    void DetachSegments(Level& level, span<SegID> segs) {
+        auto copy = CopySegments(level, segs);
+        DeleteSegments(level, segs);
+        PasteSegmentsInPlace(level, copy);
 
         bool inSelection = false;
         int offset = 0;
@@ -909,12 +919,18 @@ namespace Inferno::Editor {
 
         if (inSelection) {
             // the selection was in a detached segment, recalculate it
-            auto start = SegID(Game::Level.Segments.size() - segs.size());
+            auto start = SegID(level.Segments.size() - segs.size());
             Editor::Selection.SetSelection(start - (SegID)offset);
         }
         else {
             Editor::Selection.SetSelection(Editor::Selection.Segment + (SegID)offset);
         }
+    }
+
+    string OnDetachSegments() {
+        Editor::History.SnapshotSelection();
+        auto segs = GetSelectedSegments();
+        DetachSegments(Game::Level, segs);
 
         Events::LevelChanged();
         return "Detach segments";
@@ -1019,7 +1035,7 @@ namespace Inferno::Editor {
         auto newSegs = ExtrudeFaces(Game::Level, faces, offset);
         ResetSegmentUVs(Game::Level, newSegs);
         auto segFaces = FacesForSegments(newSegs);
-        JoinTouchingSegmentsExclusive(Game::Level, segFaces, Settings::Editor.CleanupTolerance);
+        JoinTouchingSides(Game::Level, segFaces, Settings::Editor.CleanupTolerance);
         Events::LevelChanged();
         return "Extrude Faces";
     }
@@ -1107,7 +1123,7 @@ namespace Inferno::Editor {
         Editor::Selection.SetSelection(tag.Segment);
         std::array segs = { tag.Segment };
         auto tags = FacesForSegments(segs);
-        JoinTouchingSegmentsExclusive(Game::Level, tags, 0.01f);
+        JoinTouchingSides(Game::Level, tags, 0.01f);
 
         Events::LevelChanged();
         return "Merge Segment";
@@ -1115,14 +1131,15 @@ namespace Inferno::Editor {
 
     bool SplitSegment2(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return false;
-        Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
-        auto connected = level.GetConnectedSide(tag);
 
-        for (auto& side : SideIDs) {
-            if (side == opposite.Side) continue;
-            DetachSide(Game::Level, { tag.Segment, side });
+        {
+            // Detach segment in place and reselect it
+            SegID segs[] = { tag.Segment };
+            DetachSegments(level, segs);
+            tag = Editor::Selection.Tag();
         }
 
+        Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
         auto srcFace = Face::FromSide(level, tag);
         auto oppFace = Face::FromSide(level, opposite);
 
@@ -1150,13 +1167,9 @@ namespace Inferno::Editor {
             ResetUVs(level, { newid, side });
         }
 
-        if (connected) {
-            level.GetSegment(newid).GetConnection(tag.Side) = connected.Segment;
-            level.GetSegment(connected.Segment).GetConnection(connected.Side) = newid;
-            WeldConnection(level, { newid, tag.Side }, Settings::Editor.CleanupTolerance);
-        }
+        SegID segs[] = { tag.Segment, newid };
+        JoinAllTouchingSides(level, segs);
 
-        level.UpdateAllGeometricProps();
         return true;
     }
 
@@ -1170,15 +1183,15 @@ namespace Inferno::Editor {
 
     bool SplitSegment3(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return false;
-        Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
-        auto connected = level.GetConnectedSide(tag);
 
-        // Detach all sides except the one opposite to the selection
-        for (auto& side : SideIDs) {
-            if (side == opposite.Side) continue;
-            DetachSide(Game::Level, { tag.Segment, side });
+        {
+            // Detach segment in place and reselect it
+            SegID segs[] = { tag.Segment };
+            DetachSegments(level, segs);
+            tag = Editor::Selection.Tag();
         }
 
+        Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
         auto srcFace = Face::FromSide(level, tag);
         auto oppFace = Face::FromSide(level, opposite);
 
@@ -1219,14 +1232,9 @@ namespace Inferno::Editor {
             ResetUVs(level, { newid2, side });
         }
 
-        if (connected) {
-            // Connect the last segment to the original selection
-            level.GetSegment(newid2).GetConnection(tag.Side) = connected.Segment;
-            level.GetSegment(connected.Segment).GetConnection(connected.Side) = newid2;
-            WeldConnection(level, { newid2, tag.Side }, Settings::Editor.CleanupTolerance);
-        }
+        SegID segs[] = { tag.Segment, newid, newid2 };
+        JoinAllTouchingSides(level, segs);
 
-        level.UpdateAllGeometricProps();
         return true;
     }
 
@@ -1273,12 +1281,10 @@ namespace Inferno::Editor {
             newSegs.push_back(sid);
         }
 
-        auto nearby = GetNearbySegments(level, tag.Segment);
-        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::Editor.CleanupTolerance);
-
         newSegs.push_back(tag.Segment);
+        JoinAllTouchingSides(level, newSegs);
+
         ResetSegmentUVs(level, newSegs);
-        level.UpdateAllGeometricProps();
         return true;
     }
 
@@ -1324,12 +1330,9 @@ namespace Inferno::Editor {
             newSegs.push_back(sid);
         }
 
-        auto nearby = GetNearbySegments(level, tag.Segment);
-        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::Editor.CleanupTolerance);
-
         newSegs.push_back(tag.Segment);
+        JoinAllTouchingSides(level, newSegs);
         ResetSegmentUVs(level, newSegs);
-        level.UpdateAllGeometricProps();
         return true;
     }
 
@@ -1364,23 +1367,23 @@ namespace Inferno::Editor {
         grid[2][2][2] = oppFace[1];
         grid[0][2][2] = oppFace[0];
 
-        auto AverageX = [&grid](int y, int z) { grid[1][y][z] = (grid[0][y][z] + grid[2][y][z]) / 2; };
-        auto AverageY = [&grid](int x, int z) { grid[x][1][z] = (grid[x][0][z] + grid[x][2][z]) / 2; };
-        auto AverageZ = [&grid](int x, int y) { grid[x][y][1] = (grid[x][y][0] + grid[x][y][2]) / 2; };
-        auto FillLayerMidpoints = [&](int z) {
-            AverageX(0, z); // Top and bottom center
-            AverageX(2, z);
-            AverageY(0, z); // Left right center
-            AverageY(2, z);
-            AverageX(1, z); // center
+        auto averageX = [&grid](int y, int z) { grid[1][y][z] = (grid[0][y][z] + grid[2][y][z]) / 2; };
+        auto averageY = [&grid](int x, int z) { grid[x][1][z] = (grid[x][0][z] + grid[x][2][z]) / 2; };
+        auto averageZ = [&grid](int x, int y) { grid[x][y][1] = (grid[x][y][0] + grid[x][y][2]) / 2; };
+        auto fillLayerMidpoints = [&](int z) {
+            averageX(0, z); // Top and bottom center
+            averageX(2, z);
+            averageY(0, z); // Left right center
+            averageY(2, z);
+            averageX(1, z); // center
         };
 
-        FillLayerMidpoints(0);
-        FillLayerMidpoints(2);
+        fillLayerMidpoints(0);
+        fillLayerMidpoints(2);
 
         for (int x = 0; x < 3; x++)
             for (int y = 0; y < 3; y++)
-                AverageZ(x, y); // fill middle layer
+                averageZ(x, y); // fill middle layer
 
         List<SegID> newSegs;
 
@@ -1406,11 +1409,9 @@ namespace Inferno::Editor {
             }
         }
 
-        auto nearby = GetNearbySegments(level, tag.Segment);
-        for (auto& seg : newSegs) JoinTouchingSegments(level, seg, nearby, Settings::Editor.CleanupTolerance);
-
+        newSegs.push_back(tag.Segment);
+        JoinAllTouchingSides(level, newSegs);
         ResetSegmentUVs(level, newSegs);
-        level.UpdateAllGeometricProps();
         return true;
     }
 

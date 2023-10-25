@@ -182,7 +182,7 @@ namespace Inferno::Editor {
             Editor::History.SnapshotSelection();
             auto segs = GetSelectedSegments();
             auto copy = CopySegments(level, segs);
-            PasteSegmentsInPlace(level, copy);
+            PasteSegmentsInPlace(level, copy, true);
             return CursorDragMode::Transform;
         }
 
