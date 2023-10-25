@@ -52,33 +52,33 @@ namespace Inferno {
 
     // Templates to enable bitwise operators on all enums. Might be a bad idea.
 
-    template<class T> requires is_scoped_enum_v<T>
-    constexpr T operator | (T lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    constexpr T operator |(T lhs, T rhs) {
         return T((std::underlying_type_t<T>)lhs | (std::underlying_type_t<T>)rhs);
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    T& operator |= (T& lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    T& operator |=(T& lhs, T rhs) {
         return lhs = lhs | rhs;
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    constexpr T operator & (T lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    constexpr T operator &(T lhs, T rhs) {
         return T((std::underlying_type_t<T>)lhs & (std::underlying_type_t<T>)rhs);
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    T& operator &= (T& lhs, T rhs) {
+    template <class T> requires is_scoped_enum_v<T>
+    T& operator &=(T& lhs, T rhs) {
         return lhs = lhs & rhs;
     }
 
-    template<class T> requires is_scoped_enum_v<T>
-    T& operator ~ (T& value) {
+    template <class T> requires is_scoped_enum_v<T>
+    T& operator ~(T& value) {
         return value = T(~((int)value));
     }
 
-    //template <class T>
-    //concept IsEnum = is_scoped_enum_v<T>;
+    template <class T>
+    concept IsEnum = is_scoped_enum_v<T>;
 
     //// Converts an enum to the underlying type
     //constexpr auto ToUnderlying(IsEnum auto e) {
@@ -283,8 +283,10 @@ namespace Inferno {
 
     // Rotates vector around 0,0 by an angle in radians.
     inline Vector2 RotateVector(const Vector2& v, float angle) {
-        return { v.x * cos(angle) - v.y * sin(angle),
-                 v.x * sin(angle) + v.y * cos(angle) };
+        return {
+            v.x * cos(angle) - v.y * sin(angle),
+            v.x * sin(angle) + v.y * cos(angle)
+        };
     }
 
     // Returns [-PI, PI]
@@ -447,13 +449,13 @@ namespace Inferno {
 
     namespace Seq {
         // Converts a std::set to a std::vector
-        template<class T>
+        template <class T>
         constexpr auto ofSet(const std::set<T>& set) {
             return std::vector<T>(set.begin(), set.end());
         }
 
         // Converts a span to a std::vector
-        template<class T>
+        template <class T>
         constexpr auto toList(const std::span<T> xs) {
             return std::vector<T>(xs.begin(), xs.end());
         }
@@ -464,13 +466,13 @@ namespace Inferno {
         }
 
         // Inserts a container into a set
-        template<class T>
+        template <class T>
         constexpr void insert(std::set<T>& dest, auto&& src) {
             dest.insert(src.begin(), src.end());
         }
 
         // Generates a new list by mapping a function to each element. Causes heap allocation.
-        template<class T, class Fn>
+        template <class T, class Fn>
         [[nodiscard]] auto map(T&& xs, Fn&& fn) {
             // dereference the first element in a collection to determine the type
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
@@ -483,7 +485,7 @@ namespace Inferno {
 
         // Generates a new list by mapping a function to each element along with an index. 
         // Lambda parameters are (i, elem). Causes heap allocation.
-        template<class T, class Fn>
+        template <class T, class Fn>
         [[nodiscard]] auto mapi(T&& xs, Fn&& fn) {
             // dereference the first element in a collection to determine the type
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
@@ -585,7 +587,7 @@ namespace Inferno {
         }
 
         // Filters a collection. Causes heap allocation.
-        template<class T>
+        template <class T>
         [[nodiscard]] auto filter(const T& xs, auto&& predicate) {
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
             List<TElement> result(std::size(xs));
@@ -619,7 +621,7 @@ namespace Inferno {
         return String::TrimEnd(string(name)) + String::TrimEnd(string(ext));
     }
 
-    inline bool ExtensionEquals(std::filesystem::path path, wstring ext) {
+    inline bool ExtensionEquals(const std::filesystem::path& path, wstring ext) {
         if (!path.has_extension()) return false;
         if (!ext.starts_with('.')) ext.insert(0, L".");
 

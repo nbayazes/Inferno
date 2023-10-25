@@ -2,13 +2,12 @@
 
 #include <memory>
 #include <span>
-#include <list>
 #include <stack>
 #include <numbers>
 #include <filesystem>
 #include <DirectXTK12/SimpleMath.h>
-#include <span>
 #include <ranges>
+#include <fmt/format.h>
 
 namespace DirectX::SimpleMath {
     struct Matrix3x3 : XMFLOAT3X3 {
@@ -24,28 +23,28 @@ namespace DirectX::SimpleMath {
                          r2.x, r2.y, r2.z) {
         }
 
-        explicit Matrix3x3(const Matrix& M) noexcept {
-            _11 = M._11; _12 = M._12; _13 = M._13;
-            _21 = M._21; _22 = M._22; _23 = M._23;
-            _31 = M._31; _32 = M._32; _33 = M._33;
+        explicit Matrix3x3(const Matrix& m) noexcept {
+            _11 = m._11; _12 = m._12; _13 = m._13;
+            _21 = m._21; _22 = m._22; _23 = m._23;
+            _31 = m._31; _32 = m._32; _33 = m._33;
         }
 
-        Vector3 Up() const noexcept { return Vector3(_21, _22, _23); }
+        Vector3 Up() const noexcept { return { _21, _22, _23 }; }
         void Up(const Vector3& v) noexcept { _21 = v.x; _22 = v.y; _23 = v.z; }
 
-        Vector3 Down() const  noexcept { return Vector3(-_21, -_22, -_23); }
+        Vector3 Down() const  noexcept { return { -_21, -_22, -_23 }; }
         void Down(const Vector3& v) noexcept { _21 = -v.x; _22 = -v.y; _23 = -v.z; }
 
-        Vector3 Right() const noexcept { return Vector3(_11, _12, _13); }
+        Vector3 Right() const noexcept { return { _11, _12, _13 }; }
         void Right(const Vector3& v) noexcept { _11 = v.x; _12 = v.y; _13 = v.z; }
 
-        Vector3 Left() const noexcept { return Vector3(-_11, -_12, -_13); }
+        Vector3 Left() const noexcept { return { -_11, -_12, -_13 }; }
         void Left(const Vector3& v) noexcept { _11 = -v.x; _12 = -v.y; _13 = -v.z; }
 
-        Vector3 Forward() const noexcept { return Vector3(-_31, -_32, -_33); }
+        Vector3 Forward() const noexcept { return { -_31, -_32, -_33 }; }
         void Forward(const Vector3& v) noexcept { _31 = -v.x; _32 = -v.y; _33 = -v.z; }
 
-        Vector3 Backward() const noexcept { return Vector3(_31, _32, _33); }
+        Vector3 Backward() const noexcept { return { _31, _32, _33 }; }
         void Backward(const Vector3& v) noexcept { _31 = v.x; _32 = v.y; _33 = v.z; }
 
         Matrix3x3& operator *= (const Matrix& matrix) {
@@ -413,6 +412,17 @@ namespace Inferno {
         const auto begin() const { return _data.begin(); }
         const auto end() const { return _data.begin() + _count; }
     };
+
+    // enum to int formatters to make fmt happy
+
+    constexpr auto format_as(SegID id) { return (int)id; }
+    constexpr auto format_as(SideID id) { return (int)id; }
+    constexpr auto format_as(ObjID id) { return (int)id; }
+    constexpr auto format_as(WallID id) { return (int)id; }
+    constexpr auto format_as(TexID id) { return (int)id; }
+    constexpr auto format_as(TriggerID id) { return (int)id; }
+    constexpr auto format_as(LevelTexID id) { return (int)id; }
+    inline auto format_as(Tag tag) { return fmt::format("{}:{}", tag.Segment, tag.Side); }
 }
 
 template <>

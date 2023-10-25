@@ -180,7 +180,7 @@ namespace Inferno::Editor {
                     auto& trigger = copy.Triggers[(int)wall.Trigger];
 
                     // Remove any targets that point to segments that don't exist
-                    for (int i = trigger.Targets.Count() - 1; i >= 0; i--) {
+                    for (int i = (int)trigger.Targets.Count() - 1; i >= 0; i--) {
                         if (!level.SegmentExists(trigger.Targets[i]))
                             trigger.Targets.Remove(i);
                     }

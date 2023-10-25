@@ -55,22 +55,21 @@ namespace Inferno::Editor {
 
     template<class...TArgs>
     void SetStatusMessage(const string_view format, TArgs&&...args) {
-        SPDLOG_INFO(format, args...);
-        StatusText = fmt::format(format, std::forward<TArgs>(args)...);
+        StatusText = fmt::vformat(format, fmt::make_format_args(std::forward<TArgs>(args)...));
+        SPDLOG_INFO("{}", StatusText);
     }
 
     // Sets the status message along with a ding sound
     template<class...TArgs>
     void SetStatusMessageWarn(const string_view format, TArgs&&...args) {
-        SPDLOG_WARN(format, args...);
-        StatusText = fmt::format(format, std::forward<TArgs>(args)...);
+        SetStatusMessage(format, std::forward<TArgs>(args)...);
         PlaySound(L"SystemAsterisk", nullptr, SND_ASYNC);
     }
 
     template<class...TArgs>
     void SetStatusMessage(const wstring_view format, TArgs&&...args) {
-        SPDLOG_INFO(format, args...);
-        auto str = fmt::format(format, std::forward<TArgs>(args)...);
+        auto str = fmt::vformat(fmt::wstring_view(format), fmt::make_wformat_args(std::forward<TArgs>(args)...));
+        SPDLOG_INFO(L"{}", str);
         StatusText = Convert::ToString(str);
     }
 

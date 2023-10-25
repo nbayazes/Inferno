@@ -195,7 +195,7 @@ namespace Inferno {
     void WriteSegmentsToOrf(Level& level, span<SegID> segs, filesystem::path& path) {
         List<Vector3> vertices;
         List<RoomFace> faces;
-        int vertexIndex = 0;
+        short vertexIndex = 0;
 
         for (auto& segid : segs) {
             auto& seg = level.GetSegment(segid);

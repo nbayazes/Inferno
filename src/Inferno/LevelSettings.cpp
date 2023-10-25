@@ -153,7 +153,7 @@ namespace Inferno {
         if (!node.valid() || node.is_seed()) return;
 
         for (const auto& child : node.children()) {
-            WallID id = WallID::None;
+            auto id = WallID::None;
             ReadValue(child["ID"], (int16&)id);
 
             if (auto wall = level.TryGetWall(id)) {
@@ -166,7 +166,8 @@ namespace Inferno {
 
     void LoadLevelMetadata(Level& level, const string& data) {
         try {
-            ryml::Tree doc = ryml::parse(ryml::to_csubstr(data));
+            SPDLOG_INFO("Loading level metadata");
+            ryml::Tree doc = ryml::parse_in_arena(ryml::to_csubstr(data));
             ryml::NodeRef root = doc.rootref();
 
             if (root.is_map()) {
