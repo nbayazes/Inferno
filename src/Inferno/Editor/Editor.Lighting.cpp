@@ -9,6 +9,8 @@
 #include "Face.h"
 #include "ScopedTimer.h"
 #include "Editor.Lighting.h"
+
+#include "Game.Room.h"
 #include "Game.Segment.h"
 #include "WindowsDialogs.h"
 #include "unordered_dense.h"
@@ -996,6 +998,7 @@ namespace Inferno::Editor {
 
             SetVolumeLight(level, settings.AccurateVolumes);
             Editor::History.SnapshotLevel("Light Level");
+            level.Rooms = Game::CreateRooms(level); // Update rooms because dynamic lighting depends on it
             Events::LevelChanged();
         }
         catch (const std::exception& e) {

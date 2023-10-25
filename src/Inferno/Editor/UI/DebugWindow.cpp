@@ -124,6 +124,7 @@ namespace Inferno::Editor {
 
         if (ImGui::Button("Update rooms")) {
             Game::Level.Rooms = Game::CreateRooms(Game::Level);
+            Render::LevelChanged = true;
         }
 
         if (ImGui::Button("Mark room")) {
