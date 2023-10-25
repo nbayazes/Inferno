@@ -454,6 +454,19 @@ namespace Inferno {
         return angles;
     }
 
+    void ApplyRotationalForce(Object& object, const Vector3& hitPoint, Vector3 force, float targetMass) {
+        Matrix basis(object.Rotation);
+        basis = basis.Invert();
+        force = Vector3::Transform(force, basis); // transform force to basis of object
+
+        auto arm = Vector3::Transform(hitPoint - object.Position, basis);
+        const auto torque = force.Cross(arm);
+        // moment of inertia. solid sphere I = 2/5 MR^2. Thin shell: 2/3 MR^2
+        const auto inertia = 1.0f / 6.0f * targetMass * object.Radius * object.Radius;
+        auto accel = torque / inertia;
+        object.Physics.AngularAcceleration += accel;
+    }
+
     // Creates an explosion that can cause damage or knockback
     void CreateExplosion(Level& level, const Object* source, const GameExplosion& explosion) {
         ASSERT(explosion.Room != RoomID::None);
@@ -531,6 +544,7 @@ namespace Inferno {
                                 auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
                                 stunMult = weapon.Extended.StunMult;
                             }
+
                             ApplyForce(target, forceVec);
                             auto parent = source ? Game::Level.TryGetObject(source->Parent) : nullptr;
                             bool srcIsPlayer = parent ? parent->IsPlayer() : false;
@@ -544,7 +558,12 @@ namespace Inferno {
                             //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
                             // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
                             if (!source || source->LastHitObject != target.Signature) {
-                                RotateTowards(target, target.Position + dir, force / 8.0f);
+                                auto pt = RandomPointOnCircle(target.Radius);
+                                auto edgePt = Vector3::Transform(pt, target.GetTransform());
+                                auto edgeDir = edgePt - hit.Point;
+                                edgeDir.Normalize();
+                                auto& robot = Resources::GetRobotInfo(target);
+                                ApplyRotationalForce(target, edgePt, forceVec, robot.Mass);
                             }
                             break;
                         }
@@ -659,19 +678,7 @@ namespace Inferno {
             if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
             if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
 
-            //SPDLOG_INFO("Force: {}, {}, {}", force.x, force.y, force.z);
-            Matrix basis(target.Rotation);
-            basis = basis.Invert();
-            force = Vector3::Transform(force, basis); // transform force to basis of object
-            //SPDLOG_INFO("Local force: {}, {}, {}", force.x, force.y, force.z);
-
-            auto arm = Vector3::Transform(hit.Point - target.Position, basis);
-            const auto torque = force.Cross(arm);
-            // moment of inertia. solid sphere I = 2/5 MR^2. Thin shell: 2/3 MR^2
-            const auto inertia = 1.0f / 6.0f * m2 * target.Radius * target.Radius;
-            auto accel = torque / inertia;
-            //SPDLOG_INFO("Applied accel p: {} y: {} r: {}", accel.x, accel.y, accel.z);
-            target.Physics.AngularAcceleration += accel;
+            ApplyRotationalForce(target, hit.Point, force, m2);
         }
     }
 

@@ -99,6 +99,12 @@ namespace Inferno {
         return { r * cos(t), r * sin(t), cos(r * DirectX::XM_PIDIV2) };
     }
 
+    // Returns a random point on the edge of a circle
+    inline Vector3 RandomPointOnCircle(float radius = 1) {
+        auto t = Random() * DirectX::XM_2PI;
+        return { cos(t) * radius, sin(t) * radius, 0 };
+    }
+
     inline Vector3 RandomPointOnSphere() {
         auto t = Random() * DirectX::XM_2PI;
         float u = RandomN11();
