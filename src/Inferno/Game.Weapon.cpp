@@ -4,6 +4,7 @@
 #include "Object.h"
 #include "Game.h"
 #include "Game.Object.h"
+#include "Game.Segment.h"
 #include "Game.Wall.h"
 #include "Physics.h"
 #include "SoundSystem.h"
@@ -445,6 +446,9 @@ namespace Inferno::Game {
         bullet.Position = bullet.PrevPosition = position;
         auto rotation = VectorToObjectRotation(direction);
         bullet.Rotation = bullet.PrevRotation = rotation;
+        bullet.Segment = TraceSegment(Game::Level, segment, position); // handle gunpoints positioning the projectile into an adjacent seg
+        //if (bullet.Segment != segment)
+        //    SPDLOG_INFO("Gun shifted projectile segment");
 
         bullet.Movement = MovementType::Physics;
         // todo: speedvar

@@ -85,20 +85,158 @@ namespace Inferno {
         }
     }
 
+
+    Array<float, 6> GetSideDistances(const Level& level, SegID id, const Vector3& point) {
+        Array<float, 6> distances{};
+
+        for (auto& sideId : SideIDs) {
+            auto& dist = distances[(int)sideId];
+            auto& seg = level.GetSegment(id);
+            auto face = Face2::FromSide(level, Tag{ id, sideId });
+            if(seg.SideHasConnection(sideId)) {
+                int x =0;
+            }
+
+            if (face.Side->Type == SideSplitType::Tri02) {
+                Plane p0(face[1], face.Side->Normals[0]);
+                Plane p1(face[3], face.Side->Normals[1]);
+                bool concave = p0.DotCoordinate(face[3]) > 0; // other triangle point is in front of plane
+                auto d0 = p0.DotCoordinate(point);
+                auto d1 = p1.DotCoordinate(point);
+
+                // when concave the point is outside if point is behind either plane
+                // when convex point must be behind both planes
+                if (concave) {
+                    dist = std::min({ dist, d0, d1 });
+                }
+                else if (d0 < 0 && d1 < 0) {
+                    dist = std::min({ dist, d0, d1 });
+                }
+            }
+            else if (face.Side->Type == SideSplitType::Tri13) {
+                Plane p0(face[0], face.Side->Normals[0]);
+                Plane p1(face[2], face.Side->Normals[1]);
+                bool concave = p0.DotCoordinate(face[2]) > 0; // other triangle point (2) is in front of plane
+                auto d0 = p0.DotCoordinate(point);
+                auto d1 = p1.DotCoordinate(point);
+
+                if (concave) {
+                    dist = std::min({ dist, d0, d1 });
+                }
+                else if (d0 < 0 && d1 < 0) {
+                    dist = std::min({ dist, d0, d1 });
+                }
+            }
+            else {
+                Plane p(face.Side->Center, face.Side->AverageNormal);
+                dist = std::min(dist, p.DotCoordinate(point));
+            }
+        }
+
+        return distances;
+    }
+
     // Returns true if a point is inside of a segment
     bool PointInSegment(const Level& level, SegID id, const Vector3& point) {
         if (!level.SegmentExists(id)) return false;
 
-        // Use estimation that treats the sides as planes instead of triangles
-        for (auto& sideId : SideIDs) {
-            auto& side = level.GetSide(Tag{ id, sideId });
-            Plane p(side.Center, side.AverageNormal);
-            if (p.DotCoordinate(point) < 0)
-                return false;
+        auto distances = GetSideDistances(level, id, point);
+        return ranges::all_of(distances, [](float d) { return d >= 0; });
+
+        //for (auto& d : distances) {
+        //    if (d < 0) return false;
+        //}
+
+        /*if (!ranges::all_of(distances, [](float d) { return d >= 0; }))
+            return false;
+
+        return true;*/
+
+        //// Check if the point is in front of all triangles of the segment
+        //return ranges::all_of(SideIDs, [&](SideID sideId) {
+        //    auto& side = level.GetSide(Tag{ id, sideId });
+        //    auto face = Face2::FromSide(level, Tag{ id, sideId });
+        //    if (side.Type == SideSplitType::Tri02) {
+        //        Plane p0(face[1], face.Side->Normals[0]);
+        //        if (p0.DotCoordinate(point) < 0) return false;
+
+        //        Plane p1(face[3], face.Side->Normals[1]);
+        //        if (p1.DotCoordinate(point) < 0) return false;
+        //        return true;
+        //    }
+        //    else if (side.Type == SideSplitType::Tri13) {
+        //        Plane p0(face[0], face.Side->Normals[0]);
+        //        if (p0.DotCoordinate(point) < 0) return false;
+
+        //        Plane p1(face[2], face.Side->Normals[1]);
+        //        if (p1.DotCoordinate(point) < 0) return false;
+        //        return true;
+        //    }
+        //    else {
+        //        Plane p(side.Center, side.AverageNormal);
+        //        return p.DotCoordinate(point) > 0;
+        //    }
+        //});
+
+        //for (auto& sideId : SideIDs) {
+        //    auto& side = level.GetSide(Tag{ id, sideId });
+        //    Plane p(side.Center, side.AverageNormal);
+        //    if (p.DotCoordinate(point) < 0)
+        //        return false;
+        //}
+
+        //return true;
+    }
+
+    SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int iterations) {
+        if (iterations > 1000) {
+            SPDLOG_ERROR("Trace depth limit reached, something is wrong");
+            __debugbreak();
+            return start;
         }
 
-        return true;
+        auto distances = GetSideDistances(level, start, point);
+        if (ranges::all_of(distances, [](float d) { return d >= 0; }))
+            return start;
+
+        auto biggestSide = SideID::None;
+
+        do {
+            biggestSide = SideID::None;
+
+            auto seg = level.TryGetSegment(start);
+            float biggestVal = 0;
+
+            if (!seg) {
+                SPDLOG_WARN("Invalid trace segment {}", start);
+                return start;
+            }
+
+            for (auto& sid : SideIDs) {
+                if (seg->SideHasConnection(sid)) {
+                    if (distances[(int)sid] < biggestVal) {
+                        biggestVal = distances[(int)sid];
+                        biggestSide = sid;
+                    }
+                }
+            }
+
+            if (biggestSide != SideID::None) {
+                distances[(int)biggestSide] = 0;
+                auto check = TraceSegmentInternal(level, seg->GetConnection(biggestSide), point, iterations++);
+                if (check != SegID::None)
+                    return check;
+            }
+        }
+        while (biggestSide != SideID::None);
+
+        return SegID::None;
     }
+
+    SegID TraceSegment(const Level& level, SegID start, const Vector3& point) {
+        return TraceSegmentInternal(level, start, point, 0);
+    }
+
 
     bool IsSecretExit(const Level& level, const Trigger& trigger) {
         if (level.IsDescent1())
@@ -506,7 +644,7 @@ namespace Inferno {
     bool NewObjectIntersects(const Level& level, const Segment& seg, const Vector3& position, float radius, ObjectMask mask) {
         for (auto& objid : seg.Objects) {
             if (auto obj = level.TryGetObject(objid)) {
-                if (!obj->PassesMask(mask)) 
+                if (!obj->PassesMask(mask))
                     continue;
 
                 if (Vector3::Distance(obj->Position, position) < obj->Radius + radius)

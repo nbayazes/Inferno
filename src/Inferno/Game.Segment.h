@@ -7,6 +7,7 @@ namespace Inferno {
     void ToggleLight(Level& level, Tag light);
     void UpdateFlickeringLights(Level& level, float t, float dt);
     bool PointInSegment(const Level& level, SegID id, const Vector3& point);
+    SegID TraceSegment(const Level& level, SegID start, const Vector3& point);
     bool IsSecretExit(const Level& level, const Trigger& trigger);
     bool IsExit(const Level& level, const Trigger& trigger);
 
