@@ -7,7 +7,11 @@
 
 #include "Types.h"
 
+#ifdef _DEBUG
 #define ASSERT(x) (void)( (!!(x)) || (__debugbreak(), 0))
+#else
+#define ASSERT(x)
+#endif
 
 namespace Inferno {
     // Creates a four character code to identify file formats

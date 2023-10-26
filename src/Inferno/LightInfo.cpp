@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Yaml.h"
 #include "LightInfo.h"
+#include "imgui.h"
 #include "Procedural.h"
 #include "Resources.h"
 
@@ -37,7 +38,19 @@ namespace Inferno {
         ReadValue(node["Radius"], info.Radius);
         ReadValue(node["Width"], info.Width);
         ReadValue(node["Height"], info.Height);
-        ReadValue(node["Color"], info.Color);
+
+        auto& color = info.Color;
+        ReadValue(node["Color"], color);
+
+        if (color.w == 0) {
+            // Convert RGB to RGB-Intensity
+            float h, s;
+            ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, color.w);
+            color.x /= color.w;
+            color.y /= color.w;
+            color.z /= color.w;
+        }
+
         return info;
     }
 
@@ -57,7 +70,7 @@ namespace Inferno {
         node["Radius"] << info.Radius;
         node["Width"] << info.Width;
         node["Height"] << info.Height;
-        node["Color"] << EncodeColor3(info.Color);
+        node["Color"] << EncodeColor(info.Color);
     }
 
     Dictionary<LevelTexID, TextureLightInfo> LoadLightTable(const string& yaml) {

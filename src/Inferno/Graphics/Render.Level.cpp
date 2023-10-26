@@ -400,6 +400,7 @@ namespace Inferno::Render {
                 auto& lights = RoomLights[(int)id];
                 for (int lid = 0; lid < lights.size(); lid++) {
                     auto& light = lights[lid];
+                    if (light.color.w <= 0 || light.radius <= 0) continue;
                     LightData lt = light;
 
                     if (lt.mode == DynamicLightMode::Flicker || lt.mode == DynamicLightMode::StrongFlicker || lt.mode == DynamicLightMode::WeakFlicker) {

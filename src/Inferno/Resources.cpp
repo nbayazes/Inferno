@@ -601,9 +601,9 @@ namespace Inferno::Resources {
     }
 
     span<JointPos> GetRobotJoints(int robotId, int gun, AnimState state) {
-        assert((int)state <= 4 && (int)state >= 0);
+        ASSERT((int)state <= 4 && (int)state >= 0);
         auto& robotInfo = GetRobotInfo(robotId);
-        assert(gun <= robotInfo.Guns && gun >= 0);
+        ASSERT(gun <= robotInfo.Guns && gun >= 0);
         auto& animStates = robotInfo.Joints[gun][(int)state];
         auto& joints = GameData.RobotJoints[animStates.Offset];
         return span{ &joints, (uint)animStates.Count };
@@ -631,6 +631,13 @@ namespace Inferno::Resources {
                 throw Exception("Unsupported level version");
             }
 
+            for (auto& seg : level.Segments) {
+                // Clamp volume light because some D1 levels use unscaled values
+                auto volumeLight = seg.VolumeLight.ToVector4();
+                volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
+                seg.VolumeLight = volumeLight;
+            }
+
             Materials = { Render::MATERIAL_COUNT };
 
             LoadGameTable();
@@ -640,13 +647,6 @@ namespace Inferno::Resources {
 
             //FixObjectModelIds(level);
             //ResetObjectSizes(level);
-
-            for (auto& seg : level.Segments) {
-                // Clamp volume light because some D1 levels use unscaled values
-                auto volumeLight = seg.VolumeLight.ToVector4();
-                volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
-                seg.VolumeLight = volumeLight;
-            }
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR(e.what());

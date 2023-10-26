@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "LevelSettings.h"
+#include "imgui.h"
 #include "Yaml.h"
 #include "Resources.h"
 #include "Settings.h"
@@ -49,7 +50,7 @@ namespace Inferno {
                 child["Tag"] << EncodeTag(tag);
 
                 if (side.LightOverride)
-                    child["LightColor"] << EncodeColor3(*side.LightOverride);
+                    child["LightColor"] << EncodeColor(*side.LightOverride);
 
                 if (side.LightRadiusOverride)
                     child["LightRadius"] << *side.LightRadiusOverride;
@@ -83,6 +84,14 @@ namespace Inferno {
                 if (child.has_child("LightColor")) {
                     Color color;
                     ReadValue(child["LightColor"], color);
+                    if (color.w == 0) {
+                        // Convert RGB to RGB-Intensity
+                        float h, s;
+                        ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, color.w);
+                        color.x /= color.w;
+                        color.y /= color.w;
+                        color.z /= color.w;
+                    }
                     side->LightOverride = color;
                 }
 

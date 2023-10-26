@@ -327,7 +327,7 @@ namespace Inferno {
         auto light = tmap1.Lighting + tmap2.Lighting;
 
         if (!enableColor)
-            return { light, light, light };
+            return { 1, 1, 1, light };
 
         Color color(0, 0, 0, 0);
 

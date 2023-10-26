@@ -80,7 +80,7 @@ namespace Yaml {
         if (token.size() != 4 && token.size() != 3)
             return;
 
-        float r{}, g{}, b{}, a{ 1 };
+        float r{}, g{}, b{}, a{};
         ParseFloat(token[0], r);
         ParseFloat(token[1], g);
         ParseFloat(token[2], b);

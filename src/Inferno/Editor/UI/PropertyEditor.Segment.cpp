@@ -361,7 +361,7 @@ namespace Inferno::Editor {
         return { color.x, color.y, color.z, color.w };
     }
 
-    bool ColorPicker(Color& color, bool& snapshot, bool& relightLevel) {
+    bool LightPicker(Color& color, bool& snapshot, bool& relightLevel) {
         auto maybeRelightLevel = [&relightLevel] {
             relightLevel = ImGui::IsKeyDown(ImGuiKey::ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey::ImGuiKey_RightCtrl);
         };
@@ -376,16 +376,18 @@ namespace Inferno::Editor {
 
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-1);
-        float h, s, v;
-        ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-        if (ImGui::DragFloat("##value", &v, 0.01f, 0.01f, 100, "%.2f")) {
-            if (v <= 0) v = 0.05f;
-            ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
+        //float h, s, v;
+        //ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
+        if (ImGui::DragFloat("##value", &color.w, 0.01f, 0, 10, "%.2f")) {
+            if (color.w < 0) color.w = 0;
+            //ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
             changed = true;
         }
 
-        if (ImGui::IsItemDeactivatedAfterEdit())
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
             snapshot = changed = true; // Snapshot after the user releases the mouse button
+            maybeRelightLevel();
+        }
 
         if (!ImGui::BeginPopup("ColorPicker"))
             return changed;
@@ -449,7 +451,9 @@ namespace Inferno::Editor {
                 auto previewColor = GetPreviewColor(palette[n]);
 
                 if (ImGui::ColorButton("##palette", previewColor, paletteButtonFlags, ImVec2(32, 32))) {
-                    color = palette[n];
+                    color.x = palette[n].x;
+                    color.y = palette[n].y;
+                    color.z = palette[n].z;
                     snapshot = changed = true;
                     maybeRelightLevel();
                 }
@@ -489,22 +493,28 @@ namespace Inferno::Editor {
                 ImGui::PopID();
             }
 
-            ImGui::Text("Brightness");
-            ImGui::SameLine();
+            ImGui::Text("Intensity");
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::DragFloat("##intensity", &color.w, 0.01f, 0, 10, "%.2f")) {
+                changed = true;
+            }
+
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                snapshot = changed = true; // Snapshot after the user releases the mouse button
+                maybeRelightLevel();
+            }
+
             static float valueIncrement = 0.25f;
             if (ImGui::Button("-.25")) {
-                ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-                v -= valueIncrement;
-                if (v < 0.05f) v = 0.05f;
-                ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
+                color.w -= valueIncrement;
+                if (color.w < 0.0f) color.w = 0.0f;
                 changed = true;
                 maybeRelightLevel();
             }
+
             ImGui::SameLine();
             if (ImGui::Button("+.25")) {
-                ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-                v += valueIncrement;
-                ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
+                color.w += valueIncrement;
                 changed = true;
                 maybeRelightLevel();
             }
@@ -569,7 +579,7 @@ namespace Inferno::Editor {
 
                 bool relightLevel = false;
 
-                if (ColorPicker(light, snapshot, relightLevel)) {
+                if (LightPicker(light, snapshot, relightLevel)) {
                     side.LightOverride = light;
                     overrideChanged = true;
                 }
