@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Game.Input.h"
 #include "Game.h"
+#include "Game.Reactor.h"
 #include "Resources.h"
 #include "Settings.h"
 
@@ -101,6 +102,9 @@ namespace Inferno {
 
     void HandleInput(float dt) {
         if (dt <= 0) return;
+
+        if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
+            Game::SelfDestructMine();
 
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;

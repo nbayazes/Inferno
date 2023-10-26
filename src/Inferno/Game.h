@@ -146,6 +146,11 @@ namespace Inferno::Game {
     inline int CountdownSeconds = -1; // seconds before the reactor goes critical
     inline int TotalCountdown = -1; // the starting countdown time
 
+    // Gets the global dimming related to the self destruct sequence
+    inline float GetSelfDestructDimming() {
+        return ControlCenterDestroyed ? float(sin(CountdownTimer * 4) * 0.5 + 0.5) : 1;
+    }
+
     void SetState(GameState);
     GameState GetState();
 

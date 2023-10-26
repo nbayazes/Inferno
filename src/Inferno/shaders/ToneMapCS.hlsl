@@ -37,15 +37,15 @@ RWTexture2D<float> OutLuma : register(u1);
 SamplerState LinearSampler : register(s0);
 
 struct Constants {
-    float2 g_RcpBufferDim;
-    float g_BloomStrength;
-    float g_Exposure;
+    float2 RcpBufferDim;
+    float BloomStrength;
+    float Exposure;
     bool NewLightMode;
     int ToneMapper;
     bool EnableDirt;
 };
 
-ConstantBuffer<Constants> constants : register(b0);
+ConstantBuffer<Constants> Args : register(b0);
 
 // The Reinhard tone operator.  Typically, the value of k is 1.0, but you can adjust exposure by 1/k.
 // I.e. TM_Reinhard(x, 0.5) == TM_Reinhard(x * 2.0, 1.0)
@@ -127,25 +127,25 @@ float3 tony_mc_mapface(float3 stimulus) {
 [RootSignature(RS)]
 [numthreads(8, 8, 1)]
 void main(uint3 DTid : SV_DispatchThreadID) {
-    float2 TexCoord = (DTid.xy + 0.5) * constants.g_RcpBufferDim;
+    float2 TexCoord = (DTid.xy + 0.5) * Args.RcpBufferDim;
 
     // Load HDR and bloom
     float3 hdrColor = ColorRW[DTid.xy];
     //if (l > 1.00)
     //    hdrColor += (l - 1) / 3;
-    float3 bloom = constants.g_BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
+    float3 bloom = Args.BloomStrength * Bloom.SampleLevel(LinearSampler, TexCoord, 0);
     
     hdrColor += bloom;
     // todo: dirt texture needs to maintain aspect ratio when scaling
-    if (constants.EnableDirt)
+    if (Args.EnableDirt)
         hdrColor += Dirt.SampleLevel(LinearSampler, TexCoord, 0) * clamp(bloom * 20, 0, 4) * 0.4;
-    hdrColor *= constants.g_Exposure;
+    hdrColor *= Args.Exposure;
 
     // Tone map to SDR
-    if (constants.NewLightMode) {
+    if (Args.NewLightMode) {
         float3 toneMappedColor = hdrColor;
 
-        switch (constants.ToneMapper) {
+        switch (Args.ToneMapper) {
             case 0:
                 toneMappedColor = Uncharted2ToneMapping(hdrColor);
                 break;

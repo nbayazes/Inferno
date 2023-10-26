@@ -328,6 +328,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //diffuse.rgb = 0.5; // debug
         //specularMask = 0; // debug
         //diffuse.rgb = lerp(diffuse.rgb, GetMetalDiffuse(diffuse.rgb), material.Metalness);
+        vertexLighting *= Frame.GlobalDimming; // Dim ambient during self destruct
+        emissive *= Frame.GlobalDimming;
 
         ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
@@ -341,6 +343,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //lighting.rgb += vertexLighting * 1.0;
         //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
         //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
-        return float4(lighting * Frame.GlobalDimming, diffuse.a);
+        return float4(lighting, diffuse.a);
     }
 }

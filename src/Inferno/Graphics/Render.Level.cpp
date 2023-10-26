@@ -395,6 +395,8 @@ namespace Inferno::Render {
 
         _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes());
 
+        float dimming = Game::GetSelfDestructDimming();
+
         for (auto& id : _renderQueue.GetVisibleRooms()) {
             if (Seq::inRange(RoomLights, (int)id)) {
                 auto& lights = RoomLights[(int)id];
@@ -403,26 +405,35 @@ namespace Inferno::Render {
                     if (light.color.w <= 0 || light.radius <= 0) continue;
                     LightData lt = light;
 
-                    if (lt.mode == DynamicLightMode::Flicker || lt.mode == DynamicLightMode::StrongFlicker || lt.mode == DynamicLightMode::WeakFlicker) {
-                        int index = lt.mode == DynamicLightMode::WeakFlicker ? 0 : lt.mode == DynamicLightMode::Flicker ? 1 : 2;
+                    auto& mode = lt.mode;
+                    if (Game::ControlCenterDestroyed) {
+                        if (lid % 3 == 0) mode = DynamicLightMode::StrongFlicker;
+                        else if (lid % 2 == 0) mode = DynamicLightMode::StrongFlicker;
+                    }
+
+                    lt.color *= dimming;
+
+                    if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::StrongFlicker || mode == DynamicLightMode::WeakFlicker) {
+                        int index = mode == DynamicLightMode::WeakFlicker ? 0 : mode == DynamicLightMode::Flicker ? 1 : 2;
                         float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
                         float mults[] = { .23f, .4f, .55f };
 
-                        auto noise = OpenSimplex2::Noise2((int)id, Render::ElapsedTime * flickerSpeeds[index], (float)id * 1.37f);
+                        auto noise = OpenSimplex2::Noise2(lid, Render::ElapsedTime * flickerSpeeds[index], (float)id * 1.37f);
                         //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
                         //lt.radius += lt.radius * noise * flickerRadius;
-                        lt.color *= 1.0f - abs(noise * noise * noise - .05f) * mults[index];
+                        lt.color *= 1.0f - abs(noise * noise * noise - .05f) * mults[index] * (Game::ControlCenterDestroyed ? 2 : 1);
                     }
-                    else if (lt.mode == DynamicLightMode::Pulse) {
+                    else if (mode == DynamicLightMode::Pulse) {
                         float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.125f;
                         lt.radius *= t;
                         lt.color *= t;
                     }
-                    else if (lt.mode == DynamicLightMode::BigPulse) {
+                    else if (mode == DynamicLightMode::BigPulse) {
                         float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;
                         lt.radius *= t;
                         lt.color *= t;
                     }
+
 
                     Graphics::Lights.AddLight(lt);
 

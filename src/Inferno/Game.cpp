@@ -43,7 +43,6 @@ namespace Inferno::Game {
         ScreenFlash = Color();
     }
 
-
     // Tries to read the mission file (msn / mn2) for the loaded mission
     Option<MissionInfo> TryReadMissionInfo() {
         try {
