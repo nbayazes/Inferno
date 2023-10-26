@@ -417,6 +417,22 @@ namespace Inferno {
         return s;
     }
 
+    void SaveCheatSettings(ryml::NodeRef node, const CheatSettings& s) {
+        node |= ryml::MAP;
+
+        node["DisableAI"] << s.DisableAI;
+        node["DisableWeaponDamage"] << s.DisableWeaponDamage;
+    }
+
+    CheatSettings LoadCheatSettings(ryml::NodeRef node) {
+        CheatSettings s;
+        if (node.is_seed()) return s;
+
+        ReadValue(node["DisableAI"], s.DisableAI);
+        ReadValue(node["DisableWeaponDamage"], s.DisableWeaponDamage);
+        return s;
+    }
+
     void Settings::Save(const filesystem::path& path) {
         try {
             ryml::Tree doc(128, 128);
@@ -431,6 +447,7 @@ namespace Inferno {
             WriteSequence(doc["DataPaths"], Settings::Inferno.DataPaths);
             SaveEditorSettings(doc["Editor"], Settings::Editor);
             SaveGraphicsSettings(doc["Render"], Settings::Graphics);
+            SaveCheatSettings(doc["Cheats"], Settings::Cheats);
             SaveBindings(doc["Bindings"]);
 
             std::ofstream file(path);
@@ -469,6 +486,8 @@ namespace Inferno {
 
                 Settings::Editor = LoadEditorSettings(root["Editor"], Settings::Inferno);
                 Settings::Graphics = LoadGraphicsSettings(root["Render"]);
+                Settings::Cheats = LoadCheatSettings(root["Cheats"]);
+
                 auto bindings = root["Bindings"];
                 if (!bindings.is_seed()) {
                     LoadEditorBindings(bindings["Editor"]);

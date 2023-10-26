@@ -18,19 +18,24 @@ namespace Inferno::Editor {
     DebugWindow::DebugWindow(): WindowBase("Debug", &Settings::Editor.Windows.Debug) {}
 
     void DebugWindow::OnUpdate() {
+        ImGui::Text("Cheats");
         ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
         ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
-        ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
         ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
-        if (ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps)) {
-            Game::NeedsResourceReload = true;
-        }
+        ImGui::Separator();
+        ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");
 
         ImGui::Checkbox("Load D3 data", &Settings::Inferno.Descent3Enhanced);
         ImGui::Checkbox("Draw Portals", &Settings::Editor.ShowPortals);
         ImGui::Checkbox("Draw lights", &Settings::Editor.ShowLights);
         ImGui::Checkbox("Outline visible rooms", &Settings::Graphics.OutlineVisibleRooms);
         ImGui::Checkbox("Outline teleport segs", &Settings::Editor.OutlineTeleportSegments);
+
+        ImGui::Separator();
+
+        if (ImGui::Checkbox("Generate spec and normal maps", &Settings::Inferno.GenerateMaps)) {
+            Game::NeedsResourceReload = true;
+        }
 
         if (ImGui::Checkbox("Procedural Textures", &Settings::Graphics.EnableProcedurals)) {
             EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
@@ -47,18 +52,18 @@ namespace Inferno::Editor {
         }
 
         ImGui::Separator();
-        ImGui::Text("Keys");
+        ImGui::Text("Player");
         auto blueKey = Game::Player.HasPowerup(PowerupFlag::BlueKey);
         auto goldKey = Game::Player.HasPowerup(PowerupFlag::GoldKey);
         auto redKey = Game::Player.HasPowerup(PowerupFlag::RedKey);
+
+        ImGui::Text("Keys:");
+        ImGui::SameLine(0, 5);
         if (ImGui::Checkbox("Blue", &blueKey)) Game::Player.SetPowerup(PowerupFlag::BlueKey, blueKey);
         ImGui::SameLine();
         if (ImGui::Checkbox("Gold", &goldKey)) Game::Player.SetPowerup(PowerupFlag::GoldKey, goldKey);
         ImGui::SameLine();
         if (ImGui::Checkbox("Red", &redKey)) Game::Player.SetPowerup(PowerupFlag::RedKey, redKey);
-
-        if (ImGui::Button("Reset inventory"))
-            Game::Player.ResetInventory(Game::Difficulty);
 
         bool invulnerable = Game::Player.HasPowerup(PowerupFlag::Invulnerable);
         if (ImGui::Checkbox("Invulnerable", &invulnerable)) {
@@ -76,6 +81,9 @@ namespace Inferno::Editor {
             if (cloak) player.Cloak(3600.0f);
             else player.Uncloak();
         }
+
+        if (ImGui::Button("Reset inventory"))
+            Game::Player.ResetInventory(Game::Difficulty);
 
         ImGui::Separator();
 

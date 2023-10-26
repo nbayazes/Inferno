@@ -70,12 +70,12 @@ namespace Inferno {
 
         // -Fd pdb path to helper debuggers
 
-        args.push_back(L"-Qstrip_debug");
-        args.push_back(L"-Qstrip_reflect");
-
-#if defined(_DEBUG)
         args.push_back(L"-Zi"); // Debug, profiling
         args.push_back(DXC_ARG_OPTIMIZATION_LEVEL0);
+#if defined(_DEBUG)
+#else
+        //args.push_back(L"-Qstrip_debug");
+        //args.push_back(L"-Qstrip_reflect");
 #endif
     }
 
