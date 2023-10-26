@@ -209,7 +209,7 @@ namespace Inferno {
 
     using PointID = uint16; // A level vertex
 
-    enum class DynamicLightMode { Constant, Flicker, Pulse, FastFlicker, BigPulse };
+    enum class DynamicLightMode : int32 { Constant, WeakFlicker, Flicker, StrongFlicker, Pulse, BigPulse };
 
     enum class ObjID : int16 { None = -1 }; // Object ID
     enum class ObjSig : uint16 { None = 0 }; // Object signature

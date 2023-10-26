@@ -40,6 +40,7 @@ namespace Inferno {
                     side.EnableOcclusion &&
                     !side.LightRadiusOverride &&
                     !side.LightPlaneOverride &&
+                    side.LightMode == DynamicLightMode::Constant &&
                     !side.DynamicMultiplierOverride)
                     continue;
 
@@ -55,6 +56,9 @@ namespace Inferno {
 
                 if (side.LightPlaneOverride)
                     child["LightPlane"] << *side.LightPlaneOverride;
+
+                if (side.LightMode != DynamicLightMode::Constant)
+                    child["LightMode"] << (int)side.LightMode;
 
                 if (!side.EnableOcclusion) // Only save when false
                     child["Occlusion"] << side.EnableOcclusion;
@@ -92,6 +96,12 @@ namespace Inferno {
                     float value{};
                     ReadValue(child["LightPlane"], value);
                     side->LightPlaneOverride = value;
+                }
+
+                if (child.has_child("LightMode")) {
+                    int value{};
+                    ReadValue(child["LightMode"], value);
+                    side->LightMode = (DynamicLightMode)value;
                 }
 
                 if (child.has_child("Occlusion"))
@@ -337,5 +347,4 @@ namespace Inferno {
             SPDLOG_ERROR("Error loading level metadata:\n{}", e.what());
         }
     }
-
 }

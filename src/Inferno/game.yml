@@ -155,7 +155,7 @@ Weapons:
     Glow: 1, .66, 0.25, 20
     LightRadius: 40
     LightColor: 1, .66, 0.25, 1.5
-    LightMode: 3 # Flicker
+    LightMode: 3 # Strong flicker
     LightFadeTime: 0.4
     Sticky: 1
     FlashColor: 1, 1, 1, 15
@@ -666,31 +666,31 @@ Powerups:
     LightColor: 0.05, 1, .05, 1.9
     Glow: 1, 1, 1
     LightRadius: 15
-    LightMode: 2 # Pulse
+    LightMode: 4 # Pulse
 
   - id: 1 # Energy
     Glow: 1, 0.80, 0.80, 6.25
-    LightColor: 1, .55, 0.10, 3
+    LightColor: 1, .55, 0.10, 2
     LightRadius: 18
-    LightMode: 1 # Flicker
+    LightMode: 2 # Flicker
 
   - id: 2 # Shield
     Glow: 1, 1, .5, 4.5
-    LightColor: 0.0125, 0.0125, 1, 2.5
+    LightColor: 0.0125, 0.0125, 1, 1.75
     LightRadius: 18
-    LightMode: 2 # Pulse
+    LightMode: 4 # Pulse
 
   - id: 23 # Cloak
     LightColor: .5, 0, 1, 2
     Glow: 1, 1, 1, 2
     LightRadius: 18
-    LightMode: 2 # Pulse
+    LightMode: 4 # Pulse
 
   - id: 25 # Invuln
     Glow: 1, 1, 1, 2
     LightColor: 0.1, 0, 1, 4
     LightRadius: 18
-    LightMode: 2 # Pulse
+    LightMode: 4 # Pulse
 
 Effects:
   Beams:

@@ -42,6 +42,7 @@ namespace Inferno {
         Option<float> LightPlaneOverride; // Editor defined override for light plane tolerance
         Option<float> DynamicMultiplierOverride; // Multiplier used for flickering or breaking lights
         bool EnableOcclusion = true; // Editor defined override for light occlusion
+        DynamicLightMode LightMode = DynamicLightMode::Constant;
 
         bool HasOverlay() const { return TMap2 > LevelTexID::Unset; }
         bool HasWall() const { return Wall > WallID::None; }

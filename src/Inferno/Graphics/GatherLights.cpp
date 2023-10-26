@@ -368,6 +368,7 @@ namespace Inferno::Graphics {
 
             float offset = info->Offset;
             bool isPlanar = side.Normals[0].Dot(side.Normals[1]) > 0.9f;
+            auto lightMode = side.LightMode;
             //if (side.Normals[0].Dot(side.Normals[1]) < 0.9f)
             //    offset += 2.0f; // Move lights of non-planar surfaces outward to prevent intersection with the wall
 
@@ -455,6 +456,7 @@ namespace Inferno::Graphics {
                                     light.right = rightVec * info->Width * uvScale.x;
                                     light.up = up;
                                     light.up -= upVec * 1.5f; // offset the ends to prevent hotspots
+                                    light.mode = lightMode;
                                     sources.push_back(light);
                                 }
                             }
@@ -499,6 +501,7 @@ namespace Inferno::Graphics {
                                 light.pos = *pos + light.normal * offset;
                                 light.right = rightVec * info->Width * uvScale.x;
                                 light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
+                                light.mode = lightMode;
                                 sources.push_back(light);
                             }
                         }

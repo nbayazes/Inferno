@@ -99,7 +99,7 @@ namespace Inferno::Game {
             Render::DynamicLight light;
             light.LightColor = beam->Color;
             light.Radius = 15;
-            light.Mode = DynamicLightMode::FastFlicker;
+            light.Mode = DynamicLightMode::StrongFlicker;
             light.Duration = MAX_OBJECT_LIFE;
             light.Segment = obj.Segment;
             light.Position = obj.Position;

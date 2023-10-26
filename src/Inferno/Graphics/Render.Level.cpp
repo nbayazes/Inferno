@@ -397,8 +397,33 @@ namespace Inferno::Render {
 
         for (auto& id : _renderQueue.GetVisibleRooms()) {
             if (Seq::inRange(RoomLights, (int)id)) {
-                for (auto& light : RoomLights[(int)id]) {
-                    Graphics::Lights.AddLight(light);
+                auto& lights = RoomLights[(int)id];
+                for (int lid = 0; lid < lights.size(); lid++) {
+                    auto& light = lights[lid];
+                    LightData lt = light;
+
+                    if (lt.mode == DynamicLightMode::Flicker || lt.mode == DynamicLightMode::StrongFlicker || lt.mode == DynamicLightMode::WeakFlicker) {
+                        int index = lt.mode == DynamicLightMode::WeakFlicker ? 0 : lt.mode == DynamicLightMode::Flicker ? 1 : 2;
+                        float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
+                        float mults[] = { .23f, .4f, .55f };
+
+                        auto noise = OpenSimplex2::Noise2((int)id, Render::ElapsedTime * flickerSpeeds[index], (float)id * 1.37f);
+                        //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);
+                        //lt.radius += lt.radius * noise * flickerRadius;
+                        lt.color *= 1.0f - abs(noise * noise * noise - .05f) * mults[index];
+                    }
+                    else if (lt.mode == DynamicLightMode::Pulse) {
+                        float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.125f;
+                        lt.radius *= t;
+                        lt.color *= t;
+                    }
+                    else if (lt.mode == DynamicLightMode::BigPulse) {
+                        float t = 1 + sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;
+                        lt.radius *= t;
+                        lt.color *= t;
+                    }
+
+                    Graphics::Lights.AddLight(lt);
 
                     if (Settings::Editor.ShowLights) {
                         Color color(1, .6, .2);

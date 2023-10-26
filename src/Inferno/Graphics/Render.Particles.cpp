@@ -1261,7 +1261,7 @@ namespace Inferno::Render {
             lightColor = Color::Lerp(Color(0, 0, 0), lightColor, t);
         }
 
-        if (Mode == DynamicLightMode::Flicker || Mode == DynamicLightMode::FastFlicker) {
+        if (Mode == DynamicLightMode::Flicker || Mode == DynamicLightMode::StrongFlicker) {
             //constexpr float FLICKER_INTERVAL = 15; // hz
             //float interval = std::floor(Render::ElapsedTime * FLICKER_INTERVAL + (float)obj.Signature * 0.1747f) / FLICKER_INTERVAL;
             const float flickerSpeed = Mode == DynamicLightMode::Flicker ? 4.0f : 6.0f;
@@ -1270,7 +1270,7 @@ namespace Inferno::Render {
             auto noise = OpenSimplex2::Noise2((int)id, Render::ElapsedTime * flickerSpeed, 0);
             lightRadius += lightRadius * noise * flickerRadius;
 
-            if (Mode == DynamicLightMode::FastFlicker)
+            if (Mode == DynamicLightMode::StrongFlicker)
                 lightColor *= 1 + noise * 0.025f;
         }
         else if (Mode == DynamicLightMode::Pulse) {

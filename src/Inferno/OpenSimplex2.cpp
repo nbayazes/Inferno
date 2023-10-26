@@ -242,7 +242,7 @@ namespace OpenSimplex2 {
     * Noise Evaluators
     */
 
-    // 2D Simplex noise, standard lattice orientation.
+    // 2D Simplex noise, standard lattice orientation. Returns -1 to 1
     float Noise2(int64 seed, double x, double y) {
         // Get points for A2* lattice
         double s = SKEW_2D * (x + y);

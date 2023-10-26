@@ -32,7 +32,7 @@ namespace Inferno::Graphics {
         LightType type;
 
         Vector3 right;
-        float _pad1;
+        DynamicLightMode mode;
 
         Vector3 up;
         float _pad2;

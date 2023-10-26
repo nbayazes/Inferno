@@ -620,6 +620,16 @@ namespace Inferno::Editor {
 
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
+                ImGui::Text("Mode");
+                ImGui::TableNextColumn();
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::Combo("##mode", (int*)&side.LightMode, "Steady\0Weak flicker\0Flicker\0Strong flicker\0Pulse\0Big pulse")) {
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightMode = side.LightMode; });
+                    snapshot = true;
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Light plane", &hasOverride)) {
                     side.LightPlaneOverride = hasOverride ? Option(plane) : std::nullopt;
                     snapshot = overrideChanged = true;
