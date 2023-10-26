@@ -460,6 +460,8 @@ namespace Inferno {
 
         auto room = level.GetRoomID(tag.Segment);
         ExplodingWalls.Add({ tag, room });
+        if (auto conn = level.GetConnectedSide(tag))
+            ExplodingWalls.Add({ conn, room }); // Create explosions on both sides
     }
 
     void DestroyWall(Level& level, Tag tag) {

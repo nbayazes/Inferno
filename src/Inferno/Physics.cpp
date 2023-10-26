@@ -980,7 +980,7 @@ namespace Inferno {
         Vector3 direction;
         obj.Physics.Velocity.Normalize(direction);
         if (IsZero(direction)) direction = Vector3::UnitY;
-        Ray pathRay(obj.PrevPosition, direction);
+        Ray pathRay(obj.Position, direction);
 
         for (auto& segId : pvs) {
             Debug::SegmentsChecked++;
@@ -988,8 +988,8 @@ namespace Inferno {
 
             for (auto& sideId : SideIDs) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
-                if (Settings::Cheats.DisableWallCollision && seg.GetSide(sideId).HasWall()) continue;
                 auto& side = seg.GetSide(sideId);
+                if (Settings::Cheats.DisableWallCollision && side.HasWall()) continue;
                 auto face = Face2::FromSide(level, seg, sideId);
                 auto& indices = side.GetRenderIndices();
                 float edgeDistance = 0; // 0 for edge tests
