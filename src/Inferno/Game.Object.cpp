@@ -280,7 +280,7 @@ namespace Inferno {
         return level.Objects.emplace_back(Object{});
     }
 
-    void SpawnContained(Level& level, const ContainsData& contains, const Vector3& position, SegID segment, const Vector3& force) {
+    void SpawnContained(const Level& level, const ContainsData& contains, const Vector3& position, SegID segment, const Vector3& force) {
         switch (contains.Type) {
             case ObjectType::Powerup:
             {
@@ -290,7 +290,6 @@ namespace Inferno {
                     (pid == PowerupID::Gauss && Game::Player.HasWeapon(PrimaryWeaponIndex::Gauss)))
                     pid = PowerupID::VulcanAmmo;
                 else if (
-                    (pid == PowerupID::Laser && Game::Player.HasWeapon(PrimaryWeaponIndex::Laser)) ||
                     (pid == PowerupID::Spreadfire && Game::Player.HasWeapon(PrimaryWeaponIndex::Spreadfire)) ||
                     (pid == PowerupID::Helix && Game::Player.HasWeapon(PrimaryWeaponIndex::Helix)) ||
                     (pid == PowerupID::Plasma && Game::Player.HasWeapon(PrimaryWeaponIndex::Plasma)) ||
