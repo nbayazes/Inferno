@@ -304,14 +304,14 @@ namespace Inferno {
                 //    }
                 //}
                 //else {
-                    Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
-                    if (index == 0 || p.DotCoordinate(point) <= 0) {
-                        // Point was behind the plane or this was the starting segment
-                        auto conn = seg.GetConnection(sideId);
-                        if (conn != SegID::None && !Seq::contains(g_VisitedStack, conn)) {
-                            g_VisitedStack.push_back(conn);
-                        }
+                Plane p(side.Center + side.AverageNormal * radius, side.AverageNormal);
+                if (index == 0 || p.DotCoordinate(point) <= 0) {
+                    // Point was behind the plane or this was the starting segment
+                    auto conn = seg.GetConnection(sideId);
+                    if (conn != SegID::None && !Seq::contains(g_VisitedStack, conn)) {
+                        g_VisitedStack.push_back(conn);
                     }
+                }
                 //}
             }
 
@@ -753,27 +753,24 @@ namespace Inferno {
                     auto offset = normal * sphereSource.Radius; // offset triangle by radius to account for object size
                     Vector3 faceLocalPos = localPos;
 
-                    if (needsRaycast) {
+                    if (needsRaycast && triFacesObj) {
                         float dist{};
                         Plane basePlane(p0, p1, p2);
 
-                        if (triFacesObj) {
-                            // todo: simplify this so multiple projections aren't necessary?
-                            if (ray.Intersects(p0, p1, p2, dist) && dist < travelDist) {
-                                // Move object to intersection of triangle and proceed
-                                faceLocalPos += localDir * (dist - sphereSource.Radius);
-                            }
-                            else if (ray.Intersects(basePlane, dist) && dist < travelDist) {
-                                // Move object to intersection of plane and proceed
-                                // This allows the radius of raycasted projectiles to have effect
-                                faceLocalPos += localDir * dist;
-                            }
+                        if (ray.Intersects(p0, p1, p2, dist) && dist < travelDist) {
+                            // Move object to intersection of triangle and proceed
+                            faceLocalPos += localDir * (dist - sphereSource.Radius);
+                        }
+                        else if (ray.Intersects(basePlane, dist) && dist < travelDist) {
+                            // Move object to intersection of plane and proceed
+                            // This allows the radius of raycasted projectiles to have effect
+                            faceLocalPos += localDir * dist;
                         }
                     }
 
                     Plane plane(p0 + offset, p1 + offset, p2 + offset);
                     auto planeDist = -plane.DotCoordinate(faceLocalPos); // flipped winding
-                    if (planeDist > 0 || planeDist < -sphereSource.Radius/* * 1.1f*/)
+                    if (planeDist > 0 || planeDist < -sphereSource.Radius)
                         continue; // Object isn't close enough to the triangle plane
 
                     auto point = ProjectPointOntoPlane(faceLocalPos, plane);
@@ -864,6 +861,14 @@ namespace Inferno {
 
             auto nDotVel = hit.Normal.Dot(sphereSource.Physics.Velocity);
             target.Physics.Velocity -= hit.Normal * nDotVel; // slide along triangle
+        }
+
+        if (sphereSource.Type == ObjectType::Weapon) {
+            // Use the weapon position as the hit location so the explosion doesn't "snap" to the model
+            // Be careful that this doesn't reintroduce the gauss self damage problem...
+            hit.Normal = sphereSource.Position - hit.Point;
+            hit.Normal.Normalize();
+            hit.Point = sphereSource.Position;
         }
 
         return hit;
