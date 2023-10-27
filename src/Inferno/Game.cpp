@@ -354,7 +354,7 @@ namespace Inferno::Game {
         }
         //LegitProfiler::AddCpuTask(std::move(task));
 
-        if (Game::ShowDebugOverlay) {
+        if (Game::ShowDebugOverlay && Game::GetState() != GameState::Editor) {
             auto vp = ImGui::GetMainViewport();
             constexpr float topOffset = 50;
             UpdateLiveObjectCount();
