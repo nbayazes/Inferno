@@ -58,6 +58,13 @@ namespace Inferno::Game {
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
         PlaySelfDestructSounds(3);
+
+        // Apply a strong force from the initial reactor explosion
+        auto& player = Game::GetPlayerObject();
+        auto signX = RandomInt(1) ? 1 : -1;
+        auto signY = RandomInt(1) ? 1 : -1;
+        player.Physics.AngularVelocity.z += signX * .35f;
+        player.Physics.AngularVelocity.x += signY * .5f;
     }
 
     void DestroyReactor(Object& obj) {
@@ -72,6 +79,11 @@ namespace Inferno::Game {
 
         AddPointsToScore(REACTOR_SCORE);
         SelfDestructMine();
+
+        // Big boom
+        Sound3D sound({ SoundID::Explosion }, obj.Position, obj.Segment);
+        sound.Volume = 2;
+        Sound::Play(sound);
 
         if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
@@ -97,8 +109,8 @@ namespace Inferno::Game {
 
         if (auto beam = Render::EffectLibrary.GetBeamInfo("reactor_arcs")) {
             Render::DynamicLight light;
-            light.LightColor = beam->Color;
-            light.Radius = 15;
+            light.LightColor = beam->Color * 0.25f;
+            light.Radius = 25;
             light.Mode = DynamicLightMode::StrongFlicker;
             light.Duration = MAX_OBJECT_LIFE;
             light.Segment = obj.Segment;
@@ -122,11 +134,10 @@ namespace Inferno::Game {
     }
 
     void UpdateReactorCountdown(float dt) {
-        auto fc = std::min(CountdownSeconds, 16);
-        auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
-
         // Shake the player ship
         auto& player = Game::GetPlayerObject();
+        auto fc = std::min(CountdownSeconds, 16);
+        auto scale = Difficulty == 0 ? 0.25f : 1; // reduce shaking on trainee
         player.Physics.AngularVelocity.z += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
         player.Physics.AngularVelocity.x += RandomN11() * 0.25f * (3.0f / 16 + (16 - fc) / 32.0f) * scale;
 
