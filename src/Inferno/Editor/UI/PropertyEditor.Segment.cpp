@@ -367,7 +367,33 @@ namespace Inferno::Editor {
         };
 
         static Color previous;
-        bool changed = false;
+        Color entryColor = color;
+
+        auto updateMarkedColor = [&color, &entryColor] {
+            bool colorChanged = color.x != entryColor.x || color.y != entryColor.y || color.z != entryColor.z;
+            bool intensityChanged = color.w != entryColor.w;
+            if (!colorChanged && !intensityChanged) return false;
+
+            for (auto& tag : GetSelectedFaces()) {
+                if (auto marked = Game::Level.TryGetSide(tag)) {
+                    // Only update the corresponding components for each side
+                    if (colorChanged) {
+                        marked->LightOverride->x = color.x;
+                        marked->LightOverride->y = color.y;
+                        marked->LightOverride->z = color.z;
+                    }
+
+                    if (intensityChanged) {
+                        if (!marked->LightOverride)
+                            marked->LightOverride = color;
+                        else
+                            marked->LightOverride->w = color.w;
+                    }
+                }
+            }
+
+            return true;
+        };
 
         if (ImGui::ColorButton("##ColorPickerButton", GetPreviewColor(color))) {
             ImGui::OpenPopup("ColorPicker");
@@ -376,26 +402,22 @@ namespace Inferno::Editor {
 
         ImGui::SameLine();
         ImGui::SetNextItemWidth(-1);
-        //float h, s, v;
-        //ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
         if (ImGui::DragFloat("##value", &color.w, 0.01f, 0, 10, "%.2f")) {
             if (color.w < 0) color.w = 0;
-            //ImGui::ColorConvertHSVtoRGB(h, s, v, color.x, color.y, color.z);
-            changed = true;
         }
 
         if (ImGui::IsItemDeactivatedAfterEdit()) {
-            snapshot = changed = true; // Snapshot after the user releases the mouse button
+            snapshot = true; // Snapshot after the user releases the mouse button
             maybeRelightLevel();
         }
 
         if (!ImGui::BeginPopup("ColorPicker"))
-            return changed;
+            return updateMarkedColor();
 
-        changed |= ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
+        ImGui::ColorPicker3("##picker", &color.x, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
 
         if (ImGui::IsItemDeactivatedAfterEdit())
-            snapshot = changed = true; // Snapshot after the user releases the mouse button
+            snapshot = true; // Snapshot after the user releases the mouse button
 
         ImGui::SameLine();
         {
@@ -424,7 +446,7 @@ namespace Inferno::Editor {
                 auto previewColor = GetPreviewColor(previous);
                 if (ImGui::ColorButton("##previous", previewColor, ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop, ImVec2(60, 40))) {
                     color = previous;
-                    snapshot = changed = true;
+                    snapshot = true;
                     maybeRelightLevel();
                 }
 
@@ -454,7 +476,7 @@ namespace Inferno::Editor {
                     color.x = palette[n].x;
                     color.y = palette[n].y;
                     color.z = palette[n].z;
-                    snapshot = changed = true;
+                    snapshot = true;
                     maybeRelightLevel();
                 }
 
@@ -495,12 +517,10 @@ namespace Inferno::Editor {
 
             ImGui::Text("Intensity");
             ImGui::SetNextItemWidth(-1);
-            if (ImGui::DragFloat("##intensity", &color.w, 0.01f, 0, 10, "%.2f")) {
-                changed = true;
-            }
+            ImGui::DragFloat("##intensity", &color.w, 0.01f, 0, 10, "%.2f");
 
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                snapshot = changed = true; // Snapshot after the user releases the mouse button
+                snapshot = true; // Snapshot after the user releases the mouse button
                 maybeRelightLevel();
             }
 
@@ -508,14 +528,12 @@ namespace Inferno::Editor {
             if (ImGui::Button("-.25")) {
                 color.w -= valueIncrement;
                 if (color.w < 0.0f) color.w = 0.0f;
-                changed = true;
                 maybeRelightLevel();
             }
 
             ImGui::SameLine();
             if (ImGui::Button("+.25")) {
                 color.w += valueIncrement;
-                changed = true;
                 maybeRelightLevel();
             }
 
@@ -524,7 +542,7 @@ namespace Inferno::Editor {
         }
 
         ImGui::EndPopup();
-        return changed;
+        return updateMarkedColor();
     }
 
     bool SideLighting(Level& level, Segment& seg, SegmentSide& side) {
@@ -558,7 +576,6 @@ namespace Inferno::Editor {
                 ImGui::SameLine();
                 if (ImGui::Button("Paste")) {
                     side.LightOverride = SideLightBuffer;
-                    overrideChanged = true;
                 }
 
                 ImGui::SameLine();
@@ -579,12 +596,7 @@ namespace Inferno::Editor {
 
                 if (LightPicker(light, snapshot, relightLevel)) {
                     side.LightOverride = light;
-                    overrideChanged = true;
-                }
-
-                if (overrideChanged) {
                     levelChanged = true;
-                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightOverride = side.LightOverride; });
                 }
 
                 if (relightLevel)
@@ -633,7 +645,7 @@ namespace Inferno::Editor {
                 ImGui::SetNextItemWidth(-1);
 
                 // Adjust the 'off' entry so it works in the UI nicely
-                auto lightMode = side.LightMode == DynamicLightMode::Off ? DynamicLightMode::Count: side.LightMode;
+                auto lightMode = side.LightMode == DynamicLightMode::Off ? DynamicLightMode::Count : side.LightMode;
 
                 if (ImGui::Combo("##mode", (int*)&lightMode, "Steady\0Weak flicker\0Flicker\0Strong flicker\0Pulse\0Big pulse\0Off")) {
                     side.LightMode = lightMode == DynamicLightMode::Count ? DynamicLightMode::Off : lightMode;
