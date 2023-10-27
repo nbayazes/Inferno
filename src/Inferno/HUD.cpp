@@ -102,7 +102,7 @@ namespace Inferno {
     constexpr Color GREEN_TEXT = { 0, 0.7f, 0 };
     constexpr Color RED_TEXT = { 0.7f, 0, 0 };
     constexpr Color GOLD_TEXT = { 0.78f, 0.56f, 0.18f };
-    constexpr float MONITOR_BRIGHTNESS = 2;
+    constexpr float MONITOR_BRIGHTNESS = 1.20f;
 
     void DrawMonitorBitmap(Render::CanvasBitmapInfo& info, float shadow = 0.6f) {
         Render::HudGlowCanvas->DrawBitmap(info);
@@ -113,7 +113,11 @@ namespace Inferno {
     }
 
     // Draws text with a dark background, easier to read
-    void DrawMonitorText(string_view text, Render::DrawTextInfo& info, float shadow = 0.6f) {
+    void DrawMonitorText(string_view text, Render::DrawTextInfo info, float shadow = 0.6f) {
+        info.Color.x *= MONITOR_BRIGHTNESS;
+        info.Color.y *= MONITOR_BRIGHTNESS;
+        info.Color.z *= MONITOR_BRIGHTNESS;
+
         Render::HudGlowCanvas->DrawGameText(text, info);
         info.Color = Color{ 0, 0, 0, shadow };
         info.Scanline = 0.0f;
@@ -294,11 +298,12 @@ namespace Inferno {
         auto alignment = Render::GetAlignment(size, AlignH::CenterLeft, AlignV::Bottom, Render::HudGlowCanvas->GetSize());
         float uvTop = 1 - percent;
 
+        Color color = { MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS };
         Render::HudCanvasPayload info{};
-        info.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { 0, 1 } }; // bottom left
-        info.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, { 1, 1 } }; // bottom right
-        info.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { 1, uvTop } }; // top right
-        info.V3 = { Vector2{ pos.x, pos.y } + alignment, { 0, uvTop } }; // top left
+        info.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { 0, 1 }, color }; // bottom left
+        info.V1 = { Vector2{ pos.x + size.x, pos.y + size.y } + alignment, { 1, 1 }, color }; // bottom right
+        info.V2 = { Vector2{ pos.x + size.x, pos.y } + alignment, { 1, uvTop }, color }; // top right
+        info.V3 = { Vector2{ pos.x, pos.y } + alignment, { 0, uvTop }, color }; // top left
         info.Texture = material.Handle();
         info.Scanline = DEFAULT_SCANLINE;
         Render::HudGlowCanvas->Draw(info);
@@ -512,7 +517,7 @@ namespace Inferno {
         info.HorizontalAlign = AlignH::Center;
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.75f;
-        info.Color = Color(1, 1, 1, alpha);
+        info.Color = Color(MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, alpha);
         Render::HudGlowCanvas->DrawBitmap(info);
 
         //DrawMonitorBitmap(info, 0.90f);
@@ -783,7 +788,7 @@ namespace Inferno {
 
     void DrawHUD(float dt, Color ambient) {
         constexpr Color minLight(0.2f, 0.2f, 0.2f);
-        ambient *= 2;
+        //ambient *= 2;
         ambient *= Game::GetSelfDestructDimming();
         ambient += minLight;
         ambient.A(1);

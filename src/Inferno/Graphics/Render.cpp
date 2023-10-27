@@ -346,7 +346,7 @@ namespace Inferno::Render {
         cmdList->CopyResource(VClipBuffer->Get(), VClipUploadBuffer->Get());
         VClipBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
-    
+
     //constexpr auto TEST_PROCEDURAL = "ThinMatcenLightning Purple";
     //constexpr auto TEST_PROCEDURAL = "BlueMagneticField-V";
     //constexpr auto TEST_PROCEDURAL = "EnergyConvpro";
@@ -486,7 +486,7 @@ namespace Inferno::Render {
             DrawHUD(Render::FrameTime, player->Ambient.GetColor());
         }
 
-        if (Game::ScreenFlash.ToVector3().LengthSquared() > 0) {
+        if (Game::ScreenFlash != Color(0, 0, 0)) {
             CanvasBitmapInfo flash;
             flash.Size = Adapter->GetOutputSize();
             flash.Color = Game::ScreenFlash;

@@ -313,8 +313,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     float3 lighting = float3(0, 0, 0);
 
     float3 vertexLighting = max(0, input.col.rgb);
+    vertexLighting.rgb = pow(vertexLighting.rgb, 2.2); // sRGB to linear
     vertexLighting = lerp(1, vertexLighting, Args.LightingScale);
-    vertexLighting = pow(vertexLighting, 2.2); // sRGB to linear
 
     if (!Frame.NewLightMode) {
         lighting.rgb += vertexLighting;
