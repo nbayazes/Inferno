@@ -631,13 +631,6 @@ namespace Inferno::Resources {
                 throw Exception("Unsupported level version");
             }
 
-            for (auto& seg : level.Segments) {
-                // Clamp volume light because some D1 levels use unscaled values
-                auto volumeLight = seg.VolumeLight.ToVector4();
-                volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
-                seg.VolumeLight = volumeLight;
-            }
-
             Materials = { Render::MATERIAL_COUNT };
 
             LoadGameTable();

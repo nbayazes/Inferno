@@ -109,6 +109,13 @@ namespace Inferno::Editor {
         filesystem::path metadataPath = path;
         metadataPath.replace_extension(METADATA_EXTENSION);
 
+        for (auto& seg : level.Segments) {
+            // Clamp volume light because some D1 levels use unscaled values
+            auto volumeLight = seg.VolumeLight.ToVector4();
+            volumeLight.Clamp({ 0, 0, 0, 1 }, { 1, 1, 1, 1 });
+            seg.VolumeLight = volumeLight;
+        }
+
         // Load metadata
         std::ifstream metadataStream(metadataPath);
         if (metadataStream) {
