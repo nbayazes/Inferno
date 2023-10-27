@@ -664,7 +664,7 @@ Robots:
 Powerups:
   - id: 0 # Extra life
     LightColor: 0.05, 1, .05, 1.9
-    Glow: 1, 1, 1
+    Glow: 1, 1, 1, 1
     LightRadius: 15
     LightMode: 4 # Pulse
 

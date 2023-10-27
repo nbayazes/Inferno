@@ -13,7 +13,6 @@
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
-    constexpr float LEVEL_AMBIENT_MULT = 0.25f;
     constexpr Color MIN_POWERUP_AMBIENT = Color(0.1, 0.1, 0.1);
 
     constexpr float GetTimeOffset(const Object& obj) {
@@ -386,7 +385,7 @@ namespace Inferno::Render {
             constants.EmissiveLight = object.Render.Emissive;
         }
         else {
-            constants.Ambient = object.Ambient.GetColor().ToVector4() * LEVEL_AMBIENT_MULT;
+            constants.Ambient = object.Ambient.GetColor().ToVector4();
             constants.EmissiveLight = Color(0, 0, 0);
         }
 
