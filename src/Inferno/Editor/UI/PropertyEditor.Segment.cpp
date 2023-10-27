@@ -590,6 +590,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Color", &hasOverride)) {
                     side.LightOverride = hasOverride ? Option(light) : std::nullopt;
+                    applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightOverride = side.LightOverride; });
                     snapshot = true;
                 }
 

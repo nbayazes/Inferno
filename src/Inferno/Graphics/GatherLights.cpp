@@ -300,24 +300,23 @@ namespace Inferno::Graphics {
 
             TextureLightInfo* info = nullptr;
 
-            // priority: mat2, tmap2, mat1, tmap1
-            auto mat2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
-            if (mat2) {
-                info = mat2;
-            }
-            else {
-                auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
-                if (tmap2.Lighting <= 0)
-                    useOverlay = false;
+            // Prioritize overlay texture lights
+            if (useOverlay) {
+                if (auto mat2 = TryGetValue(Resources::LightInfoTable, side.TMap2))
+                    info = mat2;
+                else {
+                    if (!Resources::GetTextureInfo(side.TMap2).Transparent)
+                        continue; // Skip walls that have a solid texture over a light
+                }
             }
 
-            if (!useOverlay) {
-                auto mat = TryGetValue(Resources::LightInfoTable, side.TMap);
-                if (mat)
+            if (!info) {
+                if (auto mat = TryGetValue(Resources::LightInfoTable, side.TMap))
                     info = mat;
             }
 
-            if (!info) info = &defaultInfo;
+            if (!info) continue; // No light info for this side
+
             auto color = GetLightColor(side, true);
             // todo: need a separate property for dynamic light radius for perf reasons
             //auto radius = side.LightRadiusOverride ? side.LightRadiusOverride.value() * 3 : info->Radius;
