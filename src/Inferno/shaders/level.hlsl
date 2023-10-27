@@ -261,7 +261,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //    MaterialInfo mat2 = Materials[input.Tex2];
 
         // Apply supertransparency mask
-        float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
+        float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
         //float mask = 1 - Sample2D(GetTexture(input.Tex2, MAT_MASK), input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
         base *= mask;
 
@@ -300,8 +300,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
         emissive = emissive + 1; // make lava and forcefields full bright
 
     // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
+    // Rarely a few pixels of light tiling will fail with <= 0 in enhanced mode with AA, but this is less distracting than aliasing
     if (diffuse.a <= 0)
-        discard; // discarding speeds up large transparent walls
+        discard;
 
     // align normals
     float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);

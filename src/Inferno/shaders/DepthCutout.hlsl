@@ -70,17 +70,16 @@ float psmain(PS_INPUT input) : SV_Target {
     float alpha = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode).a;
 
     if (Args.HasOverlay > 0) {
-        //float mask = Sample2D(GetTexture(input.Tex2, MAT_MASK), input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
-        float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
-        alpha *= mask.r > 0 ? (1 - mask.r) : 1;
+        float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
+        alpha *= mask;
 
-        //float4 src = Sample2D(GetTexture(input.Tex2, MAT_DIFF), input.uv2, Sampler, Frame.FilterMode);
         float4 src = Sample2D(Overlay, input.uv2, Sampler, Frame.FilterMode);
         alpha = src.a + alpha * (1 - src.a); // Add overlay texture
     }
 
-    // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
-    if (alpha < 1)
+    // Smooth filtering must discard <= 0 because otherwise the semi-transparent pixels will cull incorrectly
+    // alpha < 1 provides better edge quality with enhanced point filtering and AA
+    if ((Frame.FilterMode == FILTER_SMOOTH && alpha <= 0) || (Frame.FilterMode != FILTER_SMOOTH && alpha < 1))
         discard;
 
     return LinearizeDepth(Frame.NearClip, Frame.FarClip, input.pos.z);
