@@ -524,8 +524,6 @@ namespace Inferno::Editor {
         }
 
         ImGui::EndPopup();
-
-        //color = Color(imColor.x, imColor.y, imColor.z, imColor.w);
         return changed;
     }
 
@@ -633,7 +631,12 @@ namespace Inferno::Editor {
                 ImGui::Text("Mode");
                 ImGui::TableNextColumn();
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::Combo("##mode", (int*)&side.LightMode, "Steady\0Weak flicker\0Flicker\0Strong flicker\0Pulse\0Big pulse")) {
+
+                // Adjust the 'off' entry so it works in the UI nicely
+                auto lightMode = side.LightMode == DynamicLightMode::Off ? DynamicLightMode::Count: side.LightMode;
+
+                if (ImGui::Combo("##mode", (int*)&lightMode, "Steady\0Weak flicker\0Flicker\0Strong flicker\0Pulse\0Big pulse\0Off")) {
+                    side.LightMode = lightMode == DynamicLightMode::Count ? DynamicLightMode::Off : lightMode;
                     applyToMarkedFaces([&side](SegmentSide& dest) { dest.LightMode = side.LightMode; });
                     snapshot = true;
                 }

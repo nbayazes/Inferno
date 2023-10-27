@@ -402,7 +402,9 @@ namespace Inferno::Render {
                 auto& lights = RoomLights[(int)id];
                 for (int lid = 0; lid < lights.size(); lid++) {
                     auto& light = lights[lid];
-                    if (light.color.w <= 0 || light.radius <= 0) continue;
+                    if (light.color.w <= 0 || light.radius <= 0 || light.mode == DynamicLightMode::Off) 
+                        continue;
+
                     LightData lt = light;
 
                     auto& mode = lt.mode;
