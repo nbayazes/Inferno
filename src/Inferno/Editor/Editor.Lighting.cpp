@@ -555,8 +555,9 @@ namespace Inferno::Editor {
         auto& cast = ctx.RayCasts[light.Tag];
         cast.Source = &light;
         cast.PassMaxValue = light.MaxBrightness() * settings.Multiplier;
-        // Clamp to the max light value setting
-        ClampColor(cast.PassMaxValue, Color(0, 0, 0), Color(settings.MaxValue, settings.MaxValue, settings.MaxValue));
+        // Clamp to the max light value setting for non-color lighting
+        if (!settings.EnableColor)
+            ClampColor(cast.PassMaxValue, Color(0, 0, 0), Color(settings.MaxValue, settings.MaxValue, settings.MaxValue));
 
         LightSegments(level, light.Colors, segmentsToLight, light.Tag, false, cast, ctx);
         return cast;
