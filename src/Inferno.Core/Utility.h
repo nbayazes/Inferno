@@ -88,6 +88,11 @@ namespace Inferno {
         return direction;
     }
 
+    // CIE luminance
+    inline float Luminance(const Vector3& v) {
+        return Vector3(0.2126f, 0.7152f, 0.0722f).Dot(v);
+    }
+
     // Returns a random unit vector. Optionally scaled by a value.
     inline Vector3 RandomVector(float scale = 1) {
         Vector3 v(RandomN11(), RandomN11(), RandomN11());

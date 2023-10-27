@@ -378,9 +378,14 @@ namespace Inferno::Editor {
                 if (auto marked = Game::Level.TryGetSide(tag)) {
                     // Only update the corresponding components for each side
                     if (colorChanged) {
-                        marked->LightOverride->x = color.x;
-                        marked->LightOverride->y = color.y;
-                        marked->LightOverride->z = color.z;
+                        if (!marked->LightOverride) {
+                            marked->LightOverride = color;
+                        }
+                        else {
+                            marked->LightOverride->x = color.x;
+                            marked->LightOverride->y = color.y;
+                            marked->LightOverride->z = color.z;
+                        }
                     }
 
                     if (intensityChanged) {
@@ -560,7 +565,6 @@ namespace Inferno::Editor {
 
             {
                 // Light color override
-                bool overrideChanged = false;
                 bool hasOverride = side.LightOverride.has_value();
                 auto light = side.LightOverride.value_or(GetLightColor(side, Settings::Editor.Lighting.EnableColor));
 
@@ -586,7 +590,7 @@ namespace Inferno::Editor {
                 ImGui::TableNextColumn();
                 if (ImGui::Checkbox("Color", &hasOverride)) {
                     side.LightOverride = hasOverride ? Option(light) : std::nullopt;
-                    snapshot = overrideChanged = true;
+                    snapshot = true;
                 }
 
                 ImGui::TableNextColumn();
@@ -1239,6 +1243,18 @@ namespace Inferno::Editor {
             ImGui::TableRowLabel("Effect clip");
             ImGui::AlignTextToFramePadding();
             ImGui::Text("%i", lti.EffectClip);
+
+            if (lti.EffectClip != EClipID::None) {
+                auto& effect = Resources::GetEffectClip(lti.EffectClip);
+
+                ImGui::TableRowLabel("Destroyed eclip");
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("%i", effect.DestroyedEClip);
+
+                ImGui::TableRowLabel("Destroyed texture");
+                ImGui::AlignTextToFramePadding();
+                ImGui::Text("%i", effect.DestroyedTexture);
+            }
 
             ImGui::TableRowLabel("Damage");
             ImGui::AlignTextToFramePadding();

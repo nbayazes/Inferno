@@ -621,6 +621,7 @@ namespace Inferno::Editor {
                 auto& side = seg.GetSide(sideId);
                 auto color = GetLightColor(side, settings.EnableColor);
                 if (color.w <= 0) continue;
+                color.Premultiply();
 
                 Tag tag = { segId, sideId };
 

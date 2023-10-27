@@ -315,12 +315,8 @@ namespace Inferno {
 
     // Returns the light contribution from both textures on this side
     Color GetLightColor(const SegmentSide& side, bool enableColor) {
-        if (side.LightOverride) {
-            Color color = *side.LightOverride;
-            color.Premultiply();
-            color.w = 1;
-            return color;
-        }
+        if (side.LightOverride)
+            return *side.LightOverride;
 
         auto& tmap1 = Resources::GetLevelTextureInfo(side.TMap);
         auto& tmap2 = Resources::GetLevelTextureInfo(side.TMap2);
@@ -329,33 +325,34 @@ namespace Inferno {
         if (!enableColor)
             return { 1, 1, 1, light };
 
-        Color color(0, 0, 0, 0);
+        Color baseColor(0, 0, 0, 0), overlayColor(0, 0, 0, 0);
 
         auto lightInfo1 = TryGetValue(Resources::LightInfoTable, side.TMap);
         if (lightInfo1 && lightInfo1->Color != LIGHT_UNSET) {
-            color += lightInfo1->Color;
+            baseColor += lightInfo1->Color;
         }
         else if (tmap1.Lighting > 0) {
-            color += Resources::GetTextureInfo(side.TMap).AverageColor;
+            baseColor += Resources::GetTextureInfo(side.TMap).AverageColor;
         }
-
-        color.Premultiply();
 
         if (side.HasOverlay()) {
-            color.w = 0;
             auto lightInfo2 = TryGetValue(Resources::LightInfoTable, side.TMap2);
+
             if (lightInfo2 && lightInfo2->Color != LIGHT_UNSET) {
-                color += lightInfo2->Color;
-                color.Premultiply();
+                overlayColor = lightInfo2->Color;
             }
             else if (tmap2.Lighting > 0) {
-                color += Resources::GetTextureInfo(side.TMap2).AverageColor;
-                color.Premultiply();
+                overlayColor = Resources::GetTextureInfo(side.TMap2).AverageColor;
             }
         }
 
-        color.w = 1;
-        return color;
+        // add the colors after premultiplying but maintain the intensity separately
+        float intensity = baseColor.w + overlayColor.w;
+        baseColor.Premultiply();
+        overlayColor.Premultiply();
+        auto finalColor = baseColor + overlayColor;
+        finalColor.w = intensity;
+        return finalColor;
     }
 
     // Returns a vector that exits the segment

@@ -3,10 +3,6 @@
 #include "Types.h"
 
 namespace Inferno {
-    inline float Luminance(const Vector3& v) {
-        return Vector3(0.2126f, 0.7152f, 0.0722f).Dot(v);
-    }
-
     inline float GetIntensity(const Palette::Color& color, bool invert = false) {
         // assumes color is clamped 0..1
         //Vector3 rgb = { (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f };
