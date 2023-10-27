@@ -23,9 +23,9 @@ namespace Inferno {
     struct LevelTexture {
         TextureFlag Flags{};
         float Lighting{};
-        float Damage{}; //how much damage being against this does (for lava)
-        EClipID EffectClip = EClipID::None; //the EffectClip that changes this, or -1
-        LevelTexID DestroyedTexture = LevelTexID::None; //bitmap to show when destroyed, or -1
+        float Damage{}; // how much damage touching this does
+        EClipID EffectClip = EClipID::None; // animation to use for this texture
+        LevelTexID DestroyedTexture = LevelTexID::None; // texture to show when destroyed
         Vector2 Slide; // Siding UV rate of texture per second
         LevelTexID ID = LevelTexID::None;
         TexID TexID = TexID::None;

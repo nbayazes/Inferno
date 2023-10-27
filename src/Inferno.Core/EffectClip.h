@@ -53,11 +53,9 @@ namespace Inferno {
     enum class EClipFlag : int32 { None = 0, Critical = 1, OneShot = 2, Stopped = 4 };
     //DEFINE_ENUM_FLAG_OPERATORS(EClipFlag);
 
-    // Effect clip. Assigns a vclip to a segment side.
+    // Animated level wall textures
     struct EffectClip {
         VClip VClip{}; // embedded vclip for this effect
-        LevelTexID ChangingWallTexture = LevelTexID::None; // Which element of Textures array to replace. Unused?
-        short ChangingObjectTexture{}; // Which element of ObjBitmapPtrs array to replace.
         EClipFlag Flags{};
         EClipID CritClip{};  // swap to this animation when mine is critical
         LevelTexID DestroyedTexture = LevelTexID::None; // swap to this texture when destroyed after playing the eclip if present
@@ -70,6 +68,9 @@ namespace Inferno {
         float TimeLeft{};
         int FrameCount{};
         Tag OneShotTag;
+
+        LevelTexID ChangingWallTexture = LevelTexID::None; // Which element of Textures array to replace. Unused?
+        short ChangingObjectTexture{}; // Which element of ObjBitmapPtrs array to replace. Unused?
     };
 
     enum class DoorClipFlag : int16 {

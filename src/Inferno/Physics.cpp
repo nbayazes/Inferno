@@ -83,6 +83,7 @@ namespace Inferno {
         if (eclip.DestroyedEClip != EClipID::None) {
             // Hack storing exploding side state into the global effect.
             // The original game did this, but should be replaced with a more robust system.
+            // If more than one monitor breaks with different times the animation wouldn't play properly.
             if (Seq::inRange(Resources::GameData.Effects, (int)eclip.DestroyedEClip)) {
                 auto& destroyed = Resources::GameData.Effects[(int)eclip.DestroyedEClip];
                 if (!destroyed.OneShotTag) {

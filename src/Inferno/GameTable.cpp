@@ -332,6 +332,7 @@ namespace Inferno {
         READ_PROP(Aim);
         READ_PROP(Multishot);
         READ_PROP(TeleportInterval);
+#undef READ_PROP
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};
         Array<int16, 5> shots{}, evasion{};
@@ -373,7 +374,18 @@ namespace Inferno {
                     robot.GatedRobots.push_back((int8)robotId);
             }
         }
-#undef READ_TAG
+    }
+
+    void ReadEffectClip(ryml::NodeRef node, HamFile& ham, int& id) {
+        Yaml::ReadValue(node["id"], id);
+        if (!Seq::inRange(ham.Effects, id)) return;
+
+        auto& effect = ham.Effects[id];
+
+#define READ_PROP(name) Yaml::ReadValue(node[#name], effect.##name)
+        READ_PROP(DestroyedTexture);
+        READ_PROP(DestroyedEClip);
+#undef READ_PROP
     }
 
     void LoadGameTable(filesystem::path path, HamFile& ham) {
@@ -407,7 +419,6 @@ namespace Inferno {
                     }
                 }
             }
-            ASSERT(ham.Robots[17].IsBoss);
 
             if (auto robots = root["Robots"]; !robots.is_seed()) {
                 for (const auto& robot : robots.children()) {
@@ -420,7 +431,18 @@ namespace Inferno {
                     }
                 }
             }
-            ASSERT(ham.Robots[17].IsBoss);
+
+            if (auto node = root["EffectClips"]; !node.is_seed()) {
+                for (const auto& child : node.children()) {
+                    int id = -1;
+                    try {
+                        ReadEffectClip(child, ham, id);
+                    }
+                    catch (const std::exception& e) {
+                        SPDLOG_WARN("Error reading effect clip {}\n{}", id, e.what());
+                    }
+                }
+            }
 
             if (auto powerups = root["Powerups"]; !powerups.is_seed()) {
                 for (const auto& powerup : powerups.children()) {
@@ -484,6 +506,7 @@ namespace Inferno {
                 }
                 SPDLOG_INFO("Loaded {} tracers", Render::EffectLibrary.Tracers.size());
             }
+
         }
         catch (const std::exception& e) {
             SPDLOG_ERROR("Error loading game table:\n{}", e.what());

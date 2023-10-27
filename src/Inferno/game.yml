@@ -692,6 +692,35 @@ Powerups:
     LightRadius: 18
     LightMode: 4 # Pulse
 
+EffectClips:
+  - id: 42
+    DestroyedEClip: 35
+    DestroyedTexture: 342
+
+  - id: 43
+    DestroyedEClip: 36
+    DestroyedTexture: 344
+
+  - id: 44
+    DestroyedEClip: 22
+    DestroyedTexture: 41
+
+  - id: 45
+    DestroyedEClip: 37
+    DestroyedTexture: 348
+
+  - id: 46
+    DestroyedEClip: 38
+    DestroyedTexture: 350
+
+  - id: 47
+    DestroyedEClip: 39
+    DestroyedTexture: 353
+
+  - id: 48
+    DestroyedEClip: 40
+    DestroyedTexture: 331
+
 Effects:
   Beams:
     - Name: reactor_arcs # destroyed reactor arcs
