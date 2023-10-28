@@ -509,13 +509,13 @@ namespace Inferno::Render {
         Heaps->SetDescriptorHeaps(ctx.GetCommandList());
 
         if (LevelChanged) {
-            if (Game::GetState() == GameState::Editor)
+            if (Game::GetState() == GameState::Editor) {
                 ResetEffects(); // prevent crashes due to ids changing
-
-            // Reattach object lights
-            for (auto& obj : Game::Level.Objects) {
-                auto ref = Game::GetObjectRef(obj);
-                Game::AttachLight(obj, ref);
+                // Reattach object lights
+                for (auto& obj : Game::Level.Objects) {
+                    auto ref = Game::GetObjectRef(obj);
+                    Game::AttachLight(obj, ref);
+                }
             }
 
             CopyMaterialData(ctx.GetCommandList());
