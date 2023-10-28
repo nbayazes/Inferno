@@ -347,12 +347,12 @@ namespace Inferno {
         }
 
         // add the colors after premultiplying but maintain the intensity separately
-        float intensity = baseColor.w + overlayColor.w;
+        /*float intensity = baseColor.w + overlayColor.w;
         baseColor.Premultiply();
         overlayColor.Premultiply();
         auto finalColor = baseColor + overlayColor;
-        finalColor.w = intensity;
-        return finalColor;
+        finalColor.w = intensity;*/
+        return baseColor + overlayColor;
     }
 
     // Returns a vector that exits the segment
