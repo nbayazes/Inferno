@@ -42,6 +42,17 @@ namespace Inferno {
         return SmoothStep(a, b, h) - k * h * (1.0f - h);
     }
 
+    // Converts an HDR RGB color to a normalized RGB color with intensity as the alpha
+    inline void ColorRGBToRGBV(Color& color) {
+        if (color.w != 0) return;
+        auto value = Vector3(DirectX::XMColorRGBToHSV(color)).z;
+        if (value <= 0) value = 1;
+        color.x /= value;
+        color.y /= value;
+        color.z /= value;
+        color.w = value;
+    }
+
     constexpr bool IsPowerOfTwo(int v) {
         return v != 0 && (v & (v - 1)) == 0;
     }

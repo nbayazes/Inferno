@@ -80,14 +80,14 @@ namespace Yaml {
         if (token.size() != 4 && token.size() != 3)
             return;
 
-        float r{}, g{}, b{}, a{};
-        ParseFloat(token[0], r);
-        ParseFloat(token[1], g);
-        ParseFloat(token[2], b);
-        if (token.size() == 4)
-            ParseFloat(token[3], a);
+        ParseFloat(token[0], value.x);
+        ParseFloat(token[1], value.y);
+        ParseFloat(token[2], value.z);
 
-        value = DirectX::SimpleMath::Color{ r, g, b, a };
+        if (token.size() == 4)
+            ParseFloat(token[3], value.w);
+        else
+            Inferno::ColorRGBToRGBV(value);
     }
 
     template<>
@@ -99,11 +99,9 @@ namespace Yaml {
         if (token.size() != 3)
             return;
 
-        float x{}, y{}, z{};
-        ParseFloat(token[0], x);
-        ParseFloat(token[1], y);
-        ParseFloat(token[2], z);
-        value = DirectX::SimpleMath::Vector3{ x, y, z };
+        ParseFloat(token[0], value.x);
+        ParseFloat(token[1], value.y);
+        ParseFloat(token[2], value.z);
     }
 
     template<>
@@ -115,10 +113,8 @@ namespace Yaml {
         if (token.size() != 2)
             return;
 
-        float x{}, y{};
-        ParseFloat(token[0], x);
-        ParseFloat(token[1], y);
-        value = DirectX::SimpleMath::Vector2{ x, y };
+        ParseFloat(token[0], value.x);
+        ParseFloat(token[1], value.y);
     }
 
     template<>
