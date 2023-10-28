@@ -46,7 +46,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: 0.30, 0.25, 0.25, 1.3
+      Color: 1, .83, .83, .4
       Radius: 35
   
     - ID: 251 # red
@@ -54,7 +54,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: 0.3, 0.0, 0.0, 1.5
+      Color: 1, .01, .01, .5
       Radius: 35
   
     - ID: 252 # blue
@@ -62,7 +62,7 @@ Lights:
       Points: 0.135, 0
       Wrap: 2
       Width: 0.06
-      Color: 0.1, 0.1, .8, 1
+      Color: .125, .125, 1, .9
       Radius: 35
   
     - ID: 253 # yellow
@@ -71,7 +71,7 @@ Lights:
       Wrap: 2
       Width: 0.06
       Radius: 35
-      Color: 0.45, 0.35, 0
+      Color: 1, 0.75, 0, .5
 
     # Yellow ceiling lights
     - ID: 264
@@ -80,17 +80,17 @@ Lights:
       Width: .2
       Height: .2
       Radius: 30
-      Color: 1, 1, .75, 0.75
+      Color: 1, .9, .75, 0.75
 
     - ID: 265
       Radius: 40
       Points: 0.5, 0.5
-      Color: 1, 1, .75, 0.5
+      Color: 1, .9, .75, 0.5
 
     - ID: 268 # small square
       Radius: 40
       Points: 0.5, 0.5
-      Color: 1, 1, .75, 0.5
+      Color: 1, .9, .75, 0.5
     
     # Ceiling lights
     - ID: 281
@@ -99,32 +99,33 @@ Lights:
       Width: 0.2
       Height: 0.2
       Radius: 35
-      Color: 0.5, 0.5, 0.675 # very cool
+      Color: 0.75, 0.75, 1, .75
 
     - ID: 282 # small round
       Radius: 40
       Points: 0.5, 0.5
-      Color: 0.60, 0.55, 0.55
+      Color: 0.75, 0.75, 1, .5
 
     - ID: 283 # small square
-      Color: 0.55, 0.55, 0.65 # cooler
-      Points: 0.5, 0.5
       Radius: 40
+      Points: 0.5, 0.5
+      Color: 0.75, 0.75, 1, .5
 
     - ID: 284 # small square
       Radius: 40
       Points: 0.5, 0.5
-      Color: 0.6, 0.6, 0.6 # cooler
+      Color: 0.75, 0.75, 1, .5
 
+    # misc lights
     - ID: 293 # small square
       Radius: 35
       Points: 0.5, 0.5
-      Color: 0.5, 0.5, 0.5
+      Color: 1, .85, .85, .5
 
     - ID: 294 # rectangle
       Radius: 35
       Points: 0.5, 0.5
-      Color: 0.6, 0.6, 0.65 # cooler
+      Color: 1, .80, .80, .5
 
     # Stacked lights
     - ID: 285
@@ -134,40 +135,9 @@ Lights:
         - 0.5, 0.75
       Width: .2
       Height: .1
-      Color: 0.625, 0.75, 1, .5 # cooler
+      Color: 0.625, 0.75, 1, .5
       Radius: 40
 
-    # Double edge wrapped lights
-    - ID: 278
-      Type: 2
-      Points:
-        - 0.05, 0.5
-        - 0.95, 0.5
-      Width: 0.025
-      Wrap: 2
-      Color: 0.20, 0.15, 0.15
-      Radius: 25
-      
-    - ID: 279
-      Type: 2
-      Points:
-        - 0.075, 0.5
-        - 0.925, 0.5
-      Width: 0.015
-      # Height: 10
-      Wrap: 2
-      Color: 0.15, 0.15, 0.225, 1
-      Radius: 25
-  
-    - ID: 280
-      Type: 2
-      Points:
-        - 0.05, 0.4
-        - 0.95, 0.4
-      Width: 0.05
-      Height: 0.02
-  
-    # Strip lights with the same heights
     - ID: 286
       Type: 2
       Points:
@@ -175,27 +145,60 @@ Lights:
         - 0.51, 0.74
       Width: .35
       Height: 0.06
-      Color: 0.3, 0.3, 0.4
+      Color: 0.625, 0.75, 1, .5
       Radius: 35
+
+    # Double edge wrapped lights
+    - ID: 278 # yellow
+      Type: 2
+      Points:
+        - 0.05, 0.5
+        - 0.95, 0.5
+      Width: 0.025
+      Wrap: 2
+      Color: 1, .8, .5, .35
+      Radius: 30
+      
+    - ID: 279
+      Type: 2
+      Points:
+        - 0.055, 0.5
+        - 0.945, 0.5
+      Width: 0.025
+      # Height: 10
+      Wrap: 2
+      Color: 0.666, 0.666, 1, .25
+      Radius: 30
   
+    - ID: 280
+      Type: 2
+      Points:
+        - 0.055, 0.65
+        - 0.945, 0.65
+      Width: 0.025
+      Height: 0.3
+      Color: 0.666, 0.666, 1, .25
+  
+    # Strip lights with the same heights
     - ID: 287
       Type: 2
       Points: 
         - 0.55, 0.24
         - 0.55, 0.74
-      Width: .35
-      Height: .06 
-      Color: 0.15, 0.15, 0.20, 2
+      Width: .3
+      Height: .04
+      Color: .75, .75, 1, 0.3
+      Radius: 25
   
     - ID: 288
       Type: 2
       Points:
         - 0.5, 0.24
         - 0.5, 0.74
-      Width: .06
+      Width: .04
       Wrap: 1
-      Color: 0.15, 0.15, 0.20, 2
-      Radius: 15
+      Color: .75, .75, 1, 0.3
+      Radius: 25
   
     - ID: 292
       Type: 2
@@ -203,8 +206,9 @@ Lights:
         - 0.75, 0.24
         - 0.75, 0.74
       Width: .2
-      Height: 0.06
-      Color: 0.15, 0.15, 0.20, 2
+      Height: 0.04
+      Radius: 25
+      Color: .75, .75, 1, 0.3
 
     # lava
     - ID: 333
@@ -244,7 +248,7 @@ Lights:
       Points: []
 
     - ID: 328 # energy field
-      Color: 1, 0.443, 0.027, 0.75
+      Color: 1, 0.443, 0.027, 0.6
       Points: []      
 
 #    - ID: 343 # paired monitor

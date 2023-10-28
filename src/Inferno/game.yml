@@ -303,8 +303,8 @@ Weapons:
     ModelName: smartmissile.OOF
     Decal: scorchC
     DecalRadius: 4
-    LightRadius: 14
-    LightColor: 0.25, 0.75, 0, 4
+    LightRadius: 18
+    LightColor: 0.25, 0.75, 0, 1.5
     SpawnCount: 6
     Spawn: 19
     Size: 1 # was 1.5
@@ -670,7 +670,7 @@ Powerups:
 
   - id: 1 # Energy
     Glow: 1, 0.80, 0.80, 6.25
-    LightColor: 1, .55, 0.10, 2
+    LightColor: 1, .55, 0.10, 1.5
     LightRadius: 18
     LightMode: 2 # Flicker
 

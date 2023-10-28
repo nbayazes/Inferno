@@ -418,7 +418,7 @@ namespace Inferno::Render {
                     if (mode == DynamicLightMode::Flicker || mode == DynamicLightMode::StrongFlicker || mode == DynamicLightMode::WeakFlicker) {
                         int index = mode == DynamicLightMode::WeakFlicker ? 0 : mode == DynamicLightMode::Flicker ? 1 : 2;
                         float flickerSpeeds[] = { 1.2f, 1.9f, 2.25f };
-                        float mults[] = { .23f, .4f, .55f };
+                        float mults[] = { .25f, .4f, .55f };
 
                         auto noise = OpenSimplex2::Noise2(lid, Render::ElapsedTime * flickerSpeeds[index], (float)id * 1.37f);
                         //const float flickerRadius = lt.mode == DynamicLightMode::Flicker ? 0.05f : (lt.mode == DynamicLightMode::StrongFlicker ? 0.08f : 0.0125f);

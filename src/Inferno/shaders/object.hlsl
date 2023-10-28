@@ -147,7 +147,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
             uint2 pixelPos = uint2(input.pos.xy);
             //specularMask = 1;
             //normal = input.normal;
-            ambient *= 0.125;
+            ambient *= 0.25;
             ambient *= Frame.GlobalDimming;
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
