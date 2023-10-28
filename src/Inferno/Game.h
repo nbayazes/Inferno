@@ -145,7 +145,7 @@ namespace Inferno::Game {
 
     inline bool ControlCenterDestroyed = false;
     inline float CountdownTimer = -1.0f; // time before reactor goes critical
-    inline int CountdownSeconds = -1; // seconds before the reactor goes critical
+    inline int CountdownSeconds = -1; // seconds before the reactor goes critical. Used for HUD value and audio.
     inline int TotalCountdown = -1; // the starting countdown time
 
     // Gets the global dimming related to the self destruct sequence

@@ -54,7 +54,7 @@ namespace Inferno::Game {
             TotalCountdown = DefaultCountdownTimes[Difficulty];
         }
 
-        //TotalCountdown = 30; // debug
+        TotalCountdown = 1; // debug
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
         PlaySelfDestructSounds(3);
@@ -171,9 +171,13 @@ namespace Inferno::Game {
 
             auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
             ScreenFlash = Color{ flash, flash, flash };
+            Render::Bloom->ToneMap.BloomStrength = std::lerp(0, 10, flash);
+            Render::Bloom->ToneMap.Exposure = std::lerp(0, 60, flash);
 
             if (CountdownTimer < -4) {
                 // todo: kill player, show "you have died in the mine" message
+                Render::Bloom->ToneMap.BloomStrength = .35f; // restore default
+                Render::Bloom->ToneMap.Exposure = 1;
                 SetState(GameState::Editor);
             }
         }
