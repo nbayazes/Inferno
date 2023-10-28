@@ -579,7 +579,8 @@ namespace Inferno::Editor {
 
                 ImGui::SameLine();
                 if (ImGui::Button("Paste")) {
-                    side.LightOverride = SideLightBuffer;
+                    applyToMarkedFaces([](SegmentSide& dest) { dest.LightOverride = SideLightBuffer; });
+                    snapshot = true;
                 }
 
                 ImGui::SameLine();
