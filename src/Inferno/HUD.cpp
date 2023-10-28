@@ -22,6 +22,9 @@ namespace Inferno {
         constexpr float BASE_SCORE_WINDOW = 3.0f;
 
         Color Ambient;
+        Color WeaponFlash;
+        float WeaponFlashFade = 0;
+        constexpr float FLASH_FADE_TIME = 0.35f;
     }
 
     enum class Gauges {
@@ -809,16 +812,26 @@ namespace Inferno {
     }
 
 
-    void DrawHUD(float dt, Color ambient) {
+    void DrawHUD(float dt, const Color& ambient) {
         constexpr Color minLight(0.2f, 0.2f, 0.2f);
-        ambient *= Game::GetSelfDestructDimming();
-        ambient += minLight;
-        ambient.A(1);
         Ambient = ambient;
+        Ambient *= Game::GetSelfDestructDimming();
+        Ambient += minLight;
+        Ambient.A(1);
+        WeaponFlashFade -= dt / FLASH_FADE_TIME;
+        if (WeaponFlashFade > 0)
+            Ambient += WeaponFlash * WeaponFlashFade;
         Hud.Draw(dt, Game::Player);
     }
 
     void AddPointsToHUD(int points) {
         Hud.AddPoints(points);
+    }
+
+    void AddWeaponFlash(const Color& color) {
+        WeaponFlash = color;
+        WeaponFlash.Premultiply();
+        WeaponFlash.w = 0;
+        WeaponFlashFade = 1;
     }
 }

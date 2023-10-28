@@ -322,6 +322,7 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
         AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, 1);
+        AddWeaponFlash(weapon.Extended.LightColor);
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
@@ -430,6 +431,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
+        AddWeaponFlash(weapon.Extended.LightColor);
         AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
@@ -466,6 +468,7 @@ namespace Inferno {
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
         AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
+        AddWeaponFlash(weapon.Extended.LightColor);
 
         if (!CanFireSecondary(Secondary))
             AutoselectSecondary(); // Swap to different weapon if out of ammo
