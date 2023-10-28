@@ -123,6 +123,8 @@ namespace Inferno::Game {
     constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
     constexpr uint REACTOR_SCORE = 5000;
+    constexpr float PLAYER_HIT_WALL_NOISE = 1;
+    constexpr float PLAYER_HIT_WALL_RADIUS = 150;
     // 255 marks where weapons aren't considered for autoselection
 
     constexpr Array<uint8, 11> DefaultPrimaryPriority{ 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 255 };

@@ -1322,11 +1322,11 @@ namespace Inferno {
             auto volume = isForceField ? 1 : std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
 
             if (volume > 0) {
-                // todo: make noise to notify nearby enemies
+                AlertEnemiesOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
                 Sound3D sound({ SoundID::PlayerHitWall }, hit.Point, hit.Tag.Segment);
                 Sound::Play(sound);
             }
-        }
+        } 
 
         //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
 
