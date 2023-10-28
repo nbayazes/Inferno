@@ -84,14 +84,6 @@ namespace Inferno {
                 if (child.has_child("LightColor")) {
                     Color color;
                     ReadValue(child["LightColor"], color);
-                    if (color.w == 0) {
-                        // Convert RGB to RGB-Intensity
-                        float h, s;
-                        ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, color.w);
-                        color.x /= color.w;
-                        color.y /= color.w;
-                        color.z /= color.w;
-                    }
                     side->LightOverride = color;
                 }
 
