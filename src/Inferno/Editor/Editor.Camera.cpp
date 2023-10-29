@@ -9,7 +9,6 @@
 namespace Inferno::Editor {
     void UpdateCamera(Camera& camera) {
         auto& delta = Input::MouseDelta;
-        auto& wheelDelta = Input::WheelDelta;
 
         if (Input::GetMouseMode() == Input::MouseMode::Mouselook) {
             int inv = Settings::Editor.InvertY ? 1 : -1;
@@ -28,8 +27,9 @@ namespace Inferno::Editor {
 
         // Only allow scrollwheel zooming when not over ImGui
         if (!ImGui::GetIO().WantCaptureMouse) {
-            if (wheelDelta < 0) camera.ZoomIn();
-            if (wheelDelta > 0) camera.ZoomOut();
+            auto wheelDelta = Input::GetWheelDelta();
+            if (wheelDelta > 0) camera.ZoomIn();
+            if (wheelDelta < 0) camera.ZoomOut();
         }
     }
 

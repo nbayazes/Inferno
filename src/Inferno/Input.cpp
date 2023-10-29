@@ -11,7 +11,14 @@ using namespace DirectX::SimpleMath;
 
 namespace Inferno::Input {
     namespace {
-        DirectX::Mouse _mouse;
+        Vector2 MousePrev, DragEnd;
+        constexpr float DRAG_WINDOW = 3.0f;
+        Vector2 WindowCenter;
+        HWND Hwnd;
+        int RawX, RawY;
+
+        MouseMode ActualMouseMode{}, RequestedMouseMode{};
+        int WheelDelta;
 
         template<size_t N> struct ButtonState {
             std::bitset<N> pressed, released;
@@ -111,14 +118,8 @@ namespace Inferno::Input {
             _inputEventQueue.clear();
         }
     }
-    
-    Vector2 MousePrev, DragEnd;
-    constexpr float DRAG_WINDOW = 3.0f;
-    Vector2 MouselookStartPosition, WindowCenter;
-    HWND Hwnd;
-    int RawX, RawY;
 
-    MouseMode ActualMouseMode{}, RequestedMouseMode{};
+    int GetWheelDelta() { return WheelDelta; }
 
     SelectionState UpdateDragState(MouseButtons button, SelectionState dragState) {
         if (_mouseButtons.pressed[button]) {
@@ -178,7 +179,7 @@ namespace Inferno::Input {
             }
         }
 
-        auto mouseState = _mouse.GetState();
+        //auto mouseState = _mouse.GetState();
 
         HandleInputEvents();
 
@@ -197,7 +198,7 @@ namespace Inferno::Input {
             RawX = RawY = 0;
         }
         else {
-            MousePosition = Vector2{ (float)mouseState.x, (float)mouseState.y };
+            //MousePosition = Vector2{ (float)mouseState.x, (float)mouseState.y };
             MouseDelta = MousePrev - MousePosition;
             MousePrev = MousePosition;
         }
@@ -219,8 +220,16 @@ namespace Inferno::Input {
 
     void Initialize(HWND hwnd) {
         Hwnd = hwnd;
-        _mouse.SetWindow(hwnd);
+
+        // Register the mouse for raw input
         InitRawMouseInput(hwnd);
+        RAWINPUTDEVICE rid{};
+        rid.usUsagePage = 0x1 /* HID_USAGE_PAGE_GENERIC */;
+        rid.usUsage = 0x2 /* HID_USAGE_GENERIC_MOUSE */;
+        rid.dwFlags = RIDEV_INPUTSINK;
+        rid.hwndTarget = hwnd;
+        if (!RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)))
+            throw std::system_error(std::error_code(static_cast<int>(GetLastError()), std::system_category()), "RegisterRawInputDevices");
     }
 
     bool IsKeyDown(DirectX::Keyboard::Keys key) {
@@ -279,36 +288,114 @@ namespace Inferno::Input {
             throw std::system_error(std::error_code((int)GetLastError(), std::system_category()), "TrackMouseEvent");
     }
 
-    void ProcessRawMouseInput(UINT message, WPARAM, LPARAM lParam) {
-        HANDLE events[] = { RelativeModeEvent.get() };
-        switch (WaitForMultipleObjectsEx((DWORD)std::size(events), events, false, 0, false)) {
+    void ProcessMouseInput(UINT message, WPARAM wParam, LPARAM lParam) {
+        switch(message) {
+            case WM_INPUT:
+            {
+                HANDLE events[] = { RelativeModeEvent.get() };
+                switch (WaitForMultipleObjectsEx((DWORD)std::size(events), events, false, 0, false)) {
+                    default:
+                    case WAIT_TIMEOUT:
+                        break;
+
+                    case WAIT_OBJECT_0:
+                        ResetEvent(RelativeReadEvent.get());
+                        RawX = RawY = 0;
+                        break;
+
+                    case WAIT_FAILED:
+                        throw std::system_error(std::error_code((int)GetLastError(), std::system_category()), "WaitForMultipleObjectsEx");
+                }
+
+                RAWINPUT raw{};
+                UINT rawSize = sizeof raw;
+
+                UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
+                if (resultData == UINT(-1))
+                    throw std::runtime_error("GetRawInputData");
+
+                if (raw.header.dwType == RIM_TYPEMOUSE) {
+                    RawX += raw.data.mouse.lLastX;
+                    RawY += raw.data.mouse.lLastY;
+
+                    ResetEvent(RelativeReadEvent.get());
+                }
+                break;
+            }
+
+            case WM_LBUTTONDOWN:
+                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Left);
+                break;
+
+            case WM_LBUTTONUP:
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Left);
+                break;
+
+            case WM_RBUTTONDOWN:
+                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Right);
+                break;
+
+            case WM_RBUTTONUP:
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Right);
+                break;
+
+            case WM_MBUTTONDOWN:
+                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Middle);
+                break;
+
+            case WM_MBUTTONUP:
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Middle);
+                break;
+
+            case WM_XBUTTONDOWN:
+                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+                break;
+
+            case WM_XBUTTONUP:
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+                break;
+
+            case WM_MOUSEWHEEL:
+                Input::QueueEvent(Input::EventType::MouseWheel, 0, GET_WHEEL_DELTA_WPARAM(wParam));
+                break;
+
+            case WM_MOUSEHOVER:
+            case WM_MOUSEMOVE:
+                break;
+
             default:
-            case WAIT_TIMEOUT:
-                break;
-
-            case WAIT_OBJECT_0:
-                ResetEvent(RelativeReadEvent.get());
-                RawX = RawY = 0;
-                break;
-
-            case WAIT_FAILED:
-                throw std::system_error(std::error_code((int)GetLastError(), std::system_category()), "WaitForMultipleObjectsEx");
+                return; // not a mouse event, return
         }
 
-        if (message == WM_INPUT) {
-            RAWINPUT raw{};
-            UINT rawSize = sizeof raw;
+        // All mouse messages provide a new pointer position
+        MousePosition.x = static_cast<short>(LOWORD(lParam)); // GET_X_LPARAM(lParam);
+        MousePosition.y = static_cast<short>(HIWORD(lParam)); // GET_Y_LPARAM(lParam);
+    }
 
-            UINT resultData = GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &rawSize, sizeof(RAWINPUTHEADER));
-            if (resultData == UINT(-1))
-                throw std::runtime_error("GetRawInputData");
+    void ProcessMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+        ProcessMouseInput(message, wParam, lParam);
 
-            if (raw.header.dwType == RIM_TYPEMOUSE) {
-                RawX += raw.data.mouse.lLastX;
-                RawY += raw.data.mouse.lLastY;
+        switch (message) {
+            case WM_SYSKEYDOWN:
+                Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+                break;
 
-                ResetEvent(RelativeReadEvent.get());
-            }
+            case WM_KEYDOWN:
+                Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+                break;
+
+            case WM_KEYUP:
+            case WM_SYSKEYUP:
+                Input::QueueEvent(Input::EventType::KeyRelease, wParam, lParam);
+                break;
+            
+            case WM_ACTIVATE:
+                Input::QueueEvent(Input::EventType::Reset);
+                break;
+
+            case WM_ACTIVATEAPP:
+                Input::QueueEvent(Input::EventType::Reset);
+                break;
         }
     }
 }

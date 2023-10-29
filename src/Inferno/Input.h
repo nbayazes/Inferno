@@ -1,12 +1,10 @@
 #pragma once
 
-#include <DirectXTK12/Mouse.h>
 #include <DirectXTK12/Keyboard.h>
 
 namespace Inferno::Input {
-    //using MouseState = DirectX::Mouse::ButtonStateTracker::ButtonState;
-    //inline DirectX::Keyboard::KeyboardStateTracker Keyboard;
-    //inline DirectX::Mouse::ButtonStateTracker Mouse;
+    using Keys = DirectX::Keyboard::Keys;
+
     enum MouseButtons : uint8_t {
         Left,
         Right,
@@ -17,8 +15,9 @@ namespace Inferno::Input {
 
     inline DirectX::SimpleMath::Vector2 MouseDelta;
     inline DirectX::SimpleMath::Vector2 MousePosition;
-    inline int WheelDelta;
     inline DirectX::SimpleMath::Vector2 DragStart; // Mouse drag start position in screen coordinates
+
+    int GetWheelDelta();
 
     inline bool ControlDown;
     inline bool ShiftDown;
@@ -29,13 +28,13 @@ namespace Inferno::Input {
     void Initialize(HWND);
 
     // Returns true while a key is held down
-    bool IsKeyDown(DirectX::Keyboard::Keys);
+    bool IsKeyDown(Keys);
 
     // Returns true when a key is first pressed
-    bool IsKeyPressed(DirectX::Keyboard::Keys);
+    bool IsKeyPressed(Keys);
 
     // Returns true when a key is first released
-    bool IsKeyReleased(DirectX::Keyboard::Keys);
+    bool IsKeyReleased(Keys);
 
     // Returns true while a key is held down
     bool IsMouseButtonDown(MouseButtons);
@@ -68,8 +67,8 @@ namespace Inferno::Input {
     MouseMode GetMouseMode();
     void SetMouseMode(MouseMode);
 
-    // Workaround for the relative mouse mode not summing deltas properly
-    void ProcessRawMouseInput(UINT message, WPARAM, LPARAM);
+    void ProcessMessage(UINT message, WPARAM, LPARAM);
+
 
     enum class EventType {
         KeyPress,

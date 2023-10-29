@@ -41,9 +41,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
     auto app = reinterpret_cast<Application*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
-    if (app) {
-        DirectX::Mouse::ProcessMessage(message, wParam, lParam);
-    }
+    Input::ProcessMessage(message, wParam, lParam);
 
     if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
         return true;
@@ -53,10 +51,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             if (!app->OnClose())
                 return 0;
 
-            break;
-
-        case WM_INPUT:
-            Input::ProcessRawMouseInput(message, wParam, lParam);
             break;
 
         case WM_SYSKEYDOWN:
@@ -85,56 +79,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
                 AppFullscreen = !AppFullscreen;
             }
-            Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
-            break;
-
-        case WM_KEYDOWN:
-            Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
-            break;
-
-        case WM_KEYUP:
-        case WM_SYSKEYUP:
-            Input::QueueEvent(Input::EventType::KeyRelease, wParam, lParam);
-            break;
-
-        case WM_LBUTTONDOWN:
-            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Left);
-            break;
-
-        case WM_LBUTTONUP:
-            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Left);
-            break;
-
-        case WM_RBUTTONDOWN:
-            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Right);
-            break;
-
-        case WM_RBUTTONUP:
-            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Right);
-            break;
-
-        case WM_MBUTTONDOWN:
-            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Middle);
-            break;
-
-        case WM_MBUTTONUP:
-            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Middle);
-            break;
-
-        case WM_XBUTTONDOWN:
-            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
-            break;
-
-        case WM_XBUTTONUP:
-            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
-            break;
-
-        case WM_MOUSEWHEEL:
-            Input::QueueEvent(Input::EventType::MouseWheel, 0, GET_WHEEL_DELTA_WPARAM(wParam));
-            break;
-
-        case WM_ACTIVATE:
-            Input::QueueEvent(Input::EventType::Reset);
             break;
 
         //case WM_PAINT:
@@ -224,7 +168,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 else
                     app->OnDeactivated();
             }
-            Input::QueueEvent(Input::EventType::Reset);
             break;
 
         case WM_POWERBROADCAST:
