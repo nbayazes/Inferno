@@ -80,8 +80,6 @@ void Application::Initialize(int width, int height) {
     };
 }
 
-using Keys = Keyboard::Keys;
-
 void Application::Update() {}
 
 void Application::UpdateFpsLimit() {

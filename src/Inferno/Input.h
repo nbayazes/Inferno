@@ -4,9 +4,7 @@
 #include <DirectXTK12/Keyboard.h>
 
 namespace Inferno::Input {
-    //using MouseState = DirectX::Mouse::ButtonStateTracker::ButtonState;
-    //inline DirectX::Keyboard::KeyboardStateTracker Keyboard;
-    //inline DirectX::Mouse::ButtonStateTracker Mouse;
+    using Keys = DirectX::Keyboard::Keys;
     enum MouseButtons : uint8_t {
         Left,
         Right,
@@ -29,13 +27,13 @@ namespace Inferno::Input {
     void Initialize(HWND);
 
     // Returns true while a key is held down
-    bool IsKeyDown(DirectX::Keyboard::Keys);
+    bool IsKeyDown(Keys);
 
     // Returns true when a key is first pressed
-    bool IsKeyPressed(DirectX::Keyboard::Keys);
+    bool IsKeyPressed(Keys);
 
     // Returns true when a key is first released
-    bool IsKeyReleased(DirectX::Keyboard::Keys);
+    bool IsKeyReleased(Keys);
 
     // Returns true while a key is held down
     bool IsMouseButtonDown(MouseButtons);

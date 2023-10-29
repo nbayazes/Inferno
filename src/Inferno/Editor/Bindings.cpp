@@ -13,7 +13,7 @@
 
 using namespace DirectX;
 
-using Keys = DirectX::Keyboard::Keys;
+using Keys = Inferno::Input::Keys;
 
 namespace Inferno::Editor {
     namespace Commands {
@@ -483,7 +483,7 @@ namespace Inferno::Editor::Bindings {
         Active = Default;
     }
 
-    bool IsReservedKey(DirectX::Keyboard::Keys key) {
+    bool IsReservedKey(Keys key) {
         switch (key) {
             case Keys::LeftWindows:
             case Keys::RightWindows:

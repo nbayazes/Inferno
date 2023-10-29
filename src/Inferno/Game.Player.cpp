@@ -175,7 +175,7 @@ namespace Inferno {
 
 
     void Player::UpdateFireState() {
-        using Keys = DirectX::Keyboard::Keys;
+        using Keys = Input::Keys;
 
         auto state = Game::GetState();
 

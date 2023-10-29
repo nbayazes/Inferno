@@ -257,7 +257,7 @@ namespace Inferno {
             binding.Alt = Seq::contains(tokens, "Alt");
             binding.Shift = Seq::contains(tokens, "Shift");
             binding.Control = Seq::contains(tokens, "Ctrl");
-            if (auto key = magic_enum::enum_cast<DirectX::Keyboard::Keys>(tokens.back()))
+            if (auto key = magic_enum::enum_cast<Input::Keys>(tokens.back()))
                 binding.Key = *key;
 
             // Note that it is valid for Key to equal None to indicate that the user unbound it on purpose

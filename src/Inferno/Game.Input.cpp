@@ -6,10 +6,9 @@
 #include "Settings.h"
 
 namespace Inferno {
-    using Keys = DirectX::Keyboard::Keys;
+    using Keys = Input::Keys;
 
     void HandleEditorDebugInput(float /*dt*/) {
-        using Keys = DirectX::Keyboard::Keys;
         auto& obj = Game::Level.Objects[0];
         auto& physics = obj.Physics;
 

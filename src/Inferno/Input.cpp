@@ -202,9 +202,9 @@ namespace Inferno::Input {
             MousePrev = MousePosition;
         }
 
-        AltDown = _keyboard.current[DirectX::Keyboard::Keys::LeftAlt] || _keyboard.current[DirectX::Keyboard::Keys::RightAlt];
-        ShiftDown = _keyboard.current[DirectX::Keyboard::Keys::LeftShift] || _keyboard.current[DirectX::Keyboard::Keys::RightShift];
-        ControlDown = _keyboard.current[DirectX::Keyboard::Keys::LeftControl] || _keyboard.current[DirectX::Keyboard::Keys::RightControl];
+        AltDown = _keyboard.current[Keys::LeftAlt] || _keyboard.current[Keys::RightAlt];
+        ShiftDown = _keyboard.current[Keys::LeftShift] || _keyboard.current[Keys::RightShift];
+        ControlDown = _keyboard.current[Keys::LeftControl] || _keyboard.current[Keys::RightControl];
 
         if (RightDragState == SelectionState::None)
             LeftDragState = UpdateDragState(MouseButtons::Left, LeftDragState);
@@ -223,15 +223,15 @@ namespace Inferno::Input {
         InitRawMouseInput(hwnd);
     }
 
-    bool IsKeyDown(DirectX::Keyboard::Keys key) {
+    bool IsKeyDown(Keys key) {
         return _keyboard.pressed[key] || _keyboard.previous[key];
     }
 
-    bool IsKeyPressed(DirectX::Keyboard::Keys key) {
+    bool IsKeyPressed(Keys key) {
         return _keyboard.pressed[key];
     }
 
-    bool IsKeyReleased(DirectX::Keyboard::Keys key) {
+    bool IsKeyReleased(Keys key) {
         return _keyboard.released[key];
     }
 
