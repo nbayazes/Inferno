@@ -582,9 +582,6 @@ namespace Inferno::Game {
         }
         auto& obj = *pObj;
 
-        if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
-            showFlash = false; // Hide flash in first person
-
         auto gunSubmodel = GetGunpointSubmodelOffset(obj, gun);
         auto objOffset = GetSubmodelOffset(obj, gunSubmodel);
         auto position = Vector3::Transform(objOffset, obj.GetTransform());
@@ -594,6 +591,9 @@ namespace Inferno::Game {
 
         if (weapon.Extended.Recoil)
             obj.Physics.Thrust += obj.Rotation.Backward() * weapon.Extended.Recoil;
+
+        if (obj.IsPlayer() && gun == 6 && Game::GetState() == GameState::Game)
+            showFlash = false; // Hide center gun flash in first person (gun is under the ship, player can't see it!)
 
         if (showFlash) {
             Render::Particle p{};
@@ -612,6 +612,7 @@ namespace Inferno::Game {
             light.FadeTime = light.Duration = 0.25f;
             light.Segment = obj.Segment;
             light.Position = position;
+            light.SpriteMult = 0;
             Render::AddDynamicLight(light);
         }
 

@@ -68,6 +68,7 @@ namespace Inferno::Render {
         //float FlickerRadius = 0;
         float Radius = -1; // Radius of emitted light
         Color LightColor; // Color of emitted light
+        float SpriteMult = 1; // Multiplier when applying to sprites and the player hud
 
         void OnUpdate(float dt, EffectID) override;
 

@@ -550,7 +550,7 @@ namespace Inferno {
                 //obj.Light.Color = Color(1, 0, 0);
                 //obj.Light.Radius = 50;
                 //obj.Light.Mode = DynamicLightMode::BigPulse;
-                light.LightColor = Color(3, 0, 0);
+                light.LightColor = Color(1, 0.01, 0.01, 3);
                 light.Radius = 30;
                 light.Mode = DynamicLightMode::BigPulse;
                 break;

@@ -159,8 +159,8 @@ namespace Inferno {
         VClipID ID = VClipID::None;
         float FrameTime = 0;
         uint8 Frame = 0;
+        Color DirectLight; // Used by unlit sprites for dynamic lighting
     };
-
 
     // Animates a value using second order dynamics
     template <class T>

@@ -10,8 +10,8 @@ Weapons:
     ExplosionTime: 0.4
     Glow: 1, 0.25, 0.25, 24
     LightRadius: 16
-    LightColor: 1, 0.025, 0.025, 2
-    FlashColor: 1, 0.25, 0.25, 20
+    LightColor: 1, 0.025, 0.025, 1.5
+    FlashColor: 1, 0.025, 0.025, 1.5
     EnergyUsage: 0.25 # Lower energy cost to make early game less tedious. Quads double the cost.
 
   #- id: 0
@@ -97,7 +97,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 1, 0.025, 0.025
+    LightColor: 1, 0.025, 0.025, 1.5
     FlashColor: 1, 0.25, 0.25, 20
 
   - id: 10
@@ -178,7 +178,7 @@ Weapons:
     LightRadius: 3.75
     ExplosionColor: 1.0, 0.36, 0.0, 1.2
     Model: -1
-    FlashColor: 1, 0.6, .3, 6
+    FlashColor: 1, 0.6, .3, 1
     StunMult: 2 # Increase slow so vulcan can tag small fast enemies
     Size: 0.75
     
@@ -194,11 +194,11 @@ Weapons:
     ExplosionTime: 0.4
     ExplosionSound: ExpEMDHitB
     LightRadius: 14
-    LightColor: 0.3, 0.3, 0.75
+    LightColor: 0.3, 0.3, 0.75, 1
     Mass: 0.05
     Damage: 12 # 10
     Speed: 200
-    Size: 1.25
+    # Size: 1.25
     Spread: 3.6 # 3.6
     FlashColor: 1, 1, 1, 15
 
@@ -211,8 +211,8 @@ Weapons:
     ExplosionSize: 2.3
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.1, 1, 0.1
-    FlashColor: .1, 1, .1, 4
+    LightColor: 0.1, 1, 0.1, 1
+    FlashColor: .1, 1, .1, 1
     Glow: 1, 1, 1, 1.5
 
   - id: 14
@@ -231,7 +231,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 20
     LightColor: 0.6, 0.1, 1, 4
-    FlashColor: .6, .1, 1, 20
+    FlashColor: .6, .1, 1, 15
     Mass: 3
     Behavior: fusion
     StunMult: 0.5
@@ -248,7 +248,7 @@ Weapons:
     LightRadius: 14
     LightColor: 1, .5, .25, 2
     ExplosionColor: 1, 0.25, 0.0, 10
-    FlashColor: 1, .5, .25, 5
+    FlashColor: 1, .5, .25, 3
     Size: 1.5 # was 1.5
     Mass: 1.5 # was 1
 
@@ -269,7 +269,7 @@ Weapons:
     LightRadius: 14
     LightColor: 0.25, 0.25, 0.75, 2
     ExplosionColor: 1, 0.25, 0.0, 10
-    FlashColor: 1, 0.25, 0.0, 2
+    FlashColor: 1, 0.25, 0.0, 4
     Size: 1 # was 1.5
     HomingFov: 45 # was 48.6 (dot = .75)
     HomingDistance: 300

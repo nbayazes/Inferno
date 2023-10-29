@@ -49,6 +49,7 @@ namespace Inferno {
         int BombIndex = 0; // 0 is proxy, 1 is smart mine
         double LastPrimaryFireTime = 0;
         ShipInfo Ship = PyroGX;
+        Color DirectLight;
 
         void GiveWeapon(PrimaryWeaponIndex weapon) {
             PrimaryWeapons |= (1 << (uint16)weapon);

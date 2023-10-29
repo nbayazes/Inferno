@@ -1131,6 +1131,8 @@ namespace Inferno::Render {
     EffectID AddDynamicLight(DynamicLight& light) {
         ASSERT(light.Duration > 0);
         if (light.Radius <= 0 || light.LightColor == LIGHT_UNSET) return EffectID::None;
+        light.LightColor.Premultiply();
+        light.LightColor.w = 1;
         return AddEffect(MakePtr<DynamicLight>(std::move(light)));
     }
 
@@ -1250,6 +1252,39 @@ namespace Inferno::Render {
         return true;
     }
 
+    void ScanNearbySegments(const Level& level, SegID start, const Vector3& point, float radius, const std::function<void(const Segment&)>& action) {
+        struct Visited {
+            SegID id = SegID::None, parent = SegID::None;
+        };
+
+        static List<SegID> queue;
+        queue.clear();
+        queue.reserve(16);
+        queue.push_back(start);
+
+        int index = 0;
+
+        while (index < queue.size()) {
+            auto segid = queue[index++];
+            auto seg = level.TryGetSegment(segid);
+            if (!seg) continue;
+
+            action(*seg);
+
+            for (auto& sideid : SideIDs) {
+                auto& side = seg->GetSide(sideid);
+                Plane plane(side.Center, side.AverageNormal);
+                if (plane.DotCoordinate(point) > radius)
+                    continue; // point too far from side
+
+                auto connection = seg->GetConnection(sideid);
+                if (!Seq::contains(queue, connection)) {
+                    queue.push_back(connection);
+                }
+            }
+        }
+    }
+
     void DynamicLight::OnUpdate(float /*dt*/, EffectID id) {
         float lightRadius = Radius;
         Color lightColor = LightColor;
@@ -1286,5 +1321,28 @@ namespace Inferno::Render {
         light.type = LightType::Point;
         light.pos = Position;
         Graphics::Lights.AddLight(light);
+
+        if (Game::GetState() == GameState::Editor || SpriteMult <= 0)
+            return;
+
+        ScanNearbySegments(Game::Level, Segment, Position, lightRadius, [&light, mult = SpriteMult](const Inferno::Segment& seg) {
+            for (auto& objid : seg.Objects) {
+                if (auto obj = Game::Level.TryGetObject(objid)) {
+                    auto& render = obj->Render;
+                    if (render.Type == RenderType::Hostage || render.Type == RenderType::Powerup || objid == ObjID(0)) {
+                        if (render.Emissive != Color()) continue;
+
+                        auto dist = Vector3::Distance(light.pos, obj->GetPosition(Game::LerpAmount));
+                        if (dist > light.radius) continue;
+                        auto falloff = 1 - std::clamp(dist / light.radius, 0.0f, 1.0f);
+
+                        if (objid == ObjID(0))
+                            Game::Player.DirectLight += light.color * falloff * mult;
+                        else
+                            render.VClip.DirectLight += light.color * falloff * mult;
+                    }
+                }
+            }
+        });
     }
 }

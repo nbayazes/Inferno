@@ -31,6 +31,7 @@ namespace Inferno::Render {
         if (object.Render.Emissive != Color())
             color = object.Render.Emissive;
 
+        color += object.Render.VClip.DirectLight;
         auto pos = object.GetPosition(Game::LerpAmount);
 
         if (object.Render.Type == RenderType::WeaponVClip ||

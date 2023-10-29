@@ -318,7 +318,7 @@ namespace Inferno::Game {
         }
 
         Game::Player.HomingObjectDist = -1; // Clear each frame. Updating objects sets this.
-
+        Game::Player.DirectLight = Color();
         DecayScreenFlash(dt);
 
         DestroyedClips.Update(Level, dt);
@@ -332,6 +332,13 @@ namespace Inferno::Game {
                     clip.OneShotTag = {};
                     Editor::Events::LevelChanged();
                 }
+            }
+        }
+
+        for (int i = 0; i < Level.Objects.size(); i++) {
+            auto& obj = Level.Objects[i];
+            if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup) {
+                obj.Render.VClip.DirectLight = Color();
             }
         }
 

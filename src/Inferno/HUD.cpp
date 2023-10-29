@@ -21,10 +21,7 @@ namespace Inferno {
         constexpr float MONITOR_AMBIENT_SCALE = 0.25f;
         constexpr float BASE_SCORE_WINDOW = 3.0f;
 
-        Color Ambient;
-        Color WeaponFlash;
-        float WeaponFlashFade = 0;
-        constexpr float FLASH_FADE_TIME = 0.35f;
+        Color Ambient, Direct;
     }
 
     enum class Gauges {
@@ -170,6 +167,7 @@ namespace Inferno {
         info.HorizontalAlign = align;
         info.VerticalAlign = AlignV::Bottom;
         info.Color = color;
+        info.Color.w = Saturate(info.Color.w);
         Render::HudCanvas->DrawBitmap(info);
     }
 
@@ -334,7 +332,7 @@ namespace Inferno {
     }
 
     void DrawLeftMonitor(float x, const MonitorState& state, const Player& player) {
-        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left", Ambient);
+        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterLeft, "cockpit-left", Ambient + Direct);
 
         auto scale = Render::HudCanvas->GetScale();
         auto weaponIndex = (PrimaryWeaponIndex)state.WeaponIndex;
@@ -406,7 +404,7 @@ namespace Inferno {
     }
 
     void DrawRightMonitor(float x, const MonitorState& state, const Player& player) {
-        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterRight, "cockpit-right", Ambient);
+        DrawOpaqueBitmap({ x, 0 }, AlignH::CenterRight, "cockpit-right", Ambient + Direct);
 
         auto scale = Render::HudCanvas->GetScale();
         Render::DrawTextInfo info;
@@ -546,7 +544,7 @@ namespace Inferno {
     }
 
     void DrawCenterMonitor(const Player& player) {
-        DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr", Ambient);
+        DrawOpaqueBitmap({ 0, 0 }, AlignH::Center, "cockpit-ctr", Ambient + Direct);
         // Draw shields, invuln state, shield / energy count
 
         {
@@ -818,20 +816,12 @@ namespace Inferno {
         Ambient *= Game::GetSelfDestructDimming();
         Ambient += minLight;
         Ambient.A(1);
-        WeaponFlashFade -= dt / FLASH_FADE_TIME;
-        if (WeaponFlashFade > 0)
-            Ambient += WeaponFlash * WeaponFlashFade;
+        Direct = Game::Player.DirectLight * 0.5f;
+        Direct.A(0);
         Hud.Draw(dt, Game::Player);
     }
 
     void AddPointsToHUD(int points) {
         Hud.AddPoints(points);
-    }
-
-    void AddWeaponFlash(const Color& color) {
-        WeaponFlash = color;
-        WeaponFlash.Premultiply();
-        WeaponFlash.w = 0;
-        WeaponFlashFade = 1;
     }
 }
