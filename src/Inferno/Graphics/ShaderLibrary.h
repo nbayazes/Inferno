@@ -176,15 +176,17 @@ namespace Inferno {
     class ObjectDepthShader : public IShader {
         enum RootParameterIndex : uint {
             FrameConstants,
+            TextureTable, // t0, space1
             RootConstants,
-            DissolveTexture,
+            DissolveTexture, // t0
+            VClipTable, // t1
             Sampler,
             RootParameterCount
         };
 
     public:
         ObjectDepthShader(const ShaderInfo& info) : IShader(info) {
-            InputLayout = LevelVertex::Layout;
+            InputLayout = ObjectVertex::Layout;
             Format = DepthShader::OutputFormat;
         }
 
@@ -205,6 +207,15 @@ namespace Inferno {
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
             commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
         }
+
+        static void SetTextureTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
+            commandList->SetGraphicsRootDescriptorTable(TextureTable, start);
+        }
+
+        static void SetVClipTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
+            commandList->SetGraphicsRootDescriptorTable(VClipTable, start);
+        }
+
     };
 
     class DepthCutoutShader : public IShader {
@@ -563,7 +574,7 @@ namespace Inferno {
 
         Effect<ObjectShader> Object = { &_shaders->Object, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
         Effect<ObjectShader> ObjectGlow = { &_shaders->Object, { BlendMode::Additive, CullMode::None, DepthMode::Read } };
-        Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::None, DepthMode::Read } };
+        Effect<ObjectDistortionShader> ObjectDistortion{ &_shaders->ObjectDistortion, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
 
         Effect<UIShader> UserInterface = { &_shaders->UserInterface, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, false } };
         Effect<HudShader> Hud = { &_shaders->Hud, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None } };
@@ -574,6 +585,7 @@ namespace Inferno {
         Effect<FlatShader> Line = { &_shaders->Flat, { BlendMode::StraightAlpha, CullMode::None, DepthMode::None, D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE } };
 
         Effect<SpriteShader> Sprite = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::Read } };
+        Effect<SpriteShader> SpriteOpaque = { &_shaders->Sprite, { BlendMode::Alpha, CullMode::CounterClockwise, DepthMode::ReadWrite } };
         Effect<SpriteShader> SpriteAdditive = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::Read } };
         Effect<SpriteShader> SpriteAdditiveBiased = { &_shaders->Sprite, { BlendMode::Additive, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
         Effect<SpriteShader> SpriteMultiply = { &_shaders->Sprite, { BlendMode::Multiply, CullMode::CounterClockwise, DepthMode::ReadDecalBiased } };
@@ -617,6 +629,7 @@ namespace Inferno {
             compile(ObjectGlow);
             compile(ObjectDistortion);
             compile(Sprite);
+            compile(SpriteOpaque);
             compile(SpriteAdditive);
             compile(SpriteMultiply);
             compile(SpriteAdditiveBiased);

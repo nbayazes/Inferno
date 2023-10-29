@@ -141,33 +141,56 @@ namespace Inferno::Render {
                 {
                     // Models
                     auto& object = *cmd.Data.Object;
-                    if (object.Render.Type != RenderType::Model || object.IsCloaked()) continue;
-                    auto model = object.Render.Model.ID;
+                    if (object.Render.Type == RenderType::Model) {
+                        if (object.IsCloaked() && Game::GetState() != GameState::Editor)
+                            continue; // Don't depth prepass cloaked objects unless in editor mode
 
-                    if (object.Render.Model.Outrage) {
-                        ctx.ApplyEffect(Effects->DepthObject);
-                        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                        OutrageModelDepthPrepass(ctx, object);
+                        auto model = object.Render.Model.ID;
+
+                        if (object.Render.Model.Outrage) {
+                            ctx.ApplyEffect(Effects->DepthObject);
+                            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                            OutrageModelDepthPrepass(ctx, object);
+                        }
+                        else {
+                            if (cmd.Data.Object->Type == ObjectType::Robot)
+                                model = Resources::GetRobotInfo(object.ID).Model;
+
+                            // todo: fix bug with this causing *all* objects to be rendered as flipped after firing lasers
+                            //if (object.Type == ObjectType::Weapon) {
+                            //    // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
+                            //    auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
+                            //    if (inner > ModelID::None && inner != ModelID(255))
+                            //        effect = Effects->DepthObjectFlipped;
+                            //}
+
+                            auto& effect = Effects->DepthObject;
+                            ctx.ApplyEffect(effect);
+                            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+                            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                            ModelDepthPrepass(cmdList, object, model);
+                        }
                     }
-                    else {
-                        if (cmd.Data.Object->Type == ObjectType::Robot)
-                            model = Resources::GetRobotInfo(object.ID).Model;
-
+                    else if (object.Render.Type == RenderType::Powerup ||
+                        //object.Render.Type == RenderType::WeaponVClip ||
+                        //object.Render.Type == RenderType::Fireball ||
+                        object.Render.Type == RenderType::Hostage) {
                         auto& effect = Effects->DepthObject;
-
-                        // todo: fix bug with this causing *all* objects to be rendered as flipped after firing lasers
-                        //if (object.Type == ObjectType::Weapon) {
-                        //    // Flip outer model of weapons with inner models so the Z buffer will allow drawing them
-                        //    auto inner = Resources::GameData.Weapons[object.ID].ModelInner;
-                        //    if (inner > ModelID::None && inner != ModelID(255))
-                        //        effect = Effects->DepthObjectFlipped;
-                        //}
-
                         ctx.ApplyEffect(effect);
                         ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                        ModelDepthPrepass(cmdList, object, model);
-                    }
 
+                        ObjectDepthShader::Constants constants = {};
+                        effect.Shader->SetConstants(cmdList, constants);
+                        auto sampler = Render::GetClampedTextureSampler();
+                        effect.Shader->SetSampler(cmdList, sampler);
+                        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+
+                        auto up = object.Rotation.Up();
+                        SpriteDepthPrepass(cmdList, object, object.Render.Type == RenderType::Hostage ? &up : nullptr);
+                    }
                     break;
                 }
 
@@ -501,22 +524,21 @@ namespace Inferno::Render {
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             }
 
-            // Copy the contents of the render target to the distortion buffer
-            auto& renderTarget = Adapter->GetHdrRenderTarget();
+            {
+                // Copy the contents of the render target to the distortion buffer
+                auto& renderTarget = Adapter->GetHdrRenderTarget();
 
-            if (Settings::Graphics.MsaaSamples > 1)
-                Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);
-            else
-                renderTarget.CopyTo(cmdList, Adapter->DistortionBuffer);
+                if (Settings::Graphics.MsaaSamples > 1)
+                    Adapter->DistortionBuffer.ResolveFromMultisample(cmdList, renderTarget);
+                else
+                    renderTarget.CopyTo(cmdList, Adapter->DistortionBuffer);
 
-            Adapter->DistortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-            renderTarget.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            //auto& distortionBuffer = Adapter->GetDistortionBuffer();
-            //renderTarget.CopyTo(cmdList, distortionBuffer);
-            //distortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                Adapter->DistortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+                renderTarget.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-            for (auto& cmd : _renderQueue.Distortion() | views::reverse)
-                ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
+                for (auto& cmd : _renderQueue.Distortion() | views::reverse)
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
+            }
 
             LegitProfiler::AddCpuTask(std::move(queue));
 

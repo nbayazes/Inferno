@@ -72,9 +72,7 @@ namespace Inferno::Render {
         span<RoomID> GetVisibleRooms() { return _roomQueue; }
     private:
         void QueueEditorObject(Object& obj, float lerp);
-        void QueueSegmentObjects(Level& level, const Segment& seg);
         void QueueRoomObjects(Level& level, const Room& room);
-        void TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes);
         void CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth);
         void TraverseLevelRooms(RoomID startRoomId, Level& level,span<LevelMesh> wallMeshes);
     };

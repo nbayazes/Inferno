@@ -1,773 +1,265 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Editor">
-      <UniqueIdentifier>{c388a244-1c61-4c97-aee2-311884b50e8a}</UniqueIdentifier>
-      <Extensions>\editor\*.*</Extensions>
-    </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{2d262cc0-c1a2-469e-99b6-7b32df2846de}</UniqueIdentifier>
-      <Extensions>hlsl</Extensions>
-    </Filter>
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Audio\AudioEngine.cpp" />
+    <ClCompile Include="Audio\DynamicSoundEffectInstance.cpp" />
+    <ClCompile Include="Audio\SoundCommon.cpp" />
+    <ClCompile Include="Audio\SoundEffect.cpp" />
+    <ClCompile Include="Audio\SoundEffectInstance.cpp" />
+    <ClCompile Include="Audio\WAVFileReader.cpp" />
+    <ClCompile Include="CustomTextureLibrary.cpp" />
+    <ClCompile Include="Editor\UI\DebugWindow.cpp" />
+    <ClCompile Include="Editor\Editor.Diagnostics.cpp" />
+    <ClCompile Include="BitmapCache.cpp" />
+    <ClCompile Include="Editor\UI\TextureEditor.cpp" />
+    <ClCompile Include="Game.AI.cpp" />
+    <ClCompile Include="Game.AI.Pathing.cpp" />
+    <ClCompile Include="Game.Boss.cpp" />
+    <ClCompile Include="Game.Input.cpp" />
+    <ClCompile Include="Game.Navigation.cpp" />
+    <ClCompile Include="Game.Object.cpp" />
+    <ClCompile Include="Game.Player.cpp" />
+    <ClCompile Include="Game.Reactor.cpp" />
+    <ClCompile Include="Game.Room.cpp" />
+    <ClCompile Include="Game.Text.cpp" />
+    <ClCompile Include="Game.Segment.cpp" />
+    <ClCompile Include="Game.Visibility.cpp" />
+    <ClCompile Include="Game.Wall.cpp" />
+    <ClCompile Include="Game.Weapon.cpp" />
+    <ClCompile Include="GameTable.cpp" />
+    <ClCompile Include="Graphics\Compiler.cpp" />
+    <ClCompile Include="Editor\Bindings.cpp" />
+    <ClCompile Include="Editor\Command.cpp" />
+    <ClCompile Include="Editor\Editor.Camera.cpp" />
+    <ClCompile Include="Editor\Editor.Clipboard.cpp" />
+    <ClCompile Include="Editor\Editor.cpp" />
+    <ClCompile Include="Editor\Editor.Geometry.cpp" />
+    <ClCompile Include="Editor\Editor.IO.cpp" />
+    <ClCompile Include="Editor\Editor.Object.cpp" />
+    <ClCompile Include="Editor\Editor.Segment.cpp" />
+    <ClCompile Include="Editor\Editor.Selection.cpp" />
+    <ClCompile Include="Editor\Editor.Texture.cpp" />
+    <ClCompile Include="Editor\Editor.Wall.cpp" />
+    <ClCompile Include="Editor\Gizmo.cpp" />
+    <ClCompile Include="Editor\Editor.Lighting.cpp" />
+    <ClCompile Include="Editor\UI\PropertyEditor.Object.cpp" />
+    <ClCompile Include="Editor\UI\PropertyEditor.Segment.cpp" />
+    <ClCompile Include="Editor\TunnelBuilder.cpp" />
+    <ClCompile Include="Graphics\LevelMesh.cpp" />
+    <ClCompile Include="Graphics\Lighting.cpp" />
+    <ClCompile Include="Graphics\Mesh.cpp" />
+    <ClCompile Include="Graphics\Render.Canvas.cpp" />
+    <ClCompile Include="Graphics\GatherLights.cpp" />
+    <ClCompile Include="Graphics\Render.Level.cpp" />
+    <ClCompile Include="Graphics\Render.Object.cpp" />
+    <ClCompile Include="Graphics\Render.Particles.cpp" />
+    <ClCompile Include="HUD.cpp" />
+    <ClCompile Include="imgui_local.cpp" />
+    <ClCompile Include="Intersect.cpp" />
+    <ClCompile Include="LevelSettings.cpp" />
+    <ClCompile Include="LightInfo.cpp" />
+    <ClCompile Include="Editor\UI\LightingWindow.cpp" />
+    <ClCompile Include="MaterialInfo.cpp" />
+    <ClCompile Include="OpenSimplex2.cpp" />
+    <ClCompile Include="Physics.Capsule.cpp" />
+    <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="Graphics\Render.Queue.cpp" />
+    <ClCompile Include="Graphics\PostProcess.cpp" />
+    <ClCompile Include="Physics.Hit.cpp" />
+    <ClCompile Include="Physics.Math.cpp" />
+    <ClCompile Include="Procedural.cpp" />
+    <ClCompile Include="Procedural.Fire.cpp" />
+    <ClCompile Include="Procedural.Water.cpp" />
+    <ClCompile Include="Settings.cpp" />
+    <ClCompile Include="Graphics\Render.Debug.cpp" />
+    <ClCompile Include="Input.cpp" />
+    <ClCompile Include="Graphics\Render.Editor.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Editor\UI\EditorUI.cpp" />
+    <ClCompile Include="Resources.cpp" />
+    <ClCompile Include="SoundSystem.cpp" />
+    <ClCompile Include="FileSystem.cpp" />
+    <ClCompile Include="Graphics\Render.cpp" />
+    <ClCompile Include="Graphics\ShaderLibrary.cpp" />
+    <ClCompile Include="Graphics\DeviceResources.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Graphics\MaterialLibrary.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="Editor\UI\TextureBrowserUI.cpp" />
+    <ClCompile Include="Shell.cpp" />
+    <ClCompile Include="SoundTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Application.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\DeviceResources.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FileSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Resources.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\ShaderLibrary.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Shell.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Debug.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Compiler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\MaterialLibrary.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Editor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\TextureBrowserUI.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Lighting.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Camera.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Geometry.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Object.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Segment.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Selection.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Texture.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Wall.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\EditorUI.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Gizmo.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Bindings.cpp">
-      <Filter>Editor</Filter>
-    </ClCompile>
-    <ClCompile Include="Settings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\PropertyEditor.Segment.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\PropertyEditor.Object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Clipboard.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\TunnelBuilder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Command.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LevelSettings.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.IO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\LevelMesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\Editor.Diagnostics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="BitmapCache.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Particles.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Wall.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Segment.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Text.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Input.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Canvas.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="HUD.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Player.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Weapon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\WAVFileReader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\DynamicSoundEffectInstance.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\AudioEngine.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\SoundCommon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\SoundEffect.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio\SoundEffectInstance.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Queue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Level.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Render.Object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameTable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Lighting.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LightInfo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\TextureEditor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CustomTextureLibrary.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\GatherLights.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="OpenSimplex2.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\PostProcess.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Mesh.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics.Capsule.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics.Math.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Physics.Hit.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.AI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Procedural.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Procedural.Water.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Procedural.Fire.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="imgui_local.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\DebugWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Editor\UI\LightingWindow.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MaterialInfo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Room.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Navigation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Visibility.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Intersect.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundTypes.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Reactor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.Boss.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Game.AI.Pathing.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClInclude Include="Audio\Audio.h" />
+    <ClInclude Include="Audio\SoundCommon.h" />
+    <ClInclude Include="Audio\WAVFileReader.h" />
+    <ClInclude Include="BitmapCache.h" />
+    <ClInclude Include="CustomTextureLibrary.h" />
+    <ClInclude Include="DirectX.h" />
+    <ClInclude Include="Editor\Command.h" />
+    <ClInclude Include="Concurrent.h" />
+    <ClInclude Include="Editor\Editor.Diagnostics.h" />
+    <ClInclude Include="Editor\UI\AboutDialog.h" />
+    <ClInclude Include="Editor\UI\BriefingEditor.h" />
+    <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
+    <ClInclude Include="Effect.h" />
+    <ClInclude Include="Game.AI.h" />
+    <ClInclude Include="Game.AI.Pathing.h" />
+    <ClInclude Include="Game.Boss.h" />
+    <ClInclude Include="Game.Input.h" />
+    <ClInclude Include="Game.Navigation.h" />
+    <ClInclude Include="Game.Object.h" />
+    <ClInclude Include="Game.Player.h" />
+    <ClInclude Include="Editor\UI\ScaleWindow.h" />
+    <ClInclude Include="Editor\UI\TextureEditor.h" />
+    <ClInclude Include="Game.Reactor.h" />
+    <ClInclude Include="Game.Room.h" />
+    <ClInclude Include="Game.Text.h" />
+    <ClInclude Include="Game.Segment.h" />
+    <ClInclude Include="Editor\UI\SoundBrowser.h" />
+    <ClInclude Include="Game.Visibility.h" />
+    <ClInclude Include="Game.Wall.h" />
+    <ClInclude Include="GameTable.h" />
+    <ClInclude Include="Graphics\Buffers.h" />
+    <ClInclude Include="Graphics\CommandContext.h" />
+    <ClInclude Include="Graphics\Compiler.h" />
+    <ClInclude Include="Graphics\ComputeShader.h" />
+    <ClInclude Include="Graphics\GpuResources.h" />
+    <ClInclude Include="Convert.h" />
+    <ClInclude Include="DebugOverlay.h" />
+    <ClInclude Include="Editor\Editor.Clipboard.h" />
+    <ClInclude Include="Editor\Editor.IO.h" />
+    <ClInclude Include="Editor\Editor.Lighting.h" />
+    <ClInclude Include="Editor\UI\BloomWindow.h" />
+    <ClInclude Include="Editor\Editor.Object.h" />
+    <ClInclude Include="Editor\Editor.Segment.h" />
+    <ClInclude Include="Editor\Editor.Selection.h" />
+    <ClInclude Include="Editor\Editor.Texture.h" />
+    <ClInclude Include="Editor\Editor.Undo.h" />
+    <ClInclude Include="Editor\Editor.Wall.h" />
+    <ClInclude Include="Editor\UI\HelpDialog.h" />
+    <ClInclude Include="Editor\UI\MatcenEditor.h" />
+    <ClInclude Include="Editor\UI\NewLevelDialog.h" />
+    <ClInclude Include="Editor\UI\PropertyEditor.h" />
+    <ClInclude Include="Editor\UI\ReactorEditor.h" />
+    <ClInclude Include="Editor\UI\SettingsDialog.h" />
+    <ClInclude Include="Editor\TunnelBuilder.h" />
+    <ClInclude Include="Editor\UI\TunnelBuilderWindow.h" />
+    <ClInclude Include="Graphics\IDeviceNotify.h" />
+    <ClInclude Include="Graphics\Lighting.h" />
+    <ClInclude Include="Graphics\Render.Canvas.h" />
+    <ClInclude Include="Graphics\Render.Commands.h" />
+    <ClInclude Include="Graphics\Render.Level.h" />
+    <ClInclude Include="Graphics\Render.Object.h" />
+    <ClInclude Include="Graphics\Render.Particles.h" />
+    <ClInclude Include="Graphics\Render.Queue.h" />
+    <ClInclude Include="HUD.h" />
+    <ClInclude Include="Intersect.h" />
+    <ClInclude Include="LegitProfiler.h" />
+    <ClInclude Include="LevelSettings.h" />
+    <ClInclude Include="LightInfo.h" />
+    <ClInclude Include="Editor\UI\MaterialEditor.h" />
+    <ClInclude Include="Material2D.h" />
+    <ClInclude Include="MaterialInfo.h" />
+    <ClInclude Include="NormalMap.h" />
+    <ClInclude Include="OpenSimplex2.h" />
+    <ClInclude Include="Physics.Capsule.h" />
+    <ClInclude Include="Physics.h" />
+    <ClInclude Include="Physics.Hit.h" />
+    <ClInclude Include="Physics.Math.h" />
+    <ClInclude Include="Procedural.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="SoundTypes.h" />
+    <ClInclude Include="unordered_dense.h" />
+    <ClInclude Include="Version.h" />
+    <ClInclude Include="WindowsDialogs.h" />
+    <ClInclude Include="Editor\Gizmo.h" />
+    <ClInclude Include="Editor\UI\HogEditor.h" />
+    <ClInclude Include="Editor\UI\LightingWindow.h" />
+    <ClInclude Include="Editor\UI\MissionEditor.h" />
+    <ClInclude Include="Editor\UI\NoiseWindow.h" />
+    <ClInclude Include="Editor\UI\StatusBar.h" />
+    <ClInclude Include="Editor\Editor.Geometry.h" />
+    <ClInclude Include="WorkerThread.h" />
+    <ClInclude Include="Graphics\Render.Debug.h" />
+    <ClInclude Include="Graphics\LevelMesh.h" />
+    <ClInclude Include="Editor\UI\DebugWindow.h" />
+    <ClInclude Include="Editor\UI\WindowBase.h" />
+    <ClInclude Include="Graphics\Mesh.h" />
+    <ClInclude Include="Graphics\PostProcess.h" />
+    <ClInclude Include="Graphics\Heap.h" />
+    <ClInclude Include="Graphics\Render.Editor.h" />
+    <ClInclude Include="Graphics\Render.Gizmo.h" />
+    <ClInclude Include="Logging.h" />
+    <ClInclude Include="Editor\Bindings.h" />
+    <ClInclude Include="Settings.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="Graphics\ShaderLibrary.h" />
+    <ClInclude Include="FileSystem.h" />
+    <ClInclude Include="Resources.h" />
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="SoundSystem.h" />
+    <ClInclude Include="imgui_local.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Graphics\Render.h" />
+    <ClInclude Include="Graphics\MaterialLibrary.h" />
+    <ClInclude Include="ScopedTimer.h" />
+    <ClInclude Include="SystemClock.h" />
+    <ClInclude Include="vendor\d3dx12.h" />
+    <ClInclude Include="Graphics\DeviceResources.h" />
+    <ClInclude Include="Editor\Editor.h" />
+    <ClInclude Include="Editor\UI\EditorUI.h" />
+    <ClInclude Include="Editor\Events.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="vendor\OpenSimplexNoise.h" />
+    <ClInclude Include="vendor\PlatformHelpers.h" />
+    <ClInclude Include="Shell.h" />
+    <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
+    <ClInclude Include="Yaml.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Shell.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Application.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\DeviceResources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\TextureBrowserUI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui_local.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\PlatformHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\d3dx12.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\ShaderLibrary.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FileSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Resources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Logging.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Buffers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\DebugWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\LevelMesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Mesh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Debug.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ScopedTimer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\PostProcess.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Heap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\BloomWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Compiler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\LightingWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Gizmo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="vendor\OpenSimplexNoise.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\MaterialLibrary.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Editor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Concurrent.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Geometry.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Object.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Selection.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Wall.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\EditorUI.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Events.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Bindings.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\MissionEditor.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Gizmo.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\StatusBar.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="SystemClock.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WorkerThread.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\GpuResources.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Texture.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Undo.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Segment.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowsDialogs.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\WindowBase.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\NoiseWindow.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\HogEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Lighting.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Settings.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\PropertyEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\MatcenEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\SettingsDialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Clipboard.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\NewLevelDialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\ReactorEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\HelpDialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\TunnelBuilder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\TunnelBuilderWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Command.h">
-      <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Convert.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LevelSettings.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectX.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Yaml.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.IO.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugOverlay.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\AboutDialog.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.Diagnostics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BitmapCache.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\SoundBrowser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\DiagnosticWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Particles.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Wall.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\BriefingEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Segment.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Text.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Canvas.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Commands.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\CommandContext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HUD.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Input.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.Math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Player.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Audio\WAVFileReader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Audio\Audio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Audio\SoundCommon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Queue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Level.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Render.Object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GameTable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Lighting.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\ComputeShader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LightInfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="NormalMap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\TextureEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CustomTextureLibrary.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\ScaleWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\UI\MaterialEditor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="OpenSimplex2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.Capsule.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.Hit.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.AI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Procedural.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\IDeviceNotify.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Effect.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Material2D.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundTypes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MaterialInfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Room.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Navigation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Visibility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Intersect.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LegitProfiler.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Reactor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.Boss.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Game.AI.Pathing.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="unordered_dense.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ResourceCompile Include="Inferno.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\compile.bat">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="shaders\DownsampleBloomCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\editor.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\imgui.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\level.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\levelflat.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\object.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\sprite.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\ToneMapCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\ToneMapCS-NoUAVL.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\UpsampleAndBlurCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\Utility.hlsli">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\BlurCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\BloomExtractDownsampleCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="d1filter.txt">
-      <Filter>Resource Files</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="d2filter.txt">
-      <Filter>Resource Files</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="powerups.txt">
-      <Filter>Resource Files</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="robots.txt">
-      <Filter>Resource Files</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\..\thirdparty.txt" />
-    <CopyFileToFolders Include="shaders\ScanlineCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\LinearizeDepthCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\DepthCutout.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\Depth.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\DepthObject.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\HUD.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\FillLightGridCS.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\LightGrid.hlsli" />
-    <CopyFileToFolders Include="shaders\Lighting.hlsli" />
-    <CopyFileToFolders Include="shaders\Common.hlsli">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="shaders\ObjectDistortion.hlsl">
-      <Filter>Shaders</Filter>
-    </CopyFileToFolders>
+    <CopyFileToFolders Include="shaders\Utility.hlsli" />
+    <CopyFileToFolders Include="shaders\imgui.hlsl" />
+    <CopyFileToFolders Include="game.yml" />
     <CopyFileToFolders Include="lights.yml" />
     <CopyFileToFolders Include="lights2.yml" />
     <CopyFileToFolders Include="materials.yml" />
     <CopyFileToFolders Include="materials2.yml" />
-    <CopyFileToFolders Include="game.yml" />
+    <CopyFileToFolders Include="shaders\Common.hlsli" />
+    <CopyFileToFolders Include="shaders\LightGrid.hlsli" />
+    <CopyFileToFolders Include="shaders\Lighting.hlsli" />
+    <CopyFileToFolders Include="shaders\level.hlsl" />
+    <CopyFileToFolders Include="shaders\editor.hlsl" />
+    <CopyFileToFolders Include="shaders\sprite.hlsl" />
+    <CopyFileToFolders Include="shaders\object.hlsl" />
+    <CopyFileToFolders Include="d1filter.txt" />
+    <CopyFileToFolders Include="d2filter.txt" />
+    <CopyFileToFolders Include="powerups.txt" />
+    <CopyFileToFolders Include="robots.txt" />
+    <CopyFileToFolders Include="shaders\BloomExtractDownsampleCS.hlsl" />
+    <CopyFileToFolders Include="shaders\BlurCS.hlsl" />
+    <CopyFileToFolders Include="shaders\DownsampleBloomCS.hlsl" />
+    <CopyFileToFolders Include="shaders\ToneMapCS-NoUAVL.hlsl" />
+    <CopyFileToFolders Include="shaders\levelflat.hlsl" />
+    <CopyFileToFolders Include="shaders\ToneMapCS.hlsl" />
+    <CopyFileToFolders Include="shaders\UpsampleAndBlurCS.hlsl" />
+    <CopyFileToFolders Include="..\..\thirdparty.txt" />
+    <CopyFileToFolders Include="shaders\ScanlineCS.hlsl" />
+    <CopyFileToFolders Include="shaders\LinearizeDepthCS.hlsl" />
+    <CopyFileToFolders Include="shaders\DepthCutout.hlsl" />
+    <CopyFileToFolders Include="shaders\Depth.hlsl" />
+    <CopyFileToFolders Include="shaders\DepthObject.hlsl" />
+    <CopyFileToFolders Include="shaders\HUD.hlsl" />
+    <CopyFileToFolders Include="shaders\FillLightGridCS.hlsl" />
+    <CopyFileToFolders Include="shaders\ObjectDistortion.hlsl" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Inferno.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
+    <None Include="packages.config" />
+    <None Include="shaders\compile.bat" />
   </ItemGroup>
 </Project>

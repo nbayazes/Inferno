@@ -109,6 +109,14 @@ namespace Inferno::Render {
                        float rotation,
                        const Vector3* up);
 
+    // Call ApplyEffect and SetConstantBuffer first
+    void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList, 
+                            TexID tid,
+                            const Vector3& position, 
+                            float radius, 
+                            float rotation, 
+                            const Vector3* up);
+
     extern bool LevelChanged;
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
     PackedBuffer* GetLevelMeshBuffer();

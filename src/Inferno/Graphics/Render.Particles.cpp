@@ -242,6 +242,8 @@ namespace Inferno::Render {
         constants.World = transform;
 
         effect.Shader->SetConstants(cmdList, constants);
+        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
 
         // get the mesh associated with the submodel
         auto& subMesh = meshHandle.Meshes[Submodel];

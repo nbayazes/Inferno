@@ -97,7 +97,7 @@ namespace Inferno::Render {
             _transparentQueue.push_back({ &obj, depth });
         }
         else if (obj.Render.Type == RenderType::Model && obj.Render.Model.ID != ModelID::None) {
-            if (obj.IsCloaked()) {
+            if (obj.IsCloaked() && Game::GetState() != GameState::Editor) {
                 _distortionQueue.push_back({ &obj, depth });
             }
             else {
@@ -118,74 +118,85 @@ namespace Inferno::Render {
             }
         }
         else {
-            _transparentQueue.push_back({ &obj, depth });
-        }
-    }
-
-    void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg) {
-        _objects.clear();
-
-        // queue objects in segment
-        for (auto oid : seg.Objects) {
-            if (auto obj = level.TryGetObject(oid)) {
-                if (!ShouldDrawObject(*obj)) continue;
-                _objects.push_back({ obj, GetRenderDepth(obj->Position) });
+            if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup) {
+                // Assume all powerups are opaque for now
+                _opaqueQueue.push_back({ &obj, depth });
             }
-        }
-
-        for (auto& effectId : seg.Effects) {
-            if (auto effect = GetEffect(effectId)) {
-                Stats::EffectDraws++;
-                _objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
-            }
-        }
-
-        // Sort objects in segment by depth
-        Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
-            return a.Depth < b.Depth;
-        });
-
-        // Queue objects in seg
-        for (auto& obj : _objects) {
-            if (obj.Obj) {
-                if (obj.Obj->Render.Type == RenderType::Model &&
-                    obj.Obj->Render.Model.ID != ModelID::None) {
-                    if (obj.Obj->IsCloaked()) {
-                        // Cloaked objects render using a different queue
-                        _distortionQueue.push_back({ obj.Obj, obj.Depth });
-                    }
-                    else {
-                        // always submit objects to opaque queue, as the renderer will skip
-                        // non-transparent submeshes
-                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-
-                        if (obj.Obj->Render.Model.Outrage) {
-                            //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
-                            //if (mesh.HasTransparentTexture)
-                            // outrage models do not set transparent texture flag, but many contain transparent faces
-                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                        }
-                        else {
-                            auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
-                            if (mesh.IsTransparent)
-                                _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                        }
-                    }
-                }
-                else {
-                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                }
-            }
-            else if (obj.Effect) {
-                auto depth = GetRenderDepth(obj.Effect->Position);
-
-                if (obj.Effect->Queue == RenderQueueType::Transparent)
-                    _transparentQueue.push_back({ obj.Effect, depth });
-                else if (obj.Effect->Queue == RenderQueueType::Opaque)
-                    _opaqueQueue.push_back({ obj.Effect, depth });
+            else {
+                _transparentQueue.push_back({ &obj, depth });
             }
         }
     }
+
+    //void RenderQueue::QueueSegmentObjects(Level& level, const Segment& seg) {
+    //    _objects.clear();
+
+    //    // queue objects in segment
+    //    for (auto oid : seg.Objects) {
+    //        if (auto obj = level.TryGetObject(oid)) {
+    //            if (!ShouldDrawObject(*obj)) continue;
+    //            _objects.push_back({ obj, GetRenderDepth(obj->Position) });
+    //        }
+    //    }
+
+    //    for (auto& effectId : seg.Effects) {
+    //        if (auto effect = GetEffect(effectId)) {
+    //            Stats::EffectDraws++;
+    //            _objects.push_back({ nullptr, GetRenderDepth(effect->Position), effect });
+    //        }
+    //    }
+
+    //    // Sort objects in segment by depth
+    //    Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
+    //        return a.Depth < b.Depth;
+    //    });
+
+    //    // Queue objects in seg
+    //    for (auto& obj : _objects) {
+    //        if (obj.Obj) {
+    //            if (obj.Obj->Render.Type == RenderType::Model &&
+    //                obj.Obj->Render.Model.ID != ModelID::None) {
+    //                if (obj.Obj->IsCloaked() && Game::GetState() != GameState::Editor) {
+    //                    // Cloaked objects render using a different queue
+    //                    _distortionQueue.push_back({ obj.Obj, obj.Depth });
+    //                }
+    //                else {
+    //                    // always submit objects to opaque queue, as the renderer will skip
+    //                    // non-transparent submeshes
+    //                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+
+    //                    if (obj.Obj->Render.Model.Outrage) {
+    //                        //auto& mesh = GetOutrageMeshHandle(obj.Obj->Render.Model.ID);
+    //                        //if (mesh.HasTransparentTexture)
+    //                        // outrage models do not set transparent texture flag, but many contain transparent faces
+    //                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+    //                    }
+    //                    else {
+    //                        auto& mesh = GetMeshHandle(obj.Obj->Render.Model.ID);
+    //                        if (mesh.IsTransparent)
+    //                            _transparentQueue.push_back({ obj.Obj, obj.Depth });
+    //                    }
+    //                }
+    //            }
+    //            else {
+    //                if(obj.Obj->Render.Type == RenderType::Hostage || obj.Obj->Render.Type == RenderType::Powerup) {
+    //                    // Assume all powerups are opaque for now
+    //                    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+    //                } else {
+    //                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+    //                }
+    //            }
+    //        }
+    //        else if (obj.Effect) {
+    //            auto depth = GetRenderDepth(obj.Effect->Position);
+
+    //            if (obj.Effect->Queue == RenderQueueType::Transparent)
+    //                _transparentQueue.push_back({ obj.Effect, depth });
+    //            else if (obj.Effect->Queue == RenderQueueType::Opaque)
+    //                _opaqueQueue.push_back({ obj.Effect, depth });
+    //        }
+    //    }
+    //}
 
     void RenderQueue::QueueRoomObjects(Level& level, const Room& room) {
         _objects.clear();
@@ -221,7 +232,7 @@ namespace Inferno::Render {
             if (obj.Obj) {
                 if (obj.Obj->Render.Type == RenderType::Model &&
                     obj.Obj->Render.Model.ID != ModelID::None) {
-                    if (obj.Obj->IsCloaked()) {
+                    if (obj.Obj->IsCloaked() && Game::GetState() != GameState::Editor) {
                         _distortionQueue.push_back({ obj.Obj, obj.Depth });
                     }
                     else {
@@ -241,7 +252,13 @@ namespace Inferno::Render {
                     }
                 }
                 else {
-                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    if (obj.Obj->Render.Type == RenderType::Hostage || obj.Obj->Render.Type == RenderType::Powerup) {
+                        // Assume all powerups are opaque for now
+                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+                    }
+                    else {
+                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    }
                 }
             }
             else if (obj.Effect) {
@@ -255,81 +272,80 @@ namespace Inferno::Render {
         }
     }
 
-    void RenderQueue::TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes) {
-        ScopedTimer levelTimer(&Render::Metrics::QueueLevel);
+    //void RenderQueue::TraverseLevel(SegID startId, Level& level, span<LevelMesh> wallMeshes) {
+    //    ScopedTimer levelTimer(&Render::Metrics::QueueLevel);
 
-        _objects.clear();
-        _visited.clear();
-        _search.push({ startId, 0 });
-        Stats::EffectDraws = 0;
+    //    _objects.clear();
+    //    _visited.clear();
+    //    _search.push({ startId, 0 });
+    //    Stats::EffectDraws = 0;
 
-        // todo: add visible lights. Graphics::Lights.AddLight(light);
+    //    // todo: add visible lights. Graphics::Lights.AddLight(light);
 
-        while (!_search.empty()) {
-            SegDepth item = _search.front();
-            _search.pop();
+    //    while (!_search.empty()) {
+    //        SegDepth item = _search.front();
+    //        _search.pop();
 
-            // must check if visited because multiple segs can connect to the same seg before being it is visited
-            if (_visited.contains(item.Seg)) continue;
-            _visited.insert(item.Seg);
-            auto* seg = &level.GetSegment(item.Seg);
+    //        // must check if visited because multiple segs can connect to the same seg before being it is visited
+    //        if (_visited.contains(item.Seg)) continue;
+    //        _visited.insert(item.Seg);
+    //        auto* seg = &level.GetSegment(item.Seg);
 
-            Array<SegDepth, 6> children{};
+    //        Array<SegDepth, 6> children{};
 
-            // Find open sides
-            for (auto& sideId : SideIDs) {
-                if (!WallIsTransparent(level, { item.Seg, sideId }))
-                    continue; // Can't see through wall
+    //        // Find open sides
+    //        for (auto& sideId : SideIDs) {
+    //            if (!WallIsTransparent(level, { item.Seg, sideId }))
+    //                continue; // Can't see through wall
 
-                bool culled = false;
-                // always add adjacent segments to start
-                if (item.Seg != startId) {
-                    auto vec = seg->Sides[(int)sideId].Center - Camera.Position;
-                    vec.Normalize();
+    //            bool culled = false;
+    //            // always add adjacent segments to start
+    //            if (item.Seg != startId) {
+    //                auto vec = seg->Sides[(int)sideId].Center - Camera.Position;
+    //                vec.Normalize();
 
-                    // todo: draw objects in adjacent segments, as objects on the boundary can overlap
-                    if (vec.Dot(seg->Sides[(int)sideId].AverageNormal) >= 0)
-                        culled = true;
-                }
+    //                // todo: draw objects in adjacent segments, as objects on the boundary can overlap
+    //                if (vec.Dot(seg->Sides[(int)sideId].AverageNormal) >= 0)
+    //                    culled = true;
+    //            }
 
-                auto cid = seg->GetConnection(sideId);
-                auto cseg = level.TryGetSegment(cid);
-                if (cseg && !_visited.contains(cid)) {
-                    children[(int)sideId] = {
-                        .Seg = cid,
-                        .Depth = GetRenderDepth(cseg->Center),
-                        .Culled = culled
-                    };
-                }
-            }
+    //            auto cid = seg->GetConnection(sideId);
+    //            auto cseg = level.TryGetSegment(cid);
+    //            if (cseg && !_visited.contains(cid)) {
+    //                children[(int)sideId] = {
+    //                    .Seg = cid,
+    //                    .Depth = GetRenderDepth(cseg->Center),
+    //                    .Culled = culled
+    //                };
+    //            }
+    //        }
 
-            // Sort connected segments by depth
-            Seq::sortBy(children, [](const SegDepth& a, const SegDepth& b) {
-                if (a.Seg == SegID::None) return false;
-                if (b.Seg == SegID::None) return true;
-                return a.Depth < b.Depth;
-            });
+    //        // Sort connected segments by depth
+    //        Seq::sortBy(children, [](const SegDepth& a, const SegDepth& b) {
+    //            if (a.Seg == SegID::None) return false;
+    //            if (b.Seg == SegID::None) return true;
+    //            return a.Depth < b.Depth;
+    //        });
 
-            if (!item.Culled) {
-                for (auto& c : children) {
-                    if (c.Seg != SegID::None)
-                        _search.push(c);
-                }
-            }
+    //        if (!item.Culled) {
+    //            for (auto& c : children) {
+    //                if (c.Seg != SegID::None)
+    //                    _search.push(c);
+    //            }
+    //        }
 
-            QueueSegmentObjects(level, *seg);
+    //        QueueSegmentObjects(level, *seg);
 
-            // queue visible walls (this does not scale well)
-            // todo: track walls as iterating
-            for (auto& mesh : wallMeshes) {
-                if (mesh.Chunk->Tag.Segment == item.Seg)
-                    _transparentQueue.push_back({ &mesh, 0 });
-            }
-        }
+    //        // queue visible walls (this does not scale well)
+    //        // todo: track walls as iterating
+    //        for (auto& mesh : wallMeshes) {
+    //            if (mesh.Chunk->Tag.Segment == item.Seg)
+    //                _transparentQueue.push_back({ &mesh, 0 });
+    //        }
+    //    }
 
-
-        Stats::VisitedSegments = (uint16)_visited.size();
-    }
+    //    Stats::VisitedSegments = (uint16)_visited.size();
+    //}
 
 
     Bounds2D GetBounds(const Array<Vector3, 4>& points) {

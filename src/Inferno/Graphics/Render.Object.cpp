@@ -7,6 +7,7 @@
 #include "Render.Editor.h"
 #include "Render.h"
 #include "Resources.h"
+#include "Render.Object.h"
 
 //#define DEBUG_DISSOLVE
 
@@ -56,6 +57,28 @@ namespace Inferno::Render {
         }
     }
 
+    void SpriteDepthPrepass(ID3D12GraphicsCommandList* cmdList, const Object& object, const Vector3* up = nullptr) {
+        auto pos = object.GetPosition(Game::LerpAmount);
+
+        if (object.Render.Type == RenderType::WeaponVClip ||
+            object.Render.Type == RenderType::Powerup ||
+            object.Render.Type == RenderType::Hostage) {
+            auto& vclip = Resources::GetVideoClip(object.Render.VClip.ID);
+            if (vclip.NumFrames == 0) {
+                return;
+            }
+
+            auto tid = vclip.GetFrame((float)ElapsedTime);
+            DrawDepthBillboard(cmdList, tid, pos, object.Radius, object.Render.Rotation, up);
+        }
+        else if (object.Render.Type == RenderType::Laser) {
+            // "laser" is used for still-image "blobs" like spreadfire
+            auto& weapon = Resources::GetWeapon((WeaponID)object.ID);
+            DrawDepthBillboard(cmdList, weapon.BlobBitmap, pos, object.Radius, object.Render.Rotation, up);
+        }
+    }
+
+
     // Draws a square glow that always faces the camera (Descent 3 submodels);
     void DrawObjectGlow(ID3D12GraphicsCommandList* cmd, float radius, const Color& color, TexID tex, float rotation = 0) {
         if (radius <= 0) return;
@@ -102,7 +125,6 @@ namespace Inferno::Render {
 #else
         if (object.IsPhasing()) {
             shader.SetDissolveTexture(cmdList, Render::Materials->Get("noise").Handle());
-            shader.SetSampler(cmdList, GetWrappedTextureSampler());
             constants.PhaseAmount = std::max(1 - object.Effects.GetPhasePercent(), 0.01f); // Shader checks for 0 to skip effect
         }
 #endif
@@ -139,6 +161,7 @@ namespace Inferno::Render {
 
         auto cmd = ctx.GetCommandList();
         auto& shader = Shaders->DepthObject;
+        shader.SetTextureTable(ctx.GetCommandList(), Render::Heaps->Materials.GetGpuHandle(0));
 
         for (int submodelIndex = 0; submodelIndex < model->Submodels.size(); submodelIndex++) {
             auto& submodel = model->Submodels[submodelIndex];
@@ -342,7 +365,7 @@ namespace Inferno::Render {
                    const Object& object,
                    ModelID modelId,
                    RenderPass pass) {
-        if (object.IsCloaked()) {
+        if (object.IsCloaked() && Game::GetState() != GameState::Editor) {
             DrawCloakedModel(ctx, object, modelId, pass);
             return;
         }
@@ -461,9 +484,16 @@ namespace Inferno::Render {
 
             case ObjectType::Hostage:
             {
-                if (pass != RenderPass::Transparent) return;
+                if (pass != RenderPass::Opaque) return;
                 auto up = object.Rotation.Up();
                 DrawSprite(ctx, object, false, &up, Settings::Editor.RenderMode == RenderMode::Shaded);
+                break;
+            }
+
+            case ObjectType::Powerup:
+            {
+                if (pass != RenderPass::Opaque) return;
+                DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
 
@@ -510,13 +540,6 @@ namespace Inferno::Render {
                 else {
                     DrawSprite(ctx, object, true);
                 }
-                break;
-            }
-
-            case ObjectType::Powerup:
-            {
-                if (pass != RenderPass::Transparent) return;
-                DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
 

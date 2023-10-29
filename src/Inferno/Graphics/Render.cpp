@@ -102,8 +102,43 @@ namespace Inferno::Render {
         auto sampler = Render::GetClampedTextureSampler();
         effect.Shader->SetSampler(ctx.GetCommandList(), sampler);
 
+        // todo: replace horrible code with proper batching
         Stats::DrawCalls++;
         g_SpriteBatch->Begin(ctx.GetCommandList());
+        g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
+        g_SpriteBatch->End();
+    }
+
+    void DrawDepthBillboard(ID3D12GraphicsCommandList* cmdList,
+                            TexID tid,
+                            const Vector3& position,
+                            float radius,
+                            float rotation,
+                            const Vector3* up) {
+        auto transform = up ? Matrix::CreateConstrainedBillboard(position, Camera.Position, *up) : Matrix::CreateBillboard(position, Camera.Position, Camera.Up);
+
+        if (rotation != 0)
+            transform = Matrix::CreateRotationZ(rotation) * transform;
+
+        // create quad and transform it
+        auto& ti = Resources::GetTextureInfo(tid);
+        auto ratio = (float)ti.Height / (float)ti.Width;
+        auto h = radius * ratio;
+        auto w = radius;
+        auto p0 = Vector3::Transform({ -w, h, 0 }, transform); // bl
+        auto p1 = Vector3::Transform({ w, h, 0 }, transform); // br
+        auto p2 = Vector3::Transform({ w, -h, 0 }, transform); // tr
+        auto p3 = Vector3::Transform({ -w, -h, 0 }, transform); // tl
+
+        Color color;
+        ObjectVertex v0(p0, { 0, 0 }, color, {}, {}, {}, (int)tid);
+        ObjectVertex v1(p1, { 1, 0 }, color, {}, {}, {}, (int)tid);
+        ObjectVertex v2(p2, { 1, 1 }, color, {}, {}, {}, (int)tid);
+        ObjectVertex v3(p3, { 0, 1 }, color, {}, {}, {}, (int)tid);
+
+        // todo: replace horrible code with proper batching
+        Stats::DrawCalls++;
+        g_SpriteBatch->Begin(cmdList);
         g_SpriteBatch->DrawQuad(v0, v1, v2, v3);
         g_SpriteBatch->End();
     }
