@@ -247,14 +247,14 @@ namespace Inferno::Editor {
     void CheckForMouselook() {
         auto mouselookKey = Bindings::Active.GetBindingKey(EditorAction::HoldMouselook);
 
-        if (Input::Mouse.middleButton == Input::MouseState::PRESSED ||
-            Input::Keyboard.IsKeyPressed(mouselookKey)) {
+        if (Input::IsMouseButtonPressed(Input::MouseButtons::Middle) ||
+            Input::IsKeyPressed(mouselookKey)) {
             auto mode = Settings::Editor.MiddleMouseMode == MiddleMouseMode::Mouselook ? Input::MouseMode::Mouselook : Input::MouseMode::Orbit;
             Input::SetMouseMode(mode);
         }
 
-        if (Input::Mouse.middleButton == Input::MouseState::RELEASED ||
-            Input::Keyboard.IsKeyReleased(mouselookKey))
+        if (Input::IsMouseButtonReleased(Input::MouseButtons::Middle) ||
+            Input::IsKeyReleased(mouselookKey))
             Input::SetMouseMode(Input::MouseMode::Normal);
     }
 

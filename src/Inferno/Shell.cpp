@@ -42,7 +42,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     auto app = reinterpret_cast<Application*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
     if (app) {
-        DirectX::Keyboard::ProcessMessage(message, wParam, lParam);
         DirectX::Mouse::ProcessMessage(message, wParam, lParam);
     }
 
@@ -58,6 +57,84 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_INPUT:
             Input::ProcessRawMouseInput(message, wParam, lParam);
+            break;
+
+        case WM_SYSKEYDOWN:
+            if (app && wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000) {
+                // Implements the classic ALT+ENTER fullscreen toggle
+                if (AppFullscreen) {
+                    SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+                    SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
+
+                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
+                    SetWindowPos(hWnd, HWND_TOP, 0, 0, AppWidth, AppHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+                }
+                else {
+                    SetWindowLongPtr(hWnd, GWL_STYLE, 0);
+                    SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
+
+                    RECT r{};
+                    GetWindowRect(hWnd, &r);
+
+                    AppWidth = r.right;
+                    AppHeight = r.bottom;
+
+                    SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
+                }
+
+                AppFullscreen = !AppFullscreen;
+            }
+            Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+            break;
+
+        case WM_KEYDOWN:
+            Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+            break;
+
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+            Input::QueueEvent(Input::EventType::KeyRelease, wParam, lParam);
+            break;
+
+        case WM_LBUTTONDOWN:
+            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Left);
+            break;
+
+        case WM_LBUTTONUP:
+            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Left);
+            break;
+
+        case WM_RBUTTONDOWN:
+            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Right);
+            break;
+
+        case WM_RBUTTONUP:
+            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Right);
+            break;
+
+        case WM_MBUTTONDOWN:
+            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Middle);
+            break;
+
+        case WM_MBUTTONUP:
+            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Middle);
+            break;
+
+        case WM_XBUTTONDOWN:
+            Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+            break;
+
+        case WM_XBUTTONUP:
+            Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+            break;
+
+        case WM_MOUSEWHEEL:
+            Input::QueueEvent(Input::EventType::MouseWheel, 0, GET_WHEEL_DELTA_WPARAM(wParam));
+            break;
+
+        case WM_ACTIVATE:
+            Input::QueueEvent(Input::EventType::Reset);
             break;
 
         //case WM_PAINT:
@@ -147,6 +224,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
                 else
                     app->OnDeactivated();
             }
+            Input::QueueEvent(Input::EventType::Reset);
             break;
 
         case WM_POWERBROADCAST:
@@ -169,35 +247,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
         case WM_DESTROY:
             PostQuitMessage(0);
-            break;
-
-        case WM_SYSKEYDOWN:
-            if (app && wParam == VK_RETURN && (lParam & 0x60000000) == 0x20000000) {
-                // Implements the classic ALT+ENTER fullscreen toggle
-                if (AppFullscreen) {
-                    SetWindowLongPtr(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-                    SetWindowLongPtr(hWnd, GWL_EXSTYLE, 0);
-
-                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, AppWidth, AppHeight, SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
-                }
-                else {
-                    SetWindowLongPtr(hWnd, GWL_STYLE, 0);
-                    SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
-
-                    RECT r{};
-                    GetWindowRect(hWnd, &r);
-
-                    AppWidth = r.right;
-                    AppHeight = r.bottom;
-
-                    SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
-                    ShowWindow(hWnd, SW_SHOWMAXIMIZED);
-                }
-
-                AppFullscreen = !AppFullscreen;
-            }
-
             break;
 
         case WM_MENUCHAR:

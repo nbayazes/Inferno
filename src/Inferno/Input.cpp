@@ -4,15 +4,114 @@
 #include "Game.h"
 #include "Shell.h"
 #include "PlatformHelpers.h"
+#include <bitset>
+#include <vector>
 
 using namespace DirectX::SimpleMath;
 
 namespace Inferno::Input {
     namespace {
-        DirectX::Keyboard _keyboard;
         DirectX::Mouse _mouse;
-    }
 
+        template<size_t N> struct ButtonState {
+            std::bitset<N> pressed, released;
+            std::bitset<N> current, previous;
+
+            void Reset() {
+                pressed.reset();
+                released.reset();
+                current.reset();
+                previous.reset();
+            }
+
+            // Call this before handling a frame's input events
+            void NextFrame() {
+                pressed.reset();
+                released.reset();
+                previous = current;
+            }
+
+            // These functions assume that events will arrive in the correct order
+            void Press(uint8_t key) {
+                if (key >= N)
+                    return;
+                pressed[key] = true;
+                current[key] = true;
+            }
+
+            void Release(uint8_t key) {
+                if (key >= N)
+                    return;
+                released[key] = true;
+                current[key] = false;
+            }
+        };
+
+        ButtonState<256> _keyboard;
+        ButtonState<5> _mouseButtons;
+
+        struct InputEvent {
+            EventType type;
+            uint8_t keyCode;
+            int64_t flags;
+        };
+
+        std::vector<InputEvent> _inputEventQueue;
+
+        void HandleInputEvents() {
+            _keyboard.NextFrame();
+            _mouseButtons.NextFrame();
+            WheelDelta = 0;
+
+            for (auto &event : _inputEventQueue) {
+                switch (event.type) {
+                    case EventType::KeyPress:
+                    case EventType::KeyRelease:
+                        if (event.keyCode == VK_SHIFT || event.keyCode == VK_CONTROL || event.keyCode == VK_MENU)
+                        {
+                            // The keystroke flags carry extra information for Shift, Alt & Ctrl to
+                            // disambiguate between the left and right variants of each key
+                            bool isExtendedKey = (HIWORD(event.flags) & KF_EXTENDED) == KF_EXTENDED;
+                            int scanCode = LOBYTE(HIWORD(event.flags)) | (isExtendedKey ? 0xe000 : 0);
+                            event.keyCode = static_cast<uint8_t>(LOWORD(MapVirtualKeyW(static_cast<UINT>(scanCode), MAPVK_VSC_TO_VK_EX)));
+                        }
+
+                        if (event.type == EventType::KeyPress)
+                            _keyboard.Press(event.keyCode);
+                        else {
+                            if (event.keyCode == VK_SHIFT) { 
+                                // For some reason, if both Shift keys are held down, only the last of the
+                                // two registers a release event
+                                _keyboard.Release(VK_RSHIFT);
+                                _keyboard.Release(VK_LSHIFT);
+                            }
+                            _keyboard.Release(event.keyCode);
+                        }
+                        break;
+
+                    case EventType::MouseBtnPress:
+                        _mouseButtons.Press(event.keyCode);
+                        break;
+
+                    case EventType::MouseBtnRelease:
+                        _mouseButtons.Release(event.keyCode);
+                        break;
+
+                    case EventType::MouseWheel:
+                        WheelDelta += static_cast<int>(event.flags);
+                        break;
+
+                    case EventType::Reset:
+                        _keyboard.Reset();
+                        _mouseButtons.Reset();
+                        break;
+                }
+            }
+
+            _inputEventQueue.clear();
+        }
+    }
+    
     Vector2 MousePrev, DragEnd;
     constexpr float DRAG_WINDOW = 3.0f;
     Vector2 MouselookStartPosition, WindowCenter;
@@ -20,44 +119,43 @@ namespace Inferno::Input {
     int RawX, RawY;
 
     MouseMode ActualMouseMode{}, RequestedMouseMode{};
-    int WheelPrev = 0;
 
-    SelectionState UpdateDragState(DirectX::Mouse::ButtonStateTracker::ButtonState buttonState, SelectionState dragState) {
-        switch (buttonState) {
-            case MouseState::PRESSED:
+    SelectionState UpdateDragState(MouseButtons button, SelectionState dragState) {
+        if (_mouseButtons.pressed[button]) {
+            // Don't allow a drag to start when the cursor is over imgui.
+            if (ImGui::GetCurrentContext()->HoveredWindow != nullptr) return SelectionState::None;
+
+            DragStart = Input::MousePosition;
+            return SelectionState::Preselect;
+        }
+        else if (_mouseButtons.released[button]) {
+            DragEnd = Input::MousePosition;
+
+            if (dragState == SelectionState::Dragging)
+                return SelectionState::ReleasedDrag;
+            else if (dragState != SelectionState::None)
+                return SelectionState::Released;
+            return dragState;
+        }
+        else if (_mouseButtons.previous[button]) {
+            if (dragState == SelectionState::Preselect &&
+            Vector2::Distance(DragStart, Input::MousePosition) > DRAG_WINDOW) {
                 // Don't allow a drag to start when the cursor is over imgui.
                 if (ImGui::GetCurrentContext()->HoveredWindow != nullptr) return SelectionState::None;
 
-                DragStart = Input::MousePosition;
-                return SelectionState::Preselect;
-
-            case MouseState::RELEASED:
-                DragEnd = Input::MousePosition;
-
-                if (dragState == SelectionState::Dragging)
-                    return SelectionState::ReleasedDrag;
-                else if (dragState != SelectionState::None)
-                    return SelectionState::Released;
-                break;
-
-            case MouseState::HELD:
-                if (dragState == SelectionState::Preselect &&
-                    Vector2::Distance(DragStart, Input::MousePosition) > DRAG_WINDOW) {
-                    // Don't allow a drag to start when the cursor is over imgui.
-                    if (ImGui::GetCurrentContext()->HoveredWindow != nullptr) return SelectionState::None;
-
-                    return SelectionState::BeginDrag;
-                }
-                else if (dragState == SelectionState::BeginDrag) {
-                    return SelectionState::Dragging;
-                }
-                return dragState;
-
-            case MouseState::UP:
-                return SelectionState::None;
+                return SelectionState::BeginDrag;
+            }
+            else if (dragState == SelectionState::BeginDrag) {
+                return SelectionState::Dragging;
+            }
+            return dragState;
         }
+        else
+            return SelectionState::None;
+    }
 
-        return dragState;
+    void QueueEvent(EventType type, WPARAM keyCode, int64_t flags) {
+        _inputEventQueue.push_back({ type, static_cast<uint8_t>(keyCode), flags });
     }
 
     void Update() {
@@ -80,10 +178,9 @@ namespace Inferno::Input {
             }
         }
 
-        auto keyboardState = _keyboard.GetState();
-        Keyboard.Update(keyboardState);
         auto mouseState = _mouse.GetState();
-        Mouse.Update(mouseState);
+
+        HandleInputEvents();
 
         if (ActualMouseMode != MouseMode::Normal) {
             // keep the cursor in place in mouselook mode
@@ -103,19 +200,17 @@ namespace Inferno::Input {
             MousePosition = Vector2{ (float)mouseState.x, (float)mouseState.y };
             MouseDelta = MousePrev - MousePosition;
             MousePrev = MousePosition;
-            WheelDelta = WheelPrev - mouseState.scrollWheelValue;
-            WheelPrev = mouseState.scrollWheelValue;
         }
 
-        AltDown = keyboardState.LeftAlt || keyboardState.RightAlt;
-        ShiftDown = keyboardState.LeftShift || keyboardState.RightShift;
-        ControlDown = keyboardState.LeftControl || keyboardState.RightControl;
+        AltDown = _keyboard.current[DirectX::Keyboard::Keys::LeftAlt] || _keyboard.current[DirectX::Keyboard::Keys::RightAlt];
+        ShiftDown = _keyboard.current[DirectX::Keyboard::Keys::LeftShift] || _keyboard.current[DirectX::Keyboard::Keys::RightShift];
+        ControlDown = _keyboard.current[DirectX::Keyboard::Keys::LeftControl] || _keyboard.current[DirectX::Keyboard::Keys::RightControl];
 
         if (RightDragState == SelectionState::None)
-            LeftDragState = UpdateDragState(Mouse.leftButton, LeftDragState);
+            LeftDragState = UpdateDragState(MouseButtons::Left, LeftDragState);
 
         if (LeftDragState == SelectionState::None)
-            RightDragState = UpdateDragState(Mouse.rightButton, RightDragState);
+            RightDragState = UpdateDragState(MouseButtons::Right, RightDragState);
 
         DragState = SelectionState((int)LeftDragState | (int)RightDragState);
     }
@@ -129,11 +224,27 @@ namespace Inferno::Input {
     }
 
     bool IsKeyDown(DirectX::Keyboard::Keys key) {
-        return Keyboard.lastState.IsKeyDown(key);
+        return _keyboard.pressed[key] || _keyboard.previous[key];
     }
 
     bool IsKeyPressed(DirectX::Keyboard::Keys key) {
-        return Keyboard.IsKeyPressed(key);
+        return _keyboard.pressed[key];
+    }
+
+    bool IsKeyReleased(DirectX::Keyboard::Keys key) {
+        return _keyboard.released[key];
+    }
+
+    bool IsMouseButtonDown(MouseButtons button) {
+        return _mouseButtons.pressed[button] || _mouseButtons.previous[button];
+    }
+
+    bool IsMouseButtonPressed(MouseButtons button) {
+        return _mouseButtons.pressed[button];
+    }
+
+    bool IsMouseButtonReleased(MouseButtons button) {
+        return _mouseButtons.released[button];
     }
 
     MouseMode GetMouseMode() { return ActualMouseMode; }
@@ -144,7 +255,8 @@ namespace Inferno::Input {
 
     void ResetState() {
         _keyboard.Reset();
-        Keyboard.Reset();
+        _mouseButtons.Reset();
+        _inputEventQueue.clear();
     }
 
     ScopedHandle RelativeModeEvent, RelativeReadEvent;
