@@ -436,7 +436,6 @@ namespace Inferno::Render {
                         lt.color *= t;
                     }
 
-
                     Graphics::Lights.AddLight(lt);
 
                     if (Settings::Editor.ShowLights) {

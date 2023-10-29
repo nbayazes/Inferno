@@ -453,7 +453,7 @@ namespace Inferno::Editor::Bindings {
         bindings.Add({ .Action = EditorAction::ToggleMark, .Key = Keys::Space });
 
         bindings.Add({ .Action = EditorAction::CycleRenderMode, .Key = Keys::F4 });
-        bindings.Add({ .Action = EditorAction::ToggleWireframe, .Key = Keys::F3 });
+        //bindings.Add({ .Action = EditorAction::ToggleWireframe, .Key = Keys::F3 });
         bindings.Add({ .Action = EditorAction::InsertMirrored, .Key = Keys::Insert, .Shift = true });
 
         bindings.Add({ .Action = EditorAction::ConnectSides, .Key = Keys::C });

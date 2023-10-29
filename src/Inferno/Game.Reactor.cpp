@@ -171,8 +171,8 @@ namespace Inferno::Game {
 
             auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
             ScreenFlash = Color{ flash, flash, flash };
-            Render::Bloom->ToneMap.BloomStrength = std::lerp(0, 10, flash);
-            Render::Bloom->ToneMap.Exposure = std::lerp(0, 60, flash);
+            Render::Bloom->ToneMap.BloomStrength = std::lerp(0.0f, 10.0f, flash);
+            Render::Bloom->ToneMap.Exposure = std::lerp(0.0f, 60.0f, flash);
 
             if (CountdownTimer < -4) {
                 // todo: kill player, show "you have died in the mine" message

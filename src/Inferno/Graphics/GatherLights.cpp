@@ -187,8 +187,7 @@ namespace Inferno::Graphics {
     }
 
 
-    List<LightData> GatherSegmentLights(Level& level, const Segment& seg, float multiplier, float defaultRadius) {
-        List<LightData> sources;
+    void GatherSegmentLights(Level& level, const Segment& seg, float multiplier, float defaultRadius, List<LightData>& sources) {
         TextureLightInfo defaultInfo{ .Points = {}, .Radius = defaultRadius };
 
         if (seg.Type == SegmentType::Energy) {
@@ -508,8 +507,6 @@ namespace Inferno::Graphics {
                 }
             }
         }
-
-        return sources;
     }
 
     List<List<LightData>> GatherLightSources(Level& level, float multiplier, float defaultRadius) {
@@ -518,10 +515,13 @@ namespace Inferno::Graphics {
         for (auto& room : level.Rooms) {
             List<LightData> sources;
             for (auto& segId : room.Segments) {
-                if (auto seg = level.TryGetSegment(segId)) {
-                    auto segLights = GatherSegmentLights(level, *seg, multiplier, defaultRadius);
-                    Seq::append(sources, segLights);
-                }
+                if (auto seg = level.TryGetSegment(segId))
+                    GatherSegmentLights(level, *seg, multiplier, defaultRadius, sources);
+            }
+
+            for (auto& light : sources) {
+                light.color.Premultiply();
+                light.color.w = 1;
             }
 
             roomSources.push_back(std::move(sources));

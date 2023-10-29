@@ -112,7 +112,7 @@ namespace Inferno {
         return u.Dot(v) >= 0.0f && u.Dot(w) >= 0.0f && v.Dot(w) >= 0.0f;
     }
 
-    bool FaceContainsPoint(const Face& face, const Vector3 point) {
+    bool FaceContainsPoint(const Face& face, const Vector3& point) {
         return TriangleContainsPoint(face[0], face[1], face[2], point) || TriangleContainsPoint(face[2], face[3], face[0], point);
     }
 

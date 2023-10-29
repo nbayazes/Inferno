@@ -61,7 +61,7 @@ namespace Inferno {
 
     bool TriangleContainsPoint(const Array<Vector3, 3>& tri, Vector3 point);
 
-    bool FaceContainsPoint(const Face& face, const Vector3 point);
+    bool FaceContainsPoint(const Face& face, const Vector3& point);
 
     // Returns the closest point on a triangle to a point
     Vector3 ClosestPointOnTriangle(const Vector3& p0, const Vector3& p1, const Vector3& p2, Vector3 point);
