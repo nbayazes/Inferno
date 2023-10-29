@@ -4,13 +4,21 @@
 #include <DirectXTK12/Keyboard.h>
 
 namespace Inferno::Input {
-    using MouseState = DirectX::Mouse::ButtonStateTracker::ButtonState;
-    inline DirectX::Keyboard::KeyboardStateTracker Keyboard;
-    inline DirectX::Mouse::ButtonStateTracker Mouse;
+    //using MouseState = DirectX::Mouse::ButtonStateTracker::ButtonState;
+    //inline DirectX::Keyboard::KeyboardStateTracker Keyboard;
+    //inline DirectX::Mouse::ButtonStateTracker Mouse;
+    enum MouseButtons : uint8_t {
+        Left,
+        Right,
+        Middle,
+        X1,
+        X2
+    };
+
     inline DirectX::SimpleMath::Vector2 MouseDelta;
     inline DirectX::SimpleMath::Vector2 MousePosition;
     inline int WheelDelta;
-    inline Vector2 DragStart; // Mouse drag start position in screen coordinates
+    inline DirectX::SimpleMath::Vector2 DragStart; // Mouse drag start position in screen coordinates
 
     inline bool ControlDown;
     inline bool ShiftDown;
@@ -25,6 +33,18 @@ namespace Inferno::Input {
 
     // Returns true when a key is first pressed
     bool IsKeyPressed(DirectX::Keyboard::Keys);
+
+    // Returns true when a key is first released
+    bool IsKeyReleased(DirectX::Keyboard::Keys);
+
+    // Returns true while a key is held down
+    bool IsMouseButtonDown(MouseButtons);
+
+    // Returns true when a key is first pressed
+    bool IsMouseButtonPressed(MouseButtons);
+
+    // Returns true when a key is first released
+    bool IsMouseButtonReleased(MouseButtons);
 
     void ResetState();
 
@@ -50,4 +70,15 @@ namespace Inferno::Input {
 
     // Workaround for the relative mouse mode not summing deltas properly
     void ProcessRawMouseInput(UINT message, WPARAM, LPARAM);
+
+    enum class EventType {
+        KeyPress,
+        KeyRelease,
+        MouseBtnPress,
+        MouseBtnRelease,
+        MouseWheel,
+        Reset
+    };
+
+    void QueueEvent(EventType type, WPARAM keyCode = 0, int64_t flags = 0);
 }

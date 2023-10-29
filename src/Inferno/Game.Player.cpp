@@ -182,7 +182,7 @@ namespace Inferno {
         // must check held keys inside of fixed updates so events aren't missed due to the state changing
         // on a frame that doesn't have a game tick
         if ((state == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
-            (state != GameState::Editor && Input::Mouse.leftButton == Input::MouseState::HELD)) {
+            (state != GameState::Editor && Input::IsMouseButtonDown(Input::MouseButtons::Left))) {
             if (PrimaryState == FireState::None)
                 PrimaryState = FireState::Press;
             else if (PrimaryState == FireState::Press)
@@ -195,7 +195,7 @@ namespace Inferno {
                 PrimaryState = FireState::Release;
         }
 
-        if (state != GameState::Editor && Input::Mouse.rightButton == Input::MouseState::HELD) {
+        if (state != GameState::Editor && Input::IsMouseButtonDown(Input::MouseButtons::Right)) {
             if (SecondaryState == FireState::None)
                 SecondaryState = FireState::Press;
             else if (SecondaryState == FireState::Press)
