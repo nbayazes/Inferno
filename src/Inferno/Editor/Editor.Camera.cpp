@@ -28,8 +28,8 @@ namespace Inferno::Editor {
 
         // Only allow scrollwheel zooming when not over ImGui
         if (!ImGui::GetIO().WantCaptureMouse) {
-            if (wheelDelta < 0) camera.ZoomIn();
-            if (wheelDelta > 0) camera.ZoomOut();
+            if (wheelDelta > 0) camera.ZoomIn();
+            if (wheelDelta < 0) camera.ZoomOut();
         }
     }
 

@@ -2,6 +2,7 @@
 #include <DirectXTK12/Keyboard.h>
 #include "Types.h"
 #include "Command.h"
+#include "Input.h"
 
 namespace Inferno::Editor {
     enum class EditorAction {
@@ -84,7 +85,7 @@ namespace Inferno::Editor {
 
     struct EditorBinding {
         EditorAction Action{};
-        DirectX::Keyboard::Keys Key{};
+        Input::Keys Key{};
 
         bool Shift = false;
         bool Control = false;
@@ -144,9 +145,9 @@ namespace Inferno::Editor {
             return binding ? Input::IsKeyDown(binding->Key) : false;
         }
 
-        DirectX::Keyboard::Keys GetBindingKey(Editor::EditorAction action) {
+        Input::Keys GetBindingKey(Editor::EditorAction action) {
             auto binding = GetBinding(action);
-            return binding ? binding->Key : DirectX::Keyboard::Keys::None;
+            return binding ? binding->Key : Input::Keys::None;
         }
     };
 
@@ -155,6 +156,6 @@ namespace Inferno::Editor {
 
         void Update();
         void LoadDefaults();
-        bool IsReservedKey(DirectX::Keyboard::Keys);
+        bool IsReservedKey(Input::Keys);
     }
 }

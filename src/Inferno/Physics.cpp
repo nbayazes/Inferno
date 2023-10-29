@@ -235,7 +235,7 @@ namespace Inferno {
         if (refresh_time == 0.0)
             refresh_time = t;
 
-        if (Input::IsKeyDown(DirectX::Keyboard::Keys::Add)) {
+        if (Input::IsKeyDown(Input::Keys::Add)) {
             if (index < Debug::ShipVelocities.size() && t >= refresh_time) {
                 //while (refresh_time < Game::ElapsedTime) {
                 Debug::ShipVelocities[index] = pd.Velocity.Length();
