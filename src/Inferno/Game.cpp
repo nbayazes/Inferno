@@ -182,7 +182,7 @@ namespace Inferno::Game {
         }
     }
 
-    using Keys = Keyboard::Keys;
+    using Keys = Input::Keys;
 
     void CheckGlobalHotkeys() {
         if (Input::IsKeyPressed(Keys::F1))

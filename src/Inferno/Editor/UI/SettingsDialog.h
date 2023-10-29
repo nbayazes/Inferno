@@ -4,6 +4,7 @@
 #include "WindowBase.h"
 #include "WindowsDialogs.h"
 #include "Editor/Bindings.h"
+#include "Input.h"
 
 namespace Inferno::Editor {
     class SettingsDialog final : public ModalWindowBase {
@@ -278,7 +279,7 @@ namespace Inferno::Editor {
                 ImGui::TableSetupColumn("Alt Shortcut");
                 ImGui::TableHeadersRow();
 
-                using Keys = DirectX::Keyboard::Keys;
+                using Keys = Input::Keys;
                 static int selectedBinding = -1;
                 static bool editAlt = false;
 
@@ -536,7 +537,7 @@ namespace Inferno::Editor {
         }
 
         static void CopyBindingEntries(span<BindingEntry> entries) {
-            using Keys = DirectX::Keyboard::Keys;
+            using Keys = Input::Keys;
             Bindings::Active.Clear();
 
             for (auto& entry : entries) {
