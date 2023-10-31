@@ -320,7 +320,7 @@ namespace Inferno::Input {
 
                     ResetEvent(RelativeReadEvent.get());
                 }
-                break;
+                return;
             }
 
             case WM_LBUTTONDOWN:
@@ -357,7 +357,7 @@ namespace Inferno::Input {
 
             case WM_MOUSEWHEEL:
                 Input::QueueEvent(Input::EventType::MouseWheel, 0, GET_WHEEL_DELTA_WPARAM(wParam));
-                break;
+                return;
 
             case WM_MOUSEHOVER:
             case WM_MOUSEMOVE:
