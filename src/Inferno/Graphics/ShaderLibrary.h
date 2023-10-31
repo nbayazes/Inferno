@@ -207,7 +207,7 @@ namespace Inferno {
         };
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(consts) / 4, &consts, 0);
+            Render::BindTempConstants(commandList, consts, RootConstants);
         }
 
         static void SetDissolveTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
@@ -225,7 +225,6 @@ namespace Inferno {
         static void SetVClipTable(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE start) {
             commandList->SetGraphicsRootDescriptorTable(VClipTable, start);
         }
-
     };
 
     class DepthCutoutShader : public IShader {
@@ -468,14 +467,13 @@ namespace Inferno {
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(InstanceConstants, sizeof consts / 4, &consts, 0);
+            Render::BindTempConstants(commandList, consts, InstanceConstants);
         }
     };
 
     class FlatShader : public IShader {
         enum RootParameterIndex : uint {
-            ConstantBuffer,
-            RootParameterCount
+            ConstantBuffer
         };
 
     public:
@@ -489,7 +487,7 @@ namespace Inferno {
         };
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
-            commandList->SetGraphicsRoot32BitConstants(0, sizeof(constants) / 4, &constants, 0);
+            Render::BindTempConstants(commandList, constants, ConstantBuffer);
         }
     };
 

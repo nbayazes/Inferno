@@ -1,7 +1,7 @@
 #include "Common.hlsli"
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
-    "RootConstants(b1, num32BitConstants = 26), "\
+    "CBV(b1), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "StaticSampler(s0, addressU = TEXTURE_ADDRESS_BORDER, addressV = TEXTURE_ADDRESS_BORDER, addressW = TEXTURE_ADDRESS_BORDER, borderColor = STATIC_BORDER_COLOR_TRANSPARENT_BLACK, filter = FILTER_MIN_MAG_MIP_LINEAR)"
 

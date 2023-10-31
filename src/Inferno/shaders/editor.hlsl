@@ -1,4 +1,4 @@
-#define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), RootConstants(b0, num32BitConstants = 20)"
+#define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), CBV(b0)"
 
 struct Arguments {
     float4x4 ProjectionMatrix;
