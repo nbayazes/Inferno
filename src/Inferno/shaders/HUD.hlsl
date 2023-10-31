@@ -1,5 +1,5 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
-    "RootConstants(b0, num32BitConstants = 23, visibility=SHADER_VISIBILITY_ALL), "\
+    "CBV(b0), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "StaticSampler(s0," \
         "filter = FILTER_MIN_MAG_MIP_POINT,"\

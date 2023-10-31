@@ -15,8 +15,7 @@
 #include "Game.Text.h"
 #include "Editor/UI/BriefingEditor.h"
 #include "HUD.h"
-#include <ScopedTimer.h>
-
+#include "ScopedTimer.h"
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Procedural.h"
@@ -55,16 +54,10 @@ namespace Inferno::Render {
 
         Ptr<UploadBuffer<MaterialInfo>> MaterialInfoUploadBuffer;
         Ptr<UploadBuffer<GpuVClip>> VClipUploadBuffer;
+        Ptr<FrameUploadBuffer> FrameUploadBuffers[2];
     }
 
     PackedBuffer* GetLevelMeshBuffer() { return _levelMeshBuffer.get(); }
-
-    // Applies an effect that uses the frame constants
-    template <class T>
-    void ApplyEffect(GraphicsContext& ctx, const Effect<T>& effect) {
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-    }
 
     void DrawBillboard(GraphicsContext& ctx,
                        TexID tid,
@@ -95,7 +88,8 @@ namespace Inferno::Render {
         ObjectVertex v3(p3, { 0, 1 }, color);
 
         auto& effect = additive ? Effects->SpriteAdditive : Effects->Sprite;
-        ApplyEffect(ctx, effect);
+        ctx.ApplyEffect(effect);
+        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto& material = Materials->Get(tid);
         effect.Shader->SetDiffuse(ctx.GetCommandList(), material.Handle());
         effect.Shader->SetDepthTexture(ctx.GetCommandList(), Adapter->LinearizedDepthBuffer.GetSRV());
@@ -189,6 +183,9 @@ namespace Inferno::Render {
         VClipBuffer = MakePtr<StructuredBuffer>();
         VClipBuffer->Create(L"VClips", sizeof GpuVClip, VCLIP_COUNT);
         VClipBuffer->AddShaderResourceView();
+
+        for (auto& buffer : FrameUploadBuffers)
+            buffer = MakePtr<FrameUploadBuffer>(1024 * 1024 * 10);
 
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
@@ -286,6 +283,9 @@ namespace Inferno::Render {
         MaterialInfoUploadBuffer.reset();
         VClipUploadBuffer.reset();
         VClipBuffer.reset();
+        for (auto& buffer : FrameUploadBuffers)
+            buffer.reset();
+
         ReleaseEditorResources();
         StopProceduralWorker();
         _levelMeshBuffer.reset();
@@ -382,13 +382,6 @@ namespace Inferno::Render {
         VClipBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
-    //constexpr auto TEST_PROCEDURAL = "ThinMatcenLightning Purple";
-    //constexpr auto TEST_PROCEDURAL = "BlueMagneticField-V";
-    //constexpr auto TEST_PROCEDURAL = "EnergyConvpro";
-    constexpr auto TEST_PROCEDURAL = "Boiling Lava";
-    //constexpr auto TEST_PROCEDURAL = "CED_CoreSkin01";
-    //constexpr auto TEST_PROCEDURAL = "Nano Plasmic Cesspool";
-
     void LoadLevel(const Level& level) {
         Adapter->WaitForGpu();
 
@@ -406,14 +399,9 @@ namespace Inferno::Render {
         //    LoadOutrageModel(TEST_MODEL);
         //}
 
-        //if (auto texture = Resources::GameTable.FindTexture("Magma_Flow")) {
-        //    AddProcedural(*texture, TexID(1219));
-        //}
-
         Graphics::Lights = {};
         ResetEffects();
         LevelChanged = true;
-        //_levelMeshBuilder.Update(level, *_levelMeshBuffer);
     }
 
     MeshIndex& GetMeshHandle(ModelID id) {
@@ -533,6 +521,16 @@ namespace Inferno::Render {
         HudGlowCanvas->Render(ctx);
     }
 
+    FrameUploadBuffer* GetFrameUploadBuffer() {
+        return FrameUploadBuffers[Adapter->GetCurrentFrameIndex()].get();
+    }
+
+    void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter) {
+        auto memory = GetFrameUploadBuffer()->GetMemory(size, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+        memcpy(memory.CPU, data, size);
+        cmdList->SetGraphicsRootConstantBufferView(rootParameter, memory.GPU);
+    }
+
     void Present() {
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
@@ -578,6 +576,8 @@ namespace Inferno::Render {
 
         LegitProfiler::ProfilerTask present("Present", LegitProfiler::Colors::NEPHRITIS);
         Adapter->Present();
+        GetFrameUploadBuffer()->ResetIndex();
+
         LegitProfiler::AddCpuTask(std::move(present));
         //Adapter->WaitForGpu();
 

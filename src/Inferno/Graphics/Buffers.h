@@ -2,14 +2,11 @@
 
 #include "Heap.h"
 #include "GpuResources.h"
+#include "Utility.h"
 
 namespace Inferno {
     constexpr D3D12_RANGE CPU_READ_NONE = {};
     inline const D3D12_RANGE* CPU_READ_ALL = nullptr;
-
-    constexpr uint Align(uint location, uint align = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) {
-        return (location + (align - 1)) & ~(align - 1);
-    }
 
     // Creates a buffer upload heap
     inline void CreateUploadHeap(ComPtr<ID3D12Resource>& resource, uint64 bufferSize) {
@@ -58,11 +55,6 @@ namespace Inferno {
 
         void ResetIndex() { _index = 0; }
 
-        // Aligns offset to a stride
-        constexpr uint Stride(uint offset, uint stride) {
-            return (offset + stride - 1) / stride * stride;
-        }
-
         template <class TVertex>
         D3D12_VERTEX_BUFFER_VIEW PackVertices(List<TVertex> data) {
             constexpr auto stride = sizeof(TVertex);
@@ -76,7 +68,7 @@ namespace Inferno {
             vbv.StrideInBytes = stride;
 
             _index += size;
-            _index = Stride(_index, 4); // ensure stride of 4 to prevent issues on AMD
+            _index = AlignTo(_index, 4); // alignment of 4 to prevent issues on AMD
             return vbv;
         }
 
@@ -95,7 +87,7 @@ namespace Inferno {
             ibv.SizeInBytes = size;
             ibv.Format = format;
             _index += size;
-            _index = Stride(_index, 4); // ensure stride of 4 to prevent issues on AMD
+            _index = AlignTo(_index, 4); // alignment of 4 to prevent issues on AMD
             return ibv;
         }
     };
@@ -158,20 +150,21 @@ namespace Inferno {
     */
     class DynamicConstantBuffer {
         ComPtr<ID3D12Resource> _buffer;
-        void* m_pMappedConstantBuffer = nullptr;
-        uint m_alignedPerDrawConstantBufferSize;
-        uint m_perFrameConstantBufferSize;
+        void* _pMappedConstantBuffer = nullptr;
+        uint _alignedPerDrawConstantBufferSize;
+        uint _perFrameConstantBufferSize;
 
-        uint m_frameCount;
-        uint m_maxDrawsPerFrame;
+        uint _frameCount;
+        uint _maxDrawsPerFrame;
 
     public:
         DynamicConstantBuffer(uint constantSize, uint maxDrawsPerFrame, uint frameCount) :
-            m_alignedPerDrawConstantBufferSize(Align(constantSize)), // Constant buffers must be aligned for hardware requirements.
-            m_maxDrawsPerFrame(maxDrawsPerFrame),
-            m_frameCount(frameCount),
-            _buffer(nullptr) {
-            m_perFrameConstantBufferSize = m_alignedPerDrawConstantBufferSize * m_maxDrawsPerFrame;
+            _buffer(nullptr),
+            // Constant buffers must be aligned for hardware requirements.
+            _alignedPerDrawConstantBufferSize(AlignTo(constantSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT)),
+            _frameCount(frameCount),
+            _maxDrawsPerFrame(maxDrawsPerFrame) {
+            _perFrameConstantBufferSize = _alignedPerDrawConstantBufferSize * _maxDrawsPerFrame;
         }
 
         ~DynamicConstantBuffer() {
@@ -184,20 +177,20 @@ namespace Inferno {
         DynamicConstantBuffer& operator=(DynamicConstantBuffer&&) = default;
 
         void Init() {
-            const UINT bufferSize = m_perFrameConstantBufferSize * m_frameCount;
+            const UINT bufferSize = _perFrameConstantBufferSize * _frameCount;
             CreateUploadHeap(_buffer, bufferSize);
-            _buffer->SetName(L"Dynamic constant buffer");
-            ThrowIfFailed(_buffer->Map(0, &CPU_READ_NONE, &m_pMappedConstantBuffer));
+            ThrowIfFailed(_buffer->SetName(L"Dynamic constant buffer"));
+            ThrowIfFailed(_buffer->Map(0, &CPU_READ_NONE, &_pMappedConstantBuffer));
         }
 
         void* GetMappedMemory(uint drawIndex, uint frameIndex) const {
-            assert(drawIndex < m_maxDrawsPerFrame);
-            uint constantBufferOffset = (frameIndex * m_perFrameConstantBufferSize) + (drawIndex * m_alignedPerDrawConstantBufferSize);
-            return (uint8*)m_pMappedConstantBuffer + constantBufferOffset;
+            assert(drawIndex < _maxDrawsPerFrame);
+            uint constantBufferOffset = (frameIndex * _perFrameConstantBufferSize) + (drawIndex * _alignedPerDrawConstantBufferSize);
+            return (uint8*)_pMappedConstantBuffer + constantBufferOffset;
         }
 
         D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress(uint drawIndex, uint frameIndex) const {
-            uint constantBufferOffset = (frameIndex * m_perFrameConstantBufferSize) + (drawIndex * m_alignedPerDrawConstantBufferSize);
+            uint constantBufferOffset = (frameIndex * _perFrameConstantBufferSize) + (drawIndex * _alignedPerDrawConstantBufferSize);
             return _buffer->GetGPUVirtualAddress() + constantBufferOffset;
         }
     };
@@ -285,16 +278,17 @@ namespace Inferno {
         List<T> _buffer;
         DescriptorHandle _srv, _uav;
         bool _forbidResize = false;
+
     public:
         UploadBuffer(size_t capacity) : _requestedCapacity(capacity) {
             _buffer.reserve(capacity);
             _gpuCapacity = _requestedCapacity;
         }
 
-        const uint Stride = sizeof(T);
         D3D12_GPU_VIRTUAL_ADDRESS GetGPUVirtualAddress() const { return _resource->GetGPUVirtualAddress(); }
         uint GetSizeInBytes() const { return (uint)(sizeof(T) * _gpuCapacity); }
         uint GetElementCount() const { return (uint)_gpuElements; }
+        static uint GetStride() { return sizeof(T); }
 
         const auto GetSRV() const { return _srv.GetGpuHandle(); }
         const auto GetUAV() const { return _uav.GetGpuHandle(); }
@@ -308,7 +302,7 @@ namespace Inferno {
             srvDesc.Format = DXGI_FORMAT_UNKNOWN;
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
             srvDesc.Buffer.NumElements = (UINT)_buffer.size();
-            srvDesc.Buffer.StructureByteStride = Stride;
+            srvDesc.Buffer.StructureByteStride = GetStride();
             srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
             if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
@@ -376,6 +370,60 @@ namespace Inferno {
 
             //_buffer.insert(_buffer.end(), src.begin(), src.end());
             _buffer.insert(_buffer.end(), src);
+        }
+    };
+
+    // Fixed size buffer that uses the upload heap every frame.
+    class FrameUploadBuffer {
+        ComPtr<ID3D12Resource> _resource;
+        size_t _gpuCapacity = 0, _gpuElements = 0;
+        uint8* _cpuMemory{};
+        D3D12_GPU_VIRTUAL_ADDRESS _gpuMemory{};
+        size_t _size;
+        std::atomic<int64> _frameCount = 0;
+
+    public:
+        FrameUploadBuffer(size_t size) : _size(size) {
+            D3D12_RESOURCE_DESC resourceDesc = {};
+            resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+            resourceDesc.Width = size;
+            resourceDesc.Height = 1;
+            resourceDesc.DepthOrArraySize = 1;
+            resourceDesc.MipLevels = 1;
+            resourceDesc.Format = DXGI_FORMAT_UNKNOWN;
+            resourceDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+            resourceDesc.SampleDesc.Count = 1;
+            resourceDesc.SampleDesc.Quality = 0;
+            resourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+            resourceDesc.Alignment = 0;
+
+            auto uploadHeap = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            ThrowIfFailed(Render::Device->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+                                                                  D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&_resource)));
+            ThrowIfFailed(_resource->Map(0, &CPU_READ_NONE, reinterpret_cast<void**>(&_cpuMemory)));
+            _gpuMemory = _resource->GetGPUVirtualAddress();
+        }
+
+        MappedHandle GetMemory(uint64 size, uint64 alignment) {
+            uint64 allocSize = size + alignment;
+            //uint64 offset = InterlockedAdd64(&_frameCount, allocSize) - allocSize;
+            uint64 offset = _frameCount.fetch_add(allocSize);
+            if (alignment > 0)
+                offset = AlignTo(offset, alignment);
+
+            if (offset + size > _size)
+                throw Exception("Out of memory in frame constant buffer");
+
+            MappedHandle handle;
+            handle.CPU = _cpuMemory + offset;
+            handle.GPU = _gpuMemory + offset;
+            handle.Offset = offset;
+            handle.Resource = _resource.Get();
+            return handle;
+        }
+
+        void ResetIndex() {
+            _frameCount = 0;
         }
     };
 }

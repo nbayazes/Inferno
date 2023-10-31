@@ -4,7 +4,7 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "RootConstants(b1, num32BitConstants = 31), "\
+    "CBV(b1), "\
     "DescriptorTable(SRV(t0, numDescriptors = 5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t6), visibility=SHADER_VISIBILITY_PIXEL), " \

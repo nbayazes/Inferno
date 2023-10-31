@@ -63,6 +63,9 @@ namespace Inferno::Render {
     void Shutdown();
     void Present();
 
+    // Binds per-frame shader constants
+    void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter);
+
     //void ReloadShaders();
     void ReloadTextures();
 

@@ -7,6 +7,14 @@
 using Microsoft::WRL::ComPtr;
 
 namespace Inferno {
+    // Handle for a resource mapped to the GPU and CPU
+    struct MappedHandle {
+        void* CPU = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS GPU{};
+        uint64 Offset = 0;
+        ID3D12Resource* Resource = nullptr;
+    };
+
     class GpuResource {
     protected:
         ComPtr<ID3D12Resource> _resource;

@@ -23,7 +23,7 @@ namespace Inferno::Render::Debug {
             D3D12_VERTEX_BUFFER_VIEW vbv{};
             vbv.BufferLocation = _vertices.GetGPUVirtualAddress();
             vbv.SizeInBytes = _vertices.GetSizeInBytes();
-            vbv.StrideInBytes = _vertices.Stride;
+            vbv.StrideInBytes = _vertices.GetStride();
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
             //auto& effect = Render::Effects->Line;
@@ -62,7 +62,7 @@ namespace Inferno::Render::Debug {
             D3D12_VERTEX_BUFFER_VIEW vbv{};
             vbv.BufferLocation = _vertices.GetGPUVirtualAddress();
             vbv.SizeInBytes = _vertices.GetSizeInBytes();
-            vbv.StrideInBytes = _vertices.Stride;
+            vbv.StrideInBytes = _vertices.GetStride();
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
             effect.Apply(cmdList);

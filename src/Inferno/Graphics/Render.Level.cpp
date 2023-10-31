@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Render.Level.h"
-
 #include "Game.h"
 #include "Game.Segment.h"
 #include "Render.Debug.h"
@@ -22,11 +21,13 @@
 #include "SoundSystem.h"
 
 namespace Inferno::Render {
-    using Graphics::GraphicsContext;
+    using namespace Graphics;
 
     namespace {
         RenderQueue _renderQueue;
         LevelMeshBuilder _levelMeshBuilder;
+        // List of lights in each room
+        List<List<LightData>> RoomLights;
     }
 
     bool SideIsDoor(const SegmentSide* side) {
@@ -388,10 +389,6 @@ namespace Inferno::Render {
             }
         }
     }
-
-    using namespace Graphics;
-    // List of lights in each room
-    List<List<LightData>> RoomLights;
 
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)

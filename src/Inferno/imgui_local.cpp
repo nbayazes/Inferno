@@ -328,7 +328,7 @@ namespace Inferno {
         D3D12_VERTEX_BUFFER_VIEW vbv{};
         vbv.BufferLocation = fr->VertexBuffer.GetGPUVirtualAddress();
         vbv.SizeInBytes = fr->VertexBuffer.GetSizeInBytes();
-        vbv.StrideInBytes = fr->VertexBuffer.Stride;
+        vbv.StrideInBytes = fr->VertexBuffer.GetStride();
         ctx->IASetVertexBuffers(0, 1, &vbv);
 
         D3D12_INDEX_BUFFER_VIEW ibv{};

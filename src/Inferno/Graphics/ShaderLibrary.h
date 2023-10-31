@@ -8,6 +8,16 @@
 #include "Material2D.h"
 
 namespace Inferno {
+    namespace Render {
+        void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter);
+
+        // Binds per-frame shader constants
+        template<class T>
+        void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const T& data, uint32 rootParameter) {
+            BindTempConstants(cmdList, &data, sizeof(data), rootParameter);
+        }
+    }
+
     using HlslBool = int32; // For alignment on GPU
 
     // Shader definition to allow recompilation
@@ -420,7 +430,7 @@ namespace Inferno {
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& consts) {
-            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof consts / 4, &consts, 0);
+            Render::BindTempConstants(commandList, consts, RootConstants);
         }
 
         static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
@@ -532,7 +542,7 @@ namespace Inferno {
         }
 
         static void SetConstants(ID3D12GraphicsCommandList* commandList, const Constants& constants) {
-            commandList->SetGraphicsRoot32BitConstants(RootConstants, sizeof(constants) / 4, &constants, 0);
+            Render::BindTempConstants(commandList, constants, RootConstants);
         }
     };
 

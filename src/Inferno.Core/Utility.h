@@ -53,7 +53,8 @@ namespace Inferno {
         color.w = value;
     }
 
-    constexpr bool IsPowerOfTwo(int v) {
+    template <std::integral T>
+    constexpr bool IsPowerOfTwo(T v) {
         return v != 0 && (v & (v - 1)) == 0;
     }
 
@@ -63,6 +64,20 @@ namespace Inferno {
         float length = dir.Length();
         dir.Normalize();
         return { dir, length };
+    }
+
+    // Aligns an offset to a power of two
+    constexpr uint32 AlignTo(uint32 offset, uint32 alignment) {
+        ASSERT(IsPowerOfTwo(alignment));
+        //return (offset + alignment - 1) / alignment * alignment;
+        return (offset + (alignment - 1)) & ~(alignment - 1);
+    }
+
+    // Aligns an offset to a power of two
+    constexpr uint64 AlignTo(uint64 offset, uint64 alignment) {
+        ASSERT(IsPowerOfTwo(alignment));
+        //return (offset + alignment - 1) / alignment * alignment;
+        return (offset + (alignment - 1)) & ~(alignment - 1);
     }
 
     std::mt19937& InternalMt19937();
