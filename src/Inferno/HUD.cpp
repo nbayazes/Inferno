@@ -20,6 +20,7 @@ namespace Inferno {
         constexpr float DEFAULT_SCANLINE = 0.75f;
         constexpr float MONITOR_AMBIENT_SCALE = 0.25f;
         constexpr float BASE_SCORE_WINDOW = 3.0f;
+        constexpr float GLARE = 0.125f;
 
         Color Ambient, Direct;
     }
@@ -214,7 +215,7 @@ namespace Inferno {
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.4f;
         info.Color = Color{ MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, alpha };
-        ApplyAmbient(info.Color, Ambient);
+        ApplyAmbient(info.Color, Ambient + Direct * GLARE);
         DrawMonitorBitmap(info, 0.6f * alpha);
     }
 
@@ -313,7 +314,7 @@ namespace Inferno {
         float uvTop = 1 - percent;
 
         Color color = { MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, 1 };
-        ApplyAmbient(color, Ambient);
+        ApplyAmbient(color, Ambient + Direct * GLARE);
 
         Render::HudCanvasPayload info{};
         info.V0 = { Vector2{ pos.x, pos.y + size.y } + alignment, { 0, 1 }, color }; // bottom left
@@ -341,7 +342,7 @@ namespace Inferno {
         info.Font = FontSize::Small;
         info.Color = GREEN_TEXT;
         info.Color.w = state.Opacity;
-        ApplyAmbient(info.Color, Ambient);
+        ApplyAmbient(info.Color, Ambient + Direct * GLARE);
         info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET, WEAPON_TEXT_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
@@ -378,7 +379,7 @@ namespace Inferno {
             // Ammo counter
             info.Color = RED_TEXT;
             info.Color.w = state.Opacity;
-            ApplyAmbient(info.Color, Ambient);
+            ApplyAmbient(info.Color, Ambient + Direct * GLARE);
             info.Position = Vector2(x + WEAPON_TEXT_X_OFFSET + 5, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
             info.HorizontalAlign = AlignH::CenterRight;
             info.VerticalAlign = AlignV::CenterTop;
@@ -411,7 +412,7 @@ namespace Inferno {
         info.Font = FontSize::Small;
         info.Color = GREEN_TEXT;
         info.Color.w = state.Opacity;
-        ApplyAmbient(info.Color, Ambient);
+        ApplyAmbient(info.Color, Ambient + Direct * GLARE);
         info.Position = Vector2(x + 25, WEAPON_TEXT_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight; // Justify the left edge of the text to the center
         info.VerticalAlign = AlignV::CenterTop;
@@ -421,7 +422,7 @@ namespace Inferno {
         // Ammo counter
         info.Color = RED_TEXT;
         info.Color.w = state.Opacity;
-        ApplyAmbient(info.Color, Ambient);
+        ApplyAmbient(info.Color, Ambient + Direct * GLARE);
         info.Position = Vector2(x + 35, WEAPON_TEXT_AMMO_Y_OFFSET) * scale;
         info.HorizontalAlign = AlignH::CenterRight;
         info.VerticalAlign = AlignV::CenterTop;
@@ -443,7 +444,7 @@ namespace Inferno {
 
             // Bomb counter
             info.Color = bomb == SecondaryWeaponIndex::Proximity ? RED_TEXT : GOLD_TEXT;
-            ApplyAmbient(info.Color, Ambient);
+            ApplyAmbient(info.Color, Ambient + Direct * GLARE);
             info.Position = Vector2(x + 157, -26) * scale;
             info.HorizontalAlign = AlignH::CenterRight;
             info.VerticalAlign = AlignV::Bottom;
@@ -539,7 +540,7 @@ namespace Inferno {
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = 0.75f;
         info.Color = Color{ MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, MONITOR_BRIGHTNESS, alpha };
-        ApplyAmbient(info.Color, Ambient * 2);
+        ApplyAmbient(info.Color, Ambient + Direct * GLARE);
         Render::HudGlowCanvas->DrawBitmap(info);
     }
 
@@ -552,7 +553,7 @@ namespace Inferno {
             Render::DrawTextInfo info;
             info.Font = FontSize::Small;
             info.Color = Color{ 0.54f, 0.54f, 0.71f };
-            ApplyAmbient(info.Color, Ambient);
+            ApplyAmbient(info.Color, Ambient + Direct * GLARE);
 
             info.Position = Vector2(2, -120) * scale;
             info.HorizontalAlign = AlignH::Center;
@@ -565,7 +566,7 @@ namespace Inferno {
             //info.Color.z = 0.8f;
 
             info.Color = GOLD_TEXT;
-            ApplyAmbient(info.Color, Ambient);
+            ApplyAmbient(info.Color, Ambient + Direct);
             info.Position = Vector2(2, -150) * scale;
             info.Scanline = 0.5f;
             auto energy = fmt::format("{:.0f}", player.Energy < 0 ? 0 : std::floor(player.Energy));
