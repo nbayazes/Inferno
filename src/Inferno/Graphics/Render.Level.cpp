@@ -510,7 +510,7 @@ namespace Inferno::Render {
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Wall queue");
-                for (auto& cmd : _renderQueue.Transparent() | views::reverse)
+                for (auto& cmd : _renderQueue.Transparent())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
             }
 
@@ -518,7 +518,7 @@ namespace Inferno::Render {
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");
-                for (auto& cmd : _renderQueue.Transparent() | views::reverse)
+                for (auto& cmd : _renderQueue.Transparent())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             }
 
@@ -534,7 +534,7 @@ namespace Inferno::Render {
                 Adapter->DistortionBuffer.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
                 renderTarget.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-                for (auto& cmd : _renderQueue.Distortion() | views::reverse)
+                for (auto& cmd : _renderQueue.Distortion())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Distortion);
             }
 

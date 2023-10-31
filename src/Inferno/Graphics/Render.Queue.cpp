@@ -52,7 +52,7 @@ namespace Inferno::Render {
             //QueueParticles();
             //QueueDebris();
             Seq::sortBy(_transparentQueue, [](const RenderCommand& l, const RenderCommand& r) {
-                return l.Depth < r.Depth; // front to back, because the draw call flips it
+                return l.Depth > r.Depth;
             });
 
             for (int i = 0; i < level.Segments.size(); i++) {
