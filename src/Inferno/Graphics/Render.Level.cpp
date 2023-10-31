@@ -243,6 +243,7 @@ namespace Inferno::Render {
 
         if (chunk.Cloaked) {
             // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
+            Shaders->Level.SetDiffuse1(cmdList, Materials->Black().Handle());
             Shaders->Level.SetMaterial1(cmdList, Materials->Black());
             Shaders->Level.SetMaterial2(cmdList, Materials->Black());
             constants.LightingScale = 1;
@@ -298,12 +299,12 @@ namespace Inferno::Render {
         constants.Distort = ti.Slide != Vector2::Zero;
         constants.Tex1 = (int)ti.TexID;
 
-        if (chunk.TMap2 > LevelTexID::Unset) {
+        if (constants.Overlay) {
             auto tid2 = Resources::LookupTexID(chunk.TMap2);
             constants.Tex2 = (int)tid2;
         }
         else {
-            constants.Tex2 = -1;
+            Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
         }
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
