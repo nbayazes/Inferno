@@ -54,7 +54,7 @@ namespace Inferno::Game {
             TotalCountdown = DefaultCountdownTimes[Difficulty];
         }
 
-        TotalCountdown = 1; // debug
+        //TotalCountdown = 1; // debug
         CountdownTimer = (float)TotalCountdown;
         ControlCenterDestroyed = true;
         PlaySelfDestructSounds(3);

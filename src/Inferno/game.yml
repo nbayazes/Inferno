@@ -538,7 +538,7 @@ Robots:
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
   - id: 3 # Class 1 drone
-    CircleDistance: 40
+    CircleDistance: 60
     FOV: [ 110, 130, 150, 170, 200 ]
     Mass: 3.2
     Drag: 0.025
