@@ -33,7 +33,6 @@ namespace Inferno::Render {
         Ptr<WorkerThread> _worker;
 
         friend class MaterialUploadWorker;
-        List<TextureCube> _cubeMaps;
 
     public:
         MaterialLibrary(size_t size);

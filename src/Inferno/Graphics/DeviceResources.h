@@ -101,16 +101,11 @@ namespace Inferno {
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 
-        TextureCube ProbeRenderCube, ProbeRenderCubeMsaa;
         DescriptorHandle NullCube;
 
         UploadBuffer<FrameConstants> FrameConstantsBuffer[2] = { { 2 }, { 2 } };
         UploadBuffer<FrameConstants>& GetFrameConstants() { return FrameConstantsBuffer[GetCurrentFrameIndex()]; }
         PostFx::ScanlineCS Scanline;
-
-        TextureCube& GetProbeCube() {
-            return Settings::Graphics.MsaaSamples > 1 ? ProbeRenderCubeMsaa : ProbeRenderCube;
-        }
 
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {
@@ -139,7 +134,7 @@ namespace Inferno {
             return Render::Heaps->RenderTargets[m_backBufferIndex].GetCpuHandle();
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const noexcept {
+        static D3D12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() noexcept {
             return Render::Heaps->DepthStencil[0].GetCpuHandle();
             //return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
         }

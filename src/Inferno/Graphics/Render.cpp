@@ -531,25 +531,25 @@ namespace Inferno::Render {
         Vector2 Size;
     };
 
-    void RenderProbe(uint index) {
-        Adapter->WaitForGpu();
-        auto& ctx = Adapter->GetGraphicsContext();
-        ctx.Reset();
-        auto cmdList = ctx.GetCommandList();
-        Heaps->SetDescriptorHeaps(cmdList);
-        UpdateFrameConstants(Vector2(PROBE_RESOLUTION, PROBE_RESOLUTION), 90);
-        DrawLevel(ctx, Game::Level, true, index);
-        if (Settings::Graphics.MsaaSamples > 1) {
-            Adapter->ProbeRenderCube.ResolveFromMultisample(cmdList, Adapter->ProbeRenderCubeMsaa);
-        }
+    void RenderProbe(uint /*index*/) {
+        //Adapter->WaitForGpu();
+        //auto& ctx = Adapter->GetGraphicsContext();
+        //ctx.Reset();
+        //auto cmdList = ctx.GetCommandList();
+        //Heaps->SetDescriptorHeaps(cmdList);
+        //UpdateFrameConstants(Vector2(PROBE_RESOLUTION, PROBE_RESOLUTION), 90);
+        //DrawLevel(ctx, Game::Level, true, index);
+        //if (Settings::Graphics.MsaaSamples > 1) {
+        //    Adapter->ProbeRenderCube.ResolveFromMultisample(cmdList, Adapter->ProbeRenderCubeMsaa);
+        //}
 
-        if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
-            Bloom->Apply(cmdList, Adapter->ProbeRenderCube, index);
+        //if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
+        //    Bloom->Apply(cmdList, Adapter->ProbeRenderCube, index);
 
-        ////Render::Adapter->GetProbeCube().Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        Render::Adapter->ProbeRenderCube.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        ctx.Execute();
-        Adapter->WaitForGpu();
+        //////Render::Adapter->GetProbeCube().Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //Render::Adapter->ProbeRenderCube.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        //ctx.Execute();
+        //Adapter->WaitForGpu();
     }
 
     void RenderProbe(const Vector3& position) {
@@ -617,7 +617,7 @@ namespace Inferno::Render {
         //DrawBriefing(ctx, Adapter->BriefingColorBuffer);
         UpdateFrameConstants(Adapter->GetOutputSize() * Render::RenderScale, Settings::Editor.FieldOfView);
 
-        DrawLevel(ctx, Game::Level, false);
+        DrawLevel(ctx, Game::Level);
         Debug::EndFrame(cmdList);
 
         if (Game::GetState() == GameState::Game)

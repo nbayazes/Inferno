@@ -387,7 +387,9 @@ namespace Inferno::Render {
         effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
         effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
         effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-        effect.Shader->SetEnvironmentCube(cmdList, Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle());
+        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+        if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+        effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
 
         ObjectShader::Constants constants = {};
 #ifdef DEBUG_DISSOLVE

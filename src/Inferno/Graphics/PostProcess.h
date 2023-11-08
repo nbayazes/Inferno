@@ -33,7 +33,7 @@ namespace Inferno::PostFx {
         const float InitialMinLog = -12.0f;
         const float InitialMaxLog = 4.0f;
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, uint sourceIndex, PixelBuffer& destBloom, PixelBuffer& destLuma) const;
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& destBloom, PixelBuffer& destLuma) const;
     };
 
     class DownsampleBloomCS : public ComputeShader {
@@ -74,7 +74,7 @@ namespace Inferno::PostFx {
         float Exposure = 1.0f; // final scene exposure
         float BloomStrength = 0.35f;
 
-        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, uint destIndex, PixelBuffer& lumaDest, Texture2D& dirt) const;
+        void Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest, Texture2D& dirt) const;
     };
 
 
@@ -111,6 +111,6 @@ namespace Inferno::PostFx {
         void ReloadShaders();
 
         // Updates source color buffer but also uses it as an input
-        void Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, uint sourceIndex = 0);
+        void Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source);
     };
 }

@@ -827,11 +827,5 @@ namespace Inferno::Render {
             else
                 Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
         }
-
-        _cubeMaps.resize(10); // todo: resize based on level room count
-        
-        for (auto& map : _cubeMaps) {
-            map.Create(128, 128, L"cube map", false);
-        }
     }
 }

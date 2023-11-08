@@ -24,7 +24,7 @@ namespace Inferno {
         D3D12_HEAP_TYPE _heapType = {};
         wstring _name;
 
-        DescriptorHandle _srv[6], _rtv[6], _uav[6];
+        DescriptorHandle _srv, _rtv, _uav;
         D3D12_RENDER_TARGET_VIEW_DESC _rtvDesc = {};
         D3D12_SHADER_RESOURCE_VIEW_DESC _srvDesc = {};
         D3D12_UNORDERED_ACCESS_VIEW_DESC _uavDesc = {};
@@ -45,10 +45,10 @@ namespace Inferno {
         void Release() { _resource.Reset(); }
         D3D12_RESOURCE_DESC& Description() { return _desc; }
 
-        const D3D12_GPU_DESCRIPTOR_HANDLE GetSRV(uint index = 0) const { return _srv[index].GetGpuHandle(); }
-        const D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCpu(uint index = 0) const { return _srv[index].GetCpuHandle(); }
-        const D3D12_GPU_DESCRIPTOR_HANDLE GetUAV(uint index = 0) const { return _uav[index].GetGpuHandle(); }
-        const D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(uint index = 0) const { return _rtv[index].GetCpuHandle(); }
+        const D3D12_GPU_DESCRIPTOR_HANDLE GetSRV() const { return _srv.GetGpuHandle(); }
+        const D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCpu() const { return _srv.GetCpuHandle(); }
+        const D3D12_GPU_DESCRIPTOR_HANDLE GetUAV() const { return _uav.GetGpuHandle(); }
+        const D3D12_CPU_DESCRIPTOR_HANDLE GetRTV() const { return _rtv.GetCpuHandle(); }
 
         void SetName(wstring_view name) {
             _name = name;
@@ -115,32 +115,32 @@ namespace Inferno {
         //    Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, dest);
         //}
 
-        void AddShaderResourceView(const DescriptorHandle& handle, uint index = 0) {
+        void AddShaderResourceView(const DescriptorHandle& handle) {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            _srv[index] = handle;
-            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv[index].GetCpuHandle());
+            _srv = handle;
+            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
         }
 
         // Adds a SRV to the reserved heap
-        void AddShaderResourceView(uint index = 0) {
+        void AddShaderResourceView() {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            if (!_srv[index]) _srv[index] = Render::Heaps->Reserved.Allocate();
-            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv[index].GetCpuHandle());
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
         }
 
         // Adds a UAV to the reserved heap
-        void AddUnorderedAccessView(bool useDefaultDesc = true, uint index = 0) {
+        void AddUnorderedAccessView(bool useDefaultDesc = true) {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            if (!_uav[index]) _uav[index] = Render::Heaps->Reserved.Allocate();
+            if (!_uav) _uav = Render::Heaps->Reserved.Allocate();
             auto desc = useDefaultDesc ? nullptr : &_uavDesc;
-            Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, _uav[index].GetCpuHandle());
+            Render::Device->CreateUnorderedAccessView(Get(), nullptr, desc, _uav.GetCpuHandle());
         }
 
         // Adds a RTV to the reserved heap
-        void AddRenderTargetView(uint index = 0) {
+        void AddRenderTargetView() {
             assert(Get()); // Call CreateOnUploadHeap or CreateOnDefaultHeap first
-            if (!_rtv[index]) _rtv[index] = Render::Heaps->RenderTargets.Allocate();
-            Render::Device->CreateRenderTargetView(Get(), &_rtvDesc, _rtv[index].GetCpuHandle());
+            if (!_rtv) _rtv = Render::Heaps->RenderTargets.Allocate();
+            Render::Device->CreateRenderTargetView(Get(), &_rtvDesc, _rtv.GetCpuHandle());
         }
 
     private:
@@ -151,7 +151,7 @@ namespace Inferno {
                 &props,
                 D3D12_HEAP_FLAG_NONE,
                 &_desc,
-                _state,
+                D3D12_RESOURCE_STATE_COMMON,
                 clearValue,
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())));
 
@@ -182,8 +182,8 @@ namespace Inferno {
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
 
-            if (!_srv[0]) _srv[0] = Render::Heaps->Reserved.Allocate();
-            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv[0].GetCpuHandle());
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
+            Render::Device->CreateShaderResourceView(Get(), &_srvDesc, _srv.GetCpuHandle());
             SetName(name);
         }
     };
@@ -206,7 +206,7 @@ namespace Inferno {
                 &heapProps,
                 D3D12_HEAP_FLAG_NONE,
                 &_desc,
-                _state,
+                D3D12_RESOURCE_STATE_COMMON,
                 nullptr,
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
@@ -267,7 +267,7 @@ namespace Inferno {
             _srvDesc.Buffer.StructureByteStride = elementSize;
             _srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-            if (!_srv[0]) _srv[0] = Render::Heaps->Reserved.Allocate();
+            if (!_srv) _srv = Render::Heaps->Reserved.Allocate();
             //if (m_SRV.ptr == D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN)
             //m_SRV = AllocateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
             //g_Device->CreateShaderResourceView(m_pResource.Get(), &SRVDesc, m_SRV);
@@ -284,7 +284,7 @@ namespace Inferno {
                 &heapProps,
                 D3D12_HEAP_FLAG_NONE,
                 &_desc,
-                _state,
+                D3D12_RESOURCE_STATE_COMMON,
                 nullptr,
                 IID_PPV_ARGS(_resource.ReleaseAndGetAddressOf())
             ));
@@ -612,7 +612,7 @@ namespace Inferno {
         //    return _rtvs[face].GetCpuHandle();
         //}
 
-        void CreateRTVs() {
+        void CreateRTVs(Array<DescriptorHandle, 6>& rtvs) {
             _rtvDesc.Format = _desc.Format;
 
             if (IsMultisampled()) {
@@ -620,7 +620,7 @@ namespace Inferno {
                 _rtvDesc.Texture2DMSArray.ArraySize = 1;
 
                 for (int i = 0; i < 6; i++) {
-                    auto& rtv = _rtv[i];
+                    auto& rtv = rtvs[i];
                     if (!rtv) rtv = Render::Heaps->RenderTargets.Allocate();
                     _rtvDesc.Texture2DMSArray.FirstArraySlice = i;
                     Render::Device->CreateRenderTargetView(_resource.Get(), &_rtvDesc, rtv.GetCpuHandle());
@@ -631,7 +631,7 @@ namespace Inferno {
                 _rtvDesc.Texture2DArray.ArraySize = 1; // Only need one slice
 
                 for (int i = 0; i < 6; i++) {
-                    auto& rtv = _rtv[i];
+                    auto& rtv = rtvs[i];
                     if (!rtv) rtv = Render::Heaps->RenderTargets.Allocate();
                     _rtvDesc.Texture2DArray.FirstArraySlice = i;
                     Render::Device->CreateRenderTargetView(_resource.Get(), &_rtvDesc, rtv.GetCpuHandle());
@@ -639,36 +639,30 @@ namespace Inferno {
             }
         }
 
-        void CreateSRVs() {
+        void CreateSRVs(Array<DescriptorHandle, 6>& srvs) {
             ASSERT(_desc.SampleDesc.Count == 1); // Can't sample MSAA sources
             _srvDesc.Format = _desc.Format;
-            //_srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
             _srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            //_srvDesc.Texture2D.MostDetailedMip = 0;
             _srvDesc.Texture2D.MipLevels = _desc.MipLevels;
-            //_srvDesc.ViewDimension = _desc.SampleDesc.Count > 1 ? D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY : D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
             _srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
             _srvDesc.Texture2DArray.ArraySize = 1; // Only need one slice
 
             for (int i = 0; i < 6; i++) {
-                auto& srv = _srv[i];
+                auto& srv = srvs[i];
                 if (!srv) srv = Render::Heaps->Reserved.Allocate();
                 _srvDesc.Texture2DArray.FirstArraySlice = i;
                 Render::Device->CreateShaderResourceView(Get(), &_srvDesc, srv.GetCpuHandle());
             }
         }
 
-        void CreateUAVs() {
+        void CreateUAVs(Array<DescriptorHandle, 6>& uavs) {
             ASSERT(_desc.SampleDesc.Count == 1); // Can't sample MSAA sources
             _uavDesc.Format = _desc.Format;
-            //_uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-            //_uavDesc.Texture2DArray.ArraySize = _desc.DepthOrArraySize;
-            //_uavDesc.ViewDimension = _desc.SampleDesc.Count > 1 ? D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY : D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
             _uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
             _uavDesc.Texture2DArray.ArraySize = 1; // Only need one slice
 
             for (int i = 0; i < 6; i++) {
-                auto& uav = _uav[i];
+                auto& uav = uavs[i];
                 if (!uav) uav = Render::Heaps->Reserved.Allocate();
                 _uavDesc.Texture2DArray.FirstArraySlice = i;
                 Render::Device->CreateUnorderedAccessView(Get(), nullptr, &_uavDesc, uav.GetCpuHandle());
@@ -740,7 +734,7 @@ namespace Inferno {
 
         void Clear(ID3D12GraphicsCommandList* cmdList) const {
             DirectX::TransitionResource(cmdList, Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
-            cmdList->ClearRenderTargetView(_rtv[0].GetCpuHandle(), ClearColor, 0, nullptr);
+            cmdList->ClearRenderTargetView(_rtv.GetCpuHandle(), ClearColor, 0, nullptr);
         }
     };
 

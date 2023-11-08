@@ -219,20 +219,6 @@ namespace Inferno {
         Render::UploadHeap = MakePtr<UserDescriptorHeap>(Render::MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
         Render::UploadHeap->SetName(L"Upload Heap");
         Render::Uploads = MakePtr<DescriptorRange<5>>(*Render::UploadHeap, Render::UploadHeap->Size());
-
-        // Leaving these here causes crashes when changing MSAA mode
-        ProbeRenderCube.Create(PROBE_RESOLUTION, PROBE_RESOLUTION, L"Probe render cube", true, IntermediateFormat, 1);
-        ProbeRenderCube.CreateCubeSRV();
-        if (Settings::Graphics.MsaaSamples > 1) {
-            ProbeRenderCubeMsaa.Create(PROBE_RESOLUTION, PROBE_RESOLUTION, L"Probe render cube msaa", true, IntermediateFormat, Settings::Graphics.MsaaSamples);
-            ProbeRenderCubeMsaa.CreateRTVs();
-        }
-        else {
-            ProbeRenderCube.CreateRTVs();
-        }
-
-        ProbeRenderCube.CreateUAVs();
-        ProbeRenderCube.CreateSRVs();
     }
 
     // These resources need to be recreated every time the window size is changed.
