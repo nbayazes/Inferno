@@ -171,11 +171,14 @@ namespace Inferno::Editor {
 
         obj.Type = type;
         obj.ID = id;
-        obj.Movement = {};
-        if (fullReset) obj.Control = {};
-        obj.Render = {};
-        obj.Light = {};
-        obj.Physics = {};
+        if (fullReset) {
+            obj.Movement = {};
+            obj.Control = {};
+            obj.Render = {};
+            obj.Light = {};
+            obj.Physics = {};
+            obj.Radius = GetObjectRadius(obj); // Hostages can have custom radii
+        }
 
         switch (type) {
             case ObjectType::Player:
@@ -220,7 +223,7 @@ namespace Inferno::Editor {
                 obj.Physics.Drag = ri.Drag;
                 obj.Render.Type = RenderType::Model;
                 obj.HitPoints = ri.HitPoints;
-                obj.Render.Model = { .ID = ri.Model };
+                obj.Render.Model.ID = ri.Model;
                 if (ri.Cloaking != CloakType::None) obj.Cloak((float)obj.Lifespan);
 
                 if (fullReset) {
@@ -281,7 +284,6 @@ namespace Inferno::Editor {
             }
         }
 
-        obj.Radius = GetObjectRadius(obj);
         obj.MaxHitPoints = obj.HitPoints;
         obj.NextThinkTime = 0;
 
