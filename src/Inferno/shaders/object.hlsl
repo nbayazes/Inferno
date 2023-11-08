@@ -9,6 +9,7 @@
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t6), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t7), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t8), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), "\
     "DescriptorTable(SRV(t11), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -35,6 +36,7 @@ SamplerState NormalSampler : register(s1);
 StructuredBuffer<MaterialInfo> Materials : register(t5);
 StructuredBuffer<VClip> VClips : register(t6);
 Texture2D DissolveTexture : register(t7);
+TextureCube Environment : register(t8);
 
 Texture2D TextureTable[] : register(t0, space1);
 
@@ -104,7 +106,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         matid = VClips[texid - VCLIP_RANGE].Frames[0];
         texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time + Object.TimeOffset);
     }
-    
+
     float4 diffuse = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5)], input.uv, Sampler, Frame.FilterMode) * input.col;
     float emissive = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 2)], input.uv, Sampler, Frame.FilterMode).r;
     float3 lighting = float3(0, 0, 0);
@@ -140,6 +142,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);
 
+            if (emissive > 0 && material.LightReceived == 0)
+                emissive = emissive + 1; // make lava and forcefields full bright
+
             float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
             normal = normalize(mul(normal, tbn));
 
@@ -147,15 +152,16 @@ float4 psmain(PS_INPUT input) : SV_Target {
             uint2 pixelPos = uint2(input.pos.xy);
             //specularMask = 1;
             //normal = input.normal;
-            ambient *= 0.25;
             ambient *= Frame.GlobalDimming;
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
-            lighting += emissive * diffuse.rgb * material.EmissiveStrength * ambient;
-            lighting += ambient * diffuse.rgb * material.LightReceived;
+            //lighting += emissive * diffuse.rgb * material.EmissiveStrength * ambient;
+            lighting += 0.05 * ambient * diffuse.rgb * material.LightReceived; // small amount of ambient for visibility purposes
+
+            lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, 16);
         }
-        
+
         lighting.rgb += phaseColor;
 
         return float4(lighting, diffuse.a);

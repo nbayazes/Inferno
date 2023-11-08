@@ -11,10 +11,11 @@ static const int VCLIP_RANGE = 10000;
 
 struct FrameConstants {
     float4x4 ViewProjectionMatrix;
-    float3 Eye; // Camera direction
+    float3 Eye; // Camera position
     float Time; // elapsed game time in seconds
     float2 Size; // Frame width and height
     float NearClip, FarClip;
+    float3 EyeDir; // Camera direction
     float GlobalDimming;
     bool NewLightMode; // dynamic light mode
     int FilterMode; // 0: Point, 1: AA point, 2: smooth - must match TextureFilterMode

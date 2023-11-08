@@ -65,7 +65,7 @@ namespace Inferno::Render {
 
         List<ObjDepth> _objects;
     public:
-        void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes);
+        void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes, bool drawObjects);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
         span<RenderCommand> Distortion() { return _distortionQueue; }

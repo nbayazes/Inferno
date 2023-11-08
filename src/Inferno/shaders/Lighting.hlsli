@@ -14,6 +14,7 @@ struct MaterialInfo {
     float LightReceived; // 0 for unlit
     int ID; // texid
     int VClip; // Effect clip
+    float EnvStrength;
     //float pad0; // Pad to 32 bytes
 };
 
@@ -61,6 +62,11 @@ float HalfLambert(float3 normal, float3 lightDir) {
     //return Lambert(normal, lightDir);
     float nDotL = pow(dot(normal, lightDir) * 0.5 + 0.5, 2);
     return saturate(nDotL);
+}
+
+float Luminance(float3 v) {
+    //0.299,0.587,0.114
+    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
 }
 
 float3 ApplyLightCommon(
@@ -143,6 +149,24 @@ float Attenuate(float lightDistSq, float lightRadius) {
     //float falloff = (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
     return falloff;
     //return clamp(falloff * GLOBAL_LIGHT_MULT, 0, 10); // clamp nearby surface distance to prevent hotspots
+}
+
+// Applies ambient light to a metal texture as specular
+float3 ApplyAmbientSpecular(TextureCube environment, SamplerState envSampler, float3 viewDir, float3 normal,
+                            MaterialInfo material, float3 ambient,
+                            float3 texDiffuse, float specularMask, float envPercent, float specAmount = 1) {
+    float envBias = lerp(0, 9, material.Roughness);
+    float env = environment.SampleBias(envSampler, normalize(reflect(viewDir, normal)), envBias).r;
+    env = env * envPercent + .15;
+    float lum = Luminance(ambient);
+    float3 envTerm = specularMask * env /** texDiffuse*/;
+    //float eyeTerm = 1 + pow(saturate(dot(viewDir, -normal)), 16) * 1; // increase brightness of highlights facing the camera
+    float gloss = RoughnessToGloss(material.Roughness) / 4;
+    float nDotH = HalfLambert(normal, -viewDir) * 2;
+    nDotH = saturate(dot(-viewDir, normal));
+    float eyeTerm = 1 + specAmount * pow(nDotH , gloss) * (gloss + 2) / 8; // blinn-phong
+    float3 diff = pow(texDiffuse + 1, 2) -1;
+    return ambient * diff * pow(envTerm, 2) * eyeTerm * material.Metalness * material.LightReceived * material.EnvStrength * material.SpecularStrength;
 }
 
 float3 ApplyPointLight(
@@ -605,7 +629,7 @@ float3 ApplyRectLight2(
         }
 
         // fade specular close to the light plane. it behaves very oddly with individual points appearing.
-        specularFactor *= saturate(1 - dot(normal, planeNormal)); 
+        specularFactor *= saturate(1 - dot(normal, planeNormal));
 
         const float3 vLight = lightPos - worldPos;
         float rDotL = dot(r, normalize(vLight));
@@ -631,12 +655,7 @@ float3 ApplyRectLight2(
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
 
-float Luminance(float3 v) {
-    //0.299,0.587,0.114
-    return dot(v, float3(0.2126f, 0.7152f, 0.0722f));
-}
-
-static const float METAL_DIFFUSE_FACTOR = 3; // overall brightness of metal
+static const float METAL_DIFFUSE_FACTOR = 0.05; // overall brightness of metal
 static const float METAL_SPECULAR_FACTOR = 1; // reduce this after increasing specular exponent
 static const float METAL_SPECULAR_EXP = 2.0; // increase this to get more diffuse color contribution
 
@@ -655,7 +674,6 @@ void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out 
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
     lightColor += lerp(0, diffuse * lightRgb * METAL_DIFFUSE_FACTOR, material.Metalness);
     //lightColor *= (1 - material.Metalness);
-    //lightColor *= 1;
 }
 
 void ShadeLights(inout float3 colorSum,

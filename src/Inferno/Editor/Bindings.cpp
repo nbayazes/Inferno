@@ -317,7 +317,7 @@ namespace Inferno::Editor {
             case Keys::D9: return "9";
 
             default:
-                return "???";
+                return "";
         }
     }
 

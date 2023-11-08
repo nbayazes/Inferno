@@ -18,7 +18,7 @@ namespace Inferno::Render {
         return true;
     }
 
-    void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes) {
+    void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes, bool drawObjects) {
         LegitProfiler::ProfilerTask task("Render queue", LegitProfiler::Colors::ALIZARIN);
         _transparentQueue.clear();
         _opaqueQueue.clear();
@@ -40,7 +40,7 @@ namespace Inferno::Render {
                 _transparentQueue.push_back({ &mesh, depth });
             }
 
-            if (Settings::Editor.ShowObjects) {
+            if (drawObjects) {
                 for (auto& obj : level.Objects) {
                     if (!ShouldDrawObject(obj)) continue;
                     DirectX::BoundingSphere bounds(obj.GetPosition(Game::LerpAmount), obj.Radius);

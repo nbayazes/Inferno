@@ -132,6 +132,14 @@ namespace Inferno::Game {
             string extraTextures[] = { "noise" };
             Render::Materials->LoadTextures(extraTextures);
 
+            if (auto path = FileSystem::TryFindFile("env.dds")) {
+                ResourceUploadBatch batch(Render::Device);
+                batch.Begin();
+                Render::Materials->EnvironmentCube.LoadDDS(batch, *path);
+                Render::Materials->EnvironmentCube.CreateCubeSRV();
+                batch.End(Render::Adapter->BatchUploadQueue->Get());
+            }
+
             Render::LoadLevel(Level);
             Render::ResetEffects();
             InitObjects(Game::Level);

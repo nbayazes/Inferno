@@ -32,27 +32,28 @@ namespace Inferno {
             Viewport = DirectX::SimpleMath::Viewport{ 0, 0, width, height, NearClip, FarClip };
         }
 
-        void LookAtPerspective(float fovDeg, double t) {
-            const float maxShakeAngle = DirectX::XM_PI / 128 * _shake;
+        void LookAtPerspective(float fovDeg, double /*t*/) {
+            //const float maxShakeAngle = DirectX::XM_PI / 128 * _shake;
 
-            constexpr float period = 15;
+            //constexpr float period = 15;
 
-            Vector3 shakeOffset(
-                _shake * OpenSimplex2::Noise2(0, t * period, 0.0),
-                _shake * OpenSimplex2::Noise2(0, t * period, t),
-                _shake * OpenSimplex2::Noise2(0, t * period, -t)
-            );
+            //Vector3 shakeOffset(
+            //    _shake * OpenSimplex2::Noise2(0, t * period, 0.0),
+            //    _shake * OpenSimplex2::Noise2(0, t * period, t),
+            //    _shake * OpenSimplex2::Noise2(0, t * period, -t)
+            //);
 
-            Vector3 rot(
-                maxShakeAngle * OpenSimplex2::Noise2(0, t * period, 0.0),
-                maxShakeAngle * OpenSimplex2::Noise2(0, t * period, t),
-                maxShakeAngle * OpenSimplex2::Noise2(0, t * period, -t)
-            );
+            //Vector3 rot(
+            //    maxShakeAngle * OpenSimplex2::Noise2(0, t * period, 0.0),
+            //    maxShakeAngle * OpenSimplex2::Noise2(0, t * period, t),
+            //    maxShakeAngle * OpenSimplex2::Noise2(0, t * period, -t)
+            //);
 
-            auto up = Up + rot;
-            up.Normalize();
+            //auto up = Up + rot;
+            //up.Normalize();
 
-            View = DirectX::XMMatrixLookAtLH(Position + shakeOffset, Target + shakeOffset, up);
+            //View = DirectX::XMMatrixLookAtLH(Position + shakeOffset, Target + shakeOffset, up);
+            View = DirectX::XMMatrixLookAtLH(Position, Target, Up);
             Projection = DirectX::XMMatrixPerspectiveFovLH(fovDeg * DegToRad, Viewport.AspectRatio(), Viewport.minDepth, Viewport.maxDepth);
         }
 

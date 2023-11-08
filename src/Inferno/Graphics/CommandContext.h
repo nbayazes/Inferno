@@ -144,7 +144,10 @@ namespace Inferno::Graphics {
         }
 
         void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv) const { SetRenderTargets({ &rtv, 1 }); }
-        void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv, D3D12_CPU_DESCRIPTOR_HANDLE dsv) const { SetRenderTargets({ &rtv, 1 }, dsv); }
+        void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE rtv, D3D12_CPU_DESCRIPTOR_HANDLE dsv) const {
+            ASSERT(rtv.ptr && dsv.ptr);
+            SetRenderTargets({ &rtv, 1 }, dsv);
+        }
 
         void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY topology) const {
             _cmdList->IASetPrimitiveTopology(topology);

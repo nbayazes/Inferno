@@ -47,7 +47,7 @@ namespace Inferno::PostFx {
         Dispatch2D(commandList, dest);
     }
 
-    void BloomExtractDownsampleCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, PixelBuffer& destBloom, PixelBuffer& destLuma) const {
+    void BloomExtractDownsampleCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, uint sourceIndex, PixelBuffer& destBloom, PixelBuffer& destLuma) const {
         source.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         destBloom.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         destLuma.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
@@ -62,7 +62,7 @@ namespace Inferno::PostFx {
         // this is why a dynamic ring buffer for handles is necessary. otherwise each resource must be bound individually.
         commandList->SetComputeRootDescriptorTable(U0_Bloom, destBloom.GetUAV());
         commandList->SetComputeRootDescriptorTable(U1_Luma, destLuma.GetUAV());
-        commandList->SetComputeRootDescriptorTable(T0_Source, source.GetSRV());
+        commandList->SetComputeRootDescriptorTable(T0_Source, source.GetSRV(sourceIndex));
         commandList->SetPipelineState(_pso.Get());
         Dispatch2D(commandList, destBloom);
     }
@@ -115,7 +115,7 @@ namespace Inferno::PostFx {
         Dispatch2D(commandList, dest);
     }
 
-    void ToneMapCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, PixelBuffer& lumaDest, Texture2D& dirt) const {
+    void ToneMapCS::Execute(ID3D12GraphicsCommandList* commandList, PixelBuffer& tonyMcMapface, PixelBuffer& bloom, PixelBuffer& colorDest, uint destIndex, PixelBuffer& lumaDest, Texture2D& dirt) const {
         bloom.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         tonyMcMapface.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         if (dirt) dirt.Transition(commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -141,7 +141,7 @@ namespace Inferno::PostFx {
 
         commandList->SetComputeRootSignature(_rootSignature.Get());
         commandList->SetComputeRoot32BitConstants(B0_Constants, sizeof(constants) / 4, &constants, 0);
-        commandList->SetComputeRootDescriptorTable(U0_Color, colorDest.GetUAV());
+        commandList->SetComputeRootDescriptorTable(U0_Color, colorDest.GetUAV(destIndex));
         commandList->SetComputeRootDescriptorTable(U1_Luma, lumaDest.GetUAV());
         commandList->SetComputeRootDescriptorTable(T0_Bloom, bloom.GetSRV());
         commandList->SetComputeRootDescriptorTable(T1_LUT, tonyMcMapface.GetSRV());
@@ -217,16 +217,16 @@ namespace Inferno::PostFx {
         Blur.Load(L"shaders/BlurCS.hlsl");
     }
 
-    void Bloom::Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source) {
+    void Bloom::Apply(ID3D12GraphicsCommandList* commandList, PixelBuffer& source, uint sourceIndex) {
         //g_Descriptors->SetDescriptorHeaps(commandList);
         PIXScopedEvent(commandList, PIX_COLOR_DEFAULT, "Bloom");
-        BloomExtractDownsample.Execute(commandList, source, Buffers.DownsampleBlur, Buffers.DownsampleLuma);
+        BloomExtractDownsample.Execute(commandList, source, sourceIndex, Buffers.DownsampleBlur, Buffers.DownsampleLuma);
         DownsampleBloom.Execute(commandList, Buffers.DownsampleBlur, Buffers.Downsample[0]);
         Blur.Execute(commandList, Buffers.Downsample[3], Buffers.Blur);
         Upsample.Execute(commandList, Buffers.Downsample[2], Buffers.Blur, Buffers.Upsample[3]);
         Upsample.Execute(commandList, Buffers.Downsample[1], Buffers.Upsample[3], Buffers.Upsample[2]);
         Upsample.Execute(commandList, Buffers.Downsample[0], Buffers.Upsample[2], Buffers.Upsample[1]);
         Upsample.Execute(commandList, Buffers.DownsampleBlur, Buffers.Upsample[1], Buffers.Upsample[0]);
-        ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], source, Buffers.OutputLuma, Dirt);
+        ToneMap.Execute(commandList, TonyMcMapFace, Buffers.Upsample[0], source, sourceIndex, Buffers.OutputLuma, Dirt);
     }
 }

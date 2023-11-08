@@ -14,6 +14,8 @@
 #include "ShaderLibrary.h"
 
 namespace Inferno {
+    constexpr uint PROBE_RESOLUTION = 128;
+
     inline void ReportLiveObjects() {
 #ifdef _DEBUG
         ComPtr<IDXGIDebug1> dxgiDebug;
@@ -99,9 +101,16 @@ namespace Inferno {
         Inferno::RenderTarget BriefingColorBuffer;
         Inferno::RenderTarget BriefingScanlineBuffer;
 
+        TextureCube ProbeRenderCube, ProbeRenderCubeMsaa;
+        DescriptorHandle NullCube;
+
         UploadBuffer<FrameConstants> FrameConstantsBuffer[2] = { { 2 }, { 2 } };
         UploadBuffer<FrameConstants>& GetFrameConstants() { return FrameConstantsBuffer[GetCurrentFrameIndex()]; }
         PostFx::ScanlineCS Scanline;
+
+        TextureCube& GetProbeCube() {
+            return Settings::Graphics.MsaaSamples > 1 ? ProbeRenderCubeMsaa : ProbeRenderCube;
+        }
 
         // Gets an intermediate buffer with HDR support
         Inferno::RenderTarget& GetHdrRenderTarget() {

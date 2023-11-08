@@ -251,6 +251,13 @@ namespace Inferno::Editor {
                             onMaterialChanged();
                         }
 
+                        //ImGui::TableRowLabel("Environment Strength");
+                        //ImGui::SetNextItemWidth(-1);
+                        //if (ImGui::SliderFloat("##EnvStrength", &material.EnvStrength, 0, 2)) {
+                        //    material.EnvStrength = std::max(material.EnvStrength, 0.0f);
+                        //    onMaterialChanged();
+                        //}
+
                         ImGui::TableRowLabel("Light Received");
                         ImGui::SetNextItemWidth(-1);
                         if (ImGui::SliderFloat("##LightReceived", &material.LightReceived, 0, 1)) {

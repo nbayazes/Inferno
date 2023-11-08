@@ -8,6 +8,7 @@ namespace Inferno::Graphics {
 }
 
 namespace Inferno::Render {
-    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
+    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level, bool probeHack, uint probeIndex = 0);
+    void RebuildLevelResources(Level& level);
     int GetTransparentQueueSize();
 }

@@ -17,6 +17,8 @@ namespace Inferno {
     inline List<uint8> CreateSpecularMap(const PigBitmap& image, float brightness = 0.5f, float contrast = 1.0f, bool invert = false) {
         List<uint8> specularMap(image.Data.size());
 
+        //uint8 min = 255, max = 0;
+
         for (int y = 0; y < image.Info.Height; y++) {
             for (int x = 0; x < image.Info.Width; x++) {
                 auto color = image.Data[y * image.Info.Width + x].ToColor();
@@ -24,8 +26,22 @@ namespace Inferno {
                 color.AdjustSaturation(0);
                 color.AdjustContrast(contrast);
                 specularMap[y * image.Info.Width + x] = uint8(color.x * brightness * 255);
+                //min = std::min(min, specularMap[y * image.Info.Width + x]);
+                //max = std::max(max, specularMap[y * image.Info.Width + x]);
             }
         }
+
+        //float ratio = max == 0 ? 0 : (float)(max - min) / float(max);
+        //uint8 delta = max - min;
+        // delta = 100
+        // min = 50, max = 150
+        // -50 everything -> 0, 100. * (255 / delta) -> 255
+        /*if (delta > 0) {
+            float ratio = 255.0f / delta;
+            for (auto& p : specularMap) {
+                p = uint8((float)(p - min) * ratio);
+            }
+        }*/
 
         return specularMap;
     }

@@ -4,7 +4,7 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "RootConstants(b1, num32BitConstants = 9), "\
+    "RootConstants(b1, num32BitConstants = 10), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -13,11 +13,11 @@
     "DescriptorTable(Sampler(s0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(Sampler(s1), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t14), visibility=SHADER_VISIBILITY_PIXEL), " \
+    "DescriptorTable(SRV(t15), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t11), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t12), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t13), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "CBV(b2), "\
-
+    "CBV(b2), "
 Texture2D TextureTable[] : register(t0, space1);
 Texture2D Diffuse : register(t0);
 //Texture2D StMask : register(t1); // not used but reserved for descriptor table
@@ -36,6 +36,7 @@ SamplerState Sampler : register(s0);
 SamplerState NormalSampler : register(s1);
 // t11, t12, t13
 StructuredBuffer<MaterialInfo> Materials : register(t14);
+TextureCube Environment : register(t15);
 
 //static const float PI = 3.14159265f;
 static const float PIDIV2 = PI / 2;
@@ -43,10 +44,11 @@ static const float GAME_UNIT = 20; // value of 1 UV tiling in game units
 
 struct InstanceConstants {
     float2 Scroll, Scroll2; // scrolling needs to be separate? or part of texture info
-    float LightingScale;    // for unlit mode
+    float LightingScale; // for unlit mode
     bool Distort;
     bool HasOverlay;
     int Tex1, Tex2;
+    float EnvStrength;
 };
 
 ConstantBuffer<FrameConstants> Frame : register(b0);
@@ -237,6 +239,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(0, gx * 1, 0, 1);
 
     float specularMask = Sample2D(Specular1, input.uv, Sampler, Frame.FilterMode).r;
+    //return specularMask.rrrr;
     //float specularMask = Sample2D(GetTexture(input.Tex1, MAT_SPEC), input.uv, Sampler, Frame.FilterMode).r;
 
     //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
@@ -257,8 +260,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
     if (Args.HasOverlay) {
         MaterialInfo mat2 = Materials[Args.Tex2];
-    //if (input.Tex2 > 0) {
-    //    MaterialInfo mat2 = Materials[input.Tex2];
+        //if (input.Tex2 > 0) {
+        //    MaterialInfo mat2 = Materials[input.Tex2];
 
         // Apply supertransparency mask
         float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
@@ -287,6 +290,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         material.NormalStrength = normalize(lerp(mat1.NormalStrength, mat2.NormalStrength, overlay.a));
         material.Roughness = lerp(mat1.Roughness, mat2.Roughness, overlay.a);
         material.LightReceived = lerp(mat1.LightReceived, mat2.LightReceived, overlay.a);
+        material.EnvStrength = lerp(mat1.EnvStrength, mat2.EnvStrength, overlay.a);
 
         float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
         //float overlaySpecularMask = Sample2D(GetTexture(input.Tex2, MAT_SPEC), input.uv2, Sampler, Frame.FilterMode).r;
@@ -296,7 +300,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         //emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
     }
 
-    if (emissive > 0 && mat1.LightReceived == 0) 
+    if (emissive > 0 && mat1.LightReceived == 0)
         emissive = emissive + 1; // make lava and forcefields full bright
 
     // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
@@ -312,34 +316,30 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
 
-    float3 vertexLighting = max(0, input.col.rgb);
-    vertexLighting.rgb = pow(vertexLighting.rgb, 2.2); // sRGB to linear
-    vertexLighting = lerp(1, vertexLighting, Args.LightingScale);
+    float3 ambient = max(0, input.col.rgb);
+    ambient.rgb = pow(ambient.rgb, 2.2); // sRGB to linear
+    ambient = lerp(1, ambient, Args.LightingScale);
 
     if (!Frame.NewLightMode) {
-        lighting.rgb += vertexLighting;
+        lighting.rgb += ambient;
         lighting.rgb = saturate(Luminance(lighting.rgb)/* + emissive*/); // Desaturate
         return float4(diffuse.rgb * lighting.rgb * Frame.GlobalDimming, diffuse.a);
     }
     else {
-        float3 colorSum = float3(0, 0, 0);
+        float3 directLight = float3(0, 0, 0);
         uint2 pixelPos = uint2(input.pos.xy);
-        //return float4(specularMask, specularMask, specularMask, 1);
-        //normal = input.normal; // debug
-        //diffuse.rgb = 0.5; // debug
-        //specularMask = 0; // debug
-        //diffuse.rgb = lerp(diffuse.rgb, GetMetalDiffuse(diffuse.rgb), material.Metalness);
-        vertexLighting *= Frame.GlobalDimming; // Dim ambient during self destruct
+        ambient *= Frame.GlobalDimming; // Dim ambient during self destruct
         emissive *= Frame.GlobalDimming;
 
-        ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
+        ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
         //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
         //gloss = exp2(lerp(0, log2(gloss), flatness));
         //colorSum *= flatness;
-        lighting += colorSum * material.LightReceived;
+        lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
-        lighting += emissive * diffuse.rgb * vertexLighting * material.LightReceived; // also tint emissive by ambient
-        lighting += diffuse.rgb * vertexLighting * 0.20 * material.LightReceived * (1 - material.Metalness * .75); // ambient
+        lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
+        lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient, diffuse.rgb, specularMask, .4, .75);
+        lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
 
         //lighting.rgb += vertexLighting * 1.0;
         //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);

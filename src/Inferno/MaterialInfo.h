@@ -15,6 +15,7 @@ namespace Inferno {
         float LightReceived = 1; // 0 for unlit
         int32 ID = -1; // TexID
         int32 Additive = false; // Additive blending
+        float EnvStrength = 1; // Environment mapping strength
     };
 
     class MaterialInfoLibrary {

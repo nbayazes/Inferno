@@ -28,6 +28,7 @@ namespace Inferno::Render {
         LevelMeshBuilder _levelMeshBuilder;
         // List of lights in each room
         List<List<LightData>> RoomLights;
+        bool PROBE_HACK = false;
     }
 
     bool SideIsDoor(const SegmentSide* side) {
@@ -105,20 +106,24 @@ namespace Inferno::Render {
     }
 
     void ClearDepthPrepass(const Graphics::GraphicsContext& ctx) {
-        auto& target = Adapter->GetHdrRenderTarget();
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
-        //D3D12_CPU_DESCRIPTOR_HANDLE targets[] = {
-        //    linearDepthBuffer.GetRTV(),
-        //    linearDepthBuffer.GetRTV()
-        //};
-
-        ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
-        ctx.ClearColor(target);
         ctx.ClearDepth(depthBuffer);
         ctx.ClearColor(linearDepthBuffer);
-        ctx.SetViewportAndScissor(UINT(target.GetWidth() * RenderScale), UINT(target.GetHeight() * RenderScale));
+
         linearDepthBuffer.Transition(ctx.GetCommandList(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        ctx.SetRenderTarget(linearDepthBuffer.GetRTV(), depthBuffer.GetDSV());
+
+        if (PROBE_HACK) {
+            auto& target = Adapter->GetProbeCube();
+            //ctx.ClearColor(target);
+            ctx.SetViewportAndScissor(UINT(target.GetWidth() * RenderScale), UINT(target.GetHeight() * RenderScale));
+        }
+        else {
+            auto& target = Adapter->GetHdrRenderTarget();
+            ctx.ClearColor(target);
+            ctx.SetViewportAndScissor(UINT(target.GetWidth() * RenderScale), UINT(target.GetHeight() * RenderScale));
+        }
     }
 
     void DepthPrepass(GraphicsContext& ctx) {
@@ -238,6 +243,16 @@ namespace Inferno::Render {
         Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
         Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
         Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+        if (!PROBE_HACK) {
+            //Render::Adapter->ProbeRenderCube.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+            //Shaders->Level.SetEnvironment(cmdList, Render::Adapter->ProbeRenderCube.GetCubeSRV().GetGpuHandle());
+            Shaders->Level.SetEnvironment(cmdList, Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle());
+            constants.EnvStrength = ProbesComputed ? 1.0f : 0;
+        }
+        else {
+            constants.EnvStrength = 0;
+            Shaders->Level.SetEnvironment(cmdList, Render::Adapter->NullCube.GetGpuHandle());
+        }
 
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
 
@@ -391,30 +406,35 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
+    void RebuildLevelResources(Level& level) {
+        _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
+
+        for (auto& room : level.Rooms) {
+            room.WallMeshes.clear();
+        }
+
+        // Update wall meshes in the room
+        auto wallMeshes = _levelMeshBuilder.GetWallMeshes();
+        for (int i = 0; i < wallMeshes.size(); i++) {
+            if (auto room = level.GetRoom(wallMeshes[i].Chunk->Tag.Segment)) {
+                room->WallMeshes.push_back(i);
+            }
+        }
+        RoomLights = Graphics::GatherLightSources(level);
+        LevelChanged = false;
+    }
+
+    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level, bool probeHack, uint probeIndex) {
+        PROBE_HACK = probeHack;
+
         if (Settings::Editor.ShowFlickeringLights)
             UpdateFlickeringLights(level, (float)ElapsedTime, FrameTime);
 
-        if (LevelChanged) {
-            Adapter->WaitForGpu();
-            _levelMeshBuilder.Update(level, *GetLevelMeshBuffer());
+        bool drawObjects = true;
+        if (Game::GetState() == GameState::Editor && !Settings::Editor.ShowObjects) drawObjects = false;
+        if (PROBE_HACK) drawObjects = false;
 
-            for (auto& room : level.Rooms) {
-                room.WallMeshes.clear();
-            }
-
-            // Update wall meshes in the room
-            auto wallMeshes = _levelMeshBuilder.GetWallMeshes();
-            for (int i = 0; i < wallMeshes.size(); i++) {
-                if (auto room = level.GetRoom(wallMeshes[i].Chunk->Tag.Segment)) {
-                    room->WallMeshes.push_back(i);
-                }
-            }
-            RoomLights = Graphics::GatherLightSources(level);
-            LevelChanged = false;
-        }
-
-        _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes());
+        _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes(), drawObjects);
 
         float dimming = Game::GetSelfDestructDimming();
 
@@ -423,7 +443,7 @@ namespace Inferno::Render {
                 auto& lights = RoomLights[(int)id];
                 for (int lid = 0; lid < lights.size(); lid++) {
                     auto& light = lights[lid];
-                    if (light.color.w <= 0 || light.radius <= 0 || light.mode == DynamicLightMode::Off) 
+                    if (light.color.w <= 0 || light.radius <= 0 || light.mode == DynamicLightMode::Off)
                         continue;
 
                     LightData lt = light;
@@ -494,13 +514,25 @@ namespace Inferno::Render {
         {
             PIXScopedEvent(cmdList, PIX_COLOR_INDEX(5), "Level");
             LegitProfiler::ProfilerTask queue("Execute queues", LegitProfiler::Colors::AMETHYST);
-            auto& target = Adapter->GetHdrRenderTarget();
+
             auto& depthBuffer = Adapter->GetHdrDepthBuffer();
-            ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
-            ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
+
+            if (probeHack) {
+                auto& target = Adapter->GetProbeCube();
+                target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                ctx.SetRenderTarget(target.GetRTV(probeIndex), depthBuffer.GetDSV());
+                ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
+                LightGrid->SetLightConstants(PROBE_RESOLUTION, PROBE_RESOLUTION);
+            }
+            else {
+                auto& target = Adapter->GetHdrRenderTarget();
+                target.Transition(cmdList, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                ctx.SetRenderTarget(target.GetRTV(), depthBuffer.GetDSV());
+                ctx.SetViewportAndScissor(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
+                LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
+            }
 
             ScopedTimer execTimer(&Metrics::ExecuteRenderCommands);
-            LightGrid->SetLightConstants(UINT(target.GetWidth() * Render::RenderScale), UINT(target.GetHeight() * Render::RenderScale));
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(1), "Opaque queue");
@@ -522,7 +554,7 @@ namespace Inferno::Render {
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Transparent);
             }
 
-            {
+            if (!probeHack) {
                 // Copy the contents of the render target to the distortion buffer
                 auto& renderTarget = Adapter->GetHdrRenderTarget();
 
@@ -547,19 +579,21 @@ namespace Inferno::Render {
             //    _levelResources->Volumes.Draw(cmdList);
 
             DrawBeams(ctx);
-            Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
         }
 
-        if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
-            PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
-            LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
-            DrawEditor(ctx.GetCommandList(), level);
-            DrawDebug(level);
-            LegitProfiler::AddCpuTask(std::move(editor));
-        }
-        else {
-            //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
-            Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
+        if (!probeHack) {
+            Canvas->SetSize(Adapter->GetWidth(), Adapter->GetHeight());
+            if (!Settings::Inferno.ScreenshotMode && Game::GetState() == GameState::Editor) {
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(6), "Editor");
+                LegitProfiler::ProfilerTask editor("Draw editor", LegitProfiler::Colors::CLOUDS);
+                DrawEditor(ctx.GetCommandList(), level);
+                DrawDebug(level);
+                LegitProfiler::AddCpuTask(std::move(editor));
+            }
+            else {
+                //Canvas->DrawGameText(level.Name, 0, 20 * Shell::DpiScale, FontSize::Big, { 1, 1, 1 }, 0.5f, AlignH::Center, AlignV::Top);
+                Canvas->DrawGameText("Inferno\nEngine", -10 * Shell::DpiScale, -10 * Shell::DpiScale, FontSize::MediumGold, { 1, 1, 1 }, 0.5f, AlignH::Right, AlignV::Bottom);
+            }
         }
 
         EndUpdateEffects();

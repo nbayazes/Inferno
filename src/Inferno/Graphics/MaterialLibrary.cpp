@@ -11,6 +11,10 @@
 using namespace DirectX;
 
 namespace Inferno::Render {
+    namespace {
+        std::mutex WorkerMutex;
+    }
+
     constexpr void FillTexture(span<ubyte> data, ubyte red, ubyte green, ubyte blue, ubyte alpha) {
         for (size_t i = 0; i < data.size() / 4; i++) {
             data[i * 4] = red;
@@ -344,7 +348,7 @@ namespace Inferno::Render {
     }
 
     Option<Material2D> UploadMaterial(ResourceUploadBatch& batch,
-                                      MaterialUpload& upload) {
+                                      const MaterialUpload& upload) {
         if (upload.ID <= TexID::Invalid) return {};
         Material2D material;
         material.ID = upload.ID;
@@ -508,8 +512,11 @@ namespace Inferno::Render {
             EndTextureUpload(batch, Render::Adapter->AsyncBatchUploadQueue->Get());
 
             //SPDLOG_INFO("Moving {} uploads to pending copies", uploads.size());
-            for (auto& upload : uploads)
-                _lib->_pendingCopies.Add(std::move(upload)); // copies are performed on main thread
+            {
+                std::scoped_lock lock(WorkerMutex);
+                for (auto& upload : uploads)
+                    _lib->_pendingCopies.push_back(std::move(upload)); // copies are performed on main thread
+            }
 
             if (!uploads.empty()) {
                 //SPDLOG_INFO("Loaded {} textures on background thread", uploads.size());
@@ -589,13 +596,12 @@ namespace Inferno::Render {
     }
 
     void MaterialLibrary::Dispatch() {
-        if (!_pendingCopies.IsEmpty()) {
-            SPDLOG_INFO("Moving {} uploaded textures", _pendingCopies.Size());
+        if (!_pendingCopies.empty()) {
+            SPDLOG_INFO("Moving {} uploaded textures", _pendingCopies.size());
             Render::Adapter->WaitForGpu();
-            auto lock = _pendingCopies.Lock();
-            auto& copies = _pendingCopies.Get();
-            MoveUploads(copies, _materials);
-            copies.clear();
+            std::scoped_lock lock(WorkerMutex);
+            MoveUploads(_pendingCopies, _materials);
+            _pendingCopies.clear();
             Render::Uploads->GetFreeDescriptors();
         }
 
@@ -820,6 +826,12 @@ namespace Inferno::Render {
                 Render::StaticTextures->White.CreateShaderResourceView(handle.GetCpuHandle());
             else
                 Render::StaticTextures->Black.CreateShaderResourceView(handle.GetCpuHandle());
+        }
+
+        _cubeMaps.resize(10); // todo: resize based on level room count
+        
+        for (auto& map : _cubeMaps) {
+            map.Create(128, 128, L"cube map", false);
         }
     }
 }

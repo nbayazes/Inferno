@@ -26,13 +26,14 @@ namespace Inferno::Render {
     class MaterialLibrary {
         bool _requestPrune = false;
         List<Material2D> _materials;
-        ConcurrentList<Material2D> _pendingCopies;
+        List<Material2D> _pendingCopies;
         ConcurrentList<MaterialUpload> _requestedUploads;
         Dictionary<string, TexID> _namedMaterials;
 
         Ptr<WorkerThread> _worker;
 
         friend class MaterialUploadWorker;
+        List<TextureCube> _cubeMaps;
 
     public:
         MaterialLibrary(size_t size);
@@ -47,6 +48,7 @@ namespace Inferno::Render {
         const Material2D& Black() const { return _materials[(int)BLACK_MATERIAL]; }
         const Material2D& Missing() const { return _materials[(int)MISSING_MATERIAL]; }
 
+        TextureCube EnvironmentCube;
 
         // Gets a material based on a D1/D2 texture ID
         const Material2D& Get(TexID id) const {

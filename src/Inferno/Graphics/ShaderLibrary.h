@@ -12,7 +12,7 @@ namespace Inferno {
         void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter);
 
         // Binds per-frame shader constants
-        template<class T>
+        template <class T>
         void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const T& data, uint32 rootParameter) {
             BindTempConstants(cmdList, &data, sizeof(data), rootParameter);
         }
@@ -33,6 +33,7 @@ namespace Inferno {
         float ElapsedTime;
         Vector2 Size;
         float NearClip, FarClip;
+        Vector3 EyeDir;
         float GlobalDimming;
         HlslBool NewLightMode;
         TextureFilterMode FilterMode;
@@ -289,6 +290,7 @@ namespace Inferno {
             Sampler, // s0
             NormalSampler, // s1
             MaterialInfoBuffer, // t14
+            Environment, // t15
             LightGrid, // t11, t12, t13, b2
         };
 
@@ -299,6 +301,7 @@ namespace Inferno {
             HlslBool Distort;
             HlslBool Overlay;
             int Tex1, Tex2;
+            float EnvStrength;
         };
 
         LevelShader(const ShaderInfo& info) : IShader(info) {
@@ -351,6 +354,10 @@ namespace Inferno {
         static void SetMaterialInfoBuffer(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
             commandList->SetGraphicsRootDescriptorTable(MaterialInfoBuffer, handle);
         }
+
+        static void SetEnvironment(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE handle) {
+            commandList->SetGraphicsRootDescriptorTable(Environment, handle);
+        }
     };
 
     class SpriteShader : public IShader {
@@ -389,6 +396,7 @@ namespace Inferno {
             MaterialInfoBuffer, // t5
             VClipTable, // t6
             DissolveTexture, // t7
+            EnvironmentCube, // t8
             Sampler, // s0
             NormalSampler, // s1
             LightGrid, // t11, t12, t13, b2
@@ -418,6 +426,10 @@ namespace Inferno {
 
         static void SetDissolveTexture(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
             commandList->SetGraphicsRootDescriptorTable(DissolveTexture, texture);
+        }
+
+        static void SetEnvironmentCube(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE texture) {
+            commandList->SetGraphicsRootDescriptorTable(EnvironmentCube, texture);
         }
 
         static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {

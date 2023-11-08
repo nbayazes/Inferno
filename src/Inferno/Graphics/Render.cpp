@@ -19,6 +19,7 @@
 #include "LegitProfiler.h"
 #include "MaterialLibrary.h"
 #include "Procedural.h"
+#include "Render.Level.h"
 
 using namespace DirectX;
 using namespace Inferno::Graphics;
@@ -237,11 +238,6 @@ namespace Inferno::Render {
         StaticTextures = MakePtr<StaticTextureDef>();
         Adapter->SetWindow(hwnd, width, height);
         Adapter->CreateDeviceResources();
-
-        Render::Heaps = MakePtr<DescriptorHeaps>(10, 200, 200, MATERIAL_COUNT * 5);
-        Render::UploadHeap = MakePtr<UserDescriptorHeap>(MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
-        Render::UploadHeap->SetName(L"Upload Heap");
-        Render::Uploads = MakePtr<DescriptorRange<5>>(*Render::UploadHeap, Render::UploadHeap->Size());
 
         Adapter->CreateWindowSizeDependentResources();
         CreateDeviceDependentResources();
@@ -473,11 +469,10 @@ namespace Inferno::Render {
         MaterialInfoBuffer->Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     }
 
-    void UpdateFrameConstants(float viewportScale) {
-        auto output = Adapter->GetOutputSize();
+    void UpdateFrameConstants(const Vector2& size, float fovDeg) {
         Camera.Update(FrameTime);
-        Camera.SetViewport(output.x * viewportScale, output.y * viewportScale);
-        Camera.LookAtPerspective(Settings::Editor.FieldOfView, Game::Time);
+        Camera.SetViewport(size.x, size.y);
+        Camera.LookAtPerspective(fovDeg, Game::Time);
         ViewProjection = Camera.ViewProj();
         CameraFrustum = Camera.GetFrustum();
 
@@ -487,7 +482,8 @@ namespace Inferno::Render {
         frameConstants.NearClip = Camera.NearClip;
         frameConstants.FarClip = Camera.FarClip;
         frameConstants.Eye = Camera.Position;
-        frameConstants.Size = Adapter->GetOutputSize() * Render::RenderScale;
+        frameConstants.EyeDir = Camera.GetForward();
+        frameConstants.Size = size;
         frameConstants.RenderScale = Render::RenderScale;
         frameConstants.GlobalDimming = Game::GetSelfDestructDimming();
         frameConstants.NewLightMode = Settings::Graphics.NewLightMode;
@@ -531,6 +527,65 @@ namespace Inferno::Render {
         cmdList->SetGraphicsRootConstantBufferView(rootParameter, memory.GPU);
     }
 
+    struct RenderInfo {
+        Vector2 Size;
+    };
+
+    void RenderProbe(uint index) {
+        Adapter->WaitForGpu();
+        auto& ctx = Adapter->GetGraphicsContext();
+        ctx.Reset();
+        auto cmdList = ctx.GetCommandList();
+        Heaps->SetDescriptorHeaps(cmdList);
+        UpdateFrameConstants(Vector2(PROBE_RESOLUTION, PROBE_RESOLUTION), 90);
+        DrawLevel(ctx, Game::Level, true, index);
+        if (Settings::Graphics.MsaaSamples > 1) {
+            Adapter->ProbeRenderCube.ResolveFromMultisample(cmdList, Adapter->ProbeRenderCubeMsaa);
+        }
+
+        if (Settings::Graphics.EnableBloom && Adapter->TypedUAVLoadSupport_R11G11B10_FLOAT())
+            Bloom->Apply(cmdList, Adapter->ProbeRenderCube, index);
+
+        ////Render::Adapter->GetProbeCube().Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        Render::Adapter->ProbeRenderCube.Transition(cmdList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        ctx.Execute();
+        Adapter->WaitForGpu();
+    }
+
+    void RenderProbe(const Vector3& position) {
+        Render::Camera.Position = position;
+
+        for (uint i = 0; i < 6; i++) {
+            if (i == 0 || i == 1 || i == 4 || i == 5) {
+                Render::Camera.Up = Vector3::UnitY;
+            }
+
+            if (i == 0)
+                Render::Camera.Target = position + Vector3::UnitX;
+            if (i == 1)
+                Render::Camera.Target = position - Vector3::UnitX;
+
+            // top and bottom
+            if (i == 2) {
+                Render::Camera.Target = position + Vector3::UnitY;
+                Render::Camera.Up = -Vector3::UnitZ;
+            }
+            if (i == 3) {
+                Render::Camera.Target = position - Vector3::UnitY;
+                Render::Camera.Up = Vector3::UnitZ;
+            }
+
+            if (i == 4) {
+                Render::Camera.Target = position + Vector3::UnitZ;
+            }
+            if (i == 5) {
+                Render::Camera.Target = position - Vector3::UnitZ;
+            }
+
+            RenderProbe(i);
+        }
+    }
+
     void Present() {
         Metrics::BeginFrame();
         ScopedTimer presentTimer(&Metrics::Present);
@@ -539,9 +594,13 @@ namespace Inferno::Render {
 
         auto& ctx = Adapter->GetGraphicsContext();
         ctx.Reset();
-        Heaps->SetDescriptorHeaps(ctx.GetCommandList());
+        auto cmdList = ctx.GetCommandList();
+        Heaps->SetDescriptorHeaps(cmdList);
 
         if (LevelChanged) {
+            Adapter->WaitForGpu();
+            RebuildLevelResources(Game::Level);
+
             if (Game::GetState() == GameState::Editor) {
                 ResetEffects(); // prevent crashes due to ids changing
                 // Reattach object lights
@@ -551,23 +610,23 @@ namespace Inferno::Render {
                 }
             }
 
-            CopyMaterialData(ctx.GetCommandList());
-            LoadVClips(ctx.GetCommandList()); // todo: only load on initial level load
+            CopyMaterialData(cmdList);
+            LoadVClips(cmdList); // todo: only load on initial level load
         }
 
         //DrawBriefing(ctx, Adapter->BriefingColorBuffer);
-        UpdateFrameConstants(1);
+        UpdateFrameConstants(Adapter->GetOutputSize() * Render::RenderScale, Settings::Editor.FieldOfView);
 
-        DrawLevel(ctx, Game::Level);
-        Debug::EndFrame(ctx.GetCommandList());
+        DrawLevel(ctx, Game::Level, false);
+        Debug::EndFrame(cmdList);
 
         if (Game::GetState() == GameState::Game)
             DrawHud(ctx);
 
         //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);
-        if (Settings::Graphics.MsaaSamples > 1)
-            Adapter->SceneColorBuffer.ResolveFromMultisample(ctx.GetCommandList(), Adapter->MsaaColorBuffer);
-        //LegitProfiler::AddCpuTask(std::move(resolve));
+        if (Settings::Graphics.MsaaSamples > 1) {
+            Adapter->SceneColorBuffer.ResolveFromMultisample(cmdList, Adapter->MsaaColorBuffer);
+        }
 
         LegitProfiler::ProfilerTask postProcess("Post process");
         PostProcess(ctx);

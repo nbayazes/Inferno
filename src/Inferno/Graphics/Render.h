@@ -36,6 +36,7 @@ namespace Inferno::Render {
     inline Ptr<TextureCache> NewTextureCache;
 
     inline float RenderScale = 1; // Scale of 3D render target
+    inline bool ProbesComputed = false;
 
     inline D3D12_GPU_DESCRIPTOR_HANDLE GetWrappedTextureSampler() {
         return Settings::Graphics.FilterMode == TextureFilterMode::Point ? Heaps->States.PointWrap() : Heaps->States.AnisotropicWrap();
@@ -63,8 +64,7 @@ namespace Inferno::Render {
     void Shutdown();
     void Present();
 
-    // Binds per-frame shader constants
-    void BindTempConstants(ID3D12GraphicsCommandList* cmdList, const void* data, uint64 size, uint32 rootParameter);
+    void RenderProbe(const Vector3& position);
 
     //void ReloadShaders();
     void ReloadTextures();
@@ -121,7 +121,6 @@ namespace Inferno::Render {
                             const Vector3* up);
 
     extern bool LevelChanged;
-    void DrawLevel(Graphics::GraphicsContext& ctx, Level& level);
     PackedBuffer* GetLevelMeshBuffer();
 
     //const string TEST_MODEL = "robottesttube(orbot).OOF"; // mixed transparency test

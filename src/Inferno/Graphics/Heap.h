@@ -13,6 +13,7 @@ namespace Inferno::Render {
 namespace Inferno {
     struct DescriptorHandle {
         DescriptorHandle() = default;
+
         DescriptorHandle(D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE gpu)
             : _cpuHandle(cpu), _gpuHandle(gpu) {}
 
@@ -189,17 +190,17 @@ namespace Inferno {
     };
 
     // Divides a single descriptor heap into ranges
-    // [ reserved ] [ uploads ] [ materials ] = capacity
     class DescriptorHeaps {
         UserDescriptorHeap _shader;
 
     public:
-        DescriptorHeaps(uint renderTargets, uint reserved, uint procedurals, uint materials)
-            : _shader(reserved + materials + procedurals, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
+        DescriptorHeaps(uint renderTargets, uint reserved, uint procedurals, uint cubemaps, uint materials)
+            : _shader(reserved + materials + procedurals + cubemaps, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV),
               States(Render::Device),
               Reserved(_shader, reserved),
               Procedurals(_shader, procedurals, reserved),
-              Materials(_shader, materials, reserved + procedurals),
+              Cubemaps(_shader, cubemaps, reserved + procedurals),
+              Materials(_shader, materials, reserved + procedurals + cubemaps),
               RenderTargets(renderTargets, D3D12_DESCRIPTOR_HEAP_TYPE_RTV),
               DepthStencil(5, D3D12_DESCRIPTOR_HEAP_TYPE_DSV) {
             _shader.SetName(L"Shader visible heap");
@@ -211,6 +212,7 @@ namespace Inferno {
         // Static CBV SRV UAV for buffers
         DescriptorRange<1> Reserved;
         DescriptorRange<1> Procedurals;
+        DescriptorRange<1> Cubemaps;
         // Dynamic CBV SRV UAV for shader texture resources
         DescriptorRange<5> Materials; // Materials mapped to TexIDs
         UserDescriptorHeap RenderTargets, DepthStencil;

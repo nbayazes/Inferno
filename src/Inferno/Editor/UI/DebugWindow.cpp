@@ -41,6 +41,15 @@ namespace Inferno::Editor {
             EnableProceduralTextures(Settings::Graphics.EnableProcedurals);
         }
 
+        //if (ImGui::Button("Update probes")) {
+        //    auto camera =  Render::Camera;
+        //    if (auto seg = Game::Level.TryGetSegment(Editor::Selection.Segment)) {
+        //        Render::RenderProbe(seg->Center);
+        //        Render::Camera = camera;
+        //        Render::ProbesComputed = true;
+        //    }
+        //}
+
         ImGui::Combo("Filtering", (int*)&Settings::Graphics.FilterMode, "Point\0Enhanced point\0Smooth");
 
         {

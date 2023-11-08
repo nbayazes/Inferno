@@ -8,15 +8,15 @@
 #include "Types.h"
 #include "ScopedTimer.h"
 #include <dxgi1_6.h>
+#include "MaterialLibrary.h"
 
 namespace Inferno {
     using namespace DirectX;
 
 #pragma warning(disable : 4061)
 
-    // intermediate format for rendering. need to switch to 32 bit for bloom effects.
+    // intermediate format for rendering
     constexpr DXGI_FORMAT IntermediateFormat = DXGI_FORMAT_R11G11B10_FLOAT;
-    //constexpr DXGI_FORMAT IntermediateFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
     namespace {
         constexpr DXGI_FORMAT StripSRGB(DXGI_FORMAT fmt) noexcept {
@@ -65,7 +65,6 @@ namespace Inferno {
 
     // Configures the Direct3D device, and stores handles to it and the device context.
     void DeviceResources::CreateDeviceResources() {
-
 #ifdef _DEBUG
         // Enable the debug layer (requires the Graphics Tools "optional feature").
         //
@@ -74,15 +73,15 @@ namespace Inferno {
             //ComPtr<IDXGraphicsAnalysis> graphics_analysis;
             //const auto result = DXGIGetDebugInterface1(0, IID_PPV_ARGS(&graphics_analysis));
             //if (FAILED(result)) {
-                // Not running in PIX, enable the debug layer
-                ComPtr<ID3D12Debug> debugController;
-                if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
-                    OutputDebugStringA("Direct3D Debug Layer Enabled\n");
-                    debugController->EnableDebugLayer();
-                }
-                else {
-                    OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
-                }
+            // Not running in PIX, enable the debug layer
+            ComPtr<ID3D12Debug> debugController;
+            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.GetAddressOf())))) {
+                OutputDebugStringA("Direct3D Debug Layer Enabled\n");
+                debugController->EnableDebugLayer();
+            }
+            else {
+                OutputDebugStringA("WARNING: Direct3D Debug Device is not available\n");
+            }
             //}
 
             ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
@@ -152,7 +151,7 @@ namespace Inferno {
 #endif
 
         // Determine maximum supported feature level for this device
-        static const D3D_FEATURE_LEVEL s_featureLevels[] = {
+        static constexpr D3D_FEATURE_LEVEL s_featureLevels[] = {
             D3D_FEATURE_LEVEL_12_2, // Requires agility SDK on Windows 10
             D3D_FEATURE_LEVEL_12_1,
             D3D_FEATURE_LEVEL_12_0,
@@ -215,6 +214,25 @@ namespace Inferno {
         //CheckMsaaSupport(2, IntermediateFormat);
         //CheckMsaaSupport(4, IntermediateFormat);
         //CheckMsaaSupport(8, IntermediateFormat);
+
+        Render::Heaps = MakePtr<DescriptorHeaps>(20, 300, 200, 500, Render::MATERIAL_COUNT * 5);
+        Render::UploadHeap = MakePtr<UserDescriptorHeap>(Render::MATERIAL_COUNT * 5, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, false);
+        Render::UploadHeap->SetName(L"Upload Heap");
+        Render::Uploads = MakePtr<DescriptorRange<5>>(*Render::UploadHeap, Render::UploadHeap->Size());
+
+        // Leaving these here causes crashes when changing MSAA mode
+        ProbeRenderCube.Create(PROBE_RESOLUTION, PROBE_RESOLUTION, L"Probe render cube", true, IntermediateFormat, 1);
+        ProbeRenderCube.CreateCubeSRV();
+        if (Settings::Graphics.MsaaSamples > 1) {
+            ProbeRenderCubeMsaa.Create(PROBE_RESOLUTION, PROBE_RESOLUTION, L"Probe render cube msaa", true, IntermediateFormat, Settings::Graphics.MsaaSamples);
+            ProbeRenderCubeMsaa.CreateRTVs();
+        }
+        else {
+            ProbeRenderCube.CreateRTVs();
+        }
+
+        ProbeRenderCube.CreateUAVs();
+        ProbeRenderCube.CreateSRVs();
     }
 
     // These resources need to be recreated every time the window size is changed.
@@ -619,20 +637,30 @@ namespace Inferno {
         BriefingScanlineBuffer.AddUnorderedAccessView();
         //FrameConstantsBuffer.CreateGenericBuffer(L"Frame constants");
 
+
         if (Settings::Graphics.MsaaSamples > 1) {
             MsaaColorBuffer.Create(L"MSAA Color Buffer", width, height, IntermediateFormat, clearColor, Settings::Graphics.MsaaSamples);
             MsaaDepthBuffer.Create(L"MSAA Depth Buffer", width, height, m_depthBufferFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.Create(L"MSAA Linear depth buffer", width, height, DepthShader::OutputFormat, Settings::Graphics.MsaaSamples);
             MsaaLinearizedDepthBuffer.AddRenderTargetView();
             MsaaLinearizedDepthBuffer.AddShaderResourceView();
-            //MsaaDistortionBuffer.Create(L"MSAA distortion buffer", width, height, IntermediateFormat, Settings::Graphics.MsaaSamples);
-            //MsaaDistortionBuffer.AddShaderResourceView();
         }
         else {
             MsaaColorBuffer.Release();
             MsaaDepthBuffer.Release();
             MsaaLinearizedDepthBuffer.Release();
-            //MsaaDistortionBuffer.Release();
+        }
+
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+            desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+            desc.TextureCube.MipLevels = 1;
+            desc.TextureCube.MostDetailedMip = 0;
+            desc.TextureCube.ResourceMinLODClamp = 0;
+            if (!NullCube) NullCube = Render::Heaps->Reserved.Allocate();
+            m_d3dDevice->CreateShaderResourceView(nullptr, &desc, NullCube.GetCpuHandle());
         }
     }
 
