@@ -188,9 +188,8 @@ float3 ApplyPointLight(
 ) {
     float planeFactor = 1;
 
-    // clip specular behind the light plane. todo: move to hemisphere light
+    // clip specular behind the light plane
     if (any(planeNormal)) {
-        //lightPos -= planeNormal * 3; // undo offset
         planeFactor = -dot(planeNormal, lightPos - worldPos);
         lightPos += planeNormal * 1.0;
     }
@@ -209,7 +208,7 @@ float3 ApplyPointLight(
 
     float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
     specularFactor *= 1 + FresnelSimple(dot(lightDir, halfVec)) * FRESNEL_MULT;
-
+    specularFactor *= saturate(dot(normal, lightDir) * 4); // fade specular behind the surface plane
     specularFactor *= saturate(planeFactor);
     falloff *= saturate(planeFactor * 4 + 1);
     float3 specular = max(0, specularFactor * specularColor * specularMask);
@@ -608,29 +607,25 @@ float3 ApplyRectLight2(
         //planeDist = min(planeDist, 0);
         //float planeFactor = 1.0 - planeDist * (1 - roughness) * (1 - roughness);
 
-        //float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
-        //float3 lightDir = normalize(lightPos - worldPos);
+        float3 lightDir = normalize(lightPos - worldPos);
+        // Fresnel, also check if point is behind light plane or surface plane
+        specularFactor *= 1 + FresnelSimple(dot(h, viewDir)) * FRESNEL_MULT * dot(-planeNormal, lightDir) ;
 
         // Fade distant highlights
         specularFactor *= max(1 - length(nearestReflectedPoint - reflectedPlanePoint) / lightRadius / 8, 0);
-        //specularFactor *= (1 - roughness * 0.66); // Additional roughness falloff
-
-        specularColor *= 0.85; // tweak to match point lights and compensate for extra point specular
-        specularFactor *= 1 + FresnelSimple(dot(h, viewDir)) * FRESNEL_MULT;
+        specularFactor *= 0.85; // tweak to match point lights and compensate for extra point specular
 
         {
             // point specular. helps minimize shimmering due to inaccuracies in the nearest point calculations
-            float3 lightDir = normalize(lightPos - worldPos);
             float3 halfVec = normalize(lightDir - viewDir);
             float nDotH2 = saturate(dot(halfVec, normal));
             float phong = pow(nDotH2, gloss) * (gloss + 2) / 8; // blinn-phong
-            //float nDotL = HalfLambert(normal, lightDir);
-            //float nDotL = dot(normal, lightDir);
             specularFactor = max(specularFactor, phong /** nDotL*/); // take the max between the two!
         }
 
         // fade specular close to the light plane. it behaves very oddly with individual points appearing.
         specularFactor *= saturate(1 - dot(normal, planeNormal));
+        specularFactor *= saturate(dot(normal, lightDir) * 4); // fade specular behind the surface plane
 
         const float3 vLight = lightPos - worldPos;
         float rDotL = dot(r, normalize(vLight));
