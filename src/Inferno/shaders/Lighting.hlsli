@@ -54,6 +54,10 @@ float FresnelRoughnessSimple(float cosTheta, float roughness) {
     return (1.0 - roughness) * pow(max(1.0 - cosTheta, 0), 5.0);
 }
 
+float FresnelSimple(float cosTheta) {
+    return pow(max(1.0 - cosTheta, 0), 5.0);
+}
+
 float Lambert(float3 normal, float3 lightDir) {
     return saturate(dot(normal, lightDir));
 }
@@ -204,11 +208,10 @@ float3 ApplyPointLight(
     float nDotL = HalfLambert(normal, lightDir);
 
     float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-    specularFactor *= 1 + FresnelRoughnessSimple(dot(lightDir, halfVec), roughness) * FRESNEL_MULT;
+    specularFactor *= 1 + FresnelSimple(dot(lightDir, halfVec)) * FRESNEL_MULT;
 
     specularFactor *= saturate(planeFactor);
     falloff *= saturate(planeFactor * 4 + 1);
-
     float3 specular = max(0, specularFactor * specularColor * specularMask);
     return nDotL * falloff * (lightColor * diffuse + specular) * GLOBAL_LIGHT_MULT;
 }
@@ -608,14 +611,12 @@ float3 ApplyRectLight2(
         //float fresnel = pow(1 - saturate(dot(lightDir, halfVec)), 5);
         //float3 lightDir = normalize(lightPos - worldPos);
 
-        //float3 halfVec = normalize(lightDir - viewDir);
-
         // Fade distant highlights
         specularFactor *= max(1 - length(nearestReflectedPoint - reflectedPlanePoint) / lightRadius / 8, 0);
         //specularFactor *= (1 - roughness * 0.66); // Additional roughness falloff
 
         specularColor *= 0.85; // tweak to match point lights and compensate for extra point specular
-        specularFactor *= 1 + FresnelRoughnessSimple(dot(h, viewDir), roughness) * FRESNEL_MULT;
+        specularFactor *= 1 + FresnelSimple(dot(h, viewDir)) * FRESNEL_MULT;
 
         {
             // point specular. helps minimize shimmering due to inaccuracies in the nearest point calculations
