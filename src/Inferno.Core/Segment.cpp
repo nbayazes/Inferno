@@ -38,25 +38,47 @@ namespace Inferno {
         return delta;
     }
 
-    //  Returns the lowest 3 indices of a side, used for stable comparison of joined sides
-    Array<int, 3> GetLowestIndices(SideID side, const Array<PointID, MAX_VERTICES>& segIndices) {
-        auto& sideVerts = SIDE_INDICES[(int)side];
+    // Returns the sorted vertex indices, along with a flag indicating if the normal is flipped.
+    Array<int, 4> GetSortedVerts(Array<int, 4> v, bool& flippedNormal) {
+        int w[] = { 0, 1, 2, 3 };
 
-        Array<int, 4> indices = {
-            segIndices[sideVerts[0]],
-            segIndices[sideVerts[1]],
-            segIndices[sideVerts[2]],
-            segIndices[sideVerts[3]]
-        };
+        for (int i = 1; i < 4; i++) {
+            for (int j = 0; j < i; j++) {
+                if (v[j] > v[i]) {
+                    std::swap(v[j], v[i]);
+                    std::swap(w[j], w[i]);
+                }
+            }
+        }
 
-        ranges::sort(indices);
-        return { indices[0], indices[1], indices[2] };
+        ASSERT(v[0] < v[1] && v[1] < v[2] && v[2] < v[3]);
+        flippedNormal = (w[0] + 3) % 4 == w[1] || (w[1] + 3) % 4 == w[2];
+        return v;
     }
+
+    // Sorts indices and returns true if the normal is flipped
+    bool SortIndices(std::array<int, 4>& v) {
+        int w[] = { 0, 1, 2, 3 }; // Track if the normal should be flipped
+
+        for (int i = 1; i < 4; i++) {
+            for (int j = 0; j < i; j++) {
+                if (v[j] > v[i]) {
+                    std::swap(v[j], v[i]);
+                    std::swap(w[j], w[i]);
+                }
+            }
+        }
+
+        ASSERT(v[0] < v[1] && v[1] < v[2] && v[2] < v[3]);
+        return (w[0] + 3) % 4 == w[1] || (w[1] + 3) % 4 == w[2];
+    }
+
 
     void Segment::UpdateGeometricProps(const Level& level) {
         for (auto& sideId : SideIDs) {
             auto& side = GetSide(sideId);
             auto& sideVerts = SIDE_INDICES[(int)sideId];
+
             auto& v0 = level.Vertices[Indices[sideVerts[0]]];
             auto& v1 = level.Vertices[Indices[sideVerts[1]]];
             auto& v2 = level.Vertices[Indices[sideVerts[2]]];
@@ -65,11 +87,13 @@ namespace Inferno {
             auto n0 = CreateNormal(v0, v1, v2);
 
             if (SideHasConnection(sideId)) {
-                // Use the same triangle to compare both open sides so they join consistently
-                auto indices = GetLowestIndices(sideId, Indices);
-                auto normal = CreateNormal(level.Vertices[indices[0]], level.Vertices[indices[1]], level.Vertices[indices[2]]);
-                auto dotNormal = n0.Dot(normal); // Check if ref triangle is flipped
-                side.Type = dotNormal >= 0 ? SideSplitType::Tri02 : SideSplitType::Tri13;
+                Array<int, 4> indices{};
+                for (int i = 0; i < 4; i++)
+                    indices[i] = Indices[sideVerts[i]];
+
+                Array<int, 4> sorted = indices;
+                SortIndices(sorted);
+                side.Type = sorted[0] == indices[0] || sorted[0] == indices[2] ? SideSplitType::Tri02 : SideSplitType::Tri13;
             }
             else {
                 // Always split solid sides to be convex

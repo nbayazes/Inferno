@@ -184,8 +184,10 @@ namespace Inferno {
         //return true;
     }
 
-    SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int iterations) {
-        if (iterations > 1000) {
+    SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int& iterations) {
+        iterations++;
+
+        if (iterations > 100) {
             SPDLOG_ERROR("Trace depth limit reached, something is wrong");
             __debugbreak();
             return start;
@@ -219,7 +221,7 @@ namespace Inferno {
 
             if (biggestSide != SideID::None) {
                 distances[(int)biggestSide] = 0;
-                auto check = TraceSegmentInternal(level, seg->GetConnection(biggestSide), point, iterations++);
+                auto check = TraceSegmentInternal(level, seg->GetConnection(biggestSide), point, iterations);
                 if (check != SegID::None)
                     return check;
             }
@@ -230,7 +232,8 @@ namespace Inferno {
     }
 
     SegID TraceSegment(const Level& level, SegID start, const Vector3& point) {
-        return TraceSegmentInternal(level, start, point, 0);
+        int iterations = 0;
+        return TraceSegmentInternal(level, start, point, iterations);
     }
 
 
