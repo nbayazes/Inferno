@@ -288,12 +288,22 @@ namespace Inferno::Sound {
     }
 
     // Creates a mono PCM sound effect
-    SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0) {
+    SoundEffect CreateSoundEffect(AudioEngine& engine, span<ubyte> raw, uint32 frequency = 22050, float trimStart = 0, float trimEnd = 0) {
         // create a buffer and store wfx at the beginning.
-        int trim = int((float)frequency * trimStart);
-        auto wavData = MakePtr<uint8[]>(raw.size() + sizeof(WAVEFORMATEX) - trim);
+        int trimStartBytes = int((float)frequency * trimStart);
+        int trimEndBytes = int((float)frequency * trimEnd);
+        
+        // Leave data for the trimmed end in case the sound is looped
+        const size_t wavDataSize = raw.size() + sizeof(WAVEFORMATEX) - trimStartBytes;
+        auto wavData = MakePtr<uint8[]>(wavDataSize);
+
+        if (trimEnd) {
+            for (int i = 0; i < wavDataSize; i++)
+                wavData[i] = 128; // constant value is silence
+        }
+
         auto startAudio = wavData.get() + sizeof(WAVEFORMATEX);
-        memcpy(startAudio, raw.data() + trim, raw.size() - trim);
+        memcpy(startAudio, raw.data() + trimStartBytes, raw.size() - trimStartBytes - trimEndBytes);
 
         auto wfx = (WAVEFORMATEX*)wavData.get();
         wfx->wFormatTag = WAVE_FORMAT_PCM;
@@ -305,7 +315,7 @@ namespace Inferno::Sound {
         wfx->cbSize = 0;
 
         // Pass the ownership of the buffer to the sound effect
-        return SoundEffect(&engine, wavData, wfx, startAudio, raw.size() - trim);
+        return SoundEffect(&engine, wavData, wfx, startAudio, raw.size() - trimStartBytes);
     }
 
     SoundEffect CreateSoundEffectWav(AudioEngine& engine, span<ubyte> raw) {
@@ -350,9 +360,13 @@ namespace Inferno::Sound {
         if (id == 47)
             trimStart = 0.05f; // Trim the first 50ms from the door close sound due to a popping noise
 
+        float trimEnd = 0;
+        if (id == 42)
+            trimEnd = 0.05f; // Trim the end of the fan loop due to a pop
+
         auto data = Resources::SoundsD1.Read(id);
         if (data.empty()) return nullptr;
-        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, FREQUENCY_11KHZ, trimStart))).get();
+        return (SoundsD1[int(id)] = MakePtr<SoundEffect>(CreateSoundEffect(*Engine, data, FREQUENCY_11KHZ, trimStart, trimEnd))).get();
     }
 
     SoundEffect* LoadSoundD2(int id) {
