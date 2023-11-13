@@ -8,10 +8,11 @@ namespace Inferno {
         //Vector3 rgb = { (float)color.r / 255.0f, (float)color.g / 255.0f, (float)color.b / 255.0f };
         //auto height = Luminance(rgb);
         auto c = color.ToColor();
-        c.AdjustSaturation(0);
-        auto height = c.x;
-        //auto height = ((float)color.r + (float)color.g + (float)color.b) / 3.0f / 255.0f;
-        return invert ? 1.0f - height : height;
+        //c.AdjustSaturation(0);
+        //auto v = c.x;
+        auto hsv = Vector3(DirectX::XMColorRGBToHSV(c));
+        auto v = hsv.z;
+        return invert ? 1.0f - v : v;
     }
 
     inline List<uint8> CreateSpecularMap(const PigBitmap& image, float brightness = 0.5f, float contrast = 1.0f, bool invert = false) {
@@ -100,10 +101,15 @@ namespace Inferno {
                 const auto bl = GetIntensity(bottomLeft, options.Invert);
                 const auto l = GetIntensity(left, options.Invert);
 
-                constexpr float weight = 1.0f; // 2 for sobel, 1 for prewitt 
+                constexpr float weight = 1.0f; // 2 for sobel, 1 for prewitt. sobel looks too smooth.
                 const auto dX = (tr + weight * r + br) - (tl + weight * l + bl);
                 const auto dY = (bl + weight * b + br) - (tl + weight * t + tr);
                 const auto dZ = strengthInv;
+
+                // Cheaper approach that is sharper but more grainy
+                //dX = r - l
+                //dY = b - t
+                //dZ = .5f;
 
                 Vector3 c(dX, dY, dZ);
                 c.Normalize();
