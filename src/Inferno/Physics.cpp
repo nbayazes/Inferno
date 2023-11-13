@@ -197,6 +197,9 @@ namespace Inferno {
 
         Weapon* weapon = obj.IsWeapon() ? &Resources::GetWeapon(obj) : nullptr;
 
+        if (HasFlag(obj.Physics.Flags, PhysicsFlag::Gravity))
+            pd.Velocity += Game::Gravity * dt;
+
         // Apply weapon thrust
         if (weapon && weapon->Thrust != 0)
             pd.Thrust = obj.Rotation.Forward() * weapon->Thrust * dt;

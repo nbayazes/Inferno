@@ -60,6 +60,7 @@ namespace Inferno {
         BouncesTwice = 1 << 9, // This weapon bounces twice, then dies
         SphereCollidePlayer = 1 << 10, // Use spheres when colliding with the player
         PointCollideWalls = 1 << 11, // Use raycasting against walls, otherwise use spheres
+        Gravity = 1 << 12, // Apply gravity
     };
 
     enum class PowerupID : uint8 {

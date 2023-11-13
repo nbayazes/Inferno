@@ -135,7 +135,7 @@ namespace Inferno::Render {
         Vector3 Velocity;
         Vector3 AngularVelocity;
         float Mass = 1;
-        float Drag = 0.01f;
+        float Drag = 0.03f;
         float Radius = 1;
         ModelID Model = ModelID::None;
         int Submodel = 0;

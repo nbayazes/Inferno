@@ -563,6 +563,7 @@ namespace Inferno {
                 Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
                 beam->StartDelay = stunTime * 2 / 3;
                 Render::AddBeam(*beam, stunTime - beam->StartDelay, startObj);
+                SetFlag(robot.Physics.Flags, PhysicsFlag::Gravity);
             }
         }
 
@@ -916,6 +917,9 @@ namespace Inferno {
 
         if (ai.RemainingStun > 0)
             return; // Can't act while stunned
+
+        if (HasFlag(robot.Physics.Flags, PhysicsFlag::Gravity))
+            ClearFlag(robot.Physics.Flags, PhysicsFlag::Gravity); // Unstunned
 
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
