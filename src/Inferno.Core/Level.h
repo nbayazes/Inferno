@@ -442,6 +442,12 @@ namespace Inferno {
             return obj;
         }
 
+        const Object* TryGetObject(ObjRef ref) const {
+            auto obj = TryGetObject(ref.Id);
+            if (!obj || obj->Signature != ref.Signature) return nullptr;
+            return obj;
+        }
+
         TriggerID GetTriggerID(WallID wid) const {
             auto wall = TryGetWall(wid);
             if (!wall) return TriggerID::None;

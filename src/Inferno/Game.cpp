@@ -32,6 +32,8 @@ namespace Inferno::Game {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
+
+        constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
     }
 
     void StartLevel();
@@ -257,6 +259,92 @@ namespace Inferno::Game {
         }
     }
 
+    void CloakObject(Object& obj, float duration, bool playSound) {
+        ASSERT(duration != 0);
+        SetFlag(obj.Effects.Flags, EffectFlags::Cloaked);
+        obj.Effects.CloakDuration = duration;
+        obj.Effects.CloakTimer = 0;
+
+        if (playSound) {
+            Sound3D sound({ SoundID::CloakOn }, GetObjectRef(obj));
+            sound.FromPlayer = obj.IsPlayer();
+            sound.Merge = false;
+            Sound::Play(sound);
+        }
+    }
+
+    void UncloakObject(Object& obj, bool playSound) {
+        ClearFlag(obj.Effects.Flags, EffectFlags::Cloaked);
+
+        if (playSound) {
+            Sound3D sound({ SoundID::CloakOff }, GetObjectRef(obj));
+            sound.FromPlayer = obj.IsPlayer();
+            sound.Merge = false;
+            Sound::Play(sound);
+        }
+    }
+
+    void MakeInvulnerable(Object& obj, float duration, bool playSound) {
+        ASSERT(duration != 0);
+        SetFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
+        obj.Effects.InvulnerableDuration = duration;
+        obj.Effects.InvulnerableTimer = 0;
+
+        if (playSound) {
+            Sound3D sound({ SoundID::InvulnOn }, GetObjectRef(obj));
+            sound.FromPlayer = obj.IsPlayer();
+            sound.Merge = false;
+            Sound::Play(sound);
+        }
+    }
+
+    void MakeVulnerable(Object& obj, bool playSound) {
+        ClearFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
+
+        if (playSound) {
+            Sound3D sound({ SoundID::InvulnOff }, GetObjectRef(obj));
+            sound.FromPlayer = obj.IsPlayer();
+            sound.Merge = false;
+            Sound::Play(sound);
+        }
+    }
+
+    void UpdateEffects(Object& obj, float dt) {
+        auto& e = obj.Effects;
+
+        if (HasFlag(e.Flags, EffectFlags::Cloaked)) {
+            e.CloakTimer += dt;
+
+            if (e.CloakDuration > 0 && e.CloakTimer >= e.CloakDuration)
+                UncloakObject(obj);
+        }
+
+        if (HasFlag(e.Flags, EffectFlags::Invulnerable)) {
+            e.InvulnerableTimer += dt;
+
+            if (e.InvulnerableDuration > 0 && e.InvulnerableTimer >= e.InvulnerableDuration)
+                MakeVulnerable(obj);
+        }
+
+        if (HasFlag(e.Flags, EffectFlags::PhaseIn)) {
+            e.PhaseTimer += dt;
+            if (e.PhaseTimer >= e.PhaseDuration)
+                ClearFlag(e.Flags, EffectFlags::PhaseIn);
+        }
+
+        if (HasFlag(e.Flags, EffectFlags::PhaseOut)) {
+            e.PhaseTimer += dt;
+            if (e.PhaseTimer >= e.PhaseDuration)
+                ClearFlag(e.Flags, EffectFlags::PhaseOut);
+        }
+
+        if (HasFlag(e.Flags, EffectFlags::Ignited)) {
+            e.IgniteDuration -= dt;
+            if (e.IgniteDuration <= 0)
+                ClearFlag(e.Flags, EffectFlags::Ignited);
+        }
+    }
+
     // Updates on each game tick
     void FixedUpdate(float dt) {
         Player.Update(dt);
@@ -281,7 +369,7 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Reactor)
                 UpdateReactor(obj);
 
-            obj.Effects.Update(dt);
+            UpdateEffects(obj, dt);
         }
 
         if (auto currentRoom = GetCurrentRoom()) {
@@ -297,8 +385,6 @@ namespace Inferno::Game {
                 }
             }
         }
-
-        AddPendingObjects(Game::Level);
     }
 
     void DecayScreenFlash(float dt) {
@@ -323,6 +409,12 @@ namespace Inferno::Game {
             else if (Game::State == GameState::Game) {
                 HandleInput(dt);
             }
+        }
+
+        // Grow the object buffer ahead of time in case new objects are created
+        if (Level.Objects.size() + OBJECT_BUFFER_SIZE > Level.Objects.capacity()) {
+            Level.Objects.reserve(Level.Objects.size() + OBJECT_BUFFER_SIZE * 2);
+            SPDLOG_INFO("Growing object buffer to {}", Level.Objects.capacity());
         }
 
         Game::Player.HomingObjectDist = -1; // Clear each frame. Updating objects sets this.
@@ -383,7 +475,7 @@ namespace Inferno::Game {
     Inferno::Editor::EditorUI EditorUI;
 
     void MoveCameraToObject(Camera& camera, const Object& obj, float lerp) {
-        Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), lerp);
+        Matrix transform = obj.GetTransform(lerp);
         camera.Position = transform.Translation();
         camera.Target = camera.Position + transform.Forward();
         camera.Up = transform.Up();
@@ -432,6 +524,26 @@ namespace Inferno::Game {
         State = RequestedState;
     }
 
+    bool ConfirmedInput() {
+        // todo: check if fire button pressed
+        return Input::IsKeyPressed(Keys::Space) || Input::IsMouseButtonPressed(Input::Left) || Input::IsMouseButtonPressed(Input::Right);
+    }
+
+    void UpdateDeathSequence(float dt) {
+        Player.DoDeathSequence(dt);
+
+        if (Player.TimeDead > 2) {
+            if (Player.Lives == 0) {
+                Render::Canvas->DrawGameText("game over", 0, 0, FontSize::Big, Color(1, 1, 1), 1, AlignH::Center, AlignV::Center);
+                if (ConfirmedInput())
+                    SetState(GameState::Editor);
+            }
+            else if (ConfirmedInput()) {
+                Player.Respawn(true);
+            }
+        }
+    }
+
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
 
@@ -445,8 +557,13 @@ namespace Inferno::Game {
         switch (State) {
             case GameState::Game:
                 LerpAmount = GameUpdate(dt);
-                if (!Level.Objects.empty())
-                    MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
+
+                if (!Level.Objects.empty()) {
+                    if (Player.IsDead)
+                        UpdateDeathSequence(dt);
+                    else
+                        MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
+                }
 
                 break;
 
@@ -618,6 +735,10 @@ namespace Inferno::Game {
         // Activate game mode
         Editor::InitObject(Level, *player, ObjectType::Player);
         Player.Reference = { ObjID(0), player->Signature };
+        Player.SpawnPosition = player->Position;
+        Player.SpawnRotation = player->Rotation;
+        Player.SpawnSegment = player->Segment;
+        Player.Lives = PlayerData::INITIAL_LIVES;
 
         Editor::History.SnapshotLevel("Playtest");
         State = GameState::Game;
@@ -632,6 +753,8 @@ namespace Inferno::Game {
         Render::Materials->LoadGameTextures();
         InitObjects(Level);
         InitializeMatcens(Level);
+        Render::LoadHUDTextures();
+        PreloadTextures();
 
         Editor::SetPlayerStartIDs(Level);
         // Default the gravity direction to the player start
@@ -642,17 +765,10 @@ namespace Inferno::Game {
         Render::LevelChanged = true; // regenerate level meshes
 
         // init objects
+        Time = 0;
+
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
-
-            if (obj.IsPlayer()) {
-                obj.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
-                if (Player.HasPowerup(PowerupFlag::Invulnerable))
-                    obj.MakeInvulnerable(3600.0f);
-
-                if (Player.HasPowerup(PowerupFlag::Cloak))
-                    obj.Cloak(3600.0f);
-            }
 
             if ((obj.IsPlayer() && obj.ID != 0) || obj.IsCoop())
                 obj.Lifespan = -1; // Remove non-player 0 starts (no multiplayer)
@@ -694,32 +810,8 @@ namespace Inferno::Game {
         EditorCameraSnapshot = Render::Camera;
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
-        Render::LoadHUDTextures();
 
-        PreloadTextures();
-
-        Player.GiveWeapon(PrimaryWeaponIndex::Laser);
-        Player.GiveWeapon(PrimaryWeaponIndex::Vulcan);
-        Player.GiveWeapon(PrimaryWeaponIndex::Spreadfire);
-        Player.GiveWeapon(PrimaryWeaponIndex::Helix);
-        Player.GiveWeapon(PrimaryWeaponIndex::Fusion);
-        Player.GiveWeapon(SecondaryWeaponIndex::Concussion);
-        Player.GivePowerup(PowerupFlag::Afterburner);
-
-        // Reset shields and energy to at least 100 on level start
-        Player.Shields = std::max(Player.Shields, 100.0f);
-        Player.Energy = std::max(Player.Energy, 100.0f);
-
-        // Max vulcan ammo changes between D1 and D2
-        PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Level.IsDescent1() ? 10000 : 20000;
-
-        Player.PrimaryWeapons = 0xffff;
-        Player.SecondaryWeapons = 0xffff;
-        int weaponCount = Level.IsDescent2() ? 10 : 5;
-        for (int i = 0; i < weaponCount; ++i) {
-            Player.SecondaryAmmo[i] = 99;
-            Player.PrimaryAmmo[i] = 5000;
-        }
+        Player.Respawn(false);
     }
 
     void SetState(GameState state) {

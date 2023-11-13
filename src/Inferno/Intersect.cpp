@@ -302,6 +302,7 @@ namespace Inferno {
         if (next == SegID::None)
             next = FindContainingSegment(*_level, ray.position);
 
+        ASSERT(query.MaxDistance > 0);
         if (next == SegID::None) return false;
         if (query.MaxDistance <= 0.01f) return false;
 

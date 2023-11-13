@@ -501,7 +501,7 @@ namespace Inferno {
                         dist -= target.Radius;
 
                     if (dist >= explosion.Radius) continue;
-                    dist = std::max(dist, 0.0f);
+                    dist = std::max(dist, 0.1f);
 
                     Vector3 dir = target.Position - explosion.Position;
                     dir.Normalize();
@@ -1357,7 +1357,11 @@ namespace Inferno {
 
         if (!obj.IsAlive() && obj.Type != ObjectType::Reactor) return;
         if (obj.Type == ObjectType::Player && obj.ID > 0) return; // singleplayer only
-        if (obj.Movement != MovementType::Physics) return;
+        if (obj.Movement != MovementType::Physics) {
+            obj.PrevPosition = obj.Position;
+            obj.PrevRotation = obj.Rotation;
+            return;
+        }
 
         for (int i = 0; i < STEPS; i++) {
             obj.PrevPosition = obj.Position;
@@ -1370,7 +1374,7 @@ namespace Inferno {
             LinearPhysics(obj, dt);
 
             if (obj.Physics.Velocity.Length() * dt > MIN_TRAVEL_DISTANCE)
-                MoveObject(level, objId);
+                MoveObject(level, obj);
 
             if (HasFlag(obj.Flags, ObjectFlag::Attached))
                 continue; // don't test collision of attached objects

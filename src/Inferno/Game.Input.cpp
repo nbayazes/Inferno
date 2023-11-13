@@ -78,7 +78,7 @@ namespace Inferno {
         }
 
         if (Input::IsKeyPressed(Keys::D8)) {
-            Game::Player.SelectSecondary(SecondaryWeaponIndex::Proximity);
+            Game::Player.SelectSecondary(SecondaryWeaponIndex::ProximityMine);
         }
 
         if (Input::IsKeyPressed(Keys::D9)) {
@@ -111,7 +111,9 @@ namespace Inferno {
         physics.Thrust = Vector3::Zero;
         physics.AngularThrust = Vector3::Zero;
 
-        if (!Input::HasFocus) return; // No player input without window focus
+        if (!Input::HasFocus || Game::Player.IsDead) 
+            return; // No player input without focus or while dead
+
         HandleWeaponKeys();
 
         //auto ht0 = GetHoldTime(true, 0, frameTime);

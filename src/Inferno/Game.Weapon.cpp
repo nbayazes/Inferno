@@ -28,7 +28,8 @@ namespace Inferno::Game {
 
         // Create sparks
         if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.DeathSparks)) {
-            Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
+            auto position = Vector3::Transform(sparks->Offset, obj.GetTransform(Game::LerpAmount));
+            Render::AddSparkEmitter(*sparks, obj.Segment, position);
         }
 
         if (weapon.SplashRadius > 0) {
@@ -616,7 +617,23 @@ namespace Inferno::Game {
             Render::AddDynamicLight(light);
         }
 
-        AddObject(projectile);
+        auto objRef = AddObject(projectile);
+
+        if (id == WeaponID::Vulcan) {
+            if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
+                Render::AddTracer(*tracer, obj.Segment, objRef);
+        }
+
+        if (id == WeaponID::Gauss) {
+            if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
+                Render::AddTracer(*tracer, obj.Segment, objRef);
+        }
+
+        if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
+            sparks->Parent = objRef;
+            sparks->Duration = (float)obj.Lifespan;
+            Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
+        }
     }
 
     void SpreadfireBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {

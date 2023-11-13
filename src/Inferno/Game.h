@@ -1,4 +1,5 @@
 #pragma once
+#include "Camera.h"
 #include "Game.Navigation.h"
 #include "Level.h"
 #include "HogFile.h"
@@ -66,6 +67,7 @@ namespace Inferno::Game {
 
     // Only single player for now
     inline struct Player Player = {};
+    inline ObjRef DeathCamera = {};
 
     // is the game level loading?
     inline std::atomic IsLoading = false;
@@ -94,6 +96,8 @@ namespace Inferno::Game {
 
     // Detonates a weapon with a splash radius
     void ExplodeWeapon(struct Level& level, const Object&);
+
+    void MoveCameraToObject(Camera& camera, const Object& obj, float lerp);
 
     void Update(float dt);
 
@@ -185,6 +189,11 @@ namespace Inferno::Game {
         // should technically get the room the camera is in
         return Level.GetRoom(GetPlayerObject());
     }
+
+    void CloakObject(Object& obj, float duration, bool playSound = true);
+    void UncloakObject(Object& obj, bool playSound = true);
+    void MakeInvulnerable(Object& obj, float duration, bool playSound = true);
+    void MakeVulnerable(Object& obj, bool playSound = true);
 
     namespace Stats {
         inline int LiveObjects = 0;

@@ -16,9 +16,6 @@
 namespace Inferno {
     namespace {
         uint16 ObjSigIndex = 1;
-        // Objects to be added at the end of this tick.
-        // Exists to prevent modifying object list size mid-update.
-        List<Object> PendingNewObjects;
     }
 
     uint8 GetGunSubmodel(const Object& obj, uint8 gun) {
@@ -200,10 +197,7 @@ namespace Inferno {
         obj.Segment = newSegment;
     }
 
-    void MoveObject(Level& level, ObjID objId) {
-        auto pObj = level.TryGetObject(objId);
-        if (!pObj) return;
-        auto& obj = *pObj;
+    void MoveObject(Level& level, Object& obj) {
         auto prevSegId = obj.Segment;
 
         if (!UpdateObjectSegment(level, obj))
@@ -225,6 +219,8 @@ namespace Inferno {
             }
         }
 
+        auto ref = Game::GetObjectRef(obj);
+
         if (connection && obj.IsPlayer()) {
             // Activate triggers
             if (auto trigger = level.TryGetTrigger(connection)) {
@@ -237,13 +233,13 @@ namespace Inferno {
             // usually caused by fast moving projectiles, but can also happen if object is outside world.
             // Rarely occurs when flying across the corner of four segments
             if (obj.Type == ObjectType::Player && prevSegId != obj.Segment)
-                SPDLOG_WARN("Player {} warped from segment {} to {}. Any fly-through triggers did not activate!", objId, prevSegId, obj.Segment);
+                SPDLOG_WARN("Player {} warped from segment {} to {}. Any fly-through triggers did not activate!", ref.Id, prevSegId, obj.Segment);
         }
 
         // Update object pointers
-        prevSeg.RemoveObject(objId);
+        prevSeg.RemoveObject(ref.Id);
         auto& seg = level.GetSegment(obj.Segment);
-        seg.AddObject(objId);
+        seg.AddObject(ref.Id);
         obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
     }
 
@@ -280,7 +276,31 @@ namespace Inferno {
         return level.Objects.emplace_back(Object{});
     }
 
-    void SpawnContained(const Level& level, const ContainsData& contains, const Vector3& position, SegID segment, const Vector3& force) {
+    ObjRef Game::DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force) {
+        auto& pinfo = Resources::GetPowerup(pid);
+        if (pinfo.VClip == VClipID::None) {
+            SPDLOG_WARN("Tried to drop an invalid powerup!");
+            return {};
+        }
+
+        Object powerup{};
+        Editor::InitObject(Level, powerup, ObjectType::Powerup, (int)pid);
+        powerup.Position = position;
+        powerup.Segment = segId;
+
+        powerup.Movement = MovementType::Physics;
+        powerup.Physics.Velocity = RandomVector(32) + force;
+        powerup.Physics.Mass = 1;
+        powerup.Physics.Drag = 0.01f;
+        powerup.Physics.Flags = PhysicsFlag::Bounce;
+        if (auto seg = Level.TryGetSegment(segId))
+            powerup.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
+
+        Render::LoadTextureDynamic(pinfo.VClip);
+        return AddObject(powerup);
+    }
+
+    void SpawnContained(const Level& level, const ContainsData& contains, const Vector3& position, SegID segId, const Vector3& force) {
         switch (contains.Type) {
             case ObjectType::Powerup:
             {
@@ -298,27 +318,9 @@ namespace Inferno {
                     (pid == PowerupID::Omega && Game::Player.HasWeapon(PrimaryWeaponIndex::Omega)))
                     pid = PowerupID::Energy;
 
-                auto& pinfo = Resources::GetPowerup(pid);
-                if (pinfo.VClip == VClipID::None) {
-                    SPDLOG_WARN("Tried to drop an invalid powerup!");
-                    return;
-                }
+                for (int i = 0; i < contains.Count; i++)
+                    Game::DropPowerup(pid, position, segId, force);
 
-                for (int i = 0; i < contains.Count; i++) {
-                    Object powerup{};
-                    Editor::InitObject(level, powerup, ObjectType::Powerup, (int)pid);
-                    powerup.Position = position;
-                    powerup.Segment = segment;
-
-                    powerup.Movement = MovementType::Physics;
-                    powerup.Physics.Velocity = RandomVector(32) + force;
-                    powerup.Physics.Mass = 1;
-                    powerup.Physics.Drag = 0.01f;
-                    powerup.Physics.Flags = PhysicsFlag::Bounce;
-
-                    Render::LoadTextureDynamic(pinfo.VClip);
-                    Game::AddObject(powerup);
-                }
                 break;
             }
             case ObjectType::Robot:
@@ -327,10 +329,13 @@ namespace Inferno {
                     Object spawn{};
                     Editor::InitObject(level, spawn, ObjectType::Robot, contains.ID);
                     spawn.Position = position;
-                    spawn.Segment = segment;
+                    spawn.Segment = segId;
                     spawn.Type = ObjectType::Robot;
                     spawn.Physics.Velocity = RandomVector(32) + force;
                     spawn.NextThinkTime = 0;
+                    if (auto seg = level.TryGetSegment(segId))
+                        spawn.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
+
                     Game::AddObject(spawn);
                 }
 
@@ -356,6 +361,46 @@ namespace Inferno {
                     SpawnContained(Game::Level, contains, obj.Position, obj.Segment, obj.LastHitForce);
                 }
             }
+        }
+    }
+
+    // Explodes an object into submodels
+    void CreateObjectDebris(const Object& obj, ModelID modelId, const Vector3& force) {
+        if (auto destroyedId = Resources::GameData.DyingModels[(int)modelId]; destroyedId != ModelID::None)
+            modelId = destroyedId;
+
+        auto& model = Resources::GetModel(modelId);
+        for (int sm = 0; sm < model.Submodels.size(); sm++) {
+            Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), Game::LerpAmount);
+            auto world = GetSubmodelTransform(obj, model, sm) * transform;
+
+            auto explosionDir = world.Translation() - obj.Position; // explode outwards
+            explosionDir.Normalize();
+
+            Render::Debris debris;
+            //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
+            //auto vec = RandomVector(obj.Radius * 5);
+            //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
+            //debris.Velocity =  RandomVector(obj.Radius * 5);
+            debris.Velocity = sm == 0 ? force : explosionDir * 20 + RandomVector(5) + force;
+            debris.Velocity += obj.Physics.Velocity;
+            debris.AngularVelocity.x = RandomN11();
+            debris.AngularVelocity.y = RandomN11();
+            debris.AngularVelocity.z = RandomN11();
+            //debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
+            debris.Transform = world;
+            //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
+            debris.PrevTransform = world;
+            debris.Mass = .75f;
+            debris.Drag = 0.0075f;
+            // It looks weird if the main body (sm 0) sticks around, so destroy it quick
+            debris.Duration = sm == 0 ? 0 : 1.5f + Random() * 1.5f;
+            //debris.Duration = 10;
+            debris.Radius = model.Submodels[sm].Radius;
+            debris.Model = modelId;
+            debris.Submodel = sm;
+            debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
+            AddDebris(debris, obj.Segment);
         }
     }
 
@@ -402,40 +447,8 @@ namespace Inferno {
                 if (obj.SourceMatcen != MatcenID::Boss)
                     Game::AddPointsToScore(robot.Score);
 
-                auto& model = Resources::GetModel(robot.Model);
-                for (int sm = 0; sm < model.Submodels.size(); sm++) {
-                    Matrix transform = Matrix::Lerp(obj.GetPrevTransform(), obj.GetTransform(), Game::LerpAmount);
-                    auto world = GetSubmodelTransform(obj, model, sm) * transform;
-
-                    auto explosionDir = world.Translation() - obj.Position; // explode outwards
-                    explosionDir.Normalize();
-                    auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
-
-                    Render::Debris debris;
-                    //Vector3 vec(Random() + 0.5, Random() + 0.5, Random() + 0.5);
-                    //auto vec = RandomVector(obj.Radius * 5);
-                    //debris.Velocity = vec + obj.LastHitVelocity / (4 + obj.Movement.Physics.Mass);
-                    //debris.Velocity =  RandomVector(obj.Radius * 5);
-                    debris.Velocity = sm == 0 ? hitForce : explosionDir * 20 + RandomVector(5) + hitForce;
-                    debris.Velocity += obj.Physics.Velocity;
-                    debris.AngularVelocity.x = RandomN11();
-                    debris.AngularVelocity.y = RandomN11();
-                    debris.AngularVelocity.z = RandomN11();
-                    //debris.AngularVelocity = RandomVector(std::min(obj.LastHitForce.Length(), 3.14f));
-                    debris.Transform = world;
-                    //debris.Transform.Translation(debris.Transform.Translation() + RandomVector(obj.Radius / 2));
-                    debris.PrevTransform = world;
-                    debris.Mass = 1; // obj.Movement.Physics.Mass;
-                    debris.Drag = 0.0075f; // obj.Movement.Physics.Drag;
-                    // It looks weird if the main body (sm 0) sticks around, so destroy it quick
-                    debris.Duration = sm == 0 ? 0 : 0.75f + Random() * 1.5f;
-                    debris.Radius = model.Submodels[sm].Radius;
-                    //debris.Model = (ModelID)Resources::GameData.DeadModels[(int)robot.Model];
-                    debris.Model = robot.Model;
-                    debris.Submodel = sm;
-                    debris.TexOverride = Resources::LookupTexID(obj.Render.Model.TextureOverride);
-                    AddDebris(debris, obj.Segment);
-                }
+                auto hitForce = obj.LastHitForce * (1.0f + Random() * 0.5f);
+                CreateObjectDebris(obj, robot.Model, hitForce);
 
                 // todo: spawn particles
 
@@ -618,116 +631,79 @@ namespace Inferno {
                 seg->AddObject((ObjID)id);
 
             AttachLight(obj, { (ObjID)id, obj.Signature });
-            //UpdateDirectLight(obj, 0);
         }
 
         ResizeAI(level.Objects.size());
         ResetAI();
     }
 
-    void Game::AddPendingObjects(Inferno::Level& level) {
-        ResizeAI(level.Objects.size() + PendingNewObjects.size());
-
-        for (auto& pending : PendingNewObjects) {
-            auto id = ObjID::None;
-            pending.Signature = GetObjectSig();
-
-            {
-                // Find or create a slot for the new object
-                bool foundExisting = false;
-
-                for (int i = 0; i < level.Objects.size(); i++) {
-                    auto& o = level.Objects[i];
-                    if (!o.IsAlive()) {
-                        if (auto seg = level.TryGetSegment(o.Segment)) {
-                            Seq::remove(seg->Objects, (ObjID)i); // ensure dead object is removed from segment
-                            //ASSERT(!Seq::contains(seg->Objects, (ObjID)i));
-                        }
-
-                        o = pending;
-                        foundExisting = true;
-                        id = ObjID(i);
-                        break;
-                    }
-                }
-
-                if (!foundExisting) {
-                    id = ObjID(level.Objects.size());
-                    level.Objects.push_back(pending);
-                }
-
-                ASSERT(id != ObjID::None);
-            }
-
-            auto& obj = level.Objects[(int)id];
-            obj.PrevPosition = obj.Position;
-            obj.PrevRotation = obj.Rotation;
-
-            level.GetSegment(pending.Segment).AddObject(id);
-            ObjRef objRef = { id, pending.Signature };
-
-            // Hack to attach tracers due to not having the object ID in firing code
-            if (obj.IsWeapon()) {
-                WeaponID weaponID{ obj.ID };
-                auto& weapon = Resources::GetWeapon(weaponID);
-
-                if (weaponID == WeaponID::Vulcan) {
-                    if (auto tracer = Render::EffectLibrary.GetTracer("vulcan_tracer"))
-                        Render::AddTracer(*tracer, obj.Segment, objRef);
-                }
-
-                if (weaponID == WeaponID::Gauss) {
-                    if (auto tracer = Render::EffectLibrary.GetTracer("gauss_tracer"))
-                        Render::AddTracer(*tracer, obj.Segment, objRef);
-                }
-
-                if (auto sparks = Render::EffectLibrary.GetSparks(weapon.Extended.Sparks)) {
-                    sparks->Parent = objRef;
-                    sparks->Duration = (float)obj.Lifespan;
-                    Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
-                }
-            }
-
-            if (obj.IsRobot()) {
-                // Path newly created robots to their matcen triggers
-                if (auto matcen = level.TryGetMatcen(obj.SourceMatcen)) {
-                    AI::SetPath(obj, matcen->TriggerPath);
-                }
-            }
-
-            AttachLight(obj, { id, obj.Signature });
+    ObjRef Game::AddObject(Object object) {
+        if (Level.Objects.size() + 1 >= Level.Objects.capacity()) {
+            SPDLOG_ERROR("Unable to create object due to reaching buffer capacity of {}! This is a programming error", Level.Objects.capacity());
+            __debugbreak();
+            return {};
         }
 
-        PendingNewObjects.clear();
+        ASSERT(object.Segment > SegID::None);
+
+        auto id = ObjID::None;
+        object.Signature = GetObjectSig();
+
+        {
+            // Find or create a slot for the new object
+            bool foundExisting = false;
+
+            for (int i = 0; i < Level.Objects.size(); i++) {
+                auto& o = Level.Objects[i];
+                if (!o.IsAlive()) {
+                    if (auto seg = Level.TryGetSegment(o.Segment)) {
+                        Seq::remove(seg->Objects, (ObjID)i); // ensure dead object is removed from segment
+                        //ASSERT(!Seq::contains(seg->Objects, (ObjID)i));
+                    }
+
+                    o = object;
+                    foundExisting = true;
+                    id = ObjID(i);
+                    break;
+                }
+            }
+
+            if (!foundExisting) {
+                id = ObjID(Level.Objects.size());
+                Level.Objects.push_back(object);
+            }
+
+            ASSERT(id != ObjID::None);
+        }
+
+        auto& obj = Level.Objects[(int)id];
+        obj.PrevPosition = obj.Position;
+        obj.PrevRotation = obj.Rotation;
+
+        Level.GetSegment(object.Segment).AddObject(id);
+
+        if (obj.IsRobot()) {
+            // Path newly created robots to their matcen triggers
+            if (auto matcen = Level.TryGetMatcen(obj.SourceMatcen)) {
+                AI::SetPath(obj, matcen->TriggerPath);
+            }
+        }
+
+        AttachLight(obj, { id, obj.Signature });
+
+        ResizeAI(Level.Objects.size());
+        return { id, object.Signature };
     }
 
-    void Game::AddObject(const Object& obj) {
-        PendingNewObjects.push_back(obj);
-    }
+    void Game::FreeObject(ObjID id) {
+        if (auto obj = Game::Level.TryGetObject(id)) {
+            if (auto seg = Game::Level.TryGetSegment(obj->Segment))
+                seg->RemoveObject(id);
+            // remove attached objects
 
-    void UpdateDirectLight(Object& /*obj*/, float /*duration*/) {
-        //Color directLight;
-
-        //for (auto& light : Graphics::Lights.GetLights()) {
-        //    if (light.radiusSq <= 0) continue;
-        //    // todo: only scan nearby lights
-        //    auto lightDist = Vector3::Distance(obj.Position, light.pos);
-        //    auto radius = sqrt(light.radiusSq);
-        //    if (lightDist > radius) continue;
-        //    auto falloff = 1 - std::clamp(lightDist / radius, 0.0f, 1.0f);
-        //    directLight += light.color * falloff;
-
-        //    //auto lightDistSq = Vector3::DistanceSquared(obj.Position, other.Position);
-        //    //auto lightRadiusSq = other.LightRadius * other.LightRadius;
-        //    //if (lightDistSq > lightRadiusSq) continue;
-
-        //    //float factor = lightDistSq / lightRadiusSq;                   
-        //    //float smoothFactor = std::max(1.0f - pow(factor, 0.5f), 0.0f); // 0 to 1
-        //    //float falloff = smoothFactor * smoothFactor / std::max(sqrt(lightDistSq), 1e-4f);
-        //    //directLight += other.LightColor * falloff * 50;
-        //}
-
-        //obj.DirectLight.SetTarget(directLight, Game::Time, duration);
+            *obj = {};
+            obj->Flags = ObjectFlag::Dead;
+        }
     }
 
     // Creates random arcs on damaged objects
@@ -771,17 +747,13 @@ namespace Inferno {
         }
         else if (obj.Lifespan <= 0 && !HasFlag(obj.Flags, ObjectFlag::Dead)) {
             Game::ExplodeWeapon(Game::Level, obj); // explode expired weapons
-            obj.Flags |= ObjectFlag::Dead;
-
-            if (auto seg = Game::Level.TryGetSegment(obj.Segment))
-                seg->RemoveObject(id);
+            Game::FreeObject(id);
         }
 
         if (!HasFlag(obj.Flags, ObjectFlag::Dead)) {
             if (obj.Type == ObjectType::Weapon)
                 Game::UpdateWeapon(obj, dt);
 
-            UpdateDirectLight(obj, 0.10f);
             AddDamagedEffects(obj, dt);
             UpdateAI(obj, dt);
         }

@@ -4,9 +4,11 @@
 #include "Game.h"
 #include "HUD.h"
 #include "Input.h"
+#include "Physics.h"
 #include "Resources.h"
 #include "Settings.h"
 #include "SoundSystem.h"
+#include "Graphics/Render.h"
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno {
@@ -215,17 +217,23 @@ namespace Inferno {
 
         UpdateFireState();
         if (Game::Level.Objects.empty()) return;
+
+        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
+
+        if (IsDead) {
+            // Fire the fusion cannon if the ship is destroyed while charging it
+            if (weapon.Extended.Chargable && WeaponCharge > 0) {
+                Sound::Stop(_fusionChargeSound);
+                FirePrimary();
+                WeaponCharge = 0;
+            }
+            return;
+        }
+
         auto& player = Game::GetPlayerObject();
 
-        if (HasPowerup(PowerupFlag::Cloak) && player.Effects.CloakTimer >= player.Effects.CloakDuration) {
-            Sound::Play({ SoundID::CloakOff });
-            RemovePowerup(PowerupFlag::Cloak);
-        }
-
-        if (HasPowerup(PowerupFlag::Invulnerable) && player.Effects.InvulnerableTimer >= player.Effects.InvulnerableDuration) {
-            Sound::Play({ SoundID::InvulnOff });
-            RemovePowerup(PowerupFlag::Invulnerable);
-        }
+        if (HasPowerup(PowerupFlag::Cloak) && player.Effects.CloakTimer >= player.Effects.CloakDuration)
+            RemovePowerup(PowerupFlag::Cloak); // Cloak sound is handled by effect updates
 
         if (auto seg = Game::Level.TryGetSegment(player.Segment)) {
             if (seg->Type == SegmentType::Energy && Energy < 100) {
@@ -239,8 +247,6 @@ namespace Inferno {
                 }
             }
         }
-
-        auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
 
         if (weapon.Extended.Chargable) {
             if (PrimaryState == FireState::Hold && WeaponCharge <= 0) {
@@ -268,7 +274,7 @@ namespace Inferno {
                         sound.Position = player.Position;
                         Sound::Play(sound);
                         constexpr float OVERCHARGE_DAMAGE = 3.0f;
-                        Shields -= Random() * OVERCHARGE_DAMAGE;
+                        ApplyDamage(Random() * OVERCHARGE_DAMAGE, false);
                     }
                     else {
                         Sound3D sound({ SoundID::FusionWarmup }, Reference);
@@ -325,7 +331,7 @@ namespace Inferno {
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
-        return BombIndex == 0 || Game::Level.IsDescent1() ? SecondaryWeaponIndex::Proximity : SecondaryWeaponIndex::SmartMine;
+        return BombIndex == 0 || Game::Level.IsDescent1() ? SecondaryWeaponIndex::ProximityMine : SecondaryWeaponIndex::SmartMine;
     }
 
     void Player::CycleBombs() {
@@ -335,7 +341,7 @@ namespace Inferno {
             return;
         }
 
-        auto proxAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity];
+        auto proxAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::ProximityMine];
         auto smartAmmo = SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine];
 
         if (BombIndex == 0 && smartAmmo > 0) {
@@ -371,7 +377,7 @@ namespace Inferno {
                 BombIndex = 1;
                 Sound::Play({ SoundID::SelectSecondary });
             }
-            else if (BombIndex == 1 && SecondaryAmmo[(int)SecondaryWeaponIndex::Proximity]) {
+            else if (BombIndex == 1 && SecondaryAmmo[(int)SecondaryWeaponIndex::ProximityMine]) {
                 BombIndex = 0;
                 Sound::Play({ SoundID::SelectSecondary });
             }
@@ -566,33 +572,143 @@ namespace Inferno {
     }
 
     void Player::ApplyDamage(float damage, bool playSound) {
-        //if (Player_is_dead)
-        //    return;
+        if (IsDead)
+            return;
 
         //if (Endlevel_sequence)
         //    return;
 
-        constexpr float SCALE = 40;
-        if (HasPowerup(PowerupFlag::Invulnerable) || Settings::Cheats.DisableWeaponDamage) {
-            AddScreenFlash({ 0, 0, damage / SCALE });
-        }
-        else {
-            Shields -= damage;
-            AddScreenFlash({ damage / SCALE, -damage / SCALE, -damage / SCALE });
-        }
-
-        if (Shields < 0) {} // todo: kill player
-
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {
+
+            constexpr float SCALE = 40;
+            if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
+                AddScreenFlash({ 0, 0, damage / SCALE });
+            }
+            else {
+                Shields -= damage;
+                AddScreenFlash({ damage / SCALE, -damage / SCALE, -damage / SCALE });
+            }
+
+            if (Shields < 0) {
+                IsDead = true;
+                Input::ResetState(); // Reset state so fusion charging releases
+            }
+
+
             player->HitPoints = Shields;
 
             if (playSound) {
-                auto soundId = Game::Player.HasPowerup(PowerupFlag::Invulnerable) ? SoundID::HitInvulnerable : SoundID::HitPlayer;
+                auto soundId = player->IsInvulnerable() ? SoundID::HitInvulnerable : SoundID::HitPlayer;
                 Sound3D sound({ soundId }, player->Position, player->Segment);
                 Sound::Play(sound);
             }
         }
+    }
+
+    // Respawns the player at the current start location. Call with true to fully reset inventory.
+    void Player::Respawn(bool fullReset) {
+        Input::ResetState(); // Clear input events so firing doesn't cause a shot on spawn
+
+        Game::FreeObject(Game::DeathCamera.Id);
+        Game::DeathCamera = {};
+
+        // Reset shields and energy to at least 100
+        Shields = std::max(Shields, 100.0f);
+        Energy = std::max(Energy, 100.0f);
+        Shields = 10;
+
+        auto& player = Game::GetPlayerObject();
+        HostagesOnShip = 0;
+        AfterburnerCharge = 1;
+        AfterburnerActive = false;
+        WeaponCharge = 0;
+        KilledBy = {};
+        HomingObjectDist = -1;
+        IsDead = false;
+        TimeDead = 0;
+        Exploded = false;
+
+        player.Effects = {};
+        player.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
+
+        player.Position = SpawnPosition;
+        player.Rotation = SpawnRotation;
+        player.Physics.AngularVelocity = Vector3::Zero;
+        player.Physics.AngularThrust = Vector3::Zero;
+        player.Physics.AngularAcceleration = Vector3::Zero;
+        player.Physics.BankState = PhysicsData().BankState;
+        player.Physics.TurnRoll = 0;
+        player.Type = ObjectType::Player;
+
+        RelinkObject(Game::Level, player, SpawnSegment);
+
+        player.Render.Type = RenderType::None; // Hide the player model
+
+        if (fullReset) {
+            LaserLevel = 0;
+            PrimaryWeapons = 0;
+            SecondaryWeapons = 0;
+            Primary = PrimaryWeaponIndex::Laser;
+            Secondary = SecondaryWeaponIndex::Concussion;
+            PrimarySwapTime = PrimaryDelay = 0;
+            SecondarySwapTime = SecondaryDelay = 0;
+
+            for (int i = 0; i < 10; i++) {
+                SecondaryAmmo[i] = 0;
+                PrimaryAmmo[i] = 0;
+            }
+        }
+
+        GiveWeapon(PrimaryWeaponIndex::Laser);
+
+        // Give the player some free missiles
+        SecondaryAmmo[(int)SecondaryWeaponIndex::Concussion] = uint16(2 + (int)DifficultyLevel::Count - Game::Difficulty);
+
+        if (Settings::Cheats.Invulnerable)
+            Game::MakeInvulnerable(player, -1, false);
+
+        if (Settings::Cheats.Cloaked)
+            Game::CloakObject(player, -1, false);
+
+        if (Settings::Cheats.FullyLoaded) {
+            GivePowerup(PowerupFlag::Afterburner);
+            //GivePowerup(PowerupFlag::AmmoRack);
+            //GivePowerup(PowerupFlag::Headlight);
+            //GivePowerup(PowerupFlag::FullMap);
+            //GivePowerup(PowerupFlag::QuadLasers);
+
+            // Max vulcan ammo changes between D1 and D2
+            PyroGX.Weapons[(int)PrimaryWeaponIndex::Vulcan].MaxAmmo = Game::Level.IsDescent1() ? 10000 : 20000;
+
+            PrimaryWeapons = 0xffff;
+            SecondaryWeapons = 0xffff;
+            int weaponCount = Game::Level.IsDescent2() ? 10 : 5;
+            for (int i = 0; i < weaponCount; i++) {
+                if (i == (int)SecondaryWeaponIndex::ProximityMine || i == (int)SecondaryWeaponIndex::SmartMine)
+                    SecondaryAmmo[i] = 99;
+                else
+                    SecondaryAmmo[i] = 200;
+
+                PrimaryAmmo[i] = 10000;
+            }
+        }
+
+        bool playSpawnEffect = false;
+        if(playSpawnEffect) {
+            Render::Particle p{};
+            p.Clip = VClipID::PlayerSpawn;
+            p.Radius = player.Radius;
+            p.RandomRotation = false;
+            Vector3 position = player.Position + player.Rotation.Forward() * 3;
+            Render::AddParticle(p, player.Segment, position);
+
+            auto& vclip = Resources::GetVideoClip(VClipID::PlayerSpawn);
+            Sound::Play(Sound3D({ vclip.Sound }, player.Position, player.Segment));
+        }
+
+        ResetHUD();
+        SPDLOG_INFO("Respawning player");
     }
 
     float Player::GetPrimaryEnergyCost() const {
@@ -633,8 +749,6 @@ namespace Inferno {
             return false;
         }
     }
-
-    void AutoselectPrimary() {}
 
     int Player::PickUpAmmo(PrimaryWeaponIndex index, uint16 amount) {
         if (amount == 0) return amount;
@@ -688,7 +802,7 @@ namespace Inferno {
 
     void Player::TouchPowerup(Object& obj) {
         if (obj.Lifespan == -1) return; // Already picked up
-        if (Shields < 0) return; // Player is dead!
+        if (IsDead) return; // Player is dead!
 
         assert(obj.Type == ObjectType::Powerup);
 
@@ -890,8 +1004,8 @@ namespace Inferno {
                 used = PickUpSecondary(SecondaryWeaponIndex::Homing, 4);
                 break;
 
-            case PowerupID::ProximityBomb:
-                used = PickUpSecondary(SecondaryWeaponIndex::Proximity, 4);
+            case PowerupID::ProximityMine:
+                used = PickUpSecondary(SecondaryWeaponIndex::ProximityMine, 4);
                 break;
 
             case PowerupID::SmartMissile:
@@ -918,7 +1032,7 @@ namespace Inferno {
                 used = PickUpSecondary(SecondaryWeaponIndex::Guided, 4);
                 break;
 
-            case PowerupID::SmartBomb:
+            case PowerupID::SmartMine:
                 used = PickUpSecondary(SecondaryWeaponIndex::SmartMine, 4);
                 break;
 
@@ -931,7 +1045,7 @@ namespace Inferno {
                 break;
 
             case PowerupID::EarthshakerMissile:
-                used = PickUpSecondary(SecondaryWeaponIndex::Shaker);
+                used = PickUpSecondary(SecondaryWeaponIndex::Earthshaker);
                 break;
 
             case PowerupID::VulcanAmmo:
@@ -947,27 +1061,26 @@ namespace Inferno {
 
             case PowerupID::Cloak:
             {
-                if (HasPowerup(PowerupFlag::Cloak)) {
+                if (Game::GetPlayerObject().IsCloaked()) {
                     auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Cloaked));
                     PrintHudMessage(msg);
                 }
                 else {
                     GivePowerup(PowerupFlag::Cloak);
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
-                    Game::GetPlayerObject().Cloak(CLOAK_TIME);
+                    Game::CloakObject(Game::GetPlayerObject(), CLOAK_TIME);
                     used = true;
                 }
                 break;
             };
 
             case PowerupID::Invulnerability:
-                if (HasPowerup(PowerupFlag::Invulnerable)) {
+                if (Game::GetPlayerObject().IsInvulnerable()) {
                     auto msg = fmt::format("{} {}!", Resources::GetString(GameString::AlreadyAre), Resources::GetString(GameString::Invulnerable));
                     PrintHudMessage(msg);
                 }
                 else {
-                    GivePowerup(PowerupFlag::Invulnerable);
-                    Game::GetPlayerObject().MakeInvulnerable(CLOAK_TIME);
+                    Game::MakeInvulnerable(Game::GetPlayerObject(), INVULNERABLE_TIME);
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
                     used = true;
                 }
@@ -1086,5 +1199,289 @@ namespace Inferno {
 
         // todo: spawn individual missiles if count > 1 and full
         return true;
+    }
+
+    constexpr float PLAYER_DEATH_EXPLODE_TIME = 2.0f;
+
+    void DrawCutsceneLetterbox() {
+        auto& size = Render::Canvas->GetSize();
+        auto height = size.y / 8;
+        Render::Canvas->DrawRectangle(Vector2(0, 0), Vector2(size.x, height), Color(0, 0, 0));
+        Render::Canvas->DrawRectangle(Vector2(0, size.y - height), Vector2(size.x, height), Color(0, 0, 0));
+    }
+
+    Vector3 FindDeathCameraPosition(const Vector3& start, float preferDist) {
+        Vector3 bestDir;
+        float bestDist = 0;
+
+        for (int i = 0; i < 10; i++) {
+            Ray ray(start, RandomVector());
+            RayQuery query{ .MaxDistance = preferDist };
+            LevelHit hit{};
+            if (!Game::Intersect.RayLevel(ray, query, hit)) {
+                // Ray didn't hit anything so use it!
+                bestDist = preferDist;
+                bestDir = ray.direction;
+                break;
+            }
+
+            if (hit.Distance > bestDist) {
+                bestDist = hit.Distance;
+                bestDir = ray.direction;
+            }
+        }
+
+        return start + bestDir * bestDist * 0.95f;
+    }
+
+    void Player::DoDeathSequence(float dt) {
+        if (!IsDead) return;
+
+        TimeDead += dt;
+
+        auto& player = Game::GetPlayerObject();
+
+        if (!Game::Level.TryGetObject(Game::DeathCamera)) {
+            Object camera{};
+            camera.Type = ObjectType::Camera;
+            camera.Segment = player.Segment;
+            camera.Position = FindDeathCameraPosition(player.Position, 30);
+            Game::DeathCamera = Game::AddObject(camera);
+        }
+
+        auto camera = Game::Level.TryGetObject(Game::DeathCamera);
+        if (!camera) {
+            SPDLOG_ERROR("Unable to create death camera");
+            return;
+        }
+        ASSERT(camera->Type == ObjectType::Camera);
+
+        auto rollSpeed = std::max(0.0f, PLAYER_DEATH_EXPLODE_TIME - TimeDead);
+        player.Physics.AngularVelocity.x = rollSpeed / 4;
+        player.Physics.AngularVelocity.y = rollSpeed / 2;
+        player.Physics.AngularVelocity.z = rollSpeed / 3;
+
+        auto playerPos = player.GetPosition(Game::LerpAmount);
+
+        DrawCutsceneLetterbox();
+
+        if (TimeDead > PLAYER_DEATH_EXPLODE_TIME) {
+            if (!Exploded) {
+                Exploded = true;
+                HostagesOnShip = 0;
+                Lives--;
+
+                GameExplosion explosion;
+                explosion.Damage = 50;
+                explosion.Force = 150;
+                explosion.Radius = 40;
+                explosion.Position = player.Position;
+                explosion.Room = Game::Level.GetRoomID(player);
+                explosion.Segment = player.Segment;
+                CreateExplosion(Game::Level, &player, explosion);
+
+                if (auto e = Render::EffectLibrary.GetExplosion("player explosion"))
+                    Render::CreateExplosion(*e, player.Segment, playerPos);
+
+                if (auto e = Render::EffectLibrary.GetExplosion("player explosion trail"))
+                    Render::CreateExplosion(*e, player.Segment, playerPos);
+
+                CreateObjectDebris(player, player.Render.Model.ID, Vector3::Zero);
+                player.Render.Type = RenderType::None; // Hide the player after exploding
+                player.Type = ObjectType::Ghost;
+
+                DropAllItems();
+            }
+
+            string message;
+            if (HostagesOnShip > 1) {
+                message = fmt::format("Ship destroyed, {} hostages lost!", HostagesOnShip);
+            }
+            else if (HostagesOnShip == 1) {
+                message = "ship destroyed, 1 hostage lost!";
+            }
+            else {
+                message = "ship destroyed!";
+            }
+
+            auto height = Render::CANVAS_HEIGHT / 8.0f * Render::Canvas->GetScale();
+
+            Color color(0, 1, 0);
+            Render::Canvas->DrawGameText(message, 0, 10 + height, FontSize::Small, color, 1, AlignH::Center, AlignV::Top);
+            Render::Canvas->DrawGameText("press fire to continue...", 0, -10 - height, FontSize::Small, color, 1, AlignH::Center, AlignV::Bottom);
+        }
+        else {
+            player.Render.Type = RenderType::Model; // Camera is in third person, show the player
+
+            if (Random() < dt * 4) {
+                if (auto e = Render::EffectLibrary.GetExplosion("large fireball")) {
+                    e->Parent = Game::GetObjectRef(player);
+                    Render::CreateExplosion(*e, player.Segment, playerPos);
+                }
+            }
+        }
+
+        ASSERT(camera->Type == ObjectType::Camera);
+        auto fvec = camera->Position - playerPos;
+        //auto cameraDist = fvec.Length();
+        fvec.Normalize();
+        camera->Rotation = VectorToRotation(fvec);
+
+        //auto goalCameraDist = std::min(TimeDead * 8, 20.0f) + player.Radius;
+        //if (cameraDist < 20) {
+        //    float delta = dt * 10;
+        //    Ray ray(camera->Position, fvec);
+        //    RayQuery query{ .MaxDistance = delta };
+        //    LevelHit hit{};
+        //    if (!Game::Intersect.RayLevel(ray, query, hit)) {
+        //        camera->Position += fvec * delta;
+        //    }
+        //}
+
+        Game::MoveCameraToObject(Render::Camera, *camera, Game::LerpAmount);
+    }
+
+    constexpr PowerupID PrimaryWeaponToPowerup(PrimaryWeaponIndex index) {
+        constexpr PowerupID powerups[] = {
+            PowerupID::Laser, PowerupID::Vulcan, PowerupID::Spreadfire, PowerupID::Plasma, PowerupID::Fusion, PowerupID::SuperLaser, PowerupID::Helix, PowerupID::Phoenix, PowerupID::Omega
+        };
+
+        return powerups[(int)index];
+    }
+
+    constexpr PowerupID SecondaryWeaponToPowerup(SecondaryWeaponIndex index) {
+        constexpr PowerupID powerups[] = {
+            PowerupID::Concussion1, PowerupID::Homing1, PowerupID::ProximityMine, PowerupID::SmartMissile, PowerupID::Mega,
+            PowerupID::FlashMissile1, PowerupID::GuidedMissile1, PowerupID::SmartMine, PowerupID::EarthshakerMissile
+        };
+
+        return powerups[(int)index];
+    }
+
+    void Player::DropAllItems() {
+        auto& player = Game::GetPlayerObject();
+
+        // Try to arm mines that don't fit into packs of 4
+        float armChance = .9f;
+        while (SecondaryAmmo[(int)SecondaryWeaponIndex::ProximityMine] % 4 != 0) {
+            SecondaryAmmo[(int)SecondaryWeaponIndex::ProximityMine]--;
+            if (Random() < armChance) {
+                armChance *= 0.5f;
+                Game::FireWeapon(Reference, WeaponID::ProxMine, 7, nullptr, 1, false, 0);
+            }
+        }
+
+        armChance = .9f;
+        while (SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine] % 4 != 0) {
+            SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine]--;
+            if (Random() < armChance) {
+                armChance *= 0.5f;
+                Game::FireWeapon(Reference, WeaponID::SmartMine, 7, nullptr, 1, false, 0);
+            }
+        }
+
+        if (LaserLevel > 3) {
+            for (int i = 3; i < LaserLevel; i++)
+                Game::DropPowerup(PowerupID::SuperLaser, player.Position, player.Segment);
+        }
+        else if (LaserLevel > 0) {
+            for (int i = 0; i < LaserLevel; i++)
+                Game::DropPowerup(PowerupID::Laser, player.Position, player.Segment);
+        }
+
+        LaserLevel = 0;
+
+        auto dropPowerup = [this, &player] (PowerupFlag flag, PowerupID id) {
+            if (HasPowerup(flag)) {
+                RemovePowerup(flag);
+                Game::DropPowerup(id, player.Position, player.Segment);
+            }
+        };
+
+        dropPowerup(PowerupFlag::QuadLasers, PowerupID::QuadFire);
+        dropPowerup(PowerupFlag::Cloak, PowerupID::Cloak);
+        dropPowerup(PowerupFlag::FullMap, PowerupID::FullMap);
+        dropPowerup(PowerupFlag::Afterburner, PowerupID::Afterburner);
+        dropPowerup(PowerupFlag::AmmoRack, PowerupID::AmmoRack);
+        dropPowerup(PowerupFlag::Converter, PowerupID::Converter);
+        dropPowerup(PowerupFlag::Headlight, PowerupID::Headlight);
+
+        auto maybeDropWeapon = [this, &player](PrimaryWeaponIndex weapon, int ammo = 0) {
+            if (!HasWeapon(weapon)) return;
+            auto powerup = PrimaryWeaponToPowerup(weapon);
+            auto ref = Game::DropPowerup(powerup, player.Position, player.Segment);
+            if (ammo > 0) {
+                if (auto obj = Game::Level.TryGetObject(ref))
+                    obj->Control.Powerup.Count = ammo;
+            }
+
+            RemoveWeapon(weapon);
+        };
+
+        auto vulcanAmmo = PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan];
+        if (HasWeapon(PrimaryWeaponIndex::Gauss) && HasWeapon(PrimaryWeaponIndex::Vulcan))
+            vulcanAmmo /= 2; // split ammo between both guns
+
+        maybeDropWeapon(PrimaryWeaponIndex::Vulcan, vulcanAmmo);
+        maybeDropWeapon(PrimaryWeaponIndex::Gauss, vulcanAmmo);
+        maybeDropWeapon(PrimaryWeaponIndex::Spreadfire);
+        maybeDropWeapon(PrimaryWeaponIndex::Plasma);
+        maybeDropWeapon(PrimaryWeaponIndex::Fusion);
+        maybeDropWeapon(PrimaryWeaponIndex::Helix);
+        maybeDropWeapon(PrimaryWeaponIndex::Phoenix);
+        maybeDropWeapon(PrimaryWeaponIndex::Omega);
+
+        if (!HasWeapon(PrimaryWeaponIndex::Gauss) && !HasWeapon(PrimaryWeaponIndex::Vulcan) && vulcanAmmo > 0) {
+            // Has vulcan ammo but neither weapon, drop the ammo
+            auto ammoRef = Game::DropPowerup(PowerupID::VulcanAmmo, player.Position, player.Segment);
+            if (auto ammoPickup = Game::Level.TryGetObject(ammoRef)) {
+                ammoPickup->Control.Powerup.Count = vulcanAmmo;
+            }
+        }
+
+        auto maybeDropSecondary = [this, &player](SecondaryWeaponIndex weapon, uint16 max, uint16 packSize = 1) {
+            auto ammo = SecondaryAmmo[(int)weapon];
+            if (ammo == 0) return;
+            auto count = std::min(max, uint16(ammo / packSize));
+            auto powerup = SecondaryWeaponToPowerup(weapon);
+            for (int i = 0; i < count; i++)
+                Game::DropPowerup(powerup, player.Position, player.Segment);
+
+            SecondaryAmmo[(int)weapon] = 0;
+        };
+
+        maybeDropSecondary(SecondaryWeaponIndex::Mega, 3);
+        maybeDropSecondary(SecondaryWeaponIndex::Earthshaker, 3);
+        maybeDropSecondary(SecondaryWeaponIndex::Smart, 3);
+
+        // Mines come in packs of 4, so divide by 4
+        maybeDropSecondary(SecondaryWeaponIndex::ProximityMine, 3, 4);
+        maybeDropSecondary(SecondaryWeaponIndex::SmartMine, 3, 4);
+
+        // Drops missiles that can be in packs of 1 or 4, up to a maximum
+        auto dropMissilePacks = [this, &player](SecondaryWeaponIndex weapon, uint16 max) {
+            auto ammo = SecondaryAmmo[(int)weapon];
+            if (ammo == 0) return;
+
+            auto count = std::min(ammo, max);
+            auto powerup = SecondaryWeaponToPowerup(weapon);
+
+            auto packs = count / 4;
+            auto singles = count % 4;
+
+            for (int i = 0; i < packs; i++)
+                Game::DropPowerup(PowerupID((int)powerup + 1), player.Position, player.Segment);
+
+            for (int i = 0; i < singles; i++)
+                Game::DropPowerup(powerup, player.Position, player.Segment);
+
+            SecondaryAmmo[(int)weapon] = 0;
+        };
+
+        dropMissilePacks(SecondaryWeaponIndex::Concussion, 10);
+        dropMissilePacks(SecondaryWeaponIndex::Homing, 10);
+        dropMissilePacks(SecondaryWeaponIndex::Flash, 10);
+        dropMissilePacks(SecondaryWeaponIndex::Guided, 10);
+        dropMissilePacks(SecondaryWeaponIndex::Mercury, 10);
     }
 }

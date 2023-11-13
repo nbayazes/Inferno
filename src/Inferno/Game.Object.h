@@ -38,11 +38,11 @@ namespace Inferno {
     // Updates the segment of an object based on position. Returns true if the segment changed.
     bool UpdateObjectSegment(Level& level, Object& obj);
 
-    // Links an object to a new segment
+    // Links an object to a new segment. Similar to MoveObject but without triggers. Useful for teleporting / respawning.
     void RelinkObject(Level& level, Object& obj, SegID newSegment);
 
     // Updates the segment the object is in based on position and activates triggers.
-    void MoveObject(Level& level, ObjID objId);
+    void MoveObject(Level& level, Object& obj);
 
     bool IsBossRobot(const Object& obj);
     void CreateRobot(SegID segment, const Vector3& position, int8 type, MatcenID srcMatcen = MatcenID::None);
@@ -50,10 +50,14 @@ namespace Inferno {
     // Flags an object to be destroyed
     void ExplodeObject(Object& obj, float delay = 0);
 
+    void SpawnContained(const ContainsData& contains, Level& level, const Vector3& position, SegID segment, const Vector3& force);
+
     inline bool IsReactor(const Object& obj) { return obj.Type == ObjectType::Reactor; }
     inline bool IsPlayer(const Object& obj) { return obj.Type == ObjectType::Player; }
 
     void FixedUpdateObject(float dt, ObjID id, Object& obj);
+
+    void CreateObjectDebris(const Object& obj, ModelID modelId, const Vector3& force);
 
     // Sets an object's angular velocity to turn towards a vector over a number of seconds.
     // Note that this is not additive, and overrides any existing angular velocity.
@@ -71,8 +75,12 @@ namespace Inferno {
         void AttachLight(const Object& obj, ObjRef ref);
 
         // Schedules an object to be added at end of update
-        void AddObject(const Object& obj);
-        void AddPendingObjects(Inferno::Level& level);
+        ObjRef AddObject(Object object);
+        void FreeObject(ObjID id);
         void InitObjects(Inferno::Level& level);
+        ObjRef DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force = Vector3::Zero);
     }
+    void DestroyObject(Object& obj);
+    void ExplodeSubmodels(ModelID model, Object& obj);
+    Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);
 }

@@ -45,6 +45,8 @@ namespace Inferno::Render {
         bool MirrorX = false;
     };
 
+    constexpr uint CANVAS_HEIGHT = 480;
+
     // Draws a quad to the 2D canvas (UI Layer)
     class Canvas2D {
         DirectX::PrimitiveBatch<CanvasVertex> _batch;
@@ -56,18 +58,21 @@ namespace Inferno::Render {
     public:
         Canvas2D(ID3D12Device* device, Effect<UIShader>& effect) : _batch(device), _effect(&effect) {}
 
-        // Sets the size of the canvas. Affects alignment.
-        void SetSize(uint width, uint height, uint targetScreenHeight = 480) {
+        // Sets the size of the canvas. Affects alignment. Target screen height is the original resolution.
+        void SetSize(uint width, uint height, uint targetScreenHeight = CANVAS_HEIGHT) {
             _size = Vector2{ (float)width, (float)height };
             _scale = (float)height / targetScreenHeight; // scaling due to original screen size being 480 pixels
         }
 
+        const Vector2& GetSize() const { return _size; }
         float GetScale() const { return _scale; }
 
         void Draw(const CanvasPayload& payload) {
             if (!payload.Texture.ptr) return;
             _commands[payload.Texture.ptr].push_back(payload);
         }
+
+        void DrawRectangle(const Vector2& pos, const Vector2& size, const Color& color);
 
         void DrawBitmap(TexID id, const Vector2& pos, const Vector2& size, const Color& color = { 1, 1, 1 });
 

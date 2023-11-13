@@ -60,7 +60,12 @@ namespace Inferno {
 
         int WeaponIndex = -1; // The visible weapon
         int LaserLevel = -1; // The visible laser level
-        float Opacity{}; // Fade out/in based on rearm time / 2
+        float Opacity = 0; // Fade out/in based on rearm time / 2
+
+        // Instantly reset transitions
+        void Reset() {
+            WeaponIndex = -1;
+        }
 
         void Update(float dt, const Player& player, int weapon) {
             // Laser tier can be downgraded if thief steals the super laser
@@ -443,7 +448,7 @@ namespace Inferno {
             auto bomb = player.GetActiveBomb();
 
             // Bomb counter
-            info.Color = bomb == SecondaryWeaponIndex::Proximity ? RED_TEXT : GOLD_TEXT;
+            info.Color = bomb == SecondaryWeaponIndex::ProximityMine ? RED_TEXT : GOLD_TEXT;
             ApplyAmbient(info.Color, Ambient + Direct * GLARE);
             info.Position = Vector2(x + 157, -26) * scale;
             info.HorizontalAlign = AlignH::CenterRight;
@@ -507,12 +512,11 @@ namespace Inferno {
         }
     }
 
-    float GetCloakAlpha(const Player& player) {
-        if (!player.HasPowerup(PowerupFlag::Cloak)) return 1;
+    float GetCloakAlpha(const Object& player) {
+        if (!player.IsCloaked()) return 1;
 
-        auto& playerObj = Game::GetPlayerObject();
-        auto timer = playerObj.Effects.CloakTimer;
-        auto remaining = playerObj.Effects.CloakDuration - timer;
+        auto timer = player.Effects.CloakTimer;
+        auto remaining = player.Effects.CloakDuration - timer;
 
         if (timer < 0.5f) {
             // Cloak just picked up, fade out
@@ -574,7 +578,9 @@ namespace Inferno {
         }
 
         {
-            auto alpha = GetCloakAlpha(player);
+            auto& playerObj = Game::GetPlayerObject();
+
+            auto alpha = GetCloakAlpha(playerObj);
             TexID ship = GetGaugeTexID(Gauges::Ship);
 
             if (Game::Level.IsDescent1())
@@ -584,14 +590,18 @@ namespace Inferno {
 
             int frame = std::clamp((int)((100 - player.Shields) / 10), 0, 9);
 
-            if (player.HasPowerup(PowerupFlag::Invulnerable)) {
-                auto& playerObj = Game::GetPlayerObject();
-                auto remaining = playerObj.Effects.InvulnerableDuration - playerObj.Effects.InvulnerableTimer;
-                int invFrame = 10 + (int)(remaining * 5) % 10; // frames 10 to 19, 5 fps
+            if (playerObj.IsInvulnerable()) {
+                if (playerObj.Effects.InvulnerableDuration > 0) {
+                    auto remaining = playerObj.Effects.InvulnerableDuration - playerObj.Effects.InvulnerableTimer;
+                    int invFrame = 10 + (int)(remaining * 5) % 10; // frames 10 to 19, 5 fps
 
-                if (remaining > 4.0f || std::fmod(remaining, 1.0f) < 0.5f) {
                     // check if near expiring, flicker off/on every 3.5 seconds
-                    frame = invFrame;
+                    if (remaining > 4.0f || std::fmod(remaining, 1.0f) < 0.5f)
+                        frame = invFrame;
+                }
+                else {
+                    // Infinite invulnerability
+                    frame = 10 + (int)(playerObj.Effects.InvulnerableTimer * 5) % 10;
                 }
             }
 
@@ -614,6 +624,11 @@ namespace Inferno {
         float _lockTextTime = 0;
 
     public:
+        void Reset() {
+            _leftMonitor.Reset();
+            _rightMonitor.Reset();
+        }
+
         void Draw(float dt, Player& player) {
             CheckLockWarning();
 
@@ -629,31 +644,33 @@ namespace Inferno {
 
             auto scale = Render::HudCanvas->GetScale();
 
-            if (player.Lives > 0) {
-                // Life text
-                Render::DrawTextInfo info;
-                info.Font = FontSize::Small;
-                info.Color = GREEN_TEXT;
-                info.Position = Vector2(30, 5) * scale;
-                info.HorizontalAlign = AlignH::Left;
-                info.VerticalAlign = AlignV::Top;
-                info.Scanline = 0.5f;
-                auto lives = fmt::format("X {}", player.Lives);
-                Render::HudCanvas->DrawGameText(lives, info);
-            }
+            if (player.Lives > 1) {
+                {
+                    // Life text
+                    Render::DrawTextInfo info;
+                    info.Font = FontSize::Small;
+                    info.Color = GREEN_TEXT;
+                    info.Position = Vector2(30, 5) * scale;
+                    info.HorizontalAlign = AlignH::Left;
+                    info.VerticalAlign = AlignV::Top;
+                    info.Scanline = 0.5f;
+                    auto lives = fmt::format("X {}", player.Lives - 1);
+                    Render::HudCanvas->DrawGameText(lives, info);
+                }
 
-            {
-                // Life marker
-                Inferno::Render::CanvasBitmapInfo info;
-                info.Position = Vector2(5, 5) * scale;
-                auto& material = Render::Materials->Get(GetGaugeTexID(Gauges::Lives));
-                info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
-                info.Size *= info.Size.x <= 8 ? scale * 2 : scale; // Fix for low-res graphics
-                info.Texture = material.Handle();
-                info.HorizontalAlign = AlignH::Left;
-                info.VerticalAlign = AlignV::Top;
-                info.Scanline = 0.5f;
-                Render::HudCanvas->DrawBitmap(info);
+                {
+                    // Life marker
+                    Inferno::Render::CanvasBitmapInfo info;
+                    info.Position = Vector2(5, 5) * scale;
+                    auto& material = Render::Materials->Get(GetGaugeTexID(Gauges::Lives));
+                    info.Size = Vector2{ (float)material.Textures[0].GetWidth(), (float)material.Textures[0].GetHeight() };
+                    info.Size *= info.Size.x <= 8 ? scale * 2 : scale; // Fix for low-res graphics
+                    info.Texture = material.Handle();
+                    info.HorizontalAlign = AlignH::Left;
+                    info.VerticalAlign = AlignV::Top;
+                    info.Scanline = 0.5f;
+                    Render::HudCanvas->DrawBitmap(info);
+                }
             }
 
             {
@@ -812,7 +829,7 @@ namespace Inferno {
 
 
     void DrawHUD(float dt, const Color& ambient) {
-        constexpr Color minLight(0.2f, 0.2f, 0.2f);
+        constexpr Color minLight(0.5f, 0.5f, 0.5f);
         Ambient = ambient;
         Ambient *= Game::GetSelfDestructDimming();
         Ambient += minLight;
@@ -824,5 +841,9 @@ namespace Inferno {
 
     void AddPointsToHUD(int points) {
         Hud.AddPoints(points);
+    }
+
+    void ResetHUD() {
+        Hud.Reset();
     }
 }

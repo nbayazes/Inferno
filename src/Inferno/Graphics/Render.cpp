@@ -387,9 +387,13 @@ namespace Inferno::Render {
         _meshBuffer = MakePtr<MeshBuffer>(Resources::GameData.Models.size(), DESCENT3_MODEL_COUNT);
 
         List<ModelID> modelIds;
-        for (auto& obj : level.Objects)
-            if (obj.Render.Type == RenderType::Model)
+        for (auto& obj : level.Objects) {
+            if (obj.Render.Type == RenderType::Model) {
                 _meshBuffer->LoadModel(obj.Render.Model.ID);
+                _meshBuffer->LoadModel(Resources::GameData.DeadModels[(int)obj.Render.Model.ID]);
+                _meshBuffer->LoadModel(Resources::GameData.DyingModels[(int)obj.Render.Model.ID]);
+            }
+        }
 
         //{
         //    LoadOutrageModel(TEST_MODEL);
@@ -620,7 +624,7 @@ namespace Inferno::Render {
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(cmdList);
 
-        if (Game::GetState() == GameState::Game)
+        if (Game::GetState() == GameState::Game && !Game::Player.IsDead)
             DrawHud(ctx);
 
         //LegitProfiler::ProfilerTask resolve("Resolve multisample", LegitProfiler::Colors::CLOUDS);

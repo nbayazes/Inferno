@@ -400,7 +400,6 @@ namespace Inferno {
             p.Clip = VClipID::Matcen;
             p.Radius = up.Length() / 2;
             up.Normalize(p.Up);
-            p.Duration = vclip.PlayTime;
             p.RandomRotation = false;
             p.Color = Color(.2, 1, .2, 5);
             Render::AddParticle(p, segId, seg->Center);

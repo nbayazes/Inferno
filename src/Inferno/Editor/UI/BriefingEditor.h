@@ -44,7 +44,7 @@ namespace Inferno::Editor {
                 ImGui::BeginGroup();
 
                 ImGui::BeginChild("editor", { 0, 0 }, true);
-                //ImGui::InputTextMultiline("##editor", _buffer.data(), BUFFER_SIZE, { -1, -1 }, ImGuiInputTextFlags_AllowTabInput);
+                ImGui::InputTextMultiline("##editor", _buffer.data(), _buffer.size(), { -1, -1 }, ImGuiInputTextFlags_AllowTabInput);
                 //ImGui::EndChild();
 
                 //ImGui::SameLine();
@@ -85,6 +85,7 @@ namespace Inferno::Editor {
         void OpenBriefing(const HogEntry& entry) {
             auto data = Game::Mission->ReadEntry(entry);
             _briefing = Briefing::Read(data);
+            _buffer = _briefing.Raw;
             DebugBriefing = _briefing;
         }
     };

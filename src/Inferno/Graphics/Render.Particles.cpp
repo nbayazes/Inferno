@@ -59,6 +59,10 @@ namespace Inferno::Render {
     }
 
     EffectID AddEffect(Ptr<EffectBase> e) {
+        if (VisualEffects.size() >= VisualEffects.capacity()) {
+            __debugbreak(); // Cannot resize effects array mid frame!
+            return EffectID::None;
+        }
         ASSERT(e->Segment > SegID::None);
         e->UpdatePositionFromParent();
         e->OnInit();
@@ -304,6 +308,7 @@ namespace Inferno::Render {
         if (e.Clip == VClipID::None) return;
         if (e.InitialDelay < 0) e.InitialDelay = 0;
         if (e.Instances < 0) e.Instances = 1;
+        if (e.Duration <= 0) e.Duration = e.InitialDelay + e.Delay.Max * e.Instances;
         e.Segment = seg;
         e.Position = position;
         AddEffect(MakePtr<ExplosionInfo>(e));
@@ -1167,6 +1172,11 @@ namespace Inferno::Render {
     }
 
     void FixedUpdateEffects(float dt) {
+        if (VisualEffects.size() + 100 > VisualEffects.capacity()) {
+            VisualEffects.resize(VisualEffects.size() + 100);
+            SPDLOG_WARN("Resizing visual effects buffer to {}", VisualEffects.size());
+        }
+
         for (size_t effectId = 0; effectId < VisualEffects.size(); effectId++) {
             auto& effect = VisualEffects[effectId];
             if (effect)
@@ -1203,6 +1213,7 @@ namespace Inferno::Render {
             seg.Effects.clear();
 
         VisualEffects.clear();
+        VisualEffects.reserve(200);
 
         Beams.Clear();
 

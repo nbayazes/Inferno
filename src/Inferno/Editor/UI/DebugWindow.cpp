@@ -74,22 +74,12 @@ namespace Inferno::Editor {
         ImGui::SameLine();
         if (ImGui::Checkbox("Red", &redKey)) Game::Player.SetPowerup(PowerupFlag::RedKey, redKey);
 
-        bool invulnerable = Game::Player.HasPowerup(PowerupFlag::Invulnerable);
-        if (ImGui::Checkbox("Invulnerable", &invulnerable)) {
-            SetFlag(Game::Player.Powerups, PowerupFlag::Invulnerable, invulnerable);
-            auto& player = Game::GetPlayerObject();
-            if (invulnerable) player.MakeInvulnerable(3600.0f);
-            else player.MakeVulnerable();
-        }
+        ImGui::Checkbox("Invulnerable", &Settings::Cheats.Invulnerable);
 
         ImGui::SameLine();
-        bool cloak = Game::Player.HasPowerup(PowerupFlag::Cloak);
-        if (ImGui::Checkbox("Cloaked", &cloak)) {
-            SetFlag(Game::Player.Powerups, PowerupFlag::Cloak, cloak);
-            auto& player = Game::GetPlayerObject();
-            if (cloak) player.Cloak(3600.0f);
-            else player.Uncloak();
-        }
+        ImGui::Checkbox("Cloaked", &Settings::Cheats.Cloaked);
+
+        ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded);
 
         if (ImGui::Button("Reset inventory"))
             Game::Player.ResetInventory(Game::Difficulty);

@@ -4,7 +4,7 @@
 
 namespace Inferno {
     enum class PowerupFlag : uint32 {
-        Invulnerable = 1 << 0,
+        Invulnerable = 1 << 0, // Do not use. Replaced by per-object state.
         BlueKey = 1 << 1,
         RedKey = 1 << 2,
         GoldKey = 1 << 3,
@@ -26,6 +26,7 @@ namespace Inferno {
         static constexpr int MAX_PRIMARY_WEAPONS = 10;
         static constexpr int MAX_SECONDARY_WEAPONS = 10;
         static constexpr int CALLSIGN_LEN = 8; // so can be used as a 8.3 file name
+        static constexpr int INITIAL_LIVES = 3;
 
         ObjRef Reference = { ObjID{0}, ObjSig{0} }; // Reference to player
 
@@ -44,11 +45,11 @@ namespace Inferno {
         PowerupFlag Powerups;
         float Energy = 100;
         float Shields = 100;
-        uint8 Lives = 2;
+        uint8 Lives = INITIAL_LIVES;
         int8 Level;             // Level the player is in. Negative for secret levels
         uint8 LaserLevel;       // 0 to 5
         int8 StartingLevel;     // Level the player started the mission on. Used for final score screen.
-        ObjID KilledBy = ObjID::None; // Used for multiplayer kill messages, but also gets set by robots
+        ObjRef KilledBy = {}; // Used for multiplayer kill messages, but also gets set by robots
         uint16 PrimaryWeapons;    // Each bit represents an owned primary weapon
         uint16 SecondaryWeapons;  // Each bit represents an owned secondary weapon
         uint16 PrimaryAmmo[MAX_PRIMARY_WEAPONS];

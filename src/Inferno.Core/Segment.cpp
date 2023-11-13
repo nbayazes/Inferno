@@ -87,12 +87,11 @@ namespace Inferno {
             auto n0 = CreateNormal(v0, v1, v2);
 
             if (SideHasConnection(sideId)) {
-                Array<int, 4> indices{};
+                Array<int, 4> indices{}, sorted{};
                 for (int i = 0; i < 4; i++)
-                    indices[i] = Indices[sideVerts[i]];
+                    sorted[i] = indices[i] = Indices[sideVerts[i]];
 
-                Array<int, 4> sorted = indices;
-                SortIndices(sorted);
+                SortIndices(sorted); // same as ranges::sort()
                 side.Type = sorted[0] == indices[0] || sorted[0] == indices[2] ? SideSplitType::Tri02 : SideSplitType::Tri13;
             }
             else {

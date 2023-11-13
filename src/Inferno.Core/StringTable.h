@@ -50,5 +50,6 @@ namespace Inferno {
         Quad = 330,
 
         HostageRescued = 465
+
     };
 }

@@ -33,7 +33,7 @@ namespace Inferno::Render {
     }
 
     void MeshBuffer::LoadModel(ModelID id) {
-        if ((int)id >= _handles.size()) return;
+        if ((int)id >= _handles.size() || id == ModelID::None) return;
         auto& handle = _handles[(int)id];
         if (handle.Loaded) return;
 

@@ -315,6 +315,7 @@ namespace Inferno {
         CloakOn = 160,
         CloakOff = 161,
 
+        InvulnOn = 162,
         InvulnOff = 163,
 
         BossSee = 183,

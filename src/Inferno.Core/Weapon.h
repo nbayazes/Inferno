@@ -31,14 +31,14 @@ namespace Inferno {
     enum class SecondaryWeaponIndex : uint8 {
         Concussion = 0,
         Homing = 1,
-        Proximity = 2,
+        ProximityMine = 2,
         Smart = 3,
         Mega = 4,
         Flash = 5,
         Guided = 6,
         SmartMine = 7,
         Mercury = 8,
-        Shaker = 9
+        Earthshaker = 9
     };
 
     enum class LaserLevel : uint8 {

@@ -83,7 +83,7 @@ namespace Inferno {
         Spreadfire = 14,
         Plasma = 15,
         Fusion = 16,
-        ProximityBomb = 17,
+        ProximityMine = 17,
         Homing1 = 18,
         Homing4 = 19,
         SmartMissile = 20,
@@ -111,7 +111,7 @@ namespace Inferno {
         GuidedMissile1 = 40,
         GuidedMissile4 = 41,
 
-        SmartBomb = 42,
+        SmartMine = 42,
 
         MercuryMissile1 = 43,
         MercuryMissile4 = 44,
@@ -349,10 +349,10 @@ namespace Inferno {
         EffectFlags Flags;
 
         float CloakTimer; // Elapsed cloaking
-        float CloakDuration; // How long cloaking lasts
+        float CloakDuration; // How long cloaking lasts. -1 for forever.
 
         float InvulnerableTimer;
-        float InvulnerableDuration; // How long invulnerability lasts
+        float InvulnerableDuration; // How long invulnerability lasts. -1 for forever.
 
         Color PhaseColor;
         float PhaseTimer;
@@ -371,43 +371,11 @@ namespace Inferno {
 
             return 0;
         }
-
-        void Update(float dt) {
-            if (HasFlag(Flags, EffectFlags::Cloaked)) {
-                CloakTimer += dt;
-                if (CloakTimer >= CloakDuration)
-                    ClearFlag(Flags, EffectFlags::Cloaked);
-            }
-
-            if (HasFlag(Flags, EffectFlags::Invulnerable)) {
-                InvulnerableTimer += dt;
-                if (InvulnerableTimer >= InvulnerableDuration)
-                    ClearFlag(Flags, EffectFlags::Invulnerable);
-            }
-
-            if (HasFlag(Flags, EffectFlags::PhaseIn)) {
-                PhaseTimer += dt;
-                if (PhaseTimer >= PhaseDuration)
-                    ClearFlag(Flags, EffectFlags::PhaseIn);
-            }
-
-            if (HasFlag(Flags, EffectFlags::PhaseOut)) {
-                PhaseTimer += dt;
-                if (PhaseTimer >= PhaseDuration)
-                    ClearFlag(Flags, EffectFlags::PhaseOut);
-            }
-
-            if (HasFlag(Flags, EffectFlags::Ignited)) {
-                IgniteDuration -= dt;
-                if (IgniteDuration <= 0)
-                    ClearFlag(Flags, EffectFlags::Ignited);
-            }
-        }
     };
 
     struct Object {
         ObjSig Signature{}; // Unique signature for each object
-        ObjectType Type{};
+        ObjectType Type = ObjectType::None;
         int8 ID{}; // Index in powerups, robots, etc. Also used for player and co-op IDs.
         ObjectFlag Flags{};
         SegID Segment = SegID::None; // segment number containing object
@@ -491,29 +459,7 @@ namespace Inferno {
 
         bool IsCloaked() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked); }
 
-        void Cloak(float duration) {
-            ASSERT(duration > 0);
-            SetFlag(Effects.Flags, EffectFlags::Cloaked);
-            Effects.CloakDuration = duration;
-            Effects.CloakTimer = 0;
-        }
-
-        void Uncloak() {
-            ClearFlag(Effects.Flags, EffectFlags::Cloaked);
-        }
-
         bool IsInvulnerable() const { return HasFlag(Effects.Flags, EffectFlags::Invulnerable); }
-
-        void MakeInvulnerable(float duration) {
-            ASSERT(duration > 0);
-            SetFlag(Effects.Flags, EffectFlags::Invulnerable);
-            Effects.InvulnerableDuration = duration;
-            Effects.InvulnerableTimer = 0;
-        }
-
-        void MakeVulnerable() {
-            ClearFlag(Effects.Flags, EffectFlags::Invulnerable);
-        }
 
         void PhaseIn(float duration, const Color& color) {
             ASSERT(duration > 0);

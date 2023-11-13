@@ -51,16 +51,28 @@ namespace Inferno {
         ShipInfo Ship = PyroGX;
         Color DirectLight;
 
+        bool IsDead = false;
+        float TimeDead = 0;
+        bool Exploded = false; // Indicates if the player exploded after dying
+
+        SegID SpawnSegment = SegID::None;
+        Vector3 SpawnPosition; // Can be moved based on checkpoints
+        Matrix3x3 SpawnRotation;
+
         void GiveWeapon(PrimaryWeaponIndex weapon) {
-            PrimaryWeapons |= (1 << (uint16)weapon);
+            PrimaryWeapons |= 1 << (uint16)weapon;
             if (weapon == PrimaryWeaponIndex::Vulcan || weapon == PrimaryWeaponIndex::Gauss)
                 PrimaryAmmo[(int)PrimaryWeaponIndex::Vulcan] += 2500;
         }
 
-        void GiveWeapon(SecondaryWeaponIndex weapon) {
-            SecondaryWeapons |= (1 << (uint16)weapon);
-            SecondaryAmmo[(uint16)weapon]++;
+        void RemoveWeapon(PrimaryWeaponIndex weapon) {
+            ClearFlag(PrimaryWeapons, (uint16)weapon);
         }
+
+        //void GiveWeapon(SecondaryWeaponIndex weapon) {
+        //    SecondaryWeapons |= 1 << (uint16)weapon;
+        //    SecondaryAmmo[(uint16)weapon]++;
+        //}
 
         bool HasWeapon(PrimaryWeaponIndex weapon) const {
             return PrimaryWeapons & (1 << (uint16)weapon);
@@ -77,9 +89,10 @@ namespace Inferno {
 
         void DropBomb();
 
-        //bool HasWeapon(SecondaryWeaponIndex weapon) const {
-        //    return SecondaryWeapons & (1 << (uint16)weapon);
-        //}
+        bool HasWeapon(SecondaryWeaponIndex weapon) const {
+            return SecondaryAmmo[(int)weapon] > 0;
+            //return SecondaryWeapons & (1 << (uint16)weapon);
+        }
 
         void GivePowerup(PowerupFlag powerup) {
             SetFlag(Powerups, powerup);
@@ -105,6 +118,10 @@ namespace Inferno {
         bool PickUpEnergy();
         bool PickUpPrimary(PrimaryWeaponIndex);
         bool PickUpSecondary(SecondaryWeaponIndex, uint16 count = 1);
+        void DoDeathSequence(float dt);
+        // Drops all items after dying
+        void DropAllItems();
+
         // Returns the amount of ammo picked up
         int PickUpAmmo(PrimaryWeaponIndex, uint16 amount);
 
@@ -148,6 +165,8 @@ namespace Inferno {
             PickUpPrimary(PrimaryWeaponIndex::Laser);
             PickUpSecondary(SecondaryWeaponIndex::Concussion, uint16(7 - difficulty));
         }
+
+        void Respawn(bool fullReset);
 
     private:
         SoundUID _afterburnerSoundSig = SoundUID::None;

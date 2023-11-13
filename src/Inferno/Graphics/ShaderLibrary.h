@@ -524,6 +524,10 @@ namespace Inferno {
         static void SetWorldViewProjection(ID3D12GraphicsCommandList* commandList, const Matrix& wvp) {
             commandList->SetGraphicsRoot32BitConstants(Constants, sizeof(wvp) / 4, &wvp.m, 0);
         }
+
+        static void SetSampler(ID3D12GraphicsCommandList* commandList, D3D12_GPU_DESCRIPTOR_HANDLE sampler) {
+            commandList->SetGraphicsRootDescriptorTable(Sampler, sampler);
+        }
     };
 
     class HudShader : public IShader {

@@ -340,6 +340,7 @@ namespace Inferno {
 
         Render::Effects->UserInterface.Apply(ctx);
         Render::Shaders->UserInterface.SetWorldViewProjection(ctx, proj);
+        Render::Shaders->UserInterface.SetSampler(ctx, Render::Heaps->States.LinearClamp());
 
         // Setup blend factor
         constexpr float blend_factor[4] = { 0.f, 0.f, 0.f, 0.f };

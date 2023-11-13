@@ -33,6 +33,17 @@ namespace Inferno::Render {
         return alignment;
     }
 
+    void Canvas2D::DrawRectangle(const Vector2& pos, const Vector2& size, const Color& color) {
+        CanvasPayload payload{};
+        auto hex = color.BGRA();
+        payload.V0 = { Vector2{ pos.x, pos.y + size.y }, { 0, 1 }, hex }; // bottom left
+        payload.V1 = { Vector2{ pos.x + size.x, pos.y + size.y }, { 1, 1 }, hex }; // bottom right
+        payload.V2 = { Vector2{ pos.x + size.x, pos.y }, { 1, 0 }, hex }; // top right
+        payload.V3 = { Vector2{ pos.x, pos.y }, { 0, 0 }, hex }; // top left
+        payload.Texture = Materials->White().Handles[Material2D::Diffuse];
+        Draw(payload);
+    }
+
     void Canvas2D::DrawBitmap(TexID id, const Vector2& pos, const Vector2& size, const Color& color) {
         //auto material = &Materials->Get(id);
         auto handle = Materials->Get(id).Handles[Material2D::Diffuse];
@@ -96,6 +107,7 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         ctx.ApplyEffect(*_effect);
         _effect->Shader->SetWorldViewProjection(cmdList, orthoProj);
+        _effect->Shader->SetSampler(cmdList, Heaps->States.PointClamp());
 
         for (auto& group : _commands | views::values) {
             _effect->Shader->SetDiffuse(cmdList, group.front().Texture);
