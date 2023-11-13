@@ -157,9 +157,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
             lighting += colorSum * material.LightReceived;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
             //lighting += emissive * diffuse.rgb * material.EmissiveStrength * ambient;
-            lighting += 0.05 * ambient * diffuse.rgb * material.LightReceived; // small amount of ambient for visibility purposes
+            //lighting += 0.05 * ambient * diffuse.rgb * material.LightReceived; // small amount of ambient for visibility purposes
 
-            lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, 16);
+            lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 2, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
         }
 
         lighting.rgb += phaseColor;

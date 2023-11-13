@@ -886,27 +886,30 @@ Effects:
     - Name: flare death sparks
       Color: 1, 0.66, 0.1, 10
       Count: 6
-      SparkDuration: [ 0.3, .35 ]
+      SparkDuration: [ 0.3, .325 ]
       Restitution: 0.9
       Drag: 0.08
-      Velocity: [ 40, 45 ]
-      FadeTime: 0.2
+      Velocity: [ 45, 55 ]
+      FadeTime: 0.22
       Texture: tracer
-      Width: 0.175
+      Width: 0.15
       VelocitySmear: 0.03
+      Offset: 0, 0, 2
 
     - Name: flare sparks
       Color: 1, 0.66, 0.1, 10
       Count: [ 2, 4 ]
       SparkDuration: [ 0.3, 0.6 ]
       Restitution: 0.6
-      Drag: 0.04
-      Velocity: [ 14, 16]
-      Interval: [ 0.25, 0.9 ]
+      Drag: 0.03
+      Velocity: [ 9, 16]
+      Interval: [ 0.3, 0.7 ]
       FadeTime: 0.3
       Texture: tracer
-      Width: 0.2
+      Width: 0.15
       VelocitySmear: 0.025
+      SpawnRadius: .15
+      Offset: 0, 0, 2
 
     - Name: fusion_charge
       Color: .6, 0, 1, 20
@@ -1035,6 +1038,23 @@ Effects:
       Sound: 31 # Exploding wall
       UseParentVertices: 1
       Variance: 10
+
+    - Name: player explosion
+      FadeTime: 0.25
+      Color:  1, .8, .8, 3.75
+      Radius: 7
+      Volume: 1.5
+      Sound: 11 # Explosion
+      Clip: 58 # Player explosion
+
+    - Name: player explosion trail
+      FadeTime: 0.25
+      Color:  1, .8, .8, 2.75
+      Radius: [ 4, 5 ]
+      Variance: 3.85
+      Delay: [ .15, .20 ]
+      Clip: 58
+      Instances: 3
 
   Tracers:
     - Name: vulcan_tracer
