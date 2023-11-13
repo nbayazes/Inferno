@@ -172,6 +172,7 @@ namespace Inferno {
         bool FullyLoaded = true; // Max weapons on spawn
         bool Invulnerable = false;
         bool Cloaked = false;
+        bool LowShields = false;
     };
 
     namespace Settings {

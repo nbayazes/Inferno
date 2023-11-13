@@ -279,7 +279,7 @@ namespace Inferno {
     ObjRef Game::DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force) {
         auto& pinfo = Resources::GetPowerup(pid);
         if (pinfo.VClip == VClipID::None) {
-            SPDLOG_WARN("Tried to drop an invalid powerup!");
+            //SPDLOG_WARN("Tried to drop an invalid powerup!");
             return {};
         }
 

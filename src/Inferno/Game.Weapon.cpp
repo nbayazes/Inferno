@@ -531,7 +531,9 @@ namespace Inferno::Game {
             bullet.Radius = weapon.Extended.Size >= 0 ? weapon.Extended.Size : 1;
         }
 
-        bullet.Render.Rotation = Random() * DirectX::XM_2PI;
+        // Mines look weird when rotated randomly
+        if (id != WeaponID::ProxMine && id != WeaponID::SmartMine)
+            bullet.Render.Rotation = Random() * DirectX::XM_2PI;
 
         bullet.Lifespan = weapon.Lifetime;
         bullet.Type = ObjectType::Weapon;
@@ -574,12 +576,12 @@ namespace Inferno::Game {
         return bullet;
     }
 
-    void FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, float volume) {
+    ObjRef FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, float volume) {
         auto& level = Game::Level;
         auto pObj = level.TryGetObject(ref);
         if (!pObj) {
             __debugbreak(); // tried to fire weapon from unknown object
-            return;
+            return {};
         }
         auto& obj = *pObj;
 
@@ -634,6 +636,8 @@ namespace Inferno::Game {
             sparks->Duration = (float)obj.Lifespan;
             Render::AddSparkEmitter(*sparks, obj.Segment, obj.Position);
         }
+
+        return objRef;
     }
 
     void SpreadfireBehavior(Inferno::Player& player, uint8 gun, WeaponID wid) {

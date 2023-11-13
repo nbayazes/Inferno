@@ -91,7 +91,7 @@ namespace Inferno::Game {
     void WeaponHitWall(const LevelHit& hit, Object& obj, Inferno::Level& level, ObjID objId);
 
     // Fires a weapon from a model gunpoint
-    void FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, float volume = DEFAULT_WEAPON_VOLUME);
+    ObjRef FireWeapon(ObjRef, WeaponID, uint8 gun, Vector3* customDir = nullptr, float damageMultiplier = 1, bool showFlash = true, float volume = DEFAULT_WEAPON_VOLUME);
     Vector3 GetSpreadDirection(ObjID objId, const Vector2& spread);
 
     // Detonates a weapon with a splash radius
@@ -194,6 +194,8 @@ namespace Inferno::Game {
     void UncloakObject(Object& obj, bool playSound = true);
     void MakeInvulnerable(Object& obj, float duration, bool playSound = true);
     void MakeVulnerable(Object& obj, bool playSound = true);
+
+    Object* GetObject(ObjRef);
 
     namespace Stats {
         inline int LiveObjects = 0;

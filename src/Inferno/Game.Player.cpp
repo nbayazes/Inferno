@@ -580,7 +580,6 @@ namespace Inferno {
 
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {
-
             constexpr float SCALE = 40;
             if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
                 AddScreenFlash({ 0, 0, damage / SCALE });
@@ -616,7 +615,9 @@ namespace Inferno {
         // Reset shields and energy to at least 100
         Shields = std::max(Shields, 100.0f);
         Energy = std::max(Energy, 100.0f);
-        Shields = 10;
+
+        if (Settings::Cheats.LowShields)
+            Shields = 10;
 
         auto& player = Game::GetPlayerObject();
         HostagesOnShip = 0;
@@ -695,7 +696,7 @@ namespace Inferno {
         }
 
         bool playSpawnEffect = false;
-        if(playSpawnEffect) {
+        if (playSpawnEffect) {
             Render::Particle p{};
             p.Clip = VClipID::PlayerSpawn;
             p.Radius = player.Radius;
@@ -1241,7 +1242,7 @@ namespace Inferno {
 
         auto& player = Game::GetPlayerObject();
 
-        if (!Game::Level.TryGetObject(Game::DeathCamera)) {
+        if (!Game::GetObject(Game::DeathCamera)) {
             Object camera{};
             camera.Type = ObjectType::Camera;
             camera.Segment = player.Segment;
@@ -1249,7 +1250,7 @@ namespace Inferno {
             Game::DeathCamera = Game::AddObject(camera);
         }
 
-        auto camera = Game::Level.TryGetObject(Game::DeathCamera);
+        auto camera = Game::GetObject(Game::DeathCamera);
         if (!camera) {
             SPDLOG_ERROR("Unable to create death camera");
             return;
@@ -1361,24 +1362,22 @@ namespace Inferno {
     void Player::DropAllItems() {
         auto& player = Game::GetPlayerObject();
 
-        // Try to arm mines that don't fit into packs of 4
-        float armChance = .9f;
-        while (SecondaryAmmo[(int)SecondaryWeaponIndex::ProximityMine] % 4 != 0) {
-            SecondaryAmmo[(int)SecondaryWeaponIndex::ProximityMine]--;
-            if (Random() < armChance) {
-                armChance *= 0.5f;
-                Game::FireWeapon(Reference, WeaponID::ProxMine, 7, nullptr, 1, false, 0);
+        // Tries to arm mines that don't fit into packs of 4
+        auto maybeArmMine = [this, &player](SecondaryWeaponIndex index) {
+            float armChance = .9f;
+            while (SecondaryAmmo[(int)index] % 4 != 0) {
+                SecondaryAmmo[(int)index]--;
+                if (Random() < armChance) {
+                    armChance *= 0.5f;
+                    auto mineRef = Game::FireWeapon(Reference, WeaponID::ProxMine, 7, nullptr, 1, false, 0);
+                    if (auto mine = Game::GetObject(mineRef))
+                        mine->Physics.Velocity += RandomVector(64) + player.Physics.Velocity;
+                }
             }
-        }
+        };
 
-        armChance = .9f;
-        while (SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine] % 4 != 0) {
-            SecondaryAmmo[(int)SecondaryWeaponIndex::SmartMine]--;
-            if (Random() < armChance) {
-                armChance *= 0.5f;
-                Game::FireWeapon(Reference, WeaponID::SmartMine, 7, nullptr, 1, false, 0);
-            }
-        }
+        maybeArmMine(SecondaryWeaponIndex::ProximityMine);
+        maybeArmMine(SecondaryWeaponIndex::SmartMine);
 
         if (LaserLevel > 3) {
             for (int i = 3; i < LaserLevel; i++)
@@ -1391,7 +1390,7 @@ namespace Inferno {
 
         LaserLevel = 0;
 
-        auto dropPowerup = [this, &player] (PowerupFlag flag, PowerupID id) {
+        auto dropPowerup = [this, &player](PowerupFlag flag, PowerupID id) {
             if (HasPowerup(flag)) {
                 RemovePowerup(flag);
                 Game::DropPowerup(id, player.Position, player.Segment);
@@ -1411,7 +1410,7 @@ namespace Inferno {
             auto powerup = PrimaryWeaponToPowerup(weapon);
             auto ref = Game::DropPowerup(powerup, player.Position, player.Segment);
             if (ammo > 0) {
-                if (auto obj = Game::Level.TryGetObject(ref))
+                if (auto obj = Game::GetObject(ref))
                     obj->Control.Powerup.Count = ammo;
             }
 
@@ -1434,7 +1433,7 @@ namespace Inferno {
         if (!HasWeapon(PrimaryWeaponIndex::Gauss) && !HasWeapon(PrimaryWeaponIndex::Vulcan) && vulcanAmmo > 0) {
             // Has vulcan ammo but neither weapon, drop the ammo
             auto ammoRef = Game::DropPowerup(PowerupID::VulcanAmmo, player.Position, player.Segment);
-            if (auto ammoPickup = Game::Level.TryGetObject(ammoRef)) {
+            if (auto ammoPickup = Game::GetObject(ammoRef)) {
                 ammoPickup->Control.Powerup.Count = vulcanAmmo;
             }
         }

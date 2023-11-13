@@ -164,6 +164,8 @@ namespace Inferno::Game {
 
     void UpdateAmbientSounds() {
         auto& player = Level.Objects[0];
+        if (player.Segment == SegID::None) return;
+
         bool hasLava = bool(Level.GetSegment(player.Segment).AmbientSound & SoundFlag::AmbientLava);
         bool hasWater = bool(Level.GetSegment(player.Segment).AmbientSound & SoundFlag::AmbientWater);
 
@@ -307,6 +309,13 @@ namespace Inferno::Game {
             sound.Merge = false;
             Sound::Play(sound);
         }
+    }
+
+    Object* GetObject(ObjRef ref) {
+        if (!Seq::inRange(Level.Objects, (int)ref.Id)) return nullptr;
+        auto& obj = Level.Objects[(int)ref.Id];
+        if (obj.Signature != ref.Signature) return nullptr;
+        return &obj;
     }
 
     void UpdateEffects(Object& obj, float dt) {

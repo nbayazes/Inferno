@@ -18,7 +18,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace {
     int AppWidth = 1024, AppHeight = 768;
-    bool AppMoving = false;
     bool AppSuspended = false;
     bool AppMinimized = false;
     bool AppFullscreen = false;

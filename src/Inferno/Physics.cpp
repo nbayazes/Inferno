@@ -1164,43 +1164,47 @@ namespace Inferno {
 
             for (int i = 0; i < seg.Objects.size(); i++) {
                 if (id == seg.Objects[i]) continue; // don't hit yourself!
-                auto pOther = level.TryGetObject(seg.Objects[i]);
-                if (!pOther) continue;
-                auto& other = *pOther;
-                if (id == other.Parent.Id) continue; // Don't hit your children!
-                if (obj.Parent.Signature == pOther->Signature) continue; // Don't hit your parent!
+                auto other = level.TryGetObject(seg.Objects[i]);
+                if (!other) continue;
 
-                switch (ObjectCanHitTarget(obj, other)) {
+                auto pSrc = &obj;
+                if (obj.Type == ObjectType::Player && other->Type == ObjectType::Weapon)
+                    std::swap(pSrc, other);
+
+                if (id == other->Parent.Id) continue; // Don't hit your children!
+                if (obj.Parent.Signature == other->Signature) continue; // Don't hit your parent!
+
+                switch (ObjectCanHitTarget(obj, *other)) {
                     default:
                     case CollisionType::None: break;
                     case CollisionType::SphereRoom: break;
                     case CollisionType::SpherePoly:
-                        if (auto info = IntersectSpherePoly(obj, other, obj, dt)) {
-                            hit.Update(info, &other);
-                            CollideObjects(hit, obj, other, dt);
+                        if (auto info = IntersectSpherePoly(obj, *other, obj, dt)) {
+                            hit.Update(info, other);
+                            CollideObjects(hit, obj, *other, dt);
                         }
                         break;
                     case CollisionType::PolySphere:
                         // Reposition the other object, not this one while using the mesh from this object.
-                        if (auto info = IntersectPolySphere(obj, other, dt)) {
-                            hit.Update(info, &other);
-                            CollideObjects(hit, other, obj, dt);
+                        if (auto info = IntersectPolySphere(obj, *other, dt)) {
+                            hit.Update(info, other);
+                            CollideObjects(hit, *other, obj, dt);
                         }
                         break;
 
                     case CollisionType::SphereSphere:
                     {
                         // for robots their spheres are too large... apply multiplier. Having some overlap is okay.
-                        auto radiusMult = obj.Type == ObjectType::Robot && other.Type == ObjectType::Robot ? 0.66f : 1.0f;
+                        auto radiusMult = obj.Type == ObjectType::Robot && other->Type == ObjectType::Robot ? 0.66f : 1.0f;
                         BoundingSphere sphereA(obj.Position, obj.Radius * radiusMult);
-                        BoundingSphere sphereB(other.Position, other.Radius * radiusMult);
+                        BoundingSphere sphereB(other->Position, other->Radius * radiusMult);
 
                         if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
-                            hit.Update(info, &other);
+                            hit.Update(info, other);
 
                             // Move players and robots when they collide with something
                             if ((obj.Type == ObjectType::Robot || obj.Type == ObjectType::Player) &&
-                                (other.Type == ObjectType::Robot || other.Type == ObjectType::Player)) {
+                                (other->Type == ObjectType::Robot || other->Type == ObjectType::Player)) {
                                 auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
                                 obj.Physics.Velocity -= info.Normal * nDotVel; // slide along normal
                                 hit.Speed = obj.Physics.Velocity.Length();
@@ -1208,8 +1212,12 @@ namespace Inferno {
                                 //obj.Physics.Velocity += info.Normal * hitSpeed;
                             }
 
-                            //hit.Normal = -hit.Normal;
-                            CollideObjects(hit, obj, other, dt);
+
+                            // Shove player when hit by weapons
+                            if (obj.Type == ObjectType::Weapon && other->Type == ObjectType::Player)
+                                hit.Speed = (obj.Physics.Velocity + other->Physics.Velocity).Length();
+
+                            CollideObjects(hit, obj, *other, dt);
                         }
                         break;
                     }
@@ -1326,7 +1334,7 @@ namespace Inferno {
                 Sound3D sound({ SoundID::PlayerHitWall }, hit.Point, hit.Tag.Segment);
                 Sound::Play(sound);
             }
-        } 
+        }
 
         //SPDLOG_INFO("{} wall hit damage: {}", obj.Signature, damage);
 

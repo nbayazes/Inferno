@@ -80,6 +80,8 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Cloaked", &Settings::Cheats.Cloaked);
 
         ImGui::Checkbox("Fully loaded", &Settings::Cheats.FullyLoaded);
+        ImGui::SameLine();
+        ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
 
         if (ImGui::Button("Reset inventory"))
             Game::Player.ResetInventory(Game::Difficulty);
