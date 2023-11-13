@@ -582,9 +582,9 @@ namespace Inferno {
             else if (isPlayerSource && Game::Player.CanOpenDoor(wall)) {
                 OpenDoor(level, wall.Tag);
             }
-            else if (src.Type == ObjectType::Weapon) {
+            else if (src.Type == ObjectType::Weapon || src.Type == ObjectType::Player) {
                 // Can't open door
-                if (isPlayerSource || isRobotSource) {
+                if ((isPlayerSource || isRobotSource) && src.Type == ObjectType::Weapon) {
                     Sound3D sound({ SoundID::HitLockedDoor }, point, wall.Tag.Segment);
                     sound.Position = point;
                     Sound::Play(sound);

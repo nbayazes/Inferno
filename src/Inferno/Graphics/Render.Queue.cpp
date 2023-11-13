@@ -224,7 +224,7 @@ namespace Inferno::Render {
 
         // Sort objects in room by depth
         Seq::sortBy(_objects, [](const ObjDepth& a, const ObjDepth& b) {
-            return a.Depth < b.Depth;
+            return a.Depth > b.Depth;
         });
 
         // Add objects to queue
