@@ -1,6 +1,39 @@
 #pragma once
 
+// Use the C++ standard templated min/max
 #define NOMINMAX
+
+// DirectX apps don't need GDI. But DWM does.
+#define NODRAWTEXT
+//#define NOGDI
+#define NOBITMAP
+
+// Include <mcx.h> if you need this
+#define NOMCX
+
+// Include <winsvc.h> if you need this
+#define NOSERVICE
+
+// WinHelp is deprecated
+#define NOHELP
+
+#define NOGDICAPMASKS
+#define NOCRYPT
+#define NOATOM
+#define NOCLIPBOARD
+#define NOCOLOR
+#define NOKERNEL
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOSCROLL
+#define NOCOMM
+#define NOKANJI
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+
+// Windows and DirectX
+#include <WinSDKVer.h>
+#include <SDKDDKVer.h>
 
 #include <wrl.h>
 using Microsoft::WRL::ComPtr;
@@ -55,3 +88,5 @@ inline void SetNameIndexed(ID3D12Object*, LPCWSTR, UINT) {}
 
 #define NAME_D3D12_OBJECT(x) SetName((x).Get(), L#x)
 #define NAME_D3D12_OBJECT_INDEXED(x, n) SetNameIndexed((x)[n].Get(), L#x, n)
+
+#undef GetObject

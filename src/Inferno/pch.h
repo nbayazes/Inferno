@@ -25,42 +25,7 @@
 #include <queue>
 #include <ranges>
 
-// Use the C++ standard templated min/max
-#define NOMINMAX
-
-// DirectX apps don't need GDI. But DWM does.
-#define NODRAWTEXT
-//#define NOGDI
-#define NOBITMAP
-
-// Include <mcx.h> if you need this
-#define NOMCX
-
-// Include <winsvc.h> if you need this
-#define NOSERVICE
-
-// WinHelp is deprecated
-#define NOHELP
-
-#define NOGDICAPMASKS
-#define NOCRYPT
-#define NOATOM
-#define NOCLIPBOARD
-#define NOCOLOR
-#define NOKERNEL
-#define NOMEMMGR
-#define NOMETAFILE
-#define NOSCROLL
-#define NOCOMM
-#define NOKANJI
-#define NOPROFILER
-#define NODEFERWINDOWPOS
-
-// Windows and DirectX
-#include <WinSDKVer.h>
-#include <SDKDDKVer.h>
 #include "DirectX.h"
-
 #include "Types.h"
 #include "Logging.h"
 #include "Convert.h"
