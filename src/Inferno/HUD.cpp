@@ -514,6 +514,7 @@ namespace Inferno {
 
     float GetCloakAlpha(const Object& player) {
         if (!player.IsCloaked()) return 1;
+        if (player.Effects.CloakDuration < 0) return 0;
 
         auto timer = player.Effects.CloakTimer;
         auto remaining = player.Effects.CloakDuration - timer;

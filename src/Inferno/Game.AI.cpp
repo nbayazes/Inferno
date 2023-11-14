@@ -2,7 +2,6 @@
 
 #include "Types.h"
 #include "Game.AI.h"
-
 #include "Game.AI.Pathing.h"
 #include "Game.Boss.h"
 #include "Game.h"
@@ -11,7 +10,6 @@
 #include "Resources.h"
 #include "Physics.h"
 #include "logging.h"
-#include "Physics.Math.h"
 #include "SoundSystem.h"
 #include "Editor/Editor.Selection.h"
 #include "Graphics/Render.Debug.h"
@@ -44,7 +42,6 @@ namespace Inferno {
         return RuntimeState[(int)Game::GetObjectRef(obj).Id];
     }
 
-    constexpr float AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
     constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
     constexpr float MAX_SLOW_EFFECT = 0.9f; // Max percentage of slow to apply to a robot
     constexpr float MAX_SLOW_THRESHOLD = 0.4f; // Percentage of life dealt to reach max slow
@@ -58,12 +55,17 @@ namespace Inferno {
         return info.Difficulty[Game::Difficulty];
     }
 
-    void AddAwareness(AIRuntime& ai, float awareness) {
+    void AddAwareness(AIRuntime& ai, float awareness, float maxAwareness) {
+        if (ai.Awareness > maxAwareness)
+            return; // Don't reduce existing awareness
+
         ai.Awareness += awareness;
-        if (ai.Awareness > 1) ai.Awareness = 1;
+
+        if (ai.Awareness > maxAwareness)
+            ai.Awareness = maxAwareness;
     }
 
-    void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness) {
+    void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness, float maxAwareness) {
         for (auto& segId : room.Segments) {
             auto pseg = level.TryGetSegment(segId);
             if (!pseg) continue;
@@ -82,12 +84,12 @@ namespace Inferno {
                     auto& ai = GetAI(*obj);
 
                     auto prevAwareness = ai.Awareness;
-                    ai.Awareness += awareness * falloff;
+                    AddAwareness(ai, awareness * falloff, maxAwareness);
                     //SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
 
                     //Render::Debug::DrawPoint(obj->Position, Color(1, 1, 0));
 
-                    if (prevAwareness < AWARENESS_INVESTIGATE && ai.Awareness > AWARENESS_INVESTIGATE) {
+                    if (prevAwareness < AI_AWARENESS_INVESTIGATE && ai.Awareness >= AI_AWARENESS_INVESTIGATE) {
                         SPDLOG_INFO("Enemy {}:{} investigating sound at {}, {}, {}!", objId, obj->Signature, position.x, position.y, position.z);
 
                         auto& robotInfo = Resources::GetRobotInfo(*obj);
@@ -106,13 +108,13 @@ namespace Inferno {
     }
 
     // adds awareness to robots in nearby rooms
-    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness) {
+    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness, float maxAwareness) {
         auto& level = Game::Level;
         auto room = level.GetRoomID(source);
         if (room == RoomID::None) return;
 
         auto action = [&](const Room& r) {
-            AlertEnemiesInRoom(level, r, source.Segment, source.Position, soundRadius, awareness);
+            AlertEnemiesInRoom(level, r, source.Segment, source.Position, soundRadius, awareness, maxAwareness);
         };
 
         Game::TraverseRoomsByDistance(level, room, source.Position, soundRadius, true, action);
@@ -126,15 +128,18 @@ namespace Inferno {
         Sound::Play(sound);
     }
 
-    bool PointInFOV(const Object& robot, const Vector3& pointDir, const RobotInfo& robotInfo) {
+    bool PointIsInFOV(const Object& robot, const Vector3& pointDir, const RobotInfo& robotInfo) {
         auto dot = robot.Rotation.Forward().Dot(pointDir);
         auto& diff = robotInfo.Difficulty[Game::Difficulty];
         return dot >= diff.FieldOfView;
     }
 
-    bool CanSeeObject(const Object& obj, const Vector3& objDir, float objDist, AIRuntime& ai) {
-        if (obj.IsCloaked()) return false; // Can't see cloaked object
+    bool PlayerCloakIsEffective(const Object& player) {
+        ASSERT(player.IsPlayer());
+        return player.IsCloaked() && Game::Player.FiredRecentlyTimer <= 0;
+    }
 
+    bool HasLineOfSight(const Object& obj, const Vector3& objDir, float objDist, AIRuntime& ai) {
         LevelHit hit{};
         Ray ray = { obj.Position, objDir };
         RayQuery query{ .MaxDistance = objDist, .Start = obj.Segment, .PassTransparent = true };
@@ -146,16 +151,18 @@ namespace Inferno {
     // Player visibility doesn't account for direct line of sight like weapon fire does (other robots, walls)
     bool CanSeePlayer(const Object& robot, const RobotInfo& robotInfo) {
         auto& player = Game::GetPlayerObject();
+        if (PlayerCloakIsEffective(player)) return false;
+
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
         auto& ai = GetAI(robot);
-        if (!CanSeeObject(robot, playerDir, dist, ai))
+        if (!HasLineOfSight(robot, playerDir, dist, ai))
             return false;
 
-        if (!PointInFOV(robot, playerDir, robotInfo))
+        if (!PointIsInFOV(robot, playerDir, robotInfo))
             return false;
 
         auto prevAwareness = ai.Awareness;
-        AddAwareness(ai, 1);
+        AddAwareness(ai, 1, 1);
 
         // only play sound when robot was asleep
         if (prevAwareness < 0.3f) {
@@ -388,7 +395,7 @@ namespace Inferno {
         // Looks weird to dodge distant projectiles. also they might hit another target
         // Consider increasing this for massive robots?
         if (projDist > AI_MAX_DODGE_DISTANCE) return;
-        if (!PointInFOV(robot, projDir, robotInfo)) return;
+        if (!PointIsInFOV(robot, projDir, robotInfo)) return;
 
         Vector3 projTravelDir;
         projectile.Physics.Velocity.Normalize(projTravelDir);
@@ -428,47 +435,50 @@ namespace Inferno {
     }
 
     // Tries to path towards the player or move directly to it if in the same room
-    void MoveTowardsObject(Level& level, const Object& object, Object& robot,
+    void MoveTowardsTarget(Level& level, Object& robot,
                            AIRuntime& ai, const Vector3& objDir, float objDist) {
-        if (CanSeeObject(robot, objDir, objDist, ai)) {
+        if (!ai.Target) return;
+
+        if (HasLineOfSight(robot, objDir, objDist, ai)) {
             Ray ray(robot.Position, objDir);
             //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
-            Vector3 playerPosition = object.Position;
-            AvoidRoomEdges(level, ray, robot, playerPosition);
+            AvoidRoomEdges(level, ray, robot, *ai.Target);
             //auto& seg = level.GetSegment(robot.Segment);
             //AvoidSideEdges(level, ray, seg, side, robot, 0, player.Position);
-            MoveTowardsPoint(robot, playerPosition, 100); // todo: thrust from difficulty
+            MoveTowardsPoint(robot, *ai.Target, 100); // todo: thrust from difficulty
         }
         else {
-            SetPathGoal(level, robot, ai, object.Segment, object.Position);
+            SetPathGoal(level, robot, ai, ai.TargetSegment, *ai.Target);
         }
     }
 
     // Moves towards a random segment further away from the player. Prefers room portals.
-    void MoveAwayFromPlayer(Level& /*level*/, const Object& player, Object& robot) {
-        auto playerDir = player.Position - robot.Position;
-        playerDir.Normalize();
-        Ray ray(robot.Position, -playerDir);
+    void MoveAwayFromTarget(const Vector3& target, Object& robot) {
+        auto targetDir = target - robot.Position;
+        targetDir.Normalize();
+        Ray ray(robot.Position, -targetDir);
         LevelHit hit;
         RayQuery query{ .MaxDistance = 10, .Start = robot.Segment };
         if (Intersect.RayLevel(ray, query, hit))
             return; // no room to move backwards
 
         // todo: try escaping through portals if there are any in the player's FOV
-        MoveTowardsPoint(robot, robot.Position - playerDir * 10, 10);
+        MoveTowardsPoint(robot, robot.Position - targetDir * 10, 10);
     }
 
-    void MoveToCircleDistance(Level& level, const Object& player, Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
+    void MoveToCircleDistance(Level& level, Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
+        if (!ai.Target) return;
+
         auto circleDistance = Difficulty(robotInfo).CircleDistance;
-        auto [dir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
+        auto [dir, dist] = GetDirectionAndDistance(*ai.Target, robot.Position);
         auto distOffset = dist - circleDistance;
         if (abs(distOffset) < 20 && circleDistance > 10 && robotInfo.Attack == AttackType::Ranged)
             return; // already close enough
 
         if (distOffset > 0)
-            MoveTowardsObject(level, player, robot, ai, dir, dist);
+            MoveTowardsTarget(level, robot, ai, dir, dist);
         else
-            MoveAwayFromPlayer(level, player, robot);
+            MoveAwayFromTarget(*ai.Target, robot);
     }
 
     void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult) {
@@ -896,7 +906,7 @@ namespace Inferno {
 
         if (ai.Awareness <= 0) {
             ai.Target = {}; // Clear target if robot loses interest.
-            ai.KnownPlayerSegment = SegID::None;
+            ai.TargetSegment = SegID::None;
         }
 
         //PlayRobotAnimation(robot, AnimState::Fire);
@@ -907,13 +917,14 @@ namespace Inferno {
             float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
             RotateTowards(robot, *ai.Target, turnTime);
             CircleStrafe(robot, ai, robotInfo, dt);
+            Render::Debug::DrawPoint(*ai.Target, Color(1, 0, 0));
         }
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
 
-        if (ai.LastSeenPlayer > Difficulty(robotInfo).FireDelay)
-            ai.BurstShots = 0; // Reset burst fire if player hasn't been seen recently
+        if (ai.Awareness < AI_AWARENESS_COMBAT)
+            ai.BurstShots = 0; // Reset burst fire if not in combat
 
         if (ai.RemainingStun > 0)
             return; // Can't act while stunned
@@ -934,16 +945,16 @@ namespace Inferno {
             if (CanSeePlayer(robot, robotInfo))
                 ai.ClearPath(); // Stop pathing if robot sees the player
         }
-        else if (ai.Awareness >= AI_COMBAT_AWARENESS) {
+        else if (ai.Awareness > AI_AWARENESS_COMBAT) {
             // in combat
 
             // this causes the robot to pursue the player if out of sight as well
-            MoveToCircleDistance(Game::Level, player, robot, ai, robotInfo);
+            MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-            if (CanSeeObject(robot, playerDir, dist, ai)) {
+            if (!PlayerCloakIsEffective(player) && HasLineOfSight(robot, playerDir, dist, ai)) {
                 ai.Target = player.Position;
-                ai.KnownPlayerSegment = player.Segment;
+                ai.TargetSegment = player.Segment;
             }
             else {
                 DecayAwareness(ai);

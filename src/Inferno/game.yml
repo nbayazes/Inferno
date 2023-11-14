@@ -544,7 +544,7 @@ Robots:
     Drag: 0.025
   - id: 4 # Class 2 drone
     CircleDistance: 40
-    Drag: 0.075
+    Drag: 0.03
     Mass: 3.0
   - id: 5 # Cloaked driller
     CircleDistance: 100 # sniper
@@ -572,7 +572,7 @@ Robots:
     Mass: 2.5
     Multishot: 7 # shotgun all available projectiles
     Aim: 125
-    Drag: 0.09
+    Drag: 0.03
   - id: 12 # Missile platform
     #FireDelay: [ 3, 2, 2, 1.75, 1.5 ]
     #Shots: [ 2, 2, 2, 3, 4 ]
@@ -580,7 +580,7 @@ Robots:
     Shots: 1
     CircleDistance: 20
     Mass: 2.5
-    Drag: 0.09
+    Drag: 0.03
   - id: 13 # Pod
   - id: 14 # Baby spider
     CircleDistance: 12.5
@@ -663,7 +663,7 @@ Robots:
 
 Powerups:
   - id: 0 # Extra life
-    LightColor: 0.05, 1, .05, 1.9
+    LightColor: 0.05, 1, .05, 1.7
     Glow: 1, 1, 1, 1
     LightRadius: 15
     LightMode: 4 # Pulse
@@ -682,12 +682,12 @@ Powerups:
 
   - id: 23 # Cloak
     LightColor: .5, 0, 1, 2
-    Glow: 1, 1, 1, 2
+    Glow: 1, 1, 1, 1
     LightRadius: 18
     LightMode: 4 # Pulse
 
   - id: 25 # Invuln
-    Glow: 1, 1, 1, 2
+    Glow: 1, 1, 1, 1
     LightColor: 0.1, 0, 1, 4
     LightRadius: 18
     LightMode: 4 # Pulse

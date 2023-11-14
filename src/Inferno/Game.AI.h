@@ -7,9 +7,12 @@
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 5; // Default delay for trying to path to the player
     constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
-    constexpr float AI_COMBAT_AWARENESS = 0.6f; // Robot is engaged in combat
     constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
     constexpr float DEATH_SOUND_DURATION = 2.68f;
+
+    constexpr float AI_AWARENESS_MAX = 1.0f;
+    constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
+    constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
 
     struct AITarget {
         Vector3 Position;
@@ -47,7 +50,7 @@ namespace Inferno {
         float MeleeHitDelay = 0; // How long before a melee swing deals damage
         AnimState AnimationState = {};
 
-        SegID KnownPlayerSegment = SegID::None; // Last segment the player was seen in
+        SegID TargetSegment = SegID::None;
         Option<Vector3> Target;
 
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
@@ -237,7 +240,7 @@ namespace Inferno {
     };
 
     void UpdateAI(Object& obj, float dt);
-    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness);
+    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness, float maxAwareness = AI_AWARENESS_MAX);
     void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5);
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.

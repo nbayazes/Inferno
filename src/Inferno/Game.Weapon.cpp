@@ -1114,7 +1114,7 @@ namespace Inferno::Game {
                 if (speed > maxSpeed) speed = maxSpeed;
             }*/
 
-            dir *= 4; // NEW: Increase weighting of existing direction to smooth turn radius. This does slightly reduce turn speed.
+            dir *= 2; // NEW: Increase weighting of existing direction to smooth turn radius. This does slightly reduce turn speed.
             dir += targetDir;
 
             // make smart blobs track better (hacky, add homing speed to weapon info)

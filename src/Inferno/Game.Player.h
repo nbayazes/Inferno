@@ -16,6 +16,7 @@ namespace Inferno {
     constexpr float OMEGA_RECHARGE_TIME = 3; // time to fully recharge omega (original: 4)
     constexpr float OMEGA_RECHARGE_ENERGY = 4; // energy to fully recharge omega
     constexpr float OMEGA_RECHARGE_DELAY = 1.0f / 4; // how long before recharging starts
+    constexpr float CLOAK_FIRING_FLICKER = 0.25f; // How long robots can see the player after they fire
 
     // Extracted player state that was scattered across methods or globals as static variables
     struct Player : PlayerData {
@@ -42,6 +43,7 @@ namespace Inferno {
         uint8 HelixOrientation = 0; // increments in 22.5 degrees
         float FusionNextSoundDelay = 0;
         uint8 FiringIndex = 0, MissileFiringIndex = 0;
+        float FiredRecentlyTimer = 0;
 
         FireState PrimaryState{}, SecondaryState{};
         float RefuelSoundTime = 0;
