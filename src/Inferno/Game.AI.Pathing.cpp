@@ -347,10 +347,7 @@ namespace Inferno {
     }
 
     bool SetPathGoal(Level& level, Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition) {
-        if (ai.PathDelay > 0) return false; // Don't spam trying to path to a goal
-
         // Calculate a new path
-        SPDLOG_INFO("Robot {} updating goal path", obj.Signature);
         auto& robotInfo = Resources::GetRobotInfo(obj);
         ai.GoalSegment = goalSegment;
         ai.GoalPosition = goalPosition;
@@ -364,6 +361,7 @@ namespace Inferno {
             return false;
         }
 
+        SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
         return true;
     }
 
@@ -376,16 +374,24 @@ namespace Inferno {
             }
         };
 
+        if (ai.GoalSegment == SegID::None) return;
+        if (!PathIsValid(obj, ai)) {
+            //SPDLOG_INFO("Recalculating object path due to not being on it"); // this happens way too much
+            SetPathGoal(level, obj, ai, ai.GoalSegment, ai.GoalPosition);
+        }
         if (!PathIsValid(obj, ai)) return;
 
         auto& robot = Resources::GetRobotInfo(obj.ID);
-        auto thrust = robot.Difficulty[Game::Difficulty].Speed / 8;
-        auto angThrust = GetRotationSpeed(robot);
+        Render::Debug::DrawLine(obj.Position, ai.GoalPosition, Color(0, 1, 0));
 
         if (ai.GoalSegment == obj.Segment) {
+            auto goalDir = ai.GoalPosition - obj.Position;
+            goalDir.Normalize();
+
             // Reached the goal segment
-            MoveTowardsPoint(obj, ai.GoalPosition, thrust);
-            RotateTowards(obj, ai.GoalPosition, angThrust);
+            MoveTowardsPoint(obj, ai, ai.GoalPosition);
+            // Don't turn towards the point as high-speed robots will flip randomly
+            //TurnTowardsVector(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
             checkGoalReached();
         }
         else {
@@ -513,14 +519,14 @@ namespace Inferno {
             //Render::Debug::DrawLine(ray.position, ray.position + ray.direction * 20, Color(1, .5f, 0));
             //AvoidRoomEdges(level, ray, obj, thrust, targetPosition);
 
-            Render::Debug::DrawLine(obj.Position, targetPosition, Color(0, 1, 0));
-
             //auto& seg1 = Game::Level.GetSegment(next1);
             //auto& seg2 = Game::Level.GetSegment(next2);
             targetPosition = (targetPosition * 2 + nextSide.Center) / 3;
-            MoveTowardsPoint(obj, targetPosition, thrust);
-            RotateTowards(obj, targetPosition, angThrust);
+            MoveTowardsPoint(obj, ai, targetPosition, 1);
 
+            auto goalDir = targetPosition - obj.Position;
+            goalDir.Normalize();
+            TurnTowardsVector(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
 
             //if (CheckLevelEdges(level, ray, segs, obj.Radius)) {
             //    // MoveTowardsPoint(obj, nextSide.Center, thrust);

@@ -5,7 +5,7 @@
 #include "SoundTypes.h"
 
 namespace Inferno {
-    constexpr float AI_PATH_DELAY = 5; // Default delay for trying to path to the player
+    constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
     constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
     constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
     constexpr float DEATH_SOUND_DURATION = 2.68f;
@@ -21,6 +21,10 @@ namespace Inferno {
         AITarget()  = default;
         AITarget(const Object& obj) : Position(obj.Position), Velocity(obj.Physics.Velocity) {}
     };
+
+    //enum class AIState {
+    //    
+    //};
 
     // Runtime AI data
     struct AIRuntime {
@@ -65,6 +69,8 @@ namespace Inferno {
         float WiggleTime = 0; // Remaining wiggle time
         Vector3 DodgeDirection;
 
+        Vector3 Velocity; // Desired velocity for this update. Clamped at end by max speed.
+
         float StrafeAngle = 0; // Angle relative to the right axis to strafe in
         float StrafeTime = 0; // How long to strafe for
 
@@ -92,6 +98,16 @@ namespace Inferno {
             GoalPathIndex = -1;
             GoalSegment = SegID::None;
             GoalRoom = RoomID::None;
+        }
+
+        void AddAwareness(float awareness, float maxAwareness = AI_AWARENESS_MAX) {
+            if (Awareness > maxAwareness)
+                return; // Don't reduce existing awareness
+
+            Awareness += awareness;
+
+            if (Awareness > maxAwareness)
+                Awareness = maxAwareness;
         }
     };
 
@@ -258,8 +274,10 @@ namespace Inferno {
     AIRuntime& GetAI(const Object& obj);
 
     bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
-    void MoveTowardsPoint(Object& obj, const Vector3& point, float thrust);
+
+    void MoveTowardsPoint(const Object& robot, AIRuntime& ai, const Vector3& point, float scale = 1);
 
     struct RobotInfo;
     float GetRotationSpeed(const RobotInfo& ri);
+    void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
 }

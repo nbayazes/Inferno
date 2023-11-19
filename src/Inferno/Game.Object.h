@@ -59,15 +59,14 @@ namespace Inferno {
 
     void CreateObjectDebris(const Object& obj, ModelID modelId, const Vector3& force);
 
-    // Sets an object's angular velocity to turn towards a vector over a number of seconds.
-    // Note that this is not additive, and overrides any existing angular velocity.
+    // Modifies an object's rotation to face towards a vector at a given rate per second
     void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
 
     // Similar to TurnTowardsVector but adds angular thrust, allowing overshoot
     void RotateTowards(Object& obj, Vector3 point, float angularThrust);
 
     void ApplyForce(Object& obj, const Vector3& force);
-    void ApplyRotation(Object& obj, const Vector3& force);
+    void ApplyRotation(Object& obj, Vector3 force);
 
     namespace Game {
         Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);

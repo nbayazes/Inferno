@@ -55,16 +55,6 @@ namespace Inferno {
         return info.Difficulty[Game::Difficulty];
     }
 
-    void AddAwareness(AIRuntime& ai, float awareness, float maxAwareness) {
-        if (ai.Awareness > maxAwareness)
-            return; // Don't reduce existing awareness
-
-        ai.Awareness += awareness;
-
-        if (ai.Awareness > maxAwareness)
-            ai.Awareness = maxAwareness;
-    }
-
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& position, float soundRadius, float awareness, float maxAwareness) {
         for (auto& segId : room.Segments) {
             auto pseg = level.TryGetSegment(segId);
@@ -84,7 +74,7 @@ namespace Inferno {
                     auto& ai = GetAI(*obj);
 
                     auto prevAwareness = ai.Awareness;
-                    AddAwareness(ai, awareness * falloff, maxAwareness);
+                    ai.AddAwareness(awareness * falloff, maxAwareness);
                     //SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
 
                     //Render::Debug::DrawPoint(obj->Position, Color(1, 1, 0));
@@ -135,7 +125,7 @@ namespace Inferno {
     }
 
     bool PlayerCloakIsEffective(const Object& player) {
-        ASSERT(player.IsPlayer());
+        if (!player.IsPlayer()) return false;
         return player.IsCloaked() && Game::Player.FiredRecentlyTimer <= 0;
     }
 
@@ -162,7 +152,7 @@ namespace Inferno {
             return false;
 
         auto prevAwareness = ai.Awareness;
-        AddAwareness(ai, 1, 1);
+        ai.AddAwareness(AI_AWARENESS_MAX);
 
         // only play sound when robot was asleep
         if (prevAwareness < 0.3f) {
@@ -235,37 +225,11 @@ namespace Inferno {
         return elapsedTime > rollDuration;
     }
 
-    void MoveTowardsPoint(Object& obj, const Vector3& point, float thrust) {
-        auto dir = point - obj.Position;
+    void MoveTowardsPoint(const Object& robot, AIRuntime& ai, const Vector3& point, float scale) {
+        auto dir = point - robot.Position;
         dir.Normalize();
-        obj.Physics.Thrust += dir * thrust;
-    }
-
-    void ClampThrust(Object& robot, const AIRuntime& ai) {
-        if (ai.RemainingStun > 0) {
-            robot.Physics.Thrust = Vector3::Zero;
-            robot.Physics.AngularThrust = Vector3::Zero;
-            return;
-        }
-
-        auto& robotInfo = Resources::GetRobotInfo(robot.ID);
-
-        auto slow = ai.RemainingSlow;
-        float slowScale = slow > 0 ? 1 - MAX_SLOW_EFFECT * slow / MAX_SLOW_TIME : 1;
-
-        auto maxSpeed = Difficulty(robotInfo).Speed / 8 * slowScale;
-        Vector3 maxThrust(maxSpeed, maxSpeed, maxSpeed);
-        robot.Physics.Thrust.Clamp(-maxThrust, maxThrust);
-
-        auto maxAngle = slowScale * 1 / Difficulty(robotInfo).TurnTime;
-        Vector3 maxAngVel(maxAngle, maxAngle, maxAngle);
-        robot.Physics.AngularThrust.Clamp(-maxAngVel, maxAngVel);
-    }
-
-    float GetRotationSpeed(const RobotInfo& ri) {
-        auto turnTime = Difficulty(ri).TurnTime;
-        if (turnTime <= 0) turnTime = 1.0f;
-        return 1 / turnTime / 8;
+        auto& info = Resources::GetRobotInfo(robot);
+        ai.Velocity += dir * Difficulty(info).Speed * scale;
     }
 
     struct AiExtended {
@@ -445,15 +409,17 @@ namespace Inferno {
             AvoidRoomEdges(level, ray, robot, *ai.Target);
             //auto& seg = level.GetSegment(robot.Segment);
             //AvoidSideEdges(level, ray, seg, side, robot, 0, player.Position);
-            MoveTowardsPoint(robot, *ai.Target, 100); // todo: thrust from difficulty
+            MoveTowardsPoint(robot, ai, *ai.Target);
+            ai.PathDelay = 0;
         }
         else {
-            SetPathGoal(level, robot, ai, ai.TargetSegment, *ai.Target);
+            if (ai.PathDelay <= 0)
+                SetPathGoal(level, robot, ai, ai.TargetSegment, *ai.Target);
         }
     }
 
     // Moves towards a random segment further away from the player. Prefers room portals.
-    void MoveAwayFromTarget(const Vector3& target, Object& robot) {
+    void MoveAwayFromTarget(const Vector3& target, const Object& robot, AIRuntime& ai) {
         auto targetDir = target - robot.Position;
         targetDir.Normalize();
         Ray ray(robot.Position, -targetDir);
@@ -463,7 +429,7 @@ namespace Inferno {
             return; // no room to move backwards
 
         // todo: try escaping through portals if there are any in the player's FOV
-        MoveTowardsPoint(robot, robot.Position - targetDir * 10, 10);
+        MoveTowardsPoint(robot, ai, robot.Position - targetDir * 10);
     }
 
     void MoveToCircleDistance(Level& level, Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
@@ -478,7 +444,7 @@ namespace Inferno {
         if (distOffset > 0)
             MoveTowardsTarget(level, robot, ai, dir, dist);
         else
-            MoveAwayFromTarget(*ai.Target, robot);
+            MoveAwayFromTarget(*ai.Target, robot, ai);
     }
 
     void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult) {
@@ -686,7 +652,7 @@ namespace Inferno {
 
     // Tries to circle strafe the target.
     // Checks level geometry. Returns false if strafing isn't possible.
-    void CircleStrafe(Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
+    void CircleStrafe(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
         ai.StrafeTime -= dt;
 
         if (!ai.Target)
@@ -697,7 +663,7 @@ namespace Inferno {
 
         auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), ai.StrafeAngle);
         auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
-        robot.Physics.Thrust += dir * Difficulty(robotInfo).Speed;
+        ai.Velocity += dir * Difficulty(robotInfo).Speed;
     }
 
     void TryStartCircleStrafe(const Object& robot, AIRuntime& ai, float time) {
@@ -851,6 +817,47 @@ namespace Inferno {
         }
     }
 
+    // Moves a robot towards a direction
+    void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale) {
+        scale = std::min(1.0f, scale);
+        auto& aiInfo = Resources::GetRobotInfo(robot);
+        Vector3 idealVel = dir * Difficulty(aiInfo).Speed * scale;
+        Vector3 deltaVel = idealVel - robot.Physics.Velocity;
+        float deltaSpeed = deltaVel.Length();
+        deltaVel.Normalize();
+        float maxDeltaVel = Difficulty(aiInfo).Speed; // todo: new field. this is between 0.5 and 2 of the base velocity
+        float maxDeltaSpeed = dt * maxDeltaVel * scale;
+
+        if (deltaSpeed > maxDeltaSpeed)
+            robot.Physics.Velocity += deltaVel * maxDeltaSpeed;
+        else
+            robot.Physics.Velocity = idealVel;
+    }
+
+    void ApplyVelocity(Object& robot, const AIRuntime& ai, float dt) {
+        if (ai.Velocity == Vector3::Zero) return;
+        auto& robotInfo = Resources::GetRobotInfo(robot);
+        auto idealVel = ai.Velocity;
+        Vector3 deltaVel = idealVel - robot.Physics.Velocity;
+        float deltaSpeed = deltaVel.Length();
+        deltaVel.Normalize();
+
+        auto slow = ai.RemainingSlow;
+        float slowScale = slow > 0 ? 1 - MAX_SLOW_EFFECT * slow / MAX_SLOW_TIME : 1;
+        float maxDeltaSpeed = dt * Difficulty(robotInfo).Speed * slowScale;
+
+        if (deltaSpeed > maxDeltaSpeed)
+            robot.Physics.Velocity += deltaVel * maxDeltaSpeed * 2; // x2 so max velocity is actually reached
+        else
+            robot.Physics.Velocity = idealVel;
+
+        auto speed = robot.Physics.Velocity.Length();
+        if (speed > Difficulty(robotInfo).Speed)
+            robot.Physics.Velocity *= 0.75f;
+
+        //SPDLOG_INFO("Speed: {}", robot.Physics.Velocity.Length());
+    }
+
     void UpdateRobotAI(Object& robot, float dt) {
         auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
@@ -859,6 +866,7 @@ namespace Inferno {
         // Reset thrust accumulation
         robot.Physics.Thrust = Vector3::Zero;
         robot.Physics.AngularThrust = Vector3::Zero;
+        ai.Velocity = Vector3::Zero;
 
         auto decr = [&dt](float& value) {
             value -= dt;
@@ -913,9 +921,9 @@ namespace Inferno {
         AnimateRobot(robot, ai, dt);
 
         if (ai.Target) {
-            //TurnTowardsVector(robot, playerDir, Difficulty(robotInfo).TurnTime / 2);
-            float turnTime = 1 / Difficulty(robotInfo).TurnTime / 8;
-            RotateTowards(robot, *ai.Target, turnTime);
+            auto targetDir = *ai.Target - robot.Position;
+            targetDir.Normalize();
+            TurnTowardsVector(robot, targetDir, Difficulty(robotInfo).TurnTime);
             CircleStrafe(robot, ai, robotInfo, dt);
             Render::Debug::DrawPoint(*ai.Target, Color(1, 0, 0));
         }
@@ -935,12 +943,19 @@ namespace Inferno {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
         if (ai.DodgeTime > 0 || ai.WiggleTime > 0) {
-            robot.Physics.Thrust += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
+            ai.Velocity += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
         }
 
         if (ai.GoalSegment != SegID::None) {
             // goal pathing takes priority over other behaviors
             PathTowardsGoal(Game::Level, robot, ai, dt);
+
+            if (ai.Target && ai.TargetSegment == robot.Segment) {
+                // Clear target if pathing towards it discovers the target isn't there.
+                // This is so the robot doesn't turn around while chasing
+                ai.Target = {};
+                ai.TargetSegment = SegID::None;
+            }
 
             if (CanSeePlayer(robot, robotInfo))
                 ai.ClearPath(); // Stop pathing if robot sees the player
@@ -958,6 +973,13 @@ namespace Inferno {
             }
             else {
                 DecayAwareness(ai);
+                // Robot can either choose to chase the player or hold position and fire
+                // todo: add chance to chase
+                if (ai.Target) {
+                    SPDLOG_INFO("Lost sight of player");
+                    ai.PathDelay = 0;
+                    SetPathGoal(Game::Level, robot, ai, ai.TargetSegment, *ai.Target);
+                }
             }
 
             // Prevent attacking during phasing (matcens and teleports)
@@ -971,8 +993,7 @@ namespace Inferno {
             }
         }
         else {
-            if (CanSeePlayer(robot, robotInfo)) { }
-            else {
+            if (!CanSeePlayer(robot, robotInfo)) {
                 // Nothing nearby, sleep for longer
                 DecayAwareness(ai);
                 robot.NextThinkTime = Game::Time + Game::TICK_RATE * 16;
@@ -980,7 +1001,8 @@ namespace Inferno {
         }
 
         if (ai.Awareness > 1) ai.Awareness = 1;
-        ClampThrust(robot, ai);
+        //ClampThrust(robot, ai);
+        ApplyVelocity(robot, ai, dt);
         ai.LastUpdate = Game::Time;
     }
 

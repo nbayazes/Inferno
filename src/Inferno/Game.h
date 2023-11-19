@@ -84,7 +84,7 @@ namespace Inferno::Game {
     Option<MissionInfo> TryReadMissionInfo();
 
     inline double Time = 0; // Elapsed game time since level start in seconds. Stops when paused.
-    inline float DeltaTime = 0; // Elapsed fixed-step game time since last update. 0 when paused.
+    inline float DeltaTime = 0; // Elapsed fixed-step game time in seconds since last update. 0 when paused.
     inline float LerpAmount = 1; // How much to lerp between the previous and next object states
 
     void WeaponHitObject(const LevelHit& hit, Object& src);

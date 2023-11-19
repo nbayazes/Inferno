@@ -45,7 +45,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.6, 0.05, 0.3, 2.5
-    FlashColor: 1, 0.15, 0.6, 25
+    FlashColor: 1, 0.15, 0.6, 2
     EnergyUsage: 0.25
 
   - id: 2
@@ -114,7 +114,7 @@ Weapons:
     LightRadius: 16
     Glow: .25, .25, 1, 22
     LightColor: 0.15, 0.15, 0.6
-    FlashColor: 0.7, 0.7, 1, 25
+    FlashColor: 0.7, 0.7, 1, 2
 
   - id: 30
     Name: laser 5
@@ -234,7 +234,7 @@ Weapons:
     FlashColor: .6, .1, 1, 15
     Mass: 3
     Behavior: fusion
-    StunMult: 0.5
+    StunMult: 0.4
     Recoil: 50
     Damage: 60
     PlayerDamageScale: 0.5 # Halve robot damage to players
@@ -538,9 +538,9 @@ Robots:
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
   - id: 3 # Class 1 drone
-    CircleDistance: 60
+    CircleDistance: 50
     FOV: [ 110, 130, 150, 170, 200 ]
-    Mass: 3.2
+    Mass: 2.5
     Drag: 0.025
   - id: 4 # Class 2 drone
     CircleDistance: 40

@@ -482,22 +482,32 @@ namespace Inferno {
     }
 
     // Creates a world rotation matrix from a vector
-    inline Matrix3x3 VectorToRotation(const Vector3& fvec) {
-        Vector3 rvec;
-        Vector3 uvec;
-
-        // vec is straight up or down
-        if (fvec.x == 0 && fvec.z == 0) {
-            rvec = Vector3(1, 0, 0);
-            uvec.z = fvec.y < 0 ? 1.0f : -1.0f;
+    inline Matrix3x3 VectorToRotation(const Vector3& forward, Vector3 up = Vector3::Zero, Vector3 right = Vector3::Zero) {
+        if (up == Vector3::Zero && right == Vector3::Zero) {
+            // neither up or right provided
+            if (forward.x == 0 && forward.z == 0) {
+                // vec is straight up or down
+                right = Vector3(1, 0, 0);
+                up.z = forward.y < 0 ? 1.0f : -1.0f;
+            }
+            else {
+                right = Vector3(forward.z, 0, -forward.x);
+                right.Normalize();
+                up = forward.Cross(right);
+            }
         }
-        else {
-            rvec = Vector3(fvec.z, 0, -fvec.x);
-            rvec.Normalize();
-            uvec = fvec.Cross(rvec);
+        else if (right != Vector3::Zero) {
+            up = forward.Cross(right);
+            up.Normalize();
+            right = up.Cross(forward); // recalculate right vec in case it wasn't perpendicular
+        }
+        else if (up != Vector3::Zero) {
+            right = up.Cross(forward);
+            right.Normalize();
+            up = forward.Cross(right);
         }
 
-        return Matrix3x3{ rvec, uvec, fvec };
+        return Matrix3x3{ right, up, forward };
     }
 
     // Creates an object rotation matrix from a vector

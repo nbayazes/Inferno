@@ -761,17 +761,18 @@ namespace Inferno {
 
 
     void TurnTowardsVector(Object& obj, Vector3 towards, float rate) {
-        if (towards == Vector3::Zero) return;
-        // transform towards to local coordinates
-        Matrix basis(obj.Rotation);
-        basis = basis.Invert();
-        towards = Vector3::Transform(towards, basis); // transform towards to basis of object
-        towards.z *= -1; // hack: correct for LH object matrix
+        ASSERT(IsNormalized(towards));
 
-        auto rotation = Quaternion::FromToRotation(Vector3::UnitZ, towards); // rotation to the target vector
-        auto euler = rotation.ToEuler() / rate / DirectX::XM_2PI; // Physics update multiplies by XM_2PI so divide it here
-        euler.z = 0; // remove roll
-        obj.Physics.AngularVelocity = euler;
+        auto goal = towards;
+        goal *= Game::TICK_RATE / rate;
+        goal += obj.Rotation.Forward();
+        auto mag = goal.Length();
+        goal.Normalize();
+        if (mag < 1 / 256.0f)
+            goal = towards; // degenerate
+
+        obj.Rotation = VectorToRotation(goal, Vector3::Zero, obj.Rotation.Right());
+        obj.Rotation.Forward(-obj.Rotation.Forward());
     }
 
     void RotateTowards(Object& obj, Vector3 point, float angularThrust) {
@@ -797,7 +798,7 @@ namespace Inferno {
         obj.Physics.Velocity += force / obj.Physics.Mass;
     }
 
-    void ApplyRotation(Object& obj, const Vector3& force) {
+    void ApplyRotation(Object& obj, Vector3 force) {
         if (obj.Movement != MovementType::Physics || obj.Physics.Mass <= 0) return;
         auto vecmag = force.Length();
         if (vecmag == 0) return;
@@ -811,8 +812,8 @@ namespace Inferno {
         else {
             if (rate < 0.5f) rate = 0.5f;
         }
-        //}
 
+        force.Normalize();
         TurnTowardsVector(obj, force, rate);
     }
 }

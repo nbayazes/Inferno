@@ -1373,7 +1373,7 @@ namespace Inferno {
             obj.PrevRotation = obj.Rotation;
             return;
         }
-
+        
         for (int i = 0; i < STEPS; i++) {
             obj.PrevPosition = obj.Position;
             obj.PrevRotation = obj.Rotation;
