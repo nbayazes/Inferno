@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AI.h"
+#include "Polymodel.h"
 
 namespace Inferno {
     // Control types - what tells this object what do do

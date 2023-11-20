@@ -86,6 +86,7 @@ namespace Inferno {
         // Joint lookup for each gun and animation state
         JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];
 
+        float AlertRadius = 80; // Increases awareness of robots in this radius while the player is visible
         List<int8> GatedRobots; // Robots to gate in when hit. For bosses.
         float TeleportInterval; // Interval between boss teleports.
     };

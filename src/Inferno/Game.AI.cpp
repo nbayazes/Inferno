@@ -19,6 +19,22 @@ namespace Inferno {
     namespace {
         List<AIRuntime> RuntimeState;
         IntersectContext Intersect(Game::Level);
+
+        constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
+        constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
+        constexpr float DEATH_SOUND_DURATION = 2.68f;
+
+        constexpr float AI_ALERT_AWARENESS = 0.4f; // Amount of awareness to give to nearby robots each second the player is visible
+        constexpr float AI_AWARENESS_DECAY = 0.1f; // Awareness lost per second
+
+        constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
+        constexpr float MAX_SLOW_EFFECT = 0.9f; // Max percentage of slow to apply to a robot
+        constexpr float MAX_SLOW_THRESHOLD = 0.4f; // Percentage of life dealt to reach max slow
+
+        constexpr float STUN_THRESHOLD = 27.5; // Minimum damage to stun a robot. Concussion is 30 damage.
+        constexpr float MAX_STUN_PERCENT = 0.6f; // Percentage of life required in one hit to reach max stun time
+        constexpr float MAX_STUN_TIME = 1.5f; // max stun in seconds
+        constexpr float MIN_STUN_TIME = 0.25f; // min stun in seconds. Stuns under this duration are discarded.
     }
 
     void ResetAI() {
@@ -42,15 +58,6 @@ namespace Inferno {
         return RuntimeState[(int)Game::GetObjectRef(obj).Id];
     }
 
-    constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
-    constexpr float MAX_SLOW_EFFECT = 0.9f; // Max percentage of slow to apply to a robot
-    constexpr float MAX_SLOW_THRESHOLD = 0.4f; // Percentage of life dealt to reach max slow
-
-    constexpr float STUN_THRESHOLD = 27.5; // Minimum damage to stun a robot. Concussion is 30 damage.
-    constexpr float MAX_STUN_PERCENT = 0.6f; // Percentage of life required in one hit to reach max stun time
-    constexpr float MAX_STUN_TIME = 1.5f; // max stun in seconds
-    constexpr float MIN_STUN_TIME = 0.25f; // min stun in seconds. Stuns under this duration are discarded.
-
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {
         return info.Difficulty[Game::Difficulty];
     }
@@ -68,30 +75,16 @@ namespace Inferno {
                     auto dist = Vector3::Distance(obj->Position, position);
                     if (dist > soundRadius) continue;
 
-                    //auto falloff = std::clamp(std::lerp(awareness, 0.0f, (soundRadius - dist) / soundRadiusSq), 0.0f, 1.0f);
                     auto falloff = std::powf(1 - dist / soundRadius, 2); // inverse falloff 
-                    //auto falloff = Saturate(InvLerp(soundRadius, 0, dist));
                     auto& ai = GetAI(*obj);
 
-                    auto prevAwareness = ai.Awareness;
+                    //auto prevAwareness = ai.Awareness;
                     ai.AddAwareness(awareness * falloff, maxAwareness);
-                    //SPDLOG_INFO("Alerted enemy {} by {} from sound", obj->Signature, awareness * falloff);
-
-                    //Render::Debug::DrawPoint(obj->Position, Color(1, 1, 0));
-
-                    if (prevAwareness < AI_AWARENESS_INVESTIGATE && ai.Awareness >= AI_AWARENESS_INVESTIGATE) {
-                        SPDLOG_INFO("Enemy {}:{} investigating sound at {}, {}, {}!", objId, obj->Signature, position.x, position.y, position.z);
-
-                        auto& robotInfo = Resources::GetRobotInfo(*obj);
-                        auto path = Game::Navigation.NavigateTo(obj->Segment, soundSeg, !robotInfo.IsThief, Game::Level);
-                        ai.PathDelay = AI_PATH_DELAY;
-                        ai.GoalSegment = soundSeg;
-                        ai.GoalPosition = position;
-                        ai.GoalRoom = level.GetRoomID(soundSeg);
-                        ai.GoalPath = path;
-                        ai.GoalPathIndex = 0;
-                        obj->NextThinkTime = 0;
+                    if (!ai.Target && ai.TargetSegment == SegID::None /*&& ai.Awareness > AI_AWARENESS_INVESTIGATE*/) {
+                        ai.Target = position;
+                        ai.TargetSegment = soundSeg;
                     }
+                    obj->NextThinkTime = 0;
                 }
             }
         }
@@ -108,6 +101,39 @@ namespace Inferno {
         };
 
         Game::TraverseRoomsByDistance(level, room, source.Position, soundRadius, true, action);
+    }
+
+    // Alerts nearby robots of a target. Used when a robot fires to wake up nearby robots, or by observer robots.
+    void AlertRobotsOfTarget(const Object& source, float radius, const Vector3& target, SegID targetSeg, float awareness) {
+        auto& level = Game::Level;
+        auto srcRoom = level.GetRoomID(source);
+        if (srcRoom == RoomID::None) return;
+
+        auto action = [&](const Room& room) {
+            for (auto& segId : room.Segments) {
+                auto pseg = level.TryGetSegment(segId);
+                if (!pseg) continue;
+                auto& seg = *pseg;
+
+                for (auto& objId : seg.Objects) {
+                    if (auto obj = level.TryGetObject(objId)) {
+                        if (!obj->IsRobot()) continue;
+
+                        auto dist = Vector3::Distance(obj->Position, source.Position);
+                        if (dist > radius) continue;
+                        //auto falloff = std::lerp(0.5f, 1.0f, dist / radius);
+                        auto random = 1 + RandomN11() * 0.5f; // Add some variance so robots in a room don't all wake up at same time
+                        auto& ai = GetAI(*obj);
+                        ai.Target = target;
+                        ai.TargetSegment = targetSeg;
+                        ai.AddAwareness(awareness * random, AI_AWARENESS_COMBAT);
+                        obj->NextThinkTime = 0;
+                    }
+                }
+            }
+        };
+
+        Game::TraverseRoomsByDistance(level, srcRoom, source.Position, radius, true, action);
     }
 
     void PlayAlertSound(const Object& obj, const RobotInfo& robot) {
@@ -232,18 +258,10 @@ namespace Inferno {
         ai.Velocity += dir * Difficulty(info).Speed * scale;
     }
 
-    struct AiExtended {
-        float AwarenessDecay = 0.2f; // Awareness decay per second
-        float Fear = 0.2f; // Taking damage increases flee state
-        float Curiosity = 0.2f; // How much awareness from noise / likeliness to investigate
-    };
-
-    AiExtended DefaultAi{};
-
     void FireWeaponAtPoint(const Object& obj, const RobotInfo& robot, uint8 gun, const Vector3& point, WeaponID weapon) {
         auto aim = 8.0f - 7.0f * FixToFloat(robot.Aim << 8);
 
-        // todo: seismic disturbance inaccuracy
+        // todo: seismic disturbance inaccuracy (self destruct, earthshaker)
 
         // Randomize target based on difficulty
         Vector3 target = {
@@ -266,7 +284,7 @@ namespace Inferno {
     Vector3 LeadTarget(const Vector3& targetDir, float targetDist, const AITarget& target, float projectileSpeed) {
         constexpr float MAX_LEAD_DISTANCE = 200;
         constexpr float MIN_LEAD_SPEED = 4;
-        constexpr float LEAD_ANGLE = 45 * DegToRad;
+        constexpr float LEAD_ANGLE = 30 * DegToRad;
 
         if (projectileSpeed > FAST_WEAPON_SPEED) {
             if (Game::Difficulty <= 1)
@@ -298,7 +316,7 @@ namespace Inferno {
 
     void DecayAwareness(AIRuntime& ai) {
         auto deltaTime = float(Game::Time - ai.LastUpdate);
-        ai.Awareness -= DefaultAi.AwarenessDecay * deltaTime;
+        ai.Awareness -= AI_AWARENESS_DECAY * deltaTime;
         if (ai.Awareness < 0) ai.Awareness = 0;
     }
 
@@ -881,12 +899,8 @@ namespace Inferno {
         decr(ai.DodgeTime);
         decr(ai.MeleeHitDelay);
         decr(ai.PathDelay);
+        decr(ai.AlertTimer);
         ai.LastSeenPlayer += dt;
-
-        //if (HasFlag(robot.Flags, ObjectFlag::Exploding)) {
-        //    if (ai.DyingTimer == -1) ai.DyingTimer = 0;
-        //    ai.DyingTimer += dt;
-        //}
 
         if (robotInfo.IsBoss)
             if (!Game::UpdateBoss(robot, dt))
@@ -917,7 +931,6 @@ namespace Inferno {
             ai.TargetSegment = SegID::None;
         }
 
-        //PlayRobotAnimation(robot, AnimState::Fire);
         AnimateRobot(robot, ai, dt);
 
         if (ai.Target) {
@@ -960,7 +973,7 @@ namespace Inferno {
             if (CanSeePlayer(robot, robotInfo))
                 ai.ClearPath(); // Stop pathing if robot sees the player
         }
-        else if (ai.Awareness > AI_AWARENESS_COMBAT) {
+        else if (ai.Awareness >= AI_AWARENESS_COMBAT) {
             // in combat
 
             // this causes the robot to pursue the player if out of sight as well
@@ -970,6 +983,11 @@ namespace Inferno {
             if (!PlayerCloakIsEffective(player) && HasLineOfSight(robot, playerDir, dist, ai)) {
                 ai.Target = player.Position;
                 ai.TargetSegment = player.Segment;
+
+                if (ai.AlertTimer <= 0 && ai.Target && ai.TargetSegment != SegID::None) {
+                    AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.Target, ai.TargetSegment, AI_ALERT_AWARENESS * 0.2f);
+                    ai.AlertTimer = 0.2f;
+                }
             }
             else {
                 DecayAwareness(ai);
@@ -992,11 +1010,20 @@ namespace Inferno {
                 }
             }
         }
+        else if (ai.Awareness >= AI_AWARENESS_INVESTIGATE) {
+            if (ai.Target) {
+                // face towards target
+                auto targetDir = *ai.Target - robot.Position;
+                targetDir.Normalize();
+                TurnTowardsVector(robot, targetDir, Difficulty(robotInfo).TurnTime);
+            }
+            DecayAwareness(ai);
+        }
         else {
             if (!CanSeePlayer(robot, robotInfo)) {
                 // Nothing nearby, sleep for longer
                 DecayAwareness(ai);
-                robot.NextThinkTime = Game::Time + Game::TICK_RATE * 16;
+                robot.NextThinkTime = Game::Time + 0.125f;
             }
         }
 

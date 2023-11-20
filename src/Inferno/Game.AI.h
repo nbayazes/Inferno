@@ -6,9 +6,6 @@
 
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
-    constexpr float AI_DODGE_TIME = 0.5f; // Time to dodge a projectile. Should probably scale based on mass.
-    constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
-    constexpr float DEATH_SOUND_DURATION = 2.68f;
 
     constexpr float AI_AWARENESS_MAX = 1.0f;
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
@@ -88,6 +85,7 @@ namespace Inferno {
 
         List<SegID> GoalPath; // For pathing to another segment
         int16 GoalPathIndex = -1;
+        float AlertTimer = 0; // Delay between alerting nearby robots of the player location
 
         bool PlayingAnimation() const {
             return AnimationTime < AnimationDuration;

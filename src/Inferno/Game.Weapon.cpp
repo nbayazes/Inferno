@@ -52,6 +52,10 @@ namespace Inferno::Game {
 
         if (weapon.Spawn != WeaponID::None && weapon.SpawnCount > 0)
             CreateMissileSpawn(obj, 6);
+
+        // Alert enemies when a player weapon is destroyed
+        //if (obj.Parent == Game::Player.Reference)
+            //AlertEnemiesOfNoise(obj, weapon.Extended.SoundRadius, 1, AI_AWARENESS_INVESTIGATE);
     }
 
     void ProxMineBehavior(Object& mine) {

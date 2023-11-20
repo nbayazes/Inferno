@@ -538,10 +538,11 @@ Robots:
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
   - id: 3 # Class 1 drone
-    CircleDistance: 50
+    CircleDistance: 60
     FOV: [ 110, 130, 150, 170, 200 ]
     Mass: 2.5
     Drag: 0.025
+    AlertRadius: 110 # Drones are scouts and have a larger radius than normal
   - id: 4 # Class 2 drone
     CircleDistance: 40
     Drag: 0.03
@@ -557,6 +558,7 @@ Robots:
   - id: 7 # Supervisor
     CircleDistance: 60
     Mass: 3.25
+    AlertRadius: 240 # Alert all nearby robots!
   - id: 8 # Secondary Lifter (one arm)
     CircleDistance: 15
     Mass: 3.5
@@ -594,6 +596,7 @@ Robots:
     Multishot: 2
     DeathRoll: 3
     ExplosionStrength: 15
+    AlertRadius: 160 # Miniboss alert radius
     # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
     CircleDistance: 80
@@ -604,10 +607,12 @@ Robots:
     Multishot: 2
     CircleDistance: 200
     TurnTime: 0.025 # Turn time reduced to compensate for increased mass
-    HitPoints: 250 # Increased slightly due to teleporting being more generous to player
+    # D2 has hit points of 4000
+    # HitPoints: 250 # Increased slightly from D1 2000 due to teleporting being more generous to player
     DeathRollSound: 185 # d1
     DeathRoll: 10 # max death roll
     SeeSound: 183 # d1
+    AlertRadius: 240
     TeleportInterval: 6 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
   - id: 18 # Cloaked lifter
     CircleDistance: 20
@@ -634,7 +639,7 @@ Robots:
     Multishot: 2
     Shots: 2
     FireDelay: [ 0.3, 0.25, 0.15, 0.125, 0.1 ]
-    Drag: 0.10
+    Drag: 0.03
   - id: 23 # level 27 boss
     Mass: 100
     GatedRobots: [ 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22, 0, 8, 11, 19, 20, 8, 20, 8 ]
@@ -645,6 +650,8 @@ Robots:
     TeleportInterval: 7 # 8 original. lowered due to removing engine reductions in teleport delay such as firing or taking damage.
     FireDelay: 1
     Guns: 5 # Actually 4, but data is loaded incorrectly causing gun 2 to be blank
+    AlertRadius: 240
+    # HitPoints: 5000, 7500 (D1, D2)
   - id: 24 # BEPR
   - id: 25 # Smelter
 #Ice Spider

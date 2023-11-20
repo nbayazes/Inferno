@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Types.h"
-#include "Polymodel.h"
 
 namespace Inferno {
 
