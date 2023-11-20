@@ -161,15 +161,36 @@ namespace Inferno::Editor {
         return changed;
     }
 
-    const std::map<AIBehavior, const char*> BehaviorLabels = {
-        { AIBehavior::Normal, "Normal" },
-        { AIBehavior::Still, "Still" },
-        { AIBehavior::RunFrom, "Drop bombs" },
-        { AIBehavior::Station, "Station" },
-        { AIBehavior::Behind, "Get behind" },
-        { AIBehavior::Snipe, "Snipe" },
-        { AIBehavior::Follow, "Follow" },
-        { (AIBehavior)231, "Drop smart bombs" }, // fake behavior id for UI
+    // fake behavior id for UI
+    constexpr AIBehavior DROP_SMART_BOMBS = AIBehavior{ 231 };
+
+    struct BehaviorLabel {
+        AIBehavior behavior;
+        const char* label;
+    };
+
+    constexpr std::array<BehaviorLabel, 6> BEHAVIOR_LABELS_D1 = {
+        {
+            { AIBehavior::Normal, "Normal" },
+            { AIBehavior::Still, "Still" },
+            { AIBehavior::RunFrom, "Drop bombs" },
+            { AIBehavior::Station, "Station" },
+            { AIBehavior::Hide, "Hide (unused)" },
+            { AIBehavior::FollowPathD1, "Follow path (unused)" }
+        },
+    };
+
+    constexpr std::array<BehaviorLabel, 8> BEHAVIOR_LABELS_D2 = {
+        {
+            { AIBehavior::Normal, "Normal" },
+            { AIBehavior::Still, "Still" },
+            { AIBehavior::RunFrom, "Drop bombs" },
+            { DROP_SMART_BOMBS, "Drop smart bombs" },
+            { AIBehavior::Snipe, "Snipe" },
+            { AIBehavior::GetBehind, "Get behind" },
+            { AIBehavior::Station, "Station (not impl)" },
+            { AIBehavior::FollowPathD2, "Follow path (unused)" },
+        }
     };
 
     bool AIBehaviorDropdown(const char* label, RobotAI& ai) {
@@ -178,18 +199,27 @@ namespace Inferno::Editor {
         auto value = ai.Behavior;
 
         if (Game::Level.IsDescent2() && value == AIBehavior::RunFrom && ai.SmartMineFlag())
-            value = (AIBehavior)231;
+            value = DROP_SMART_BOMBS;
 
-        if (!BehaviorLabels.contains(ai.Behavior))
-            value = AIBehavior::Normal; // hack to prevent crash on invalid objects. This can occur after changing an object to a robot or custom DLE types.
+        auto labels = Game::Level.IsDescent2()
+            ? span<const BehaviorLabel>{ BEHAVIOR_LABELS_D2 }
+            : span<const BehaviorLabel>{ BEHAVIOR_LABELS_D1 };
 
-        if (ImGui::BeginCombo(label, BehaviorLabels.at(value))) {
-            for (auto& [item, text] : BehaviorLabels) {
-                if ((int)item == 231 && Game::Level.IsDescent1()) continue; // No smart mines in D1
+        const auto behaviorSearch = [&value](const BehaviorLabel& entry) { return entry.behavior == value; };
 
+        auto entry = Seq::find(labels, behaviorSearch);
+        if (!entry) {
+            value = AIBehavior::Normal; // prevent crash on invalid objects. This can occur after changing an object to a robot or custom DLE types.
+            entry = Seq::find(labels, behaviorSearch);
+        }
+
+        if (!entry) return false;
+
+        if (ImGui::BeginCombo(label, entry->label)) {
+            for (auto& [item, text] : labels) {
                 const bool isSelected = item == value;
                 if (ImGui::Selectable(text, isSelected)) {
-                    if ((int)item == 231) {
+                    if ((int)item == (int)DROP_SMART_BOMBS) {
                         ai.Behavior = AIBehavior::RunFrom;
                         ai.SmartMineFlag(true);
                     }

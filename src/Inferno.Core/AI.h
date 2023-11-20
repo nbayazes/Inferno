@@ -6,17 +6,17 @@
 namespace Inferno {
 
     enum class AIBehavior : uint8 {
-        Still = 0x80,
+        Still = 0x80, // Hold position and fire
         Normal = 0x81,
-        RunFrom = 0x83,
+        RunFrom = 0x83, // Runs away from the player. Brain (overseer), bots that drop mines. Can open doors in vanilla.
         // In D1 the robot will roam between the "Hide Segment" and the starting segment. 
         // In D2 this seems to be broken.
         Station = 0x85, 
-        Hide = 0x82, // D1
-        Behind = 0x82, // D2
-        FollowPath = 0x84, // D1
-        Snipe = 0x84, // D2
-        Follow = 0x86,
+        Hide = 0x82, // D1: Similar to RunFrom, finds a segment to hide from the player. Probably unused.
+        GetBehind = 0x82, // D2: Tries to get behind the player
+        Snipe = 0x84, // D2: Fires extra volleys, extra fast, open doors, falls back
+        FollowPathD1 = 0x84, // D1: Similar to RunFrom. Probably unused.
+        FollowPathD2 = 0x86, // D2: Used internally by thief?
     };
 
     enum class RobotAwareness : uint8 {
