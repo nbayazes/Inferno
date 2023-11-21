@@ -101,6 +101,9 @@
     <ClInclude Include="Room.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Dynamics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

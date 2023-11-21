@@ -70,10 +70,6 @@ namespace DirectX::SimpleMath {
             Up(up);
             Right(right);
         }
-
-        void Transpose() {
-            
-        }
     };
 }
 

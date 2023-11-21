@@ -107,6 +107,7 @@
     <ClInclude Include="Bezier.h" />
     <ClInclude Include="Briefing.h" />
     <ClInclude Include="DataPool.h" />
+    <ClInclude Include="Dynamics.h" />
     <ClInclude Include="EffectClip.h" />
     <ClInclude Include="Face.h" />
     <ClInclude Include="Fonts.h" />
