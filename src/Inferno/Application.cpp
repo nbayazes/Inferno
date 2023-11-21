@@ -84,27 +84,19 @@ void Application::Update() {}
 
 void Application::UpdateFpsLimit() {
     auto limit = _isForeground ? Settings::Graphics.ForegroundFpsLimit : Settings::Graphics.BackgroundFpsLimit;
-    _fpsLimit = limit > 0 ? int(1000.0f / (float)limit) : 0;
+    _fpsLimitMs = limit > 0 ? int(1000.0f / (float)limit) : 0;
 }
 
 void Application::Tick() {
-    auto milliseconds = Inferno::Clock.GetTotalMilliseconds();
-    if (_fpsLimit > 0) {
-        if (milliseconds < _nextUpdate) {
-            auto sleepTime = _nextUpdate - milliseconds;
-            if (sleepTime > 1) // sleep thread to prevent high CPU usage
-                std::this_thread::sleep_for(std::chrono::milliseconds((int)sleepTime - 1));
+    if (_fpsLimitMs > 0)
+        Inferno::Clock.MaybeSleep(_fpsLimitMs);
 
-            return;
-        }
-        else {
-            _nextUpdate = milliseconds + _fpsLimit;
-        }
-    }
-
-    Inferno::Clock.Update(false);
+    Inferno::Clock.Update();
 
     auto dt = (float)Inferno::Clock.GetFrameTimeSeconds();
+    if (dt == 0) 
+        return; // Skip first tick
+
     if (dt > 2) {
         SPDLOG_WARN("Long delta time of {}, clamping to 2s", dt);
         dt = 2;
@@ -150,8 +142,7 @@ void Application::OnSuspending() {
 }
 
 void Application::OnResuming() {
-    //Render::Timer.ResetElapsedTime();
-    Inferno::Clock.ResetFrameTime();
+    //Inferno::Clock.ResetFrameTime();
 
     //_audioEngine->Resume();
     // TODO: Game is being power-resumed (or returning from minimize).

@@ -10,6 +10,7 @@
 #include "Graphics/Compiler.h"
 #include "ryml/ryml.hpp"
 #include "logging.h"
+#include "SystemClock.h"
 
 using namespace Inferno;
 
@@ -210,7 +211,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
 
     // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
     spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
-    std::srand((uint)std::time(nullptr)); // seed c-random
+    //std::srand((uint)std::time(nullptr)); // seed c-random
     InitRandom();
     OpenSimplex2::Init();
 
@@ -223,6 +224,7 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
     int result = 0;
 
     try {
+        SetWindowsTimePeriod timePeriod;
         Inferno::Shell shell;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 

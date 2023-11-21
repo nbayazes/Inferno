@@ -2,11 +2,11 @@
 #include "Graphics/IDeviceNotify.h"
 
 namespace Inferno {
-
     class Application final : public IDeviceNotify {
-        uint64 _fpsLimit = 0;
+        uint64 _fpsLimitMs = 0;
         uint64 _nextUpdate = 0;
         bool _isForeground = false;
+
     public:
         Application() = default;
         ~Application();
@@ -24,9 +24,9 @@ namespace Inferno {
         void OnDeviceRestored() override;
 
         bool EnableImgui = true;
+
     private:
         void Update();
         void UpdateFpsLimit();
     };
-
 }

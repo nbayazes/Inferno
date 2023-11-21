@@ -819,7 +819,7 @@ namespace Inferno::Game {
         EditorCameraSnapshot = Render::Camera;
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
-
+        Inferno::Clock = {}; // Reset clock
         Player.Respawn(false);
     }
 

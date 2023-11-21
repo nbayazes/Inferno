@@ -19,18 +19,11 @@ namespace Inferno {
         return static_cast<int>((double)ns * tickRate / 1'000'000'000);
     }
 
-    class SystemClock {
-        uint64_t _firstFrameStartTime = 0;
-        uint64_t _currentFrameStartTime = 0, _prevFrameStartTime = 0;
-        uint64_t _frameTime = 0;
-        uint64_t _freezeTime = 0;
-        double _lastinputtime = 0;
+    // Set the Windows timer to be as accurate as possible
+    class SetWindowsTimePeriod {
         UINT _timerPeriod = 1; // Assume minimum resolution of 1 ms
-        int _prevTick = 0;
-        int _tickRate = 60; // Updates per second
     public:
-        SystemClock() {
-            // Set the Windows timer to be as accurate as possible
+        SetWindowsTimePeriod() {
             TIMECAPS tc{};
             if (timeGetDevCaps(&tc, sizeof(tc)) == TIMERR_NOERROR)
                 _timerPeriod = tc.wPeriodMin;
@@ -38,15 +31,26 @@ namespace Inferno {
             timeBeginPeriod(_timerPeriod);
         }
 
-        ~SystemClock() {
+        ~SetWindowsTimePeriod() {
             timeEndPeriod(_timerPeriod);
         }
 
-        SystemClock(const SystemClock&) = delete;
-        SystemClock(SystemClock&&) = default;
-        SystemClock& operator=(const SystemClock&) = delete;
-        SystemClock& operator=(SystemClock&&) = default;
+        SetWindowsTimePeriod(const SetWindowsTimePeriod&) = delete;
+        SetWindowsTimePeriod(SetWindowsTimePeriod&&) = default;
+        SetWindowsTimePeriod& operator=(const SetWindowsTimePeriod&) = delete;
+        SetWindowsTimePeriod& operator=(SetWindowsTimePeriod&&) = default;
+    };
 
+    class SystemClock {
+        uint64_t _firstFrameStartTime = 0;
+        uint64_t _currentFrameStartTime = 0, _prevFrameStartTime = 0;
+        uint64_t _frameTime = 0;
+        uint64_t _freezeTime = 0;
+        double _lastinputtime = 0;
+        int _prevTick = 0;
+        int _tickRate = 64; // Updates per second
+        uint64 _nextUpdate = 0;
+    public:
         // Freezes tick counting temporarily. While frozen, calls to GetClockTime()
         // will always return the same value.
         void Freeze(bool frozen) {
@@ -62,15 +66,28 @@ namespace Inferno {
             }
         }
 
-
         float TimeScale = 1.0f;
         int Ticks = 0;
 
         // Reset the timer after a lengthy operation
-        void ResetFrameTime() {
-            auto ft = _currentFrameStartTime;
-            UpdateFrameTime();
-            _firstFrameStartTime += (_currentFrameStartTime - ft);
+        //void ResetFrameTime() {
+        //    auto ft = _currentFrameStartTime;
+        //    UpdateFrameTime();
+        //    _firstFrameStartTime += (_currentFrameStartTime - ft);
+        //}
+
+        // Maybe sleeps the current thread for a requested number of milliseonds
+        void MaybeSleep(uint64 sleepMilliseconds) {
+            auto milliseconds = GetTotalMilliseconds();
+
+            if (milliseconds < _nextUpdate) {
+                auto sleepTime = _nextUpdate - milliseconds;
+                if (sleepTime > 1)
+                    std::this_thread::sleep_for(std::chrono::milliseconds((int)sleepTime - 1));
+            }
+            else {
+                _nextUpdate = milliseconds + sleepMilliseconds;
+            }
         }
 
         void Update(bool useTickRate) {
@@ -83,6 +100,12 @@ namespace Inferno {
                 UpdateFrameTime();
             }
 
+            _frameTime = _currentFrameStartTime - _prevFrameStartTime;
+            _prevFrameStartTime = _currentFrameStartTime;
+        }
+
+        void Update() {
+            UpdateFrameTime();
             _frameTime = _currentFrameStartTime - _prevFrameStartTime;
             _prevFrameStartTime = _currentFrameStartTime;
         }
