@@ -77,7 +77,8 @@ namespace Inferno {
                     auto dist = Vector3::Distance(obj->Position, position);
                     if (dist > soundRadius) continue;
 
-                    auto falloff = std::powf(1 - dist / soundRadius, 2); // inverse falloff 
+                    //auto falloff = std::powf(1 - dist / soundRadius, 2); // inverse falloff 
+                    auto falloff = std::lerp(1.0f, 0.5f, dist / soundRadius); // linear falloff to 0.5
                     auto& ai = GetAI(*obj);
 
                     //auto prevAwareness = ai.Awareness;
@@ -123,7 +124,6 @@ namespace Inferno {
 
                         auto dist = Vector3::Distance(obj->Position, source.Position);
                         if (dist > radius) continue;
-                        //auto falloff = std::lerp(0.5f, 1.0f, dist / radius);
                         auto random = 1 + RandomN11() * 0.5f; // Add some variance so robots in a room don't all wake up at same time
                         auto& ai = GetAI(*obj);
                         ai.Target = target;
@@ -885,9 +885,10 @@ namespace Inferno {
         ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
         auto id = Game::GetObjectRef(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot);
+        
         Sound3D sound({ robotInfo.AttackSound }, id);
         sound.AttachToSource = true;
-        sound.Pitch = RandomN11() * 0.15f;
+        sound.Pitch = Random() < 0.60f ? 0.0f : - 0.05f - Random() * 0.10f;
         Sound::Play(sound);
     }
 
@@ -1038,6 +1039,10 @@ namespace Inferno {
         }
 
         if (ai.Awareness > 1) ai.Awareness = 1;
+
+        // Force aware robots to always update
+        SetFlag(robot.Flags, ObjectFlag::AlwaysUpdate, ai.Awareness > 0);
+
         //ClampThrust(robot, ai);
         ApplyVelocity(robot, ai, dt);
         ai.LastUpdate = Game::Time;
@@ -1046,6 +1051,7 @@ namespace Inferno {
     void UpdateAI(Object& obj, float dt) {
         if (obj.Type == ObjectType::Robot) {
             Debug::ActiveRobots++;
+            Render::Debug::DrawPoint(obj.Position, Color(1, 0, 0));
             UpdateRobotAI(obj, dt);
         }
         else if (obj.Type == ObjectType::Reactor) {

@@ -673,15 +673,15 @@ namespace Inferno {
 
         auto force = normal * speed * m1 / m2;
 
-        const float resitution = obj.Type == ObjectType::Player ? 0.10f : 0.5f;
+        //const float resitution = obj.Type == ObjectType::Player ? 0.2f : 0.2f;
+        constexpr float resitution = 0.4f;
         target.Physics.Velocity += force * resitution;
         target.LastHitForce = force * resitution;
 
         // Only apply rotational velocity when something hits a robot. Feels bad if a player being hit loses aim.
         if (/*a.Type == ObjectType::Weapon &&*/ target.Type == ObjectType::Robot) {
-            if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
-            if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
-
+            //if (obj.Type == ObjectType::Weapon) force *= 2; // make weapon hits apply more rotation force
+            //if (obj.Type == ObjectType::Player) force *= 0.25f; // Less rotation from players
             ApplyRotationalForce(target, hit.Point, force, m2);
         }
     }

@@ -282,7 +282,7 @@ namespace Inferno {
                         sound.FromPlayer = true;
                         sound.Position = player.Position;
                         _fusionChargeSound = Sound::Play(sound);
-                        AlertEnemiesOfNoise(player, 200, 0.5f, AI_AWARENESS_COMBAT);
+                        AlertEnemiesOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f, AI_AWARENESS_COMBAT);
                     }
 
                     if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {
@@ -328,7 +328,7 @@ namespace Inferno {
         Game::FireWeapon(Reference, WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
-        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, 1);
+        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius / 2, 1);
         FiredRecentlyTimer = CLOAK_FIRING_FLICKER;
     }
 
@@ -438,7 +438,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
-        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
+        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius / 2, weapon.Extended.Noise);
         FiredRecentlyTimer = CLOAK_FIRING_FLICKER;
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
@@ -474,7 +474,7 @@ namespace Inferno {
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
-        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius, weapon.Extended.Noise);
+        AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius / 2, weapon.Extended.Noise);
         FiredRecentlyTimer = CLOAK_FIRING_FLICKER;
 
         if (!CanFireSecondary(Secondary))

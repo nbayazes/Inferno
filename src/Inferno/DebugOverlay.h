@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game.AI.h"
 #include "imgui_local.h"
 #include "Game.h"
 #include "Game.Visibility.h"
@@ -76,6 +77,7 @@ namespace Inferno {
             ImGui::Text("Queue Size (T): %d", Render::GetTransparentQueueSize());
             ImGui::Text("Collision segs: %d", Debug::SegmentsChecked);
             ImGui::Text("Dynamic Lights: %d", Graphics::Lights.GetCount());
+            ImGui::Text("Active robots: %d", Debug::ActiveRobots);
         }
         ImGui::End();
 

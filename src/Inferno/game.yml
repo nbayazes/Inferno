@@ -90,6 +90,7 @@ Weapons:
     LightColor: 1, 0.15, 0.0, 1.5
     FlashColor: 1, 0.3, 0.15, 20
     Glow: 2, 1.2, 1, 2
+    Mass: 0.75
 
   - id: 6
     Name: reactor energy ball
@@ -171,7 +172,8 @@ Weapons:
     ExplosionTexture: vaussimpact
     ExplosionSize: 0.6
     ExplosionTime: 0.4
-    Damage: 7
+    Damage: 7 # Was 4
+    PlayerDamageScale: 0.57 # Adjust so damage equals 4 due to drillers
     Spread: 1.2 # spread in units. Was 1.8. Reduced due to smaller robots being difficult to hit with polygon hit testing.
     AmmoUsage: 10
     ExplosionSound: #WpnVauseHitRicB

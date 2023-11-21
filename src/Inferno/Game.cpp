@@ -354,8 +354,13 @@ namespace Inferno::Game {
         }
     }
 
+    constexpr bool ShouldAlwaysUpdate(const Object& obj) {
+        return obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate);
+    }
+
     // Updates on each game tick
     void FixedUpdate(float dt) {
+        Debug::ActiveRobots = 0;
         Player.Update(dt);
 
         UpdateAmbientSounds();
@@ -371,8 +376,8 @@ namespace Inferno::Game {
             auto& obj = Level.Objects[i];
             ClearFlag(obj.Flags, ObjectFlag::Updated);
 
-            // Always update weapons in case they go out of sight
-            if (obj.Type == ObjectType::Weapon || HasFlag(obj.Flags, ObjectFlag::AlwaysUpdate))
+            // Always update weapons and live robots in case they go out of sight
+            if (ShouldAlwaysUpdate(obj))
                 FixedUpdateObject(dt, ObjID(i), obj);
 
             if (obj.Type == ObjectType::Reactor)
@@ -386,8 +391,7 @@ namespace Inferno::Game {
                 if (auto seg = Level.TryGetSegment(segId)) {
                     for (auto& objId : seg->Objects) {
                         auto obj = Level.TryGetObject(objId);
-                        if (obj && obj->Type != ObjectType::Weapon) {
-                            // When physics moves an object to another seg it gets updated twice
+                        if (obj && !ShouldAlwaysUpdate(*obj)) {
                             FixedUpdateObject(dt, objId, *obj);
                         }
                     }
