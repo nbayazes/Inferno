@@ -88,13 +88,15 @@ void Application::UpdateFpsLimit() {
 }
 
 void Application::Tick() {
-    if (_fpsLimitMs > 0)
-        Inferno::Clock.MaybeSleep(_fpsLimitMs);
+    if (_fpsLimitMs > 0) {
+        if (Inferno::Clock.MaybeSleep(_fpsLimitMs))
+            return; // spinwait
+    }
 
     Inferno::Clock.Update();
 
     auto dt = (float)Inferno::Clock.GetFrameTimeSeconds();
-    if (dt == 0) 
+    if (dt == 0)
         return; // Skip first tick
 
     if (dt > 2) {

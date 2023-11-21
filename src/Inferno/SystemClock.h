@@ -76,18 +76,22 @@ namespace Inferno {
         //    _firstFrameStartTime += (_currentFrameStartTime - ft);
         //}
 
-        // Maybe sleeps the current thread for a requested number of milliseonds
-        void MaybeSleep(uint64 sleepMilliseconds) {
+        // Maybe sleeps the current thread for a requested number of milliseonds.
+        // Returns true if the caller should spinwait.
+        bool MaybeSleep(uint64 sleepMilliseconds) {
             auto milliseconds = GetTotalMilliseconds();
 
             if (milliseconds < _nextUpdate) {
                 auto sleepTime = _nextUpdate - milliseconds;
                 if (sleepTime > 1)
                     std::this_thread::sleep_for(std::chrono::milliseconds((int)sleepTime - 1));
+
+                return true;
             }
             else {
                 _nextUpdate = milliseconds + sleepMilliseconds;
             }
+            return false;
         }
 
         void Update(bool useTickRate) {
