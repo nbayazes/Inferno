@@ -172,6 +172,7 @@
     <ClCompile Include="Game.Wall.cpp" />
     <ClCompile Include="Game.Weapon.cpp" />
     <ClCompile Include="GameTable.cpp" />
+    <ClCompile Include="GameTimer.cpp" />
     <ClCompile Include="Graphics\Compiler.cpp" />
     <ClCompile Include="Editor\Bindings.cpp" />
     <ClCompile Include="Editor\Command.cpp" />
@@ -268,6 +269,7 @@
     <ClInclude Include="Game.Visibility.h" />
     <ClInclude Include="Game.Wall.h" />
     <ClInclude Include="GameTable.h" />
+    <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Graphics\Buffers.h" />
     <ClInclude Include="Graphics\CommandContext.h" />
     <ClInclude Include="Graphics\Compiler.h" />

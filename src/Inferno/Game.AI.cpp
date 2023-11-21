@@ -162,7 +162,7 @@ namespace Inferno {
         Ray ray = { obj.Position, objDir };
         RayQuery query{ .MaxDistance = objDist, .Start = obj.Segment, .PassTransparent = true };
         bool visible = !Game::Intersect.RayLevel(ray, query, hit);
-        if (visible) ai.LastSeenPlayer = 0;
+        if (visible) ai.LastSeenPlayer = Game::Time;
         return visible;
     }
 
@@ -170,6 +170,7 @@ namespace Inferno {
     bool CanSeePlayer(const Object& robot, const RobotInfo& robotInfo) {
         auto& player = Game::GetPlayerObject();
         if (PlayerCloakIsEffective(player)) return false;
+        if (player.Type == ObjectType::Ghost) return false; // Dead player
 
         auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
         auto& ai = GetAI(robot);
@@ -705,7 +706,7 @@ namespace Inferno {
     }
 
     void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt) {
-        if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 < 0) {
+        if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 <= 0) {
             if (!HasLineOfSight(robot, 0, *ai.Target, ObjectMask::Robot)) {
                 //WiggleRobot(robot, ai, 0.5f);
                 TryStartCircleStrafe(robot, ai, 2);
@@ -741,7 +742,7 @@ namespace Inferno {
                 float aimAssist = GetAimAssistAngle(weapon);
                 if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
                     // Target is within the cone of the weapon, start firing
-                    PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay * 0.8f);
+                    PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay.Remaining() * 0.8f);
                 }
             }
             else if (ai.AnimationState == AnimState::Fire && weapon.Extended.Chargable) {
@@ -878,6 +879,18 @@ namespace Inferno {
         //SPDLOG_INFO("Speed: {}", robot.Physics.Velocity.Length());
     }
 
+    void MakeCombatNoise(const Object& robot, AIRuntime& ai) {
+        if (ai.CombatSoundTimer > 0) return;
+
+        ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
+        auto id = Game::GetObjectRef(robot);
+        auto& robotInfo = Resources::GetRobotInfo(robot);
+        Sound3D sound({ robotInfo.AttackSound }, id);
+        sound.AttachToSource = true;
+        sound.Pitch = RandomN11() * 0.15f;
+        Sound::Play(sound);
+    }
+
     void UpdateRobotAI(Object& robot, float dt) {
         auto& ai = GetAI(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot.ID);
@@ -893,16 +906,9 @@ namespace Inferno {
             if (value < 0) value = 0;
         };
 
-        decr(ai.FireDelay);
-        decr(ai.FireDelay2);
         decr(ai.RemainingSlow);
         decr(ai.RemainingStun);
-        decr(ai.DodgeDelay);
-        decr(ai.DodgeTime);
         decr(ai.MeleeHitDelay);
-        decr(ai.PathDelay);
-        decr(ai.AlertTimer);
-        ai.LastSeenPlayer += dt;
 
         if (robotInfo.IsBoss)
             if (!Game::UpdateBoss(robot, dt))
@@ -982,7 +988,7 @@ namespace Inferno {
             MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
             auto [playerDir, dist] = GetDirectionAndDistance(player.Position, robot.Position);
-            if (!PlayerCloakIsEffective(player) && HasLineOfSight(robot, playerDir, dist, ai)) {
+            if (player.Type == ObjectType::Player && !PlayerCloakIsEffective(player) && HasLineOfSight(robot, playerDir, dist, ai)) {
                 ai.Target = player.Position;
                 ai.TargetSegment = player.Segment;
 
@@ -990,6 +996,8 @@ namespace Inferno {
                     AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.Target, ai.TargetSegment, AI_ALERT_AWARENESS * 0.2f);
                     ai.AlertTimer = 0.2f;
                 }
+
+                MakeCombatNoise(robot, ai);
             }
             else {
                 DecayAwareness(ai);

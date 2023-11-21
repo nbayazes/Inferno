@@ -89,6 +89,7 @@
     <ClCompile Include="Editor\UI\TextureBrowserUI.cpp" />
     <ClCompile Include="Shell.cpp" />
     <ClCompile Include="SoundTypes.cpp" />
+    <ClCompile Include="GameTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -218,6 +219,7 @@
     <ClInclude Include="Shell.h" />
     <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
     <ClInclude Include="Yaml.h" />
+    <ClInclude Include="GameTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

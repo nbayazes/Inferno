@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameTimer.h"
 #include "Level.h"
 #include "Object.h"
 #include "SoundTypes.h"
@@ -41,11 +42,9 @@ namespace Inferno {
         uint8 GunIndex = 0; // Which gun to fire from next
         //AIMode Mode;
         //float NextActionTime;
-        float FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons
+        GameTimer FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons
         //float AwarenessTime; // How long to remain aware of the player, 0 for unaware
-        float LastSeenPlayer; // Time in seconds since player was seen
-        float LastSeenAttackingPlayer; // Time in seconds since at least awareness level 2
-        float MiscSoundTime; // Time in seconds since the robot made angry or lurking noises
+        double LastSeenPlayer; // Time the player was last seen
         float AnimationTime = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
         float MeleeHitDelay = 0; // How long before a melee swing deals damage
@@ -60,9 +59,9 @@ namespace Inferno {
         RoomID GoalRoom = RoomID::None;
         Vector3 GoalPosition; // position the robot wants to move to
 
-        float DodgeDelay = 0; // Delay before trying to dodge
-        float PathDelay = 0; // Delay before trying to path to a new location
-        float DodgeTime = 0; // Remaining time to dodge for
+        GameTimer DodgeDelay = 0; // Delay before trying to dodge
+        GameTimer DodgeTime = 0; // Remaining time to dodge for
+        GameTimer PathDelay; // Delay before trying to path to a new location
         float WiggleTime = 0; // Remaining wiggle time
         Vector3 DodgeDirection;
 
@@ -85,7 +84,8 @@ namespace Inferno {
 
         List<SegID> GoalPath; // For pathing to another segment
         int16 GoalPathIndex = -1;
-        float AlertTimer = 0; // Delay between alerting nearby robots of the player location
+        GameTimer AlertTimer;  // For alerting nearby robots of the player location
+        GameTimer CombatSoundTimer; // For playing combat sounds
 
         bool PlayingAnimation() const {
             return AnimationTime < AnimationDuration;
