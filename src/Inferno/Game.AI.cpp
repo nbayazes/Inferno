@@ -45,8 +45,8 @@ namespace Inferno {
     }
 
     void ResizeAI(size_t size) {
-        if (size > RuntimeState.capacity()) {
-            size = size + 50;
+        if (size + 10 >= RuntimeState.capacity()) {
+            size += 50;
             SPDLOG_INFO("Resizing AI state");
         }
 
@@ -54,8 +54,10 @@ namespace Inferno {
     }
 
     AIRuntime& GetAI(const Object& obj) {
-        assert(obj.IsRobot());
-        return RuntimeState[(int)Game::GetObjectRef(obj).Id];
+        ASSERT(obj.IsRobot());
+        auto ref = Game::GetObjectRef(obj);
+        ASSERT(Seq::inRange(RuntimeState, (int)ref.Id));
+        return RuntimeState[(int)ref.Id];
     }
 
     const RobotDifficultyInfo& Difficulty(const RobotInfo& info) {

@@ -74,7 +74,7 @@ namespace Inferno {
         void AttachLight(const Object& obj, ObjRef ref);
 
         // Schedules an object to be added at end of update
-        ObjRef AddObject(Object object);
+        ObjRef AddObject(const Object& object);
         void FreeObject(ObjID id);
         void InitObjects(Inferno::Level& level);
         ObjRef DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force = Vector3::Zero);

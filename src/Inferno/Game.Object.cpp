@@ -637,7 +637,7 @@ namespace Inferno {
         ResetAI();
     }
 
-    ObjRef Game::AddObject(Object object) {
+    ObjRef Game::AddObject(const Object& object) {
         if (Level.Objects.size() + 1 >= Level.Objects.capacity()) {
             SPDLOG_ERROR("Unable to create object due to reaching buffer capacity of {}! This is a programming error", Level.Objects.capacity());
             __debugbreak();
@@ -647,7 +647,6 @@ namespace Inferno {
         ASSERT(object.Segment > SegID::None);
 
         auto id = ObjID::None;
-        object.Signature = GetObjectSig();
 
         {
             // Find or create a slot for the new object
@@ -679,8 +678,9 @@ namespace Inferno {
         auto& obj = Level.Objects[(int)id];
         obj.PrevPosition = obj.Position;
         obj.PrevRotation = obj.Rotation;
+        obj.Signature = GetObjectSig();
 
-        Level.GetSegment(object.Segment).AddObject(id);
+        Level.GetSegment(obj.Segment).AddObject(id);
 
         if (obj.IsRobot()) {
             // Path newly created robots to their matcen triggers
@@ -692,7 +692,7 @@ namespace Inferno {
         AttachLight(obj, { id, obj.Signature });
 
         ResizeAI(Level.Objects.size());
-        return { id, object.Signature };
+        return { id, obj.Signature };
     }
 
     void Game::FreeObject(ObjID id) {
