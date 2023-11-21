@@ -584,7 +584,7 @@ namespace Inferno {
 
         // Keep player shields in sync with the object that represents it
         if (auto player = Game::Level.TryGetObject(Reference)) {
-            constexpr float SCALE = 40;
+            constexpr float SCALE = 20;
             if (player->IsInvulnerable() || Settings::Cheats.DisableWeaponDamage) {
                 AddScreenFlash({ 0, 0, damage / SCALE });
             }
@@ -610,7 +610,7 @@ namespace Inferno {
     }
 
     // Respawns the player at the current start location. Call with true to fully reset inventory.
-    void Player::Respawn(bool fullReset) {
+    void Player::Respawn(bool died) {
         Input::ResetState(); // Clear input events so firing doesn't cause a shot on spawn
 
         Game::FreeObject(Game::DeathCamera.Id);
@@ -633,6 +633,7 @@ namespace Inferno {
         IsDead = false;
         TimeDead = 0;
         Exploded = false;
+        _nextFlareFireTime = 0;
 
         player.Effects = {};
         player.Physics.Wiggle = Resources::GameData.PlayerShip.Wiggle;
@@ -650,7 +651,7 @@ namespace Inferno {
 
         player.Render.Type = RenderType::None; // Hide the player model
 
-        if (fullReset) {
+        if (died) {
             LaserLevel = 0;
             PrimaryWeapons = 0;
             SecondaryWeapons = 0;
@@ -663,6 +664,17 @@ namespace Inferno {
                 SecondaryAmmo[i] = 0;
                 PrimaryAmmo[i] = 0;
             }
+
+            // Play respawn effect
+            Render::Particle p{};
+            p.Clip = VClipID::PlayerSpawn;
+            p.Radius = player.Radius;
+            p.RandomRotation = false;
+            Vector3 position = player.Position + player.Rotation.Forward() * 3;
+            Render::AddParticle(p, player.Segment, position);
+
+            auto& vclip = Resources::GetVideoClip(VClipID::PlayerSpawn);
+            Sound::Play(Sound3D({ vclip.Sound }, player.Position, player.Segment));
         }
 
         GiveWeapon(PrimaryWeaponIndex::Laser);
@@ -697,19 +709,6 @@ namespace Inferno {
 
                 PrimaryAmmo[i] = 10000;
             }
-        }
-
-        bool playSpawnEffect = false;
-        if (playSpawnEffect) {
-            Render::Particle p{};
-            p.Clip = VClipID::PlayerSpawn;
-            p.Radius = player.Radius;
-            p.RandomRotation = false;
-            Vector3 position = player.Position + player.Rotation.Forward() * 3;
-            Render::AddParticle(p, player.Segment, position);
-
-            auto& vclip = Resources::GetVideoClip(VClipID::PlayerSpawn);
-            Sound::Play(Sound3D({ vclip.Sound }, player.Position, player.Segment));
         }
 
         ResetHUD();

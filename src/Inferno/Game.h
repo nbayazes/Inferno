@@ -66,7 +66,7 @@ namespace Inferno::Game {
     inline Option<HogFile> Mission;
 
     // Only single player for now
-    inline struct Player Player = {};
+    inline class Player Player = {};
     inline ObjRef DeathCamera = {};
 
     // is the game level loading?
@@ -200,4 +200,5 @@ namespace Inferno::Game {
     namespace Stats {
         inline int LiveObjects = 0;
     }
+
 }

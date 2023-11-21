@@ -19,7 +19,13 @@ namespace Inferno {
     constexpr float CLOAK_FIRING_FLICKER = 0.25f; // How long robots can see the player after they fire
 
     // Extracted player state that was scattered across methods or globals as static variables
-    struct Player : PlayerData {
+    class Player : public PlayerData {
+        SoundUID _afterburnerSoundSig = SoundUID::None;
+        SoundUID _fusionChargeSound = SoundUID::None;
+        float _prevAfterburnerCharge = 0;
+        double _nextFlareFireTime = 0;
+
+    public:
         float RearmTime = 1.0f; // Time to swap between weapons and being able to fire
 
         PrimaryWeaponIndex Primary = PrimaryWeaponIndex::Laser;
@@ -168,14 +174,9 @@ namespace Inferno {
             PickUpSecondary(SecondaryWeaponIndex::Concussion, uint16(7 - difficulty));
         }
 
-        void Respawn(bool fullReset);
+        void Respawn(bool died);
 
     private:
-        SoundUID _afterburnerSoundSig = SoundUID::None;
-        SoundUID _fusionChargeSound = SoundUID::None;
-        float _prevAfterburnerCharge = 0;
-        double _nextFlareFireTime = 0;
-
         float GetPrimaryEnergyCost() const;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {

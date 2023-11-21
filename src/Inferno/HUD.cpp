@@ -628,6 +628,9 @@ namespace Inferno {
         void Reset() {
             _leftMonitor.Reset();
             _rightMonitor.Reset();
+            _lastLockWarningTime = -1;
+            _lockTextTime = 0;
+            _scoreTime = 0;
         }
 
         void Draw(float dt, Player& player) {
