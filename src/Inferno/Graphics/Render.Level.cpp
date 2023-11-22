@@ -411,7 +411,7 @@ namespace Inferno::Render {
 
     void DrawLevel(Graphics::GraphicsContext& ctx, Level& level) {
         if (Settings::Editor.ShowFlickeringLights)
-            UpdateFlickeringLights(level, (float)ElapsedTime, FrameTime);
+            UpdateFlickeringLights(level, (float)ElapsedTime, Game::FrameTime);
 
         bool drawObjects = true;
         if (Game::GetState() == GameState::Editor && !Settings::Editor.ShowObjects)
@@ -520,7 +520,7 @@ namespace Inferno::Render {
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
             }
 
-            DrawDecals(ctx, Render::FrameTime);
+            DrawDecals(ctx, Game::FrameTime);
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Transparent queue");

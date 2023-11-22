@@ -4,9 +4,45 @@
 #include "Game.Reactor.h"
 #include "Resources.h"
 #include "Settings.h"
+#include "Editor/Events.h"
+#include "Graphics/Render.h"
 
 namespace Inferno {
     using Keys = Input::Keys;
+
+    void CheckGlobalHotkeys() {
+        if (Input::IsKeyPressed(Keys::F1))
+            Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
+
+        if (Input::IsKeyPressed(Keys::F2))
+            Game::SetState(Game::GetState() == GameState::Game ? GameState::Editor : GameState::Game);
+
+        if (Input::IsKeyPressed(Keys::F3))
+            Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
+
+        if (Input::IsKeyPressed(Keys::F5)) {
+            Resources::LoadDataTables(Game::Level);
+            Render::Adapter->ReloadResources();
+            Editor::Events::LevelChanged();
+        }
+
+        if (Input::IsKeyPressed(Keys::F6))
+            Render::ReloadTextures();
+
+        if (Input::IsKeyPressed(Keys::F7)) {
+            Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
+            Render::ReloadTextures();
+        }
+
+        if (Input::IsKeyPressed(Keys::F9)) {
+            Settings::Graphics.NewLightMode = !Settings::Graphics.NewLightMode;
+        }
+
+        if (Input::IsKeyPressed(Keys::F10)) {
+            Settings::Graphics.ToneMapper++;
+            if (Settings::Graphics.ToneMapper > 2) Settings::Graphics.ToneMapper = 0;
+        }
+    }
 
     void HandleEditorDebugInput(float /*dt*/) {
         auto& obj = Game::Level.Objects[0];
@@ -104,6 +140,9 @@ namespace Inferno {
 
         if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SelfDestructMine();
+
+        if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
+            Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;

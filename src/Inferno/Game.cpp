@@ -194,43 +194,6 @@ namespace Inferno::Game {
         }
     }
 
-    using Keys = Input::Keys;
-
-    void CheckGlobalHotkeys() {
-        if (Input::IsKeyPressed(Keys::F1))
-            Game::ShowDebugOverlay = !Game::ShowDebugOverlay;
-
-        if (Input::IsKeyPressed(Keys::F2))
-            SetState(State == GameState::Game ? GameState::Editor : GameState::Game);
-
-        if (Input::IsKeyPressed(Keys::F3))
-            Settings::Inferno.ScreenshotMode = !Settings::Inferno.ScreenshotMode;
-
-        if (Input::IsKeyPressed(Keys::F5)) {
-            Resources::LoadDataTables(Game::Level);
-            Render::Adapter->ReloadResources();
-            Editor::Events::LevelChanged();
-        }
-
-        if (Input::IsKeyPressed(Keys::F6))
-            Render::ReloadTextures();
-
-        if (Input::IsKeyPressed(Keys::F7)) {
-            Settings::Graphics.HighRes = !Settings::Graphics.HighRes;
-            Render::ReloadTextures();
-        }
-
-        if (Input::IsKeyPressed(Keys::F9)) {
-            Settings::Graphics.NewLightMode = !Settings::Graphics.NewLightMode;
-        }
-
-        if (Input::IsKeyPressed(Keys::F10)) {
-            Settings::Graphics.ToneMapper++;
-            if (Settings::Graphics.ToneMapper > 2) Settings::Graphics.ToneMapper = 0;
-        }
-    }
-
-
     void AddPointsToScore(int points) {
         auto score = Player.Score;
 
@@ -419,10 +382,13 @@ namespace Inferno::Game {
                 if (Settings::Editor.EnablePhysics)
                     HandleEditorDebugInput(dt);
             }
-            else if (Game::State == GameState::Game) {
+            else {
                 HandleInput(dt);
             }
         }
+
+        if (Game::State == GameState::Paused)
+            return LerpAmount; // Don't update anything except camera while paused
 
         // Grow the object buffer ahead of time in case new objects are created
         if (Level.Objects.size() + OBJECT_BUFFER_SIZE > Level.Objects.capacity()) {
@@ -524,13 +490,25 @@ namespace Inferno::Game {
                 break;
 
             case GameState::Game:
-                StartLevel();
+                if (State == GameState::Paused) {
+                    GetPlayerObject().Render.Type = RenderType::None; // Make player invisible
+                    Input::SetMouseMode(Input::MouseMode::Mouselook);
+                }
+                else {
+                    StartLevel();
+                }
+
                 break;
 
             case GameState::ExitSequence:
                 break;
 
             case GameState::Paused:
+                if (State != GameState::Game && State != GameState::ExitSequence) return;
+                State = GameState::Paused;
+                MoveCameraToObject(Render::Camera, GetPlayerObject(), LerpAmount);
+                GetPlayerObject().Render.Type = RenderType::Model; // Make player visible
+                Input::SetMouseMode(Input::MouseMode::Mouselook);
                 break;
         }
 
@@ -539,7 +517,7 @@ namespace Inferno::Game {
 
     bool ConfirmedInput() {
         // todo: check if fire button pressed
-        return Input::IsKeyPressed(Keys::Space) || Input::IsMouseButtonPressed(Input::Left) || Input::IsMouseButtonPressed(Input::Right);
+        return Input::IsKeyPressed(Input::Keys::Space) || Input::IsMouseButtonPressed(Input::Left) || Input::IsMouseButtonPressed(Input::Right);
     }
 
     void UpdateDeathSequence(float dt) {
@@ -597,6 +575,9 @@ namespace Inferno::Game {
                 if (!Settings::Inferno.ScreenshotMode) EditorUI.OnRender();
                 break;
             case GameState::Paused:
+                // todo: Separate game bindings
+                Editor::Bindings::Update(); // Using editor camera bindings
+                Editor::UpdateCamera(Render::Camera);
                 break;
         }
 

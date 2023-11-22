@@ -93,7 +93,6 @@ namespace Inferno::Render {
     inline Matrix ViewProjection;
 
     inline float FrameTime = 0;     // Time of this frame in seconds
-    inline float GameFrameTime = 0; // Time of this frame in seconds. 0 when paused.
     inline double ElapsedTime = 0;  // Time elapsed in seconds. Stops updating when paused or animations are disabled.
     inline DirectX::BoundingFrustum CameraFrustum;
 

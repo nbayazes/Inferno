@@ -609,7 +609,7 @@ namespace Inferno::Game {
             p.Parent = ref;
             p.ParentSubmodel = gunSubmodel;
             p.FadeTime = 0.175f;
-            p.Color = weapon.Extended.FlashColor;
+            p.Color = weapon.Extended.FlashColor * 10; // Flash sprites look better when overexposed
             Render::AddParticle(p, obj.Segment, position);
 
             // Muzzle flash. Important for mass weapons that don't emit lights on their own.

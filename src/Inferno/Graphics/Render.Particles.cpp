@@ -526,10 +526,10 @@ namespace Inferno::Render {
 
         for (auto& beam : Beams) {
             if (beam.StartDelay > 0) {
-                beam.StartDelay -= Render::FrameTime;
+                beam.StartDelay -= Game::FrameTime;
                 continue;
             }
-            beam.Life -= Render::FrameTime;
+            beam.Life -= Game::FrameTime;
 
             if (!beam.IsAlive()) continue;
 
@@ -568,12 +568,12 @@ namespace Inferno::Render {
                 beam.End = endObj->GetPosition(Game::LerpAmount);
             }
 
-            if (beam.HasRandomEndpoints() && Render::ElapsedTime > beam.Runtime.NextStrikeTime) {
+            if (beam.HasRandomEndpoints() && Game::Time > beam.Runtime.NextStrikeTime) {
                 InitRandomBeamPoints(beam, startObj); // Relies on beam.Start being updated
-                beam.Runtime.NextStrikeTime = Render::ElapsedTime + beam.StrikeTime;
+                beam.Runtime.NextStrikeTime = Game::Time + beam.StrikeTime;
             }
 
-            beam.Time += Render::FrameTime;
+            beam.Time += Game::FrameTime;
             auto& noise = beam.Runtime.Noise;
             auto delta = beam.End - beam.Start;
             auto length = delta.Length();
@@ -601,13 +601,13 @@ namespace Inferno::Render {
 
             noise.resize(segments);
 
-            if (beam.Amplitude > 0 && Render::ElapsedTime > beam.Runtime.NextUpdate) {
+            if (beam.Amplitude > 0 && Game::Time > beam.Runtime.NextUpdate) {
                 if (HasFlag(beam.Flags, BeamFlag::SineNoise))
                     SineNoise(noise);
                 else
                     FractalNoise(noise);
 
-                beam.Runtime.NextUpdate = Render::ElapsedTime + beam.Frequency;
+                beam.Runtime.NextUpdate = Game::Time + beam.Frequency;
                 beam.Runtime.OffsetU = Random();
             }
 
@@ -1315,17 +1315,17 @@ namespace Inferno::Render {
             const float flickerSpeed = Mode == DynamicLightMode::Flicker ? 4.0f : 6.0f;
             const float flickerRadius = Mode == DynamicLightMode::Flicker ? 0.03f : 0.04f;
             // slightly randomize the radius and brightness on an interval
-            auto noise = OpenSimplex2::Noise2((int)id, Render::ElapsedTime * flickerSpeed, 0);
+            auto noise = OpenSimplex2::Noise2((int)id, Game::Time * flickerSpeed, 0);
             lightRadius += lightRadius * noise * flickerRadius;
 
             if (Mode == DynamicLightMode::StrongFlicker)
                 lightColor *= 1 + noise * 0.025f;
         }
         else if (Mode == DynamicLightMode::Pulse) {
-            lightRadius += lightRadius * sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.125f;
+            lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f + (float)id * 0.1747f) * 0.125f;
         }
         else if (Mode == DynamicLightMode::BigPulse) {
-            lightRadius += lightRadius * sinf((float)Render::ElapsedTime * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;
+            lightRadius += lightRadius * sinf((float)Game::Time * 3.14f * 1.25f + (float)id * 0.1747f) * 0.25f;
         }
 
         Graphics::LightData light{};

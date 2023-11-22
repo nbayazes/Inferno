@@ -33,7 +33,7 @@ namespace Inferno::Render {
             _opaqueQueue.push_back({ &mesh, 0 });
 
         if (Game::GetState() == GameState::Editor) {
-            UpdateAllEffects(FrameTime);
+            UpdateAllEffects(Game::FrameTime);
 
             for (auto& mesh : wallMeshes) {
                 float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
@@ -447,7 +447,7 @@ namespace Inferno::Render {
                 for (auto& sid : room->Segments) {
                     if (auto seg = level.TryGetSegment(sid)) {
                         for (int i = 0; i < seg->Effects.size(); i++) {
-                            UpdateEffect(FrameTime, seg->Effects[i]);
+                            UpdateEffect(Game::FrameTime, seg->Effects[i]);
                         }
                     }
                 }

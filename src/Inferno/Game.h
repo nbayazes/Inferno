@@ -202,4 +202,5 @@ namespace Inferno::Game {
         inline int LiveObjects = 0;
     }
 
+    inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
 }

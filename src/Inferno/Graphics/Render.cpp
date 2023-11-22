@@ -506,7 +506,7 @@ namespace Inferno::Render {
         HudGlowCanvas->SetSize(width, height);
 
         if (auto player = Game::Level.TryGetObject(ObjID(0))) {
-            DrawHUD(Render::FrameTime, player->Ambient.GetColor());
+            DrawHUD(Game::FrameTime, player->Ambient.GetColor());
         }
 
         if (Game::ScreenFlash != Color(0, 0, 0)) {

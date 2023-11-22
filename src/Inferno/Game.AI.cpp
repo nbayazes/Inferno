@@ -1051,7 +1051,7 @@ namespace Inferno {
     void UpdateAI(Object& obj, float dt) {
         if (obj.Type == ObjectType::Robot) {
             Debug::ActiveRobots++;
-            Render::Debug::DrawPoint(obj.Position, Color(1, 0, 0));
+            //Render::Debug::DrawPoint(obj.Position, Color(1, 0, 0));
             UpdateRobotAI(obj, dt);
         }
         else if (obj.Type == ObjectType::Reactor) {
