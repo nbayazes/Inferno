@@ -323,6 +323,7 @@ namespace Inferno::Game {
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
+        Input::NextFrame();
         Debug::ActiveRobots = 0;
         Player.Update(dt);
 
@@ -537,6 +538,9 @@ namespace Inferno::Game {
 
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
+
+        if (State == GameState::Editor && !Settings::Editor.EnablePhysics)
+            Input::NextFrame();
 
         Inferno::Input::Update();
         CheckGlobalHotkeys();

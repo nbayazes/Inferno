@@ -179,35 +179,29 @@ namespace Inferno {
     void Player::UpdateFireState() {
         using Keys = Input::Keys;
 
-        auto state = Game::GetState();
+        auto toggleState = [](FireState& state, bool buttonDown) {
+            if (buttonDown) {
+                if (state == FireState::None || state == FireState::Release)
+                    state = FireState::Press;
+                else if (state == FireState::Press)
+                    state = FireState::Hold;
+            }
+            else {
+                if (state == FireState::Release)
+                    state = FireState::None;
+                else if (state != FireState::None)
+                    state = FireState::Release;
+            }
+        };
 
-        // must check held keys inside of fixed updates so events aren't missed due to the state changing
-        // on a frame that doesn't have a game tick
-        if ((state == GameState::Editor && Input::IsKeyDown(Keys::Enter)) ||
-            (state != GameState::Editor && Input::IsMouseButtonDown(Input::MouseButtons::Left))) {
-            if (PrimaryState == FireState::None)
-                PrimaryState = FireState::Press;
-            else if (PrimaryState == FireState::Press)
-                PrimaryState = FireState::Hold;
+        // must check held keys inside of fixed updates so events aren't missed
+        // due to the state changing on a frame that doesn't have a game tick
+        if (Game::GetState() == GameState::Editor) {
+            toggleState(PrimaryState, Input::IsKeyDown(Keys::Enter));
         }
         else {
-            if (PrimaryState == FireState::Release)
-                PrimaryState = FireState::None;
-            else if (PrimaryState != FireState::None)
-                PrimaryState = FireState::Release;
-        }
-
-        if (state != GameState::Editor && Input::IsMouseButtonDown(Input::MouseButtons::Right)) {
-            if (SecondaryState == FireState::None)
-                SecondaryState = FireState::Press;
-            else if (SecondaryState == FireState::Press)
-                SecondaryState = FireState::Hold;
-        }
-        else {
-            if (SecondaryState == FireState::Release)
-                SecondaryState = FireState::None;
-            else if (SecondaryState != FireState::None)
-                SecondaryState = FireState::Release;
+            toggleState(PrimaryState, Input::IsMouseButtonDown(Input::MouseButtons::Left));
+            toggleState(SecondaryState, Input::IsMouseButtonDown(Input::MouseButtons::Right));
         }
     }
 
@@ -633,6 +627,7 @@ namespace Inferno {
         IsDead = false;
         TimeDead = 0;
         Exploded = false;
+        PrimaryDelay = SecondaryDelay = 0;
         _nextFlareFireTime = 0;
 
         player.Effects = {};

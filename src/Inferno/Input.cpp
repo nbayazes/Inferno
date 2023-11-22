@@ -66,10 +66,6 @@ namespace Inferno::Input {
         std::vector<InputEvent> _inputEventQueue;
 
         void HandleInputEvents() {
-            _keyboard.NextFrame();
-            _mouseButtons.NextFrame();
-            WheelDelta = 0;
-
             for (auto &event : _inputEventQueue) {
                 switch (event.type) {
                     case EventType::KeyPress:
@@ -117,6 +113,12 @@ namespace Inferno::Input {
 
             _inputEventQueue.clear();
         }
+    }
+
+    void NextFrame() {
+        _keyboard.NextFrame();
+        _mouseButtons.NextFrame();
+        WheelDelta = 0;
     }
 
     int GetWheelDelta() { return WheelDelta; }

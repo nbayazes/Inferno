@@ -47,6 +47,8 @@ namespace Inferno::Input {
 
     void ResetState();
 
+    void NextFrame();
+
     enum class SelectionState {
         None,
         Preselect, // Mouse button pressed
