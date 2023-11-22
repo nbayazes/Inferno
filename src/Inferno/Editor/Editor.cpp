@@ -282,7 +282,7 @@ namespace Inferno::Editor {
 
         auto& level = Game::Level;
         auto& io = ImGui::GetIO();
-        MouseRay = Render::Camera.UnprojectRay(Input::MousePosition);
+        MouseRay = Render::Camera.UnprojectRay(Input::MousePosition * Render::RenderScale);
 
         if (!io.WantCaptureMouse && ImGuiHadMouseFocus) {
             // Reset the keyboard state so holding a key down while moving the mouse

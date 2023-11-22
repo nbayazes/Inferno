@@ -133,7 +133,8 @@ namespace Inferno::PostFx {
 
         ToneMapConstants constants = {
             { 1.0f / (float)colorDest.GetWidth(), 1.0f / (float)colorDest.GetHeight() },
-            BloomStrength, Exposure,
+            BloomStrength * Render::RenderScale, // Lower resolution blurs more
+            Exposure,
             (HlslBool)Settings::Graphics.NewLightMode,
             Settings::Graphics.ToneMapper,
             (HlslBool)(dirt && Game::GetState() == GameState::Game)
