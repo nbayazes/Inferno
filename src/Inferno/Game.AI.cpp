@@ -389,6 +389,15 @@ namespace Inferno {
         if (!dodgePoint) return;
         auto dodgeDir = robot.Position - *dodgePoint;
         if (dodgeDir.Length() > robot.Radius * 1.25f) return; // Don't dodge projectiles that won't hit us
+        dodgeDir.Normalize();
+
+        //if (robotInfo.Attack == AttackType::Melee && ai.Target) {
+        //    auto targetDir = *ai.Target - robot.Position;
+        //    targetDir.Normalize();
+        //    dodgeDir += targetDir * .5;
+        //    dodgeDir.Normalize();
+        //}
+
         ai.DodgeDirection = dodgeDir;
         ai.DodgeDelay = (5 - Game::Difficulty) / 2.0f * 2.0f * Random(); // (2.5 to 0.5) * 2 delay
         ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
@@ -735,8 +744,6 @@ namespace Inferno {
                     return;
                 }
 
-                //ai.DodgeTime = 0; // Stop dodging when firing (hack used to stop wiggle, use different timer?)
-
                 auto aimDir = *ai.Target - robot.Position;
                 aimDir.Normalize();
                 float aimAssist = GetAimAssistAngle(weapon);
@@ -764,27 +771,42 @@ namespace Inferno {
     }
 
     void UpdateMeleeAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dist,
-                       Object& player, const Vector3& playerDir, float dt) {
+                       Object& target, const Vector3& targetDir, float dt) {
         constexpr float MELEE_RANGE = 10; // how close to actually deal damage
         constexpr float MELEE_SWING_TIME = 0.175f;
         constexpr float BACKSWING_TIME = 0.45f;
         constexpr float BACKSWING_RANGE = MELEE_RANGE * 3; // When to prepare a swing
         constexpr float MELEE_GIVE_UP = 2.0f;
 
-        //PlayRobotAnimation(robot, AnimState::Alert, 1.0f);
+        // Recoil animation is swung 'downward'
+        // Fire animation is 'raised'
+
         if (ai.ChargingWeapon)
             ai.WeaponCharge += dt; // Raising arms to swing counts as "charging"
 
         if (!ai.PlayingAnimation()) {
             if (ai.ChargingWeapon) {
-                if (ai.AnimationState == AnimState::Fire) {
+                if (ai.AnimationState == AnimState::Flinch) {
+                    // got stunned while charging weapon, reset swing
+                    PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
+                    ai.ChargingWeapon = false;
+                    ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                }
+                else if (ai.BurstShots > 0) {
+                    // Alternate between fire and recoil when attacking multiple times
+                    auto nextAnim = ai.AnimationState == AnimState::Fire ? AnimState::Recoil : AnimState::Fire;
+                    auto animTime = BACKSWING_TIME * (0.3f + Random() * 0.3f);
+                    PlayRobotAnimation(robot, nextAnim, animTime);
+                    ai.FireDelay = ai.MeleeHitDelay = animTime * 0.5f;
+                }
+                else if (ai.AnimationState == AnimState::Fire) {
                     // Arms are raised
                     if (dist < robot.Radius + MELEE_RANGE) {
                         // Player moved close enough, swing
                         PlayRobotAnimation(robot, AnimState::Recoil, MELEE_SWING_TIME);
                         ai.MeleeHitDelay = MELEE_SWING_TIME / 2;
                     }
-                    else if (ai.WeaponCharge > MELEE_GIVE_UP) {
+                    else if (dist > robot.Radius + BACKSWING_RANGE && ai.WeaponCharge > MELEE_GIVE_UP) {
                         // Player moved out of range for too long, give up
                         PlayRobotAnimation(robot, AnimState::Alert, BACKSWING_TIME);
                         ai.ChargingWeapon = false;
@@ -793,31 +815,37 @@ namespace Inferno {
                 }
             }
             else {
-                PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
+                // Reset to default
+                PlayRobotAnimation(robot, AnimState::Alert, 0.3f);
             }
         }
 
-        if (ai.AnimationState == AnimState::Recoil) {
+        if (ai.AnimationState == AnimState::Recoil || ai.BurstShots > 0) {
             if (ai.ChargingWeapon && ai.MeleeHitDelay <= 0) {
-                ai.ChargingWeapon = false;
-                // todo: multishot can swing multiple times instead of using full fire delay
-                ai.FireDelay = Difficulty(robotInfo).FireDelay;
 
-                // check that object is in front?
-                // damage objects in a cone?
-                if (dist < robot.Radius + MELEE_RANGE) {
-                    // Still in range
+                if (ai.BurstShots + 1 < Difficulty(robotInfo).ShotCount) {
+                    ai.MeleeHitDelay = 10; // Will recalculate above when picking animations
+                    ai.BurstShots++;
+                }
+                else {
+                    ai.FireDelay = Difficulty(robotInfo).FireDelay;
+                    ai.ChargingWeapon = false;
+                    ai.BurstShots = 0;
+                }
+
+                // Is target in range and in front of the robot?
+                if (dist < robot.Radius + MELEE_RANGE && targetDir.Dot(robot.Rotation.Forward()) > 0) {
                     auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
                     auto id = Game::GetObjectRef(robot);
                     Sound3D sound({ soundId }, id);
                     sound.Position = robot.Position;
                     Sound::Play(sound);
-                    Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false);
+                    Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false); // todo: make this generic. Damaging object should update the linked player
 
-                    player.Physics.Velocity += playerDir * 20; // shove the player backwards
+                    target.Physics.Velocity += targetDir * 5; // shove the target backwards
 
                     if (auto sparks = Render::EffectLibrary.GetSparks("melee hit")) {
-                        auto position = robot.Position + playerDir * robot.Radius;
+                        auto position = robot.Position + targetDir * robot.Radius;
                         Render::AddSparkEmitter(*sparks, robot.Segment, position);
 
                         Render::DynamicLight light{};
@@ -835,6 +863,7 @@ namespace Inferno {
             PlayRobotAnimation(robot, AnimState::Fire, BACKSWING_TIME); // raise arms to attack
             ai.ChargingWeapon = true;
             ai.WeaponCharge = 0;
+            ai.BurstShots = 0;
         }
     }
 
@@ -864,7 +893,9 @@ namespace Inferno {
         deltaVel.Normalize();
 
         auto slow = ai.RemainingSlow;
-        float slowScale = slow > 0 ? 1 - MAX_SLOW_EFFECT * slow / MAX_SLOW_TIME : 1;
+        // melee robots are slow resistant
+        const auto maxSlow = robotInfo.Attack == AttackType::Melee ? MAX_SLOW_EFFECT / 3 : MAX_SLOW_EFFECT;
+        float slowScale = slow > 0 ? 1 - maxSlow * slow / MAX_SLOW_TIME : 1;
         float maxDeltaSpeed = dt * Difficulty(robotInfo).Speed * slowScale;
 
         if (deltaSpeed > maxDeltaSpeed)
@@ -885,10 +916,10 @@ namespace Inferno {
         ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
         auto id = Game::GetObjectRef(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot);
-        
+
         Sound3D sound({ robotInfo.AttackSound }, id);
         sound.AttachToSource = true;
-        sound.Pitch = Random() < 0.60f ? 0.0f : - 0.05f - Random() * 0.10f;
+        sound.Pitch = Random() < 0.60f ? 0.0f : -0.05f - Random() * 0.10f;
         Sound::Play(sound);
     }
 
