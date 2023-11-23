@@ -7,5 +7,6 @@
 namespace Inferno {
     void CheckGlobalHotkeys();
     void HandleEditorDebugInput(float dt);
-    void HandleInput(float dt);
+    void HandleInputFixed();
+    void HandleInputImmediate(float dt);
 }

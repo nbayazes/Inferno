@@ -85,6 +85,9 @@ namespace Inferno {
     }
 
     void HandleWeaponKeys() {
+        if (!Input::HasFocus || Game::Player.IsDead)
+            return; // No player input without focus or while dead
+
         if (Input::IsKeyPressed(Keys::D1)) {
             Game::Player.SelectPrimary(PrimaryWeaponIndex::Laser);
         }
@@ -135,15 +138,20 @@ namespace Inferno {
             Game::Player.DropBomb();
     }
 
-    void HandleInput(float dt) {
-        if (dt <= 0) return;
-
+    void HandleInputFixed() {
         if (Input::IsKeyPressed(Keys::Back) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SelfDestructMine();
 
         if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
+        HandleWeaponKeys();
+    }
+
+    void HandleInputImmediate(float dt) {
+        if (dt <= 0) return;
+
+        // Do not do any IsKeyPressed checks here. Instead use InputFixed()
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;
         // Reset previous inputs
@@ -153,7 +161,6 @@ namespace Inferno {
         if (!Input::HasFocus || Game::Player.IsDead) 
             return; // No player input without focus or while dead
 
-        HandleWeaponKeys();
 
         //auto ht0 = GetHoldTime(true, 0, frameTime);
         //auto ht1 = GetHoldTime(true, 1, frameTime);

@@ -323,6 +323,7 @@ namespace Inferno::Game {
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
+        HandleInputFixed();
         Input::NextFrame();
         Debug::ActiveRobots = 0;
         Player.Update(dt);

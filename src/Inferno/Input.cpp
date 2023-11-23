@@ -20,7 +20,8 @@ namespace Inferno::Input {
         MouseMode ActualMouseMode{}, RequestedMouseMode{};
         int WheelDelta;
 
-        template<size_t N> struct ButtonState {
+        template <size_t N>
+        struct ButtonState {
             std::bitset<N> pressed, released;
             std::bitset<N> current, previous;
 
@@ -66,12 +67,11 @@ namespace Inferno::Input {
         std::vector<InputEvent> _inputEventQueue;
 
         void HandleInputEvents() {
-            for (auto &event : _inputEventQueue) {
+            for (auto& event : _inputEventQueue) {
                 switch (event.type) {
                     case EventType::KeyPress:
                     case EventType::KeyRelease:
-                        if (event.keyCode == VK_SHIFT || event.keyCode == VK_CONTROL || event.keyCode == VK_MENU)
-                        {
+                        if (event.keyCode == VK_SHIFT || event.keyCode == VK_CONTROL || event.keyCode == VK_MENU) {
                             // The keystroke flags carry extra information for Shift, Alt & Ctrl to
                             // disambiguate between the left and right variants of each key
                             bool isExtendedKey = (HIWORD(event.flags) & KF_EXTENDED) == KF_EXTENDED;
@@ -82,7 +82,7 @@ namespace Inferno::Input {
                         if (event.type == EventType::KeyPress)
                             _keyboard.Press(event.keyCode);
                         else {
-                            if (event.keyCode == VK_SHIFT) { 
+                            if (event.keyCode == VK_SHIFT) {
                                 // For some reason, if both Shift keys are held down, only the last of the
                                 // two registers a release event
                                 _keyboard.Release(VK_RSHIFT);
@@ -142,7 +142,7 @@ namespace Inferno::Input {
         }
         else if (_mouseButtons.previous[button]) {
             if (dragState == SelectionState::Preselect &&
-            Vector2::Distance(DragStart, Input::MousePosition) > DRAG_WINDOW) {
+                Vector2::Distance(DragStart, Input::MousePosition) > DRAG_WINDOW) {
                 // Don't allow a drag to start when the cursor is over imgui.
                 if (ImGui::GetCurrentContext()->HoveredWindow != nullptr) return SelectionState::None;
 
@@ -291,7 +291,7 @@ namespace Inferno::Input {
     }
 
     void ProcessMouseInput(UINT message, WPARAM wParam, LPARAM lParam) {
-        switch(message) {
+        switch (message) {
             case WM_INPUT:
             {
                 HANDLE events[] = { RelativeModeEvent.get() };
@@ -383,14 +383,21 @@ namespace Inferno::Input {
                 break;
 
             case WM_KEYDOWN:
-                Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+            {
+                // Ignore key repeat messages. Otherwise IsKeyPressed checks will repeat.
+                WORD keyFlags = HIWORD(lParam);
+                auto wasKeyDown = (keyFlags & KF_REPEAT) == KF_REPEAT;
+                if (!wasKeyDown) {
+                    Input::QueueEvent(Input::EventType::KeyPress, wParam, lParam);
+                }
                 break;
+            }
 
             case WM_KEYUP:
             case WM_SYSKEYUP:
                 Input::QueueEvent(Input::EventType::KeyRelease, wParam, lParam);
                 break;
-            
+
             case WM_ACTIVATE:
                 Input::QueueEvent(Input::EventType::Reset);
                 break;
