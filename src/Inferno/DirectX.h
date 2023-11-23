@@ -32,13 +32,13 @@
 #define NODEFERWINDOWPOS
 
 // Windows and DirectX
-#include <WinSDKVer.h>
-#include <SDKDDKVer.h>
+//#include <WinSDKVer.h>
+//#include <SDKDDKVer.h>
 
 #include <wrl.h>
 using Microsoft::WRL::ComPtr;
 
-#include <d3d12.h>
+#include <d3dx12.h>
 #include <DirectXTK12/GamePad.h>
 #include <DirectXTK12/GraphicsMemory.h>
 #include <DirectXTK12/Keyboard.h>
@@ -64,7 +64,6 @@ using Microsoft::WRL::ComPtr;
 #include <dxgidebug.h>
 #endif
 
-#include <d3dx12.h>
 
 constexpr D3D12_GPU_VIRTUAL_ADDRESS D3D12_GPU_VIRTUAL_ADDRESS_NULL = 0;
 constexpr auto D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN = D3D12_GPU_VIRTUAL_ADDRESS(-1);

@@ -281,15 +281,15 @@ namespace Inferno::Render {
                 bool additive = material.Saturate() || submodel.HasFlag(SubmodelFlag::Facing);
 
                 auto& effect = additive ? Effects->ObjectGlow : Effects->Object;
-                ctx.ApplyEffect(effect);
-                effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-                effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
-                //effect.Shader->SetMaterial(cmd, handle);
-                effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-                effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-                effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
-                effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-
+                if (ctx.ApplyEffect(effect)) {
+                    effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+                    effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+                    //effect.Shader->SetMaterial(cmd, handle);
+                    effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                    effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                    effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+                    effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+                }
 
                 if (transparentPass && submodel.HasFlag(SubmodelFlag::Facing)) {
                     //if (object.Type == ObjectType::Weapon) continue; // Facing on weapons is usually glows
@@ -320,9 +320,10 @@ namespace Inferno::Render {
 
         auto cmdList = ctx.GetCommandList();
         auto& effect = Effects->ObjectDistortion;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-        effect.Shader->SetFrameTexture(cmdList, Adapter->DistortionBuffer.GetSRV());
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetFrameTexture(cmdList, Adapter->DistortionBuffer.GetSRV());
+        }
 
         auto& model = Resources::GetModel(modelId);
         if (model.DataSize == 0) {
@@ -371,8 +372,6 @@ namespace Inferno::Render {
         }
 
         auto& effect = Effects->Object;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
 
         auto& model = Resources::GetModel(modelId);
@@ -381,15 +380,18 @@ namespace Inferno::Render {
             return;
         }
 
-        effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-        effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
-        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-        effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
-        effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
-        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-        if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
-        effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetNormalSampler(cmdList, GetNormalSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+            effect.Shader->SetMaterialInfoBuffer(cmdList, Render::MaterialInfoBuffer->GetSRV());
+            effect.Shader->SetLightGrid(cmdList, *Render::LightGrid);
+            auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+            if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+            effect.Shader->SetEnvironmentCube(cmdList, cubeSrv);
+        }
 
         ObjectShader::Constants constants = {};
 #ifdef DEBUG_DISSOLVE

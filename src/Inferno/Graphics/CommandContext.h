@@ -130,6 +130,7 @@ namespace Inferno::Graphics {
     };
 
     class GraphicsContext : public CommandContext {
+        uintptr_t _activeEffect = 0;
     public:
         GraphicsContext(ID3D12Device* device, CommandQueue* queue, const wstring& name) : CommandContext(device, queue, name) {}
 
@@ -153,22 +154,25 @@ namespace Inferno::Graphics {
             _cmdList->IASetPrimitiveTopology(topology);
         }
 
-        void ClearColor(RenderTarget& target, const D3D12_RECT* rect = nullptr) const {
+        void ClearColor(RenderTarget& target, const D3D12_RECT* rect = nullptr) {
             //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
             _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
+            _activeEffect = 0;
         }
 
-        void ClearColor(ColorBuffer& target, const D3D12_RECT* rect = nullptr) const {
+        void ClearColor(ColorBuffer& target, const D3D12_RECT* rect = nullptr) {
             //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET);
             _cmdList->ClearRenderTargetView(target.GetRTV(), target.ClearColor, (rect == nullptr) ? 0 : 1, rect);
+            _activeEffect = 0;
         }
 
-        void ClearDepth(DepthBuffer& target, const D3D12_RECT* rect = nullptr) const {
+        void ClearDepth(DepthBuffer& target, const D3D12_RECT* rect = nullptr) {
             //FlushResourceBarriers();
             target.Transition(_cmdList.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE);
             _cmdList->ClearDepthStencilView(target.GetDSV(), D3D12_CLEAR_FLAG_DEPTH, target.StencilDepth, 0, (rect == nullptr) ? 0 : 1, rect);
+            _activeEffect = 0;
         }
 
         void SetScissor(UINT width, UINT height) const {
@@ -193,12 +197,13 @@ namespace Inferno::Graphics {
         }
 
         template <class T>
-        void ApplyEffect(const Effect<T>& effect) {
-            //if (ActiveEffect == &effect) return;
-            //ActiveEffect = (void*)&effect;
+        bool ApplyEffect(const Effect<T>& effect) {
+            if (_activeEffect == (uintptr_t)&effect) return false;
+            _activeEffect = (uintptr_t)&effect;
             assert(effect.PipelineState);
             _cmdList->SetPipelineState(effect.PipelineState.Get());
             _cmdList->SetGraphicsRootSignature(effect.Shader->RootSignature.Get());
+            return true;
         }
 
         void SetConstantsArray(uint rootIndex, uint numConstants, const void* data) const {

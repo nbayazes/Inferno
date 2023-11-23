@@ -104,7 +104,7 @@ namespace Inferno::Render {
         Stats::DrawCalls++;
     }
 
-    void ClearDepthPrepass(const Graphics::GraphicsContext& ctx) {
+    void ClearDepthPrepass(Graphics::GraphicsContext& ctx) {
         auto& depthBuffer = Adapter->GetHdrDepthBuffer();
         auto& linearDepthBuffer = Adapter->GetLinearDepthBuffer();
         ctx.ClearDepth(depthBuffer);
@@ -146,8 +146,8 @@ namespace Inferno::Render {
                         auto model = object.Render.Model.ID;
 
                         if (object.Render.Model.Outrage) {
-                            ctx.ApplyEffect(Effects->DepthObject);
-                            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                            if (ctx.ApplyEffect(Effects->DepthObject))
+                                ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                             OutrageModelDepthPrepass(ctx, object);
                         }
                         else {
@@ -163,11 +163,13 @@ namespace Inferno::Render {
                             //}
 
                             auto& effect = Effects->DepthObject;
-                            ctx.ApplyEffect(effect);
-                            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-                            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
-                            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-                            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                            if (ctx.ApplyEffect(effect)) {
+                                ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                                effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+                                effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                                effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                            }
+
                             ModelDepthPrepass(cmdList, object, model);
                         }
                     }
@@ -176,15 +178,16 @@ namespace Inferno::Render {
                         //object.Render.Type == RenderType::Fireball ||
                         object.Render.Type == RenderType::Hostage) {
                         auto& effect = Effects->DepthObject;
-                        ctx.ApplyEffect(effect);
-                        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                        if (ctx.ApplyEffect(effect)) {
+                            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
 
-                        ObjectDepthShader::Constants constants = {};
-                        effect.Shader->SetConstants(cmdList, constants);
-                        auto sampler = Render::GetClampedTextureSampler();
-                        effect.Shader->SetSampler(cmdList, sampler);
-                        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-                        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                            ObjectDepthShader::Constants constants = {};
+                            effect.Shader->SetConstants(cmdList, constants);
+                            auto sampler = Render::GetClampedTextureSampler();
+                            effect.Shader->SetSampler(cmdList, sampler);
+                            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                        }
 
                         auto up = object.Rotation.Up();
                         SpriteDepthPrepass(cmdList, object, object.Render.Type == RenderType::Hostage ? &up : nullptr);
@@ -232,13 +235,6 @@ namespace Inferno::Render {
         constants.LightingScale = Settings::Editor.RenderMode == RenderMode::Shaded ? 1.0f : 0.0f; // How much light to apply
 
         auto cmdList = ctx.GetCommandList();
-        Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-        Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
-        Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
-        if (!cubeSrv.ptr)cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
-        Shaders->Level.SetEnvironment(cmdList, cubeSrv);
-
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
 
         if (chunk.Cloaked) {
@@ -334,23 +330,34 @@ namespace Inferno::Render {
                     Stats::DrawCalls++;
                 }
                 else {
+                    bool effectChanged = false;
+
                     if (mesh.Chunk->Blend == BlendMode::Alpha) {
                         if (pass != RenderPass::Walls) return;
-                        ctx.ApplyEffect(Effects->LevelWall);
+                        effectChanged = ctx.ApplyEffect(Effects->LevelWall);
                     }
                     else if (mesh.Chunk->Blend == BlendMode::Additive) {
                         if (pass != RenderPass::Transparent) return;
-                        ctx.ApplyEffect(Effects->LevelWallAdditive);
+                        effectChanged = ctx.ApplyEffect(Effects->LevelWallAdditive);
                     }
                     else {
                         if (pass != RenderPass::Opaque) return;
-                        ctx.ApplyEffect(Effects->Level);
+                        effectChanged = ctx.ApplyEffect(Effects->Level);
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     auto cmdList = ctx.GetCommandList();
-                    Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
-                    Shaders->Level.SetNormalSampler(cmdList, GetNormalSampler());
+                    if (effectChanged) {
+                        Shaders->Level.SetSampler(cmdList, GetWrappedTextureSampler());
+                        Shaders->Level.SetNormalSampler(cmdList, GetNormalSampler());
+                        auto cubeSrv = Render::Materials->EnvironmentCube.GetCubeSRV().GetGpuHandle();
+                        if (!cubeSrv.ptr) cubeSrv = Render::Adapter->NullCube.GetGpuHandle();
+                        Shaders->Level.SetEnvironment(cmdList, cubeSrv);
+
+                        Shaders->Level.SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+                        Shaders->Level.SetMaterialInfoBuffer(cmdList, MaterialInfoBuffer->GetSRV());
+                        Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                    }
 
                     DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
                 }

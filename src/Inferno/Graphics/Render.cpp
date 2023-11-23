@@ -412,7 +412,7 @@ namespace Inferno::Render {
         return _meshBuffer->GetOutrageHandle(id);
     }
 
-    void PostProcess(const GraphicsContext& ctx) {
+    void PostProcess(GraphicsContext& ctx) {
         PIXScopedEvent(ctx.GetCommandList(), PIX_COLOR_INDEX(8), "Post");
         // Post process
         auto backBuffer = Adapter->GetBackBuffer();
