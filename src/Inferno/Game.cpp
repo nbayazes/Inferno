@@ -324,8 +324,7 @@ namespace Inferno::Game {
 
     // Updates on each game tick
     void FixedUpdate(float dt) {
-        HandleInputFixed();
-        Input::NextFrame();
+        FixedUpdateInput();
         Debug::ActiveRobots = 0;
         Player.Update(dt);
 
@@ -364,6 +363,8 @@ namespace Inferno::Game {
                 }
             }
         }
+
+        Input::NextFrame();
     }
 
     void DecayScreenFlash(float dt) {
@@ -386,7 +387,7 @@ namespace Inferno::Game {
                     HandleEditorDebugInput(dt);
             }
             else {
-                HandleInput(dt);
+                HandleInputImmediate(dt);
             }
         }
 
@@ -478,6 +479,7 @@ namespace Inferno::Game {
 
     void UpdateState() {
         if (State == RequestedState) return;
+        Input::ResetState();
 
         switch (RequestedState) {
             case GameState::Editor:
@@ -541,7 +543,7 @@ namespace Inferno::Game {
     void Update(float dt) {
         LegitProfiler::ProfilerTask update("Update game", LegitProfiler::Colors::CARROT);
 
-        if (State == GameState::Editor && !Settings::Editor.EnablePhysics)
+        if ((State == GameState::Editor && !Settings::Editor.EnablePhysics) || Game::State == GameState::Paused)
             Input::NextFrame();
 
         Inferno::Input::Update();
