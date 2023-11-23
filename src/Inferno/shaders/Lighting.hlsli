@@ -565,6 +565,7 @@ float3 ApplyRectLight(
     float3 rectRight,
     float3 rectUp
 ) {
+    // https://www.shadertoy.com/view/wlSfW1
     float vWidth = length(rectRight);
     float vHeight = length(rectUp);
 

@@ -159,7 +159,13 @@ float4 psmain(PS_INPUT input) : SV_Target {
             //lighting += emissive * diffuse.rgb * material.EmissiveStrength * ambient;
             lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
 
-            lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 2, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
+            specularMask *= material.SpecularStrength;
+            specularMask = saturate(specularMask);
+            material.SpecularStrength = 1;
+
+            //lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
+            lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient, diffuse.rgb, specularMask, .5, .75);
+            lighting.rgb *= 2; // Objects are difficult to see
         }
 
         lighting.rgb += phaseColor;

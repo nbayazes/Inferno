@@ -239,6 +239,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //return float4(0, gx * 1, 0, 1);
 
     float specularMask = Sample2D(Specular1, input.uv, Sampler, Frame.FilterMode).r;
+    specularMask *= mat1.SpecularStrength;
+
     //return specularMask.rrrr;
     //float specularMask = Sample2D(GetTexture(input.Tex1, MAT_SPEC), input.uv, Sampler, Frame.FilterMode).r;
 
@@ -271,7 +273,10 @@ float4 psmain(PS_INPUT input) : SV_Target {
         float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode);
         //float4 overlay = Sample2D(GetTexture(input.Tex2, MAT_DIFF), input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
         float out_a = overlay.a + base.a * (1 - overlay.a);
-        float3 out_rgb = overlay.a * overlay.rgb + (1 - overlay.a) * base.rgb;
+        overlay.a = overlay.a < 1 ? 0 : 1; // Fixes border of transparent overlays
+        overlay.a = mask < 1 ? 1 : overlay.a; // Fixes masked area of transparent overlays
+        float3 out_rgb = lerp(base.rgb, overlay.rgb, overlay.a);
+        //float3 out_rgb = overlay.a > 0 ? overlay.rgb : base.rgb ; // lerp(base.rgb, overlay.rgb, overlay.a);
         diffuse = float4(out_rgb, out_a);
         emissive *= 1 - overlay.a; // Remove covered portion of emissive
 
@@ -286,19 +291,25 @@ float4 psmain(PS_INPUT input) : SV_Target {
         normal = normalize(lerp(normal, overlayNormal, overlay.a));
 
         material.SpecularStrength = lerp(mat1.SpecularStrength, mat2.SpecularStrength, overlay.a);
-        material.Metalness = lerp(mat1.Metalness, mat2.Metalness, overlay.a);
+        material.Metalness = saturate(lerp(mat1.Metalness, mat2.Metalness, overlay.a));
+        //material.Metalness = saturate(lerp(mat1.Metalness, mat2.Metalness, overlay.a > 0 ? 1 : 0));
+        //material.Metalness = overlay.a * mat2.Metalness + (1 - overlay.a) * mat1.Metalness;
         material.NormalStrength = normalize(lerp(mat1.NormalStrength, mat2.NormalStrength, overlay.a));
         material.Roughness = lerp(mat1.Roughness, mat2.Roughness, overlay.a);
         material.LightReceived = lerp(mat1.LightReceived, mat2.LightReceived, overlay.a);
         material.EnvStrength = lerp(mat1.EnvStrength, mat2.EnvStrength, overlay.a);
 
         float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
+        overlaySpecularMask *= mat2.SpecularStrength;
+
         //float overlaySpecularMask = Sample2D(GetTexture(input.Tex2, MAT_SPEC), input.uv2, Sampler, Frame.FilterMode).r;
         specularMask = lerp(specularMask, overlaySpecularMask, max(overlay.a, 1 - mask));
         // layer the emissive over the base emissive
         emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
         //emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
     }
+
+    material.SpecularStrength = 1;
 
     if (emissive > 0 && mat1.LightReceived == 0)
         emissive = emissive + 1; // make lava and forcefields full bright
@@ -338,7 +349,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
         lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
-        lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient, diffuse.rgb, specularMask, .4, .75);
+        lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient, diffuse.rgb, specularMask, .4, .4);
         lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
 
         //lighting.rgb += vertexLighting * 1.0;
