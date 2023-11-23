@@ -588,6 +588,7 @@ namespace Inferno::Game {
             return {};
         }
         auto& obj = *pObj;
+        obj.Effects.CloakFlickerTimer = CLOAK_FIRING_FLICKER;
 
         auto gunSubmodel = GetGunpointSubmodelOffset(obj, gun);
         auto objOffset = GetSubmodelOffset(obj, gunSubmodel);

@@ -319,6 +319,7 @@ namespace Inferno {
 
         float CloakTimer; // Elapsed cloaking
         float CloakDuration; // How long cloaking lasts. -1 for forever.
+        float CloakFlickerTimer; // Firing while cloaked causes the cloak to flicker
 
         float InvulnerableTimer;
         float InvulnerableDuration; // How long invulnerability lasts. -1 for forever.
@@ -427,6 +428,7 @@ namespace Inferno {
         bool IsAlive() const { return !HasFlag(Flags, ObjectFlag::Dead); }
 
         bool IsCloaked() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked); }
+        bool CloakIsEffective() const { return HasFlag(Effects.Flags, EffectFlags::Cloaked) && Effects.CloakFlickerTimer <= 0; }
 
         bool IsInvulnerable() const { return HasFlag(Effects.Flags, EffectFlags::Invulnerable); }
 

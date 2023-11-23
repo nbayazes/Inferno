@@ -193,7 +193,7 @@ namespace Inferno {
                     state = FireState::Release;
             }
         };
-
+        
         // must check held keys inside of fixed updates so events aren't missed
         // due to the state changing on a frame that doesn't have a game tick
         if (Game::GetState() == GameState::Editor) {
@@ -208,7 +208,6 @@ namespace Inferno {
     void Player::Update(float dt) {
         PrimaryDelay -= dt;
         SecondaryDelay -= dt;
-        FiredRecentlyTimer -= dt;
 
         UpdateFireState();
         if (Game::Level.Objects.empty()) return;
@@ -323,7 +322,6 @@ namespace Inferno {
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
         AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius / 2, 1);
-        FiredRecentlyTimer = CLOAK_FIRING_FLICKER;
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
@@ -433,7 +431,6 @@ namespace Inferno {
         LastPrimaryFireTime = Game::Time;
 
         AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius / 2, weapon.Extended.Noise);
-        FiredRecentlyTimer = CLOAK_FIRING_FLICKER;
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
@@ -469,7 +466,6 @@ namespace Inferno {
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
         AlertEnemiesOfNoise(Game::GetPlayerObject(), weapon.Extended.SoundRadius / 2, weapon.Extended.Noise);
-        FiredRecentlyTimer = CLOAK_FIRING_FLICKER;
 
         if (!CanFireSecondary(Secondary))
             AutoselectSecondary(); // Swap to different weapon if out of ammo

@@ -193,6 +193,7 @@ namespace Inferno {
         info.VerticalAlign = AlignV::Bottom;
         info.Scanline = scanline;
         info.MirrorX = mirrorX;
+        info.Color = Color(2, 2, 2);
         Render::HudGlowCanvas->DrawBitmap(info);
     }
 

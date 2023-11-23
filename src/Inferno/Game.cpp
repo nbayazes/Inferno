@@ -286,6 +286,7 @@ namespace Inferno::Game {
 
         if (HasFlag(e.Flags, EffectFlags::Cloaked)) {
             e.CloakTimer += dt;
+            e.CloakFlickerTimer -= dt;
 
             if (e.CloakDuration > 0 && e.CloakTimer >= e.CloakDuration)
                 UncloakObject(obj);

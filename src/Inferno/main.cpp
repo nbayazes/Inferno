@@ -37,12 +37,14 @@ void PrintWeaponInfo() {
         0, 1, 2, 3,
         11, 12, 13, 14,
         30, 31,
-        32, 33, 34, 35 };
+        32, 33, 34, 35
+    };
     string names[] = {
         "Laser1", "Laser2", "Laser3", "Laser4",
         "Vulcan", "Spreadfire", "Plasma", "Fusion",
         "Laser5", "Laser6",
-        "Gauss", "Helix", "Phoenix", "Omega" };
+        "Gauss", "Helix", "Phoenix", "Omega"
+    };
     int j = 0;
     for (auto& i : weapons) {
         if (i >= Resources::GameData.Weapons.size()) break;
@@ -118,8 +120,8 @@ void QuaternionTests() {
 
     {
         // Interpolate
-        Vector3 p0 = { 1000, 0 , 0 };
-        Vector3 p1 = { 0, 1000 , 0 };
+        Vector3 p0 = { 1000, 0, 0 };
+        Vector3 p1 = { 0, 1000, 0 };
         Vector3 v0, v1;
         p0.Normalize(v0);
         p1.Normalize(v1);
@@ -192,38 +194,40 @@ void TestClipConvexPolygon() {
     plane = Plane(-normal, 5);
 }
 
-void CreateConsoleWindow() {
+errno_t CreateConsoleWindow() {
     AllocConsole();
     // Bind standard output streams
-    freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
-    freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
-    freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+    errno_t err = 0;
+    err |= freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
+    err |= freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
+    err |= freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+    return err;
 }
 
-extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION; }
-extern "C" { __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\"; }
+extern "C" {
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
+    __declspec(dllexport) extern const char8_t* D3D12SDKPath = u8".\\D3D12\\";
+}
 
 int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
                      _In_opt_ HINSTANCE /*hPrevInstance*/,
-                     _In_ LPSTR     /*lpCmdLine*/,
-                     _In_ int       /*nCmdShow*/) {
-    CreateConsoleWindow();
-
-    // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
-    spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
-    //std::srand((uint)std::time(nullptr)); // seed c-random
-    InitRandom();
-    OpenSimplex2::Init();
-
-    TestClipConvexPolygon();
-
-    // Replace ryml abort with exceptions
-    RymlExceptionHandler handler;
-    ryml::set_callbacks(handler.CreateCallbacks());
-
-    int result = 0;
-
+                     _In_ LPSTR /*lpCmdLine*/,
+                     _In_ int /*nCmdShow*/) {
     try {
+        CreateConsoleWindow();
+
+        // https://github.com/gabime/spdlog/wiki/3.-Custom-formatting#pattern-flags
+        spdlog::set_pattern("[%M:%S.%e] [%^%l%$] [TID:%t] [%s:%#] %v");
+        //std::srand((uint)std::time(nullptr)); // seed c-random
+        InitRandom();
+        OpenSimplex2::Init();
+
+        TestClipConvexPolygon();
+
+        // Replace ryml abort with exceptions
+        RymlExceptionHandler handler;
+        ryml::set_callbacks(handler.CreateCallbacks());
+
         SetWindowsTimePeriod timePeriod;
         Inferno::Shell shell;
         //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -233,14 +237,14 @@ int APIENTRY WinMain(_In_ HINSTANCE /*hInstance*/,
         FileSystem::Init();
         Resources::Init();
         Inferno::InitShaderCompiler();
-        result = shell.Show(1024, 768);
+        int result = shell.Show(1024, 768);
         Settings::Save();
 
         //CoUninitialize();
+        return result;
     }
     catch (const std::exception& e) {
         ShowErrorMessage(e);
+        return -1;
     }
-
-    return result;
 }
