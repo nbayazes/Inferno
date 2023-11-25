@@ -121,6 +121,7 @@ namespace Inferno {
 
     // Returns a random unit vector. Optionally scaled by a value.
     inline Vector3 RandomVector(float scale = 1) {
+        if (scale == 0) return Vector3::Zero;
         Vector3 v(RandomN11(), RandomN11(), RandomN11());
         if (v == Vector3::Zero) v = Vector3::Up;
         v.Normalize();

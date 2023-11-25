@@ -352,40 +352,7 @@ namespace Inferno {
     }
 
     constexpr float FAST_WEAPON_SPEED = 200;
-
-    // Returns a vector to lead the target by
-    Vector3 LeadTarget(const Vector3& targetDir, float targetDist, const AITarget& target, float projectileSpeed) {
-        constexpr float MAX_LEAD_DISTANCE = 200;
-        constexpr float MIN_LEAD_SPEED = 4;
-        constexpr float LEAD_ANGLE = 30 * DegToRad;
-
-        if (projectileSpeed > FAST_WEAPON_SPEED) {
-            if (Game::Difficulty <= 1)
-                return Vector3::Zero; // Don't lead with fast weapons on rookie and below
-
-            projectileSpeed *= 5 - Game::Difficulty; // Scale speed based on difficulty
-        }
-
-        if (projectileSpeed <= 5)
-            return Vector3::Zero; // if projectile is too slow leading is pointless
-
-        // don't lead distant targets
-        if (targetDist > MAX_LEAD_DISTANCE)
-            return Vector3::Zero;
-
-        auto targetSpeed = target.Velocity.Length();
-        if (targetSpeed < MIN_LEAD_SPEED)
-            return Vector3::Zero; // don't lead slow targets
-
-        Vector3 velDir;
-        target.Velocity.Normalize(velDir);
-        auto dot = targetDir.Dot(velDir);
-        if (dot < -LEAD_ANGLE || dot > LEAD_ANGLE)
-            return Vector3::Zero; // outside of reasonable lead angle
-
-        float expectedTravelTime = targetDist / projectileSpeed;
-        return target.Velocity * expectedTravelTime;
-    }
+    constexpr float SLOW_WEAPON_SPEED = 30;
 
     void DecayAwareness(AIRuntime& ai) {
         auto deltaTime = float(Game::Time - ai.LastUpdate);
@@ -399,9 +366,9 @@ namespace Inferno {
     }
 
     // Returns the max amount of aim assist a weapon can have when fired by a robot
-    float GetAimAssistAngle(const Weapon& weapon) {
+    float GetMaxAimAssistAngle(const Weapon& weapon) {
         // Fast weapons get less assistance for balance reasons
-        return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 30.0f * DegToRad;
+        return weapon.Speed[Game::Difficulty] > FAST_WEAPON_SPEED ? 12.5f * DegToRad : 25.0f * DegToRad;
     }
 
     void CycleGunpoint(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
@@ -413,24 +380,89 @@ namespace Inferno {
             ai.GunIndex = 1; // Reserve gun 0 for secondary weapon if present
     }
 
-    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary) {
+    // Returns the new position to fire at
+    Vector3 LeadTarget(const Object& robot, const Object& target, const Weapon& weapon) {
+        auto targetSpeed = target.Physics.Velocity.Length();
+
+        if (targetSpeed < 10)
+            return target.Position; // Don't lead slow targets
+
+        auto targetDist = Vector3::Distance(target.Position, robot.Position);
+        Vector3 targetVelDir;
+        target.Physics.Velocity.Normalize(targetVelDir);
+        float expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
+        auto projectedTarget = target.Position;
+
+        {
+            // Check target projected position
+            Ray ray(target.Position, targetVelDir);
+            RayQuery query;
+            query.MaxDistance = (target.Physics.Velocity * expectedTravelTime).Length();
+            query.Start = target.Segment;
+            LevelHit hit;
+            if (Game::Intersect.RayLevel(ray, query, hit)) {
+                // target will hit wall, aim at wall minus object radius
+                projectedTarget = hit.Point - targetVelDir * target.Radius;
+                targetDist = Vector3::Distance(projectedTarget, robot.Position);
+                expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
+            }
+
+            projectedTarget = target.Position + target.Physics.Velocity * expectedTravelTime;
+            // Scale prediction based on velocity. If the player isn't near full speed (roughly 55 u/s)
+            // they are likely doing small adjustments. These can easily throw off a robot.
+        }
+
+        {
+            auto targetDir = projectedTarget - robot.Position;
+            targetDir.Normalize();
+
+            // Check shot line of sight
+            Ray ray(robot.Position, targetDir);
+            RayQuery query;
+            query.Start = robot.Segment;
+            query.MaxDistance = Vector3::Distance(projectedTarget, robot.Position);
+            LevelHit hit;
+            if (!Game::Intersect.RayLevel(ray, query, hit)) {
+                // Won't hit level, lead the target!
+                return projectedTarget;
+            }
+        }
+
+        return target.Position; // Wasn't able to lead target
+    }
+
+    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
         auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
 
         uint8 gunIndex = primary ? ai.GunIndex : 0;
-        auto [aimDir, aimDist] = GetDirectionAndDistance(target, robot.Position);
 
-        float aimAssist = GetAimAssistAngle(weapon);
+        float maxAimAssit = GetMaxAimAssistAngle(weapon);
         auto forward = robot.Rotation.Forward();
 
-        if (AngleBetweenVectors(aimDir, forward) > aimAssist) {
+        auto leadChance = std::max(Game::Difficulty - 1, 0) / 3.0f; // Don't lead on rookie and trainee
+        bool shouldLead = Random() <= leadChance * 0.9f; // Don't always lead even on insane, keep player on their toes
+
+        if (blind) {
+            // add inaccuracy if target is cloaked or doing a blind-fire
+            target += RandomVector() * 4.0f;
+        }
+        else if (auto targetObj = Game::GetObject(ai.Target); targetObj && shouldLead) {
+            target = LeadTarget(robot, *targetObj, weapon);
+        }
+
+        target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
+
+        auto [aimDir, aimDist] = GetDirectionAndDistance(target, robot.Position);
+
+        if (AngleBetweenVectors(aimDir, forward) > maxAimAssit) {
             // clamp the angle if target it outside of the max aim assist
             auto normal = forward.Cross(aimDir);
             if (normal.Dot(robot.Rotation.Up()) < 0) normal *= -1;
 
             auto angle = SignedAngleBetweenVectors(forward, aimDir, normal);
-            auto aimAngle = aimAssist;
+            auto aimAngle = maxAimAssit;
             if (angle < 0) aimAngle *= -1;
 
             auto transform = Matrix::CreateFromAxisAngle(normal, aimAngle);
@@ -476,9 +508,9 @@ namespace Inferno {
             ai.Fear += 0.4; // Scared of being hit
     }
 
-    float EstimateDodgeDistance(const RobotInfo& robot) {
-        return (4 / robot.Mass) * Difficulty(robot).Speed;
-    }
+    //float EstimateDodgeDistance(const RobotInfo& robot) {
+    //    return (4 / robot.Mass) * Difficulty(robot).Speed;
+    //}
 
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         auto room = level.GetRoom(robot);
@@ -502,7 +534,7 @@ namespace Inferno {
     }
 
     // Tries to path towards the player or move directly to it if in the same room
-    void MoveTowardsTarget(Level& level, Object& robot,
+    void MoveTowardsTarget(Level& level, const Object& robot,
                            AIRuntime& ai, const Vector3& objDir, float objDist) {
         if (!ai.TargetPosition) return;
 
@@ -535,7 +567,7 @@ namespace Inferno {
         MoveTowardsPoint(robot, ai, robot.Position - targetDir * 10);
     }
 
-    void MoveToCircleDistance(Level& level, Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
+    void MoveToCircleDistance(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         if (!ai.TargetPosition) return;
 
         auto circleDistance = Difficulty(robotInfo).CircleDistance;
@@ -673,7 +705,7 @@ namespace Inferno {
     //    { "trooper", HelixBehavior },
     //};
 
-    void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target) {
+    void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target, bool blind) {
         ai.FireDelay = 0;
         // multishot: consume as many projectiles as possible based on burst count
         // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
@@ -682,7 +714,7 @@ namespace Inferno {
         for (int i = 0; i < robotInfo.Multishot; i++) {
             ai.FireDelay += burstDelay;
 
-            FireRobotWeapon(robot, ai, robotInfo, target, true);
+            FireRobotWeapon(robot, ai, robotInfo, target, true, blind);
             ai.BurstShots++;
             if (ai.BurstShots >= Difficulty(robotInfo).ShotCount) {
                 ai.BurstShots = 0;
@@ -695,10 +727,22 @@ namespace Inferno {
         PlayRobotAnimation(robot, AnimState::Recoil, 0.25f);
     }
 
+    // Returns true if a point has line of sight to a target
+    bool HasLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask) {
+        auto gunPosition = GetGunpointWorldPosition(obj, gun);
+        // todo: check if segment contains gunpoint. it's possible an adjacent segment contains it instead.
+        auto [dir, distance] = GetDirectionAndDistance(target, gunPosition);
+        LevelHit hit{};
+        RayQuery query{ .MaxDistance = distance, .Start = obj.Segment, .TestTextures = true };
+
+        bool visible = !Game::Intersect.RayLevel({ gunPosition, dir }, query, hit, mask, Game::GetObjectRef(obj).Id);
+        Render::Debug::DrawLine(gunPosition, target, visible ? Color(0, 1, 0) : Color(1, 0, 0));
+        return visible;
+    }
+
     // start charging when player is in FOV and can fire
     // keep charging even if player goes out of view
     // fire at last known location
-
     void WeaponChargeBehavior(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
         ai.NextChargeSoundDelay -= dt;
         ai.WeaponCharge += dt;
@@ -724,23 +768,13 @@ namespace Inferno {
         //if (ai.WeaponCharge >= Difficulty(info).FireDelay * 2) {
         if (ai.WeaponCharge >= 1) {
             Sound::Stop(ai.SoundHandle);
+            // Release shot even if target has moved out of view
             auto target = ai.TargetPosition ? *ai.TargetPosition : robot.Position + robot.Rotation.Forward() * 40;
-            FireRobotPrimary(robot, ai, robotInfo, target);
+            bool blind = false; // this is not correct
+            FireRobotPrimary(robot, ai, robotInfo, target, blind);
+
             ai.WeaponCharge = 0;
         }
-    }
-
-    // Returns true if a point has line of sight to a target
-    bool HasLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask) {
-        auto gunPosition = GetGunpointWorldPosition(obj, gun);
-        // todo: check if segment contains gunpoint. it's possible an adjacent segment contains it instead.
-        auto [dir, distance] = GetDirectionAndDistance(target, gunPosition);
-        LevelHit hit{};
-        RayQuery query{ .MaxDistance = distance, .Start = obj.Segment, .TestTextures = true };
-
-        bool visible = !Game::Intersect.RayLevel({ gunPosition, dir }, query, hit, mask, Game::GetObjectRef(obj).Id);
-        Render::Debug::DrawLine(gunPosition, target, visible ? Color(0, 1, 0) : Color(1, 0, 0));
-        return visible;
     }
 
     // Wiggles a robot along its x/y plane
@@ -788,8 +822,9 @@ namespace Inferno {
         ai.StrafeTime = time;
     }
 
-    void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt) {
+    void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt, bool hasLineOfSight) {
         if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 <= 0) {
+            // Check if an ally robot is in the way
             if (!HasLineOfSight(robot, 0, *ai.TargetPosition, ObjectMask::Robot)) {
                 //WiggleRobot(robot, ai, 0.5f);
                 TryStartCircleStrafe(robot, ai, 2);
@@ -797,7 +832,7 @@ namespace Inferno {
             }
 
             // Secondary weapons have no animations or wind up
-            FireRobotWeapon(robot, ai, robotInfo, *ai.TargetPosition, false);
+            FireRobotWeapon(robot, ai, robotInfo, *ai.TargetPosition, false, !hasLineOfSight);
             ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
         }
         else {
@@ -808,8 +843,7 @@ namespace Inferno {
             auto& weapon = Resources::GetWeapon(robotInfo.WeaponType);
 
             if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
-                // Can fire a weapon soon, try to do so.
-                // But only fire if there is nothing blocking LOS to the target
+                // Check if an ally robot is in the way
                 if (!HasLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::Robot)) {
                     //WiggleRobot(robot, ai, 0.5f);
                     TryStartCircleStrafe(robot, ai, 2);
@@ -820,7 +854,7 @@ namespace Inferno {
 
                 auto aimDir = *ai.TargetPosition - robot.Position;
                 aimDir.Normalize();
-                float aimAssist = GetAimAssistAngle(weapon);
+                float aimAssist = GetMaxAimAssistAngle(weapon);
                 if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
                     // Target is within the cone of the weapon, start firing
                     PlayRobotAnimation(robot, AnimState::Fire, ai.FireDelay.Remaining() * 0.8f);
@@ -832,14 +866,14 @@ namespace Inferno {
             else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
                 // Check that the target hasn't gone out of LOS when using explosive weapons. as
                 // Robots can easily blow themselves up in this case.
-                if (weapon.SplashRadius > 0 && !HasLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::None)) {
+                if (weapon.SplashRadius > 0 && !hasLineOfSight) {
                     CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
                     //WiggleRobot(robot, ai, 0.5f);
                     return;
                 }
 
                 // Fire animation finished, release a projectile
-                FireRobotPrimary(robot, ai, robotInfo, *ai.TargetPosition);
+                FireRobotPrimary(robot, ai, robotInfo, *ai.TargetPosition, !hasLineOfSight);
             }
         }
     }
@@ -1163,7 +1197,9 @@ namespace Inferno {
 
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
-        MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
+
+        if (robot.Control.AI.Behavior != AIBehavior::Still)
+            MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
         // Shouldn't combat only happen when a target exists?
         auto pTarget = Game::GetObject(ai.Target);
@@ -1174,9 +1210,9 @@ namespace Inferno {
         }
 
         auto& target = *pTarget;
-
         auto [targetDir, dist] = GetDirectionAndDistance(target.Position, robot.Position);
-        if (!target.CloakIsEffective() && HasLineOfSight(robot, targetDir, dist, ai)) {
+        bool hasLos = !target.CloakIsEffective() && HasLineOfSight(robot, targetDir, dist, ai);
+        if (hasLos) {
             // Update targeting
             ai.TargetPosition = target.Position;
             ai.TargetSegment = target.Segment;
@@ -1224,7 +1260,7 @@ namespace Inferno {
         // Prevent attacking during phasing (matcens and teleports)
         if (ai.TargetPosition && !robot.IsPhasing()) {
             if (robotInfo.Attack == AttackType::Ranged) {
-                UpdateRangedAI(robot, robotInfo, ai, dt);
+                UpdateRangedAI(robot, robotInfo, ai, dt, hasLos);
             }
             else if (robotInfo.Attack == AttackType::Melee) {
                 UpdateMeleeAI(robot, robotInfo, ai, dist, target, targetDir, dt);
