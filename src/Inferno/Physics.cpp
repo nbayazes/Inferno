@@ -598,6 +598,8 @@ namespace Inferno {
                     }
                 }
             }
+
+            return false;
         };
 
         Game::TraverseRoomsByDistance(level, explosion.Room, explosion.Position,

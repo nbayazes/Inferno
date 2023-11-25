@@ -9,7 +9,7 @@ namespace Inferno {
     }
 
     bool GameTimer::Expired() const {
-        return Game::Time >= _timestamp;
+        return Game::Time >= _timestamp && _timestamp != 0;
     }
 
     float GameTimer::Remaining() const {

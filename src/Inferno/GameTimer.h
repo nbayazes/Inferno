@@ -11,6 +11,8 @@ namespace Inferno {
 
         float Remaining() const;
         bool Expired() const;
+        void Reset() { _timestamp = 0; }
+        bool IsSet() const { return _timestamp > 0; }
 
         void operator +=(float value) { _timestamp += value; }
         void operator -=(float value) { _timestamp -= value; }

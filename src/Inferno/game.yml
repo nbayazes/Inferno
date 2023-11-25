@@ -86,10 +86,10 @@ Weapons:
     Name: class 1 drone fireball
     ExplosionSize: 1.75
     ExplosionTime: 0.4
-    LightRadius: 16
+    LightRadius: 18
     LightColor: 1, 0.15, 0.0, 1.5
-    FlashColor: 1, 0.3, 0.15, 20
-    Glow: 2, 1.2, 1, 2
+    FlashColor: 1, 0.3, 0.15, 3
+    Glow: 1, 0.75, .5, 10
     Mass: 0.75
 
   - id: 6
@@ -416,7 +416,7 @@ Weapons:
     LightRadius: 16
     Glow: .5, 1, .5, 8
     LightColor: 0.075, 0.6, 0.075
-    FlashColor: 1, 1, .125, 2
+    FlashColor: 1, 1, .125, 1
 
   - id: 26
     Name: robot plasma
@@ -432,13 +432,13 @@ Weapons:
     FlashColor: 1, 1, 1, 4
 
   - id: 27
-    Name: spider fireball
-    Glow: 1, .5, .5, 10
+    Name: spider fireball # spider fireballs are signficantly more damaging than expected. Make them look angry.
+    Glow: .0, .2, 1, 50
     ExplosionSize: 1.75
     ExplosionTime: 0.4
-    LightRadius: 16
-    LightColor: 1, 0.025, 0.025
-    FlashColor: 1, 0.25, 0.25, 20
+    LightRadius: 24
+    LightColor: .0, .8, 1, 1.25
+    FlashColor: .0, .1, 1, 15
 
   - id: 32
     Name: gauss
@@ -545,6 +545,7 @@ Robots:
     Mass: 2.5
     Drag: 0.025
     AlertRadius: 110 # Drones are scouts and have a larger radius than normal
+    FleeThreshold: 0.5
   - id: 4 # Class 2 drone
     CircleDistance: 40
     Drag: 0.03
@@ -561,16 +562,19 @@ Robots:
     CircleDistance: 60
     Mass: 3.25
     AlertRadius: 240 # Alert all nearby robots!
+    FleeThreshold: 1 # Has no weapons, always look for help
   - id: 8 # Secondary Lifter (one arm)
     CircleDistance: 15
     Mass: 3.5
     Drag: 0.03
+    FleeThreshold: 0.4 # Scout
   - id: 9 # Heavy driller
     CircleDistance: 30
     Multishot: 2
     Mass: 6
     Drag: 0.1
   - id: 10 # Gopher
+    FleeThreshold: 0.4
   - id: 11 # Laser platform
     CircleDistance: 20
     Mass: 2.5
@@ -610,7 +614,7 @@ Robots:
     CircleDistance: 200
     TurnTime: 0.025 # Turn time reduced to compensate for increased mass
     # D2 has hit points of 4000
-    # HitPoints: 250 # Increased slightly from D1 2000 due to teleporting being more generous to player
+    # HitPoints: 3000 # Increased from 2000 due to teleporting being more generous to player
     DeathRollSound: 185 # d1
     DeathRoll: 10 # max death roll
     SeeSound: 183 # d1
@@ -878,7 +882,6 @@ Effects:
       Texture: tracer
       Width: 0.125
       VelocitySmear: 0.02
-      Physics: 0
 
     - Name: melee hit
       Color: 1, .5, .3, 20
@@ -890,7 +893,6 @@ Effects:
       Texture: tracer
       Width: 0.15
       VelocitySmear: 0.02
-      Physics: 0
 
     - Name: flare death sparks
       Color: 1, 0.66, 0.1, 10
@@ -979,7 +981,6 @@ Effects:
       Drag: 0.04
       Texture: tracer # hotspark
       Width: 0.35
-      Physics: 0
 
   Explosions:
     - Name: reactor_initial_explosion

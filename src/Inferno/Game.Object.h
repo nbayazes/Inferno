@@ -60,7 +60,10 @@ namespace Inferno {
     void CreateObjectDebris(const Object& obj, ModelID modelId, const Vector3& force);
 
     // Modifies an object's rotation to face towards a vector at a given rate per second
-    void TurnTowardsVector(Object& obj, Vector3 towards, float rate);
+    void TurnTowardsDirection(Object& obj, Vector3 direction, float rate);
+
+    // Modifies an object's rotation to face towards a point at a given rate per second
+    void TurnTowardsPoint(Object& obj, const Vector3& target, float rate);
 
     // Similar to TurnTowardsVector but adds angular thrust, allowing overshoot
     void RotateTowards(Object& obj, Vector3 point, float angularThrust);

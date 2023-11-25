@@ -30,7 +30,7 @@ namespace Inferno::Game {
         static List<Visited> visited;
 
         visited.resize(level.Segments.size());
-        
+
         for (int i = 0; i < visited.size(); i++) {
             visited[i].id = SegID(i);
             visited[i].parent = SegID::None;
@@ -143,7 +143,7 @@ namespace Inferno::Game {
             }
         }
 
-        SPDLOG_INFO("Room path distance {}", totalDistance);
+        //SPDLOG_INFO("Room path distance {}", totalDistance);
         return path;
     }
 
@@ -323,7 +323,7 @@ namespace Inferno::Game {
     }
 
     void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position,
-                                 float maxDistance, bool soundMode, const std::function<void(Room&)>& action) {
+                                 float maxDistance, bool soundMode, const std::function<bool(Room&)>& action) {
         struct TravelInfo {
             Portal Portal;
             float Distance;
@@ -345,7 +345,9 @@ namespace Inferno::Game {
         {
             auto room = level.GetRoom(startRoom);
             if (!room) return;
-            action(*room); // Execute on starting room
+            if (action(*room)) // Execute on starting room
+                return;
+
             //SPDLOG_INFO("Executing on room {}", (int)startRoom);
 
             // Check if any portals are in range of the start point
@@ -374,7 +376,8 @@ namespace Inferno::Game {
             auto room = level.GetRoom(info.Portal.RoomLink);
             if (!room) continue;
             //SPDLOG_INFO("Executing on room {} Distance {}", (int)info.Portal.RoomLink, info.Distance);
-            action(*room); // act on the room
+            if (action(*room)) // act on the room
+                return;
 
             auto& portalDistances = room->PortalDistances[info.Portal.PortalLink];
 

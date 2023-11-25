@@ -18,54 +18,54 @@ namespace Inferno {
         FollowPathD2 = 0x86, // D2: Used internally by thief?
     };
 
-    enum class RobotAwareness : uint8 {
-        None,
-        NearbyRobotFired = 1,  // Nearby robot fired a weapon
-        WeaponWallCollision = 2,  // Player weapon hit nearby wall
-        PlayerCollision = 3,  // Player bumps into robot
-        WeaponRobotCollision = 4,  // Player weapon hits nearby robot
-    };
+    //enum class RobotAwareness : uint8 {
+    //    None,
+    //    NearbyRobotFired = 1,  // Nearby robot fired a weapon
+    //    WeaponWallCollision = 2,  // Player weapon hit nearby wall
+    //    PlayerCollision = 3,  // Player bumps into robot
+    //    WeaponRobotCollision = 4,  // Player weapon hits nearby robot
+    //};
 
-    enum class PlayerVisibility : int8 {
-        NoLineOfSight,
-        VisibleNotInFOV,
-        VisibleInFOV,
-    };
+    //enum class PlayerVisibility : int8 {
+    //    NoLineOfSight,
+    //    VisibleNotInFOV,
+    //    VisibleInFOV,
+    //};
 
-    enum class AIMode : uint8 {
-        Still = 0,
-        Wander = 1,
-        FollowPath = 2,
-        ChaseObject = 3,
-        RunFromObject = 4,
-        FollowPath2 = 6,
-        OpenDoor = 7,
-        Behind = 5, // Descent 2
-        Hide = 5, // Descent 1
-        GotoPlayer = 8, // Only for escort behavior
-        GotoObject = 9, // Only for escort behavior
+    //enum class AIMode : uint8 {
+    //    Still = 0,
+    //    Wander = 1,
+    //    FollowPath = 2,
+    //    ChaseObject = 3,
+    //    RunFromObject = 4,
+    //    FollowPath2 = 6,
+    //    OpenDoor = 7,
+    //    Behind = 5, // Descent 2
+    //    Hide = 5, // Descent 1
+    //    GotoPlayer = 8, // Only for escort behavior
+    //    GotoObject = 9, // Only for escort behavior
 
-        SnipeAttack = 10,
-        SnipeFire = 11,
-        SnipeRetreat = 12,
-        SnipeRetreatBackwards = 13,
-        SnipeWait = 14,
+    //    SnipeAttack = 10,
+    //    SnipeFire = 11,
+    //    SnipeRetreat = 12,
+    //    SnipeRetreatBackwards = 13,
+    //    SnipeWait = 14,
 
-        ThiefAttack = 15,
-        ThiefRetreat = 16,
-        ThiefWait = 17,
-    };
+    //    ThiefAttack = 15,
+    //    ThiefRetreat = 16,
+    //    ThiefWait = 17,
+    //};
 
-    enum class AIState : int8 {
-        None,
-        Idle,
-        Search,
-        Lock,
-        Flinch,
-        Fire,
-        Recoil,
-        Error
-    };
+    //enum class AIState : int8 {
+    //    None,
+    //    Idle,
+    //    Search,
+    //    Lock,
+    //    Flinch,
+    //    Fire,
+    //    Recoil,
+    //    Error
+    //};
 
     enum class AnimState : int8 {
         Rest = 0,

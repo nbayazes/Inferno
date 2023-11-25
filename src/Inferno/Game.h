@@ -197,6 +197,10 @@ namespace Inferno::Game {
     void MakeInvulnerable(Object& obj, float duration, bool playSound = true);
     void MakeVulnerable(Object& obj, bool playSound = true);
 
+    // Stupid intellisense
+#undef GetObject
+
+    // Gets an object by reference. Returns null if not found.
     Object* GetObject(ObjRef);
 
     namespace Stats {

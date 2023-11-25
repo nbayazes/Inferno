@@ -346,7 +346,7 @@ namespace Inferno {
         }
     }
 
-    bool SetPathGoal(Level& level, Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition) {
+    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition) {
         // Calculate a new path
         auto& robotInfo = Resources::GetRobotInfo(obj);
         ai.GoalSegment = goalSegment;
@@ -361,11 +361,11 @@ namespace Inferno {
             return false;
         }
 
-        SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
+        //SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
         return true;
     }
 
-    void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, float /*dt*/) {
+    void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai) {
         auto checkGoalReached = [&obj, &ai] {
             if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
                 SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
@@ -526,7 +526,7 @@ namespace Inferno {
 
             auto goalDir = targetPosition - obj.Position;
             goalDir.Normalize();
-            TurnTowardsVector(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
+            TurnTowardsDirection(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
 
             //if (CheckLevelEdges(level, ray, segs, obj.Radius)) {
             //    // MoveTowardsPoint(obj, nextSide.Center, thrust);

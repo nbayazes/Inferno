@@ -57,20 +57,24 @@ namespace Inferno::Sound {
                 return;
             }
 
-            auto obj = Game::Level.TryGetObject(Source);
-            if (obj && obj->IsAlive() && AttachToSource) {
-                // Move the emitter to the object location if attached
-                auto pos = obj->GetPosition(Game::LerpAmount);
-                if (AttachOffset != Vector3::Zero) {
-                    auto rot = obj->GetRotation(Game::LerpAmount);
-                    pos += Vector3::Transform(AttachOffset, rot);
-                }
+            if (Source != GLOBAL_SOUND_SOURCE) {
+                auto obj = Game::Level.TryGetObject(Source);
+                if (obj && obj->IsAlive() /*&& AttachToSource*/) {
+                    // Move the emitter to the object location if attached
+                    auto pos = obj->GetPosition(Game::LerpAmount);
+                    if (AttachOffset != Vector3::Zero) {
+                        auto rot = obj->GetRotation(Game::LerpAmount);
+                        pos += Vector3::Transform(AttachOffset, rot);
+                    }
 
-                Emitter.SetPosition(pos * AUDIO_SCALE);
-                Segment = obj->Segment;
-            }
-            else {
-                // object is dead. Should the sound stop?
+                    Emitter.SetPosition(pos * AUDIO_SCALE);
+                    Segment = obj->Segment;
+                }
+                else {
+                    // Source object is dead, stop the sound
+                    Instance->Stop();
+                    return;
+                }
             }
 
             assert(Radius > 0);
@@ -235,6 +239,11 @@ namespace Inferno::Sound {
 
                     std::scoped_lock lock(SoundInstancesMutex);
                     for (auto& sound : SoundInstances) {
+                        if (sound.Delay > 0) {
+                            sound.Delay -= dt;
+                            continue;
+                        }
+
                         if (!sound.Alive) continue;
                         auto state = sound.Instance->GetState();
 
@@ -244,6 +253,15 @@ namespace Inferno::Sound {
                                 sound.Alive = false; // a one-shot sound finished playing
                             }
                             else {
+                                // Check if the source is dead before playing
+                                if (sound.Source != GLOBAL_SOUND_SOURCE) {
+                                    auto obj = Game::Level.TryGetObject(sound.Source);
+                                    if (!obj || !obj->IsAlive()) {
+                                        sound.Alive = false;
+                                        continue;
+                                    }
+                                }
+
                                 // New sound
                                 sound.Instance->Play();
                                 sound.Started = true;
@@ -292,7 +310,7 @@ namespace Inferno::Sound {
         // create a buffer and store wfx at the beginning.
         int trimStartBytes = int((float)frequency * trimStart);
         int trimEndBytes = int((float)frequency * trimEnd);
-        
+
         // Leave data for the trimmed end in case the sound is looped
         const size_t wavDataSize = raw.size() + sizeof(WAVEFORMATEX) - trimStartBytes;
         auto wavData = MakePtr<uint8[]>(wavDataSize);
@@ -445,7 +463,7 @@ namespace Inferno::Sound {
         if (!sfx) return SoundUID::None;
 
         if (sound.Looped && sound.LoopStart > sound.LoopEnd)
-            throw Exception("Loop start must be <= loop end");
+            throw Exception("Sound3D loop start must be <= loop end");
 
         auto position = sound.Position * AUDIO_SCALE;
 
@@ -458,9 +476,10 @@ namespace Inferno::Sound {
                 if (!instance.IsAlive()) continue;
                 if (instance.Source == sound.Source &&
                     instance.Resource == sound.Resource &&
-                    instance.StartTime + MERGE_WINDOW > currentTime &&
+                    instance.StartTime + MERGE_WINDOW > currentTime + sound.Delay &&
                     !instance.Looped) {
-                    if (instance.AttachToSource && sound.AttachToSource)
+                    if (instance.Source != GLOBAL_SOUND_SOURCE)
+                        //if (instance.AttachToSource && sound.AttachToSource)
                         instance.AttachOffset = (instance.AttachOffset + sound.AttachOffset) / 2;
 
                     instance.Emitter.Position = (position + instance.Emitter.Position) / 2;
@@ -487,7 +506,7 @@ namespace Inferno::Sound {
         s.Emitter.InnerRadius = s.Radius / 6;
         s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
         s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
-        s.StartTime = currentTime;
+        s.StartTime = currentTime + sound.Delay;
         s.Alive = true;
 
         SoundInstances.AddBack(std::move(s));

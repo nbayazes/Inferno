@@ -89,6 +89,7 @@ namespace Inferno {
         float AlertRadius = 80; // Increases awareness of robots in this radius while the player is visible
         List<int8> GatedRobots; // Robots to gate in when hit. For bosses.
         float TeleportInterval; // Interval between boss teleports.
+        float FleeThreshold = 0; // Will flee to find another robot when under this amount of life or getting scared
     };
 
 }

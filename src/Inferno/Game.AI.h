@@ -20,24 +20,30 @@ namespace Inferno {
         AITarget(const Object& obj) : Position(obj.Position), Velocity(obj.Physics.Velocity) {}
     };
 
-    //enum class AIState {
-    //    
-    //};
+    enum class AIState {
+        Idle, // No awareness
+        Alert, // Awake but not in combat
+        Roam, // Wander around randomly
+        Combat, // Saw or recently saw target
+        Chase, // Pursue target
+        FindHelp, // Looking for help
+        Path, // Path to a location, ignoring if a hostile is seen
+    };
 
     // Runtime AI data
     struct AIRuntime {
+        AIState State = AIState::Idle;
         double LastUpdate = -1; // time when this robot was last updated
         float LastHitByPlayer = -1; // time in seconds since last hit by the player
 
         // How aware of the player this robot is. Ranges 0 to 1.
         // Only seeing the player can set awareness to 1.
         float Awareness = 0;
-        // How likely the robot is to flee. Increased by taking damage.
+        // Increases when allies die or dodging attacks. Only robots with a FleeThreshold have fear.
         float Fear = 0;
 
         //uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
         //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
-        PlayerVisibility PlayerVisibility;
         uint8 BurstShots; // number of shots fired rapidly
         uint8 GunIndex = 0; // Which gun to fire from next
         //AIMode Mode;
@@ -51,7 +57,11 @@ namespace Inferno {
         AnimState AnimationState = {};
 
         SegID TargetSegment = SegID::None;
-        Option<Vector3> Target;
+        Option<Vector3> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
+        ObjRef Target; // Current thing we're fighting
+        ObjRef Ally; // Robot to get help from
+
+        bool TriedFindingHelp = false;
 
         Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
 
@@ -86,6 +96,7 @@ namespace Inferno {
         int16 GoalPathIndex = -1;
         GameTimer AlertTimer;  // For alerting nearby robots of the player location
         GameTimer CombatSoundTimer; // For playing combat sounds
+        GameTimer FleeTimer; // Finds help when this triggers
 
         bool PlayingAnimation() const {
             return AnimationTime < AnimationDuration;

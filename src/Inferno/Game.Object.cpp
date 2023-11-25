@@ -760,19 +760,25 @@ namespace Inferno {
     }
 
 
-    void TurnTowardsVector(Object& obj, Vector3 towards, float rate) {
-        ASSERT(IsNormalized(towards));
+    void TurnTowardsDirection(Object& obj, Vector3 direction, float rate) {
+        ASSERT(IsNormalized(direction));
 
-        auto goal = towards;
+        auto goal = direction;
         goal *= Game::TICK_RATE / rate;
         goal += obj.Rotation.Forward();
         auto mag = goal.Length();
         goal.Normalize();
         if (mag < 1 / 256.0f)
-            goal = towards; // degenerate
+            goal = direction; // degenerate
 
         obj.Rotation = VectorToRotation(goal, Vector3::Zero, obj.Rotation.Right());
         obj.Rotation.Forward(-obj.Rotation.Forward());
+    }
+
+    void TurnTowardsPoint(Object& obj, const Vector3& point, float rate) {
+        auto dir = point - obj.Position;
+        dir.Normalize();
+        TurnTowardsDirection(obj, dir, rate);
     }
 
     void RotateTowards(Object& obj, Vector3 point, float angularThrust) {
@@ -814,6 +820,6 @@ namespace Inferno {
         }
 
         force.Normalize();
-        TurnTowardsVector(obj, force, rate);
+        TurnTowardsDirection(obj, force, rate);
     }
 }

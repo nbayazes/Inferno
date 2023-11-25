@@ -43,6 +43,7 @@ namespace Inferno {
         ObjRef Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
         float Volume = 1;
         float Pitch = 0; // -1 to 1;
+        float Delay = 0; // Delay before playing
         bool Occlusion = true; // Occludes level geometry when determining volume
         float Radius = DEFAULT_SOUND_RADIUS; // Determines max range and falloff
         bool AttachToSource = false; // The sound moves with the Source object

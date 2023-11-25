@@ -763,6 +763,8 @@ namespace Inferno::Game {
                     }
                 }
             }
+
+            return false;
         };
 
         auto room = Game::Level.GetRoomID(src);
