@@ -22,10 +22,5 @@ namespace Inferno {
         EffectSettings Settings;
         TShader* Shader;
         ComPtr<ID3D12PipelineState> PipelineState;
-
-        void Apply(ID3D12GraphicsCommandList* commandList) {
-            commandList->SetPipelineState(PipelineState.Get());
-            Shader->Apply(commandList);
-        };
     };
 }

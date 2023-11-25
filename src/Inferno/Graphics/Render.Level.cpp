@@ -55,7 +55,8 @@ namespace Inferno::Render {
         constants.HasOverlay = chunk.TMap2 > LevelTexID::Unset;
 
         auto& effect = Effects->DepthCutout;
-        effect.Apply(cmdList);
+        Adapter->GetGraphicsContext().ApplyEffect(effect);
+
         effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
         effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
 

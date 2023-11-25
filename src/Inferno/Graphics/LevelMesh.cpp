@@ -312,7 +312,8 @@ namespace Inferno {
 
     void LevelVolume::Draw(ID3D12GraphicsCommandList* cmdList) const {
         cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        Render::Effects->FlatAdditive.Apply(cmdList);
+        Render::Adapter->GetGraphicsContext().ApplyEffect(Render::Effects->FlatAdditive);
+
         FlatShader::Constants constants;
         constants.Transform = Render::ViewProjection;
         constants.Tint = Color{ 1.00f, 0.6f, 0.01f, 0.66f };

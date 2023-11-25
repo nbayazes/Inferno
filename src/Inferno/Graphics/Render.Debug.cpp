@@ -26,8 +26,8 @@ namespace Inferno::Render::Debug {
             vbv.StrideInBytes = _vertices.GetStride();
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
-            //auto& effect = Render::Effects->Line;
-            effect.Apply(cmdList);
+            Render::Adapter->GetGraphicsContext().ApplyEffect(effect);
+
             FlatShader::Constants constants = { Render::ViewProjection, { 1, 1, 1, 1 } };
             effect.Shader->SetConstants(cmdList, constants);
 
@@ -65,7 +65,7 @@ namespace Inferno::Render::Debug {
             vbv.StrideInBytes = _vertices.GetStride();
             cmdList->IASetVertexBuffers(0, 1, &vbv);
 
-            effect.Apply(cmdList);
+            Render::Adapter->GetGraphicsContext().ApplyEffect(effect);
             FlatShader::Constants constants = { Render::ViewProjection, { 1, 1, 1, 1 } };
             effect.Shader->SetConstants(cmdList, constants);
 
@@ -260,7 +260,7 @@ namespace Inferno::Render::Debug {
     }
 
     void DrawArrow(ID3D12GraphicsCommandList* cmdList, const Matrix& transform, const Color& color) {
-        Effects->Flat.Apply(cmdList);
+        Adapter->GetGraphicsContext().ApplyEffect(Effects->Flat);
 
         FlatShader::Constants constants;
         constants.Transform = transform;
@@ -274,7 +274,7 @@ namespace Inferno::Render::Debug {
     }
 
     void DrawCube(ID3D12GraphicsCommandList* cmdList, const Matrix& transform, const Color& color) {
-        Effects->Flat.Apply(cmdList);
+        Adapter->GetGraphicsContext().ApplyEffect(Effects->Flat);
 
         FlatShader::Constants constants;
         constants.Transform = transform;
@@ -361,19 +361,19 @@ namespace Inferno::Render::Debug {
         float radius2 = std::max(radius - thickness, 0.0f);
 
         constexpr int Steps = 18;
-        auto Polar = [&](float radius, int i) {
+        auto polar = [&length, &offset, &transform](float radius, int i) {
             Vector3 v;
             v.x = std::cos(length * (i / (float)Steps) + offset) * radius;
             v.y = std::sin(length * (i / (float)Steps) + offset) * radius;
             return Vector3::Transform(v, transform);
         };
 
-        Vector3 v0 = Polar(radius, 0);
-        Vector3 v2 = Polar(radius2, 0);
+        Vector3 v0 = polar(radius, 0);
+        Vector3 v2 = polar(radius2, 0);
 
         for (int i = 1; i <= Steps; i++) {
-            Vector3 v1 = Polar(radius, i);
-            Vector3 v3 = Polar(radius2, i);
+            Vector3 v1 = polar(radius, i);
+            Vector3 v3 = polar(radius2, i);
             DrawTriangle(v0, v1, v2, color);
             DrawTriangle(v2, v1, v3, color);
 

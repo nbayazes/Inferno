@@ -338,7 +338,7 @@ namespace Inferno {
         ctx->IASetIndexBuffer(&ibv);
         ctx->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-        Render::Effects->UserInterface.Apply(ctx);
+        Render::Adapter->GetGraphicsContext().ApplyEffect(Render::Effects->UserInterface);
         Render::Shaders->UserInterface.SetWorldViewProjection(ctx, proj);
         Render::Shaders->UserInterface.SetSampler(ctx, Render::Heaps->States.LinearClamp());
 

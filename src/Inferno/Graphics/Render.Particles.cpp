@@ -233,11 +233,16 @@ namespace Inferno::Render {
         auto& model = Resources::GetModel(Model);
         if (model.DataSize == 0) return;
         if (!Seq::inRange(model.Submodels, Submodel)) return;
+
         auto& meshHandle = GetMeshHandle(Model);
-        auto& effect = Effects->DepthObject;
-        ctx.ApplyEffect(effect);
-        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
         auto cmdList = ctx.GetCommandList();
+        auto& effect = Effects->DepthObject;
+        if (ctx.ApplyEffect(effect)) {
+            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+            effect.Shader->SetSampler(cmdList, GetWrappedTextureSampler());
+            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+        }
 
         Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
         //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
@@ -246,8 +251,6 @@ namespace Inferno::Render {
         constants.World = transform;
 
         effect.Shader->SetConstants(cmdList, constants);
-        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
 
         // get the mesh associated with the submodel
         auto& subMesh = meshHandle.Meshes[Submodel];
