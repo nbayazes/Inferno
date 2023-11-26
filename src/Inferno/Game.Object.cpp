@@ -394,7 +394,7 @@ namespace Inferno {
             debris.Mass = .75f;
             debris.Drag = 0.0075f;
             // It looks weird if the main body (sm 0) sticks around, so destroy it quick
-            debris.Duration = sm == 0 ? 0 : 1.5f + Random() * 1.5f;
+            debris.Duration = sm == 0 ? 0 : 2.5f + Random() * 2.0f;
             //debris.Duration = 10;
             debris.Radius = model.Submodels[sm].Radius;
             debris.Model = modelId;

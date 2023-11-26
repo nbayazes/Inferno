@@ -129,7 +129,7 @@ namespace Inferno {
         }
 
         // Reads a newline terminated string up to the max length
-        string ReadStringToNewline(size_t maxLen) const {
+        string ReadStringToNewline(size_t maxLen) {
             std::vector<char> chars;
             for (int i = 0; i < maxLen; i++) {
                 char c = (char)ReadByte();
@@ -143,7 +143,7 @@ namespace Inferno {
             return { chars.data() };
         }
 
-        ubyte ReadByte() const { return Read<ubyte>(); }
+        ubyte ReadByte() { return Read<ubyte>(); }
         int16 ReadInt16() { return Read<int16>(); }
         uint16 ReadUInt16() { return Read<uint16>(); }
         uint32 ReadUInt32() { return Read<uint32>(); }
@@ -207,7 +207,7 @@ namespace Inferno {
         }
 
         // Reads a 6 byte RGB color
-        Color ReadRGB() const {
+        Color ReadRGB() {
             auto r = ReadByte();
             auto g = ReadByte();
             auto b = ReadByte();

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Game.Reactor.h"
+
+#include "Game.AI.h"
 #include "Game.h"
 #include "Game.Wall.h"
 #include "Resources.h"
@@ -183,6 +185,7 @@ namespace Inferno::Game {
         }
     }
 
+    // Returns the gun index and the position of the gun in world space
     Tuple<int, Vector3> GetBestGun(const Object& reactor, const Vector3& target) {
         if (reactor.Type != ObjectType::Reactor)
             return { -1, {} };
@@ -269,6 +272,13 @@ namespace Inferno::Game {
 
         if (Reactor.FireDelay < 0) {
             auto [gun, gunPoint] = GetBestGun(reactor, Reactor.KnownPlayerPosition);
+            // Lead the player if they are visible on hotshot and higher
+            //auto& weapon = Resources::GetWeapon(WeaponID::ReactorBlob);
+            //auto targetPosition =
+            //    Game::Difficulty < 2 || Reactor.LastSeenPlayer > 0
+            //    ? Reactor.KnownPlayerPosition
+            //    : LeadTarget(gunPoint, reactor.Segment, player, weapon);
+
             if (gun >= 0) {
                 auto dir = Reactor.KnownPlayerPosition - gunPoint;
                 dir.Normalize();

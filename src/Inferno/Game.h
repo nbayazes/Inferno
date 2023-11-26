@@ -52,7 +52,7 @@ namespace Inferno::Game {
 
     // Returns true if an object has line of sight to a target. Also checks if the target is cloaked.
     inline bool ObjectCanSeeObject(const Object& obj, const Object& target, float maxDist = -1) {
-        if (target.IsCloaked() || !target.IsAlive()) return false;
+        if (target.CloakIsEffective() || !target.IsAlive()) return false;
         auto [dir, dist] = GetDirectionAndDistance(target.Position, obj.Position);
         if (maxDist > 0)
             if (dist >= maxDist) return false;

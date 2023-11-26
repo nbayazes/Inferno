@@ -4,6 +4,7 @@
 #include "Level.h"
 #include "Object.h"
 #include "SoundTypes.h"
+#include "Weapon.h"
 
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
@@ -72,13 +73,14 @@ namespace Inferno {
         GameTimer DodgeDelay = 0; // Delay before trying to dodge
         GameTimer DodgeTime = 0; // Remaining time to dodge for
         GameTimer PathDelay; // Delay before trying to path to a new location
-        float WiggleTime = 0; // Remaining wiggle time
+        //float WiggleTime = 0; // Remaining wiggle time
         Vector3 DodgeDirection;
 
         Vector3 Velocity; // Desired velocity for this update. Clamped at end by max speed.
 
-        float StrafeAngle = 0; // Angle relative to the right axis to strafe in
-        float StrafeTime = 0; // How long to strafe for
+        float StrafeAngle = -1; // Angle relative to the right axis to strafe in
+        Vector3 StrafeDir;
+        GameTimer StrafeTimer; // When to stop strafing
 
         float WeaponCharge = 0; // For robots with charging weapons (fusion hulks)
         float NextChargeSoundDelay = 0; // Delay to play a sound when charging up
@@ -289,4 +291,5 @@ namespace Inferno {
     struct RobotInfo;
     float GetRotationSpeed(const RobotInfo& ri);
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
+    Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon);
 }

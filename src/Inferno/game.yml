@@ -414,9 +414,9 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    Glow: .5, 1, .5, 8
+    Glow: .5, 1, .5, 10
     LightColor: 0.075, 0.6, 0.075
-    FlashColor: 1, 1, .125, 1
+    FlashColor: 1, 1, .125, .5
 
   - id: 26
     Name: robot plasma
@@ -632,7 +632,7 @@ Robots:
     CircleDistance: 40
     Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]
-    Shots: [ 2, 2, 2, 4, 6 ]
+    Shots: [ 2, 2, 4, 4, 6 ] # Shots fire in pairs
     Multishot: 2
     Drag: 0.03
   - id: 21 # Advanced lifter

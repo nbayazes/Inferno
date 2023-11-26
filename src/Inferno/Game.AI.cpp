@@ -25,7 +25,7 @@ namespace Inferno {
         constexpr float DEATH_SOUND_DURATION = 2.68f;
 
         constexpr float AI_ALERT_AWARENESS = 0.4f; // Amount of awareness to give to nearby robots each second the player is visible
-        constexpr float AI_AWARENESS_DECAY = 0.1f; // Awareness lost per second
+        constexpr float AI_AWARENESS_DECAY = 0.2f; // Awareness lost per second
 
         constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
         constexpr float MAX_SLOW_EFFECT = 0.9f; // Max percentage of slow to apply to a robot
@@ -381,13 +381,13 @@ namespace Inferno {
     }
 
     // Returns the new position to fire at
-    Vector3 LeadTarget(const Object& robot, const Object& target, const Weapon& weapon) {
+    Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon) {
         auto targetSpeed = target.Physics.Velocity.Length();
 
         if (targetSpeed < 10)
             return target.Position; // Don't lead slow targets
 
-        auto targetDist = Vector3::Distance(target.Position, robot.Position);
+        auto targetDist = Vector3::Distance(target.Position, gunPosition);
         Vector3 targetVelDir;
         target.Physics.Velocity.Normalize(targetVelDir);
         float expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
@@ -403,24 +403,22 @@ namespace Inferno {
             if (Game::Intersect.RayLevel(ray, query, hit)) {
                 // target will hit wall, aim at wall minus object radius
                 projectedTarget = hit.Point - targetVelDir * target.Radius;
-                targetDist = Vector3::Distance(projectedTarget, robot.Position);
+                targetDist = Vector3::Distance(projectedTarget, gunPosition);
                 expectedTravelTime = targetDist / weapon.Speed[Game::Difficulty];
             }
 
             projectedTarget = target.Position + target.Physics.Velocity * expectedTravelTime;
-            // Scale prediction based on velocity. If the player isn't near full speed (roughly 55 u/s)
-            // they are likely doing small adjustments. These can easily throw off a robot.
         }
 
         {
-            auto targetDir = projectedTarget - robot.Position;
+            auto targetDir = projectedTarget - gunPosition;
             targetDir.Normalize();
 
             // Check shot line of sight
-            Ray ray(robot.Position, targetDir);
+            Ray ray(gunPosition, targetDir);
             RayQuery query;
-            query.Start = robot.Segment;
-            query.MaxDistance = Vector3::Distance(projectedTarget, robot.Position);
+            query.Start = gunSeg;
+            query.MaxDistance = Vector3::Distance(projectedTarget, gunPosition);
             LevelHit hit;
             if (!Game::Intersect.RayLevel(ray, query, hit)) {
                 // Won't hit level, lead the target!
@@ -441,15 +439,16 @@ namespace Inferno {
         float maxAimAssit = GetMaxAimAssistAngle(weapon);
         auto forward = robot.Rotation.Forward();
 
-        auto leadChance = std::max(Game::Difficulty - 1, 0) / 3.0f; // Don't lead on rookie and trainee
-        bool shouldLead = Random() <= leadChance * 0.9f; // Don't always lead even on insane, keep player on their toes
+        auto leadChance = Game::Difficulty / 4.0f; // 50% on hotshot, 75% on ace, 100% on insane
+        bool shouldLead = Random() <= leadChance * 0.9f; // Don't always lead even on insane, keep the player guessing
+        if (Game::Difficulty < 2) shouldLead = false; // Don't lead on rookie and trainee, also weapons are too slow to meaningfully lead.
 
         if (blind) {
             // add inaccuracy if target is cloaked or doing a blind-fire
-            target += RandomVector() * 4.0f;
+            target += RandomVector() * 8.0f;
         }
         else if (auto targetObj = Game::GetObject(ai.Target); targetObj && shouldLead) {
-            target = LeadTarget(robot, *targetObj, weapon);
+            target = LeadTarget(robot.Position, robot.Segment, *targetObj, weapon);
         }
 
         target += RandomVector(float(4 - Game::Difficulty)) * 0.5f; // Add some inaccuracy based on difficulty level
@@ -490,7 +489,7 @@ namespace Inferno {
         auto dodgePoint = ProjectRayOntoPlane(projRay, robot.Position, -projTravelDir);
         if (!dodgePoint) return;
         auto dodgeDir = robot.Position - *dodgePoint;
-        if (dodgeDir.Length() > robot.Radius * 1.25f) return; // Don't dodge projectiles that won't hit us
+        if (dodgeDir.Length() > robot.Radius * 1.5f) return; // Don't dodge projectiles that won't hit us
         dodgeDir.Normalize();
 
         //if (robotInfo.Attack == AttackType::Melee && ai.Target) {
@@ -508,10 +507,7 @@ namespace Inferno {
             ai.Fear += 0.4; // Scared of being hit
     }
 
-    //float EstimateDodgeDistance(const RobotInfo& robot) {
-    //    return (4 / robot.Mass) * Difficulty(robot).Speed;
-    //}
-
+    // todo: this only checks the room the robot is in
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         auto room = level.GetRoom(robot);
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
@@ -778,56 +774,109 @@ namespace Inferno {
     }
 
     // Wiggles a robot along its x/y plane
-    void WiggleRobot(const Object& robot, AIRuntime& ai, float time) {
-        if (ai.WiggleTime > 0) return; // Don't wiggle if already doing so
-        // dir is a random vector on the xy/plane of the robot
-        Vector3 dir(RandomN11(), RandomN11(), 0);
-        dir.Normalize();
-        ai.DodgeDirection = Vector3::Transform(dir * 0.5f, robot.Rotation);
-        ai.WiggleTime = time;
-    }
-
+    //void WiggleRobot(const Object& robot, AIRuntime& ai, float time) {
+    //    if (ai.WiggleTime > 0) return; // Don't wiggle if already doing so
+    //    // dir is a random vector on the xy/plane of the robot
+    //    Vector3 dir(RandomN11(), RandomN11(), 0);
+    //    dir.Normalize();
+    //    ai.DodgeDirection = Vector3::Transform(dir * 0.5f, robot.Rotation);
+    //    ai.WiggleTime = time;
+    //}
 
     // Tries to circle strafe the target.
-    // Checks level geometry. Returns false if strafing isn't possible.
-    void CircleStrafe(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, float dt) {
-        ai.StrafeTime -= dt;
+    void CircleStrafe(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
+        if (!ai.TargetPosition) return;
 
-        if (!ai.TargetPosition)
-            ai.StrafeTime = 0;
+        bool checkDir = false;
+        // Move in a consistent direction for the strafe
+        if (ai.StrafeTimer <= 0) {
+            ai.StrafeAngle = Random() * DirectX::XM_2PI;
+            ai.StrafeTimer = Random() * 2 + 1.5f;
+            checkDir = true;
+        }
 
-        if (ai.StrafeTime <= 0)
-            return;
+        if (ai.StrafeAngle < 0)
+            return; // angle not set
 
-        auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), ai.StrafeAngle);
+        auto targetDir = *ai.TargetPosition - robot.Position;
+        targetDir.Normalize();
+
+        auto transform = Matrix::CreateFromAxisAngle(targetDir, ai.StrafeAngle);
         auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
-        ai.Velocity += dir * Difficulty(robotInfo).Speed;
+
+        if (checkDir) {
+            LevelHit hit{};
+            RayQuery query{ .MaxDistance = 20, .Start = robot.Segment };
+            Ray ray(robot.Position, dir);
+
+            if (Game::Intersect.RayLevel(ray, query, hit)) {
+                ai.StrafeAngle = -1;
+                ai.StrafeTimer = 0.125f;
+                return; // Try again
+            }
+        }
+
+        ai.Velocity += dir * Difficulty(robotInfo).Speed * .25f;
     }
 
-    void TryStartCircleStrafe(const Object& robot, AIRuntime& ai, float time) {
-        if (ai.StrafeTime > 0) return;
+    // Tries to move behind the target, adjusting the direction every few seconds
+    void GetBehindTarget(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Object& target) {
+        auto targetDir = *ai.TargetPosition - robot.Position;
+        targetDir.Normalize();
 
-        ai.StrafeAngle = Random() * DirectX::XM_2PI;
+        auto targetFacing = target.Rotation.Forward();
+        if (targetFacing.Dot(targetDir) > 0)
+            return; // Already behind the target!
 
-        // Check if the new direction intersects level
-        LevelHit hit{};
-        RayQuery query{ .MaxDistance = 20, .Start = robot.Segment };
+        // Try to make the target facing dot product larger!
 
-        auto transform = Matrix::CreateFromAxisAngle(robot.Rotation.Forward(), ai.StrafeAngle);
-        auto dir = Vector3::Transform(robot.Rotation.Right(), transform);
-        Ray ray(robot.Position, dir);
-        if (Game::Intersect.RayLevel(ray, query, hit))
-            return; // Try again
+        if (ai.StrafeTimer <= 0) {
+            auto right = robot.Position + robot.Rotation.Right() * 5;
+            auto left = robot.Position - robot.Rotation.Right() * 5;
 
-        ai.StrafeTime = time;
+            auto testTargetDir = *ai.TargetPosition - right;
+            testTargetDir.Normalize();
+            auto rightTargetDot = targetFacing.Dot(testTargetDir);
+
+            testTargetDir = *ai.TargetPosition - left;
+            testTargetDir.Normalize();
+            auto leftTargetDot = targetFacing.Dot(testTargetDir);
+
+            ai.StrafeDir = rightTargetDot > leftTargetDot ? robot.Rotation.Right() : -robot.Rotation.Right();
+
+            LevelHit hit{};
+            RayQuery query{ .MaxDistance = 20, .Start = robot.Segment };
+            Ray ray(robot.Position, ai.StrafeDir);
+
+            if (Game::Intersect.RayLevel(ray, query, hit)) {
+                // flip direction and try again
+                ai.StrafeDir *= -1;
+
+                if (Game::Intersect.RayLevel(ray, query, hit)) {
+                    ai.StrafeAngle = -1;
+                    ai.StrafeTimer = 0.5f;
+                    return; // Can't dodge, try later
+                }
+            }
+
+            ai.StrafeDir += targetDir * 2;
+            ai.StrafeDir.Normalize();
+            ai.StrafeTimer = 2; // Only update strafe dir every 2 seconds
+        }
+
+        // todo: check if hits wall
+        ai.Velocity += ai.StrafeDir * Difficulty(robotInfo).Speed * 0.5f;
     }
 
     void UpdateRangedAI(const Object& robot, const RobotInfo& robotInfo, AIRuntime& ai, float dt, bool hasLineOfSight) {
+        if (Game::Difficulty < 2 && !hasLineOfSight) 
+            return; // Don't allow supressing fire on trainee and rookie
+
         if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 <= 0) {
             // Check if an ally robot is in the way
             if (!HasLineOfSight(robot, 0, *ai.TargetPosition, ObjectMask::Robot)) {
                 //WiggleRobot(robot, ai, 0.5f);
-                TryStartCircleStrafe(robot, ai, 2);
+                CircleStrafe(robot, ai, robotInfo);
                 return;
             }
 
@@ -845,8 +894,7 @@ namespace Inferno {
             if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
                 // Check if an ally robot is in the way
                 if (!HasLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::Robot)) {
-                    //WiggleRobot(robot, ai, 0.5f);
-                    TryStartCircleStrafe(robot, ai, 2);
+                    CircleStrafe(robot, ai, robotInfo);
                     CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
                     ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
                     return;
@@ -1210,7 +1258,10 @@ namespace Inferno {
         }
 
         auto& target = *pTarget;
-        auto [targetDir, dist] = GetDirectionAndDistance(target.Position, robot.Position);
+        auto [targetDir, dist] = GetDirectionAndDistance(*ai.TargetPosition, robot.Position);
+        // Track the known target position, even without LOS
+        TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
+
         bool hasLos = !target.CloakIsEffective() && HasLineOfSight(robot, targetDir, dist, ai);
         if (hasLos) {
             // Update targeting
@@ -1218,15 +1269,17 @@ namespace Inferno {
             ai.TargetSegment = target.Segment;
             ai.Awareness = AI_AWARENESS_MAX;
 
-            // Track the target
-            TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
-            CircleStrafe(robot, ai, robotInfo, dt);
+            //CircleStrafe(robot, ai, robotInfo);
+            if (robot.Control.AI.Behavior != AIBehavior::Still)
+                GetBehindTarget(robot, ai, robotInfo, target);
+
             Render::Debug::DrawPoint(*ai.TargetPosition, Color(1, 0, 0));
 
             // Alert nearby robots of the fighting
-            if (ai.AlertTimer <= 0 && ai.TargetPosition && ai.TargetSegment != SegID::None) {
+            if (ai.AlertTimer <= 0 && ai.TargetPosition && ai.TargetSegment != SegID::None && Game::Difficulty > 0) {
                 constexpr float ALERT_FREQUENCY = 0.2f; // Smooth out alerts
-                AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, ai.TargetSegment, AI_ALERT_AWARENESS * ALERT_FREQUENCY);
+                auto skillMult = Game::Difficulty == 1 ? 0.5f : Game::Difficulty == 4 ? 1.5f : 1;
+                AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, ai.TargetSegment, AI_ALERT_AWARENESS * ALERT_FREQUENCY * skillMult);
                 ai.AlertTimer = ALERT_FREQUENCY;
             }
 
@@ -1235,7 +1288,7 @@ namespace Inferno {
         else {
             DecayAwareness(ai);
             // Robot can either choose to chase the target or hold position and blind fire
-            // todo: add chance to chase
+            // todo: add chance to chase instead of always
 
             if (robot.Control.AI.Behavior == AIBehavior::Still) {
                 // Get ready
@@ -1244,15 +1297,19 @@ namespace Inferno {
                     // todo: wiggle randomly?
                 }
             }
-            else if (ai.TargetPosition && ai.Fear == 0) {
-                Chat(robot, "Come back here!");
-                ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition);
+            else if (ai.TargetPosition && ai.Fear < 1) {
+                // Chasing a cloaked target does no good, AI just gets confused.
+                // Also don't chase the player ghost
+                if (!target.IsCloaked() && target.Type != ObjectType::Ghost) {
+                    Chat(robot, "Come back here!");
+                    ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition);
+                }
             }
 
             if (ai.Awareness <= 0) {
                 Chat(robot, "Stay on alert");
                 ai.State = AIState::Alert;
-                ai.Awareness = 1;
+                ai.Awareness = 1; // Reset awareness so robot stays alert for a while
                 ai.BurstShots = 0; // Reset shot counter
             }
         }
@@ -1269,11 +1326,11 @@ namespace Inferno {
 
         if (!ai.TriedFindingHelp && (robot.HitPoints / robot.MaxHitPoints < robotInfo.FleeThreshold || ai.Fear >= 1)) {
             ai.TriedFindingHelp = true; // Only try finding help once
-            ai.FleeTimer = 2 + Random(); // Run away in a bit, so robots getting blasted don't turn around
+            ai.FleeTimer = 2 + Random(); // Run away in a bit, so robots getting blasted don't turn around. Weird for every robot to make flee noises.
             ai.Fear = std::max(ai.Fear, 1.0f);
         }
 
-        if (ai.FleeTimer.Expired()) {
+        if (ai.FleeTimer <= 0 && ai.FleeTimer.IsSet()) {
             FindHelp(ai, robot);
             ai.FleeTimer.Reset();
         }
@@ -1404,7 +1461,7 @@ namespace Inferno {
             default: ;
         }
 
-        if (ai.DodgeTime > 0 || ai.WiggleTime > 0) {
+        if (ai.DodgeTime > 0 /*|| ai.WiggleTime > 0*/) {
             ai.Velocity += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;
         }
 
