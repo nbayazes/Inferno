@@ -174,25 +174,25 @@ namespace Inferno::Render {
                             ModelDepthPrepass(cmdList, object, model);
                         }
                     }
-                    else if (object.Render.Type == RenderType::Powerup ||
-                        //object.Render.Type == RenderType::WeaponVClip ||
-                        //object.Render.Type == RenderType::Fireball ||
-                        object.Render.Type == RenderType::Hostage) {
-                        auto& effect = Effects->DepthObject;
-                        if (ctx.ApplyEffect(effect)) {
-                            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    //else if (object.Render.Type == RenderType::Powerup ||
+                    //    //object.Render.Type == RenderType::WeaponVClip ||
+                    //    //object.Render.Type == RenderType::Fireball ||
+                    //    object.Render.Type == RenderType::Hostage) {
+                    //    auto& effect = Effects->DepthObject;
+                    //    if (ctx.ApplyEffect(effect)) {
+                    //        ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
 
-                            ObjectDepthShader::Constants constants = {};
-                            effect.Shader->SetConstants(cmdList, constants);
-                            auto sampler = Render::GetClampedTextureSampler();
-                            effect.Shader->SetSampler(cmdList, sampler);
-                            effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
-                            effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
-                        }
+                    //        ObjectDepthShader::Constants constants = {};
+                    //        effect.Shader->SetConstants(cmdList, constants);
+                    //        auto sampler = Render::GetClampedTextureSampler();
+                    //        effect.Shader->SetSampler(cmdList, sampler);
+                    //        effect.Shader->SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
+                    //        effect.Shader->SetVClipTable(cmdList, Render::VClipBuffer->GetSRV());
+                    //    }
 
-                        auto up = object.Rotation.Up();
-                        SpriteDepthPrepass(cmdList, object, object.Render.Type == RenderType::Hostage ? &up : nullptr);
-                    }
+                    //    auto up = object.Rotation.Up();
+                    //    SpriteDepthPrepass(cmdList, object, object.Render.Type == RenderType::Hostage ? &up : nullptr);
+                    //}
                     break;
                 }
 

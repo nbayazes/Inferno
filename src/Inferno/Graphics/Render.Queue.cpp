@@ -118,13 +118,14 @@ namespace Inferno::Render {
             }
         }
         else {
-            if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup) {
-                // Assume all powerups are opaque for now
-                _opaqueQueue.push_back({ &obj, depth });
-            }
-            else {
-                _transparentQueue.push_back({ &obj, depth });
-            }
+            _transparentQueue.push_back({ &obj, depth });
+            //if (obj.Render.Type == RenderType::Hostage || obj.Render.Type == RenderType::Powerup) {
+            //    // Assume all powerups are opaque for now
+            //    _opaqueQueue.push_back({ &obj, depth });
+            //}
+            //else {
+            //    _transparentQueue.push_back({ &obj, depth });
+            //}
         }
     }
 
@@ -252,18 +253,18 @@ namespace Inferno::Render {
                     }
                 }
                 else {
-                    if (obj.Obj->Render.Type == RenderType::Hostage || obj.Obj->Render.Type == RenderType::Powerup) {
-                        // Assume all powerups are opaque for now
-                        _opaqueQueue.push_back({ obj.Obj, obj.Depth });
-                    }
-                    else {
-                        _transparentQueue.push_back({ obj.Obj, obj.Depth });
-                    }
+                    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    //if (obj.Obj->Render.Type == RenderType::Hostage || obj.Obj->Render.Type == RenderType::Powerup) {
+                    //    // Assume all powerups are opaque for now
+                    //    _opaqueQueue.push_back({ obj.Obj, obj.Depth });
+                    //}
+                    //else {
+                    //    _transparentQueue.push_back({ obj.Obj, obj.Depth });
+                    //}
                 }
             }
             else if (obj.Effect) {
                 auto depth = GetRenderDepth(obj.Effect->Position);
-
                 if (obj.Effect->Queue == RenderQueueType::Transparent)
                     _transparentQueue.push_back({ obj.Effect, depth });
                 else if (obj.Effect->Queue == RenderQueueType::Opaque)
@@ -441,6 +442,14 @@ namespace Inferno::Render {
 
         for (auto rid : _roomQueue) {
             if (auto room = level.GetRoom(rid)) {
+                // queue wall meshes
+                for (auto& index : room->WallMeshes) {
+                    if (!Seq::inRange(wallMeshes, index)) continue;
+                    auto& mesh = wallMeshes[index];
+                    float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
+                    _transparentQueue.push_back({ &mesh, depth });
+                }
+
                 QueueRoomObjects(level, *room);
 
                 // Update effects in the room
@@ -450,14 +459,6 @@ namespace Inferno::Render {
                             UpdateEffect(Game::FrameTime, seg->Effects[i]);
                         }
                     }
-                }
-
-                // queue wall meshes
-                for (auto& index : room->WallMeshes) {
-                    if (!Seq::inRange(wallMeshes, index)) continue;
-                    auto& mesh = wallMeshes[index];
-                    float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
-                    _transparentQueue.push_back({ &mesh, depth });
                 }
             }
         }

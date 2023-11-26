@@ -489,7 +489,7 @@ namespace Inferno::Render {
 
             case ObjectType::Hostage:
             {
-                if (pass != RenderPass::Opaque) return;
+                if (pass != RenderPass::Transparent) return;
                 auto up = object.Rotation.Up();
                 DrawSprite(ctx, object, false, &up, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
@@ -497,7 +497,7 @@ namespace Inferno::Render {
 
             case ObjectType::Powerup:
             {
-                if (pass != RenderPass::Opaque) return;
+                if (pass != RenderPass::Transparent) return;
                 DrawSprite(ctx, object, false, nullptr, Settings::Editor.RenderMode == RenderMode::Shaded);
                 break;
             }
