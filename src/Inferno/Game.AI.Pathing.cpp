@@ -35,6 +35,7 @@ namespace Inferno {
         ai.GoalRoom = endRoom;
         ai.GoalPath = path;
         ai.GoalPathIndex = 0;
+        ai.State = AIState::Chase; // Stop pathing after seeing target
         obj.NextThinkTime = 0;
     }
 
@@ -346,12 +347,12 @@ namespace Inferno {
         }
     }
 
-    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition) {
+    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition, float maxDistance) {
         // Calculate a new path
         auto& robotInfo = Resources::GetRobotInfo(obj);
         ai.GoalSegment = goalSegment;
         ai.GoalPosition = goalPosition;
-        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, ai.GoalSegment, !robotInfo.IsThief, level);
+        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, goalSegment, !robotInfo.IsThief, level, maxDistance);
         ai.PathDelay = AI_PATH_DELAY;
 
         if (ai.GoalPath.empty()) {
@@ -365,7 +366,7 @@ namespace Inferno {
         return true;
     }
 
-    void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai) {
+    void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
         auto checkGoalReached = [&obj, &ai] {
             if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
                 SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
@@ -377,12 +378,19 @@ namespace Inferno {
         if (ai.GoalSegment == SegID::None) return;
         if (!PathIsValid(obj, ai)) {
             //SPDLOG_INFO("Recalculating object path due to not being on it"); // this happens way too much
-            SetPathGoal(level, obj, ai, ai.GoalSegment, ai.GoalPosition);
+            SetPathGoal(level, obj, ai, ai.GoalSegment, ai.GoalPosition, FLT_MAX);
         }
         if (!PathIsValid(obj, ai)) return;
 
         auto& robot = Resources::GetRobotInfo(obj.ID);
         Render::Debug::DrawLine(obj.Position, ai.GoalPosition, Color(0, 1, 0));
+
+        if (stopOnceVisible && HasLineOfSight(obj, ai.GoalPosition)) {
+            SPDLOG_INFO("Robot {} can see the goal!", obj.Signature);
+            ai.GoalSegment = SegID::None;
+            ai.GoalPath.clear();
+            return;
+        }
 
         if (ai.GoalSegment == obj.Segment) {
             auto goalDir = ai.GoalPosition - obj.Position;
@@ -406,13 +414,11 @@ namespace Inferno {
                 SPDLOG_ERROR("Invalid path index for obj {}", obj.Signature);
             }
 
-            //auto next1 =  GetNextPathSegment(obj.GoalPath, obj.Segment);
-            //auto next2 = GetNextPathSegment(obj.GoalPath, next1);
             auto next1 = getPathSeg(*pathIndex + 1);
             auto next2 = getPathSeg(*pathIndex + 2);
-            auto next3 = getPathSeg(*pathIndex + 3);
+            //auto next3 = getPathSeg(*pathIndex + 3);
 
-            SegID segs[] = { obj.Segment, next1, next2, next3 };
+            SegID segs[] = { obj.Segment, next1, next2/*, next3*/ };
 
             auto nextSideTag = GetNextConnection(ai.GoalPath, level, obj.Segment);
             ASSERT(nextSideTag);
@@ -521,8 +527,12 @@ namespace Inferno {
 
             //auto& seg1 = Game::Level.GetSegment(next1);
             //auto& seg2 = Game::Level.GetSegment(next2);
-            targetPosition = (targetPosition * 2 + nextSide.Center) / 3;
+            //targetPosition = (targetPosition * 2 + nextSide.Center) / 3;
+            //targetPosition = nextSide.Center; // basic pathing for now... smoothed paths fail in small segments
             MoveTowardsPoint(obj, ai, targetPosition, 1);
+
+            if (alwaysFaceGoal)
+                targetPosition = ai.GoalPosition;
 
             auto goalDir = targetPosition - obj.Position;
             goalDir.Normalize();

@@ -8,10 +8,12 @@
 
 namespace Inferno {
     constexpr float AI_PATH_DELAY = 1; // Default delay for trying to path to the player
+    constexpr float AI_MAX_CHASE_DISTANCE = 400;
 
     constexpr float AI_AWARENESS_MAX = 1.0f;
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
     constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
+
 
     struct AITarget {
         Vector3 Position;
@@ -31,17 +33,41 @@ namespace Inferno {
         Path, // Path to a location, ignoring if a hostile is seen
     };
 
+    // Sub-states used for the combat state
+    enum class AICombatState {
+        Normal, // Engages with the target normally (move to circle distance)
+        BlindFire, // Shoots at the last known target position
+        Wait, // Only dodges, won't blind fire or chase
+        Chase, // Moves to the last known target position
+    };
+
+    //enum class AICombatFlags {
+    //    None,
+    //    BlindFire = 1 << 0,
+    //    Chase = 1 << 1,
+    //    GetBehind = 1 << 2,
+    //    FallBack, // Retreat while firing at the player (sniper behavior)
+    //    AlertAllies,
+    //    Still, // ignores circle distance, won't chase
+    //    //Dodge
+    //};
+
     // Runtime AI data
     struct AIRuntime {
         AIState State = AIState::Idle;
         double LastUpdate = -1; // time when this robot was last updated
         float LastHitByPlayer = -1; // time in seconds since last hit by the player
 
+        //AICombatFlags Flags = AICombatFlags::None;
+        AICombatState CombatState;
+
         // How aware of the player this robot is. Ranges 0 to 1.
         // Only seeing the player can set awareness to 1.
         float Awareness = 0;
         // Increases when allies die or dodging attacks. Only robots with a FleeThreshold have fear.
         float Fear = 0;
+
+        float LostSightDelay = 0; // Time that the target must be out of sight to be considered 'lost'
 
         //uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
         //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
@@ -292,4 +318,5 @@ namespace Inferno {
     float GetRotationSpeed(const RobotInfo& ri);
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
     Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon);
+    bool HasLineOfSight(const Object& obj, const Vector3& point);
 }

@@ -564,7 +564,7 @@ Robots:
     AlertRadius: 240 # Alert all nearby robots!
     FleeThreshold: 1 # Has no weapons, always look for help
   - id: 8 # Secondary Lifter (one arm)
-    CircleDistance: 15
+    CircleDistance: 20
     Mass: 3.5
     Drag: 0.03
     FleeThreshold: 0.4 # Scout

@@ -160,13 +160,12 @@ namespace Inferno::Render {
         float Variance = 0; // Position variance
         int Instances = 1; // how many explosions to create
         NumericRange<float> Delay = { 0.25f, 0.75f }; // how long to wait before creating the next explosion instance
-        float InitialDelay = -1; // how long to wait before creating any explosions
         Color LightColor = { 4.0f, 1.0f, 0.1f }; // Color of emitted light
         float LightRadius = 0;
         Color Color = { 2.75f, 2.25f, 2.25f }; // Particle color
         bool UseParentVertices = false; // Creates explosions on the parent vertices, offset from center using variance
 
-        bool IsAlive() const { return InitialDelay >= 0; }
+        //bool IsAlive() const { return InitialDelay >= 0; }
         void OnUpdate(float, EffectID) override;
     };
 

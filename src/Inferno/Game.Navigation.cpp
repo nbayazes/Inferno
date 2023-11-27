@@ -91,7 +91,7 @@ namespace Inferno::Game {
         return path;
     }
 
-    List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, Level& level) {
+    List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, Level& level, float maxDistance) {
         auto startRoom = level.GetRoom(start);
         auto endRoom = level.GetRoom(goal);
         if (!startRoom || !endRoom)
@@ -135,6 +135,11 @@ namespace Inferno::Game {
                 if (!bestPortal) break; // Pathfinding to next portal failed
 
                 totalDistance += sqrt(closestPortal);
+                if (totalDistance > maxDistance) {
+                    path.clear();
+                    return path; // Max depth reached
+                }
+
                 auto localPath = NavigateWithinRoomBfs(level, roomStartSeg, bestPortal.Segment, *room);
                 Seq::append(path, localPath);
 

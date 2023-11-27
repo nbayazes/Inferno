@@ -38,7 +38,7 @@ namespace Inferno::Game {
             }
         }
 
-        List<SegID> NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, struct Level& level);
+        List<SegID> NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, struct Level& level, float maxDistance = FLT_MAX);
 
     private:
         void UpdateNode(struct Level& level, SegID segId) {

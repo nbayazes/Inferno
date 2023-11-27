@@ -427,7 +427,7 @@ namespace Inferno {
                 Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
 
                 expl.Sound = SoundID::None;
-                expl.InitialDelay = EXPLOSION_DELAY;
+                expl.StartDelay = EXPLOSION_DELAY;
                 expl.Radius = { obj.Radius * 1.15f, obj.Radius * 1.55f };
                 expl.Variance = obj.Radius * 0.5f;
                 Render::CreateExplosion(expl, obj.Segment, obj.GetPosition(Game::LerpAmount));
@@ -681,17 +681,11 @@ namespace Inferno {
         obj.Signature = GetObjectSig();
 
         Level.GetSegment(obj.Segment).AddObject(id);
-
-        if (obj.IsRobot()) {
-            // Path newly created robots to their matcen triggers
-            if (auto matcen = Level.TryGetMatcen(obj.SourceMatcen)) {
-                AI::SetPath(obj, matcen->TriggerPath);
-            }
-        }
-
         AttachLight(obj, { id, obj.Signature });
 
         ResizeAI(Level.Objects.size());
+        if (obj.IsRobot())
+            GetAI(obj) = {}; // Reset AI state
         return { id, obj.Signature };
     }
 

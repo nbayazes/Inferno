@@ -58,6 +58,12 @@ namespace Inferno {
         return v != 0 && (v & (v - 1)) == 0;
     }
 
+    inline Vector3 GetDirection(const Vector3& target, const Vector3& point) {
+        auto dir = target - point;
+        dir.Normalize();
+        return dir;
+    }
+
     // Returns the direction and distance between two points
     inline Tuple<Vector3, float> GetDirectionAndDistance(const Vector3& target, const Vector3& point) {
         auto dir = target - point;

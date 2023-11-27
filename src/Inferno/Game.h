@@ -36,8 +36,9 @@ namespace Inferno::Game {
     constexpr float HOMING_TICK_RATE = 1.0f / 32; // ticks per second for homing weapons
     constexpr float WEAPON_HOMING_DELAY = 1 / 8.0f; // Delay before homing weapons start turning
     constexpr float DEFAULT_WEAPON_VOLUME = 0.55f; // Default volume when firing weapons
-    constexpr float CLOAK_FIRING_FLICKER = 0.25f; // How a cloaked object 'flickers' after firing
+    constexpr float CLOAK_FIRING_FLICKER = 0.75f; // How a cloaked object 'flickers' after firing
     constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
+    constexpr float MATCEN_SOUND_RADIUS = 300;
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.

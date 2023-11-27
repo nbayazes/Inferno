@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Game.Segment.h"
 
+#include "Game.AI.Pathing.h"
 #include "Game.h"
 #include "Resources.h"
 #include "Graphics/Render.h"
@@ -515,7 +516,9 @@ namespace Inferno {
             }
 
             auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
-            Sound::Play(Sound3D({ vclip.Sound }, seg->Center, matcen.Segment));
+            auto sound = Sound3D({ vclip.Sound }, seg->Center, matcen.Segment);
+            sound.Radius = Game::MATCEN_SOUND_RADIUS;
+            Sound::Play(sound);
 
             CreateMatcenEffect(level, matcen.Segment);
 
@@ -548,10 +551,15 @@ namespace Inferno {
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
             obj.Rotation = VectorToObjectRotation(facing);
-            Game::AddObject(obj);
+            auto ref = Game::AddObject(obj);
 
             matcen.RobotCount--;
             matcen.CreateRobotState = false;
+
+            if (auto newObj = Game::GetObject(ref)) {
+                // Path newly created robots to their matcen triggers
+                AI::SetPath(*newObj, matcen.TriggerPath);
+            }
         }
     }
 

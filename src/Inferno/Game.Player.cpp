@@ -275,7 +275,7 @@ namespace Inferno {
                         sound.FromPlayer = true;
                         sound.Position = player.Position;
                         _fusionChargeSound = Sound::Play(sound);
-                        AlertEnemiesOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f, AI_AWARENESS_COMBAT);
+                        AlertEnemiesOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f);
                     }
 
                     if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {

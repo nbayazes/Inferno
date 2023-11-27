@@ -309,29 +309,26 @@ namespace Inferno::Render {
 
     void CreateExplosion(ExplosionInfo& e, SegID seg, const Vector3& position) {
         if (e.Clip == VClipID::None) return;
-        if (e.InitialDelay < 0) e.InitialDelay = 0;
         if (e.Instances < 0) e.Instances = 1;
-        if (e.Duration <= 0) e.Duration = e.InitialDelay + e.Delay.Max * e.Instances;
+        if (e.Duration <= 0) e.Duration = e.StartDelay + e.Delay.Max * e.Instances;
         e.Segment = seg;
         e.Position = position;
         AddEffect(MakePtr<ExplosionInfo>(e));
     }
 
-    void ExplosionInfo::OnUpdate(float dt, EffectID) {
-        if (InitialDelay < 0) return;
-        InitialDelay -= dt;
-        if (InitialDelay > 0) return;
+    void ExplosionInfo::OnUpdate(float /*dt*/, EffectID) {
+        auto instances = Instances;
 
-        if (Sound != SoundID::None) {
-            //fmt::print("playing expl sound\n");
-            Sound3D sound({ Sound }, Position, Segment);
-            sound.Volume = Volume;
-            sound.Source = GLOBAL_SOUND_SOURCE;
-            Sound::Play(sound);
-            //sound.Source = expl.Parent; // no parent so all nearby sounds merge
-        }
+        for (int i = 0; i < instances; i++) {
+            if (Sound != SoundID::None && i == 0) {
+                Sound3D sound({ Sound }, Position, Segment);
+                sound.Volume = Volume;
+                sound.Source = GLOBAL_SOUND_SOURCE;
+                Sound::Play(sound);
+                //sound.Source = expl.Parent; // no parent so all nearby sounds merge
+            }
 
-        for (int i = 0; i < Instances; i++) {
+            Instances--;
             Render::Particle p{};
             auto position = Position;
 
@@ -369,8 +366,7 @@ namespace Inferno::Render {
             AddParticle(p, Segment, position);
 
             if (Instances > 1 && (Delay.Min > 0 || Delay.Max > 0)) {
-                InitialDelay = Delay.GetRandom();
-                Instances--;
+                StartDelay = Delay.GetRandom();
                 break;
             }
         }
