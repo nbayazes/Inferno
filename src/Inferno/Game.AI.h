@@ -52,31 +52,33 @@ namespace Inferno {
     //    //Dodge
     //};
 
+    enum class ChaseMode {
+        Sound, // Stops once the sound is visible
+        Sight // Moves to the position of target
+    };
+
     // Runtime AI data
     struct AIRuntime {
         AIState State = AIState::Idle;
         double LastUpdate = -1; // time when this robot was last updated
         float LastHitByPlayer = -1; // time in seconds since last hit by the player
 
-        //AICombatFlags Flags = AICombatFlags::None;
         AICombatState CombatState;
 
         // How aware of the player this robot is. Ranges 0 to 1.
         // Only seeing the player can set awareness to 1.
         float Awareness = 0;
+
         // Increases when allies die or dodging attacks. Only robots with a FleeThreshold have fear.
         float Fear = 0;
 
         float LostSightDelay = 0; // Time that the target must be out of sight to be considered 'lost'
 
-        //uint8 PhysicsRetries; // number of retries in physics last time this object got moved.
-        //uint8 ConsecutiveRetries; // number of retries in consecutive frames without a count of 0
         uint8 BurstShots; // number of shots fired rapidly
         uint8 GunIndex = 0; // Which gun to fire from next
-        //AIMode Mode;
-        //float NextActionTime;
-        GameTimer FireDelay, FireDelay2; // Delay until firing for primary and secondary weapons
-        //float AwarenessTime; // How long to remain aware of the player, 0 for unaware
+        GameTimer FireDelay; // Delay for firing primary weapons
+        GameTimer FireDelay2; // Delay for firing secondary weapons
+        
         double LastSeenPlayer; // Time the player was last seen
         float AnimationTime = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
@@ -90,16 +92,17 @@ namespace Inferno {
 
         bool TriedFindingHelp = false;
 
-        Array<Vector3, MAX_SUBMODELS> GoalAngles{}, DeltaAngles{};
+        Array<Vector3, MAX_SUBMODELS> GoalAngles{};
+        Array<Vector3, MAX_SUBMODELS> DeltaAngles{};
 
         SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
         RoomID GoalRoom = RoomID::None;
         Vector3 GoalPosition; // position the robot wants to move to
+        ChaseMode Chase = ChaseMode::Sound;
 
         GameTimer DodgeDelay = 0; // Delay before trying to dodge
         GameTimer DodgeTime = 0; // Remaining time to dodge for
         GameTimer PathDelay; // Delay before trying to path to a new location
-        //float WiggleTime = 0; // Remaining wiggle time
         Vector3 DodgeDirection;
 
         Vector3 Velocity; // Desired velocity for this update. Clamped at end by max speed.
@@ -307,6 +310,9 @@ namespace Inferno {
     void ResetAI(); // Call on level start / load to reset AI state
     // Resizes the internal AI buffer. Keep in sync with the Level.Objects size.
     void ResizeAI(size_t size);
+
+    // Clears all AI targets
+    void ResetAITargets();
 
     AIRuntime& GetAI(const Object& obj);
 
