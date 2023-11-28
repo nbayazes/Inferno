@@ -508,6 +508,7 @@ namespace Inferno::Sound {
         s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
         s.StartTime = currentTime + sound.Delay;
         s.Alive = true;
+        ASSERT(s.Segment != SegID::None || s.AttachToSource || s.FromPlayer);
 
         SoundInstances.AddBack(std::move(s));
         return s.ID;

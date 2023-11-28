@@ -298,14 +298,11 @@ namespace Inferno {
     }
 
     bool IntersectContext::RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
-        SegID next = query.Start;
-        if (next == SegID::None)
-            next = FindContainingSegment(*_level, ray.position);
-
+        ASSERT(query.Start != SegID::None); // Very bad for perf to not supply seg
         ASSERT(query.MaxDistance > 0);
-        if (next == SegID::None) return false;
         if (query.MaxDistance <= 0.01f) return false;
 
+        auto next = TraceSegment(*_level, query.Start, ray.position); // Check that the ray is inside the segment
         _visitedSegs.clear();
         _visitedSegs.reserve(10);
 

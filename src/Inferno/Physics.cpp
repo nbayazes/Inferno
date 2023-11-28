@@ -1323,9 +1323,10 @@ namespace Inferno {
 
         if (isForceField) {
             damage *= 8;
-            Game::AddScreenFlash({ 0, 0, 1 });
+            if (obj.IsPlayer())
+                Game::AddScreenFlash({ 0, 0, 1 });
 
-            Sound3D sound({ SoundID::PlayerHitForcefield }, hit.Point, hit.Tag.Segment);
+            Sound3D sound({ SoundID::PlayerHitForcefield }, hit.Point, obj.Segment);
             Sound::Play(sound);
 
             auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
@@ -1335,8 +1336,10 @@ namespace Inferno {
             auto volume = isForceField ? 1 : std::clamp((speed - DAMAGE_SCALE * DAMAGE_THRESHOLD) / 20, 0.0f, 1.0f);
 
             if (volume > 0) {
-                AlertEnemiesOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
-                Sound3D sound({ SoundID::PlayerHitWall }, hit.Point, hit.Tag.Segment);
+                if (obj.IsPlayer())
+                    AlertEnemiesOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
+
+                Sound3D sound({ SoundID::PlayerHitWall }, hit.Point, obj.Segment);
                 Sound::Play(sound);
             }
         }
@@ -1375,7 +1378,7 @@ namespace Inferno {
             obj.PrevRotation = obj.Rotation;
             return;
         }
-        
+
         for (int i = 0; i < STEPS; i++) {
             obj.PrevPosition = obj.Position;
             obj.PrevRotation = obj.Rotation;

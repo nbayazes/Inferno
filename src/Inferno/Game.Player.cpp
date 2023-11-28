@@ -1205,13 +1205,13 @@ namespace Inferno {
         Render::Canvas->DrawRectangle(Vector2(0, size.y - height), Vector2(size.x, height), Color(0, 0, 0));
     }
 
-    Vector3 FindDeathCameraPosition(const Vector3& start, float preferDist) {
+    Vector3 FindDeathCameraPosition(const Vector3& start, SegID startSeg, float preferDist) {
         Vector3 bestDir;
         float bestDist = 0;
 
         for (int i = 0; i < 10; i++) {
             Ray ray(start, RandomVector());
-            RayQuery query{ .MaxDistance = preferDist };
+            RayQuery query{ .MaxDistance = preferDist, .Start = startSeg };
             LevelHit hit{};
             if (!Game::Intersect.RayLevel(ray, query, hit)) {
                 // Ray didn't hit anything so use it!
@@ -1240,7 +1240,7 @@ namespace Inferno {
             Object camera{};
             camera.Type = ObjectType::Camera;
             camera.Segment = player.Segment;
-            camera.Position = FindDeathCameraPosition(player.Position, 30);
+            camera.Position = FindDeathCameraPosition(player.Position, player.Segment, 30);
             Game::DeathCamera = Game::AddObject(camera);
         }
 
