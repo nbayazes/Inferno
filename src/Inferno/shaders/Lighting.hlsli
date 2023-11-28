@@ -210,7 +210,8 @@ float3 ApplyPointLight(
     falloff *= saturate(planeFactor * 4 + 1);
     float3 specular = max(0, specularFactor * specularColor * specularMask);
 
-    float nDotL = HalfLambert(normal, lightDir);
+    // Use half lambert for non-level point lights so flares don't have overly harsh shadows
+    float nDotL = any(planeNormal) ? Lambert(normal, lightDir) : HalfLambert(normal, lightDir);
     return nDotL * falloff * (lightColor * diffuse + specular) * GLOBAL_LIGHT_MULT;
 }
 
@@ -790,7 +791,7 @@ float3 ApplyRectLight2(
 
         // reduce specular adjacent to lights (like on doors)
         //float rDotL = dot(r, lightDir); 
-        float rDotL = HalfLambert(r, lightDir);
+        float rDotL = Lambert(r, lightDir);
 
         specular = max(0, specularMask * specularFactor * specularColor * rDotL);
         //specular = 0;
@@ -802,7 +803,7 @@ float3 ApplyRectLight2(
     float diffCutoff = saturate(planeFactor - .25); // Adding less offset decreases brightness
     float specCutoff = saturate(planeFactor - 1);
 
-    float nDotL = HalfLambert(normal, normalize(closestDiffusePoint - worldPos));
+    float nDotL = Lambert(normal, normalize(closestDiffusePoint - worldPos));
 
     float3 lightDir = closestDiffusePoint - worldPos;
     float lightDistSq = dot(lightDir, lightDir);
@@ -825,7 +826,7 @@ float3 GetMetalDiffuse(float3 diffuse) {
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     const float3 lightRgb = light.color.rgb * light.color.a;
-    lightColor = lerp(lightRgb, 0, material.Metalness);
+    lightColor = lerp(lightRgb, 0, material.Metalness * .975); // Allow some diffuse contribution even at max metal for visibility reasons 
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
 
     specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_FACTOR, material.Metalness);
