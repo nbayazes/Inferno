@@ -520,23 +520,11 @@ namespace Inferno::Game {
         State = RequestedState;
     }
 
-    bool ConfirmedInput() {
-        // todo: check if fire button pressed
-        return Input::IsKeyPressed(Input::Keys::Space) || Input::IsMouseButtonPressed(Input::Left) || Input::IsMouseButtonPressed(Input::Right);
-    }
-
     void UpdateDeathSequence(float dt) {
         Player.DoDeathSequence(dt);
 
-        if (Player.TimeDead > 2) {
-            if (Player.Lives == 0) {
-                Render::Canvas->DrawGameText("game over", 0, 0, FontSize::Big, Color(1, 1, 1), 1, AlignH::Center, AlignV::Center);
-                if (ConfirmedInput())
-                    SetState(GameState::Editor);
-            }
-            else if (ConfirmedInput()) {
-                Player.Respawn(true);
-            }
+        if (Player.TimeDead > 2 && Player.Lives == 0) {
+            Render::Canvas->DrawGameText("game over", 0, 0, FontSize::Big, Color(1, 1, 1), 1, AlignH::Center, AlignV::Center);
         }
     }
 
@@ -564,6 +552,10 @@ namespace Inferno::Game {
                         MoveCameraToObject(Render::Camera, Level.Objects[0], LerpAmount);
                 }
 
+                break;
+
+            case GameState::Cutscene:
+                LerpAmount = GameUpdate(dt);
                 break;
 
             case GameState::ExitSequence:

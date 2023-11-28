@@ -138,6 +138,11 @@ namespace Inferno {
             Game::Player.DropBomb();
     }
 
+    bool ConfirmedInput() {
+        // todo: check if fire button pressed
+        return Input::IsKeyPressed(Input::Keys::Space) || Input::IsMouseButtonPressed(Input::Left) || Input::IsMouseButtonPressed(Input::Right);
+    }
+
     void FixedUpdateInput() {
         // Call any player game input that requires using IsKeyPressed here
 
@@ -147,7 +152,16 @@ namespace Inferno {
         if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
 
+
         HandleWeaponKeys();
+
+        // Moved here from Game.cpp due to input not working correctly there...
+        if (Game::Player.TimeDead > 2 && ConfirmedInput()) {
+            if (Game::Player.Lives == 0)
+                Game::SetState(GameState::Editor); // todo: score screen
+            else
+                Game::Player.Respawn(true); // todo: EndCutscene() with fades
+        }
     }
 
     void HandleInputImmediate(float dt) {
@@ -160,7 +174,7 @@ namespace Inferno {
         physics.Thrust = Vector3::Zero;
         physics.AngularThrust = Vector3::Zero;
 
-        if (!Input::HasFocus || Game::Player.IsDead) 
+        if (!Input::HasFocus || Game::Player.IsDead)
             return; // No player input without focus or while dead
 
 

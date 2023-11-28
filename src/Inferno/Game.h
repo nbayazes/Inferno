@@ -15,6 +15,7 @@ namespace Inferno {
         Game, // In first person and running game logic
         Paused, // In game but paused or in a menu
         ExitSequence, // exit tunnel sequence
+        Cutscene, // In-game cutscene, waits for input to cancel
         ScoreScreen,
         Briefing,
         MainMenu,
