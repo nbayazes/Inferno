@@ -188,14 +188,14 @@ namespace Inferno {
     SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int& iterations) {
         iterations++;
 
-        if (iterations > 100) {
+        if (iterations > 50) {
             SPDLOG_ERROR("Trace depth limit reached, something is wrong");
             __debugbreak();
             return start;
         }
 
         auto distances = GetSideDistances(level, start, point);
-        if (ranges::all_of(distances, [](float d) { return d >= 0; }))
+        if (ranges::all_of(distances, [](float d) { return d >= -0.001f; }))
             return start;
 
         auto biggestSide = SideID::None;
@@ -233,10 +233,11 @@ namespace Inferno {
     }
 
     SegID TraceSegment(const Level& level, SegID start, const Vector3& point) {
+        ASSERT(start != SegID::None);
+        if (start == SegID::None) return SegID::None;
         int iterations = 0;
         return TraceSegmentInternal(level, start, point, iterations);
     }
-
 
     bool IsSecretExit(const Level& level, const Trigger& trigger) {
         if (level.IsDescent1())
