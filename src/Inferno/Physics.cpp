@@ -431,16 +431,6 @@ namespace Inferno {
         return COLLISION_TABLE[(int)src.Type][(int)target.Type];
     }
 
-    bool ObjectToObjectVisibility(const Object& a, const Object& b, bool passTransparent) {
-        auto dir = b.Position - a.Position;
-        auto dist = dir.Length();
-        dir.Normalize();
-        Ray ray(a.Position, dir);
-        LevelHit hit;
-        RayQuery query{ .MaxDistance = dist, .Start = a.Segment, .PassTransparent = passTransparent, .TestTextures = true };
-        return Intersect.RayLevel(ray, query, hit);
-    }
-
     // extract heading and pitch from a vector, assuming bank is 0
     Vector3 ExtractAnglesFromVector(Vector3 v) {
         v.Normalize();

@@ -691,6 +691,7 @@ namespace Inferno {
 
     void Game::FreeObject(ObjID id) {
         if (auto obj = Game::Level.TryGetObject(id)) {
+            if (obj->Segment == SegID::None) return;
             if (auto seg = Game::Level.TryGetSegment(obj->Segment))
                 seg->RemoveObject(id);
             // remove attached objects
@@ -750,6 +751,11 @@ namespace Inferno {
 
             AddDamagedEffects(obj, dt);
             UpdateAI(obj, dt);
+        }
+
+        // Catch any lingering dead objects
+        if (!obj.IsAlive() && obj.Segment != SegID::None) {
+            Game::FreeObject(id);
         }
     }
 

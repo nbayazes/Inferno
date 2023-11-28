@@ -316,6 +316,7 @@ namespace Inferno {
                 for (auto& objid : seg.Objects) {
                     if (source == objid) continue;
                     if (auto obj = _level->TryGetObject(objid)) {
+                        if (!obj->IsAlive()) continue;
                         if (!obj->PassesMask(mask)) continue;
 
                         BoundingSphere sphere(obj->Position, obj->Radius);
@@ -341,10 +342,13 @@ namespace Inferno {
 
                     if (!query.IgnoreWalls) {
                         if (seg.SideIsWall(side) && WallIsTransparent(*_level, tag)) {
-                            if (query.PassTransparent)
+                            /*if (query.PassTransparent)
                                 isSolid = false;
-                            else if (query.TestTextures)
+                            else */
+                            if (query.TestTextures)
                                 isSolid = !WallPointIsTransparent(intersect, face, tri);
+                            else
+                                isSolid = false;
                         }
                         else {
                             isSolid = seg.SideIsSolid(side, *_level);
@@ -461,10 +465,13 @@ namespace Inferno {
 
             bool isSolid = false;
             if (seg->SideIsWall(side) && WallIsTransparent(level, tag)) {
-                if (passTransparent)
+                /*if (passTransparent)
                     isSolid = false;
-                else if (hitTestTextures)
+                else*/
+                if (hitTestTextures)
                     isSolid = !WallPointIsTransparent(intersect, face, tri);
+                else
+                    isSolid = false;
             }
             else {
                 isSolid = seg->SideIsSolid(side, level);

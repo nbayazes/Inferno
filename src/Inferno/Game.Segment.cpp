@@ -560,6 +560,8 @@ namespace Inferno {
             if (auto newObj = Game::GetObject(ref)) {
                 // Path newly created robots to their matcen triggers
                 AI::SetPath(*newObj, matcen.TriggerPath);
+                auto& ai = GetAI(*newObj);
+                ai.RemainingSlow = 2;
             }
         }
     }
