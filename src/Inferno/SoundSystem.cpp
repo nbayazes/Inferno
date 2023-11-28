@@ -42,6 +42,13 @@ namespace Inferno::Sound {
     }
 
     struct Sound3DInstance : Sound3D {
+        Vector3 Position; // Position the sound comes from
+        SegID Segment = SegID::None; // Segment the sound starts in, needed for occlusion
+        SideID Side = SideID::None; // Side, used for turning off forcefields
+        ObjRef Source = GLOBAL_SOUND_SOURCE; // Source to attach the sound to
+        bool FromPlayer = false; // For the player's firing sounds, afterburner, etc. Simulates 2D playback by positioning sound on the listener.
+        SoundUID ID = SoundUID::None;
+
         float Muffle = 1, TargetMuffle = 1;
         bool Started = false;
         Ptr<SoundEffectInstance> Instance;
@@ -434,7 +441,7 @@ namespace Inferno::Sound {
         return SoundUIDIndex = SoundUID(int(SoundUIDIndex) + 1);
     }
 
-    void Play(const SoundResource& resource, float volume, float pan, float pitch) {
+    void Play2D(const SoundResource& resource, float volume, float pan, float pitch) {
         auto sound = LoadSound(resource);
         if (!sound) return;
         sound->Play(volume, pitch, pan);
@@ -458,7 +465,7 @@ namespace Inferno::Sound {
     static constexpr X3DAUDIO_DISTANCE_CURVE Emitter_CubicCurve = { (X3DAUDIO_DISTANCE_CURVE_POINT*)&Emitter_CubicPoints[0], _countof(Emitter_CubicPoints) };
 
 
-    SoundUID Play(const Sound3D& sound) {
+    SoundUID Play(Sound3DInstance&& sound) {
         auto sfx = LoadSound(sound.Resource);
         if (!sfx) return SoundUID::None;
 
@@ -490,28 +497,57 @@ namespace Inferno::Sound {
             }
         }
 
-        Sound3DInstance s(sound);
-        s.ID = GetSoundUID();
-        s.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
-        s.Instance->SetVolume(s.Volume);
-        s.Instance->SetPitch(std::clamp(s.Pitch, -1.0f, 1.0f));
+        sound.ID = GetSoundUID();
+        sound.Instance = sfx->CreateInstance(SoundEffectInstance_Use3D | SoundEffectInstance_ReverbUseFilters);
+        sound.Instance->SetVolume(std::clamp(sound.Volume, 0.0f, 10.0f));
+        sound.Instance->SetPitch(std::clamp(sound.Pitch, -1.0f, 1.0f));
 
         //s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&X3DAudioDefault_LinearCurve;
-        s.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_CubicCurve;
-        s.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
-        s.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
-        s.Emitter.CurveDistanceScaler = s.Radius;
-        s.Emitter.Position = position;
-        s.Emitter.DopplerScaler = 1.0f;
-        s.Emitter.InnerRadius = s.Radius / 6;
-        s.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
-        s.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
-        s.StartTime = currentTime + sound.Delay;
-        s.Alive = true;
-        ASSERT(s.Segment != SegID::None || s.AttachToSource || s.FromPlayer);
+        sound.Emitter.pVolumeCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_CubicCurve;
+        sound.Emitter.pLFECurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_LFE_Curve;
+        sound.Emitter.pReverbCurve = (X3DAUDIO_DISTANCE_CURVE*)&Emitter_Reverb_Curve;
+        sound.Emitter.CurveDistanceScaler = sound.Radius;
+        sound.Emitter.Position = position;
+        sound.Emitter.DopplerScaler = 1.0f;
+        sound.Emitter.InnerRadius = sound.Radius / 6;
+        sound.Emitter.InnerRadiusAngle = X3DAUDIO_PI / 4.0f;
+        sound.Emitter.pCone = (X3DAUDIO_CONE*)&c_emitterCone;
+        sound.StartTime = currentTime + sound.Delay;
+        sound.Alive = true;
+        ASSERT(sound.Segment != SegID::None || sound.FromPlayer);
 
-        SoundInstances.AddBack(std::move(s));
-        return s.ID;
+        SoundInstances.AddBack(std::move(sound));
+        return sound.ID;
+    }
+
+    SoundUID Play(const Sound3D& sound, const Vector3& position, SegID seg, SideID side) {
+        Sound3DInstance instance(sound);
+        instance.Segment = seg;
+        instance.Position = position;
+        instance.Side = side;
+        return Play(std::move(instance));
+    }
+
+    SoundUID Play(const Sound3D& sound, const Object& source) {
+        Sound3DInstance instance(sound);
+        instance.Segment = source.Segment;
+        instance.Position = source.Position;
+        return Play(std::move(instance));
+    }
+
+    SoundUID PlayFrom(const Sound3D& sound, const Object& source) {
+        Sound3DInstance instance(sound);
+        instance.Segment = source.Segment;
+        instance.Position = source.Position;
+        instance.Source = Game::GetObjectRef(source);
+        return Play(std::move(instance));
+    }
+
+    SoundUID AtPlayer(const Sound3D& sound) {
+        Sound3DInstance instance(sound);
+        instance.Source = Game::Player.Reference;
+        instance.FromPlayer = true;
+        return Play(std::move(instance));
     }
 
     void Reset() {
@@ -604,14 +640,14 @@ namespace Inferno::Sound {
                 SoundResource resource{ emitter.Sounds[index] };
 
                 if (emitter.Distance > 0) {
-                    Sound3D sound(resource, Listener.Position + RandomVector(emitter.Distance), SegID::None);
+                    Sound3D sound(resource);
                     sound.Occlusion = false;
                     sound.Volume = emitter.Volume.GetRandom();
                     sound.Radius = emitter.Distance * 3; // Random?
-                    Play(sound);
+                    Play(sound, Listener.Position + RandomVector(emitter.Distance), SegID::None);
                 }
                 else {
-                    Play(resource, emitter.Volume.GetRandom());
+                    Play2D(resource, emitter.Volume.GetRandom());
                 }
             }
         }

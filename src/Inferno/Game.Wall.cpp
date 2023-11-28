@@ -163,8 +163,8 @@ namespace Inferno {
         if (door.Time == 0) {
             // play sound at start of closing
             //auto sound = Resources::GetSoundIndex(clip.CloseSound);
-            Sound3D sound({ clip.CloseSound }, side.Center, wall.Tag.Segment);
-            Sound::Play(sound);
+            Sound3D sound(clip.CloseSound);
+            Sound::Play(sound, side.Center, wall.Tag.Segment);
         }
 
         door.Time += dt;
@@ -235,8 +235,7 @@ namespace Inferno {
         }
 
         if (clip.OpenSound != SoundID::None) {
-            Sound3D sound({ clip.OpenSound }, side.Center, tag.Segment);
-            Sound::Play(sound);
+            Sound::Play({ clip.OpenSound }, side.Center, tag.Segment);
         }
     }
 
@@ -300,16 +299,16 @@ namespace Inferno {
         switch (type) {
             case TriggerType::OpenWall:
                 if (Resources::GetLevelTextureInfo(wside->TMap).HasFlag(TextureFlag::ForceField)) {
-                    Sound3D sound({ SoundID::ForcefieldOff }, wside->Center, wall.Tag.Segment);
-                    Sound::Play(sound);
+                    Sound3D sound(SoundID::ForcefieldOff);
+                    Sound::Play(sound, wside->Center, wall.Tag.Segment);
                     Sound::Stop(wall.Tag); // stop the humming sound
                     wall.Type = wallType;
                     fmt::print("Turned off forcefield {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
                 else {
                     // do wall uncloak
-                    Sound3D sound({ SoundID::CloakOn }, wside->Center, wall.Tag.Segment);
-                    Sound::Play(sound);
+                    Sound3D sound(SoundID::CloakOn);
+                    Sound::Play(sound, wside->Center, wall.Tag.Segment);
                     wall.Type = wallType; // would be delayed by animation
                     fmt::print("Opened wall {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
@@ -317,17 +316,17 @@ namespace Inferno {
 
             case TriggerType::CloseWall:
                 if (Resources::GetLevelTextureInfo(wside->TMap).HasFlag(TextureFlag::ForceField)) {
-                    Sound3D sound({ SoundID::ForcefieldHum }, wside->Center, wall.Tag.Segment);
+                    Sound3D sound(SoundID::ForcefieldHum);
                     sound.Looped = true;
                     sound.Volume = 0.5f;
-                    Sound::Play(sound);
+                    Sound::Play(sound, wside->Center, wall.Tag.Segment);
                     wall.Type = wallType;
                     fmt::print("Activated forcefield {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
                 else {
                     // do wall cloak
-                    Sound3D sound({ SoundID::CloakOff }, wside->Center, wall.Tag.Segment);
-                    Sound::Play(sound);
+                    Sound3D sound(SoundID::CloakOff);
+                    Sound::Play(sound, wside->Center, wall.Tag.Segment);
                     wall.Type = wallType; // would be delayed by animation
                     fmt::print("Closed wall {}:{}\n", wall.Tag.Segment, wall.Tag.Side);
                 }
@@ -455,8 +454,8 @@ namespace Inferno {
     void ExplodeWall(Level& level, Tag tag) {
         // create small explosions on the face
         auto& side = level.GetSide(tag);
-        Sound3D sound({ SoundID::ExplodingWall }, side.Center, tag.Segment);
-        Sound::Play(sound);
+        Sound3D sound(SoundID::ExplodingWall);
+        Sound::Play(sound, side.Center, tag.Segment);
 
         auto room = level.GetRoomID(tag.Segment);
         ExplodingWalls.Add({ tag, room });
@@ -585,9 +584,7 @@ namespace Inferno {
             else if (src.Type == ObjectType::Weapon || src.Type == ObjectType::Player) {
                 // Can't open door
                 if ((isPlayerSource || isRobotSource) && src.Type == ObjectType::Weapon) {
-                    Sound3D sound({ SoundID::HitLockedDoor }, point, wall.Tag.Segment);
-                    sound.Position = point;
-                    Sound::Play(sound);
+                    Sound::Play({ SoundID::HitLockedDoor }, point, wall.Tag.Segment);
                 }
 
                 if (isPlayerSource) {
@@ -629,8 +626,7 @@ namespace Inferno {
         if (cwall) wall->SetFlag(WallFlag::IllusionOff);
 
         if (auto side = level.TryGetSide(tag)) {
-            Sound3D sound({ SoundID::CloakOff }, side->Center, tag.Segment);
-            Sound::Play(sound);
+            Sound::Play({ SoundID::CloakOff }, side->Center, tag.Segment);
         }
     }
 
@@ -640,8 +636,7 @@ namespace Inferno {
         if (cwall) wall->ClearFlag(WallFlag::IllusionOff);
 
         if (auto side = level.TryGetSide(tag)) {
-            Sound3D sound({ SoundID::CloakOn }, side->Center, tag.Segment);
-            Sound::Play(sound);
+            Sound::Play({ SoundID::CloakOn }, side->Center, tag.Segment);
         }
     }
 

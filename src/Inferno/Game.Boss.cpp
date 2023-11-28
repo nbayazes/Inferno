@@ -137,9 +137,9 @@ namespace Inferno::Game {
 
         // use materialize effect
         auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
-        Sound3D sound({ vclip.Sound }, point, segId);
+        Sound3D sound(vclip.Sound);
         sound.Radius = 400.0f;
-        Sound::Play(sound);
+        Sound::Play(sound, point, segId);
 
         // Create a new robot
         Object obj{};
@@ -226,10 +226,10 @@ namespace Inferno::Game {
                 SelfDestructMine();
                 ExplodeObject(boss);
                 BossDying = false; // safeguard
-                Sound3D sound({ ri.ExplosionSound2 }, boss.Position, boss.Segment);
+                Sound3D sound(ri.ExplosionSound2);
                 sound.Volume = 3;
                 sound.Radius = 1000;
-                Sound::Play(sound);
+                Sound::Play(sound, boss.Position, boss.Segment);
 
                 Render::DynamicLight light;
                 light.Radius = 200;
@@ -299,13 +299,12 @@ namespace Inferno::Game {
                 auto& ai = GetAI(obj);
                 ai.TeleportDelay = info.TeleportInterval;
 
-                Sound3D sound(info.SeeSound, Game::GetObjectRef(obj));
+                Sound3D sound(info.SeeSound);
                 sound.Radius = 400;
                 sound.Looped = true;
                 sound.Volume = 0.85f;
                 sound.Occlusion = false;
-                sound.AttachToSource = true;
-                Sound::Play(sound);
+                Sound::PlayFrom(sound, obj);
             }
         }
     }

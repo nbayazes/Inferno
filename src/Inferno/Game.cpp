@@ -186,11 +186,9 @@ namespace Inferno::Game {
         if (Random() < 0.003f) {
             // Playing the sound at player is what the original game does,
             // but it would be nicer to come from the environment instead...
-            Sound3D s({ sound }, Player.Reference);
+            Sound3D s(sound);
             s.Volume = Random() * 0.1f + 0.05f;
-            s.AttachToSource = true;
-            s.FromPlayer = true;
-            Sound::Play(s);
+            Sound::AtPlayer(s);
         }
     }
 
@@ -203,7 +201,7 @@ namespace Inferno::Game {
         // This doesn't account for negative scoring (which never happens in D2)
         auto lives = Player.Score / EXTRA_LIFE_POINTS - score / EXTRA_LIFE_POINTS;
         if (lives > 0) {
-            Sound::Play({ SoundID::ExtraLife });
+            Sound::Play2D({ SoundID::ExtraLife });
             Player.GiveExtraLife((uint8)lives);
         }
     }
@@ -231,10 +229,13 @@ namespace Inferno::Game {
         obj.Effects.CloakTimer = 0;
 
         if (playSound) {
-            Sound3D sound({ SoundID::CloakOn }, GetObjectRef(obj));
-            sound.FromPlayer = obj.IsPlayer();
+            Sound3D sound(SoundID::CloakOn);
             sound.Merge = false;
-            Sound::Play(sound);
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -242,10 +243,13 @@ namespace Inferno::Game {
         ClearFlag(obj.Effects.Flags, EffectFlags::Cloaked);
 
         if (playSound) {
-            Sound3D sound({ SoundID::CloakOff }, GetObjectRef(obj));
-            sound.FromPlayer = obj.IsPlayer();
+            Sound3D sound(SoundID::CloakOff);
             sound.Merge = false;
-            Sound::Play(sound);
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -256,10 +260,13 @@ namespace Inferno::Game {
         obj.Effects.InvulnerableTimer = 0;
 
         if (playSound) {
-            Sound3D sound({ SoundID::InvulnOn }, GetObjectRef(obj));
-            sound.FromPlayer = obj.IsPlayer();
+            Sound3D sound(SoundID::InvulnOn);
             sound.Merge = false;
-            Sound::Play(sound);
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -267,10 +274,13 @@ namespace Inferno::Game {
         ClearFlag(obj.Effects.Flags, EffectFlags::Invulnerable);
 
         if (playSound) {
-            Sound3D sound({ SoundID::InvulnOff }, GetObjectRef(obj));
-            sound.FromPlayer = obj.IsPlayer();
+            Sound3D sound(SoundID::InvulnOff);
             sound.Merge = false;
-            Sound::Play(sound);
+
+            if (obj.IsPlayer())
+                Sound::AtPlayer(sound);
+            else
+                Sound::PlayFrom(sound, obj);
         }
     }
 
@@ -623,13 +633,12 @@ namespace Inferno::Game {
                         continue; // skip sound on lower numbered segment
                 }
 
-                Sound3D s({ sound }, side.Center, segid);
+                Sound3D s(sound);
                 s.Looped = true;
                 s.Radius = 80;
                 s.Volume = 0.50f;
-                s.Occlusion = false;
-                s.Side = sid;
-                Sound::Play(s);
+                //s.Occlusion = false;
+                Sound::Play(s, side.Center, segid, sid);
             }
         }
     }

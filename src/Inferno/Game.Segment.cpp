@@ -517,9 +517,9 @@ namespace Inferno {
             }
 
             auto& vclip = Resources::GetVideoClip(VClipID::Matcen);
-            auto sound = Sound3D({ vclip.Sound }, seg->Center, matcen.Segment);
+            auto sound = Sound3D(vclip.Sound);
             sound.Radius = Game::MATCEN_SOUND_RADIUS;
-            Sound::Play(sound);
+            Sound::Play(sound, seg->Center, matcen.Segment);
 
             CreateMatcenEffect(level, matcen.Segment);
 

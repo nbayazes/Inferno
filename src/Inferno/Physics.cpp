@@ -121,8 +121,8 @@ namespace Inferno {
 
         auto& vclip = Resources::GetVideoClip(eclip.DestroyedVClip);
         auto soundId = vclip.Sound != SoundID::None ? vclip.Sound : SoundID::LightDestroyed;
-        Sound3D sound({ soundId }, point, tag.Segment);
-        Sound::Play(sound);
+        Sound3D sound(soundId);
+        Sound::Play(sound, point, tag.Segment);
 
         if (auto trigger = level.TryGetTrigger(side.Wall)) {
             SPDLOG_INFO("Activating switch {}:{}\n", tag.Segment, tag.Side);
@@ -1296,8 +1296,7 @@ namespace Inferno {
                 lastScrapeTime = Game::Time;
 
                 auto soundId = ti.HasFlag(TextureFlag::Volatile) ? SoundID::TouchLava : SoundID::TouchWater;
-                Sound3D sound({ soundId }, hit.Point, hit.Tag.Segment);
-                Sound::Play(sound);
+                Sound::Play({ soundId }, hit.Point, hit.Tag.Segment);
             }
 
             obj.Physics.AngularVelocity.x = RandomN11() / 8; // -0.125 to 0.125
@@ -1326,8 +1325,7 @@ namespace Inferno {
             if (obj.IsPlayer())
                 Game::AddScreenFlash({ 0, 0, 1 });
 
-            Sound3D sound({ SoundID::PlayerHitForcefield }, hit.Point, obj.Segment);
-            Sound::Play(sound);
+            Sound::Play({ SoundID::PlayerHitForcefield }, hit.Point, obj.Segment);
 
             auto force = Vector3(RandomN11(), RandomN11(), RandomN11()) * 20;
             ApplyRotation(obj, force);
@@ -1339,8 +1337,7 @@ namespace Inferno {
                 if (obj.IsPlayer())
                     AlertEnemiesOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
 
-                Sound3D sound({ SoundID::PlayerHitWall }, hit.Point, obj.Segment);
-                Sound::Play(sound);
+                Sound::Play({ SoundID::PlayerHitWall }, hit.Point, obj.Segment);
             }
         }
 

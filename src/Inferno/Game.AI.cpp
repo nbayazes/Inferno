@@ -190,35 +190,26 @@ namespace Inferno {
     void PlayAlertSound(const Object& robot) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         if (robotInfo.IsBoss) return; // Bosses handle sound differently
-        auto id = Game::GetObjectRef(robot);
-        Sound3D sound({ robotInfo.SeeSound }, id);
-        sound.AttachToSource = true;
-        Sound::Play(sound);
+        Sound::PlayFrom(Sound3D(robotInfo.SeeSound), robot);
     }
 
     void PlayDistressSound(const Object& robot) {
-        auto id = Game::GetObjectRef(robot);
-
         // todo: always use class 1 drone sound (170)? 177 for tougher robots?
-        Sound3D sound({ Resources::GetRobotInfo(robot).AttackSound }, id);
+        Sound3D sound(Resources::GetRobotInfo(robot).AttackSound);
         sound.Pitch = 0.45f;
-        sound.AttachToSource = true;
-        //sound.Volume = 1.0f;
         //sound.Radius = 250;
-        Sound::Play(sound);
+        Sound::PlayFrom(sound, robot);
 
         sound.Delay = 0.5f;
-        Sound::Play(sound);
+        Sound::PlayFrom(sound, robot);
     }
 
     // Low health scream for tougher robots (> 100 health?)
     void PlayAgonySound(const Object& robot) {
-        auto id = Game::GetObjectRef(robot);
-        Sound3D sound({ SoundID(179) }, id); // D1 sound
-        sound.AttachToSource = true;
+        Sound3D sound(SoundID(179)); // D1 sound
         sound.Volume = 1.25f;
         sound.Radius = 400;
-        Sound::Play(sound);
+        Sound::PlayFrom(sound, robot);
     }
 
     bool PointIsInFOV(const Object& robot, const Vector3& pointDir, const RobotInfo& robotInfo) {
@@ -232,7 +223,7 @@ namespace Inferno {
         LevelHit hit{};
         Ray ray = { obj.Position, dir };
         RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .PassTransparent = true };
-        return !Game::Intersect.RayLevel(ray, query, hit);;
+        return !Game::Intersect.RayLevel(ray, query, hit);
     }
 
     // Player visibility doesn't account for direct line of sight like weapon fire does (other robots, walls)
@@ -291,11 +282,10 @@ namespace Inferno {
         if (elapsedTime > rollDuration - soundDuration) {
             // Going critical!
             if (!dyingSoundPlaying) {
-                Sound3D sound(resource, Game::GetObjectRef(obj));
+                Sound3D sound(resource);
                 sound.Volume = volume;
                 sound.Radius = 400; // Should be a global radius for bosses
-                sound.AttachToSource = true;
-                Sound::Play(sound);
+                Sound::PlayFrom(sound, obj);
                 dyingSoundPlaying = true;
             }
 
@@ -759,12 +749,8 @@ namespace Inferno {
             ai.NextChargeSoundDelay = 0.125f + Random() / 8;
 
             if (auto fx = Render::EffectLibrary.GetSparks("robot_fusion_charge")) {
-                auto id = Game::GetObjectRef(robot);
-                fx->Parent = id;
-
-                Sound3D sound({ SoundID::FusionWarmup }, id);
-                sound.AttachToSource = true;
-                ai.SoundHandle = Sound::Play(sound);
+                fx->Parent = Game::GetObjectRef(robot);
+                ai.SoundHandle = Sound::PlayFrom(Sound3D(SoundID::FusionWarmup), robot);
 
                 for (uint8 i = 0; i < robotInfo.Guns; i++) {
                     fx->ParentSubmodel.Offset = GetGunpointOffset(robot, i);
@@ -1005,10 +991,7 @@ namespace Inferno {
                 // Is target in range and in front of the robot?
                 if (dist < robot.Radius + MELEE_RANGE && targetDir.Dot(robot.Rotation.Forward()) > 0) {
                     auto soundId = Game::Level.IsDescent1() ? (RandomInt(1) ? SoundID::TearD1_01 : SoundID::TearD1_02) : SoundID::TearD1_01;
-                    auto id = Game::GetObjectRef(robot);
-                    Sound3D sound({ soundId }, id);
-                    sound.Position = robot.Position;
-                    Sound::Play(sound);
+                    Sound::Play(Sound3D(soundId), robot);
                     Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false); // todo: make this generic. Damaging object should update the linked player
 
                     target.Physics.Velocity += targetDir * 5; // shove the target backwards
@@ -1083,13 +1066,11 @@ namespace Inferno {
         if (ai.CombatSoundTimer > 0) return;
 
         ai.CombatSoundTimer = (1 + Random() * 0.75f) * 2.5f;
-        auto id = Game::GetObjectRef(robot);
         auto& robotInfo = Resources::GetRobotInfo(robot);
 
-        Sound3D sound({ robotInfo.AttackSound }, id);
-        sound.AttachToSource = true;
+        Sound3D sound(robotInfo.AttackSound);
         sound.Pitch = Random() < 0.60f ? 0.0f : -0.05f - Random() * 0.10f;
-        Sound::Play(sound);
+        Sound::PlayFrom(sound, robot);
     }
 
     bool ScanForTarget(const Object& robot, AIRuntime& ai) {

@@ -535,7 +535,7 @@ Robots:
   - id: 1 # Medium lifter
     CircleDistance: 12
     Mass: 8
-    MeleeDamage: [ 5, 7, 10, 12, 15 ]
+    MeleeDamage: [ 6, 7, 8, 9, 10 ]
   - id: 2 # Spider
     CircleDistance: 80 # Hide in back and spawn spiderlings
     Mass: 5.5
@@ -564,7 +564,7 @@ Robots:
     AlertRadius: 240 # Alert all nearby robots!
     FleeThreshold: 1 # Has no weapons, always look for help
   - id: 8 # Secondary Lifter (one arm)
-    CircleDistance: 20
+    CircleDistance: 25
     Mass: 3.5
     Drag: 0.03
     FleeThreshold: 0.4 # Scout
@@ -623,7 +623,7 @@ Robots:
   - id: 18 # Cloaked lifter
     CircleDistance: 20
     Mass: 9.5
-    MeleeDamage: [ 5, 7, 10, 12, 15 ]
+    MeleeDamage: [ 5, 6, 7, 8, 9 ]
   - id: 19 # Class 1 driller
     CircleDistance: 100 # sniper
     Mass: 5.5
@@ -638,7 +638,7 @@ Robots:
   - id: 21 # Advanced lifter
     CircleDistance: 12
     Mass: 9
-    MeleeDamage: [ 5, 7, 10, 12, 15 ]
+    MeleeDamage: [ 5, 6, 7, 8, 9 ]
   - id: 22 # PTMC Defense Prototype
     CircleDistance: 40
     Aim: 190 # 255 perfect aim

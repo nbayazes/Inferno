@@ -1,5 +1,7 @@
 #pragma once
 #include <chrono>
+
+#include "Object.h"
 #include "Utility.h"
 #include "SoundTypes.h"
 
@@ -24,8 +26,20 @@ namespace Inferno::Sound {
     void WaitInitialized();
     void Shutdown();
 
-    void Play(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
-    SoundUID Play(const Sound3D& sound);
+    void Play2D(const SoundResource& resource, float volume = 1, float pan = 0, float pitch = 0);
+
+    //SoundUID Play(const Sound3D& sound);
+
+    SoundUID Play(const Sound3D& sound, const Vector3& position, SegID seg, SideID side = SideID::None);
+
+    // Plays a sound from an object position
+    SoundUID Play(const Sound3D& sound, const Object& source);
+
+    // Plays a sound attached to an object that stops if it is destroyed
+    SoundUID PlayFrom(const Sound3D& sound, const Object& source);
+
+    // Plays a 3D sound at the player's position. Necessary because 2D sounds don't support looping.
+    SoundUID AtPlayer(const Sound3D& sound);
 
     // Resets any cached sounds after loading a level
     void Reset();

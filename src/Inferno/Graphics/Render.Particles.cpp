@@ -321,10 +321,9 @@ namespace Inferno::Render {
 
         for (int i = 0; i < instances; i++) {
             if (Sound != SoundID::None && i == 0) {
-                Sound3D sound({ Sound }, Position, Segment);
+                Sound3D sound(Sound);
                 sound.Volume = Volume;
-                sound.Source = GLOBAL_SOUND_SOURCE;
-                Sound::Play(sound);
+                Sound::Play(sound, Position, Segment);
                 //sound.Source = expl.Parent; // no parent so all nearby sounds merge
             }
 

@@ -83,9 +83,9 @@ namespace Inferno::Game {
         SelfDestructMine();
 
         // Big boom
-        Sound3D sound({ SoundID::Explosion }, obj.Position, obj.Segment);
+        Sound3D sound(SoundID::Explosion);
         sound.Volume = 2;
-        Sound::Play(sound);
+        Sound::Play(sound, obj.Position, obj.Segment);
 
         if (auto e = Render::EffectLibrary.GetSparks("reactor_destroyed"))
             Render::AddSparkEmitter(*e, obj.Segment, obj.Position);
@@ -149,14 +149,14 @@ namespace Inferno::Game {
 
         constexpr float COUNTDOWN_VOICE_TIME = 12.75f;
         if (time > COUNTDOWN_VOICE_TIME && CountdownTimer <= COUNTDOWN_VOICE_TIME) {
-            Sound::Play({ SoundID::Countdown13 });
+            Sound::Play2D({ SoundID::Countdown13 });
         }
 
         if (int(time + 7.0f / 8) != CountdownSeconds) {
             if (CountdownSeconds >= 0 && CountdownSeconds < 10)
-                Sound::Play({ SoundID((int)SoundID::Countdown0 + CountdownSeconds) });
+                Sound::Play2D({ SoundID((int)SoundID::Countdown0 + CountdownSeconds) });
             if (CountdownSeconds == TotalCountdown - 1)
-                Sound::Play({ SoundID::SelfDestructActivated });
+                Sound::Play2D({ SoundID::SelfDestructActivated });
         }
 
         if (CountdownTimer > 0) {
@@ -165,11 +165,11 @@ namespace Inferno::Game {
             auto size = (float)TotalCountdown - CountdownTimer / 0.65f;
             auto oldSize = (float)TotalCountdown - time / 0.65f;
             if (std::floor(size) != std::floor(oldSize) && CountdownSeconds < TotalCountdown - SIREN_DELAY)
-                Sound::Play({ SoundID::Siren });
+                Sound::Play2D({ SoundID::Siren });
         }
         else {
             if (time > 0)
-                Sound::Play({ SoundID::MineBlewUp });
+                Sound::Play2D({ SoundID::MineBlewUp });
 
             auto flash = -CountdownTimer / 4.0f; // 4 seconds to fade out
             ScreenFlash = Color{ flash, flash, flash };
@@ -322,21 +322,18 @@ namespace Inferno::Game {
         SPDLOG_INFO("Reactor has {} hit points", reactor.HitPoints);
 
         // M is very bass heavy "AmbDroneReactor"
-        Sound3D reactorHum({ "AmbDroneM" }, Game::GetObjectRef(reactor));
+        Sound3D reactorHum({ "AmbDroneM" });
         reactorHum.Radius = 300;
         reactorHum.Looped = true;
         reactorHum.Volume = 0.3f;
         reactorHum.Occlusion = false;
-        reactorHum.Position = reactor.Position;
-        reactorHum.Segment = reactor.Segment;
-        Sound::Play(reactorHum);
+        Sound::PlayFrom(reactorHum, reactor);
 
         reactorHum.Resource = { "Indoor Ambient 5" };
         reactorHum.Radius = 160;
         reactorHum.Looped = true;
         reactorHum.Occlusion = true;
         reactorHum.Volume = 1.1f;
-        reactorHum.Position = reactor.Position;
-        Sound::Play(reactorHum);
+        Sound::PlayFrom(reactorHum, reactor);
     }
 }

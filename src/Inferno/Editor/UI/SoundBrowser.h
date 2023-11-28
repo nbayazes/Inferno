@@ -115,14 +115,15 @@ namespace Inferno::Editor {
                             resource.D1 = i;
 
                             if (_3d) {
-                                Sound3D s(resource, Game::GetObjectRef(Editor::Selection.Object));
-                                s.Volume = _vol;
-                                s.Pitch = _pitch;
-                                s.AttachToSource = true;
-                                Sound::Play(s);
+                                if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                                    Sound3D s(resource);
+                                    s.Volume = _vol;
+                                    s.Pitch = _pitch;
+                                    Sound::PlayFrom(s, *obj);
+                                }
                             }
                             else {
-                                Sound::Play(resource, _vol, _pan, _pitch);
+                                Sound::Play2D(resource, _vol, _pan, _pitch);
                             }
                         }
                     }
@@ -148,13 +149,15 @@ namespace Inferno::Editor {
                             resource.D2 = i;
 
                             if (_3d) {
-                                Sound3D s(resource, Game::GetObjectRef(Editor::Selection.Object));
-                                s.Volume = _vol;
-                                s.Pitch = _pitch;
-                                Sound::Play(s);
+                                if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                                    Sound3D s(resource);
+                                    s.Volume = _vol;
+                                    s.Pitch = _pitch;
+                                    Sound::PlayFrom(s, *obj);
+                                }
                             }
                             else {
-                                Sound::Play(resource, _vol, _pan, _pitch);
+                                Sound::Play2D(resource, _vol, _pan, _pitch);
                             }
                         }
                     }
@@ -173,13 +176,15 @@ namespace Inferno::Editor {
                         if (ImGui::Selectable(label.c_str(), i == _selection)) {
                             _selection = i;
                             if (_3d) {
-                                Sound3D s({ sound.FileName }, Game::GetObjectRef(Editor::Selection.Object));
-                                s.Volume = _vol;
-                                s.Pitch = _pitch;
-                                Sound::Play(s);
+                                if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
+                                    Sound3D s(sound.FileName);
+                                    s.Volume = _vol;
+                                    s.Pitch = _pitch;
+                                    Sound::PlayFrom(s, *obj);
+                                }
                             }
                             else {
-                                Sound::Play({ sound.FileName }, _vol, _pan, _pitch);
+                                Sound::Play2D({ sound.FileName }, _vol, _pan, _pitch);
                             }
                         }
                     }
