@@ -270,7 +270,7 @@ namespace Inferno::Render::Debug {
         Resources->Batch.Begin(cmdList);
         DrawMesh(Arrow.GetVertices(), Arrow.GetIndices());
         Resources->Batch.End();
-        Stats::DrawCalls++;
+        //Stats::DrawCalls++;
     }
 
     void DrawCube(ID3D12GraphicsCommandList* cmdList, const Matrix& transform, const Color& color) {
@@ -284,7 +284,7 @@ namespace Inferno::Render::Debug {
         Resources->Batch.Begin(cmdList);
         DrawMesh(GizmoCube.GetVertices(), GizmoCube.GetIndices());
         Resources->Batch.End();
-        Stats::DrawCalls++;
+        //Stats::DrawCalls++;
     }
 
     void DrawCircle(float radius, const Matrix& transform, const Color& color) {

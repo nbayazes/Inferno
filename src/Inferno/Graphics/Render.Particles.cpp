@@ -868,13 +868,16 @@ namespace Inferno::Render {
 
         {
             auto& effect = Effects->SpriteMultiply;
-            ctx.ApplyEffect(effect);
-            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-            effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-            effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
             for (auto& decal : Decals) {
-                if (decal.Elapsed > decal.Duration) continue;
+                if (decal.Elapsed >= decal.Duration) continue;
+
+                if(ctx.ApplyEffect(effect)) {
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+                    effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
+                }
+
                 decal.Update(dt, EffectID(0));
 
                 auto& material = Render::Materials->Get(decal.Texture);
@@ -888,13 +891,16 @@ namespace Inferno::Render {
 
         {
             auto& effect = Effects->SpriteAdditiveBiased;
-            ctx.ApplyEffect(effect);
-            ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
-            effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
-            effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
 
             for (auto& decal : AdditiveDecals) {
-                if (decal.Elapsed > decal.Duration) continue;
+                if (decal.Elapsed >= decal.Duration) continue;
+
+                if(ctx.ApplyEffect(effect)) {
+                    ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
+                    effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
+                    effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
+                }
+
                 decal.Update(dt, EffectID(0));
 
                 auto& material = Render::Materials->Get(decal.Texture);

@@ -21,6 +21,7 @@ namespace Inferno::Render {
     struct RenderCommand {
         float Depth; // Scene depth for sorting
         RenderCommandType Type;
+
         union Data {
             struct Object* Object;
             Inferno::LevelMesh* LevelMesh;
@@ -51,6 +52,7 @@ namespace Inferno::Render {
         };
 
         List<RenderCommand> _opaqueQueue;
+        List<RenderCommand> _decalQueue;
         List<RenderCommand> _transparentQueue;
         List<RenderCommand> _distortionQueue;
         Set<SegID> _visited;
@@ -64,16 +66,19 @@ namespace Inferno::Render {
         };
 
         List<ObjDepth> _objects;
+
     public:
-        void Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes, bool drawObjects);
+        void Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects);
         span<RenderCommand> Opaque() { return _opaqueQueue; }
+        span<RenderCommand> Decal() { return _decalQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
         span<RenderCommand> Distortion() { return _distortionQueue; }
         span<RoomID> GetVisibleRooms() { return _roomQueue; }
+
     private:
         void QueueEditorObject(Object& obj, float lerp);
         void QueueRoomObjects(Level& level, const Room& room);
         void CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth);
-        void TraverseLevelRooms(RoomID startRoomId, Level& level,span<LevelMesh> wallMeshes);
+        void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes);
     };
 }

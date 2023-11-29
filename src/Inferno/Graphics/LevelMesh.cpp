@@ -123,7 +123,7 @@ namespace Inferno {
                     LevelGeometry& geo,
                     LevelChunk& chunk,
                     const SegmentSide& side,
-                    TexID tex1, 
+                    TexID tex1,
                     TexID tex2) {
         auto startIndex = geo.Vertices.size();
         chunk.AddQuad((uint16)startIndex);
@@ -154,7 +154,7 @@ namespace Inferno {
                     LevelGeometry& geo,
                     LevelChunk& chunk,
                     SegmentSide& side,
-                    int steps, 
+                    int steps,
                     TexID tex1,
                     TexID tex2) {
         auto incr = 1 / ((float)steps + 1);
@@ -222,11 +222,26 @@ namespace Inferno {
         return mi.Additive ? BlendMode::Additive : BlendMode::Alpha;
     }
 
-    void CreateLevelGeometry(Level& level, ChunkCache& chunks, LevelGeometry& geo) {
-        chunks.clear();
-        geo.Chunks.clear();
-        geo.Vertices.clear();
-        geo.Walls.clear();
+    void UpdateBounds(LevelChunk& chunk, span<LevelVertex> vertices) {
+        Vector3 min(FLT_MAX, FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+        for (auto& index : chunk.Indices) {
+            auto& v = vertices[index];
+            min = Vector3::Min(v.Position, min);
+            max = Vector3::Max(v.Position, max);
+        }
+
+        chunk.Bounds.Center = (min + max) / 2;
+        chunk.Bounds.Extents = (max - min) / 2;
+    }
+
+    void LevelMeshBuilder::CreateLevelGeometry(Level& level) {
+        _chunks.clear();
+        _decals.clear();
+        _geometry.Chunks.clear();
+        _geometry.Vertices.clear();
+        _geometry.Decals.clear();
+        _geometry.Walls.clear();
 
         for (int id = 0; id < level.Segments.size(); id++) {
             auto& seg = level.Segments[id];
@@ -256,58 +271,92 @@ namespace Inferno {
                 auto& ti = Resources::GetLevelTextureInfo(side.TMap);
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
 
-                // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
-                uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
-                uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
-
-                LevelChunk wallChunk; // always use a new chunk for walls
-                LevelChunk& chunk = isWall ? wallChunk : chunks[chunkId];
-
-                chunk.TMap1 = side.TMap;
-                chunk.TMap2 = side.TMap2;
-                chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
-                chunk.ID = id;
-
-                if (side.HasOverlay())
-                    chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
-
-                Array<Color, 4> lt = side.Light;
-
-                if (isWall && wall) {
-                    chunk.Blend = GetWallBlendMode(side.TMap);
-                    if (wall->Type == WallType::Cloaked) {
-                        chunk.Blend = BlendMode::Alpha;
-                        auto alpha = 1 - wall->CloakValue();
-                        Seq::iter(lt, [alpha](auto& x) { x.A(alpha); });
-                        chunk.Cloaked = true;
-                    }
-                }
-
-                auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                auto tex1 = Resources::LookupTexID(side.TMap);
-                auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
-                AddPolygon(verts, side.UVs, lt, geo, chunk, side, tex1, tex2);
-
-                // Overlays should slide in the same direction as the base texture regardless of their rotation
-                if (needsOverlaySlide)
-                    chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
-
                 if (isWall) {
-                    // Adjust wall positions to the center of the segment so objects and walls of a segment can be sorted correctly
+                    // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
+                    //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                    //uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
+
+                    LevelChunk chunk; // always use a new chunk for walls
+
+                    chunk.TMap1 = side.TMap;
+                    chunk.TMap2 = side.TMap2;
+                    chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
+                    chunk.ID = id;
+
+                    if (side.HasOverlay())
+                        chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
+
+                    Array<Color, 4> lt = side.Light;
+
+                    if (wall) {
+                        chunk.Blend = GetWallBlendMode(side.TMap);
+                        if (wall->Type == WallType::Cloaked) {
+                            chunk.Blend = BlendMode::Alpha;
+                            auto alpha = 1 - wall->CloakValue();
+                            Seq::iter(lt, [alpha](auto& x) { x.A(alpha); });
+                            chunk.Cloaked = true;
+                        }
+                    }
+
+                    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                    auto tex1 = Resources::LookupTexID(side.TMap);
+                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                    AddPolygon(verts, side.UVs, lt, _geometry, chunk, side, tex1, tex2);
+
+                    // Overlays should slide in the same direction as the base texture regardless of their rotation
+                    if (needsOverlaySlide)
+                        chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
+
                     chunk.Tag = { (SegID)id, sideId };
-                    geo.Walls.push_back(chunk);
+                    _geometry.Walls.push_back(chunk);
+                }
+                else {
+                    // Split into decals and base textures
+                    {
+                        LevelChunk& chunk = _chunks[(uint)side.TMap];
+                        chunk.TMap1 = side.TMap;
+                        chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
+                        chunk.ID = id;
+
+                        auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                        auto tex1 = Resources::LookupTexID(side.TMap);
+                        //auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                        AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, TexID::None);
+                    }
+
+                    if (side.HasOverlay()) {
+                        uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                        uint32 chunkId = 0 | (uint16)side.TMap2 << 15 | overlayBit << 30;
+
+                        LevelChunk& decalChunk = _decals[chunkId];
+                        decalChunk.TMap2 = side.TMap2;
+                        decalChunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
+                        decalChunk.ID = id;
+
+                        // Overlays should slide in the same direction as the base texture regardless of their rotation
+                        if (needsOverlaySlide)
+                            decalChunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
+
+                        auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                        auto tex2 = Resources::LookupTexID(side.TMap2);
+                        AddPolygon(verts, side.UVs, side.Light, _geometry, decalChunk, side, TexID::None, tex2);
+                    }
                 }
             }
         }
 
-        for (auto& chunk : chunks | views::values)
-            geo.Chunks.push_back(chunk);
+        for (auto& chunk : _chunks | views::values)
+            _geometry.Chunks.push_back(chunk);
+
+        for (auto& decal : _decals | views::values)
+            _geometry.Decals.push_back(decal);
     }
 
     void LevelMesh::Draw(ID3D12GraphicsCommandList* cmdList) const {
         cmdList->IASetVertexBuffers(0, 1, &VertexBuffer);
         cmdList->IASetIndexBuffer(&IndexBuffer);
         cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
+        Render::Stats::DrawCalls++;
     }
 
     void LevelVolume::Draw(ID3D12GraphicsCommandList* cmdList) const {
@@ -323,40 +372,8 @@ namespace Inferno {
         cmdList->DrawIndexedInstanced(IndexCount, 1, 0, 0, 0);
     }
 
-    //void LevelMeshWorker::Work() {
-    //    auto index = (_index + 1) % 2;
-    //    auto& upload = _upload[index];
-    //    auto& resources = _resources[index];
-    //    resources = {};
-    //    ChunkCache chunks;
-    //    CreateLevelGeometry(_level, chunks, resources.Geometry);
-
-    //    if (HasWork()) return;
-
-    //    upload.Reset();
-    //    // Upload the new geometry to the unused resource buffer
-    //    auto vbv = upload.PackVertices(resources.Geometry.Vertices);
-    //    if (HasWork()) return;
-
-    //    for (auto& c : resources.Geometry.Chunks) {
-    //        auto ibv = upload.PackIndices(c.Indices);
-    //        resources.Meshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
-    //    }
-
-    //    if (HasWork()) return;
-
-    //    for (auto& c : resources.Geometry.Walls) {
-    //        auto ibv = upload.PackIndices(c.Indices);
-    //        resources.WallMeshes.push_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
-    //    }
-
-    //    if (HasWork()) return;
-
-    //    _hasNewData = true;
-    //}
-
     void LevelMeshBuilder::Update(Level& level, PackedBuffer& buffer) {
-        CreateLevelGeometry(level, _chunks, _geometry);
+        CreateLevelGeometry(level);
         UpdateBuffers(buffer);
     }
 
@@ -364,15 +381,24 @@ namespace Inferno {
         buffer.ResetIndex();
         _meshes.clear();
         _wallMeshes.clear();
+        _decalMeshes.clear();
 
         auto vbv = buffer.PackVertices(_geometry.Vertices);
 
         for (auto& c : _geometry.Chunks) {
+            UpdateBounds(c, _geometry.Vertices);
             auto ibv = buffer.PackIndices(c.Indices);
             _meshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }
 
+        for (auto& c : _geometry.Decals) {
+            UpdateBounds(c, _geometry.Vertices);
+            auto ibv = buffer.PackIndices(c.Indices);
+            _decalMeshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
+        }
+
         for (auto& c : _geometry.Walls) {
+            UpdateBounds(c, _geometry.Vertices);
             auto ibv = buffer.PackIndices(c.Indices);
             _wallMeshes.emplace_back(LevelMesh{ vbv, ibv, (uint)c.Indices.size(), &c });
         }

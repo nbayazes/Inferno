@@ -51,6 +51,7 @@ namespace Inferno::Render {
 
     enum class RenderPass {
         Opaque,     // Solid level geometry or objects
+        Decals,     // Solid level geometry decals
         Walls,      // Level walls, might be transparent
         Transparent, // Sprites, transparent portions of models
         Distortion // Cloaked enemies, shockwaves

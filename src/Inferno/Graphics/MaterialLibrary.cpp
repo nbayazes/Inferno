@@ -380,7 +380,7 @@ namespace Inferno::Render {
         if (!material.Textures[Material2D::Diffuse]) {
             if (upload.Bitmap->Info.Transparent) {
                 List<Palette::Color> data = upload.Bitmap->Data; // copy mask, as modifying the original would affect collision
-                ExpandDiffuse(upload.Bitmap->Info, data);
+                //ExpandDiffuse(upload.Bitmap->Info, data);
                 material.Textures[Material2D::Diffuse].Load(batch, data.data(), width, height, Convert::ToWideString(material.Name));
             }
             else {

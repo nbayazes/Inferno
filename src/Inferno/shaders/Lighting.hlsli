@@ -157,19 +157,17 @@ float Attenuate(float lightDistSq, float lightRadius) {
 float3 ApplyAmbientSpecular(TextureCube environment, SamplerState envSampler, float3 viewDir, float3 normal,
                             MaterialInfo material, float3 ambient,
                             float3 texDiffuse, float specularMask, float envPercent, float specAmount = 1) {
-    float envBias = lerp(0, 9, material.Roughness);
-    float env = environment.SampleBias(envSampler, normalize(reflect(viewDir, normal)), envBias).r;
-    env = env * envPercent + .15;
+    float envBias = lerp(0, 9, saturate(material.Roughness - .3)); // this causes extreme artifacts between pixel edges. find a different way to blur
+    float env = environment.SampleLevel(envSampler, normalize(reflect(viewDir, normal)), envBias).r;
+    //float env = environment.Sample(envSampler, normalize(reflect(viewDir, normal))).r;
     float lum = Luminance(ambient);
-    float3 envTerm = specularMask * env /** texDiffuse*/;
-    //float eyeTerm = 1 + pow(saturate(dot(viewDir, -normal)), 16) * 1; // increase brightness of highlights facing the camera
-    float gloss = RoughnessToGloss(material.Roughness) / 4;
-    float nDotH = HalfLambert(normal, -viewDir) * 2;
-    nDotH = saturate(dot(-viewDir, normal));
-    float eyeTerm = 1 + specAmount * pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
-    float3 diff = pow(texDiffuse + 1, 2) - 1;
-    return ambient * diff * pow(envTerm, 2) * eyeTerm * material.Metalness * material.LightReceived * material.EnvStrength * material.SpecularStrength;
+    env = 1 + lerp(0.0, clamp(env, 0.275, .7), envPercent) * .8;
+    float3 envTerm = pow(env, 2) - 1;
+    float3 diff = pow(texDiffuse * material.SpecularStrength + 1, 2) - 1; // boost bright areas
+    return ambient * diff * envTerm * material.Metalness * material.LightReceived  * specularMask;
+    //return ambient * diff * envTerm * /*eyeTerm **/ material.Metalness * material.LightReceived * /*material.EnvStrength **/ material.SpecularStrength;
 }
+
 
 float3 ApplyPointLight(
     float3 diffuse,
@@ -623,38 +621,38 @@ float3 ApplyRectLight(
     float alphaPrime = saturate(alpha + (1 /*lightRadius*/ / (2. * lightDist)));
 
     color.rgb +=
-    geometrySmith(nDotV, intensity, roughness)*
-     saturate(normalDistributionGGXRect(nDotH, alpha, alphaPrime))
-    * fresnelSchlick(F0, vDotH);
+        geometrySmith(nDotV, intensity, roughness) *
+        saturate(normalDistributionGGXRect(nDotH, alpha, alphaPrime))
+        * fresnelSchlick(F0, vDotH);
 
     {
-    //    float3 reflectedIntersect = IntersectPlane(p, r, rectNormal, rectPos);
-    //    float3 reflectedDir = reflectedIntersect - rectPos;
-    //    float2 reflectedPlanePoint = float2(dot(reflectedDir, rectRight),
-    //                                    dot(reflectedDir, rectUp));
+        //    float3 reflectedIntersect = IntersectPlane(p, r, rectNormal, rectPos);
+        //    float3 reflectedDir = reflectedIntersect - rectPos;
+        //    float2 reflectedPlanePoint = float2(dot(reflectedDir, rectRight),
+        //                                    dot(reflectedDir, rectUp));
 
-    //    float2 nearestReflectedPoint = float2(clamp(reflectedPlanePoint.x, -vWidth, vWidth),
-    //                                      clamp(reflectedPlanePoint.y, -vHeight, vHeight));
+        //    float2 nearestReflectedPoint = float2(clamp(reflectedPlanePoint.x, -vWidth, vWidth),
+        //                                      clamp(reflectedPlanePoint.y, -vHeight, vHeight));
 
-    //// calculate point on the rectangle surface/edge based on the ray originating from the shaded point
-    ////float3 planePointCenter = IntersectPlane(p, r, rectNormal, rectPos) - rectPos;
-    ////float2 planePointProj = float2(dot(planePointCenter, rectRight), 
-    ////                           dot(planePointCenter, rectUp));
-    ////vec2 c = min(abs(planePointProj), rect.halfSize) * sign(planePointProj);
-    ////float2 c = clamp(planePointProj, -rect.halfSize, rect.halfSize);
-    ////float cx = clamp(planePointProj.x, -vWidth, vWidth);
-    ////float cy = clamp(planePointProj.y, -vHeight, vHeight);
-    //    float3 L = rectPos + rectRight * nearestReflectedPoint.x + rectUp * nearestReflectedPoint.y;
-    //    float3 l = rectPos + rectRight * nearestReflectedPoint.x + rectUp * nearestReflectedPoint.y - p;
-    //    float lightDist = length(l);
-    //    float3 h = normalize(viewDir - normalize(l)); // half angle
-    //    float nDotH = saturate(dot(-h, normal));
+        //// calculate point on the rectangle surface/edge based on the ray originating from the shaded point
+        ////float3 planePointCenter = IntersectPlane(p, r, rectNormal, rectPos) - rectPos;
+        ////float2 planePointProj = float2(dot(planePointCenter, rectRight), 
+        ////                           dot(planePointCenter, rectUp));
+        ////vec2 c = min(abs(planePointProj), rect.halfSize) * sign(planePointProj);
+        ////float2 c = clamp(planePointProj, -rect.halfSize, rect.halfSize);
+        ////float cx = clamp(planePointProj.x, -vWidth, vWidth);
+        ////float cy = clamp(planePointProj.y, -vHeight, vHeight);
+        //    float3 L = rectPos + rectRight * nearestReflectedPoint.x + rectUp * nearestReflectedPoint.y;
+        //    float3 l = rectPos + rectRight * nearestReflectedPoint.x + rectUp * nearestReflectedPoint.y - p;
+        //    float lightDist = length(l);
+        //    float3 h = normalize(viewDir - normalize(l)); // half angle
+        //    float nDotH = saturate(dot(-h, normal));
 
-    //    roughness = 0.4f;
-    //    float alpha = roughness * roughness;
-    //    float alphaPrime = saturate(alpha + (1 / (2. * lightDist)));
+        //    roughness = 0.4f;
+        //    float alpha = roughness * roughness;
+        //    float alphaPrime = saturate(alpha + (1 / (2. * lightDist)));
 
-    //    color.rgb += ndfTrowbridgeReitzRect(nDotH, alpha, alphaPrime);
+        //    color.rgb += ndfTrowbridgeReitzRect(nDotH, alpha, alphaPrime);
     }
 
     //{
@@ -757,7 +755,8 @@ float3 ApplyRectLight2(
         //float nDotH = max(dot(-h, normal), 0);
 
         //float3 halfVec = normalize(lightDir - viewDir);
-        float nDotH = HalfLambert(normal, -h);
+        float nDotH = Lambert(normal, -h);
+
         //float nDotH = saturate(dot(-h, normal));
         float gloss = RoughnessToGloss(roughness);
         float specularFactor = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
@@ -815,9 +814,8 @@ float3 ApplyRectLight2(
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
 
-static const float METAL_DIFFUSE_FACTOR = 0.05; // overall brightness of metal
-static const float METAL_SPECULAR_FACTOR = 1; // reduce this after increasing specular exponent
-static const float METAL_SPECULAR_EXP = 2.0; // increase this to get more diffuse color contribution
+static const float METAL_DIFFUSE_FACTOR = .5; // Direct lighting contribution on metal
+static const float METAL_SPECULAR_EXP = 1.5; // increase this to get sharper metal highlights
 
 float3 GetMetalDiffuse(float3 diffuse) {
     float3 intensity = dot(diffuse, float3(0.299, 0.587, 0.114));
@@ -826,14 +824,12 @@ float3 GetMetalDiffuse(float3 diffuse) {
 
 void GetLightColors(LightData light, MaterialInfo material, float3 diffuse, out float3 specularColor, out float3 lightColor) {
     const float3 lightRgb = light.color.rgb * light.color.a;
-    lightColor = lerp(lightRgb, 0, material.Metalness * .975); // Allow some diffuse contribution even at max metal for visibility reasons 
+    lightColor = lerp(lightRgb, lightRgb * diffuse * METAL_DIFFUSE_FACTOR, material.Metalness); // Allow some diffuse contribution even at max metal for visibility reasons 
     //float3 metalDiffuse = GetMetalDiffuse(diffuse);
 
-    specularColor = lightColor + lerp(0, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb * METAL_SPECULAR_FACTOR, material.Metalness);
-    specularColor *= material.SpecularStrength;
+    specularColor = lerp(lightColor, (pow(diffuse + 1, METAL_SPECULAR_EXP) - 1) * lightRgb, material.Metalness);
+    //specularColor = lerp(lightColor, diffuse * lightRgb, material.Metalness) * material.SpecularStrength;
     //specularColor = clamp(specularColor, 0, 10); // clamp overly bright specular as it causes bloom flickering
-    lightColor += lerp(0, diffuse * lightRgb * METAL_DIFFUSE_FACTOR, material.Metalness);
-    //lightColor *= (1 - material.Metalness);
 }
 
 void ShadeLights(inout float3 colorSum,

@@ -4,7 +4,7 @@
 #define RS "RootFlags(ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), "\
     "CBV(b0),"\
     "DescriptorTable(SRV(t0, space = 1, numDescriptors = unbounded, flags = DESCRIPTORS_VOLATILE), visibility=SHADER_VISIBILITY_PIXEL), " \
-    "RootConstants(b1, num32BitConstants = 10), "\
+    "RootConstants(b1, num32BitConstants = 11), "\
     "DescriptorTable(SRV(t0), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t1, numDescriptors = 4), visibility=SHADER_VISIBILITY_PIXEL), " \
     "DescriptorTable(SRV(t5), visibility=SHADER_VISIBILITY_PIXEL), " \
@@ -46,6 +46,7 @@ struct InstanceConstants {
     float2 Scroll, Scroll2; // scrolling needs to be separate? or part of texture info
     float LightingScale; // for unlit mode
     bool Distort;
+    bool IsOverlay;
     bool HasOverlay;
     int Tex1, Tex2;
     float EnvStrength;
@@ -217,15 +218,10 @@ Texture2D GetTexture(int index, int slot) {
 }
 
 float4 psmain(PS_INPUT input) : SV_Target {
-    //return float4(input.normal.zzz, 1);
     float3 viewDir = normalize(input.world - Frame.Eye);
-    // adding noise fixes dithering, but this is expensive. sample a noise texture instead
-    //specular.rgb *= 1 + rand(input.uv * 5) * 0.1;
-
-    float4 base = Sample2D(Diffuse, input.uv, Sampler, Frame.FilterMode);
-    float3 normal = SampleNormal(Normal1, input.uv, Sampler, Frame.FilterMode);
-    //float4 base = Sample2D(GetTexture(input.Tex1, MAT_DIFF), input.uv, Sampler, Frame.FilterMode);
-    //float3 normal = SampleNormal(GetTexture(input.Tex1, MAT_NORM), input.uv, NormalSampler);
+    float2 uvs = Args.IsOverlay ? input.uv2 : input.uv;
+    float4 diffuse = Sample2D(Diffuse, uvs, Sampler, Frame.FilterMode);
+    float3 normal = SampleNormal(Normal1, uvs, Sampler, Frame.FilterMode);
 
     MaterialInfo mat1 = Materials[Args.Tex1];
     normal.xy *= mat1.NormalStrength;
@@ -238,89 +234,31 @@ float4 psmain(PS_INPUT input) : SV_Target {
     //float gx = clamp(fwd * 100, 0.01, 4);
     //return float4(0, gx * 1, 0, 1);
 
-    float specularMask = Sample2D(Specular1, input.uv, Sampler, Frame.FilterMode).r;
+    float specularMask = Sample2D(Specular1, uvs, Sampler, Frame.FilterMode).r;
     specularMask *= mat1.SpecularStrength;
 
-    //return specularMask.rrrr;
-    //float specularMask = Sample2D(GetTexture(input.Tex1, MAT_SPEC), input.uv, Sampler, Frame.FilterMode).r;
-
-    //float3 normal = clamp(Normal1.Sample(Sampler, input.uv).rgb * 2 - 1, -1, 1); // map from 0..1 to -1..1
-    //float3 normal = Normal1.SampleLevel(Sampler, input.uv, 1).rgb;
-    //float normalStrength = 0.60;
-
-    //return float4(normal * 0.5 + 0.5, 1);
-    //normal = input.normal;
-    //return float4(input.normal * 0.5 + 0.5, 1);
-
-    //base.rgb = TextureNoTile(Diffuse, input.uv, input.world / 20, 1);
-    //base += base * Sample2DAA(Specular1, input.uv) * specular * 1.5;
-    float4 diffuse = base;
-
-    float emissive = Sample2D(Emissive, input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
+    float emissive = Sample2D(Emissive, uvs, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
     //float emissive = Sample2D(GetTexture(input.Tex1, MAT_EMIS), input.uv, Sampler, Frame.FilterMode).r * mat1.EmissiveStrength;
     MaterialInfo material = mat1;
-
-    if (Args.HasOverlay) {
-        MaterialInfo mat2 = Materials[Args.Tex2];
-        //if (input.Tex2 > 0) {
-        //    MaterialInfo mat2 = Materials[input.Tex2];
-
-        // Apply supertransparency mask
-        float mask = 1 - Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
-        //float mask = 1 - Sample2D(GetTexture(input.Tex2, MAT_MASK), input.uv2, Sampler, Frame.FilterMode).r; // only need a single channel
-        base *= mask;
-
-        float4 overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode);
-        //float4 overlay = Sample2D(GetTexture(input.Tex2, MAT_DIFF), input.uv2, Sampler, Frame.FilterMode); // linear sampler causes artifacts
-        float out_a = overlay.a + base.a * (1 - overlay.a);
-        //overlay.a = overlay.a < 1 ? 0 : 1; // Fixes border of transparent overlays
-        overlay.a = mask < 1 ? 1 : overlay.a; // Fixes masked area of transparent overlays
-        float3 out_rgb = lerp(base.rgb, overlay.rgb, overlay.a);
-        //float3 out_rgb = overlay.a > 0 ? overlay.rgb : base.rgb ; // lerp(base.rgb, overlay.rgb, overlay.a);
-        diffuse = float4(out_rgb, out_a);
-        emissive *= 1 - overlay.a; // Remove covered portion of emissive
-
-        // AA sampling causes artifacts on sharp highlights. Use plain point sampling instead.
-        //float3 overlayNormal = clamp(SampleData2D(Normal2, input.uv2, Sampler, Frame.FilterMode).rgb * 2 - 1, -1, 1);
-        //float3 overlayNormal = SampleNormal(GetTexture(input.Tex2, MAT_NORM), input.uv2, NormalSampler);
-        //return float4(pow(overlayNormal * 0.5 + 0.5, 2.2), 1);
-        float3 overlayNormal = SampleNormal(Normal2, input.uv2, Sampler, Frame.FilterMode);
-        overlayNormal.xy *= mat2.NormalStrength;
-        overlayNormal = normalize(overlayNormal);
-
-        normal = normalize(lerp(normal, overlayNormal, overlay.a));
-
-        material.SpecularStrength = lerp(mat1.SpecularStrength, mat2.SpecularStrength, overlay.a);
-        material.Metalness = lerp(mat1.Metalness, mat2.Metalness, overlay.a);
-        material.NormalStrength = normalize(lerp(mat1.NormalStrength, mat2.NormalStrength, overlay.a));
-        material.Roughness = lerp(mat1.Roughness, mat2.Roughness, overlay.a);
-        material.LightReceived = lerp(mat1.LightReceived, mat2.LightReceived, overlay.a);
-        material.EnvStrength = lerp(mat1.EnvStrength, mat2.EnvStrength, overlay.a);
-
-        float overlaySpecularMask = Sample2D(Specular2, input.uv2, Sampler, Frame.FilterMode).r;
-        overlaySpecularMask *= mat2.SpecularStrength;
-
-        //float overlaySpecularMask = Sample2D(GetTexture(input.Tex2, MAT_SPEC), input.uv2, Sampler, Frame.FilterMode).r;
-        specularMask = lerp(specularMask, overlaySpecularMask, max(overlay.a, 1 - mask));
-        // layer the emissive over the base emissive
-        emissive += Sample2D(Emissive2, input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
-        //emissive += Sample2D(GetTexture(input.Tex2, MAT_EMIS), input.uv2, Sampler, Frame.FilterMode).r * mat2.EmissiveStrength * overlay.a;
-    }
-
-    material.SpecularStrength = 1;
 
     if (emissive > 0 && mat1.LightReceived == 0)
         emissive = emissive + 1; // make lava and forcefields full bright
 
-    // Use <= 0 to use cutout edge AA, but it introduces artifacts. < 1 causes aliasing.
-    // Rarely a few pixels of light tiling will fail with <= 0 in enhanced mode with AA, but this is less distracting than aliasing
+    if (Args.HasOverlay) {
+        float overlay = Sample2D(Diffuse2, input.uv2, Sampler, Frame.FilterMode).a;
+        float mask = Sample2D(StMask, input.uv2, Sampler, Frame.FilterMode).r;
+        //return float4(mask, 0, 0, 1);
+
+        if (mask > 0 || overlay == 1)
+            discard; // Don't draw opaque pixels under overlay
+    }
+
     if (diffuse.a <= 0)
-        discard;
+        discard; // discard transparent areas
 
     // align normals
     float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
     normal = normalize(mul(normal, tbn));
-    //return float4(normal, 1);
 
     //return ApplyLinearFog(base * lighting, input.pos, 10, 500, float4(0.25, 0.35, 0.75, 1));
     float3 lighting = float3(0, 0, 0);
@@ -341,18 +279,11 @@ float4 psmain(PS_INPUT input) : SV_Target {
         emissive *= Frame.GlobalDimming;
 
         ShadeLights(directLight, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
-        //float flatness = saturate(1 - abs(ddx(colorSum)) - abs(ddy(colorSum)));
-        //gloss = exp2(lerp(0, log2(gloss), flatness));
-        //colorSum *= flatness;
         lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
         lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
-        lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient, diffuse.rgb, specularMask, .4, .4);
         lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
-
-        //lighting.rgb += vertexLighting * 1.0;
-        //lighting.rgb = max(lighting.rgb, vertexLighting * 0.40);
-        //lighting.rgb = clamp(lighting.rgb, 0, float3(1, 1, 1) * 1.8);
+        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .2, diffuse.rgb, specularMask, .15) * diffuse.a;
         return float4(lighting, diffuse.a);
     }
 }

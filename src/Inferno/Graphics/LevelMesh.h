@@ -19,6 +19,7 @@ namespace Inferno {
         Tag Tag{}; // Only valid for walls
         BlendMode Blend = BlendMode::Opaque;
         bool Cloaked = false;
+        DirectX::BoundingOrientedBox Bounds; // Only for walls
 
         void AddQuad(uint16 index) {
             for (uint16 i = 0; i < 6; i++) {
@@ -35,6 +36,10 @@ namespace Inferno {
     struct LevelGeometry {
         // Static meshes
         List<LevelChunk> Chunks;
+
+        // Static mesh decals (overlay textures)
+        List<LevelChunk> Decals;
+
         // 'Wall' meshes that require depth sorting
         List<LevelChunk> Walls;
         // Technically vertices are no longer needed after being uploaded
@@ -103,16 +108,16 @@ namespace Inferno {
 
         LevelGeometry _geometry;
         List<LevelMesh> _meshes;
-        List<LevelMesh> _wallMeshes;
-        ChunkCache _chunks;
+        List<LevelMesh> _wallMeshes, _decalMeshes;
+        ChunkCache _chunks, _decals;
     public:
         span<LevelMesh> GetMeshes() { return _meshes; }
+        span<LevelMesh> GetDecals() { return _decalMeshes; }
         span<LevelMesh> GetWallMeshes() { return _wallMeshes; }
 
         void Update(Level& level, PackedBuffer& buffer);
-
-
     private:
+        void CreateLevelGeometry(Level& level);
         void UpdateBuffers(PackedBuffer& buffer);
     };
 }

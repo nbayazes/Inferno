@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Render.Queue.h"
-
 #include "Game.h"
 #include "Game.Wall.h"
 #include "LegitProfiler.h"
@@ -8,7 +7,6 @@
 #include "Render.Editor.h"
 #include "Render.Particles.h"
 #include "Render.h"
-#include "ScopedTimer.h"
 
 namespace Inferno::Render {
     bool ShouldDrawObject(const Object& obj) {
@@ -18,10 +16,11 @@ namespace Inferno::Render {
         return true;
     }
 
-    void RenderQueue::Update(Level& level, span<LevelMesh> levelMeshes, span<LevelMesh> wallMeshes, bool drawObjects) {
+    void RenderQueue::Update(Level& level, LevelMeshBuilder& meshBuilder, bool drawObjects) {
         LegitProfiler::ProfilerTask task("Render queue", LegitProfiler::Colors::ALIZARIN);
         _transparentQueue.clear();
         _opaqueQueue.clear();
+        _decalQueue.clear();
         _visited.clear();
         _distortionQueue.clear();
         _roomQueue.clear();
@@ -29,13 +28,21 @@ namespace Inferno::Render {
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
         // Queue commands for level meshes
-        for (auto& mesh : levelMeshes)
+        for (auto& mesh : meshBuilder.GetMeshes()) {
+            if (!Render::CameraFrustum.Contains(mesh.Chunk->Bounds)) continue;
             _opaqueQueue.push_back({ &mesh, 0 });
+        }
+
+        for (auto& mesh : meshBuilder.GetDecals()) {
+            if (!Render::CameraFrustum.Contains(mesh.Chunk->Bounds)) continue;
+            _decalQueue.push_back({ &mesh, 0 });
+        }
 
         if (Game::GetState() == GameState::Editor) {
             UpdateAllEffects(Game::FrameTime);
 
-            for (auto& mesh : wallMeshes) {
+            for (auto& mesh : meshBuilder.GetWallMeshes()) {
+                if (!Render::CameraFrustum.Contains(mesh.Chunk->Bounds)) continue;
                 float depth = Vector3::DistanceSquared(Camera.Position, mesh.Chunk->Center);
                 _transparentQueue.push_back({ &mesh, depth });
             }
@@ -73,7 +80,7 @@ namespace Inferno::Render {
             //TraverseLevel(level.Objects[0].Segment, level, wallMeshes);
 
             auto roomId = level.GetRoomID(Game::GetPlayerObject());
-            TraverseLevelRooms(roomId, level, wallMeshes);
+            TraverseLevelRooms(roomId, level, meshBuilder.GetWallMeshes());
         }
 
         LegitProfiler::AddCpuTask(std::move(task));

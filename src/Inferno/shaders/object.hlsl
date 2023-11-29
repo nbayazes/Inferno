@@ -138,7 +138,6 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
             MaterialInfo material = Materials[matid];
             float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
-            //return float4(normal, 1);
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);
 
@@ -150,22 +149,27 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
             float3 colorSum = float3(0, 0, 0);
             uint2 pixelPos = uint2(input.pos.xy);
-            //specularMask = 1;
-            //normal = input.normal;
             ambient *= Frame.GlobalDimming;
+            specularMask *= material.SpecularStrength;
+
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
-            //lighting += emissive * diffuse.rgb * material.EmissiveStrength * ambient;
             lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
 
-            specularMask *= material.SpecularStrength;
-            specularMask = saturate(specularMask);
-            material.SpecularStrength = 1;
-
             //lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
-            lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient, diffuse.rgb, specularMask, .5, .75);
-            lighting.rgb *= 2; // Objects are difficult to see
+            lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .15);
+
+            {
+                // Add some fake specular highlights so objects without direct lighting aren't completely flat
+                float nDotH = HalfLambert(normal, -viewDir);
+                float gloss = RoughnessToGloss(material.Roughness);
+                float eyeTerm = pow(nDotH, gloss) * (gloss + 2) / 8; // blinn-phong
+                gloss *= 0.25;
+                eyeTerm += pow(nDotH, gloss) * (gloss + 2) / 8;
+                float3 specularColor = lerp(ambient, diffuse.rgb * ambient, material.Metalness) * material.SpecularStrength;
+                lighting += eyeTerm * specularColor * specularMask;
+            }
         }
 
         lighting.rgb += phaseColor;

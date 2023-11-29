@@ -102,7 +102,6 @@ namespace Inferno::Render {
         effect.Shader->SetConstants(cmdList, constants);
 
         mesh.Draw(cmdList);
-        Stats::DrawCalls++;
     }
 
     void ClearDepthPrepass(Graphics::GraphicsContext& ctx) {
@@ -133,7 +132,6 @@ namespace Inferno::Render {
                     ctx.ApplyEffect(Effects->Depth);
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     cmd.Data.LevelMesh->Draw(cmdList);
-                    Stats::DrawCalls++;
                     break;
 
                 case RenderCommandType::Object:
@@ -228,7 +226,7 @@ namespace Inferno::Render {
         Adapter->GetHdrDepthBuffer().Transition(cmdList, D3D12_RESOURCE_STATE_DEPTH_READ);
     }
 
-    void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh) {
+    void DrawLevelMesh(const GraphicsContext& ctx, const Inferno::LevelMesh& mesh, bool decals) {
         if (!mesh.Chunk) return;
         auto& chunk = *mesh.Chunk;
 
@@ -238,6 +236,8 @@ namespace Inferno::Render {
         auto cmdList = ctx.GetCommandList();
         auto& ti = Resources::GetLevelTextureInfo(chunk.TMap1);
 
+        if (decals && chunk.TMap2 == LevelTexID::Unset) return;
+
         if (chunk.Cloaked) {
             // todo: cloaked walls will have to be rendered with a different shader -> prefer glass / distortion
             Shaders->Level.SetDiffuse1(cmdList, Materials->Black().Handle());
@@ -246,46 +246,50 @@ namespace Inferno::Render {
             constants.LightingScale = 1;
         }
         else {
-            constants.Overlay = chunk.TMap2 > LevelTexID::Unset;
+            constants.HasOverlay = !decals && chunk.TMap2 > LevelTexID::Unset;
+            constants.IsOverlay = decals;
 
             // Only walls have tags
             auto side = Game::Level.TryGetSide(chunk.Tag);
 
             if (SideIsDoor(side)) {
                 // Use the current texture for this side, as walls are drawn individually
-                auto& map1 = Materials->Get(side->TMap);
-                Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
-                Shaders->Level.SetMaterial1(cmdList, map1);
 
-                if (constants.Overlay) {
-                    auto& map2 = Materials->Get(side->TMap2);
-                    Shaders->Level.SetDiffuse2(cmdList, map2.Handles[0]);
-                    Shaders->Level.SetMaterial2(cmdList, map2);
-                }
-            }
-            else {
-                if (auto proc = GetLevelProcedural(chunk.TMap1)) {
-                    // For procedural textures the animation is baked into it
-                    auto& map1 = Materials->Get(chunk.TMap1);
-                    Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
-                    Shaders->Level.SetMaterial1(cmdList, map1);
-                }
-                else {
-                    auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                if (!decals) {
+                    auto& map1 = Materials->Get(side->TMap);
                     Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
                     Shaders->Level.SetMaterial1(cmdList, map1);
                 }
-
-                if (constants.Overlay) {
+                else {
+                    auto& map2 = Materials->Get(side->TMap2);
+                    Shaders->Level.SetDiffuse1(cmdList, map2.Handles[0]);
+                    Shaders->Level.SetMaterial1(cmdList, map2);
+                }
+            }
+            else {
+                if (!decals) {
+                    if (auto proc = GetLevelProcedural(chunk.TMap1)) {
+                        // For procedural textures the animation is baked into it
+                        auto& map1 = Materials->Get(chunk.TMap1);
+                        Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
+                        Shaders->Level.SetMaterial1(cmdList, map1);
+                    }
+                    else {
+                        auto& map1 = chunk.EffectClip1 == EClipID::None ? Materials->Get(chunk.TMap1) : Materials->Get(chunk.EffectClip1, ElapsedTime, false);
+                        Shaders->Level.SetDiffuse1(cmdList, map1.Handles[0]);
+                        Shaders->Level.SetMaterial1(cmdList, map1);
+                    }
+                }
+                else {
                     if (auto proc = GetLevelProcedural(chunk.TMap2)) {
                         auto& map2 = Materials->Get(chunk.TMap2);
-                        Shaders->Level.SetDiffuse2(cmdList, proc->GetHandle());
-                        Shaders->Level.SetMaterial2(cmdList, map2);
+                        Shaders->Level.SetDiffuse1(cmdList, proc->GetHandle());
+                        Shaders->Level.SetMaterial1(cmdList, map2);
                     }
                     else {
                         auto& map2 = chunk.EffectClip2 == EClipID::None ? Materials->Get(chunk.TMap2) : Materials->Get(chunk.EffectClip2, ElapsedTime, Game::ControlCenterDestroyed);
-                        Shaders->Level.SetDiffuse2(cmdList, map2.Handles[0]);
-                        Shaders->Level.SetMaterial2(cmdList, map2);
+                        Shaders->Level.SetDiffuse1(cmdList, map2.Handles[0]);
+                        Shaders->Level.SetMaterial1(cmdList, map2);
                     }
                 }
             }
@@ -296,21 +300,25 @@ namespace Inferno::Render {
         constants.Distort = ti.Slide != Vector2::Zero;
         constants.Tex1 = (int)ti.TexID;
 
-        if (constants.Overlay) {
-            auto tid2 = Resources::LookupTexID(chunk.TMap2);
-            constants.Tex2 = (int)tid2;
-        }
-        else {
+        if (decals) {
+            constants.Tex1 = (int)Resources::LookupTexID(chunk.TMap2);
             Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
         }
+        else if (constants.HasOverlay) {
+            constants.Tex2 = (int)Resources::LookupTexID(chunk.TMap2); // Pass overlay when drawing base texture to discard with
+            Shaders->Level.SetDiffuse2(cmdList, Materials->Get(chunk.TMap2).Handle());
+            Shaders->Level.SetMaterial2(cmdList, Materials->Get(chunk.TMap2));
+        }
+        //else {
+        //    Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
+        //}
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
         mesh.Draw(cmdList);
-        Stats::DrawCalls++;
     }
 
-    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, RenderPass pass) {
+    void ExecuteRenderCommand(GraphicsContext& ctx, const RenderCommand& cmd, RenderPass pass, bool decals = false) {
         switch (cmd.Type) {
             case RenderCommandType::LevelMesh:
             {
@@ -322,13 +330,12 @@ namespace Inferno::Render {
                         ctx.ApplyEffect(Effects->LevelWallFlat);
                     }
                     else {
-                        if (pass != RenderPass::Opaque) return;
+                        if (pass != RenderPass::Opaque && pass != RenderPass::Decals) return;
                         ctx.ApplyEffect(Effects->LevelFlat);
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     cmd.Data.LevelMesh->Draw(ctx.GetCommandList());
-                    Stats::DrawCalls++;
                 }
                 else {
                     bool effectChanged = false;
@@ -342,8 +349,12 @@ namespace Inferno::Render {
                         effectChanged = ctx.ApplyEffect(Effects->LevelWallAdditive);
                     }
                     else {
-                        if (pass != RenderPass::Opaque) return;
-                        effectChanged = ctx.ApplyEffect(Effects->Level);
+                        if (pass == RenderPass::Opaque)
+                            effectChanged = ctx.ApplyEffect(Effects->Level);
+                        else if (pass == RenderPass::Decals)
+                            effectChanged = ctx.ApplyEffect(Effects->LevelWall); // Level wall has alpha enabled
+                        else
+                            return;
                     }
 
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
@@ -360,7 +371,7 @@ namespace Inferno::Render {
                         Shaders->Level.SetTextureTable(cmdList, Render::Heaps->Materials.GetGpuHandle(0));
                     }
 
-                    DrawLevelMesh(ctx, *cmd.Data.LevelMesh);
+                    DrawLevelMesh(ctx, *cmd.Data.LevelMesh, decals);
                 }
 
                 break;
@@ -425,7 +436,7 @@ namespace Inferno::Render {
         if (Game::GetState() == GameState::Editor && !Settings::Editor.ShowObjects)
             drawObjects = false;
 
-        _renderQueue.Update(level, _levelMeshBuilder.GetMeshes(), _levelMeshBuilder.GetWallMeshes(), drawObjects);
+        _renderQueue.Update(level, _levelMeshBuilder, drawObjects);
 
         float dimming = Game::GetSelfDestructDimming();
 
@@ -523,9 +534,21 @@ namespace Inferno::Render {
             }
 
             {
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(1), "Decal queue");
+                for (auto& cmd : _renderQueue.Decal())
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Decals, true);
+            }
+
+            {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Wall queue");
                 for (auto& cmd : _renderQueue.Transparent())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Walls);
+            }
+
+            {
+                PIXScopedEvent(cmdList, PIX_COLOR_INDEX(2), "Wall decal queue");
+                for (auto& cmd : _renderQueue.Transparent())
+                    ExecuteRenderCommand(ctx, cmd, RenderPass::Walls, true);
             }
 
             DrawDecals(ctx, Game::FrameTime);

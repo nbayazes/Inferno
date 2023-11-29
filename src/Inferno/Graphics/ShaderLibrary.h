@@ -299,7 +299,8 @@ namespace Inferno {
             Vector2 Scroll, Scroll2; // For UV scrolling
             float LightingScale;
             HlslBool Distort;
-            HlslBool Overlay;
+            HlslBool IsOverlay; // Use UV2s
+            HlslBool HasOverlay; // Discard pixels under overlay
             int Tex1, Tex2;
             float EnvStrength;
         };
