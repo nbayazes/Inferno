@@ -821,6 +821,7 @@ namespace Inferno {
         auto id = PowerupID(obj.ID);
         auto& powerup = Resources::GameData.Powerups[obj.ID];
         bool used = false, ammoPickedUp = false;
+        bool playSound = true;
 
         switch (id) {
             case PowerupID::ExtraLife:
@@ -1061,6 +1062,7 @@ namespace Inferno {
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::CloakingDevice)));
                     Game::CloakObject(Game::GetPlayerObject(), CLOAK_TIME);
                     used = true;
+                    playSound = false;
                 }
                 break;
             };
@@ -1074,6 +1076,7 @@ namespace Inferno {
                     Game::MakeInvulnerable(Game::GetPlayerObject(), INVULNERABLE_TIME);
                     PrintHudMessage(fmt::format("{}!", Resources::GetString(GameString::Invulnerability)));
                     used = true;
+                    playSound = false;
                 }
                 break;
 
@@ -1104,7 +1107,8 @@ namespace Inferno {
 
         if (used || ammoPickedUp) {
             obj.Lifespan = -1;
-            Sound::Play2D({ powerup.HitSound });
+            if (playSound)
+                Sound::Play2D({ powerup.HitSound });
         }
     }
 
