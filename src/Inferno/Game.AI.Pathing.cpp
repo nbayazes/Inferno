@@ -447,14 +447,14 @@ namespace Inferno {
                         if (i == 0) {
                             // check the surrounding segments of the start location
                             for (auto& conn : nextSeg->Connections) {
-                                if (IntersectRaySegment(level, ray, conn, maxDist, false, false, nullptr)) {
+                                if (IntersectRaySegment(level, ray, conn, maxDist)) {
                                     //Render::Debug::DrawLine(obj.Position, desiredPosition, Color(1, 0, 0));
                                     //return; // wall in the way, don't try going any further
 
                                     // try a shorter path
                                     while (desiredIndex > 1) {
                                         desiredIndex--;
-                                        if (!IntersectRaySegment(level, ray, segs[desiredIndex], maxDist, false, false, nullptr)) {
+                                        if (!IntersectRaySegment(level, ray, segs[desiredIndex], maxDist)) {
                                             nextSeg = level.TryGetSegment(segs[desiredIndex]);
                                             targetPosition = nextSeg->Center;
                                             return;
@@ -467,7 +467,7 @@ namespace Inferno {
                             }
                         }
 
-                        if (IntersectRaySegment(level, ray, segs[i], maxDist, false, false, nullptr)) {
+                        if (IntersectRaySegment(level, ray, segs[i], maxDist)) {
                             //Render::Debug::DrawLine(obj.Position, desiredPosition, Color(1, 0, 0));
                             break; // wall in the way, don't try going any further
                         }

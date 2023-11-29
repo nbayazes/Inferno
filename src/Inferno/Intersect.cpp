@@ -341,17 +341,11 @@ namespace Inferno {
                     bool isSolid = !seg.SideHasConnection(side);
 
                     if (!query.IgnoreWalls) {
-                        if (seg.SideIsWall(side) && WallIsTransparent(*_level, tag)) {
-                            /*if (query.PassTransparent)
+                        if (auto wall = _level->TryGetWall(tag)) {
+                            if (!wall->IsSolid())
                                 isSolid = false;
-                            else */
-                            if (query.TestTextures)
+                            else if (query.TestTextures)
                                 isSolid = !WallPointIsTransparent(intersect, face, tri);
-                            else
-                                isSolid = false;
-                        }
-                        else {
-                            isSolid = seg.SideIsSolid(side, *_level);
                         }
                     }
 
@@ -410,14 +404,11 @@ namespace Inferno {
                     bool isSolid = !seg.SideHasConnection(side);
 
                     if (!query.IgnoreWalls) {
-                        if (seg.SideIsWall(side) && WallIsTransparent(level, tag)) {
-                            if (query.PassTransparent)
+                        if (auto wall = level.TryGetWall(tag)) {
+                            if (!wall->IsSolid())
                                 isSolid = false;
                             else if (query.TestTextures)
                                 isSolid = !WallPointIsTransparent(intersect, face, tri);
-                        }
-                        else {
-                            isSolid = seg.SideIsSolid(side, level);
                         }
                     }
 
@@ -443,57 +434,6 @@ namespace Inferno {
         return false;
     }
 
-    bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist, bool passTransparent, bool hitTestTextures, LevelHit* hitResult, float offset) {
-        if (maxDist <= 0.01f) return false;
-        LevelHit hit;
-
-        auto seg = level.TryGetSegment(segId);
-        if (!seg) return false;
-
-        for (auto& side : SideIDs) {
-            if (!seg->SideIsSolid(side, level)) continue;
-            auto face = Face2::FromSide(level, *seg, side);
-
-            float dist{};
-            auto tri = face.IntersectsOffset(ray, dist, offset);
-            if (tri == -1 || dist > hit.Distance) continue;
-
-            if (dist > maxDist) return {}; // hit is too far
-
-            auto intersect = hit.Point = ray.position + ray.direction * dist;
-            Tag tag{ segId, side };
-
-            bool isSolid = false;
-            if (seg->SideIsWall(side) && WallIsTransparent(level, tag)) {
-                /*if (passTransparent)
-                    isSolid = false;
-                else*/
-                if (hitTestTextures)
-                    isSolid = !WallPointIsTransparent(intersect, face, tri);
-                else
-                    isSolid = false;
-            }
-            else {
-                isSolid = seg->SideIsSolid(side, level);
-            }
-
-            if (isSolid) {
-                if (hitResult) {
-                    hit.Tag = tag;
-                    hit.Distance = dist;
-                    hit.Normal = face.AverageNormal();
-                    hit.Tangent = face.Side->Tangents[tri];
-                    hit.Point = ray.position + ray.direction * dist;
-                    hit.EdgeDistance = FaceEdgeDistance(*seg, side, face, hit.Point);
-                    *hitResult = hit;
-                }
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     SideID IntersectRaySegmentSide(Level& level, const Ray& ray, Tag tag, float maxDist) {
         auto seg = level.TryGetSegment(tag);
         if (!seg) return SideID::None;
@@ -503,5 +443,29 @@ namespace Inferno {
         auto tri = face.Intersects(ray, dist);
         if (tri == -1 || dist > maxDist) return SideID::None;
         return tag.Side;
+    }
+
+    bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist) {
+        auto seg = level.TryGetSegment(segId);
+        if (!seg) return false;
+
+        for (auto& side : SideIDs) {
+            if (!seg->SideIsSolid(side, level)) continue;
+            auto face = Face2::FromSide(level, *seg, side);
+
+            float dist{};
+            auto tri = face.Intersects(ray, dist);
+            if (tri == -1 || dist > maxDist) continue; // hit is too far
+
+            bool isSolid = !seg->SideHasConnection(side);
+
+            if (auto wall = level.TryGetWall(face.Side->Wall))
+                isSolid = wall->IsSolid();
+
+            if (isSolid)
+                return true;
+        }
+
+        return false;
     }
 }
