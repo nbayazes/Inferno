@@ -118,7 +118,7 @@ namespace Inferno::Sound {
                         // don't hit test nearby sounds
                         Ray ray(emitterPos, dir);
                         LevelHit hit;
-                        RayQuery query{ .MaxDistance = dist, .Start = Segment, .PassTransparent = true };
+                        RayQuery query{ .MaxDistance = dist, .Start = Segment };
 
                         if (Intersect.RayLevel(ray, query, hit)) {
                             auto hitDist = (listener - hit.Point).Length();

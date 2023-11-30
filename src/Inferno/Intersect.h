@@ -82,12 +82,16 @@ namespace Inferno {
     // Returns true if the point was transparent
     bool WallPointIsTransparent(const Vector3& pnt, const Face2& face, int tri);
 
+    enum class RayQueryMode {
+        Visibility, // Ignores walls that have transparent textures
+        Precise, // Hit-tests transparent textures
+        IgnoreWalls, // Ignores all walls
+    };
+
     struct RayQuery {
         float MaxDistance = 0; // Max distance the ray can travel
         SegID Start = SegID::None; // Segment the ray starts in
-        bool PassTransparent = false; // Skips walls containing transparent pixels
-        bool TestTextures = false; // Tests wall texture transparency. Does nothing if pass transparent is set.
-        bool IgnoreWalls = false; // Skips walls
+        RayQueryMode Mode = RayQueryMode::Visibility;
     };
 
     bool IntersectRaySegment(Level& level, const Ray& ray, SegID segId, float maxDist);

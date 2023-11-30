@@ -332,101 +332,55 @@ namespace Inferno {
 
                 float dist{};
                 auto tri = face.Intersects(ray, dist);
-                if (tri != -1 && dist < hit.Distance) {
-                    if (dist > query.MaxDistance) return {}; // hit is too far
+                if (tri == -1 || dist >= hit.Distance || dist > query.MaxDistance)
+                    continue; // too far or no intersect
 
-                    auto intersect = hit.Point = ray.position + ray.direction * dist;
-                    Tag tag{ segId, side };
+                Tag tag{ segId, side };
+                bool intersects{}; // does this side intersect with rays?
 
-                    bool isSolid = !seg.SideHasConnection(side);
-
-                    if (!query.IgnoreWalls) {
-                        if (auto wall = _level->TryGetWall(tag)) {
-                            if (!wall->IsSolid())
-                                isSolid = false;
-                            else if (query.TestTextures)
-                                isSolid = !WallPointIsTransparent(intersect, face, tri);
+                switch (query.Mode) {
+                    case RayQueryMode::Visibility:
+                    {
+                        intersects = !SideIsTransparent(*_level, tag); // also checks if side is open
+                        break;
+                    }
+                    case RayQueryMode::Precise:
+                    {
+                        if (auto wall = _level->TryGetWall(face.Side->Wall)) {
+                            if (WallIsTransparent(*_level, *wall)) {
+                                auto intersect = ray.position + ray.direction * dist;
+                                intersects = !WallPointIsTransparent(intersect, face, tri);
+                            }
+                            else {
+                                intersects = false;
+                            }
                         }
-                    }
+                        else {
+                            intersects = !SideIsTransparent(*_level, tag); // also checks if side is open
+                        }
 
-                    if (isSolid) {
-                        hit.Tag = tag;
-                        hit.Distance = dist;
-                        hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side->Tangents[tri];
-                        hit.Point = ray.position + ray.direction * dist;
-                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
-                        return true;
+                        break;
                     }
-                    else {
-                        auto conn = seg.GetConnection(side);
-                        if (!Seq::contains(_visitedSegs, conn))
-                            next = conn;
-                        break; // go to next segment
-                    }
+                    case RayQueryMode::IgnoreWalls:
+                        intersects = !seg.SideHasConnection(side);
+                        break;
+                    default: ;
                 }
-            }
-        }
 
-        return false;
-    }
-
-    // intersects a ray with the level, returning hit information
-    bool IntersectRayLevel(Level& level, const Ray& ray, const RayQuery& query, LevelHit& hit) {
-        SegID next = query.Start;
-        if (next == SegID::None)
-            next = FindContainingSegment(level, ray.position);
-
-        if (next == SegID::None) return false;
-        if (query.MaxDistance <= 0.01f) return false;
-
-        List<SegID> visitedSegs;
-        visitedSegs.clear();
-        visitedSegs.reserve(10);
-
-        while (next > SegID::None) {
-            SegID segId = next;
-            visitedSegs.push_back(segId); // must track visited segs to prevent circular logic
-            next = SegID::None;
-            auto& seg = level.GetSegment(segId);
-
-            for (auto& side : SideIDs) {
-                auto face = Face2::FromSide(level, seg, side);
-
-                float dist{};
-                auto tri = face.Intersects(ray, dist);
-                if (tri != -1 && dist < hit.Distance) {
-                    if (dist > query.MaxDistance) return {}; // hit is too far
-
-                    auto intersect = hit.Point = ray.position + ray.direction * dist;
-                    Tag tag{ segId, side };
-
-                    bool isSolid = !seg.SideHasConnection(side);
-
-                    if (!query.IgnoreWalls) {
-                        if (auto wall = level.TryGetWall(tag)) {
-                            if (!wall->IsSolid())
-                                isSolid = false;
-                            else if (query.TestTextures)
-                                isSolid = !WallPointIsTransparent(intersect, face, tri);
-                        }
-                    }
-
-                    if (isSolid) {
-                        hit.Tag = tag;
-                        hit.Distance = dist;
-                        hit.Normal = face.AverageNormal();
-                        hit.Tangent = face.Side->Tangents[tri];
-                        hit.Point = ray.position + ray.direction * dist;
-                        hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
-                        return true;
-                    }
-                    else {
-                        auto conn = seg.GetConnection(side);
-                        if (!Seq::contains(visitedSegs, conn))
-                            next = conn;
-                        break; // go to next segment
-                    }
+                if (intersects) {
+                    hit.Tag = tag;
+                    hit.Distance = dist;
+                    hit.Normal = face.AverageNormal();
+                    hit.Tangent = face.Side->Tangents[tri];
+                    hit.Point = ray.position + ray.direction * dist;
+                    hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
+                    return true;
+                }
+                else {
+                    auto conn = seg.GetConnection(side);
+                    if (!Seq::contains(_visitedSegs, conn))
+                        next = conn;
+                    break; // go to next segment
                 }
             }
         }

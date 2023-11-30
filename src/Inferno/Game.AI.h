@@ -128,6 +128,7 @@ namespace Inferno {
         GameTimer AlertTimer;  // For alerting nearby robots of the player location
         GameTimer CombatSoundTimer; // For playing combat sounds
         GameTimer FleeTimer; // Finds help when this triggers
+        GameTimer ChaseTimer; // Delay for chase attempts
 
         bool PlayingAnimation() const {
             return AnimationTime < AnimationDuration;
@@ -324,5 +325,5 @@ namespace Inferno {
     float GetRotationSpeed(const RobotInfo& ri);
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
     Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon);
-    bool HasLineOfSight(const Object& obj, const Vector3& point);
+    bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
 }

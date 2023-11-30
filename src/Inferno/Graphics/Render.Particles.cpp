@@ -378,7 +378,7 @@ namespace Inferno::Render {
         auto dir = RandomVector(1);
         dir.Normalize();
 
-        RayQuery query{ .MaxDistance = radius, .Start = seg, .TestTextures = true };
+        RayQuery query{ .MaxDistance = radius, .Start = seg };
         if (Game::Intersect.RayLevel({ pos, dir }, query, hit))
             return hit.Point;
         else
@@ -1005,7 +1005,7 @@ namespace Inferno::Render {
                 Ray ray(spark.Position, dir);
                 auto rayLen = Vector3::Distance(spark.PrevPosition, spark.Position) * 1.2f;
                 LevelHit hit;
-                RayQuery query{ .MaxDistance = rayLen, .Start = spark.Segment, .TestTextures = true };
+                RayQuery query{ .MaxDistance = rayLen, .Start = spark.Segment };
                 bool hitSomething = Game::Intersect.RayLevel(ray, query, hit);
 
                 if (!hitSomething) {

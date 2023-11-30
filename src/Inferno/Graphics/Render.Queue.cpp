@@ -400,7 +400,7 @@ namespace Inferno::Render {
         if (depth > MAX_PORTAL_DEPTH) return; // Prevent stack overflow
 
         for (auto& portal : room.Portals) {
-            if (!WallIsTransparent(level, portal.Tag))
+            if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls
 
             auto face = Face2::FromSide(level, portal.Tag);
@@ -425,7 +425,7 @@ namespace Inferno::Render {
         if (!startRoom) return;
 
         for (auto& basePortal : startRoom->Portals) {
-            if (!WallIsTransparent(level, basePortal.Tag))
+            if (!SideIsTransparent(level, basePortal.Tag))
                 continue; // stop at opaque walls like closed doors
 
             auto baseFace = Face2::FromSide(level, basePortal.Tag);

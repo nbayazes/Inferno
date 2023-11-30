@@ -87,9 +87,10 @@ namespace Inferno {
         if (SetPathGoal(Game::Level, robot, ai, targetSeg, targetPosition, AI_MAX_CHASE_DISTANCE)) {
             ai.State = AIState::Chase;
             ai.Chase = chase;
+            return true;
         }
 
-        return true;
+        return false;
     }
 
     void ForNearbyRobots(RoomID startRoom, const Vector3& position, float radius, const std::function<void(Object&)>& action) {
@@ -137,7 +138,7 @@ namespace Inferno {
                     obj->NextThinkTime = 0;
 
                     // Update chase target if we hear something
-                    if(ai.State == AIState::Chase)
+                    if (ai.State == AIState::Chase)
                         ChaseTarget(ai, *obj, soundSeg, soundPosition, ChaseMode::Sound);
                 }
             }
@@ -243,12 +244,25 @@ namespace Inferno {
         return dot >= diff.FieldOfView;
     }
 
-    bool HasLineOfSight(const Object& obj, const Vector3& point) {
+    // Returns true if object can see a point
+    bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise) {
         auto [dir, dist] = GetDirectionAndDistance(point, obj.Position);
         LevelHit hit{};
         Ray ray = { obj.Position, dir };
-        RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .PassTransparent = true };
+        RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .Mode = precise ? RayQueryMode::Precise : RayQueryMode::Visibility };
         return !Game::Intersect.RayLevel(ray, query, hit);
+    }
+
+    // Returns true if gun has precise visibility to a target
+    bool HasFiringLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask) {
+        auto gunPosition = GetGunpointWorldPosition(obj, gun);
+
+        auto [dir, distance] = GetDirectionAndDistance(target, gunPosition);
+        LevelHit hit{};
+        RayQuery query{ .MaxDistance = distance, .Start = obj.Segment, .Mode = RayQueryMode::Precise };
+        bool visible = !Game::Intersect.RayLevel({ gunPosition, dir }, query, hit, mask, Game::GetObjectRef(obj).Id);
+        //Render::Debug::DrawLine(gunPosition, target, visible ? Color(0, 1, 0) : Color(1, 0, 0));
+        return visible;
     }
 
     // Player visibility doesn't account for direct line of sight like weapon fire does (other robots, walls)
@@ -749,21 +763,6 @@ namespace Inferno {
         PlayRobotAnimation(robot, AnimState::Recoil, 0.25f);
     }
 
-    // Returns true if a point has line of sight to a target
-    bool HasLineOfSight(const Object& obj, int8 gun, const Vector3& target, ObjectMask mask) {
-        auto gunPosition = GetGunpointWorldPosition(obj, gun);
-
-        auto [dir, distance] = GetDirectionAndDistance(target, gunPosition);
-        LevelHit hit{};
-        RayQuery query{ .MaxDistance = distance, .Start = obj.Segment, .PassTransparent = true, .TestTextures = true };
-        // check if segment contains gunpoint. it's possible an adjacent segment contains it instead.
-        //query.Start = TraceSegment(Game::Level, obj.Segment, gunPosition);
-
-        bool visible = !Game::Intersect.RayLevel({ gunPosition, dir }, query, hit, mask, Game::GetObjectRef(obj).Id);
-        //Render::Debug::DrawLine(gunPosition, target, visible ? Color(0, 1, 0) : Color(1, 0, 0));
-        return visible;
-    }
-
     // start charging when player is in FOV and can fire
     // keep charging even if player goes out of view
     // fire at last known location
@@ -898,7 +897,7 @@ namespace Inferno {
 
         if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 <= 0) {
             // Check if an ally robot is in the way
-            if (!HasLineOfSight(robot, 0, *ai.TargetPosition, ObjectMask::Robot)) {
+            if (!HasFiringLineOfSight(robot, 0, *ai.TargetPosition, ObjectMask::Robot)) {
                 //WiggleRobot(robot, ai, 0.5f);
                 CircleStrafe(robot, ai, robotInfo);
                 return;
@@ -919,7 +918,7 @@ namespace Inferno {
 
             if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
                 // Check if an ally robot is in the way
-                if (!HasLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::Robot)) {
+                if (!HasFiringLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::Robot)) {
                     CircleStrafe(robot, ai, robotInfo);
                     CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
                     ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
@@ -1269,7 +1268,7 @@ namespace Inferno {
             return;
         }
 
-        if (robot.Control.AI.Behavior != AIBehavior::Still && robotInfo.Attack != AttackType::Melee)
+        if (robot.Control.AI.Behavior != AIBehavior::Still || robotInfo.Attack == AttackType::Melee)
             MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
         auto& target = *pTarget;
@@ -1355,9 +1354,10 @@ namespace Inferno {
             else if (ai.CombatState == AICombatState::Chase && ai.TargetPosition && ai.Fear < 1) {
                 // Chasing a cloaked target does no good, AI just gets confused.
                 // Also don't chase the player ghost
-                if (!target.IsCloaked() && target.Type != ObjectType::Ghost) {
+                if (!target.IsCloaked() && target.Type != ObjectType::Ghost && ai.ChaseTimer <= 0) {
                     Chat(robot, "Come back here!");
-                    ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition, ChaseMode::Sight);
+                    if (!ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition, ChaseMode::Sight))
+                        ai.ChaseTimer = 5.0f;
                 }
             }
 

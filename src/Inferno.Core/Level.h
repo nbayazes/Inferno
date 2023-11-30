@@ -395,6 +395,13 @@ namespace Inferno {
             return &seg->GetSide(tag.Side);
         };
 
+        const SegmentSide* TryGetSide(Tag tag) const {
+            if (tag.Side == SideID::None) return nullptr;
+            auto seg = TryGetSegment(tag);
+            if (!seg) return nullptr;
+            return &seg->GetSide(tag.Side);
+        };
+
         SegmentSide* TryGetConnectedSide(Tag tag) {
             return TryGetSide(GetConnectedSide(tag));
         };

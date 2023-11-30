@@ -61,7 +61,7 @@ namespace Inferno::Game {
 
         Ray ray(obj.Position, dir);
         LevelHit hit;
-        RayQuery query(dist, obj.Segment, true);
+        RayQuery query(dist, obj.Segment, RayQueryMode::Visibility);
         return !Intersect.RayLevel(ray, query, hit);
     }
 

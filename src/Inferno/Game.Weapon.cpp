@@ -735,7 +735,7 @@ namespace Inferno::Game {
         //vec.Normalize();
         Ray targetRay(obj.Position, dir);
         LevelHit hit;
-        RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .TestTextures = true };
+        RayQuery query{ .MaxDistance = dist, .Start = obj.Segment, .Mode = RayQueryMode::Precise };
 
         bool inFov = ObjectIsInFOV(Ray(obj.Position, obj.Rotation.Forward()), target, fov);
         return inFov && !Intersect.RayLevel(targetRay, query, hit);
@@ -883,7 +883,7 @@ namespace Inferno::Game {
 
             Vector3 tracerEnd;
             LevelHit hit;
-            RayQuery query{ .MaxDistance = MAX_DIST, .Start = playerObj.Segment, .TestTextures = true };
+            RayQuery query{ .MaxDistance = MAX_DIST, .Start = playerObj.Segment, .Mode = RayQueryMode::Precise };
 
             if (Game::Intersect.RayLevel({ playerObj.Position, dir }, query, hit)) {
                 //tracer.End = beam.End = hit.Point;
@@ -993,7 +993,7 @@ namespace Inferno::Game {
                             RayQuery query;
                             query.Start = object.Segment;
                             query.MaxDistance = dist;
-                            query.TestTextures = true;
+                            query.Mode = RayQueryMode::Precise;
                             LevelHit hit;
                             if (!Intersect.RayLevel(ray, query, hit)) {
                                 targets[count] = { objId, obj->Signature };

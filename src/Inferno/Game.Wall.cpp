@@ -798,12 +798,32 @@ namespace Inferno {
             ActivateTriggerD2(level, trigger, src);
     }
 
-    bool WallIsTransparent(const Level& level, Tag tag) {
+    bool WallIsTransparent(const Level& level, const Wall& wall) {
+        if (wall.Type == WallType::WallTrigger)
+            return false;
+
+        if (wall.Type == WallType::Open)
+            return true;
+
+        if (auto side = level.TryGetSide(wall.Tag)) {
+            auto& tmap1 = Resources::GetTextureInfo(side->TMap);
+            if (tmap1.Transparent) return true;
+
+            if (side->TMap2 > LevelTexID::Unset) {
+                auto& tmap2 = Resources::GetTextureInfo(side->TMap2);
+                if (tmap2.SuperTransparent) return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool SideIsTransparent(const Level& level, Tag tag) {
         auto seg = level.TryGetSegment(tag);
         if (!seg) return false;
         auto& side = seg->GetSide(tag.Side);
 
-        if (auto wall = level.TryGetWall(tag)) {
+        if (auto wall = level.TryGetWall(side.Wall)) {
             if (wall->Type == WallType::WallTrigger)
                 return false;
 

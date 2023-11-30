@@ -500,7 +500,7 @@ namespace Inferno {
                     dir.Normalize();
                     Ray ray(explosion.Position, dir);
                     LevelHit hit;
-                    RayQuery query{ .MaxDistance = dist, .Start = explosion.Segment, .PassTransparent = true, .TestTextures = true };
+                    RayQuery query{ .MaxDistance = dist, .Start = explosion.Segment, .Mode = RayQueryMode::Visibility };
                     if (Intersect.RayLevel(ray, query, hit))
                         continue;
 

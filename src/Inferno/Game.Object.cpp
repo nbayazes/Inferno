@@ -503,7 +503,7 @@ namespace Inferno {
             dir.Normalize();
             Ray ray(position, dir);
             LevelHit hit;
-            RayQuery query{ .MaxDistance = d, .Start = seg, .TestTextures = true };
+            RayQuery query{ .MaxDistance = d, .Start = seg, .Mode = RayQueryMode::Precise };
             if (d <= maxDist && d < minDist && !Game::Intersect.RayLevel(ray, query, hit)) {
                 id = ref;
                 minDist = d;

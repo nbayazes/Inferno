@@ -1005,7 +1005,7 @@ namespace Inferno::Game {
                 //Inferno::Render::Debug::DebugPoints2.push_back(pt);
                 Ray ray(srcPoint, dir);
                 LevelHit hit;
-                RayQuery query{ .MaxDistance = dist, .Start = srcSegment, .IgnoreWalls = true };
+                RayQuery query{ .MaxDistance = dist, .Start = srcSegment, .Mode = RayQueryMode::IgnoreWalls };
 
                 if (!intersect.RayLevel(ray, query, hit)) {
                     //Render::Debug::DebugLines.push_back(pt);
