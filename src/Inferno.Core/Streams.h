@@ -91,35 +91,35 @@ namespace Inferno {
 
         ~StreamReader() = default;
 
-        List<sbyte> ReadSBytes(size_t length) const {
+        List<sbyte> ReadSBytes(size_t length) {
             List<sbyte> b(length);
             _stream->read(b.data(), sizeof(sbyte) * length);
             return b;
         }
 
-        List<ubyte> ReadUBytes(size_t length) const {
+        List<ubyte> ReadUBytes(size_t length) {
             List<ubyte> b(length);
             _stream->read((char*)b.data(), sizeof(ubyte) * length);
             return b;
         }
 
-        void ReadBytes(void* buffer, size_t length) const {
+        void ReadBytes(void* buffer, size_t length) {
             _stream->read((char*)buffer, length);
         }
 
-        void ReadBytes(span<ubyte> buffer) const {
+        void ReadBytes(span<ubyte> buffer) {
             _stream->read((char*)buffer.data(), buffer.size());
         }
 
         // Reads a fixed length string
-        string ReadString(size_t length) const {
+        string ReadString(size_t length) {
             List<char> b(length + 1);
             _stream->read(b.data(), sizeof(char) * length);
             return { b.data() };
         }
 
         // Reads a null or newline terminated string up to the max length
-        string ReadCString(size_t maxLen) const {
+        string ReadCString(size_t maxLen) {
             List<char> b(maxLen + 1);
             for (int i = 0; i < maxLen; i++) {
                 _stream->read(&b[i], sizeof(char));

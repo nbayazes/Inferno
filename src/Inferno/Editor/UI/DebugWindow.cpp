@@ -92,7 +92,7 @@ namespace Inferno::Editor {
 
         if (ImGui::Button("Set path target")) {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, stopAtKeyDoors, Game::Level);
+                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
 
                 if (obj->IsRobot()) {
                     obj->NextThinkTime = 0;

@@ -28,7 +28,7 @@ namespace Inferno {
         float LightValue{};
 
         // Returns the active frames
-        span<const TexID> GetFrames() const { 
+        span<const TexID> GetFrames() const {
             if (!Seq::inRange(Frames, NumFrames)) return {};
             return span(Frames.begin(), NumFrames);
         }
@@ -51,17 +51,18 @@ namespace Inferno {
     };
 
     enum class EClipFlag : int32 { None = 0, Critical = 1, OneShot = 2, Stopped = 4 };
+
     //DEFINE_ENUM_FLAG_OPERATORS(EClipFlag);
 
     // Animated level wall textures
     struct EffectClip {
         VClip VClip{}; // embedded vclip for this effect
         EClipFlag Flags{};
-        EClipID CritClip{};  // swap to this animation when mine is critical
+        EClipID CritClip{}; // swap to this animation when mine is critical
         LevelTexID DestroyedTexture = LevelTexID::None; // swap to this texture when destroyed after playing the eclip if present
-        EClipID DestroyedEClip = EClipID::None;  // swap to this animation when destroyed
-        VClipID DestroyedVClip = VClipID::None;  // vclip to play when exploding
-        float ExplosionSize{};  // Radius for vclip
+        EClipID DestroyedEClip = EClipID::None; // swap to this animation when destroyed
+        VClipID DestroyedVClip = VClipID::None; // vclip to play when exploding
+        float ExplosionSize{}; // Radius for vclip
         SoundID Sound = SoundID::None; // Ambient sound
 
         // the follow are a hack for animating a breaking clip on a wall
@@ -74,10 +75,10 @@ namespace Inferno {
     };
 
     enum class DoorClipFlag : int16 {
-        Explodes = 1,  // door explodes when opening (hostage door)
+        Explodes = 1, // door explodes when opening (hostage door)
         Blastable = 2, // this is a blastable wall
-        TMap1 = 4,     // this uses primary tmap, not tmap2
-        Hidden = 8
+        TMap1 = 4, // this uses primary tmap, not tmap2
+        Secret = 8 // Secret door. Hidden on automap and prevents guidebot pathing in D2.
     };
 
     //DEFINE_ENUM_FLAG_OPERATORS(DoorClipFlag);

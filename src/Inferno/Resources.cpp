@@ -188,8 +188,8 @@ namespace Inferno::Resources {
     }
 
     const LevelTexture& GetLevelTextureInfo(LevelTexID id) {
-        if (!Seq::inRange(GameData.TexInfo, (int)id)) return DEFAULT_TEXTURE; // fix for invalid ids in some levels
-        return GameData.TexInfo[(int)id];
+        if (!Seq::inRange(GameData.LevelTextures, (int)id)) return DEFAULT_TEXTURE; // fix for invalid ids in some levels
+        return GameData.LevelTextures[(int)id];
     }
 
     const LevelTexture& GetLevelTextureInfo(TexID id) {

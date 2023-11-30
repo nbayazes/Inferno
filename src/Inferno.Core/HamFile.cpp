@@ -341,7 +341,7 @@ namespace Inferno {
         return model;
     }
 
-    void ReadModelData(const StreamReader& r, Model& m, const Palette* palette = nullptr) {
+    void ReadModelData(StreamReader& r, Model& m, const Palette* palette = nullptr) {
         List<ubyte> data;
         data.resize(m.DataSize);
         r.ReadBytes(data.data(), data.size());
@@ -388,9 +388,9 @@ namespace Inferno {
         levelTexIdx.resize((size_t)maxIndex + 1);
         ranges::fill(levelTexIdx, LevelTexID(255));
 
-        for (auto i = 0; i < ham.TexInfo.size(); i++) {
-            ham.TexInfo[i].ID = LevelTexID(i);
-            ham.TexInfo[i].TexID = ham.AllTexIdx[i];
+        for (auto i = 0; i < ham.LevelTextures.size(); i++) {
+            ham.LevelTextures[i].ID = LevelTexID(i);
+            ham.LevelTextures[i].TexID = ham.AllTexIdx[i];
             levelTexIdx.at((int)ham.AllTexIdx[i]) = (LevelTexID)i;
         }
     }
@@ -410,8 +410,8 @@ namespace Inferno {
         allTexIdx.resize(textureCount);
         for (auto& i : allTexIdx) i = (TexID)reader.ReadInt16();
 
-        ham.TexInfo.resize(textureCount);
-        for (auto& t : ham.TexInfo) t = ReadTextureInfo(reader);
+        ham.LevelTextures.resize(textureCount);
+        for (auto& t : ham.LevelTextures) t = ReadTextureInfo(reader);
 
         UpdateTexInfo(ham);
 
@@ -662,7 +662,7 @@ namespace Inferno {
             throw Exception("Cannot read this PIG file");
 
         ham.AllTexIdx.resize(800);
-        ham.TexInfo.resize(800);
+        ham.LevelTextures.resize(800);
         ham.Sounds.resize(250);
         ham.VClips.resize(70);
         ham.Effects.resize(60);
@@ -679,7 +679,7 @@ namespace Inferno {
 
         /*auto numTextures =*/ reader.ReadElementCount();
         for (auto& t : ham.AllTexIdx) t = (TexID)reader.ReadInt16();
-        for (auto& t : ham.TexInfo) t = ReadLevelTextureD1(reader);
+        for (auto& t : ham.LevelTextures) t = ReadLevelTextureD1(reader);
 
         UpdateTexInfo(ham);
 

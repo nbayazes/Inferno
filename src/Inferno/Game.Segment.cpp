@@ -598,7 +598,7 @@ namespace Inferno {
         matcen->Timer = 0;
         matcen->Delay = 0;
         matcen->RobotCount = (int8)Game::Difficulty + 3; // 3 to 7
-        matcen->TriggerPath = Game::Navigation.NavigateTo(segId, triggerSeg, false, level);
+        matcen->TriggerPath = Game::Navigation.NavigateTo(segId, triggerSeg, NavigationFlags::None, level);
         matcen->Energy--;
 
         // Light for when matcen is active

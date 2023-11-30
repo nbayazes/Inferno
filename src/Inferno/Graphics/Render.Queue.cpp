@@ -447,7 +447,8 @@ namespace Inferno::Render {
 
         //SPDLOG_INFO("Update effects");
 
-        for (auto rid : _roomQueue) {
+        // Reverse the room queue so distant room objects are drawn first
+        for (auto rid : _roomQueue | views::reverse) {
             if (auto room = level.GetRoom(rid)) {
                 // queue wall meshes
                 for (auto& index : room->WallMeshes) {

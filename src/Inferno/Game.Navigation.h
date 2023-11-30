@@ -1,8 +1,16 @@
 #pragma once
+#include "Types.h"
 #include "Room.h"
 #include "Level.h"
 
-namespace Inferno::Game {
+namespace Inferno {
+    enum class NavigationFlags {
+        None,
+        OpenKeyDoors = 1 << 0, // Can open key doors. Player must have the key.
+        OpenSecretDoors = 1 << 1, // Can open secret doors. Door must be unlocked.
+        HighPriority = 1 << 2 // Keep pathing if possible
+    };
+
     class NavigationNetwork {
         struct SegmentSideNode {
             float Distance = -1; // Distance between the segment centers on this side
@@ -38,7 +46,7 @@ namespace Inferno::Game {
             }
         }
 
-        List<SegID> NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, struct Level& level, float maxDistance = FLT_MAX);
+        List<SegID> NavigateTo(SegID start, SegID goal, NavigationFlags flags, struct Level& level, float maxDistance = FLT_MAX);
 
     private:
         void UpdateNode(struct Level& level, SegID segId) {
@@ -59,7 +67,7 @@ namespace Inferno::Game {
             return Vector3::DistanceSquared(a.Position, b.Position);
         }
 
-        List<RoomID> NavigateAcrossRooms(RoomID start, RoomID goal, bool stopAtKeyDoors, struct Level& level);
+        List<RoomID> NavigateAcrossRooms(RoomID start, RoomID goal, NavigationFlags flags, struct Level& level);
 
         List<SegID> NavigateWithinRoom(SegID start, SegID goal, Room& room);
     };

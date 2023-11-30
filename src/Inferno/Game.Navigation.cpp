@@ -1,9 +1,10 @@
 #include "pch.h"
 #include "Game.Navigation.h"
+#include "Game.h"
 #include "Resources.h"
 #include "logging.h"
 
-namespace Inferno::Game {
+namespace Inferno {
     class ScopedBool {
         std::atomic_bool* _b;
 
@@ -91,7 +92,7 @@ namespace Inferno::Game {
         return path;
     }
 
-    List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, bool stopAtKeyDoors, Level& level, float maxDistance) {
+    List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, NavigationFlags flags, Level& level, float maxDistance) {
         auto startRoom = level.GetRoom(start);
         auto endRoom = level.GetRoom(goal);
         if (!startRoom || !endRoom)
@@ -102,7 +103,7 @@ namespace Inferno::Game {
 
         List<SegID> path;
         auto roomStartSeg = start;
-        auto roomPath = NavigateAcrossRooms(level.GetRoomID(start), level.GetRoomID(goal), stopAtKeyDoors, level);
+        auto roomPath = NavigateAcrossRooms(level.GetRoomID(start), level.GetRoomID(goal), flags, level);
         float totalDistance = 0;
 
         // starting at the first room, use the closest portal that matches the next room
@@ -152,7 +153,7 @@ namespace Inferno::Game {
         return path;
     }
 
-    List<RoomID> NavigationNetwork::NavigateAcrossRooms(RoomID start, RoomID goal, bool stopAtKeyDoors, Level& level) {
+    List<RoomID> NavigationNetwork::NavigateAcrossRooms(RoomID start, RoomID goal, NavigationFlags flags, Level& level) {
         if (start == goal) return { start };
 
         // Reset traversal state
@@ -196,7 +197,12 @@ namespace Inferno::Game {
                         if (wall->HasFlag(WallFlag::DoorLocked))
                             continue;
 
-                        if (wall->IsKeyDoor() && stopAtKeyDoors)
+                        auto& clip = Resources::GetDoorClip(wall->Clip);
+
+                        if (HasFlag(clip.Flags, DoorClipFlag::Secret) && !HasFlag(flags, NavigationFlags::OpenSecretDoors))
+                            continue;
+
+                        if (wall->IsKeyDoor() && !HasFlag(flags, NavigationFlags::OpenKeyDoors))
                             continue;
                     }
 

@@ -72,7 +72,7 @@ namespace Inferno {
     struct HamFile {
         List<LevelTexID> LevelTexIdx; // Maps global texture ids to level (geometry) texture ids. Reverse map of AllTexIdx. Defaults to 255.
         List<TexID> AllTexIdx; // Maps level texture ids to global texture ids (len = 910)
-        List<LevelTexture> TexInfo; // Level texture info. Must match length of AllTexIdx.
+        List<LevelTexture> LevelTextures; // Level texture info. Must match length of AllTexIdx.
         List<uint8> Sounds; // Maps SoundID to entry in S11/S22 file
         List<uint8> AltSounds; // Low memory sounds, unneeded
         List<VClip> VClips; // Particles, explosions

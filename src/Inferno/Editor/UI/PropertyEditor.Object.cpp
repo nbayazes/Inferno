@@ -258,7 +258,7 @@ namespace Inferno::Editor {
                     ImGui::SetItemDefaultFocus();
             }
 
-            for (auto& lti : Resources::GameData.TexInfo) {
+            for (auto& lti : Resources::GameData.LevelTextures) {
                 auto& ti = Resources::GetTextureInfo(lti.ID);
                 // Remove animated textures except for the base
                 if (ti.Animated && ti.Frame != 0)

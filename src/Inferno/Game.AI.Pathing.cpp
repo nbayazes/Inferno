@@ -350,9 +350,14 @@ namespace Inferno {
     bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition, float maxDistance) {
         // Calculate a new path
         auto& robotInfo = Resources::GetRobotInfo(obj);
+
+        NavigationFlags flags{};
+        if (robotInfo.IsThief)
+            SetFlag(flags, NavigationFlags::OpenKeyDoors);
+
         ai.GoalSegment = goalSegment;
         ai.GoalPosition = goalPosition;
-        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, goalSegment, !robotInfo.IsThief, level, maxDistance);
+        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, goalSegment, flags, level, maxDistance);
         ai.PathDelay = AI_PATH_DELAY;
 
         if (ai.GoalPath.empty()) {

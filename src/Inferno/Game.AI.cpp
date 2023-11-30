@@ -95,7 +95,7 @@ namespace Inferno {
     void ForNearbyRobots(RoomID startRoom, const Vector3& position, float radius, const std::function<void(Object&)>& action) {
         radius = radius * radius;
 
-        Game::TraverseRoomsByDistance(Game::Level, startRoom, position, radius, true, [&](const Room& room) {
+        TraverseRoomsByDistance(Game::Level, startRoom, position, radius, true, [&](const Room& room) {
             for (auto& segid : room.Segments) {
                 if (auto seg = Game::Level.TryGetSegment(segid)) {
                     for (auto& objid : seg->Objects) {
@@ -155,7 +155,7 @@ namespace Inferno {
             return false;
         };
 
-        Game::TraverseRoomsByDistance(level, room, source.Position, soundRadius, true, action);
+        TraverseRoomsByDistance(level, room, source.Position, soundRadius, true, action);
     }
 
     void AlertAlliesOfDeath(const Object& dyingRobot) {
@@ -209,7 +209,7 @@ namespace Inferno {
             return false;
         };
 
-        Game::TraverseRoomsByDistance(level, srcRoom, source.Position, radius, true, action);
+        TraverseRoomsByDistance(level, srcRoom, source.Position, radius, true, action);
     }
 
     void PlayAlertSound(const Object& robot) {
@@ -1182,7 +1182,7 @@ namespace Inferno {
         // todo: this should account for locked doors
         constexpr float AI_HELP_SEARCH_RADIUS = 350;
         auto room = Game::Level.GetRoomID(robot);
-        Game::TraverseRoomsByDistance(Game::Level, room, robot.Position, AI_HELP_SEARCH_RADIUS, true, action);
+        TraverseRoomsByDistance(Game::Level, room, robot.Position, AI_HELP_SEARCH_RADIUS, true, action);
 
         if (nearestHelp) {
             if (SetPathGoal(Game::Level, robot, ai, nearestHelp->Segment, nearestHelp->Position, AI_HELP_SEARCH_RADIUS)) {
@@ -1269,7 +1269,7 @@ namespace Inferno {
             return;
         }
 
-        if (robot.Control.AI.Behavior != AIBehavior::Still)
+        if (robot.Control.AI.Behavior != AIBehavior::Still && robotInfo.Attack != AttackType::Melee)
             MoveToCircleDistance(Game::Level, robot, ai, robotInfo);
 
         auto& target = *pTarget;

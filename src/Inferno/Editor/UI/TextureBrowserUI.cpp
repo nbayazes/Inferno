@@ -117,7 +117,7 @@ namespace Inferno::Editor {
         Set<LevelTexID> ids;
 
         if (showEverything) {
-            for (int i = 0; i < Resources::GameData.TexInfo.size(); i++) {
+            for (int i = 0; i < Resources::GameData.LevelTextures.size(); i++) {
                 ids.insert(LevelTexID(i));
             }
 
