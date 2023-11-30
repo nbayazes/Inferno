@@ -272,12 +272,7 @@ namespace Inferno {
                 bool needsOverlaySlide = side.HasOverlay() && ti.Slide != Vector2::Zero;
 
                 if (isWall) {
-                    // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
-                    //uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
-                    //uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
-
                     LevelChunk chunk; // always use a new chunk for walls
-
                     chunk.TMap1 = side.TMap;
                     chunk.TMap2 = side.TMap2;
                     chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
@@ -311,36 +306,58 @@ namespace Inferno {
                     _geometry.Walls.push_back(chunk);
                 }
                 else {
-                    // Split into decals and base textures
-                    {
-                        LevelChunk& chunk = _chunks[(uint)side.TMap];
-                        chunk.TMap1 = side.TMap;
-                        chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
-                        chunk.ID = id;
+                    // pack the map ids together into a single integer (15 bits, 15 bits, 2 bits);
+                    uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                    uint32 chunkId = (uint16)side.TMap | (uint16)side.TMap2 << 15 | overlayBit << 30;
 
-                        auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                        auto tex1 = Resources::LookupTexID(side.TMap);
-                        //auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
-                        AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, TexID::None);
-                    }
+                    LevelChunk& chunk = _chunks[chunkId];
+                    chunk.TMap1 = side.TMap;
+                    chunk.TMap2 = side.TMap2;
+                    chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
+                    chunk.ID = id;
 
-                    if (side.HasOverlay()) {
-                        uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
-                        uint32 chunkId = 0 | (uint16)side.TMap2 << 15 | overlayBit << 30;
+                    if (side.HasOverlay())
+                        chunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
 
-                        LevelChunk& decalChunk = _decals[chunkId];
-                        decalChunk.TMap2 = side.TMap2;
-                        decalChunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
-                        decalChunk.ID = id;
+                    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                    auto tex1 = Resources::LookupTexID(side.TMap);
+                    auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                    AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, tex2);
 
-                        // Overlays should slide in the same direction as the base texture regardless of their rotation
-                        if (needsOverlaySlide)
-                            decalChunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
+                    // Overlays should slide in the same direction as the base texture regardless of their rotation
+                    if (needsOverlaySlide)
+                        chunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
 
-                        auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
-                        auto tex2 = Resources::LookupTexID(side.TMap2);
-                        AddPolygon(verts, side.UVs, side.Light, _geometry, decalChunk, side, TexID::None, tex2);
-                    }
+                    // Split into decals and base textures. However this has problems with overdraw.
+                    //{
+                    //    LevelChunk& chunk = _chunks[(uint)side.TMap];
+                    //    chunk.TMap1 = side.TMap;
+                    //    chunk.EffectClip1 = Resources::GetEffectClipID(side.TMap);
+                    //    chunk.ID = id;
+
+                    //    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                    //    auto tex1 = Resources::LookupTexID(side.TMap);
+                    //    //auto tex2 = side.HasOverlay() ? Resources::LookupTexID(side.TMap2) : TexID::None;
+                    //    AddPolygon(verts, side.UVs, side.Light, _geometry, chunk, side, tex1, TexID::None);
+                    //}
+
+                    //if (side.HasOverlay()) {
+                    //    uint16 overlayBit = needsOverlaySlide ? (uint16)side.OverlayRotation : 0;
+                    //    uint32 chunkId = 0 | (uint16)side.TMap2 << 15 | overlayBit << 30;
+
+                    //    LevelChunk& decalChunk = _decals[chunkId];
+                    //    decalChunk.TMap2 = side.TMap2;
+                    //    decalChunk.EffectClip2 = Resources::GetEffectClipID(side.TMap2);
+                    //    decalChunk.ID = id;
+
+                    //    // Overlays should slide in the same direction as the base texture regardless of their rotation
+                    //    if (needsOverlaySlide)
+                    //        decalChunk.OverlaySlide = ApplyOverlayRotation(side, ti.Slide);
+
+                    //    auto verts = Face::FromSide(level, seg, sideId).CopyPoints();
+                    //    auto tex2 = Resources::LookupTexID(side.TMap2);
+                    //    AddPolygon(verts, side.UVs, side.Light, _geometry, decalChunk, side, TexID::None, tex2);
+                    //}
                 }
             }
         }

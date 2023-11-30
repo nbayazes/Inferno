@@ -535,7 +535,7 @@ namespace Inferno::Render {
 
             {
                 PIXScopedEvent(cmdList, PIX_COLOR_INDEX(1), "Decal queue");
-                for (auto& cmd : _renderQueue.Decal())
+                for (auto& cmd : _renderQueue.Opaque())
                     ExecuteRenderCommand(ctx, cmd, RenderPass::Decals, true);
             }
 
