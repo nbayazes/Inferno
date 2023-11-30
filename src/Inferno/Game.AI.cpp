@@ -1120,14 +1120,18 @@ namespace Inferno {
         return true;
     }
 
-    void OnIdle(AIRuntime& ai, Object& robot, const RobotInfo& /*robotInfo*/) {
+    void OnIdle(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo) {
         if (ScanForTarget(robot, ai)) {
+            // Delay weapons so robots don't shoot immediately on waking up
+            ai.FireDelay = Difficulty(robotInfo).FireDelay * .5f;
+            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2 * .5f;
+
             // Time to fight!
             Chat(robot, "I see a bad guy!");
             ai.State = AIState::Combat;
         }
         else if (ai.Awareness >= 1) {
-            Chat(robot, "I need to fight something");
+            Chat(robot, "I need to fight but don't see anything");
             ai.State = AIState::Alert;
         }
         else {
