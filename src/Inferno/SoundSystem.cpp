@@ -561,6 +561,7 @@ namespace Inferno::Sound {
         while (RequestStopSounds)
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
+        std::scoped_lock soundLock(SoundInstancesMutex);
         StopSoundTags.clear();
         StopSoundUIDs.clear();
         StopSoundSources.clear();
