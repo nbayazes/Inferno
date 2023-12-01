@@ -90,6 +90,9 @@ namespace Inferno {
         List<int8> GatedRobots; // Robots to gate in when hit. For bosses.
         float TeleportInterval; // Interval between boss teleports.
         float FleeThreshold = 0; // Will flee to find another robot when under this amount of life or getting scared
+
+        float ChaseChance = 0.5f; // Chance to chase when target leaves sight
+        float SuppressChance = 0.25f; // Chance to fire at out of sight target
     };
 
 }

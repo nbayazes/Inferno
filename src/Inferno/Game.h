@@ -40,6 +40,7 @@ namespace Inferno::Game {
     constexpr float CLOAK_FIRING_FLICKER = 0.75f; // How a cloaked object 'flickers' after firing
     constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
     constexpr float MATCEN_SOUND_RADIUS = 300;
+    constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.

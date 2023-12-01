@@ -80,7 +80,7 @@ namespace Inferno {
         GameTimer FireDelay2; // Delay for firing secondary weapons
         
         double LastSeenPlayer; // Time the player was last seen
-        float AnimationTime = 0; // How much of the animation has passed
+        float AnimationTimer = 0; // How much of the animation has passed
         float AnimationDuration = 0; // Time in seconds to reach the goal angles
         float MeleeHitDelay = 0; // How long before a melee swing deals damage
         AnimState AnimationState = {};
@@ -131,7 +131,7 @@ namespace Inferno {
         GameTimer ChaseTimer; // Delay for chase attempts
 
         bool PlayingAnimation() const {
-            return AnimationTime < AnimationDuration;
+            return AnimationTimer < AnimationDuration;
         }
 
         void ClearPath() {
@@ -298,7 +298,7 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt);
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness, float maxAwareness = AI_AWARENESS_MAX);
-    void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5);
+    void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5, float delay = 0);
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
     // Rotates towards source if asleep

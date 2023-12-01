@@ -619,7 +619,7 @@ namespace Inferno {
             MoveAwayFromTarget(*ai.TargetPosition, robot, ai);
     }
 
-    void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult) {
+    void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult, float delay) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         auto& angles = robot.Render.Model.Angles;
 
@@ -630,7 +630,7 @@ namespace Inferno {
 
         auto& ai = GetAI(robot);
         ai.AnimationDuration = time /** remaining*/;
-        ai.AnimationTime = 0;
+        ai.AnimationTimer = -delay;
         ai.AnimationState = state;
 
         for (int gun = 0; gun <= robotInfo.Guns; gun++) {
@@ -665,8 +665,8 @@ namespace Inferno {
         assert(robot.IsRobot());
         auto& model = Resources::GetModel(robot.Render.Model.ID);
 
-        ai.AnimationTime += dt;
-        if (ai.AnimationTime > ai.AnimationDuration) return;
+        ai.AnimationTimer += dt;
+        if (ai.AnimationTimer > ai.AnimationDuration || ai.AnimationTimer < 0) return;
 
         for (int joint = 1; joint < model.Submodels.size(); joint++) {
             auto& curAngle = robot.Render.Model.Angles[joint];
@@ -692,6 +692,7 @@ namespace Inferno {
             }
             else if (source->IsRobot()) {
                 Chat(robot, "Where are you aiming drone {}!?", source->Signature);
+                damage *= Game::FRIENDLY_FIRE_MULT;
             }
         }
 
@@ -1139,6 +1140,7 @@ namespace Inferno {
             // Time to fight!
             Chat(robot, "I see a bad guy!");
             ai.State = AIState::Combat;
+            PlayRobotAnimation(robot, AnimState::Alert); // break out of idle
         }
         else if (ai.Awareness >= 1) {
             Chat(robot, "I need to fight but don't see anything");
@@ -1147,6 +1149,14 @@ namespace Inferno {
         else {
             robot.NextThinkTime = Game::Time + 0.125f;
         }
+
+        // Fidget animation
+        //if (!ai.PlayingAnimation()) {
+        //    float delay = 3.0f + Random() * 5;
+        //    float duration = 4 + Random() * 2.5;
+        //    auto anim = ai.AnimationState != AnimState::Rest ? AnimState::Rest : AnimState::Flinch;
+        //    PlayRobotAnimation(robot, anim, duration, 5, delay);
+        //}
     }
 
     void MakeIdle(AIRuntime& ai) {
@@ -1271,6 +1281,48 @@ namespace Inferno {
         // Fall back to cover? Find help?
     }
 
+    // Chooses how to react to the target going out of sight
+    void OnLostLineOfSight(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
+        if (Game::Difficulty < 2) {
+            ai.CombatState = AICombatState::Wait; // Just wait on trainee and rookie
+            Chat(robot, "Holding position");
+            return;
+        }
+
+        // Chase and suppress chance are percentages to perform those actions. If less than 1, can choose to do nothing.
+
+        // Bucket chances together and adjust their weighting
+        float chaseChance = robotInfo.ChaseChance;
+        float suppressChance = robotInfo.SuppressChance;
+        if (robotInfo.Attack == AttackType::Melee || robotInfo.Guns == 0) 
+            suppressChance = 0; // Melee robots can't shoot
+
+        if (robot.Control.AI.Behavior == AIBehavior::Station)
+            chaseChance *= 2; // patrolling robots twice as likely to chase
+
+        if (robot.Control.AI.Behavior == AIBehavior::Still) {
+            chaseChance = 0; // still robots can't chase
+            suppressChance *= 2; // still robots are more likely to blind fire
+        }
+
+        auto totalChance = chaseChance + suppressChance;
+        if (totalChance > 1) {
+            // If chase or suppress sum over 1, rescale
+            auto weight = 1 / totalChance;
+            chaseChance *= weight;
+            suppressChance *= weight;
+        }
+
+        // roll the behavior!
+        auto roll = Random();
+        if (roll < chaseChance)
+            ai.CombatState = AICombatState::Chase;
+        else if (roll < chaseChance + suppressChance)
+            ai.CombatState = AICombatState::BlindFire; // Calls the normal firing AI
+        else
+            ai.CombatState = AICombatState::Wait;
+    }
+
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
@@ -1331,32 +1383,7 @@ namespace Inferno {
             Render::Debug::DrawPoint(*ai.TargetPosition, Color(1, .5, .5));
 
             if (ai.CombatState == AICombatState::Normal && ai.StrafeTimer <= 0 && ai.LostSightDelay <= 0) {
-                ai.CombatState = AICombatState::Chase;
-
-                // Choose how to react to the target going out of sight
-                //if (Game::Difficulty < 2) {
-                //    ai.CombatState = AICombatState::Wait; // Just wait on trainee and rookie
-                //    Chat(robot, "Holding position");
-                //}
-                //else {
-                //    // todo: behaviors should increase chance, not be 100%
-                //    if (robot.Control.AI.Behavior == AIBehavior::Still) {
-                //        ai.CombatState = AICombatState::BlindFire;
-                //    }
-                //    else if (robot.Control.AI.Behavior == AIBehavior::Station) {
-                //        ai.CombatState = AICombatState::Chase;
-                //    }
-                //    else {
-                //        auto random = Random();
-                //        /*if (random < 0.33f)
-                //            ai.CombatState = AICombatState::Wait;
-                //        else */
-                //        if (random < 0.40f)
-                //            ai.CombatState = AICombatState::Chase;
-                //        else
-                //            ai.CombatState = AICombatState::BlindFire;
-                //    }
-                //}
+                OnLostLineOfSight(ai, robot, robotInfo);
             }
 
             if (ai.CombatState == AICombatState::Wait) {
@@ -1369,9 +1396,14 @@ namespace Inferno {
                 // Chasing a cloaked target does no good, AI just gets confused.
                 // Also don't chase the player ghost
                 if (!target.IsCloaked() && target.Type != ObjectType::Ghost && ai.ChaseTimer <= 0) {
-                    Chat(robot, "Come back here!");
-                    if (!ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition, ChaseMode::Sight))
+                    if (Random() < robotInfo.ChaseChance) {
+                        Chat(robot, "Come back here!");
+                        if (!ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition, ChaseMode::Sight))
+                            ai.ChaseTimer = 5.0f;
+                    }
+                    else {
                         ai.ChaseTimer = 5.0f;
+                    }
                 }
             }
 
@@ -1494,9 +1526,9 @@ namespace Inferno {
         //else if (HasFlag(robot.Physics.Flags, PhysicsFlag::Gravity))
         //    ClearFlag(robot.Physics.Flags, PhysicsFlag::Gravity); // Unstunned
 
-        if (Settings::Cheats.DisableAI) return;
-
         AnimateRobot(robot, ai, dt);
+
+        if (Settings::Cheats.DisableAI) return;
 
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
