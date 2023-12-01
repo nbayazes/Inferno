@@ -801,7 +801,7 @@ namespace Inferno::Game {
                 InitReactor(Level, obj);
 
             if (obj.Type == ObjectType::Robot) {
-                obj.NextThinkTime = Time + 0.5f;
+                obj.NextThinkTime = Time + 0.5f; // Prevent hot-starts
                 SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
             }
         }

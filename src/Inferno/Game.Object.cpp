@@ -331,8 +331,13 @@ namespace Inferno {
                     spawn.Position = position;
                     spawn.Segment = segId;
                     spawn.Type = ObjectType::Robot;
-                    spawn.Physics.Velocity = RandomVector(32) + force;
-                    spawn.NextThinkTime = 0;
+                    spawn.Physics.Velocity = RandomVector(50) * (0.75f + Random() * 0.25f) + force;
+                    spawn.Physics.AngularVelocity.x = 3 + Random();
+                    spawn.Physics.AngularVelocity.y = 3 + Random();
+                    spawn.Physics.AngularVelocity.z = 3 + Random();
+                    spawn.NextThinkTime = Game::Time + .25f + Random() * 0.25f; // No collision or movement
+                    SetFlag(spawn.Physics.Flags, PhysicsFlag::NoCollideRobots);
+
                     if (auto seg = level.TryGetSegment(segId))
                         spawn.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0);
 

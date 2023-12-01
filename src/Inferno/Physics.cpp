@@ -381,6 +381,10 @@ namespace Inferno {
         //if ((src.Parent != ObjID::None && target.Parent != ObjID::None) && src.Parent == target.Parent)
         //    return false; // Don't hit your siblings!
 
+        if ((HasFlag(src.Physics.Flags, PhysicsFlag::NoCollideRobots) && target.IsRobot()) ||
+            (HasFlag(target.Physics.Flags, PhysicsFlag::NoCollideRobots) && src.IsRobot()))
+            return CollisionType::None;
+
         if (src.Type == ObjectType::Player && target.Type == ObjectType::Weapon) {
             // Player can't hit mines until they arm
             if (WeaponIsMine((WeaponID)target.ID) && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
@@ -628,7 +632,6 @@ namespace Inferno {
         if (target.Type == ObjectType::Powerup || target.Type == ObjectType::Marker)
             return;
 
-        if (obj.Type != ObjectType::Weapon && target.Type != ObjectType::Weapon) { }
 
         //auto v1 = a.Physics.PrevVelocity.Dot(hit.Normal);
         //auto v2 = b.Physics.PrevVelocity.Dot(hit.Normal);

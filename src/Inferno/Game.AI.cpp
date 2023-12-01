@@ -1452,6 +1452,10 @@ namespace Inferno {
         decr(ai.RemainingStun);
         decr(ai.MeleeHitDelay);
 
+        // bit of a hack to clear no-collide from spawned robots
+        if (HasFlag(robot.Physics.Flags, PhysicsFlag::NoCollideRobots) && Game::Time >= robot.NextThinkTime)
+            ClearFlag(robot.Physics.Flags, PhysicsFlag::NoCollideRobots);
+
         if (robotInfo.IsBoss)
             if (!Game::UpdateBoss(robot, dt))
                 return; // UpdateBoss returns false when dying

@@ -64,6 +64,7 @@ namespace Inferno {
         SphereCollidePlayer = 1 << 10, // Use spheres when colliding with the player
         PointCollideWalls = 1 << 11, // Use raycasting against walls, otherwise use spheres
         Gravity = 1 << 12, // Apply gravity
+        NoCollideRobots = 1 << 13, // Ignore collisions with robots, used by robots contained in robots.
     };
 
     enum class PowerupID : uint8 {
@@ -381,7 +382,7 @@ namespace Inferno {
 
         LerpedColor Ambient;
 
-        double NextThinkTime = NEVER_THINK; // Game time of next think event
+        double NextThinkTime = NEVER_THINK; // General purpose think timer
         float Scale = 1.0; // Model / sprite scale
 
         Matrix GetTransform() const {
