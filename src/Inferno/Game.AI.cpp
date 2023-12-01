@@ -7,7 +7,6 @@
 #include "Game.h"
 #include "Game.Object.h"
 #include "Game.Reactor.h"
-#include "Game.Segment.h"
 #include "Resources.h"
 #include "Physics.h"
 #include "logging.h"
@@ -127,12 +126,18 @@ namespace Inferno {
                     auto dist = Vector3::Distance(obj->Position, soundPosition);
                     if (dist > soundRadius) continue;
 
-                    //auto falloff = std::powf(1 - dist / soundRadius, 2); // inverse falloff 
-                    auto falloff = std::lerp(1.5f, 0.5f, dist / soundRadius); // linear falloff to 0.5
                     auto& ai = GetAI(*obj);
+                    float t = dist / soundRadius;
+                    auto falloff = Saturate(2.0f - 2.0f * t) * 0.5f + 0.5f; // linear shoulder
+
+                    if (HasLineOfSight(*obj, soundPosition)) {
+                        ai.AddAwareness(awareness * falloff);
+                    }
+                    else {
+                        ai.AddAwareness(awareness * falloff * 0.5f);
+                    }
 
                     //auto prevAwareness = ai.Awareness;
-                    ai.AddAwareness(awareness * falloff, maxAwareness);
                     ai.TargetPosition = soundPosition;
                     ai.TargetSegment = soundSeg;
                     obj->NextThinkTime = 0;
