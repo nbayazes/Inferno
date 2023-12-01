@@ -146,11 +146,10 @@ float Attenuate(float lightDistSq, float lightRadius) {
     lightDistSq = max(lightDistSq, 1); // prevent hotspots due to being directly on top of the source
     float factor = lightDistSq / (lightRadius * lightRadius); // 0 to 1
     //float smoothFactor = max(1 - factor, 0); // 0 to 1, original
-    //float falloff = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4); // original
     float smoothFactor = max(1 - pow(factor, 0.5), 0); // 0 to 1
-    float falloff = (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4);
-    //float falloff = (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
-    return falloff;
+    //return = (smoothFactor * smoothFactor) / max(lightDistSq, 1e-4); // original
+    return (smoothFactor * smoothFactor) / max(sqrt(lightDistSq), 1e-4);
+    //return (smoothFactor * smoothFactor) / max(pow(lightDistSq, 0.75), 1e-4);
 }
 
 // Applies ambient light to a metal texture as specular
@@ -159,15 +158,15 @@ float3 ApplyAmbientSpecular(TextureCube environment, SamplerState envSampler, fl
                             float3 texDiffuse, float specularMask, float envPercent, float specAmount = 1) {
     float envBias = lerp(0, 9, saturate(material.Roughness - .3)); // this causes extreme artifacts between pixel edges. find a different way to blur
     float env = environment.SampleLevel(envSampler, normalize(reflect(viewDir, normal)), envBias).r;
-    //float env = environment.Sample(envSampler, normalize(reflect(viewDir, normal))).r;
-    float lum = Luminance(ambient);
-    env = 1 + lerp(0.0, clamp(env, 0.275, .7), envPercent) * .8;
+    env = 1 + lerp(0.0, saturate((env - .3) / 4), envPercent);
     float3 envTerm = pow(env, 2) - 1;
-    float3 diff = pow(texDiffuse * material.SpecularStrength + 1, 2) - 1; // boost bright areas
-    return ambient * diff * envTerm * material.Metalness * material.LightReceived  * specularMask;
-    //return ambient * diff * envTerm * /*eyeTerm **/ material.Metalness * material.LightReceived * /*material.EnvStrength **/ material.SpecularStrength;
+    float3 diff = pow(texDiffuse + 1, 2) - 1; // boost bright areas
+    float3 result = float3(0, 0, 0);
+    //result +=  ambient * diff;
+    result += ambient * diff * envTerm * material.LightReceived * material.SpecularStrength ;
+    return result * material.Metalness;
+    //return ambient * diff * envTerm * material.Metalness * material.LightReceived * .5;
 }
-
 
 float3 ApplyPointLight(
     float3 diffuse,
@@ -814,7 +813,7 @@ float3 ApplyRectLight2(
     //return nDotL * lightColor * (diffuseColor + specularFactor * specularColor);
 }
 
-static const float METAL_DIFFUSE_FACTOR = .5; // Direct lighting contribution on metal
+static const float METAL_DIFFUSE_FACTOR = .5; // Direct lighting contribution on metal. Setting this too low makes robots look odd.
 static const float METAL_SPECULAR_EXP = 1.5; // increase this to get sharper metal highlights
 
 float3 GetMetalDiffuse(float3 diffuse) {

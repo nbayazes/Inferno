@@ -217,6 +217,7 @@ Texture2D GetTexture(int index, int slot) {
     return TextureTable[index * 5 + slot];
 }
 
+//[earlydepthstencil]
 float4 psmain(PS_INPUT input) : SV_Target {
     float3 viewDir = normalize(input.world - Frame.Eye);
     float2 uvs = Args.IsOverlay ? input.uv2 : input.uv;
@@ -282,8 +283,8 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += directLight * material.LightReceived;
         lighting += emissive * diffuse.rgb; // emissive
         lighting += emissive * diffuse.rgb * ambient * material.LightReceived * .5; // also tint emissive by ambient
-        lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
-        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .2, diffuse.rgb, specularMask, .15) * diffuse.a;
+        lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .95); // ambient
+        lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient * .2, diffuse.rgb, specularMask, .25) * diffuse.a;
         return float4(lighting, diffuse.a);
     }
 }

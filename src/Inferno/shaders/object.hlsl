@@ -155,10 +155,9 @@ float4 psmain(PS_INPUT input) : SV_Target {
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
             lighting += emissive * diffuse.rgb * material.EmissiveStrength;
-            lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness); // ambient
+            lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .90); // ambient
 
             //lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);
-            lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .15);
 
             {
                 // Add some fake specular highlights so objects without direct lighting aren't completely flat
@@ -169,6 +168,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
                 eyeTerm += pow(nDotH, gloss) * (gloss + 2) / 8;
                 float3 specularColor = lerp(ambient, diffuse.rgb * ambient, material.Metalness) * material.SpecularStrength;
                 lighting += eyeTerm * specularColor * specularMask;
+                lighting += ApplyAmbientSpecular(Environment, Sampler, Frame.EyeDir + viewDir, normal, material, ambient, diffuse.rgb, specularMask, .25) * nDotH;
             }
         }
 
