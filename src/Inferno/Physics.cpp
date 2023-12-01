@@ -545,8 +545,7 @@ namespace Inferno {
 
                             ApplyForce(target, forceVec);
                             auto parent = source ? Game::Level.TryGetObject(source->Parent) : nullptr;
-                            bool srcIsPlayer = parent ? parent->IsPlayer() : false;
-                            DamageRobot(explosion.Position, srcIsPlayer, target, damage, stunMult);
+                            DamageRobot(explosion.Position, target, damage, stunMult, parent);
 
                             target.LastHitForce = forceVec;
                             //fmt::print("applied {} splash damage at dist {}\n", damage, dist);

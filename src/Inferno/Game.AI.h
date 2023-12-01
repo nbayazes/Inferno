@@ -302,7 +302,7 @@ namespace Inferno {
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
     // Rotates towards source if asleep
-    void DamageRobot(const Vector3& source, bool sourceIsPlayer, Object& robot, float damage, float stunMult);
+    void DamageRobot(const Vector3& sourcePos, Object& robot, float damage, float stunMult, Object* source);
 
     namespace Debug {
         inline int ActiveRobots = 0;

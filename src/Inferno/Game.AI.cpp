@@ -674,7 +674,7 @@ namespace Inferno {
         }
     }
 
-    void DamageRobot(const Vector3& source, bool sourceIsPlayer, Object& robot, float damage, float stunMult) {
+    void DamageRobot(const Vector3& sourcePos, Object& robot, float damage, float stunMult, Object* source) {
         auto& info = Resources::GetRobotInfo(robot);
         auto& ai = GetAI(robot);
 
@@ -683,11 +683,16 @@ namespace Inferno {
             Chat(robot, "What hit me!?");
         }
 
-        if (sourceIsPlayer) {
-            // We were hit by the player but don't know exactly where they are
-            ai.TargetPosition = source;
-            ai.LastHitByPlayer = 0;
-            ai.Awareness = AI_AWARENESS_MAX;
+        if (source) {
+            if (source->IsPlayer()) {
+                // We were hit by the player but don't know exactly where they are
+                ai.TargetPosition = sourcePos;
+                ai.LastHitByPlayer = 0;
+                ai.Awareness = AI_AWARENESS_MAX;
+            }
+            else if (source->IsRobot()) {
+                Chat(robot, "Where are you aiming drone {}!?", source->Signature);
+            }
         }
 
         // Apply slow

@@ -169,10 +169,9 @@ namespace Inferno::Game {
                 Vector3 srcDir;
                 src.Physics.Velocity.Normalize(srcDir);
                 auto parent = Game::Level.TryGetObject(src.Parent);
-                bool srcIsPlayer = parent ? parent->IsPlayer() : false;
                 // Explosive weapons stun more due to their damage being split
                 float stunMult = weapon.IsExplosive() ? weapon.Extended.StunMult * 1.5f : weapon.Extended.StunMult;
-                DamageRobot(target.Position - srcDir * 10, srcIsPlayer, target, damage, stunMult);
+                DamageRobot(target.Position - srcDir * 10, target, damage, stunMult, parent);
             }
             else {
                 target.ApplyDamage(damage);
