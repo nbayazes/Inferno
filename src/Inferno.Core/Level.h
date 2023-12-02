@@ -305,7 +305,7 @@ namespace Inferno {
 
             auto& other = GetSegment(dst);
 
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (other.GetConnection(side) == src)
                     return side;
             }
@@ -320,7 +320,7 @@ namespace Inferno {
             auto& seg = GetSegment(src);
             auto otherId = seg.GetConnection(src.Side);
             if (auto other = TryGetSegment(otherId)) {
-                for (auto& side : SideIDs) {
+                for (auto& side : SIDE_IDS) {
                     if (other->GetConnection(side) == src.Segment)
                         return { otherId, side };
                 }

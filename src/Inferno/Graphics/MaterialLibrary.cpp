@@ -112,7 +112,7 @@ namespace Inferno::Render {
         };
 
         for (auto& seg : level.Segments) {
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
                 if (!seg.SideHasConnection(sideId) || seg.SideIsWall(sideId)) {
                     ids.insert(Resources::LookupTexID(side.TMap));

@@ -64,7 +64,7 @@ namespace Inferno::Game {
 
             segments.insert(segId);
 
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (!seg.SideHasConnection(side)) continue; // nothing to do here
 
                 auto conn = seg.GetConnection(side);
@@ -123,7 +123,7 @@ namespace Inferno::Game {
             if (!SegmentIsTunnel(seg))
                 segments.insert(segId);
 
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (!seg.SideHasConnection(side)) continue; // nothing to do here
 
                 auto connId = seg.GetConnection(side);
@@ -240,7 +240,7 @@ namespace Inferno::Game {
         for (auto& segId : room.Segments) {
             auto& seg = level.GetSegment(segId);
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto conn = seg.GetConnection(sideId);
                 if (conn <= SegID::None) continue;
 
@@ -279,7 +279,7 @@ namespace Inferno::Game {
         for (int i = 0; i < room.Segments.size(); i++) {
             auto& node = nodes[i];
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto conn = level.GetConnectedSide({ node.Seg, sideId });
                 if (!conn) continue;
 
@@ -416,7 +416,7 @@ namespace Inferno::Game {
                 if (!seg) continue;
                 segments.insert(segId);
 
-                for (auto& side : SideIDs) {
+                for (auto& side : SIDE_IDS) {
                     auto connId = seg->GetConnection(side);
                     if (connId != SegID::None &&
                         //!segments.contains(connId) &&
@@ -522,7 +522,7 @@ namespace Inferno::Game {
             visited.insert(segId);
 
             auto& seg = level.GetSegment(segId);
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 //auto& side = seg.GetSide(sideId);
                 if (action({ segId, sideId }))
                     return true;
@@ -636,7 +636,7 @@ namespace Inferno::Game {
         for (int i = 0; i < room.NavNodes.size(); i++) {
             auto& node = room.NavNodes[i];
             auto& seg = level.GetSegment(node.Segment);
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto connId = seg.GetConnection(sideId);
                 auto connection = findNode(connId);
                 if (connection == -1) continue;
@@ -646,7 +646,7 @@ namespace Inferno::Game {
 
                 // Check if connection to node intersects
                 bool intersect = false;
-                for (auto& sideId2 : SideIDs) {
+                for (auto& sideId2 : SIDE_IDS) {
                     if (seg.SideHasConnection(sideId2)) continue;
                     if (IntersectCapsuleSide(level, capsule, { node.Segment, sideId2 })) {
                         intersect = true;

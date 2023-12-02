@@ -253,7 +253,7 @@ namespace Inferno::Editor {
             }
 
             // Also remove any connected walls
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto conn = level.GetConnectedSide({ segId, sideId });
                 auto cwall = level.GetWallID(conn);
                 if (cwall != WallID::None)
@@ -267,7 +267,7 @@ namespace Inferno::Editor {
         }
 
         // Remove all connections
-        for (auto& id : SideIDs)
+        for (auto& id : SIDE_IDS)
             DetachSide(level, { segId, id });
 
         // Remove trigger targets pointing at this segment
@@ -455,7 +455,7 @@ namespace Inferno::Editor {
             return true;
 
         Ray ray(srcFace.Center(), vec);
-        for (auto side : SideIDs) {
+        for (auto side : SIDE_IDS) {
             if (side == tag.Side || side == opposite)
                 continue;
 
@@ -805,7 +805,7 @@ namespace Inferno::Editor {
 
         for (auto& seg : segs) {
             if (auto s = level.TryGetSegment(seg)) {
-                for (auto& side : SideIDs) {
+                for (auto& side : SIDE_IDS) {
                     auto conn = s->GetConnection(side);
                     if (conn == SegID::None) continue;
 
@@ -982,7 +982,7 @@ namespace Inferno::Editor {
 
         opposite.Side = GetOppositeSide(opposite.Side);
 
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (side == GetOppositeSide(tag.Side)) continue; // don't detach base side
             DetachSide(Game::Level, { tag.Segment, side });
         }
@@ -1045,7 +1045,7 @@ namespace Inferno::Editor {
         Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };
         auto connected = level.GetConnectedSide(tag);
 
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (side == opposite.Side) continue;
             DetachSide(Game::Level, { tag.Segment, side });
         }
@@ -1071,7 +1071,7 @@ namespace Inferno::Editor {
             newFace[i] = original[i];
 
         // Reset UVs
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (side == tag.Side || side == opposite.Side) continue;
             ResetUVs(level, { tag.Segment, side });
             ResetUVs(level, { newid, side });
@@ -1101,7 +1101,7 @@ namespace Inferno::Editor {
         auto connected = level.GetConnectedSide(tag);
 
         // Detach all sides except the one opposite to the selection
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (side == opposite.Side) continue;
             DetachSide(Game::Level, { tag.Segment, side });
         }
@@ -1139,7 +1139,7 @@ namespace Inferno::Editor {
             newFace2[i] = endpoints[i];
 
         // Reset UVs
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (side == tag.Side || side == opposite.Side) continue;
             ResetUVs(level, { tag.Segment, side });
             ResetUVs(level, { newid, side });
@@ -1168,7 +1168,7 @@ namespace Inferno::Editor {
     bool SplitSegment5(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return false;
 
-        for (auto& side : SideIDs)
+        for (auto& side : SIDE_IDS)
             DetachSide(level, { tag.Segment, side });
 
         // Copy verts for each original side
@@ -1221,7 +1221,7 @@ namespace Inferno::Editor {
     bool SplitSegment7(Level& level, Tag tag) {
         if (!level.SegmentExists(tag)) return false;
 
-        for (auto& side : SideIDs)
+        for (auto& side : SIDE_IDS)
             DetachSide(level, { tag.Segment, side }); // Detach everything
 
         // Copy verts for each original side
@@ -1272,7 +1272,7 @@ namespace Inferno::Editor {
         if (!level.SegmentExists(tag)) return false;
 
         // Detach everything
-        for (auto& side : SideIDs)
+        for (auto& side : SIDE_IDS)
             DetachSide(level, { tag.Segment, side });
 
         Tag opposite = { tag.Segment, GetOppositeSide(tag.Side) };

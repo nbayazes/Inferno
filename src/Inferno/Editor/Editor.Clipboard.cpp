@@ -66,7 +66,7 @@ namespace Inferno::Editor {
                     conn = SegID::None;
             }
 
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto& side = seg.GetSide(sid);
                 if (auto wall = level.TryGetWall(side.Wall)) {
                     if (wall->Type != WallType::WallTrigger && seg.Connections[(int)sid] == SegID::None) {
@@ -212,7 +212,7 @@ namespace Inferno::Editor {
 
         // Weld internal connections
         for (auto& id : newIds)
-            for (auto& side : SideIDs)
+            for (auto& side : SIDE_IDS)
                 WeldConnection(level, { id, side }, 0.01f);
 
         return newIds;

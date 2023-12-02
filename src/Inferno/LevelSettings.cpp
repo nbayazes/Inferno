@@ -17,7 +17,7 @@ namespace Inferno {
 
         for (int segid = 0; segid < level.Segments.size(); segid++) {
             auto& seg = level.Segments[segid];
-            for (auto& sideid : SideIDs) {
+            for (auto& sideid : SIDE_IDS) {
                 auto& side = seg.GetSide(sideid);
                 Tag tag((SegID)segid, sideid);
 
@@ -283,7 +283,7 @@ namespace Inferno {
             string line = encodeColor(seg.VolumeLight);
             line.reserve(256);
 
-            for (auto& sideid : SideIDs) {
+            for (auto& sideid : SIDE_IDS) {
                 auto& side = seg.GetSide(sideid);
 
                 if (seg.SideHasConnection(sideid) && side.Wall == WallID::None) {

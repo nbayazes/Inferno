@@ -469,7 +469,7 @@ namespace Inferno::Render::Debug {
         }
 
         if (seg.Type != SegmentType::None && fill) {
-            for (auto& side : SideIDs)
+            for (auto& side : SIDE_IDS)
                 Debug::DrawSide(level, seg, side, *fill);
         }
     }

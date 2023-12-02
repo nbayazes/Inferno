@@ -190,7 +190,7 @@ namespace Inferno {
         }
 
         static void WriteSegmentTextures(StreamWriter& writer, const Segment& seg) {
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto& side = seg.GetSide(sid);
                 auto conn = seg.GetConnection(sid);
                 if ((conn == SegID::None && conn != SegID::Exit) ||

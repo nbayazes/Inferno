@@ -374,7 +374,7 @@ namespace Inferno {
     void ToggleWall(Segment& /*seg*/, SideID /*side*/) { }
 
     Option<SideID> GetConnectedSide(Segment& base, SegID conn) {
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (base.GetConnection(side) == conn)
                 return side;
         }

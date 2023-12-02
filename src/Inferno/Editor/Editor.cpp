@@ -488,7 +488,7 @@ namespace Inferno::Editor {
         auto faces = Editor::Marked.GetMarkedFaces();
         if (faces.empty()) {
             if (Settings::Editor.SelectionMode == SelectionMode::Segment) {
-                for (auto& side : SideIDs)
+                for (auto& side : SIDE_IDS)
                     faces.push_back({ Editor::Selection.Segment, side });
             }
             else {

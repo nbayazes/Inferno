@@ -327,7 +327,7 @@ namespace Inferno {
                 }
             }
 
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 auto face = Face2::FromSide(*_level, seg, side);
 
                 float dist{};
@@ -403,7 +403,7 @@ namespace Inferno {
         auto seg = level.TryGetSegment(segId);
         if (!seg) return false;
 
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (!seg->SideIsSolid(side, level)) continue;
             auto face = Face2::FromSide(level, *seg, side);
 

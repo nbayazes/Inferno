@@ -10,7 +10,7 @@ namespace Inferno::Editor {
 
     void ResetSegmentUVs(Level& level, IEnumerable<SegID> auto segs, int edge = 0, float angle = 0) {
         for (auto& seg : segs)
-            for (auto& side : SideIDs)
+            for (auto& side : SIDE_IDS)
                 ResetUVs(level, { seg, side }, edge, angle);
     }
 

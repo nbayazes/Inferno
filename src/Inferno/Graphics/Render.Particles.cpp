@@ -1011,7 +1011,7 @@ namespace Inferno::Render {
                 if (!hitSomething) {
                     // check surrounding segments
                     auto& seg = Game::Level.GetSegment(spark.Segment);
-                    for (auto& side : SideIDs) {
+                    for (auto& side : SIDE_IDS) {
                         query.Start = seg.GetConnection(side);
                         hitSomething = Game::Intersect.RayLevel(ray, query, hit);
                         if (hitSomething)
@@ -1288,7 +1288,7 @@ namespace Inferno::Render {
 
             action(*seg);
 
-            for (auto& sideid : SideIDs) {
+            for (auto& sideid : SIDE_IDS) {
                 auto& side = seg->GetSide(sideid);
                 Plane plane(side.Center, side.AverageNormal);
                 if (plane.DotCoordinate(point) > radius)

@@ -88,7 +88,7 @@ namespace Inferno::Editor {
         if (!dest) return SideID::None;
         auto srcFace = Face::FromSide(level, srcId);
 
-        for (auto& sideId : SideIDs) {
+        for (auto& sideId : SIDE_IDS) {
             if (dest->SideHasConnection(sideId)) continue;
             auto sideFace = Face::FromSide(level, *dest, sideId);
 
@@ -105,10 +105,10 @@ namespace Inferno::Editor {
 
         if (!skipValidation && srcSeg->GetEstimatedVolume() < 10) return; // malformed seg check
 
-        for (auto& srcSideId : SideIDs) {
+        for (auto& srcSideId : SIDE_IDS) {
             for (auto& destid : segIds) {
                 if (destid == srcId) continue;
-                for (auto& destSide : SideIDs)
+                for (auto& destSide : SIDE_IDS)
                     MergeSides(level, { srcId, srcSideId }, { destid, destSide }, tolerance);
             }
         }
@@ -124,7 +124,7 @@ namespace Inferno::Editor {
             if (!level.SegmentExists(tag)) continue;
 
             for (auto& destid : nearby) {
-                for (auto& destSide : SideIDs) {
+                for (auto& destSide : SIDE_IDS) {
                     MergeSides(level, tag, { destid, destSide }, tolerance);
                 }
             }
@@ -326,7 +326,7 @@ namespace Inferno::Editor {
     void WeldVerticesOfOpenSides(Level& level, span<SegID> ids, float tolerance) {
         for (auto& id : ids) {
             if (auto seg = level.TryGetSegment(id)) {
-                for (auto& side : SideIDs) {
+                for (auto& side : SIDE_IDS) {
                     if (!seg->SideHasConnection(side)) continue;
                     WeldConnection(level, { id, side }, tolerance);
                 }
@@ -580,7 +580,7 @@ namespace Inferno::Editor {
                 auto& seg = level.GetSegment(segid);
 
                 bool shouldDetach[6]{}; // Detaching modifies indices so we need to check before doing so
-                for (auto& side : SideIDs) {
+                for (auto& side : SIDE_IDS) {
                     if (seg.SideContainsPoint(side, point))
                         shouldDetach[(int)side] = true;
                 }

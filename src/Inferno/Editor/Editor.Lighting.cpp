@@ -170,7 +170,7 @@ namespace Inferno::Editor {
                 if (cid == SegID::None || cid == SegID::Exit) continue;
                 auto& conn = level.GetSegment(cid);
 
-                for (auto& csid : SideIDs) {
+                for (auto& csid : SIDE_IDS) {
                     Tag target{ cid, csid };
                     if (scanned.contains(target)) continue; // skip already scanned sides
 
@@ -286,7 +286,7 @@ namespace Inferno::Editor {
             auto& seg = level.GetSegment(segId);
             segmentsToLight.insert(segId);
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 if (!LightPassesThroughSide(level, seg, sideId)) continue;
                 auto connection = seg.GetConnection(sideId);
                 if (segmentsToLight.contains(connection)) continue; // Don't add visited connections
@@ -329,7 +329,7 @@ namespace Inferno::Editor {
         for (auto& segId : segments) {
             const auto& seg = level.GetSegment(segId);
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 if (LightPassesThroughSide(level, seg, sideId)) continue; // ignore sides that light passes through
                 const auto& side = seg.GetSide(sideId);
                 bool sideIsWall = side.Wall != WallID::None;
@@ -433,7 +433,7 @@ namespace Inferno::Editor {
             for (auto& destId : segmentsToLight) {
                 auto& destSeg = level.GetSegment(destId);
 
-                for (auto& destSideId : SideIDs) {
+                for (auto& destSideId : SIDE_IDS) {
                     // for each side in dest
                     if (!ctx.Settings.AccurateVolumes && !SideIsVisible(level, destSeg, destSideId))
                         continue; // skip invisible sides when accurate volumes is off
@@ -615,7 +615,7 @@ namespace Inferno::Editor {
             auto segId = SegID(i);
             auto& seg = level.Segments[i];
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
 
                 auto& side = seg.GetSide(sideId);
@@ -657,7 +657,7 @@ namespace Inferno::Editor {
 
             int contributingSides = 0;
             // 6 sides with four color values
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 if (!accurateVolumes && seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // skip open sides unless accurate volumes enabled
                 auto& side = seg.GetSide(sideId);
                 for (auto& v : side.Light)

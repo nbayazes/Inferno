@@ -47,7 +47,7 @@ namespace Inferno::Game {
                 return seg->Center;
         }
 
-        for (auto& sideid : SideIDs) {
+        for (auto& sideid : SIDE_IDS) {
             auto position = (seg->GetSide(sideid).Center + seg->Center) / 2;
             LevelHit hit;
             if (!IntersectLevelSegment(level, position, radius, segId, hit))
@@ -89,7 +89,7 @@ namespace Inferno::Game {
             if (!sizeCheck || position)
                 targets.push_back({ segid, position.value_or(seg->Center) });
 
-            for (auto& sideid : SideIDs) {
+            for (auto& sideid : SIDE_IDS) {
                 if (seg->SideIsSolid(sideid, level)) continue;
 
                 auto connection = seg->GetConnection(sideid);

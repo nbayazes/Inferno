@@ -75,7 +75,7 @@ namespace Inferno {
 
 
     void Segment::UpdateGeometricProps(const Level& level) {
-        for (auto& sideId : SideIDs) {
+        for (auto& sideId : SIDE_IDS) {
             auto& side = GetSide(sideId);
             auto& sideVerts = SIDE_INDICES[(int)sideId];
 

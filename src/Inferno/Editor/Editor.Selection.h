@@ -159,7 +159,7 @@ namespace Inferno::Editor {
             switch (mode) {
                 case SelectionMode::Segment:
                     for (auto& id : Segments) {
-                        for (auto& side : SideIDs)
+                        for (auto& side : SIDE_IDS)
                             faces.push_back({ id, side });
                     }
                     break;
@@ -275,7 +275,7 @@ namespace Inferno::Editor {
     inline List<Tag> FacesForSegments(span<SegID> segs) {
         List<Tag> faces;
         for (auto& seg : segs) {
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 faces.push_back({ seg, side });
             }
         }

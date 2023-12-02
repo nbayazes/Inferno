@@ -52,7 +52,7 @@ namespace Inferno {
                 break;
 
             auto seg = level.TryGetSegment(value.id);
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto conn = seg->GetConnection(sid);
                 if (conn == SegID::None) continue; // solid side
                 auto& side = seg->GetSide(sid);

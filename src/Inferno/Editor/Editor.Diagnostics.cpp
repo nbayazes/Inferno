@@ -50,7 +50,7 @@ namespace Inferno::Editor {
     void FixWalls(Level& level) {
         // Relink walls
         for (int segid = 0; segid < level.Segments.size(); segid++) {
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 Tag tag((SegID)segid, sid);
                 auto& side = level.GetSide(tag);
                 if (side.Wall == WallID::None) continue;
@@ -141,7 +141,7 @@ namespace Inferno::Editor {
         for (int srcid = 0; srcid < level.Segments.size(); srcid++) {
             auto& src = level.Segments[srcid];
 
-            for (auto& srcSide : SideIDs) {
+            for (auto& srcSide : SIDE_IDS) {
                 auto dstId = src.GetConnection(srcSide);
                 if ((int)dstId < 0) continue;
 
@@ -457,7 +457,7 @@ namespace Inferno::Editor {
                 results.push_back({ 0, { segid, SideID::None }, "Segment has merged points and will cause crashes" });
             }
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
                 if (side.Wall != WallID::None) {
                     if (usedWalls.contains(side.Wall)) {

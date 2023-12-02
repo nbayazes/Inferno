@@ -9,7 +9,7 @@ namespace Inferno::Editor {
     // Returns a random connected segment or none.
     SegID GetConnectedSegment(Level& level, SegID id) {
         if (auto seg = level.TryGetSegment(id)) {
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (seg->SideHasConnection(side))
                     return seg->GetConnection(side);
             }
@@ -36,7 +36,7 @@ namespace Inferno::Editor {
         List<SelectionHit> hits;
         int segid = 0;
         for (auto& seg : level.Segments) {
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (!includeInvisible) {
                     bool visibleWall = false;
                     if (auto wall = level.TryGetWall(seg.Sides[(int)side].Wall))
@@ -288,7 +288,7 @@ namespace Inferno::Editor {
 
             case SelectionMode::Face:
                 for (int seg = 0; seg < Game::Level.Segments.size(); seg++)
-                    for (auto& side : SideIDs)
+                    for (auto& side : SIDE_IDS)
                         Faces.insert({ (SegID)seg, side });
                 break;
         }
@@ -348,7 +348,7 @@ namespace Inferno::Editor {
 
             case SelectionMode::Face:
                 for (int seg = 0; seg < Game::Level.Segments.size(); seg++)
-                    for (auto side : SideIDs)
+                    for (auto side : SIDE_IDS)
                         ToggleElement(Faces, Tag{ (SegID)seg, side });
                 break;
 
@@ -376,7 +376,7 @@ namespace Inferno::Editor {
     void EditorSelection::SelectByTexture(LevelTexID id) {
         int segId = 0;
         for (auto& seg : Game::Level.Segments) {
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (seg.SideHasConnection(side) && !seg.SideIsWall(side)) continue;
 
                 auto& segSide = seg.GetSide(side);
@@ -461,23 +461,23 @@ namespace Inferno::Editor {
 
         // Update side to be opposite of the connecting side
         auto& nextSeg = Game::Level.GetSegment(next);
-        SideID connectedSide = SideID::None;
-        for (auto& side : SideIDs) {
+        auto connectedSide = SideID::None;
+        for (auto& side : SIDE_IDS) {
             if (nextSeg.GetConnection(side) == Segment)
                 connectedSide = side;
         }
 
-        SetSelection({ next, !connectedSide });
+        SetSelection({ next, GetOppositeSide(connectedSide) });
     }
 
     void EditorSelection::Back() {
         if (Segment == SegID::None) return;
         const auto& seg = Game::Level.GetSegment(Segment);
-        auto next = seg.GetConnection(!Side);
+        auto next = seg.GetConnection(GetOppositeSide(Side));
 
         // current side was not connected, search all sides for a connection
         if (next == SegID::None) {
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (seg.SideHasConnection(side))
                     next = seg.GetConnection(side);
             }
@@ -489,7 +489,7 @@ namespace Inferno::Editor {
         // Update side to be opposite of the connecting side
         auto& nextSeg = Game::Level.GetSegment(next);
         SideID connectedSide = SideID::None;
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             if (nextSeg.GetConnection(side) == Segment)
                 connectedSide = side;
         }
@@ -520,11 +520,11 @@ namespace Inferno::Editor {
                 else if (Input::ShiftDown) {
                     // if clicked face is selected, remove all faces in the seg
                     if (Faces.contains(tag)) {
-                        for (auto& side : SideIDs)
+                        for (auto& side : SIDE_IDS)
                             Faces.erase(Tag{ tag.Segment, side });
                     }
                     else {
-                        for (auto& side : SideIDs) {
+                        for (auto& side : SIDE_IDS) {
                             Tag face = { tag.Segment, side };
                             //if (!TexturesMatch(level, tag, face)) continue;
                             Faces.insert(face);
@@ -657,7 +657,7 @@ namespace Inferno::Editor {
                 for (SegID i{}; (int)i < level.Segments.size(); i++) {
                     auto& seg = level.GetSegment(i);
 
-                    for (auto& side : SideIDs) {
+                    for (auto& side : SIDE_IDS) {
                         auto face = Face::FromSide(level, seg, side);
                         if (!frustum.Contains(face.Center())) continue;
                         auto vscreen = camera.Project(face.Center(), Matrix::Identity);
@@ -695,7 +695,7 @@ namespace Inferno::Editor {
 
     // check if any of the sides with these edges are walls
     bool EdgeHasWall(Level& level, Segment& seg, PointID v0, PointID v1) {
-        for (auto& sid : SideIDs) {
+        for (auto& sid : SIDE_IDS) {
             auto wall = level.TryGetWall(seg.GetSide(sid).Wall);
             if (!wall) continue;
             if (wall->Type == WallType::Open) continue;
@@ -730,7 +730,7 @@ namespace Inferno::Editor {
                 auto& destSeg = level.GetSegment(segid);
 
                 // Scan each face and edge
-                for (auto& sid : SideIDs) {
+                for (auto& sid : SIDE_IDS) {
                     if (destSeg.SideHasConnection(sid) && !destSeg.GetSide(sid).HasWall()) continue;
 
                     for (int16 destEdge = 0; destEdge < 4; destEdge++) {
@@ -862,7 +862,7 @@ namespace Inferno::Editor {
             Editor::Marked.Faces.clear();
 
         for (int id = 0; id < level.Segments.size(); id++) {
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto& side = level.Segments[id].GetSide(sid);
                 bool match = true;
 
@@ -884,7 +884,7 @@ namespace Inferno::Editor {
         Editor::Marked.Faces.clear();
 
         for (int id = 0; id < level.Segments.size(); id++) {
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto& side = level.Segments[id].GetSide(sid);
                 auto color = GetLightColor(side, true);
 

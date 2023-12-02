@@ -81,7 +81,7 @@ namespace Inferno {
                 auto& seg = level.GetSegment(segId);
 
                 // Find the connection to the next segment in the path
-                for (auto& sideId : SideIDs) {
+                for (auto& sideId : SIDE_IDS) {
                     auto connId = seg.GetConnection(sideId);
                     if (connId == path[i + 1]) {
                         return { segId, sideId };
@@ -103,7 +103,7 @@ namespace Inferno {
                     auto& seg = level.GetSegment(segId);
 
                     // Find the connection to the next segment in the path
-                    for (auto& sideId : SideIDs) {
+                    for (auto& sideId : SIDE_IDS) {
                         auto connId = seg.GetConnection(sideId);
                         if (connId == _path[i + 1]) {
                             return { connId, sideId };
@@ -133,7 +133,7 @@ namespace Inferno {
             auto seg = level.TryGetSegment(segId);
             if (!seg) continue;
 
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (!seg->SideIsSolid(side, level)) continue;
                 auto face = Face::FromSide(level, *seg, side);
                 if (face.AverageNormal().Dot(ray.direction) > 0)
@@ -175,7 +175,7 @@ namespace Inferno {
         if (!connSide) return {};
         auto& connSeg = level.GetSegment(connSide.Segment);
 
-        for (auto& sideId : SideIDs) {
+        for (auto& sideId : SIDE_IDS) {
             auto otherIndices = connSeg.GetVertexIndicesRef(sideId);
             int matches = 0;
 
@@ -341,7 +341,7 @@ namespace Inferno {
         for (auto& segId : room->Segments) {
             auto& seg = level.GetSegment(segId);
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 AvoidSideEdges(level, ray, seg, sideId, obj, target);
             }
         }

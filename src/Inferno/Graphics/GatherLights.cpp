@@ -286,7 +286,7 @@ namespace Inferno::Graphics {
             //}
         }
 
-        for (auto& sideId : SideIDs) {
+        for (auto& sideId : SIDE_IDS) {
             if (seg.SideHasConnection(sideId) && !seg.SideIsWall(sideId)) continue; // open sides can't have lights
             if (auto wall = level.TryGetWall(seg.GetSide(sideId).Wall)) {
                 if (wall->Type == WallType::Open) continue; // Skip open walls

@@ -375,7 +375,7 @@ namespace Inferno {
         Front = 5
     };
 
-    constexpr SideID SideIDs[] = {
+    constexpr std::array SIDE_IDS = {
         SideID::Left,
         SideID::Top,
         SideID::Right,
@@ -384,7 +384,7 @@ namespace Inferno {
         SideID::Front
     };
 
-    constexpr SideID OppositeSideIDs[] = {
+    constexpr std::array OPP_SIDE_IDS = {
         SideID::Right,
         SideID::Bottom,
         SideID::Left,
@@ -394,7 +394,7 @@ namespace Inferno {
     };
 
     constexpr SideID GetOppositeSide(SideID side) {
-        return OppositeSideIDs[(int)side];
+        return OPP_SIDE_IDS[(int)side];
     }
 
     constexpr SegID operator+(const SegID& a, const SegID& b) {
@@ -464,9 +464,9 @@ namespace Inferno {
     }
 
     // Returns the inverse (opposite) side
-    constexpr SideID operator!(SideID& side) {
-        return OppositeSideIDs[(int16)side];
-    }
+    //constexpr SideID operator!(SideID& side) {
+    //    return OppositeSideIDs[(int16)side];
+    //}
 
     // Tags a segment side
     struct Tag {

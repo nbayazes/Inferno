@@ -52,7 +52,7 @@ namespace Inferno::Render {
 
     void DrawFaceNormals(Level& level) {
         for (auto& seg : level.Segments) {
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (seg.SideHasConnection(side)) continue;
 
                 auto face = Face::FromSide(level, seg, side);
@@ -387,7 +387,7 @@ namespace Inferno::Render {
                         auto& seg = level.GetSegment(id);
 
                         auto [outline, fill] = Colors::ForSegment(seg.Type);
-                        for (auto& side : SideIDs) {
+                        for (auto& side : SIDE_IDS) {
                             Debug::DrawSideOutline(level, seg, side, outline);
                             if (seg.SideHasConnection(side)) continue; // skip fill for clarity
                             Debug::DrawSide(level, seg, side, fill);

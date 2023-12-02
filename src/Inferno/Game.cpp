@@ -620,7 +620,7 @@ namespace Inferno::Game {
         for (int i = 0; i < Level.Segments.size(); i++) {
             auto segid = SegID(i);
             auto& seg = Level.GetSegment(segid);
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 if (!seg.SideIsSolid(sid, Level)) continue;
 
                 auto& side = seg.GetSide(sid);
@@ -648,7 +648,7 @@ namespace Inferno::Game {
         marked[(int)id] = true;
 
         auto& seg = Level.GetSegment(id);
-        for (auto& sid : SideIDs) {
+        for (auto& sid : SIDE_IDS) {
             auto conn = seg.GetConnection(sid);
             if (conn > SegID::None && !seg.SideIsWall(sid) && !marked[(int)conn])
                 MarkNearby(conn, marked, depth - 1);
@@ -664,7 +664,7 @@ namespace Inferno::Game {
 
         for (int i = 0; i < Level.Segments.size(); i++) {
             auto& seg = Level.Segments[i];
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto& side = seg.GetSide(sid);
                 auto& tmi1 = Resources::GetLevelTextureInfo(side.TMap);
                 auto& tmi2 = Resources::GetLevelTextureInfo(side.TMap2);

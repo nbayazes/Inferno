@@ -116,7 +116,7 @@ namespace Inferno {
         }
 
         void ReadSegmentTextures(Segment& seg) {
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 auto& side = seg.GetSide(sid);
 
                 // Solid face or a wall

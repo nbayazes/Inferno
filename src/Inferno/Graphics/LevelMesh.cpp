@@ -24,7 +24,7 @@ namespace Inferno {
         // Discover all verts with lava on them
         Set<uint16> heatIndices;
         for (auto& seg : level.Segments) {
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
                 if (!TMapIsLava(side.TMap)) continue;
                 auto indicesForSide = seg.GetVertexIndices(sideId);
@@ -49,7 +49,7 @@ namespace Inferno {
         for (auto& segId : heatSegs) {
             auto& seg = level.GetSegment(segId);
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 // cull faces that connect to another segment containing lava. UNLESS has a wall
                 // to do this properly, external facing should be culled on lava falls, otherwise Z fighting will occur
                 // ALSO: only closed walls / doors should count (not triggers)
@@ -245,7 +245,7 @@ namespace Inferno {
 
         for (int id = 0; id < level.Segments.size(); id++) {
             auto& seg = level.Segments[id];
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
                 auto isWall = seg.SideIsWall(sideId);
 

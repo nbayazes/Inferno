@@ -211,7 +211,7 @@ namespace Inferno {
         // Check if the new position is in a touching segment, because fast moving objects can cross
         // multiple segments in one update. This affects gauss the most.
         auto& prevSeg = level.GetSegment(prevSegId);
-        for (auto& side : SideIDs) {
+        for (auto& side : SIDE_IDS) {
             auto cid = prevSeg.GetConnection(side);
             if (PointInSegment(level, cid, obj.Position)) {
                 connection = { prevSegId, side };

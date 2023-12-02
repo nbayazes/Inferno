@@ -90,7 +90,7 @@ namespace Inferno {
     Array<float, 6> GetSideDistances(const Level& level, SegID id, const Vector3& point) {
         Array<float, 6> distances{};
 
-        for (auto& sideId : SideIDs) {
+        for (auto& sideId : SIDE_IDS) {
             auto& dist = distances[(int)sideId];
             auto face = Face2::FromSide(level, Tag{ id, sideId });
 
@@ -211,7 +211,7 @@ namespace Inferno {
                 return start;
             }
 
-            for (auto& sid : SideIDs) {
+            for (auto& sid : SIDE_IDS) {
                 if (seg->SideHasConnection(sid)) {
                     if (distances[(int)sid] < biggestVal) {
                         biggestVal = distances[(int)sid];
@@ -272,7 +272,7 @@ namespace Inferno {
 
             nearby.insert(tag.Seg);
 
-            for (auto& side : SideIDs) {
+            for (auto& side : SIDE_IDS) {
                 if (seg->SideIsWall(side) && Settings::Editor.Selection.StopAtWalls) continue;
                 auto conn = seg->GetConnection(side);
                 if (conn > SegID::None && !nearby.contains(conn)) {
@@ -374,7 +374,7 @@ namespace Inferno {
         // Fallback to open side
         Vector3 exit;
 
-        for (auto& sid : SideIDs) {
+        for (auto& sid : SIDE_IDS) {
             if (!seg.SideHasConnection(sid)) continue;
             auto& side = seg.GetSide(sid);
 

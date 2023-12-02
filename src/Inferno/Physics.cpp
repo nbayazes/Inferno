@@ -293,7 +293,7 @@ namespace Inferno {
             auto segId = g_VisitedStack[index];
             auto& seg = level.GetSegment(segId);
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 auto& side = seg.GetSide(sideId);
 
                 // Don't hit the other side of walls. Note that projectiles will still pass through transparent pixels.
@@ -885,7 +885,7 @@ namespace Inferno {
         Debug::SegmentsChecked++;
         auto& seg = level.Segments[(int)segId];
 
-        for (auto& sideId : SideIDs) {
+        for (auto& sideId : SIDE_IDS) {
             if (!seg.SideIsSolid(sideId, level)) continue;
             if (Settings::Cheats.DisableWallCollision && seg.GetSide(sideId).HasWall()) continue;
             auto& side = seg.GetSide(sideId);
@@ -984,7 +984,7 @@ namespace Inferno {
             Debug::SegmentsChecked++;
             auto& seg = level.Segments[(int)segId];
 
-            for (auto& sideId : SideIDs) {
+            for (auto& sideId : SIDE_IDS) {
                 if (!seg.SideIsSolid(sideId, level)) continue;
                 auto& side = seg.GetSide(sideId);
                 if (Settings::Cheats.DisableWallCollision && side.HasWall()) continue;

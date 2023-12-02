@@ -156,7 +156,7 @@ namespace Inferno::Editor {
     }
 
     void ResetUVs(Level& level, SegID seg) {
-        for (auto& side : SideIDs)
+        for (auto& side : SIDE_IDS)
             ResetUVs(level, Tag{ seg, side });
     }
 
