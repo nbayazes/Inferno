@@ -362,7 +362,7 @@ namespace Inferno {
                         {.Gunpoints = { 0, 0, 0, 0, 1 } },
                         {.Gunpoints = { 0, 0, 0, 0, 0, 1 } }
                     },
-                    .MaxAmmo = 10
+                    .MaxAmmo = 12 // Was 10. Only carrying 2 and a half packs of missiles is weird.
                 }
             },
             {
@@ -418,7 +418,7 @@ namespace Inferno {
                     .Firing = {
                         {.Gunpoints = { 0, 0, 0, 0, 0, 0, 0, 1 } } // 7 is rear gunpoint
                     },
-                    .MaxAmmo = 15
+                    .MaxAmmo = 16 // was 15
                 }
             },
             {
