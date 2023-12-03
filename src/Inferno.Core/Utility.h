@@ -93,12 +93,13 @@ namespace Inferno {
     // Returns a random float between 0 and 1
     float Random();
 
-    // Returns a random int between 0 and maximum
+    // Returns a random int between 0 and maximum (inclusive)
     int RandomInt(int maximum);
 
-    // Returns a random int between min and max
+    // Returns a random int between min and max (inclusive)
     int RandomInt(int minimum, int maximum);
 
+    // Randomly shuffles a range in place
     void Shuffle(auto&& range) {
         ranges::shuffle(range, InternalMt19937());
     }

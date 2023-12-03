@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Game.Navigation.h"
 #include "GameTimer.h"
 #include "Level.h"
 #include "Object.h"

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "DebugWindow.h"
+#include "Game.AI.h"
 #include "Graphics/Render.h"
 #include "Graphics/Render.Debug.h"
 #include "Input.h"
@@ -92,10 +93,13 @@ namespace Inferno::Editor {
 
         if (ImGui::Button("Set path target")) {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
-                auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
+                //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
+                auto path = GenerateRandomPath(Editor::Selection.Segment, 15);
 
                 if (obj->IsRobot()) {
-                    /*auto& ai = GetAI(obj);
+                    auto& ai = GetAI(*obj);
+                    ai.GoalPath = path;
+                    /*
                     auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
                     ai.GoalSegment = Editor::Selection.Segment;
                     ai.GoalPosition = seg.Center;

@@ -113,7 +113,7 @@ namespace Inferno {
         });
     }
 
-    void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& soundPosition, float soundRadius, float awareness, float maxAwareness) {
+    void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& soundPosition, float soundRadius, float awareness, float /*maxAwareness*/) {
         for (auto& segId : room.Segments) {
             auto pseg = level.TryGetSegment(segId);
             if (!pseg) continue;
@@ -1281,6 +1281,43 @@ namespace Inferno {
         // Fall back to cover? Find help?
     }
 
+    // Causes a robot to retreat to a random segment away from a point, if possible.
+    void Retreat(AIRuntime& ai, const Object& robot, const Vector3& from, float distance) {
+        //auto seg = Game::Level.TryGetSegment(robot.Segment);
+        //if(!seg) return;
+        auto room = Game::Level.GetRoom(robot);
+        if (!room) return;
+
+        auto fromDir = from - robot.Position;
+        fromDir.Normalize();
+
+        float bestDot = 1;
+        Tag bestPortal;
+
+        for (auto& portal : room->Portals) {
+            auto side = Game::Level.TryGetSide(portal.Tag);
+            if (!side) continue;
+
+            auto dir = side->Center - robot.Position;
+            dir.Normalize();
+            auto dot = dir.Dot(fromDir);
+            if (dot < bestDot) {
+                bestPortal = portal.Tag;
+                bestDot = dot;
+            }
+        }
+
+        if (bestPortal) {
+            auto& side = Game::Level.GetSide(bestPortal);
+
+            auto dist = Vector3::DistanceSquared(side.Center, robot.Position);
+            if (dist < distance) {
+                // portal is too close, go to next room a pick a different portal
+            }
+        }
+        //room->Portals
+    }
+
     // Chooses how to react to the target going out of sight
     void OnLostLineOfSight(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
         if (Game::Difficulty < 2) {
@@ -1294,7 +1331,7 @@ namespace Inferno {
         // Bucket chances together and adjust their weighting
         float chaseChance = robotInfo.ChaseChance;
         float suppressChance = robotInfo.SuppressChance;
-        if (robotInfo.Attack == AttackType::Melee || robotInfo.Guns == 0) 
+        if (robotInfo.Attack == AttackType::Melee || robotInfo.Guns == 0)
             suppressChance = 0; // Melee robots can't shoot
 
         if (robot.Control.AI.Behavior == AIBehavior::Station)

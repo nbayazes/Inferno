@@ -72,7 +72,12 @@ namespace Inferno {
         List<SegID> NavigateWithinRoom(SegID start, SegID goal, Room& room);
     };
 
+    // Returns false if a side is blocked for navigation purposes
+    bool CanNavigateSide(Level& level, Tag tag, NavigationFlags flags);
+
     // Executes a function on each room based on portal distance from a point. Action returns true to stop traversal.
     void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, 
                                  float maxDistance, bool soundMode, const std::function<bool(Room&)>& action);
+
+    List<SegID> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags = NavigationFlags::None, SegID avoid = SegID::None);
 }
