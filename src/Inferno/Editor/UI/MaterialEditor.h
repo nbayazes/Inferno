@@ -219,7 +219,7 @@ namespace Inferno::Editor {
 
                         ImGui::TableRowLabel("Roughness");
                         ImGui::SetNextItemWidth(-1);
-                        if (ImGui::SliderFloat("##Roughness", &material.Roughness, 0.3, 1)) {
+                        if (ImGui::SliderFloat("##Roughness", &material.Roughness, 0.3f, 1)) {
                             material.Roughness = std::clamp(material.Roughness, 0.0f, 1.0f);
                             onMaterialChanged();
                         }

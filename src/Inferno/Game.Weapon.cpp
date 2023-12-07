@@ -106,7 +106,7 @@ namespace Inferno::Game {
                 if (target) {
                     auto delta = target->Position - mine.Position;
                     delta.Normalize();
-                    mine.Physics.Thrust = delta * 0.9; // fire and forget thrust
+                    mine.Physics.Thrust = delta * 0.9f; // fire and forget thrust
                 }
             }
         }
@@ -366,7 +366,7 @@ namespace Inferno::Game {
             e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
             e.Clip = vclip;
             e.FadeTime = weapon.Extended.ExplosionTime;
-            e.Color = Color{ 1, .7, .7, 2 };
+            e.Color = Color{ 1, .7f, .7f, 2 };
             e.LightColor = Color{ 1.0f, 0.05f, 0.05f, 4 };
             e.LightRadius = splashRadius;
             Render::CreateExplosion(e, obj.Segment, obj.Position);

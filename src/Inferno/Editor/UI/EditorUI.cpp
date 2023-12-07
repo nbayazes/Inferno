@@ -449,7 +449,8 @@ namespace Inferno::Editor {
 
             ImGui::SetNextWindowSize({ 110 * Shell::DpiScale, 0 });
             if (ImGui::BeginCombo("##rdrp", nullptr, ImGuiComboFlags_NoPreview)) {
-                static constexpr float snapValues[] = { 0, M_PI / 32 * RadToDeg, M_PI / 24 * RadToDeg, M_PI / 16 * RadToDeg, M_PI / 12 * RadToDeg, M_PI / 8 * RadToDeg, M_PI / 6 * RadToDeg, M_PI / 4 * RadToDeg };
+                constexpr auto pi = (float)std::numbers::pi * RadToDeg;
+                static constexpr float snapValues[] = { 0, pi / 32, pi / 24, pi / 16, pi / 12, pi / 8, pi / 6, pi / 4 };
                 for (auto& value : snapValues) {
                     auto label = fmt::format(u8"{:.2f}°", value);
                     if (ImGui::Selectable((char*)label.c_str()))
@@ -780,10 +781,10 @@ namespace Inferno::Editor {
 
             ImGui::SeparatorVertical();
 
-            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4{ 1, 0, 0, 0.55 });
-            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4{ 1, 0, 0, 0.65 }); // over
-            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4{ 1, 0, 0, 0.1 }); // pressed
-            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4{ 0.75, 0, 0, 1 });
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4{ 1, 0, 0, 0.55f });
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4{ 1, 0, 0, 0.65f }); // over
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4{ 1, 0, 0, 0.1f }); // pressed
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4{ 0.75f, 0, 0, 1 });
 
             // Toggle features
             ImGui::SameLine();
@@ -872,7 +873,7 @@ namespace Inferno::Editor {
         ImGui::SetNextWindowPos({ Input::MousePosition.x + 25, Input::MousePosition.y - 15 });
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, { 0, 0, 0, 0.7 });
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, { 0, 0, 0, 0.7f });
         ImGui::Begin("GizmoStatus", nullptr, ToolbarFlags);
         if (Editor::Gizmo.Mode == TransformMode::Rotation)
             ImGui::Text("%.1f deg", Editor::Gizmo.TotalDelta * RadToDeg);

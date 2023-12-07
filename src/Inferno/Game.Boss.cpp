@@ -234,7 +234,7 @@ namespace Inferno::Game {
                 Render::DynamicLight light;
                 light.Radius = 200;
                 light.Duration = light.FadeTime = 0.25f;
-                light.LightColor = Color(1, 0.45, 0.25, 25);
+                light.LightColor = Color(1, 0.45f, 0.25f, 25);
                 light.Position = boss.Position;
                 light.Segment = boss.Segment;
                 Render::AddDynamicLight(light);

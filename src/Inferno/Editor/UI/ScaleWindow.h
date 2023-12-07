@@ -14,24 +14,24 @@ namespace Inferno::Editor {
 
         void OnUpdate() override {
             const float labelWidth = 30 * Shell::DpiScale;
-            ImGui::TextColored({ 1, 0.4, 0.4, 1 }, "X");
+            ImGui::TextColored({ 1, 0.4f, 0.4f, 1 }, "X");
             ImGui::SameLine(labelWidth);
             ImGui::SetNextItemWidth(-1);
-            if (ImGui::InputFloat("##X", &_scale.x, 0.1, 0, "%.2f") && _uniform)
+            if (ImGui::InputFloat("##X", &_scale.x, 0.1f, 0, "%.2f") && _uniform)
                 _scale.y = _scale.z = _scale.x;
 
             {
                 DisableControls disable(_uniform);
-                ImGui::TextColored({ 0.4, 1, 0.4, 1 }, "Y");
+                ImGui::TextColored({ 0.4f, 1, 0.4f, 1 }, "Y");
                 ImGui::SameLine(labelWidth);
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::InputFloat("##Y", &_scale.y, 0.1, 0, "%.2f") && _uniform)
+                if (ImGui::InputFloat("##Y", &_scale.y, 0.1f, 0, "%.2f") && _uniform)
                     _scale.x = _scale.z = _scale.y;
 
-                ImGui::TextColored({ 0.4, 0.4, 1, 1 }, "Z");
+                ImGui::TextColored({ 0.4f, 0.4f, 1, 1 }, "Z");
                 ImGui::SameLine(labelWidth);
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::InputFloat("##Z", &_scale.z, 0.1, 0, "%.2f") && _uniform)
+                if (ImGui::InputFloat("##Z", &_scale.z, 0.1f, 0, "%.2f") && _uniform)
                     _scale.x = _scale.y = _scale.z;
             }
             ImGui::Dummy({ 0, 5 });

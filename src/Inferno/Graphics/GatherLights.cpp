@@ -179,7 +179,7 @@ namespace Inferno::Graphics {
         auto u = ((c - a).Cross(r) / den).x;
         auto t = ((c - a).Cross(s) / den).x;
 
-        constexpr float eps = 0.001;
+        constexpr float eps = 0.001f;
         if (t >= -eps && t <= 1 + eps && u >= -eps && u <= 1 + eps)
             return a + t * r; // intersects
 
@@ -433,7 +433,7 @@ namespace Inferno::Graphics {
 
                                 auto uvIntVec = intersects[1] - intersects[0];
                                 uvIntVec.Normalize();
-                                constexpr float uvIntOffset = 0.01;
+                                constexpr float uvIntOffset = 0.01f;
 
                                 auto uvEdge0 = intersects[0] + uvIntVec * uvIntOffset;
                                 auto uvEdge1 = intersects[1] - uvIntVec * uvIntOffset;

@@ -542,7 +542,7 @@ namespace Inferno {
         ai.DodgeTime = AI_DODGE_TIME * 0.5f + AI_DODGE_TIME * 0.5f * Random();
 
         if (robotInfo.FleeThreshold > 0 && ai.State == AIState::Combat)
-            ai.Fear += 0.4; // Scared of being hit
+            ai.Fear += 0.4f; // Scared of being hit
     }
 
     // todo: this only checks the room the robot is in
@@ -1039,7 +1039,7 @@ namespace Inferno {
                         Render::AddSparkEmitter(*sparks, robot.Segment, position);
 
                         Render::DynamicLight light{};
-                        light.LightColor = sparks->Color * .4;
+                        light.LightColor = sparks->Color * .4f;
                         light.Radius = 18;
                         light.Position = position;
                         light.Duration = light.FadeTime = 0.5f;

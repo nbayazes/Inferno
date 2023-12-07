@@ -14,7 +14,7 @@
 namespace Inferno::Render {
     using Graphics::GraphicsContext;
 
-    constexpr Color MIN_POWERUP_AMBIENT = Color(0.1, 0.1, 0.1);
+    constexpr Color MIN_POWERUP_AMBIENT = Color(0.1f, 0.1f, 0.1f);
 
     constexpr float GetTimeOffset(const Object& obj) {
         return (float)obj.Signature * 0.762f; // randomize time across objects

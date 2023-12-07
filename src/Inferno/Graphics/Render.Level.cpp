@@ -482,7 +482,7 @@ namespace Inferno::Render {
                     Graphics::Lights.AddLight(lt);
 
                     if (Settings::Editor.ShowLights) {
-                        Color color(1, .6, .2);
+                        Color color(1, .6f, .2f);
                         if (light.type == LightType::Rectangle) {
                             Debug::DrawLine(light.pos + light.right + light.up, light.pos + light.right - light.up, color); // right
                             Debug::DrawLine(light.pos + light.right - light.up, light.pos - light.right - light.up, color); // bottom
