@@ -25,7 +25,7 @@ namespace Inferno::Render {
     inline Ptr<Inferno::PostFx::Bloom> Bloom;
     inline Ptr<Inferno::PostFx::ScanlineCS> Scanline;
     inline Ptr<DirectX::PrimitiveBatch<ObjectVertex>> g_SpriteBatch;
-    inline Ptr<Canvas2D> Canvas, BriefingCanvas;
+    inline Ptr<Canvas2D> Canvas, BriefingCanvas, DebugCanvas;
     inline Ptr<HudCanvas2D> HudCanvas, HudGlowCanvas;
     inline Ptr<Graphics::FillLightGridCS> LightGrid;
 

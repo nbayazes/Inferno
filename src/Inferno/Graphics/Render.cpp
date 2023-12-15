@@ -191,6 +191,7 @@ namespace Inferno::Render {
         //Materials2 = MakePtr<MaterialLibrary2>(Device, 64 * 64 * 4 * 1000);
         g_SpriteBatch = MakePtr<PrimitiveBatch<ObjectVertex>>(Device);
         Canvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
+        DebugCanvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
         BriefingCanvas = MakePtr<Canvas2D>(Device, Effects->UserInterface);
         HudCanvas = MakePtr<HudCanvas2D>(Device, Effects->Hud);
         HudGlowCanvas = MakePtr<HudCanvas2D>(Device, Effects->HudAdditive);
@@ -269,6 +270,7 @@ namespace Inferno::Render {
         Effects.reset();
         Shaders.reset();
         Canvas.reset();
+        DebugCanvas.reset();
         BriefingCanvas.reset();
         HudCanvas.reset();
         HudGlowCanvas.reset();
@@ -497,6 +499,8 @@ namespace Inferno::Render {
         buffer.Begin();
         buffer.Copy({ &frameConstants, 1 });
         buffer.End();
+
+        DebugCanvas->SetSize(size.x, size.y, size.y);
     }
 
     void DrawHud(GraphicsContext& ctx) {
@@ -600,6 +604,7 @@ namespace Inferno::Render {
         ctx.Reset();
         auto cmdList = ctx.GetCommandList();
         Heaps->SetDescriptorHeaps(cmdList);
+        auto outputSize = Adapter->GetOutputSize();
 
         if (LevelChanged) {
             Adapter->WaitForGpu();
@@ -619,7 +624,7 @@ namespace Inferno::Render {
         }
 
         //DrawBriefing(ctx, Adapter->BriefingColorBuffer);
-        UpdateFrameConstants(Adapter->GetOutputSize() * Render::RenderScale, Settings::Editor.FieldOfView);
+        UpdateFrameConstants(outputSize * Render::RenderScale, Settings::Editor.FieldOfView);
 
         DrawLevel(ctx, Game::Level);
         Debug::EndFrame(cmdList);
@@ -635,6 +640,7 @@ namespace Inferno::Render {
         LegitProfiler::ProfilerTask postProcess("Post process");
         PostProcess(ctx);
         LegitProfiler::AddCpuTask(std::move(postProcess));
+        DebugCanvas->Render(ctx);
         DrawUI(ctx);
 
         LegitProfiler::ProfilerTask present("Present", LegitProfiler::Colors::NEPHRITIS);

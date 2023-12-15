@@ -11,10 +11,41 @@ namespace Inferno::Render {
 
     struct Bounds2D {
         Vector2 Min, Max;
+        bool CrossesPlane = false;
 
-        bool Overlaps(const Bounds2D& bounds) const {
-            return Min.x < bounds.Max.x && Max.x > bounds.Min.x &&
-                Max.y > bounds.Min.y && Min.y < bounds.Max.y;
+        // Note: this isn't implemented robustly and order of operations matters
+        Bounds2D Intersection(const Bounds2D& bounds) const {
+            auto min = Vector2::Max(bounds.Min, Min);
+            auto max = Vector2::Min(bounds.Max, Max);
+            if (max.x <= min.x || max.y <= min.y)
+                return {}; // no intersection
+
+            return { min, max, CrossesPlane };
+        }
+
+        constexpr bool Empty() const {
+            return Min.x == Max.x || Min.y == Max.y;
+        }
+
+        static Bounds2D FromPoints(const Array<Vector3, 4>& points) {
+            Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
+            bool crossesPlane = false;
+
+            for (auto& p : points) {
+                if (p.x < min.x)
+                    min.x = p.x;
+                if (p.y < min.y)
+                    min.y = p.y;
+                if (p.x > max.x)
+                    max.x = p.x;
+                if (p.y > max.y)
+                    max.y = p.y;
+
+                if (p.z < 0)
+                    crossesPlane = true;
+            }
+
+            return { min, max, crossesPlane };
         }
     };
 

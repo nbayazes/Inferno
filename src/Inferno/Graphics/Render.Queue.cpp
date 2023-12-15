@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "Game.Wall.h"
 #include "LegitProfiler.h"
+#include "MaterialLibrary.h"
 #include "Render.Debug.h"
 #include "Render.Editor.h"
 #include "Render.Particles.h"
@@ -356,24 +357,6 @@ namespace Inferno::Render {
     //}
 
 
-    Bounds2D GetBounds(const Array<Vector3, 4>& points) {
-        Vector2 min(FLT_MAX, FLT_MAX), max(-FLT_MAX, -FLT_MAX);
-
-        for (auto& p : points) {
-            if (p.x < min.x)
-                min.x = p.x;
-            if (p.y < min.y)
-                min.y = p.y;
-            if (p.x > max.x)
-                max.x = p.x;
-            if (p.y > max.y)
-                max.y = p.y;
-        }
-
-        return { min, max };
-    }
-
-
     //Vector3 GetNdc(const Face2& face, int i) {
     //    auto clip = Vector4::Transform(Vector4(face[i].x, face[i].y, face[i].z, 1), Render::ViewProjection);
     //    // Take abs of w, otherwise points behind the plane cause their coords to flip
@@ -396,8 +379,39 @@ namespace Inferno::Render {
         return points;
     }
 
+    void DrawBounds(const Bounds2D& bounds, const Color& color) {
+        Vector2 pixels[4]{};
+        auto size = Render::Adapter->GetOutputSize();
+
+        pixels[0].x = (bounds.Min.x + 1) * size.x * 0.5f;
+        pixels[0].y = (1 - bounds.Min.y) * size.y * 0.5f;
+        //auto z0 = Render::Camera.NearClip + (*basePoints)[0].z * (Render::Camera.FarClip - Render::Camera.NearClip);
+
+        pixels[1].x = (bounds.Max.x + 1) * size.x * 0.5f;
+        pixels[1].y = (1 - bounds.Min.y) * size.y * 0.5f;
+        //auto z1 = Render::Camera.NearClip + (*basePoints)[1].z * (Render::Camera.FarClip - Render::Camera.NearClip);
+
+        pixels[2].x = (bounds.Max.x + 1) * size.x * 0.5f;
+        pixels[2].y = (1 - bounds.Max.y) * size.y * 0.5f;
+        //auto z2 = Render::Camera.NearClip + (*basePoints)[2].z * (Render::Camera.FarClip - Render::Camera.NearClip);
+
+        pixels[3].x = (bounds.Min.x + 1) * size.x * 0.5f;
+        pixels[3].y = (1 - bounds.Max.y) * size.y * 0.5f;
+        //auto z3 = Render::Camera.NearClip + (*basePoints)[3].z * (Render::Camera.FarClip - Render::Camera.NearClip);
+
+        CanvasPayload payload{};
+        payload.Texture = Render::Materials->White().Handle();
+        auto hex = color.RGBA().v;
+        payload.V0 = CanvasVertex(pixels[0], {}, hex);
+        payload.V1 = CanvasVertex(pixels[1], {}, hex);
+        payload.V2 = CanvasVertex(pixels[2], {}, hex);
+        payload.V3 = CanvasVertex(pixels[3], {}, hex);
+        DebugCanvas->Draw(payload);
+    }
+
     void RenderQueue::CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth) {
-        if (depth > MAX_PORTAL_DEPTH) return; // Prevent stack overflow
+        if (depth > MAX_PORTAL_DEPTH)
+            return; // Prevent stack overflow
 
         for (auto& portal : room.Portals) {
             if (!SideIsTransparent(level, portal.Tag))
@@ -406,9 +420,12 @@ namespace Inferno::Render {
             auto face = Face2::FromSide(level, portal.Tag);
             auto ndc = GetNdc(face, Render::ViewProjection);
             if (!ndc) continue;
-            auto bounds = GetBounds(*ndc);
+            auto bounds = Bounds2D::FromPoints(*ndc);
+            bounds = srcBounds.Intersection(bounds);
 
-            if (srcBounds.Overlaps(bounds) && !Seq::contains(_roomQueue, portal.RoomLink)) {
+            if (!bounds.Empty() && !Seq::contains(_roomQueue, portal.RoomLink)) {
+                //DrawBounds(bounds, Color(0, 1, 0, 0.2f));
+
                 _roomQueue.push_back(portal.RoomLink);
                 if (auto linkedRoom = level.GetRoom(portal.RoomLink))
                     CheckRoomVisibility(level, *linkedRoom, bounds, depth++);
@@ -423,6 +440,9 @@ namespace Inferno::Render {
 
         auto startRoom = level.GetRoom(startRoomId);
         if (!startRoom) return;
+        //auto screenBounds = Bounds2D({ -.75f, -.75f }, { .75f, .75f });
+        auto screenBounds = Bounds2D({ -1, -1 }, { 1, 1 });
+        //DrawBounds(screenBounds, Color(1, 0, 0, 0.1f));
 
         for (auto& basePortal : startRoom->Portals) {
             if (!SideIsTransparent(level, basePortal.Tag))
@@ -434,7 +454,15 @@ namespace Inferno::Render {
             if (auto linkedRoom = level.GetRoom(basePortal.RoomLink)) {
                 // Search next room if portal is on screen
                 if (basePoints) {
-                    auto bounds = GetBounds(*basePoints);
+                    auto bounds = Bounds2D::FromPoints(*basePoints);
+                    bounds = bounds.Intersection(screenBounds);
+                    if (bounds.Empty())
+                        continue;
+
+                    if (bounds.CrossesPlane)
+                        bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
+
+                    DrawBounds(bounds, Color(0, 0, 1, 0.2f));
                     CheckRoomVisibility(level, *linkedRoom, bounds, 0);
                 }
 
