@@ -55,7 +55,7 @@ namespace Inferno::Editor {
 
     template<class...TArgs>
     void SetStatusMessage(const string_view format, TArgs&&...args) {
-        StatusText = fmt::vformat(format, fmt::make_format_args(std::forward<TArgs>(args)...));
+        StatusText = fmt::vformat(format, fmt::make_format_args(args...));
         SPDLOG_INFO("{}", StatusText);
     }
 
