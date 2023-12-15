@@ -1,8 +1,9 @@
 #include "pch.h"
-#include "Game.Navigation.h"
 #include "Game.h"
-#include "Resources.h"
+#include "Game.Navigation.h"
+#include "Game.Segment.h"
 #include "logging.h"
+#include "Resources.h"
 #include <numeric>
 
 namespace Inferno {
@@ -21,7 +22,9 @@ namespace Inferno {
     // Asserts single threaded access of this scope
 #define ASSERT_STA() static std::atomic staGuard = false; ASSERT(!staGuard); ScopedBool staScope(staGuard);
 
-    List<SegID> NavigateWithinRoomBfs(Level& level, SegID start, SegID goal, Room& room) {
+    List<NavPoint> NavigateWithinRoomBfs(Level& level, SegID start, SegID goal, Room& room) {
+        if (start == goal) return {};
+
         ASSERT_STA();
 
         struct Visited {
@@ -70,30 +73,43 @@ namespace Inferno {
             }
         }
 
-        List<SegID> path;
+        List<NavPoint> path;
 
-        if (start == goal) {
-            path.push_back(goal);
-        }
-        else {
+        //if (start == goal) {
+        //    auto& seg = level.GetSegment(goal);
+        //    path.push_back({ goal, seg.Center });
+        //}
+        //else 
+        {
             auto pathNode = &visited[(int)goal];
             if (pathNode->parent == SegID::None)
                 return path; // didn't reach
 
             while (pathNode->parent != SegID::None && pathNode->id != start) {
-                ASSERT(!Seq::contains(path, pathNode->id));
-                path.push_back(pathNode->id);
+                ASSERT(!Seq::exists(path, [&pathNode](auto& x) { return x.Segment == pathNode->id; }));
+                auto& seg = level.GetSegment(pathNode->id);
+                path.push_back({ pathNode->id, seg.Center });
+                auto conn = level.GetConnectedSide(pathNode->id, pathNode->parent);
+                if (conn != SideID::None)
+                    path.push_back({ pathNode->id, seg.GetSide(conn).Center });
+
                 pathNode = &visited[(int)pathNode->parent];
             }
 
-            path.push_back(start);
+            auto& seg = level.GetSegment(start);
+            if (!path.empty()) {
+                auto conn = level.GetConnectedSide(path.back().Segment, start);
+                path.push_back({ start, seg.GetSide(conn).Center });
+            }
+
+            path.push_back({ start, seg.Center });
             ranges::reverse(path);
         }
 
         return path;
     }
 
-    List<SegID> NavigationNetwork::NavigateTo(SegID start, SegID goal, NavigationFlags flags, Level& level, float maxDistance) {
+    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, SegID goal, NavigationFlags flags, Level& level, float maxDistance) {
         auto startRoom = level.GetRoom(start);
         auto endRoom = level.GetRoom(goal);
         if (!startRoom || !endRoom)
@@ -102,7 +118,7 @@ namespace Inferno {
         if (startRoom == endRoom)
             return NavigateWithinRoomBfs(level, start, goal, *endRoom);
 
-        List<SegID> path;
+        List<NavPoint> path;
         auto roomStartSeg = start;
         auto roomPath = NavigateAcrossRooms(level.GetRoomID(start), level.GetRoomID(goal), flags, level);
         float totalDistance = 0;
@@ -438,10 +454,10 @@ namespace Inferno {
         }
     }
 
-    List<SegID> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags, SegID avoid) {
-        List<SegID> path;
+    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags, SegID avoid) {
+        depth *= 2; // path also adds points where segments join
+        List<NavPoint> path;
         if (!Game::Level.SegmentExists(start)) return path;
-
 
         Tag portalTag;
         auto& startSeg = Game::Level.GetSegment(start);
@@ -452,9 +468,10 @@ namespace Inferno {
                 if (!room->Portals.empty()) {
                     auto portalCount = room->Portals.size();
                     auto index = RandomInt((int)portalCount - 1);
-                    auto& portal = room->Portals[index];
                     int bestPortal = 0;
                     for (int i = 0; i < portalCount; i++, index++) {
+                        auto& portal = room->Portals[index % portalCount];
+
                         // Skip sides we can't navigate through
                         if (CanNavigateSide(Game::Level, portal.Tag, flags)) {
                             bestPortal = index % portalCount;
@@ -489,7 +506,7 @@ namespace Inferno {
 
         //return path; // in-room path was long enough!
 
-        // do a random search outside of the room because the path was too short
+        // do a random search outside the room because the path was too short
 
         //static List<SegID> visited;
         //visited.clear();
@@ -507,15 +524,25 @@ namespace Inferno {
         auto portalConn = Game::Level.GetConnectedSide(portalTag);
         SegID segid = portalConn ? portalConn.Segment : start;
 
-        uint d = 0;
-        while (d <= depth) {
-            auto& seg = Game::Level.GetSegment(segid);
-            //visited.push_back(segid);
-            if (path.back() != segid)
-                path.push_back(segid);
+        // start seg was on edge of room
+        if (path.empty() && portalTag) {
+            auto& portalSeg = Game::Level.GetSegment(portalTag);
+            auto& portalSide = portalSeg.GetSide(portalTag.Side);
+            path.push_back({ portalTag.Segment, portalSeg.Center });
+            path.push_back({ portalTag.Segment, portalSide.Center + portalSide.AverageNormal });
+        }
 
+        uint d = 0;
+        while (path.size() < depth) {
+            auto& seg = Game::Level.GetSegment(segid);
             if (d == 0)
                 startPoint = seg.Center;
+
+            //visited.push_back(segid);
+            // todo: prevent overlap with existing path
+            //if (!path.empty() && path.back().Segment != segid)
+            path.push_back({ segid, seg.Center });
+            d++;
 
             //if (d == 1) {
             //    startDir = seg.Center - startPoint;
@@ -524,17 +551,18 @@ namespace Inferno {
 
             float bestDot = -2;
             auto bestSide = SideID::None;
-            bool biasFromStart = true;
+            bool biasFromStart = false;
             float bestDist = 0;
 
             Shuffle(lookup); // Randomize where to go
 
             for (auto& side : lookup) {
                 auto conn = seg.GetConnection(side);
-                if (conn == avoid || Seq::contains(path, conn)) continue;
+                if (conn == avoid || Seq::exists(path, [conn](auto& x) { return x.Segment == conn; })) continue;
                 if (!CanNavigateSide(Game::Level, { segid, side }, flags)) continue;
+                bestSide = side;
 
-
+#ifdef BIAS
                 if (biasFromStart && d > 0) {
                     //bestSide = side;
                     auto dist = Vector3::DistanceSquared(seg.GetSide(side).Center, startPoint);
@@ -568,15 +596,213 @@ namespace Inferno {
                     bestSide = side;
                     break;
                 }
+#endif
             }
 
             if (bestSide == SideID::None)
                 return path; // Unable to path further
 
+            auto& side = seg.GetSide(bestSide);
+            path.push_back({ segid, side.Center + side.AverageNormal });
             segid = seg.GetConnection(bestSide);
-            d++;
         }
 
+        if (path.size() > 2)
+            path.resize(path.size() - 1); // Discard the face connection on the last segment
+
         return path;
+    }
+
+    //float FaceEdgeDistanceOpen(const Face2& face, const Vector3& point) {
+    //    // Check the four outside edges of the face
+    //    auto mag1 = (point - ClosestPointOnLine(face[0], face[1], point)).Length();
+    //    auto mag2 = (point - ClosestPointOnLine(face[1], face[2], point)).Length();
+    //    auto mag3 = (point - ClosestPointOnLine(face[2], face[3], point)).Length();
+    //    auto mag4 = (point - ClosestPointOnLine(face[3], face[0], point)).Length();
+    //    return std::min({ mag1, mag2, mag3, mag4 });
+    //}
+
+    // Similar to FaceEdgeDistance() but checks for adjacent closed sides instead of open ones
+    float FaceEdgeDistancePathing(const Segment& seg, SideID sideid, const Face2& face, const Vector3& point) {
+        // Check the four outside edges of the face
+        float mag1 = FLT_MAX, mag2 = FLT_MAX, mag3 = FLT_MAX, mag4 = FLT_MAX;
+        auto& side = seg.GetSide(sideid);
+
+
+        // If the edge doesn't have a connection it's safe to put a decal on it
+        if (side.SolidEdges[0]) {
+            auto c = ClosestPointOnLine(face[0], face[1], point);
+            mag1 = (point - c).Length();
+        }
+
+        if (side.SolidEdges[1]) {
+            auto c = ClosestPointOnLine(face[1], face[2], point);
+            mag2 = (point - c).Length();
+        }
+
+        if (side.SolidEdges[2]) {
+            auto c = ClosestPointOnLine(face[2], face[3], point);
+            mag3 = (point - c).Length();
+        }
+
+        if (side.SolidEdges[3]) {
+            auto c = ClosestPointOnLine(face[3], face[0], point);
+            mag4 = (point - c).Length();
+        }
+
+        return std::min({ mag1, mag2, mag3, mag4 });
+    }
+
+    // Hit test against all sides in a segment, but ignores backfacing
+    LevelHit IntersectSegmentPathing(Level& level, const Ray& ray, SegID segId) {
+        LevelHit hit{};
+
+        auto seg = level.TryGetSegment(segId);
+        if (!seg) return hit;
+
+        for (auto& side : SIDE_IDS) {
+            auto face = Face2::FromSide(level, *seg, side);
+
+            //if (ray.direction.Dot(face.AverageNormal()) >= 0)
+            //    continue; // Don't hit backfaces
+
+            float dist{};
+            auto tri = face.Intersects(ray, dist);
+            if (tri == -1) continue; // no hit on this side
+
+            hit.Tag = { segId, side };
+            hit.Distance = dist;
+            hit.Normal = face.Side->Normals[tri];
+            hit.Tangent = face.Side->Tangents[tri];
+            hit.Point = ray.position + ray.direction * dist;
+            hit.EdgeDistance = FaceEdgeDistancePathing(*seg, side, face, hit.Point);
+            break;
+        }
+
+        return hit;
+    }
+
+    void OptimizePath(List<NavPoint>& path) {
+        float objRadius = 8;
+
+        //if (path.back().Segment != SegID(9)) return;
+
+        List<NavPoint> buffer;
+        buffer.reserve(path.size());
+        buffer.push_back(path.front());
+
+        for (int i = 0; i < path.size();) {
+            uint offset = 1;
+
+            // Keep casting rays to further nodes until one hits
+            for (; offset + i < path.size(); offset++) {
+                auto [dir, dist] = GetDirectionAndDistance(path[i + offset].Position, path[i].Position);
+                Ray ray = { path[i].Position, dir };
+                RayQuery query{ .MaxDistance = dist + 5.0f, .Start = path[i].Segment };
+                LevelHit hit;
+
+                // Checking for > 1 is in the case where the segments are too small for the radius even without splitting
+                if (offset > 1 && Game::Intersect.RayLevel(ray, query, hit)) {
+                    /*if(offset > 1) {
+                        SPDLOG_WARN("Original path is too close to wall with requested radius.
+                    }*/
+                    offset--; // Back up one node
+                    break;
+                }
+            }
+
+            buffer.push_back(path[std::min(i + offset, (uint)path.size() - 1)]);
+            i += offset;
+        }
+
+        path = buffer;
+        buffer.clear();
+        //return;
+
+        //SPDLOG_INFO("Optimizing path");
+
+        // now check if the remaining nodes are too close to segment edges
+        for (uint i = 0; i + 1 < path.size(); i++) {
+            auto& node = path[i];
+
+            buffer.push_back(node);
+
+            NavPoint curNode = node;
+            //auto nodeSeg = node.Segment;
+            //auto nodePoint = node.Position;
+
+            //Vector3 prevHitPoint;
+
+            // Check each segment along the path for being too close
+            while (curNode.Segment != path[i + 1].Segment) {
+                auto [dir, dist] = GetDirectionAndDistance(path[i + 1].Position, curNode.Position);
+
+                //SPDLOG_INFO("Raytest seg: {}", curNode.Segment);
+
+                Ray ray = { curNode.Position, dir };
+                auto hit = IntersectSegmentPathing(Game::Level, ray, curNode.Segment);
+                if (!hit) {
+                    //__debugbreak();
+                    SPDLOG_WARN("PATH FAILURE");
+                    return; // return the original path
+                }
+                //auto edgeDistance = hit.EdgeDistance;
+
+                //if (!hit.Tag) {
+                //    // If a ray passes perfectly through the corner of segments it can skip the connected segment and instead go to an adjacent one.
+                //    // Try nudging the point into a nearby seg from the previous hit
+                //    __debugbreak();
+                //    curNode.Segment = TraceSegment(Game::Level, curNode.Segment, prevHitPoint + ray.direction);
+                //    hit = IntersectSegmentPathing(Game::Level, ray, curNode.Segment);
+                //    if (!hit.Tag) {
+                //        __debugbreak();
+                //        SPDLOG_WARN("Nav Path didn't intersect with expected segment {}! unable to recover", curNode.Segment);
+                //        break;
+                //    }
+                //}
+
+                //if (!hit.Tag) {
+                //    // Hit test against the current segment failed when it shouldn't. Verify the point position.
+                //    curNode.Segment = TraceSegment(Game::Level, curNode.Segment, curNode.Position);
+                //    auto retryHit = IntersectSegmentPathing(Game::Level, ray, curNode.Segment);
+
+                //}
+
+                if (hit.EdgeDistance < objRadius) {
+                    // Path too close to edge, insert a new node towards the center
+                    auto& side = Game::Level.GetSide(hit.Tag);
+                    auto centerDir = GetDirection(side.Center, hit.Point);
+
+                    //auto position = hit.Point + centerDir * (objRadius - hit.EdgeDistance);
+                    curNode.Position = hit.Point + centerDir * (objRadius - hit.EdgeDistance);
+                    curNode.Segment = TraceSegment(Game::Level, curNode.Segment, curNode.Position);
+                    buffer.push_back(curNode/* { nodeSeg, position }*/);
+                }
+
+                //prevHitPoint = hit.Point;
+                curNode.Segment = Game::Level.GetConnectedSide(hit.Tag).Segment;
+                //nodeSeg = Game::Level.GetConnectedSide(hit.Tag).Segment; // Get the next segment in the path
+                //nodePoint
+            }
+        }
+
+        buffer.push_back(path.back());
+        path = buffer;
+        buffer.clear();
+
+        // merge nearby nodes
+        //for (uint i = 0; i + 1 < path.size(); i++) {
+        //    if (Vector3::Distance(path[i].Position, path[i + 1].Position) < 5) {
+        //        auto avg = (path[i].Position + path[i + 1].Position) * 0.5f;
+        //        i++;
+        //        auto newSeg = TraceSegment(Game::Level, path[i].Segment, avg);
+        //        buffer.push_back({ newSeg, avg });
+        //    }
+        //    else {
+        //        buffer.push_back(path[i]);
+        //    }
+        //}
+
+        //path = buffer;
     }
 }

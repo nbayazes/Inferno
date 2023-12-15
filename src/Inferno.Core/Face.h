@@ -345,14 +345,20 @@ namespace Inferno {
 
         // Returns -1 if no hit, 0 if hit tri 0, 1 if hit tri 1
         int Intersects(const Ray& ray, float& dist, bool hitBackface = false) const {
-            // bug: if the ray is directly on top of the triangle this returns false
             auto& i = Side->GetRenderIndices();
             bool hitTri0 = hitBackface || Side->Normals[0].Dot(ray.direction) < 0;
             bool hitTri1 = hitBackface || Side->Normals[1].Dot(ray.direction) < 0;
+
             if (hitTri0 && ray.Intersects(Points[i[0]], Points[i[1]], Points[i[2]], dist))
                 return 0;
 
             if (hitTri1 && ray.Intersects(Points[i[3]], Points[i[4]], Points[i[5]], dist))
+                return 1;
+
+            if (hitTri0 && std::abs(PointToPlaneDistance(ray.position, Side->Centers[0], Side->Normals[0])) < 0.0001f)
+                return 0;
+
+            if (hitTri1 && std::abs(PointToPlaneDistance(ray.position, Side->Centers[1], Side->Normals[1])) < 0.0001f)
                 return 1;
 
             return -1;

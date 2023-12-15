@@ -9,6 +9,6 @@ namespace Inferno {
     void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible);
 
     namespace AI {
-        void SetPath(Object& obj, const List<SegID>& path, const Vector3* endPosition = nullptr);
+        void SetPath(Object& obj, const List<NavPoint>& path, const Vector3* endPosition = nullptr);
     }
 }

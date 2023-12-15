@@ -24,7 +24,7 @@ namespace Inferno {
         float Timer{};
         float Delay{}; // Randomized delay to the next robot
         bool CreateRobotState = false;
-        List<SegID> TriggerPath; // Path to the trigger that last activated this matcen. Used for robot pathing.
+        List<NavPoint> TriggerPath; // Path to the trigger that last activated this matcen. Used for robot pathing.
         EffectID Light = EffectID::None; // Permanent light to indicate the matcen has activations remaining
 
         // Returns the robot ids from merging the two flags

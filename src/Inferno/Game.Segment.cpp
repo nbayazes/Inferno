@@ -364,8 +364,8 @@ namespace Inferno {
     Vector3 GetExitVector(Level& level, Segment& seg, const Matcen& matcen) {
         // Use active path side
         if (matcen.TriggerPath.size() >= 2) {
-            auto& p0 = Game::Level.GetSegment(matcen.TriggerPath[0]);
-            auto& p1 = Game::Level.GetSegment(matcen.TriggerPath[1]);
+            auto& p0 = Game::Level.GetSegment(matcen.TriggerPath[0].Segment);
+            auto& p1 = Game::Level.GetSegment(matcen.TriggerPath[1].Segment);
             auto exit = p1.Center - p0.Center;
             exit.Normalize();
             return exit;
@@ -403,7 +403,7 @@ namespace Inferno {
             p.Radius = up.Length() / 2;
             up.Normalize(p.Up);
             p.RandomRotation = false;
-            p.Color = Color(.2, 1, .2, 5);
+            p.Color = Color(.2f, 1, .2f, 5);
             Render::AddParticle(p, segId, seg->Center);
 
             Render::DynamicLight light;

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Types.h"
 #include "Room.h"
 #include "Level.h"
@@ -10,6 +11,10 @@ namespace Inferno {
         OpenSecretDoors = 1 << 1, // Can open secret doors. Door must be unlocked.
         HighPriority = 1 << 2 // Keep pathing if possible
     };
+
+    namespace Debug {
+        inline List<NavPoint> NavigationPath;
+    }
 
     class NavigationNetwork {
         struct SegmentSideNode {
@@ -46,7 +51,7 @@ namespace Inferno {
             }
         }
 
-        List<SegID> NavigateTo(SegID start, SegID goal, NavigationFlags flags, struct Level& level, float maxDistance = FLT_MAX);
+        List<NavPoint> NavigateTo(SegID start, SegID goal, NavigationFlags flags, struct Level& level, float maxDistance = FLT_MAX);
 
     private:
         void UpdateNode(struct Level& level, SegID segId) {
@@ -79,5 +84,6 @@ namespace Inferno {
     void TraverseRoomsByDistance(Inferno::Level& level, RoomID startRoom, const Vector3& position, 
                                  float maxDistance, bool soundMode, const std::function<bool(Room&)>& action);
 
-    List<SegID> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags = NavigationFlags::None, SegID avoid = SegID::None);
+    List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags = NavigationFlags::None, SegID avoid = SegID::None);
+    void OptimizePath(List<NavPoint>& path);
 }

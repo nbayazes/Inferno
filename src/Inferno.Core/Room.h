@@ -5,10 +5,6 @@
 #include "Utility.h"
 
 namespace Inferno {
-    namespace Debug {
-        inline List<Vector3> NavigationPath;
-    }
-
     struct NavigationNode {
         Vector3 Position;
         SegID Segment = SegID::None; // None indicates node is not directly associated with a segment

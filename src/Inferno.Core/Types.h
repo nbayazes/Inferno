@@ -604,6 +604,12 @@ namespace Inferno {
         const auto end() const { return _data.begin() + _count; }
     };
 
+    // Point in a navigation path
+    struct NavPoint {
+        SegID Segment;
+        Vector3 Position;
+    };
+
     // enum to int formatters to make fmt happy
 
     constexpr auto format_as(SegID id) { return (int)id; }

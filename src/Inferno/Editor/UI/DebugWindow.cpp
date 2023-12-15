@@ -94,11 +94,13 @@ namespace Inferno::Editor {
         if (ImGui::Button("Set path target")) {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
                 //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
-                auto path = GenerateRandomPath(Editor::Selection.Segment, 15);
+                auto path = GenerateRandomPath(Editor::Selection.Segment, 20);
+                List<NavPoint> original = path;
+                OptimizePath(path);
 
                 if (obj->IsRobot()) {
-                    auto& ai = GetAI(*obj);
-                    ai.GoalPath = path;
+                    //auto& ai = GetAI(*obj);
+                    //ai.GoalPath = path;
                     /*
                     auto& seg = Game::Level.GetSegment(Editor::Selection.Segment);
                     ai.GoalSegment = Editor::Selection.Segment;
@@ -124,9 +126,12 @@ namespace Inferno::Editor {
                 Debug::NavigationPath.clear();
 
                 for (auto& node : path) {
-                    auto& seg = Game::Level.GetSegment(node);
-                    Debug::NavigationPath.push_back(seg.Center);
+                    Debug::NavigationPath.push_back(node);
                 }
+
+                //for (auto& node : original) {
+                //    Debug::NavigationPath.push_back(node);
+                //}
             }
         }
 

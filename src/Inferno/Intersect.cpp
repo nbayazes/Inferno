@@ -1,6 +1,6 @@
 #include "pch.h"
+#include "logging.h"
 #include "Intersect.h"
-
 #include "Game.Segment.h"
 #include "Game.Wall.h"
 #include "Resources.h"
@@ -175,20 +175,23 @@ namespace Inferno {
             auto c = ClosestPointOnLine(face[0], face[1], point);
             mag1 = (point - c).Length();
         }
+
         if (seg.SideHasConnection(GetAdjacentSide(side, 1))) {
             auto c = ClosestPointOnLine(face[1], face[2], point);
             mag2 = (point - c).Length();
         }
+
         if (seg.SideHasConnection(GetAdjacentSide(side, 2))) {
             auto c = ClosestPointOnLine(face[2], face[3], point);
             mag3 = (point - c).Length();
         }
+
         if (seg.SideHasConnection(GetAdjacentSide(side, 3))) {
             auto c = ClosestPointOnLine(face[3], face[0], point);
             mag4 = (point - c).Length();
         }
 
-        return std::min(std::min(std::min(mag1, mag2), mag3), mag4);
+        return std::min({ mag1, mag2, mag3, mag4 });
     }
 
     void WrapUV(Vector2& uv) {
@@ -297,7 +300,9 @@ namespace Inferno {
         }
     }
 
-    bool IntersectContext::RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
+    bool IntersectContext::RayLevel(const Ray& ray2, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
+        Ray ray = ray2;
+        //SPDLOG_INFO("RayLevel() start: {}", query.Start);
         ASSERT(query.Start != SegID::None); // Very bad for perf to not supply seg
         ASSERT(query.MaxDistance > 0);
         if (query.MaxDistance <= 0.01f) return false;
@@ -306,11 +311,58 @@ namespace Inferno {
         _visitedSegs.clear();
         _visitedSegs.reserve(10);
 
-        while (next > SegID::None) {
+        bool recoveryMode = false;
+        //auto recoverySeg = SegID::None;
+        Vector3 lastGoodHit;
+        auto lastGoodSeg = SegID::None;
+        int recoveryTries = 0;
+
+        while (next > SegID::None || recoveryMode) {
+            if (recoveryMode) {
+                /*if (lastGoodSeg == SegID::None) {
+                    __debugbreak();
+                    SPDLOG_WARN("No good segments hit from {}. Aborting ray intersect.", query.Start);
+                    return false;
+                }*/
+
+                // No intersections can occur when a ray passes exactly through the corner of a segment.
+                // Try to recover by offsetting by the last good intersection and hoping it puts us in the right segment.
+                // Also jitter the ray position.
+                if (recoveryTries == 1) ray.position += VectorToRotation(ray.direction).Up() * 0.01f + VectorToRotation(ray.direction).Right() * 0.01f;
+                if (recoveryTries == 2) ray.position -= VectorToRotation(ray.direction).Right() * 0.02f;
+                if (recoveryTries == 3) ray.position -= VectorToRotation(ray.direction).Up() * 0.02f;
+                if (recoveryTries == 4) ray.position += VectorToRotation(ray.direction).Right() * 0.02f;
+
+                if (lastGoodSeg == SegID::None) {
+                    if (recoveryTries == 0) ray.position += ray.direction * 0.01f;
+                    next = TraceSegment(*_level, query.Start, ray.position);
+                }
+                else {
+                    if (recoveryTries == 0) ray.position = lastGoodHit + ray.direction * 0.01f;
+                    next = TraceSegment(*_level, lastGoodSeg, ray.position);
+                }
+
+                if (next == SegID::None || recoveryTries > 4) {
+                    //Debug::RayStart = lastGoodHit;
+                    Debug::RayStart = ray.position;
+                    Debug::RayEnd = ray.position + ray.direction * query.MaxDistance;
+                    __debugbreak();
+                    SPDLOG_WARN("Unable to recover from orphaned ray from segment {}", lastGoodSeg);
+                    return false;
+                }
+
+                //SPDLOG_WARN("Trying to recover from orphan ray. Start: {} Last good: {} Next: {}", query.Start, lastGoodSeg, next);
+                recoveryTries++;
+                recoveryMode = false;
+            }
+
             SegID segId = next;
-            _visitedSegs.push_back(segId); // must track visited segs to prevent circular logic
             next = SegID::None;
+
+            ASSERT(segId != SegID::None);
+            _visitedSegs.push_back(segId); // must track visited segs to prevent circular logic
             auto& seg = _level->GetSegment(segId);
+            //SPDLOG_INFO("RayLevel() seg: {}", segId);
 
             if (mask != ObjectMask::None) {
                 for (auto& objid : seg.Objects) {
@@ -327,15 +379,30 @@ namespace Inferno {
                 }
             }
 
+            bool anyIntersect = false;
+
             for (auto& side : SIDE_IDS) {
                 auto face = Face2::FromSide(*_level, seg, side);
+                //if (recoveryTries > 1) {
+                //    // jitter the face position
+                //    for (int i = 0; i < 4; i++) {
+                //        face.Points[i] += Vector3(0.001f, 0.001f, 0.001f);
+                //    }
+                //}
 
                 float dist{};
-                auto tri = face.Intersects(ray, dist);
+                auto tri = face.Intersects(ray, dist, false);
+
+                if (tri != -1)
+                    anyIntersect = true;
+
                 if (tri == -1 || dist >= hit.Distance || dist > query.MaxDistance)
                     continue; // too far or no intersect
 
                 Tag tag{ segId, side };
+                auto intersectPoint = ray.position + ray.direction * dist;
+                lastGoodHit = intersectPoint;
+                lastGoodSeg = segId;
                 bool intersects{}; // does this side intersect with rays?
 
                 switch (query.Mode) {
@@ -370,18 +437,25 @@ namespace Inferno {
                 if (intersects) {
                     hit.Tag = tag;
                     hit.Distance = dist;
-                    hit.Normal = face.AverageNormal();
+                    hit.Normal = face.Side->Normals[tri];
                     hit.Tangent = face.Side->Tangents[tri];
-                    hit.Point = ray.position + ray.direction * dist;
+                    hit.Point = intersectPoint;
                     hit.EdgeDistance = FaceEdgeDistance(seg, side, face, hit.Point);
                     return true;
                 }
                 else {
                     auto conn = seg.GetConnection(side);
-                    if (!Seq::contains(_visitedSegs, conn))
+                    if (!Seq::contains(_visitedSegs, conn)) {
                         next = conn;
+                        ray.position -= seg.GetSide(side).AverageNormal * 0.01f;
+                    }
                     break; // go to next segment
                 }
+            }
+
+            if (!anyIntersect) {
+                //SPDLOG_INFO("Ray didn't intersect anything in seg {}", segId);
+                recoveryMode = true;
             }
         }
 

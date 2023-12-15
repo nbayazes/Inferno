@@ -30,6 +30,7 @@ namespace Inferno {
         Array<Vector3, 2> Centers;
         Vector3 AverageNormal;
         Vector3 Center;
+        Array<bool, 4> SolidEdges = { false, false, false, false }; // Marks an edge as solid for pathfinding purposes
 
         LevelTexID TMap, TMap2{};
         OverlayRotation OverlayRotation = OverlayRotation::Rotate0;

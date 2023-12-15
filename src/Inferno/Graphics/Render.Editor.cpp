@@ -13,6 +13,7 @@
 #include "Editor/UI/EditorUI.h"
 #include "Game.Text.h"
 #include "Editor/Bindings.h"
+#include "Intersect.h"
 
 namespace Inferno::Render {
     void DrawFacingCircle(const Vector3& position, float radius, const Color& color) {
@@ -359,13 +360,15 @@ namespace Inferno::Render {
         }
     }
 
-    void DrawPath(span<const Vector3> path, const Color& color) {
+    void DrawPath(span<const NavPoint> path, const Color& color) {
         if (path.size() < 2) return;
-        Vector3 prev = path[0];
+        Vector3 prev = path[0].Position;
+        Debug::DrawPoint(prev, color);
 
         for (int i = 1; i < path.size(); i++) {
-            Debug::DrawLine(prev, path[i], color);
-            prev = path[i];
+            Debug::DrawLine(prev, path[i].Position, color);
+            Debug::DrawPoint(path[i].Position, color);
+            prev = path[i].Position;
         }
     }
 
@@ -524,7 +527,12 @@ namespace Inferno::Render {
         if (Settings::Editor.Windows.TunnelBuilder)
             DrawTunnelBuilder(level);
 
-        DrawPath(Inferno::Debug::NavigationPath, Color(0, 1, 0));
+        {
+            Debug::DrawLine(Inferno::Debug::RayStart, Inferno::Debug::RayEnd, Color(1, 0, 0));
+            Debug::DrawPoint(Inferno::Debug::RayStart, Color(1, 0, 0));
+            Debug::DrawPoint(Inferno::Debug::RayEnd, Color(1, 0, 0));
+        }
+        DrawPath(Inferno::Debug::NavigationPath, Color(0.25, .5, 1));
         DrawRooms(level);
         OutlineTeleportSegments();
 

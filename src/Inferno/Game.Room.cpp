@@ -986,7 +986,7 @@ namespace Inferno::Game {
     constexpr float PADDING = 2.5f;
 
     // project a ray from a point to the portals in another room
-    bool PortalVisibleFromPoint(IntersectContext& intersect, SegID srcSegment, const Vector3& srcPoint,
+    bool PortalVisibleFromPoint(IntersectContext& intersect, SegID srcSegment, const Vector3& srcPoint, const Vector3& srcNormal,
                                 const Array<Vector3, 3>& destTri, const Vector3& destNormal, const FaceInfo& destBounds,
                                 int steps) {
         auto transform = VectorToRotation(destNormal);
@@ -1001,6 +1001,9 @@ namespace Inferno::Game {
 
                 auto [dir, dist] = GetDirectionAndDistance(pt, srcPoint);
                 if (!TriangleContainsPoint(destTri, pt)) continue;
+
+                if (abs(dir.Dot(srcNormal)) <= 0.01f)
+                    return false; // ray is perpendicular to portal
 
                 //Inferno::Render::Debug::DebugPoints2.push_back(pt);
                 Ray ray(srcPoint, dir);
@@ -1033,7 +1036,6 @@ namespace Inferno::Game {
         for (auto& srcPortal : room.Portals) {
             room.VisibleRooms.push_back(srcPortal.RoomLink); // all adjacent rooms are visible
             auto& srcSeg = level.GetSegment(srcPortal.Tag);
-            auto& srcSide = srcSeg.GetSide(srcPortal.Tag.Side);
             auto srcFace = Face2::FromSide(level, srcSeg, srcPortal.Tag.Side);
             auto connectedSide = level.GetConnectedSide(srcPortal.Tag);
 
@@ -1043,8 +1045,8 @@ namespace Inferno::Game {
                 if (!destRoom) continue;
 
                 auto srcPoly = srcFace.GetPoly(i);
-                auto srcBounds = GetFaceBounds(srcPoly, srcSide.Normals[i]);
-                auto srcTransform = VectorToRotation(srcSide.Normals[i]);
+                auto srcBounds = GetFaceBounds(srcPoly, srcFace.Side->Normals[i]);
+                auto srcTransform = VectorToRotation(srcFace.Side->Normals[i]);
                 auto xstep = (srcBounds.Width - PADDING * 2) / (steps - 1);
                 auto ystep = -(srcBounds.Height - PADDING * 2) / (steps - 1);
 
@@ -1083,7 +1085,6 @@ namespace Inferno::Game {
                     }
 
                     auto& destSeg = level.GetSegment(destPortal->Tag);
-                    auto& destSide = destSeg.GetSide(destPortal->Tag.Side);
                     auto destFace = Face2::FromSide(level, destSeg, destPortal->Tag.Side);
 
                     auto addLeafRoom = [&srcFace, &destFace, &room, &destPortal] {
@@ -1102,8 +1103,8 @@ namespace Inferno::Game {
 
                     auto destPoly0 = destFace.GetPoly(0);
                     auto destPoly1 = destFace.GetPoly(1);
-                    auto destBounds0 = GetFaceBounds(destPoly0, destSide.Normals[0]);
-                    auto destBounds1 = GetFaceBounds(destPoly1, destSide.Normals[1]);
+                    auto destBounds0 = GetFaceBounds(destPoly0, destFace.Side->Normals[0]);
+                    auto destBounds1 = GetFaceBounds(destPoly1, destFace.Side->Normals[1]);
                     bool foundPortal = false;
 
                     // Compare each point on the src portal grid to the dest portal
@@ -1115,14 +1116,14 @@ namespace Inferno::Game {
 
                             if (!TriangleContainsPoint(srcPoly, pt)) continue; // Grid point wasn't inside triangle
 
-                            pt += srcTransform.Forward() * 0.2f; // shift the point inside of the start room so parallel portals aren't marked as visible
+                            pt += srcTransform.Forward() * 0.2f; // shift the point inside the start seg so parallel portals aren't marked as visible
 
                             if (!PointInSegment(level, connectedSide.Segment, pt))
-                                continue; // Shifting the point rarely pushes it outside of the expected segment. Discard it if this happens.
+                                continue; // Shifting the point rarely pushes it outside the expected segment. Discard it if this happens.
 
                             // Check the source triangle against both dest triangles
-                            if (PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, destPoly0, destSide.Normals[0], destBounds0, steps) ||
-                                PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, destPoly1, destSide.Normals[1], destBounds1, steps)) {
+                            if (PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, srcFace.Side->Normals[i], destPoly0, destFace.Side->Normals[0], destBounds0, steps) ||
+                                PortalVisibleFromPoint(intersect, connectedSide.Segment, pt, srcFace.Side->Normals[i], destPoly1, destFace.Side->Normals[1], destBounds1, steps)) {
                                 // Add both pairs to simplify searching
                                 visiblePortalLinks.push_back({ destPortal->Id, srcPortal.Id });
                                 visiblePortalLinks.push_back({ srcPortal.Id, destPortal->Id });
@@ -1169,6 +1170,53 @@ namespace Inferno::Game {
 
             Seq::append(rooms, roomBuffer);
             RemoveEmptyRooms(rooms);
+        }
+    }
+
+    void PrepassSolidEdges(Level& level) {
+        struct Edge {
+            uint16 A, B;
+            auto operator==(const Edge& e) const { return A == e.A && B == e.B; }
+        };
+
+        List<Edge> solidEdges;
+
+        // Find all solid edges
+        for (auto& seg : level.Segments) {
+            for (auto& sideid : SIDE_IDS) {
+                auto& side = seg.GetSide(sideid);
+                if (seg.SideHasConnection(sideid)) {
+                    ranges::fill(side.SolidEdges, false);
+                    continue;
+                }
+
+                auto indices = seg.GetVertexIndices(sideid);
+                ranges::fill(side.SolidEdges, true);
+
+                for (int i = 0; i < 4; i++) {
+                    solidEdges.push_back({ indices[i], indices[(i + 1) % 4] });
+                }
+            }
+        }
+
+        int segid = 0;
+        for (auto& seg : level.Segments) {
+            for (auto& sideid : SIDE_IDS) {
+                if (!seg.SideHasConnection(sideid)) continue; // already marked solid sides earlier
+
+                auto indices = seg.GetVertexIndices(sideid);
+                auto& side = seg.GetSide(sideid);
+
+                for (int i = 0; i < 4; i++) {
+                    Edge edge = { indices[i], indices[(i + 1) % 4] };
+                    if (Seq::contains(solidEdges, edge)) {
+                        side.SolidEdges[i] = true;
+                        //SPDLOG_INFO("Marking seg {}:{}:{} as solid", segid, sideid, i);
+                    }
+                }
+            }
+
+            segid++;
         }
     }
 
@@ -1242,6 +1290,8 @@ namespace Inferno::Game {
         Render::Debug::DebugLines.clear();
         UpdatePortalLinks(level, rooms);
         //ComputeRoomVisibility(level, rooms, rooms[4]);
+
+        PrepassSolidEdges(level);
         SPDLOG_INFO("Room generation time {}", timer.GetElapsedSeconds());
 
         timer = {};

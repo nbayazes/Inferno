@@ -124,7 +124,7 @@ namespace Inferno {
         float DeathRollTimer = 0; // time passed since dying
         float TeleportDelay = 0; // Delay before next teleport
 
-        List<SegID> GoalPath; // For pathing to another segment
+        List<NavPoint> GoalPath; // For pathing to another segment
         int16 GoalPathIndex = -1;
         GameTimer AlertTimer;  // For alerting nearby robots of the player location
         GameTimer CombatSoundTimer; // For playing combat sounds

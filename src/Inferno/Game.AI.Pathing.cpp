@@ -9,7 +9,7 @@
 #include "Graphics/Render.Debug.h"
 
 namespace Inferno {
-    void AI::SetPath(Object& obj, const List<SegID>& path, const Vector3* endPosition) {
+    void AI::SetPath(Object& obj, const List<NavPoint>& path, const Vector3* endPosition) {
         if (!obj.IsRobot() || path.empty()) {
             ASSERT(false);
             SPDLOG_WARN("Tried to set invalid path on object");
@@ -18,8 +18,8 @@ namespace Inferno {
 
         ASSERT(obj.IsRobot());
         auto& ai = GetAI(obj);
-        auto endSeg = Game::Level.TryGetSegment(path.back());
-        auto endRoom = Game::Level.GetRoomID(path.back());
+        auto endSeg = Game::Level.TryGetSegment(path.back().Segment);
+        auto endRoom = Game::Level.GetRoomID(path.back().Segment);
 
         if (!endSeg || endRoom == RoomID::None) {
             SPDLOG_WARN("Path end isn't valid");
@@ -30,7 +30,7 @@ namespace Inferno {
 
         //auto path = Game::Navigation.NavigateTo(obj.Segment, soundSeg, !robotInfo.IsThief, Game::Level);
         ai.PathDelay = AI_PATH_DELAY;
-        ai.GoalSegment = path.back();
+        ai.GoalSegment = path.back().Segment;
         ai.GoalPosition = position;
         ai.GoalRoom = endRoom;
         ai.GoalPath = path;
@@ -41,8 +41,8 @@ namespace Inferno {
 
     bool PathIsValid(Object& obj, const AIRuntime& ai) {
         if (ai.GoalPath.empty()) return false;
-        if (ai.GoalPath.back() != ai.GoalSegment) return false; // Goal isn't this path anymore
-        return Seq::contains(ai.GoalPath, obj.Segment); // Check if robot strayed from path
+        if (ai.GoalPath.back().Segment != ai.GoalSegment) return false; // Goal isn't this path anymore
+        return Seq::exists(ai.GoalPath, [&](auto& p) { return p.Segment == obj.Segment; }); // Check if robot strayed from path
     }
 
     SegID GetNextPathSegment(span<SegID> path, SegID current) {
@@ -73,17 +73,17 @@ namespace Inferno {
     //}
 
 
-    Tag GetNextConnection(span<SegID> path, Level& level, SegID segId) {
+    Tag GetNextConnection(span<NavPoint> path, Level& level, SegID segId) {
         if (segId == SegID::None) return {};
 
         for (int i = 0; i < path.size() - 1; i++) {
-            if (path[i] == segId) {
+            if (path[i].Segment == segId) {
                 auto& seg = level.GetSegment(segId);
 
                 // Find the connection to the next segment in the path
                 for (auto& sideId : SIDE_IDS) {
                     auto connId = seg.GetConnection(sideId);
-                    if (connId == path[i + 1]) {
+                    if (connId == path[i + 1].Segment) {
                         return { segId, sideId };
                     }
                 }
@@ -167,8 +167,8 @@ namespace Inferno {
     Tag GetConnectedAdjacentSide(Level& level, Tag tag, int edge) {
         if (!level.SegmentExists(tag)) return {};
         auto& seg = level.GetSegment(tag);
-        auto indices = seg.GetVertexIndicesRef(tag.Side);
-        PointID edgeIndices[] = { *indices[edge], *indices[(edge + 1) % 4] };
+        auto indices = seg.GetVertexIndices(tag.Side);
+        PointID edgeIndices[] = { indices[edge], indices[(edge + 1) % 4] };
 
         auto adjacent = GetAdjacentSide(tag.Side, edge);
         auto connSide = level.GetConnectedSide({ tag.Segment, adjacent });
@@ -176,12 +176,12 @@ namespace Inferno {
         auto& connSeg = level.GetSegment(connSide.Segment);
 
         for (auto& sideId : SIDE_IDS) {
-            auto otherIndices = connSeg.GetVertexIndicesRef(sideId);
+            auto otherIndices = connSeg.GetVertexIndices(sideId);
             int matches = 0;
 
             for (auto& i : edgeIndices) {
                 for (auto& other : otherIndices) {
-                    if (i == *other) matches++;
+                    if (i == other) matches++;
                 }
             }
 
@@ -411,10 +411,11 @@ namespace Inferno {
             auto getPathSeg = [&ai](size_t index) {
                 //if (!Seq::inRange(obj.GoalPath, index)) return obj.GoalPath.back();
                 if (!Seq::inRange(ai.GoalPath, index)) return SegID::None;
-                return ai.GoalPath[index];
+                return ai.GoalPath[index].Segment;
             };
 
-            auto pathIndex = Seq::indexOf(ai.GoalPath, obj.Segment);
+            auto pathIndex = Seq::findIndex(ai.GoalPath, [&obj](auto& x) { return x.Segment == obj.Segment; });
+            //auto pathIndex = Seq::indexOf(ai.GoalPath, obj.Segment);
             if (!pathIndex) {
                 SPDLOG_ERROR("Invalid path index for obj {}", obj.Signature);
             }
