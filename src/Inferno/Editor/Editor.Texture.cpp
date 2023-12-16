@@ -160,8 +160,8 @@ namespace Inferno::Editor {
 
     // Remaps UVs to their minimum values. i.e. u: 4-5 becomes u: 0-1
     void RemapUVs(SegmentSide& side) {
-        Vector2 min = { FLT_MIN, FLT_MAX };
-        Vector2 max = { FLT_MIN, FLT_MAX };
+        Vector2 min = { FLT_MAX, FLT_MAX };
+        Vector2 max = { -FLT_MAX, -FLT_MAX };
 
         for (int16 i = 0; i < 4; i++) {
             min.x = std::min(min.x, side.UVs[i].x);
@@ -666,7 +666,7 @@ namespace Inferno::Editor {
         xAxis.Normalize();
         auto yAxis = xAxis.Cross(alignmentFace.AverageNormal());
 
-        auto ProjectUV = [&](const Vector3& vert) {
+        auto projectUV = [&](const Vector3& vert) {
             auto shifted = vert - origin;
             auto x = xAxis.Dot(shifted); // project shifted point onto each axis
             auto y = yAxis.Dot(shifted);
@@ -679,7 +679,7 @@ namespace Inferno::Editor {
             auto face = Face::FromSide(level, id);
 
             for (int i = 0; i < 4; i++)
-                face.Side.UVs[i] = ProjectUV(face[i]);
+                face.Side.UVs[i] = projectUV(face[i]);
 
             RemapUVs(face.Side);
         }
