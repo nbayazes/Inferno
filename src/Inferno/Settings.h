@@ -32,7 +32,7 @@ namespace Inferno {
         float DistanceThreshold = 80.0f;
         float Falloff = 0.1f;
         float Radius = 20.0f;
-        float MaxValue = 1.5f;
+        float MaxValue = 1.0f;
         bool EnableOcclusion = true;
         bool AccurateVolumes = false;
         int Bounces = 2;

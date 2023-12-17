@@ -33,7 +33,7 @@ namespace Inferno::Editor {
             }
         }
 
-        void ToggleLight() const {
+        static void ToggleLight() {
             if (!Game::Level.SegmentExists(Editor::Selection.Segment)) return;
 
             auto& side = Game::Level.GetSide(Editor::Selection.Tag());
@@ -58,9 +58,6 @@ namespace Inferno::Editor {
             ImGui::SliderFloat("Falloff", &settings.Falloff, 0.02f, 0.2f);
             //auto sz = ImGui::GetItemRectSize();
             ImGui::HelpMarker("A lower value causes light to travel further");
-
-            ImGui::SliderFloat("Clamp", &settings.MaxValue, 1, 2);
-            ImGui::HelpMarker("The maximum brightness of any surface");
 
             //ImGui::SliderFloat("Light plane", &settings.LightPlaneTolerance, -0.01f, -1);
             //ImGui::HelpMarker("Tolerance to use when determining if a light should hit a surface.\nReduce if undesired bleeding occurs.");
@@ -107,6 +104,7 @@ namespace Inferno::Editor {
 
 
             if (ImGui::Button("Light Level")) {
+                settings.MaxValue = 1.0f; // Clamp lighting to 1 as to not confuse the user
                 Commands::LightLevel(Game::Level, settings);
                 Events::LevelChanged();
             }
