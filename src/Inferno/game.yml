@@ -578,6 +578,7 @@ Robots:
     Drag: 0.03
     FleeThreshold: 0.4 # Scout
     ChaseChance: 1
+    Radius: 6.5
   - id: 9 # Heavy driller
     CircleDistance: 30
     Multishot: 2

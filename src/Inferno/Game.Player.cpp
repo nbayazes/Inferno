@@ -38,8 +38,10 @@ namespace Inferno {
     }
 
     float GetWeaponSoundRadius(const Weapon& weapon) {
+        // Robots use half-linear falloff instead of inverse square because it doesn't require traversing nearly as far.
+        // Halve the distance as a result.
         float mult = 0.5f + Game::Difficulty * 0.25f;
-        return weapon.Extended.SoundRadius * mult;
+        return weapon.Extended.SoundRadius * mult * 0.5f;
     }
 
     float Player::UpdateAfterburner(float dt, bool active) {

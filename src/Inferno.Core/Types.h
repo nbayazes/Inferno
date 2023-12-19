@@ -604,9 +604,9 @@ namespace Inferno {
         const auto end() const { return _data.begin() + _count; }
     };
 
-    // Point in a navigation path
+    // Point used for AI navigation
     struct NavPoint {
-        SegID Segment;
+        SegID Segment = SegID::None;
         Vector3 Position;
     };
 

@@ -491,6 +491,8 @@ namespace Inferno {
 
     // Creates a world rotation matrix from a vector
     inline Matrix3x3 VectorToRotation(const Vector3& forward, Vector3 up = Vector3::Zero, Vector3 right = Vector3::Zero) {
+        ASSERT(IsNormalized(forward));
+
         if (up == Vector3::Zero && right == Vector3::Zero) {
             // neither up or right provided
             if (forward.x == 0 && forward.z == 0) {

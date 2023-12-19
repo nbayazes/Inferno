@@ -462,7 +462,7 @@ namespace Inferno::Render {
                     if (bounds.CrossesPlane)
                         bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
 
-                    DrawBounds(bounds, Color(0, 0, 1, 0.2f));
+                    //DrawBounds(bounds, Color(0, 0, 1, 0.2f));
                     CheckRoomVisibility(level, *linkedRoom, bounds, 0);
                 }
 

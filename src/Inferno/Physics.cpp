@@ -545,7 +545,7 @@ namespace Inferno {
 
                             ApplyForce(target, forceVec);
                             auto parent = source ? Game::Level.TryGetObject(source->Parent) : nullptr;
-                            DamageRobot(explosion.Position, target, damage, stunMult, parent);
+                            DamageRobot({ explosion.Segment, explosion.Position }, target, damage, stunMult, parent);
 
                             target.LastHitForce = forceVec;
                             //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
@@ -1442,6 +1442,6 @@ namespace Inferno {
             PlotPhysics(Clock.GetTotalTimeSeconds(), obj.Physics);
         }
 
-        assert(IsNormalized(obj.Rotation.Forward()));
+        ASSERT(IsNormalized(obj.Rotation.Forward()));
     }
 }

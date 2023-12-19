@@ -109,18 +109,21 @@ namespace Inferno {
         return path;
     }
 
-    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, SegID goal, NavigationFlags flags, Level& level, float maxDistance) {
+    List<NavPoint> NavigationNetwork::NavigateTo(SegID start, const NavPoint& goal, NavigationFlags flags, Level& level, float maxDistance) {
         auto startRoom = level.GetRoom(start);
-        auto endRoom = level.GetRoom(goal);
+        auto endRoom = level.GetRoom(goal.Segment);
         if (!startRoom || !endRoom)
             return {}; // Rooms don't exist
 
-        if (startRoom == endRoom)
-            return NavigateWithinRoomBfs(level, start, goal, *endRoom);
+        if (startRoom == endRoom) {
+            auto path = NavigateWithinRoomBfs(level, start, goal.Segment, *endRoom);
+            OptimizePath(path);
+            return path;
+        }
 
         List<NavPoint> path;
         auto roomStartSeg = start;
-        auto roomPath = NavigateAcrossRooms(level.GetRoomID(start), level.GetRoomID(goal), flags, level);
+        auto roomPath = NavigateAcrossRooms(level.GetRoomID(start), level.GetRoomID(goal.Segment), flags, level);
         float totalDistance = 0;
 
         // starting at the first room, use the closest portal that matches the next room
@@ -128,8 +131,11 @@ namespace Inferno {
             auto room = level.GetRoom(roomStartSeg);
 
             if (room == endRoom || i + 1 >= roomPath.size()) {
-                auto localPath = NavigateWithinRoomBfs(level, roomStartSeg, goal, *endRoom);
-                Seq::append(path, localPath);
+                auto localPath = NavigateWithinRoomBfs(level, roomStartSeg, goal.Segment, *endRoom);
+                if (!localPath.empty()) {
+                    localPath.back().Position = goal.Position;
+                    Seq::append(path, localPath);
+                }
             }
             else {
                 // Not yet to final room
@@ -165,6 +171,8 @@ namespace Inferno {
                 roomStartSeg = level.GetConnectedSide(bestPortal).Segment;
             }
         }
+
+        OptimizePath(path);
 
         //SPDLOG_INFO("Room path distance {}", totalDistance);
         return path;
@@ -683,9 +691,8 @@ namespace Inferno {
     }
 
     void OptimizePath(List<NavPoint>& path) {
+        if (path.empty()) return;
         float objRadius = 8;
-
-        //if (path.back().Segment != SegID(9)) return;
 
         List<NavPoint> buffer;
         buffer.reserve(path.size());

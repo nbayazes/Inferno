@@ -9,7 +9,7 @@
 #include "Graphics/Render.Debug.h"
 
 namespace Inferno {
-    void AI::SetPath(Object& obj, const List<NavPoint>& path, const Vector3* endPosition) {
+    void AI::SetPath(Object& obj, const List<NavPoint>& path) {
         if (!obj.IsRobot() || path.empty()) {
             ASSERT(false);
             SPDLOG_WARN("Tried to set invalid path on object");
@@ -26,24 +26,19 @@ namespace Inferno {
             return;
         }
 
-        Vector3 position = endPosition ? *endPosition : endSeg->Center;
-
         //auto path = Game::Navigation.NavigateTo(obj.Segment, soundSeg, !robotInfo.IsThief, Game::Level);
         ai.PathDelay = AI_PATH_DELAY;
-        ai.GoalSegment = path.back().Segment;
-        ai.GoalPosition = position;
-        ai.GoalRoom = endRoom;
         ai.GoalPath = path;
         ai.GoalPathIndex = 0;
         ai.State = AIState::Chase; // Stop pathing after seeing target
         obj.NextThinkTime = 0;
     }
 
-    bool PathIsValid(Object& obj, const AIRuntime& ai) {
-        if (ai.GoalPath.empty()) return false;
-        if (ai.GoalPath.back().Segment != ai.GoalSegment) return false; // Goal isn't this path anymore
-        return Seq::exists(ai.GoalPath, [&](auto& p) { return p.Segment == obj.Segment; }); // Check if robot strayed from path
-    }
+    //bool PathIsValid(Object& obj, const AIRuntime& ai) {
+    //    if (ai.GoalPath.empty()) return false;
+    //    if (ai.GoalPath.back().Segment != ai.GoalSegment) return false; // Goal isn't this path anymore
+    //    return Seq::exists(ai.GoalPath, [&](auto& p) { return p.Segment == obj.Segment; }); // Check if robot strayed from path
+    //}
 
     SegID GetNextPathSegment(span<SegID> path, SegID current) {
         for (int i = 0; i < path.size(); i++) {
@@ -347,7 +342,7 @@ namespace Inferno {
         }
     }
 
-    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, SegID goalSegment, const Vector3& goalPosition, float maxDistance) {
+    bool SetPathGoal(Level& level, const Object& obj, AIRuntime& ai, const NavPoint& goal, float maxDistance) {
         // Calculate a new path
         auto& robotInfo = Resources::GetRobotInfo(obj);
 
@@ -355,225 +350,53 @@ namespace Inferno {
         if (robotInfo.IsThief)
             SetFlag(flags, NavigationFlags::OpenKeyDoors);
 
-        ai.GoalSegment = goalSegment;
-        ai.GoalPosition = goalPosition;
-        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, goalSegment, flags, level, maxDistance);
+        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, goal, flags, level, maxDistance);
         ai.PathDelay = AI_PATH_DELAY;
 
         if (ai.GoalPath.empty()) {
-            // Unable to find a valid path, clear the goal and give up
-            ai.GoalSegment = SegID::None;
-            ai.GoalRoom = RoomID::None;
-            return false;
+            ai.GoalPathIndex = -1;
+            return false; // Unable to find a valid path, give up
         }
 
         //SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
+        ai.GoalPathIndex = 0;
         return true;
     }
 
-    void PathTowardsGoal(Level& level, Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
-        auto checkGoalReached = [&obj, &ai] {
-            if (Vector3::Distance(obj.Position, ai.GoalPosition) <= std::max(obj.Radius, 5.0f)) {
-                SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
-                ai.GoalSegment = SegID::None; // Reached the goal!
-                ai.GoalPath.clear();
-            }
-        };
+    void PathTowardsGoal(Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
+        // Travel along a designated path, incrementing the node index as we go
+        if(!Seq::inRange(ai.GoalPath, ai.GoalPathIndex)) return; // Empty or invalid index
 
-        if (ai.GoalSegment == SegID::None) return;
-        if (!PathIsValid(obj, ai)) {
-            //SPDLOG_INFO("Recalculating object path due to not being on it"); // this happens way too much
-            SetPathGoal(level, obj, ai, ai.GoalSegment, ai.GoalPosition, FLT_MAX);
-        }
-        if (!PathIsValid(obj, ai)) return;
-
+        auto& node = ai.GoalPath[ai.GoalPathIndex];
+        auto& goal = ai.GoalPath.back();
         auto& robot = Resources::GetRobotInfo(obj.ID);
-        Render::Debug::DrawLine(obj.Position, ai.GoalPosition, Color(0, 1, 0));
+        Render::Debug::DrawLine(obj.Position, node.Position, Color(0, 1, 0));
 
-        if (stopOnceVisible && HasLineOfSight(obj, ai.GoalPosition)) {
+        for (int i = 0; i < ai.GoalPath.size() - 1; i++) {
+            auto& a = ai.GoalPath[i];
+            auto& b = ai.GoalPath[i + 1];
+            Render::Debug::DrawLine(a.Position, b.Position, Color(0, .8, 1));
+
+        }
+
+        bool isGoal = &goal == &node;
+
+        if (stopOnceVisible && isGoal && HasLineOfSight(obj, node.Position)) {
             SPDLOG_INFO("Robot {} can see the goal!", obj.Signature);
-            ai.GoalSegment = SegID::None;
             ai.GoalPath.clear();
             return;
         }
 
-        if (ai.GoalSegment == obj.Segment) {
-            auto goalDir = ai.GoalPosition - obj.Position;
-            goalDir.Normalize();
+        MoveTowardsPoint(obj, ai, node.Position, 1);
 
-            // Reached the goal segment
-            MoveTowardsPoint(obj, ai, ai.GoalPosition);
-            // Don't turn towards the point as high-speed robots will flip randomly
-            //TurnTowardsVector(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
-            checkGoalReached();
-        }
-        else {
-            auto getPathSeg = [&ai](size_t index) {
-                //if (!Seq::inRange(obj.GoalPath, index)) return obj.GoalPath.back();
-                if (!Seq::inRange(ai.GoalPath, index)) return SegID::None;
-                return ai.GoalPath[index].Segment;
-            };
+        Vector3 targetPosition = alwaysFaceGoal ? goal.Position : node.Position;
+        auto goalDir = targetPosition - obj.Position;
+        goalDir.Normalize();
+        TurnTowardsDirection(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
 
-            auto pathIndex = Seq::findIndex(ai.GoalPath, [&obj](auto& x) { return x.Segment == obj.Segment; });
-            //auto pathIndex = Seq::indexOf(ai.GoalPath, obj.Segment);
-            if (!pathIndex) {
-                SPDLOG_ERROR("Invalid path index for obj {}", obj.Signature);
-            }
-
-            auto next1 = getPathSeg(*pathIndex + 1);
-            auto next2 = getPathSeg(*pathIndex + 2);
-            //auto next3 = getPathSeg(*pathIndex + 3);
-
-            SegID segs[] = { obj.Segment, next1, next2/*, next3*/ };
-
-            auto nextSideTag = GetNextConnection(ai.GoalPath, level, obj.Segment);
-            ASSERT(nextSideTag);
-            auto& nextSide = level.GetSide(nextSideTag);
-            Vector3 targetPosition = nextSide.Center; // default to the next side
-
-
-            int desiredIndex = 0;
-
-            Vector3 desiredPosition;
-            for (int i = (int)std::size(segs) - 1; i > 0; i--) {
-                if (auto nextSeg = level.TryGetSegment(segs[i])) {
-                    desiredIndex = i;
-                    desiredPosition = nextSeg->Center;
-                    break;
-                }
-            }
-
-            auto findVisibleTarget = [&] {
-                auto [dir, maxDist] = GetDirectionAndDistance(desiredPosition, obj.Position);
-                Ray ray(obj.Position, dir);
-
-                // Try pathing directly across multiple segments
-                for (int i = 0; i < std::size(segs); i++) {
-                    if (auto nextSeg = level.TryGetSegment(segs[i])) {
-                        if (i == 0) {
-                            // check the surrounding segments of the start location
-                            for (auto& conn : nextSeg->Connections) {
-                                if (IntersectRaySegment(level, ray, conn, maxDist)) {
-                                    //Render::Debug::DrawLine(obj.Position, desiredPosition, Color(1, 0, 0));
-                                    //return; // wall in the way, don't try going any further
-
-                                    // try a shorter path
-                                    while (desiredIndex > 1) {
-                                        desiredIndex--;
-                                        if (!IntersectRaySegment(level, ray, segs[desiredIndex], maxDist)) {
-                                            nextSeg = level.TryGetSegment(segs[desiredIndex]);
-                                            targetPosition = nextSeg->Center;
-                                            return;
-                                        }
-                                    }
-
-                                    if (desiredIndex == 0)
-                                        return; // wall in the way, don't try going any further
-                                }
-                            }
-                        }
-
-                        if (IntersectRaySegment(level, ray, segs[i], maxDist)) {
-                            //Render::Debug::DrawLine(obj.Position, desiredPosition, Color(1, 0, 0));
-                            break; // wall in the way, don't try going any further
-                        }
-
-                        if (i > 0)
-                            targetPosition = nextSeg->Center;
-                    }
-                }
-            };
-
-            findVisibleTarget();
-
-
-            //if (next2 == SegID::None) {
-            //    // Target segment is adjacent, try pathing directly to it.
-            //    auto [dir, maxDist] = GetDirectionAndDistance(ai.GoalPosition, obj.Position);
-            //    Ray ray(obj.Position, dir);
-            //    if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
-            //        targetPosition = ai.GoalPosition;
-
-            //    checkGoalReached(); // it's possible for the final seg to be small, so check completion if we're adjacent to it
-            //}
-
-            //auto [dir, maxDist] = GetDirectionAndDistance(side2Center, obj.Position);
-            //Ray ray(obj.Position, dir);
-            //if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
-            //    targetPosition = side2Center;
-
-            //if (next2 == SegID::None) {
-            //    // Target segment is adjacent, try pathing directly to it.
-            //    auto [dir, maxDist] = GetDirectionAndDistance(ai.GoalPosition, obj.Position);
-            //    Ray ray(obj.Position, dir);
-            //    if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
-            //        targetPosition = ai.GoalPosition;
-
-            //    checkGoalReached(); // it's possible for the final seg to be small, so check completion if we're adjacent to it
-            //}
-            //else {
-            //    // Try pathing directly across multiple segments
-            //    if (auto nextSideTag2 = GetNextConnection(obj.GoalPath, level, next1)) {
-            //        // nothing between current seg and target so use a direct path
-            //        auto side2Center = level.GetSide(nextSideTag2).Center;
-
-            //        auto [dir, maxDist] = GetDirectionAndDistance(side2Center, obj.Position);
-            //        Ray ray(obj.Position, dir);
-            //        if (!IntersectRaySegments(level, ray, segs, maxDist, false, false, nullptr))
-            //            targetPosition = side2Center;
-            //    }
-            //}
-
-            // Check for edge collisions and dodge
-            //auto [dir, maxDist] = GetDirectionAndDistance(targetPosition, obj.Position);
-            //Ray ray(obj.Position, dir);
-            //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
-            //Render::Debug::DrawLine(ray.position, ray.position + ray.direction * 20, Color(1, .5f, 0));
-            //AvoidRoomEdges(level, ray, obj, thrust, targetPosition);
-
-            //auto& seg1 = Game::Level.GetSegment(next1);
-            //auto& seg2 = Game::Level.GetSegment(next2);
-            //targetPosition = (targetPosition * 2 + nextSide.Center) / 3;
-            //targetPosition = nextSide.Center; // basic pathing for now... smoothed paths fail in small segments
-            MoveTowardsPoint(obj, ai, targetPosition, 1);
-
-            if (alwaysFaceGoal)
-                targetPosition = ai.GoalPosition;
-
-            auto goalDir = targetPosition - obj.Position;
-            goalDir.Normalize();
-            TurnTowardsDirection(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
-
-            //if (CheckLevelEdges(level, ray, segs, obj.Radius)) {
-            //    // MoveTowardsPoint(obj, nextSide.Center, thrust);
-            //    Render::Debug::DrawLine(obj.Position, nextSide.Center, Color(1, 0, 0));
-            //}
+        // Move towards each path node until sufficiently close
+        if (Vector3::Distance(obj.Position, node.Position) <= std::max(obj.Radius, 5.0f)) {
+            ai.GoalPathIndex++;
         }
     }
-
-    //void PathTowardsGoal(Level& level, Object& obj, float /*dt*/) {
-    //    if (obj.GoalPath.empty()) return;
-    //    if (!Seq::inRange(obj.GoalPath, obj.GoalPathIndex)) return;
-    //    //auto& ai = obj.Control.AI.ail;
-
-    //    auto& robot = Resources::GetRobotInfo(obj.ID);
-    //    auto thrust = Difficulty(robot).MaxSpeed / 8;
-    //    auto angularThrust = 1 / Difficulty(robot).TurnTime / 8;
-    //    const auto& nextPoint = obj.GoalPath[obj.GoalPathIndex];
-
-    //    MoveTowardsPoint(obj, nextPoint, thrust);
-    //    RotateTowards(obj, nextPoint, angularThrust);
-
-    //    if (Vector3::DistanceSquared(obj.Position, nextPoint) < 5 * 5.0f) {
-    //        // got close to node, move to next
-    //        obj.GoalPathIndex++;
-    //    }
-
-    //    if (obj.GoalPathIndex >= obj.GoalPath.size()) {
-    //        // reached the end
-    //        obj.GoalPath.clear();
-    //        obj.GoalPathIndex = -1;
-    //        SPDLOG_INFO("Robot {} reached the goal!", obj.Signature);
-    //    }
-    //}
 }

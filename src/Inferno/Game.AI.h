@@ -86,8 +86,7 @@ namespace Inferno {
         float MeleeHitDelay = 0; // How long before a melee swing deals damage
         AnimState AnimationState = {};
 
-        SegID TargetSegment = SegID::None;
-        Option<Vector3> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
+        Option<NavPoint> TargetPosition; // Last known target position or point of interest. Can have a target position without a target object.
         ObjRef Target; // Current thing we're fighting
         ObjRef Ally; // Robot to get help from
 
@@ -96,9 +95,9 @@ namespace Inferno {
         Array<Vector3, MAX_SUBMODELS> GoalAngles{};
         Array<Vector3, MAX_SUBMODELS> DeltaAngles{};
 
-        SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
-        RoomID GoalRoom = RoomID::None;
-        Vector3 GoalPosition; // position the robot wants to move to
+        //SegID GoalSegment = SegID::None; // segment the robot wants to move to. Disables pathfinding when set to none.
+        //RoomID GoalRoom = RoomID::None;
+        //Vector3 GoalPosition; // position the robot wants to move to
         ChaseMode Chase = ChaseMode::Sound;
 
         GameTimer DodgeDelay = 0; // Delay before trying to dodge
@@ -138,8 +137,6 @@ namespace Inferno {
         void ClearPath() {
             GoalPath.clear();
             GoalPathIndex = -1;
-            GoalSegment = SegID::None;
-            GoalRoom = RoomID::None;
         }
 
         void AddAwareness(float awareness, float maxAwareness = AI_AWARENESS_MAX) {
@@ -303,7 +300,7 @@ namespace Inferno {
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
     // Rotates towards source if asleep
-    void DamageRobot(const Vector3& sourcePos, Object& robot, float damage, float stunMult, Object* source);
+    void DamageRobot(const NavPoint& sourcePos, Object& robot, float damage, float stunMult, Object* source);
 
     namespace Debug {
         inline int ActiveRobots = 0;

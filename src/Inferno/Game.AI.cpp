@@ -53,7 +53,6 @@ namespace Inferno {
     void ResetAITargets() {
         for (auto& ai : RuntimeState) {
             ai.Target = {};
-            ai.TargetSegment = SegID::None;
             ai.TargetPosition = {};
         }
     }
@@ -79,11 +78,10 @@ namespace Inferno {
     }
 
     // Returns true if able to reach the target
-    bool ChaseTarget(AIRuntime& ai, const Object& robot, SegID targetSeg, const Vector3& targetPosition, ChaseMode chase) {
+    bool ChaseTarget(AIRuntime& ai, const Object& robot, const NavPoint& target, ChaseMode chase) {
         ai.PathDelay = 0;
-        ai.TargetSegment = targetSeg;
-        ai.TargetPosition = targetPosition;
-        if (SetPathGoal(Game::Level, robot, ai, targetSeg, targetPosition, AI_MAX_CHASE_DISTANCE)) {
+        ai.TargetPosition = target;
+        if (SetPathGoal(Game::Level, robot, ai, target, AI_MAX_CHASE_DISTANCE)) {
             ai.State = AIState::Chase;
             ai.Chase = chase;
             return true;
@@ -138,13 +136,12 @@ namespace Inferno {
                     }
 
                     //auto prevAwareness = ai.Awareness;
-                    ai.TargetPosition = soundPosition;
-                    ai.TargetSegment = soundSeg;
+                    ai.TargetPosition = { soundSeg, soundPosition };
                     obj->NextThinkTime = 0;
 
                     // Update chase target if we hear something
                     if (ai.State == AIState::Chase)
-                        ChaseTarget(ai, *obj, soundSeg, soundPosition, ChaseMode::Sound);
+                        ChaseTarget(ai, *obj, *ai.TargetPosition, ChaseMode::Sound);
                 }
             }
         }
@@ -180,7 +177,7 @@ namespace Inferno {
     }
 
     // Alerts nearby robots of a target. Used when a robot fires to wake up nearby robots, or by observer robots.
-    void AlertRobotsOfTarget(const Object& source, float radius, const Vector3& target, SegID targetSeg, float awareness) {
+    void AlertRobotsOfTarget(const Object& source, float radius, const NavPoint& target, float awareness) {
         auto& level = Game::Level;
         auto srcRoom = level.GetRoomID(source);
         if (srcRoom == RoomID::None) return;
@@ -205,7 +202,6 @@ namespace Inferno {
 
                             ai.State = AIState::Alert;
                             ai.TargetPosition = target;
-                            ai.TargetSegment = targetSeg;
                             ai.AddAwareness(awareness * random);
                         }
                     }
@@ -572,19 +568,19 @@ namespace Inferno {
                            AIRuntime& ai, const Vector3& objDir) {
         if (!ai.TargetPosition) return;
 
-        if (HasLineOfSight(robot, *ai.TargetPosition)) {
+        if (HasLineOfSight(robot, ai.TargetPosition->Position)) {
             Ray ray(robot.Position, objDir);
             //AvoidConnectionEdges(level, ray, desiredIndex, obj, thrust);
-            AvoidRoomEdges(level, ray, robot, *ai.TargetPosition);
+            AvoidRoomEdges(level, ray, robot, ai.TargetPosition->Position);
             //auto& seg = level.GetSegment(robot.Segment);
             //AvoidSideEdges(level, ray, seg, side, robot, 0, player.Position);
-            MoveTowardsPoint(robot, ai, *ai.TargetPosition);
+            MoveTowardsPoint(robot, ai, ai.TargetPosition->Position);
             //ai.PathDelay = 0;
         }
         //else if (ai.PathDelay <= 0) {
-        //    if (!ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition))
+        //    if (!ChaseTarget(ai, robot, ai.TargetSegment, ai.TargetPosition->Position))
         //        ai.PathDelay = 5; // Don't try pathing again for a while
-        //    //    if(!SetPathGoal(level, robot, ai, ai.TargetSegment, *ai.TargetPosition, AI_MAX_CHASE_DISTANCE))
+        //    //    if(!SetPathGoal(level, robot, ai, ai.TargetSegment, ai.TargetPosition->Position, AI_MAX_CHASE_DISTANCE))
         //}
     }
 
@@ -606,7 +602,7 @@ namespace Inferno {
         if (!ai.TargetPosition) return;
 
         auto circleDistance = Difficulty(robotInfo).CircleDistance;
-        auto [dir, dist] = GetDirectionAndDistance(*ai.TargetPosition, robot.Position);
+        auto [dir, dist] = GetDirectionAndDistance(ai.TargetPosition->Position, robot.Position);
         auto minDist = std::min(circleDistance * 0.75f, circleDistance - 10);
         auto maxDist = std::max(circleDistance * 1.25f, circleDistance + 10);
 
@@ -616,7 +612,7 @@ namespace Inferno {
         if (dist > circleDistance)
             MoveTowardsTarget(level, robot, ai, dir);
         else
-            MoveAwayFromTarget(*ai.TargetPosition, robot, ai);
+            MoveAwayFromTarget(ai.TargetPosition->Position, robot, ai);
     }
 
     void PlayRobotAnimation(const Object& robot, AnimState state, float time, float moveMult, float delay) {
@@ -674,7 +670,7 @@ namespace Inferno {
         }
     }
 
-    void DamageRobot(const Vector3& sourcePos, Object& robot, float damage, float stunMult, Object* source) {
+    void DamageRobot(const NavPoint& sourcePos, Object& robot, float damage, float stunMult, Object* source) {
         auto& info = Resources::GetRobotInfo(robot);
         auto& ai = GetAI(robot);
 
@@ -799,7 +795,7 @@ namespace Inferno {
         if (ai.WeaponCharge >= 1) {
             Sound::Stop(ai.SoundHandle);
             // Release shot even if target has moved out of view
-            auto target = ai.TargetPosition ? *ai.TargetPosition : robot.Position + robot.Rotation.Forward() * 40;
+            auto target = ai.TargetPosition ? ai.TargetPosition->Position : robot.Position + robot.Rotation.Forward() * 40;
             bool blind = false; // this is not correct
             FireRobotPrimary(robot, ai, robotInfo, target, blind);
 
@@ -832,7 +828,7 @@ namespace Inferno {
         if (ai.StrafeAngle < 0)
             return; // angle not set
 
-        auto targetDir = *ai.TargetPosition - robot.Position;
+        auto targetDir = ai.TargetPosition->Position - robot.Position;
         targetDir.Normalize();
 
         auto transform = Matrix::CreateFromAxisAngle(targetDir, ai.StrafeAngle);
@@ -855,7 +851,7 @@ namespace Inferno {
 
     // Tries to move behind the target, adjusting the direction every few seconds
     void GetBehindTarget(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Object& target) {
-        auto targetDir = *ai.TargetPosition - robot.Position;
+        auto targetDir = ai.TargetPosition->Position - robot.Position;
         targetDir.Normalize();
 
         auto targetFacing = target.Rotation.Forward();
@@ -868,11 +864,11 @@ namespace Inferno {
             auto right = robot.Position + robot.Rotation.Right() * 5;
             auto left = robot.Position - robot.Rotation.Right() * 5;
 
-            auto testTargetDir = *ai.TargetPosition - right;
+            auto testTargetDir = ai.TargetPosition->Position - right;
             testTargetDir.Normalize();
             auto rightTargetDot = targetFacing.Dot(testTargetDir);
 
-            testTargetDir = *ai.TargetPosition - left;
+            testTargetDir = ai.TargetPosition->Position - left;
             testTargetDir.Normalize();
             auto leftTargetDot = targetFacing.Dot(testTargetDir);
 
@@ -908,14 +904,14 @@ namespace Inferno {
 
         if (robotInfo.WeaponType2 != WeaponID::None && ai.FireDelay2 <= 0) {
             // Check if an ally robot is in the way
-            if (!HasFiringLineOfSight(robot, 0, *ai.TargetPosition, ObjectMask::Robot)) {
+            if (!HasFiringLineOfSight(robot, 0, ai.TargetPosition->Position, ObjectMask::Robot)) {
                 //WiggleRobot(robot, ai, 0.5f);
                 CircleStrafe(robot, ai, robotInfo);
                 return;
             }
 
             // Secondary weapons have no animations or wind up
-            FireRobotWeapon(robot, ai, robotInfo, *ai.TargetPosition, false, blind);
+            FireRobotWeapon(robot, ai, robotInfo, ai.TargetPosition->Position, false, blind);
             ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
         }
         else {
@@ -929,14 +925,14 @@ namespace Inferno {
 
             if (ai.AnimationState != AnimState::Fire && ai.FireDelay < 0.25f) {
                 // Check if an ally robot is in the way
-                if (!HasFiringLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::Robot)) {
+                if (!HasFiringLineOfSight(robot, ai.GunIndex, ai.TargetPosition->Position, ObjectMask::Robot)) {
                     CircleStrafe(robot, ai, robotInfo);
                     CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
                     ai.FireDelay = 0.25f + 1 / 8.0f; // Try again in 1/8th of a second
                     return;
                 }
 
-                auto aimDir = *ai.TargetPosition - robot.Position;
+                auto aimDir = ai.TargetPosition->Position - robot.Position;
                 aimDir.Normalize();
                 float aimAssist = GetMaxAimAssistAngle(weapon);
                 if (AngleBetweenVectors(aimDir, robot.Rotation.Forward()) <= aimAssist) {
@@ -950,14 +946,14 @@ namespace Inferno {
             else if (ai.FireDelay <= 0 && !ai.PlayingAnimation()) {
                 // Check that the target hasn't gone out of LOS when using explosive weapons.
                 // Robots can easily blow themselves up in this case.
-                //if (weapon.SplashRadius > 0 && !HasLineOfSight(robot, ai.GunIndex, *ai.TargetPosition, ObjectMask::Robot)) {
+                //if (weapon.SplashRadius > 0 && !HasLineOfSight(robot, ai.GunIndex, ai.TargetPosition->Position, ObjectMask::Robot)) {
                 //    CycleGunpoint(robot, ai, robotInfo); // Cycle gun in case a different one isn't blocked
                 //    //WiggleRobot(robot, ai, 0.5f);
                 //    return;
                 //}
 
                 // Fire animation finished, release a projectile
-                FireRobotPrimary(robot, ai, robotInfo, *ai.TargetPosition, blind);
+                FireRobotPrimary(robot, ai, robotInfo, ai.TargetPosition->Position, blind);
             }
         }
     }
@@ -1126,8 +1122,7 @@ namespace Inferno {
 
         ai.Awareness = AI_AWARENESS_MAX;
         ai.Target = Game::GetObjectRef(target);
-        ai.TargetPosition = target.Position;
-        ai.TargetSegment = target.Segment;
+        ai.TargetPosition = { target.Segment, target.Position };
         return true;
     }
 
@@ -1161,7 +1156,6 @@ namespace Inferno {
 
     void MakeIdle(AIRuntime& ai) {
         ai.TargetPosition = {}; // Clear target if robot loses interest.
-        ai.TargetSegment = SegID::None;
         ai.State = AIState::Idle;
     }
 
@@ -1208,7 +1202,8 @@ namespace Inferno {
         TraverseRoomsByDistance(Game::Level, room, robot.Position, AI_HELP_SEARCH_RADIUS, true, action);
 
         if (nearestHelp) {
-            if (SetPathGoal(Game::Level, robot, ai, nearestHelp->Segment, nearestHelp->Position, AI_HELP_SEARCH_RADIUS)) {
+            NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };
+            if (SetPathGoal(Game::Level, robot, ai, goal, AI_HELP_SEARCH_RADIUS)) {
                 PlayDistressSound(robot);
                 Chat(robot, "Maybe drone {} can help me", nearestHelp->Signature);
                 ai.State = AIState::FindHelp;
@@ -1226,15 +1221,15 @@ namespace Inferno {
     }
 
     void UpdateFindHelp(AIRuntime& ai, Object& robot) {
-        ASSERT(ai.TargetPosition);
-        if (ai.GoalSegment == SegID::None || !ai.TargetPosition) {
+        if (ai.GoalPath.empty() || !ai.TargetPosition) {
+            // Target can become none if it dies
             ai.State = AIState::Alert;
             return;
         }
 
-        PathTowardsGoal(Game::Level, robot, ai, false, false);
+        PathTowardsGoal(robot, ai, false, false);
 
-        auto [goalDir, goalDist] = GetDirectionAndDistance(ai.GoalPosition, robot.Position);
+        auto [goalDir, goalDist] = GetDirectionAndDistance(ai.GoalPath.back().Position, robot.Position);
 
         constexpr float REACHED_GOAL_DIST = 40;
         if (goalDist > REACHED_GOAL_DIST) return;
@@ -1257,15 +1252,14 @@ namespace Inferno {
                 allyAI.Awareness = 1;
                 allyAI.Target = ai.Target;
                 allyAI.TargetPosition = ai.TargetPosition;
-                allyAI.TargetSegment = ai.TargetSegment;
                 ai.State = AIState::Alert;
                 // Maybe alert another robot?
             }
             else {
                 Chat(robot, "Hey drone {} go beat this guy up", ai.Ally.Signature);
-                // Both path back to the target
-                SetPathGoal(Game::Level, robot, ai, ai.TargetSegment, *ai.TargetPosition, AI_MAX_CHASE_DISTANCE);
-                SetPathGoal(Game::Level, robot, allyAI, ai.TargetSegment, *ai.TargetPosition, AI_MAX_CHASE_DISTANCE);
+                // Both robots path back to the target
+                SetPathGoal(Game::Level, robot, ai, *ai.TargetPosition, AI_MAX_CHASE_DISTANCE);
+                SetPathGoal(Game::Level, robot, allyAI, *ai.TargetPosition, AI_MAX_CHASE_DISTANCE);
                 ai.State = AIState::Chase;
                 allyAI.State = AIState::Chase;
             }
@@ -1273,7 +1267,7 @@ namespace Inferno {
         else {
             // Path to their new location
             PlayDistressSound(robot);
-            SetPathGoal(Game::Level, robot, ai, ally->Segment, ally->Position, AI_MAX_CHASE_DISTANCE);
+            SetPathGoal(Game::Level, robot, ai, { ally->Segment, ally->Position }, AI_MAX_CHASE_DISTANCE);
         }
     }
 
@@ -1380,15 +1374,14 @@ namespace Inferno {
 
         // Use the last known position as the target dir if target is obscured
         if (!hasLos || target.CloakIsEffective())
-            targetDir = GetDirection(*ai.TargetPosition, robot.Position);
+            targetDir = GetDirection(ai.TargetPosition->Position, robot.Position);
 
         // Track the known target position, even without LOS. Causes AI to look more intelligent by pre-aiming.
         TurnTowardsDirection(robot, targetDir, Difficulty(robotInfo).TurnTime);
 
         // Update target location if it is in line of sight and not cloaked
         if ((hasLos && !target.IsCloaked()) || (hasLos && target.IsCloaked() && !target.CloakIsEffective())) {
-            ai.TargetPosition = target.Position;
-            ai.TargetSegment = target.Segment;
+            ai.TargetPosition = { target.Segment, target.Position };
             ai.Awareness = AI_AWARENESS_MAX;
             ai.CombatState = AICombatState::Normal;
             ai.LostSightDelay = 1.0f; // Let the AI 'cheat' for 1 second after losing direct sight (object permeance?)
@@ -1397,16 +1390,16 @@ namespace Inferno {
             if (robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
                 GetBehindTarget(robot, ai, robotInfo, target);
 
-            Render::Debug::DrawPoint(*ai.TargetPosition, Color(1, 0, 0));
+            Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
 
             // Alert nearby robots of the fighting
             if (ai.AlertTimer <= 0
-                && ai.TargetPosition && ai.TargetSegment != SegID::None
+                && ai.TargetPosition
                 && Game::Difficulty > 0
                 && robotInfo.AlertRadius > 0) {
                 constexpr float ALERT_FREQUENCY = 0.2f; // Smooth out alerts
                 auto skillMult = Game::Difficulty == 4 ? 1.5f : 1;
-                AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, ai.TargetSegment, AI_ALERT_AWARENESS * ALERT_FREQUENCY * skillMult);
+                AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, AI_ALERT_AWARENESS * ALERT_FREQUENCY * skillMult);
                 ai.AlertTimer = ALERT_FREQUENCY;
             }
 
@@ -1417,7 +1410,7 @@ namespace Inferno {
             DecayAwareness(ai);
             // Robot can either choose to chase the target or hold position and blind fire
 
-            Render::Debug::DrawPoint(*ai.TargetPosition, Color(1, .5, .5));
+            Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
 
             if (ai.CombatState == AICombatState::Normal && ai.StrafeTimer <= 0 && ai.LostSightDelay <= 0) {
                 OnLostLineOfSight(ai, robot, robotInfo);
@@ -1426,7 +1419,7 @@ namespace Inferno {
             if (ai.CombatState == AICombatState::Wait) {
                 // Get ready
                 if (ai.TargetPosition) {
-                    TurnTowardsPoint(robot, *ai.TargetPosition, Difficulty(robotInfo).TurnTime);
+                    TurnTowardsPoint(robot, ai.TargetPosition->Position, Difficulty(robotInfo).TurnTime);
                 }
             }
             else if (ai.CombatState == AICombatState::Chase && ai.TargetPosition && ai.Fear < 1) {
@@ -1435,7 +1428,7 @@ namespace Inferno {
                 if (!target.IsCloaked() && target.Type != ObjectType::Ghost && ai.ChaseTimer <= 0) {
                     if (Random() < robotInfo.ChaseChance) {
                         Chat(robot, "Come back here!");
-                        if (!ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition, ChaseMode::Sight))
+                        if (!ChaseTarget(ai, robot, *ai.TargetPosition, ChaseMode::Sight))
                             ai.ChaseTimer = 5.0f;
                     }
                     else {
@@ -1487,8 +1480,8 @@ namespace Inferno {
 
         // Turn towards point of interest if we have one
         if (ai.TargetPosition) {
-            TurnTowardsPoint(robot, *ai.TargetPosition, Difficulty(robotInfo).TurnTime);
-            Render::Debug::DrawPoint(*ai.TargetPosition, Color(1, 0, 1));
+            TurnTowardsPoint(robot, ai.TargetPosition->Position, Difficulty(robotInfo).TurnTime);
+            Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
             bool validChaseState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
 
             if (ai.Awareness >= AI_AWARENESS_MAX &&
@@ -1496,11 +1489,11 @@ namespace Inferno {
                 robot.Control.AI.Behavior != AIBehavior::Still &&
                 !ai.TriedFindingHelp) {
                 // Only path to target if we can't see it
-                if (!HasLineOfSight(robot, *ai.TargetPosition)) {
+                if (!HasLineOfSight(robot, ai.TargetPosition->Position)) {
                     // todo: sometimes the target isn't reachable due to locked doors or walls, use other behaviors
                     // todo: limit chase segment depth so robot doesn't path around half the level
                     Chat(robot, "I better check it out");
-                    ChaseTarget(ai, robot, ai.TargetSegment, *ai.TargetPosition, ChaseMode::Sound);
+                    ChaseTarget(ai, robot, *ai.TargetPosition, ChaseMode::Sound);
                 }
             }
         }
@@ -1588,20 +1581,19 @@ namespace Inferno {
             case AIState::Chase:
                 CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
-                if (ai.GoalSegment == SegID::None) {
+                if (ai.GoalPath.empty()) {
                     ai.State = AIState::Alert;
                 }
                 else {
                     // Stop chasing once robot can see source of sound, otherwise move to the location.
                     // This is so a fleeing player is pursued around corners
                     bool stopOnceVisible = ai.Chase == ChaseMode::Sound;
-                    PathTowardsGoal(Game::Level, robot, ai, true, stopOnceVisible);
+                    PathTowardsGoal(robot, ai, true, stopOnceVisible);
 
-                    if (ai.TargetPosition && ai.TargetSegment == robot.Segment) {
+                    if (ai.TargetPosition && ai.TargetPosition->Segment == robot.Segment) {
                         // Clear target if pathing towards it discovers the target isn't there.
                         // This is so the robot doesn't turn around while chasing
                         ai.TargetPosition = {};
-                        ai.TargetSegment = SegID::None;
                     }
 
                     if (ScanForTarget(robot, ai)) {

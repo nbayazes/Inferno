@@ -346,7 +346,7 @@ namespace Inferno {
                     //Debug::RayStart = lastGoodHit;
                     Debug::RayStart = ray.position;
                     Debug::RayEnd = ray.position + ray.direction * query.MaxDistance;
-                    __debugbreak();
+                    //__debugbreak();
                     SPDLOG_WARN("Unable to recover from orphaned ray from segment {}", lastGoodSeg);
                     return false;
                 }
@@ -414,7 +414,7 @@ namespace Inferno {
                     case RayQueryMode::Precise:
                     {
                         if (auto wall = _level->TryGetWall(face.Side->Wall)) {
-                            if (WallIsTransparent(*_level, *wall)) {
+                            if (wall->Type != WallType::Open && WallIsTransparent(*_level, *wall)) {
                                 auto intersect = ray.position + ray.direction * dist;
                                 intersects = !WallPointIsTransparent(intersect, face, tri);
                             }

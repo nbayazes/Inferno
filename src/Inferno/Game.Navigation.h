@@ -51,7 +51,7 @@ namespace Inferno {
             }
         }
 
-        List<NavPoint> NavigateTo(SegID start, SegID goal, NavigationFlags flags, struct Level& level, float maxDistance = FLT_MAX);
+        List<NavPoint> NavigateTo(SegID start, const NavPoint& goal, NavigationFlags flags, struct Level& level, float maxDistance = FLT_MAX);
 
     private:
         void UpdateNode(struct Level& level, SegID segId) {

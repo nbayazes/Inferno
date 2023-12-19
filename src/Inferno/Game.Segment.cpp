@@ -364,10 +364,14 @@ namespace Inferno {
     Vector3 GetExitVector(Level& level, Segment& seg, const Matcen& matcen) {
         // Use active path side
         if (matcen.TriggerPath.size() >= 2) {
-            auto& p0 = Game::Level.GetSegment(matcen.TriggerPath[0].Segment);
-            auto& p1 = Game::Level.GetSegment(matcen.TriggerPath[1].Segment);
-            auto exit = p1.Center - p0.Center;
+            auto exit = matcen.TriggerPath[1].Position - matcen.TriggerPath[0].Position;
             exit.Normalize();
+
+            if (exit == Vector3::Zero) {
+                SPDLOG_WARN("Zero vector in GetExitVector()");
+                exit = Vector3::Forward;
+            }
+
             return exit;
         }
 
@@ -386,6 +390,9 @@ namespace Inferno {
             exit.Normalize();
             break;
         }
+
+        if (exit == Vector3::Zero)
+            exit = Vector3::Forward;
 
         return exit;
     }
@@ -463,12 +470,6 @@ namespace Inferno {
             }
             return;
         }
-
-        //if (matcen.ActiveTime > 0) {
-        //    matcen.ActiveTime -= dt;
-        //    if (matcen.ActiveTime <= 0)
-        //        matcen.Active = false;
-        //}
 
         auto seg = level.TryGetSegment(matcen.Segment);
         if (!seg) {
@@ -552,6 +553,7 @@ namespace Inferno {
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
             obj.Rotation = VectorToObjectRotation(facing);
+            ASSERT(IsNormalized(obj.Rotation.Forward()));
             auto ref = Game::AddObject(obj);
 
             matcen.RobotCount--;
@@ -598,8 +600,12 @@ namespace Inferno {
         matcen->Timer = 0;
         matcen->Delay = 0;
         matcen->RobotCount = (int8)Game::Difficulty + 3; // 3 to 7
-        matcen->TriggerPath = Game::Navigation.NavigateTo(segId, triggerSeg, NavigationFlags::None, level);
         matcen->Energy--;
+
+        if (auto tseg = level.TryGetSegment(triggerSeg)) {
+            NavPoint goal = { triggerSeg,  tseg->Center };
+            matcen->TriggerPath = Game::Navigation.NavigateTo(segId, goal, NavigationFlags::None, level);
+        }
 
         // Light for when matcen is active
         Object light{};
