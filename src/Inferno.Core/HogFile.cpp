@@ -85,7 +85,6 @@ namespace Inferno {
             entry.Name = reader.ReadString(13);
             if (entry.Name == "") break;
             entry.Size = reader.ReadInt32();
-            if (entry.Size == 0) throw Exception("Hog entry has size of zero");
             entry.Offset = reader.Position();
             entry.Index = index++;
             hog.Entries.push_back(entry);
