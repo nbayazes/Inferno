@@ -1220,7 +1220,7 @@ namespace Inferno::Game {
         }
     }
 
-    List<Room> CreateRooms(Level& level) {
+    List<Room> CreateRooms(Level& level, int preferredSegCount) {
         Set<SegID> visited;
         List<Room> rooms;
 
@@ -1250,7 +1250,7 @@ namespace Inferno::Game {
 
         List<Room> newRooms;
         for (auto& room : rooms) {
-            auto subdivisions = SubdivideRoom(level, room, 10);
+            auto subdivisions = SubdivideRoom(level, room, preferredSegCount);
             Seq::append(newRooms, subdivisions);
         }
 

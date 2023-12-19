@@ -8,7 +8,9 @@ namespace Inferno::Game {
         Vector3 UpperLeft;
     };
 
+    constexpr int PREFERRED_ROOM_SIZE = 5; // Segments per room
+
     //FaceInfo GetFaceBounds(const Face& face);
-    List<Room> CreateRooms(Inferno::Level&);
+    List<Room> CreateRooms(Inferno::Level&, int preferredSegCount = PREFERRED_ROOM_SIZE);
     List<Vector3> ClipConvexPolygon(const List<Vector3>& points, const Plane& plane);
 }
