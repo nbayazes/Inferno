@@ -421,15 +421,14 @@ Weapons:
   - id: 26
     Name: robot plasma
     Decal: scorchB
-    Glow: 1, 1, 1, 1.5
+    Glow: 1, 1, 1, 2.5
     Size: 1.5
     ExplosionSound: PlasmaHit1
     ExplosionTexture: PlasmaRing
     ExplosionSize: 2.3
     ExplosionTime: 0.4
-    LightRadius: 16
     LightColor: 0.1, 1, 0.1
-    FlashColor: 1, 1, 1, 4
+    FlashColor: 1, 1, 1, 1
 
   - id: 27
     Name: spider fireball # spider fireballs are signficantly more damaging than expected. Make them look angry.
@@ -437,6 +436,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 24
+    Size: 1.6 # Was size 1
     LightColor: .0, .8, 1, 1.25
     FlashColor: .0, .1, 1, 15
 
@@ -567,25 +567,26 @@ Robots:
     ChaseChance: 0
     SuppressChance: .25
   - id: 7 # Supervisor
-    CircleDistance: 60
     Mass: 3.25
-    AlertRadius: 240 # Alert all nearby robots!
-    FleeThreshold: 1 # Has no weapons, always look for help
-    ChaseChance: 0
+    AlertRadius: 250 # Alert all nearby robots!
+    Script: Supervisor
+    OpenKeyDoors: 1 # Can open key doors!
   - id: 8 # Secondary Lifter (one arm)
     CircleDistance: 25
     Mass: 3.5
     Drag: 0.03
     FleeThreshold: 0.4 # Scout
     ChaseChance: 1
-    Radius: 6.5
+    Radius: 6.5 # Increase radius to help arm clipping through walls
   - id: 9 # Heavy driller
-    CircleDistance: 30
+    CircleDistance: 40
     Multishot: 2
     Mass: 6
     Drag: 0.1
     ChaseChance: .75
     SuppressChance: .25
+    FireDelay: [ 1, .75, 1, .75, 0.9 ] # Was 1, .75, .75, .75, .75. Adjusted to compensate for extra shots on hotshot and insane
+    Shots: [ 2, 2, 4, 4, 6 ] # Was 2, 2, 3, 4, 5
   - id: 10 # Gopher
     FleeThreshold: 0.4
   - id: 11 # Laser platform

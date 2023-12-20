@@ -295,6 +295,7 @@ namespace Inferno {
     };
 
     void UpdateAI(Object& obj, float dt);
+    void RobotTouchObject(const Object& robot, const Object& obj);
     void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness, float maxAwareness = AI_AWARENESS_MAX);
     void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5, float delay = 0);
 

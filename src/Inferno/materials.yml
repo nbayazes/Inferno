@@ -345,14 +345,13 @@ Materials:
     Metalness: 0.3
     Roughness: 0.948
   - TexID: 739
-    NormalStrength: 0.524
-    Metalness: 0.9
-    Roughness: 0.437
-    LightReceived: 0.75
+    NormalStrength: 0.4
+    Metalness: 1
+    Roughness: 0.44
   - TexID: 740
     NormalStrength: 0.61
-    SpecularStrength: 2
-    Metalness: 0.9
+    SpecularStrength: 1.5
+    Metalness: 1
     Roughness: 0.4
   - TexID: 741
     NormalStrength: 1.1

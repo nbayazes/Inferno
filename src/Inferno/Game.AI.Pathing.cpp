@@ -363,9 +363,10 @@ namespace Inferno {
         return true;
     }
 
-    void PathTowardsGoal(Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
+    bool PathTowardsGoal(Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
         // Travel along a designated path, incrementing the node index as we go
-        if(!Seq::inRange(ai.GoalPath, ai.GoalPathIndex)) return; // Empty or invalid index
+        if (!Seq::inRange(ai.GoalPath, ai.GoalPathIndex))
+            return false; // Empty or invalid index
 
         auto& node = ai.GoalPath[ai.GoalPathIndex];
         auto& goal = ai.GoalPath.back();
@@ -376,7 +377,6 @@ namespace Inferno {
             auto& a = ai.GoalPath[i];
             auto& b = ai.GoalPath[i + 1];
             Render::Debug::DrawLine(a.Position, b.Position, Color(0, .8, 1));
-
         }
 
         bool isGoal = &goal == &node;
@@ -384,7 +384,7 @@ namespace Inferno {
         if (stopOnceVisible && isGoal && HasLineOfSight(obj, node.Position)) {
             SPDLOG_INFO("Robot {} can see the goal!", obj.Signature);
             ai.GoalPath.clear();
-            return;
+            return false;
         }
 
         MoveTowardsPoint(obj, ai, node.Position, 1);
@@ -392,11 +392,15 @@ namespace Inferno {
         Vector3 targetPosition = alwaysFaceGoal ? goal.Position : node.Position;
         auto goalDir = targetPosition - obj.Position;
         goalDir.Normalize();
-        TurnTowardsDirection(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
+
+        if (goalDir != Vector3::Zero) // Can be zero when object starts on top of the path
+            TurnTowardsDirection(obj, goalDir, robot.Difficulty[Game::Difficulty].TurnTime);
 
         // Move towards each path node until sufficiently close
         if (Vector3::Distance(obj.Position, node.Position) <= std::max(obj.Radius, 5.0f)) {
             ai.GoalPathIndex++;
         }
+
+        return true;
     }
 }

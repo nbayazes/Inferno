@@ -544,7 +544,8 @@ namespace Inferno {
         if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
             return false;
 
-        if (HasFlag(wall.Keys, WallKey::Red) || HasFlag(wall.Keys, WallKey::Gold) || HasFlag(wall.Keys, WallKey::Blue))
+        auto& robotInfo = Resources::GetRobotInfo(robot);
+        if (!robotInfo.OpenKeyDoors && (HasFlag(wall.Keys, WallKey::Red) || HasFlag(wall.Keys, WallKey::Gold) || HasFlag(wall.Keys, WallKey::Blue)))
             return false;
 
         // Don't allow robots to open locked doors from the back even if they are open.
@@ -554,7 +555,7 @@ namespace Inferno {
             if (cwall->Type != WallType::Door || cwall->HasFlag(WallFlag::DoorLocked))
                 return false;
 
-            if (HasFlag(cwall->Keys, WallKey::Red) || HasFlag(cwall->Keys, WallKey::Gold) || HasFlag(cwall->Keys, WallKey::Blue))
+            if (!robotInfo.OpenKeyDoors && (HasFlag(cwall->Keys, WallKey::Red) || HasFlag(cwall->Keys, WallKey::Gold) || HasFlag(cwall->Keys, WallKey::Blue)))
                 return false;
         }
 

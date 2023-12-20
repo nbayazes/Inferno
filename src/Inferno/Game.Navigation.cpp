@@ -42,15 +42,10 @@ namespace Inferno {
         }
 
         queue = {};
-
-        List<Visited> maybePath;
-        maybePath.resize(room.Segments.size());
-
         queue.push({ start, SegID::None });
         while (!queue.empty()) {
             Visited value = queue.front();
             queue.pop();
-            maybePath.push_back(value);
 
             if (value.id == goal)
                 break;
@@ -75,11 +70,6 @@ namespace Inferno {
 
         List<NavPoint> path;
 
-        //if (start == goal) {
-        //    auto& seg = level.GetSegment(goal);
-        //    path.push_back({ goal, seg.Center });
-        //}
-        //else 
         {
             auto pathNode = &visited[(int)goal];
             if (pathNode->parent == SegID::None)
@@ -89,7 +79,7 @@ namespace Inferno {
                 ASSERT(!Seq::exists(path, [&pathNode](auto& x) { return x.Segment == pathNode->id; }));
                 auto& seg = level.GetSegment(pathNode->id);
                 path.push_back({ pathNode->id, seg.Center });
-                auto conn = level.GetConnectedSide(pathNode->id, pathNode->parent);
+                auto conn = level.GetConnectedSide(pathNode->parent, pathNode->id);
                 if (conn != SideID::None)
                     path.push_back({ pathNode->id, seg.GetSide(conn).Center });
 
@@ -527,8 +517,6 @@ namespace Inferno {
 
         std::array lookup = SIDE_IDS;
         //Vector3 startDir;
-        Vector3 startPoint;
-        float furthestDist = 0;
         auto portalConn = Game::Level.GetConnectedSide(portalTag);
         SegID segid = portalConn ? portalConn.Segment : start;
 
@@ -543,8 +531,6 @@ namespace Inferno {
         uint d = 0;
         while (path.size() < depth) {
             auto& seg = Game::Level.GetSegment(segid);
-            if (d == 0)
-                startPoint = seg.Center;
 
             //visited.push_back(segid);
             // todo: prevent overlap with existing path
@@ -557,11 +543,7 @@ namespace Inferno {
             //    startDir.Normalize();
             //}
 
-            float bestDot = -2;
             auto bestSide = SideID::None;
-            bool biasFromStart = false;
-            float bestDist = 0;
-
             Shuffle(lookup); // Randomize where to go
 
             for (auto& side : lookup) {
@@ -618,6 +600,7 @@ namespace Inferno {
         if (path.size() > 2)
             path.resize(path.size() - 1); // Discard the face connection on the last segment
 
+        OptimizePath(path);
         return path;
     }
 

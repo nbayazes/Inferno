@@ -24,7 +24,6 @@ namespace Inferno {
         constexpr float AI_MAX_DODGE_DISTANCE = 60; // Range at which projectiles are dodged
         constexpr float DEATH_SOUND_DURATION = 2.68f;
 
-        constexpr float AI_ALERT_AWARENESS = 0.5f; // Amount of awareness to give to nearby robots each second the player is visible
         constexpr float AI_AWARENESS_DECAY = 1 / 5.0f; // Awareness lost per second
 
         constexpr float MAX_SLOW_TIME = 2.0f; // Max duration of slow
@@ -214,9 +213,10 @@ namespace Inferno {
         TraverseRoomsByDistance(level, srcRoom, source.Position, radius, true, action);
     }
 
-    void PlayAlertSound(const Object& robot) {
+    void PlayAlertSound(const Object& robot, AIRuntime& ai) {
         auto& robotInfo = Resources::GetRobotInfo(robot);
         if (robotInfo.IsBoss) return; // Bosses handle sound differently
+        ai.CombatSoundTimer = 2 + Random() * 2;
         Sound::PlayFrom(Sound3D(robotInfo.SeeSound), robot);
     }
 
@@ -264,37 +264,6 @@ namespace Inferno {
         bool visible = !Game::Intersect.RayLevel({ gunPosition, dir }, query, hit, mask, Game::GetObjectRef(obj).Id);
         //Render::Debug::DrawLine(gunPosition, target, visible ? Color(0, 1, 0) : Color(1, 0, 0));
         return visible;
-    }
-
-    // Player visibility doesn't account for direct line of sight like weapon fire does (other robots, walls)
-    bool CanSeePlayer(const Object& robot, const RobotInfo& robotInfo) {
-        auto& player = Game::GetPlayerObject();
-        if (player.CloakIsEffective()) return false;
-        if (player.Type == ObjectType::Ghost) return false; // Dead player
-
-        auto& ai = GetAI(robot);
-        if (!HasLineOfSight(robot, player.Position))
-            return false;
-
-        auto playerDir = GetDirection(player.Position, robot.Position);
-        if (!PointIsInFOV(robot, playerDir, robotInfo))
-            return false;
-
-        auto prevAwareness = ai.Awareness;
-        ai.LastSeenPlayer = Game::Time;
-        ai.AddAwareness(AI_AWARENESS_MAX);
-
-        // only play sound when robot was asleep
-        if (prevAwareness < 0.3f) {
-            PlayAlertSound(robot);
-            PlayRobotAnimation(robot, AnimState::Alert, 0.5f);
-            // Delay firing after waking up
-            float wakeTime = (5 - Game::Difficulty) * 0.3f;
-            ai.FireDelay = std::min(Difficulty(robotInfo).FireDelay, wakeTime);
-            ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
-        }
-
-        return true;
     }
 
     bool SegmentIsAdjacent(const Segment& src, SegID adjacent) {
@@ -667,6 +636,25 @@ namespace Inferno {
         for (int joint = 1; joint < model.Submodels.size(); joint++) {
             auto& curAngle = robot.Render.Model.Angles[joint];
             curAngle += ai.DeltaAngles[joint] / ai.AnimationDuration * dt;
+        }
+    }
+
+    void RobotTouchObject(const Object& robot, const Object& obj) {
+        ASSERT(robot.IsRobot());
+
+        if (obj.IsPlayer()) {
+            auto& ai = GetAI(robot);
+            if (ai.State != AIState::Path) {
+                if (ai.State != AIState::Combat) {
+                    PlayAlertSound(robot, ai);
+                    Chat(robot, "Something touched me!");
+                }
+
+                ai.Target = Game::GetObjectRef(obj);
+                ai.TargetPosition = { obj.Segment, obj.Position };
+                ai.Awareness = 1;
+                ai.State = AIState::Combat;
+            }
         }
     }
 
@@ -1135,6 +1123,7 @@ namespace Inferno {
             // Time to fight!
             Chat(robot, "I see a bad guy!");
             ai.State = AIState::Combat;
+            PlayAlertSound(robot, ai);
             PlayRobotAnimation(robot, AnimState::Alert); // break out of idle
         }
         else if (ai.Awareness >= 1) {
@@ -1216,6 +1205,10 @@ namespace Inferno {
             Chat(robot, "... but I'm all alone :(");
             ai.Fear = 100;
             // Fight back harder or run away randomly
+
+            ai.GoalPath = GenerateRandomPath(robot.Segment, 8);
+            ai.GoalPathIndex = 0;
+            ai.PathDelay = AI_PATH_DELAY;
             return false;
         }
     }
@@ -1264,11 +1257,11 @@ namespace Inferno {
                 allyAI.State = AIState::Chase;
             }
         }
-        else {
-            // Path to their new location
-            PlayDistressSound(robot);
-            SetPathGoal(Game::Level, robot, ai, { ally->Segment, ally->Position }, AI_MAX_CHASE_DISTANCE);
-        }
+        //else {
+        //    // Path to their new location
+        //    PlayDistressSound(robot);
+        //    SetPathGoal(Game::Level, robot, ai, { ally->Segment, ally->Position }, AI_MAX_CHASE_DISTANCE);
+        //}
     }
 
     void UpdateRetreatAI() {
@@ -1354,6 +1347,24 @@ namespace Inferno {
             ai.CombatState = AICombatState::Wait;
     }
 
+    void AlertNearby(AIRuntime& ai, const Object& robot, const RobotInfo& robotInfo) {
+        if (Game::Difficulty <= 0)
+            return; // Don't alert on trainee
+
+        if (ai.AlertTimer > 0 || !ai.TargetPosition || robotInfo.AlertRadius <= 0)
+            return;
+
+        constexpr float ALERT_FREQUENCY = 0.2f; // Smooth out alerts
+        auto skillMult = Game::Difficulty == 4 ? 1.5f : 1;
+        auto amount = robotInfo.AlertAwareness * ALERT_FREQUENCY * skillMult;
+        AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, amount);
+        ai.AlertTimer = ALERT_FREQUENCY;
+    }
+
+    uint CountNearbyAllies(Object& robot) {
+        
+    }
+
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
         CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
@@ -1392,17 +1403,7 @@ namespace Inferno {
 
             Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
 
-            // Alert nearby robots of the fighting
-            if (ai.AlertTimer <= 0
-                && ai.TargetPosition
-                && Game::Difficulty > 0
-                && robotInfo.AlertRadius > 0) {
-                constexpr float ALERT_FREQUENCY = 0.2f; // Smooth out alerts
-                auto skillMult = Game::Difficulty == 4 ? 1.5f : 1;
-                AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, AI_ALERT_AWARENESS * ALERT_FREQUENCY * skillMult);
-                ai.AlertTimer = ALERT_FREQUENCY;
-            }
-
+            AlertNearby(ai, robot, robotInfo);
             MakeCombatNoise(robot, ai);
         }
         else {
@@ -1454,8 +1455,8 @@ namespace Inferno {
         }
 
         // Only robots that flee can find help
-        if (robotInfo.FleeThreshold > 0) {
-            if (!ai.TriedFindingHelp && (robot.HitPoints / robot.MaxHitPoints < robotInfo.FleeThreshold || ai.Fear >= 1)) {
+        if (robotInfo.FleeThreshold > 0 && robot.Control.AI.Behavior != AIBehavior::Still) {
+            if (!ai.TriedFindingHelp && (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1)) {
                 ai.TriedFindingHelp = true; // Only try finding help once
                 ai.FleeTimer = 2 + Random(); // Run away in a bit, so robots getting blasted don't turn around. Weird for every robot to make flee noises.
                 ai.Fear = std::max(ai.Fear, 1.0f);
@@ -1503,6 +1504,90 @@ namespace Inferno {
         if (ai.Awareness <= 0) {
             MakeIdle(ai);
             Chat(robot, "I'm bored...");
+        }
+    }
+
+    void SupervisorBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
+        // Supervisors are either in path mode or idle. They cannot peform any other action.
+        if (ai.State == AIState::Path) {
+            if (!PathTowardsGoal(robot, ai, false, false)) {
+                ai.ClearPath();
+                ai.State = AIState::Idle;
+            }
+
+            //MakeCombatNoise(robot, ai);
+
+            if (ai.AlertTimer > 0 || !ai.TargetPosition || robotInfo.AlertRadius <= 0)
+                return;
+
+            // Periodically alert all nearby allies of a hostile!
+            PlayAlertSound(robot, ai);
+            AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 2);
+            ai.AlertTimer = 3;
+        }
+        else {
+            if (ScanForTarget(robot, ai)) {
+                auto target = Game::GetObject(ai.Target);
+                ai.State = AIState::Path;
+                ai.CombatState = AICombatState::Normal;
+                ai.GoalPath = GenerateRandomPath(robot.Segment, 8, NavigationFlags::OpenKeyDoors, target ? target->Segment : SegID::None);
+                ai.GoalPathIndex = 0;
+                Chat(robot, "Hostile detected, all drones deal with the intruder");
+                //ai.AlertTimer = 0;
+                //PlayAlertSound(robot, ai);
+                //AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 1);
+            }
+        }
+    }
+
+    void DefaultBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
+        switch (ai.State) {
+            case AIState::Idle:
+                OnIdle(ai, robot, robotInfo);
+                break;
+            case AIState::Alert:
+                UpdateAlertAI(ai, robot, robotInfo, dt);
+                break;
+            case AIState::Combat:
+                UpdateCombatAI(ai, robot, robotInfo, dt);
+                break;
+            case AIState::Roam:
+                break;
+            case AIState::Path:
+                if (!PathTowardsGoal(robot, ai, false, false)) {
+                    ai.ClearPath();
+                    ai.State = AIState::Alert;
+                }
+                break;
+            case AIState::FindHelp:
+                UpdateFindHelp(ai, robot);
+                break;
+            case AIState::Chase:
+                CheckProjectiles(Game::Level, robot, ai, robotInfo);
+
+                if (ai.GoalPath.empty()) {
+                    ai.State = AIState::Alert;
+                }
+                else {
+                    // Stop chasing once robot can see source of sound, otherwise move to the location.
+                    // This is so a fleeing player is pursued around corners
+                    bool stopOnceVisible = ai.Chase == ChaseMode::Sound;
+                    PathTowardsGoal(robot, ai, true, stopOnceVisible);
+
+                    if (ai.TargetPosition && ai.TargetPosition->Segment == robot.Segment) {
+                        // Clear target if pathing towards it discovers the target isn't there.
+                        // This is so the robot doesn't turn around while chasing
+                        ai.TargetPosition = {};
+                    }
+
+                    if (ScanForTarget(robot, ai)) {
+                        ai.ClearPath(); // Stop chasing if robot finds a target
+                        ai.State = AIState::Combat;
+                        Chat(robot, "You can't hide from me!");
+                    }
+                }
+                break;
+            default: ;
         }
     }
 
@@ -1563,48 +1648,10 @@ namespace Inferno {
         if (robot.NextThinkTime == NEVER_THINK || robot.NextThinkTime > Game::Time)
             return;
 
-        switch (ai.State) {
-            case AIState::Idle:
-                OnIdle(ai, robot, robotInfo);
-                break;
-            case AIState::Alert:
-                UpdateAlertAI(ai, robot, robotInfo, dt);
-                break;
-            case AIState::Combat:
-                UpdateCombatAI(ai, robot, robotInfo, dt);
-                break;
-            case AIState::Roam:
-                break;
-            case AIState::FindHelp:
-                UpdateFindHelp(ai, robot);
-                break;
-            case AIState::Chase:
-                CheckProjectiles(Game::Level, robot, ai, robotInfo);
-
-                if (ai.GoalPath.empty()) {
-                    ai.State = AIState::Alert;
-                }
-                else {
-                    // Stop chasing once robot can see source of sound, otherwise move to the location.
-                    // This is so a fleeing player is pursued around corners
-                    bool stopOnceVisible = ai.Chase == ChaseMode::Sound;
-                    PathTowardsGoal(robot, ai, true, stopOnceVisible);
-
-                    if (ai.TargetPosition && ai.TargetPosition->Segment == robot.Segment) {
-                        // Clear target if pathing towards it discovers the target isn't there.
-                        // This is so the robot doesn't turn around while chasing
-                        ai.TargetPosition = {};
-                    }
-
-                    if (ScanForTarget(robot, ai)) {
-                        ai.ClearPath(); // Stop chasing if robot finds a target
-                        ai.State = AIState::Combat;
-                        Chat(robot, "You can't hide from me!");
-                    }
-                }
-                break;
-            default: ;
-        }
+        if (robotInfo.Script == "Supervisor")
+            SupervisorBehavior(ai, robot, robotInfo, dt);
+        else
+            DefaultBehavior(ai, robot, robotInfo, dt);
 
         if (ai.DodgeTime > 0 && ai.DodgeDirection != Vector3::Zero /*|| ai.WiggleTime > 0*/) {
             ai.Velocity += ai.DodgeDirection * Difficulty(robotInfo).EvadeSpeed * 32;

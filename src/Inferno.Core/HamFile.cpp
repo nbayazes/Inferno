@@ -219,7 +219,7 @@ namespace Inferno {
 
         ri.DeathRollSound = (SoundID)r.ReadByte();
         ri.Glow = r.ReadByte();
-        ri.Behavior = r.ReadByte();
+        ri.Behavior = (AIBehavior)r.ReadByte();
         ri.Aim = r.ReadByte();
 
         for (auto& gunState : ri.Joints) {
@@ -238,7 +238,7 @@ namespace Inferno {
     JointPos ReadRobotJoint(StreamReader& r) {
         JointPos j{};
         j.ID = r.ReadInt16();
-        auto angles =  r.ReadAngleVec();
+        auto angles = r.ReadAngleVec();
         j.Angle = Vector3(-angles.x, angles.z, angles.y);
         //std::swap(j.Angle.y, j.Angle.z); // Match create matrix from angles function
         return j;
@@ -403,7 +403,8 @@ namespace Inferno {
 
         const auto version = reader.ReadInt32();
         if (version < 3)
-            /*int soundOffset = */reader.ReadInt32();
+            /*int soundOffset = */
+            reader.ReadInt32();
         auto textureCount = reader.ReadInt32();
 
         auto& allTexIdx = ham.AllTexIdx;
@@ -496,7 +497,8 @@ namespace Inferno {
         if (id != 'XHAM')
             throw Exception("Vertigo XHAM is invalid");
 
-        /*auto version = */reader.ReadInt32();
+        /*auto version = */
+        reader.ReadInt32();
 
         auto weaponTypes = reader.ReadElementCount();
         for (size_t i = 0; i < weaponTypes; i++)
@@ -677,7 +679,8 @@ namespace Inferno {
         ham.Powerups.resize(29);
         ham.Reactors.resize(1);
 
-        /*auto numTextures =*/ reader.ReadElementCount();
+        /*auto numTextures =*/
+        reader.ReadElementCount();
         for (auto& t : ham.AllTexIdx) t = (TexID)reader.ReadInt16();
         for (auto& t : ham.LevelTextures) t = ReadLevelTextureD1(reader);
 
@@ -685,11 +688,13 @@ namespace Inferno {
 
         reader.ReadBytes(ham.Sounds.data(), 250);
         reader.SeekForward(250); // skip low memory alt sounds
-        /*auto vclips =*/ reader.ReadInt32(); // invalid vclip count
+        /*auto vclips =*/
+        reader.ReadInt32(); // invalid vclip count
 
         for (auto& c : ham.VClips) c = ReadVClip(reader);
 
-        /*auto numEClips = */reader.ReadElementCount();
+        /*auto numEClips = */
+        reader.ReadElementCount();
         for (auto& c : ham.Effects) c = ReadEffect(reader);
 
         reader.ReadElementCount();
@@ -728,7 +733,8 @@ namespace Inferno {
 
         ham.PlayerShip = ReadPlayerShip(reader);
 
-        /*auto numCockpits = */reader.ReadElementCount();
+        /*auto numCockpits = */
+        reader.ReadElementCount();
         for (int i = 0; i < 4; i++)
             ham.Cockpits[i] = (TexID)reader.ReadInt16();
 
@@ -736,7 +742,8 @@ namespace Inferno {
         reader.ReadBytes(ham.Sounds.data(), 250);
         reader.SeekForward(250); // skip low memory alt sounds
 
-        /*auto numObjects =*/ reader.ReadInt32();
+        /*auto numObjects =*/
+        reader.ReadInt32();
 
         enum EditorObjectType : ubyte {
             Unknown,

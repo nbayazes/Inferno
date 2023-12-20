@@ -96,7 +96,7 @@ namespace Inferno::Editor {
                 //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
                 auto path = GenerateRandomPath(Editor::Selection.Segment, 20);
                 List<NavPoint> original = path;
-                OptimizePath(path);
+                //OptimizePath(path);
 
                 if (obj->IsRobot()) {
                     //auto& ai = GetAI(*obj);

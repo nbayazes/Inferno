@@ -500,7 +500,7 @@ namespace Inferno::Render {
         buffer.Copy({ &frameConstants, 1 });
         buffer.End();
 
-        DebugCanvas->SetSize(size.x, size.y, size.y);
+        DebugCanvas->SetSize((uint)size.x, (uint)size.y, (uint)size.y);
     }
 
     void DrawHud(GraphicsContext& ctx) {

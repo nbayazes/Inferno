@@ -333,9 +333,12 @@ namespace Inferno {
         READ_PROP(Multishot);
         READ_PROP(TeleportInterval);
         READ_PROP(AlertRadius);
+        READ_PROP(AlertAwareness);
+        READ_PROP(Script);
         READ_PROP(FleeThreshold);
         READ_PROP(ChaseChance);
         READ_PROP(SuppressChance);
+        READ_PROP(OpenKeyDoors);
 #undef READ_PROP
 
         Array<float, 5> fov{}, fireDelay{}, fireDelay2{}, turnTime{}, speed{}, circleDistance{}, meleeDamage{};

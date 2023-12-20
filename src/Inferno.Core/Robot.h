@@ -79,7 +79,7 @@ namespace Inferno {
         ubyte Flags;   // misc properties
 
         ubyte Glow;        // apply this light to robot itself. stored as 4:4 fixed-point
-        ubyte Behavior;    // Default behavior
+        AIBehavior Behavior;    // Default behavior when materialized (not editor placed)
         ubyte Aim = 255;   // 255 is perfect aim. 0 is very inaccurate.
         ubyte Multishot = 1; // Number of projectiles to fire at once if possible
 
@@ -87,12 +87,16 @@ namespace Inferno {
         JointLookup Joints[MAX_GUNS + 1][N_ANIM_STATES];
 
         float AlertRadius = 80; // Increases awareness of robots in this radius while the player is visible
+        float AlertAwareness = 0.5f; // Amount of awareness each second to give nearby robots
         List<int8> GatedRobots; // Robots to gate in when hit. For bosses.
         float TeleportInterval; // Interval between boss teleports.
         float FleeThreshold = 0; // Will flee to find another robot when under this amount of life or getting scared
 
         float ChaseChance = 0.5f; // Chance to chase when target leaves sight
         float SuppressChance = 0.25f; // Chance to fire at out of sight target
+
+        string Script; // Custom behavior script
+        bool OpenKeyDoors = false; // Can open key doors
     };
 
 }

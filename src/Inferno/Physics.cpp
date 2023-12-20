@@ -1405,6 +1405,12 @@ namespace Inferno {
                     Game::Player.TouchObject(*hit.HitObj);
                 }
 
+                if (obj.IsRobot() && hit.HitObj)
+                    RobotTouchObject(obj, *hit.HitObj);
+
+                if (hit.HitObj && hit.HitObj->IsRobot())
+                    RobotTouchObject(*hit.HitObj, obj);
+
                 const LevelTexture* ti = nullptr;
                 if (auto side = level.TryGetSide(hit.Tag))
                     ti = &Resources::GetLevelTextureInfo(side->TMap);
