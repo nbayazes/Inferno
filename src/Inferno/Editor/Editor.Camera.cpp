@@ -19,8 +19,9 @@ namespace Inferno::Editor {
                 camera.Pan(-delta.x * Settings::Editor.MoveSpeed * 0.001f, -delta.y * Settings::Editor.MoveSpeed * 0.001f);
             }
             else {
-                int inv = Settings::Editor.InvertOrbitY ? 1 : -1;
-                camera.Orbit(-delta.x * Settings::Editor.MouselookSensitivity, delta.y * inv * Settings::Editor.MouselookSensitivity);
+                int invX = Settings::Editor.InvertOrbitX ? 1 : -1;
+                int invY = Settings::Editor.InvertOrbitY ? 1 : -1;
+                camera.Orbit(delta.x * invX * Settings::Editor.MouselookSensitivity, delta.y * invY * Settings::Editor.MouselookSensitivity);
             }
         }
 
