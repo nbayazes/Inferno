@@ -672,7 +672,7 @@ namespace Inferno {
             Chat(robot, "What hit me!?");
         }
 
-        if (source) {
+        if (source && ai.State != AIState::Combat) {
             if (source->IsPlayer()) {
                 // We were hit by the player but don't know exactly where they are
                 ai.TargetPosition = sourcePos;
