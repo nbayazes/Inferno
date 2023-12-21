@@ -549,7 +549,7 @@ namespace Inferno {
             obj.Position = seg->Center;
             obj.Segment = matcen.Segment;
             obj.SourceMatcen = matcenId;
-            obj.PhaseIn(2, Game::MATCEN_PHASING_COLOR);
+            obj.PhaseIn(1.5, Game::MATCEN_PHASING_COLOR);
 
             auto facing = GetExitVector(Game::Level, *seg, matcen);
             obj.Rotation = VectorToObjectRotation(facing);

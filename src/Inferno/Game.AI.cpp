@@ -1066,9 +1066,9 @@ namespace Inferno {
         float deltaSpeed = deltaVel.Length();
         deltaVel.Normalize();
 
-        auto slow = ai.RemainingSlow;
+        auto slow = std::clamp(ai.RemainingSlow, 0.0f, MAX_SLOW_TIME);
         // melee robots are slow resistant
-        const auto maxSlow = robotInfo.Attack == AttackType::Melee ? MAX_SLOW_EFFECT / 3 : MAX_SLOW_EFFECT;
+        const auto maxSlow = robotInfo.Attack == AttackType::Melee && !robot.IsPhasing() ? MAX_SLOW_EFFECT / 3 : MAX_SLOW_EFFECT;
         float slowScale = slow > 0 ? 1 - maxSlow * slow / MAX_SLOW_TIME : 1;
         float maxDeltaSpeed = dt * Difficulty(robotInfo).Speed * slowScale;
 
