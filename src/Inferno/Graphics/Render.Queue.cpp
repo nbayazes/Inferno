@@ -9,6 +9,8 @@
 #include "Render.Particles.h"
 #include "Render.h"
 
+//#define DEBUG_PORTALS
+
 namespace Inferno::Render {
     bool ShouldDrawObject(const Object& obj) {
         if (!obj.IsAlive()) return false;
@@ -420,8 +422,6 @@ namespace Inferno::Render {
             if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls
 
-            // Always add adjacent rooms even if they aren't visible so lights slightly out of view don't flicker
-            _roomQueue.push_back(portal.RoomLink);
 
             auto face = Face2::FromSide(level, portal.Tag);
             auto ndc = GetNdc(face, Render::ViewProjection);
@@ -434,8 +434,13 @@ namespace Inferno::Render {
                 bounds = srcBounds.Intersection(bounds);
 
             if (!bounds.Empty()) {
+                if (!Seq::contains(_roomQueue, portal.RoomLink))
+                    _roomQueue.push_back(portal.RoomLink);
+
                 // Keep searching...
-                //DrawBounds(bounds, Color(0, 1, 0, 0.2f));
+#ifdef DEBUG_PORTALS
+                DrawBounds(bounds, Color(0, 1, 0, 0.2f));
+#endif
                 if (auto linkedRoom = level.GetRoom(portal.RoomLink))
                     CheckRoomVisibility(level, *linkedRoom, bounds, depth++);
             }
@@ -451,8 +456,8 @@ namespace Inferno::Render {
         if (!startRoom) return;
         //auto screenBounds = Bounds2D({ -.75f, -.75f }, { .75f, .75f });
         auto screenBounds = Bounds2D({ -1, -1 }, { 1, 1 });
-        //DrawBounds(screenBounds, Color(1, 0, 0, 0.1f));
 
+        // this fails when circular rooms join each other
         for (auto& basePortal : startRoom->Portals) {
             if (!SideIsTransparent(level, basePortal.Tag))
                 continue; // stop at opaque walls like closed doors
@@ -461,13 +466,11 @@ namespace Inferno::Render {
             auto basePoints = GetNdc(baseFace, Render::ViewProjection);
 
             if (auto linkedRoom = level.GetRoom(basePortal.RoomLink)) {
-                // always add immediately connected rooms to prevent flickering
-                // when lights or effects are slightly out of view in another room
-                if (!Seq::contains(_roomQueue, basePortal.RoomLink))
-                    _roomQueue.push_back(basePortal.RoomLink);
-
                 // Search next room if portal is on screen
                 if (basePoints) {
+                    if (!Seq::contains(_roomQueue, basePortal.RoomLink))
+                        _roomQueue.push_back(basePortal.RoomLink);
+
                     auto bounds = Bounds2D::FromPoints(*basePoints);
                     bounds = bounds.Intersection(screenBounds);
                     if (bounds.Empty())
@@ -476,9 +479,22 @@ namespace Inferno::Render {
                     if (bounds.CrossesPlane)
                         bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
 
-                    //DrawBounds(bounds, Color(0, 0, 1, 0.2f));
+#ifdef DEBUG_PORTALS
+                    DrawBounds(bounds, Color(0, 0, 1, 0.2f));
+#endif
                     CheckRoomVisibility(level, *linkedRoom, bounds, 0);
                 }
+            }
+        }
+
+        // grow visible rooms by one to prevent flicker when lights are on room boundaries at the edge of vision
+        auto startSize = _roomQueue.size();
+        for (int i = 0; i < startSize; i++) {
+            auto room = level.GetRoom(_roomQueue[i]);
+            if (!room) continue;
+            for (auto& portal : room->Portals) {
+                if (!Seq::contains(_roomQueue, portal.RoomLink))
+                    _roomQueue.push_back(portal.RoomLink);
             }
         }
 

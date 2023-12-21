@@ -215,8 +215,9 @@ namespace Inferno::Game {
                 if (!room) continue;
 
                 for (auto& segId : room->Segments) {
-                    auto& seg = Level.GetSegment(segId);
-                    Stats::LiveObjects += (int)seg.Objects.size();
+                    if (auto seg = Level.TryGetSegment(segId)) {
+                        Stats::LiveObjects += (int)seg->Objects.size();
+                    }
                 }
             }
         }
