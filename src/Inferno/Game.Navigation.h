@@ -77,6 +77,8 @@ namespace Inferno {
         List<SegID> NavigateWithinRoom(SegID start, SegID goal, Room& room);
     };
 
+    void IterateNearbySegments(Level& level, SegID start, float distance, const std::function<void(Segment&, bool&)>&);
+
     // Returns false if a side is blocked for navigation purposes
     bool CanNavigateSide(Level& level, Tag tag, NavigationFlags flags);
 

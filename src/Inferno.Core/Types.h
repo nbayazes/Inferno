@@ -1,11 +1,12 @@
 #pragma once
 
+#define NOMINMAX
+#include <DirectXTK12/SimpleMath.h>
 #include <memory>
 #include <span>
 #include <stack>
 #include <numbers>
 #include <filesystem>
-#include <DirectXTK12/SimpleMath.h>
 #include <ranges>
 #include <fmt/format.h>
 

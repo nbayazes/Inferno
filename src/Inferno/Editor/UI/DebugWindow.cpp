@@ -94,7 +94,7 @@ namespace Inferno::Editor {
         if (ImGui::Button("Set path target")) {
             if (auto obj = Game::Level.TryGetObject(Editor::Selection.Object)) {
                 //auto path = Game::Navigation.NavigateTo(obj->Segment, Editor::Selection.Segment, NavigationFlags::None, Game::Level);
-                auto path = GenerateRandomPath(Editor::Selection.Segment, 20);
+                auto path = GenerateRandomPath(Editor::Selection.Segment, 20, NavigationFlags::OpenKeyDoors);
                 List<NavPoint> original = path;
                 //OptimizePath(path);
 

@@ -38,7 +38,7 @@ namespace Inferno {
 
     template <typename... Args>
     void Chat(const Object& robot, const string_view fmt, Args&&... args) {
-        string message = fmt::vformat(fmt, fmt::make_format_args(args...));
+        string message = fmt::vformat(fmt, fmt::make_format_args(std::forward<Args>(args)...));
         fmt::println("{:6.2f}  DRONE {}: {}", Game::Time, robot.Signature, message);
     }
 
@@ -110,6 +110,13 @@ namespace Inferno {
         });
     }
 
+    void PlayAlertSound(const Object& robot, AIRuntime& ai) {
+        auto& robotInfo = Resources::GetRobotInfo(robot);
+        if (robotInfo.IsBoss) return; // Bosses handle sound differently
+        ai.CombatSoundTimer = 2 + Random() * 2;
+        Sound::PlayFrom(Sound3D(robotInfo.SeeSound), robot);
+    }
+
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& soundPosition, float soundRadius, float awareness, float /*maxAwareness*/) {
         for (auto& segId : room.Segments) {
             auto pseg = level.TryGetSegment(segId);
@@ -162,6 +169,8 @@ namespace Inferno {
 
     void AlertAlliesOfDeath(const Object& dyingRobot) {
         auto action = [&](const Object& robot) {
+            if (robot.Signature == dyingRobot.Signature) return;
+
             auto& robotInfo = Resources::GetRobotInfo(robot);
             auto& ai = GetAI(robot);
             if ((ai.State == AIState::Alert || ai.State == AIState::Combat) && robotInfo.FleeThreshold > 0) {
@@ -190,14 +199,17 @@ namespace Inferno {
                 for (auto& objId : seg.Objects) {
                     if (auto obj = level.TryGetObject(objId)) {
                         if (!obj->IsRobot()) continue;
+                        if (obj->Signature == source.Signature) continue; // Don't alert self
 
                         auto dist = Vector3::Distance(obj->Position, source.Position);
                         if (dist > radius) continue;
                         auto random = 1 + RandomN11() * 0.25f; // Add some variance so robots in a room don't all wake up at same time
                         auto& ai = GetAI(*obj);
                         if (ai.State == AIState::Idle || ai.State == AIState::Alert || ai.State == AIState::Roam) {
-                            if (ai.State == AIState::Idle)
+                            if (ai.State == AIState::Idle) {
                                 Chat(*obj, "Drone {} says he sees something", source.Signature);
+                                PlayAlertSound(*obj, ai);
+                            }
 
                             ai.State = AIState::Alert;
                             ai.TargetPosition = target;
@@ -211,13 +223,6 @@ namespace Inferno {
         };
 
         TraverseRoomsByDistance(level, srcRoom, source.Position, radius, true, action);
-    }
-
-    void PlayAlertSound(const Object& robot, AIRuntime& ai) {
-        auto& robotInfo = Resources::GetRobotInfo(robot);
-        if (robotInfo.IsBoss) return; // Bosses handle sound differently
-        ai.CombatSoundTimer = 2 + Random() * 2;
-        Sound::PlayFrom(Sound3D(robotInfo.SeeSound), robot);
     }
 
     void PlayDistressSound(const Object& robot) {
@@ -353,10 +358,10 @@ namespace Inferno {
     constexpr float FAST_WEAPON_SPEED = 200;
     constexpr float SLOW_WEAPON_SPEED = 30;
 
-    void DecayAwareness(AIRuntime& ai) {
+    void DecayAwareness(AIRuntime& ai, float rate = AI_AWARENESS_DECAY) {
         auto deltaTime = float(Game::Time - ai.LastUpdate);
-        auto random = .5f + Random() * 0.5f; // Add some randomness so robots don't all stop firing at the same time
-        ai.Awareness -= AI_AWARENESS_DECAY * deltaTime * random;
+        auto random = .75f + Random() * 0.25f; // Add some randomness so robots don't all stop firing at the same time
+        ai.Awareness -= rate * deltaTime * random;
         if (ai.Awareness < 0) ai.Awareness = 0;
     }
 
@@ -1160,35 +1165,29 @@ namespace Inferno {
         Object* nearestHelp = nullptr;
         float nearestDist = FLT_MAX;
 
-        auto action = [&](const Room& room) {
-            for (auto& segid : room.Segments) {
-                if (auto seg = Game::Level.TryGetSegment(segid)) {
-                    for (auto& objid : seg->Objects) {
-                        if (auto help = Game::Level.TryGetObject(objid)) {
-                            if (!help->IsRobot()) continue;
+        auto action = [&](const Segment& seg, bool& stop) {
+            for (auto& objid : seg.Objects) {
+                if (auto help = Game::Level.TryGetObject(objid)) {
+                    if (!help->IsRobot()) continue;
 
-                            auto& helpAI = GetAI(*help);
-                            if (helpAI.State == AIState::Alert || helpAI.State == AIState::Idle) {
-                                // Found a robot that can help us
+                    auto& helpAI = GetAI(*help);
+                    if (helpAI.State == AIState::Alert || helpAI.State == AIState::Idle) {
+                        // Found a robot that can help us
 
-                                auto dist = Vector3::DistanceSquared(help->Position, robot.Position);
-                                if (dist < nearestDist) {
-                                    nearestHelp = help;
-                                    nearestDist = dist;
-                                }
-                            }
+                        auto dist = Vector3::DistanceSquared(help->Position, robot.Position);
+                        if (dist < nearestDist) {
+                            nearestHelp = help;
+                            nearestDist = dist;
                         }
                     }
                 }
             }
 
-            return nearestHelp != nullptr;
+            stop = nearestHelp != nullptr;
         };
 
         // todo: this should account for locked doors
-        constexpr float AI_HELP_SEARCH_RADIUS = 350;
-        auto room = Game::Level.GetRoomID(robot);
-        TraverseRoomsByDistance(Game::Level, room, robot.Position, AI_HELP_SEARCH_RADIUS, true, action);
+        IterateNearbySegments(Game::Level, robot.Segment, AI_HELP_SEARCH_RADIUS, action);
 
         if (nearestHelp) {
             NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };
@@ -1361,8 +1360,19 @@ namespace Inferno {
         ai.AlertTimer = ALERT_FREQUENCY;
     }
 
-    uint CountNearbyAllies(Object& robot) {
-        
+    uint CountNearbyAllies(const Object& robot, float range) {
+        uint allies = 0;
+
+        IterateNearbySegments(Game::Level, robot.Segment, range, [&](const Segment& seg, bool) {
+            for (auto& objid : seg.Objects) {
+                if (auto obj = Game::Level.TryGetObject(objid)) {
+                    if (obj->IsRobot() && obj->Signature != robot.Signature)
+                        allies++;
+                }
+            }
+        });
+
+        return allies;
     }
 
     void UpdateCombatAI(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
@@ -1456,14 +1466,23 @@ namespace Inferno {
 
         // Only robots that flee can find help
         if (robotInfo.FleeThreshold > 0 && robot.Control.AI.Behavior != AIBehavior::Still) {
-            if (!ai.TriedFindingHelp && (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1)) {
-                ai.TriedFindingHelp = true; // Only try finding help once
-                ai.FleeTimer = 2 + Random(); // Run away in a bit, so robots getting blasted don't turn around. Weird for every robot to make flee noises.
-                ai.Fear = std::max(ai.Fear, 1.0f);
+            if (!ai.FleeTimer.IsSet()) {
+                ai.FleeTimer = 2 + Random(); // Periodically think about fleeing
             }
 
-            if (ai.FleeTimer <= 0 && ai.FleeTimer.IsSet()) {
-                FindHelp(ai, robot);
+            if (ai.FleeTimer.Expired()) {
+                if (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1) {
+                    // Wounded or scared enough to flee, but would rather fight if there's allies nearby
+                    auto allies = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE);
+
+                    if (allies < AI_ALLY_FLEE_MIN) {
+                        FindHelp(ai, robot);
+                    }
+                    else {
+                        Chat(robot, "I'm scared but my friends are here");
+                    }
+                }
+
                 ai.FleeTimer.Reset();
             }
         }
@@ -1508,34 +1527,41 @@ namespace Inferno {
     }
 
     void SupervisorBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
+        // Periodically alert allies while not idle
+        if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
+            PlayAlertSound(robot, ai);
+            AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 10);
+            ai.AlertTimer = 3;
+            Chat(robot, "Intruder alert!");
+        }
+
         // Supervisors are either in path mode or idle. They cannot peform any other action.
         if (ai.State == AIState::Path) {
             if (!PathTowardsGoal(robot, ai, false, false)) {
                 ai.ClearPath();
-                ai.State = AIState::Idle;
+                ai.State = AIState::Alert;
             }
 
             //MakeCombatNoise(robot, ai);
-
-            if (ai.AlertTimer > 0 || !ai.TargetPosition || robotInfo.AlertRadius <= 0)
-                return;
-
-            // Periodically alert all nearby allies of a hostile!
-            PlayAlertSound(robot, ai);
-            AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 2);
-            ai.AlertTimer = 3;
         }
         else {
+            DecayAwareness(ai);
+
             if (ScanForTarget(robot, ai)) {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
-                ai.GoalPath = GenerateRandomPath(robot.Segment, 8, NavigationFlags::OpenKeyDoors, target ? target->Segment : SegID::None);
+                ai.GoalPath = GenerateRandomPath(robot.Segment, 15, NavigationFlags::OpenKeyDoors, target ? target->Segment : SegID::None);
                 ai.GoalPathIndex = 0;
-                Chat(robot, "Hostile detected, all drones deal with the intruder");
+                ai.Awareness = 1;
+                Chat(robot, "Hostile sighted!");
                 //ai.AlertTimer = 0;
                 //PlayAlertSound(robot, ai);
                 //AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 1);
+            }
+            else if (ai.Awareness <= 0 && ai.State != AIState::Idle) {
+                ai.State = AIState::Idle;
+                Chat(robot, "All quiet");
             }
         }
     }

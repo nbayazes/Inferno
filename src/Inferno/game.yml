@@ -437,7 +437,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 24
     Size: 1.6 # Was size 1
-    LightColor: .0, .8, 1, 1.25
+    LightColor: .0, .8, 1, 1
     FlashColor: .0, .1, 1, 15
 
   - id: 32
@@ -582,7 +582,7 @@ Robots:
     CircleDistance: 40
     Multishot: 2
     Mass: 6
-    Drag: 0.1
+    Drag: 0.03
     ChaseChance: .75
     SuppressChance: .25
     FireDelay: [ 1, .75, 1, .75, 0.9 ] # Was 1, .75, .75, .75, .75. Adjusted to compensate for extra shots on hotshot and insane

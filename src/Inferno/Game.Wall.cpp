@@ -371,7 +371,7 @@ namespace Inferno {
 
     void EnterSecretLevel() {}
 
-    void ToggleWall(Segment& /*seg*/, SideID /*side*/) { }
+    void ToggleWall(Segment& /*seg*/, SideID /*side*/) {}
 
     Option<SideID> GetConnectedSide(Segment& base, SegID conn) {
         for (auto& side : SIDE_IDS) {
@@ -534,30 +534,38 @@ namespace Inferno {
         }
     }
 
-    bool RobotCanOpenDoor(Level& level, const Wall& wall, const Object& robot) {
+    bool RobotCanOpenDoor(Level& /*level*/, const Wall& wall, const Object& robot) {
         // Don't allow sleeping robots to open walls. Important because several
         // robots in official levels are positioned on top of secret doors.
         auto& ai = GetAI(robot);
         if (ai.Awareness <= 0)
             return false;
 
+        auto& robotInfo = Resources::GetRobotInfo(robot);
+
         if (wall.Type != WallType::Door || wall.HasFlag(WallFlag::DoorLocked))
             return false;
 
-        auto& robotInfo = Resources::GetRobotInfo(robot);
-        if (!robotInfo.OpenKeyDoors && (HasFlag(wall.Keys, WallKey::Red) || HasFlag(wall.Keys, WallKey::Gold) || HasFlag(wall.Keys, WallKey::Blue)))
-            return false;
+        if (wall.IsKeyDoor()) {
+            if (!robotInfo.OpenKeyDoors) return false; // Robot can't open key doors
+            if (!Game::Player.CanOpenDoor(wall)) return false; // Player doesn't have the key, so neither does the robot
+        }
 
         // Don't allow robots to open locked doors from the back even if they are open.
         // Can cause sequence breaking or undesired behavior. Note that the thief
         // could originally open locked doors from the back.
-        if (auto cwall = level.GetConnectedWall(wall)) {
-            if (cwall->Type != WallType::Door || cwall->HasFlag(WallFlag::DoorLocked))
-                return false;
+        // Note: some user levels rely on this behavior
+        //if (auto cwall = level.GetConnectedWall(wall)) {
+        //    if (cwall->Type != WallType::Door || cwall->HasFlag(WallFlag::DoorLocked))
+        //        return false;
 
-            if (!robotInfo.OpenKeyDoors && (HasFlag(cwall->Keys, WallKey::Red) || HasFlag(cwall->Keys, WallKey::Gold) || HasFlag(cwall->Keys, WallKey::Blue)))
-                return false;
-        }
+        //    bool isKeyDoor = HasFlag(cwall->Keys, WallKey::Red) || HasFlag(cwall->Keys, WallKey::Gold) || HasFlag(cwall->Keys, WallKey::Blue);
+        //    if (!robotInfo.OpenKeyDoors && isKeyDoor)
+        //        return false;
+
+        //    if (isKeyDoor && !Game::Player.CanOpenDoor(*cwall))
+        //        return false;
+        //}
 
         return true;
     }

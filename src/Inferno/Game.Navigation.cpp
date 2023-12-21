@@ -7,20 +7,51 @@
 #include <numeric>
 
 namespace Inferno {
-    class ScopedBool {
-        std::atomic_bool* _b;
+    // Executes a function on each segment within range. Return false from action to stop iterating.
+    void IterateNearbySegments(Level& level, SegID start, float distance, const std::function<void(Segment&, bool&)>& action) {
+        ASSERT_STA();
 
-    public:
-        ScopedBool(std::atomic_bool& b) : _b(&b) { *_b = true; }
-        ~ScopedBool() { *_b = false; }
-        ScopedBool(const ScopedBool&) = delete;
-        ScopedBool(ScopedBool&&) = default;
-        ScopedBool& operator=(const ScopedBool&) = delete;
-        ScopedBool& operator=(ScopedBool&&) = default;
-    };
+        Vector3 startPosition;
+        if (auto startSeg = level.TryGetSegment(start))
+            startPosition = startSeg->Center;
+        else
+            return; // invalid segment
 
-    // Asserts single threaded access of this scope
-#define ASSERT_STA() static std::atomic staGuard = false; ASSERT(!staGuard); ScopedBool staScope(staGuard);
+        static List<SegID> queue;
+        static List<int8> visited;
+        visited.resize(level.Segments.size());
+        ranges::fill(visited, false);
+
+        queue.clear();
+        queue.push_back(start);
+
+        float distSq = distance * distance;
+        if (distSq < 0) distSq = FLT_MAX;
+        int index = 0;
+
+        while (index < queue.size()) {
+            auto segid = queue[index++];
+            auto seg = level.TryGetSegment(segid);
+            if (!seg) continue;
+
+            bool stop = false;
+            action(*seg, stop);
+            if (stop) break;
+
+            for (auto& sideid : SIDE_IDS) {
+                if (seg->SideIsSolid(sideid, level)) continue;
+
+                if (Vector3::DistanceSquared(startPosition, seg->GetSide(sideid).Center) > distSq)
+                    continue;
+
+                auto connection = seg->GetConnection(sideid);
+                auto& isVisited = visited[(int)connection];
+                if (isVisited) continue; // already visited
+                isVisited = true;
+                queue.push_back(connection);
+            }
+        }
+    }
 
     List<NavPoint> NavigateWithinRoomBfs(Level& level, SegID start, SegID goal, Room& room) {
         if (start == goal) return {};
@@ -31,7 +62,7 @@ namespace Inferno {
             SegID id = SegID::None, parent = SegID::None;
         };
 
-        static Queue<Visited> queue;
+        static List<Visited> queue;
         static List<Visited> visited;
 
         visited.resize(level.Segments.size());
@@ -41,11 +72,12 @@ namespace Inferno {
             visited[i].parent = SegID::None;
         }
 
-        queue = {};
-        queue.push({ start, SegID::None });
-        while (!queue.empty()) {
-            Visited value = queue.front();
-            queue.pop();
+        queue.clear();
+        queue.push_back({ start, SegID::None });
+        int index = 0;
+
+        while (index < queue.size()) {
+            Visited value = queue[index++];
 
             if (value.id == goal)
                 break;
@@ -53,18 +85,15 @@ namespace Inferno {
             auto seg = level.TryGetSegment(value.id);
             for (auto& sid : SIDE_IDS) {
                 auto conn = seg->GetConnection(sid);
-                if (conn == SegID::None) continue; // solid side
-                auto& side = seg->GetSide(sid);
-                if (auto wall = level.TryGetWall(side.Wall)) {
-                    if (wall->IsSolid()) continue; // can't go through this wall
-                }
+                if (!CanNavigateSide(level, { value.id, sid }, NavigationFlags::None))
+                    continue;
 
                 auto& node = visited[(int)conn];
                 if (node.parent != SegID::None) continue; // already visited
                 if (!Seq::contains(room.Segments, conn)) continue; // not in room
 
                 node.parent = value.id;
-                queue.push({ conn, value.id });
+                queue.push_back({ conn, value.id });
             }
         }
 
@@ -173,6 +202,9 @@ namespace Inferno {
             return false;
 
         if (wall.Type == WallType::Door) {
+            if (wall.HasFlag(WallFlag::DoorOpened))
+                return true; // Regardless of whether the door is locked or keyed, navigate it if opened
+
             if (wall.HasFlag(WallFlag::DoorLocked))
                 return false;
 
@@ -181,8 +213,10 @@ namespace Inferno {
             if (HasFlag(clip.Flags, DoorClipFlag::Secret) && !HasFlag(flags, NavigationFlags::OpenSecretDoors))
                 return false;
 
-            if (wall.IsKeyDoor() && !HasFlag(flags, NavigationFlags::OpenKeyDoors))
-                return false;
+            if (wall.IsKeyDoor()) {
+                if (!HasFlag(flags, NavigationFlags::OpenKeyDoors)) return false;
+                if (!Game::Player.CanOpenDoor(wall)) return false;
+            }
         }
 
         if (wall.Type == WallType::Closed || wall.Type == WallType::Cloaked)
@@ -453,155 +487,282 @@ namespace Inferno {
     }
 
     List<NavPoint> GenerateRandomPath(SegID start, uint depth, NavigationFlags flags, SegID avoid) {
-        depth *= 2; // path also adds points where segments join
         List<NavPoint> path;
         if (!Game::Level.SegmentExists(start)) return path;
 
-        Tag portalTag;
-        auto& startSeg = Game::Level.GetSegment(start);
+        //Tag portalTag;
+        //auto& startSeg = Game::Level.GetSegment(start);
 
-        {
-            // Pick a portal that is not close to the start segment
-            if (auto room = Game::Level.GetRoom(startSeg.Room)) {
-                if (!room->Portals.empty()) {
-                    auto portalCount = room->Portals.size();
-                    auto index = RandomInt((int)portalCount - 1);
-                    int bestPortal = 0;
-                    for (int i = 0; i < portalCount; i++, index++) {
-                        auto& portal = room->Portals[index % portalCount];
+        auto& level = Game::Level;
+        ASSERT_STA();
 
-                        // Skip sides we can't navigate through
-                        if (CanNavigateSide(Game::Level, portal.Tag, flags)) {
-                            bestPortal = index % portalCount;
-                            break;
-                        }
+        struct Visited {
+            SegID id = SegID::None, parent = SegID::None;
+        };
 
-                        //    //auto& p = room->Portals[indices[i]];
-                        //    auto& portal = room->Portals[index % portalCount];
-                        //    auto& side = Game::Level.GetSide(portal.Tag);
-                        //    auto dist = Vector3::DistanceSquared(side.Center, startSeg.Center);
+        static List<SegID> queue;
+        static List<Visited> visited;
 
-                        //    if (dist > 60 * 60) {
-                        //        bestPortal = index % portalCount;
-                        //        break;
-                        //    }
-                    }
+        visited.resize(level.Segments.size());
 
-                    //path = NavigateWithinRoomBfs(Game::Level, start, room->Portals[bestPortal].Tag.Segment, *room);
+        for (int i = 0; i < visited.size(); i++) {
+            visited[i].id = SegID(i);
+            visited[i].parent = SegID::None;
+        }
 
-                    portalTag = room->Portals[bestPortal].Tag;
+        queue.clear();
+        queue.reserve(depth);
+        queue.push_back(start);
 
-                    // Pick a random portal in the room to run to
-                    path = NavigateWithinRoomBfs(Game::Level, start, portalTag.Segment, *room);
-                }
+        int index = 0;
+        std::array sideLookup = SIDE_IDS;
+        while (index < queue.size()) {
+            SegID segid = queue[index++];
+            if (index >= depth) break;
+
+            auto seg = level.TryGetSegment(segid);
+            if (!seg) continue;
+
+            Shuffle(sideLookup); // Randomize where to go
+
+            for (auto& sid : sideLookup) {
+                auto conn = seg->GetConnection(sid);
+                if (!CanNavigateSide(level, { segid, sid }, flags))
+                    continue;
+
+                if (conn == avoid) continue;
+
+                auto& node = visited[(int)conn];
+                if (node.parent != SegID::None || node.id == start)
+                    continue; // already visited
+
+                node.parent = segid;
+                queue.push_back(conn);
+
+
+                //pathNode = &visited[(int)pathNode->parent];
             }
         }
 
-        if (path.size() > depth) {
-            path.resize(depth);
-            return path; // in-room path was long enough!
+        SegID current = queue.back();
+
+        while (current != SegID::None) {
+            auto& seg = level.GetSegment(current);
+            path.push_back({ current, seg.Center }); // Add seg center
+            auto& node = visited[(int)current];
+            current = node.parent;
+
+            // Add side center
+            auto connSide = level.GetConnectedSide(node.parent, node.id);
+            if (connSide != SideID::None)
+                path.push_back({ node.id, seg.GetSide(connSide).Center });
         }
-
-        //return path; // in-room path was long enough!
-
-        // do a random search outside the room because the path was too short
-
-        //static List<SegID> visited;
-        //visited.clear();
-        //Seq::append(visited, path);
-
-        //if (avoid != SegID::None)
-        //    visited.push_back(avoid);
-
-        path.reserve(depth);
-
-        std::array lookup = SIDE_IDS;
-        //Vector3 startDir;
-        auto portalConn = Game::Level.GetConnectedSide(portalTag);
-        SegID segid = portalConn ? portalConn.Segment : start;
-
-        // start seg was on edge of room
-        if (path.empty() && portalTag) {
-            auto& portalSeg = Game::Level.GetSegment(portalTag);
-            auto& portalSide = portalSeg.GetSide(portalTag.Side);
-            path.push_back({ portalTag.Segment, portalSeg.Center });
-            path.push_back({ portalTag.Segment, portalSide.Center + portalSide.AverageNormal });
-        }
-
-        uint d = 0;
-        while (path.size() < depth) {
-            auto& seg = Game::Level.GetSegment(segid);
-
-            //visited.push_back(segid);
-            // todo: prevent overlap with existing path
-            //if (!path.empty() && path.back().Segment != segid)
-            path.push_back({ segid, seg.Center });
-            d++;
-
-            //if (d == 1) {
-            //    startDir = seg.Center - startPoint;
-            //    startDir.Normalize();
-            //}
-
-            auto bestSide = SideID::None;
-            Shuffle(lookup); // Randomize where to go
-
-            for (auto& side : lookup) {
-                auto conn = seg.GetConnection(side);
-                if (conn == avoid || Seq::exists(path, [conn](auto& x) { return x.Segment == conn; })) continue;
-                if (!CanNavigateSide(Game::Level, { segid, side }, flags)) continue;
-                bestSide = side;
-
-#ifdef BIAS
-                if (biasFromStart && d > 0) {
-                    //bestSide = side;
-                    auto dist = Vector3::DistanceSquared(seg.GetSide(side).Center, startPoint);
-
-                    // Try to move away from the start in the most optimal way possible to start with
-                    if (dist > furthestDist /*&& dist > 60 * 60*/) {
-                        // pick the first side that is further than the previous overall best, so the same route isn't always taken
-                        bestSide = side;
-                        furthestDist = dist;
-                        break;
-                    }
-                    //else if (dist > bestDist) {
-                    //    // pick the furthest side from the start. Always chooses same path.
-                    //    bestSide = side;
-                    //    bestDist = dist;
-                    //}
-
-                    //auto dir = seg.GetSide(side).Center - seg.Center;
-                    //dir.Normalize();
-                    //auto dot = dir.Dot(startDir);
-                    //if (dot > bestDot) {
-                    //    bestSide = side;
-                    //    bestDot = dot;
-                    //}
-
-                    //if (bestDot >= 0)
-                    //    break; // Found a good enough solution
-                }
-                else {
-                    // Randomly pick a side
-                    bestSide = side;
-                    break;
-                }
-#endif
-            }
-
-            if (bestSide == SideID::None)
-                return path; // Unable to path further
-
-            auto& side = seg.GetSide(bestSide);
-            path.push_back({ segid, side.Center + side.AverageNormal });
-            segid = seg.GetConnection(bestSide);
-        }
-
-        if (path.size() > 2)
-            path.resize(path.size() - 1); // Discard the face connection on the last segment
 
         OptimizePath(path);
+        ranges::reverse(path);
+
+        //{
+        //    auto pathNode = &visited[(int)goal];
+        //    if (pathNode->parent == SegID::None)
+        //        return path; // didn't reach
+
+        //    while (pathNode->parent != SegID::None && pathNode->id != start) {
+        //        ASSERT(!Seq::exists(path, [&pathNode](auto& x) { return x.Segment == pathNode->id; }));
+        //        auto& seg = level.GetSegment(pathNode->id);
+        //        path.push_back({ pathNode->id, seg.Center });
+        //        auto conn = level.GetConnectedSide(pathNode->parent, pathNode->id);
+        //        if (conn != SideID::None)
+        //            path.push_back({ pathNode->id, seg.GetSide(conn).Center });
+
+        //        pathNode = &visited[(int)pathNode->parent];
+        //    }
+
+        //    auto& seg = level.GetSegment(start);
+        //    if (!path.empty()) {
+        //        auto conn = level.GetConnectedSide(path.back().Segment, start);
+        //        path.push_back({ start, seg.GetSide(conn).Center });
+        //    }
+
+        //    path.push_back({ start, seg.Center });
+        //    ranges::reverse(path);
+        //}
+
         return path;
+
+        //OptimizePath(path);
+        //return path;
+
+        //
+        //        {
+        //            auto pathNode = &visited[(int)goal];
+        //            if (pathNode->parent == SegID::None)
+        //                return path; // didn't reach
+        //
+        //            while (pathNode->parent != SegID::None && pathNode->id != start) {
+        //                ASSERT(!Seq::exists(path, [&pathNode](auto& x) { return x.Segment == pathNode->id; }));
+        //                auto& seg = level.GetSegment(pathNode->id);
+        //                path.push_back({ pathNode->id, seg.Center });
+        //                auto conn = level.GetConnectedSide(pathNode->parent, pathNode->id);
+        //                if (conn != SideID::None)
+        //                    path.push_back({ pathNode->id, seg.GetSide(conn).Center });
+        //
+        //                pathNode = &visited[(int)pathNode->parent];
+        //            }
+        //
+        //            auto& seg = level.GetSegment(start);
+        //            if (!path.empty()) {
+        //                auto conn = level.GetConnectedSide(path.back().Segment, start);
+        //                path.push_back({ start, seg.GetSide(conn).Center });
+        //            }
+        //
+        //            path.push_back({ start, seg.Center });
+        //            ranges::reverse(path);
+        //        }
+        //
+        //        return path;
+        //
+        //        {
+        //            // Pick a portal that is not close to the start segment
+        //            if (auto room = Game::Level.GetRoom(startSeg.Room)) {
+        //                if (!room->Portals.empty()) {
+        //                    auto portalCount = room->Portals.size();
+        //                    auto index = RandomInt((int)portalCount - 1);
+        //                    int bestPortal = 0;
+        //                    for (int i = 0; i < portalCount; i++, index++) {
+        //                        auto& portal = room->Portals[index % portalCount];
+        //
+        //                        // Skip sides we can't navigate through
+        //                        if (CanNavigateSide(Game::Level, portal.Tag, flags)) {
+        //                            bestPortal = index % portalCount;
+        //                            break;
+        //                        }
+        //
+        //                        //    //auto& p = room->Portals[indices[i]];
+        //                        //    auto& portal = room->Portals[index % portalCount];
+        //                        //    auto& side = Game::Level.GetSide(portal.Tag);
+        //                        //    auto dist = Vector3::DistanceSquared(side.Center, startSeg.Center);
+        //
+        //                        //    if (dist > 60 * 60) {
+        //                        //        bestPortal = index % portalCount;
+        //                        //        break;
+        //                        //    }
+        //                    }
+        //
+        //                    //path = NavigateWithinRoomBfs(Game::Level, start, room->Portals[bestPortal].Tag.Segment, *room);
+        //
+        //                    portalTag = room->Portals[bestPortal].Tag;
+        //
+        //                    // Pick a random portal in the room to run to
+        //                    path = NavigateWithinRoomBfs(Game::Level, start, portalTag.Segment, *room);
+        //                }
+        //            }
+        //        }
+        //
+        //        if (path.size() > depth) {
+        //            path.resize(depth);
+        //            return path; // in-room path was long enough!
+        //        }
+        //
+        //        //return path; // in-room path was long enough!
+        //
+        //        // do a random search outside the room because the path was too short
+        //
+        //        //static List<SegID> visited;
+        //        //visited.clear();
+        //        //Seq::append(visited, path);
+        //
+        //        //if (avoid != SegID::None)
+        //        //    visited.push_back(avoid);
+        //
+        //        path.reserve(depth);
+        //
+        //        std::array sideLookup = SIDE_IDS;
+        //        //Vector3 startDir;
+        //        auto portalConn = Game::Level.GetConnectedSide(portalTag);
+        //        SegID segid = portalConn ? portalConn.Segment : start;
+        //
+        //        // start seg was on edge of room
+        //        if (path.empty() && portalTag) {
+        //            auto& portalSeg = Game::Level.GetSegment(portalTag);
+        //            auto& portalSide = portalSeg.GetSide(portalTag.Side);
+        //            path.push_back({ portalTag.Segment, portalSeg.Center });
+        //            path.push_back({ portalTag.Segment, portalSide.Center + portalSide.AverageNormal });
+        //        }
+        //
+        //        uint d = 0;
+        //        while (path.size() < depth) {
+        //            auto& seg = Game::Level.GetSegment(segid);
+        //
+        //            //visited.push_back(segid);
+        //            // todo: prevent overlap with existing path
+        //            //if (!path.empty() && path.back().Segment != segid)
+        //            path.push_back({ segid, seg.Center });
+        //            d++;
+        //
+        //            //if (d == 1) {
+        //            //    startDir = seg.Center - startPoint;
+        //            //    startDir.Normalize();
+        //            //}
+        //
+        //            auto bestSide = SideID::None;
+        //            Shuffle(sideLookup); // Randomize where to go
+        //
+        //            for (auto& side : sideLookup) {
+        //                auto conn = seg.GetConnection(side);
+        //                if (conn == avoid || Seq::exists(path, [conn](auto& x) { return x.Segment == conn; })) continue;
+        //                if (!CanNavigateSide(Game::Level, { segid, side }, flags)) continue;
+        //                bestSide = side;
+        //
+        //#ifdef BIAS
+        //                if (biasFromStart && d > 0) {
+        //                    //bestSide = side;
+        //                    auto dist = Vector3::DistanceSquared(seg.GetSide(side).Center, startPoint);
+        //
+        //                    // Try to move away from the start in the most optimal way possible to start with
+        //                    if (dist > furthestDist /*&& dist > 60 * 60*/) {
+        //                        // pick the first side that is further than the previous overall best, so the same route isn't always taken
+        //                        bestSide = side;
+        //                        furthestDist = dist;
+        //                        break;
+        //                    }
+        //                    //else if (dist > bestDist) {
+        //                    //    // pick the furthest side from the start. Always chooses same path.
+        //                    //    bestSide = side;
+        //                    //    bestDist = dist;
+        //                    //}
+        //
+        //                    //auto dir = seg.GetSide(side).Center - seg.Center;
+        //                    //dir.Normalize();
+        //                    //auto dot = dir.Dot(startDir);
+        //                    //if (dot > bestDot) {
+        //                    //    bestSide = side;
+        //                    //    bestDot = dot;
+        //                    //}
+        //
+        //                    //if (bestDot >= 0)
+        //                    //    break; // Found a good enough solution
+        //                }
+        //                else {
+        //                    // Randomly pick a side
+        //                    bestSide = side;
+        //                    break;
+        //                }
+        //#endif
+        //            }
+        //
+        //            if (bestSide == SideID::None)
+        //                return path; // Unable to path further
+        //
+        //            auto& side = seg.GetSide(bestSide);
+        //            path.push_back({ segid, side.Center + side.AverageNormal });
+        //            segid = seg.GetConnection(bestSide);
+        //        }
+        //
+        //        if (path.size() > 2)
+        //            path.resize(path.size() - 1); // Discard the face connection on the last segment
+        //
+        //        OptimizePath(path);
+        //        return path;
     }
 
     //float FaceEdgeDistanceOpen(const Face2& face, const Vector3& point) {
@@ -690,7 +851,7 @@ namespace Inferno {
                 Ray ray = { path[i].Position, dir };
                 RayQuery query{ .MaxDistance = dist + 5.0f, .Start = path[i].Segment };
                 LevelHit hit;
-
+                ASSERT(dir != Vector3::Zero);
                 // Checking for > 1 is in the case where the segments are too small for the radius even without splitting
                 if (offset > 1 && Game::Intersect.RayLevel(ray, query, hit)) {
                     /*if(offset > 1) {

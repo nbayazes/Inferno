@@ -4,6 +4,7 @@
 #include <concepts>
 #include <future>
 #include <random>
+#include <algorithm>
 
 #include "Types.h"
 
@@ -691,28 +692,29 @@ namespace Inferno {
 
         // Generates a new list by mapping a function to each element. Causes heap allocation.
         template <class T, class Fn>
-        [[nodiscard]] auto map(T&& xs, Fn&& fn) {
+        [[nodiscard]] auto map(const T& xs, Fn fn) {
             // dereference the first element in a collection to determine the type
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
-            List<std::invoke_result_t<Fn, TElement>> r;
+            std::vector<std::invoke_result_t<Fn, TElement>> r;
             r.reserve(std::size(xs));
             for (auto& x : xs)
-                r.push_back(fn(x));
+                r.push_back(std::invoke(fn, x));
+            
             return r;
         }
 
         // Generates a new list by mapping a function to each element along with an index. 
         // Lambda parameters are (i, elem). Causes heap allocation.
         template <class T, class Fn>
-        [[nodiscard]] auto mapi(T&& xs, Fn&& fn) {
+        [[nodiscard]] auto mapi(const T& xs, Fn fn) {
             // dereference the first element in a collection to determine the type
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
-            List<std::invoke_result_t<Fn, TElement>> r;
+            std::vector<std::invoke_result_t<Fn, TElement>> r;
             r.reserve(std::size(xs));
 
             int i = 0;
             for (auto& x : xs)
-                r.push_back(fn(i++, x));
+                r.push_back(std::invoke(fn, i++, x));
 
             return r;
         }
@@ -720,13 +722,13 @@ namespace Inferno {
         // Executes a function on each element.
         constexpr void iter(auto&& xs, auto&& fn) {
             for (auto& x : xs)
-                fn(x);
+                std::invoke(fn, x);
         }
 
         // Executes a function on each element with the parameters (i, element).
         constexpr void iteri(auto&& xs, auto&& fn) {
             for (size_t i = 0; i < std::size(xs); i++)
-                fn(i, xs[i]);
+                std::invoke(fn, i, xs[i]);
         }
 
         // Moves the contents of src to the end of dest
@@ -826,7 +828,7 @@ namespace Inferno {
         template <class T>
         [[nodiscard]] auto filter(const T& xs, auto&& predicate) {
             using TElement = std::remove_reference_t<decltype(*std::begin(std::declval<T&>()))>;
-            List<TElement> result(std::size(xs));
+            std::vector<TElement> result(std::size(xs));
             auto iter = std::copy_if(std::begin(xs), std::end(xs), result.begin(), predicate);
             result.resize(std::distance(result.begin(), iter));
             return result;
@@ -863,4 +865,19 @@ namespace Inferno {
 
         return String::InvariantEquals(path.extension().wstring(), ext);
     }
+
+    class ScopedBool {
+        std::atomic_bool* _b;
+
+    public:
+        explicit ScopedBool(std::atomic_bool& b) : _b(&b) { *_b = true; }
+        ~ScopedBool() { *_b = false; }
+        ScopedBool(const ScopedBool&) = delete;
+        ScopedBool(ScopedBool&&) = default;
+        ScopedBool& operator=(const ScopedBool&) = delete;
+        ScopedBool& operator=(ScopedBool&&) = default;
+    };
+
+    // Asserts single threaded access of this scope
+#define ASSERT_STA() static std::atomic staGuard = false; ASSERT(!staGuard); ScopedBool staScope(staGuard);
 }
