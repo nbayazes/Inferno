@@ -492,7 +492,11 @@ namespace Inferno::Render {
         for (int i = 0; i < startSize; i++) {
             auto room = level.GetRoom(_roomQueue[i]);
             if (!room) continue;
+
             for (auto& portal : room->Portals) {
+                if (!SideIsTransparent(level, portal.Tag))
+                    continue; // Closed ot opaque side
+
                 if (!Seq::contains(_roomQueue, portal.RoomLink))
                     _roomQueue.push_back(portal.RoomLink);
             }
