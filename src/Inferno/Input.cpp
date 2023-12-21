@@ -56,7 +56,7 @@ namespace Inferno::Input {
         };
 
         ButtonState<256> _keyboard;
-        ButtonState<5> _mouseButtons;
+        ButtonState<6> _mouseButtons;
 
         struct InputEvent {
             EventType type;

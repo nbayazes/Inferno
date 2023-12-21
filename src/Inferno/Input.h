@@ -6,6 +6,7 @@ namespace Inferno::Input {
     using Keys = DirectX::Keyboard::Keys;
 
     enum MouseButtons : uint8_t {
+        None,
         Left,
         Right,
         Middle,
