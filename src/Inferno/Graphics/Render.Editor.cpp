@@ -423,6 +423,14 @@ namespace Inferno::Render {
         }
     }
 
+    void DrawSnapToPlaneAxis() {
+        if (Editor::SnapToPlaneArgs.IsValid()) {
+            auto arrowStart = Editor::SnapToPlaneArgs.DrawLocation - (Editor::SnapToPlaneArgs.Axis * 10);
+            auto arrowEnd = Editor::SnapToPlaneArgs.DrawLocation + (Editor::SnapToPlaneArgs.Axis * 10);
+            Debug::DrawArrow(arrowStart, arrowEnd, Colors::SelectionPrimary);
+        }
+    }
+
     void DrawEditor(ID3D12GraphicsCommandList* cmdList, Level& level) {
         if (Settings::Editor.ShowWireframe)
             DrawWireframe(level);
@@ -474,6 +482,9 @@ namespace Inferno::Render {
         //DrawFaceNormals(level);
         if (Settings::Editor.Windows.TunnelBuilder)
             DrawTunnelBuilder(level);
+
+        if (Settings::Editor.Windows.SnapToPlane)
+            DrawSnapToPlaneAxis();
 
         DrawRooms(level);
     }

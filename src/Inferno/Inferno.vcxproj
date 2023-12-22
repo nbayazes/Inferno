@@ -212,6 +212,7 @@
     <ClInclude Include="Editor\UI\BriefingEditor.h" />
     <ClInclude Include="Editor\UI\DiagnosticWindow.h" />
     <ClInclude Include="Editor\UI\ScaleWindow.h" />
+    <ClInclude Include="Editor\UI\SnapToPlaneWindow.h" />
     <ClInclude Include="Editor\UI\TextureEditor.h" />
     <ClInclude Include="Game.Text.h" />
     <ClInclude Include="Game.Segment.h" />
