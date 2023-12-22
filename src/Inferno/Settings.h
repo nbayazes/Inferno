@@ -118,6 +118,7 @@ namespace Inferno {
             bool BriefingEditor = false;
             bool TextureEditor = false;
             bool Scale = false;
+            bool SnapToPlane = false;
         } Windows;
 
         bool ShowWireframe = false;
