@@ -102,6 +102,7 @@ namespace Inferno {
         float WireframeOpacity = 0.5f;
 
         bool InvertY = false;
+        bool InvertOrbitX = false;
         bool InvertOrbitY = false;
         float FieldOfView = 80;
         Editor::MiddleMouseMode MiddleMouseMode = Editor::MiddleMouseMode::Mouselook;

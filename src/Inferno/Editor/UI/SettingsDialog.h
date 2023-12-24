@@ -90,8 +90,12 @@ namespace Inferno::Editor {
 
                 ImGui::NextColumn();
 
+                ImGui::ColumnLabel("Invert orbit X");
+                ImGui::Checkbox("##invert-orbit-x", &_editor.InvertOrbitX);
+                ImGui::NextColumn();
+
                 ImGui::ColumnLabel("Invert orbit Y");
-                ImGui::Checkbox("##invert-orbit", &_editor.InvertOrbitY);
+                ImGui::Checkbox("##invert-orbit-y", &_editor.InvertOrbitY);
                 ImGui::NextColumn();
 
 

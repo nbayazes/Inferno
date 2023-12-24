@@ -224,6 +224,7 @@ namespace Inferno {
         node["GizmoSize"] << s.GizmoSize;
         node["CrosshairSize"] << s.CrosshairSize;
         node["InvertY"] << s.InvertY;
+        node["InvertOrbitX"] << s.InvertOrbitX;
         node["InvertOrbitY"] << s.InvertOrbitY;
         node["MiddleMouseMode"] << (int)s.MiddleMouseMode;
         node["FieldOfView"] << s.FieldOfView;
@@ -296,6 +297,7 @@ namespace Inferno {
         ReadValue(node["GizmoSize"], s.GizmoSize);
         ReadValue(node["CrosshairSize"], s.CrosshairSize);
         ReadValue(node["InvertY"], s.InvertY);
+        ReadValue(node["InvertOrbitX"], s.InvertOrbitX);
         ReadValue(node["InvertOrbitY"], s.InvertOrbitY);
         ReadValue(node["MiddleMouseMode"], (int&)s.MiddleMouseMode);
         ReadValue(node["FieldOfView"], s.FieldOfView);
