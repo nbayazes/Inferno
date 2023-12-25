@@ -6,6 +6,8 @@
 #include <fstream>
 
 #include "Settings.h"
+
+#include "Game.Bindings.h"
 #include "Yaml.h"
 #include "Editor/Bindings.h"
 
@@ -275,11 +277,51 @@ namespace Inferno {
         }
     }
 
-    void SaveBindings(ryml::NodeRef node) {
-        node |= ryml::MAP;
-        SaveEditorBindings(node["Editor"]);
+    void SaveGameBindings(ryml::NodeRef node) {
+        node |= ryml::SEQ;
 
-        // todo: Game bindings
+        for (auto& binding : Game::Bindings.GetBindings()) {
+            auto child = node.append_child();
+            child |= ryml::MAP;
+            auto action = magic_enum::enum_name(binding.Action);
+            if (binding.Key != Input::Keys::None) {
+                auto key = string(magic_enum::enum_name(binding.Key));
+                child[ryml::to_csubstr(action.data())] << key;
+            }
+            else if (binding.Mouse != Input::MouseButtons::None) {
+                auto btn = string(magic_enum::enum_name(binding.Mouse));
+                child[ryml::to_csubstr(action.data())] << btn;
+            }
+        }
+    }
+
+    void LoadGameBindings(ryml::NodeRef node) {
+        if (node.is_seed()) return;
+
+        Game::Bindings.Clear(); // we have some bindings to replace defaults!
+
+        for (const auto& c : node.children()) {
+            if (c.is_seed() || !c.is_map()) continue;
+
+            auto kvp = c.child(0);
+            string value, command;
+            if (kvp.has_key()) command = string(kvp.key().data(), kvp.key().len);
+            if (kvp.has_val()) value = string(kvp.val().data(), kvp.val().len);
+            if (value.empty() || command.empty()) continue;
+
+            GameBinding binding;
+            if (auto commandName = magic_enum::enum_cast<GameAction>(command))
+                binding.Action = *commandName;
+
+            // The binding could either be a key or a mouse button
+            if (auto key = magic_enum::enum_cast<Input::Keys>(value))
+                binding.Key = *key;
+
+            if (auto btn = magic_enum::enum_cast<Input::MouseButtons>(value))
+                binding.Mouse = *btn;
+
+            Game::Bindings.Add(binding);
+        }
     }
 
     void SaveEditorSettings(ryml::NodeRef node, const EditorSettings& s) {
@@ -448,7 +490,13 @@ namespace Inferno {
             SaveEditorSettings(doc["Editor"], Settings::Editor);
             SaveGraphicsSettings(doc["Render"], Settings::Graphics);
             SaveCheatSettings(doc["Cheats"], Settings::Cheats);
-            SaveBindings(doc["Bindings"]);
+
+            {
+                auto bindings = doc["Bindings"];
+                bindings |= ryml::MAP;
+                SaveEditorBindings(bindings["Editor"]);
+                SaveGameBindings(bindings["Game"]);
+            }
 
             std::ofstream file(path);
             file << doc;
@@ -491,6 +539,7 @@ namespace Inferno {
                 auto bindings = root["Bindings"];
                 if (!bindings.is_seed()) {
                     LoadEditorBindings(bindings["Editor"]);
+                    LoadGameBindings(bindings["Game"]);
                 }
             }
         }

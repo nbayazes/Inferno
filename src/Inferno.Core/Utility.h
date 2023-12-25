@@ -745,7 +745,7 @@ namespace Inferno {
         auto find(auto& xs, auto&& predicate) {
             //if (xs.empty()) return nullptr;
             auto iter = std::find_if(std::begin(xs), std::end(xs), predicate);
-            return iter == std::end(xs) ? nullptr : &(*iter);
+            return iter == std::end(xs) ? nullptr : &*iter;
         }
 
         // Returns true if an element is found in the collection.

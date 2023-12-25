@@ -172,7 +172,7 @@ namespace Inferno {
     void HandleInputImmediate(float dt) {
         if (dt <= 0) return;
 
-        // Do not do any IsKeyPressed checks here. Instead use InputFixed()
+        // Do not do any IsKeyPressed checks here
         auto& player = Game::Level.Objects[0];
         auto& physics = player.Physics;
         // Reset previous inputs

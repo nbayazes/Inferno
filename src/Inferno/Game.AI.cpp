@@ -1268,7 +1268,7 @@ namespace Inferno {
     }
 
     // Causes a robot to retreat to a random segment away from a point, if possible.
-    void Retreat(AIRuntime& ai, const Object& robot, const Vector3& from, float distance) {
+    void Retreat(AIRuntime& /*ai*/, const Object& robot, const Vector3& from, float distance) {
         //auto seg = Game::Level.TryGetSegment(robot.Segment);
         //if(!seg) return;
         auto room = Game::Level.GetRoom(robot);
@@ -1360,14 +1360,21 @@ namespace Inferno {
         ai.AlertTimer = ALERT_FREQUENCY;
     }
 
-    uint CountNearbyAllies(const Object& robot, float range) {
+    uint CountNearbyAllies(const Object& robot, float range, bool inCombat) {
         uint allies = 0;
 
         IterateNearbySegments(Game::Level, robot.Segment, range, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objid)) {
-                    if (obj->IsRobot() && obj->Signature != robot.Signature)
-                        allies++;
+                    if (obj->IsRobot() && obj->Signature != robot.Signature) {
+                        if (inCombat) {
+                            if (GetAI(*obj).State == AIState::Combat)
+                                allies++;
+                        }
+                        else {
+                            allies++;
+                        }
+                    }
                 }
             }
         });
@@ -1473,7 +1480,7 @@ namespace Inferno {
             if (ai.FleeTimer.Expired()) {
                 if (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1) {
                     // Wounded or scared enough to flee, but would rather fight if there's allies nearby
-                    auto allies = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE);
+                    auto allies = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE, true);
 
                     if (allies < AI_ALLY_FLEE_MIN) {
                         FindHelp(ai, robot);

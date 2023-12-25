@@ -216,10 +216,10 @@ namespace Inferno::Input {
         ControlDown = _keyboard.current[Keys::LeftControl] || _keyboard.current[Keys::RightControl];
 
         if (RightDragState == SelectionState::None)
-            LeftDragState = UpdateDragState(MouseButtons::Left, LeftDragState);
+            LeftDragState = UpdateDragState(MouseButtons::LeftClick, LeftDragState);
 
         if (LeftDragState == SelectionState::None)
-            RightDragState = UpdateDragState(MouseButtons::Right, RightDragState);
+            RightDragState = UpdateDragState(MouseButtons::RightClick, RightDragState);
 
         DragState = SelectionState((int)LeftDragState | (int)RightDragState);
     }
@@ -334,27 +334,27 @@ namespace Inferno::Input {
             }
 
             case WM_LBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::Left);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::LeftClick);
                 break;
 
             case WM_LBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::Left);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::LeftClick);
                 break;
 
             case WM_RBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::Right);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::RightClick);
                 break;
 
             case WM_RBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::Right);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::RightClick);
                 break;
 
             case WM_MBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::Middle);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::MiddleClick);
                 break;
 
             case WM_MBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::Middle);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::MiddleClick);
                 break;
 
             case WM_XBUTTONDOWN:
@@ -428,12 +428,18 @@ namespace Inferno::Input {
             case Keys::PageDown: return "PgDn";
             case Keys::End: return "End";
             case Keys::Home: return "Home";
-            case Keys::Left: return "Left";
-            case Keys::Up: return "Up";
-            case Keys::Right: return "Right";
-            case Keys::Down: return "Down";
+            case Keys::Left: return "Left arrow";
+            case Keys::Up: return "Up arrow";
+            case Keys::Right: return "Right arrow";
+            case Keys::Down: return "Down arrow";
             case Keys::Insert: return "Ins";
             case Keys::Delete: return "Del";
+            case Keys::LeftShift: return "L Shift";
+            case Keys::RightShift: return "R Shift";
+            case Keys::LeftControl: return "L Ctrl";
+            case Keys::RightControl: return "R Ctrl";
+            case Keys::LeftAlt: return "L Alt";
+            case Keys::RightAlt: return "R Alt";
 
             // OEM keys
             case Keys::OemOpenBrackets: return "[";

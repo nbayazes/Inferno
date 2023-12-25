@@ -7,9 +7,9 @@ namespace Inferno::Input {
 
     enum class MouseButtons : uint8_t {
         None,
-        Left,
-        Right,
-        Middle,
+        LeftClick, // Disambiguate from Keys::Left / Right when serializing
+        RightClick,
+        MiddleClick,
         X1,
         X2,
         WheelUp,

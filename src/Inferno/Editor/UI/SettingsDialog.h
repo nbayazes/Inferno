@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FileSystem.h"
+#include "Game.Bindings.h"
 #include "WindowBase.h"
 #include "WindowsDialogs.h"
 #include "Editor/Bindings.h"
@@ -10,7 +11,7 @@ namespace Inferno::Editor {
     class SettingsDialog final : public ModalWindowBase {
         Array<char, MAX_PATH> _d1PathBuffer{}, _d2PathBuffer{};
         bool _enableForegroundFpsLimit = false;
-        const std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
+        static constexpr std::array<int, 4> _msaaSamples = { 1, 2, 4, 8 };
 
         int _selectedPath = 0;
 
@@ -27,6 +28,14 @@ namespace Inferno::Editor {
         };
 
         List<BindingEntry> _bindingEntries;
+
+        struct GameBindingEntry {
+            GameAction Action{};
+            string Label;
+            GameBinding Primary, Secondary;
+        };
+
+        //List<GameBindingEntry> _gameBindings;
 
     public:
         SettingsDialog() : ModalWindowBase("Settings") {
@@ -121,7 +130,7 @@ namespace Inferno::Editor {
                 ImGui::TextDisabled("Graphics");
                 ImGui::NextColumn();
                 ImGui::NextColumn();
-                
+
                 ImGui::ColumnLabelEx("Vsync", "Prevents screen tearing, and limits maximum frame rate to the\nscreen's refresh rate. Can cause an increase in input latency.");
                 ImGui::Checkbox("##vsync", &_graphics.UseVsync);
                 ImGui::NextColumn();
@@ -279,7 +288,7 @@ namespace Inferno::Editor {
                 ImGui::TableSetupColumn("Alt Shortcut");
                 ImGui::TableHeadersRow();
 
-                using Keys = Input::Keys;
+                using Input::Keys;
                 static int selectedBinding = -1;
                 static bool editAlt = false;
 
@@ -372,8 +381,112 @@ namespace Inferno::Editor {
                                 _bindingEntries[selectedBinding].Primary = binding;
 
                             selectedBinding = -1;
+                            break;
                         }
                     }
+                }
+
+                ImGui::EndTable();
+            }
+
+            ImGui::EndChild();
+
+            ImGui::EndTabItem();
+        }
+
+        static void GameBindingsTab() {
+            if (!ImGui::BeginTabItem("Game keys")) return;
+
+            if (ImGui::Button("Reset to defaults")) {
+                Game::Bindings.Reset();
+            }
+
+            ImGui::BeginChild("container");
+
+            constexpr auto flags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY;
+            if (ImGui::BeginTable("binds", 3, flags)) {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthFixed/*, ImGuiTableColumnFlags_DefaultSort, 0.0f*/);
+                ImGui::TableSetupColumn("Shortcut");
+                //ImGui::TableSetupColumn("Alt Shortcut");
+                ImGui::TableHeadersRow();
+
+                using Input::Keys;
+                using Input::MouseButtons;
+                static auto selectedAction = GameAction::None;
+                bool binded = false;
+
+                // In bind mode - capture the next pressed key
+                if (selectedAction != GameAction::None) {
+                    for (Keys key = Keys::Back; key <= Keys::OemClear; key = Keys((unsigned char)key + 1)) {
+                        if (Input::IsKeyDown(key)) {
+                            if (key == Keys::Escape) {
+                                selectedAction = GameAction::None; // Cancel the assignment
+                                break;
+                            }
+
+                            if (Game::Bindings.IsReservedKey(key))
+                                continue;
+
+                            // assign the new binding
+                            if (auto binding = Game::Bindings.TryFind(selectedAction)) {
+                                binding->Key = key;
+                                binding->Mouse = MouseButtons::None;
+                                selectedAction = GameAction::None;
+                                binded = true;
+                                Game::Bindings.UnbindExisting(*binding);
+                                break;
+                            }
+                        }
+                    }
+
+                    for (auto btn = Input::MouseButtons::LeftClick; btn <= Input::MouseButtons::WheelDown; btn = Input::MouseButtons((uint8)btn + 1)) {
+                        if (Input::IsMouseButtonPressed(btn)) {
+                            if (auto binding = Game::Bindings.TryFind(selectedAction)) {
+                                binding->Mouse = btn;
+                                binding->Key = Keys::None;
+                                selectedAction = GameAction::None;
+                                binded = true;
+                                Game::Bindings.UnbindExisting(*binding);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                uint i = 0;
+                for (auto& binding : Game::Bindings.GetBindings()) {
+                    auto& label = Game::Bindings.GetLabel(binding.Action);
+                    if (label == "undefined") continue;
+                    ImGui::PushID(i++);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableNextColumn();
+                    ImGui::Text(label.c_str());
+                    ImGui::TableNextColumn();
+                    ImVec2 bindBtnSize = { 250 * Shell::DpiScale, 0 };
+
+                    if (binding.Action == selectedAction) {
+                        if (ImGui::Button("Press a button...", bindBtnSize))
+                            selectedAction = GameAction::None;
+                    }
+                    else {
+                        auto shortcut = binding.GetShortcutLabel();
+                        if (ImGui::Button(shortcut.c_str(), bindBtnSize) && !binded)
+                            selectedAction = binding.Action;
+                    }
+
+                    const ImVec2 clearBtnSize = { 40 * Shell::DpiScale, 0 };
+                    ImGui::SameLine(0, 1);
+                    if (binding.Key == Keys::None && binding.Mouse == Input::MouseButtons::None) {
+                        ImGui::Dummy(clearBtnSize);
+                    }
+                    else {
+                        if (ImGui::ButtonEx("X", clearBtnSize))
+                            binding.Clear();
+                    }
+
+                    ImGui::PopID();
                 }
 
                 ImGui::EndTable();
@@ -444,6 +557,7 @@ namespace Inferno::Editor {
             if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
                 MainOptionsTab();
                 KeyBindingsTab();
+                GameBindingsTab();
                 DataPathsTab();
                 ImGui::EndTabBar();
             }
@@ -454,6 +568,7 @@ namespace Inferno::Editor {
 
         bool OnOpen() override {
             _bindingEntries = BuildBindingEntries(Bindings::Active);
+            //_gameBindings = BuildGameBindingEntries();
             _inferno = Settings::Inferno;
             _editor = Settings::Editor;
             _graphics = Settings::Graphics;
@@ -536,8 +651,32 @@ namespace Inferno::Editor {
             return entries;
         }
 
+        //static List<GameBindingEntry> BuildGameBindingEntries() {
+        //    List<GameBindingEntry> entries;
+        //    entries.push_back(GameBindingEntry{ GameAction::FirePrimary, "Fire primary" });
+        //    entries.push_back(GameBindingEntry{ GameAction::FireSecondary, "Fire secondary" });
+        //    entries.push_back(GameBindingEntry{ GameAction::FireFlare, "Fire flare" });
+        //    entries.push_back(GameBindingEntry{ GameAction::SlideLeft, "Slide left" });
+        //    entries.push_back(GameBindingEntry{ GameAction::SlideRight, "Slide right" });
+        //    entries.push_back(GameBindingEntry{ GameAction::SlideUp, "Slide up" });
+        //    entries.push_back(GameBindingEntry{ GameAction::SlideDown, "Slide down" });
+        //    entries.push_back(GameBindingEntry{ GameAction::Forward, "Forward" });
+        //    entries.push_back(GameBindingEntry{ GameAction::Reverse, "Reverse" });
+        //    entries.push_back(GameBindingEntry{ GameAction::Afterburner, "Afterburner" });
+        //    entries.push_back(GameBindingEntry{ GameAction::DropBomb, "Drop bomb" });
+        //    entries.push_back(GameBindingEntry{ GameAction::PitchDown, "Pitch down" });
+        //    entries.push_back(GameBindingEntry{ GameAction::PitchUp, "Pitch up" });
+        //    entries.push_back(GameBindingEntry{ GameAction::RollLeft, "Roll left" });
+        //    entries.push_back(GameBindingEntry{ GameAction::RollRight, "Roll right" });
+        //    entries.push_back(GameBindingEntry{ GameAction::YawLeft, "Yaw left" });
+        //    entries.push_back(GameBindingEntry{ GameAction::YawRight, "Yaw right" });
+        //    entries.push_back(GameBindingEntry{ GameAction::CyclePrimary, "Cycle primary" });
+        //    entries.push_back(GameBindingEntry{ GameAction::CycleSecondary, "Cycle secondary" });
+        //    return entries;
+        //}
+
         static void CopyBindingEntries(span<BindingEntry> entries) {
-            using Keys = Input::Keys;
+            using Input::Keys;
             Bindings::Active.Clear();
 
             for (auto& entry : entries) {

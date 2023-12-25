@@ -53,6 +53,11 @@ namespace Inferno {
 
         string GetShortcutLabel() const;
 
+        void Clear() {
+            Key = {};
+            Mouse = {};
+        }
+
         //bool operator==(const GameBinding& rhs) const {
         //    return Key == rhs.Key || Mouse == rhs.Mouse;
         //}
@@ -61,23 +66,33 @@ namespace Inferno {
 
     class GameBindings {
         List<GameBinding> _bindings;
-        Array<bool, (uint)GameAction::Count> _state;
+        Array<bool, (uint)GameAction::Count> _state = {};
+        Array<string, (uint)GameAction::Count> _labels = {};
 
     public:
         GameBindings() { Reset(); }
 
+        void Clear() { _bindings.clear(); }
+
         // Adds a new binding and unbinds any existing actions using the same shortcut
-        void Bind(GameBinding binding);
+        void Add(const GameBinding& binding);
         span<GameBinding> GetBindings() { return _bindings; }
+        const string& GetLabel(GameAction action) const;
 
         void UnbindExisting(const GameBinding& binding) {
             for (auto& b : _bindings) {
+                if (&b == &binding) continue;
+
                 if (b.Key == binding.Key)
                     b.Key = Input::Keys::None;
 
                 if (b.Mouse == binding.Mouse)
                     b.Mouse = Input::MouseButtons::None;
             }
+        }
+
+        GameBinding* TryFind(GameAction action) {
+            return Seq::find(_bindings, [&](const GameBinding& b) { return b.Action == action; });
         }
 
         void Update() {
@@ -103,7 +118,10 @@ namespace Inferno {
 
         void Reset();
 
-        //bool IsReservedKey(Input::Keys);
+        bool IsReservedKey(Input::Keys key) const {
+            using Input::Keys;
+            return key == Keys::Escape || key == Keys::LeftWindows || key == Keys::RightWindows;
+        }
     };
 
     namespace Game {

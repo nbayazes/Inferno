@@ -5,20 +5,17 @@ namespace Inferno {
     using Mouse = Input::MouseButtons;
     using Input::Keys;
 
-    Array<bool, (uint)GameAction::Count> ActionState;
-
-
     string GameBinding::GetShortcutLabel() const {
         if (Key != Input::Keys::None)
             return Input::KeyToString(Key);
 
         if (Mouse != Mouse::None) {
             switch (Mouse) {
-                case Mouse::Left: return "Left";
-                case Mouse::Right: return "Right";
-                case Mouse::Middle: return "Middle";
-                case Mouse::X1: return "X1";
-                case Mouse::X2: return "X2";
+                case Mouse::LeftClick: return "Left click";
+                case Mouse::RightClick: return "Right click";
+                case Mouse::MiddleClick: return "Middle click";
+                case Mouse::X1: return "Mouse 4";
+                case Mouse::X2: return "Mouse 5";
                 case Mouse::WheelUp: return "Wheel up";
                 case Mouse::WheelDown: return "Wheel down";
             }
@@ -27,7 +24,11 @@ namespace Inferno {
         return "";
     }
 
-    void GameBindings::Bind(GameBinding binding) {
+    const string& GameBindings::GetLabel(GameAction action) const {
+        return _labels[(uint)action];
+    }
+
+    void GameBindings::Add(const GameBinding& binding) {
         if (binding.Action == GameAction::None) return;
         if (binding.Key == Keys::Escape) return;
 
@@ -36,31 +37,64 @@ namespace Inferno {
     }
 
     void GameBindings::Reset() {
-        Bind({ .Action = GameAction::Forward, .Key = Keys::W });
-        Bind({ .Action = GameAction::Reverse, .Key = Keys::S });
-        Bind({ .Action = GameAction::SlideLeft, .Key = Keys::A });
-        Bind({ .Action = GameAction::SlideRight, .Key = Keys::D });
-        Bind({ .Action = GameAction::SlideUp, .Key = Keys::Space });
-        Bind({ .Action = GameAction::SlideDown, .Key = Keys::LeftShift });
-        Bind({ .Action = GameAction::RollLeft, .Key = Keys::Q });
-        Bind({ .Action = GameAction::RollRight, .Key = Keys::E });
+        auto setLabel = [this](GameAction action, const string& str) {
+            _labels[(uint)action] = str;
+        };
 
-        Bind({ .Action = GameAction::RollLeft, .Key = Keys::NumPad7 });
-        Bind({ .Action = GameAction::RollRight, .Key = Keys::NumPad9 });
-        Bind({ .Action = GameAction::YawLeft, .Key = Keys::NumPad4 });
-        Bind({ .Action = GameAction::YawRight, .Key = Keys::NumPad6 });
-        Bind({ .Action = GameAction::PitchUp, .Key = Keys::NumPad5 });
-        Bind({ .Action = GameAction::PitchDown, .Key = Keys::NumPad8 });
+        ranges::fill(_labels, string("undefined"));
+        //for (auto& label : _labels)
+        //    label = string("undefined");
 
-        Bind({ .Action = GameAction::FirePrimary, .Mouse = Mouse::Left });
-        Bind({ .Action = GameAction::FireSecondary, .Mouse = Mouse::Right });
-        Bind({ .Action = GameAction::FireFlare, .Mouse = Mouse::X1 });
-        Bind({ .Action = GameAction::FireFlare, .Key = Keys::F });
-        Bind({ .Action = GameAction::DropBomb, .Mouse = Mouse::Middle });
+        setLabel(GameAction::FirePrimary, "Fire primary");
+        setLabel(GameAction::FireSecondary, "Fire secondary");
+        setLabel(GameAction::DropBomb, "Drop bomb");
+        setLabel(GameAction::FireFlare, "Fire flare");
+        setLabel(GameAction::SlideLeft, "Slide left");
+        setLabel(GameAction::SlideRight, "Slide right");
+        setLabel(GameAction::SlideUp, "Slide up");
+        setLabel(GameAction::SlideDown, "Slide down");
+        setLabel(GameAction::Forward, "Forward");
+        setLabel(GameAction::Reverse, "Reverse");
+        setLabel(GameAction::PitchUp, "Pitch up");
+        setLabel(GameAction::PitchDown, "Pitch down");
+        setLabel(GameAction::YawLeft, "Yaw left");
+        setLabel(GameAction::YawRight, "Yaw right");
+        setLabel(GameAction::Afterburner, "Afterburner");
+        setLabel(GameAction::Automap, "Automap");
+        setLabel(GameAction::Converter, "Converter");
+        setLabel(GameAction::CyclePrimary, "Cycle primary");
+        setLabel(GameAction::CycleSecondary, "Cycle secondary");
+        setLabel(GameAction::CycleBomb, "Cycle bomb");
+        setLabel(GameAction::Headlight, "Headlight");
+        setLabel(GameAction::RollLeft, "Roll left");
+        setLabel(GameAction::RollRight, "Roll right");
 
-        Bind({ .Action = GameAction::CyclePrimary, .Mouse = Mouse::WheelUp });
-        Bind({ .Action = GameAction::CycleSecondary, .Mouse = Mouse::WheelDown });
-        Bind({ .Action = GameAction::CycleBomb, .Key = Keys::X });
-        Bind({ .Action = GameAction::Afterburner, .Key = Keys::LeftControl });
+        _bindings.clear();
+        Add({ .Action = GameAction::Forward, .Key = Keys::W });
+        Add({ .Action = GameAction::Reverse, .Key = Keys::S });
+        Add({ .Action = GameAction::SlideLeft, .Key = Keys::A });
+        Add({ .Action = GameAction::SlideRight, .Key = Keys::D });
+        Add({ .Action = GameAction::SlideUp, .Key = Keys::Space });
+        Add({ .Action = GameAction::SlideDown, .Key = Keys::LeftShift });
+        Add({ .Action = GameAction::RollLeft, .Key = Keys::Q });
+        Add({ .Action = GameAction::RollRight, .Key = Keys::E });
+
+        //Bind({ .Action = GameAction::RollLeft, .Key = Keys::NumPad7 });
+        //Bind({ .Action = GameAction::RollRight, .Key = Keys::NumPad9 });
+        Add({ .Action = GameAction::YawLeft, .Key = Keys::NumPad4 });
+        Add({ .Action = GameAction::YawRight, .Key = Keys::NumPad6 });
+        Add({ .Action = GameAction::PitchUp, .Key = Keys::NumPad5 });
+        Add({ .Action = GameAction::PitchDown, .Key = Keys::NumPad8 });
+
+        Add({ .Action = GameAction::FirePrimary, .Mouse = Mouse::LeftClick });
+        Add({ .Action = GameAction::FireSecondary, .Mouse = Mouse::RightClick });
+        //Bind({ .Action = GameAction::FireFlare, .Mouse = Mouse::X1 });
+        Add({ .Action = GameAction::FireFlare, .Key = Keys::F });
+        Add({ .Action = GameAction::DropBomb, .Mouse = Mouse::MiddleClick });
+
+        Add({ .Action = GameAction::CyclePrimary, .Mouse = Mouse::WheelUp });
+        Add({ .Action = GameAction::CycleSecondary, .Mouse = Mouse::WheelDown });
+        Add({ .Action = GameAction::CycleBomb, .Key = Keys::X });
+        Add({ .Action = GameAction::Afterburner, .Key = Keys::LeftControl });
     }
 }
