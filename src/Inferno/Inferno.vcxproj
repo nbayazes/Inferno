@@ -53,6 +53,7 @@
     <CodeAnalysisRuleSet>..\..\Inferno.ruleset</CodeAnalysisRuleSet>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <EnableMicrosoftCodeAnalysis>true</EnableMicrosoftCodeAnalysis>
+    <CopyLocalDeploymentContent>true</CopyLocalDeploymentContent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -159,6 +160,7 @@
     <ClCompile Include="Editor\UI\TextureEditor.cpp" />
     <ClCompile Include="Game.AI.cpp" />
     <ClCompile Include="Game.AI.Pathing.cpp" />
+    <ClCompile Include="Game.Bindings.cpp" />
     <ClCompile Include="Game.Boss.cpp" />
     <ClCompile Include="Game.Input.cpp" />
     <ClCompile Include="Game.Navigation.cpp" />
@@ -254,6 +256,7 @@
     <ClInclude Include="Effect.h" />
     <ClInclude Include="Game.AI.h" />
     <ClInclude Include="Game.AI.Pathing.h" />
+    <ClInclude Include="Game.Bindings.h" />
     <ClInclude Include="Game.Boss.h" />
     <ClInclude Include="Game.Input.h" />
     <ClInclude Include="Game.Navigation.h" />

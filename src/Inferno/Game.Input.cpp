@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Game.Input.h"
+#include "Game.Bindings.h"
 #include "Game.h"
 #include "Game.Reactor.h"
 #include "Resources.h"
@@ -128,19 +129,24 @@ namespace Inferno {
             Game::Player.SelectSecondary(SecondaryWeaponIndex::Mega);
         }
 
-        if (Input::IsKeyPressed(Keys::F))
+        if (Game::Bindings.Pressed(GameAction::FireFlare))
             Game::Player.FireFlare();
 
-        if (Input::IsKeyPressed(Keys::X))
+        if (Game::Bindings.Pressed(GameAction::CycleBomb))
             Game::Player.CycleBombs();
 
-        if (Input::IsKeyPressed(Keys::Z))
+        if (Game::Bindings.Pressed(GameAction::CyclePrimary))
+            Game::Player.CyclePrimary();
+
+        if (Game::Bindings.Pressed(GameAction::CycleSecondary))
+            Game::Player.CycleSecondary();
+
+        if (Game::Bindings.Pressed(GameAction::DropBomb))
             Game::Player.DropBomb();
     }
 
     bool ConfirmedInput() {
-        // todo: check if fire button pressed
-        return Input::IsKeyPressed(Input::Keys::Space) || Input::IsMouseButtonPressed(Input::Left) || Input::IsMouseButtonPressed(Input::Right);
+        return Input::IsKeyPressed(Input::Keys::Space) || Game::Bindings.Pressed(GameAction::FirePrimary) || Game::Bindings.Pressed(GameAction::FireSecondary);
     }
 
     void FixedUpdateInput() {
@@ -151,7 +157,6 @@ namespace Inferno {
 
         if (Input::IsKeyPressed(Keys::OemTilde) && Input::IsKeyDown(Keys::LeftAlt))
             Game::SetState(Game::GetState() == GameState::Paused ? GameState::Game : GameState::Paused);
-
 
         HandleWeaponKeys();
 
@@ -184,40 +189,39 @@ namespace Inferno {
         const auto maxAngularThrust = Resources::GameData.PlayerShip.MaxRotationalThrust;
         const auto maxThrust = Resources::GameData.PlayerShip.MaxThrust;
 
-        float forwardThrust = 0;
-        float lateralThrust = 0;
-        float verticalThrust = 0;
+        Vector3 thrust;
 
-        if (Input::IsKeyDown(Keys::W))
-            forwardThrust += maxThrust;
+        if (Game::Bindings.Pressed(GameAction::Forward))
+            thrust.z += maxThrust;
 
-        if (Input::IsKeyDown(Keys::S))
-            forwardThrust -= maxThrust;
+        if (Game::Bindings.Pressed(GameAction::Reverse))
+            thrust.z -= maxThrust;
 
-        if (Input::IsKeyDown(Keys::A))
-            lateralThrust -= maxThrust;
+        if (Game::Bindings.Pressed(GameAction::SlideLeft))
+            thrust.x -= maxThrust;
 
-        if (Input::IsKeyDown(Keys::D))
-            lateralThrust += maxThrust;
+        if (Game::Bindings.Pressed(GameAction::SlideRight))
+            thrust.x += maxThrust;
 
-        if (Input::IsKeyDown(Keys::LeftShift))
-            verticalThrust -= maxThrust;
+        if (Game::Bindings.Pressed(GameAction::SlideDown))
+            thrust.y -= maxThrust;
 
-        if (Input::IsKeyDown(Keys::Space))
-            verticalThrust += maxThrust;
+        if (Game::Bindings.Pressed(GameAction::SlideUp))
+            thrust.y += maxThrust;
 
-        float afterburnerThrust = Game::Player.UpdateAfterburner(dt, Input::IsKeyDown(Keys::LeftControl));
+        bool abActive = Game::Bindings.Pressed(GameAction::Afterburner);
+        float afterburnerThrust = Game::Player.UpdateAfterburner(dt, abActive);
         if (afterburnerThrust > 1)
-            forwardThrust = maxThrust * afterburnerThrust;
+            thrust.z = maxThrust * afterburnerThrust;
 
-        forwardThrust = std::clamp(forwardThrust, -maxThrust, afterburnerThrust > 1 ? maxThrust * 2 : maxThrust);
-        lateralThrust = std::clamp(lateralThrust, -maxThrust, maxThrust);
-        verticalThrust = std::clamp(verticalThrust, -maxThrust, maxThrust);
+        Vector3 min = { -maxThrust, -maxThrust, -maxThrust };
+        Vector3 max = { maxThrust, maxThrust, afterburnerThrust > 1 ? maxThrust * 2 : maxThrust };
+        thrust.Clamp(min, max);
 
         // Clamp linear speeds
-        physics.Thrust += player.Rotation.Forward() * forwardThrust;
-        physics.Thrust += player.Rotation.Right() * lateralThrust;
-        physics.Thrust += player.Rotation.Up() * verticalThrust;
+        physics.Thrust += player.Rotation.Right() * thrust.x;
+        physics.Thrust += player.Rotation.Up() * thrust.y;
+        physics.Thrust += player.Rotation.Forward() * thrust.z;
 
         float invertMult = -1;
         float sensitivity = 1 / 64.0f;
@@ -226,11 +230,24 @@ namespace Inferno {
         physics.AngularThrust.x += Input::MouseDelta.y * scale * invertMult; // pitch
         physics.AngularThrust.y += Input::MouseDelta.x * scale; // yaw
 
+        if (Game::Bindings.Pressed(GameAction::PitchUp))
+            physics.AngularThrust.x -= 1; // pitch
+
+        if (Game::Bindings.Pressed(GameAction::PitchDown))
+            physics.AngularThrust.x += 1; // pitch
+
+        if (Game::Bindings.Pressed(GameAction::YawLeft))
+            physics.AngularThrust.y -= 1;
+
+        if (Game::Bindings.Pressed(GameAction::YawRight))
+            physics.AngularThrust.y += 1;
+
         // roll
-        if (Input::IsKeyDown(Keys::Q))
-            physics.AngularThrust.z = -maxAngularThrust;
-        if (Input::IsKeyDown(Keys::E))
-            physics.AngularThrust.z = maxAngularThrust;
+        if (Game::Bindings.Pressed(GameAction::RollLeft))
+            physics.AngularThrust.z -= 1;
+
+        if (Game::Bindings.Pressed(GameAction::RollRight))
+            physics.AngularThrust.z += 1;
 
         // Clamp angular speeds
         Vector3 maxAngVec(Settings::Inferno.LimitPitchSpeed ? maxAngularThrust / 2 : maxAngularThrust, maxAngularThrust, maxAngularThrust);

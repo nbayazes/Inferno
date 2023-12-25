@@ -91,6 +91,8 @@ namespace Inferno {
             Energy = std::clamp(Energy, 0.0f, MAX_ENERGY);
         }
 
+        void CyclePrimary();
+        void CycleSecondary();
         void CycleBombs();
 
         void DropBomb();

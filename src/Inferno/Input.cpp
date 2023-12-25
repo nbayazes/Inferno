@@ -56,7 +56,7 @@ namespace Inferno::Input {
         };
 
         ButtonState<256> _keyboard;
-        ButtonState<6> _mouseButtons;
+        ButtonState<8> _mouseButtons;
 
         struct InputEvent {
             EventType type;
@@ -102,6 +102,12 @@ namespace Inferno::Input {
 
                     case EventType::MouseWheel:
                         WheelDelta += static_cast<int>(event.flags);
+
+                        if (WheelDelta > 0)
+                            _mouseButtons.Press((uint64)MouseButtons::WheelUp);
+                        else if (WheelDelta < 0)
+                            _mouseButtons.Press((uint64)MouseButtons::WheelDown);
+
                         break;
 
                     case EventType::Reset:
@@ -124,14 +130,14 @@ namespace Inferno::Input {
     int GetWheelDelta() { return WheelDelta; }
 
     SelectionState UpdateDragState(MouseButtons button, SelectionState dragState) {
-        if (_mouseButtons.pressed[button]) {
+        if (_mouseButtons.pressed[(uint64)button]) {
             // Don't allow a drag to start when the cursor is over imgui.
             if (ImGui::GetCurrentContext()->HoveredWindow != nullptr) return SelectionState::None;
 
             DragStart = Input::MousePosition;
             return SelectionState::Preselect;
         }
-        else if (_mouseButtons.released[button]) {
+        else if (_mouseButtons.released[(uint64)button]) {
             DragEnd = Input::MousePosition;
 
             if (dragState == SelectionState::Dragging)
@@ -140,7 +146,7 @@ namespace Inferno::Input {
                 return SelectionState::Released;
             return dragState;
         }
-        else if (_mouseButtons.previous[button]) {
+        else if (_mouseButtons.previous[(uint64)button]) {
             if (dragState == SelectionState::Preselect &&
                 Vector2::Distance(DragStart, Input::MousePosition) > DRAG_WINDOW) {
                 // Don't allow a drag to start when the cursor is over imgui.
@@ -247,15 +253,17 @@ namespace Inferno::Input {
     }
 
     bool IsMouseButtonDown(MouseButtons button) {
-        return _mouseButtons.pressed[button] || _mouseButtons.previous[button];
+        if (button == MouseButtons::None) return false;
+        return _mouseButtons.pressed[(uint64)button] || _mouseButtons.previous[(uint64)button];
     }
 
     bool IsMouseButtonPressed(MouseButtons button) {
-        return _mouseButtons.pressed[button];
+        if (button == MouseButtons::None) return false;
+        return _mouseButtons.pressed[(uint64)button];
     }
 
     bool IsMouseButtonReleased(MouseButtons button) {
-        return _mouseButtons.released[button];
+        return _mouseButtons.released[(uint64)button];
     }
 
     MouseMode GetMouseMode() { return ActualMouseMode; }
@@ -326,35 +334,35 @@ namespace Inferno::Input {
             }
 
             case WM_LBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Left);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::Left);
                 break;
 
             case WM_LBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Left);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::Left);
                 break;
 
             case WM_RBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Right);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::Right);
                 break;
 
             case WM_RBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Right);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::Right);
                 break;
 
             case WM_MBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::Middle);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::Middle);
                 break;
 
             case WM_MBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::Middle);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::Middle);
                 break;
 
             case WM_XBUTTONDOWN:
-                Input::QueueEvent(Input::EventType::MouseBtnPress, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+                Input::QueueEvent(Input::EventType::MouseBtnPress, (WPARAM)Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
                 break;
 
             case WM_XBUTTONUP:
-                Input::QueueEvent(Input::EventType::MouseBtnRelease, Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
+                Input::QueueEvent(Input::EventType::MouseBtnRelease, (WPARAM)Input::MouseButtons::X1 + GET_XBUTTON_WPARAM(wParam) - XBUTTON1);
                 break;
 
             case WM_MOUSEWHEEL:
@@ -405,6 +413,110 @@ namespace Inferno::Input {
             case WM_ACTIVATEAPP:
                 Input::QueueEvent(Input::EventType::Reset);
                 break;
+        }
+    }
+
+
+    string KeyToString(Keys key) {
+        switch (key) {
+            case Keys::Back: return "Backspace";
+            case Keys::Tab: return "Tab";
+            case Keys::Enter: return "Enter";
+            case Keys::Escape: return "Esc";
+            case Keys::Space: return "Space";
+            case Keys::PageUp: return "PgUp";
+            case Keys::PageDown: return "PgDn";
+            case Keys::End: return "End";
+            case Keys::Home: return "Home";
+            case Keys::Left: return "Left";
+            case Keys::Up: return "Up";
+            case Keys::Right: return "Right";
+            case Keys::Down: return "Down";
+            case Keys::Insert: return "Ins";
+            case Keys::Delete: return "Del";
+
+            // OEM keys
+            case Keys::OemOpenBrackets: return "[";
+            case Keys::OemCloseBrackets: return "]";
+            case Keys::OemPlus: return "+";
+            case Keys::OemMinus: return "-";
+            case Keys::OemPipe: return "\\";
+            case Keys::OemComma: return ",";
+            case Keys::OemPeriod: return ".";
+            case Keys::OemTilde: return "~";
+            case Keys::OemQuestion: return "/";
+            case Keys::OemSemicolon: return ";";
+            case Keys::OemQuotes: return "'";
+
+            // Numpad
+            case Keys::Multiply: return "*";
+            case Keys::Divide: return "/";
+            case Keys::Subtract: return "-";
+            case Keys::Add: return "+";
+            case Keys::Decimal: return ".";
+            case Keys::NumPad0: return "Pad0";
+            case Keys::NumPad1: return "Pad1";
+            case Keys::NumPad2: return "Pad2";
+            case Keys::NumPad3: return "Pad3";
+            case Keys::NumPad4: return "Pad4";
+            case Keys::NumPad5: return "Pad5";
+            case Keys::NumPad6: return "Pad6";
+            case Keys::NumPad7: return "Pad7";
+            case Keys::NumPad8: return "Pad8";
+            case Keys::NumPad9: return "Pad9";
+
+            case Keys::A: return "A";
+            case Keys::B: return "B";
+            case Keys::C: return "C";
+            case Keys::D: return "D";
+            case Keys::E: return "E";
+            case Keys::F: return "F";
+            case Keys::G: return "G";
+            case Keys::H: return "H";
+            case Keys::I: return "I";
+            case Keys::J: return "J";
+            case Keys::K: return "K";
+            case Keys::L: return "L";
+            case Keys::M: return "M";
+            case Keys::N: return "N";
+            case Keys::O: return "O";
+            case Keys::P: return "P";
+            case Keys::Q: return "Q";
+            case Keys::R: return "R";
+            case Keys::S: return "S";
+            case Keys::T: return "T";
+            case Keys::U: return "U";
+            case Keys::V: return "V";
+            case Keys::W: return "W";
+            case Keys::X: return "X";
+            case Keys::Y: return "Y";
+            case Keys::Z: return "Z";
+
+            case Keys::F1: return "F1";
+            case Keys::F2: return "F2";
+            case Keys::F3: return "F3";
+            case Keys::F4: return "F4";
+            case Keys::F5: return "F5";
+            case Keys::F6: return "F6";
+            case Keys::F7: return "F7";
+            case Keys::F8: return "F8";
+            case Keys::F9: return "F9";
+            case Keys::F10: return "F10";
+            case Keys::F11: return "F11";
+            case Keys::F12: return "F12";
+
+            case Keys::D1: return "1";
+            case Keys::D2: return "2";
+            case Keys::D3: return "3";
+            case Keys::D4: return "4";
+            case Keys::D5: return "5";
+            case Keys::D6: return "6";
+            case Keys::D7: return "7";
+            case Keys::D8: return "8";
+            case Keys::D9: return "9";
+
+            default:
+                return "";
         }
     }
 }

@@ -5,13 +5,15 @@
 namespace Inferno::Input {
     using Keys = DirectX::Keyboard::Keys;
 
-    enum MouseButtons : uint8_t {
+    enum class MouseButtons : uint8_t {
         None,
         Left,
         Right,
         Middle,
         X1,
-        X2
+        X2,
+        WheelUp,
+        WheelDown
     };
 
     inline DirectX::SimpleMath::Vector2 MouseDelta;
@@ -19,6 +21,8 @@ namespace Inferno::Input {
     inline DirectX::SimpleMath::Vector2 DragStart; // Mouse drag start position in screen coordinates
 
     int GetWheelDelta();
+    //inline bool ScrolledUp() { return GetWheelDelta() > 0; }
+    //inline bool ScrolledDown() { return GetWheelDelta() < 0; }
 
     inline bool ControlDown;
     inline bool ShiftDown;
@@ -72,6 +76,7 @@ namespace Inferno::Input {
 
     void ProcessMessage(UINT message, WPARAM, LPARAM);
 
+    string KeyToString(Keys key);
 
     enum class EventType {
         KeyPress,

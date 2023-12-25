@@ -20,6 +20,7 @@
 #include "HUD.h"
 #include "Game.Wall.h"
 #include "Game.AI.h"
+#include "Game.Bindings.h"
 #include "Game.Reactor.h"
 #include "Game.Room.h"
 #include "Game.Segment.h"
@@ -547,6 +548,7 @@ namespace Inferno::Game {
 
         Inferno::Input::Update();
         CheckGlobalHotkeys();
+        Bindings.Update();
         Render::Debug::BeginFrame(); // enable debug calls during updates
         Game::DeltaTime = 0;
         UpdateState();

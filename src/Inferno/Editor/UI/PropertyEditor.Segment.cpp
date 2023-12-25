@@ -112,7 +112,7 @@ namespace Inferno::Editor {
                 snapshot |= TriggerTargetsPicker(level, *trigger, wall->Trigger);
 
                 ImGui::TableRowLabel("Open door");
-                snapshot |= FlagCheckbox("##No Message", TriggerFlagD1::OpenDoor, trigger->FlagsD1);
+                snapshot |= FlagCheckbox("##Open door", TriggerFlagD1::OpenDoor, trigger->FlagsD1);
 
                 ImGui::TableRowLabel("Exit");
                 snapshot |= FlagCheckbox("##Exit", TriggerFlagD1::Exit, trigger->FlagsD1);

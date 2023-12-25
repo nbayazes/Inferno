@@ -90,6 +90,7 @@
     <ClCompile Include="Shell.cpp" />
     <ClCompile Include="SoundTypes.cpp" />
     <ClCompile Include="GameTimer.cpp" />
+    <ClCompile Include="Game.Bindings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Audio\Audio.h" />
@@ -220,6 +221,7 @@
     <ClInclude Include="Editor\UI\TextureBrowserUI.h" />
     <ClInclude Include="Yaml.h" />
     <ClInclude Include="GameTimer.h" />
+    <ClInclude Include="Game.Bindings.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Inferno.rc" />

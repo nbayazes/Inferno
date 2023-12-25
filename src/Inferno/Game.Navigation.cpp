@@ -514,7 +514,7 @@ namespace Inferno {
         queue.reserve(depth);
         queue.push_back(start);
 
-        int index = 0;
+        uint index = 0;
         std::array sideLookup = SIDE_IDS;
         while (index < queue.size()) {
             SegID segid = queue[index++];

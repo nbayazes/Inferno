@@ -85,7 +85,7 @@ namespace Inferno::Editor {
 
     struct EditorBinding {
         EditorAction Action{};
-        Input::Keys Key{};
+        Input::Keys Key = Input::Keys::None;
 
         bool Shift = false;
         bool Control = false;

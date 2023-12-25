@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Game.Player.h"
 #include "Game.AI.h"
+#include "Game.Bindings.h"
 #include "Game.h"
 #include "HUD.h"
 #include "Input.h"
@@ -182,8 +183,6 @@ namespace Inferno {
 
 
     void Player::UpdateFireState() {
-        using Keys = Input::Keys;
-
         auto toggleState = [](FireState& state, bool buttonDown) {
             if (buttonDown) {
                 if (state == FireState::None || state == FireState::Release)
@@ -201,13 +200,8 @@ namespace Inferno {
 
         // must check held keys inside of fixed updates so events aren't missed
         // due to the state changing on a frame that doesn't have a game tick
-        if (Game::GetState() == GameState::Editor) {
-            toggleState(PrimaryState, Input::IsKeyDown(Keys::Enter));
-        }
-        else {
-            toggleState(PrimaryState, Input::IsMouseButtonDown(Input::MouseButtons::Left));
-            toggleState(SecondaryState, Input::IsMouseButtonDown(Input::MouseButtons::Right));
-        }
+        toggleState(PrimaryState, Game::Bindings.Pressed(GameAction::FirePrimary));
+        toggleState(SecondaryState, Game::Bindings.Pressed(GameAction::FireSecondary));
     }
 
     void Player::Update(float dt) {
@@ -326,6 +320,52 @@ namespace Inferno {
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
         return BombIndex == 0 || Game::Level.IsDescent1() ? SecondaryWeaponIndex::ProximityMine : SecondaryWeaponIndex::SmartMine;
+    }
+
+    void Player::CyclePrimary() {
+        auto newIndex = Primary;
+        const auto count = Game::Level.IsDescent1() ? 5 : 10;
+
+        for (int i = 1; i < count; i++) {
+            auto offset = (int)Primary + i;
+            offset = offset % count;
+            auto index = PrimaryWeaponIndex(offset);
+
+            if (HasWeapon(index)) {
+                newIndex = index;
+                break;
+            }
+        }
+
+        if (Primary == newIndex) {
+            Sound::Play2D({ SoundID::SelectFail });
+            return;
+        }
+
+        SelectPrimary(newIndex);
+    }
+
+    void Player::CycleSecondary() {
+        auto newIndex = Secondary;
+        const auto count = Game::Level.IsDescent1() ? 5 : 10;
+
+        for (int i = 1; i < count; i++) {
+            auto offset = (int)Secondary + i;
+            offset = offset % count;
+            auto index = SecondaryWeaponIndex(offset);
+
+            if (HasWeapon(index)) {
+                newIndex = index;
+                break;
+            }
+        }
+
+        if (Secondary == newIndex) {
+            Sound::Play2D({ SoundID::SelectFail });
+            return;
+        }
+
+        SelectSecondary(newIndex);
     }
 
     void Player::CycleBombs() {
