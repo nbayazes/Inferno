@@ -15,7 +15,7 @@ namespace Inferno {
     constexpr float AI_AWARENESS_COMBAT = 0.6f; // Robot will fire at its last known target position
     constexpr float AI_AWARENESS_INVESTIGATE = 0.5f; // when a robot exceeds this threshold it will investigate the point of interest
     constexpr float AI_COUNT_ALLY_RANGE = 200; // How far to search for allies
-    constexpr uint AI_ALLY_FLEE_MIN = 3; // Will flee if fewer than this number of allies are nearby
+    constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of allies are nearby
     constexpr float AI_HELP_SEARCH_RADIUS = 350;
 
     struct AITarget {

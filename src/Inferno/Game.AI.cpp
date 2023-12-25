@@ -515,14 +515,10 @@ namespace Inferno {
             ai.Fear += 0.4f; // Scared of being hit
     }
 
-    // todo: this only checks the room the robot is in
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
-        auto room = level.GetRoom(robot);
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
-        for (auto& segId : room->Segments) {
-            if (!level.SegmentExists(segId)) continue;
-            auto& seg = level.GetSegment(segId);
+        IterateNearbySegments(level, robot.Segment, 100, [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 if (auto weapon = level.TryGetObject(objId)) {
                     if (weapon->Type != ObjectType::Weapon) continue;
@@ -534,7 +530,7 @@ namespace Inferno {
                     }
                 }
             }
-        }
+        });
     }
 
     // Tries to path towards the player or move directly to it if in the same room
