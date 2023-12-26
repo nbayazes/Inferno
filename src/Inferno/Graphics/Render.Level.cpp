@@ -305,13 +305,15 @@ namespace Inferno::Render {
             Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
         }
         else if (constants.HasOverlay) {
-            constants.Tex2 = (int)Resources::LookupTexID(chunk.TMap2); // Pass overlay when drawing base texture to discard with
-            Shaders->Level.SetDiffuse2(cmdList, Materials->Get(chunk.TMap2).Handle());
-            Shaders->Level.SetMaterial2(cmdList, Materials->Get(chunk.TMap2));
+            // Pass tex2 when drawing base texture to discard pixels behind the decal
+            auto decal = chunk.EffectClip2 == EClipID::None ? Resources::LookupTexID(chunk.TMap2) : Resources::GetEffectClip(chunk.TMap2).VClip.GetFrame(ElapsedTime);
+            constants.Tex2 = (int)decal;
+            Shaders->Level.SetDiffuse2(cmdList, Materials->Get(decal).Handle());
+            Shaders->Level.SetMaterial2(cmdList, Materials->Get(decal));
         }
-        //else {
-        //    Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
-        //}
+        else {
+            Shaders->Level.SetDiffuse2(cmdList, Materials->Black().Handle()); // Default overlay textures to prevent crashes on some AMD hardware
+        }
 
         Shaders->Level.SetInstanceConstants(cmdList, constants);
         Shaders->Level.SetLightGrid(cmdList, *Render::LightGrid);
