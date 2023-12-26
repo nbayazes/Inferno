@@ -1356,7 +1356,7 @@ namespace Inferno {
         ai.AlertTimer = ALERT_FREQUENCY;
     }
 
-    uint CountNearbyAllies(const Object& robot, float range, bool inCombat) {
+    uint CountNearbyAllies(const Object& robot, float range, bool inCombat = false) {
         uint allies = 0;
 
         IterateNearbySegments(Game::Level, robot, range, [&](const Segment& seg, bool) {
@@ -1476,7 +1476,8 @@ namespace Inferno {
             if (ai.FleeTimer.Expired()) {
                 if (robot.HitPoints / robot.MaxHitPoints <= robotInfo.FleeThreshold || ai.Fear >= 1) {
                     // Wounded or scared enough to flee, but would rather fight if there's allies nearby
-                    auto allies = CountNearbyAllies(robot, AI_COUNT_ALLY_RANGE, true);
+                    auto allies = CountNearbyAllies(robot, robotInfo.AlertRadius);
+                    //SPDLOG_INFO("Nearby allies: {}", allies);
 
                     if (allies < AI_ALLY_FLEE_MIN) {
                         FindHelp(ai, robot);

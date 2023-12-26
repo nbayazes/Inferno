@@ -22,6 +22,7 @@ namespace Inferno::Editor {
         ImGui::Text("Cheats");
         ImGui::Checkbox("Disable weapon damage", &Settings::Cheats.DisableWeaponDamage);
         ImGui::Checkbox("Disable AI", &Settings::Cheats.DisableAI);
+        ImGui::Checkbox("Show AI pathing", &Settings::Cheats.ShowPathing);
         ImGui::Checkbox("No wall collision", &Settings::Cheats.DisableWallCollision);
         ImGui::Separator();
         ImGui::Combo("Difficulty", &Game::Difficulty, "Trainee\0Rookie\0Hotshot\0Ace\0Insane");

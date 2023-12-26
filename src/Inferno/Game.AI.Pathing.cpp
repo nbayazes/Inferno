@@ -371,12 +371,15 @@ namespace Inferno {
         auto& node = ai.GoalPath[ai.GoalPathIndex];
         auto& goal = ai.GoalPath.back();
         auto& robot = Resources::GetRobotInfo(obj.ID);
-        Render::Debug::DrawLine(obj.Position, node.Position, Color(0, 1, 0));
 
-        for (int i = 0; i < ai.GoalPath.size() - 1; i++) {
-            auto& a = ai.GoalPath[i];
-            auto& b = ai.GoalPath[i + 1];
-            Render::Debug::DrawLine(a.Position, b.Position, Color(0, .8, 1));
+        if (Settings::Cheats.ShowPathing) {
+            Render::Debug::DrawLine(obj.Position, node.Position, Color(0, 1, 0));
+
+            for (int i = 0; i < ai.GoalPath.size() - 1; i++) {
+                auto& a = ai.GoalPath[i];
+                auto& b = ai.GoalPath[i + 1];
+                Render::Debug::DrawLine(a.Position, b.Position, Color(0, .8, 1));
+            }
         }
 
         bool isGoal = &goal == &node;
