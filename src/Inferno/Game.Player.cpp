@@ -125,7 +125,7 @@ namespace Inferno {
         }
 
         if (!HasWeapon((PrimaryWeaponIndex)weapon)) {
-            auto msg = fmt::format("{} {}!", Resources::GetString(GameString::DontHave), Resources::GetPrimaryName(index));
+            auto msg = fmt::format("you don't have the {}!", Resources::GetPrimaryName(index));
             PrintHudMessage(msg);
             Sound::Play2D({ SoundID::SelectFail });
             return;
@@ -245,7 +245,7 @@ namespace Inferno {
                 if (CanFirePrimary(Primary) && PrimaryDelay <= 0) {
                     WeaponCharge = 0.001f;
                     FusionNextSoundDelay = 0.25f;
-                    SubtractEnergy(GetPrimaryEnergyCost());
+                    SubtractEnergy(GetWeaponEnergyCost(weapon));
                 }
             }
             else if (PrimaryState == FireState::Hold && Energy > 0 && WeaponCharge > 0) {
@@ -450,7 +450,7 @@ namespace Inferno {
 
         // Charged weapons drain energy on button down instead of here
         if (!weapon.Extended.Chargable) {
-            AddEnergy(-GetPrimaryEnergyCost());
+            SubtractEnergy(GetWeaponEnergyCost(weapon));
             PrimaryAmmo[1] -= (uint16)weapon.AmmoUsage; // only vulcan ammo
         }
 
@@ -650,8 +650,10 @@ namespace Inferno {
         Shields = std::max(Shields, 100.0f);
         Energy = std::max(Energy, 100.0f);
 
-        if (Settings::Cheats.LowShields)
+        if (Settings::Cheats.LowShields) {
             Shields = 10;
+            Energy = 10;
+        }
 
         auto& player = Game::GetPlayerObject();
         HostagesOnShip = 0;
@@ -748,9 +750,7 @@ namespace Inferno {
         SPDLOG_INFO("Respawning player");
     }
 
-    float Player::GetPrimaryEnergyCost() const {
-        const auto& weapon = Resources::GetWeapon(GetPrimaryWeaponID(Primary));
-
+    float Player::GetWeaponEnergyCost(const Weapon& weapon) const {
         bool quadFire = false;
         if (HasPowerup(PowerupFlag::QuadLasers)) {
             for (auto& gp : Ship.Weapons[(int)Primary].QuadGunpoints) {
@@ -825,7 +825,7 @@ namespace Inferno {
         if (index == PrimaryWeaponIndex::Omega)
             canFire &= Energy > 1 || OmegaCharge > OMEGA_CHARGE_COST; // it's annoying to switch to omega with no energy
 
-        canFire &= GetPrimaryEnergyCost() <= Energy;
+        canFire &= GetWeaponEnergyCost(weapon) <= Energy;
         return canFire;
     }
 
@@ -1230,7 +1230,8 @@ namespace Inferno {
             PrintHudMessage(fmt::format("{}!", name));
         }
 
-        if (!CanFireSecondary(Secondary))
+        // todo: autoselect priority
+        if (!CanFireSecondary(Secondary) || (Secondary < index && index != SecondaryWeaponIndex::ProximityMine))
             AutoselectSecondary();
 
         // todo: spawn individual missiles if count > 1 and full

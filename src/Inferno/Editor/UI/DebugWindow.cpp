@@ -85,8 +85,10 @@ namespace Inferno::Editor {
         ImGui::SameLine();
         ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
 
-        if (ImGui::Button("Reset inventory"))
-            Game::Player.ResetInventory(Game::Difficulty);
+        if (ImGui::Button("Reset inventory")) {
+            Game::Player.Powerups = {}; // Clear keys
+            Game::Player.Respawn(true);
+        }
 
         ImGui::Separator();
 

@@ -1414,7 +1414,8 @@ namespace Inferno {
             if (robot.Control.AI.Behavior != AIBehavior::Still && ai.DodgeTime <= 0)
                 GetBehindTarget(robot, ai, robotInfo, target);
 
-            Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
+            if (Settings::Cheats.ShowPathing)
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 0));
 
             AlertNearby(ai, robot, robotInfo);
             MakeCombatNoise(robot, ai);
@@ -1424,7 +1425,8 @@ namespace Inferno {
             DecayAwareness(ai);
             // Robot can either choose to chase the target or hold position and blind fire
 
-            Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
+            if (Settings::Cheats.ShowPathing)
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, .5, .5));
 
             if (ai.CombatState == AICombatState::Normal && ai.StrafeTimer <= 0 && ai.LostSightDelay <= 0) {
                 OnLostLineOfSight(ai, robot, robotInfo);
@@ -1505,8 +1507,10 @@ namespace Inferno {
         // Turn towards point of interest if we have one
         if (ai.TargetPosition) {
             TurnTowardsPoint(robot, ai.TargetPosition->Position, Difficulty(robotInfo).TurnTime);
-            Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
             bool validChaseState = ai.CombatState == AICombatState::Normal || ai.CombatState == AICombatState::Chase;
+
+            if (Settings::Cheats.ShowPathing)
+                Render::Debug::DrawPoint(ai.TargetPosition->Position, Color(1, 0, 1));
 
             if (ai.Awareness >= AI_AWARENESS_MAX &&
                 validChaseState &&

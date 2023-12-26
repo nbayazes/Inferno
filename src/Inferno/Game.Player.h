@@ -160,24 +160,10 @@ namespace Inferno {
         void GiveExtraLife(uint8 lives = 1);
 
         void ApplyDamage(float damage, bool playSound);
-
-        // Call after respawning
-        void ResetInventory(int difficulty) {
-            LaserLevel = 0;
-            Powerups = {};
-            PrimaryWeapons = {};
-            SecondaryWeapons = {};
-            ranges::fill(SecondaryAmmo, 0);
-            ranges::fill(PrimaryAmmo, 0);
-
-            PickUpPrimary(PrimaryWeaponIndex::Laser);
-            PickUpSecondary(SecondaryWeaponIndex::Concussion, uint16(7 - difficulty));
-        }
-
         void Respawn(bool died);
 
     private:
-        float GetPrimaryEnergyCost() const;
+        float GetWeaponEnergyCost(const Weapon& weapon) const;
 
         WeaponID GetPrimaryWeaponID(PrimaryWeaponIndex index) const {
             if (index == PrimaryWeaponIndex::Laser) {
