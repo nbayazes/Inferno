@@ -1159,6 +1159,9 @@ namespace Inferno {
     }
 
     void Player::TouchObject(Object& obj) {
+        if (obj.Lifespan == -1) return; // Already picked up
+        if (IsDead) return; // Player is dead!
+
         if (obj.Type == ObjectType::Powerup) {
             TouchPowerup(obj);
         }
