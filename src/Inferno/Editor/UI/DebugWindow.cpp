@@ -86,8 +86,15 @@ namespace Inferno::Editor {
         ImGui::Checkbox("Low shields", &Settings::Cheats.LowShields);
 
         if (ImGui::Button("Reset inventory")) {
-            Game::Player.Powerups = {}; // Clear keys
-            Game::Player.Respawn(true);
+            auto& player = Game::Player;
+            player.Powerups = {}; // Clear keys
+            player.LaserLevel = 0;
+            player.PrimaryWeapons = 0;
+            player.SecondaryWeapons = 0;
+            player.Primary = PrimaryWeaponIndex::Laser;
+            player.Secondary = SecondaryWeaponIndex::Concussion;
+            ranges::fill(player.PrimaryAmmo, 0);
+            ranges::fill(player.SecondaryAmmo, 0);
         }
 
         ImGui::Separator();

@@ -680,7 +680,7 @@ namespace Inferno {
         player.Physics.TurnRoll = 0;
         player.Type = ObjectType::Player;
 
-        RelinkObject(Game::Level, player, SpawnSegment);
+        RelinkObject(Game::Level, player, SpawnSegment == SegID::None ? player.Segment : SpawnSegment);
 
         player.Render.Type = RenderType::None; // Hide the player model
 
@@ -1204,6 +1204,7 @@ namespace Inferno {
             max *= 2;
 
         auto& ammo = SecondaryAmmo[(int)index];
+        auto startAmmo = ammo;
         auto name = Resources::GetSecondaryName(index);
 
         if (ammo >= max) {
@@ -1231,7 +1232,7 @@ namespace Inferno {
         }
 
         // todo: autoselect priority
-        if (!CanFireSecondary(Secondary) || (Secondary < index && index != SecondaryWeaponIndex::ProximityMine))
+        if (!CanFireSecondary(Secondary) || (startAmmo == 0 && Secondary < index && index != SecondaryWeaponIndex::ProximityMine))
             AutoselectSecondary();
 
         // todo: spawn individual missiles if count > 1 and full

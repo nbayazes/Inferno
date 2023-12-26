@@ -64,6 +64,8 @@ namespace Inferno::Render {
             return EffectID::None;
         }
         ASSERT(e->Segment > SegID::None);
+        if (e->Segment <= SegID::None) return EffectID::None;
+
         e->UpdatePositionFromParent();
         e->OnInit();
         auto& seg = Game::Level.GetSegment(e->Segment);
@@ -872,7 +874,7 @@ namespace Inferno::Render {
             for (auto& decal : Decals) {
                 if (decal.Elapsed >= decal.Duration) continue;
 
-                if(ctx.ApplyEffect(effect)) {
+                if (ctx.ApplyEffect(effect)) {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
                     effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());
@@ -895,7 +897,7 @@ namespace Inferno::Render {
             for (auto& decal : AdditiveDecals) {
                 if (decal.Elapsed >= decal.Duration) continue;
 
-                if(ctx.ApplyEffect(effect)) {
+                if (ctx.ApplyEffect(effect)) {
                     ctx.SetConstantBuffer(0, Adapter->GetFrameConstants().GetGPUVirtualAddress());
                     effect.Shader->SetDepthTexture(cmdList, Adapter->LinearizedDepthBuffer.GetSRV());
                     effect.Shader->SetSampler(cmdList, Render::GetWrappedTextureSampler());

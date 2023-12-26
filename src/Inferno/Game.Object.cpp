@@ -189,11 +189,14 @@ namespace Inferno {
 
     void RelinkObject(Level& level, Object& obj, SegID newSegment) {
         auto id = Game::GetObjectRef(obj).Id;
-        auto& prevSeg = level.GetSegment(obj.Segment);
-        prevSeg.RemoveObject(id);
-        auto& seg = level.GetSegment(newSegment);
-        seg.AddObject(id);
-        obj.Ambient.SetTarget(seg.VolumeLight, Game::Time, 0.25f);
+        if (auto prevSeg = level.TryGetSegment(obj.Segment))
+            prevSeg->RemoveObject(id);
+
+        if (auto seg = level.TryGetSegment(newSegment)) {
+            seg->AddObject(id);
+            obj.Ambient.SetTarget(seg->VolumeLight, Game::Time, 0.25f);
+        }
+
         obj.Segment = newSegment;
     }
 
