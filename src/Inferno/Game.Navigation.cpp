@@ -8,14 +8,8 @@
 
 namespace Inferno {
     // Executes a function on each segment within range. Return false from action to stop iterating.
-    void IterateNearbySegments(Level& level, SegID start, float distance, const std::function<void(Segment&, bool&)>& action) {
+    void IterateNearbySegments(Level& level, NavPoint start, float distance, const std::function<void(Segment&, bool&)>& action) {
         ASSERT_STA();
-
-        Vector3 startPosition;
-        if (auto startSeg = level.TryGetSegment(start))
-            startPosition = startSeg->Center;
-        else
-            return; // invalid segment
 
         static List<SegID> queue;
         static List<int8> visited;
@@ -23,7 +17,7 @@ namespace Inferno {
         ranges::fill(visited, false);
 
         queue.clear();
-        queue.push_back(start);
+        queue.push_back(start.Segment);
 
         float distSq = distance * distance;
         if (distSq < 0) distSq = FLT_MAX;
@@ -41,7 +35,7 @@ namespace Inferno {
             for (auto& sideid : SIDE_IDS) {
                 if (seg->SideIsSolid(sideid, level)) continue;
 
-                if (Vector3::DistanceSquared(startPosition, seg->GetSide(sideid).Center) > distSq)
+                if (Vector3::DistanceSquared(start.Position, seg->GetSide(sideid).Center) > distSq)
                     continue;
 
                 auto connection = seg->GetConnection(sideid);

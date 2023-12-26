@@ -518,7 +518,7 @@ namespace Inferno {
     void CheckProjectiles(Level& level, const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo) {
         if (ai.DodgeDelay > 0) return; // not ready to dodge again
 
-        IterateNearbySegments(level, robot.Segment, 100, [&](const Segment& seg, bool) {
+        IterateNearbySegments(level, robot, 100, [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 if (auto weapon = level.TryGetObject(objId)) {
                     if (weapon->Type != ObjectType::Weapon) continue;
@@ -1183,7 +1183,7 @@ namespace Inferno {
         };
 
         // todo: this should account for locked doors
-        IterateNearbySegments(Game::Level, robot.Segment, AI_HELP_SEARCH_RADIUS, action);
+        IterateNearbySegments(Game::Level, robot, AI_HELP_SEARCH_RADIUS, action);
 
         if (nearestHelp) {
             NavPoint goal = { nearestHelp->Segment, nearestHelp->Position };
@@ -1359,7 +1359,7 @@ namespace Inferno {
     uint CountNearbyAllies(const Object& robot, float range, bool inCombat) {
         uint allies = 0;
 
-        IterateNearbySegments(Game::Level, robot.Segment, range, [&](const Segment& seg, bool) {
+        IterateNearbySegments(Game::Level, robot, range, [&](const Segment& seg, bool) {
             for (auto& objid : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objid)) {
                     if (obj->IsRobot() && obj->Signature != robot.Signature) {
