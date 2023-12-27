@@ -351,7 +351,7 @@ namespace Inferno::Editor {
                 ImGui::MenuItem("Sounds", nullptr, &Settings::Editor.Windows.Sound);
                 ImGui::MenuItem("Tunnel Builder", nullptr, &Settings::Editor.Windows.TunnelBuilder);
                 ImGui::MenuItem("Scale", nullptr, &Settings::Editor.Windows.Scale);
-                ImGui::MenuItem("Snap to Plane", nullptr, &Settings::Editor.Windows.SnapToPlane);
+                ImGui::MenuItem("Project to Plane", nullptr, &Settings::Editor.Windows.ProjectToPlane);
 
 #ifdef _DEBUG
                 ImGui::MenuItem("Briefing Editor", nullptr, &Settings::Editor.Windows.BriefingEditor);

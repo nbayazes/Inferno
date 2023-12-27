@@ -448,7 +448,7 @@
     <ClInclude Include="Editor\UI\ScaleWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Editor\UI\SnapToPlaneWindow.h">
+    <ClInclude Include="Editor\UI\ProjectToPlaneWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

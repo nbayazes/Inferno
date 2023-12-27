@@ -60,6 +60,7 @@ namespace Inferno {
         node["BriefingEditor"] << w.BriefingEditor;
         node["TextureEditor"] << w.TextureEditor;
         node["Scale"] << w.Scale;
+        node["ProjectToPlane"] << w.ProjectToPlane;
     }
 
     EditorSettings::OpenWindows LoadOpenWindows(ryml::NodeRef node) {
@@ -76,6 +77,7 @@ namespace Inferno {
         ReadValue(node["BriefingEditor"], w.BriefingEditor);
         ReadValue(node["TextureEditor"], w.TextureEditor);
         ReadValue(node["Scale"], w.Scale);
+        ReadValue(node["ProjectToPlane"], w.ProjectToPlane);
         return w;
     }
 

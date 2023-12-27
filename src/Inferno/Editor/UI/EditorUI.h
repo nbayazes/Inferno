@@ -19,7 +19,7 @@
 #include "BriefingEditor.h"
 #include "ScaleWindow.h"
 #include "TextureEditor.h"
-#include "SnapToPlaneWindow.h"
+#include "ProjectToPlaneWindow.h"
 
 namespace Inferno::Editor {
 
@@ -70,7 +70,7 @@ namespace Inferno::Editor {
         DiagnosticWindow _diagnosticWindow;
         BriefingEditor _briefingEditor;
         ScaleWindow _scaleWindow;
-        SnapToPlaneWindow _snapToPlaneWindow;
+        ProjectToPlaneWindow _snapToPlaneWindow;
         bool _showImguiDemo = false;
 
         Dictionary<DialogType, Ptr<ModalWindowBase>> _dialogs;

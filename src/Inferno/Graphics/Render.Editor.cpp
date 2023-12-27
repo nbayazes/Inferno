@@ -424,10 +424,14 @@ namespace Inferno::Render {
     }
 
     void DrawSnapToPlaneAxis() {
-        if (Editor::SnapToPlaneArgs.IsValid()) {
-            auto arrowStart = Editor::SnapToPlaneArgs.DrawLocation - (Editor::SnapToPlaneArgs.Axis * 10);
-            auto arrowEnd = Editor::SnapToPlaneArgs.DrawLocation + (Editor::SnapToPlaneArgs.Axis * 10);
-            Debug::DrawArrow(arrowStart, arrowEnd, Colors::SelectionPrimary);
+        auto& args = Editor::ProjectToPlaneWindow::Args;
+
+        if (args.IsValid()) {
+            Vector3 mid = *args.DrawLocation;
+            auto arrowStart = mid - args.Axis * 10;
+            auto arrowEnd = mid + args.Axis * 10;
+            Debug::DrawArrow(mid, arrowStart, Colors::SelectionPrimary);
+            Debug::DrawArrow(mid, arrowEnd, Colors::SelectionPrimary);
         }
     }
 
@@ -483,7 +487,7 @@ namespace Inferno::Render {
         if (Settings::Editor.Windows.TunnelBuilder)
             DrawTunnelBuilder(level);
 
-        if (Settings::Editor.Windows.SnapToPlane)
+        if (Settings::Editor.Windows.ProjectToPlane)
             DrawSnapToPlaneAxis();
 
         DrawRooms(level);
