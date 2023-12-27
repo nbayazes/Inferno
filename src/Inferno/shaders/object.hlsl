@@ -107,7 +107,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         texid = VClips[texid - VCLIP_RANGE].GetFrame(Frame.Time + Object.TimeOffset);
     }
 
-    float4 diffuse = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5)], input.uv, Sampler, Frame.FilterMode) * input.col;
+    float4 diffuse = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5)], input.uv, Sampler, Frame.FilterMode);
     float emissive = Sample2D(TextureTable[NonUniformResourceIndex(texid * 5 + 2)], input.uv, Sampler, Frame.FilterMode).r;
     float3 lighting = float3(0, 0, 0);
 
@@ -126,6 +126,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
         lighting += saturate(ambient * 4);
         lighting.rgb = saturate(Luminance(lighting.rgb)); // Desaturate
         lighting *= Specular(lightDir, viewDir, input.normal);
+        diffuse *= input.col;
         return float4(diffuse.rgb * lighting * Frame.GlobalDimming, diffuse.a);
     }
     else {
@@ -140,9 +141,14 @@ float4 psmain(PS_INPUT input) : SV_Target {
             float3 normal = SampleNormal(TextureTable[NonUniformResourceIndex(texid * 5 + 4)], input.uv, NormalSampler, Frame.FilterMode);
             normal.xy *= material.NormalStrength;
             normal = normalize(normal);
+            emissive *= material.EmissiveStrength;
 
-            if (emissive > 0 && material.LightReceived == 0)
+            if (emissive > 0 && material.LightReceived == 0) {
                 emissive = emissive + 1; // make lava and forcefields full bright
+            }
+            else {
+                diffuse *= input.col; // apply per-poly color when not using fullbright textures
+            }
 
             float3x3 tbn = float3x3(input.tangent, input.bitangent, input.normal);
             normal = normalize(mul(normal, tbn));
@@ -154,7 +160,7 @@ float4 psmain(PS_INPUT input) : SV_Target {
 
             ShadeLights(colorSum, pixelPos, diffuse.rgb, specularMask, normal, viewDir, input.world, material);
             lighting += colorSum * material.LightReceived;
-            lighting += emissive * diffuse.rgb * material.EmissiveStrength;
+            lighting += emissive * diffuse.rgb;
             lighting += diffuse.rgb * ambient * 0.20 * material.LightReceived * (1 - material.Metalness * .50); // ambient
 
             //lighting += ApplyAmbientSpecular(Environment, Sampler, viewDir, normal, material, ambient * 1, diffuse.rgb * 1, pow(specularMask + 1, 1.5) - 0.9, .5, .75);

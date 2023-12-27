@@ -204,6 +204,7 @@ namespace Inferno::Render {
         ObjectShader::Constants constants = {};
         constants.Ambient = Settings::Editor.RenderMode == RenderMode::Shaded ? seg.VolumeLight : Color(1, 1, 1);
         constants.EmissiveLight = Vector4::Zero;
+        constants.TexIdOverride = (int)TexOverride;
 
         Matrix transform = Matrix::Lerp(PrevTransform, Transform, Game::LerpAmount);
         //transform.Forward(-transform.Forward()); // flip z axis to correct for LH models
