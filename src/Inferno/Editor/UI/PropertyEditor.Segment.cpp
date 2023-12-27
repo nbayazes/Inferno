@@ -294,8 +294,6 @@ namespace Inferno::Editor {
         ImGui::SetNextItemWidth(-1);
         if (ImGui::BeginCombo("##segtype", SegmentTypeLabels[(int)type])) {
             for (int i = 0; i < std::size(SegmentTypeLabels); i++) {
-                if (i == 2) continue;
-
                 const bool isSelected = (int)type == i;
                 if (ImGui::Selectable(SegmentTypeLabels[i], isSelected)) {
                     snapshot = true;
