@@ -321,7 +321,11 @@ namespace Inferno::Game {
             return;
         }
 
-        if (!hit.Bounced) {
+        auto bounce = hit.Bounced;
+        if (hitLava && weapon.SplashRadius > 0) 
+            bounce = false; // Explode bouncing explosive weapons (mines) when touching lava
+
+        if (!bounce) {
             // Move object to the desired explosion location
             auto dir = obj.Physics.PrevVelocity;
             dir.Normalize();
@@ -413,7 +417,7 @@ namespace Inferno::Game {
             AddWeaponDecal(hit, weapon);
 
             // Explosive weapons play their effects on death instead of here
-            if (!hit.Bounced && splashRadius <= 0) {
+            if (!bounce && splashRadius <= 0) {
                 if (vclip != VClipID::None)
                     DrawWeaponExplosion(obj, weapon);
 
@@ -424,7 +428,7 @@ namespace Inferno::Game {
             }
         }
 
-        if (!hit.Bounced)
+        if (!bounce)
             obj.Lifespan = 0; // remove weapon after hitting a wall
     }
 
