@@ -350,6 +350,7 @@ namespace Inferno {
         setEntry(ObjectType::Player, ObjectType::Reactor, CollisionType::SpherePoly);
         setEntry(ObjectType::Player, ObjectType::Hostage, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Marker, CollisionType::SphereSphere);
+        setEntry(ObjectType::Player, ObjectType::Weapon, CollisionType::SphereSphere);
         setEntry(ObjectType::Powerup, ObjectType::Player, CollisionType::SphereSphere);
 
         setEntry(ObjectType::Robot, ObjectType::Player, CollisionType::PolySphere);
@@ -372,6 +373,12 @@ namespace Inferno {
     constexpr CollisionTable COLLISION_TABLE = InitCollisionTable();
     constexpr CollisionType CheckCollision(ObjectType a, ObjectType b) { return COLLISION_TABLE[(int)a][(int)b]; }
 
+    bool ObjectIsMine(const Object& obj) {
+        if (!obj.IsWeapon()) return false;
+        auto id = (WeaponID)obj.ID;
+        return id == WeaponID::ProxMine || id == WeaponID::SmartMine || id == WeaponID::LevelMine;
+    }
+
     CollisionType ObjectCanHitTarget(const Object& src, const Object& target) {
         if (!target.IsAlive() && target.Type != ObjectType::Reactor) return CollisionType::None;
         if (src.Signature == target.Signature) return CollisionType::None; // don't hit yourself!
@@ -385,19 +392,22 @@ namespace Inferno {
             (HasFlag(target.Physics.Flags, PhysicsFlag::NoCollideRobots) && src.IsRobot()))
             return CollisionType::None;
 
-        if (src.Type == ObjectType::Player && target.Type == ObjectType::Weapon) {
-            // Player can't hit mines until they arm
-            if (WeaponIsMine((WeaponID)target.ID) && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME)
-                return CollisionType::None;
+        // Player can't hit mines until they arm
+        if ((ObjectIsMine(src) && target.IsPlayer() && src.Control.Weapon.AliveTime < Game::MINE_ARM_TIME) ||
+            (ObjectIsMine(target) && src.IsPlayer() && target.Control.Weapon.AliveTime < Game::MINE_ARM_TIME))
+            return CollisionType::None;
 
-            //return target.ID == (int)WeaponID::LevelMine
+        // Don't let robots collide with robot-placed mines. Mine laying robots will blow themselves up otherwise.
+        if (ObjectIsMine(target) || ObjectIsMine(src)) {
+            if (target.Faction == Faction::Robot && src.Faction == Faction::Robot)
+                return CollisionType::None;
         }
 
         if ((src.IsPlayer() && target.IsRobot() && HasFlag(target.Physics.Flags, PhysicsFlag::SphereCollidePlayer)) ||
             (src.IsRobot() && target.IsPlayer() && HasFlag(src.Physics.Flags, PhysicsFlag::SphereCollidePlayer)))
             return CollisionType::SphereSphere;
 
-        if (src.Type == ObjectType::Weapon) {
+        if (src.IsWeapon()) {
             if (Seq::contains(src.Control.Weapon.RecentHits, target.Signature))
                 return CollisionType::None; // Don't hit objects recently hit by this weapon (for piercing)
 
@@ -470,133 +480,136 @@ namespace Inferno {
         ASSERT(explosion.Room != RoomID::None);
         ASSERT(explosion.Segment != SegID::None);
 
-        auto roomAction = [&](const Room& room) {
-            for (auto& segId : room.Segments) {
-                auto& seg = level.GetSegment(segId);
-                for (auto& objId : seg.Objects) {
-                    auto obj = level.TryGetObject(objId);
-                    if (!obj) continue;
-                    auto& target = *obj;
+        auto action = [&](const Segment& seg, bool) {
+            for (auto& objId : seg.Objects) {
+                auto obj = level.TryGetObject(objId);
+                if (!obj) continue;
+                auto& target = *obj;
 
-                    if (&target == source) continue;
-                    if (!target.IsAlive()) continue;
+                if (&target == source) continue; // Don't hit self
+                if (!target.IsAlive()) continue;
 
-                    if (target.Type == ObjectType::Weapon && (target.ID != (int)WeaponID::ProxMine && target.ID != (int)WeaponID::SmartMine && target.ID != (int)WeaponID::LevelMine))
+                if (target.IsWeapon()) {
+                    if (!ObjectIsMine(target))
                         continue; // only allow explosions to affect weapons that are mines
+                }
 
-                    // ((obj0p->type==OBJ_ROBOT) && ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id)))
-                    //if (&level.GetObject(obj.Parent) == &source) continue; // don't hit your parent
+                auto parent = source ? Game::Level.TryGetObject(source->Parent) : nullptr;
+                if (parent && parent->IsRobot() && parent->Signature == target.Signature)
+                    continue; // Don't let robots damage themselves with explosions. Important for boss robots and robots behind grates.
 
-                    if (target.Type != ObjectType::Player && target.Type != ObjectType::Robot && target.Type != ObjectType::Weapon && target.Type != ObjectType::Reactor)
-                        continue;
+                if (target.Type != ObjectType::Player && target.Type != ObjectType::Robot && target.Type != ObjectType::Weapon && target.Type != ObjectType::Reactor)
+                    continue;
 
-                    auto dist = Vector3::Distance(target.Position, explosion.Position);
+                auto dist = Vector3::Distance(target.Position, explosion.Position);
 
-                    // subtract object radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
-                    // however don't apply it to players due to dramatically increasing the amount of damage taken
-                    if (target.Type != ObjectType::Player && target.Type != ObjectType::Coop)
-                        dist -= target.Radius;
+                // subtract object radius so large enemies don't take less splash damage, this increases the effectiveness of explosives in general
+                // however don't apply it to players due to dramatically increasing the amount of damage taken
+                if (target.Type != ObjectType::Player && target.Type != ObjectType::Coop)
+                    dist -= target.Radius;
 
-                    if (dist >= explosion.Radius) continue;
-                    dist = std::max(dist, 0.1f);
+                if (dist >= explosion.Radius) continue;
+                dist = std::max(dist, 0.1f);
 
-                    Vector3 dir = target.Position - explosion.Position;
-                    dir.Normalize();
-                    Ray ray(explosion.Position, dir);
-                    LevelHit hit;
-                    RayQuery query{ .MaxDistance = dist, .Start = explosion.Segment, .Mode = RayQueryMode::Visibility };
-                    if (Intersect.RayLevel(ray, query, hit))
-                        continue;
+                Vector3 dir = target.Position - explosion.Position;
+                dir.Normalize();
+                Ray ray(explosion.Position, dir);
+                LevelHit hit;
+                RayQuery query{ .MaxDistance = dist, .Start = explosion.Segment, .Mode = RayQueryMode::Visibility };
+                if (Intersect.RayLevel(ray, query, hit))
+                    continue;
 
-                    // linear damage falloff
-                    float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
-                    float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
+                // linear damage and force falloff
+                float damage = explosion.Damage - (dist * explosion.Damage) / explosion.Radius;
+                float force = explosion.Force - (dist * explosion.Force) / explosion.Radius;
 
-                    dir += RandomVector(0.25f);
-                    dir.Normalize();
+                dir += RandomVector(0.25f);
+                dir.Normalize();
 
-                    Vector3 forceVec = dir * force;
-                    //auto hitPos = (source.Position - obj.Position) * obj.Radius / (obj.Radius + dist);
+                Vector3 forceVec = dir * force;
+                //auto hitPos = (source.Position - obj.Position) * obj.Radius / (obj.Radius + dist);
 
-                    // Find where the point of impact is... ( pos_hit )
-                    //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
+                // Find where the point of impact is... ( pos_hit )
+                //vm_vec_scale(vm_vec_sub(&pos_hit, &obj->pos, &obj0p->pos), fixdiv(obj0p->size, obj0p->size + dist));
 
-                    switch (target.Type) {
-                        case ObjectType::Weapon:
-                        {
-                            ApplyForce(target, forceVec);
-                            // Mines can blow up under enough force
-                            //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
-                            //    if (dist * force > 0.122f) {
-                            //        obj.Lifespan = 0;
-                            //        // explode()?
-                            //    }
-                            //}
-                            break;
-                        }
-
-                        case ObjectType::Robot:
-                        {
-                            float stunMult = 1;
-                            if (source && source->IsWeapon()) {
-                                auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
-                                stunMult = weapon.Extended.StunMult;
-                            }
-
-                            ApplyForce(target, forceVec);
-                            auto parent = source ? Game::Level.TryGetObject(source->Parent) : nullptr;
-                            DamageRobot({ explosion.Segment, explosion.Position }, target, damage, stunMult, parent);
-
-                            target.LastHitForce = forceVec;
-                            //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
-
-                            // todo: guidebot ouchies
-
-                            //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
-                            // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
-                            if (!source || source->LastHitObject != target.Signature) {
-                                auto pt = RandomPointOnCircle(target.Radius);
-                                auto edgePt = Vector3::Transform(pt, target.GetTransform());
-                                auto edgeDir = edgePt - hit.Point;
-                                edgeDir.Normalize();
-                                auto& robot = Resources::GetRobotInfo(target);
-                                ApplyRotationalForce(target, edgePt, forceVec, robot.Mass);
-                            }
-                            break;
-                        }
-
-                        case ObjectType::Reactor:
-                        {
-                            // apply damage if source is player
-                            if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent.Id == ObjID(0))
-                                target.ApplyDamage(damage);
-
-                            break;
-                        }
-
-                        case ObjectType::Player:
-                        {
-                            ApplyForce(target, forceVec);
-                            if (!source || source->LastHitObject != target.Signature)
-                                ApplyRotation(target, forceVec);
-
-                            // Quarter damage explosions on trainee
-                            if (Game::Difficulty == 0) damage /= 4;
-                            Game::Player.ApplyDamage(damage, false);
-                            break;
-                        }
-
-                        default:
-                            throw Exception("Invalid object type in CreateExplosion()");
+                switch (target.Type) {
+                    case ObjectType::Weapon:
+                    {
+                        ApplyForce(target, forceVec);
+                        // Mines can blow up under enough force
+                        //if (obj.ID == (int)WeaponID::ProxMine || obj.ID == (int)WeaponID::SmartMine) {
+                        //    if (dist * force > 0.122f) {
+                        //        obj.Lifespan = 0;
+                        //        // explode()?
+                        //    }
+                        //}
+                        break;
                     }
+
+                    case ObjectType::Robot:
+                    {
+                        float stunMult = 1;
+                        if (source && source->IsWeapon()) {
+                            auto& weapon = Resources::GetWeapon(WeaponID(source->ID));
+                            stunMult = weapon.Extended.StunMult;
+                        }
+
+                        ApplyForce(target, forceVec);
+
+                        if (ObjectIsMine(*source))
+                            damage = 0; // Don't apply damage from mines to robots, otherwise mine layers cause too much friendly fire
+
+                        //if (parent && parent->IsRobot() && target.IsRobot())
+                        //    damage *= 0.5f; // Halve explosion damage to other robots
+
+                        DamageRobot({ explosion.Segment, explosion.Position }, target, damage, stunMult, parent);
+
+                        target.LastHitForce = forceVec;
+                        //fmt::print("applied {} splash damage at dist {}\n", damage, dist);
+
+                        // todo: guidebot ouchies
+
+                        //Vector3 negForce = forceVec * 2.0f * float(7 - Game::Difficulty) / 8.0f;
+                        // Don't apply rotation if source directly hit this object, so that it doesn't rotate oddly
+                        if (!source || source->LastHitObject != target.Signature) {
+                            auto pt = RandomPointOnCircle(target.Radius);
+                            auto edgePt = Vector3::Transform(pt, target.GetTransform());
+                            auto edgeDir = edgePt - hit.Point;
+                            edgeDir.Normalize();
+                            auto& robot = Resources::GetRobotInfo(target);
+                            ApplyRotationalForce(target, edgePt, forceVec, robot.Mass);
+                        }
+                        break;
+                    }
+
+                    case ObjectType::Reactor:
+                    {
+                        // apply damage if source is player
+                        if (!Settings::Cheats.DisableWeaponDamage && source && source->Parent.Id == ObjID(0))
+                            target.ApplyDamage(damage);
+
+                        break;
+                    }
+
+                    case ObjectType::Player:
+                    {
+                        ApplyForce(target, forceVec);
+                        if (!source || source->LastHitObject != target.Signature)
+                            ApplyRotation(target, forceVec);
+
+                        // Quarter damage explosions on trainee
+                        if (Game::Difficulty == 0) damage /= 4;
+                        Game::Player.ApplyDamage(damage, false);
+                        break;
+                    }
+
+                    default:
+                        throw Exception("Invalid object type in CreateExplosion()");
                 }
             }
-
-            return false;
         };
 
-        TraverseRoomsByDistance(level, explosion.Room, explosion.Position,
-                                explosion.Radius * 2, false, roomAction);
+        IterateNearbySegments(level, { explosion.Segment, explosion.Position }, explosion.Radius * 2, action);
     }
 
     void IntersectBoundingBoxes(const Object& obj) {
@@ -1144,12 +1157,10 @@ namespace Inferno {
     }
 
     bool IntersectLevel(Level& level, Object& obj, ObjID id, LevelHit& hit, float dt) {
-        // Don't hit test objects that haven't moved unless they are the player
-        // This is so moving powerups are tested against the player
-        if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE /*&& obj.Type != ObjectType::Player*/) return false;
-        //Vector3 direction;
-        //obj.Physics.Velocity.Normalize(direction);
-        //Ray pathRay(obj.PrevPosition, direction);
+        // Don't hit test objects that haven't moved unless they are weapons (mines don't move).
+        // Also always hit-test player so bouncing powerups will get collected.
+        if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Player) 
+            return false;
 
         // Use a larger radius for the object so the large objects in adjacent segments are found.
         // Needs testing against boss robots
@@ -1160,13 +1171,9 @@ namespace Inferno {
             auto& seg = level.GetSegment(segId);
 
             for (int i = 0; i < seg.Objects.size(); i++) {
-                if (id == seg.Objects[i]) continue; // don't hit yourself!
                 auto other = level.TryGetObject(seg.Objects[i]);
                 if (!other) continue;
-
-                auto pSrc = &obj;
-                if (obj.Type == ObjectType::Player && other->Type == ObjectType::Weapon)
-                    std::swap(pSrc, other);
+                if (other->Signature == obj.Signature) continue; // don't hit yourself!
 
                 if (id == other->Parent.Id) continue; // Don't hit your children!
                 if (obj.Parent.Signature == other->Signature) continue; // Don't hit your parent!

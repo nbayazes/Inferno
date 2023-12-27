@@ -58,9 +58,7 @@ namespace Inferno::Game {
     }
 
     void ProxMineBehavior(Object& mine) {
-        constexpr auto PROX_WAKE_RANGE = 60;
-        constexpr auto PROX_ACTIVATE_RANGE = 30;
-
+        constexpr auto PROX_ACTIVATE_RANGE = 40;
         auto& cw = mine.Control.Weapon;
 
         if (TimeHasElapsed(mine.NextThinkTime)) {
@@ -69,10 +67,13 @@ namespace Inferno::Game {
 
             // Try to find a nearby target
             if (!cw.TrackingTarget) {
-                // todo: filter targets based on if mine owner is a player
-                auto [ref, dist] = Game::FindNearestObject(mine.Position, PROX_WAKE_RANGE, ObjectMask::Robot);
-                if (ref && dist <= PROX_WAKE_RANGE)
+                auto filter = mine.Faction == Faction::Robot ? ObjectMask::Player : ObjectMask::Robot;
+                Array srcRef = { Game::GetObjectRef(mine) };
+
+                auto [ref, dist] = Game::FindNearestVisibleObject({ mine.Segment, mine.Position }, PROX_ACTIVATE_RANGE, filter, srcRef);
+                if (ref && dist <= PROX_ACTIVATE_RANGE) {
                     cw.TrackingTarget = ref; // New target!
+                }
             }
         }
 
@@ -82,25 +83,17 @@ namespace Inferno::Game {
         auto target = Game::Level.TryGetObject(cw.TrackingTarget);
         auto dist = target ? mine.Distance(*target) : FLT_MAX;
 
-        if (dist > PROX_WAKE_RANGE) {
-            cw.TrackingTarget = {}; // Went out of range
-        }
-        else {
-            //auto lerp = std::lerp(1.00f, 2.00f, (dist - PROX_ACTIVATE_RANGE) / (PROX_WAKE_RANGE - PROX_ACTIVATE_RANGE));
-            //lerp = std::clamp(lerp, 1.0f, 2.0f);
+        if (dist <= PROX_ACTIVATE_RANGE) {
+            if (target && target->IsPlayer()) {
+                // Play lock warning for player
+                if (Game::Player.HomingObjectDist < 0 || dist < Game::Player.HomingObjectDist)
+                    Game::Player.HomingObjectDist = dist;
+            }
 
-            //if (TimeHasElapsed(cw.SoundDelay)) {
-            //    Sound3D sound(obj.Position, obj.Segment);
-            //    //sound.Pitch = 0.25f - (lerp - 1.25);
-            //    sound.Resource = Resources::GetSoundResource(SoundID::HomingWarning);
-            //    Sound::Play(sound);
-            //    cw.SoundDelay = (float)Game::Time + lerp;
-            //}
-
-            if (dist <= PROX_ACTIVATE_RANGE && !cw.DetonateMine) {
+            if (!cw.DetonateMine) {
                 // Commit to the target
                 cw.DetonateMine = true;
-                mine.Lifespan = 2;
+                mine.Lifespan = 2; // detonate in 2 seconds
                 ClearFlag(mine.Physics.Flags, PhysicsFlag::Bounce); // explode on contacting walls
 
                 if (target) {
@@ -322,7 +315,7 @@ namespace Inferno::Game {
         }
 
         auto bounce = hit.Bounced;
-        if (hitLava && weapon.SplashRadius > 0) 
+        if (hitLava && weapon.SplashRadius > 0)
             bounce = false; // Explode bouncing explosive weapons (mines) when touching lava
 
         if (!bounce) {
@@ -597,10 +590,10 @@ namespace Inferno::Game {
     ObjRef FireWeapon(ObjRef ref, WeaponID id, uint8 gun, Vector3* customDir, float damageMultiplier, bool showFlash, float volume) {
         auto& level = Game::Level;
         auto pObj = level.TryGetObject(ref);
-        if (!pObj) {
-            __debugbreak(); // tried to fire weapon from unknown object
-            return {};
-        }
+        ASSERT(pObj);
+        if (!pObj)
+            return {}; // tried to fire weapon from unknown object
+
         auto& obj = *pObj;
         obj.Effects.CloakFlickerTimer = CLOAK_FIRING_FLICKER;
 
@@ -610,6 +603,7 @@ namespace Inferno::Game {
         Vector3 direction = customDir ? *customDir : obj.Rotation.Forward();
         auto projectile = CreateWeaponProjectile(id, position, direction, obj.Segment, ref, damageMultiplier, volume);
         auto& weapon = Resources::GetWeapon(id);
+        projectile.Faction = obj.Faction;
 
         if (weapon.Extended.Recoil)
             obj.Physics.Thrust += obj.Rotation.Backward() * weapon.Extended.Recoil;
@@ -818,7 +812,7 @@ namespace Inferno::Game {
                 if (!targets[i]) break;
 
                 if (auto src = Game::Level.TryGetObject(targets[i])) {
-                    auto [id, dist] = Game::FindNearestVisibleObject(src->Position, src->Segment, MAX_CHAIN_DIST, ObjectMask::Robot, targets);
+                    auto [id, dist] = Game::FindNearestVisibleObject({ src->Segment, src->Position }, MAX_CHAIN_DIST, ObjectMask::Robot, targets);
                     if (id)
                         targets[i + 1] = id;
                 }
@@ -1143,7 +1137,7 @@ namespace Inferno::Game {
             dir.Normalize();
             weapon.Physics.Velocity = dir * speed;
 
-            Render::Debug::DrawLine(weapon.Position, target->Position, Color(1, 0, 0));
+            //Render::Debug::DrawLine(weapon.Position, target->Position, Color(1, 0, 0));
 
             // Remove life based on amount turned ... ?
             //auto dot = tempVel.Dot(targetDir);

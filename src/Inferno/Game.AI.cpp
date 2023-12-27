@@ -711,7 +711,9 @@ namespace Inferno {
 
         if (Settings::Cheats.DisableWeaponDamage) return;
 
+        // Apply damage
         robot.HitPoints -= damage;
+
         if (info.IsBoss) return;
         if (robot.HitPoints <= 0 && info.DeathRoll == 0) {
             AlertAlliesOfDeath(robot);
@@ -1201,15 +1203,15 @@ namespace Inferno {
             ai.Fear = 100;
             // Fight back harder or run away randomly
 
-            ai.GoalPath = GenerateRandomPath(robot.Segment, 8);
-            ai.GoalPathIndex = 0;
+            ai.Path = GenerateRandomPath(robot.Segment, 8);
+            ai.PathIndex = 0;
             ai.PathDelay = AI_PATH_DELAY;
             return false;
         }
     }
 
     void UpdateFindHelp(AIRuntime& ai, Object& robot) {
-        if (ai.GoalPath.empty() || !ai.TargetPosition) {
+        if (ai.Path.empty() || !ai.TargetPosition) {
             // Target can become none if it dies
             ai.State = AIState::Alert;
             return;
@@ -1217,7 +1219,7 @@ namespace Inferno {
 
         PathTowardsGoal(robot, ai, false, false);
 
-        auto [goalDir, goalDist] = GetDirectionAndDistance(ai.GoalPath.back().Position, robot.Position);
+        auto [goalDir, goalDist] = GetDirectionAndDistance(ai.Path.back().Position, robot.Position);
 
         constexpr float REACHED_GOAL_DIST = 40;
         if (goalDist > REACHED_GOAL_DIST) return;
@@ -1559,13 +1561,10 @@ namespace Inferno {
                 auto target = Game::GetObject(ai.Target);
                 ai.State = AIState::Path;
                 ai.CombatState = AICombatState::Normal;
-                ai.GoalPath = GenerateRandomPath(robot.Segment, 15, NavigationFlags::OpenKeyDoors, target ? target->Segment : SegID::None);
-                ai.GoalPathIndex = 0;
+                ai.Path = GenerateRandomPath(robot.Segment, 15, NavigationFlags::OpenKeyDoors, target ? target->Segment : SegID::None);
+                ai.PathIndex = 0;
                 ai.Awareness = 1;
                 Chat(robot, "Hostile sighted!");
-                //ai.AlertTimer = 0;
-                //PlayAlertSound(robot, ai);
-                //AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 1);
             }
             else if (ai.Awareness <= 0 && ai.State != AIState::Idle) {
                 ai.State = AIState::Idle;
@@ -1573,6 +1572,53 @@ namespace Inferno {
             }
         }
     }
+
+    void MineLayerBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float /*dt*/) {
+        if (ScanForTarget(robot, ai)) {
+            ai.Awareness = 1;
+        }
+
+        // Periodically alert allies while not idle
+        if (ai.State != AIState::Idle && ai.AlertTimer <= 0 && ai.TargetPosition) {
+            AlertRobotsOfTarget(robot, robotInfo.AlertRadius, *ai.TargetPosition, 0.75f);
+            ai.AlertTimer = 4 + Random() * 2;
+            Sound3D sound(robotInfo.SeeSound);
+            sound.Volume = 0.4f;
+            Sound::PlayFrom(sound, robot);
+        }
+
+        // Mine layers are either in path mode or idle. They cannot peform any other action.
+        if (ai.State == AIState::Path) {
+            if (!PathTowardsGoal(robot, ai, false, false)) {
+                ai.ClearPath();
+                ai.State = AIState::Alert;
+            }
+
+            if (ai.FireDelay <= 0) {
+                auto weapon = robot.Control.AI.SmartMineFlag() ? WeaponID::SmartMine : WeaponID::ProxMine;
+                Game::FireWeapon(Game::GetObjectRef(robot), weapon, 0, nullptr, 1, false);
+                ai.FireDelay = AI_MINE_LAYER_DELAY;
+            }
+            MakeCombatNoise(robot, ai);
+        }
+        else {
+            // Keep pathing until awareness fully decays
+            if (ai.Awareness >= 1 && ai.Path.empty()) {
+                auto target = Game::GetObject(ai.Target);
+                ai.State = AIState::Path;
+                ai.CombatState = AICombatState::Normal;
+                ai.Path = GenerateRandomPath(robot.Segment, 15, NavigationFlags::None, target ? target->Segment : SegID::None);
+                ai.PathIndex = 0;
+                ai.AlertTimer = 1 + Random() * 2;
+            }
+            else if (ai.Awareness <= 0) {
+                ai.State = AIState::Idle;
+            }
+
+            DecayAwareness(ai);
+        }
+    }
+
 
     void DefaultBehavior(AIRuntime& ai, Object& robot, const RobotInfo& robotInfo, float dt) {
         switch (ai.State) {
@@ -1599,7 +1645,7 @@ namespace Inferno {
             case AIState::Chase:
                 CheckProjectiles(Game::Level, robot, ai, robotInfo);
 
-                if (ai.GoalPath.empty()) {
+                if (ai.Path.empty()) {
                     ai.State = AIState::Alert;
                 }
                 else {
@@ -1684,6 +1730,8 @@ namespace Inferno {
 
         if (robotInfo.Script == "Supervisor")
             SupervisorBehavior(ai, robot, robotInfo, dt);
+        else if (robot.Control.AI.Behavior == AIBehavior::RunFrom)
+            MineLayerBehavior(ai, robot, robotInfo, dt);
         else
             DefaultBehavior(ai, robot, robotInfo, dt);
 

@@ -745,6 +745,7 @@ namespace Inferno::Game {
         Player.SpawnRotation = player->Rotation;
         Player.SpawnSegment = player->Segment;
         Player.Lives = PlayerData::INITIAL_LIVES;
+        player->Faction = Faction::Player;
 
         Editor::History.SnapshotLevel("Playtest");
         State = GameState::Game;
@@ -783,6 +784,7 @@ namespace Inferno::Game {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
                 obj.MaxHitPoints = obj.HitPoints = ri.HitPoints;
                 PlayRobotAnimation(obj, AnimState::Rest);
+                obj.Faction = Faction::Robot;
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }
@@ -800,11 +802,16 @@ namespace Inferno::Game {
             //    obj.Ambient.SetTarget(seg->VolumeLight, 0);
             //}
 
-            if (obj.Type == ObjectType::Reactor)
+            if (obj.Type == ObjectType::Reactor) {
+                obj.Faction = Faction::Robot;
                 InitReactor(Level, obj);
+            }
+
+            if (obj.IsWeapon() && obj.ID == (int)WeaponID::LevelMine)
+                obj.Faction = Faction::Robot;
 
             if (obj.Type == ObjectType::Robot) {
-                obj.NextThinkTime = Time + 0.5f; // Prevent hot-starts
+                obj.NextThinkTime = Time + 0.5f; // Help against hot-starts by sleeping robots on level load
                 SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
             }
         }
@@ -816,7 +823,6 @@ namespace Inferno::Game {
         EditorCameraSnapshot = Render::Camera;
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
-        Inferno::Clock = {}; // Reset clock
         Player.Respawn(false);
     }
 

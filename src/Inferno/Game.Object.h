@@ -73,7 +73,7 @@ namespace Inferno {
 
     namespace Game {
         Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);
-        Tuple<ObjRef, float> FindNearestVisibleObject(const Vector3& position, SegID seg, float maxDist, ObjectMask mask, span<ObjRef> objFilter);
+        Tuple<ObjRef, float> FindNearestVisibleObject(const NavPoint& point, float maxDist, ObjectMask mask, span<ObjRef> objFilter);
         void AttachLight(const Object& obj, ObjRef ref);
 
         // Schedules an object to be added at end of update

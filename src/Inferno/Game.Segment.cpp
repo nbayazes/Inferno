@@ -188,9 +188,9 @@ namespace Inferno {
     SegID TraceSegmentInternal(const Level& level, SegID start, const Vector3& point, int& iterations) {
         iterations++;
 
+        ASSERT(iterations <= 50);
         if (iterations > 50) {
             SPDLOG_ERROR("Trace depth limit reached, something is wrong");
-            __debugbreak();
             return start;
         }
 

@@ -17,6 +17,7 @@ namespace Inferno {
     //constexpr float AI_COUNT_ALLY_RANGE = 200; // How far to search for allies
     constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of allies are nearby
     constexpr float AI_HELP_SEARCH_RADIUS = 350;
+    constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
 
     struct AITarget {
         Vector3 Position;
@@ -125,8 +126,8 @@ namespace Inferno {
         float DeathRollTimer = 0; // time passed since dying
         float TeleportDelay = 0; // Delay before next teleport
 
-        List<NavPoint> GoalPath; // For pathing to another segment
-        int16 GoalPathIndex = -1;
+        List<NavPoint> Path; // For pathing to another segment
+        int16 PathIndex = -1;
         GameTimer AlertTimer;  // For alerting nearby robots of the player location
         GameTimer CombatSoundTimer; // For playing combat sounds
         GameTimer FleeTimer; // Finds help when this triggers
@@ -137,8 +138,8 @@ namespace Inferno {
         }
 
         void ClearPath() {
-            GoalPath.clear();
-            GoalPathIndex = -1;
+            Path.clear();
+            PathIndex = -1;
         }
 
         void AddAwareness(float awareness, float maxAwareness = AI_AWARENESS_MAX) {

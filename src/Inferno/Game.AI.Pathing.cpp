@@ -28,8 +28,8 @@ namespace Inferno {
 
         //auto path = Game::Navigation.NavigateTo(obj.Segment, soundSeg, !robotInfo.IsThief, Game::Level);
         ai.PathDelay = AI_PATH_DELAY;
-        ai.GoalPath = path;
-        ai.GoalPathIndex = 0;
+        ai.Path = path;
+        ai.PathIndex = 0;
         ai.State = AIState::Chase; // Stop pathing after seeing target
         obj.NextThinkTime = 0;
     }
@@ -350,34 +350,34 @@ namespace Inferno {
         if (robotInfo.IsThief)
             SetFlag(flags, NavigationFlags::OpenKeyDoors);
 
-        ai.GoalPath = Game::Navigation.NavigateTo(obj.Segment, goal, flags, level, maxDistance);
+        ai.Path = Game::Navigation.NavigateTo(obj.Segment, goal, flags, level, maxDistance);
         ai.PathDelay = AI_PATH_DELAY;
 
-        if (ai.GoalPath.empty()) {
-            ai.GoalPathIndex = -1;
+        if (ai.Path.empty()) {
+            ai.PathIndex = -1;
             return false; // Unable to find a valid path, give up
         }
 
         //SPDLOG_INFO("Robot {} updating path goal to {}", obj.Signature, ai.GoalSegment);
-        ai.GoalPathIndex = 0;
+        ai.PathIndex = 0;
         return true;
     }
 
     bool PathTowardsGoal(Object& obj, AIRuntime& ai, bool alwaysFaceGoal, bool stopOnceVisible) {
         // Travel along a designated path, incrementing the node index as we go
-        if (!Seq::inRange(ai.GoalPath, ai.GoalPathIndex))
+        if (!Seq::inRange(ai.Path, ai.PathIndex))
             return false; // Empty or invalid index
 
-        auto& node = ai.GoalPath[ai.GoalPathIndex];
-        auto& goal = ai.GoalPath.back();
+        auto& node = ai.Path[ai.PathIndex];
+        auto& goal = ai.Path.back();
         auto& robot = Resources::GetRobotInfo(obj.ID);
 
         if (Settings::Cheats.ShowPathing) {
             Render::Debug::DrawLine(obj.Position, node.Position, Color(0, 1, 0));
 
-            for (int i = 0; i < ai.GoalPath.size() - 1; i++) {
-                auto& a = ai.GoalPath[i];
-                auto& b = ai.GoalPath[i + 1];
+            for (int i = 0; i < ai.Path.size() - 1; i++) {
+                auto& a = ai.Path[i];
+                auto& b = ai.Path[i + 1];
                 Render::Debug::DrawLine(a.Position, b.Position, Color(0, .8, 1));
             }
         }
@@ -386,7 +386,7 @@ namespace Inferno {
 
         if (stopOnceVisible && isGoal && HasLineOfSight(obj, node.Position)) {
             SPDLOG_INFO("Robot {} can see the goal!", obj.Signature);
-            ai.GoalPath.clear();
+            ai.Path.clear();
             return false;
         }
 
@@ -401,7 +401,7 @@ namespace Inferno {
 
         // Move towards each path node until sufficiently close
         if (Vector3::Distance(obj.Position, node.Position) <= std::max(obj.Radius, 5.0f)) {
-            ai.GoalPathIndex++;
+            ai.PathIndex++;
         }
 
         return true;

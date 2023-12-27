@@ -497,7 +497,7 @@ namespace Inferno {
         return { ref, dist };
     }
 
-    Tuple<ObjRef, float> Game::FindNearestVisibleObject(const Vector3& position, SegID seg, float maxDist, ObjectMask mask, span<ObjRef> objFilter) {
+    Tuple<ObjRef, float> Game::FindNearestVisibleObject(const NavPoint& point, float maxDist, ObjectMask mask, span<ObjRef> objFilter) {
         ObjRef id;
         float minDist = FLT_MAX;
 
@@ -506,12 +506,12 @@ namespace Inferno {
             if (!obj.PassesMask(mask) || !obj.IsAlive()) continue;
             ObjRef ref = { (ObjID)i, obj.Signature };
             if (Seq::contains(objFilter, ref)) continue;
-            auto dir = obj.Position - position;
+            auto dir = obj.Position - point.Position;
             auto d = dir.Length();
             dir.Normalize();
-            Ray ray(position, dir);
+            Ray ray(point.Position, dir);
             LevelHit hit;
-            RayQuery query{ .MaxDistance = d, .Start = seg, .Mode = RayQueryMode::Precise };
+            RayQuery query{ .MaxDistance = d, .Start = point.Segment, .Mode = RayQueryMode::Precise };
             if (d <= maxDist && d < minDist && !Game::Intersect.RayLevel(ray, query, hit)) {
                 id = ref;
                 minDist = d;
@@ -690,10 +690,13 @@ namespace Inferno {
 
         Level.GetSegment(obj.Segment).AddObject(id);
         AttachLight(obj, { id, obj.Signature });
-
         ResizeAI(Level.Objects.size());
-        if (obj.IsRobot())
+
+        if (obj.IsRobot()) {
             GetAI(obj) = {}; // Reset AI state
+            obj.Faction = Faction::Robot;
+        }
+
         return { id, obj.Signature };
     }
 

@@ -315,6 +315,12 @@ namespace Inferno {
         Ignited = 1 << 4
     };
 
+    enum class Faction {
+        Neutral,
+        Player,
+        Robot
+    };
+
     struct ObjectEffects {
         EffectFlags Flags;
 
@@ -351,6 +357,7 @@ namespace Inferno {
         ObjectFlag Flags{};
         SegID Segment = SegID::None; // segment number containing object
         ObjectEffects Effects{};
+        Faction Faction = Faction::Neutral; // What is this object allied with?
 
         float Radius = 2; // radius of object for collision detection
         float HitPoints = 100; // Objects are destroyed when hitpoints go under 0
