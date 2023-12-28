@@ -1306,7 +1306,6 @@ namespace Inferno {
         if (TimeDead > PLAYER_DEATH_EXPLODE_TIME) {
             if (!Exploded) {
                 Exploded = true;
-                HostagesOnShip = 0;
                 Lives--;
 
                 GameExplosion explosion;
