@@ -268,7 +268,7 @@ namespace Inferno {
                         Sound3D sound(SoundID::FusionWarmup);
                         sound.Volume = .6f;
                         Sound::AtPlayer(sound);
-                        AlertEnemiesOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f);
+                        AlertRobotsOfNoise(player, Game::PLAYER_FUSION_SOUND_RADIUS, 0.5f);
                     }
 
                     if (auto fx = Render::EffectLibrary.GetSparks("fusion_charge")) {
@@ -314,7 +314,7 @@ namespace Inferno {
         Game::FireWeapon(Reference, WeaponID::Flare, 6);
         auto& weapon = Resources::GetWeapon(WeaponID::Flare);
         _nextFlareFireTime = Game::Time + weapon.FireDelay;
-        AlertEnemiesOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
     }
 
     SecondaryWeaponIndex Player::GetActiveBomb() const {
@@ -469,7 +469,7 @@ namespace Inferno {
         WeaponCharge = 0;
         LastPrimaryFireTime = Game::Time;
 
-        AlertEnemiesOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
 
         if (!CanFirePrimary(Primary) && Primary != PrimaryWeaponIndex::Omega)
             AutoselectPrimary();
@@ -504,7 +504,7 @@ namespace Inferno {
 
         MissileFiringIndex = (MissileFiringIndex + 1) % 2;
         SecondaryAmmo[(int)Secondary] -= (uint16)weapon.AmmoUsage;
-        AlertEnemiesOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
+        AlertRobotsOfNoise(Game::GetPlayerObject(), GetWeaponSoundRadius(weapon), weapon.Extended.Noise);
 
         if (!CanFireSecondary(Secondary))
             AutoselectSecondary(); // Swap to different weapon if out of ammo

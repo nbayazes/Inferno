@@ -1334,7 +1334,7 @@ namespace Inferno {
 
             if (volume > 0) {
                 if (obj.IsPlayer())
-                    AlertEnemiesOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
+                    AlertRobotsOfNoise(Game::GetPlayerObject(), Game::PLAYER_HIT_WALL_RADIUS, Game::PLAYER_HIT_WALL_NOISE);
 
                 Sound::Play({ SoundID::PlayerHitWall }, hit.Point, obj.Segment);
             }

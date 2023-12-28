@@ -178,6 +178,13 @@ namespace Inferno {
                 }
 
                 auto localPath = NavigateWithinRoomBfs(level, roomStartSeg, bestPortal.Segment, *room);
+                if (localPath.empty()) {
+                    // Start seg was on portal
+                    localPath.push_back({ roomStartSeg, seg.Center });
+                    if (auto side = level.TryGetSide(bestPortal))
+                        localPath.push_back({ roomStartSeg, side->Center + side->AverageNormal });
+                }
+
                 Seq::append(path, localPath);
 
                 // Use the portal connection as the start for the next room

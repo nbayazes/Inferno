@@ -7,7 +7,7 @@
 
 namespace Inferno {
     // Tries to open a door
-    void OpenDoor(Level& level, Tag tag);
+    void OpenDoor(Level& level, Tag tag, Faction source);
     void DestroyWall(Level& level, Tag tag);
 
     // Updates opened doors

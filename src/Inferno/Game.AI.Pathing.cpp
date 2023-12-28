@@ -382,9 +382,8 @@ namespace Inferno {
             }
         }
 
-        bool isGoal = &goal == &node;
-
-        if (stopOnceVisible && isGoal && HasLineOfSight(obj, node.Position)) {
+        if (stopOnceVisible && obj.Segment != ai.Path.front().Segment && HasLineOfSight(obj, goal.Position)) {
+            PlayAlertSound(obj, ai);
             SPDLOG_INFO("Robot {} can see the goal!", obj.Signature);
             ai.Path.clear();
             return false;

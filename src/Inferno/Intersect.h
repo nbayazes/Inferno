@@ -106,7 +106,7 @@ namespace Inferno {
         IntersectContext(const Level& level) : _level(&level) {}
 
         // intersects a ray with the level, returning hit information. Also tests against object spheres if mask is set.
-        bool RayLevel(const Ray& ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None);
+        bool RayLevel(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask = ObjectMask::None, ObjID source = ObjID::None);
     };
 
     namespace Debug {

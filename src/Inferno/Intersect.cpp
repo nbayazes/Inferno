@@ -300,11 +300,10 @@ namespace Inferno {
         }
     }
 
-    bool IntersectContext::RayLevel(const Ray& ray2, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
-        Ray ray = ray2;
+    bool IntersectContext::RayLevel(Ray ray, const RayQuery& query, LevelHit& hit, ObjectMask mask, ObjID source) {
         //SPDLOG_INFO("RayLevel() start: {}", query.Start);
         ASSERT(query.Start != SegID::None); // Very bad for perf to not supply seg
-        ASSERT(query.MaxDistance > 0);
+        //ASSERT(query.MaxDistance > 0);
         if (query.MaxDistance <= 0.01f) return false;
 
         auto next = TraceSegment(*_level, query.Start, ray.position); // Check that the ray is inside the segment

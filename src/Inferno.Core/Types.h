@@ -605,12 +605,6 @@ namespace Inferno {
         const auto end() const { return _data.begin() + _count; }
     };
 
-    // Point used for AI navigation
-    struct NavPoint {
-        SegID Segment = SegID::None;
-        Vector3 Position;
-    };
-
     // enum to int formatters to make fmt happy
 
     constexpr auto format_as(SegID id) { return (int)id; }

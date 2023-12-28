@@ -196,7 +196,7 @@ namespace Inferno {
     }
 
     // Commands a door to open
-    void OpenDoor(Level& level, Tag tag) {
+    void OpenDoor(Level& level, Tag tag, Faction source) {
         auto& seg = level.GetSegment(tag);
         auto& side = seg.GetSide(tag.Side);
         auto wall = level.TryGetWall(side.Wall);
@@ -236,6 +236,13 @@ namespace Inferno {
 
         if (clip.OpenSound != SoundID::None) {
             Sound::Play({ clip.OpenSound }, side.Center, tag.Segment);
+        }
+
+        // Have robots look at opened doors on Hotshot and above that they didn't open
+        if (Game::Difficulty > 1 && source == Faction::Player) {
+            // Alert both sides of the door (sound stops at closed doors)
+            AlertRobotsOfNoise({ tag.Segment, side.Center + side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
+            AlertRobotsOfNoise({ conn.Segment, side.Center - side.AverageNormal }, AI_DOOR_AWARENESS_RADIUS, 2);
         }
     }
 
@@ -585,10 +592,10 @@ namespace Inferno {
         else if (wall.Type == WallType::Door) {
             if (pRobot && RobotCanOpenDoor(level, wall, *pRobot)) {
                 // Allow robots to open normal doors
-                OpenDoor(level, wall.Tag);
+                OpenDoor(level, wall.Tag, src.Faction);
             }
             else if (isPlayerSource && Game::Player.CanOpenDoor(wall)) {
-                OpenDoor(level, wall.Tag);
+                OpenDoor(level, wall.Tag, src.Faction);
             }
             else if (src.Type == ObjectType::Weapon || src.Type == ObjectType::Player) {
                 // Can't open door
@@ -624,7 +631,7 @@ namespace Inferno {
                     DestroyWall(level, *wall);
 
                 if (wall->Type == WallType::Door || wall->Type == WallType::Closed)
-                    OpenDoor(level, target);
+                    OpenDoor(level, target, Faction::Neutral);
             }
         }
     }

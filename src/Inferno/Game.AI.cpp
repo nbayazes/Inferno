@@ -117,54 +117,51 @@ namespace Inferno {
         Sound::PlayFrom(Sound3D(robotInfo.SeeSound), robot);
     }
 
+    void AlertEnemiesInSegment(Level& level, const Segment& seg, const NavPoint& source, float soundRadius, float awareness) {
+        for (auto& objId : seg.Objects) {
+            if (auto obj = level.TryGetObject(objId)) {
+                if (!obj->IsRobot()) continue;
+
+                auto dist = Vector3::Distance(obj->Position, source.Position);
+                if (dist > soundRadius) continue;
+
+                auto& ai = GetAI(*obj);
+                float t = dist / soundRadius;
+                auto falloff = Saturate(2.0f - 2.0f * t) * 0.5f + 0.5f; // linear shoulder
+
+                if (HasLineOfSight(*obj, source.Position)) {
+                    ai.AddAwareness(awareness * falloff);
+                }
+                else {
+                    ai.AddAwareness(awareness * falloff * 0.5f);
+                }
+
+                //auto prevAwareness = ai.Awareness;
+                ai.TargetPosition = source;
+                obj->NextThinkTime = 0;
+
+                // Update chase target if we hear something
+                if (ai.State == AIState::Chase)
+                    ChaseTarget(ai, *obj, *ai.TargetPosition, ChaseMode::Sound);
+            }
+        }
+    }
+
     void AlertEnemiesInRoom(Level& level, const Room& room, SegID soundSeg, const Vector3& soundPosition, float soundRadius, float awareness, float /*maxAwareness*/) {
         for (auto& segId : room.Segments) {
             auto pseg = level.TryGetSegment(segId);
             if (!pseg) continue;
             auto& seg = *pseg;
 
-            for (auto& objId : seg.Objects) {
-                if (auto obj = level.TryGetObject(objId)) {
-                    if (!obj->IsRobot()) continue;
-
-                    auto dist = Vector3::Distance(obj->Position, soundPosition);
-                    if (dist > soundRadius) continue;
-
-                    auto& ai = GetAI(*obj);
-                    float t = dist / soundRadius;
-                    auto falloff = Saturate(2.0f - 2.0f * t) * 0.5f + 0.5f; // linear shoulder
-
-                    if (HasLineOfSight(*obj, soundPosition)) {
-                        ai.AddAwareness(awareness * falloff);
-                    }
-                    else {
-                        ai.AddAwareness(awareness * falloff * 0.5f);
-                    }
-
-                    //auto prevAwareness = ai.Awareness;
-                    ai.TargetPosition = { soundSeg, soundPosition };
-                    obj->NextThinkTime = 0;
-
-                    // Update chase target if we hear something
-                    if (ai.State == AIState::Chase)
-                        ChaseTarget(ai, *obj, *ai.TargetPosition, ChaseMode::Sound);
-                }
-            }
+            AlertEnemiesInSegment(level, seg, { soundSeg, soundPosition }, soundRadius, awareness);
         }
     }
 
     // adds awareness to robots in nearby rooms
-    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness, float maxAwareness) {
-        auto& level = Game::Level;
-        auto room = level.GetRoomID(source);
-        if (room == RoomID::None) return;
-
-        auto action = [&](const Room& r) {
-            AlertEnemiesInRoom(level, r, source.Segment, source.Position, soundRadius, awareness, maxAwareness);
-            return false;
-        };
-
-        TraverseRoomsByDistance(level, room, source.Position, soundRadius, true, action);
+    void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness) {
+        IterateNearbySegments(Game::Level, source, soundRadius, [&](const Segment& seg, bool) {
+            AlertEnemiesInSegment(Game::Level, seg, source, soundRadius, awareness);
+        });
     }
 
     void AlertAlliesOfDeath(const Object& dyingRobot) {

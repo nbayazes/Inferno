@@ -41,7 +41,7 @@ namespace Inferno::Game {
         for (auto& tag : Level.ReactorTriggers) {
             if (auto wall = Level.TryGetWall(tag)) {
                 if (wall->Type == WallType::Door && wall->State == WallState::Closed)
-                    OpenDoor(Level, tag);
+                    OpenDoor(Level, tag, Faction::Neutral);
 
                 if (wall->Type == WallType::Destroyable)
                     DestroyWall(Level, tag);

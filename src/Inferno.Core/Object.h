@@ -504,4 +504,14 @@ namespace Inferno {
         bool IsRobot() const { return Type == ObjectType::Robot; }
         bool IsWeapon() const { return Type == ObjectType::Weapon; }
     };
+
+    // Point used for AI navigation
+    struct NavPoint {
+        SegID Segment = SegID::None;
+        Vector3 Position;
+
+        NavPoint() = default;
+        NavPoint(SegID seg, const Vector3& pos) : Segment(seg), Position(pos) {}
+        NavPoint(const Object& obj) : Segment(obj.Segment), Position(obj.Position) {}
+    };
 }

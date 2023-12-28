@@ -18,6 +18,7 @@ namespace Inferno {
     constexpr uint AI_ALLY_FLEE_MIN = 2; // Will flee if fewer than this number of allies are nearby
     constexpr float AI_HELP_SEARCH_RADIUS = 350;
     constexpr float AI_MINE_LAYER_DELAY = 5; // Seconds between robots dropping mines
+    constexpr float AI_DOOR_AWARENESS_RADIUS = 150; // Noise distance of opening a door
 
     struct AITarget {
         Vector3 Position;
@@ -299,7 +300,7 @@ namespace Inferno {
 
     void UpdateAI(Object& obj, float dt);
     void RobotTouchObject(const Object& robot, const Object& obj);
-    void AlertEnemiesOfNoise(const Object& source, float soundRadius, float awareness, float maxAwareness = AI_AWARENESS_MAX);
+    void AlertRobotsOfNoise(const NavPoint& source, float soundRadius, float awareness);
     void PlayRobotAnimation(const Object& robot, AnimState state, float time = 0.4f, float moveMult = 5, float delay = 0);
 
     // Applies damage to a robot, applying stuns, slows, and waking it up if necessary.
@@ -319,12 +320,13 @@ namespace Inferno {
 
     AIRuntime& GetAI(const Object& obj);
 
+    void PlayAlertSound(const Object& robot, AIRuntime& ai);
+
     bool DeathRoll(Object& obj, float rollDuration, float elapsedTime, SoundID soundId, bool& dyingSoundPlaying, float volume, float dt);
 
     void MoveTowardsPoint(const Object& robot, AIRuntime& ai, const Vector3& point, float scale = 1);
 
     struct RobotInfo;
-    float GetRotationSpeed(const RobotInfo& ri);
     void MoveTowardsDir(Object& robot, const Vector3& dir, float dt, float scale = 1);
     Vector3 LeadTarget(const Vector3& gunPosition, SegID gunSeg, const Object& target, const Weapon& weapon);
     bool HasLineOfSight(const Object& obj, const Vector3& point, bool precise = false);
