@@ -211,4 +211,5 @@ namespace Inferno::Game {
     }
 
     inline float FrameTime = 0; // Time of this frame in seconds. 0 when paused.
+    inline bool ResetDeltaTime = false;
 }

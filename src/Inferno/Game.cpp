@@ -33,7 +33,6 @@ namespace Inferno::Game {
         GameState State = GameState::Editor;
         GameState RequestedState = GameState::Editor;
         Camera EditorCameraSnapshot;
-
         constexpr size_t OBJECT_BUFFER_SIZE = 100; // How many new objects to keep in reserve
     }
 
@@ -438,8 +437,6 @@ namespace Inferno::Game {
         }
 
         static double accumulator = 0;
-        static double t = 0;
-
         accumulator += dt;
         accumulator = std::min(accumulator, 2.0);
 
@@ -451,7 +448,6 @@ namespace Inferno::Game {
             UpdateDoors(Level, TICK_RATE);
             FixedUpdate(TICK_RATE);
             accumulator -= TICK_RATE;
-            t += TICK_RATE;
             Game::DeltaTime += TICK_RATE;
         }
         //LegitProfiler::AddCpuTask(std::move(task));
@@ -772,8 +768,6 @@ namespace Inferno::Game {
         Render::LevelChanged = true; // regenerate level meshes
 
         // init objects
-        Time = 0;
-
         for (int id = 0; id < Level.Objects.size(); id++) {
             auto& obj = Level.Objects[id];
 
@@ -783,8 +777,10 @@ namespace Inferno::Game {
             if (obj.Type == ObjectType::Robot) {
                 auto& ri = Resources::GetRobotInfo(obj.ID);
                 obj.MaxHitPoints = obj.HitPoints = ri.HitPoints;
-                PlayRobotAnimation(obj, AnimState::Rest);
                 obj.Faction = Faction::Robot;
+                SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
+                obj.NextThinkTime = Time + 0.5f; // Help against hot-starts by sleeping robots on level load
+                PlayRobotAnimation(obj, AnimState::Rest);
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
             }
@@ -809,11 +805,6 @@ namespace Inferno::Game {
 
             if (obj.IsWeapon() && obj.ID == (int)WeaponID::LevelMine)
                 obj.Faction = Faction::Robot;
-
-            if (obj.Type == ObjectType::Robot) {
-                obj.NextThinkTime = Time + 0.5f; // Help against hot-starts by sleeping robots on level load
-                SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
-            }
         }
 
         MarkAmbientSegments(SoundFlag::AmbientLava, TextureFlag::Volatile);
@@ -824,6 +815,9 @@ namespace Inferno::Game {
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);
+
+        Game::Time = Game::FrameTime = Game::DeltaTime = 0;
+        ResetDeltaTime = true;
     }
 
     void SetState(GameState state) {

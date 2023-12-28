@@ -99,6 +99,12 @@ void Application::Tick() {
     if (dt == 0)
         return; // Skip first tick
 
+    // Level was just loaded, reset timers
+    if (Game::ResetDeltaTime) {
+        Game::ResetDeltaTime = false;
+        return;
+    }
+
     if (dt > 2) {
         SPDLOG_WARN("Long delta time of {}, clamping to 2s", dt);
         dt = 2;
