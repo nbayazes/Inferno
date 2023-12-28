@@ -28,6 +28,8 @@ namespace Inferno {
             auto seg = level.TryGetSegment(segid);
             if (!seg) continue;
 
+            visited[(int)segid] = true;
+
             bool stop = false;
             action(*seg, stop);
             if (stop) break;
@@ -39,9 +41,7 @@ namespace Inferno {
                     continue;
 
                 auto connection = seg->GetConnection(sideid);
-                auto& isVisited = visited[(int)connection];
-                if (isVisited) continue; // already visited
-                isVisited = true;
+                if (visited[(int)connection]) continue; // already visited
                 queue.push_back(connection);
             }
         }

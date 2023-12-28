@@ -8,7 +8,7 @@ Weapons:
     ExplosionTexture: RedLaserHit
     ExplosionSize: 1.75
     ExplosionTime: 0.4
-    Glow: 1, 0.25, 0.25, 24
+    Glow: 1, 0, 0, 25
     LightRadius: 16
     LightColor: 1, 0.025, 0.025, 1.5
     FlashColor: 1, 0.025, 0.025, 1.5
@@ -35,7 +35,7 @@ Weapons:
     Name: laser 2
     Mass: 0.05
     FireDelay: 0.25
-    Glow: 1, 0.1667, 0.333, 20
+    Glow: 1, 0.0, 0.333, 20
     ModelName: PurpleLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -44,7 +44,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    LightColor: 0.6, 0.05, 0.3, 2.5
+    LightColor: 1, 0.1, 0.33, 1.5
     FlashColor: 1, 0.15, 0.6, 2
     EnergyUsage: 0.25
 
@@ -52,7 +52,7 @@ Weapons:
     Name: laser 3
     Mass: 0.05
     FireDelay: 0.25
-    Glow: .25, .25, 1, 24
+    Glow: .125, .125, 1, 30
     ModelName: bluelaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -69,7 +69,7 @@ Weapons:
     Name: laser 4
     Mass: 0.05
     FireDelay: 0.25
-    Glow: .5, 1, .5, 16
+    Glow: 0, 1, 0, 14
     ModelName: GreenLaser.OOF
     ModelScale: 0.7
     Size: 0.5
@@ -79,7 +79,7 @@ Weapons:
     ExplosionTime: 0.4
     LightRadius: 16
     LightColor: 0.075, 0.6, 0.075, 2.5
-    FlashColor: 1, 1, 1, 4
+    FlashColor: 1, 1, 1, 1
     EnergyUsage: 0.25
 
   - id: 5
