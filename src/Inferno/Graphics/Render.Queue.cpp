@@ -9,8 +9,6 @@
 #include "Render.Particles.h"
 #include "Render.h"
 
-//#define DEBUG_PORTALS
-
 namespace Inferno::Render {
     bool ShouldDrawObject(const Object& obj) {
         if (!obj.IsAlive()) return false;
@@ -27,6 +25,7 @@ namespace Inferno::Render {
         _visited.clear();
         _distortionQueue.clear();
         _roomQueue.clear();
+        _visibleRooms.clear();
 
         if (Settings::Editor.RenderMode == RenderMode::None) return;
 
@@ -75,7 +74,7 @@ namespace Inferno::Render {
 
             // Mark all rooms as visible in editor mode
             for (int i = 0; i < level.Rooms.size(); i++) {
-                _roomQueue.push_back((RoomID)i);
+                _visibleRooms.push_back((RoomID)i);
             }
         }
         else if (!level.Objects.empty()) {
@@ -411,19 +410,29 @@ namespace Inferno::Render {
         DebugCanvas->Draw(payload);
     }
 
-    void RenderQueue::CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth) {
+    void RenderQueue::CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, int depth, RoomID prev) {
         if (depth > MAX_PORTAL_DEPTH)
             return; // Prevent stack overflow
+        
+        auto room = level.GetRoom(srcPortal.RoomLink);
+        if (!room) return;
+        auto srcFace = Face2::FromSide(level, srcPortal.Tag);
 
-        for (auto& portal : room.Portals) {
-            if (Seq::contains(_roomQueue, portal.RoomLink))
-                continue; // Already visited linked room
+        for (auto& portal : room->Portals) {
+            //if (Seq::contains(_roomQueue, portal.RoomLink))
+            //    continue; // Already visited linked room
 
             if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls
 
+            if (portal.RoomLink == prev)
+                continue; // Don't go back to the connected room
 
             auto face = Face2::FromSide(level, portal.Tag);
+            auto dot = face.AverageNormal().Dot(srcFace.AverageNormal());
+            if (dot < 0)
+                continue; // Portal is facing away from portal
+
             auto ndc = GetNdc(face, Render::ViewProjection);
             if (!ndc) continue;
             auto bounds = Bounds2D::FromPoints(*ndc);
@@ -434,23 +443,25 @@ namespace Inferno::Render {
                 bounds = srcBounds.Intersection(bounds);
 
             if (!bounds.Empty()) {
-                if (!Seq::contains(_roomQueue, portal.RoomLink))
-                    _roomQueue.push_back(portal.RoomLink);
+                //if (!Seq::contains(_roomQueue, portal.RoomLink))
+                //    _roomQueue.push_back(portal.RoomLink);
+
+                if (!Seq::contains(_visibleRooms, portal.RoomLink))
+                    _visibleRooms.push_back(portal.RoomLink);
 
                 // Keep searching...
-#ifdef DEBUG_PORTALS
-                DrawBounds(bounds, Color(0, 1, 0, 0.2f));
-#endif
-                if (auto linkedRoom = level.GetRoom(portal.RoomLink))
-                    CheckRoomVisibility(level, *linkedRoom, bounds, depth++);
+                if (Settings::Editor.ShowPortals)
+                    DrawBounds(bounds, Color(0, 1, 0, 0.2f));
+
+                CheckRoomVisibility(level, portal, bounds, depth++, srcPortal.RoomLink);
             }
         }
     }
 
     void RenderQueue::TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes) {
-        _roomQueue.clear();
         _objects.clear();
-        _roomQueue.push_back(startRoomId);
+        _visibleRooms.clear();
+        _visibleRooms.push_back(startRoomId);
 
         auto startRoom = level.GetRoom(startRoomId);
         if (!startRoom) return;
@@ -458,54 +469,59 @@ namespace Inferno::Render {
         auto screenBounds = Bounds2D({ -1, -1 }, { 1, 1 });
 
         // this fails when circular rooms join each other
-        for (auto& basePortal : startRoom->Portals) {
-            if (!SideIsTransparent(level, basePortal.Tag))
+        for (auto& portal : startRoom->Portals) {
+            if (!SideIsTransparent(level, portal.Tag))
                 continue; // stop at opaque walls like closed doors
 
-            auto baseFace = Face2::FromSide(level, basePortal.Tag);
+            auto baseFace = Face2::FromSide(level, portal.Tag);
             auto basePoints = GetNdc(baseFace, Render::ViewProjection);
 
-            if (auto linkedRoom = level.GetRoom(basePortal.RoomLink)) {
-                // Search next room if portal is on screen
-                if (basePoints) {
-                    if (!Seq::contains(_roomQueue, basePortal.RoomLink))
-                        _roomQueue.push_back(basePortal.RoomLink);
+            // Reset the visited rooms for each portal
+            //_roomQueue.clear();
+            //_roomQueue.push_back(startRoomId);
 
-                    auto bounds = Bounds2D::FromPoints(*basePoints);
-                    bounds = bounds.Intersection(screenBounds);
-                    if (bounds.Empty())
-                        continue;
+            // Search next room if portal is on screen
+            if (basePoints) {
+                //if (!Seq::contains(_roomQueue, basePortal.RoomLink))
+                //    _roomQueue.push_back(basePortal.RoomLink);
 
-                    if (bounds.CrossesPlane)
-                        bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
+                if (!Seq::contains(_visibleRooms, portal.RoomLink))
+                    _visibleRooms.push_back(portal.RoomLink);
 
-#ifdef DEBUG_PORTALS
+                auto bounds = Bounds2D::FromPoints(*basePoints);
+                bounds = bounds.Intersection(screenBounds);
+                if (bounds.Empty())
+                    continue;
+
+                if (bounds.CrossesPlane)
+                    bounds = screenBounds; // Uncertain where the bounds of the portal are, use the whole screen
+
+                if (Settings::Editor.ShowPortals)
                     DrawBounds(bounds, Color(0, 0, 1, 0.2f));
-#endif
-                    CheckRoomVisibility(level, *linkedRoom, bounds, 0);
-                }
+
+                CheckRoomVisibility(level, portal, bounds, 0, RoomID::None);
             }
         }
 
-        // grow visible rooms by one to prevent flicker when lights are on room boundaries at the edge of vision
-        auto startSize = _roomQueue.size();
+        // grow visible rooms by one to prevent flicker when lights are on room boundaries at the edge of vision or behind the view
+        auto startSize = _visibleRooms.size();
         for (int i = 0; i < startSize; i++) {
-            auto room = level.GetRoom(_roomQueue[i]);
+            auto room = level.GetRoom(_visibleRooms[i]);
             if (!room) continue;
 
             for (auto& portal : room->Portals) {
                 if (!SideIsTransparent(level, portal.Tag))
-                    continue; // Closed ot opaque side
+                    continue; // Closed or opaque side
 
-                if (!Seq::contains(_roomQueue, portal.RoomLink))
-                    _roomQueue.push_back(portal.RoomLink);
+                if (!Seq::contains(_visibleRooms, portal.RoomLink))
+                    _visibleRooms.push_back(portal.RoomLink);
             }
         }
 
         //SPDLOG_INFO("Update effects");
 
         // Reverse the room queue so distant room objects are drawn first
-        for (auto rid : _roomQueue | views::reverse) {
+        for (auto rid : _visibleRooms | views::reverse) {
             if (auto room = level.GetRoom(rid)) {
                 // queue wall meshes
                 for (auto& index : room->WallMeshes) {

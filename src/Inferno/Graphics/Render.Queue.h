@@ -89,6 +89,7 @@ namespace Inferno::Render {
         Set<SegID> _visited;
         std::queue<SegDepth> _search;
         List<RoomID> _roomQueue;
+        List<RoomID> _visibleRooms;
 
         struct ObjDepth {
             Object* Obj = nullptr;
@@ -104,12 +105,12 @@ namespace Inferno::Render {
         span<RenderCommand> Decal() { return _decalQueue; }
         span<RenderCommand> Transparent() { return _transparentQueue; }
         span<RenderCommand> Distortion() { return _distortionQueue; }
-        span<RoomID> GetVisibleRooms() { return _roomQueue; }
+        span<RoomID> GetVisibleRooms() { return _visibleRooms; }
 
     private:
         void QueueEditorObject(Object& obj, float lerp);
         void QueueRoomObjects(Level& level, const Room& room);
-        void CheckRoomVisibility(Level& level, Room& room, const Bounds2D& srcBounds, int depth);
+        void CheckRoomVisibility(Level& level, const Portal& srcPortal, const Bounds2D& srcBounds, int depth, RoomID prev);
         void TraverseLevelRooms(RoomID startRoomId, Level& level, span<LevelMesh> wallMeshes);
     };
 }
