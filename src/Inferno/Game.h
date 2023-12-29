@@ -41,6 +41,7 @@ namespace Inferno::Game {
     constexpr Color MATCEN_PHASING_COLOR = Color(8, 0, 8);
     constexpr float MATCEN_SOUND_RADIUS = 300;
     constexpr float FRIENDLY_FIRE_MULT = 0.5f; // Multiplier on damage robots do to each other or themselves
+    constexpr float POWERUP_RADIUS_MULT = 1.25f; // Make powerups easier to pick up
 
     inline int Difficulty = 2; // 0 to 4 for trainee to insane
     inline int LevelNumber = 0; // Index of loaded level starting at 1. Secret levels are negative. 0 means no level loaded.
@@ -127,7 +128,7 @@ namespace Inferno::Game {
     WeaponBehavior& GetWeaponBehavior(const string& name);
 
     constexpr float DOOR_WAIT_TIME = 5; // How long a door stays open before automatically closing
-    constexpr float MINE_ARM_TIME = 2.0f; // How long before player can shoot or be hit by their own mines
+    constexpr float MINE_ARM_TIME = 2.0f; // How long before an object can collide with their own mines. Also disables splash damage for the duration.
     constexpr int EXTRA_LIFE_POINTS = 50'000;
     constexpr uint HOSTAGE_SCORE = 1000;
     constexpr uint REACTOR_SCORE = 5000;

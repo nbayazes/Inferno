@@ -52,6 +52,8 @@ namespace Inferno {
 
     void SpawnContained(const ContainsData& contains, Level& level, const Vector3& position, SegID segment, const Vector3& force);
 
+    // Filter predicates
+
     inline bool IsReactor(const Object& obj) { return obj.Type == ObjectType::Reactor; }
     inline bool IsPlayer(const Object& obj) { return obj.Type == ObjectType::Player; }
 
@@ -82,7 +84,11 @@ namespace Inferno {
         void InitObjects(Inferno::Level& level);
         ObjRef DropPowerup(PowerupID pid, const Vector3& position, SegID segId, const Vector3& force = Vector3::Zero);
     }
+
     void DestroyObject(Object& obj);
     void ExplodeSubmodels(ModelID model, Object& obj);
     Tuple<ObjRef, float> FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask);
+
+    // Returns true if object is a prox mine, smart mine or editor placed mine
+    bool ObjectIsMine(const Object& obj);
 }

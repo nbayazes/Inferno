@@ -350,7 +350,7 @@ namespace Inferno {
         setEntry(ObjectType::Player, ObjectType::Reactor, CollisionType::SpherePoly);
         setEntry(ObjectType::Player, ObjectType::Hostage, CollisionType::SphereSphere);
         setEntry(ObjectType::Player, ObjectType::Marker, CollisionType::SphereSphere);
-        setEntry(ObjectType::Player, ObjectType::Weapon, CollisionType::SphereSphere);
+        //setEntry(ObjectType::Player, ObjectType::Weapon, CollisionType::SphereSphere); // Weapons can hit players but players can't hit weapons? Simplify logic...
         setEntry(ObjectType::Powerup, ObjectType::Player, CollisionType::SphereSphere);
 
         setEntry(ObjectType::Robot, ObjectType::Player, CollisionType::PolySphere);
@@ -372,12 +372,6 @@ namespace Inferno {
 
     constexpr CollisionTable COLLISION_TABLE = InitCollisionTable();
     constexpr CollisionType CheckCollision(ObjectType a, ObjectType b) { return COLLISION_TABLE[(int)a][(int)b]; }
-
-    bool ObjectIsMine(const Object& obj) {
-        if (!obj.IsWeapon()) return false;
-        auto id = (WeaponID)obj.ID;
-        return id == WeaponID::ProxMine || id == WeaponID::SmartMine || id == WeaponID::LevelMine;
-    }
 
     CollisionType ObjectCanHitTarget(const Object& src, const Object& target) {
         if (!target.IsAlive() && target.Type != ObjectType::Reactor) return CollisionType::None;
@@ -480,13 +474,16 @@ namespace Inferno {
         ASSERT(explosion.Room != RoomID::None);
         ASSERT(explosion.Segment != SegID::None);
 
+        if (explosion.Damage == 0 && explosion.Force == 0) 
+            return; // No effect
+
         auto action = [&](const Segment& seg, bool) {
             for (auto& objId : seg.Objects) {
                 auto obj = level.TryGetObject(objId);
                 if (!obj) continue;
                 auto& target = *obj;
 
-                if (&target == source) continue; // Don't hit self
+                if (source && target.Signature == source->Signature) continue; // Don't hit self
                 if (!target.IsAlive()) continue;
 
                 if (target.IsWeapon()) {
@@ -498,8 +495,8 @@ namespace Inferno {
                 if (parent && parent->IsRobot() && parent->Signature == target.Signature)
                     continue; // Don't let robots damage themselves with explosions. Important for boss robots and robots behind grates.
 
-                if (target.Type != ObjectType::Player && target.Type != ObjectType::Robot && target.Type != ObjectType::Weapon && target.Type != ObjectType::Reactor)
-                    continue;
+                if (!target.IsPlayer() && !target.IsRobot() && !target.IsWeapon() && !target.IsReactor())
+                    continue; // Filter invalid target types
 
                 auto dist = Vector3::Distance(target.Position, explosion.Position);
 
@@ -556,8 +553,8 @@ namespace Inferno {
 
                         ApplyForce(target, forceVec);
 
-                        if (ObjectIsMine(*source))
-                            damage = 0; // Don't apply damage from mines to robots, otherwise mine layers cause too much friendly fire
+                        if (source && source->Faction == Faction::Robot && ObjectIsMine(*source))
+                            damage = 0; // Don't apply explosion damage from mines to robots, otherwise mine layers cause too much friendly fire
 
                         //if (parent && parent->IsRobot() && target.IsRobot())
                         //    damage *= 0.5f; // Halve explosion damage to other robots
@@ -1159,7 +1156,7 @@ namespace Inferno {
     bool IntersectLevel(Level& level, Object& obj, ObjID id, LevelHit& hit, float dt) {
         // Don't hit test objects that haven't moved unless they are weapons (mines don't move).
         // Also always hit-test player so bouncing powerups will get collected.
-        if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Player) 
+        if (obj.Physics.Velocity.LengthSquared() <= MIN_TRAVEL_DISTANCE && obj.Type != ObjectType::Weapon && obj.Type != ObjectType::Player)
             return false;
 
         // Use a larger radius for the object so the large objects in adjacent segments are found.
@@ -1198,31 +1195,38 @@ namespace Inferno {
 
                     case CollisionType::SphereSphere:
                     {
-                        // for robots their spheres are too large... apply multiplier. Having some overlap is okay.
-                        auto radiusMult = obj.Type == ObjectType::Robot && other->Type == ObjectType::Robot ? 0.66f : 1.0f;
-                        BoundingSphere sphereA(obj.Position, obj.Radius * radiusMult);
-                        BoundingSphere sphereB(other->Position, other->Radius * radiusMult);
+                        auto r1 = obj.Radius, r2 = other->Radius;
 
-                        if (auto info = IntersectSphereSphere(sphereA, sphereB)) {
+                        // for robots their spheres are too large... apply multiplier. Having some overlap is okay.
+                        if (obj.IsRobot() && other->IsRobot()) {
+                            r1 *= 0.66f;
+                            r2 *= 0.66f;
+                        }
+
+                        // Make powerups slightly larger. The original game actually applied this on whether it in front of the player
+                        if (obj.IsPowerup()) r1 *= Game::POWERUP_RADIUS_MULT;
+                        if (other->IsPowerup()) r2 *= Game::POWERUP_RADIUS_MULT;
+
+                        if (auto info = IntersectSphereSphere({ obj.Position, r1 }, { other->Position, r2 })) {
                             hit.Update(info, other);
 
                             // Move players and robots when they collide with something
-                            if ((obj.Type == ObjectType::Robot || obj.Type == ObjectType::Player) &&
-                                (other->Type == ObjectType::Robot || other->Type == ObjectType::Player)) {
+                            if ((obj.IsRobot() || obj.IsPlayer()) &&
+                                (other->IsRobot() || other->IsPlayer())) {
                                 auto nDotVel = info.Normal.Dot(obj.Physics.Velocity);
                                 obj.Physics.Velocity -= info.Normal * nDotVel; // slide along normal
                                 hit.Speed = obj.Physics.Velocity.Length();
-                                obj.Position = info.Point + info.Normal * obj.Radius * radiusMult;
+                                obj.Position = info.Point + info.Normal * r1;
                                 //obj.Physics.Velocity += info.Normal * hitSpeed;
                             }
 
-
                             // Shove player when hit by weapons
-                            if (obj.Type == ObjectType::Weapon && other->Type == ObjectType::Player)
+                            if (obj.IsWeapon() && other->IsPlayer())
                                 hit.Speed = (obj.Physics.Velocity + other->Physics.Velocity).Length();
 
                             CollideObjects(hit, obj, *other, dt);
                         }
+
                         break;
                     }
                 }

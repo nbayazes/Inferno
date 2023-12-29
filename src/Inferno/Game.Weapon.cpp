@@ -13,9 +13,9 @@
 #include "Graphics/Render.Particles.h"
 
 namespace Inferno::Game {
-    void DrawWeaponExplosion(const Object& obj, const Weapon& weapon) {
+    void DrawWeaponExplosion(const Object& obj, const Weapon& weapon, float scale = 1) {
         Render::ExplosionInfo e;
-        e.Radius = { weapon.ImpactSize * 0.9f, weapon.ImpactSize * 1.1f };
+        e.Radius = { weapon.ImpactSize * 0.9f * scale, weapon.ImpactSize * 1.1f * scale };
         e.Clip = weapon.SplashRadius > 0 ? weapon.RobotHitVClip : weapon.WallHitVClip;
         e.FadeTime = weapon.Extended.ExplosionTime;
         e.LightColor = weapon.Extended.ExplosionColor;
@@ -35,9 +35,17 @@ namespace Inferno::Game {
         if (weapon.SplashRadius > 0) {
             // Create explosion
             float damage = weapon.Damage[Game::Difficulty];
-            DrawWeaponExplosion(obj, weapon);
+            float scale = 1;
 
             Sound::Play({ weapon.RobotHitSound }, obj.Position, obj.Segment);
+
+            // Mine was hit before it armed, do no splash damage
+            if (ObjectIsMine(obj) && obj.Control.Weapon.AliveTime < Game::MINE_ARM_TIME) {
+                damage = 0;
+                scale = 0.66f;
+            }
+
+            DrawWeaponExplosion(obj, weapon, scale);
 
             GameExplosion ge{};
             ge.Damage = damage;
@@ -58,7 +66,9 @@ namespace Inferno::Game {
     }
 
     void ProxMineBehavior(Object& mine) {
-        constexpr auto PROX_ACTIVATE_RANGE = 40;
+        constexpr auto PROX_ACTIVATE_RANGE = 40; // Starts tracking at this range
+        constexpr auto PROX_DETONATE_RANGE = 15; // Explodes at this distance to target
+        constexpr auto PROX_DETONATE_TIME = 0.3f; // Explode timer when 'close' to the target
         auto& cw = mine.Control.Weapon;
 
         if (TimeHasElapsed(mine.NextThinkTime)) {
@@ -82,6 +92,12 @@ namespace Inferno::Game {
 
         auto target = Game::Level.TryGetObject(cw.TrackingTarget);
         auto dist = target ? mine.Distance(*target) : FLT_MAX;
+
+        // Close to the target, explode soon!
+        if (dist <= PROX_DETONATE_RANGE && mine.Lifespan > PROX_DETONATE_TIME) {
+            mine.Lifespan = PROX_DETONATE_TIME;
+            return;
+        }
 
         if (dist <= PROX_ACTIVATE_RANGE) {
             if (target && target->IsPlayer()) {
@@ -744,39 +760,26 @@ namespace Inferno::Game {
     ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask) {
         ObjRef target;
         float bestDotFov = -1;
-        //float dist = FLT_MAX;
         auto forward = src.Rotation.Forward();
 
-        auto action = [&](const Room& room) {
-            for (auto& segId : room.Segments) {
-                auto& seg = Game::Level.GetSegment(segId);
+        IterateNearbySegments(Game::Level, src, maxDist, [&](const Segment& seg, bool&) {
+            for (auto& objId : seg.Objects) {
+                if (auto obj = Game::Level.TryGetObject(objId)) {
+                    if (!obj->IsAlive() || !obj->PassesMask(mask)) continue;
 
-                for (auto& objId : seg.Objects) {
-                    auto pobj = Game::Level.TryGetObject(objId);
-                    if (!pobj) continue;
-                    auto obj = *pobj;
-                    if (!obj.IsAlive()) continue;
-                    if (!obj.PassesMask(mask)) continue;
-
-                    auto [odir, odist] = GetDirectionAndDistance(obj.Position, src.Position);
+                    auto [odir, odist] = GetDirectionAndDistance(obj->Position, src.Position);
                     auto dot = odir.Dot(forward);
-
                     if (target && dot < bestDotFov /*&& !isClose*/)
                         continue; // Already found a target and this one is further from center FOV
 
-                    if (CanTrackTarget(src, obj, fov, maxDist)) {
+                    if (CanTrackTarget(src, *obj, fov, maxDist)) {
                         bestDotFov = dot;
-                        //dist = odist;
-                        target = { objId, obj.Signature };
+                        target = { objId, obj->Signature };
                     }
                 }
             }
+        });
 
-            return false;
-        };
-
-        auto room = Game::Level.GetRoomID(src);
-        TraverseRoomsByDistance(Game::Level, room, src.Position, maxDist, false, action);
         return target;
     }
 
@@ -798,7 +801,7 @@ namespace Inferno::Game {
         auto gunSubmodel = GetGunpointSubmodelOffset(playerObj, gun);
         auto objOffset = GetSubmodelOffset(playerObj, gunSubmodel);
         auto start = Vector3::Transform(objOffset, playerObj.GetTransform());
-        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot);
+        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot | ObjectMask::Mine);
 
         auto spark = Render::EffectLibrary.GetSparks("omega_hit");
 
@@ -929,8 +932,9 @@ namespace Inferno::Game {
 
     void FusionBehavior(const Inferno::Player& player, uint8 gun, WeaponID wid) {
         // Fixes original behavior of fusion jumping from 2.9x to 4x damage at 4 seconds charge.
-        // This is believed to be a logic error. One could argue the charge multiplier should
-        // be 4 and not 3, but that would make fusion stronger under normal usage.
+        // This is believed to be a logic error.
+        // Self-damage starts after two seconds, at which the original damage multiplier is 2x.
+        // This funciton results in a 2.5x multiplier at 2 seconds, a small buff to charging.
         constexpr auto MAX_FUSION_CHARGE_TIME = 4.0f; // Time in seconds for full charge
         constexpr auto MAX_FUSION_CHARGE_MULT = 3.0f; // Bonus damage multiplier for full charge
         float multiplier = MAX_FUSION_CHARGE_MULT * player.WeaponCharge / MAX_FUSION_CHARGE_TIME;
@@ -1085,33 +1089,49 @@ namespace Inferno::Game {
             return; // Not ready to start homing yet
 
         weapon.Physics.Bounces = 0; // Hack for smart missile blob bounces
-        auto& targetRef = weapon.Control.Weapon.TrackingTarget;
+        auto& target = weapon.Control.Weapon.TrackingTarget;
+        auto fov = weaponInfo.Extended.HomingFov;
+        auto distance = weaponInfo.Extended.HomingDistance;
+
+        bool targetingMine = false;
 
         // Check if the target is still trackable
-        if (targetRef) {
-            auto target = Game::Level.TryGetObject(targetRef);
-            if (!target || !CanTrackTarget(weapon, *target, weaponInfo.Extended.HomingFov, weaponInfo.Extended.HomingDistance)) {
+        if (target) {
+            auto targetObj = Game::GetObject(target);
+            if (targetObj)
+                targetingMine = ObjectIsMine(*targetObj);
+
+            if (!targetObj || !CanTrackTarget(weapon, *targetObj, fov, distance)) {
                 SPDLOG_INFO("Lost tracking target");
-                targetRef = {}; // target destroyed or out of view
+                target = {}; // target destroyed or out of view
             }
         }
 
-        if (!targetRef) {
+        // Check if a mine came into view
+        if (!targetingMine) {
+            // Retarget to the mine
+            if (auto mine = GetClosestObjectInFOV(weapon, fov / 2, distance / 2, ObjectMask::Mine)) {
+                target = mine;
+                SPDLOG_INFO("Switching targets to mine {}", mine);
+            }
+        }
+        
+        if (!target) {
             // Find a new target
-            auto mask = ObjectMask::Robot;
-            if (auto parent = Game::Level.TryGetObject(weapon.Parent))
+            auto mask = ObjectMask::Robot | ObjectMask::Mine;
+            if (auto parent = Game::GetObject(weapon.Parent))
                 if (parent->IsRobot())
                     mask = ObjectMask::Player;
 
-            targetRef = GetClosestObjectInFOV(weapon, weaponInfo.Extended.HomingFov, weaponInfo.Extended.HomingDistance, mask);
-            if (targetRef)
-                SPDLOG_INFO("Locking onto {}", targetRef);
+            target = GetClosestObjectInFOV(weapon, fov, distance, mask);
+            if (target)
+                SPDLOG_INFO("Locking onto {}", target);
         }
-        else if (auto target = Game::Level.TryGetObject(targetRef)) {
+        else if (auto targetObj = Game::GetObject(target)) {
             // turn towards target
-            auto [targetDir, targetDist] = GetDirectionAndDistance(target->Position, weapon.Position);
+            auto [targetDir, targetDist] = GetDirectionAndDistance(targetObj->Position, weapon.Position);
 
-            if (target->IsPlayer()) {
+            if (targetObj->IsPlayer()) {
                 if (Game::Player.HomingObjectDist < 0 || targetDist < Game::Player.HomingObjectDist)
                     Game::Player.HomingObjectDist = targetDist;
             }
@@ -1138,9 +1158,6 @@ namespace Inferno::Game {
             weapon.Physics.Velocity = dir * speed;
 
             //Render::Debug::DrawLine(weapon.Position, target->Position, Color(1, 0, 0));
-
-            // Remove life based on amount turned ... ?
-            //auto dot = tempVel.Dot(targetDir);
             TurnTowardsNormal(weapon, dir, dt);
         }
     }

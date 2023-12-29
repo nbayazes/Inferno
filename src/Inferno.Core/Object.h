@@ -4,6 +4,7 @@
 #include "AI.h"
 #include "Dynamics.h"
 #include "Polymodel.h"
+#include "Weapon.h"
 
 namespace Inferno {
     // Control types - what tells this object what do do
@@ -301,7 +302,8 @@ namespace Inferno {
         Robot = 1 << 0, // Reactor or robot
         Player = 1 << 1, // Player or Coop
         Powerup = 1 << 2, // Powerup or hostage
-        Any = Robot | Player | Powerup,
+        Weapon = 1 << 3,
+        Mine = 1 << 4 // Subtype of weapon. prox, smart or editor placed mine
     };
 
     constexpr double MAX_OBJECT_LIFE = 3600 * 100; // 100 hours
@@ -472,7 +474,6 @@ namespace Inferno {
         }
 
         bool PassesMask(ObjectMask mask) const {
-            if (mask == ObjectMask::Any) return true;
             if (mask == ObjectMask::None) return false;
 
             switch (Type) {
@@ -487,6 +488,12 @@ namespace Inferno {
                 case ObjectType::Powerup:
                 case ObjectType::Hostage:
                     return HasFlag(mask, ObjectMask::Powerup);
+
+                case ObjectType::Weapon:
+                    if (HasFlag(mask, ObjectMask::Mine))
+                        return ID == (int8)WeaponID::ProxMine || ID == (int8)WeaponID::SmartMine || ID == (int8)WeaponID::LevelMine;
+                    else
+                        return HasFlag(mask, ObjectMask::Weapon);
 
                 default:
                     return false;
@@ -503,6 +510,7 @@ namespace Inferno {
         bool IsCoop() const { return Type == ObjectType::Coop; }
         bool IsRobot() const { return Type == ObjectType::Robot; }
         bool IsWeapon() const { return Type == ObjectType::Weapon; }
+        bool IsReactor() const { return Type == ObjectType::Reactor; }
     };
 
     // Point used for AI navigation

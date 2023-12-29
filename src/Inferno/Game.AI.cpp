@@ -204,7 +204,7 @@ namespace Inferno {
                         auto& ai = GetAI(*obj);
                         if (ai.State == AIState::Idle || ai.State == AIState::Alert || ai.State == AIState::Roam) {
                             if (ai.State == AIState::Idle) {
-                                Chat(*obj, "Drone {} says he sees something", source.Signature);
+                                Chat(*obj, "Drone {} says it sees something", source.Signature);
                                 PlayAlertSound(*obj, ai);
                             }
 

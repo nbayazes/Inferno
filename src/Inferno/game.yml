@@ -113,7 +113,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    Glow: .25, .25, 1, 22
+    Glow: .125, .125, 1, 30
     LightColor: 0.15, 0.15, 0.6
     FlashColor: 0.7, 0.7, 1, 2
 
@@ -401,7 +401,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    Glow: 1, 0.25, 0.25, 24
+    Glow: 1, 0, 0, 25
     LightColor: 1, 0.025, 0.025
     FlashColor: 1, 0.25, 0.25, 20
 
@@ -414,7 +414,7 @@ Weapons:
     ExplosionSize: 1.75
     ExplosionTime: 0.4
     LightRadius: 16
-    Glow: .5, 1, .5, 10
+    Glow: 0, 1, 0, 14
     LightColor: 0.075, 0.6, 0.075
     FlashColor: 1, 1, .125, .5
 
@@ -620,7 +620,7 @@ Robots:
     ExplosionStrength: 15
     AlertRadius: 160 # Miniboss alert radius
     ChaseChance: 0
-    SuppressChance: 0.2
+    SuppressChance: 1.2
     # DeathRollSound: 185 # d1
   - id: 16 # Red hulk
     CircleDistance: 80
@@ -650,7 +650,7 @@ Robots:
     Drag: 0.05
     SuppressChance: .2
     ChaseChance: .2
-  - id: 20 # Green hulk
+  - id: 20 # Green hulk / Small hulk
     CircleDistance: 40
     Mass: 6.5
     FireDelay: [ 3, 2, 1, 0.5, 0.5 ]

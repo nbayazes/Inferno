@@ -479,6 +479,12 @@ namespace Inferno {
         }
     }
 
+    bool ObjectIsMine(const Object& obj) {
+        if (!obj.IsWeapon()) return false;
+        auto id = (WeaponID)obj.ID;
+        return id == WeaponID::ProxMine || id == WeaponID::SmartMine || id == WeaponID::LevelMine;
+    }
+
     Tuple<ObjRef, float> Game::FindNearestObject(const Vector3& position, float maxDist, ObjectMask mask) {
         ObjRef ref;
         //auto& srcObj = Level.GetObject(src);
