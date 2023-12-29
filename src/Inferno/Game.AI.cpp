@@ -62,7 +62,8 @@ namespace Inferno {
             SPDLOG_INFO("Resizing AI state");
         }
 
-        RuntimeState.resize(size);
+        if (size > RuntimeState.capacity())
+            RuntimeState.resize(size);
     }
 
     AIRuntime& GetAI(const Object& obj) {
@@ -338,10 +339,17 @@ namespace Inferno {
         // todo: seismic disturbance inaccuracy (self destruct, earthshaker)
 
         // Randomize target based on difficulty
+        //Vector3 target = {
+        //    point.x + RandomN11() * (5 - Game::Difficulty - 1) * aim,
+        //    point.y + RandomN11() * (5 - Game::Difficulty - 1) * aim,
+        //    point.z + RandomN11() * (5 - Game::Difficulty - 1) * aim
+        //};
+
+        // Randomize target based on aim
         Vector3 target = {
-            point.x + RandomN11() * (5 - Game::Difficulty - 1) * aim,
-            point.y + RandomN11() * (5 - Game::Difficulty - 1) * aim,
-            point.z + RandomN11() * (5 - Game::Difficulty - 1) * aim
+            point.x + RandomN11() * aim,
+            point.y + RandomN11() * aim,
+            point.z + RandomN11() * aim
         };
 
         // this duplicates position/direction calculation in FireWeapon...
@@ -434,7 +442,7 @@ namespace Inferno {
         return target.Position; // Wasn't able to lead target
     }
 
-    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind) {
+    void FireRobotWeapon(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, Vector3 target, bool primary, bool blind, bool lead) {
         if (!primary && robotInfo.WeaponType2 == WeaponID::None) return; // no secondary set
 
         auto& weapon = Resources::GetWeapon(primary ? robotInfo.WeaponType : robotInfo.WeaponType2);
@@ -444,15 +452,11 @@ namespace Inferno {
         float maxAimAssit = GetMaxAimAssistAngle(weapon);
         auto forward = robot.Rotation.Forward();
 
-        auto leadChance = Game::Difficulty / 4.0f; // 50% on hotshot, 75% on ace, 100% on insane
-        bool shouldLead = Random() <= leadChance * 0.9f; // Don't always lead even on insane, keep the player guessing
-        if (Game::Difficulty < 2) shouldLead = false; // Don't lead on rookie and trainee, also weapons are too slow to meaningfully lead.
-
         if (blind) {
             // add inaccuracy if target is cloaked or doing a blind-fire
             target += RandomVector() * 5.0f;
         }
-        else if (auto targetObj = Game::GetObject(ai.Target); targetObj && shouldLead) {
+        else if (auto targetObj = Game::GetObject(ai.Target); targetObj && lead) {
             target = LeadTarget(robot.Position, robot.Segment, *targetObj, weapon);
         }
 
@@ -740,16 +744,26 @@ namespace Inferno {
     //    { "trooper", HelixBehavior },
     //};
 
+    bool RollShouldLead() {
+        auto leadChance = Game::Difficulty / 4.0f; // 50% on hotshot, 75% on ace, 100% on insane
+        bool shouldLead = Random() <= leadChance * 0.9f; // Don't always lead even on insane, keep the player guessing
+        if (Game::Difficulty < 2) shouldLead = false; // Don't lead on rookie and trainee, also weapons are too slow to meaningfully lead.
+        return shouldLead;
+    }
+
     void FireRobotPrimary(const Object& robot, AIRuntime& ai, const RobotInfo& robotInfo, const Vector3& target, bool blind) {
         ai.FireDelay = 0;
+
         // multishot: consume as many projectiles as possible based on burst count
         // A multishot of 1 and a burst of 3 would fire 2 projectiles then 1 projectile
         // Multishot incurs extra fire delay per projectile
         auto burstDelay = std::min(1 / 8.0f, Difficulty(robotInfo).FireDelay / 2);
+        auto shouldLead = RollShouldLead(); // only roll once per fire
+
         for (int i = 0; i < robotInfo.Multishot; i++) {
             ai.FireDelay += burstDelay;
 
-            FireRobotWeapon(robot, ai, robotInfo, target, true, blind);
+            FireRobotWeapon(robot, ai, robotInfo, target, true, blind, shouldLead);
             ai.BurstShots++;
             if (ai.BurstShots >= Difficulty(robotInfo).ShotCount) {
                 ai.BurstShots = 0;
@@ -903,7 +917,7 @@ namespace Inferno {
             }
 
             // Secondary weapons have no animations or wind up
-            FireRobotWeapon(robot, ai, robotInfo, ai.TargetPosition->Position, false, blind);
+            FireRobotWeapon(robot, ai, robotInfo, ai.TargetPosition->Position, false, blind, false);
             ai.FireDelay2 = Difficulty(robotInfo).FireDelay2;
         }
         else {

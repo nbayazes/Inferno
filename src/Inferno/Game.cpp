@@ -734,6 +734,10 @@ namespace Inferno::Game {
             return; // no player start!
         }
 
+        // Reset level timing
+        Game::Time = Game::FrameTime = Game::DeltaTime = 0;
+        ResetDeltaTime = true;
+
         // Activate game mode
         Editor::InitObject(Level, *player, ObjectType::Player);
         Player.Reference = { ObjID(0), player->Signature };
@@ -815,9 +819,6 @@ namespace Inferno::Game {
         Settings::Editor.RenderMode = RenderMode::Shaded;
         Input::SetMouseMode(Input::MouseMode::Mouselook);
         Player.Respawn(false);
-
-        Game::Time = Game::FrameTime = Game::DeltaTime = 0;
-        ResetDeltaTime = true;
     }
 
     void SetState(GameState state) {
