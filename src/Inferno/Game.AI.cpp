@@ -708,6 +708,10 @@ namespace Inferno {
 
         if (Settings::Cheats.DisableWeaponDamage) return;
 
+        // Make phasing robots (bosses and matcens) take less damage
+        if (robot.Effects.GetPhasePercent() > 0)
+            damage *= std::max(1 - robot.Effects.GetPhasePercent(), 0.1f);
+
         // Apply damage
         robot.HitPoints -= damage;
 
