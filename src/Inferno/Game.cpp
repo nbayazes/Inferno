@@ -779,7 +779,7 @@ namespace Inferno::Game {
                 obj.MaxHitPoints = obj.HitPoints = ri.HitPoints;
                 obj.Faction = Faction::Robot;
                 SetFlag(obj.Physics.Flags, PhysicsFlag::SphereCollidePlayer);
-                obj.NextThinkTime = Time + 0.5f; // Help against hot-starts by sleeping robots on level load
+                obj.NextThinkTime = 0.5f; // Help against hot-starts by sleeping robots on level load
                 PlayRobotAnimation(obj, AnimState::Rest);
                 //obj.Physics.Wiggle = obj.Radius * 0.01f;
                 //obj.Physics.WiggleRate = 0.33f;
