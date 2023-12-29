@@ -1452,7 +1452,8 @@ namespace Inferno {
                 }
             }
 
-            if (ai.Awareness <= 0) {
+            // Prevent robots from exiting attack mode mid-charge
+            if (ai.Awareness <= 0 && ai.WeaponCharge <= 0) {
                 Chat(robot, "Stay on alert");
                 ai.State = AIState::Alert;
                 ai.Awareness = 1; // Reset awareness so robot stays alert for a while
