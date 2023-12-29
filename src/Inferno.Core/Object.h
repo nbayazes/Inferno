@@ -297,7 +297,7 @@ namespace Inferno {
 
     constexpr double NEVER_THINK = -1;
 
-    enum class ObjectMask {
+    enum class ObjectMask : uint8 {
         None = 0,
         Robot = 1 << 0, // Reactor or robot
         Player = 1 << 1, // Player or Coop
@@ -308,7 +308,7 @@ namespace Inferno {
 
     constexpr double MAX_OBJECT_LIFE = 3600 * 100; // 100 hours
 
-    enum class EffectFlags {
+    enum class EffectFlags : uint8 {
         None,
         Cloaked = 1 << 0,
         Invulnerable = 1 << 1,
@@ -317,10 +317,11 @@ namespace Inferno {
         Ignited = 1 << 4
     };
 
-    enum class Faction {
-        Neutral,
-        Player,
-        Robot
+    enum class Faction : uint8 {
+        None = 0,
+        Neutral = 1 << 0,
+        Player = 1 << 1,
+        Robot = 1 << 2
     };
 
     struct ObjectEffects {
@@ -498,6 +499,11 @@ namespace Inferno {
                 default:
                     return false;
             }
+        }
+
+        bool IsInFaction(Inferno::Faction faction) const {
+            if (faction == Faction::None) return false;
+            return HasFlag(Faction, faction);
         }
 
         bool IsPowerup(PowerupID id) const {

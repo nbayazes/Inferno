@@ -757,7 +757,7 @@ namespace Inferno::Game {
     }
 
     // Used for omega and homing weapons
-    ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask) {
+    ObjRef GetClosestObjectInFOV(const Object& src, float fov, float maxDist, ObjectMask mask, Faction faction) {
         ObjRef target;
         float bestDotFov = -1;
         auto forward = src.Rotation.Forward();
@@ -765,7 +765,7 @@ namespace Inferno::Game {
         IterateNearbySegments(Game::Level, src, maxDist, [&](const Segment& seg, bool&) {
             for (auto& objId : seg.Objects) {
                 if (auto obj = Game::Level.TryGetObject(objId)) {
-                    if (!obj->IsAlive() || !obj->PassesMask(mask)) continue;
+                    if (!obj->IsAlive() || !obj->PassesMask(mask) || !obj->IsInFaction(faction)) continue;
 
                     auto [odir, odist] = GetDirectionAndDistance(obj->Position, src.Position);
                     auto dot = odir.Dot(forward);
@@ -801,7 +801,7 @@ namespace Inferno::Game {
         auto gunSubmodel = GetGunpointSubmodelOffset(playerObj, gun);
         auto objOffset = GetSubmodelOffset(playerObj, gunSubmodel);
         auto start = Vector3::Transform(objOffset, playerObj.GetTransform());
-        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot | ObjectMask::Mine);
+        auto initialTarget = GetClosestObjectInFOV(playerObj, FOV, MAX_DIST, ObjectMask::Robot | ObjectMask::Mine, Faction::Robot | Faction::Neutral);
 
         auto spark = Render::EffectLibrary.GetSparks("omega_hit");
 
@@ -1107,12 +1107,14 @@ namespace Inferno::Game {
             }
         }
 
+
         // Check if a mine came into view
         if (!targetingMine) {
-            // Retarget to the mine
-            if (auto mine = GetClosestObjectInFOV(weapon, fov / 2, distance / 2, ObjectMask::Mine)) {
+            Faction targetFaction = HasFlag(weapon.Faction, Faction::Player) ? Faction::Robot | Faction::Neutral : Faction::Player | Faction::Neutral;
+
+            if (auto mine = GetClosestObjectInFOV(weapon, fov / 2, distance / 2, ObjectMask::Mine, targetFaction)) {
                 target = mine;
-                SPDLOG_INFO("Switching targets to mine {}", mine);
+                SPDLOG_INFO("Redirecting missile to mine {}", mine);
             }
         }
         
@@ -1123,7 +1125,7 @@ namespace Inferno::Game {
                 if (parent->IsRobot())
                     mask = ObjectMask::Player;
 
-            target = GetClosestObjectInFOV(weapon, fov, distance, mask);
+            target = GetClosestObjectInFOV(weapon, fov, distance, mask, FlipFlags(weapon.Faction));
             if (target)
                 SPDLOG_INFO("Locking onto {}", target);
         }

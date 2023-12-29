@@ -253,6 +253,9 @@ namespace Inferno {
     }
 
     template <class T>
+    T FlipFlags(T flags) { return ~flags; }
+
+    template <class T>
     concept IsEnum = is_scoped_enum_v<T>;
 
     // Converts an enum to the underlying type
