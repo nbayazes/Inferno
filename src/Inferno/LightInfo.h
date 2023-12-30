@@ -16,8 +16,8 @@ namespace Inferno {
         None = 0,
         U = 1,
         V = 2,
-        EdgeU = 3,
-        EdgeV = 4 // Wraps on V, but combines the first and last light when texture wraps on U
+        //EdgeU = 3,
+        //EdgeV = 4 // Wraps on V, but combines the first and last light when texture wraps on U
     };
 
     // Defines dynamic light sources on a texture

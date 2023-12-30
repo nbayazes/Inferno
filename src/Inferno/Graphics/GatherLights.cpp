@@ -370,6 +370,14 @@ namespace Inferno::Graphics {
             //if (side.Normals[0].Dot(side.Normals[1]) < 0.9f)
             //    offset += 2.0f; // Move lights of non-planar surfaces outward to prevent intersection with the wall
 
+            struct SurfaceLight {
+                Vector2 UV;
+                LightData Data;
+                bool Visited = false;
+            };
+
+            List<SurfaceLight> sideSources;
+
             // iterate each tile, checking the defined UVs
             for (int ix = xMin; ix < xMax; ix++) {
                 for (int iy = yMin; iy < yMax; iy++) {
@@ -405,9 +413,6 @@ namespace Inferno::Graphics {
                             // Extend the begin/end uvs so they should always cross
                             auto uvVec = uv1 - uv0;
                             uvVec.Normalize();
-                            //uv0 += uvVec * Vector2((float)std::abs(xMin), (float)std::abs(yMin));
-                            //uv1 += uvVec * Vector2((float)std::abs(xMax), (float)std::abs(yMax));
-
                             uv0 -= uvVec * Vector2(100, 100);
                             uv1 += uvVec * Vector2(100, 100);
 
@@ -449,13 +454,14 @@ namespace Inferno::Graphics {
                                     up.Normalize(upVec);
                                     auto rightVec = side.AverageNormal.Cross(upVec);
 
+                                    auto uv = (uvEdge0 + uvEdge1) / 2;
                                     light.type = LightType::Rectangle;
                                     light.pos = center + side.AverageNormal * offset;
                                     light.right = rightVec * info->Width * uvScale.x;
                                     light.up = up;
                                     light.up -= upVec * 1.5f; // offset the ends to prevent hotspots
                                     light.mode = lightMode;
-                                    sources.push_back(light);
+                                    sideSources.push_back({ uv, light });
                                 }
                             }
                         }
@@ -500,11 +506,88 @@ namespace Inferno::Graphics {
                                 light.right = rightVec * info->Width * uvScale.x;
                                 light.up = -upVec * info->Height * uvScale.y; // reverse for some reason
                                 light.mode = lightMode;
-                                sources.push_back(light);
+                                sideSources.push_back({ uv, light });
                             }
                         }
                     }
                 }
+            }
+
+            if (sideSources.empty()) continue;
+
+            constexpr float MERGE_THRESHOLD = 0.0125f;
+
+            List<SurfaceLight> buffer;
+
+            // Deduplicate
+            for (int i = 0; i < sideSources.size(); i++) {
+                auto& light = sideSources[i];
+                ASSERT(light.Data.normal != Vector3::Zero);
+                if (light.Visited) continue;
+                light.Visited = true;
+
+                for (int j = 0; j < sideSources.size(); j++) {
+                    auto& other = sideSources[j];
+                    if (other.Visited) continue;
+
+                    if (std::abs(light.UV.x - other.UV.x) < MERGE_THRESHOLD && std::abs(light.UV.y - other.UV.y) < MERGE_THRESHOLD) {
+                        other.Visited = true;
+                    }
+                }
+
+                buffer.push_back(light);
+            }
+
+            sideSources.clear();
+            Seq::append(sideSources, buffer);
+            for (auto& src : sideSources) {
+                src.Visited = false;
+            }
+
+            int mergeMode = -1;
+            if (info->Wrap == LightWrapMode::U) {
+                mergeMode = side.OverlayRotation == OverlayRotation::Rotate0 || side.OverlayRotation == OverlayRotation::Rotate180;
+            }
+            else if (info->Wrap == LightWrapMode::V) {
+                mergeMode = side.OverlayRotation == OverlayRotation::Rotate90 || side.OverlayRotation == OverlayRotation::Rotate270;
+            }
+
+            if (mergeMode != -1) {
+                buffer.clear();
+
+                // Merge nearby
+                for (int i = 0; i < sideSources.size(); i++) {
+                    auto& light = sideSources[i];
+                    if (light.Visited) continue;
+                    light.Visited = true;
+
+                    for (int j = 0; j < sideSources.size(); j++) {
+                        auto& other = sideSources[j];
+                        if (other.Visited) continue;
+
+                        bool merge = false;
+                        if (mergeMode == 0 && std::abs(light.UV.x - other.UV.x) < 0.125f) {
+                            merge = true;
+                        }
+                        else if (mergeMode == 1 && std::abs(light.UV.y - other.UV.y) < 0.125f) {
+                            merge = true;
+                        }
+
+                        // Merge nearby lights
+                        if (merge) {
+                            other.Visited = true;
+                            light.Data.pos = (light.Data.pos + other.Data.pos) / 2;
+                            light.Data.right *= 2;
+                        }
+                    }
+
+                    buffer.push_back(light);
+                }
+            }
+
+            for (auto& light : buffer) {
+                light.Data.normal.Normalize();
+                sources.push_back(light.Data);
             }
         }
     }

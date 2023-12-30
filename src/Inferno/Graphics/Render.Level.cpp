@@ -494,9 +494,11 @@ namespace Inferno::Render {
                         else {
                             Debug::DrawPoint(light.pos, color);
                             //Debug::DrawLine(light.pos, light.pos + light.normal * light.radius/2, color);
-                            auto transform = Matrix(VectorToRotation(light.normal));
-                            transform.Translation(light.pos);
-                            Debug::DrawCircle(5 /*light.radius*/, transform, color);
+                            if (light.normal != Vector3::Zero) {
+                                auto transform = Matrix(VectorToRotation(light.normal));
+                                transform.Translation(light.pos);
+                                Debug::DrawCircle(5 /*light.radius*/, transform, color);
+                            }
                         }
                     }
                 }
