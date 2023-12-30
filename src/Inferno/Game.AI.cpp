@@ -579,6 +579,8 @@ namespace Inferno {
 
         if (robotInfo.Attack == AttackType::Ranged && (dist > minDist || dist < maxDist))
             return; // in deadzone, no need to move. Otherwise robots clump up on each other.
+        else if (robotInfo.Attack == AttackType::Melee && dist < circleDistance)
+            return;
 
         if (dist > circleDistance)
             MoveTowardsTarget(level, robot, ai, dir);
@@ -1035,6 +1037,7 @@ namespace Inferno {
                     Game::Player.ApplyDamage(Difficulty(robotInfo).MeleeDamage, false); // todo: make this generic. Damaging object should update the linked player
 
                     target.Physics.Velocity += targetDir * 5; // shove the target backwards
+                    ai.Awareness = 1; // Hit something, reset awareness (cloaked targets)
 
                     if (auto sparks = Render::EffectLibrary.GetSparks("melee hit")) {
                         auto position = robot.Position + targetDir * robot.Radius;
@@ -1533,7 +1536,6 @@ namespace Inferno {
             if (validState && ai.ChaseTimer <= 0 &&
                 ai.Awareness >= AI_AWARENESS_MAX &&
                 robot.Control.AI.Behavior != AIBehavior::Still) {
-
                 ai.ChaseTimer = AI_CURIOSITY_INTERVAL; // Only check periodically
 
                 if (Random() < robotInfo.Curiosity) {
